@@ -31,6 +31,9 @@ class AdapterResult:
     consumed: list[str] = field(default_factory=list)
     # Files the adapter generated: project-relative target path -> absolute source file.
     generated: dict[str, str] = field(default_factory=dict)
+    # FolderRule dicts and the matched profile id: only the profile adapter sets them.
+    folder_rules: list[dict[str, Any]] = field(default_factory=list)
+    profile_id: str | None = None
 
 
 @dataclass

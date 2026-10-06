@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, Qt, QTimer
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QComboBox,
@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QMessageBox,
-    QProgressDialog,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -31,6 +30,7 @@ from rpggen.gui import state as state_mod
 from rpggen.gui import workers
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
+from rpggen.gui.widgets import analysis_progress
 
 log = logging.getLogger(__name__)
 
@@ -471,40 +471,4 @@ class ProjectPage(WizardPage):
 
     def _run_analysis(self, state: WizardState) -> bool:
         """Analyze in a worker behind a modal progress dialog; False when cancelled or failed."""
-        worker = workers.Worker(workers.analyze_packs, state)
-        dialog = QProgressDialog(self.tr("Reading asset packs…"), self.tr("Cancel"), 0, 0, self)
-        dialog.setObjectName("analysisProgress")
-        dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        dialog.setMinimumDuration(0)
-        outcome: dict[str, object] = {}
-        loop = QEventLoop()
-
-        def on_progress(label: str, i: int, n: int) -> None:
-            dialog.setLabelText(label)
-            dialog.setMaximum(n)
-            dialog.setValue(i)
-
-        def on_done(result: object) -> None:
-            outcome["result"] = result
-            loop.quit()
-
-        def on_failed(error: object) -> None:
-            outcome["error"] = error
-            loop.quit()
-
-        worker.signals.progress.connect(on_progress)
-        worker.signals.finished.connect(on_done)
-        worker.signals.failed.connect(on_failed)
-        dialog.canceled.connect(worker.cancel)
-        dialog.show()
-        worker.start()
-        loop.exec()
-        dialog.close()
-        if "result" not in outcome:
-            error = outcome.get("error")
-            if error is not None and not isinstance(error, workers.Cancelled):
-                message = getattr(error, "message", None) or str(error)
-                QMessageBox.warning(self, self.tr("Could not read the packs"), message)
-            return False
-        workers.apply_analysis(state, outcome["result"])  # type: ignore[arg-type]
-        return True
+        return analysis_progress.run_analysis(self, state)

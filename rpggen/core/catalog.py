@@ -433,6 +433,10 @@ def assign_tilesets(
 ) -> None:
     """Group tile sheets into TileSetDefs and allocate source ids (never renumbered)."""
     prev_defs = {t.name: t for t in previous.tilesets} if previous else {}
+    # tile set definitions of a matched profile apply to tile sets the catalog has not seen yet
+    profile_defs = {
+        e["name"]: e for e in adapter_tilesets or [] if e.get("from_profile") and "name" in e
+    }
     prev_source_of: dict[str, tuple[str, int]] = {}
     for tdef in prev_defs.values():
         for src in tdef.sources:
@@ -454,6 +458,18 @@ def assign_tilesets(
     for aid, (name, size) in sorted(names.items()):
         if name not in defs:
             prev = prev_defs.get(name)
+            if prev is None and name in profile_defs:
+                prof = profile_defs[name]
+                prev = TileSetDef(
+                    name,
+                    [size, size],
+                    [],
+                    copy.deepcopy(prof.get("terrain_sets", [])),
+                    copy.deepcopy(prof["physics_layers"]),
+                    copy.deepcopy(prof["custom_data"]),
+                    prof.get("navigation", False),
+                    prof.get("patterns_from_objects", True),
+                )
             defs[name] = TileSetDef(
                 name=name,
                 tile_size=[size, size],
@@ -563,6 +579,7 @@ def assemble(
     objects_raw: list[tuple[str, dict[str, Any]]] = []  # (pack_id, adapter object dict)
     present_ids: set[str] = set()
     all_results: dict[str, list[Any]] = {}
+    extra_rules: list[FolderRule] = []
 
     for opened, inv in sorted(packs, key=lambda pair: _sort_key(pair[1].pack_id)):
         pack_id = inv.pack_id
@@ -578,6 +595,9 @@ def assemble(
         all_results[pack_id] = results
         warnings: list[str] = []
         for res in results:
+            extra_rules.extend(
+                FolderRule(pack_id, r["glob"], copy.deepcopy(r["set"])) for r in res.folder_rules
+            )
             issues.extend(res.issues)
             warnings.extend(res.pack_warnings)
             generated.update(res.generated)
@@ -657,13 +677,12 @@ def assemble(
                 root,
                 licenses,
                 [r.adapter for r in results if r.assets or r.objects or r.tilesets],
-                None,
+                next((r.profile_id for r in results if r.profile_id), None),
                 sorted(set(warnings)),
             )
         )
 
     _carry_previous(catalog, previous, present_ids, issues)
-    extra_rules: list[FolderRule] = []
     for profile in profiles or []:
         extra_rules.extend(getattr(profile, "folder_rules", []))
     if previous:
@@ -723,6 +742,13 @@ def _add_objects(
 ) -> None:
     """SheetObjects from adapters; user objects of the previous catalog are kept."""
     by_path = {a.path: a for a in catalog.assets if not a.id.count("#")}
+    # a profile's objects are the user's decisions: they replace the detection of their sheet
+    curated = {(p, o["sheet_path"]) for p, o in objects_raw if o.get("authoritative")}
+    objects_raw = [
+        (p, o)
+        for p, o in objects_raw
+        if o.get("authoritative") or (p, o["sheet_path"]) not in curated
+    ]
     seen: set[str] = set()
     for pack_id, raw in objects_raw:
         sheet = by_path.get(f"assets/packs/{pack_id}/{raw['sheet_path']}")

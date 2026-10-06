@@ -8,19 +8,28 @@ from pathlib import Path
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
     QLabel,
     QMenu,
+    QMessageBox,
     QSplitter,
     QStackedWidget,
     QTabWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
+from rpggen import ids
 from rpggen.core import catalog as catalog_mod
+from rpggen.core import profiles
+from rpggen.errors import RpgGenError
+from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog
 from rpggen.gui.edits import EditSession
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
+from rpggen.gui.widgets import analysis_progress
 from rpggen.gui.widgets.anim_preview import AnimEditorDialog
 from rpggen.gui.widgets.asset_detail import AssetDetail
 from rpggen.gui.widgets.asset_grid import AssetGrid, PathResolver
@@ -64,6 +73,23 @@ class AuditPage(WizardPage):
         self.resolver: PathResolver = lambda asset: None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        self.state: WizardState | None = None
+        bar = QHBoxLayout()
+        bar.addStretch(1)
+        self.profile_button = QToolButton()
+        self.profile_button.setObjectName("profileButton")
+        self.profile_button.setText(self.tr("Profile"))
+        self.profile_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        profile_menu = QMenu(self.profile_button)
+        self.export_action = profile_menu.addAction(self.tr("Export pack profile…"))
+        self.export_action.setObjectName("exportProfileAction")
+        self.import_action = profile_menu.addAction(self.tr("Import profile…"))
+        self.import_action.setObjectName("importProfileAction")
+        self.profile_button.setMenu(profile_menu)
+        bar.addWidget(self.profile_button)
+        layout.addLayout(bar)
+        self.export_action.triggered.connect(lambda: self.export_profile())
+        self.import_action.triggered.connect(lambda: self.import_profile())
         self.quick_roles = list(QUICK_ROLES)
         self.archetype = "turn_based"
         self.grid = AssetGrid()
@@ -145,6 +171,7 @@ class AuditPage(WizardPage):
     def enter(self, state: WizardState) -> None:
         if state.catalog is None:
             return
+        self.state = state
         self.archetype = state.archetype
         session = self._ensure_session(state)
         self.resolver = make_resolver(state)
@@ -247,6 +274,76 @@ class AuditPage(WizardPage):
         if not self.run_dialog(dialog):
             return False
         return self.session.set_sheet_objects(asset_id, dialog.result_objects())
+
+    # ------------------------------------------------------------------ pack profiles
+
+    def choose_save_path(self, default_name: str) -> Path | None:  # overridden by tests
+        name, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Export pack profile"),
+            default_name,
+            self.tr("Pack profiles (*.rpgprofile.json)"),
+        )
+        return Path(name) if name else None
+
+    def choose_open_path(self) -> Path | None:  # overridden by tests
+        name, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Import profile"),
+            "",
+            self.tr("Pack profiles (*.rpgprofile.json);;JSON (*.json)"),
+        )
+        return Path(name) if name else None
+
+    def show_error(self, title: str, message: str) -> None:  # overridden by tests
+        QMessageBox.warning(self, title, message)
+
+    def run_analysis(self, state: WizardState) -> bool:  # overridden by tests
+        return analysis_progress.run_analysis(self, state)
+
+    def export_profile(self) -> Path | None:
+        """Ask for the profile's details and a file, then write the profile of one pack."""
+        state = self.state
+        if self.session is None or state is None or not state.inventories:
+            return None
+        catalog = self.session.catalog
+        pack_ids = [inv.pack_id for inv in state.inventories]
+        dialog = ExportProfileDialog(pack_ids, pack_ids[0], self)
+        if not self.run_dialog(dialog):
+            return None
+        pack_id = dialog.pack_id() or pack_ids[0]
+        inventory = next(inv for inv in state.inventories if inv.pack_id == pack_id)
+        meta = dialog.meta()
+        path = self.choose_save_path(f"{ids.slug(meta['title'])}{profiles.PROFILE_SUFFIX}")
+        if path is None:
+            return None
+        try:
+            data = profiles.export_profile(catalog, pack_id, inventory, meta)
+            profiles.write_profile(data, path)
+        except (RpgGenError, OSError) as exc:
+            self.show_error(self.tr("Could not export the profile"), str(exc))
+            return None
+        return path
+
+    def import_profile(self) -> bool:
+        """Install a profile file and analyze the packs again; the user's edits are kept."""
+        state = self.state
+        if state is None or self.session is None:
+            return False
+        path = self.choose_open_path()
+        if path is None:
+            return False
+        try:
+            profile = profiles.install_profile(path)
+        except (RpgGenError, OSError, ValueError) as exc:
+            self.show_error(self.tr("Could not import the profile"), str(exc))
+            return False
+        state.catalog = self.session.catalog  # re-assembly builds on the current edits
+        if not self.run_analysis(state):
+            return False
+        self.enter(state)
+        self.changed.emit()
+        return bool(profile)
 
     # ------------------------------------------------------------------ folder rules
 
