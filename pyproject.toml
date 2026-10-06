@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rpggen"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "Pillow>=10.3",
+  "numpy>=1.26",
+  "jsonschema>=4.21",
+  "py7zr>=0.21",
+  "PySide6>=6.7",
+]
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5", "pyinstaller>=6.6"]
+[project.scripts]
+rpggen = "rpggen.cli:main"
+[tool.setuptools.packages.find]
+include = ["rpggen*"]
+[tool.setuptools.package-data]
+rpggen = ["schema/*.json"]
+[tool.ruff]
+line-length = 100
+extend-exclude = ["godot_templates", "docs/spec", "Implementation Plan and Specs", ".venv"]
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+[tool.pytest.ini_options]
+markers = ["integration: needs RPGGEN_GODOT", "slow: long-running"]
+testpaths = ["tests"]
