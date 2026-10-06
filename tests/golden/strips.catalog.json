@@ -21,7 +21,7 @@
               ]
             ],
             "loop": false,
-            "source": "hero_attack_down.png"
+            "source": "assets/packs/strips/hero_attack_down.png"
           },
           "walk_down": {
             "fps": 8.0,
@@ -44,7 +44,7 @@
               ]
             ],
             "loop": true,
-            "source": "hero_walk_down.png"
+            "source": "assets/packs/strips/hero_walk_down.png"
           },
           "walk_left": {
             "fps": 8.0,
@@ -67,7 +67,7 @@
               ]
             ],
             "loop": true,
-            "source": "hero_walk_left.png"
+            "source": "assets/packs/strips/hero_walk_left.png"
           },
           "walk_right": {
             "fps": 8.0,
@@ -90,7 +90,7 @@
               ]
             ],
             "loop": true,
-            "source": "hero_walk_right.png"
+            "source": "assets/packs/strips/hero_walk_right.png"
           },
           "walk_up": {
             "fps": 8.0,
@@ -113,7 +113,7 @@
               ]
             ],
             "loop": true,
-            "source": "hero_walk_up.png"
+            "source": "assets/packs/strips/hero_walk_up.png"
           }
         },
         "frame": [
@@ -185,7 +185,7 @@
               ]
             ],
             "loop": true,
-            "source": "slime_idle.png"
+            "source": "assets/packs/strips/slime_idle.png"
           }
         },
         "frame": [

@@ -39,10 +39,24 @@ def _png_signature(data: bytes) -> str:
         return hashlib.sha256(data).hexdigest()
 
 
-def _signatures(root: Path) -> dict[str, object]:
+def _zip_signature(data: bytes) -> list[tuple[str, object]]:
     import io
     import zipfile
 
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        out: list[tuple[str, object]] = []
+        for n in zf.namelist():
+            entry = zf.read(n)
+            if n.lower().endswith(".png"):
+                out.append((n, _png_signature(entry)))
+            elif n.lower().endswith(".zip"):
+                out.append((n, _zip_signature(entry)))  # nested archives hold PNGs as well
+            else:
+                out.append((n, hashlib.sha256(entry).hexdigest()))
+        return out
+
+
+def _signatures(root: Path) -> dict[str, object]:
     out: dict[str, object] = {}
     for p in sorted(root.rglob("*")):
         if not p.is_file():
@@ -52,16 +66,7 @@ def _signatures(root: Path) -> dict[str, object]:
         if p.suffix == ".png":
             out[rel] = _png_signature(data)
         elif p.suffix == ".zip":
-            with zipfile.ZipFile(io.BytesIO(data)) as zf:
-                out[rel] = [
-                    (
-                        n,
-                        _png_signature(zf.read(n))
-                        if n.lower().endswith(".png")
-                        else hashlib.sha256(zf.read(n)).hexdigest(),
-                    )
-                    for n in zf.namelist()
-                ]
+            out[rel] = _zip_signature(data)
         else:
             out[rel] = hashlib.sha256(data).hexdigest()
     return out

@@ -90,9 +90,9 @@ def test_strips_pack_groups_files_into_one_asset() -> None:
         "frames": [[0, 0], [1, 0], [2, 0]],
         "fps": 12.0,
         "loop": False,
-        "source": "hero_attack_down.png",
+        "source": "assets/packs/strips/hero_attack_down.png",
     }
-    assert hero["animations"]["walk_left"]["source"] == "hero_walk_left.png"
+    assert hero["animations"]["walk_left"]["source"] == "assets/packs/strips/hero_walk_left.png"
     assert hero["animations"]["walk_down"]["frames"] == [[0, 0], [1, 0], [2, 0], [3, 0]]
     assert hero["frame"] == [16, 16] and hero["origin"] == [8, 15]
     assert res.consumed == [

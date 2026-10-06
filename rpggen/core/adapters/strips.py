@@ -81,7 +81,7 @@ class StripsAdapter:
                 key = (posixpath.dirname(f.path), m.group("name").casefold())
                 groups.setdefault(key, []).append((f, m))
         for key in sorted(groups):
-            self._group(root, key, groups[key], result, issues)
+            self._group(root, ctx.pack_id, key, groups[key], result, issues)
         for f in inv.files:
             animated = f.kind == "image" and f.ext == ".gif" and f.image and f.image["frames"] > 1
             if animated and f.path not in ctx.claimed:
@@ -92,6 +92,7 @@ class StripsAdapter:
     def _group(
         self,
         root: Path,
+        pack_id: str,
         key: tuple[str, str],
         members: list[tuple[InventoryFile, re.Match[str]]],
         result: AdapterResult,
@@ -122,7 +123,7 @@ class StripsAdapter:
                 "frames": [[i, 0] for i in range(strip.frames)],
                 "fps": _fps(norm.action),
                 "loop": naming.is_looping(norm.action),
-                "source": f.path,
+                "source": f"assets/packs/{pack_id}/{f.path}",
             }
             animations[norm.name] = spec
             if norm.side and norm.direction == "right":
