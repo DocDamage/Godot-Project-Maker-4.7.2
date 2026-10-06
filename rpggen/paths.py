@@ -90,6 +90,11 @@ def local_cache_dir() -> Path:
     return Path.home() / ".cache" / "rpggen"
 
 
+def sample_pack_root() -> Path:
+    """The bundled CC0 sample pack (next to the template project; inside the bundle when frozen)."""
+    return templates_root().parent / "sample_pack"
+
+
 def templates_root() -> Path:
     """Folder holding the Godot template project (inside the bundle when frozen)."""
     if getattr(sys, "frozen", False):

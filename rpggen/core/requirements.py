@@ -21,6 +21,7 @@ REQUIRED_BY = {
     "UI": "menus",
     "PORTRAIT": "dialogue portraits",
 }
+OBJECT_ROLES = {"BUILDING"}  # roles a sheet object (a house cut from a tile sheet) can fill
 _INACTIVE = {"UNUSED", "MISSING"}
 
 
@@ -32,16 +33,24 @@ def _assets_with_role(catalog: catalog_mod.Catalog, role: str) -> list[catalog_m
     ]
 
 
+def _filled(catalog: catalog_mod.Catalog, role: str) -> bool:
+    if _assets_with_role(catalog, role):
+        return True
+    return role in OBJECT_ROLES and any(
+        o.role == role and o.status not in _INACTIVE for o in catalog.objects
+    )
+
+
 def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     """ASSET-010 for missing required (error) and recommended (warning) roles; ASSET-014 when
     several PLAYER assets exist and none is CONFIRMED."""
     issues = IssueList()
     for role in REQUIRED.get(cfg.archetype, REQUIRED["turn_based"]):
-        if not _assets_with_role(catalog, role):
+        if not _filled(catalog, role):
             issue = issues.add("ASSET-010", role=role, feature=REQUIRED_BY.get(role, role.lower()))
             issues[-1] = dataclasses.replace(issue, severity=Severity.ERROR)
     for role in RECOMMENDED:
-        if not _assets_with_role(catalog, role):
+        if not _filled(catalog, role):
             issues.add("ASSET-010", role=role, feature=REQUIRED_BY.get(role, role.lower()))
     players = _assets_with_role(catalog, "PLAYER")
     if len(players) > 1 and not any(p.status == "CONFIRMED" for p in players):

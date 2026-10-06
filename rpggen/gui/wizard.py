@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 from rpggen.errors import Issue, Severity
 from rpggen.gui import state as state_mod
 from rpggen.gui.pages.base import WizardPage, form_error
+from rpggen.gui.pages.project_page import ProjectPage
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +56,6 @@ def default_pages() -> list[WizardPage]:
     from rpggen.gui.pages.generate_page import GeneratePage
     from rpggen.gui.pages.mapping_page import MappingPage
     from rpggen.gui.pages.options_page import OptionsPage
-    from rpggen.gui.pages.project_page import ProjectPage
     from rpggen.gui.pages.results_page import ResultsPage
 
     pages = stub_pages()
@@ -108,6 +108,8 @@ class MainWindow(QMainWindow):
         for page in self.pages:
             page.setObjectName(f"page_{page.title.lower()}" if page.title else "page")
             page.changed.connect(self.refresh)
+            if isinstance(page, ProjectPage):
+                page.sampleReady.connect(lambda: self.continue_to(OPTIONS_INDEX))
             self.stack.addWidget(page)
         body.addWidget(self.stack, 1)
 
@@ -153,6 +155,14 @@ class MainWindow(QMainWindow):
             return
         if self._leave_current():
             self.show_page(self.current_index + 1)
+
+    def continue_to(self, index: int) -> None:
+        """Press Next until page ``index`` is shown or a page stops the way (errors, a veto)."""
+        while self.current_index < index and self.next_button.isEnabled():
+            before = self.current_index
+            self.go_next()
+            if self.current_index == before:
+                break
 
     def go_back(self) -> None:
         if self.current_index <= 0:

@@ -29,7 +29,7 @@ PLAUSIBLE_USAGE: dict[str, set[str]] = {
     "PORTRAIT": {"portrait", "sprite"},
     "UI": {"ui"},
 }
-OBJECT_ROLES = {"BUILDING"}  # roles that can also be filled with a SheetObject
+OBJECT_ROLES = requirements.OBJECT_ROLES  # roles that can also be filled with a SheetObject
 _INACTIVE = {"UNUSED", "MISSING"}
 
 

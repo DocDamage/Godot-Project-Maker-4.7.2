@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QStandardPaths, QTimer, Signal
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QComboBox,
@@ -22,10 +22,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpggen import paths
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
-from rpggen.core import godot, preflight
-from rpggen.errors import Issue, Severity
+from rpggen.core import godot, preflight, profiles
+from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui import state as state_mod
 from rpggen.gui import workers
 from rpggen.gui.pages.base import WizardPage, form_error
@@ -35,6 +36,8 @@ from rpggen.gui.widgets import analysis_progress
 log = logging.getLogger(__name__)
 
 DEBOUNCE_MS = 300
+SAMPLE_NAME = "Sample RPG"
+SAMPLE_PROFILE = "sample.rpgprofile.json"
 NAME_MAX = 64
 ARCHIVE_SUFFIXES = (".zip", ".7z", ".rar")
 
@@ -126,6 +129,7 @@ def set_status(label: QLabel, issues: list[Issue], ok_text: str = "") -> None:
 
 class ProjectPage(WizardPage):
     title = "Project"
+    sampleReady = Signal()  # "Try with sample pack" filled in valid inputs
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -200,8 +204,16 @@ class ProjectPage(WizardPage):
         form.addRow(self.tr("Project name"), box)
 
         layout.addStretch(1)
-        self.sample_row = QHBoxLayout()  # the sample-pack button is added by T3.15
+        self.sample_row = QHBoxLayout()
+        self.sample_button = QPushButton(self.tr("Try with sample pack"))
+        self.sample_button.setObjectName("trySampleButton")
+        self.sample_button.setToolTip(
+            self.tr("Fill in the bundled sample pack and go straight to the options.")
+        )
+        self.sample_row.addWidget(self.sample_button)
+        self.sample_row.addStretch(1)
         layout.addLayout(self.sample_row)
+        self.sample_button.clicked.connect(self.try_sample)
 
         self._debounce = QTimer(self)
         self._debounce.setSingleShot(True)
@@ -217,6 +229,57 @@ class ProjectPage(WizardPage):
         self.godot_combo.currentTextChanged.connect(self._on_inputs_changed)
         self.name_edit.textEdited.connect(self._on_name_edited)
         self.name_edit.textChanged.connect(self._refresh_name_status)
+
+    # ------------------------------------------------------------------ sample pack
+
+    def documents_dir(self) -> Path:  # overridden by tests
+        found = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        return Path(found) if found else Path.home() / "Documents"
+
+    def sample_target(self) -> Path:
+        base = self.documents_dir()
+        n = 1
+        while (base / f"rpggen-sample-{n}").exists():
+            n += 1
+        return base / f"rpggen-sample-{n}"
+
+    def try_sample(self) -> bool:
+        """Fill the page with the bundled sample pack; emits ``sampleReady`` when every input
+        is valid so the window can continue to the Options page."""
+        sample = paths.sample_pack_root()
+        if not sample.is_dir():
+            QMessageBox.warning(
+                self,
+                self.tr("Sample pack"),
+                self.tr("The sample pack was not found: {0}").format(sample),
+            )
+            return False
+        profile = sample / SAMPLE_PROFILE
+        if profile.is_file():
+            try:
+                profiles.install_profile(profile)  # the audit of the sample is all CONFIRMED
+            except (RpgGenError, OSError, ValueError):
+                log.warning("could not install the sample profile", exc_info=True)
+        self._loading = True
+        try:
+            self.pack_list.clear()
+            self.pack_list.addItem(str(sample))
+            self.target_edit.setText(str(self.sample_target()))
+            self.name_edit.setText(SAMPLE_NAME)
+            self._name_touched = True
+        finally:
+            self._loading = False
+        self._debounce.stop()
+        key = self._key()
+        self._generation += 1
+        self._check = check_inputs(self.godot_path(), self.target(), self.sources())
+        self._check_key = key
+        self._refresh_cheap()
+        self.changed.emit()
+        ok = not [i for i in self.validate(WizardState()) if i.severity is Severity.ERROR]
+        if ok:
+            self.sampleReady.emit()
+        return ok
 
     # ------------------------------------------------------------------ editing
 
@@ -457,8 +520,6 @@ class ProjectPage(WizardPage):
     def _load_previous(self, state: WizardState, target: Path) -> catalog_mod.Catalog | None:
         """The catalog to build on: an existing project's, or a saved draft (when resumed)."""
         if preflight.is_rpggen_project(target):
-            from rpggen import paths
-
             state.regenerating = True
             state.config = config_mod.load(target / paths.CONFIG)
             state.archetype = state.config.archetype

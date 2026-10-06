@@ -1,0 +1,805 @@
+{
+  "assets": {
+    "characters/hero.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        94
+      ],
+      "role": "PLAYER",
+      "size": [
+        64,
+        96
+      ],
+      "usage": "sprite"
+    },
+    "characters/npc_villager.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        94
+      ],
+      "role": "NPC",
+      "size": [
+        64,
+        96
+      ],
+      "usage": "sprite"
+    },
+    "enemies/slime_idle.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 4.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack/enemies/slime_idle.png"
+        }
+      },
+      "frame": [
+        16,
+        16
+      ],
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ENEMY",
+      "size": [
+        64,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "items/chest.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "items/coin.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "items/key.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "items/potion.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "items/sword.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "objects/town.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "DECORATION",
+      "size": [
+        192,
+        160
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "portraits/elder.png": {
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "role": "PORTRAIT",
+      "size": [
+        48,
+        48
+      ],
+      "usage": "sprite"
+    },
+    "tilesets/ground.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "size": [
+        128,
+        32
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/walls.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "WALL",
+      "size": [
+        64,
+        32
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/water.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "WATER",
+      "size": [
+        64,
+        32
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "ui/panel.png": {
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "role": "UI",
+      "size": [
+        48,
+        48
+      ],
+      "usage": "sprite"
+    }
+  },
+  "author": "rpggen",
+  "fingerprint": {
+    "min_match": 0.8,
+    "required_files": {
+      "characters/hero.png": "4af0df78db5b7a0633d53ef2480108b1693a3b10fedd7cbeb7667f04ede5e319",
+      "characters/npc_villager.png": "2f020af88ddfc52bb7076a3bbf92cd39a350bdcbca59a5810bd64aa34d999e01",
+      "enemies/slime_idle.png": "aca41f774627519e67d4dcf01910b735d43ab5588a7af4ba6c7c33514196bc30",
+      "items/chest.png": "e2de800f753e81e73d7b82d5b14f2f398f25b809e866ec66614df2681cd06493",
+      "items/coin.png": "786e07c5db6321fa37ba2c063bf73bb7cecd676f3b5ed79c58452f97ae232293",
+      "items/key.png": "27d5e6e4410118108bb3dfef7690c81305d3ebd9375ce6077aae042a26a7c043",
+      "items/potion.png": "290367dd0e21e1e27d19879060f8ffe53a5c452ceeadd05bd3346440a560b049",
+      "items/sword.png": "4728397423089b171202027bc6ebfaf7680cc3201dc07c8114195d5f2ac0521d",
+      "objects/town.png": "0b900a577a7092ce1e73f71008077315402d3e4fc956a38352d74a60e676c47e",
+      "portraits/elder.png": "98caca5169ca69e318594a7a367e850658d47b08a759cace0dd6d9bace391794",
+      "tilesets/ground.png": "f3caa309df774e07af496d7144274df0c3eff124a1f27ccda577cc1d85b2d47f",
+      "tilesets/walls.png": "9476805e48ef7e09262bf0e6b472930c70295f87310d9e8e98cd50b3eb01d5df",
+      "tilesets/water.png": "526e078bcbed0040e379eb9d61c4ee55b312e60c096ef9d424b417cd9919899e",
+      "ui/panel.png": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7"
+    }
+  },
+  "folder_rules": [],
+  "license": "CC0-1.0",
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            45
+          ],
+          [
+            80,
+            45
+          ],
+          [
+            80,
+            64
+          ],
+          [
+            0,
+            64
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "door": [
+        40,
+        63
+      ],
+      "footprint": [
+        0,
+        45,
+        80,
+        19
+      ],
+      "name": "house",
+      "origin": [
+        40,
+        63
+      ],
+      "region": [
+        16,
+        16,
+        80,
+        64
+      ],
+      "role": "BUILDING",
+      "sheet_path": "objects/town.png",
+      "source": "auto",
+      "status": "CONFIRMED",
+      "tags": [
+        "house",
+        "door"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            34
+          ],
+          [
+            32,
+            34
+          ],
+          [
+            32,
+            48
+          ],
+          [
+            0,
+            48
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        34,
+        32,
+        14
+      ],
+      "name": "tree_1",
+      "origin": [
+        16,
+        47
+      ],
+      "region": [
+        128,
+        0,
+        32,
+        48
+      ],
+      "role": "DECORATION",
+      "sheet_path": "objects/town.png",
+      "source": "auto",
+      "status": "CONFIRMED",
+      "tags": [
+        "tree"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            34
+          ],
+          [
+            32,
+            34
+          ],
+          [
+            32,
+            48
+          ],
+          [
+            0,
+            48
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        34,
+        32,
+        14
+      ],
+      "name": "tree_2",
+      "origin": [
+        16,
+        47
+      ],
+      "region": [
+        128,
+        80,
+        32,
+        48
+      ],
+      "role": "DECORATION",
+      "sheet_path": "objects/town.png",
+      "source": "auto",
+      "status": "CONFIRMED",
+      "tags": [
+        "tree"
+      ]
+    }
+  ],
+  "profile_id": "rpggen_sample_pack",
+  "profile_version": 1,
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "objects/town.png"
+        },
+        {
+          "asset": "tilesets/ground.png"
+        },
+        {
+          "asset": "tilesets/walls.png"
+        },
+        {
+          "asset": "tilesets/water.png"
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ],
+  "title": "rpggen sample pack"
+}
