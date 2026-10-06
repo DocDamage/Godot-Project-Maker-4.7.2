@@ -6,6 +6,7 @@ import logging
 import re
 import shutil
 import subprocess
+import time
 import unicodedata
 import zipfile
 from dataclasses import dataclass
@@ -359,11 +360,26 @@ def open_pack(source: Path, existing_ids: set[str]) -> OpenedPack:
         jsonio.write(partial / COMPLETE_MARKER, {"issues": issues.to_json()})
         if target.exists():
             shutil.rmtree(target)
-        partial.rename(target)
+        _move_dir(partial, target)
     except BaseException:
         shutil.rmtree(partial, ignore_errors=True)
         raise
     return OpenedPack(pack_id, kind, target, digest, list(issues))
+
+
+def _move_dir(src: Path, dst: Path) -> None:
+    """Rename a directory; on Windows a scanner may briefly hold handles, so retry then copy."""
+    last: OSError | None = None
+    for attempt in range(8):
+        try:
+            src.rename(dst)
+            return
+        except PermissionError as exc:
+            last = exc
+            time.sleep(0.1 * (attempt + 1))
+    log.debug("rename failed (%s); copying instead", last)
+    shutil.copytree(src, dst)
+    shutil.rmtree(src, ignore_errors=True)
 
 
 def _severity(value: str):

@@ -217,6 +217,8 @@ def detect_character_sheet(
             and K["SHEET_MIN_COLS"] <= cols <= K["SHEET_MAX_COLS"]
             and rows >= 4
             and rows % 4 == 0
+            and _clean_ratio(_line_empty(mask, "x"), fw, False) >= K["SHEET_CLEAN_BOUNDARIES"]
+            and _clean_ratio(_line_empty(mask, "y"), fh, False) >= K["SHEET_CLEAN_BOUNDARIES"]
         ):
             found = ((fw, fh), cols, rows)
     if found is None:

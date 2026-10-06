@@ -19,6 +19,7 @@ __all__ = [
     "AssetFragment",
     "MATCH_THRESHOLD",
     "get_adapters",
+    "register_defaults",
     "register",
     "run_adapters",
 ]
@@ -75,6 +76,29 @@ def run_adapters(
         for fragment in result.assets:
             if fragment.claim == "full":
                 ctx.claimed.add(fragment.path)
+        ctx.claimed.update(result.consumed)
         results.append(result)
         ctx.results.append(result)
     return results
+
+
+def register_defaults() -> None:
+    """Register the built-in adapters (idempotent)."""
+    from rpggen.core.adapters.aseprite import AsepriteAdapter
+    from rpggen.core.adapters.generic_grid import GenericGridAdapter
+    from rpggen.core.adapters.ldtk import LdtkAdapter
+    from rpggen.core.adapters.lpc import LpcAdapter
+    from rpggen.core.adapters.rpgmaker import RpgMakerAdapter
+    from rpggen.core.adapters.strips import StripsAdapter
+    from rpggen.core.adapters.tiled import TiledAdapter
+
+    for adapter in (
+        TiledAdapter(),
+        AsepriteAdapter(),
+        LdtkAdapter(),
+        RpgMakerAdapter(),
+        LpcAdapter(),
+        StripsAdapter(),
+        GenericGridAdapter(),
+    ):
+        register(adapter)
