@@ -9,6 +9,7 @@ from pathlib import Path
 from rpggen import jsonio, paths, schema
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
+from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
 
 log = logging.getLogger(__name__)
@@ -97,21 +98,44 @@ def install_templates(stg: Staging, templates_root: Path) -> list[str]:
     return sorted(written, key=lambda s: (s.casefold(), s))
 
 
-def install_pack(stg: Staging, pack_dir: Path, pack_id: str) -> list[str]:
-    """Copy every non-junk file of the pack to ``assets/packs/<pack_id>/``, bytes preserved."""
+def install_pack(
+    stg: Staging, pack_dir: Path, pack_id: str, inv: Inventory | None = None
+) -> list[str]:
+    """Copy the pack's files to ``assets/packs/<pack_id>/``, bytes preserved.
+
+    With an inventory only its files are copied (junk is already excluded there); without one
+    every non-junk file is.
+    """
     pack_dir = Path(pack_dir)
     dst = stg.staging / "assets" / "packs" / pack_id
+    if inv is not None:
+        sources = [pack_dir / f.path for f in inv.files]
+    else:
+        sources = [
+            p
+            for p in sorted(
+                pack_dir.rglob("*"), key=lambda q: q.relative_to(pack_dir).as_posix().casefold()
+            )
+            if p.is_file() and not _is_junk(p.relative_to(pack_dir).parts)
+        ]
     written: list[str] = []
-    for p in sorted(
-        pack_dir.rglob("*"), key=lambda q: q.relative_to(pack_dir).as_posix().casefold()
-    ):
-        if not p.is_file() or _is_junk(p.relative_to(pack_dir).parts):
-            continue
+    for p in sources:
         out = dst / p.relative_to(pack_dir)
         out.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(p, out)
         written.append(paths.to_posix_rel(out, stg.staging))
     return sorted(written, key=lambda s: (s.casefold(), s))
+
+
+def install_generated(stg: Staging, generated: dict[str, str]) -> list[str]:
+    """Copy adapter-generated files (GIF strips) to their project-relative targets."""
+    written: list[str] = []
+    for rel in sorted(generated):
+        target = paths.from_posix_rel(rel, stg.staging)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(generated[rel], target)
+        written.append(rel)
+    return written
 
 
 def _write_text(path: Path, text: str) -> None:

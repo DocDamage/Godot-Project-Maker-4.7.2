@@ -1,7 +1,7 @@
 {
   "assets": [
     {
-      "confidence": 0.9,
+      "confidence": 0.4,
       "detected": {
         "animations": {
           "idle_down": {
@@ -154,26 +154,33 @@
         },
         "origin": [
           8,
-          23
+          95
         ],
         "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.4
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
         "usage": "sprite"
       },
-      "detected_by": "m1_minimal",
+      "detected_by": "generic_grid",
       "id": "basic16.characters.hero",
       "kind": "image",
       "overrides": {},
       "pack_id": "basic16",
       "path": "assets/packs/basic16/characters/hero.png",
       "sha256": "6db6c4fa70e4b80958c60aebacbaee61a574845f079d03ed9d2a905330048600",
-      "status": "AUTO_DETECTED"
+      "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.9,
+      "confidence": 0.4345,
       "detected": {
-        "collision": {
-          "profile": "NONE"
-        },
         "grid": {
           "cell": [
             16,
@@ -189,83 +196,31 @@
           ]
         },
         "role": "GROUND",
-        "tile_overrides": {
-          "0,1": {
-            "collision": {
-              "profile": "FULL"
-            },
-            "custom": {
-              "role": "WALL"
-            }
-          },
-          "1,1": {
-            "collision": {
-              "profile": "FULL"
-            },
-            "custom": {
-              "role": "WALL"
-            }
-          },
-          "2,1": {
-            "collision": {
-              "profile": "FULL"
-            },
-            "custom": {
-              "role": "WALL"
-            }
-          },
-          "3,1": {
-            "collision": {
-              "profile": "FULL"
-            },
-            "custom": {
-              "role": "WALL"
-            }
-          },
-          "4,1": {
-            "collision": {
-              "profile": "FULL"
-            },
-            "custom": {
-              "role": "WALL"
-            }
-          },
-          "5,1": {
-            "collision": {
-              "profile": "FULL"
-            },
-            "custom": {
-              "role": "WALL"
-            }
-          },
-          "6,1": {
-            "collision": {
-              "profile": "FULL"
-            },
-            "custom": {
-              "role": "WALL"
-            }
-          },
-          "7,1": {
-            "collision": {
-              "profile": "FULL"
-            },
-            "custom": {
-              "role": "WALL"
-            }
-          }
-        },
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.0625
+          ],
+          [
+            "WALL",
+            0.03125
+          ]
+        ],
+        "size": [
+          128,
+          64
+        ],
         "tileset": "overworld",
         "usage": "tiles"
       },
-      "detected_by": "m1_minimal",
+      "detected_by": "generic_grid",
       "id": "basic16.tiles.terrain",
       "kind": "image",
       "overrides": {},
       "pack_id": "basic16",
       "path": "assets/packs/basic16/tiles/terrain.png",
       "sha256": "b0722cbbe8365b85a6b955ea53425f8253fe97bca34ff795ab2097ada5b8f817",
-      "status": "AUTO_DETECTED"
+      "status": "NEEDS_REVIEW"
     }
   ],
   "catalog_version": 2,
@@ -283,7 +238,9 @@
   "objects": [],
   "packs": [
     {
-      "adapters_matched": [],
+      "adapters_matched": [
+        "generic_grid"
+      ],
       "license_files": [
         "assets/packs/basic16/LICENSE.txt"
       ],

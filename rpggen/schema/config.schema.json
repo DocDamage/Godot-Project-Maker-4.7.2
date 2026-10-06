@@ -162,6 +162,7 @@
           "enum": [
             "zip",
             "7z",
+            "rar",
             "folder"
           ]
         }

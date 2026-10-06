@@ -1,0 +1,208 @@
+{
+  "assets": [
+    {
+      "confidence": 0.426488,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          160,
+          128
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "objects_in_sheet.town",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "objects_in_sheet",
+      "path": "assets/packs/objects_in_sheet/town.png",
+      "sha256": "94cc5d3f008bedbc62ac63b0eae5c4d19877dfe89f016fe3eb50ae4fafccf88f",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            34
+          ],
+          [
+            32,
+            34
+          ],
+          [
+            32,
+            48
+          ],
+          [
+            0,
+            48
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        34,
+        32,
+        14
+      ],
+      "id": "objects_in_sheet.town#object_1",
+      "name": "object_1",
+      "origin": [
+        16,
+        47
+      ],
+      "region": [
+        112,
+        0,
+        32,
+        48
+      ],
+      "role": "DECORATION",
+      "sheet": "objects_in_sheet.town",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": []
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            45
+          ],
+          [
+            80,
+            45
+          ],
+          [
+            80,
+            64
+          ],
+          [
+            0,
+            64
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        45,
+        80,
+        19
+      ],
+      "id": "objects_in_sheet.town#object_2",
+      "name": "object_2",
+      "origin": [
+        40,
+        63
+      ],
+      "region": [
+        16,
+        16,
+        80,
+        64
+      ],
+      "role": "BUILDING",
+      "sheet": "objects_in_sheet.town",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": []
+    }
+  ],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license_files": [
+        "assets/packs/objects_in_sheet/LICENSE.txt"
+      ],
+      "pack_id": "objects_in_sheet",
+      "profile_id": null,
+      "root": "assets/packs/objects_in_sheet",
+      "source_sha256": "ac3dd76cf16f1c0b2c5d68798aba9b94e0cb9b31403bbd69169d9ebd59333ee9",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "objects_in_sheet.town",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

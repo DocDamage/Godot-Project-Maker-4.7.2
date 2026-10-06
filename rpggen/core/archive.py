@@ -322,13 +322,18 @@ def extracted_root(sha256: str) -> Path:
     return paths.local_cache_dir() / "extracted" / sha256
 
 
-def open_pack(source: Path, existing_ids: set[str]) -> OpenedPack:
-    """Open a pack folder or archive; archives are extracted (safely) into the cache."""
+def open_pack(source: Path, existing_ids: set[str], pack_id: str | None = None) -> OpenedPack:
+    """Open a pack folder or archive; archives are extracted (safely) into the cache.
+
+    ``pack_id`` pins the id (a regeneration reuses the id stored in the config).
+    """
     source = Path(source)
     if not source.exists():
         raise RpgGenError("ARCH-001", path=str(source), reason="does not exist")
     kind = _kind_of(source)
-    pack_id = ids.pack_id_from_name(source.name if kind == "folder" else source.stem, existing_ids)
+    pack_id = pack_id or ids.pack_id_from_name(
+        source.name if kind == "folder" else source.stem, existing_ids
+    )
     if kind == "folder":
         return OpenedPack(pack_id, "folder", source, "", [])  # never written to
 

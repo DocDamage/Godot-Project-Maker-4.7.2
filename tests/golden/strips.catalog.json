@@ -1,0 +1,266 @@
+{
+  "assets": [
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "hero_attack_down.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "hero_walk_down.png"
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "hero_walk_left.png"
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "hero_walk_right.png"
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "hero_walk_up.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ]
+        ],
+        "size": [
+          48,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "strips.hero_attack_down",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "strips",
+      "path": "assets/packs/strips/hero_attack_down.png",
+      "sha256": "6beeefdd33e1e917b0bf967837b7a3cc1c535941a02fde516b74c344c73d1897",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.473684,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "slime_idle.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.263158
+          ],
+          [
+            "PLAYER",
+            0.052632
+          ]
+        ],
+        "size": [
+          64,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "strips.slime_idle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "strips",
+      "path": "assets/packs/strips/slime_idle.png",
+      "sha256": "d60af468eaf00337b97a7a2b1a8deed8d37b32e80624488cae67d3703151e2f4",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "strips"
+      ],
+      "license_files": [
+        "assets/packs/strips/LICENSE.txt"
+      ],
+      "pack_id": "strips",
+      "profile_id": null,
+      "root": "assets/packs/strips",
+      "source_sha256": "808e7a904fc678645f02921427be4885a2785ddc60ad4ea4075de587b39cb027",
+      "warnings": [
+        "strips_direction_assumed:slime_idle.png"
+      ]
+    }
+  ],
+  "tilesets": []
+}

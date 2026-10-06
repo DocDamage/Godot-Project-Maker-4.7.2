@@ -1,0 +1,466 @@
+{
+  "assets": [
+    {
+      "confidence": 0.625,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "active_frames": [
+              3,
+              4
+            ],
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                14
+              ],
+              [
+                1,
+                14
+              ],
+              [
+                2,
+                14
+              ],
+              [
+                3,
+                14
+              ],
+              [
+                4,
+                14
+              ],
+              [
+                5,
+                14
+              ]
+            ],
+            "loop": false
+          },
+          "attack_left": {
+            "active_frames": [
+              3,
+              4
+            ],
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                13
+              ],
+              [
+                1,
+                13
+              ],
+              [
+                2,
+                13
+              ],
+              [
+                3,
+                13
+              ],
+              [
+                4,
+                13
+              ],
+              [
+                5,
+                13
+              ]
+            ],
+            "loop": false
+          },
+          "attack_right": {
+            "active_frames": [
+              3,
+              4
+            ],
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                15
+              ],
+              [
+                1,
+                15
+              ],
+              [
+                2,
+                15
+              ],
+              [
+                3,
+                15
+              ],
+              [
+                4,
+                15
+              ],
+              [
+                5,
+                15
+              ]
+            ],
+            "loop": false
+          },
+          "attack_up": {
+            "active_frames": [
+              3,
+              4
+            ],
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                12
+              ],
+              [
+                1,
+                12
+              ],
+              [
+                2,
+                12
+              ],
+              [
+                3,
+                12
+              ],
+              [
+                4,
+                12
+              ],
+              [
+                5,
+                12
+              ]
+            ],
+            "loop": false
+          },
+          "death": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                20
+              ],
+              [
+                1,
+                20
+              ],
+              [
+                2,
+                20
+              ],
+              [
+                3,
+                20
+              ],
+              [
+                4,
+                20
+              ],
+              [
+                5,
+                20
+              ]
+            ],
+            "loop": false
+          },
+          "hurt": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                20
+              ],
+              [
+                1,
+                20
+              ],
+              [
+                2,
+                20
+              ],
+              [
+                3,
+                20
+              ],
+              [
+                4,
+                20
+              ],
+              [
+                5,
+                20
+              ]
+            ],
+            "loop": false
+          },
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                10
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                9
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                11
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                8
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                1,
+                10
+              ],
+              [
+                2,
+                10
+              ],
+              [
+                3,
+                10
+              ],
+              [
+                4,
+                10
+              ],
+              [
+                5,
+                10
+              ],
+              [
+                6,
+                10
+              ],
+              [
+                7,
+                10
+              ],
+              [
+                8,
+                10
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 10.0,
+            "frames": [
+              [
+                1,
+                9
+              ],
+              [
+                2,
+                9
+              ],
+              [
+                3,
+                9
+              ],
+              [
+                4,
+                9
+              ],
+              [
+                5,
+                9
+              ],
+              [
+                6,
+                9
+              ],
+              [
+                7,
+                9
+              ],
+              [
+                8,
+                9
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 10.0,
+            "frames": [
+              [
+                1,
+                11
+              ],
+              [
+                2,
+                11
+              ],
+              [
+                3,
+                11
+              ],
+              [
+                4,
+                11
+              ],
+              [
+                5,
+                11
+              ],
+              [
+                6,
+                11
+              ],
+              [
+                7,
+                11
+              ],
+              [
+                8,
+                11
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 10.0,
+            "frames": [
+              [
+                1,
+                8
+              ],
+              [
+                2,
+                8
+              ],
+              [
+                3,
+                8
+              ],
+              [
+                4,
+                8
+              ],
+              [
+                5,
+                8
+              ],
+              [
+                6,
+                8
+              ],
+              [
+                7,
+                8
+              ],
+              [
+                8,
+                8
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          64,
+          64
+        ],
+        "grid": {
+          "cell": [
+            64,
+            64
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          32,
+          60
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.0625
+          ]
+        ],
+        "size": [
+          832,
+          1344
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "lpc",
+      "id": "lpc_like.characters.body",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "lpc_like",
+      "path": "assets/packs/lpc_like/characters/body.png",
+      "sha256": "b4ba0c33ce5dbb457d02ad2bb793854e9bdd82bad2d85e1b05cd1e37295020e4",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "lpc"
+      ],
+      "license_files": [
+        "assets/packs/lpc_like/LICENSE.txt"
+      ],
+      "pack_id": "lpc_like",
+      "profile_id": null,
+      "root": "assets/packs/lpc_like",
+      "source_sha256": "0bebca5b4402c8caa9817db0d019df9c172376227b979cf662ab232fbc4b5530",
+      "warnings": []
+    }
+  ],
+  "tilesets": []
+}

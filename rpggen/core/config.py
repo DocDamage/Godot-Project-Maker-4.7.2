@@ -174,8 +174,22 @@ def folder_sha256(folder: Path) -> str:
     )
 
 
+def pack_ref_from_source(source: Path, pack_id: str) -> PackRef:
+    """PackRef for a pack folder or a .zip / .7z / .rar archive."""
+    source = Path(source)
+    if source.is_dir():
+        return PackRef(pack_id, str(source.resolve()), folder_sha256(source), "folder")
+    if not source.is_file():
+        raise RpgGenError("ARCH-001", path=str(source), reason="does not exist")
+    kind = source.suffix.lower().lstrip(".")
+    if kind not in ("zip", "7z", "rar"):
+        raise RpgGenError("ARCH-001", path=str(source), reason="unsupported file type")
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    return PackRef(pack_id, str(source.resolve()), digest, kind)
+
+
 def pack_ref_from_folder(folder: Path, pack_id: str) -> PackRef:
     folder = Path(folder)
     if not folder.is_dir():
         raise RpgGenError("ARCH-001", path=str(folder), reason="not a folder")
-    return PackRef(pack_id, str(folder.resolve()), folder_sha256(folder), "folder")
+    return pack_ref_from_source(folder, pack_id)

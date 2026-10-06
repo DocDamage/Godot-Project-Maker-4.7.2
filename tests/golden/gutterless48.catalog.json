@@ -1,0 +1,115 @@
+{
+  "assets": [
+    {
+      "confidence": 0.519248,
+      "detected": {
+        "grid": {
+          "cell": [
+            48,
+            48
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          240,
+          144
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "gutterless48.tilesets.ground",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gutterless48",
+      "path": "assets/packs/gutterless48/Tilesets/ground.png",
+      "sha256": "365720d0c51f444a12f58c73970c78ae453ef51f781aad2a31b373a7f322e49a",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license_files": [
+        "assets/packs/gutterless48/LICENSE.txt"
+      ],
+      "pack_id": "gutterless48",
+      "profile_id": null,
+      "root": "assets/packs/gutterless48",
+      "source_sha256": "45a83d78141c0391254c15a653e43825d1a9dea7b0876e7ef0ee351caabf15ff",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "gutterless48.tilesets.ground",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        48,
+        48
+      ]
+    }
+  ]
+}

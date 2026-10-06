@@ -1,0 +1,232 @@
+{
+  "assets": [
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            1,
+            1
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          135,
+          135
+        ],
+        "tile_overrides": {
+          "0,0": {
+            "terrain": {
+              "set": "ground",
+              "wangid": [
+                0,
+                1,
+                0,
+                1,
+                0,
+                1,
+                0,
+                1
+              ]
+            }
+          },
+          "1,0": {
+            "terrain": {
+              "set": "ground",
+              "wangid": [
+                0,
+                2,
+                0,
+                2,
+                0,
+                2,
+                0,
+                2
+              ]
+            }
+          },
+          "1,1": {
+            "collision": {
+              "polygon": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  16,
+                  0
+                ],
+                [
+                  16,
+                  16
+                ]
+              ],
+              "profile": "CUSTOM"
+            }
+          },
+          "1,2": {
+            "collision": {
+              "polygon": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  16,
+                  0
+                ],
+                [
+                  16,
+                  16
+                ],
+                [
+                  0,
+                  16
+                ]
+              ],
+              "profile": "CUSTOM"
+            }
+          },
+          "5,0": {
+            "collision": {
+              "polygon": [
+                [
+                  0,
+                  8
+                ],
+                [
+                  16,
+                  8
+                ],
+                [
+                  16,
+                  16
+                ],
+                [
+                  0,
+                  16
+                ]
+              ],
+              "profile": "CUSTOM"
+            },
+            "custom": {
+              "footstep": "grass"
+            }
+          }
+        },
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "tiled",
+      "id": "tiled_meta.tiles",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "tiled_meta",
+      "path": "assets/packs/tiled_meta/tiles.png",
+      "sha256": "5c704d9dce6ce2d7e1ef2fbf71bcb96fcc40c8bb2beb031d8ee179aaadaa80fa",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "tiled"
+      ],
+      "license_files": [
+        "assets/packs/tiled_meta/LICENSE.txt"
+      ],
+      "pack_id": "tiled_meta",
+      "profile_id": null,
+      "root": "assets/packs/tiled_meta",
+      "source_sha256": "d18bc90ab6f9b16a1b217d53a43264e7d75b6246dc3766bfad57681b984989fb",
+      "warnings": [
+        "tiled_ignored_properties:comment"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "tiled_meta.tiles",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [
+        {
+          "mode": "corners",
+          "name": "ground",
+          "terrains": [
+            {
+              "color": "#00ff00",
+              "name": "grass"
+            },
+            {
+              "color": "#aa5500",
+              "name": "dirt"
+            }
+          ]
+        }
+      ],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

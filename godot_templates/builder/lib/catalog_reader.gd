@@ -21,9 +21,10 @@ static func merge(base: Dictionary, over: Dictionary) -> Dictionary:
 			result[key] = value.duplicate(true) if (value is Array) else value
 	return result
 
-## Effective facets of an asset: detected merged with overrides.
+## Effective facets of an asset: detected <- rule (folder rules) <- overrides.
 static func effective(asset: Dictionary) -> Dictionary:
-	return merge(asset.get("detected", {}), asset.get("overrides", {}))
+	var detected: Dictionary = asset.get("detected", {})
+	return merge(merge(detected, asset.get("rule", {})), asset.get("overrides", {}))
 
 func assets() -> Array:
 	var list: Array = catalog.get("assets", []).duplicate()

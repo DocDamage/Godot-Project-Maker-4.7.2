@@ -490,6 +490,14 @@
           },
           "minItems": 4,
           "maxItems": 4
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
         }
       },
       "additionalProperties": false,
@@ -816,6 +824,21 @@
               "maxItems": 4
             }
           ]
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -870,6 +893,9 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "rule": {
+          "$ref": "#/$defs/FacetsPartial"
         }
       },
       "additionalProperties": false,
@@ -1395,6 +1421,14 @@
           },
           "minItems": 4,
           "maxItems": 4
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
         }
       },
       "additionalProperties": false

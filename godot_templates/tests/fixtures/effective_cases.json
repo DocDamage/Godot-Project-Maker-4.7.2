@@ -2,62 +2,235 @@
   {
     "name": "no overrides returns detected",
     "asset": {
-      "detected": {"role": "GROUND", "usage": "tiles", "tags": ["a"]},
+      "detected": {
+        "role": "GROUND",
+        "usage": "tiles",
+        "tags": [
+          "a"
+        ]
+      },
       "overrides": {}
     },
-    "expected": {"role": "GROUND", "usage": "tiles", "tags": ["a"]}
+    "expected": {
+      "role": "GROUND",
+      "usage": "tiles",
+      "tags": [
+        "a"
+      ]
+    }
   },
   {
     "name": "override value wins",
     "asset": {
-      "detected": {"role": "GROUND", "usage": "tiles"},
-      "overrides": {"role": "WALL"}
+      "detected": {
+        "role": "GROUND",
+        "usage": "tiles"
+      },
+      "overrides": {
+        "role": "WALL"
+      }
     },
-    "expected": {"role": "WALL", "usage": "tiles"}
+    "expected": {
+      "role": "WALL",
+      "usage": "tiles"
+    }
   },
   {
     "name": "null override deletes the detected key",
     "asset": {
-      "detected": {"role": "GROUND", "usage": "tiles", "collision": {"profile": "FULL"}},
-      "overrides": {"collision": null}
+      "detected": {
+        "role": "GROUND",
+        "usage": "tiles",
+        "collision": {
+          "profile": "FULL"
+        }
+      },
+      "overrides": {
+        "collision": null
+      }
     },
-    "expected": {"role": "GROUND", "usage": "tiles"}
+    "expected": {
+      "role": "GROUND",
+      "usage": "tiles"
+    }
   },
   {
     "name": "dictionaries merge recursively",
     "asset": {
-      "detected": {"grid": {"cell": [16, 16], "margin": [0, 0], "separation": [0, 0]}},
-      "overrides": {"grid": {"margin": [1, 1]}}
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        }
+      },
+      "overrides": {
+        "grid": {
+          "margin": [
+            1,
+            1
+          ]
+        }
+      }
     },
-    "expected": {"grid": {"cell": [16, 16], "margin": [1, 1], "separation": [0, 0]}}
+    "expected": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          1,
+          1
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      }
+    }
   },
   {
     "name": "nested null deletes a nested key",
     "asset": {
-      "detected": {"collision": {"profile": "CUSTOM", "polygon": [[0, 0], [1, 0], [1, 1]]}},
-      "overrides": {"collision": {"polygon": null, "profile": "FULL"}}
+      "detected": {
+        "collision": {
+          "profile": "CUSTOM",
+          "polygon": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ]
+          ]
+        }
+      },
+      "overrides": {
+        "collision": {
+          "polygon": null,
+          "profile": "FULL"
+        }
+      }
     },
-    "expected": {"collision": {"profile": "FULL"}}
+    "expected": {
+      "collision": {
+        "profile": "FULL"
+      }
+    }
   },
   {
     "name": "arrays are replaced not merged",
     "asset": {
-      "detected": {"tags": ["a", "b"]},
-      "overrides": {"tags": ["c"]}
+      "detected": {
+        "tags": [
+          "a",
+          "b"
+        ]
+      },
+      "overrides": {
+        "tags": [
+          "c"
+        ]
+      }
     },
-    "expected": {"tags": ["c"]}
+    "expected": {
+      "tags": [
+        "c"
+      ]
+    }
   },
   {
     "name": "override dictionary absent from detected is added without null keys",
     "asset": {
-      "detected": {"role": "PLAYER"},
-      "overrides": {"grid": {"cell": [8, 8], "margin": null}}
+      "detected": {
+        "role": "PLAYER"
+      },
+      "overrides": {
+        "grid": {
+          "cell": [
+            8,
+            8
+          ],
+          "margin": null
+        }
+      }
     },
-    "expected": {"role": "PLAYER", "grid": {"cell": [8, 8]}}
+    "expected": {
+      "role": "PLAYER",
+      "grid": {
+        "cell": [
+          8,
+          8
+        ]
+      }
+    }
   },
   {
     "name": "missing detected and overrides keys",
     "asset": {},
     "expected": {}
+  },
+  {
+    "name": "rule layer sits between detected and overrides",
+    "asset": {
+      "detected": {
+        "role": "GROUND",
+        "usage": "tiles",
+        "tags": [
+          "a"
+        ]
+      },
+      "rule": {
+        "role": "WALL",
+        "tags": [
+          "r"
+        ]
+      },
+      "overrides": {
+        "tags": [
+          "o"
+        ]
+      }
+    },
+    "expected": {
+      "role": "WALL",
+      "usage": "tiles",
+      "tags": [
+        "o"
+      ]
+    }
+  },
+  {
+    "name": "override null removes a rule value",
+    "asset": {
+      "detected": {
+        "usage": "tiles"
+      },
+      "rule": {
+        "role": "WALL"
+      },
+      "overrides": {
+        "role": null
+      }
+    },
+    "expected": {
+      "usage": "tiles"
+    }
   }
 ]

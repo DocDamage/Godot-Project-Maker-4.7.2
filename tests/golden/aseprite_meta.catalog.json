@@ -1,0 +1,312 @@
+{
+  "assets": [
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 5.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "offsets": [
+              [
+                2,
+                2
+              ],
+              [
+                1,
+                2
+              ]
+            ],
+            "rects": [
+              [
+                0,
+                0,
+                20,
+                30
+              ],
+              [
+                21,
+                0,
+                21,
+                30
+              ]
+            ]
+          },
+          "walk_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ]
+            ],
+            "loop": true,
+            "offsets": [
+              [
+                2,
+                3
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                1,
+                2
+              ]
+            ],
+            "rects": [
+              [
+                43,
+                0,
+                20,
+                29
+              ],
+              [
+                64,
+                0,
+                22,
+                30
+              ],
+              [
+                0,
+                31,
+                20,
+                28
+              ],
+              [
+                21,
+                31,
+                22,
+                30
+              ]
+            ]
+          },
+          "walk_left": {
+            "durations": [
+              1.0,
+              1.0,
+              2.0,
+              1.0
+            ],
+            "flip_h": true,
+            "fps": 10.0,
+            "frames": [
+              [
+                6,
+                0
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                8,
+                0
+              ],
+              [
+                9,
+                0
+              ]
+            ],
+            "loop": true,
+            "offsets": [
+              [
+                3,
+                2
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                2,
+                4
+              ]
+            ],
+            "rects": [
+              [
+                44,
+                31,
+                18,
+                30
+              ],
+              [
+                63,
+                31,
+                19,
+                29
+              ],
+              [
+                0,
+                62,
+                20,
+                30
+              ],
+              [
+                21,
+                62,
+                19,
+                28
+              ]
+            ]
+          },
+          "walk_right": {
+            "durations": [
+              1.0,
+              1.0,
+              2.0,
+              1.0
+            ],
+            "fps": 10.0,
+            "frames": [
+              [
+                6,
+                0
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                8,
+                0
+              ],
+              [
+                9,
+                0
+              ]
+            ],
+            "loop": true,
+            "offsets": [
+              [
+                3,
+                2
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                2,
+                4
+              ]
+            ],
+            "rects": [
+              [
+                44,
+                31,
+                18,
+                30
+              ],
+              [
+                63,
+                31,
+                19,
+                29
+              ],
+              [
+                0,
+                62,
+                20,
+                30
+              ],
+              [
+                21,
+                62,
+                19,
+                28
+              ]
+            ]
+          }
+        },
+        "frame": [
+          24,
+          32
+        ],
+        "origin": [
+          12,
+          31
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          96,
+          92
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "aseprite",
+      "id": "aseprite_meta.knight",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "aseprite_meta",
+      "path": "assets/packs/aseprite_meta/knight.png",
+      "sha256": "a92db1c1cb4f07ed1f26012f1a625f67bee2edbe60647daa2eac5a8afa7b45cc",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "aseprite"
+      ],
+      "license_files": [
+        "assets/packs/aseprite_meta/LICENSE.txt"
+      ],
+      "pack_id": "aseprite_meta",
+      "profile_id": null,
+      "root": "assets/packs/aseprite_meta",
+      "source_sha256": "6484774a9a49a55e0cc145030ee815bc7233e8a2eec9a86d70bcdef408243fc5",
+      "warnings": []
+    }
+  ],
+  "tilesets": []
+}

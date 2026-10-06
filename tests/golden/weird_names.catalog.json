@@ -1,0 +1,121 @@
+{
+  "assets": [
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "ITEM",
+        "size": [
+          32,
+          32
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "weird_names.arbol_grande",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "weird_names",
+      "path": "assets/packs/weird_names/Árbol Grande.png",
+      "sha256": "4ac2f09ceb60dabe594015d374c11c61de65967fce4adfe28af8b8adce4f25ee",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "weird_names.extra_extracted.sign",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "weird_names",
+      "path": "assets/packs/weird_names/extra_extracted/sign.png",
+      "sha256": "3b2ea3d41b3a2cc5391965013eb3df62d33ea619966772c5358ed5f4d4deb780",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          32,
+          32
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "weird_names.tree",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "weird_names",
+      "path": "assets/packs/weird_names/Tree.PNG",
+      "sha256": "4ac2f09ceb60dabe594015d374c11c61de65967fce4adfe28af8b8adce4f25ee",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license_files": [
+        "assets/packs/weird_names/LICENSE.txt"
+      ],
+      "pack_id": "weird_names",
+      "profile_id": null,
+      "root": "assets/packs/weird_names",
+      "source_sha256": "a8bb8b94a61f598d24b51d7514cbe7a36c12133356c4b7459dbb7b7f0a9df72b",
+      "warnings": []
+    }
+  ],
+  "tilesets": []
+}

@@ -34,7 +34,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 
 Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]`.
 
-**PackRef:** `{ "pack_id": str, "source": str (absolute path as the user gave it; informational only), "source_sha256": str, "kind": "zip"|"7z"|"folder" }`.
+**PackRef:** `{ "pack_id": str, "source": str (absolute path as the user gave it; informational only), "source_sha256": str, "kind": "zip"|"7z"|"rar"|"folder" }`.
 
 ### 1.1 `input`
 
@@ -167,6 +167,7 @@ Location: `<project>/rpggen/asset_catalog.json`.
   * The file is missing on disk → `MISSING`.
   * The role is `NONE` (the user excluded it) → `UNUSED`.
   * A pack update changed the dimensions of an atlas used by a tileset → `CONFLICT`. Only explicit user resolution clears this.
+* Assets may also carry an optional `rule` object (T2.14): the facets written by folder rules (§4.8), so effective = `detected` <- `rule` <- `overrides`.
 * **Effective facets** = a deep merge of `detected` with `overrides`, where override keys win. An override value of `null` means "remove this detected key". Implement this once as `catalog.effective(asset) -> dict` and as `catalog_reader.gd: effective(asset)`. Test both on the same fixtures; the results must match (T1.07).
 
 ### 4.4 Facets (keys inside `detected`/`overrides`)
@@ -190,6 +191,7 @@ Location: `<project>/rpggen/asset_catalog.json`.
 | `nine_slice` | `[left, top, right, bottom]` | usage=ui | Margins in px. |
 | `import` | `{ "filter": "nearest"/"linear", "mipmaps": bool }` | images | Defaults: nearest, false. |
 | `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). |
+| `size` | vec2i | every image asset | Pixel size of the image file (T2.14); a change on a tile sheet used by a tileset raises CONFLICT. |
 | `region` | `[x, y, w, h]` | usage=portrait | Pixel rect of one face inside a face sheet (T2.11). |
 
 **Role** enum: `GROUND, WALL, CLIFF, WATER, ROAD, AUTOTILE, DECORATION, BUILDING, INTERIOR, PLAYER, NPC, ENEMY, BOSS, WEAPON, ITEM, EFFECT, PROJECTILE, UI, PORTRAIT, BACKGROUND, AUDIO_MUSIC, AUDIO_SFX, FONT, NONE`.

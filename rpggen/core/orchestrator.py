@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any
 
 from rpggen import __version__, ids, jsonio, paths
+from rpggen.core import archive, godot, godot_log, inventory, staging
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
-from rpggen.core import godot, godot_log, staging
 from rpggen.errors import CODES, Issue, IssueList, RpgGenError, Severity
 
 log = logging.getLogger(__name__)
@@ -66,6 +66,8 @@ class _State:
     staging: staging.Staging | None = None
     log_dir: Path | None = None
     phases_done: list[str] = field(default_factory=list)
+    opened: list[tuple[archive.OpenedPack, inventory.Inventory]] = field(default_factory=list)
+    generated: dict[str, str] = field(default_factory=dict)
 
 
 # --------------------------------------------------------------------------- helpers
@@ -156,30 +158,28 @@ def phase_stage(state: _State) -> None:
 def phase_install(state: _State) -> None:
     assert state.staging is not None and state.cfg is not None
     staging.install_templates(state.staging, paths.templates_root())
-    for pack in state.cfg.packs:
-        if pack.kind != "folder":
-            raise RpgGenError(
-                "ARCH-001", path=pack.source, reason="archive packs arrive with milestone M2"
-            )
-        staging.install_pack(state.staging, Path(pack.source), pack.pack_id)
+    used: set[str] = set()
+    for ref in state.cfg.packs:
+        opened = archive.open_pack(Path(ref.source), used, pack_id=ref.pack_id)
+        used.add(opened.pack_id)
+        state.issues.extend(opened.issues)
+        inv = inventory.build_inventory(opened)
+        state.opened.append((opened, inv))
+        staging.install_pack(state.staging, opened.root, ref.pack_id, inv)
 
 
 def phase_catalog(state: _State) -> None:
-    assert state.staging is not None and state.cfg is not None
-    merged = catalog_mod.Catalog()
-    for pack in state.cfg.packs:
-        part = catalog_mod.build_minimal_catalog(
-            Path(pack.source),
-            pack.pack_id,
-            f"assets/packs/{pack.pack_id}",
-            state.cfg.base_tile_size,
-        )
-        merged.packs += part.packs
-        merged.assets += part.assets
-        merged.tilesets += part.tilesets
-        merged.id_allocations = part.id_allocations
-    state.catalog = merged
-    staging.write_project_files(state.staging, state.cfg, merged)
+    assert state.staging is not None and state.cfg is not None and state.log_dir is not None
+    work_dir = state.staging.staging / "rpggen" / "work"
+    catalog, issues, generated = catalog_mod.assemble(state.opened, None, [], work_dir=work_dir)
+    # archive issues were reported while opening the packs; do not list them twice
+    known = {(i.code, i.message) for i in state.issues}
+    state.issues.extend(i for i in issues if (i.code, i.message) not in known)
+    state.catalog = catalog
+    state.generated = generated
+    staging.install_generated(state.staging, generated)
+    shutil.rmtree(work_dir, ignore_errors=True)
+    staging.write_project_files(state.staging, state.cfg, catalog)
 
 
 def phase_import(state: _State) -> None:
@@ -363,8 +363,9 @@ def run(cfg_path: Path, target: Path, godot_exe: Path, cb: Callbacks | None = No
 def default_config_for_pack(
     pack_dir: Path, name: str, tile_size: int = 16
 ) -> config_mod.GeneratorConfig:
-    """Config for a single folder pack (used by ``rpggen generate --pack``)."""
+    """Config for a single pack folder or archive (used by ``rpggen generate --pack``)."""
     pack_dir = Path(pack_dir)
-    pack_id = ids.pack_id_from_name(pack_dir.name, set())
-    ref = config_mod.pack_ref_from_folder(pack_dir, pack_id)
+    stem = pack_dir.name if pack_dir.is_dir() else pack_dir.stem
+    pack_id = ids.pack_id_from_name(stem, set())
+    ref = config_mod.pack_ref_from_source(pack_dir, pack_id)
     return config_mod.default_for(name, [ref], base_tile_size=tile_size)

@@ -63,14 +63,42 @@ def make_fixtures() -> int:
     return subprocess.run([sys.executable, str(tool), "--out", str(out)], check=False).returncode
 
 
+def synthetic_packs() -> list[Path]:
+    root = REPO_ROOT / "test_packs" / "synthetic"
+    return sorted(p for p in root.iterdir() if p.is_dir() or p.suffix == ".zip")
+
+
+def update_goldens() -> int:
+    """Rewrite tests/golden/<pack>.catalog.json from the current assemble() output."""
+    from rpggen import jsonio
+    from rpggen.core import archive, catalog, inventory
+
+    golden = REPO_ROOT / "tests" / "golden"
+    golden.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="rpggen_goldens_") as tmp:
+        os.environ["RPGGEN_CACHE_DIR"] = tmp
+        for pack_path in synthetic_packs():
+            opened = archive.open_pack(pack_path, set())
+            inv = inventory.build_inventory(opened)
+            cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [], use_cache=False)
+            target = golden / f"{pack_path.stem}.catalog.json"
+            with open(target, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(jsonio.dumps(cat.to_json()))
+            print(f"wrote {pack_path.stem}.catalog.json")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m rpggen.dev")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("godot-test", help="run the template project's GDScript tests")
     sub.add_parser("make-fixtures", help="regenerate test_packs/synthetic")
+    sub.add_parser("update-goldens", help="rewrite tests/golden/*.catalog.json")
     args = parser.parse_args(argv)
     if args.command == "godot-test":
         return godot_test()
+    if args.command == "update-goldens":
+        return update_goldens()
     return make_fixtures()
 
 

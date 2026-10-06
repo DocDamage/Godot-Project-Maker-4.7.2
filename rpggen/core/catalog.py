@@ -5,11 +5,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
-
 from rpggen import __version__, ids, jsonio, schema
-from rpggen.core.config import folder_sha256
-from rpggen.errors import RpgGenError
+from rpggen.core.adapters.base import AssetFragment
+from rpggen.core.archive import OpenedPack
+from rpggen.core.inventory import Inventory
+from rpggen.errors import IssueList, RpgGenError
 
 CATALOG_VERSION = 2
 
@@ -40,10 +40,14 @@ def merge(base: dict[str, Any], over: dict[str, Any]) -> dict[str, Any]:
 
 
 def effective(asset: dict[str, Any] | Asset) -> dict[str, Any]:
-    """Effective facets of an asset: ``detected`` merged with ``overrides``."""
+    """Effective facets of an asset: ``detected`` <- ``rule`` <- ``overrides``."""
     if isinstance(asset, Asset):
-        return merge(asset.detected, asset.overrides)
-    return merge(asset.get("detected", {}), asset.get("overrides", {}))
+        detected, rule, overrides = asset.detected, asset.rule, asset.overrides
+    else:
+        detected = asset.get("detected", {})
+        rule = asset.get("rule", {})
+        overrides = asset.get("overrides", {})
+    return merge(merge(detected, rule), overrides)
 
 
 # --------------------------------------------------------------------------- data classes
@@ -95,9 +99,10 @@ class Asset:
     overrides: dict[str, Any] = field(default_factory=dict)
     detected_by: str = ""
     confidence: float = 0.0
+    rule: dict[str, Any] = field(default_factory=dict)  # facets written by folder rules
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        out = {
             "id": self.id,
             "pack_id": self.pack_id,
             "path": self.path,
@@ -109,6 +114,9 @@ class Asset:
             "detected_by": self.detected_by,
             "confidence": self.confidence,
         }
+        if self.rule:
+            out["rule"] = copy.deepcopy(self.rule)
+        return out
 
     @classmethod
     def from_json(cls, d: dict[str, Any]) -> Asset:
@@ -123,6 +131,7 @@ class Asset:
             copy.deepcopy(d["overrides"]),
             d["detected_by"],
             d["confidence"],
+            copy.deepcopy(d.get("rule", {})),
         )
 
 
@@ -294,121 +303,453 @@ def save(catalog: Catalog, path: Path) -> None:
     jsonio.write(path, data)
 
 
-# --------------------------------------------------------------------------- M1 temporary builder
+# --------------------------------------------------------------------------- status
 
-_DIRECTIONS = ("down", "left", "right", "up")  # sheet rows 0..3
-
-
-def _file_sha256(path: Path) -> str:
-    import hashlib
-
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+CONFIRMED_CONFIDENCE = 0.999
+AUTO_CONFIDENCE = 0.75
 
 
-def build_minimal_catalog(
-    pack_dir: Path, pack_id: str, project_rel_root: str, tile_size: int
-) -> Catalog:
-    """TEMPORARY (M1). Replaced by analysis pipeline in T2.14.
+def recompute_status(
+    asset: Asset, *, file_missing: bool = False, user_confirmed: bool = False
+) -> str:
+    """Status of an asset (02_SCHEMAS §4.3). CONFLICT stays until the user resolves it."""
+    effective_facets = effective(asset)
+    if file_missing:
+        return "MISSING"
+    if asset.status == "CONFLICT":
+        return "CONFLICT"
+    if effective_facets.get("role") == "NONE":
+        return "UNUSED"
+    if asset.overrides or asset.confidence >= CONFIRMED_CONFIDENCE or user_confirmed:
+        return "CONFIRMED"
+    if asset.confidence >= AUTO_CONFIDENCE:
+        return "AUTO_DETECTED"
+    return "NEEDS_REVIEW"
 
-    Assumes the synthetic ``basic16`` layout: PNGs under ``tiles/`` are ground tile sheets and PNGs
-    under ``characters/`` are 16x24 player sheets (4 columns x 4 direction rows).
+
+# --------------------------------------------------------------------------- folder rules
+
+
+def _pack_relative(asset: Asset, packs: dict[str, CatalogPack]) -> str:
+    root = packs[asset.pack_id].root if asset.pack_id in packs else ""
+    prefix = root + "/"
+    return asset.path[len(prefix) :] if asset.path.startswith(prefix) else asset.path
+
+
+def apply_folder_rules(catalog: Catalog, extra_rules: list[FolderRule] | None = None) -> None:
+    """Rebuild every asset's ``rule`` layer from the folder rules, in order.
+
+    Rules are applied after detection and before overrides: effective = detected <- rule <-
+    overrides. ``extra_rules`` (profile rules) are appended to the catalog's own rules once.
     """
-    pack_dir = Path(pack_dir)
-    cat = Catalog()
-    license_files = sorted(
-        (
-            f"{project_rel_root}/{p.name}"
-            for p in pack_dir.iterdir()
-            if p.name.upper().startswith("LICENSE")
-        ),
-        key=_sort_key,
-    )
-    cat.packs.append(CatalogPack(pack_id, folder_sha256(pack_dir), project_rel_root, license_files))
-    tileset = TileSetDef(
-        name="overworld",
-        tile_size=[tile_size, tile_size],
-        physics_layers=[{"name": "world", "layer_bits": 1, "mask_bits": 0}],
-        custom_data=[
-            {"name": "asset_id", "type": "string"},
-            {"name": "footstep", "type": "string"},
-            {"name": "move_cost", "type": "float"},
-        ],
-    )
-    cat.tilesets.append(tileset)
+    from rpggen import paths as paths_mod
 
-    def pngs(sub: str) -> list[Path]:
-        folder = pack_dir / sub
-        if not folder.is_dir():
-            return []
-        return sorted(
-            (p for p in folder.rglob("*.png")),
-            key=lambda p: _sort_key(p.relative_to(pack_dir).as_posix()),
+    for rule in extra_rules or []:
+        if not any(
+            (r.pack_id, r.glob, r.set) == (rule.pack_id, rule.glob, rule.set)
+            for r in catalog.folder_rules
+        ):
+            catalog.folder_rules.append(rule)
+    packs = {p.pack_id: p for p in catalog.packs}
+    for asset in catalog.assets:
+        asset.rule = {}
+    for rule in catalog.folder_rules:
+        for asset in catalog.assets:
+            if asset.pack_id != rule.pack_id:
+                continue
+            if paths_mod.glob_match(_pack_relative(asset, packs), rule.glob):
+                asset.rule = merge(asset.rule, rule.set)
+
+
+# --------------------------------------------------------------------------- tile sets
+
+DEFAULT_PHYSICS_LAYERS = [{"name": "world", "layer_bits": 1, "mask_bits": 0}]
+DEFAULT_CUSTOM_DATA = [
+    {"name": "asset_id", "type": "string"},
+    {"name": "footstep", "type": "string"},
+    {"name": "move_cost", "type": "float"},
+]
+INTERIOR_TOKENS = {"interior", "inside"}
+
+
+def _is_interior(asset: Asset) -> bool:
+    from rpggen.core import classifier
+
+    folders, file_tokens = classifier.tokens(asset.path)
+    return effective(asset).get("role") == "INTERIOR" or bool(
+        INTERIOR_TOKENS & (set(folders) | set(file_tokens))
+    )
+
+
+def _tile_cell(asset: Asset) -> int:
+    grid = effective(asset).get("grid") or {}
+    return int((grid.get("cell") or [0, 0])[0])
+
+
+def _group_names(tile_assets: list[Asset]) -> dict[str, tuple[str, int]]:
+    """asset id -> (tileset name, tile size) following the naming rules of T2.14."""
+    explicit: dict[str, str] = {}
+    computed: list[Asset] = []
+    for a in tile_assets:
+        hint = effective(a).get("tileset")
+        if hint:
+            explicit[a.id] = str(hint)
+        else:
+            computed.append(a)
+    names: dict[str, tuple[str, int]] = {}
+    for interior in (False, True):
+        group = [a for a in computed if _is_interior(a) == interior]
+        sizes: dict[int, int] = {}
+        for a in group:
+            sizes[_tile_cell(a)] = sizes.get(_tile_cell(a), 0) + 1
+        if not sizes:
+            continue
+        common = max(sizes, key=lambda s: (sizes[s], s))
+        base = "interior" if interior else "overworld"
+        for a in group:
+            size = _tile_cell(a)
+            names[a.id] = (base if size == common else f"{base}_{size}", size)
+    for a in tile_assets:
+        if a.id in explicit:
+            names[a.id] = (explicit[a.id], _tile_cell(a))
+    # One name must describe one tile size: the most common size keeps the plain name.
+    by_name: dict[str, dict[int, int]] = {}
+    for name, size in names.values():
+        by_name.setdefault(name, {}).setdefault(size, 0)
+        by_name[name][size] += 1
+    for aid, (name, size) in list(names.items()):
+        sizes_for_name = by_name[name]
+        if len(sizes_for_name) > 1:
+            keeper = max(sizes_for_name, key=lambda s: (sizes_for_name[s], s))
+            if size != keeper:
+                names[aid] = (f"{name}_{size}", size)
+    return names
+
+
+def assign_tilesets(
+    catalog: Catalog,
+    previous: Catalog | None,
+    adapter_tilesets: list[dict[str, Any]] | None = None,
+) -> None:
+    """Group tile sheets into TileSetDefs and allocate source ids (never renumbered)."""
+    prev_defs = {t.name: t for t in previous.tilesets} if previous else {}
+    prev_source_of: dict[str, tuple[str, int]] = {}
+    for tdef in prev_defs.values():
+        for src in tdef.sources:
+            prev_source_of[src["asset"]] = (tdef.name, int(src["source_id"]))
+    if previous:
+        catalog.id_allocations = copy.deepcopy(previous.id_allocations)
+
+    tile_assets = [
+        a
+        for a in sorted(catalog.assets, key=lambda a: _sort_key(a.id))
+        if effective(a).get("usage") == "tiles" and a.status != "MISSING"
+    ]
+    missing_sources = {
+        a.id for a in catalog.assets if a.status == "MISSING" and a.id in prev_source_of
+    }
+    names = _group_names(tile_assets)
+
+    defs: dict[str, TileSetDef] = {}
+    for aid, (name, size) in sorted(names.items()):
+        if name not in defs:
+            prev = prev_defs.get(name)
+            defs[name] = TileSetDef(
+                name=name,
+                tile_size=[size, size],
+                physics_layers=copy.deepcopy(
+                    prev.physics_layers if prev else DEFAULT_PHYSICS_LAYERS
+                ),
+                custom_data=copy.deepcopy(prev.custom_data if prev else DEFAULT_CUSTOM_DATA),
+                terrain_sets=copy.deepcopy(prev.terrain_sets) if prev else [],
+                navigation=prev.navigation if prev else False,
+                patterns_from_objects=prev.patterns_from_objects if prev else True,
+            )
+        tdef = defs[name]
+        prev_name, prev_id = prev_source_of.get(aid, (None, None))
+        if prev_name == name and prev_id is not None:
+            source_id = prev_id
+        else:
+            source_id = catalog.allocate_source_id(name)
+            if prev_name is not None and prev_id is not None:
+                retired = catalog.id_allocations["tilesets"].setdefault(
+                    prev_name, {"next_source_id": prev_id + 1, "retired": []}
+                )
+                if prev_id not in retired["retired"]:
+                    retired["retired"].append(prev_id)
+        tdef.sources.append({"asset": aid, "source_id": source_id})
+        asset = catalog.asset(aid)
+        assert asset is not None
+        asset.detected["tileset"] = name
+
+    # Sources of assets whose files vanished stay in their tile set (REGEN-003 handles removal).
+    for aid in sorted(missing_sources):
+        name, source_id = prev_source_of[aid]
+        if name in defs:
+            defs[name].sources.append({"asset": aid, "source_id": source_id})
+        elif name in prev_defs:
+            old = prev_defs[name]
+            defs[name] = TileSetDef(
+                old.name,
+                list(old.tile_size),
+                [{"asset": aid, "source_id": source_id}],
+                copy.deepcopy(old.terrain_sets),
+                copy.deepcopy(old.physics_layers),
+                copy.deepcopy(old.custom_data),
+                old.navigation,
+                old.patterns_from_objects,
+            )
+
+    # Terrain sets reported by adapters (Tiled wang sets) join the tile set of their image.
+    path_to_name = {a.path.split("/", 3)[-1]: names[a.id][0] for a in tile_assets if a.id in names}
+    for entry in adapter_tilesets or []:
+        for src in entry.get("sources", []):
+            name = path_to_name.get(src.get("path"))
+            if name and name in defs:
+                existing = {t["name"] for t in defs[name].terrain_sets}
+                for terrain in entry.get("terrain_sets", []):
+                    if terrain["name"] not in existing:
+                        defs[name].terrain_sets.append(copy.deepcopy(terrain))
+                        existing.add(terrain["name"])
+    for tdef in defs.values():
+        tdef.sources.sort(key=lambda s: s["source_id"])
+    catalog.tilesets = [defs[n] for n in sorted(defs, key=_sort_key)]
+
+
+# --------------------------------------------------------------------------- assembly
+
+
+def _merge_fragments(
+    fragments: list[tuple[int, AssetFragment]],
+) -> tuple[dict[str, Any], float, int]:
+    """Merge fragments for one asset: full claims first, then confidence; first value wins."""
+    ordered = sorted(
+        fragments,
+        key=lambda item: (item[1].claim != "full", -item[1].confidence, item[0]),
+    )
+    facets: dict[str, Any] = {}
+    for _, frag in ordered:
+        for key, value in frag.facets.items():
+            facets.setdefault(key, copy.deepcopy(value))
+    first = min(index for index, _ in fragments)
+    return facets, max(f.confidence for _, f in fragments), first
+
+
+def _license_files(inv: Inventory, root: str) -> list[str]:
+    return sorted((f"{root}/{f.path}" for f in inv.files if f.kind == "license"), key=_sort_key)
+
+
+def assemble(
+    packs: list[tuple[OpenedPack, Inventory]],
+    previous: Catalog | None,
+    profiles: list[Any] | None = None,
+    *,
+    work_dir: Path | None = None,
+    use_cache: bool = True,
+) -> tuple[Catalog, IssueList, dict[str, str]]:
+    """Run adapters, classify and merge everything into a Catalog.
+
+    Returns ``(catalog, issues, generated_files)`` where generated_files maps project-relative
+    paths (GIF strips) to the absolute files the installer must copy.
+    """
+    from rpggen.core import adapters, classifier
+    from rpggen.core.analyzer import analyzer_for
+
+    adapters.register_defaults()
+    issues = IssueList()
+    catalog = Catalog()
+    generated: dict[str, str] = {}
+    adapter_tilesets: list[dict[str, Any]] = []
+    objects_raw: list[tuple[str, dict[str, Any]]] = []  # (pack_id, adapter object dict)
+    present_ids: set[str] = set()
+    all_results: dict[str, list[Any]] = {}
+
+    for opened, inv in sorted(packs, key=lambda pair: _sort_key(pair[1].pack_id)):
+        pack_id = inv.pack_id
+        root = f"assets/packs/{pack_id}"
+        issues.extend(opened.issues)
+        issues.extend(i for i in inv.issues if i not in opened.issues)
+        ctx = adapters.AdapterContext(
+            pack_id=pack_id,
+            analyze=analyzer_for(inv, opened.root, use_cache=use_cache),
+            work_dir=work_dir,
         )
+        results = adapters.run_adapters(inv, opened.root, ctx)
+        all_results[pack_id] = results
+        warnings: list[str] = []
+        for res in results:
+            issues.extend(res.issues)
+            warnings.extend(res.pack_warnings)
+            generated.update(res.generated)
+            adapter_tilesets.extend(res.tilesets)
+            objects_raw.extend((pack_id, o) for o in res.objects)
 
-    for png in pngs("tiles"):
-        rel = png.relative_to(pack_dir).as_posix()
-        asset_id = ids.asset_id(pack_id, rel)
-        with Image.open(png) as im:
-            cols = im.width // tile_size
-        detected: dict[str, Any] = {
-            "role": "GROUND",
-            "usage": "tiles",
-            "grid": {"cell": [tile_size, tile_size], "margin": [0, 0], "separation": [0, 0]},
-            "tileset": tileset.name,
-            "collision": {"profile": "NONE"},
-        }
-        if png.name == "terrain.png":
-            # Hard-coded for basic16: row 1 holds the wall tiles.
-            detected["tile_overrides"] = {
-                f"{x},1": {"collision": {"profile": "FULL"}, "custom": {"role": "WALL"}}
-                for x in range(cols)
-            }
-        cat.assets.append(
-            Asset(
-                id=asset_id,
-                pack_id=pack_id,
-                path=f"{project_rel_root}/{rel}",
-                sha256=_file_sha256(png),
-                kind="image",
-                status="AUTO_DETECTED",
-                detected=detected,
-                detected_by="m1_minimal",
-                confidence=0.9,
+        # collect fragments per (path, variant)
+        by_key: dict[tuple[str, str], list[tuple[int, AssetFragment]]] = {}
+        for index, res in enumerate(results):
+            for frag in res.assets:
+                by_key.setdefault((frag.path, frag.variant), []).append((index, frag))
+
+        paths_sorted = [f.path for f in inv.files if f.kind == "image"]
+        base_ids = ids.disambiguate([ids.asset_id(pack_id, p) for p in paths_sorted])
+        id_for_path = dict(zip(paths_sorted, base_ids, strict=True))
+        files = {f.path: f for f in inv.files}
+        for path in paths_sorted:
+            variants = sorted(v for (p, v) in by_key if p == path)
+            for variant in variants:
+                facets, confidence, first = _merge_fragments(by_key[(path, variant)])
+                detected_by = results[first].adapter
+                role_conf = None
+                if "role" not in facets:
+                    role, role_conf, alt = classifier.classify(facets, path, None)
+                    facets["role"] = role
+                    if alt:
+                        facets["roles_alt"] = alt
+                if role_conf is not None:
+                    confidence = min(confidence, role_conf)
+                f = files[path]
+                if f.image:
+                    facets["size"] = [f.image["w"], f.image["h"]]
+                asset_id = id_for_path[path] + (f"#{variant}" if variant else "")
+                catalog.assets.append(
+                    Asset(
+                        id=asset_id,
+                        pack_id=pack_id,
+                        path=f"{root}/{path}",
+                        sha256=f.sha256,
+                        kind="image",
+                        status="AUTO_DETECTED",
+                        detected=facets,
+                        detected_by=detected_by,
+                        confidence=round(confidence, 6),
+                    )
+                )
+                present_ids.add(asset_id)
+
+        for f in inv.files:
+            if f.kind not in ("audio", "font"):
+                continue
+            analysis: dict[str, Any] = {"kind": f.kind}
+            facets = {"usage": f.kind}
+            if f.kind == "audio":
+                duration = classifier.audio_duration(opened.root / f.path)
+                if duration is not None:
+                    analysis["duration_s"] = duration
+            role, role_conf, _ = classifier.classify(facets, f.path, analysis)
+            facets["role"] = role
+            if f.kind == "audio":
+                music = role == "AUDIO_MUSIC"
+                facets["audio"] = {"type": "music" if music else "sfx", "loop": music}
+            asset_id = ids.asset_id(pack_id, f.path)
+            catalog.assets.append(
+                Asset(asset_id, pack_id, f"{root}/{f.path}", f.sha256, f.kind, "AUTO_DETECTED",
+                      facets, {}, "inventory", role_conf)
+            )  # fmt: skip
+            present_ids.add(asset_id)
+
+        licenses = _license_files(inv, root)
+        if not licenses:
+            issues.add("ASSET-021", pack_id=pack_id, file=root)
+        catalog.packs.append(
+            CatalogPack(
+                pack_id,
+                inv.source_sha256,
+                root,
+                licenses,
+                [r.adapter for r in results if r.assets or r.objects or r.tilesets],
+                None,
+                sorted(set(warnings)),
             )
         )
-        tileset.sources.append(
-            {"asset": asset_id, "source_id": cat.allocate_source_id(tileset.name)}
-        )
 
-    for png in pngs("characters"):
-        rel = png.relative_to(pack_dir).as_posix()
-        animations: dict[str, Any] = {}
-        for row, direction in enumerate(_DIRECTIONS):
-            animations[f"walk_{direction}"] = {
-                "frames": [[col, row] for col in range(4)],
-                "fps": 8.0,
-                "loop": True,
-            }
-            animations[f"idle_{direction}"] = {"frames": [[0, row]], "fps": 1.0, "loop": True}
-        cat.assets.append(
-            Asset(
-                id=ids.asset_id(pack_id, rel),
-                pack_id=pack_id,
-                path=f"{project_rel_root}/{rel}",
-                sha256=_file_sha256(png),
-                kind="image",
-                status="AUTO_DETECTED",
-                detected={
-                    "role": "PLAYER",
-                    "usage": "sprite",
-                    "grid": {"cell": [16, 24], "margin": [0, 0], "separation": [0, 0]},
-                    "frame": [16, 24],
-                    "origin": [8, 23],
-                    "directions": 4,
-                    "animations": animations,
-                },
-                detected_by="m1_minimal",
-                confidence=0.9,
-            )
+    _carry_previous(catalog, previous, present_ids, issues)
+    extra_rules: list[FolderRule] = []
+    for profile in profiles or []:
+        extra_rules.extend(getattr(profile, "folder_rules", []))
+    if previous:
+        catalog.folder_rules = copy.deepcopy(previous.folder_rules)
+    apply_folder_rules(catalog, extra_rules)
+    _add_objects(catalog, objects_raw, previous)
+    assign_tilesets(catalog, previous, adapter_tilesets)
+    for asset in catalog.assets:
+        asset.status = recompute_status(
+            asset,
+            file_missing=asset.status == "MISSING",
+            user_confirmed=asset.status == "CONFIRMED",
         )
-    return cat
+    catalog.assets.sort(key=lambda a: _sort_key(a.id))
+    return catalog, issues, generated
+
+
+def _carry_previous(
+    catalog: Catalog, previous: Catalog | None, present_ids: set[str], issues: IssueList
+) -> None:
+    """Overrides, confirmations and MISSING assets of the previous catalog (T2.14 steps 5-6)."""
+    if previous is None:
+        return
+    prev_tile_assets = {src["asset"] for tdef in previous.tilesets for src in tdef.sources}
+    for asset in catalog.assets:
+        old = previous.asset(asset.id)
+        if old is None:
+            continue
+        asset.overrides = copy.deepcopy(old.overrides)
+        if old.status == "CONFIRMED":
+            asset.status = "CONFIRMED"
+        old_facets, new_facets = effective(old), effective(asset)
+        layout_changed = old_facets.get("grid") != new_facets.get("grid") or old_facets.get(
+            "size"
+        ) != new_facets.get("size")
+        if (
+            asset.id in prev_tile_assets and new_facets.get("usage") == "tiles" and layout_changed
+        ) or old.status == "CONFLICT":
+            asset.status = "CONFLICT"
+            if old.status != "CONFLICT":
+                issues.add("TILE-004", asset=asset.id, file=asset.path)
+    for old in previous.assets:
+        if old.id in present_ids:
+            continue
+        kept = Asset.from_json(old.to_json())
+        kept.status = "MISSING"
+        catalog.assets.append(kept)
+        issues.add("CAT-004", asset=old.id, file=old.path)
+        if not any(p.pack_id == old.pack_id for p in catalog.packs):
+            prev_pack = next((p for p in previous.packs if p.pack_id == old.pack_id), None)
+            if prev_pack is not None:
+                catalog.packs.append(CatalogPack.from_json(prev_pack.to_json()))
+
+
+def _add_objects(
+    catalog: Catalog, objects_raw: list[tuple[str, dict[str, Any]]], previous: Catalog | None
+) -> None:
+    """SheetObjects from adapters; user objects of the previous catalog are kept."""
+    by_path = {a.path: a for a in catalog.assets if not a.id.count("#")}
+    seen: set[str] = set()
+    for pack_id, raw in objects_raw:
+        sheet = by_path.get(f"assets/packs/{pack_id}/{raw['sheet_path']}")
+        if sheet is None:
+            continue
+        base = f"{sheet.id}#{ids.slug(raw['name'])}"
+        object_id, n = base, 1
+        while object_id in seen:
+            n += 1
+            object_id = f"{base}__{n}"
+        seen.add(object_id)
+        obj = SheetObject(
+            id=object_id,
+            sheet=sheet.id,
+            name=raw["name"],
+            role=raw["role"],
+            region=list(raw["region"]),
+            origin=list(raw["origin"]),
+            footprint=list(raw["footprint"]),
+            collision=copy.deepcopy(raw["collision"]),
+            tags=list(raw.get("tags", [])),
+            status=raw.get("status", "AUTO_DETECTED"),
+            source=raw.get("source", "auto"),
+            door=list(raw["door"]) if raw.get("door") else None,
+        )
+        catalog.objects.append(obj)
+    if previous:
+        for old in previous.objects:
+            if old.source == "user" and old.id not in seen:
+                catalog.objects.append(SheetObject.from_json(old.to_json()))

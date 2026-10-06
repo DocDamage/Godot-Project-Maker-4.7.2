@@ -1,0 +1,115 @@
+{
+  "assets": [
+    {
+      "confidence": 0.695652,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            1,
+            1
+          ],
+          "separation": [
+            1,
+            1
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.086957
+          ],
+          [
+            "WALL",
+            0.043478
+          ]
+        ],
+        "size": [
+          199,
+          166
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "gutter32.tiles.world",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gutter32",
+      "path": "assets/packs/gutter32/tiles/world.png",
+      "sha256": "1a28c3034be7d477e03be7bc507a82d6b99137e4cebd5783f0ee54af61bc6a1d",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license_files": [
+        "assets/packs/gutter32/LICENSE.txt"
+      ],
+      "pack_id": "gutter32",
+      "profile_id": null,
+      "root": "assets/packs/gutter32",
+      "source_sha256": "f232c8be75971e0955da68d18356cfb5e861da553b90cdd9f3d083f66b761518",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "gutter32.tiles.world",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        32,
+        32
+      ]
+    }
+  ]
+}
