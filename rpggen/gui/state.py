@@ -12,6 +12,7 @@ from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.core.archive import OpenedPack
 from rpggen.core.inventory import Inventory
+from rpggen.core.orchestrator import RunResult
 
 DRAFT_VERSION = 1
 
@@ -30,6 +31,7 @@ class WizardState:
     placeholders: set[str] = field(default_factory=set)
     regenerating: bool = False  # target is an existing rpggen project
     analyzed_key: tuple[str, ...] | None = None  # packs the catalog was assembled from
+    run_result: RunResult | None = None  # outcome of the last generation (not drafted)
 
 
 def draft_path(target: Path) -> Path:

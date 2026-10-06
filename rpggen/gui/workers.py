@@ -6,12 +6,14 @@ import logging
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 
-from rpggen.core import archive, inventory
+from rpggen.core import archive, inventory, orchestrator
 from rpggen.core import catalog as catalog_mod
+from rpggen.core import config as config_mod
 from rpggen.core.orchestrator import Callbacks
 from rpggen.errors import Issue, IssueList, RpgGenError
 from rpggen.gui.state import WizardState
@@ -121,3 +123,21 @@ def apply_analysis(state: WizardState, result: AnalysisResult) -> None:
     state.opened_packs = result.opened
     state.inventories = result.inventories
     state.catalog = result.catalog
+
+
+# --------------------------------------------------------------------------- generation
+
+
+def generate(
+    cfg: config_mod.GeneratorConfig,
+    catalog: catalog_mod.Catalog | None,
+    target: Path,
+    godot_exe: Path,
+    placeholders: list[str],
+    *,
+    callbacks: Callbacks,
+) -> orchestrator.RunResult:
+    """Run the whole pipeline for the wizard's in-memory config and catalog."""
+    return orchestrator.run_in_memory(
+        cfg, catalog, target, godot_exe, callbacks, placeholders=placeholders
+    )

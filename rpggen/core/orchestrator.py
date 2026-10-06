@@ -21,6 +21,7 @@ from rpggen.core import (
 )
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
+from rpggen.core import report as report_mod
 from rpggen.errors import CODES, Issue, IssueList, RpgGenError, Severity
 
 log = logging.getLogger(__name__)
@@ -55,6 +56,9 @@ class RunResult:
     issues: list[Issue]
     report_path: Path | None
     failed_staging: Path | None
+    failed_phase: str | None = None
+    catalog: catalog_mod.Catalog | None = None
+    cfg: config_mod.GeneratorConfig | None = None
 
 
 class _Stop(Exception):
@@ -63,7 +67,7 @@ class _Stop(Exception):
 
 @dataclass
 class _State:
-    cfg_path: Path
+    cfg_path: Path | None
     target: Path
     godot_exe: Path
     cb: Callbacks
@@ -76,6 +80,8 @@ class _State:
     opened: list[tuple[archive.OpenedPack, inventory.Inventory]] = field(default_factory=list)
     generated: dict[str, str] = field(default_factory=dict)
     placeholders: list[str] = field(default_factory=list)
+    current_phase: str | None = None
+    catalog_in: catalog_mod.Catalog | None = None  # in-memory catalog (user overrides) to build on
 
 
 # --------------------------------------------------------------------------- helpers
@@ -136,7 +142,9 @@ def phase_preflight(state: _State) -> None:
     version = godot.detect_version(exe)
     for issue in godot.check_version(version):
         state.issues.append(issue)
-    state.cfg = config_mod.load(state.cfg_path)
+    if state.cfg is None:
+        assert state.cfg_path is not None
+        state.cfg = config_mod.load(state.cfg_path)
     sources = [Path(p.source) for p in state.cfg.packs]
     state.issues.extend(preflight.check_target(state.target, sources))
 
@@ -163,7 +171,9 @@ def phase_install(state: _State) -> None:
 def phase_catalog(state: _State) -> None:
     assert state.staging is not None and state.cfg is not None and state.log_dir is not None
     work_dir = state.staging.staging / "rpggen" / "work"
-    catalog, issues, generated = catalog_mod.assemble(state.opened, None, [], work_dir=work_dir)
+    catalog, issues, generated = catalog_mod.assemble(
+        state.opened, state.catalog_in, [], work_dir=work_dir
+    )
     # archive issues were reported while opening the packs; do not list them twice
     known = {(i.code, i.message) for i in state.issues}
     state.issues.extend(i for i in issues if (i.code, i.message) not in known)
@@ -302,6 +312,20 @@ def phase_report(state: _State) -> None:
     ok = not state.issues.has_errors()
     path = Path(state.target) / "rpggen" / REPORT_NAME
     jsonio.write(path, _report_data(state, ok))
+    _write_markdown(state, Path(state.target) / report_mod.REPORT_MD, ok)
+
+
+def _write_markdown(state: _State, path: Path, ok: bool) -> None:
+    text = report_mod.build_markdown(
+        state.cfg,
+        state.catalog,
+        list(state.issues),
+        ok,
+        failed_phase=None if ok else state.current_phase,
+        placeholders=state.placeholders,
+        summary=report_mod.counts(state.catalog, list(state.issues), path.parent if ok else None),
+    )
+    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 PHASE_FUNCS: dict[str, Callable[[_State], None]] = {
@@ -328,7 +352,17 @@ def _fail(state: _State) -> RunResult:
         failed = staging.discard(state.staging)
         report = failed / REPORT_NAME
         jsonio.write(report, _report_data(state, False))
-    return RunResult(False, Path(state.target), list(state.issues), report, failed)
+        _write_markdown(state, failed / report_mod.REPORT_MD, False)
+    return RunResult(
+        False,
+        Path(state.target),
+        list(state.issues),
+        report,
+        failed,
+        failed_phase=state.current_phase,
+        catalog=state.catalog,
+        cfg=state.cfg,
+    )
 
 
 def run(
@@ -346,11 +380,37 @@ def run(
     cb = cb or Callbacks()
     state = _State(Path(cfg_path), Path(target), Path(godot_exe), cb)
     state.placeholders = list(placeholders or [])
+    return _execute(state)
+
+
+def run_in_memory(
+    cfg: config_mod.GeneratorConfig,
+    catalog: catalog_mod.Catalog | None,
+    target: Path,
+    godot_exe: Path,
+    cb: Callbacks | None = None,
+    placeholders: list[str] | None = None,
+) -> RunResult:
+    """``run`` for a config and catalog that only exist in memory (the wizard's).
+
+    ``catalog`` carries the user's overrides, rules and objects: it is the ``previous`` of the
+    assemble phase, so everything the user decided survives the re-analysis of the packs.
+    """
+    state = _State(None, Path(target), Path(godot_exe), cb or Callbacks())
+    state.cfg = cfg
+    state.catalog_in = catalog
+    state.placeholders = list(placeholders or [])
+    return _execute(state)
+
+
+def _execute(state: _State) -> RunResult:
+    cb = state.cb
     n = len(PHASES_M1)
     try:
         for i, name in enumerate(PHASES_M1, start=1):
             if cb.is_cancelled():
                 return _fail(state)
+            state.current_phase = name
             cb.on_phase(name, i, n)
             cb.on_log(f"phase {i}/{n}: {name}")
             PHASE_FUNCS[name](state)
@@ -367,7 +427,15 @@ def run(
             staging.discard(state.staging)
         raise
     report_path = Path(state.target) / "rpggen" / REPORT_NAME
-    return RunResult(True, Path(state.target), list(state.issues), report_path, None)
+    return RunResult(
+        True,
+        Path(state.target),
+        list(state.issues),
+        report_path,
+        None,
+        catalog=state.catalog,
+        cfg=state.cfg,
+    )
 
 
 def default_config_for_pack(

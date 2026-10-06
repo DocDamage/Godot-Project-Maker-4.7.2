@@ -52,9 +52,11 @@ def stub_pages() -> list[WizardPage]:
 def default_pages() -> list[WizardPage]:
     from rpggen.gui.pages.archetype_page import ArchetypePage
     from rpggen.gui.pages.audit_page import AuditPage
+    from rpggen.gui.pages.generate_page import GeneratePage
     from rpggen.gui.pages.mapping_page import MappingPage
     from rpggen.gui.pages.options_page import OptionsPage
     from rpggen.gui.pages.project_page import ProjectPage
+    from rpggen.gui.pages.results_page import ResultsPage
 
     pages = stub_pages()
     pages[0] = ProjectPage()
@@ -62,6 +64,8 @@ def default_pages() -> list[WizardPage]:
     pages[2] = AuditPage()
     pages[3] = MappingPage()
     pages[4] = OptionsPage()
+    pages[5] = GeneratePage()
+    pages[6] = ResultsPage()
     return pages
 
 
