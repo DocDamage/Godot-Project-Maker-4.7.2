@@ -50,10 +50,12 @@ def stub_pages() -> list[WizardPage]:
 
 
 def default_pages() -> list[WizardPage]:
+    from rpggen.gui.pages.archetype_page import ArchetypePage
     from rpggen.gui.pages.project_page import ProjectPage
 
     pages = stub_pages()
     pages[0] = ProjectPage()
+    pages[1] = ArchetypePage()
     return pages
 
 
