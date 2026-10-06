@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt
@@ -20,6 +21,7 @@ from rpggen.core import catalog as catalog_mod
 from rpggen.gui.edits import EditSession
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
+from rpggen.gui.widgets.anim_preview import AnimEditorDialog
 from rpggen.gui.widgets.asset_detail import AssetDetail
 from rpggen.gui.widgets.asset_grid import AssetGrid, PathResolver
 from rpggen.gui.widgets.bulk_panel import (
@@ -62,6 +64,7 @@ class AuditPage(WizardPage):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.quick_roles = list(QUICK_ROLES)
+        self.archetype = "turn_based"
         self.grid = AssetGrid()
         self.tabs = QTabWidget()
         self.tabs.setObjectName("auditTabs")
@@ -119,6 +122,7 @@ class AuditPage(WizardPage):
             self.detail = AssetDetail(self.session)
             self.side.addWidget(self.detail)
             self.detail.gridEditRequested.connect(self.edit_grid)
+            self.detail.animationsRequested.connect(self.edit_animations)
             self.bulk = BulkPanel(self.session)
             self.side.addWidget(self.bulk)
             self.rules_panel = RulesPanel(self.session)
@@ -139,6 +143,7 @@ class AuditPage(WizardPage):
     def enter(self, state: WizardState) -> None:
         if state.catalog is None:
             return
+        self.archetype = state.archetype
         session = self._ensure_session(state)
         self.resolver = make_resolver(state)
         assert self.detail is not None
@@ -189,6 +194,37 @@ class AuditPage(WizardPage):
         if not self.run_dialog(dialog):
             return False
         return self.session.set_override(asset_id, "grid", dialog.grid())
+
+    def edit_animations(self, asset_id: str) -> bool:
+        """Open the animation editor; Apply writes ``animations``/``origin``/``frame``."""
+        assert self.session is not None
+        asset = self.session.catalog.asset(asset_id)
+        path = self.resolver(asset) if asset else None
+        if asset is None or path is None:
+            return False
+        eff = catalog_mod.effective(asset)
+        grid = eff.get("grid")
+        frame = tuple(eff.get("frame") or (grid["cell"] if grid else (16, 16)))
+
+        def sheet_for(source: str) -> Path | None:
+            return self.resolver(dataclasses.replace(asset, path=source))
+
+        dialog = AnimEditorDialog(
+            path,
+            eff.get("animations") or {},
+            frame,
+            tuple(eff["origin"]) if eff.get("origin") else None,
+            grid,
+            arpg=self.archetype == "arpg",
+            sheet_resolver=sheet_for,
+            parent=self,
+        )
+        if not self.run_dialog(dialog):
+            return False
+        values = dialog.overrides()
+        if not values:
+            return False
+        return self.session.set_overrides([asset_id], values, "Edit animations")
 
     # ------------------------------------------------------------------ folder rules
 

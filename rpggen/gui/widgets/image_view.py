@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QPen, QPixmap, QWheelEvent
+from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QMouseEvent, QPen, QPixmap, QWheelEvent
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget
 
 MARGIN_TINT = QColor(255, 160, 0, 70)
@@ -17,8 +17,11 @@ class ImageView(QGraphicsView):
     """Shows one image; Ctrl+wheel zooms. ``draw_grid`` overlays cell lines, the tinted margin
     area and the separation gutters."""
 
+    clicked = Signal(float, float)  # image pixel position of a click (not a drag)
+
     def __init__(self, object_name: str = "imageView", parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._press: QPoint | None = None
         self.setObjectName(object_name)
         self.setScene(QGraphicsScene(self))
         self.setBackgroundBrush(QColor(60, 60, 60))
@@ -112,6 +115,21 @@ class ImageView(QGraphicsView):
         scale = max(1.0, float(int(scale))) if scale >= 1 else scale
         self.zoom = scale
         self.scale(scale, scale)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._press = event.position().toPoint()
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        super().mouseReleaseEvent(event)
+        press, self._press = self._press, None
+        if press is None or event.button() != Qt.MouseButton.LeftButton:
+            return
+        release = event.position().toPoint()
+        if (release - press).manhattanLength() <= 3 and self.pixmap_item is not None:
+            point = self.mapToScene(release)
+            self.clicked.emit(point.x(), point.y())
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
