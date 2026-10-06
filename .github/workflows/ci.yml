@@ -48,6 +48,8 @@ jobs:
           python -m ruff format --check .
       - name: Unit tests
         run: python -m pytest -q -m "not integration"
+      - name: Detection accuracy (synthetic corpus)
+        run: python -m rpggen analyze --corpus test_packs/synthetic --report accuracy_report.json
       - name: GDScript tests
         run: python -m rpggen.dev godot-test
       - name: Integration tests
@@ -61,6 +63,7 @@ jobs:
             **/rpggen/logs/**
             **/.rpggen_failed/**
             tests/**/results.json
+            accuracy_report.json
           if-no-files-found: ignore
 
   ubuntu:
@@ -81,3 +84,5 @@ jobs:
           python -m ruff format --check .
       - name: Unit tests
         run: python -m pytest -q -m "not integration"
+      - name: Detection accuracy (synthetic corpus)
+        run: python -m rpggen analyze --corpus test_packs/synthetic --report accuracy_report.json

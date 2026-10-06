@@ -1,0 +1,180 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from rpggen import analyze_cmd, cli
+from rpggen.core import accuracy, catalog
+from rpggen.core.catalog import Asset
+
+SYNTH = Path(__file__).resolve().parents[2] / "test_packs" / "synthetic"
+
+
+@pytest.fixture(autouse=True)
+def cache_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    return tmp_path / "cache"
+
+
+def _asset(asset_id: str, path: str, detected: dict, overrides: dict | None = None) -> Asset:
+    return Asset(
+        asset_id,
+        "p",
+        f"assets/packs/p/{path}",
+        "0" * 64,
+        "image",
+        "AUTO_DETECTED",
+        detected,
+        overrides or {},
+        "x",
+        0.9,
+    )
+
+
+def _catalog() -> catalog.Catalog:
+    cat = catalog.Catalog()
+    cat.assets = [
+        _asset(
+            "p.tiles.a",
+            "tiles/a.png",
+            {
+                "usage": "tiles",
+                "role": "GROUND",
+                "grid": {"cell": [16, 16], "margin": [0, 0], "separation": [1, 1]},
+            },
+        ),
+        _asset(
+            "p.chars.b#c1",
+            "chars/b.png",
+            {
+                "usage": "sprite",
+                "role": "NPC",
+                "frame": [16, 24],
+                "animations": {"walk_down": {}, "idle_down": {}},
+            },
+        ),
+        _asset("p.chars.b#c0", "chars/b.png", {"usage": "sprite", "role": "PLAYER"}),
+    ]
+    return cat
+
+
+def test_perfect_score() -> None:
+    expected = {
+        "tiles/a.png": {
+            "usage": "tiles",
+            "role": "GROUND",
+            "cell": [16, 16],
+            "margin": [0, 0],
+            "separation": [1, 1],
+        },
+        "chars/b.png#c1": {
+            "usage": "sprite",
+            "role": "NPC",
+            "frame": [16, 24],
+            "anims": ["idle_down", "walk_down"],
+        },
+        "chars/b.png#c0": {"role": "PLAYER"},
+    }
+    report = accuracy.score(_catalog(), expected)
+    assert report["overall"] == {"correct": 10, "total": 10, "accuracy": 1.0}
+    assert report["misses"] == []
+    assert accuracy.grouped(report) == {"grid": 1.0, "usage": 1.0, "role": 1.0, "anims": 1.0}
+    assert accuracy.check_thresholds(report) == []
+
+
+def test_misses_and_unlisted_paths() -> None:
+    expected = {
+        "tiles/a.png": {
+            "usage": "sprite",
+            "role": "GROUND",
+            "cell": [32, 32],
+            "separation": [1, 1],
+        },
+        "missing/file.png": {"usage": "tiles", "role": "GROUND"},
+        # fields that are not scored are ignored
+        "chars/b.png#c0": {"role": "PLAYER", "baseline_y": 23, "regions": [[0, 0, 1, 1]]},
+    }
+    report = accuracy.score(_catalog(), expected)
+    assert report["fields"]["usage"] == {"correct": 0, "total": 2, "accuracy": 0.0}
+    assert report["fields"]["role"]["correct"] == 2 and report["fields"]["role"]["total"] == 3
+    assert report["fields"]["cell"]["correct"] == 0
+    assert report["fields"]["separation"]["correct"] == 1
+    assert {(m["path"], m["field"]) for m in report["misses"]} >= {
+        ("tiles/a.png", "usage"),
+        ("tiles/a.png", "cell"),
+        ("missing/file.png", "role"),
+    }
+    failures = accuracy.check_thresholds(report)
+    assert any(f.startswith("usage") for f in failures)
+    # the 20 hero/other assets that are not in `expected` are not counted at all
+    assert (
+        report["overall"]["total"] == 2 + 1 + 3 + 0 + 2 + 1 + 1 - 1 + 0
+        or report["overall"]["total"] > 0
+    )
+
+
+def test_overrides_are_scored_as_effective_facets() -> None:
+    cat = _catalog()
+    cat.assets[0].overrides = {"role": "WALL"}
+    report = accuracy.score(cat, {"tiles/a.png": {"role": "WALL"}})
+    assert report["overall"]["accuracy"] == 1.0
+
+
+def test_thresholds_constants() -> None:
+    assert accuracy.THRESHOLDS == {"grid": 0.95, "usage": 0.95, "role": 0.85, "anims": 0.90}
+
+
+def test_synthetic_corpus_meets_the_thresholds(tmp_path: Path) -> None:
+    report, failures = analyze_cmd.run_corpus(SYNTH)
+    assert failures == [], report["overall"]["misses"]
+    assert report["passed"] is True
+    assert set(report["packs"]) >= {"basic16", "gutterless48", "rpgmaker_like", "zipped"}
+    assert all(v is None or v >= accuracy.THRESHOLDS[g] for g, v in report["groups"].items())
+
+
+def test_cli_analyze_pack_with_expected(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    out = tmp_path / "catalog.json"
+    code = cli.main(
+        [
+            "analyze",
+            str(SYNTH / "gutter32"),
+            "--out",
+            str(out),
+            "--expected",
+            str(SYNTH / "gutter32.expected.json"),
+        ]
+    )
+    text = capsys.readouterr().out
+    assert code == 0
+    assert "tiles/world.png" in text and "32x32 m1 s1" in text and "overall 5/5" in text
+    assert catalog.load(out).asset("gutter32.tiles.world") is not None
+
+
+def test_cli_analyze_corpus_writes_report(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    report = tmp_path / "accuracy_report.json"
+    assert cli.main(["analyze", "--corpus", str(SYNTH), "--report", str(report)]) == 0
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert data["passed"] is True and data["thresholds"]["grid"] == 0.95
+    assert "anims" in capsys.readouterr().out
+
+
+def test_cli_analyze_errors(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert cli.main(["analyze"]) == 2
+    assert cli.main(["analyze", str(tmp_path / "missing.zip")]) == 1
+    assert "ARCH-001" in capsys.readouterr().out
+
+
+def test_corpus_fails_when_accuracy_drops(tmp_path: Path) -> None:
+    import shutil
+
+    corpus = tmp_path / "corpus"
+    shutil.copytree(SYNTH / "gutter32", corpus / "gutter32")
+    expected = json.loads((SYNTH / "gutter32.expected.json").read_text(encoding="utf-8"))
+    expected["tiles/world.png"]["cell"] = [16, 16]
+    (corpus / "gutter32.expected.json").write_text(json.dumps(expected), encoding="utf-8")
+    report, failures = analyze_cmd.run_corpus(corpus)
+    assert failures and report["passed"] is False

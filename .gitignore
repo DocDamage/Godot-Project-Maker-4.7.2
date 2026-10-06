@@ -11,3 +11,4 @@ build/
 .ruff_cache/
 .cache/
 godot_templates/tests/results.json
+accuracy_report.json

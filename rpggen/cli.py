@@ -27,7 +27,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="use a debug placeholder for a missing role (repeatable), e.g. PLAYER",
     )
     gen.add_argument("--verbose", action="store_true")
-    sub.add_parser("analyze", help="analyze an asset pack")
+    from rpggen import analyze_cmd
+
+    analyze = sub.add_parser("analyze", help="analyze an asset pack")
+    analyze_cmd.add_arguments(analyze)
     return parser
 
 
@@ -89,7 +92,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "generate":
         return _generate(args)
     if args.command == "analyze":
-        print("rpggen analyze: not implemented")
-        return 2
+        from rpggen import analyze_cmd
+
+        return analyze_cmd.main(args)
     parser.print_help()
     return 2
