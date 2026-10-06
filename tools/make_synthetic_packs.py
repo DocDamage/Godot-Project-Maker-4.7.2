@@ -622,7 +622,8 @@ def make_objects_in_sheet(out: Path) -> None:
     d.ellipse([112, 0, 143, 31], fill=(34, 139, 34, 255))
     d.rectangle([124, 32, 131, 47], fill=(101, 67, 33, 255))
     # scattered single tiles
-    for n, (cx, cy) in enumerate([(0, 6), (3, 7), (9, 5), (6, 6)]):
+    singles = [(0, 0), (9, 3), (0, 5), (6, 5), (9, 5), (0, 7), (2, 7), (4, 7), (6, 7), (8, 7)]
+    for n, (cx, cy) in enumerate(singles):
         _tile(d, cx * 16, cy * 16, 16, 16, n + 30, step=2)
     _save_png(img, pack / "town.png")
     _expected(
