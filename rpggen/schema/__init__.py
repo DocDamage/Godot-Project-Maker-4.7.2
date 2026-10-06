@@ -28,3 +28,9 @@ def validate(kind: str, obj: Any) -> None:
     err = errors[0]
     where = "/" + "/".join(str(p) for p in err.absolute_path)
     raise RpgGenError("CAT-002", file=kind, reason=f"{where}: {err.message}")
+
+
+def errors(kind: str, obj: Any) -> list[tuple[str, str]]:
+    """Every schema violation of ``obj`` as ``(json path, message)``, sorted by path."""
+    found = sorted(_validator(kind).iter_errors(obj), key=lambda e: [str(p) for p in e.path])
+    return [("/" + "/".join(str(p) for p in e.absolute_path), e.message) for e in found]
