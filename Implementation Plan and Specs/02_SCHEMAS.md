@@ -209,6 +209,8 @@ Location: `<project>/rpggen/asset_catalog.json`.
 * `durations` are relative multipliers. Godot `SpriteFrames` frame duration is relative too.
 * `flip_h: true` means "use the referenced frames mirrored". The runtime sets `AnimatedSprite2D.flip_h` while playing this animation; the recipe records it in SpriteFrames metadata (T1.07).
 * `active_frames` are the frame indices where an attack hitbox is live (ARPG).
+* `rects` (optional, T2.10) are explicit pixel rects `[x, y, w, h]` per frame; they take precedence over `frames` (used for non-grid sheets such as Aseprite exports). `offsets` (optional) are `[ox, oy]` per frame: the trim offset inside the untrimmed frame (`frame` facet), applied as `AtlasTexture.margin`.
+* `tile_overrides["x,y"].anim` (T2.09) is `{ "frames": [[x,y],…], "durations_ms": [..] }`; M8 turns it into an animated tile.
 
 Standard animation names: `idle_down, idle_up, idle_left, idle_right, walk_*, attack_*, hurt_*, death`. No other names are generated automatically. Users may add more through overrides.
 

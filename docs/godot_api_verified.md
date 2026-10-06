@@ -47,3 +47,4 @@ machine). CI re-runs the probes on 4.7.2 (`python -m rpggen.dev godot-test`); if
 | `Texture2D.get_image()` on an imported PNG, headless | `load("res://...png").get_image()` | `tileset_recipe.gd` on basic16 | 2026-10-06 | OK. 18 non-empty tiles detected from the 128x64 terrain sheet; the `Image.load_from_file` fallback was not needed. |
 | `TileSet` custom data layer types | `TYPE_STRING` -> 4, `TYPE_FLOAT` -> 3 in the saved `.tres` | generated `overworld.tres` | 2026-10-06 | OK. |
 | `AtlasTexture` frames in `SpriteFrames` | `region = Rect2(margin + (col,row) * (frame + separation), frame)` | generated hero sprite frames | 2026-10-06 | OK. |
+| `AtlasTexture.margin` | `Rect2(offset_x, offset_y, source_w - w, source_h - h)` with `region` = the trimmed rect | `tests/probes/probe_atlas_margin.gd` | 2026-10-06 | OK. `get_size()` = region size + margin size, so trimmed Aseprite frames keep their untrimmed size; margin position is the draw offset. |

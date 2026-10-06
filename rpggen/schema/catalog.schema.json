@@ -199,6 +199,33 @@
         },
         "skip": {
           "type": "boolean"
+        },
+        "anim": {
+          "type": "object",
+          "properties": {
+            "frames": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "durations_ms": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          },
+          "required": [
+            "frames",
+            "durations_ms"
+          ],
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -240,6 +267,28 @@
         },
         "source": {
           "type": "string"
+        },
+        "rects": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          }
+        },
+        "offsets": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
         }
       },
       "additionalProperties": false,

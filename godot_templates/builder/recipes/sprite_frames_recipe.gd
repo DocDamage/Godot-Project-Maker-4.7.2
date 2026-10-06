@@ -47,7 +47,10 @@ func _build_asset(ctx, asset: Dictionary, issues: Array) -> void:
 	for anim_name in names:
 		var spec: Dictionary = anims[anim_name]
 		var frames: Array = spec.get("frames", [])
-		if frames.is_empty():
+		var rects: Array = spec.get("rects", [])
+		var offsets: Array = spec.get("offsets", [])
+		var frame_count: int = rects.size() if not rects.is_empty() else frames.size()
+		if frame_count == 0:
 			issues.append(ctx.make_issue("ANIM-001", {"anim": anim_name, "asset": asset["id"]}, out_path))
 			continue
 		var tex_path: String = "res://" + str(spec.get("source", asset["path"]))
@@ -59,12 +62,21 @@ func _build_asset(ctx, asset: Dictionary, issues: Array) -> void:
 		sf.set_animation_speed(anim_name, float(spec.get("fps", 8.0)))
 		sf.set_animation_loop(anim_name, bool(spec.get("loop", true)))
 		var durations: Array = spec.get("durations", [])
-		for i in frames.size():
+		for i in frame_count:
 			var at := AtlasTexture.new()
 			at.atlas = tex
-			var col := int(frames[i][0])
-			var row := int(frames[i][1])
-			at.region = Rect2(Vector2(margin) + Vector2(col, row) * Vector2(frame + sep), Vector2(frame))
+			if not rects.is_empty():
+				# Explicit rects (non-grid sheets). Offsets restore the trimmed margin so frames
+				# keep their untrimmed size and stay aligned.
+				var r: Array = rects[i]
+				at.region = Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3]))
+				if i < offsets.size():
+					var o: Array = offsets[i]
+					at.margin = Rect2(float(o[0]), float(o[1]), float(frame.x - int(r[2])), float(frame.y - int(r[3])))
+			else:
+				var col := int(frames[i][0])
+				var row := int(frames[i][1])
+				at.region = Rect2(Vector2(margin) + Vector2(col, row) * Vector2(frame + sep), Vector2(frame))
 			var duration := float(durations[i]) if i < durations.size() else 1.0
 			sf.add_frame(anim_name, at, duration)
 		if spec.get("flip_h", false):
