@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from rpggen import __version__, ids, jsonio, paths
-from rpggen.core import archive, godot, godot_log, inventory, staging
+from rpggen.core import archive, godot, godot_log, inventory, placeholders, requirements, staging
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.errors import CODES, Issue, IssueList, RpgGenError, Severity
@@ -68,6 +68,7 @@ class _State:
     phases_done: list[str] = field(default_factory=list)
     opened: list[tuple[archive.OpenedPack, inventory.Inventory]] = field(default_factory=list)
     generated: dict[str, str] = field(default_factory=dict)
+    placeholders: list[str] = field(default_factory=list)
 
 
 # --------------------------------------------------------------------------- helpers
@@ -175,10 +176,17 @@ def phase_catalog(state: _State) -> None:
     # archive issues were reported while opening the packs; do not list them twice
     known = {(i.code, i.message) for i in state.issues}
     state.issues.extend(i for i in issues if (i.code, i.message) not in known)
-    state.catalog = catalog
-    state.generated = generated
     staging.install_generated(state.staging, generated)
     shutil.rmtree(work_dir, ignore_errors=True)
+    if state.placeholders:
+        _written, placeholder_issues = placeholders.add_placeholder_assets(
+            catalog, state.placeholders, state.cfg.base_tile_size, state.staging.staging
+        )
+        state.issues.extend(placeholder_issues)
+    state.catalog = catalog
+    state.generated = generated
+    # A required role without any asset stops generation before Godot runs.
+    state.issues.extend(requirements.check(catalog, state.cfg))
     staging.write_project_files(state.staging, state.cfg, catalog)
 
 
@@ -332,10 +340,21 @@ def _fail(state: _State) -> RunResult:
     return RunResult(False, Path(state.target), list(state.issues), report, failed)
 
 
-def run(cfg_path: Path, target: Path, godot_exe: Path, cb: Callbacks | None = None) -> RunResult:
-    """Generate a project from ``cfg_path`` into ``target`` through staging."""
+def run(
+    cfg_path: Path,
+    target: Path,
+    godot_exe: Path,
+    cb: Callbacks | None = None,
+    placeholders: list[str] | None = None,
+) -> RunResult:
+    """Generate a project from ``cfg_path`` into ``target`` through staging.
+
+    ``placeholders`` lists roles for which a debug placeholder asset is created when the packs
+    have none.
+    """
     cb = cb or Callbacks()
     state = _State(Path(cfg_path), Path(target), Path(godot_exe), cb)
+    state.placeholders = list(placeholders or [])
     n = len(PHASES_M1)
     try:
         for i, name in enumerate(PHASES_M1, start=1):

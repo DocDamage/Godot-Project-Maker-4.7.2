@@ -19,6 +19,13 @@ def _build_parser() -> argparse.ArgumentParser:
     gen.add_argument("--name", help="project name for --pack")
     gen.add_argument("--target", type=Path, help="output folder")
     gen.add_argument("--godot", type=Path, help="Godot 4.7.2 executable")
+    gen.add_argument(
+        "--placeholder",
+        action="append",
+        default=[],
+        metavar="ROLE",
+        help="use a debug placeholder for a missing role (repeatable), e.g. PLAYER",
+    )
     gen.add_argument("--verbose", action="store_true")
     sub.add_parser("analyze", help="analyze an asset pack")
     return parser
@@ -57,7 +64,9 @@ def _generate(args: argparse.Namespace) -> int:
             cfg_path = Path(tmp) / "generator_config.json"
             config_mod.save(cfg, cfg_path)
         cb = orchestrator.Callbacks(on_log=print)
-        result = orchestrator.run(cfg_path, args.target, exe, cb)
+        result = orchestrator.run(
+            cfg_path, args.target, exe, cb, placeholders=[r.upper() for r in args.placeholder]
+        )
     for issue in result.issues:
         print(f"{issue.severity.value.upper():7} {issue.code}: {issue.message}")
         if issue.severity is Severity.ERROR:
