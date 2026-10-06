@@ -27,6 +27,46 @@ def _hashes(root: Path) -> dict[str, str]:
     }
 
 
+def _png_signature(data: bytes) -> str:
+    """Pixel-level signature: PNG bytes depend on the zlib build, the pixels do not."""
+    import io
+
+    try:
+        with Image.open(io.BytesIO(data)) as im:
+            rgba = im.convert("RGBA")
+            return f"png:{rgba.size}:{hashlib.sha256(rgba.tobytes()).hexdigest()}"
+    except Exception:  # noqa: BLE001 - deliberately invalid "images" (macOS junk) hash as bytes
+        return hashlib.sha256(data).hexdigest()
+
+
+def _signatures(root: Path) -> dict[str, object]:
+    import io
+    import zipfile
+
+    out: dict[str, object] = {}
+    for p in sorted(root.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = p.relative_to(root).as_posix()
+        data = p.read_bytes()
+        if p.suffix == ".png":
+            out[rel] = _png_signature(data)
+        elif p.suffix == ".zip":
+            with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                out[rel] = [
+                    (
+                        n,
+                        _png_signature(zf.read(n))
+                        if n.lower().endswith(".png")
+                        else hashlib.sha256(zf.read(n)).hexdigest(),
+                    )
+                    for n in zf.namelist()
+                ]
+        else:
+            out[rel] = hashlib.sha256(data).hexdigest()
+    return out
+
+
 def test_two_runs_are_identical(tmp_path: Path) -> None:
     tool = _load_tool()
     a, b = tmp_path / "a", tmp_path / "b"
@@ -41,7 +81,7 @@ def test_committed_pack_matches_generator(tmp_path: Path) -> None:
     tool = _load_tool()
     tool.main(["--out", str(tmp_path)])
     committed = REPO / "test_packs" / "synthetic"
-    assert _hashes(tmp_path) == _hashes(committed)
+    assert _signatures(tmp_path) == _signatures(committed)
 
 
 def test_image_sizes_and_pixels(tmp_path: Path) -> None:
