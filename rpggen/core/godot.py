@@ -182,3 +182,15 @@ def auto_find_godot() -> list[Path]:
         except OSError:
             pass
     return sorted(found.values(), key=lambda p: (str(p).casefold(), str(p)))
+
+
+def import_project(exe: Path, project: Path, log_dir: Path) -> GodotRun:
+    """Import the project's resources headless (``--import``, verified in T1.06)."""
+    return run_godot(
+        find_console_exe(Path(exe)),
+        project,
+        ["--import"],
+        timeout_s=IMPORT_TIMEOUT_S,
+        log_name="import",
+        log_dir=log_dir,
+    )

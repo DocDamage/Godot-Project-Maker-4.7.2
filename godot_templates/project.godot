@@ -1,0 +1,9 @@
+; Engine configuration file.
+; Template project for rpggen. Settings are applied by the builder.
+
+config_version=5
+
+[application]
+
+config/name="rpggen templates"
+config/features=PackedStringArray("4.7")
