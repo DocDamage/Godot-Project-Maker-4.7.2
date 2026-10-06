@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disable autocrlf (generated files are compared byte for byte)
+        run: git config core.autocrlf false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: .cache/godot
+          key: godot-${{ env.GODOT_VERSION }}
+      - name: Fetch Godot
+        shell: bash
+        run: |
+          exe=$(python tools/fetch_godot.py --version "$GODOT_VERSION" --out .cache/godot | tail -n 1)
+          echo "RPGGEN_GODOT=$exe" >> "$GITHUB_ENV"
+      - name: Error codes are up to date
+        shell: bash
+        run: |
+          python tools/gen_error_codes.py
+          git diff --exit-code
+      - name: Synthetic packs are up to date
+        shell: bash
+        run: |
+          python tools/make_synthetic_packs.py --out test_packs/synthetic
+          git diff --exit-code
+      - name: Lint
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+      - name: Unit tests
+        run: python -m pytest -q -m "not integration"
+      - name: GDScript tests
+        run: python -m rpggen.dev godot-test
+      - name: Integration tests
+        run: python -m pytest -q -m integration
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics
+          path: |
+            **/rpggen/logs/**
+            **/.rpggen_failed/**
+            tests/**/results.json
+          if-no-files-found: ignore
+
+  ubuntu:
+    # Unit tests and lint only (path-case bugs show up here). Becomes a full job in M10.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      - name: Lint
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+      - name: Unit tests
+        run: python -m pytest -q -m "not integration"
