@@ -121,6 +121,19 @@
     "seed": {
       "type": "integer"
     },
+    "starter": {
+      "type": "object",
+      "properties": {
+        "player": {"type": "string"},
+        "npc": {"type": "string"},
+        "enemy": {"type": "string"},
+        "ground": {"type": "string"},
+        "building": {"type": "string"},
+        "chest": {"type": "string"},
+        "portrait": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
     "input": {
       "type": "object",
       "additionalProperties": {

@@ -31,6 +31,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `validation` | object | `{"smoke_test": true}` | Strict mode is always on (failures block delivery). |
 | `seed` | int | 12345 | Used for every RNG in generation and smoke tests. |
 | `input` | object | see §1.1 | Action → bindings. |
+| `starter` | object | `{}` | Optional (T3.11). Starter selections of the demo recipes: `player`, `npc`, `enemy`, `ground`, `building`, `chest`, `portrait` → an asset id or an object id. Omitted when empty. |
 
 Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]`.
 

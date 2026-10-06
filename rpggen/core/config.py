@@ -84,6 +84,7 @@ class GeneratorConfig:
     validation: dict[str, Any] = field(default_factory=lambda: {"smoke_test": True})
     seed: int = 12345
     input: dict[str, dict[str, Any]] = field(default_factory=dict)
+    starter: dict[str, str] = field(default_factory=dict)  # role key -> asset or object id
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
     godot_version: str = GODOT_VERSION
@@ -93,6 +94,12 @@ class GeneratorConfig:
             self.input = default_input(self.archetype)
 
     def to_json(self) -> dict[str, Any]:
+        out = self._base_json()
+        if self.starter:
+            out["starter"] = dict(sorted(self.starter.items()))
+        return out
+
+    def _base_json(self) -> dict[str, Any]:
         return {
             "config_version": self.config_version,
             "generator_version": self.generator_version,
@@ -124,6 +131,7 @@ class GeneratorConfig:
             validation=dict(data["validation"]),
             seed=data["seed"],
             input=copy.deepcopy(data["input"]),
+            starter=dict(data.get("starter", {})),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],
