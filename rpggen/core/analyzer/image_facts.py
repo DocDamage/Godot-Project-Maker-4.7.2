@@ -82,3 +82,39 @@ def dominant_colors(a: np.ndarray, k: int = 3) -> list[str]:
         r, g, b = ((key >> 10) & 31) << 3 | 4, ((key >> 5) & 31) << 3 | 4, (key & 31) << 3 | 4
         out.append(f"#{r:02x}{g:02x}{b:02x}")
     return out
+
+
+def _longest_true_run(flags: np.ndarray) -> tuple[int, int]:
+    """(start, length) of the longest run of True values (length 0 when there is none)."""
+    best_start, best_len, start = 0, 0, -1
+    for i, v in enumerate(flags):
+        if v and start < 0:
+            start = i
+        if (not v or i == len(flags) - 1) and start >= 0:
+            end = i + 1 if v else i
+            if end - start > best_len:
+                best_start, best_len = start, end - start
+            start = -1
+    return best_start, best_len
+
+
+def detect_nine_slice(a: np.ndarray) -> list[int] | None:
+    """[left, top, right, bottom] border margins of a UI-like image, or None.
+
+    The image must have alpha and be at least 24 px on both sides. The stretchable centre is the
+    longest band of identical rows (and of identical columns); everything around it is border.
+    """
+    h, w = a.shape[:2]
+    if h < 24 or w < 24 or not (a[..., 3] < 255).any():
+        return None
+    row_start, row_len = _longest_true_run((a[1:] == a[:-1]).all(axis=(1, 2)))
+    col_start, col_len = _longest_true_run((a[:, 1:] == a[:, :-1]).all(axis=(0, 2)))
+    if row_len < 1 or col_len < 1:
+        return None
+    top, bottom = row_start, h - (row_start + row_len + 1)
+    left, right = col_start, w - (col_start + col_len + 1)
+    if min(top, bottom, left, right) < 1:
+        return None
+    if row_len + 1 < h // 5 or col_len + 1 < w // 5:
+        return None
+    return [int(left), int(top), int(right), int(bottom)]

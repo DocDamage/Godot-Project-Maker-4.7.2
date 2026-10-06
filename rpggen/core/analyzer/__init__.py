@@ -10,7 +10,7 @@ from rpggen.core.inventory import Inventory
 
 log = logging.getLogger(__name__)
 
-ANALYZER_VERSION = 1
+ANALYZER_VERSION = 2
 MIN_REGION_GRID_SCORE = 0.6
 
 
@@ -73,7 +73,7 @@ def analyze_array(a, mask) -> dict[str, Any]:  # noqa: ANN001 - numpy arrays
         ),
         "baseline_y": baseline,
         "dominant_colors": image_facts.dominant_colors(a),
-        "nine_slice": None,
+        "nine_slice": image_facts.detect_nine_slice(a),
     }
 
 

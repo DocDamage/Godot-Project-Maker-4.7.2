@@ -12,6 +12,7 @@ dependencies = [
   "jsonschema>=4.21",
   "py7zr>=0.21",
   "PySide6>=6.7",
+  "mutagen>=1.47",
 ]
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5", "pyinstaller>=6.6"]
@@ -31,3 +32,4 @@ markers = ["integration: needs RPGGEN_GODOT", "slow: long-running"]
 testpaths = ["tests"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E501"]
+"rpggen/core/classifier.py" = ["E501"]

@@ -1,0 +1,540 @@
+[
+ {
+  "path": "Tilesets/Grass Tiles.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "tiles/terrain.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "tileset_forest.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "sheets/misc.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "Tilesets/Interior/furniture.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "INTERIOR"
+ },
+ {
+  "path": "Interior/rooms/bed.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "INTERIOR"
+ },
+ {
+  "path": "water/pond.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "WATER"
+ },
+ {
+  "path": "lakes/lake.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "WATER"
+ },
+ {
+  "path": "roads/cobble.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "ROAD"
+ },
+ {
+  "path": "walls/stone_wall.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "WALL"
+ },
+ {
+  "path": "cliffs/cliff_top.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "CLIFF"
+ },
+ {
+  "path": "characters/enemies/bat.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "ENEMY"
+ },
+ {
+  "path": "Monsters/slime.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "ENEMY"
+ },
+ {
+  "path": "enemy/wolf/idle.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "ENEMY"
+ },
+ {
+  "path": "bosses/dragon.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "BOSS"
+ },
+ {
+  "path": "characters/hero.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "PLAYER"
+ },
+ {
+  "path": "Sprites/playerWalk.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "PLAYER"
+ },
+ {
+  "path": "Characters/NPC/villager_01.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "NPC"
+ },
+ {
+  "path": "sprites/mystery.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "NPC"
+ },
+ {
+  "path": "main/character.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    24
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "NPC"
+ },
+ {
+  "path": "items/potion.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    16
+   ]
+  },
+  "role": "ITEM"
+ },
+ {
+  "path": "icons/coin.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    16
+   ]
+  },
+  "role": "ITEM"
+ },
+ {
+  "path": "pickups/gem_blue.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    16
+   ]
+  },
+  "role": "ITEM"
+ },
+ {
+  "path": "weapons/sword.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    32,
+    32
+   ]
+  },
+  "role": "WEAPON"
+ },
+ {
+  "path": "effects/explosion_01.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    48,
+    48
+   ]
+  },
+  "role": "EFFECT"
+ },
+ {
+  "path": "magic/fireball.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    48,
+    48
+   ]
+  },
+  "role": "EFFECT"
+ },
+ {
+  "path": "projectiles/arrow.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    16
+   ]
+  },
+  "role": "PROJECTILE"
+ },
+ {
+  "path": "buildings/house_red.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    48,
+    48
+   ]
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "town/shops/inn.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    48,
+    48
+   ]
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "Props/Tree_Large.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    48,
+    48
+   ]
+  },
+  "role": "DECORATION"
+ },
+ {
+  "path": "environment/trees/oak.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    48,
+    48
+   ]
+  },
+  "role": "DECORATION"
+ },
+ {
+  "path": "Environment/Bushes/bush_a.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    48,
+    48
+   ]
+  },
+  "role": "DECORATION"
+ },
+ {
+  "path": "Folder With Spaces/Ünïcode Tree.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    40,
+    40
+   ]
+  },
+  "role": "DECORATION"
+ },
+ {
+  "path": "portraits/king.png",
+  "facets": {
+   "usage": "portrait"
+  },
+  "role": "PORTRAIT"
+ },
+ {
+  "path": "faces/Actor1.png",
+  "facets": {
+   "usage": "portrait"
+  },
+  "role": "PORTRAIT"
+ },
+ {
+  "path": "backgrounds/forest.png",
+  "facets": {
+   "usage": "background"
+  },
+  "role": "BACKGROUND"
+ },
+ {
+  "path": "bg/sky.png",
+  "facets": {
+   "usage": "background"
+  },
+  "role": "BACKGROUND"
+ },
+ {
+  "path": "ui/button_blue.png",
+  "facets": {
+   "usage": "ui",
+   "nine_slice": [
+    4,
+    4,
+    4,
+    4
+   ]
+  },
+  "role": "UI"
+ },
+ {
+  "path": "ui/hud/health_bar.png",
+  "facets": {
+   "usage": "ui"
+  },
+  "role": "UI"
+ },
+ {
+  "path": "audio/music/town_theme.ogg",
+  "facets": {
+   "usage": "audio"
+  },
+  "role": "AUDIO_MUSIC",
+  "analysis": {
+   "kind": "audio"
+  }
+ },
+ {
+  "path": "Music/battle.mp3",
+  "facets": {
+   "usage": "audio"
+  },
+  "role": "AUDIO_MUSIC",
+  "analysis": {
+   "kind": "audio"
+  }
+ },
+ {
+  "path": "sfx/hit.wav",
+  "facets": {
+   "usage": "audio"
+  },
+  "role": "AUDIO_SFX",
+  "analysis": {
+   "kind": "audio",
+   "duration_s": 0.3
+  }
+ },
+ {
+  "path": "misc/ambience.ogg",
+  "facets": {
+   "usage": "audio"
+  },
+  "role": "AUDIO_MUSIC",
+  "analysis": {
+   "kind": "audio",
+   "duration_s": 45.0
+  }
+ },
+ {
+  "path": "fonts/pixel.ttf",
+  "facets": {
+   "usage": "font"
+  },
+  "role": "FONT",
+  "analysis": {
+   "kind": "font"
+  }
+ },
+ {
+  "path": "docs/other/thing.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    100,
+    100
+   ]
+  },
+  "role": "DECORATION"
+ }
+]
