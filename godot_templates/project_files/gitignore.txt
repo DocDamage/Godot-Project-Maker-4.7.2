@@ -1,0 +1,8 @@
+.godot/
+*.tmp
+*.rpggen-tmp
+.rpggen_staging/
+.rpggen_failed/
+.rpggen_backups/
+rpggen/logs/
+export/

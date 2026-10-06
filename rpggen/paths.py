@@ -82,3 +82,10 @@ def local_cache_dir() -> Path:
         base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
         return Path(base) / "rpggen" / "cache"
     return Path.home() / ".cache" / "rpggen"
+
+
+def templates_root() -> Path:
+    """Folder holding the Godot template project (inside the bundle when frozen)."""
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", ".")) / "godot_templates"
+    return Path(__file__).resolve().parent.parent / "godot_templates"

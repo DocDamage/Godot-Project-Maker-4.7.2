@@ -1,0 +1,336 @@
+{
+  "assets": [
+    {
+      "confidence": 0.9,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          23
+        ],
+        "role": "PLAYER",
+        "usage": "sprite"
+      },
+      "detected_by": "m1_minimal",
+      "id": "basic16.characters.hero",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "basic16",
+      "path": "assets/packs/basic16/characters/hero.png",
+      "sha256": "6db6c4fa70e4b80958c60aebacbaee61a574845f079d03ed9d2a905330048600",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "collision": {
+          "profile": "NONE"
+        },
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "tile_overrides": {
+          "0,1": {
+            "collision": {
+              "profile": "FULL"
+            },
+            "custom": {
+              "role": "WALL"
+            }
+          },
+          "1,1": {
+            "collision": {
+              "profile": "FULL"
+            },
+            "custom": {
+              "role": "WALL"
+            }
+          },
+          "2,1": {
+            "collision": {
+              "profile": "FULL"
+            },
+            "custom": {
+              "role": "WALL"
+            }
+          },
+          "3,1": {
+            "collision": {
+              "profile": "FULL"
+            },
+            "custom": {
+              "role": "WALL"
+            }
+          },
+          "4,1": {
+            "collision": {
+              "profile": "FULL"
+            },
+            "custom": {
+              "role": "WALL"
+            }
+          },
+          "5,1": {
+            "collision": {
+              "profile": "FULL"
+            },
+            "custom": {
+              "role": "WALL"
+            }
+          },
+          "6,1": {
+            "collision": {
+              "profile": "FULL"
+            },
+            "custom": {
+              "role": "WALL"
+            }
+          },
+          "7,1": {
+            "collision": {
+              "profile": "FULL"
+            },
+            "custom": {
+              "role": "WALL"
+            }
+          }
+        },
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "m1_minimal",
+      "id": "basic16.tiles.terrain",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "basic16",
+      "path": "assets/packs/basic16/tiles/terrain.png",
+      "sha256": "b0722cbbe8365b85a6b955ea53425f8253fe97bca34ff795ab2097ada5b8f817",
+      "status": "AUTO_DETECTED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "0.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [],
+      "license_files": [
+        "assets/packs/basic16/LICENSE.txt"
+      ],
+      "pack_id": "basic16",
+      "profile_id": null,
+      "root": "assets/packs/basic16",
+      "source_sha256": "347b000b3f8c63ec4925ee8df49378269bac351970c2df1e15d4d9ead4c736af",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "basic16.tiles.terrain",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}
