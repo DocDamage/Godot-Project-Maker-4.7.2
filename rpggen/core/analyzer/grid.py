@@ -126,10 +126,14 @@ def _score_axis(ax: _Axis, c: int, m: int, s: int) -> _AxisCandidate | None:
                 continue
             shared = [b for idx, b in enumerate(boundaries, start=1) if idx % k == 0]
             others = [b for idx, b in enumerate(boundaries, start=1) if idx % k != 0]
-            if shared and others:
-                if ax.strength(others, inside) < K["HALF_RATIO"] * ax.strength(shared, inside):
-                    half = 1.0
-                    break
+            weak = (
+                shared
+                and others
+                and (ax.strength(others, inside) < K["HALF_RATIO"] * ax.strength(shared, inside))
+            )
+            if weak:
+                half = 1.0
+                break
     score = (
         K["W_BOUNDARY"] * boundary
         + K["W_REMAINDER"] * (1.0 if remainder == 0 else K["REMAINDER_PARTIAL"])
