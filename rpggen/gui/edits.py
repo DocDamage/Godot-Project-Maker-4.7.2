@@ -154,6 +154,66 @@ def reorder_folder_rules(catalog: Catalog, order: list[int]) -> Catalog:
     return _with_rules(catalog, [catalog.folder_rules[i] for i in order])
 
 
+def _with_objects(catalog: Catalog, objects: list[catalog_mod.SheetObject]) -> Catalog:
+    return dataclasses.replace(catalog, objects=objects)
+
+
+def add_object(catalog: Catalog, obj: catalog_mod.SheetObject) -> Catalog:
+    return _with_objects(catalog, [*catalog.objects, copy.deepcopy(obj)])
+
+
+def update_object(catalog: Catalog, object_id: str, **changes: Any) -> Catalog:
+    """Replace fields of an object. An edited auto object becomes a user object, so a later
+    re-analysis keeps the edit instead of re-creating the detection."""
+    out: list[catalog_mod.SheetObject] = []
+    found = False
+    for obj in catalog.objects:
+        if obj.id != object_id:
+            out.append(obj)
+            continue
+        found = True
+        edited = copy.deepcopy(obj)
+        for key, value in changes.items():
+            setattr(edited, key, copy.deepcopy(value))
+        if edited.source == "auto" and "source" not in changes and "status" not in changes:
+            edited.source = "user"
+        out.append(edited)
+    return _with_objects(catalog, out) if found else catalog
+
+
+def remove_object(catalog: Catalog, object_id: str) -> Catalog:
+    objects = [o for o in catalog.objects if o.id != object_id]
+    return _with_objects(catalog, objects) if len(objects) != len(catalog.objects) else catalog
+
+
+def reject_object(catalog: Catalog, object_id: str) -> Catalog:
+    """Remember a rejected suggestion: it stays in the catalog with role NONE, so detection
+    does not create it again."""
+    return update_object(catalog, object_id, role="NONE", status="UNUSED")
+
+
+def accept_suggestions(catalog: Catalog, sheet_id: str) -> Catalog:
+    """Mark the auto-detected objects of a sheet CONFIRMED."""
+    out = []
+    changed = False
+    for obj in catalog.objects:
+        if obj.sheet == sheet_id and obj.source != "user" and obj.status == "AUTO_DETECTED":
+            obj = dataclasses.replace(copy.deepcopy(obj), status="CONFIRMED")
+            changed = True
+        out.append(obj)
+    return _with_objects(catalog, out) if changed else catalog
+
+
+def set_sheet_objects(
+    catalog: Catalog, sheet_id: str, objects: list[catalog_mod.SheetObject]
+) -> Catalog:
+    """Replace every object of one sheet (the object cutter's Apply)."""
+    kept = [o for o in catalog.objects if o.sheet != sheet_id]
+    result = kept + [copy.deepcopy(o) for o in objects]
+    result.sort(key=lambda o: o.id)
+    return _with_objects(catalog, result) if result != catalog.objects else catalog
+
+
 # --------------------------------------------------------------------------- undoable session
 
 
@@ -243,3 +303,21 @@ class EditSession(QObject):
 
     def reorder_rules(self, order: list[int]) -> bool:
         return self.apply("Reorder folder rules", lambda c: reorder_folder_rules(c, order))
+
+    def add_object(self, obj: catalog_mod.SheetObject) -> bool:
+        return self.apply("Add object", lambda c: add_object(c, obj))
+
+    def update_object(self, object_id: str, **changes: Any) -> bool:
+        return self.apply("Edit object", lambda c: update_object(c, object_id, **changes))
+
+    def remove_object(self, object_id: str) -> bool:
+        return self.apply("Remove object", lambda c: remove_object(c, object_id))
+
+    def reject_object(self, object_id: str) -> bool:
+        return self.apply("Reject object", lambda c: reject_object(c, object_id))
+
+    def accept_suggestions(self, sheet_id: str) -> bool:
+        return self.apply("Accept suggestions", lambda c: accept_suggestions(c, sheet_id))
+
+    def set_sheet_objects(self, sheet_id: str, objects: list[catalog_mod.SheetObject]) -> bool:
+        return self.apply("Edit objects", lambda c: set_sheet_objects(c, sheet_id, objects))

@@ -32,6 +32,7 @@ from rpggen.gui.widgets.bulk_panel import (
     default_glob,
 )
 from rpggen.gui.widgets.grid_editor import GridEditorDialog
+from rpggen.gui.widgets.object_cutter import ObjectCutterDialog
 
 QUICK_ROLES = ["GROUND", "WALL", "DECORATION", "BUILDING", "PLAYER", "NPC", "ENEMY", "ITEM", "UI"]
 
@@ -123,6 +124,7 @@ class AuditPage(WizardPage):
             self.side.addWidget(self.detail)
             self.detail.gridEditRequested.connect(self.edit_grid)
             self.detail.animationsRequested.connect(self.edit_animations)
+            self.detail.cutObjectsRequested.connect(self.cut_objects)
             self.bulk = BulkPanel(self.session)
             self.side.addWidget(self.bulk)
             self.rules_panel = RulesPanel(self.session)
@@ -225,6 +227,26 @@ class AuditPage(WizardPage):
         if not values:
             return False
         return self.session.set_overrides([asset_id], values, "Edit animations")
+
+    def cut_objects(self, asset_id: str) -> bool:
+        """Open the object cutter for a sheet; Apply replaces the sheet's objects."""
+        assert self.session is not None
+        catalog = self.session.catalog
+        asset = catalog.asset(asset_id)
+        path = self.resolver(asset) if asset else None
+        if asset is None or path is None:
+            return False
+        dialog = ObjectCutterDialog(
+            path,
+            asset_id,
+            [o for o in catalog.objects if o.sheet == asset_id],
+            catalog_mod.effective(asset).get("grid"),
+            {o.id for o in catalog.objects},
+            self,
+        )
+        if not self.run_dialog(dialog):
+            return False
+        return self.session.set_sheet_objects(asset_id, dialog.result_objects())
 
     # ------------------------------------------------------------------ folder rules
 

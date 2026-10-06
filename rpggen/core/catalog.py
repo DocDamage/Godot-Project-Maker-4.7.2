@@ -750,6 +750,22 @@ def _add_objects(
         )
         catalog.objects.append(obj)
     if previous:
-        for old in previous.objects:
-            if old.source == "user" and old.id not in seen:
-                catalog.objects.append(SheetObject.from_json(old.to_json()))
+        _carry_objects(catalog, previous)
+
+
+def _carry_objects(catalog: Catalog, previous: Catalog) -> None:
+    """User objects, rejected suggestions (role NONE) and confirmed suggestions survive."""
+    for old in previous.objects:
+        same = [
+            o
+            for o in catalog.objects
+            if o.id == old.id or (o.sheet == old.sheet and o.region == old.region)
+        ]
+        if old.source == "user" or old.role == "NONE":
+            # the user's version replaces whatever detection produced for the same object
+            catalog.objects = [o for o in catalog.objects if o not in same]
+            catalog.objects.append(SheetObject.from_json(old.to_json()))
+        elif old.status == "CONFIRMED":
+            for obj in same:
+                if obj.source != "user" and obj.region == old.region:
+                    obj.status = "CONFIRMED"
