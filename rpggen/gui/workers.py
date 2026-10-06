@@ -48,10 +48,16 @@ class Worker(QRunnable):
     def is_cancelled(self) -> bool:
         return self._cancel.is_set()
 
+    def _emit(self, signal_name: str, *args: Any) -> None:
+        try:
+            getattr(self.signals, signal_name).emit(*args)
+        except RuntimeError:  # the receiving side was destroyed (window closed)
+            self.cancel()
+
     def callbacks(self) -> Callbacks:
         return Callbacks(
-            on_phase=lambda name, i, n: self.signals.progress.emit(name, i, n),
-            on_log=lambda line: self.signals.log.emit(line),
+            on_phase=lambda name, i, n: self._emit("progress", name, i, n),
+            on_log=lambda line: self._emit("log", line),
             is_cancelled=self.is_cancelled,
         )
 
@@ -59,12 +65,12 @@ class Worker(QRunnable):
         try:
             result = self.fn(*self.args, callbacks=self.callbacks(), **self.kwargs)
         except RpgGenError as exc:
-            self.signals.failed.emit(exc.issue)
+            self._emit("failed", exc.issue)
         except BaseException as exc:
             log.exception("worker failed")
-            self.signals.failed.emit(exc)
+            self._emit("failed", exc)
         else:
-            self.signals.finished.emit(result)
+            self._emit("finished", result)
 
     def start(self, pool: QThreadPool | None = None) -> None:
         (pool or QThreadPool.globalInstance()).start(self)

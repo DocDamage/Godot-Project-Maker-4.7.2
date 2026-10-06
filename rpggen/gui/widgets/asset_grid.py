@@ -290,6 +290,10 @@ class AssetCardDelegate(QStyledItemDelegate):
 
 
 class AssetGridView(QListView):
+    """The icon grid. Plain C, X and 1-9 key presses are reported through ``quickKey``."""
+
+    quickKey = Signal(str)  # noqa: N815
+
     def __init__(self, parent=None) -> None:  # noqa: ANN001
         super().__init__(parent)
         self.setObjectName("assetGrid")
@@ -303,6 +307,15 @@ class AssetGridView(QListView):
         self.setMovement(QListView.Movement.Static)
         self.setWrapping(True)
         self.setItemDelegate(AssetCardDelegate(self))
+
+    def keyPressEvent(self, event) -> None:  # noqa: ANN001
+        plain = event.modifiers() == Qt.KeyboardModifier.NoModifier
+        text = event.text().upper()
+        if plain and len(text) == 1 and text in "CX123456789":
+            self.quickKey.emit(text)
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
 
 CHIPS: list[tuple[str, str, set[str] | None]] = [

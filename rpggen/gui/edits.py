@@ -95,6 +95,65 @@ def confirm(catalog: Catalog, asset_ids: list[str]) -> Catalog:
     return _replace_assets(catalog, new) if new else catalog
 
 
+def bulk_tags(catalog: Catalog, asset_ids: list[str], add: list[str], remove: list[str]) -> Catalog:
+    """Add and remove tags on several assets (each keeps its other tags)."""
+    wanted = set(asset_ids)
+    new: dict[str, Asset] = {}
+    for asset in catalog.assets:
+        if asset.id not in wanted:
+            continue
+        tags = list(catalog_mod.effective(asset).get("tags") or [])
+        updated = [t for t in tags if t not in remove] + [
+            t for t in add if t not in tags and t not in remove
+        ]
+        if updated != tags:
+            edited = dataclasses.replace(asset, overrides={**asset.overrides, "tags": updated})
+            new[asset.id] = dataclasses.replace(edited, status=_status_after_edit(edited))
+    return _replace_assets(catalog, new) if new else catalog
+
+
+def _with_rules(catalog: Catalog, rules: list[catalog_mod.FolderRule]) -> Catalog:
+    """A catalog with ``rules`` applied (rule layers rebuilt, statuses and tile sets redone)."""
+    assets = [dataclasses.replace(a, rule={}, detected=dict(a.detected)) for a in catalog.assets]
+    fresh = dataclasses.replace(
+        catalog,
+        assets=assets,
+        folder_rules=copy.deepcopy(rules),
+        tilesets=copy.deepcopy(catalog.tilesets),
+        id_allocations=copy.deepcopy(catalog.id_allocations),
+    )
+    catalog_mod.apply_folder_rules(fresh)
+    for i, asset in enumerate(fresh.assets):
+        fresh.assets[i] = dataclasses.replace(
+            asset,
+            status=catalog_mod.recompute_status(
+                asset,
+                file_missing=asset.status == "MISSING",
+                user_confirmed=asset.status == "CONFIRMED",
+            ),
+        )
+    catalog_mod.assign_tilesets(fresh, previous=catalog)
+    return fresh
+
+
+def add_folder_rule(catalog: Catalog, rule: catalog_mod.FolderRule) -> Catalog:
+    return _with_rules(catalog, [*catalog.folder_rules, rule])
+
+
+def delete_folder_rule(catalog: Catalog, index: int) -> Catalog:
+    if not 0 <= index < len(catalog.folder_rules):
+        return catalog
+    rules = [r for i, r in enumerate(catalog.folder_rules) if i != index]
+    return _with_rules(catalog, rules)
+
+
+def reorder_folder_rules(catalog: Catalog, order: list[int]) -> Catalog:
+    """Rules in the order given by ``order`` (indices into the current list); re-applies all."""
+    if sorted(order) != list(range(len(catalog.folder_rules))) or order == sorted(order):
+        return catalog
+    return _with_rules(catalog, [catalog.folder_rules[i] for i in order])
+
+
 # --------------------------------------------------------------------------- undoable session
 
 
@@ -156,3 +215,31 @@ class EditSession(QObject):
         self, asset_ids: list[str], values: dict[str, Any], text: str = "Edit"
     ) -> bool:
         return self.apply(text, lambda c: set_overrides(c, asset_ids, values), list(asset_ids))
+
+    def bulk_edit(
+        self,
+        asset_ids: list[str],
+        values: dict[str, Any],
+        add_tags: list[str] | None = None,
+        remove_tags: list[str] | None = None,
+    ) -> bool:
+        """Facet overrides and tag changes for several assets as one undo step."""
+        ids = list(asset_ids)
+
+        def change(c: Catalog) -> Catalog:
+            if values:
+                c = set_overrides(c, ids, values)
+            if add_tags or remove_tags:
+                c = bulk_tags(c, ids, add_tags or [], remove_tags or [])
+            return c
+
+        return self.apply("Edit selection", change, ids)
+
+    def add_rule(self, rule: catalog_mod.FolderRule) -> bool:
+        return self.apply("Add folder rule", lambda c: add_folder_rule(c, rule))
+
+    def delete_rule(self, index: int) -> bool:
+        return self.apply("Delete folder rule", lambda c: delete_folder_rule(c, index))
+
+    def reorder_rules(self, order: list[int]) -> bool:
+        return self.apply("Reorder folder rules", lambda c: reorder_folder_rules(c, order))
