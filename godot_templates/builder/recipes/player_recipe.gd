@@ -44,6 +44,8 @@ func build(ctx) -> Array:
 	root.name = "Player"
 	root.set_script(load(SCRIPT_PATH))
 	root.motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	root.collision_layer = 0  # clear the engine default (layer 1) so the player is ONLY on layer 2
+	root.collision_mask = 0
 	root.set_collision_layer_value(2, true)  # player
 	for layer in [1, 3, 4]:  # world, enemies, npcs
 		root.set_collision_mask_value(layer, true)

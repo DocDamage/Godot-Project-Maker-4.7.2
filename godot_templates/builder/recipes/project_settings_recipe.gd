@@ -40,6 +40,8 @@ func build(ctx) -> Array:
 	ProjectSettings.set_setting("rendering/2d/snap/snap_2d_vertices_to_pixel", true)
 	for i in PHYSICS_LAYER_NAMES.size():
 		ProjectSettings.set_setting("layer_names/2d_physics/layer_%d" % (i + 1), PHYSICS_LAYER_NAMES[i])
+	# Smoke-test driver: inert unless the game is started with --rpg-smoke (T1.11).
+	ProjectSettings.set_setting("autoload/RpgSmoke", "*res://addons/rpg_runtime/debug/smoke_runner.gd")
 	_apply_input(ctx, cfg.get("input", {}), issues)
 	var err := ProjectSettings.save()
 	if err != OK:

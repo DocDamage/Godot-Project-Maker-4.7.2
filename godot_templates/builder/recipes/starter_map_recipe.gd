@@ -63,7 +63,8 @@ func build(ctx) -> Array:
 				var cell: Dictionary = wall_cell if (border and not wall_cell.is_empty()) else ground_cell
 				ground.set_cell(Vector2i(x, y), cell["source_id"], cell["coords"], 0)
 
-	var player := player_scene.instantiate() as Node2D
+	# GEN_EDIT_STATE_INSTANCE keeps the base scene state, so only real overrides (position) are saved.
+	var player := player_scene.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE) as Node2D
 	player.position = Vector2(15, 10) * Vector2(tile_size) + Vector2(tile_size) / 2.0
 	ysorted.add_child(player)
 	# Instanced scene: owner is the map root; its own children stay untouched.
