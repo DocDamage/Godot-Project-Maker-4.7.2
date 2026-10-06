@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from rpggen import schema
+from rpggen.errors import RpgGenError
 
 H = "a" * 64
 
@@ -226,7 +227,7 @@ def test_missing_required_field_fails(kind: str) -> None:
             continue
         bad = copy.deepcopy(EXAMPLES[kind])
         del bad[key]
-        with pytest.raises(ValueError, match=kind):
+        with pytest.raises(RpgGenError, match="CAT-002"):
             schema.validate(kind, bad)
 
 
@@ -234,32 +235,32 @@ def test_missing_required_field_fails(kind: str) -> None:
 def test_unknown_field_fails(kind: str) -> None:
     bad = copy.deepcopy(EXAMPLES[kind])
     bad["surprise"] = 1
-    with pytest.raises(ValueError):
+    with pytest.raises(RpgGenError):
         schema.validate(kind, bad)
 
 
 def test_enum_violations() -> None:
     bad = copy.deepcopy(CATALOG)
     bad["assets"][0]["status"] = "WHATEVER"
-    with pytest.raises(ValueError, match="/assets/0/status"):
+    with pytest.raises(RpgGenError, match="/assets/0/status"):
         schema.validate("catalog", bad)
     bad = copy.deepcopy(CONFIG)
     bad["base_tile_size"] = 15
-    with pytest.raises(ValueError):
+    with pytest.raises(RpgGenError):
         schema.validate("config", bad)
 
 
 def test_config_map_layers_must_contain_ground() -> None:
     bad = copy.deepcopy(CONFIG)
     bad["map_layers"] = ["Walls"]
-    with pytest.raises(ValueError):
+    with pytest.raises(RpgGenError):
         schema.validate("config", bad)
 
 
 def test_custom_collision_requires_polygon() -> None:
     bad = copy.deepcopy(CATALOG)
     bad["objects"][0]["collision"] = {"profile": "CUSTOM"}
-    with pytest.raises(ValueError):
+    with pytest.raises(RpgGenError):
         schema.validate("catalog", bad)
 
 

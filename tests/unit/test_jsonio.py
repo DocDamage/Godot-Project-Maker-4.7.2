@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from rpggen import jsonio
+from rpggen.errors import RpgGenError
 
 
 def test_keys_sorted_and_trailing_newline() -> None:
@@ -57,6 +58,6 @@ def test_write_is_atomic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 def test_read_invalid_json(tmp_path: Path) -> None:
     path = tmp_path / "bad.json"
     path.write_text("{nope", encoding="utf-8")
-    with pytest.raises(Exception) as ei:  # noqa: B017 - ValueError until T1.03, then RpgGenError
+    with pytest.raises(RpgGenError) as ei:
         jsonio.read(path)
     assert "bad.json" in str(ei.value)

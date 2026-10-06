@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from rpggen.errors import RpgGenError
+
 
 def _normalize(obj: Any) -> Any:
     if isinstance(obj, bool) or obj is None or isinstance(obj, int | str):
@@ -56,5 +58,4 @@ def read(path: Path) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        # Switched to RpgGenError(CAT-001) in T1.03 once errors.py exists.
-        raise ValueError(f"{path} is not valid JSON: {exc}") from exc
+        raise RpgGenError("CAT-001", file=str(path), reason=str(exc)) from exc

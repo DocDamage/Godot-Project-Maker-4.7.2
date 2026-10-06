@@ -7,6 +7,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from rpggen.errors import RpgGenError
+
 KINDS = ("config", "inventory", "catalog", "ledger", "profile", "results")
 
 
@@ -25,5 +27,4 @@ def validate(kind: str, obj: Any) -> None:
         return
     err = errors[0]
     where = "/" + "/".join(str(p) for p in err.absolute_path)
-    # Switched to RpgGenError("CAT-002", ...) in T1.03 once errors.py exists.
-    raise ValueError(f"{kind} schema violation at {where}: {err.message}")
+    raise RpgGenError("CAT-002", file=kind, reason=f"{where}: {err.message}")

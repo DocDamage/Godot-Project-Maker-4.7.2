@@ -23,7 +23,7 @@ include = ["rpggen*"]
 rpggen = ["schema/*.json"]
 [tool.ruff]
 line-length = 100
-extend-exclude = ["godot_templates", "docs/spec", "Implementation Plan and Specs", ".venv"]
+extend-exclude = ["godot_templates", "docs/spec", "Implementation Plan and Specs", ".venv", "rpggen/errors_table.py"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.pytest.ini_options]
