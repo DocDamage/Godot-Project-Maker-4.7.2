@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rpggen/inventory.schema.json",
+  "title": "inventory.json",
+  "type": "object",
+  "properties": {
+    "inventory_version": {
+      "const": 1
+    },
+    "pack_id": {
+      "type": "string"
+    },
+    "source_sha256": {
+      "type": "string"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ext": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "image",
+              "audio",
+              "font",
+              "license",
+              "doc",
+              "metadata",
+              "other"
+            ]
+          },
+          "image": {
+            "type": "object",
+            "properties": {
+              "w": {
+                "type": "integer"
+              },
+              "h": {
+                "type": "integer"
+              },
+              "mode": {
+                "type": "string"
+              },
+              "has_alpha": {
+                "type": "boolean"
+              },
+              "frames": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "w",
+              "h",
+              "mode",
+              "has_alpha",
+              "frames"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "size",
+          "ext",
+          "kind"
+        ]
+      }
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "reason"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "inventory_version",
+    "pack_id",
+    "source_sha256",
+    "files",
+    "skipped"
+  ]
+}

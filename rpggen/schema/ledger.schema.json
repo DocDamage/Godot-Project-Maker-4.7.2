@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rpggen/ledger.schema.json",
+  "title": "ownership_ledger.json",
+  "type": "object",
+  "properties": {
+    "ledger_version": {
+      "const": 1
+    },
+    "generator_version": {
+      "type": "string"
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "written_by": {
+            "type": "string"
+          },
+          "owner": {
+            "enum": [
+              "generated",
+              "user_seed"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "sha256",
+          "written_by",
+          "owner"
+        ]
+      }
+    },
+    "deleted_by_user": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "ledger_version",
+    "generator_version",
+    "files",
+    "deleted_by_user"
+  ]
+}

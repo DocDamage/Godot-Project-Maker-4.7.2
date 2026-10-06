@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rpggen/results.schema.json",
+  "title": "build/validation/smoke results",
+  "type": "object",
+  "properties": {
+    "results_version": {
+      "const": 1
+    },
+    "phase": {
+      "enum": [
+        "build",
+        "validate",
+        "smoke"
+      ]
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "started_ms": {
+      "type": "integer"
+    },
+    "elapsed_ms": {
+      "type": "integer"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "fix": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ]
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "results_version",
+    "phase",
+    "ok",
+    "started_ms",
+    "elapsed_ms",
+    "issues",
+    "items"
+  ]
+}

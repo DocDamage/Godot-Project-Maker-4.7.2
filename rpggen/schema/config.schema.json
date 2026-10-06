@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rpggen/config.schema.json",
+  "title": "generator_config.json",
+  "type": "object",
+  "properties": {
+    "config_version": {
+      "const": 1
+    },
+    "generator_version": {
+      "type": "string"
+    },
+    "godot_version": {
+      "type": "string"
+    },
+    "project_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "archetype": {
+      "enum": [
+        "turn_based",
+        "arpg"
+      ]
+    },
+    "packs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PackRef"
+      },
+      "minItems": 1
+    },
+    "base_tile_size": {
+      "enum": [
+        8,
+        12,
+        16,
+        24,
+        32,
+        48,
+        64
+      ]
+    },
+    "resolution": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 160,
+        "maximum": 3840
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "window_size": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "map_layers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "contains": {
+        "const": "Ground"
+      }
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "tilesets": {
+          "type": "boolean"
+        },
+        "collision": {
+          "type": "boolean"
+        },
+        "terrain": {
+          "type": "boolean"
+        },
+        "animations": {
+          "type": "boolean"
+        },
+        "demo": {
+          "type": "boolean"
+        },
+        "editor_tools": {
+          "type": "boolean"
+        },
+        "save": {
+          "type": "boolean"
+        },
+        "dialogue": {
+          "type": "boolean"
+        },
+        "combat": {
+          "type": "boolean"
+        },
+        "navigation": {
+          "type": "boolean"
+        },
+        "debug_tools": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "smoke_test": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/Bindings"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "config_version",
+    "generator_version",
+    "godot_version",
+    "project_name",
+    "archetype",
+    "packs",
+    "base_tile_size",
+    "resolution",
+    "window_size",
+    "map_layers",
+    "features",
+    "validation",
+    "seed",
+    "input"
+  ],
+  "$defs": {
+    "PackRef": {
+      "type": "object",
+      "properties": {
+        "pack_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "source_sha256": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "zip",
+            "7z",
+            "folder"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "pack_id",
+        "source",
+        "source_sha256",
+        "kind"
+      ]
+    },
+    "Bindings": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "joy_buttons": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "joy_axes": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "mouse_buttons": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
