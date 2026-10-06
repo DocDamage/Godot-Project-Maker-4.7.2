@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
 # All tunable constants of the algorithm live here (T2.05). Record any tuning in
 # IMPLEMENTATION_NOTES.md.
-GRID_CONSTANTS = {
+GRID_CONSTANTS: dict[str, Any] = {
     "SIZES": [8, 12, 16, 24, 32, 48, 64, 96, 128],
     "MARGINS": [0, 1, 2],
     "SEPARATIONS": [0, 1, 2],

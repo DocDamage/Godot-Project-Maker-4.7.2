@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, SignalInstance
 from PySide6.QtGui import QBrush, QColor, QFont, QMouseEvent, QPen
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -58,7 +58,7 @@ class CutterView(ImageView):
         self.setDragMode(self.DragMode.NoDrag)
         self.setMouseTracking(False)
 
-    def _emit(self, signal: Signal, event: QMouseEvent) -> None:
+    def _emit(self, signal: SignalInstance, event: QMouseEvent) -> None:
         point = self.mapToScene(event.position().toPoint())
         alt = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
         signal.emit(point.x(), point.y(), alt)
@@ -175,7 +175,7 @@ class ObjectCutterDialog(QDialog):
         side.addWidget(buttons)
 
         self.view.set_image(Path(sheet_path), grid)
-        self.size = self.view.image_size
+        self.sheet_size = self.view.image_size
         self.view.pressed.connect(self.tool_press)
         self.view.moved.connect(self.tool_move)
         self.view.released.connect(self.tool_release)
@@ -283,7 +283,8 @@ class ObjectCutterDialog(QDialog):
             return
         kind = drag["kind"]
         if kind == "rect":
-            rect = objects_mod.snap_rect(*drag["start"], x, y, self.grid, self.size, snap=not alt)
+            sx, sy = drag["start"]
+            rect = objects_mod.snap_rect(sx, sy, x, y, self.grid, self.sheet_size, snap=not alt)
             drag["rect"] = rect
             self._show_rubber(rect)
         elif kind == "move":
@@ -307,7 +308,8 @@ class ObjectCutterDialog(QDialog):
             return
         kind = drag["kind"]
         if kind == "rect":
-            rect = objects_mod.snap_rect(*drag["start"], x, y, self.grid, self.size, snap=not alt)
+            sx, sy = drag["start"]
+            rect = objects_mod.snap_rect(sx, sy, x, y, self.grid, self.sheet_size, snap=not alt)
             self.add_region(rect)
         elif kind == "footprint":
             obj = self.get(drag["id"])
@@ -341,8 +343,8 @@ class ObjectCutterDialog(QDialog):
         nx, ny = drag["region"][0] + int(dx), drag["region"][1] + int(dy)
         if snap and self.grid:
             nx, ny = self._snap_coord(nx, 0), self._snap_coord(ny, 1)
-        nx = max(0, min(nx, self.size[0] - obj.region[2]))
-        ny = max(0, min(ny, self.size[1] - obj.region[3]))
+        nx = max(0, min(nx, self.sheet_size[0] - obj.region[2]))
+        ny = max(0, min(ny, self.sheet_size[1] - obj.region[3]))
         moved = copy.deepcopy(obj)
         moved.region = [nx, ny, obj.region[2], obj.region[3]]
         self._replace(moved)
@@ -371,7 +373,7 @@ class ObjectCutterDialog(QDialog):
         left, right = sorted((fixed_x, mx))
         top, bottom = sorted((fixed_y, my))
         rect = objects_mod.clamp_rect(
-            (left, top, max(1, right - left), max(1, bottom - top)), *self.size
+            (left, top, max(1, right - left), max(1, bottom - top)), *self.sheet_size
         )
         resized = copy.deepcopy(obj)
         resized.region = list(rect)

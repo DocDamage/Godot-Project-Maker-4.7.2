@@ -74,8 +74,9 @@ def _xml_tileset(el: ET.Element, base_dir: str, source_file: str) -> _Tileset | 
     tw, th = int(el.get("tilewidth", 0)), int(el.get("tileheight", 0))
     spacing, margin = int(el.get("spacing", 0)), int(el.get("margin", 0))
     columns = int(el.get("columns", 0))
-    if columns <= 0 and tw > 0 and image.get("width"):
-        columns = (int(image.get("width")) - 2 * margin + spacing) // (tw + spacing)
+    image_width = image.get("width")
+    if columns <= 0 and tw > 0 and image_width:
+        columns = (int(image_width) - 2 * margin + spacing) // (tw + spacing)
     tiles: dict[int, _Tile] = {}
     for t in el.findall("tile"):
         tile = tiles.setdefault(int(t.get("id", -1)), _Tile())
@@ -90,10 +91,12 @@ def _xml_tileset(el: ET.Element, base_dir: str, source_file: str) -> _Tileset | 
                 tile.objects.append(
                     [[x + px, y + py] for px, py in _parse_points(poly.get("points", ""))]
                 )
-            elif obj.get("width") and obj.get("height") and obj.find("ellipse") is None:
-                tile.objects.append(
-                    _rect_poly(x, y, float(obj.get("width")), float(obj.get("height")))
-                )
+            elif (
+                (ow := obj.get("width"))
+                and (oh := obj.get("height"))
+                and obj.find("ellipse") is None
+            ):
+                tile.objects.append(_rect_poly(x, y, float(ow), float(oh)))
         for fr in t.findall("./animation/frame"):
             tile.animation.append(
                 (int(fr.get("tileid", 0)), int(fr.get("duration", fr.get("tileduration", 100))))

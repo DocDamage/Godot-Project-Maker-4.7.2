@@ -154,7 +154,8 @@ class AsepriteAdapter:
     @staticmethod
     def _baseline(root: Path, image: str, frame_list: list[dict[str, Any]]) -> int:
         first = frame_list[0]
-        rect = tuple(int(first["frame"][k]) for k in ("x", "y", "w", "h"))
+        fr = first["frame"]
+        rect = (int(fr["x"]), int(fr["y"]), int(fr["w"]), int(fr["h"]))
         oy = int(first.get("spriteSourceSize", {}).get("y", 0))
         mask = image_facts.occupancy(image_facts.load_rgba(root / image))
         rel = frames_mod.baseline_y(mask, [rect])  # relative to the trimmed frame's top

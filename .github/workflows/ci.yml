@@ -85,6 +85,7 @@ jobs:
         run: |
           python -m ruff check .
           python -m ruff format --check .
+          python -m mypy rpggen
       - name: Unit tests
         run: python -m pytest -q -m "not integration"
       - name: Detection accuracy (synthetic corpus)

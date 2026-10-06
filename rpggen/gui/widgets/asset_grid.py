@@ -235,7 +235,9 @@ class AssetFilterProxy(QSortFilterProxyModel):
             return False
         return not (self.text and self.text not in str(model.data(index, PathRole)).casefold())
 
-    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
+    def lessThan(
+        self, left: QModelIndex | QPersistentModelIndex, right: QModelIndex | QPersistentModelIndex
+    ) -> bool:
         model = self.sourceModel()
         a = STATUS_PRIORITY.get(model.data(left, StatusRole), 99)
         b = STATUS_PRIORITY.get(model.data(right, StatusRole), 99)

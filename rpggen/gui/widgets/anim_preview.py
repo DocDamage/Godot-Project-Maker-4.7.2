@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -119,9 +120,9 @@ class AnimEditorDialog(QDialog):
         self.sheet_path = Path(sheet_path)
         self.original: dict[str, Anim] = copy.deepcopy(animations)
         self.animations: dict[str, Anim] = copy.deepcopy(animations)
-        self.frame = tuple(frame)
+        self.frame: tuple[int, int] = (frame[0], frame[1])
         self.original_frame = tuple(frame)
-        self.origin = tuple(origin) if origin else None
+        self.origin: tuple[int, int] | None = (origin[0], origin[1]) if origin else None
         self.original_origin = self.origin
         self.grid = grid or {"cell": list(frame), "margin": [0, 0], "separation": [0, 0]}
         self.arpg = arpg
@@ -273,29 +274,28 @@ class AnimEditorDialog(QDialog):
     def _rebuild_menus(self) -> None:
         add = QMenu(self.add_button)
         for name in anim_edit.missing_standard_names(self.animations):
-            add.addAction(name, lambda n=name: self.add_animation(n))
+            add.addAction(name, partial(self.add_animation, name))
         self.add_button.setMenu(add)
         mirror = QMenu(self.mirror_button)
         for name in self.animations:
             target = anim_edit.mirror_name(name)
             if target:
-                mirror.addAction(
-                    f"{name} → {target}", lambda n=name, t=target: self.mirror_from(n, t)
-                )
+                mirror.addAction(f"{name} → {target}", partial(self.mirror_from, name, target))
         self.mirror_button.setMenu(mirror)
 
     def names(self) -> list[str]:
         return list(self.animations)
 
     def select(self, name: str) -> None:
-        iterator = [self.tree.topLevelItem(i) for i in range(self.tree.topLevelItemCount())]
-        stack = list(iterator)
+        top = (self.tree.topLevelItem(i) for i in range(self.tree.topLevelItemCount()))
+        stack = [item for item in top if item is not None]
         while stack:
             item = stack.pop()
             if item.data(0, Qt.ItemDataRole.UserRole) == name:
                 self.tree.setCurrentItem(item)
                 return
-            stack.extend(item.child(i) for i in range(item.childCount()))
+            kids = (item.child(i) for i in range(item.childCount()))
+            stack.extend(kid for kid in kids if kid is not None)
 
     def _on_item(self, item: QTreeWidgetItem | None) -> None:
         name = item.data(0, Qt.ItemDataRole.UserRole) if item else None
@@ -313,7 +313,7 @@ class AnimEditorDialog(QDialog):
 
     def _replace(self, change) -> None:  # noqa: ANN001
         anim = self.anim()
-        if anim is not None:
+        if anim is not None and self.current is not None:
             self.animations[self.current] = change(anim)
             self.index = 0
             self._load_fields()
@@ -343,12 +343,14 @@ class AnimEditorDialog(QDialog):
             widget.blockSignals(False)
 
     def _on_fps(self, value: float) -> None:
-        if self.anim() is not None:
-            self.anim()["fps"] = value
+        anim = self.anim()
+        if anim is not None:
+            anim["fps"] = value
 
     def _on_loop(self, checked: bool) -> None:
-        if self.anim() is not None:
-            self.anim()["loop"] = checked
+        anim = self.anim()
+        if anim is not None:
+            anim["loop"] = checked
 
     def _on_flip(self, checked: bool) -> None:
         anim = self.anim()
@@ -392,6 +394,8 @@ class AnimEditorDialog(QDialog):
             return
         cell = anim_edit.cell_at(self.grid, x, y)
         if cell is None:
+            return
+        if self.current is None:
             return
         self.animations[self.current] = anim_edit.toggle_cell(anim, cell)
         self.index = 0

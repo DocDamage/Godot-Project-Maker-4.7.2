@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
 from rpggen.core.analyzer.grid import GridCandidate
 
-FRAME_CONSTANTS = {
+FRAME_CONSTANTS: dict[str, Any] = {
     "STRIP_MIN_FRAMES": 2,
     "STRIP_MAX_FRAMES": 32,
     "STRIP_MIN_NONEMPTY": 0.75,

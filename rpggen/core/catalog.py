@@ -520,12 +520,13 @@ def assign_tilesets(
     path_to_name = {a.path.split("/", 3)[-1]: names[a.id][0] for a in tile_assets if a.id in names}
     for entry in adapter_tilesets or []:
         for src in entry.get("sources", []):
-            name = path_to_name.get(src.get("path"))
-            if name and name in defs:
-                existing = {t["name"] for t in defs[name].terrain_sets}
+            src_path = src.get("path")
+            set_name = path_to_name.get(src_path) if src_path else None
+            if set_name and set_name in defs:
+                existing = {t["name"] for t in defs[set_name].terrain_sets}
                 for terrain in entry.get("terrain_sets", []):
                     if terrain["name"] not in existing:
-                        defs[name].terrain_sets.append(copy.deepcopy(terrain))
+                        defs[set_name].terrain_sets.append(copy.deepcopy(terrain))
                         existing.add(terrain["name"])
     for tdef in defs.values():
         tdef.sources.sort(key=lambda s: s["source_id"])

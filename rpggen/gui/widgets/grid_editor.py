@@ -56,7 +56,7 @@ class GridEditorDialog(QDialog):
         self.resize(900, 640)
         self.image_path = Path(image_path)
         self.asset_label = asset_label or self.image_path.name
-        self.mask = image_facts.occupancy(image_facts.load_rgba(self.image_path))
+        self.occupancy = image_facts.occupancy(image_facts.load_rgba(self.image_path))
         grid = grid or {"cell": [16, 16], "margin": [0, 0], "separation": [0, 0]}
 
         layout = QHBoxLayout(self)
@@ -114,8 +114,8 @@ class GridEditorDialog(QDialog):
         side.addWidget(buttons)
 
         self.view.set_image(self.image_path, None)
-        for box in (self.margin_x, self.margin_y, self.sep_x, self.sep_y, self.cell_h):
-            box.valueChanged.connect(self._on_changed)
+        for spin in (self.margin_x, self.margin_y, self.sep_x, self.sep_y, self.cell_h):
+            spin.valueChanged.connect(self._on_changed)
         self.cell_w.valueChanged.connect(self._on_cell_w)
         self.square.toggled.connect(self._on_square)
         self.candidate_list.itemClicked.connect(self._on_candidate)
@@ -174,7 +174,10 @@ class GridEditorDialog(QDialog):
         grid = self.grid()
         self.view.draw_grid(grid)
         info = grid_mod.grid_readout(
-            self.mask, tuple(grid["cell"]), tuple(grid["margin"]), tuple(grid["separation"])
+            self.occupancy,
+            (grid["cell"][0], grid["cell"][1]),
+            (grid["margin"][0], grid["margin"][1]),
+            (grid["separation"][0], grid["separation"][1]),
         )
         self.readout.setText(
             self.tr("{0} × {1}, {2} non-empty, remainder {3} px").format(

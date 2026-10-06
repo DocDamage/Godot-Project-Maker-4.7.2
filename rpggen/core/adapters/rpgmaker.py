@@ -108,7 +108,7 @@ class RpgMakerAdapter:
         name = posixpath.basename(f.path)
         return (
             bool(SHEET_NAME.match(name))
-            and bool(f.image)
+            and f.image is not None
             and (f.image["w"] % 48 == 0 or f.image["w"] % 32 == 0)
         )
 

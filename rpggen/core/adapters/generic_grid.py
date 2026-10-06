@@ -94,7 +94,7 @@ class GenericGridAdapter:
             fw, fh = strip["frame"]
             name = naming.normalize_name(posixpath.splitext(posixpath.basename(f.path))[0])
             anim = name.name if name.action in STANDARD_ACTIONS else "idle_down"
-            facets = {
+            facets: dict[str, Any] = {
                 "usage": "sprite",
                 "grid": {"cell": [fw, fh], "margin": [0, 0], "separation": [0, 0]},
                 "frame": [fw, fh],

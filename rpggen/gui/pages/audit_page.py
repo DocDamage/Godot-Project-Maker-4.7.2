@@ -159,7 +159,7 @@ class AuditPage(WizardPage):
             undo = self.session.undo_stack.createUndoAction(self, self.tr("Undo"))
             redo = self.session.undo_stack.createRedoAction(self, self.tr("Redo"))
             undo.setShortcut(QKeySequence.StandardKey.Undo)
-            redo.setShortcuts([QKeySequence.StandardKey.Redo, QKeySequence("Ctrl+Y")])
+            redo.setShortcuts([QKeySequence(QKeySequence.StandardKey.Redo), QKeySequence("Ctrl+Y")])
             for action in (undo, redo):
                 action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
                 self.addAction(action)

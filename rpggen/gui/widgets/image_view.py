@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QMouseEvent, QPen, QPixmap, QWheelEvent
-from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget
+from PySide6.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QWidget
 
 MARGIN_TINT = QColor(255, 160, 0, 70)
 GUTTER_TINT = QColor(0, 200, 255, 70)
@@ -28,7 +28,7 @@ class ImageView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.zoom = 1.0
-        self.pixmap_item = None
+        self.pixmap_item: QGraphicsPixmapItem | None = None
         self.image_size = (0, 0)
         self.grid_items: list = []
 
@@ -43,9 +43,10 @@ class ImageView(QGraphicsView):
         pixmap = QPixmap(str(path))
         if pixmap.isNull():
             return
-        self.pixmap_item = scene.addPixmap(pixmap)  # smooth transformation stays off
+        item = scene.addPixmap(pixmap)  # smooth transformation stays off
+        self.pixmap_item = item
         self.image_size = (pixmap.width(), pixmap.height())
-        scene.setSceneRect(self.pixmap_item.boundingRect())
+        scene.setSceneRect(item.boundingRect())
         if grid:
             self.draw_grid(grid)
         if fit:

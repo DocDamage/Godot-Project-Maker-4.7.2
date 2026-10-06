@@ -15,7 +15,7 @@ dependencies = [
   "mutagen>=1.47",
 ]
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.5", "pyinstaller>=6.6"]
+dev = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.5", "mypy>=1.10", "types-jsonschema", "pyinstaller>=6.6"]
 [project.scripts]
 rpggen = "rpggen.cli:main"
 [tool.setuptools.packages.find]

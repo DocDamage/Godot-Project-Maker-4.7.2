@@ -77,18 +77,17 @@ def _crop_box(req: ThumbRequest, width: int, height: int) -> tuple[int, int, int
 def render_thumbnail(req: ThumbRequest, size: int = THUMB_SIZE) -> bytes:
     """PNG bytes of the preview: tiles show their first 4x4 cells, sprites their first frame,
     everything else the whole image, fitted to ``size`` with nearest-neighbor sampling."""
-    with Image.open(req.path) as img:
-        img = img.convert("RGBA")
-        box = _crop_box(req, *img.size)
-        img = img.crop(box)
-    w, h = img.size
+    with Image.open(req.path) as opened:
+        rgba = opened.convert("RGBA")
+        cropped = rgba.crop(_crop_box(req, *rgba.size))
+    w, h = cropped.size
     scale = min(size / w, size / h)
     if scale >= 1:
         scale = max(1, int(scale))  # integer upscale keeps pixels square
     new_size = (max(1, round(w * scale)), max(1, round(h * scale)))
-    img = img.resize(new_size, Image.Resampling.NEAREST)
+    resized = cropped.resize(new_size, Image.Resampling.NEAREST)
     out = io.BytesIO()
-    img.save(out, format="PNG")
+    resized.save(out, format="PNG")
     return out.getvalue()
 
 
@@ -135,7 +134,7 @@ def load_thumbnails(
 def pixmap_from_bytes(data: bytes) -> QPixmap:
     """Create the QPixmap; call on the UI thread only."""
     pixmap = QPixmap()
-    pixmap.loadFromData(data, "PNG")
+    pixmap.loadFromData(data, "PNG")  # type: ignore[call-overload]  # the stub wants bytes
     return pixmap
 
 

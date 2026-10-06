@@ -24,6 +24,7 @@ def configure(log_dir: Path, verbose: bool) -> None:
     console = logging.StreamHandler(sys.stderr)
     console.setLevel(logging.DEBUG if verbose else logging.INFO)
     console.setFormatter(formatter)
-    for handler in (file_handler, console):
+    new_handlers: tuple[logging.Handler, ...] = (file_handler, console)
+    for handler in new_handlers:
         handler._rpggen = True  # type: ignore[attr-defined]
         root.addHandler(handler)
