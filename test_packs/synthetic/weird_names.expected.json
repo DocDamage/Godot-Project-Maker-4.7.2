@@ -1,0 +1,13 @@
+{
+  "Tree.PNG": {
+    "role": "DECORATION",
+    "usage": "sprite"
+  },
+  "extra_extracted/sign.png": {
+    "role": "DECORATION",
+    "usage": "sprite"
+  },
+  "Árbol Grande.png": {
+    "usage": "sprite"
+  }
+}

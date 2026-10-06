@@ -1,0 +1,86 @@
+{
+  "backgrounds/sky.png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "items/item_01.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_02.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_03.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_04.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_05.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_06.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_07.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_08.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_09.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_10.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_11.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/item_12.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "tiles/ground16.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ],
+    "usage": "tiles"
+  },
+  "tiles/ground32.png": {
+    "cell": [
+      32,
+      32
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ],
+    "usage": "tiles"
+  }
+}

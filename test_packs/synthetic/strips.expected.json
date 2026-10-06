@@ -1,0 +1,20 @@
+{
+  "hero_attack_down.png": {
+    "anims": [
+      "attack_down",
+      "walk_down",
+      "walk_left",
+      "walk_right",
+      "walk_up"
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "slime_idle.png": {
+    "anims": [
+      "idle_down"
+    ],
+    "role": "ENEMY",
+    "usage": "sprite"
+  }
+}

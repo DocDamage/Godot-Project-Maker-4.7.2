@@ -79,3 +79,39 @@ def test_nonempty_tile_count(tmp_path: Path) -> None:
             if cell.getchannel("A").getbbox() is not None:
                 nonempty += 1
     assert nonempty == 18
+
+
+def test_m2_pack_geometry(tmp_path: Path) -> None:
+    tool = _load_tool()
+    tool.main(["--out", str(tmp_path)])
+    sizes = {
+        "gutter32/tiles/world.png": (199, 166),
+        "gutterless48/Tilesets/ground.png": (240, 144),
+        "mixed/backgrounds/sky.png": (512, 288),
+        "mixed/tiles/ground32.png": (128, 96),
+        "rpgmaker_like/img/tilesets/Outside_A2.png": (768, 576),
+        "rpgmaker_like/img/tilesets/Outside_B.png": (768, 768),
+        "rpgmaker_like/img/characters/Actor1.png": (576, 384),
+        "rpgmaker_like/img/characters/$Big.png": (144, 192),
+        "rpgmaker_like/img/faces/Actor1.png": (576, 288),
+        "lpc_like/characters/body.png": (832, 1344),
+        "tiled_meta/tiles.png": (135, 135),
+        "objects_in_sheet/town.png": (160, 128),
+    }
+    for rel, size in sizes.items():
+        with Image.open(tmp_path / rel) as im:
+            assert im.size == size, rel
+    assert len(list((tmp_path / "mixed" / "items").glob("*.png"))) == 12
+
+
+def test_weird_names_zip_contents(tmp_path: Path) -> None:
+    import zipfile
+
+    tool = _load_tool()
+    tool.main(["--out", str(tmp_path)])
+    with zipfile.ZipFile(tmp_path / "weird_names.zip") as zf:
+        names = zf.namelist()
+    assert "\u00c1rbol Grande.png" in names
+    assert {"Tree.PNG", "tree.png", "extra.zip", "__MACOSX/._tree.png", ".DS_Store"} <= set(names)
+    with zipfile.ZipFile(tmp_path / "zipped.zip") as zf:
+        assert "tiles/terrain.png" in zf.namelist()

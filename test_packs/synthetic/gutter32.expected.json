@@ -1,0 +1,18 @@
+{
+  "tiles/world.png": {
+    "cell": [
+      32,
+      32
+    ],
+    "margin": [
+      1,
+      1
+    ],
+    "role": "GROUND",
+    "separation": [
+      1,
+      1
+    ],
+    "usage": "tiles"
+  }
+}

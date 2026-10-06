@@ -1,0 +1,33 @@
+{
+  "characters/hero.png": {
+    "baseline_y": 23,
+    "cols": 4,
+    "frame": [
+      16,
+      24
+    ],
+    "role": "PLAYER",
+    "rows": [
+      "down",
+      "left",
+      "right",
+      "up"
+    ]
+  },
+  "tiles/terrain.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "nonempty": 18,
+    "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ]
+  }
+}

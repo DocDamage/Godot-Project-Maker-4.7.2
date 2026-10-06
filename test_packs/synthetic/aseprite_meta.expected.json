@@ -1,0 +1,12 @@
+{
+  "knight.png": {
+    "anims": [
+      "idle_down",
+      "walk_down",
+      "walk_left",
+      "walk_right"
+    ],
+    "role": "NPC",
+    "usage": "sprite"
+  }
+}

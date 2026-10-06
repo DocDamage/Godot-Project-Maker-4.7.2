@@ -1,0 +1,69 @@
+{
+  "img/characters/$Big.png": {
+    "frame": [
+      48,
+      48
+    ],
+    "role": "NPC",
+    "usage": "sprite"
+  },
+  "img/characters/Actor1.png#c0": {
+    "anims": [
+      "idle_down",
+      "walk_down",
+      "walk_left",
+      "walk_right",
+      "walk_up"
+    ],
+    "frame": [
+      48,
+      48
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "img/characters/Actor1.png#c1": {
+    "frame": [
+      48,
+      48
+    ],
+    "role": "NPC",
+    "usage": "sprite"
+  },
+  "img/faces/Actor1.png#f0": {
+    "role": "PORTRAIT",
+    "usage": "portrait"
+  },
+  "img/tilesets/Outside_A2.png": {
+    "cell": [
+      48,
+      48
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "role": "AUTOTILE",
+    "separation": [
+      0,
+      0
+    ],
+    "usage": "tiles"
+  },
+  "img/tilesets/Outside_B.png": {
+    "cell": [
+      48,
+      48
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "role": "DECORATION",
+    "separation": [
+      0,
+      0
+    ],
+    "usage": "tiles"
+  }
+}
