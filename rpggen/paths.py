@@ -77,7 +77,13 @@ def glob_match(rel: str, pattern: str) -> bool:
 
 
 def local_cache_dir() -> Path:
-    """Per-user cache dir. The only place in the codebase that checks the platform."""
+    """Per-user cache dir. The only place in the codebase that checks the platform.
+
+    The environment variable RPGGEN_CACHE_DIR overrides it (used by tests and CI).
+    """
+    override = os.environ.get("RPGGEN_CACHE_DIR")
+    if override:
+        return Path(override)
     if sys.platform == "win32":
         base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
         return Path(base) / "rpggen" / "cache"

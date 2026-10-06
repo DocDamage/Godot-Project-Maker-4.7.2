@@ -157,20 +157,21 @@ def save(cfg: GeneratorConfig, path: Path) -> None:
     jsonio.write(path, data)
 
 
+def hash_file_list(entries: list[tuple[str, str]]) -> str:
+    """sha256 of the sorted ``path:sha256`` lines (the identity of a folder pack)."""
+    lines = sorted(f"{path}:{digest}" for path, digest in entries)
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+
+
 def folder_sha256(folder: Path) -> str:
-    """Deterministic hash of a folder: sorted relative paths plus file hashes."""
-    h = hashlib.sha256()
-    files = sorted(
-        (p for p in folder.rglob("*") if p.is_file()),
-        key=lambda p: (
-            p.relative_to(folder).as_posix().casefold(),
-            p.relative_to(folder).as_posix(),
-        ),
+    """Identity hash of a folder: sha256 of its sorted ``path:sha256`` lines."""
+    return hash_file_list(
+        [
+            (p.relative_to(folder).as_posix(), hashlib.sha256(p.read_bytes()).hexdigest())
+            for p in folder.rglob("*")
+            if p.is_file()
+        ]
     )
-    for p in files:
-        rel = p.relative_to(folder).as_posix()
-        h.update(rel.encode("utf-8") + b"\0" + hashlib.sha256(p.read_bytes()).digest())
-    return h.hexdigest()
 
 
 def pack_ref_from_folder(folder: Path, pack_id: str) -> PackRef:
