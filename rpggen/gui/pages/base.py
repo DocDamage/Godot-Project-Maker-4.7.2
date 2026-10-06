@@ -27,8 +27,9 @@ class WizardPage(QWidget):
         """Issues of the current values; Next is disabled while an error exists."""
         return []
 
-    def leave(self, state: WizardState) -> None:  # noqa: B027 - optional hook
-        """Write the widget values into ``state``."""
+    def leave(self, state: WizardState) -> bool | None:
+        """Write the widget values into ``state``. Returning False keeps the page open."""
+        return None
 
 
 FORM_CODE = "GUI-INPUT"  # form hints are not pipeline errors, so they have no table entry

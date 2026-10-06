@@ -9,7 +9,16 @@ from pathlib import Path
 from typing import Any
 
 from rpggen import __version__, ids, jsonio, paths
-from rpggen.core import archive, godot, godot_log, inventory, placeholders, requirements, staging
+from rpggen.core import (
+    archive,
+    godot,
+    godot_log,
+    inventory,
+    placeholders,
+    preflight,
+    requirements,
+    staging,
+)
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.errors import CODES, Issue, IssueList, RpgGenError, Severity
@@ -29,9 +38,7 @@ PHASES_M1 = [
     "report",
 ]
 REPORT_NAME = "generation_report.json"
-MIN_FREE_MB = 200
 SMOKE_STEPS_M1 = "res://generated/builder/smoke/smoke_steps_m1.gd"
-CLOUD_FOLDERS = ("onedrive", "dropbox", "google drive", "icloud")
 
 
 @dataclass
@@ -130,24 +137,8 @@ def phase_preflight(state: _State) -> None:
     for issue in godot.check_version(version):
         state.issues.append(issue)
     state.cfg = config_mod.load(state.cfg_path)
-    target = Path(state.target).resolve()
-    for p in state.cfg.packs:
-        if p.kind == "folder":
-            src = Path(p.source).resolve()
-            if target == src or src in target.parents:
-                raise RpgGenError("ENV-008")
-    if any(part.lower() in CLOUD_FOLDERS for part in target.parts):
-        state.issues.add(
-            "ENV-006", provider=next(p for p in target.parts if p.lower() in CLOUD_FOLDERS)
-        )
-    if len(str(target)) + 140 > 260:
-        state.issues.add("ENV-007", length=len(str(target)) + 140)
-    probe = target if target.exists() else target.parent
-    while not probe.exists() and probe != probe.parent:
-        probe = probe.parent
-    free_mb = shutil.disk_usage(probe).free // (1024 * 1024)
-    if free_mb < MIN_FREE_MB:
-        raise RpgGenError("ENV-005", need_mb=MIN_FREE_MB, have_mb=free_mb)
+    sources = [Path(p.source) for p in state.cfg.packs]
+    state.issues.extend(preflight.check_target(state.target, sources))
 
 
 def phase_stage(state: _State) -> None:

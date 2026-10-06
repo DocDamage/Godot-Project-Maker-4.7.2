@@ -7,11 +7,11 @@ from PySide6.QtWidgets import QLabel, QListWidget, QPushButton, QStackedWidget
 
 from rpggen.gui import app as gui_app
 from rpggen.gui import state as state_mod
-from rpggen.gui.wizard import PAGE_NAMES, MainWindow
+from rpggen.gui.wizard import PAGE_NAMES, MainWindow, stub_pages
 
 
 def _window(qtbot, state=None) -> MainWindow:
-    win = MainWindow(state)
+    win = MainWindow(state, stub_pages())
     qtbot.addWidget(win)
     win.show()
     return win

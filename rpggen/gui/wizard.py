@@ -40,11 +40,20 @@ class StubPage(WizardPage):
         layout.addStretch(1)
 
 
-def default_pages() -> list[WizardPage]:
+def stub_pages() -> list[WizardPage]:
+    """Seven placeholder pages whose first one needs a pack (used by tests of the shell)."""
     pages: list[WizardPage] = [StubPage(name) for name in PAGE_NAMES]
     pages[0].validate = lambda state: (  # type: ignore[method-assign]
         [] if state.pack_sources else [form_error("Add at least one asset pack.")]
     )
+    return pages
+
+
+def default_pages() -> list[WizardPage]:
+    from rpggen.gui.pages.project_page import ProjectPage
+
+    pages = stub_pages()
+    pages[0] = ProjectPage()
     return pages
 
 
@@ -130,27 +139,29 @@ class MainWindow(QMainWindow):
     def go_next(self) -> None:
         if not self.next_button.isEnabled() or self.current_index >= len(self.pages) - 1:
             return
-        self._leave_current()
-        self.show_page(self.current_index + 1)
+        if self._leave_current():
+            self.show_page(self.current_index + 1)
 
     def go_back(self) -> None:
         if self.current_index <= 0:
             return
-        self._leave_current()
-        self.show_page(self.current_index - 1)
+        if self._leave_current():
+            self.show_page(self.current_index - 1)
 
-    def _leave_current(self) -> None:
-        self.current_page.leave(self.state)
+    def _leave_current(self) -> bool:
+        """Let the page write its values; False when the page vetoed leaving."""
+        if self.current_page.leave(self.state) is False:
+            return False
         if self.state.target is not None:
             try:
                 state_mod.save_draft(self.state)
             except OSError:
                 log.warning("could not save the draft", exc_info=True)
+        return True
 
     def _on_sidebar_clicked(self, item: QListWidgetItem) -> None:
         index = self.sidebar.row(item)
-        if index in self.visited and index != self.current_index:
-            self._leave_current()
+        if index in self.visited and index != self.current_index and self._leave_current():
             self.show_page(index)
 
     # ------------------------------------------------------------------ state of the controls

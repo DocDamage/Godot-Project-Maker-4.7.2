@@ -29,6 +29,7 @@ class WizardState:
     config: config_mod.GeneratorConfig | None = None
     placeholders: set[str] = field(default_factory=set)
     regenerating: bool = False  # target is an existing rpggen project
+    analyzed_key: tuple[str, ...] | None = None  # packs the catalog was assembled from
 
 
 def draft_path(target: Path) -> Path:
