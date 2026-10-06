@@ -29,6 +29,7 @@ from rpggen.gui.widgets.bulk_panel import (
     common_folder,
     default_glob,
 )
+from rpggen.gui.widgets.grid_editor import GridEditorDialog
 
 QUICK_ROLES = ["GROUND", "WALL", "DECORATION", "BUILDING", "PLAYER", "NPC", "ENEMY", "ITEM", "UI"]
 
@@ -117,6 +118,7 @@ class AuditPage(WizardPage):
             self.session = EditSession(state.catalog, self)
             self.detail = AssetDetail(self.session)
             self.side.addWidget(self.detail)
+            self.detail.gridEditRequested.connect(self.edit_grid)
             self.bulk = BulkPanel(self.session)
             self.side.addWidget(self.bulk)
             self.rules_panel = RulesPanel(self.session)
@@ -169,6 +171,24 @@ class AuditPage(WizardPage):
         else:
             self.detail.set_asset(None)
             self.side.setCurrentWidget(self.empty_label)
+
+    # ------------------------------------------------------------------ dialogs
+
+    def run_dialog(self, dialog) -> bool:  # noqa: ANN001 - overridden by tests
+        return bool(dialog.exec())
+
+    def edit_grid(self, asset_id: str) -> bool:
+        """Open the grid editor; Apply writes a ``grid`` override."""
+        assert self.session is not None
+        asset = self.session.catalog.asset(asset_id)
+        path = self.resolver(asset) if asset else None
+        if asset is None or path is None:
+            return False
+        grid = catalog_mod.effective(asset).get("grid")
+        dialog = GridEditorDialog(path, grid, asset.path, self)
+        if not self.run_dialog(dialog):
+            return False
+        return self.session.set_override(asset_id, "grid", dialog.grid())
 
     # ------------------------------------------------------------------ folder rules
 

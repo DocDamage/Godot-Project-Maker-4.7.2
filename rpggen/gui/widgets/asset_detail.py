@@ -5,12 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, Signal
-from PySide6.QtGui import QColor, QDesktopServices, QPen, QPixmap, QWheelEvent
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
-    QGraphicsScene,
-    QGraphicsView,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -24,6 +22,7 @@ from PySide6.QtWidgets import (
 from rpggen.core import catalog as catalog_mod
 from rpggen.gui.edits import EditSession
 from rpggen.gui.widgets.asset_grid import STATUS_COLORS, PathResolver
+from rpggen.gui.widgets.image_view import ImageView
 
 USAGES = ["tiles", "sprite", "object", "ui", "portrait", "background", "audio", "font"]
 ROLES = [
@@ -69,75 +68,6 @@ NEW_TILESET = "New…"
 UNCHANGED = "— detected —"
 
 
-class ImagePreview(QGraphicsView):
-    """Nearest-neighbor image view; Ctrl+wheel zooms; optionally overlays a grid."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setObjectName("assetPreview")
-        self.setScene(QGraphicsScene(self))
-        self.setBackgroundBrush(QColor(60, 60, 60))
-        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
-        self.zoom = 1.0
-        self._pixmap_item = None
-        self.grid_items: list = []
-
-    def set_image(self, path: Path | None, grid: dict | None = None) -> None:
-        scene = self.scene()
-        scene.clear()
-        self.grid_items = []
-        self._pixmap_item = None
-        if path is None or not Path(path).exists():
-            return
-        pixmap = QPixmap(str(path))
-        if pixmap.isNull():
-            return
-        self._pixmap_item = scene.addPixmap(pixmap)  # SmoothTransformation stays off
-        scene.setSceneRect(self._pixmap_item.boundingRect())
-        if grid:
-            self.draw_grid(grid, pixmap.width(), pixmap.height())
-        self.fit()
-
-    def draw_grid(self, grid: dict, width: int, height: int) -> None:
-        pen = QPen(QColor(255, 255, 255, 140))
-        pen.setCosmetic(True)
-        cw, ch = grid["cell"]
-        mx, my = grid.get("margin", [0, 0])
-        sx, sy = grid.get("separation", [0, 0])
-        scene = self.scene()
-        x = mx
-        while x <= width:
-            self.grid_items.append(scene.addLine(x, 0, x, height, pen))
-            x += cw + sx if sx else cw
-        y = my
-        while y <= height:
-            self.grid_items.append(scene.addLine(0, y, width, y, pen))
-            y += ch + sy if sy else ch
-
-    def fit(self) -> None:
-        if self._pixmap_item is None:
-            return
-        self.resetTransform()
-        rect = self._pixmap_item.boundingRect()
-        if rect.width() <= 0 or rect.height() <= 0:
-            return
-        view = self.viewport().size()
-        scale = min(max(view.width(), 64) / rect.width(), max(view.height(), 64) / rect.height())
-        scale = max(1.0, float(int(scale))) if scale >= 1 else scale
-        self.zoom = scale
-        self.scale(scale, scale)
-
-    def wheelEvent(self, event: QWheelEvent) -> None:
-        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            factor = 1.25 if event.angleDelta().y() > 0 else 0.8
-            self.zoom *= factor
-            self.scale(factor, factor)
-            event.accept()
-        else:
-            super().wheelEvent(event)
-
-
 class AssetDetail(QWidget):
     """Edits one asset through the ``EditSession`` (never mutates the catalog itself)."""
 
@@ -154,7 +84,7 @@ class AssetDetail(QWidget):
         self._loading = False
 
         layout = QVBoxLayout(self)
-        self.preview = ImagePreview()
+        self.preview = ImageView("assetPreview")
         self.preview.setMinimumHeight(180)
         layout.addWidget(self.preview, 2)
 

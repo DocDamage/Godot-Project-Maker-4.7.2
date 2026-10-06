@@ -250,3 +250,39 @@ def confidence(candidates: list[GridCandidate]) -> float:
     top = candidates[0].score
     second = candidates[1].score if len(candidates) > 1 else 0.0
     return round(top * min(1.0, 0.5 + (top - second) * 2.0), 6)
+
+
+@dataclass(frozen=True)
+class GridReadout:
+    cols: int
+    rows: int
+    nonempty: int
+    remainder: tuple[int, int]  # pixels left over horizontally and vertically
+
+
+def grid_readout(
+    mask: np.ndarray,
+    cell: tuple[int, int],
+    margin: tuple[int, int],
+    separation: tuple[int, int],
+) -> GridReadout:
+    """Size of the grid a (cell, margin, separation) triple makes on an image.
+
+    The margin is applied on both sides of an axis; ``remainder`` is what is left over after the
+    last whole cell (ASSET-003 when it is not zero).
+    """
+    h, w = mask.shape
+    (cw, ch), (mx, my), (sx, sy) = cell, margin, separation
+    if cw < 1 or ch < 1:
+        return GridReadout(0, 0, 0, (w, h))
+    usable_w = w - 2 * mx + sx
+    usable_h = h - 2 * my + sy
+    cols = max(0, usable_w // (cw + sx))
+    rows = max(0, usable_h // (ch + sy))
+    remainder = (max(0, usable_w - cols * (cw + sx)), max(0, usable_h - rows * (ch + sy)))
+    if cols == 0 or rows == 0:
+        return GridReadout(cols, rows, 0, remainder)
+    xs = _AxisCandidate(cw, mx, sx, cols, 0.0)
+    ys = _AxisCandidate(ch, my, sy, rows, 0.0)
+    counts = _cell_counts(_sat(mask), xs, ys)
+    return GridReadout(cols, rows, int((counts > 0).sum()), remainder)
