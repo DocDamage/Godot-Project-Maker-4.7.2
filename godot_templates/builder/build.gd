@@ -11,7 +11,9 @@ const RECIPE_ORDER := [
 	"project_settings_recipe",
 	"tileset_recipe",
 	"sprite_frames_recipe",
-	# M1 adds: "player_recipe", "boot_recipe", "starter_map_recipe" (T1.09)
+	"player_recipe",
+	"boot_recipe",
+	"starter_map_recipe",
 ]
 
 func _initialize() -> void:
