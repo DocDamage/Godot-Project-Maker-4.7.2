@@ -1,6 +1,15 @@
 /* The one stylesheet of the wizard. Colors live here and nowhere else (STATUS_COLORS in
    widgets/asset_grid.py mirrors the status variables below). */
 
+/* status-colors (mirrored by STATUS_COLORS in widgets/asset_grid.py; a test compares them)
+CONFLICT=#d32f2f
+NEEDS_REVIEW=#f57c00
+MISSING=#7b1fa2
+AUTO_DETECTED=#1976d2
+CONFIRMED=#388e3c
+UNUSED=#9e9e9e
+*/
+
 QListWidget#sidebar {
     background: #2b2f36;
     color: #d8dce3;
@@ -39,4 +48,10 @@ QLabel#stubLabel {
 QPushButton#nextButton {
     font-weight: bold;
     padding: 6px 18px;
+}
+
+QPushButton#chipAttention:checked, QPushButton#chipAuto:checked, QPushButton#chipConfirmed:checked,
+QPushButton#chipUnused:checked, QPushButton#chipAll:checked {
+    background: #3d6fb4;
+    color: #ffffff;
 }
