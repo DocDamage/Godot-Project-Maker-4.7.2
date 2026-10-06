@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+import fnmatch
+import hashlib
+import json
+import re
+from pathlib import Path
+
+import pytest
+
+from rpggen.core import config, orchestrator
+
+pytestmark = pytest.mark.integration
+
+REPO = Path(__file__).resolve().parents[2]
+PACK = REPO / "test_packs" / "synthetic" / "basic16"
+
+# Excluded from the comparison: logs, Godot's import cache and *.import files.
+EXCLUDED = ("rpggen/logs/*", ".godot/*", "*.import")
+UNIQUE_ID = re.compile(rb"unique_id=\d+")
+UID_ATTR = re.compile(rb'uid="uid://[a-z0-9]+"')
+
+
+def _normalized(rel: str, data: bytes) -> bytes:
+    if rel.endswith((".tscn", ".tres")):
+        # Godot 4.7 writes a random unique_id per node on every save.
+        return UID_ATTR.sub(b'uid="uid://x"', UNIQUE_ID.sub(b"unique_id=0", data))
+    if rel.startswith("rpggen/results/") and rel.endswith(".json"):
+        doc = json.loads(data)
+        doc["elapsed_ms"] = 0
+        for item in doc.get("items", []):
+            if "ms" in item:
+                item["ms"] = 0
+        return json.dumps(doc, sort_keys=True, indent=1).encode("utf-8")
+    return data
+
+
+def _tree_hashes(root: Path) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for p in sorted(root.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = p.relative_to(root).as_posix()
+        if any(fnmatch.fnmatch(rel, pat) for pat in EXCLUDED):
+            continue
+        out[rel] = hashlib.sha256(_normalized(rel, p.read_bytes())).hexdigest()
+    return out
+
+
+def test_determinism_basic16(godot_exe: Path, tmp_path: Path) -> None:
+    cfg_path = tmp_path / "cfg.json"
+    config.save(orchestrator.default_config_for_pack(PACK, "Determinism"), cfg_path)
+    results = []
+    for name in ("run_a", "run_b"):
+        result = orchestrator.run(cfg_path, tmp_path / name, godot_exe)
+        assert result.ok, [f"{i.code}: {i.message}" for i in result.issues]
+        results.append(_tree_hashes(tmp_path / name))
+    a, b = results
+    assert sorted(a) == sorted(b)
+    assert len(a) > 30
+    differing = sorted(k for k in a if a[k] != b[k])
+    assert differing == []
