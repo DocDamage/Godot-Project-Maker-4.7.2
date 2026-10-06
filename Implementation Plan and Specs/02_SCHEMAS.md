@@ -190,6 +190,7 @@ Location: `<project>/rpggen/asset_catalog.json`.
 | `nine_slice` | `[left, top, right, bottom]` | usage=ui | Margins in px. |
 | `import` | `{ "filter": "nearest"/"linear", "mipmaps": bool }` | images | Defaults: nearest, false. |
 | `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). |
+| `region` | `[x, y, w, h]` | usage=portrait | Pixel rect of one face inside a face sheet (T2.11). |
 
 **Role** enum: `GROUND, WALL, CLIFF, WATER, ROAD, AUTOTILE, DECORATION, BUILDING, INTERIOR, PLAYER, NPC, ENEMY, BOSS, WEAPON, ITEM, EFFECT, PROJECTILE, UI, PORTRAIT, BACKGROUND, AUDIO_MUSIC, AUDIO_SFX, FONT, NONE`.
 

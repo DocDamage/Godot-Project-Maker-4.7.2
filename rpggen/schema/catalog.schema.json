@@ -482,6 +482,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "region": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 4,
+          "maxItems": 4
         }
       },
       "additionalProperties": false,
@@ -791,6 +799,21 @@
               "items": {
                 "type": "string"
               }
+            }
+          ]
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "minItems": 4,
+              "maxItems": 4
             }
           ]
         }
@@ -1364,6 +1387,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "region": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 4,
+          "maxItems": 4
         }
       },
       "additionalProperties": false

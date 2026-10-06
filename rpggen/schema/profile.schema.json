@@ -457,6 +457,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "region": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 4,
+          "maxItems": 4
         }
       },
       "additionalProperties": false

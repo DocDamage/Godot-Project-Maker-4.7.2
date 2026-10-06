@@ -15,6 +15,8 @@ class AssetFragment:
     facets: dict[str, Any]  # partial Facets (02_SCHEMAS §4.4)
     confidence: float
     claim: Literal["full", "partial"]  # full: classifier must not change usage/grid/anims
+    # Non-empty for fragments that become their own asset ("c3", "f0"): id suffix "#c3".
+    variant: str = ""
 
 
 @dataclass
