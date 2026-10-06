@@ -1,0 +1,42 @@
+/* The one stylesheet of the wizard. Colors live here and nowhere else (STATUS_COLORS in
+   widgets/asset_grid.py mirrors the status variables below). */
+
+QListWidget#sidebar {
+    background: #2b2f36;
+    color: #d8dce3;
+    border: none;
+    font-size: 14px;
+}
+QListWidget#sidebar::item {
+    padding: 10px 12px;
+}
+QListWidget#sidebar::item:selected {
+    background: #3d6fb4;
+    color: #ffffff;
+}
+QListWidget#sidebar::item:disabled {
+    color: #7b8290;
+}
+
+QLabel#problemLabel {
+    color: #b3261e;
+    padding: 4px 2px;
+}
+QLabel[state="ok"] {
+    color: #2e7d32;
+}
+QLabel[state="error"] {
+    color: #b3261e;
+}
+QLabel[state="warning"] {
+    color: #a66a00;
+}
+QLabel#stubLabel {
+    color: #7b8290;
+    font-size: 16px;
+}
+
+QPushButton#nextButton {
+    font-weight: bold;
+    padding: 6px 18px;
+}

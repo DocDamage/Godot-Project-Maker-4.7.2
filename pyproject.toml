@@ -15,13 +15,13 @@ dependencies = [
   "mutagen>=1.47",
 ]
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.5", "pyinstaller>=6.6"]
+dev = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.5", "pyinstaller>=6.6"]
 [project.scripts]
 rpggen = "rpggen.cli:main"
 [tool.setuptools.packages.find]
 include = ["rpggen*"]
 [tool.setuptools.package-data]
-rpggen = ["schema/*.json"]
+rpggen = ["schema/*.json", "gui/*.qss"]
 [tool.ruff]
 line-length = 100
 extend-exclude = ["godot_templates", "docs/spec", "Implementation Plan and Specs", ".venv", "rpggen/errors_table.py"]

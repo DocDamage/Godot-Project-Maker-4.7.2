@@ -1,0 +1,97 @@
+"""GUI entry point: QApplication, stylesheet, crash dialog and the main window."""
+
+from __future__ import annotations
+
+import logging
+import sys
+import traceback
+from importlib import resources
+from types import TracebackType
+
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QDialogButtonBox,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from rpggen.errors import CODES
+from rpggen.gui.wizard import MainWindow
+
+log = logging.getLogger(__name__)
+
+EXPORT_BUNDLE_AVAILABLE = False  # enabled by M10 (diagnostic bundle)
+
+
+def load_stylesheet() -> str:
+    return resources.files("rpggen.gui").joinpath("style.qss").read_text(encoding="utf-8")
+
+
+class CrashDialog(QDialog):
+    """GUI-001: shows an unhandled exception with a collapsible traceback."""
+
+    def __init__(self, text: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("crashDialog")
+        self.setWindowTitle(self.tr("Unexpected error"))
+        self.resize(640, 200)
+        info = CODES["GUI-001"]
+        reason = text.strip().splitlines()[-1] if text.strip() else "unknown"
+        layout = QVBoxLayout(self)
+        message = QLabel(f"GUI-001: {info.message.format(reason=reason)}\n{info.fix}")
+        message.setObjectName("crashMessage")
+        message.setWordWrap(True)
+        layout.addWidget(message)
+        self.details_toggle = QToolButton()
+        self.details_toggle.setObjectName("crashDetailsToggle")
+        self.details_toggle.setText(self.tr("Show details"))
+        self.details_toggle.setCheckable(True)
+        layout.addWidget(self.details_toggle)
+        self.details = QPlainTextEdit(text)
+        self.details.setObjectName("crashDetails")
+        self.details.setReadOnly(True)
+        self.details.setVisible(False)
+        layout.addWidget(self.details)
+        self.details_toggle.toggled.connect(self.details.setVisible)
+        buttons = QDialogButtonBox()
+        self.export_button = QPushButton(self.tr("Export diagnostic bundle"))
+        self.export_button.setObjectName("crashExportButton")
+        self.export_button.setEnabled(EXPORT_BUNDLE_AVAILABLE)
+        self.export_button.setToolTip(self.tr("Available in a later version"))
+        buttons.addButton(self.export_button, QDialogButtonBox.ButtonRole.ActionRole)
+        buttons.addButton(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+
+def install_excepthook() -> None:
+    def hook(exc_type: type[BaseException], exc: BaseException, tb: TracebackType | None) -> None:
+        text = "".join(traceback.format_exception(exc_type, exc, tb))
+        log.error("unhandled exception\n%s", text)
+        if QApplication.instance() is None or issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc, tb)
+            return
+        CrashDialog(text).exec()
+
+    sys.excepthook = hook
+
+
+def create_app(argv: list[str] | None = None) -> QApplication:
+    app = QApplication.instance() or QApplication(argv or sys.argv)
+    assert isinstance(app, QApplication)
+    app.setStyle("Fusion")
+    app.setStyleSheet(load_stylesheet())
+    return app
+
+
+def run_gui(argv: list[str] | None = None) -> int:
+    app = create_app(argv)
+    install_excepthook()
+    window = MainWindow()
+    window.show()
+    return app.exec()

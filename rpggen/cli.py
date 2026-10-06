@@ -13,6 +13,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rpggen")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("version", help="print the version")
+    sub.add_parser("gui", help="open the graphical wizard (also the default)")
     gen = sub.add_parser("generate", help="generate a Godot project")
     gen.add_argument("--config", type=Path, help="generator_config.json")
     gen.add_argument("--pack", type=Path, help="asset pack folder (creates a default config)")
@@ -95,5 +96,9 @@ def main(argv: list[str] | None = None) -> int:
         from rpggen import analyze_cmd
 
         return analyze_cmd.main(args)
+    if args.command in (None, "gui"):
+        from rpggen.gui import app
+
+        return app.run_gui()
     parser.print_help()
     return 2
