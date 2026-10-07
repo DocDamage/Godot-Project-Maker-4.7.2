@@ -23,6 +23,13 @@ const RECIPE_ORDER := [
 	"translations_recipe",
 ]
 
+## Recipes of the archetype's folder (builder/recipes/<archetype>/), run before the boot scene is
+## built because boot adds the archetype's combat mode.
+const ARCHETYPE_RECIPES := {
+	"turn_based": ["turn_based/battle_commands_recipe", "turn_based/enemy_recipes", "turn_based/battle_scene_recipe"],
+	"arpg": [],
+}
+
 func _initialize() -> void:
 	var code := _run()
 	quit(code)
@@ -34,7 +41,7 @@ func _run() -> int:
 		ctx.results.write(Paths.RESULTS_BUILD)
 		return 1
 	ctx.load_build_state()
-	for recipe_name in RECIPE_ORDER:
+	for recipe_name in _recipe_list(ctx):
 		_run_recipe(ctx, builder_dir, recipe_name)
 	var save_err := ctx.save_build_state()
 	if save_err != OK:
@@ -42,6 +49,16 @@ func _run() -> int:
 	ctx.results.write(Paths.RESULTS_BUILD)
 	Log.info("build finished ok=%s" % str(ctx.results.ok))
 	return 0 if ctx.results.ok else 1
+
+## RECIPE_ORDER with the archetype's recipes inserted before "boot_recipe".
+static func _recipe_list(ctx: RefCounted) -> Array:
+	var extra: Array = ARCHETYPE_RECIPES.get(String(ctx.config.get("archetype", "")), [])
+	var out: Array = []
+	for recipe_name in RECIPE_ORDER:
+		if recipe_name == "boot_recipe":
+			out.append_array(extra)
+		out.append(recipe_name)
+	return out
 
 func _run_recipe(ctx: RefCounted, builder_dir: String, recipe_name: String) -> void:
 	var script_path := "%s/recipes/%s.gd" % [builder_dir, recipe_name]

@@ -32,6 +32,7 @@ const CODES := {
 	"ASSET-022": {"severity": "info", "message": "No NPC asset; the player's sprite stands in for the starter NPC.", "fix": "Assign an NPC asset in Mapping."},
 	"ASSET-023": {"severity": "info", "message": "No chest asset; item icon {asset} stands in for the starter chest.", "fix": "Assign a chest asset in Mapping."},
 	"ASSET-024": {"severity": "info", "message": "Font {asset} was not used: its pack has no license file.", "fix": "Add the pack's license file, or choose another font."},
+	"ASSET-025": {"severity": "info", "message": "No enemy asset; the player's sprite stands in for the starter enemy.", "fix": "Assign an enemy asset in Mapping."},
 	"ADAPT-001": {"severity": "warning", "message": "Adapter {adapter} failed on {file}: {reason}.", "fix": "Report a bug with a diagnostic bundle."},
 	"ADAPT-002": {"severity": "warning", "message": "Tiled tileset {file} references missing image {image}.", "fix": "Fix the pack or map the image manually."},
 	"ADAPT-003": {"severity": "info", "message": "Pack profile {profile_id} matched ({ratio}).", "fix": "—"},

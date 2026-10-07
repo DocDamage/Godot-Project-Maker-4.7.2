@@ -152,21 +152,42 @@ def _place(src: Path, dst: Path) -> bool:
     return True
 
 
-def _copy_tree(src: Path, dst: Path, root: Path) -> list[str]:
-    written: list[str] = []
-    for p in sorted(src.rglob("*"), key=lambda q: q.relative_to(src).as_posix().casefold()):
-        if not p.is_file() or "__pycache__" in p.parts:
+ARCHETYPES = ("turn_based", "arpg")
+
+
+def _other_archetype(rel: str, archetype: str | None) -> bool:
+    """True for a template file that belongs to an archetype other than the chosen one.
+
+    The runtime keeps each archetype in ``addons/rpg_runtime/archetypes/<name>/``, its recipes in
+    ``builder/recipes/<name>/`` and its smoke steps in ``builder/smoke/smoke_steps_<name>.gd``.
+    """
+    if archetype is None:
+        return False
+    parts = rel.split("/")
+    for other in ARCHETYPES:
+        if other == archetype:
             continue
-        out = dst / p.relative_to(src)
-        _place(p, out)
-        written.append(paths.to_posix_rel(out, root))
-    return written
+        if parts[:4] == ["addons", "rpg_runtime", "archetypes", other]:
+            return True
+        if parts[:3] == ["builder", "recipes", other]:
+            return True
+        if (
+            len(parts) == 3
+            and parts[:2] == ["builder", "smoke"]
+            and parts[2] in (f"smoke_steps_{other}.gd", f"smoke_steps_{other}.gd.uid")
+        ):
+            return True
+    return False
 
 
-def install_templates(stg: Staging, templates_root: Path) -> list[str]:
+def install_templates(
+    stg: Staging, templates_root: Path, archetype: str | None = None
+) -> list[str]:
     """Copy the runtime addon and the builder into staging. Tests and probes are not copied.
 
-    Files whose content is unchanged are left alone (they keep their modification time).
+    With an ``archetype`` only that archetype's runtime folder, recipes and smoke steps are
+    copied (the template project holds all of them so each is tested). Files whose content is
+    unchanged are left alone (they keep their modification time).
     """
     templates_root = Path(templates_root)
     written: list[str] = []
@@ -175,8 +196,17 @@ def install_templates(stg: Staging, templates_root: Path) -> list[str]:
         ("builder", "generated/builder"),
     ):
         src = templates_root / src_rel
-        if src.is_dir():
-            written += _copy_tree(src, stg.staging / dst_rel, stg.staging)
+        if not src.is_dir():
+            continue
+        for p in sorted(src.rglob("*"), key=lambda q: q.relative_to(src).as_posix().casefold()):
+            if not p.is_file() or "__pycache__" in p.parts:
+                continue
+            rel_in_templates = p.relative_to(templates_root).as_posix()
+            if _other_archetype(rel_in_templates, archetype):
+                continue
+            out = stg.staging / dst_rel / p.relative_to(src)
+            _place(p, out)
+            written.append(paths.to_posix_rel(out, stg.staging))
     return sorted(written, key=lambda s: (s.casefold(), s))
 
 
@@ -261,17 +291,21 @@ def _write_text(path: Path, text: str) -> None:
 README_TEMPLATE = "README.template.md"
 
 
-def render_readme(template: str, cfg: config_mod.GeneratorConfig, runtime: str) -> str:
+def render_readme(
+    template: str, cfg: config_mod.GeneratorConfig, runtime: str, archetype_notes: str = ""
+) -> str:
     """Fill the README template (``str.format`` placeholders; values are never re-interpreted,
-    so braces in a project name are safe)."""
+    so braces in a project name are safe). ``archetype_notes`` (the archetype's own section,
+    ``README.<archetype>.md``) is appended as it is."""
     packs = "\n".join(f"- {p.pack_id}" for p in cfg.packs) or "- (none)"
-    return template.format(
+    text = template.format(
         project_name=cfg.project_name,
         archetype=cfg.archetype,
         runtime_version=runtime,
         godot_version=cfg.godot_version,
         packs_list=packs,
     )
+    return text + archetype_notes
 
 
 def write_project_files(
@@ -300,10 +334,12 @@ def write_project_files(
         dst = root / name
         if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != text.encode("utf-8"):
             _write_text(dst, text)
+    notes_file = files / f"README.{cfg.archetype}.md"
     readme = render_readme(
         (files / README_TEMPLATE).read_text(encoding="utf-8"),
         cfg,
         runtime_version.read_version(paths.templates_root()) or "unknown",
+        notes_file.read_text(encoding="utf-8") if notes_file.is_file() else "",
     )
     dst = root / "README.md"
     if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != readme.encode("utf-8"):

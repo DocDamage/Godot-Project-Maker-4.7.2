@@ -159,3 +159,61 @@ def test_write_project_files_keeps_the_users_project_godot(tmp_path: Path) -> No
     staging.write_project_files(stg, cfg, catalog.Catalog())
     assert "x=1" in (stg.staging / "project.godot").read_text(encoding="utf-8")
     assert (stg.staging / ".gitignore").is_file()
+
+
+def test_only_the_chosen_archetype_is_installed(tmp_path: Path) -> None:
+    templates = tmp_path / "tpl"
+    for rel in (
+        "addons/rpg_runtime/core/events.gd",
+        "addons/rpg_runtime/archetypes/turn_based/battle_controller.gd",
+        "addons/rpg_runtime/archetypes/turn_based/ui/battle_ui.gd",
+        "addons/rpg_runtime/archetypes/arpg/player.gd",
+        "builder/build.gd",
+        "builder/recipes/turn_based/enemy_recipes.gd",
+        "builder/recipes/arpg/enemy_recipes.gd",
+        "builder/smoke/smoke_steps_m6.gd",
+        "builder/smoke/smoke_steps_turn_based.gd",
+        "builder/smoke/smoke_steps_turn_based.gd.uid",
+        "builder/smoke/smoke_steps_arpg.gd",
+    ):
+        _write(templates, rel, "x\n")
+    for archetype, gone, kept in (
+        ("turn_based", "arpg", "turn_based"),
+        ("arpg", "turn_based", "arpg"),
+    ):
+        stg = staging.create_staging(tmp_path / f"t_{archetype}")
+        written = staging.install_templates(stg, templates, archetype)
+        joined = "\n".join(written)
+        assert f"archetypes/{kept}/" in joined and f"recipes/{kept}/" in joined
+        assert f"smoke_steps_{kept}.gd" in joined
+        assert f"archetypes/{gone}/" not in joined and f"recipes/{gone}/" not in joined
+        assert f"smoke_steps_{gone}.gd" not in joined
+        assert "addons/rpg_runtime/core/events.gd" in written
+        assert "generated/builder/smoke/smoke_steps_m6.gd" in written
+    # without an archetype everything is copied (the template project's own tests)
+    stg = staging.create_staging(tmp_path / "all")
+    assert any("archetypes/arpg/" in w for w in staging.install_templates(stg, templates))
+
+
+def test_smoke_steps_follow_the_archetype() -> None:
+    from rpggen.core import orchestrator
+
+    turn_based = orchestrator.smoke_steps_for("turn_based").split(",")
+    assert turn_based[0].endswith("smoke_steps_m6.gd")
+    assert turn_based[1].endswith("smoke_steps_turn_based.gd")
+    assert orchestrator.smoke_steps_for("arpg").split(",") == [orchestrator.SMOKE_STEPS]
+
+
+def test_the_readme_gets_the_archetype_section(tmp_path: Path) -> None:
+    from rpggen.core import catalog, config
+
+    pack = config.PackRef("pack_a", "x", "0" * 64, "folder")
+    stg = staging.create_staging(tmp_path / "tb")
+    staging.write_project_files(stg, config.default_for("Game {x}", [pack]), catalog.Catalog())
+    text = (stg.staging / "README.md").read_text(encoding="utf-8")
+    assert text.startswith("# Game {x}")
+    assert "## 11. Battles and enemies (turn-based)" in text
+    other = config.default_for("Game", [pack], archetype="arpg")
+    stg = staging.create_staging(tmp_path / "arpg")
+    staging.write_project_files(stg, other, catalog.Catalog())
+    assert "Battles and enemies" not in (stg.staging / "README.md").read_text(encoding="utf-8")

@@ -43,6 +43,7 @@ CODES: dict[str, CodeInfo] = {
     "ASSET-022": CodeInfo("ASSET-022", "info", "No NPC asset; the player's sprite stands in for the starter NPC.", "Assign an NPC asset in Mapping."),
     "ASSET-023": CodeInfo("ASSET-023", "info", "No chest asset; item icon {asset} stands in for the starter chest.", "Assign a chest asset in Mapping."),
     "ASSET-024": CodeInfo("ASSET-024", "info", "Font {asset} was not used: its pack has no license file.", "Add the pack's license file, or choose another font."),
+    "ASSET-025": CodeInfo("ASSET-025", "info", "No enemy asset; the player's sprite stands in for the starter enemy.", "Assign an enemy asset in Mapping."),
     "ADAPT-001": CodeInfo("ADAPT-001", "warning", "Adapter {adapter} failed on {file}: {reason}.", "Report a bug with a diagnostic bundle."),
     "ADAPT-002": CodeInfo("ADAPT-002", "warning", "Tiled tileset {file} references missing image {image}.", "Fix the pack or map the image manually."),
     "ADAPT-003": CodeInfo("ADAPT-003", "info", "Pack profile {profile_id} matched ({ratio}).", "—"),

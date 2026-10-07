@@ -48,6 +48,15 @@ SMOKE_STEPS_M4 = "res://generated/builder/smoke/smoke_steps_m4.gd"
 SMOKE_STEPS_M6 = "res://generated/builder/smoke/smoke_steps_m6.gd"
 # The M6 file composes the M1 and M4 steps in the right order (the game starts at the title).
 SMOKE_STEPS = SMOKE_STEPS_M6
+SMOKE_STEPS_TURN_BASED = "res://generated/builder/smoke/smoke_steps_turn_based.gd"
+# The archetype's own steps run after the shared sequence (which ends in the starter map).
+ARCHETYPE_SMOKE_STEPS = {"turn_based": SMOKE_STEPS_TURN_BASED}
+
+
+def smoke_steps_for(archetype: str) -> str:
+    """Comma-separated steps scripts for the smoke run of a project with this archetype."""
+    extra = ARCHETYPE_SMOKE_STEPS.get(archetype)
+    return f"{SMOKE_STEPS},{extra}" if extra else SMOKE_STEPS
 
 
 @dataclass
@@ -191,7 +200,7 @@ def phase_stage(state: _State) -> None:
 
 def phase_install(state: _State) -> None:
     assert state.staging is not None and state.cfg is not None
-    staging.install_templates(state.staging, paths.templates_root())
+    staging.install_templates(state.staging, paths.templates_root(), state.cfg.archetype)
     used: set[str] = set()
     for ref in state.cfg.packs:
         opened = archive.open_pack(Path(ref.source), used, pack_id=ref.pack_id)
@@ -309,7 +318,7 @@ def phase_smoke(state: _State) -> None:
         return
     run = _run_phase_godot(
         state,
-        ["--", "--rpg-smoke", f"--rpg-smoke-steps={SMOKE_STEPS}"],
+        ["--", "--rpg-smoke", f"--rpg-smoke-steps={smoke_steps_for(state.cfg.archetype)}"],
         godot.SMOKE_TIMEOUT_S,
         "smoke",
         "smoke",

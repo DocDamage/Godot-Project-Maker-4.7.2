@@ -29,3 +29,38 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 In debug builds with the debug tools feature on, **F3** shows FPS, map, position, tile and flag
 count, and a console: `tp <spawn_id>`, `give <item_id> [qty]`, `gold <n>`, `flag <entity>.<key>=<v>`,
 `heal`, `encounter`, `collision`, `help`.
+
+## Archetypes
+
+Each archetype lives in `archetypes/<name>/`; a generated project contains only the one it was
+generated with. The shared code never refers to an archetype's classes: boot adds the archetype's
+combat mode (`SceneRouter.combat`, an `RpgCombatMode`) and shared code only calls its contract.
+
+### turn_based
+
+An overworld enemy (`RpgOverworldEnemy`, a Contact area on layer `triggers`) builds an
+`RpgEncounterData` and calls `SceneRouter.combat.start_encounter(data)`. `RpgTurnBasedMode` freezes
+the player, pushes `generated/scenes/battle/battle.tscn` and, when the battle is over,
+`SceneRouter.pop_scene(result)` brings the map back. Then the mode applies the result: VICTORY sets
+the flag `<entity_id>.defeated` (so `RpgPersistent` frees the enemy on every map load), ESCAPED
+disables the enemy's contact for 1.5 s, DEFEAT returns to the newest save, or to the map's default
+spawn with full health when there is none.
+
+The battle is `RpgBattleController`, a state machine
+(`INIT > ROUND_START > PLAYER_CHOOSE > ENEMY_CHOOSE > EXECUTE > CHECK > VICTORY | DEFEAT | ESCAPED > END`)
+that knows no nodes. Commands are `RpgBattleCommand` resources (`game/data/battle_commands/`):
+`attack`, `defend` (priority 10, halves damage until the next round), `item`, `skill` (disabled
+placeholder) and `run`. Damage, crit and escape formulas are pure functions in `RpgBattleMath`;
+the order of a round is `RpgTurnManager.order` (priority, speed, player side, id; never random).
+All randomness comes from `GameState.rng`, so a seeded battle is repeatable.
+
+Enemy AI: heal with an item from `behavior.items` below 25% HP, else roll `behavior.turn_based`
+(`{"attack": 1.0, "defend": 0.0}`) and attack a random living player-side battler.
+
+Tests and the smoke run set `controller.auto_choose` (or `SceneRouter.combat.auto_choose` for the
+next battle): it is called as `auto_choose.call(actor, battle)` and returns
+`{command_id, target_index}`; no UI is needed then.
+
+Not done yet (a documented extension point): random encounters in areas. The planned class is
+`RpgEncounterZone`, an `Area2D` with a step counter that builds an `RpgEncounterData` and calls
+the same `start_encounter`.

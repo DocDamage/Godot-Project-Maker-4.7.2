@@ -1,7 +1,7 @@
 extends RefCounted
 ## Seeds game/maps/starter_map.tscn once (user_seed ownership: never rewritten afterwards).
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 4
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
@@ -17,6 +17,9 @@ const PLAYER_SCENE := "res://generated/scenes/actors/player.tscn"
 const GREETING_PATH := "res://game/data/dialogue/npc_greeting.tres"
 const NPC_ID := "starter_map_npc_001"
 const CHEST_ID := "starter_map_chest_001"
+const ENEMY_ID := "starter_map_enemy_001"
+## Archetype -> recipe that knows its enemies (builder/recipes/<this>); the archetypes without one place none.
+const ENEMY_RECIPES := {"turn_based": "turn_based/enemy_recipes.gd"}
 const TILESET_PATH := "res://generated/tilesets/overworld.tres"
 const MAP_SIZE := Vector2i(40, 24)
 const HOUSE_TILE := Vector2i(8, 6)
@@ -42,6 +45,7 @@ func input_hash(ctx) -> String:
 		"entries": ObjectEntries.entries(ctx),
 		"npc": _npc_scene(ctx),
 		"chest": ObjectEntries.chest_entry(ctx).get("id", ""),
+		"enemy": _enemy_scene(ctx),
 	})
 
 func build(ctx) -> Array:
@@ -73,6 +77,7 @@ func build(ctx) -> Array:
 	_place_decorations(ctx, root, entities, tile_px)
 	_place_npc(ctx, root, entities, tile_px, issues)
 	_place_chest(ctx, root, entities, tile_px, issues)
+	_place_enemy(ctx, root, entities, tile_px)
 
 	MapUtil.add_marker(nodes["SpawnPoints"], root, "default", MapUtil.tile_center(SPAWN_TILE, tile_px), true)
 	for spot in RESERVED_SPOTS.keys():
@@ -219,3 +224,20 @@ func _place_chest(ctx, root: Node2D, entities: Node2D, tile_px: int, issues: Arr
 	chest.set("entity_id", CHEST_ID)
 	chest.set("loot", SeedUtil.dict_array([{"item_id": "potion", "qty": 1}]))
 	chest.set("gold", 20)
+
+## The scene of the starter enemy, from the archetype's enemy recipe. "" when the archetype has none.
+func _enemy_scene(ctx) -> String:
+	var rel: String = ENEMY_RECIPES.get(String(ctx.config.get("archetype", "")), "")
+	if rel == "":
+		return ""
+	var script := load(get_script().resource_path.get_base_dir().path_join(rel)) as GDScript
+	return String(script.new().starter_scene(ctx)) if script != null else ""
+
+func _place_enemy(ctx, root: Node2D, entities: Node2D, tile_px: int) -> void:
+	var scene := _enemy_scene(ctx)
+	if scene == "":
+		return
+	var enemy := MapUtil.place(scene, entities, root, MapUtil.tile_center(RESERVED_SPOTS["enemy_spot"], tile_px), "Enemy1")
+	if enemy != null:
+		enemy.set("entity_id", ENEMY_ID)
+		enemy.set("facing", "down")

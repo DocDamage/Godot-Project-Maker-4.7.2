@@ -45,6 +45,7 @@
 | ASSET-022 | info | No NPC asset; the player's sprite stands in for the starter NPC. | Assign an NPC asset in Mapping. |
 | ASSET-023 | info | No chest asset; item icon {asset} stands in for the starter chest. | Assign a chest asset in Mapping. |
 | ASSET-024 | info | Font {asset} was not used: its pack has no license file. | Add the pack's license file, or choose another font. |
+| ASSET-025 | info | No enemy asset; the player's sprite stands in for the starter enemy. | Assign an enemy asset in Mapping. |
 
 ## Adapters (ADAPT)
 

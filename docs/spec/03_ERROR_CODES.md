@@ -35,6 +35,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | ASSET-022 | I | No NPC asset; the player's sprite stands in for the starter NPC. | Assign an NPC asset in Mapping. |
 | ASSET-023 | I | No chest asset; item icon {asset} stands in for the starter chest. | Assign a chest asset in Mapping. |
 | ASSET-024 | I | Font {asset} was not used: its pack has no license file. | Add the pack's license file, or choose another font. |
+| ASSET-025 | I | No enemy asset; the player's sprite stands in for the starter enemy. | Assign an enemy asset in Mapping. |
 | ADAPT-001 | W | Adapter {adapter} failed on {file}: {reason}. | Report a bug with a diagnostic bundle. |
 | ADAPT-002 | W | Tiled tileset {file} references missing image {image}. | Fix the pack or map the image manually. |
 | ADAPT-003 | I | Pack profile {profile_id} matched ({ratio}). | — |

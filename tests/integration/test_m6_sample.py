@@ -73,7 +73,8 @@ def _smoke(target: Path) -> dict:
 def test_the_m6_smoke_sequence_passes_for_real_on_the_sample(sample: Path) -> None:
     smoke = _smoke(sample)
     assert smoke["ok"] is True
-    assert [i["name"] for i in smoke["items"]] == M6_STEPS
+    names = [i["name"] for i in smoke["items"]]
+    assert names[: len(M6_STEPS)] == M6_STEPS  # the archetype's own steps follow (see M7)
     assert all(i["ok"] for i in smoke["items"])
     log = (sample / "rpggen/logs/godot_smoke.log").read_text(encoding="utf-8", errors="replace")
     assert "step passes" not in log, "a step passed only because nothing was there to test"
@@ -85,7 +86,7 @@ def test_basic16_runs_the_sequence_with_the_player_sprite_as_npc(
     result = _generate(godot_exe, tmp_path / "b16", BASIC16, "basic16")
     assert result.ok, [f"{i.code}: {i.message}" for i in result.issues]
     smoke = _smoke(tmp_path / "b16")
-    assert [i["name"] for i in smoke["items"]] == M6_STEPS and smoke["ok"]
+    assert [i["name"] for i in smoke["items"]][: len(M6_STEPS)] == M6_STEPS and smoke["ok"]
     assert "ASSET-022" in {i.code for i in result.issues}
     log = (tmp_path / "b16/rpggen/logs/godot_smoke.log").read_text(
         encoding="utf-8", errors="replace"
@@ -170,7 +171,8 @@ def test_runtime_scripts_do_not_depend_on_game_content_paths() -> None:
         "game_state.gd",
         "new_game_data.gd",
         "debug_overlay.gd",
-    }  # registries, new-game data, test enemy
+        "battle_controller.gd",
+    }  # registries, new-game data, test enemy, the user's battle commands and hero
     offenders = []
     for path in sorted((REPO / "godot_templates/addons/rpg_runtime").rglob("*.gd")):
         if path.name in allowed:

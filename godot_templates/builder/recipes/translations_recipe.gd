@@ -7,7 +7,7 @@ extends RefCounted
 ## .import/.translation files. CSV import is not used: Translation resources are written directly (T6.13 fallback, see
 ## docs/godot_api_verified.md), so a headless build needs no second import phase.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SeedUtil := preload("../lib/seed_util.gd")
 const DataRecipe := preload("data_recipe.gd")
@@ -16,6 +16,7 @@ const CSV_PATH := "res://game/i18n/strings.tsv"
 const OUT_DIR := "res://generated/i18n/"
 const STRINGS_SCRIPT := "res://addons/rpg_runtime/ui/strings.gd"
 const ITEMS_DIR := "res://game/data/items"
+const ARCHETYPE_STRINGS := {"turn_based": "res://addons/rpg_runtime/archetypes/turn_based/battle_strings.gd"}
 
 ## [[locale, path]] for the locales in the CSV header (every column after `keys`).
 func _locales() -> Array:
@@ -35,8 +36,16 @@ func outputs(_ctx) -> PackedStringArray:
 func input_hash(ctx) -> String:
 	# While the CSV is missing, hash the text that will be written, so the hash is the same before
 	# and after the seeding and the next build skips this recipe.
-	var text := FileAccess.get_file_as_string(CSV_PATH) if FileAccess.file_exists(CSV_PATH) else _csv_text(_seed_rows())
-	return ctx.stable_hash({"v": RECIPE_VERSION, "csv": text.sha256_text(), "seed_strings": DataRecipe.SEED_STRINGS, "keys": _ui_keys()})
+	var text := FileAccess.get_file_as_string(CSV_PATH) if FileAccess.file_exists(CSV_PATH) else _csv_text(_seed_rows(ctx))
+	return ctx.stable_hash({"v": RECIPE_VERSION, "csv": text.sha256_text(), "seed_strings": DataRecipe.SEED_STRINGS, "keys": _ui_keys(), "archetype_keys": _archetype_keys(ctx)})
+
+## Text keys of the archetype's runtime folder (archetypes/<name>/<prefix>_strings.gd with a KEYS table).
+func _archetype_keys(ctx) -> Dictionary:
+	var path: String = ARCHETYPE_STRINGS.get(String(ctx.config.get("archetype", "")), "")
+	if path == "" or not ResourceLoader.exists(path):
+		return {}
+	var script := load(path) as GDScript
+	return script.get_script_constant_map().get("KEYS", {}) if script != null else {}
 
 func _ui_keys() -> Dictionary:
 	var script := load(STRINGS_SCRIPT) as GDScript
@@ -44,8 +53,9 @@ func _ui_keys() -> Dictionary:
 
 ## Rows to seed: UI keys, the data recipe's content keys, then item name/description keys found in
 ## game/data/items/ that look like translation keys (humanized when unknown).
-func _seed_rows() -> Dictionary:
+func _seed_rows(ctx) -> Dictionary:
 	var rows: Dictionary = _ui_keys().duplicate()
+	rows.merge(_archetype_keys(ctx))
 	for key in DataRecipe.SEED_STRINGS.keys():
 		rows[key] = DataRecipe.SEED_STRINGS[key]
 	var dir := DirAccess.open(ITEMS_DIR)
@@ -117,7 +127,7 @@ func _write_csv(rows: Dictionary) -> int:
 func build(ctx) -> Array:
 	var issues: Array = []
 	if not FileAccess.file_exists(CSV_PATH):
-		var werr := _write_csv(_seed_rows())
+		var werr := _write_csv(_seed_rows(ctx))
 		if werr != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": CSV_PATH, "err": werr}, CSV_PATH))
 			return issues
