@@ -31,6 +31,8 @@ def test_pack_generates_end_to_end(
     cfg_path = tmp_path / "cfg.json"
     config.save(cfg, cfg_path)
     result = orchestrator.run(cfg_path, tmp_path / "out", godot_exe, placeholders=missing)
-    assert result.ok, [f"{i.code}: {i.message}" for i in result.issues]
+    assert result.ok, [
+        f"{i.code}: {i.message}" for i in result.issues if i.severity.value == "error"
+    ]
     assert (result.target / "game" / "maps" / "starter_map.tscn").exists()
     assert not (result.target / ".rpggen_staging").exists()

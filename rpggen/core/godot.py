@@ -4,7 +4,9 @@ import contextlib
 import logging
 import os
 import re
+import signal
 import subprocess
+import sys
 import threading
 import time
 from collections.abc import Callable
@@ -77,14 +79,17 @@ def find_console_exe(exe: Path) -> Path:
 
 
 def _kill_tree(proc: subprocess.Popen[str]) -> None:
-    if os.name == "nt":
+    if sys.platform == "win32":
         subprocess.run(
             ["taskkill", "/T", "/F", "/PID", str(proc.pid)],
             capture_output=True,
             check=False,
         )
-    else:  # pragma: no cover - POSIX fallback
-        proc.kill()
+    else:
+        try:  # the child runs in its own session (see _run), so its whole group goes
+            os.killpg(proc.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            proc.kill()
 
 
 def _run(
@@ -106,6 +111,7 @@ def _run(
         encoding="utf-8",
         errors="replace",
         env=env,
+        start_new_session=sys.platform != "win32",
     )
     out_parts: list[str] = []
     err_parts: list[str] = []
