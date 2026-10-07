@@ -201,6 +201,7 @@ class AssetFilterProxy(QSortFilterProxyModel):
         self.roles: set[str] | None = None
         self.pack: str | None = None
         self.text = ""
+        self.only_ids: set[str] | None = None  # "Changed in update": just these assets
         self.setDynamicSortFilter(True)
         self.sort(0)
 
@@ -224,9 +225,16 @@ class AssetFilterProxy(QSortFilterProxyModel):
         self.text = text.strip().casefold()
         self.endFilterChange()
 
+    def set_only_ids(self, ids: set[str] | None) -> None:
+        self.beginFilterChange()
+        self.only_ids = None if ids is None else set(ids)
+        self.endFilterChange()
+
     def filterAcceptsRow(self, row: int, parent: QModelIndex | QPersistentModelIndex) -> bool:
         model = self.sourceModel()
         index = model.index(row, 0, parent)
+        if self.only_ids is not None and model.data(index, AssetIdRole) not in self.only_ids:
+            return False
         if self.statuses is not None and model.data(index, StatusRole) not in self.statuses:
             return False
         if self.roles is not None and model.data(index, RoleRole) not in self.roles:
@@ -327,6 +335,7 @@ CHIPS: list[tuple[str, str, set[str] | None]] = [
     ("chipUnused", "Unused", {"UNUSED"}),
     ("chipAll", "All", None),
 ]
+CHANGED_CHIP = "chipChanged"  # shown only after a pack update
 
 
 class AssetGrid(QWidget):
@@ -351,9 +360,18 @@ class AssetGrid(QWidget):
             chip.setObjectName(name)
             chip.setCheckable(True)
             chip.setAutoExclusive(True)
-            chip.clicked.connect(lambda _=False, s=statuses: self.proxy.set_statuses(s))
+            chip.clicked.connect(lambda _=False, s=statuses: self._show_statuses(s))
             bar.addWidget(chip)
             self.chips[name] = chip
+        changed = QPushButton(self.tr("Changed in update"))
+        changed.setObjectName(CHANGED_CHIP)
+        changed.setCheckable(True)
+        changed.setAutoExclusive(True)
+        changed.setVisible(False)
+        changed.clicked.connect(self._show_changed)
+        bar.addWidget(changed)
+        self.chips[CHANGED_CHIP] = changed
+        self.changed_ids: set[str] = set()
         self.role_combo = QComboBox()
         self.role_combo.setObjectName("roleFilter")
         self.pack_combo = QComboBox()
@@ -376,6 +394,26 @@ class AssetGrid(QWidget):
         self.view.selectionModel().selectionChanged.connect(
             lambda *_: self.selectionChanged.emit(self.selected_ids())
         )
+
+    def _show_statuses(self, statuses: set[str] | None) -> None:
+        self.proxy.set_only_ids(None)
+        self.proxy.set_statuses(statuses)
+
+    def _show_changed(self) -> None:
+        self.proxy.set_statuses(None)
+        self.proxy.set_only_ids(self.changed_ids)
+
+    def set_changed(self, asset_ids: set[str]) -> None:
+        """Offer the "Changed in update" filter (added, resized, missing assets) and open on it."""
+        self.changed_ids = set(asset_ids)
+        chip = self.chips[CHANGED_CHIP]
+        chip.setVisible(bool(self.changed_ids))
+        if self.changed_ids:
+            chip.setChecked(True)
+            self._show_changed()
+        elif chip.isChecked():
+            self.chips["chipAttention"].setChecked(True)
+            self._show_statuses(set(NEEDS_ATTENTION))
 
     def set_catalog(self, catalog, resolver: PathResolver | None = None) -> None:
         self.model.set_catalog(catalog, resolver)

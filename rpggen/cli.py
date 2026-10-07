@@ -27,7 +27,20 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="ROLE",
         help="use a debug placeholder for a missing role (repeatable), e.g. PLAYER",
     )
+    gen.add_argument(
+        "--force-while-open",
+        action="store_true",
+        help="regenerate even if a Godot editor seems to have the project open",
+    )
+    gen.add_argument(
+        "--git",
+        action="store_true",
+        help="git init (if needed) and commit the generated project; never pushes",
+    )
     gen.add_argument("--verbose", action="store_true")
+    restore = sub.add_parser("restore", help="restore the previous generation from a backup")
+    restore.add_argument("--target", type=Path, required=True, help="the generated project")
+    restore.add_argument("--backup", help="backup folder name (default: the newest)")
     from rpggen import analyze_cmd
 
     analyze = sub.add_parser("analyze", help="analyze an asset pack")
@@ -69,7 +82,13 @@ def _generate(args: argparse.Namespace) -> int:
             config_mod.save(cfg, cfg_path)
         cb = orchestrator.Callbacks(on_log=print)
         result = orchestrator.run(
-            cfg_path, args.target, exe, cb, placeholders=[r.upper() for r in args.placeholder]
+            cfg_path,
+            args.target,
+            exe,
+            cb,
+            placeholders=[r.upper() for r in args.placeholder],
+            force_while_open=args.force_while_open,
+            git_message="rpggen: generate project" if args.git else None,
         )
     for issue in result.issues:
         print(f"{issue.severity.value.upper():7} {issue.code}: {issue.message}")
@@ -84,6 +103,23 @@ def _generate(args: argparse.Namespace) -> int:
     return 1
 
 
+def _restore(args: argparse.Namespace) -> int:
+    from rpggen.core import promote
+    from rpggen.errors import RpgGenError
+
+    target: Path = args.target
+    backup = None
+    if args.backup:
+        backup = target / ".rpggen_backups" / args.backup
+    try:
+        safety = promote.restore(target, backup)
+    except RpgGenError as exc:
+        print(f"ERROR   {exc.code}: {exc.issue.message}")
+        return 1
+    print(f"OK: restored; the replaced state was saved to {safety}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args, _rest = parser.parse_known_args(argv)
@@ -92,6 +128,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "generate":
         return _generate(args)
+    if args.command == "restore":
+        return _restore(args)
     if args.command == "analyze":
         from rpggen import analyze_cmd
 

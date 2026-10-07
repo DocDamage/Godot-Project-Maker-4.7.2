@@ -16,14 +16,15 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
     QPushButton,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
 
-from rpggen.core import orchestrator, report
-from rpggen.errors import Issue, Severity
+from rpggen.core import orchestrator, promote, report
+from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
 
@@ -35,7 +36,8 @@ COUNT_LABELS = (
     ("warnings", "Warnings"),
     ("errors", "Errors"),
 )
-RESTORE_TOOLTIP = "Restoring the previous version arrives with regeneration"
+RESTORE_TOOLTIP = "Put the project back the way it was before the last regeneration"
+NO_BACKUP_TOOLTIP = "There is no earlier version to restore"
 
 
 class TextViewer(QDialog):
@@ -122,8 +124,9 @@ class ResultsPage(WizardPage):
         self.logs_button = self._button("View logs", "viewLogs", buttons)
         buttons.addStretch(1)
         layout.addLayout(buttons)
-        self.restore_button.setEnabled(False)  # M5
-        self.restore_button.setToolTip(self.tr(RESTORE_TOOLTIP))
+        self.restore_button.setEnabled(False)
+        self.restore_button.setToolTip(self.tr(NO_BACKUP_TOOLTIP))
+        self.restore_button.clicked.connect(self.restore_previous)
         self.godot_button.clicked.connect(self.open_in_godot)
         self.folder_button.clicked.connect(lambda: self.open_path(self._target()))
         self.report_button.clicked.connect(self.view_report)
@@ -146,6 +149,20 @@ class ResultsPage(WizardPage):
 
     def run_viewer(self, viewer: TextViewer) -> None:
         viewer.exec()
+
+    def confirm_restore(self) -> bool:
+        answer = QMessageBox.question(
+            self,
+            self.tr("Restore previous version"),
+            self.tr(
+                "Put the files of the last regeneration back the way they were? Your own files "
+                "are not touched. What is replaced is saved first, so this can be undone."
+            ),
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def show_message(self, title: str, text: str) -> None:
+        QMessageBox.information(self, title, text)
 
     # ------------------------------------------------------------------ showing
 
@@ -191,6 +208,11 @@ class ResultsPage(WizardPage):
         for button in (self.godot_button, self.folder_button, self.report_button):
             button.setVisible(True)
         self.restore_button.setVisible(True)
+        has_backup = bool(promote.list_backups(result.target))
+        self.restore_button.setEnabled(has_backup)
+        self.restore_button.setToolTip(
+            self.tr(RESTORE_TOOLTIP if has_backup else NO_BACKUP_TOOLTIP)
+        )
         self.failed_button.setVisible(False)
         self.logs_button.setVisible(False)
 
@@ -230,6 +252,22 @@ class ResultsPage(WizardPage):
         if exe is None:
             return
         self.launch([str(exe), "--path", str(self.result.target), "--editor"])
+
+    def restore_previous(self) -> bool:
+        """Restore the newest backup after asking; True when the project was restored."""
+        assert self.result is not None
+        if not self.confirm_restore():
+            return False
+        try:
+            promote.restore(self.result.target)
+        except RpgGenError as exc:
+            self.show_message(self.tr("Restore failed"), exc.issue.message)
+            return False
+        self.show_message(
+            self.tr("Restored"), self.tr("The previous version of the project was restored.")
+        )
+        self.restore_button.setEnabled(bool(promote.list_backups(self.result.target)))
+        return True
 
     def view_report(self) -> None:
         assert self.result is not None

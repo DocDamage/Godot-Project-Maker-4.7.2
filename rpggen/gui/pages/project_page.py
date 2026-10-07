@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -22,10 +23,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rpggen import paths
+from rpggen import ids, paths
+from rpggen.core import archive, godot, inventory, pack_diff, preflight, profiles
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
-from rpggen.core import godot, preflight, profiles
 from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui import state as state_mod
 from rpggen.gui import workers
@@ -139,6 +140,8 @@ class ProjectPage(WizardPage):
         self._worker: workers.Worker | None = None
         self._name_touched = False
         self._loading = False
+        self._pack_updates: dict[str, str] = {}  # new source -> pack_id it replaces
+        self._update_changed: set[str] = set()  # asset paths added, resized or removed
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
@@ -153,8 +156,19 @@ class ProjectPage(WizardPage):
         self.add_folder_button.setObjectName("addFolderButton")
         self.remove_button = QPushButton(self.tr("Remove"))
         self.remove_button.setObjectName("removePackButton")
+        self.update_pack_button = QPushButton(self.tr("Update pack…"))
+        self.update_pack_button.setObjectName("updatePackButton")
+        self.update_pack_button.setToolTip(
+            self.tr("Replace a pack of this project with a newer release of it.")
+        )
+        self.update_pack_button.setVisible(False)
         buttons = QHBoxLayout()
-        for b in (self.add_zip_button, self.add_folder_button, self.remove_button):
+        for b in (
+            self.add_zip_button,
+            self.add_folder_button,
+            self.remove_button,
+            self.update_pack_button,
+        ):
             buttons.addWidget(b)
         buttons.addStretch(1)
         pack_box = QVBoxLayout()
@@ -223,6 +237,7 @@ class ProjectPage(WizardPage):
         self.add_zip_button.clicked.connect(self._browse_archives)
         self.add_folder_button.clicked.connect(self._browse_folder)
         self.remove_button.clicked.connect(self.remove_selected)
+        self.update_pack_button.clicked.connect(self.update_pack)
         self.browse_target_button.clicked.connect(self._browse_target)
         self.browse_godot_button.clicked.connect(self._browse_godot)
         self.target_edit.textChanged.connect(self._on_target_changed)
@@ -337,7 +352,100 @@ class ProjectPage(WizardPage):
         if not self._name_touched and not self._loading:
             target = self.target()
             self.name_edit.setText(target.name if target else "")
+        target = self.target()
+        self.update_pack_button.setVisible(
+            target is not None and preflight.is_rpggen_project(target)
+        )
         self._on_inputs_changed()
+
+    # ------------------------------------------------------------------ pack update
+
+    def choose_update_source(self, pack_id: str) -> Path | None:  # overridden by tests
+        file, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("New version of {0}").format(pack_id),
+            "",
+            self.tr("Archives (*.zip *.7z *.rar)"),
+        )
+        return Path(file) if file else None
+
+    def choose_pack_id(self, pack_ids: list[str]) -> str | None:  # overridden by tests
+        if len(pack_ids) == 1:
+            return pack_ids[0]
+        pack_id, ok = QInputDialog.getItem(
+            self, self.tr("Update pack"), self.tr("Which pack?"), pack_ids, 0, False
+        )
+        return pack_id if ok else None
+
+    def confirm_update(self, summary: str) -> bool:  # overridden by tests
+        answer = QMessageBox.question(self, self.tr("Update pack"), summary)
+        return answer == QMessageBox.StandardButton.Yes
+
+    @staticmethod
+    def update_summary(pack_id: str, d: pack_diff.PackDiff) -> str:
+        lines = [
+            f"Update {pack_id}:",
+            f"  {len(d.added)} added, {len(d.removed)} removed, {len(d.renamed)} renamed",
+            f"  {len(d.changed_same_size)} changed (same size), {len(d.changed_resized)} resized",
+            f"  {len(d.unchanged)} unchanged",
+        ]
+        if d.changed_resized:
+            lines.append("")
+            lines.append("These sheets changed size and become CONFLICT (painted tiles are kept):")
+            lines += [f"  {p}" for p in d.changed_resized[:12]]
+            if len(d.changed_resized) > 12:
+                lines.append(f"  ... and {len(d.changed_resized) - 12} more")
+        if d.removed:
+            lines.append("")
+            lines.append("Removed files stay in the project until you confirm their removal.")
+        lines += ["", "Continue?"]
+        return "\n".join(lines)
+
+    def update_pack(self, pack_id: str | None = None, new_source: Path | None = None) -> bool:
+        """Swap a pack of the existing project for a newer release (T5.05).
+
+        Shows what changed; on confirmation the pack list points at the new source and the audit
+        opens on the "Changed in update" filter. Returns True when the update was accepted.
+        """
+        target = self.target()
+        if target is None or not preflight.is_rpggen_project(target):
+            return False
+        cfg = config_mod.load(target / paths.CONFIG)
+        pack_ids = [p.pack_id for p in cfg.packs]
+        if not pack_ids:
+            return False
+        pack_id = pack_id or self.choose_pack_id(pack_ids)
+        if pack_id is None or pack_id not in pack_ids:
+            return False
+        new_source = new_source or self.choose_update_source(pack_id)
+        if new_source is None:
+            return False
+        installed = target / "assets" / "packs" / pack_id
+        try:
+            old_opened = archive.open_pack(installed, set(), pack_id=pack_id)
+            new_opened = archive.open_pack(Path(new_source), set(), pack_id=pack_id)
+            d = pack_diff.diff(
+                inventory.build_inventory(old_opened), inventory.build_inventory(new_opened)
+            )
+        except (RpgGenError, OSError) as exc:
+            QMessageBox.warning(self, self.tr("Update pack"), str(exc))
+            return False
+        if not self.confirm_update(self.update_summary(pack_id, d)):
+            return False
+        old_source = next(p.source for p in cfg.packs if p.pack_id == pack_id)
+        listed = [str(p).casefold() for p in self.sources()]
+        if str(Path(old_source)).casefold() in listed:
+            row = listed.index(str(Path(old_source)).casefold())
+            item = self.pack_list.item(row)
+            if item is not None:
+                item.setText(str(new_source))
+        else:
+            self.pack_list.addItem(str(new_source))
+        self._pack_updates[str(new_source)] = pack_id
+        prefix = f"assets/packs/{pack_id}/"
+        self._update_changed |= {prefix + p for p in [*d.changed_paths(), *d.renamed]}
+        self._on_inputs_changed()
+        return True
 
     def _on_name_edited(self) -> None:
         self._name_touched = True
@@ -491,6 +599,8 @@ class ProjectPage(WizardPage):
         state.target = target
         state.godot_exe = self.godot_path()
         state.project_name = self.name_edit.text().strip()
+        state.pack_updates = {s: p for s, p in self._pack_updates.items() if Path(s) in sources}
+        state.changed_paths = set(self._update_changed) if state.pack_updates else set()
         if target is None or not sources:
             return None
         previous = self._load_previous(state, target)
@@ -505,8 +615,32 @@ class ProjectPage(WizardPage):
         if state.config is None or [p.source for p in state.config.packs] != [
             str(s) for s in sources
         ]:
-            state.config = self._default_config(state)
+            if state.regenerating and state.config is not None:
+                state.config = self._config_with_packs(state)
+            else:
+                state.config = self._default_config(state)
         return True
+
+    def _config_with_packs(self, state: WizardState) -> config_mod.GeneratorConfig:
+        """An existing project's config with its pack list brought up to date: packs that stay
+        keep their ids, an updated pack keeps the id of the pack it replaces."""
+        assert state.config is not None
+        old = {str(Path(p.source)).casefold(): p for p in state.config.packs}
+        used = {p.pack_id for p in state.config.packs}
+        refs = []
+        for source in state.pack_sources:
+            known = old.get(str(source).casefold())
+            if known is not None:
+                refs.append(known)
+                continue
+            pack_id = state.pack_updates.get(str(source))
+            if pack_id is None:
+                stem = source.name if source.is_dir() else source.stem
+                pack_id = ids.pack_id_from_name(stem, used)
+                used.add(pack_id)
+            refs.append(config_mod.pack_ref_from_source(source, pack_id))
+        state.config.packs = refs
+        return state.config
 
     def _default_config(self, state: WizardState) -> config_mod.GeneratorConfig:
         refs = []

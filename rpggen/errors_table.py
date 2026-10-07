@@ -87,5 +87,6 @@ CODES: dict[str, CodeInfo] = {
     "REGEN-002": CodeInfo("REGEN-002", "info", "File {file} was deleted by the user and was not recreated.", "—"),
     "REGEN-003": CodeInfo("REGEN-003", "warning", "Source {asset} removed from pack; tileset source {source_id} kept.", "Confirm removal in the audit."),
     "REGEN-004": CodeInfo("REGEN-004", "error", "Staging promotion failed: {reason}. Target restored from backup.", "See log."),
+    "REGEN-005": CodeInfo("REGEN-005", "error", "The Godot editor appears to be open for {path}.", "Close the Godot editor before regenerating; open scenes may be overwritten when the editor saves."),
     "GUI-001": CodeInfo("GUI-001", "error", "Unexpected error: {reason}.", "Export a diagnostic bundle and report it."),
 }

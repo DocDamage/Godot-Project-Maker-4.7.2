@@ -16,12 +16,15 @@ from rpggen.core import (
     inventory,
     placeholders,
     preflight,
+    promote,
     requirements,
     staging,
+    vcs,
 )
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.core import report as report_mod
+from rpggen.core.ledger import Ledger
 from rpggen.errors import CODES, Issue, IssueList, RpgGenError, Severity
 
 log = logging.getLogger(__name__)
@@ -84,6 +87,11 @@ class _State:
     placeholders: list[str] = field(default_factory=list)
     current_phase: str | None = None
     catalog_in: catalog_mod.Catalog | None = None  # in-memory catalog (user overrides) to build on
+    force_while_open: bool = False  # regenerate even if a Godot editor seems to be open
+    old_ledger: Ledger | None = None  # regeneration: the target's ledger before this run
+    promotion: promote.PromotionResult | None = None
+    git_message: str | None = None  # commit the result with this message (git init if needed)
+    pack_files: set[str] = field(default_factory=set)  # every pack file installed this run
 
 
 # --------------------------------------------------------------------------- helpers
@@ -149,10 +157,20 @@ def phase_preflight(state: _State) -> None:
         state.cfg = config_mod.load(state.cfg_path)
     sources = [Path(p.source) for p in state.cfg.packs]
     state.issues.extend(preflight.check_target(state.target, sources))
+    if (
+        preflight.is_rpggen_project(state.target)
+        and not state.force_while_open
+        and promote.editor_open(state.target)
+    ):
+        raise RpgGenError("REGEN-005", path=str(state.target))
 
 
 def phase_stage(state: _State) -> None:
     state.staging = staging.create_staging(Path(state.target))
+    if state.staging.regenerate:
+        state.old_ledger = promote.load_ledger(state.target)
+        if state.catalog_in is None:
+            state.catalog_in = catalog_mod.load(Path(state.target) / paths.CATALOG)
     state.log_dir = state.staging.staging / "rpggen" / "logs"
     state.log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -167,7 +185,7 @@ def phase_install(state: _State) -> None:
         state.issues.extend(opened.issues)
         inv = inventory.build_inventory(opened)
         state.opened.append((opened, inv))
-        staging.install_pack(state.staging, opened.root, ref.pack_id, inv)
+        state.pack_files.update(staging.install_pack(state.staging, opened.root, ref.pack_id, inv))
 
 
 def phase_catalog(state: _State) -> None:
@@ -188,6 +206,12 @@ def phase_catalog(state: _State) -> None:
         state.issues.extend(placeholder_issues)
     state.catalog = catalog
     state.generated = generated
+    if state.staging.regenerate:
+        # Files of assets that vanished from their pack stay: tile set sources, scenes and
+        # animations built from them keep loading until the user confirms the removal.
+        assert state.old_ledger is not None
+        keep = state.pack_files | {a.path for a in catalog.assets if a.status == "MISSING"}
+        state.issues.extend(staging.prune_packs(state.staging, state.old_ledger, keep))
     # A required role without any asset stops generation before Godot runs.
     state.issues.extend(requirements.check(catalog, state.cfg))
     staging.write_project_files(state.staging, state.cfg, catalog)
@@ -297,7 +321,8 @@ def phase_smoke(state: _State) -> None:
 
 def phase_promote(state: _State) -> None:
     assert state.staging is not None
-    staging.promote(state.staging)
+    state.promotion = promote.promote(state.staging)
+    state.issues.extend(state.promotion.issues)
 
 
 def _report_data(state: _State, ok: bool) -> dict[str, Any]:
@@ -313,11 +338,22 @@ def _report_data(state: _State, ok: bool) -> dict[str, Any]:
 def phase_report(state: _State) -> None:
     ok = not state.issues.has_errors()
     path = Path(state.target) / "rpggen" / REPORT_NAME
-    jsonio.write(path, _report_data(state, ok))
-    _write_markdown(state, Path(state.target) / report_mod.REPORT_MD, ok)
+    assert state.staging is not None
+    plan = state.promotion.plan if state.promotion and state.staging.regenerate else None
+    unchanged = plan is not None and not (
+        plan.write or plan.conflicts or plan.delete or plan.skipped_deleted
+    )
+    # A regeneration that changed nothing leaves the report as it was: the project is identical.
+    if not (unchanged and path.is_file()):
+        jsonio.write(path, _report_data(state, ok))
+        _write_markdown(state, Path(state.target) / report_mod.REPORT_MD, ok, plan)
+    if state.git_message:
+        vcs.init_and_commit(Path(state.target), state.git_message)
 
 
-def _write_markdown(state: _State, path: Path, ok: bool) -> None:
+def _write_markdown(
+    state: _State, path: Path, ok: bool, plan: promote.PromotionPlan | None = None
+) -> None:
     text = report_mod.build_markdown(
         state.cfg,
         state.catalog,
@@ -326,6 +362,8 @@ def _write_markdown(state: _State, path: Path, ok: bool) -> None:
         failed_phase=None if ok else state.current_phase,
         placeholders=state.placeholders,
         summary=report_mod.counts(state.catalog, list(state.issues), path.parent if ok else None),
+        project=path.parent,
+        plan=plan,
     )
     path.write_text(text, encoding="utf-8", newline="\n")
 
@@ -373,15 +411,20 @@ def run(
     godot_exe: Path,
     cb: Callbacks | None = None,
     placeholders: list[str] | None = None,
+    force_while_open: bool = False,
+    git_message: str | None = None,
 ) -> RunResult:
     """Generate a project from ``cfg_path`` into ``target`` through staging.
 
     ``placeholders`` lists roles for which a debug placeholder asset is created when the packs
-    have none.
+    have none. ``force_while_open`` regenerates even if a Godot editor seems to have the
+    project open.
     """
     cb = cb or Callbacks()
     state = _State(Path(cfg_path), Path(target), Path(godot_exe), cb)
     state.placeholders = list(placeholders or [])
+    state.force_while_open = force_while_open
+    state.git_message = git_message
     return _execute(state)
 
 
@@ -392,6 +435,8 @@ def run_in_memory(
     godot_exe: Path,
     cb: Callbacks | None = None,
     placeholders: list[str] | None = None,
+    force_while_open: bool = False,
+    git_message: str | None = None,
 ) -> RunResult:
     """``run`` for a config and catalog that only exist in memory (the wizard's).
 
@@ -402,6 +447,8 @@ def run_in_memory(
     state.cfg = cfg
     state.catalog_in = catalog
     state.placeholders = list(placeholders or [])
+    state.force_while_open = force_while_open
+    state.git_message = git_message
     return _execute(state)
 
 

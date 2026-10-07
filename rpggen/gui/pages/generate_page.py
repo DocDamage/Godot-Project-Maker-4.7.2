@@ -9,13 +9,14 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
-from rpggen.core import orchestrator
+from rpggen.core import orchestrator, vcs
 from rpggen.errors import Issue, IssueList
 from rpggen.gui import workers
 from rpggen.gui.pages.base import WizardPage, form_error
@@ -94,6 +95,33 @@ class GeneratePage(WizardPage):
 
     # ------------------------------------------------------------------ running
 
+    def ask_editor_open(self) -> bool:
+        """The Godot editor seems to have the project open: True to check again (Retry)."""
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(self.tr("Godot editor is open"))
+        box.setText(
+            self.tr(
+                "Close the Godot editor before regenerating; open scenes may be overwritten "
+                "when the editor saves."
+            )
+        )
+        retry = box.addButton(self.tr("Retry"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.exec()
+        return box.clickedButton() is retry
+
+    def git_message(self) -> str | None:
+        """The commit message when the user wants a commit (default: on for a new project)."""
+        state = self.state
+        assert state is not None
+        want = state.git_commit
+        if want is None:
+            want = vcs.git_available() and not state.regenerating
+        if not want or not vcs.git_available():
+            return None
+        return "rpggen: regenerate project" if state.regenerating else "rpggen: generate project"
+
     def start(self) -> None:
         state = self.state
         assert state is not None
@@ -119,6 +147,8 @@ class GeneratePage(WizardPage):
             Path(state.target),
             Path(state.godot_exe),
             sorted(state.placeholders),
+            self.git_message(),
+            state.force_while_open,
         )
         worker.signals.progress.connect(self._on_progress)
         worker.signals.log.connect(self.log_view.append_line)
@@ -154,6 +184,10 @@ class GeneratePage(WizardPage):
         self._stop_running()
         if self.cancelled:
             self._show_cancelled()
+            return
+        editor_open = not result.ok and any(i.code == "REGEN-005" for i in result.issues)
+        if editor_open and self.ask_editor_open():
+            self.start()
             return
         if self.state is not None:
             self.state.run_result = result

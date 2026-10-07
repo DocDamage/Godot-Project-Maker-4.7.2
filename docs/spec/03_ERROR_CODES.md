@@ -79,6 +79,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | REGEN-002 | I | File {file} was deleted by the user and was not recreated. | — |
 | REGEN-003 | W | Source {asset} removed from pack; tileset source {source_id} kept. | Confirm removal in the audit. |
 | REGEN-004 | E | Staging promotion failed: {reason}. Target restored from backup. | See log. |
+| REGEN-005 | E | The Godot editor appears to be open for {path}. | Close the Godot editor before regenerating; open scenes may be overwritten when the editor saves. |
 | GUI-001 | E | Unexpected error: {reason}. | Export a diagnostic bundle and report it. |
 
 ## Rules for adding codes

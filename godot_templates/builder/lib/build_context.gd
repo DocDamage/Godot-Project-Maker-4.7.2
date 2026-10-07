@@ -38,6 +38,9 @@ func load_build_state() -> void:
 		state = JsonUtil.read(Paths.BUILD_STATE)
 	if state is Dictionary and state.get("outputs") is Dictionary:
 		build_state = state
+		# JSON parsing returns numbers as floats; keep the version an int so a rebuild without
+		# changes writes the same bytes.
+		build_state["build_state_version"] = 1
 	else:
 		build_state = {"build_state_version": 1, "outputs": {}}
 

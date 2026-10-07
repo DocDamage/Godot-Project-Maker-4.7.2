@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import config as config_mod
-from rpggen.core import options
+from rpggen.core import options, vcs
 from rpggen.errors import Issue
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
@@ -180,6 +180,11 @@ class OptionsPage(WizardPage):
         self.down_button.clicked.connect(lambda: self.move_layer(1))
         self.layer_list.currentRowChanged.connect(lambda _r: self._update_layer_buttons())
 
+        self.git_box = QCheckBox()
+        self.git_box.setObjectName("gitBox")
+        self.git_box.toggled.connect(self._on_git)
+        layout.addWidget(self.git_box)
+
         self.advanced = QGroupBox(self.tr("Advanced"))
         self.advanced.setObjectName("advanced")
         self.advanced.setCheckable(True)
@@ -211,8 +216,28 @@ class OptionsPage(WizardPage):
 
     # ------------------------------------------------------------------ loading
 
+    def _refresh_git_box(self, state: WizardState) -> None:
+        """New project: "Initialize git repository" (on by default). Regeneration: "Commit
+        regeneration" (off by default). Disabled without git."""
+        available = vcs.git_available()
+        regenerating = state.regenerating
+        self.git_box.blockSignals(True)
+        self.git_box.setText(
+            self.tr("Commit regeneration") if regenerating else self.tr("Initialize git repository")
+        )
+        self.git_box.setEnabled(available)
+        self.git_box.setToolTip("" if available else self.tr("git was not found on this computer"))
+        want = state.git_commit if state.git_commit is not None else not regenerating
+        self.git_box.setChecked(bool(want) and available)
+        self.git_box.blockSignals(False)
+
+    def _on_git(self, checked: bool) -> None:
+        if self.state is not None:
+            self.state.git_commit = checked
+
     def enter(self, state: WizardState) -> None:
         self.state = state
+        self._refresh_git_box(state)
         cfg = state.config
         if cfg is None:
             self.draft = None

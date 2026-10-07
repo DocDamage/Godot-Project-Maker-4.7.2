@@ -178,6 +178,8 @@ class AuditPage(WizardPage):
         assert self.detail is not None
         self.detail.resolver = self.resolver
         self.grid.set_catalog(session.catalog, self.resolver)
+        changed = {a.id for a in session.catalog.assets if a.path in state.changed_paths}
+        self.grid.set_changed(changed)
 
     def leave(self, state: WizardState) -> bool | None:
         if self.session is not None:

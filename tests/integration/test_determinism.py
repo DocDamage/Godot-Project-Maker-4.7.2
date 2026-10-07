@@ -32,6 +32,13 @@ def _normalized(rel: str, data: bytes) -> bytes:
             if "ms" in item:
                 item["ms"] = 0
         return json.dumps(doc, sort_keys=True, indent=1).encode("utf-8")
+    if rel == "rpggen/ownership_ledger.json":
+        # the ledger hashes the raw bytes of Godot-saved files, which carry random ids
+        doc = json.loads(data)
+        for path, entry in doc["files"].items():
+            if path.endswith((".tscn", ".tres")):
+                entry["sha256"] = "x"
+        return json.dumps(doc, sort_keys=True, indent=1).encode("utf-8")
     return data
 
 

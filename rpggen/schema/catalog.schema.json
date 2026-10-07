@@ -839,6 +839,9 @@
               "maxItems": 2
             }
           ]
+        },
+        "remove_source": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -896,6 +899,9 @@
         },
         "rule": {
           "$ref": "#/$defs/FacetsPartial"
+        },
+        "renamed_from": {
+          "type": "string"
         }
       },
       "additionalProperties": false,

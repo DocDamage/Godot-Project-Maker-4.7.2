@@ -6,3 +6,4 @@
 .rpggen_backups/
 rpggen/logs/
 export/
+rpggen/results/

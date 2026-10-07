@@ -1,18 +1,26 @@
-"""GENERATION_REPORT.md: the human-readable result of a run (T3.13 writes the basic sections,
-T5.08 completes it). The text is deterministic: no timestamps."""
+"""GENERATION_REPORT.md: the human-readable result of a run (T3.13 wrote the basic sections,
+T5.08 completes it). The text is deterministic: no timestamps and no timings, so an unchanged
+project produces an identical report."""
 
 from __future__ import annotations
 
 from collections import Counter
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-from rpggen import __version__
+from rpggen import __version__, jsonio, paths
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.errors import Issue, Severity
 
+if TYPE_CHECKING:
+    from rpggen.core.promote import PromotionPlan
+
 REPORT_MD = "GENERATION_REPORT.md"
+LIST_CAP = 40  # entries per list in the Regeneration section
 _ORDER = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.INFO: 2}
+_CONFLICT_CODES = {"REGEN-001", "TILE-004"}
+_LICENSE_CODES = {"ASSET-020", "ASSET-021"}
 
 
 def counts(
@@ -49,7 +57,11 @@ def build_markdown(
     failed_phase: str | None = None,
     placeholders: list[str] | None = None,
     summary: dict[str, int] | None = None,
+    project: Path | None = None,
+    plan: PromotionPlan | None = None,
 ) -> str:
+    """The report. ``project`` is the folder holding the generated files and result files;
+    ``plan`` is the promotion plan of a regeneration."""
     godot = godot_version or (cfg.godot_version if cfg else "")
     archetype = cfg.archetype if cfg else "?"
     lines = [
@@ -61,33 +73,18 @@ def build_markdown(
     if failed_phase:
         lines.append(f"- Failed in phase: {failed_phase}")
     lines += ["", "## What to review", ""]
-    review = sorted(
-        (i for i in issues if i.severity is not Severity.INFO),
-        key=lambda i: (_ORDER[i.severity], i.code, i.message),
-    )
-    extras = []
-    if placeholders:
-        extras.append(f"Placeholder assets are in use for: {', '.join(sorted(placeholders))}.")
-    if catalog:
-        pending = sum(1 for a in catalog.assets if a.status == "NEEDS_REVIEW")
-        conflicts = sum(1 for a in catalog.assets if a.status == "CONFLICT")
-        if conflicts:
-            extras.append(f"{conflicts} asset(s) are in CONFLICT and need a decision.")
-        if pending:
-            extras.append(f"{pending} asset(s) are still NEEDS_REVIEW.")
-    if not review and not extras:
-        lines.append("Nothing needs review.")
-    for text in extras:
-        lines.append(f"- {text}")
-    for issue in review:
-        fix = f" Fix: {issue.fix}" if issue.fix else ""
-        lines.append(f"- **{issue.code}** ({issue.severity}): {issue.message}{fix}")
+    lines += _review_lines(catalog, issues, placeholders or [])
 
     lines += ["", "## Packs and licenses", ""]
     if catalog and catalog.packs:
         for pack in catalog.packs:
             licenses = ", ".join(pack.license_files) or "none found"
-            lines.append(f"- **{pack.pack_id}** — licenses: {licenses}")
+            source = (
+                next((p.source for p in cfg.packs if p.pack_id == pack.pack_id), "") if cfg else ""
+            )
+            name = Path(source).name if source else ""
+            origin = f" — source: {name}" if name else ""
+            lines.append(f"- **{pack.pack_id}**{origin} — licenses: {licenses}")
             lines += [f"  - warning: {w}" for w in pack.warnings]
     else:
         lines.append("No packs were read.")
@@ -114,13 +111,197 @@ def build_markdown(
             "Assets by role: " + ", ".join(f"{r} {n}" for r, n in sorted(by_role.items())),
         ]
 
+    lines += _tileset_lines(catalog)
+    lines += _scene_lines(project)
+    lines += _animation_lines(catalog)
+    if plan is not None:
+        lines += _regeneration_lines(plan)
+    lines += _validation_lines(project)
+    lines += _smoke_lines(project)
+
     lines += ["", "## Issues", ""]
     if issues:
-        lines += ["| Code | Severity | Message | Fix |", "| --- | --- | --- | --- |"]
+        lines += [
+            "| Code | Severity | File | Message | Fix |",
+            "| --- | --- | --- | --- | --- |",
+        ]
         for issue in sorted(issues, key=lambda i: (_ORDER[i.severity], i.code, i.message)):
             lines.append(
-                f"| {issue.code} | {issue.severity} | {_cell(issue.message)} | {_cell(issue.fix)} |"
+                f"| {issue.code} | {issue.severity} | {_cell(issue.file or '')} "
+                f"| {_cell(issue.message)} | {_cell(issue.fix)} |"
             )
     else:
         lines.append("No issues.")
     return "\n".join(lines) + "\n"
+
+
+# --------------------------------------------------------------------------- sections
+
+
+def _bullet(issue: Issue) -> str:
+    fix = f" Fix: {issue.fix}" if issue.fix else ""
+    return f"- **{issue.code}** ({issue.severity}): {issue.message}{fix}"
+
+
+def _review_lines(
+    catalog: catalog_mod.Catalog | None, issues: list[Issue], placeholders: list[str]
+) -> list[str]:
+    """Every warning with its fix, grouped by priority: conflicts, placeholders, needs-review
+    assets, assumed doors, licenses, everything else."""
+    ordered = sorted(
+        (i for i in issues if i.severity is not Severity.INFO),
+        key=lambda i: (_ORDER[i.severity], i.code, i.message),
+    )
+    groups: list[tuple[str, list[str]]] = []
+    groups.append(("Errors", [_bullet(i) for i in ordered if i.severity is Severity.ERROR]))
+    conflicts = [_bullet(i) for i in ordered if i.code in _CONFLICT_CODES]
+    if catalog:
+        conflicts += [
+            f"- Asset `{a.id}` is in CONFLICT and needs a decision in the audit."
+            for a in sorted(catalog.assets, key=lambda a: a.id)
+            if a.status == "CONFLICT"
+        ]
+    groups.append(("Conflicts", conflicts))
+    if placeholders:
+        names = ", ".join(sorted(placeholders))
+        groups.append(("Placeholders", [f"- Placeholder assets are in use for: {names}."]))
+    pending = sorted(a.id for a in catalog.assets if a.status == "NEEDS_REVIEW") if catalog else []
+    if pending:
+        shown = ", ".join(f"`{a}`" for a in pending[:10]) + (" ..." if len(pending) > 10 else "")
+        groups.append(
+            ("Assets to review", [f"- {len(pending)} asset(s) are NEEDS_REVIEW: {shown}."])
+        )
+    doors = (
+        sorted(
+            o.id
+            for o in catalog.objects
+            if o.role == "BUILDING" and o.status != "UNUSED" and not o.door
+        )
+        if catalog
+        else []
+    )
+    groups.append(
+        (
+            "Assumed doors",
+            [f"- `{d}` has no door point; the bottom center is assumed." for d in doors],
+        )
+    )
+    groups.append(("Licenses", [_bullet(i) for i in ordered if i.code in _LICENSE_CODES]))
+    handled = _CONFLICT_CODES | _LICENSE_CODES
+    groups.append(
+        (
+            "Other",
+            [
+                _bullet(i)
+                for i in ordered
+                if i.severity is Severity.WARNING and i.code not in handled
+            ],
+        )
+    )
+    out: list[str] = []
+    for title, items in groups:
+        if items:
+            out += [f"**{title}**", "", *items, ""]
+    if not out:
+        return ["Nothing needs review."]
+    return out[:-1]
+
+
+def _tileset_lines(catalog: catalog_mod.Catalog | None) -> list[str]:
+    lines = ["", "## TileSets", ""]
+    if not catalog or not catalog.tilesets:
+        return [*lines, "No TileSets."]
+    for tdef in catalog.tilesets:
+        size = "x".join(str(v) for v in tdef.tile_size)
+        lines.append(f"- **{tdef.name}** — tile size {size}, {len(tdef.sources)} source(s)")
+        for src in sorted(tdef.sources, key=lambda s: int(s["source_id"])):
+            lines.append(f"  - source {src['source_id']}: `{src['asset']}`")
+        terrains = ", ".join(t["name"] for t in tdef.terrain_sets) or "none"
+        lines.append(f"  - terrains: {terrains}")
+    return lines
+
+
+def _scene_lines(project: Path | None) -> list[str]:
+    lines = ["", "## Scenes", ""]
+    root = Path(project) / "generated" / "scenes" if project else None
+    if root is None or not root.is_dir():
+        return [*lines, "No generated scenes."]
+    found = sorted(
+        (d.name, sum(1 for _ in d.rglob("*.tscn"))) for d in root.iterdir() if d.is_dir()
+    )
+    rows = [f"- generated/scenes/{name}: {n}" for name, n in found if n]
+    return [*lines, *(rows or ["No generated scenes."])]
+
+
+def _animation_lines(catalog: catalog_mod.Catalog | None) -> list[str]:
+    lines = ["", "## Animations", ""]
+    rows: list[str] = []
+    for asset in catalog.assets if catalog else []:
+        if asset.status == "UNUSED":
+            continue
+        anims = catalog_mod.effective(asset).get("animations")
+        if anims:
+            rows.append(f"- `{asset.id}`: {', '.join(sorted(anims))}")
+    return [*lines, *(rows or ["No animated assets."])]
+
+
+def _capped(title: str, items: list[str]) -> list[str]:
+    if not items:
+        return [f"- {title}: none"]
+    shown = [f"  - `{rel}`" for rel in items[:LIST_CAP]]
+    more = [f"  - ... and {len(items) - LIST_CAP} more"] if len(items) > LIST_CAP else []
+    return [f"- {title} ({len(items)}):", *shown, *more]
+
+
+def _regeneration_lines(plan: PromotionPlan) -> list[str]:
+    lines = ["", "## Regeneration", ""]
+    lines += _capped("Written", sorted(plan.write))
+    lines += _capped(
+        "Kept because you changed them (the new version is next to them as .rpggen-new)",
+        sorted(plan.conflicts),
+    )
+    lines += _capped("Not recreated because you deleted them", sorted(plan.skipped_deleted))
+    lines += _capped("Removed (no longer generated, untouched by you)", sorted(plan.delete))
+    return lines
+
+
+def _read_results(project: Path | None, rel: str) -> dict[str, Any] | None:
+    if project is None:
+        return None
+    path = Path(project) / rel
+    if not path.is_file():
+        return None
+    data = jsonio.read(path)
+    return data if isinstance(data, dict) else None
+
+
+def _validation_lines(project: Path | None) -> list[str]:
+    lines = ["", "## Validation", ""]
+    data = _read_results(project, paths.RESULTS_VALIDATE)
+    if data is None:
+        return [*lines, "No validation results."]
+    tally: dict[str, list[int]] = {}
+    for item in data.get("items", []):
+        row = tally.setdefault(str(item.get("check", "?")), [0, 0])
+        row[0 if item.get("ok") else 1] += 1
+    if not tally:
+        return [*lines, "No checks ran."]
+    lines += ["| Check | Passed | Failed |", "| --- | --- | --- |"]
+    return lines + [f"| {name} | {p} | {f} |" for name, (p, f) in sorted(tally.items())]
+
+
+def _smoke_lines(project: Path | None) -> list[str]:
+    """The step table. Timings are left out so an unchanged project gives an identical report."""
+    lines = ["", "## Smoke test", ""]
+    data = _read_results(project, paths.RESULTS_SMOKE)
+    if data is None:
+        return [*lines, "The smoke test did not run."]
+    items = data.get("items", [])
+    if not items:
+        return [*lines, "No steps ran."]
+    lines += ["| Step | Name | Result |", "| --- | --- | --- |"]
+    return lines + [
+        f"| {i.get('step', '')} | {_cell(str(i.get('name', '')))} "
+        f"| {'ok' if i.get('ok') else 'FAILED'} |"
+        for i in items
+    ]

@@ -100,6 +100,7 @@ class Asset:
     detected_by: str = ""
     confidence: float = 0.0
     rule: dict[str, Any] = field(default_factory=dict)  # facets written by folder rules
+    renamed_from: str | None = None  # path the vendor's earlier release used (T5.05)
 
     def to_json(self) -> dict[str, Any]:
         out = {
@@ -116,6 +117,8 @@ class Asset:
         }
         if self.rule:
             out["rule"] = copy.deepcopy(self.rule)
+        if self.renamed_from:
+            out["renamed_from"] = self.renamed_from
         return out
 
     @classmethod
@@ -132,6 +135,7 @@ class Asset:
             d["detected_by"],
             d["confidence"],
             copy.deepcopy(d.get("rule", {})),
+            d.get("renamed_from"),
         )
 
 
@@ -683,6 +687,8 @@ def assemble(
             )
         )
 
+    if previous is not None:
+        previous = apply_renames(catalog, previous)
     _carry_previous(catalog, previous, present_ids, issues)
     for profile in profiles or []:
         extra_rules.extend(getattr(profile, "folder_rules", []))
@@ -699,6 +705,58 @@ def assemble(
         )
     catalog.assets.sort(key=lambda a: _sort_key(a.id))
     return catalog, issues, generated
+
+
+def _variant(asset_id: str) -> str:
+    return asset_id.partition("#")[2]
+
+
+def apply_renames(catalog: Catalog, previous: Catalog) -> Catalog:
+    """Match assets whose file the vendor renamed (T5.05).
+
+    A previous asset that is gone from the new pack and whose sha256 equals that of exactly one
+    new asset with no counterpart in ``previous`` (same variant suffix) is that asset under a new
+    name. Returns a copy of ``previous`` with the renamed assets re-keyed to their new id and path
+    (tile set sources and objects follow), so overrides and source ids carry over; the new asset
+    records ``renamed_from``.
+    """
+    known = {a.id for a in previous.assets}
+    new_ids = {a.id for a in catalog.assets}
+    fresh = [a for a in catalog.assets if a.id not in known]
+    renames: dict[str, Asset] = {}
+    taken: set[str] = set()
+    for old in previous.assets:
+        if old.id in new_ids:
+            continue
+        found = [
+            a
+            for a in fresh
+            if a.sha256 == old.sha256
+            and a.pack_id == old.pack_id
+            and _variant(a.id) == _variant(old.id)
+            and a.id not in taken
+        ]
+        if len(found) == 1:
+            renames[old.id] = found[0]
+            taken.add(found[0].id)
+    if not renames:
+        return previous
+    copied = Catalog.from_json(previous.to_json())
+    id_map = {old_id: new.id for old_id, new in renames.items()}
+    for asset in copied.assets:
+        if asset.id in renames:
+            new = renames[asset.id]
+            asset.renamed_from = asset.path.partition(f"assets/packs/{asset.pack_id}/")[2]
+            new.renamed_from = asset.renamed_from
+            asset.id, asset.path = new.id, new.path
+    for tdef in copied.tilesets:
+        for src in tdef.sources:
+            src["asset"] = id_map.get(src["asset"], src["asset"])
+    for obj in copied.objects:
+        if obj.sheet in id_map:
+            obj.id = id_map[obj.sheet] + obj.id[len(obj.sheet) :]
+            obj.sheet = id_map[obj.sheet]
+    return copied
 
 
 def _carry_previous(

@@ -98,6 +98,13 @@ def analyze_packs(state: WizardState, *, callbacks: Callbacks) -> AnalysisResult
     sources = list(state.pack_sources)
     total = len(sources) + 1
     used: set[str] = set()
+    # A project that is regenerated keeps its pack ids (also for a pack that was updated from
+    # an archive with another name), or every asset id would change.
+    wanted = {
+        str(Path(p.source).resolve()).casefold(): p.pack_id
+        for p in (state.config.packs if state.config else [])
+    }
+    wanted.update({str(Path(s).resolve()).casefold(): pid for s, pid in state.pack_updates.items()})
     opened_list: list[archive.OpenedPack] = []
     pairs: list[tuple[archive.OpenedPack, inventory.Inventory]] = []
     issues = IssueList()
@@ -106,7 +113,9 @@ def analyze_packs(state: WizardState, *, callbacks: Callbacks) -> AnalysisResult
             raise Cancelled
         callbacks.on_phase(f"Reading {source.name}", i, total)
         callbacks.on_log(f"opening {source}")
-        opened = archive.open_pack(source, used)
+        opened = archive.open_pack(
+            source, used, pack_id=wanted.get(str(Path(source).resolve()).casefold())
+        )
         used.add(opened.pack_id)
         inv = inventory.build_inventory(opened)
         opened_list.append(opened)
@@ -134,10 +143,19 @@ def generate(
     target: Path,
     godot_exe: Path,
     placeholders: list[str],
+    git_message: str | None = None,
+    force_while_open: bool = False,
     *,
     callbacks: Callbacks,
 ) -> orchestrator.RunResult:
     """Run the whole pipeline for the wizard's in-memory config and catalog."""
     return orchestrator.run_in_memory(
-        cfg, catalog, target, godot_exe, callbacks, placeholders=placeholders
+        cfg,
+        catalog,
+        target,
+        godot_exe,
+        callbacks,
+        placeholders=placeholders,
+        force_while_open=force_while_open,
+        git_message=git_message,
     )

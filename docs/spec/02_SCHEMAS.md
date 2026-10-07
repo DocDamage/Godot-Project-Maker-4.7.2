@@ -168,6 +168,8 @@ Location: `<project>/rpggen/asset_catalog.json`.
   * The file is missing on disk → `MISSING`.
   * The role is `NONE` (the user excluded it) → `UNUSED`.
   * A pack update changed the dimensions of an atlas used by a tileset → `CONFLICT`. Only explicit user resolution clears this.
+* An asset whose file the vendor renamed in a pack update carries `renamed_from`: the pack-relative path of the earlier release (T5.05). Its id, path and tile set source id follow the rename; overrides carry over.
+* An override may set `remove_source: true` (T5.04): the user confirmed that the tile set source of this asset, which stays after the file left its pack (REGEN-003), can be removed. It is the only way a tile set source is ever removed.
 * Assets may also carry an optional `rule` object (T2.14): the facets written by folder rules (§4.8), so effective = `detected` <- `rule` <- `overrides`.
 * **Effective facets** = a deep merge of `detected` with `overrides`, where override keys win. An override value of `null` means "remove this detected key". Implement this once as `catalog.effective(asset) -> dict` and as `catalog_reader.gd: effective(asset)`. Test both on the same fixtures; the results must match (T1.07).
 
@@ -286,6 +288,8 @@ Rules are applied in order after detection and before overrides. They write into
 
 * `owner` is either `generated` (may be rewritten) or `user_seed` (written once, then never touched).
 * Keys are posix_rel paths, sorted.
+* Covered paths (T5.01): `generated/`, `addons/rpg_runtime/`, `addons/rpg_project_tools/`, `rpggen/` (except `rpggen/logs/`, `rpggen/results/`, the ledger itself and `rpggen/generation_report.json`), `assets/packs/`, `game/` (as `user_seed`), `project.godot`, `.gitignore`, `.gitattributes` and `README.md`. `GENERATION_REPORT.md` is not covered: it is rewritten after promotion.
+* `project.godot`, `rpggen/generator_config.json` and `rpggen/asset_catalog.json` are merge-managed: they never produce a conflict.
 * Hashes cover the file bytes **after** CRLF→LF normalization for text files (`.gd`, `.tscn`, `.tres`, `.json`, `.cfg`, `.godot`, `.md`, `.import`, `.uid`). Binary files are hashed raw. This avoids false conflicts when git rewrites line endings.
 
 ---

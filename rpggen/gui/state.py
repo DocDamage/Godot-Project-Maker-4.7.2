@@ -32,6 +32,10 @@ class WizardState:
     regenerating: bool = False  # target is an existing rpggen project
     analyzed_key: tuple[str, ...] | None = None  # packs the catalog was assembled from
     run_result: RunResult | None = None  # outcome of the last generation (not drafted)
+    changed_paths: set[str] = field(default_factory=set)  # pack update: added, resized, missing
+    pack_updates: dict[str, str] = field(default_factory=dict)  # new source -> pack_id it updates
+    git_commit: bool | None = None  # init a repository / commit; None = the default
+    force_while_open: bool = False  # regenerate although a Godot editor seems to be open
 
 
 def draft_path(target: Path) -> Path:

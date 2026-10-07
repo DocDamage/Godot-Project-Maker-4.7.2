@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
@@ -9,8 +10,9 @@ from pathlib import Path
 from rpggen import jsonio, paths, schema
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
+from rpggen.core import ledger as ledger_mod
 from rpggen.core.inventory import Inventory
-from rpggen.errors import RpgGenError
+from rpggen.errors import Issue, IssueList, RpgGenError
 
 log = logging.getLogger(__name__)
 
@@ -40,19 +42,71 @@ def minimal_project_godot(name: str) -> str:
     return MINIMAL_PROJECT_GODOT.replace("{name}", escaped)
 
 
+BACKUPS_NAME = ".rpggen_backups"
+# Top-level target entries the regeneration copy leaves out: our own working folders, the user's
+# git history and the export output.
+COPY_SKIP_TOP = {".git", "export"}
+COPY_SKIP_REL = {"rpggen/logs", "rpggen/results"}
+
+
 @dataclass
 class Staging:
     target: Path
     staging: Path  # target / ".rpggen_staging"
+    mode: str = "new"  # "new" | "regenerate"
+
+    @property
+    def regenerate(self) -> bool:
+        return self.mode == "regenerate"
+
+
+def _copy_ignore(root: Path):  # type: ignore[no-untyped-def]
+    def ignore(folder: str, names: list[str]) -> set[str]:
+        rel = Path(folder).relative_to(root).as_posix()
+        skipped: set[str] = set()
+        for name in names:
+            child = name if rel == "." else f"{rel}/{name}"
+            top_skip = rel == "." and (name.startswith(".rpggen_") or name in COPY_SKIP_TOP)
+            if top_skip or child in COPY_SKIP_REL:
+                skipped.add(name)
+        return skipped
+
+    return ignore
+
+
+def _make_copy_function(staging: Path):  # type: ignore[no-untyped-def]
+    """``copy2`` that hard-links binary pack files (they are replaced, never edited in place)."""
+    packs = staging / "assets" / "packs"
+
+    def copy(src: str, dst: str) -> str:
+        d = Path(dst)
+        if packs in d.parents and d.suffix.lower() not in ledger_mod.TEXT_EXTS:
+            try:
+                os.link(src, dst)
+                return dst
+            except OSError:
+                pass  # another volume or a file system without hard links: copy
+        return shutil.copy2(src, dst)
+
+    return copy
 
 
 def create_staging(target: Path) -> Staging:
-    """M1: ``target`` must be empty or not exist. Replaces any old staging with a fresh one."""
+    """Make a fresh staging folder inside ``target``.
+
+    * Missing or empty target: mode ``new`` (an empty staging folder).
+    * Target with ``rpggen/generator_config.json``: mode ``regenerate`` (staging is a copy of the
+      project, including ``.godot/``).
+    * Anything else: ENV-009.
+    """
     target = Path(target)
+    regenerate = False
     if target.exists():
         leftovers = [p for p in target.iterdir() if p.name not in (STAGING_NAME, FAILED_NAME)]
         if leftovers:
-            raise RpgGenError("ENV-009", path=str(target))
+            if not (target / paths.CONFIG).is_file():
+                raise RpgGenError("ENV-009", path=str(target))
+            regenerate = True
     else:
         try:
             target.mkdir(parents=True)
@@ -62,14 +116,39 @@ def create_staging(target: Path) -> Staging:
     if staging.exists():
         shutil.rmtree(staging)
     try:
-        staging.mkdir()
+        if regenerate:
+            shutil.copytree(
+                target,
+                staging,
+                ignore=_copy_ignore(target),
+                copy_function=_make_copy_function(staging),
+                dirs_exist_ok=False,
+            )
+        else:
+            staging.mkdir()
     except OSError as exc:
+        shutil.rmtree(staging, ignore_errors=True)
         raise RpgGenError("ENV-004", path=str(target)) from exc
-    return Staging(target, staging)
+    return Staging(target, staging, "regenerate" if regenerate else "new")
 
 
 def _is_junk(rel_parts: tuple[str, ...]) -> bool:
     return rel_parts[-1].lower() in JUNK_NAMES or any(p.lower() in JUNK_DIRS for p in rel_parts)
+
+
+def _place(src: Path, dst: Path) -> bool:
+    """Copy ``src`` to ``dst`` unless ``dst`` already has the same content (ledger hash).
+
+    A changed file is replaced, never written in place: the old one may be a hard link to a file
+    of the target project.
+    """
+    if dst.is_file():
+        if ledger_mod.file_hash(dst) == ledger_mod.file_hash(src):
+            return False
+        dst.unlink()
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src, dst)
+    return True
 
 
 def _copy_tree(src: Path, dst: Path, root: Path) -> list[str]:
@@ -78,14 +157,16 @@ def _copy_tree(src: Path, dst: Path, root: Path) -> list[str]:
         if not p.is_file() or "__pycache__" in p.parts:
             continue
         out = dst / p.relative_to(src)
-        out.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(p, out)
+        _place(p, out)
         written.append(paths.to_posix_rel(out, root))
     return written
 
 
 def install_templates(stg: Staging, templates_root: Path) -> list[str]:
-    """Copy the runtime addon and the builder into staging. Tests and probes are not copied."""
+    """Copy the runtime addon and the builder into staging. Tests and probes are not copied.
+
+    Files whose content is unchanged are left alone (they keep their modification time).
+    """
     templates_root = Path(templates_root)
     written: list[str] = []
     for src_rel, dst_rel in (
@@ -104,7 +185,7 @@ def install_pack(
     """Copy the pack's files to ``assets/packs/<pack_id>/``, bytes preserved.
 
     With an inventory only its files are copied (junk is already excluded there); without one
-    every non-junk file is.
+    every non-junk file is. Returns every pack file now in staging for this pack.
     """
     pack_dir = Path(pack_dir)
     dst = stg.staging / "assets" / "packs" / pack_id
@@ -121,10 +202,43 @@ def install_pack(
     written: list[str] = []
     for p in sources:
         out = dst / p.relative_to(pack_dir)
-        out.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(p, out)
+        _place(p, out)
         written.append(paths.to_posix_rel(out, stg.staging))
     return sorted(written, key=lambda s: (s.casefold(), s))
+
+
+def prune_packs(stg: Staging, old: ledger_mod.Ledger, keep: set[str]) -> list[Issue]:
+    """Regeneration: drop pack files that no pack inventory lists any more.
+
+    A file goes only when the ledger says the generator wrote it and the target copy is
+    untouched; otherwise it stays and REGEN-003 is reported. Files the ledger does not know
+    (added by the user) are left alone without a message. Godot's ``.import`` / ``.uid``
+    sidecars go with their file.
+    """
+    issues = IssueList()
+    packs = stg.staging / "assets" / "packs"
+    if not stg.regenerate or not packs.is_dir():
+        return list(issues)
+    sidecars = (".import", ".uid")
+    for p in sorted(packs.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = paths.to_posix_rel(p, stg.staging)
+        if rel in keep or p.suffix in sidecars and rel.rsplit(".", 1)[0] in keep:
+            continue
+        entry = old.files.get(rel)
+        if entry is None:
+            continue
+        state = ledger_mod.classify(stg.target, rel, old)
+        if entry.owner == "generated" and state is ledger_mod.FileState.UNTOUCHED:
+            p.unlink()
+        elif state in (ledger_mod.FileState.MODIFIED, ledger_mod.FileState.UNTOUCHED):
+            issues.add(
+                "REGEN-003",
+                f"File {rel} is no longer in the pack but was kept because it was changed.",
+                file=rel,
+            )
+    return list(issues)
 
 
 def install_generated(stg: Staging, generated: dict[str, str]) -> list[str]:
@@ -132,8 +246,7 @@ def install_generated(stg: Staging, generated: dict[str, str]) -> list[str]:
     written: list[str] = []
     for rel in sorted(generated):
         target = paths.from_posix_rel(rel, stg.staging)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(generated[rel], target)
+        _place(Path(generated[rel]), target)
         written.append(rel)
     return written
 
@@ -147,9 +260,14 @@ def _write_text(path: Path, text: str) -> None:
 def write_project_files(
     stg: Staging, cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog
 ) -> None:
-    """Write project.godot, generator_config.json, asset_catalog.json and the VCS files."""
+    """Write project.godot, generator_config.json, asset_catalog.json and the VCS files.
+
+    When regenerating, project.godot is the user's own (the builder applies the keys it owns on
+    top of it) and the VCS files are only rewritten if the template text changed.
+    """
     root = stg.staging
-    _write_text(root / "project.godot", minimal_project_godot(cfg.project_name))
+    if not stg.regenerate or not (root / "project.godot").is_file():
+        _write_text(root / "project.godot", minimal_project_godot(cfg.project_name))
     cfg_data = cfg.to_json()
     schema.validate("config", cfg_data)
     jsonio.write(root / paths.CONFIG, cfg_data)
@@ -157,21 +275,14 @@ def write_project_files(
     schema.validate("catalog", cat_data)
     jsonio.write(root / paths.CATALOG, cat_data)
     files = paths.templates_root() / "project_files"
-    _write_text(root / ".gitignore", (files / "gitignore.txt").read_text(encoding="utf-8"))
-    _write_text(root / ".gitattributes", (files / "gitattributes.txt").read_text(encoding="utf-8"))
-
-
-def promote(stg: Staging) -> None:
-    """M1: move every top-level entry of staging into the (empty) target, then remove staging.
-
-    M5 replaces this with ledger-aware promotion.
-    """
-    for entry in sorted(stg.staging.iterdir(), key=lambda p: p.name):
-        dest = stg.target / entry.name
-        if dest.exists():
-            raise RpgGenError("REGEN-004", reason=f"{dest.name} already exists in the target")
-        shutil.move(str(entry), str(dest))
-    stg.staging.rmdir()
+    for name, template in (
+        (".gitignore", "gitignore.txt"),
+        (".gitattributes", "gitattributes.txt"),
+    ):
+        text = (files / template).read_text(encoding="utf-8")
+        dst = root / name
+        if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != text.encode("utf-8"):
+            _write_text(dst, text)
 
 
 def discard(stg: Staging) -> Path:

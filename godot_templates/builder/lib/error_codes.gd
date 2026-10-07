@@ -76,5 +76,6 @@ const CODES := {
 	"REGEN-002": {"severity": "info", "message": "File {file} was deleted by the user and was not recreated.", "fix": "—"},
 	"REGEN-003": {"severity": "warning", "message": "Source {asset} removed from pack; tileset source {source_id} kept.", "fix": "Confirm removal in the audit."},
 	"REGEN-004": {"severity": "error", "message": "Staging promotion failed: {reason}. Target restored from backup.", "fix": "See log."},
+	"REGEN-005": {"severity": "error", "message": "The Godot editor appears to be open for {path}.", "fix": "Close the Godot editor before regenerating; open scenes may be overwritten when the editor saves."},
 	"GUI-001": {"severity": "error", "message": "Unexpected error: {reason}.", "fix": "Export a diagnostic bundle and report it."},
 }
