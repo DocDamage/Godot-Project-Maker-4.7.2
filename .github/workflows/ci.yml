@@ -95,10 +95,12 @@ jobs:
         run: |
           exe=$(python tools/fetch_godot.py --version "$GODOT_VERSION" --out .cache/godot --platform linux | tail -n 1)
           echo "RPGGEN_GODOT=$exe" >> "$GITHUB_ENV"
-      - name: Error codes and synthetic packs are up to date
+      # PNG and zip bytes depend on the platform's zlib, so the synthetic packs are compared byte
+      # for byte only on Windows (above); here tests/unit/test_synthetic_packs.py compares decoded
+      # pixels and zip contents.
+      - name: Error codes are up to date
         run: |
           python tools/gen_error_codes.py
-          python tools/make_synthetic_packs.py --out test_packs/synthetic
           git diff --exit-code
       - name: Lint and types
         run: |
