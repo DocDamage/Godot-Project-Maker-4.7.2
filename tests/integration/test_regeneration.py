@@ -36,7 +36,8 @@ from rpggen.core import (
 pytestmark = pytest.mark.integration
 
 SAMPLE = Path(__file__).resolve().parents[2] / "sample_pack"
-SKIPPED_DIRS = (".godot/", ".rpggen_failed/", ".rpggen_staging/", ".rpggen_backups/")
+# .git/ is left out: git may repack in the background; vcs.is_clean checks the repository
+SKIPPED_DIRS = (".git/", ".godot/", ".rpggen_failed/", ".rpggen_staging/", ".rpggen_backups/")
 VOLATILE = (
     "rpggen/logs/",
     "rpggen/results/",
