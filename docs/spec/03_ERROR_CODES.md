@@ -7,7 +7,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | Code | Sev | Message template | Recommended fix |
 |------|-----|------------------|-----------------|
 | ENV-001 | E | Godot executable not found at {path}. | Select the Godot 4.7.2 executable (the `_console.exe` build if available). |
-| ENV-002 | E | Godot version {found} is not supported (need 4.7.x). | Install Godot 4.7.2 and select it. |
+| ENV-002 | E | Godot {found} is not supported: rpggen 1.0 builds projects for Godot 4.7. | Press Download Godot 4.7.2, or select a 4.7.x executable. Your other Godot versions are not touched. |
 | ENV-003 | W | Godot {found} is not the validated version 4.7.2. | Use 4.7.2 for guaranteed results. |
 | ENV-004 | E | Output folder {path} is not writable. | Choose a folder you can write to. |
 | ENV-005 | E | Not enough disk space: need {need_mb} MB, have {have_mb} MB. | Free disk space or choose another drive. |
@@ -16,6 +16,8 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | ENV-008 | E | Output folder is inside the asset pack folder. | Choose an output folder outside the pack. |
 | ENV-009 | E | Output folder is not empty and is not an rpggen project. | Choose an empty folder or an existing generated project. |
 | ENV-010 | I | Export templates for 4.7.2 not installed; export check skipped. | Install export templates from the Godot editor to enable the check. |
+| ENV-011 | E | Could not download Godot: {reason}. | Check your connection, or install Godot 4.7.2 from godotengine.org and select it. |
+| ENV-012 | I | Could not check for updates: {reason}. | Check your connection, or look at the releases page yourself. |
 | ARCH-001 | E | Archive {path} cannot be opened: {reason}. | Re-download the pack or extract it and select the folder. |
 | ARCH-002 | E | Archive is password-protected. | Extract it manually and select the folder. |
 | ARCH-003 | E | Unsafe path in archive: {entry}. | The archive is malformed; contact the vendor. |
@@ -36,6 +38,8 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | ASSET-023 | I | No chest asset; item icon {asset} stands in for the starter chest. | Assign a chest asset in Mapping. |
 | ASSET-024 | I | Font {asset} was not used: its pack has no license file. | Add the pack's license file, or choose another font. |
 | ASSET-025 | I | No enemy asset; the player's sprite stands in for the starter enemy. | Assign an enemy asset in Mapping. |
+| ASSET-026 | I | No music was found in the packs: the game will be silent. | Add a music track to an asset pack, or assign one in Mapping. |
+| ASSET-027 | I | No sound effects were found in the packs. | Add sound effects to an asset pack, or assign them in Mapping. |
 | ADAPT-001 | W | Adapter {adapter} failed on {file}: {reason}. | Report a bug with a diagnostic bundle. |
 | ADAPT-002 | W | Tiled tileset {file} references missing image {image}. | Fix the pack or map the image manually. |
 | ADAPT-003 | I | Pack profile {profile_id} matched ({ratio}). | — |
@@ -77,6 +81,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | VAL-017 | E | Door {node} in {file} targets unknown spawn {spawn} in {target}. | Add the spawn point or fix target_spawn. |
 | VAL-018 | W | Dialogue {file} line {n} mixes and/or; evaluation is left-to-right. | Split the condition or reorder it. |
 | VAL-019 | W | Dialogue {file} references unknown item {item}. | Create the item or fix the id. |
+| VAL-020 | E | Sound slot {slot} points at {path}, which does not load. | Assign another sound in Mapping, or restore the file. |
 | SMOKE-001 | E | Smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. |
 | SMOKE-002 | E | Smoke test timed out at step {step}. | See smoke log. |
 | REGEN-001 | W | User-modified generated file {file} not overwritten; new version at {file}.rpggen-new. | Merge changes manually. |

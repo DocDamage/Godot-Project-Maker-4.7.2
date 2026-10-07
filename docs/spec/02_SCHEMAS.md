@@ -31,6 +31,8 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `validation` | object | `{"smoke_test": true}` | Strict mode is always on (failures block delivery). |
 | `seed` | int | 12345 | Used for every RNG in generation and smoke tests. |
 | `input` | object | see §1.1 | Action → bindings. |
+| `sounds` | object | `{}` | Optional (T11.20). Sound slot → audio asset id. Slots: `music_map`, `music_battle`, `music_title`, `sfx_ui_move`, `sfx_ui_confirm`, `sfx_ui_cancel`, `sfx_hit`, `sfx_attack`, `sfx_pickup`, `sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`. A slot that is absent is silent. Omitted from the JSON when empty. |
+| `starter_map` | object | defaults | Optional (T11.25). `size` [w, h] tiles (24..96 each), `buildings` 0..4, `npcs` 0..6, `enemies` 0..8, `chests` 0..4, `decorations` 0..40, `ground_patches` 0..20, `ground` asset id or "". Omitted from the JSON when equal to the defaults. |
 | `starter` | object | `{}` | Optional (T3.11). Starter selections of the demo recipes: `player`, `npc`, `enemy`, `ground`, `building`, `chest`, `portrait` → an asset id or an object id. Omitted when empty. |
 
 Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]`.
@@ -190,7 +192,7 @@ Location: `<project>/rpggen/asset_catalog.json`.
 | `directions` | int 1/4/8 | usage=sprite | |
 | `character_index` | int | RPG Maker multi-character sheets | Which 3×4 block (0–7). |
 | `ysort` | bool | object/sprite | Default true. |
-| `audio` | `{ "type": "music"/"sfx", "loop": bool }` | usage=audio | |
+| `audio` | `{ "type": "music"/"sfx", "loop": bool, "duration_s"?: number }` | usage=audio | `duration_s` is read from the file (WAV, OGG, MP3, FLAC) when it can be; optional. |
 | `nine_slice` | `[left, top, right, bottom]` | usage=ui | Margins in px. |
 | `import` | `{ "filter": "nearest"/"linear", "mipmaps": bool }` | images | Defaults: nearest, false. |
 | `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). |
