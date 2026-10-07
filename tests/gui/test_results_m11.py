@@ -67,7 +67,9 @@ def test_a_failure_leads_with_a_plain_sentence_and_an_env_problem_offers_the_pro
 ) -> None:
     state = _state(tmp_path)
     result = _fail_result(tmp_path)
-    result.issues.append(Issue("ENV-002", Severity.ERROR, "Godot 4.2 is not supported.", "Download."))
+    result.issues.append(
+        Issue("ENV-002", Severity.ERROR, "Godot 4.2 is not supported.", "Download.")
+    )
     state.run_result = result
     page = _results(qtbot, state)
     assert page.phase_label.text().startswith("Godot could not build the game.")
@@ -79,7 +81,9 @@ def test_a_failure_leads_with_a_plain_sentence_and_an_env_problem_offers_the_pro
     assert goto == [True]
 
 
-def test_every_phase_has_a_plain_label_and_the_page_shows_durations(qtbot, tmp_path, monkeypatch) -> None:
+def test_every_phase_has_a_plain_label_and_the_page_shows_durations(
+    qtbot, tmp_path, monkeypatch
+) -> None:
     assert set(PHASE_LABELS) == set(PHASES)
     state = _state(tmp_path)
 
@@ -107,7 +111,9 @@ def test_every_phase_has_a_plain_label_and_the_page_shows_durations(qtbot, tmp_p
     assert "Finished in" in page.elapsed_label.text()
 
 
-def test_the_estimate_needs_a_full_history_and_a_failure_opens_the_log(qtbot, tmp_path, monkeypatch) -> None:
+def test_the_estimate_needs_a_full_history_and_a_failure_opens_the_log(
+    qtbot, tmp_path, monkeypatch
+) -> None:
     page = GeneratePage()
     qtbot.addWidget(page)
     timings = {name: 10.0 for name in PHASES}
@@ -124,15 +130,21 @@ def test_the_estimate_needs_a_full_history_and_a_failure_opens_the_log(qtbot, tm
     assert page.details_button.isChecked() and not page.log_view.isHidden()
 
 
-def test_a_notification_only_when_the_window_is_not_active(qtbot, tmp_path: Path, monkeypatch) -> None:
+def test_a_notification_only_when_the_window_is_not_active(
+    qtbot, tmp_path: Path, monkeypatch
+) -> None:
     page = GeneratePage()
     qtbot.addWidget(page)
     sent: list[str] = []
     page.show_notification = lambda title, text: sent.append(text)  # type: ignore[method-assign]
-    monkeypatch.setattr("rpggen.gui.pages.generate_page.QApplication.activeWindow", staticmethod(lambda: None))
+    monkeypatch.setattr(
+        "rpggen.gui.pages.generate_page.QApplication.activeWindow", staticmethod(lambda: None)
+    )
     page.notify("rpggen", "done")
     assert sent == ["done"]
-    monkeypatch.setattr("rpggen.gui.pages.generate_page.QApplication.activeWindow", staticmethod(lambda: page))
+    monkeypatch.setattr(
+        "rpggen.gui.pages.generate_page.QApplication.activeWindow", staticmethod(lambda: page)
+    )
     page.notify("rpggen", "again")
     assert sent == ["done"]
     assert orchestrator is not None

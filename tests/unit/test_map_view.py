@@ -32,7 +32,11 @@ def _view() -> dict:
             }
         },
         "layers": [
-            {"name": "Ground", "z": 0, "cells": [[x, y, 0, 0, 0] for x in range(4) for y in range(3)]},
+            {
+                "name": "Ground",
+                "z": 0,
+                "cells": [[x, y, 0, 0, 0] for x in range(4) for y in range(3)],
+            },
             {"name": "Walls", "z": 0, "cells": [[0, 0, 0, 1, 0]]},
         ],
         "entities": [
@@ -42,9 +46,20 @@ def _view() -> dict:
                 "entity_id": "",
                 "x": 40.0,
                 "y": 40.0,
-                "sprite": {"path": "res://assets/hero.png", "region": [0, 0, 16, 24], "offset": [-8, -23]},
+                "sprite": {
+                    "path": "res://assets/hero.png",
+                    "region": [0, 0, 16, 24],
+                    "offset": [-8, -23],
+                },
             },
-            {"name": "Slime", "scene": "res://x/enemy_slime.tscn", "entity_id": "e1", "x": 8.0, "y": 24.0, "sprite": {}},
+            {
+                "name": "Slime",
+                "scene": "res://x/enemy_slime.tscn",
+                "entity_id": "e1",
+                "x": 8.0,
+                "y": 24.0,
+                "sprite": {},
+            },
         ],
     }
 
@@ -54,7 +69,11 @@ def test_cells_are_cut_from_the_project_atlas_and_entities_are_drawn(tmp_path: P
     assert image.size == (64, 48)
     assert image.getpixel((55, 20))[:3] == (10, 200, 10)  # a ground tile
     assert image.getpixel((2, 2))[:3] == (200, 10, 10)  # the wall tile painted on top at (0, 0)
-    assert image.getpixel((40, 30))[:3] == (0, 0, 255)  # the hero's picture above its feet at (40, 40)
+    assert image.getpixel((40, 30))[:3] == (
+        0,
+        0,
+        255,
+    )  # the hero's picture above its feet at (40, 40)
     assert image.getpixel((8, 16))[:3] == (229, 57, 53)  # an enemy without a picture: a red marker
 
 

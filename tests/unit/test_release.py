@@ -110,7 +110,16 @@ def test_repository_urls_are_consistent() -> None:
         if rel.startswith("docs/spec/"):
             continue
         path = REPO / rel
-        if path.suffix.lower() not in {".md", ".py", ".iss", ".yml", ".yaml", ".toml", ".json", ".txt"}:
+        if path.suffix.lower() not in {
+            ".md",
+            ".py",
+            ".iss",
+            ".yml",
+            ".yaml",
+            ".toml",
+            ".json",
+            ".txt",
+        }:
             continue
         if rel == "tests/unit/test_release.py" or not path.is_file():
             continue

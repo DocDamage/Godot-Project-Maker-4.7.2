@@ -122,10 +122,20 @@ def _pages(qtbot):
 def _interactive(widget: QWidget) -> bool:
     if isinstance(widget, QToolButton) and isinstance(widget.parentWidget(), QTabBar | QLineEdit):
         return False  # tab scroll arrows and the clear button of a line edit
-    return isinstance(
-        widget,
-        QAbstractButton | QAbstractSpinBox | QComboBox | QLineEdit | QSlider | QListWidget | QTableWidget,
-    ) and not widget.objectName().startswith("qt_") and widget.parent() is not None
+    return (
+        isinstance(
+            widget,
+            QAbstractButton
+            | QAbstractSpinBox
+            | QComboBox
+            | QLineEdit
+            | QSlider
+            | QListWidget
+            | QTableWidget,
+        )
+        and not widget.objectName().startswith("qt_")
+        and widget.parent() is not None
+    )
 
 
 def _labelled(widget: QWidget) -> bool:
@@ -156,7 +166,9 @@ def test_every_interactive_widget_has_a_tooltip_a_name_or_a_label(qtbot) -> None
     for page in _pages(qtbot):
         for widget in page.findChildren(QWidget):
             if _interactive(widget) and not _labelled(widget):
-                missing.append(f"{type(page).__name__}: {widget.objectName() or type(widget).__name__}")
+                missing.append(
+                    f"{type(page).__name__}: {widget.objectName() or type(widget).__name__}"
+                )
     assert not missing, missing
 
 

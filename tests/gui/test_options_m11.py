@@ -60,7 +60,9 @@ def test_reset_buttons_restore_each_section(qtbot) -> None:
     page.add_layer_button.click()
     page.starter_counts["npcs"].setValue(4)
     page.features_reset.click()
-    assert page.feature_boxes["save"].isChecked() and not page.feature_boxes["navigation"].isChecked()
+    assert (
+        page.feature_boxes["save"].isChecked() and not page.feature_boxes["navigation"].isChecked()
+    )
     page.screen_reset.click()
     assert page.resolution.value() == (640, 360)
     page.layers_reset.click()
@@ -111,7 +113,9 @@ def test_presets_round_trip_through_the_app_settings(qtbot) -> None:
     assert "seed" not in saved and "packs" not in saved and "project_name" not in saved
     assert page.preset_combo.findData("My look") >= 0
     page.apply_preset_named(DEFAULTS_ITEM)  # back to the defaults
-    assert page.resolution.value() == (640, 360) and not page.feature_boxes["navigation"].isChecked()
+    assert (
+        page.resolution.value() == (640, 360) and not page.feature_boxes["navigation"].isChecked()
+    )
     assert page.starter_counts["chests"].value() == 1
     page.seed_box.setValue(4242)
     assert page.apply_preset_named("My look")

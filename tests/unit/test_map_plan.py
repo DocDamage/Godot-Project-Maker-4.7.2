@@ -56,9 +56,7 @@ def _random_options(rnd: random.Random) -> dict:
 
 def _reachable(plan: dict, rects: list[tuple[int, int, int, int]]) -> set[tuple[int, int]]:
     w, h = plan["size"]
-    blocked = {
-        (r[0] + i, r[1] + j) for r in rects for i in range(r[2]) for j in range(r[3])
-    }
+    blocked = {(r[0] + i, r[1] + j) for r in rects for i in range(r[2]) for j in range(r[3])}
     start = tuple(plan["spawn"])
     seen = {start}
     stack = [start]
@@ -102,11 +100,16 @@ def test_random_option_sets_are_valid(building: dict) -> None:
         for cell in [*plan["path"], *plan["exit_path"]]:
             assert 1 <= cell[0] <= w - 2 and 1 <= cell[1] <= h - 2
             assert not any(map_preview._rect_contains(r, cell[0], cell[1]) for r in rects), (
-                case, "a road runs through a house", cell
+                case,
+                "a road runs through a house",
+                cell,
             )
         assert plan["exit_gap"][0] == w - 1 and tuple(plan["exit_gap"]) not in entities
         assert tuple(plan["exit_path"][-1]) == (w - 2, plan["exit_gap"][1])
-        assert not set(map(tuple, plan["exit_path"])) & set(entities), (case, "entity on the exit road")
+        assert not set(map(tuple, plan["exit_path"])) & set(entities), (
+            case,
+            "entity on the exit road",
+        )
 
 
 def test_too_small_a_map_places_what_fits_and_warns() -> None:

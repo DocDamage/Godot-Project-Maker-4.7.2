@@ -42,8 +42,11 @@ def test_every_menu_action_exists(qtbot) -> None:
         "thumb_192",
     }  # fmt: skip
     assert expected <= _names(win)
-    assert [m.title().replace("&", "") for m in win.menuBar().findChildren(type(win.recent_menu))
-            if m.parent() is win.menuBar()] == ["File", "Edit", "View", "Help"]
+    assert [
+        m.title().replace("&", "")
+        for m in win.menuBar().findChildren(type(win.recent_menu))
+        if m.parent() is win.menuBar()
+    ] == ["File", "Edit", "View", "Help"]
 
 
 def test_about_shows_the_versions(qtbot) -> None:
@@ -196,7 +199,8 @@ def test_report_a_problem_offers_the_bundle_then_opens_the_issues_page(qtbot, mo
     exported: list[bool] = []
     win.open_url = opened.append  # type: ignore[method-assign]
     monkeypatch.setattr(
-        "rpggen.gui.window_menus.diagnostic_export.export_bundle", lambda *a, **k: exported.append(True)
+        "rpggen.gui.window_menus.diagnostic_export.export_bundle",
+        lambda *a, **k: exported.append(True),
     )
     win.ask_export_before_report = lambda: None  # type: ignore[method-assign]
     win.report_problem()

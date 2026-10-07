@@ -18,7 +18,9 @@ def _cache(tmp_path: Path, monkeypatch) -> None:
 
 def _catalog(pack: Path, pack_id: str | None = None) -> catalog.Catalog:
     opened = archive.open_pack(pack, set(), pack_id=pack_id)
-    cat, _issues, _generated = catalog.assemble([(opened, inventory.build_inventory(opened))], None, [])
+    cat, _issues, _generated = catalog.assemble(
+        [(opened, inventory.build_inventory(opened))], None, []
+    )
     return cat
 
 

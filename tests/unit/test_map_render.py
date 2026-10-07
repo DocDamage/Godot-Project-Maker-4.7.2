@@ -43,7 +43,11 @@ def test_the_default_plan_draws_the_house_and_the_markers(sample) -> None:
     centre = (sx * tile * scale + tile * scale // 2, sy * tile * scale + tile * scale // 2)
     assert image.getpixel(centre)[:3] == map_preview.MARKER_COLORS["spawn"]
     nx, ny = plan["npcs"][0]
-    assert image.getpixel((nx * tile * scale + tile, ny * tile * scale + tile))[:3] == (66, 165, 245)
+    assert image.getpixel((nx * tile * scale + tile, ny * tile * scale + tile))[:3] == (
+        66,
+        165,
+        245,
+    )
 
 
 def test_the_legend_adds_two_rows_and_says_the_map_may_differ(sample) -> None:
@@ -59,7 +63,13 @@ def test_the_legend_adds_two_rows_and_says_the_map_may_differ(sample) -> None:
 def test_a_larger_map_with_more_of_everything_still_renders(sample) -> None:
     cat, resolver = sample
     art = map_preview.load_art(cat, resolver)
-    options = {**config.starter_map_defaults(), "size": [64, 40], "buildings": 3, "npcs": 4, "decorations": 30}
+    options = {
+        **config.starter_map_defaults(),
+        "size": [64, 40],
+        "buildings": 3,
+        "npcs": 4,
+        "decorations": 30,
+    }
     plan = map_preview.plan(options, 7, map_preview.building_info(art))
     image = map_preview.render(plan, art, 1, legend=True)
     assert image.width == 64 * art.tile_px

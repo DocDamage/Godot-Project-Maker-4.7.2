@@ -1,5 +1,3 @@
-
-
 def test_closing_while_running_asks_and_cancels(qtbot) -> None:
     from rpggen.gui.pages.generate_page import GeneratePage
 

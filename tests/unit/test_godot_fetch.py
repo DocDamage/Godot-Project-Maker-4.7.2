@@ -88,9 +88,7 @@ def test_cancel_mid_download_leaves_nothing(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("evil", ["..\\evil.exe", "../evil.exe", "C:/evil.exe", "sub/evil.exe"])
-def test_archives_with_unexpected_or_unsafe_members_are_rejected(
-    tmp_path: Path, evil: str
-) -> None:
+def test_archives_with_unexpected_or_unsafe_members_are_rejected(tmp_path: Path, evil: str) -> None:
     archive = _zip({**GOOD, evil: b"bad"})
     with pytest.raises(RpgGenError) as ei:
         godot_fetch.fetch(VERSION, tmp_path, opener=_opener(archive))

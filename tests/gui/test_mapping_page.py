@@ -211,9 +211,15 @@ def test_sound_picker_lists_only_the_right_kind_with_lengths(qtbot) -> None:
 
 def test_rows_are_grouped_and_summarised(qtbot) -> None:
     page, _state = _page(qtbot, "basic16")
-    headers = [page.findChild(type(page.summary_label), f"group_{g}") for g in ("World", "Characters", "Things", "Interface")]
+    headers = [
+        page.findChild(type(page.summary_label), f"group_{g}")
+        for g in ("World", "Characters", "Things", "Interface")
+    ]
     assert all(h is not None for h in headers)
-    assert page.summary_label.text() == "2 of 2 required roles assigned, 0 of 7 optional roles assigned"
+    assert (
+        page.summary_label.text()
+        == "2 of 2 required roles assigned, 0 of 7 optional roles assigned"
+    )
     assert page.rows["GROUND"].role_label.text().startswith("<b>Ground tiles *")
 
 
@@ -261,6 +267,8 @@ def test_a_tile_sheet_thumbnail_starts_at_the_first_filled_cell(tmp_path) -> Non
     img.save(path)
     grid = {"cell": [16, 16], "margin": [0, 0], "separation": [0, 0]}
     assert thumbnails.first_filled_cell(img, grid) == (2, 0)
-    req = thumbnails.request_for("x", path, {"usage": "tiles", "grid": grid}, size=48, cells=3, skip_empty=True)
+    req = thumbnails.request_for(
+        "x", path, {"usage": "tiles", "grid": grid}, size=48, cells=3, skip_empty=True
+    )
     out = Image.open(__import__("io").BytesIO(thumbnails.render_thumbnail(req, 48)))
     assert out.getpixel((1, 1))[3] == 255  # starts on the red cell, not on emptiness
