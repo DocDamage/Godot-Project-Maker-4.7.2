@@ -50,6 +50,9 @@ def test_generate_basic16(godot_exe: Path, tmp_path: Path) -> None:
         "player_exists",
         "player_moves",
         "collision_blocks",
+        "enter_building",
+        "exit_building",
+        "decor_blocks",
     ]
     assert all(i["ok"] for i in smoke["items"])
     assert not any(i.severity.value == "error" for i in result.issues)

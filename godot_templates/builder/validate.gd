@@ -33,6 +33,8 @@ func _initialize() -> void:
 		if String(path).ends_with(".tscn"):
 			_scenes.append(path)
 	_check_map_round_trip("res://game/maps/starter_map.tscn")
+	_check_ysort_origins()
+	_check_ysort_parents()
 
 func _process(_delta: float) -> bool:
 	if _finished or _ctx == null:
@@ -248,3 +250,85 @@ func _check_map_round_trip(map_path: String) -> void:
 	if not ok:
 		_fail("VAL-010", {"layer": failed_layer}, map_path)
 	_item("map_round_trip", map_path, ok)
+
+# ---------------------------------------------------------------- Y-sort (T4.07)
+# Headless mode renders nothing, so Y-sort is checked logically: a visual's bottom edge sits on the
+# node origin (y = 0), and every placed entity has a Y-sorted parent.
+
+const ORIGIN_TOLERANCE := 2.0
+const ENTITY_DIRS := ["res://generated/scenes/objects/", "res://generated/scenes/actors/"]
+
+## Bottom edge (y, relative to the scene root) of a Sprite2D / AnimatedSprite2D, or NAN.
+static func visual_bottom(visual: Node2D, scene_root: Node) -> float:
+	var tex: Texture2D = null
+	var offset := Vector2.ZERO
+	var centered := true
+	if visual is Sprite2D:
+		tex = (visual as Sprite2D).texture
+		offset = (visual as Sprite2D).offset
+		centered = (visual as Sprite2D).centered
+	elif visual is AnimatedSprite2D:
+		var animated := visual as AnimatedSprite2D
+		if animated.sprite_frames != null and animated.sprite_frames.has_animation(animated.animation) 				and animated.sprite_frames.get_frame_count(animated.animation) > 0:
+			tex = animated.sprite_frames.get_frame_texture(animated.animation, 0)
+		offset = animated.offset
+		centered = animated.centered
+	if tex == null:
+		return NAN
+	var y := offset.y
+	if centered:
+		y -= tex.get_size().y / 2.0
+	var node: Node = visual
+	while node != null and node != scene_root:
+		if node is Node2D:
+			y += (node as Node2D).position.y
+		node = node.get_parent()
+	return y + tex.get_size().y
+
+func _collect_visuals(node: Node, out: Array) -> void:
+	if node is Sprite2D or node is AnimatedSprite2D:
+		out.append(node)
+	for child in node.get_children():
+		_collect_visuals(child, out)
+
+func _check_ysort_origins() -> void:
+	for dir_path in ENTITY_DIRS:
+		for path in _list_files(dir_path.trim_suffix("/"), ["tscn"]):
+			var packed := load(path) as PackedScene
+			if packed == null:
+				continue
+			var inst := packed.instantiate()
+			var visuals: Array = []
+			_collect_visuals(inst, visuals)
+			var ok := true
+			for v in visuals:
+				var bottom := visual_bottom(v, inst)
+				if not is_nan(bottom) and absf(bottom) > ORIGIN_TOLERANCE:
+					_fail("VAL-014", {"file": path, "y": "%.1f" % bottom}, path)
+					ok = false
+			inst.free()
+			_item("ysort_origin", path, ok)
+
+func _collect_entities(node: Node, out: Array) -> void:
+	for child in node.get_children():
+		if child.scene_file_path != "" and ENTITY_DIRS.any(func(d: String) -> bool: return child.scene_file_path.begins_with(d)):
+			out.append(child)
+		else:
+			_collect_entities(child, out)
+
+func _check_ysort_parents() -> void:
+	for path in _list_files("res://game/maps", ["tscn"]):
+		var packed := load(path) as PackedScene
+		if packed == null:
+			continue
+		var inst := packed.instantiate()
+		var entities: Array = []
+		_collect_entities(inst, entities)
+		var ok := true
+		for e in entities:
+			var parent: Node = e.get_parent()
+			if not (parent is CanvasItem and (parent as CanvasItem).y_sort_enabled):
+				_fail("VAL-015", {"node": String(inst.get_path_to(e)), "file": path}, path)
+				ok = false
+		inst.free()
+		_item("ysort_parent", path, ok)

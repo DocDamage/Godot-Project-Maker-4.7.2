@@ -12,6 +12,8 @@ const RECIPE_ORDER := [
 	"tileset_recipe",
 	"sprite_frames_recipe",
 	"player_recipe",
+	"object_scenes_recipe",
+	"interior_recipe",
 	"boot_recipe",
 	"starter_map_recipe",
 ]

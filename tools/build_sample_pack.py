@@ -432,6 +432,7 @@ def build_profile(pack: Path, profile_path: Path) -> dict:
             else:
                 os.environ["RPGGEN_CACHE_DIR"] = old
     cat = _name_town_objects(cat, edits)
+    cat = edits.set_override(cat, f"{PACK_NAME}.items.chest", "tags", ["chest"])
     cat = edits.confirm(cat, [a.id for a in cat.assets if a.status != "UNUSED"])
     data = profiles.export_profile(
         cat,

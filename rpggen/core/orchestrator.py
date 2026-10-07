@@ -40,6 +40,8 @@ PHASES_M1 = [
 ]
 REPORT_NAME = "generation_report.json"
 SMOKE_STEPS_M1 = "res://generated/builder/smoke/smoke_steps_m1.gd"
+SMOKE_STEPS_M4 = "res://generated/builder/smoke/smoke_steps_m4.gd"
+SMOKE_STEPS = f"{SMOKE_STEPS_M1},{SMOKE_STEPS_M4}"
 
 
 @dataclass
@@ -269,7 +271,7 @@ def phase_smoke(state: _State) -> None:
         return
     run = _run_phase_godot(
         state,
-        ["--", "--rpg-smoke", f"--rpg-smoke-steps={SMOKE_STEPS_M1}"],
+        ["--", "--rpg-smoke", f"--rpg-smoke-steps={SMOKE_STEPS}"],
         godot.SMOKE_TIMEOUT_S,
         "smoke",
         "smoke",

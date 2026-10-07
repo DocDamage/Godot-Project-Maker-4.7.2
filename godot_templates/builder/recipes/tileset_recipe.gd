@@ -1,7 +1,7 @@
 extends RefCounted
 ## Builds one TileSet resource per TileSetDef in the catalog.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const Paths := preload("../lib/paths.gd")
 const Geometry := preload("../lib/geometry.gd")
@@ -26,8 +26,12 @@ func input_hash(ctx) -> String:
 				"collision": eff.get("collision"),
 				"tile_overrides": eff.get("tile_overrides"),
 				"tileset": eff.get("tileset"),
+				"role": eff.get("role"),
 			})
-		parts.append({"def": def, "sources": sources})
+		var objects: Array = []
+		if def.get("patterns_from_objects", true):
+			objects = ctx.catalog.objects()
+		parts.append({"def": def, "sources": sources, "objects": objects})
 	return ctx.stable_hash({"v": RECIPE_VERSION, "tilesets": parts})
 
 func build(ctx) -> Array:
@@ -70,6 +74,8 @@ func _build_tileset(ctx, def: Dictionary, issues: Array) -> void:
 	sources.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["source_id"]) < int(b["source_id"]))
 	for s in sources:
 		_build_source(ctx, ts, s, cell, issues)
+	if def.get("patterns_from_objects", true):
+		_build_patterns(ctx, ts, sources)
 
 	DirAccess.make_dir_recursive_absolute(out_path.get_base_dir())
 	var err := ResourceSaver.save(ts, out_path)
@@ -117,7 +123,8 @@ func _build_source(ctx, ts: TileSet, s: Dictionary, cell: Vector2i, issues: Arra
 		img.decompress()
 
 	var overrides: Dictionary = eff.get("tile_overrides", {})
-	var sheet_collision: Dictionary = eff.get("collision", {"profile": "NONE"})
+	# A WALL sheet blocks movement unless the catalog says otherwise.
+	var sheet_collision: Dictionary = eff.get("collision", {"profile": "FULL" if eff.get("role", "") == "WALL" else "NONE"})
 	for cy in rows:
 		for cx in cols:
 			var key := "%d,%d" % [cx, cy]
@@ -151,3 +158,35 @@ func _configure_tile(td: TileData, asset: Dictionary, collision: Dictionary, atl
 			td.add_collision_polygon(0)
 			td.set_collision_polygon_points(0, 0, Geometry.to_tile_space(pts, atlas_cell))
 	td.set_custom_data("asset_id", asset["id"])
+
+## TileMapPatterns from sheet objects (T4.06): one pattern per object, in object id order. Every
+## existing pattern is removed first, so a rebuild never duplicates them.
+func _build_patterns(ctx, ts: TileSet, sources: Array) -> void:
+	while ts.get_patterns_count() > 0:
+		ts.remove_pattern(0)
+	var source_of := {}
+	for s in sources:
+		source_of[s["asset"]] = int(s["source_id"])
+	for o in ctx.catalog.objects():
+		if o.get("status", "") == "UNUSED" or o.get("role", "NONE") == "NONE" or not source_of.has(o["sheet"]):
+			continue
+		var source_id: int = source_of[o["sheet"]]
+		var src := ts.get_source(source_id) as TileSetAtlasSource
+		if src == null:
+			continue
+		var grid: Dictionary = ctx.catalog.effective(ctx.catalog.asset(o["sheet"])).get("grid", {})
+		var atlas_cell: Vector2i = ctx.vec2i(grid.get("cell", [16, 16]))
+		var margin: Vector2i = ctx.vec2i(grid.get("margin", [0, 0]))
+		var sep: Vector2i = ctx.vec2i(grid.get("separation", [0, 0]))
+		var step := atlas_cell + sep
+		var region: Array = o["region"]
+		var first := Vector2i((int(region[0]) - margin.x) / step.x, (int(region[1]) - margin.y) / step.y)
+		var last := Vector2i((int(region[0]) + int(region[2]) - 1 - margin.x) / step.x, (int(region[1]) + int(region[3]) - 1 - margin.y) / step.y)
+		var pattern := TileMapPattern.new()
+		for cy in range(first.y, last.y + 1):
+			for cx in range(first.x, last.x + 1):
+				var coords := Vector2i(cx, cy)
+				if src.has_tile(coords):
+					pattern.set_cell(coords - first, source_id, coords, 0)
+		if not pattern.is_empty():
+			ts.add_pattern(pattern)

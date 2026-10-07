@@ -10,7 +10,7 @@ const RESULTS_PATH := "res://rpggen/results/smoke_results.json"
 const ERROR_CODES_PATH := "res://generated/builder/lib/error_codes.gd"
 
 var _items: Array = []
-var _provider: RefCounted  # keeps the steps object (and its Callables) alive
+var _providers: Array = []  # keeps the steps objects (and their Callables) alive
 var _issues: Array = []
 
 func _ready() -> void:
@@ -51,16 +51,25 @@ func _exec(fn: Callable, state: Dictionary) -> void:
 	state["result"] = await fn.call()
 	state["done"] = true
 
+## `steps_path` is one script or a comma-separated list; the steps run in that order.
 func _load_steps(steps_path: String) -> Array:
-	if steps_path == "" or not ResourceLoader.exists(steps_path):
-		_issues.append(_issue("SMOKE-001", {"step": 0, "name": "load_steps", "detail": "steps script not found: %s" % steps_path}))
+	var all: Array = []
+	var paths := steps_path.split(",", false)
+	if paths.is_empty():
+		_issues.append(_issue("SMOKE-001", {"step": 0, "name": "load_steps", "detail": "no steps script given"}))
 		return []
-	var script: Variant = load(steps_path)
-	if script == null or not (script is GDScript):
-		_issues.append(_issue("SMOKE-001", {"step": 0, "name": "load_steps", "detail": "steps script failed to load: %s" % steps_path}))
-		return []
-	_provider = script.new()
-	return _provider.steps()
+	for path in paths:
+		if not ResourceLoader.exists(path):
+			_issues.append(_issue("SMOKE-001", {"step": 0, "name": "load_steps", "detail": "steps script not found: %s" % path}))
+			return []
+		var script: Variant = load(path)
+		if script == null or not (script is GDScript):
+			_issues.append(_issue("SMOKE-001", {"step": 0, "name": "load_steps", "detail": "steps script failed to load: %s" % path}))
+			return []
+		var provider: RefCounted = script.new()
+		_providers.append(provider)
+		all.append_array(provider.steps())
+	return all
 
 func _issue(code: String, detail: Dictionary) -> Dictionary:
 	var severity := "error"

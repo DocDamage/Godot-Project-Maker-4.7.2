@@ -10,7 +10,7 @@ from rpggen.core.inventory import Inventory
 
 log = logging.getLogger(__name__)
 
-ANALYZER_VERSION = 2
+ANALYZER_VERSION = 3
 MIN_REGION_GRID_SCORE = 0.6
 
 
@@ -33,6 +33,11 @@ def analyze_array(a, mask) -> dict[str, Any]:  # noqa: ANN001 - numpy arrays
             (i * fw, 0, fw, fh) if strip.axis == "x" else (0, i * fh, fw, fh)
             for i in range(strip.frames)
         ]
+        baseline = frames.baseline_y(mask, rects)
+    elif sheet is not None:
+        # frame-relative, like strips: the median lowest occupied row of every frame
+        fw, fh = sheet.frame
+        rects = [(c * fw, r * fh, fw, fh) for r in range(sheet.rows) for c in range(sheet.cols)]
         baseline = frames.baseline_y(mask, rects)
     elif bbox is not None:
         baseline = bbox[1] + bbox[3] - 1

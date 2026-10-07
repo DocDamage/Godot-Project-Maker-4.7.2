@@ -152,7 +152,7 @@
       },
       "origin": [
         8,
-        94
+        22
       ],
       "role": "PLAYER",
       "size": [
@@ -313,7 +313,7 @@
       },
       "origin": [
         8,
-        94
+        22
       ],
       "role": "NPC",
       "size": [
@@ -390,6 +390,9 @@
       "size": [
         16,
         16
+      ],
+      "tags": [
+        "chest"
       ],
       "usage": "sprite"
     },

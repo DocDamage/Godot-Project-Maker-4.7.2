@@ -50,3 +50,22 @@ func tileset_defs() -> Array:
 	var list: Array = catalog.get("tilesets", []).duplicate()
 	list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return String(a["name"]) < String(b["name"]))
 	return list
+
+## Sheet objects sorted by id.
+func objects() -> Array:
+	var list: Array = catalog.get("objects", []).duplicate()
+	list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return String(a["id"]) < String(b["id"]))
+	return list
+
+func object(id: String) -> Dictionary:
+	for o in catalog.get("objects", []):
+		if o["id"] == id:
+			return o
+	return {}
+
+## Tileset definition by name, or {}.
+func tileset_def(tileset_name: String) -> Dictionary:
+	for def in catalog.get("tilesets", []):
+		if def["name"] == tileset_name:
+			return def
+	return {}

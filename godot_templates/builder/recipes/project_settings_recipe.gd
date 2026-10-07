@@ -1,7 +1,7 @@
 extends RefCounted
 ## Applies project settings from the generator config and saves project.godot.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 # Physics layer names (ARCHITECTURE §17).
 const PHYSICS_LAYER_NAMES := [
@@ -42,6 +42,8 @@ func build(ctx) -> Array:
 		ProjectSettings.set_setting("layer_names/2d_physics/layer_%d" % (i + 1), PHYSICS_LAYER_NAMES[i])
 	# Smoke-test driver: inert unless the game is started with --rpg-smoke (T1.11).
 	ProjectSettings.set_setting("autoload/RpgSmoke", "*res://addons/rpg_runtime/debug/smoke_runner.gd")
+	# Map changes with fade and spawn placement (T4.02).
+	ProjectSettings.set_setting("autoload/SceneRouter", "*res://addons/rpg_runtime/world/scene_router.gd")
 	_apply_input(ctx, cfg.get("input", {}), issues)
 	var err := ProjectSettings.save()
 	if err != OK:

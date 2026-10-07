@@ -47,7 +47,12 @@ func _collision_blocks() -> String:
 	var tree := _tree()
 	var p := _player()
 	var scene := tree.current_scene
-	var layer := scene.get_node_or_null("Ground") as TileMapLayer if scene != null else null
+	# Walls live on their own layer in M4 maps; older maps painted them on Ground.
+	var layer: TileMapLayer = null
+	if scene != null:
+		layer = scene.get_node_or_null("Walls") as TileMapLayer
+		if layer == null or layer.get_used_cells().is_empty():
+			layer = scene.get_node_or_null("Ground") as TileMapLayer
 	if p == null or layer == null or layer.tile_set == null:
 		return "starter map has no player or Ground layer"
 	var used := layer.get_used_cells()
