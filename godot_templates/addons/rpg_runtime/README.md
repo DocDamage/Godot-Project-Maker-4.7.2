@@ -64,3 +64,32 @@ next battle): it is called as `auto_choose.call(actor, battle)` and returns
 Not done yet (a documented extension point): random encounters in areas. The planned class is
 `RpgEncounterZone`, an `Area2D` with a step counter that builds an `RpgEncounterData` and calls
 the same `start_encounter`.
+
+### arpg
+
+Combat happens on the map. `RpgArpgMode` (`SceneRouter.combat`) never has an encounter
+(`is_in_combat()` is false); it owns the defeat policy (`apply_defeat()`, the same as the
+turn-based one), the quick item (`quick_item()`, `set_quick_item(id)`, `use_quick_item()`; the
+choice is the flag `arpg_hud.quick_item`) and the "Set quick item" button it adds to the inventory
+menu (`customize_inventory_menu(menu)`).
+
+Damage primitives: `RpgHitbox` (an `Area2D` that is live only while `active`; hits each hurtbox once
+per activation, polls overlaps because a hurtbox that is already inside gives no `area_entered`),
+`RpgHurtbox` (`receive(info)`, an invulnerability window: player 0.6 s, enemies 0.15 s),
+`RpgHealth` (the numbers live in the actor's `RpgStats`; `died` fires once) and `RpgDamageInfo`.
+Layers: player hitbox 7 (mask 10), enemy hitbox 8 (mask 9), player hurtbox 9, enemy hurtbox 10.
+`RpgArpgMath`: `max(1, attack - defense / 2)`, x1.5 on a crit, one `GameState.rng` draw per roll.
+
+`RpgPlayerCombat` is the player's state machine (`IDLE`, `MOVE`, `ATTACK`, `HURT`, `DODGE`,
+`DEAD`; a generic `RpgStateMachine`). It uses the actor's `move_locked`, `facing_locked` and
+`animation_locked` flags so the input and the automatic walk / idle animations do not fight it.
+The hitbox is live on the active frames of `attack_<facing>` (SpriteFrames meta
+`active_frames_<anim>`, else the middle third); without an attack animation `RpgSwingEffect` plays
+the generated arc and the hitbox is live 0.08 to 0.2 s after the press.
+
+`RpgEnemyAi` is only the state machine of an enemy (`IDLE`, `WANDER`, `ALERT`, `CHASE`, `ATTACK`,
+`HURT`, `STUNNED`, `DEAD`); `Detection`, `Chase`, `Wander`, `EnemyAttack` and `LootDrop` are
+components under `Components`. Their numbers are the keys of `definition.behavior` (see
+`RpgEnemyAi.DEFAULT_BEHAVIOR`). A dead enemy sets the flag `<entity_id>.defeated` (an
+`RpgPersistent` child frees it on every map load), emits `entity_defeated`, gives experience and gold
+and drops `RpgPickup`s. `RpgArpgHud` is the HUD scene `hud_arpg.tscn`.

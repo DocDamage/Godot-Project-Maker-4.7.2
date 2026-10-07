@@ -12,6 +12,9 @@ var config: Dictionary = {}
 var catalog: RefCounted = null  # CatalogReader
 var results: RefCounted = null  # Results
 var build_state: Dictionary = {"build_state_version": 1, "outputs": {}}
+## True when the user removed the demo content (T8.08): the ledger's `demo_removed` flag. The demo
+## recipes then leave the demo out of everything they create.
+var demo_removed: bool = false
 
 func _init(p_builder_dir: String, phase: String = "build") -> void:
 	builder_dir = p_builder_dir
@@ -30,6 +33,8 @@ func load_inputs() -> bool:
 		return false
 	config = cfg
 	catalog = CatalogReader.new(cat)
+	var ledger: Variant = JsonUtil.read(Paths.LEDGER) if FileAccess.file_exists(Paths.LEDGER) else null
+	demo_removed = ledger is Dictionary and ledger.get("demo_removed", false) == true
 	return true
 
 func load_build_state() -> void:

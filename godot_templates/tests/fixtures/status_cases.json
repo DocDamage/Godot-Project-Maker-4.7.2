@@ -1,0 +1,139 @@
+[
+  {
+    "name": "missing_wins",
+    "asset": {
+      "status": "CONFLICT",
+      "detected": {
+        "role": "NONE"
+      },
+      "overrides": {
+        "a": 1
+      },
+      "confidence": 1.0
+    },
+    "file_missing": true,
+    "expected": "MISSING"
+  },
+  {
+    "name": "conflict_stays",
+    "asset": {
+      "status": "CONFLICT",
+      "detected": {
+        "role": "GROUND"
+      },
+      "overrides": {},
+      "confidence": 1.0
+    },
+    "expected": "CONFLICT"
+  },
+  {
+    "name": "role_none_is_unused",
+    "asset": {
+      "status": "AUTO_DETECTED",
+      "detected": {
+        "role": "GROUND"
+      },
+      "overrides": {
+        "role": "NONE"
+      },
+      "confidence": 0.9
+    },
+    "expected": "UNUSED"
+  },
+  {
+    "name": "rule_role_none_unused",
+    "asset": {
+      "status": "AUTO_DETECTED",
+      "detected": {
+        "role": "GROUND"
+      },
+      "rule": {
+        "role": "NONE"
+      },
+      "overrides": {},
+      "confidence": 0.9
+    },
+    "expected": "UNUSED"
+  },
+  {
+    "name": "override_confirms",
+    "asset": {
+      "status": "NEEDS_REVIEW",
+      "detected": {
+        "role": "GROUND"
+      },
+      "overrides": {
+        "origin": [
+          8,
+          15
+        ]
+      },
+      "confidence": 0.1
+    },
+    "expected": "CONFIRMED"
+  },
+  {
+    "name": "metadata_confidence_confirms",
+    "asset": {
+      "status": "AUTO_DETECTED",
+      "detected": {
+        "role": "GROUND"
+      },
+      "overrides": {},
+      "confidence": 0.999
+    },
+    "expected": "CONFIRMED"
+  },
+  {
+    "name": "just_below_confirmed",
+    "asset": {
+      "status": "AUTO_DETECTED",
+      "detected": {
+        "role": "GROUND"
+      },
+      "overrides": {},
+      "confidence": 0.998
+    },
+    "expected": "AUTO_DETECTED"
+  },
+  {
+    "name": "auto_threshold",
+    "asset": {
+      "status": "NEEDS_REVIEW",
+      "detected": {
+        "role": "GROUND"
+      },
+      "overrides": {},
+      "confidence": 0.75
+    },
+    "expected": "AUTO_DETECTED"
+  },
+  {
+    "name": "below_auto",
+    "asset": {
+      "status": "AUTO_DETECTED",
+      "detected": {
+        "role": "GROUND"
+      },
+      "overrides": {},
+      "confidence": 0.74
+    },
+    "expected": "NEEDS_REVIEW"
+  },
+  {
+    "name": "override_removes_nothing_needed",
+    "asset": {
+      "status": "AUTO_DETECTED",
+      "detected": {
+        "role": "NPC"
+      },
+      "overrides": {
+        "tags": [
+          "x"
+        ]
+      },
+      "confidence": 0.8
+    },
+    "expected": "CONFIRMED"
+  }
+]

@@ -32,11 +32,11 @@ def test_turn_based_is_the_default(qtbot) -> None:
     assert state.archetype == "turn_based"
 
 
-def test_arpg_is_disabled_until_m9(qtbot) -> None:
-    assert features.ARPG_AVAILABLE is False
+def test_arpg_is_available_since_m9(qtbot) -> None:
+    assert features.ARPG_AVAILABLE is True
     page = _page(qtbot, WizardState())
-    assert not page.arpg_card.isEnabled()
-    assert page.arpg_card.toolTip() == "Coming in a later version"
+    assert page.arpg_card.isEnabled()
+    assert page.arpg_card.toolTip() == ""
 
 
 def test_arpg_selection_and_warning(qtbot, monkeypatch) -> None:

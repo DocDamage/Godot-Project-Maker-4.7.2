@@ -13,11 +13,18 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rpggen")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("version", help="print the version")
-    sub.add_parser("gui", help="open the graphical wizard (also the default)")
+    gui = sub.add_parser("gui", help="open the graphical wizard (also the default)")
+    gui.add_argument("--target", type=Path, help="open the wizard on this generated project")
     gen = sub.add_parser("generate", help="generate a Godot project")
     gen.add_argument("--config", type=Path, help="generator_config.json")
     gen.add_argument("--pack", type=Path, help="asset pack folder (creates a default config)")
     gen.add_argument("--name", help="project name for --pack")
+    gen.add_argument(
+        "--archetype",
+        choices=("turn_based", "arpg"),
+        default="turn_based",
+        help="combat archetype for --pack (a --config carries its own)",
+    )
     gen.add_argument("--target", type=Path, help="output folder")
     gen.add_argument("--godot", type=Path, help="Godot 4.7.2 executable")
     gen.add_argument(
@@ -82,7 +89,7 @@ def _generate(args: argparse.Namespace) -> int:
         cfg_path = args.config
         if cfg_path is None:
             name = args.name or args.pack.name
-            cfg = orchestrator.default_config_for_pack(args.pack, name)
+            cfg = orchestrator.default_config_for_pack(args.pack, name, archetype=args.archetype)
             cfg_path = Path(tmp) / "generator_config.json"
             config_mod.save(cfg, cfg_path)
         cb = orchestrator.Callbacks(on_log=print)
@@ -143,6 +150,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in (None, "gui"):
         from rpggen.gui import app
 
-        return app.run_gui()
+        return app.run_gui(target=getattr(args, "target", None))
     parser.print_help()
     return 2

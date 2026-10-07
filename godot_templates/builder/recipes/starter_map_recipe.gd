@@ -1,9 +1,10 @@
 extends RefCounted
 ## Seeds game/maps/starter_map.tscn once (user_seed ownership: never rewritten afterwards).
 
-const RECIPE_VERSION := 4
+const RECIPE_VERSION := 6
 
 const Paths := preload("../lib/paths.gd")
+const JsonUtil := preload("../lib/json_util.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
 const MapUtil := preload("../lib/map_util.gd")
 const ObjectEntries := preload("../lib/object_entries.gd")
@@ -12,14 +13,20 @@ const SeedUtil := preload("../lib/seed_util.gd")
 const ActorRecipes := preload("actor_recipes.gd")
 
 const OUT_PATH := "res://game/maps/starter_map.tscn"
+## The entities of the demo placed in the starter map (T8.08 removes exactly these).
+const DEMO_ENTITIES_PATH := "res://rpggen/demo_entities.json"
 const INTERIOR_PATH := "res://game/maps/interior_1.tscn"
 const PLAYER_SCENE := "res://generated/scenes/actors/player.tscn"
 const GREETING_PATH := "res://game/data/dialogue/npc_greeting.tres"
 const NPC_ID := "starter_map_npc_001"
 const CHEST_ID := "starter_map_chest_001"
 const ENEMY_ID := "starter_map_enemy_001"
+const ENEMY2_ID := "starter_map_enemy_002"
 ## Archetype -> recipe that knows its enemies (builder/recipes/<this>); the archetypes without one place none.
-const ENEMY_RECIPES := {"turn_based": "turn_based/enemy_recipes.gd"}
+const ENEMY_RECIPES := {"turn_based": "turn_based/enemy_recipes.gd", "arpg": "arpg/enemy_recipes.gd"}
+## Enemies the starter map places, by archetype (the others place one).
+const ENEMY_COUNTS := {"arpg": 2}
+const ENEMY_OFFSET_TILES := 4
 const TILESET_PATH := "res://generated/tilesets/overworld.tres"
 const MAP_SIZE := Vector2i(40, 24)
 const HOUSE_TILE := Vector2i(8, 6)
@@ -33,7 +40,7 @@ const PATCHES := 6
 func outputs(_ctx) -> PackedStringArray:
 	if FileAccess.file_exists(OUT_PATH):
 		return PackedStringArray()
-	return PackedStringArray([OUT_PATH])
+	return PackedStringArray([OUT_PATH, DEMO_ENTITIES_PATH])
 
 func input_hash(ctx) -> String:
 	return ctx.stable_hash({
@@ -46,6 +53,7 @@ func input_hash(ctx) -> String:
 		"npc": _npc_scene(ctx),
 		"chest": ObjectEntries.chest_entry(ctx).get("id", ""),
 		"enemy": _enemy_scene(ctx),
+		"demo_removed": ctx.demo_removed,
 	})
 
 func build(ctx) -> Array:
@@ -75,9 +83,10 @@ func build(ctx) -> Array:
 	if not building.is_empty():
 		_place_building(building, root, entities, tile_px)
 	_place_decorations(ctx, root, entities, tile_px)
-	_place_npc(ctx, root, entities, tile_px, issues)
-	_place_chest(ctx, root, entities, tile_px, issues)
-	_place_enemy(ctx, root, entities, tile_px)
+	if not ctx.demo_removed:
+		_place_npc(ctx, root, entities, tile_px, issues)
+		_place_chest(ctx, root, entities, tile_px, issues)
+		_place_enemy(ctx, root, entities, tile_px)
 
 	MapUtil.add_marker(nodes["SpawnPoints"], root, "default", MapUtil.tile_center(SPAWN_TILE, tile_px), true)
 	for spot in RESERVED_SPOTS.keys():
@@ -89,7 +98,21 @@ func build(ctx) -> Array:
 	var err := SceneUtil.save_scene(root, OUT_PATH)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": OUT_PATH, "err": err}, OUT_PATH))
+	_write_demo_entities(ctx, issues)
 	return issues
+
+## Ids of the demo entities the map holds, for the dock's "Remove demo content" (T8.08).
+func _write_demo_entities(ctx, issues: Array) -> void:
+	var ids: Array = []
+	if not ctx.demo_removed:
+		ids = [NPC_ID, CHEST_ID]
+		if _enemy_scene(ctx) != "":
+			ids.append(ENEMY_ID)
+			if _enemy_count(ctx) > 1:
+				ids.append(ENEMY2_ID)
+	var err := JsonUtil.write(DEMO_ENTITIES_PATH, {"demo_entities_version": 1, "map": OUT_PATH, "entities": ids})
+	if err != OK:
+		issues.append(ctx.make_issue("BUILD-004", {"file": DEMO_ENTITIES_PATH, "err": err}, DEMO_ENTITIES_PATH))
 
 func _ground_tile(ctx, def: Dictionary, tile_set: TileSet) -> Dictionary:
 	var wanted := String(ctx.config.get("starter", {}).get("ground", ""))
@@ -226,12 +249,20 @@ func _place_chest(ctx, root: Node2D, entities: Node2D, tile_px: int, issues: Arr
 	chest.set("gold", 20)
 
 ## The scene of the starter enemy, from the archetype's enemy recipe. "" when the archetype has none.
-func _enemy_scene(ctx) -> String:
+func _enemy_scene(ctx, index: int = 0) -> String:
 	var rel: String = ENEMY_RECIPES.get(String(ctx.config.get("archetype", "")), "")
 	if rel == "":
 		return ""
 	var script := load(get_script().resource_path.get_base_dir().path_join(rel)) as GDScript
-	return String(script.new().starter_scene(ctx)) if script != null else ""
+	if script == null:
+		return ""
+	var recipe: RefCounted = script.new()
+	if index > 0:
+		return String(recipe.starter_scene_at(ctx, index)) if recipe.has_method("starter_scene_at") else ""
+	return String(recipe.starter_scene(ctx))
+
+func _enemy_count(ctx) -> int:
+	return int(ENEMY_COUNTS.get(String(ctx.config.get("archetype", "")), 1)) if _enemy_scene(ctx) != "" else 0
 
 func _place_enemy(ctx, root: Node2D, entities: Node2D, tile_px: int) -> void:
 	var scene := _enemy_scene(ctx)
@@ -241,3 +272,10 @@ func _place_enemy(ctx, root: Node2D, entities: Node2D, tile_px: int) -> void:
 	if enemy != null:
 		enemy.set("entity_id", ENEMY_ID)
 		enemy.set("facing", "down")
+	if _enemy_count(ctx) > 1:
+		var scene2 := _enemy_scene(ctx, 1)
+		var spot := RESERVED_SPOTS["enemy_spot"] + Vector2i(ENEMY_OFFSET_TILES, 0)
+		var enemy2 := MapUtil.place(scene2, entities, root, MapUtil.tile_center(spot, tile_px), "Enemy2")
+		if enemy2 != null:
+			enemy2.set("entity_id", ENEMY2_ID)
+			enemy2.set("facing", "down")

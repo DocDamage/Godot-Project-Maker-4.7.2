@@ -1,7 +1,7 @@
 extends RefCounted
 ## Applies project settings from the generator config and saves project.godot.
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 4
 
 # Autoloads in registration order (T6): the runtime's singletons, nothing else.
 const AUTOLOADS := [
@@ -12,6 +12,9 @@ const AUTOLOADS := [
 	["RpgSettings", "res://addons/rpg_runtime/core/settings.gd"],
 	["RpgSmoke", "res://addons/rpg_runtime/debug/smoke_runner.gd"],
 ]
+# The editor plugin of the tools addon (T8.01); enabled when the addon is installed and the
+# editor_tools feature is on.
+const TOOLS_PLUGIN := "res://addons/rpg_project_tools/plugin.cfg"
 const THEME_PATH := "res://generated/theme/main_theme.tres"
 const BUS_LAYOUT_PATH := "res://generated/audio/default_bus_layout.tres"
 
@@ -33,7 +36,11 @@ func input_hash(ctx) -> String:
 		"input": ctx.config.get("input", {}),
 		"seed": ctx.config.get("seed", 12345),
 		"debug": bool(ctx.config.get("features", {}).get("debug_tools", false)),
+		"tools_plugin": _wants_tools_plugin(ctx.config),
 	})
+
+func _wants_tools_plugin(cfg: Dictionary) -> bool:
+	return bool(cfg.get("features", {}).get("editor_tools", true)) and FileAccess.file_exists(TOOLS_PLUGIN)
 
 func build(ctx) -> Array:
 	var issues: Array = []
@@ -55,6 +62,7 @@ func build(ctx) -> Array:
 	for i in PHYSICS_LAYER_NAMES.size():
 		ProjectSettings.set_setting("layer_names/2d_physics/layer_%d" % (i + 1), PHYSICS_LAYER_NAMES[i])
 	_apply_autoloads()
+	_apply_tools_plugin(cfg)
 	# The seed of the smoke test (used only with --rpg-smoke).
 	ProjectSettings.set_setting("rpg/seed", int(cfg.get("seed", 12345)))
 	ProjectSettings.set_setting("gui/theme/custom", THEME_PATH)
@@ -67,6 +75,15 @@ func build(ctx) -> Array:
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": "project.godot", "err": err}, "project.godot"))
 	return issues
+
+## Adds the tools plugin to editor_plugins/enabled without touching the user's other plugins.
+func _apply_tools_plugin(cfg: Dictionary) -> void:
+	if not _wants_tools_plugin(cfg):
+		return
+	var enabled: PackedStringArray = ProjectSettings.get_setting("editor_plugins/enabled", PackedStringArray())
+	if not enabled.has(TOOLS_PLUGIN):
+		enabled.append(TOOLS_PLUGIN)
+		ProjectSettings.set_setting("editor_plugins/enabled", enabled)
 
 ## Registers the runtime autoloads in order. RpgSmoke is inert unless the game is started with
 ## --rpg-smoke.

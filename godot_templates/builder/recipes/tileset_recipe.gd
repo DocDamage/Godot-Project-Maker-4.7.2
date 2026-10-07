@@ -1,7 +1,7 @@
 extends RefCounted
 ## Builds one TileSet resource per TileSetDef in the catalog.
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 5
 
 const Paths := preload("../lib/paths.gd")
 const Geometry := preload("../lib/geometry.gd")
@@ -33,11 +33,16 @@ func input_hash(ctx) -> String:
 		if def.get("patterns_from_objects", true):
 			objects = ctx.catalog.objects()
 		parts.append({"def": def, "sources": sources, "objects": objects})
-	return ctx.stable_hash({"v": RECIPE_VERSION, "tilesets": parts})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "tilesets": parts, "nav": _wants_navigation(ctx)})
+
+## features.navigation: the TileSet gets a navigation layer (T9.06).
+func _wants_navigation(ctx) -> bool:
+	return bool(ctx.config.get("features", {}).get("navigation", false))
 
 func build(ctx) -> Array:
 	var issues: Array = []
 	_load_apply_state()
+	_nav_enabled = _wants_navigation(ctx)
 	for def in ctx.catalog.tileset_defs():
 		_build_tileset(ctx, def, issues)
 	_save_apply_state(issues, ctx)
@@ -49,6 +54,7 @@ func build(ctx) -> Array:
 const APPLY_STATE := "res://rpggen/tileset_apply_state.json"
 var _apply: Dictionary = {}
 var _apply_dirty := false
+var _nav_enabled := false
 
 func _load_apply_state() -> void:
 	_apply = {}
@@ -63,6 +69,71 @@ func _save_apply_state(issues: Array, ctx) -> void:
 	var err := JsonUtil.write(APPLY_STATE, {"apply_state_version": 1, "tiles": _apply})
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": APPLY_STATE, "err": err}, APPLY_STATE))
+
+# TileSet.CELL_NEIGHBOR_* for the peering keys of a terrain assignment (T8.06). The names map 1:1.
+const PEERING_BITS := {
+	"right_side": TileSet.CELL_NEIGHBOR_RIGHT_SIDE,
+	"bottom_right_corner": TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_CORNER,
+	"bottom_side": TileSet.CELL_NEIGHBOR_BOTTOM_SIDE,
+	"bottom_left_corner": TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_CORNER,
+	"left_side": TileSet.CELL_NEIGHBOR_LEFT_SIDE,
+	"top_left_corner": TileSet.CELL_NEIGHBOR_TOP_LEFT_CORNER,
+	"top_side": TileSet.CELL_NEIGHBOR_TOP_SIDE,
+	"top_right_corner": TileSet.CELL_NEIGHBOR_TOP_RIGHT_CORNER,
+}
+const TERRAIN_MODES := {
+	"corners_and_sides": TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES,
+	"corners": TileSet.TERRAIN_MODE_MATCH_CORNERS,
+	"sides": TileSet.TERRAIN_MODE_MATCH_SIDES,
+}
+
+## Adds the terrain sets and terrains of the definition the TileSet does not have yet. Existing
+## ones are never changed or removed: painted maps and terrain edits in Godot depend on them.
+static func ensure_terrain_sets(ts: TileSet, sets: Array) -> void:
+	for i in sets.size():
+		var spec: Dictionary = sets[i]
+		if ts.get_terrain_sets_count() <= i:
+			ts.add_terrain_set()
+			ts.set_terrain_set_mode(i, TERRAIN_MODES.get(String(spec.get("mode", "corners_and_sides")), TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES))
+		var terrains: Array = spec.get("terrains", [])
+		while ts.get_terrains_count(i) < terrains.size():
+			var t_index := ts.get_terrains_count(i)
+			ts.add_terrain(i)
+			ts.set_terrain_name(i, t_index, String(terrains[t_index].get("name", "terrain")))
+			ts.set_terrain_color(i, t_index, Color.from_string(String(terrains[t_index].get("color", "#ffffff")), Color.WHITE))
+
+## Index of the terrain set called `set_name` in the definition's list, or -1.
+static func terrain_set_index(sets: Array, set_name: String) -> int:
+	for i in sets.size():
+		if String(sets[i].get("name", "")) == set_name:
+			return i
+	return -1
+
+## Gives a tile its terrain and peering bits from a tile_overrides entry. Bits the terrain mode does
+## not use are skipped. Returns true when the tile was changed.
+static func apply_terrain(td: TileData, ts: TileSet, sets: Array, terrain: Dictionary) -> bool:
+	var set_index := terrain_set_index(sets, String(terrain.get("set", "")))
+	if set_index < 0 or set_index >= ts.get_terrain_sets_count():
+		return false
+	td.terrain_set = set_index
+	td.terrain = int(terrain.get("terrain", -1))
+	var peering: Dictionary = terrain.get("peering", {})
+	for key in PEERING_BITS.keys():
+		var value := int(peering.get(key, -1))
+		if value >= 0 and td.is_valid_terrain_peering_bit(PEERING_BITS[key]):
+			td.set_terrain_peering_bit(PEERING_BITS[key], value)
+	return true
+
+## The horizontal run of an animation override, or [] when Godot's atlas animation cannot show
+## it: the frames must be consecutive cells of one row starting at the tile itself.
+static func animation_run(coords: Vector2i, anim: Dictionary) -> Array:
+	var frames: Array = anim.get("frames", [])
+	if frames.size() < 2:
+		return []
+	for i in frames.size():
+		if int(frames[i][0]) != coords.x + i or int(frames[i][1]) != coords.y:
+			return []
+	return frames
 
 func _build_tileset(ctx, def: Dictionary, issues: Array) -> void:
 	var out_path: String = Paths.TILESETS_DIR + "%s.tres" % def["name"]
@@ -101,12 +172,17 @@ func _build_tileset(ctx, def: Dictionary, issues: Array) -> void:
 			ts.set_custom_data_layer_name(idx, layer["name"])
 			ts.set_custom_data_layer_type(idx, custom_types.get(layer.get("type", "string"), TYPE_STRING))
 
+	if _nav_enabled and ts.get_navigation_layers_count() == 0:
+		ts.add_navigation_layer()  # layer 0: walkable ground, see _configure_navigation
+
+	ensure_terrain_sets(ts, def.get("terrain_sets", []))
+
 	var sources: Array = def["sources"].duplicate()
 	sources.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["source_id"]) < int(b["source_id"]))
 	var in_def := {}
 	for s in sources:
 		in_def[int(s["source_id"])] = true
-		_build_source(ctx, ts, def["name"], s, cell, issues)
+		_build_source(ctx, ts, def, s, cell, issues)
 	# Sources the TileSet has but the definition no longer lists stay (painted maps may use them).
 	var retired: Array = ctx.catalog.catalog.get("id_allocations", {}).get("tilesets", {}).get(def["name"], {}).get("retired", [])
 	for i in ts.get_source_count():
@@ -121,7 +197,8 @@ func _build_tileset(ctx, def: Dictionary, issues: Array) -> void:
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": out_path, "err": err}, out_path))
 
-func _build_source(ctx, ts: TileSet, ts_name: String, s: Dictionary, cell: Vector2i, issues: Array) -> void:
+func _build_source(ctx, ts: TileSet, def: Dictionary, s: Dictionary, cell: Vector2i, issues: Array) -> void:
+	var ts_name: String = def["name"]
 	var asset: Dictionary = ctx.catalog.asset(s["asset"])
 	if asset.is_empty():
 		issues.append(ctx.make_issue("CAT-004", {"asset": s["asset"], "file": "(catalog)"}))
@@ -184,11 +261,28 @@ func _build_source(ctx, ts: TileSet, ts_name: String, s: Dictionary, cell: Vecto
 	# A WALL sheet blocks movement unless the catalog says otherwise.
 	var sheet_collision: Dictionary = eff.get("collision", {"profile": "FULL" if eff.get("role", "") == "WALL" else "NONE"})
 	var filled := {}
+	# Animated tiles (T8.07): the cells after the first frame belong to the animation and get no
+	# tile of their own (Godot refuses an animation over existing tiles).
+	var runs := {}
+	var covered := {}
+	for key in overrides.keys():
+		var anim: Variant = overrides[key].get("anim")
+		if not (anim is Dictionary):
+			continue
+		var parts: PackedStringArray = String(key).split(",")
+		var first := Vector2i(int(parts[0]), int(parts[1]))
+		var run := animation_run(first, anim)
+		if run.is_empty():
+			issues.append(ctx.make_issue("TILE-008", {"asset": s["asset"], "coords": String(key)}, "res://" + str(asset["path"])))
+			continue
+		runs[first] = {"count": run.size(), "durations_ms": anim.get("durations_ms", [])}
+		for i in range(1, run.size()):
+			covered[Vector2i(first.x + i, first.y)] = true
 	for cy in rows:
 		for cx in cols:
 			var key := "%d,%d" % [cx, cy]
 			var ov: Dictionary = overrides.get(key, {})
-			if ov.get("skip", false):
+			if ov.get("skip", false) or covered.has(Vector2i(cx, cy)):
 				continue
 			var rect := Rect2i(
 				margin.x + cx * (atlas_cell.x + sep.x), margin.y + cy * (atlas_cell.y + sep.y),
@@ -203,6 +297,16 @@ func _build_source(ctx, ts: TileSet, ts_name: String, s: Dictionary, cell: Vecto
 				src.create_tile(coords)
 			var tile_key := "%s/%d/%s" % [ts_name, source_id, key]
 			_configure_tile(ctx, src.get_tile_data(coords, 0), asset, ov.get("collision", sheet_collision), atlas_cell, cell_img, is_new, tile_key, issues)
+			if _nav_enabled:
+				_configure_navigation(src.get_tile_data(coords, 0), String(eff.get("role", "")), ov.get("collision", sheet_collision), atlas_cell)
+			var terrain: Variant = ov.get("terrain")
+			if terrain is Dictionary:
+				var td := src.get_tile_data(coords, 0)
+				# A tile that already has a terrain keeps it: the user may have edited it in Godot.
+				if is_new or td.terrain_set == -1:
+					apply_terrain(td, ts, def.get("terrain_sets", []), terrain)
+			if runs.has(coords):
+				_apply_animation(ctx, src, coords, runs[coords], asset, issues)
 	# Tiles are never removed. Cells that became empty are reported (TILE-005).
 	var emptied: Array = []
 	for i in src.get_tiles_count():
@@ -213,6 +317,23 @@ func _build_source(ctx, ts: TileSet, ts_name: String, s: Dictionary, cell: Vecto
 		emptied.sort()
 		var shown: String = ", ".join(emptied.slice(0, 8)) + (" ..." if emptied.size() > 8 else "")
 		issues.append(ctx.make_issue("TILE-005", {"asset": s["asset"], "coords": shown}, tex_path))
+
+## Turns a tile into an animated tile of `run.count` frames in the cells to its right.
+func _apply_animation(ctx, src: TileSetAtlasSource, coords: Vector2i, run: Dictionary, asset: Dictionary, issues: Array) -> void:
+	var count: int = run["count"]
+	if src.get_tile_animation_frames_count(coords) == count:
+		return  # built before
+	for i in range(1, count):
+		if src.has_tile(Vector2i(coords.x + i, coords.y)):
+			# Tiles exist there already (painted maps may use them): Godot cannot animate over them.
+			issues.append(ctx.make_issue("TILE-008", {"asset": asset["id"], "coords": "%d,%d" % [coords.x, coords.y]}, "res://" + str(asset["path"])))
+			return
+	src.set_tile_animation_columns(coords, count)
+	src.set_tile_animation_frames_count(coords, count)
+	var durations: Array = run["durations_ms"]
+	for i in count:
+		var ms := float(durations[i]) if i < durations.size() else 100.0
+		src.set_tile_animation_frame_duration(coords, i, ms / 1000.0)
 
 ## Tile-space collision polygons a collision spec produces for one cell.
 func _desired_polygons(collision: Dictionary, atlas_cell: Vector2i, cell_img: Image) -> Array:
@@ -279,6 +400,17 @@ func _configure_tile(ctx, td: TileData, asset: Dictionary, collision: Dictionary
 		_apply[tile_key] = new_record
 		_apply_dirty = true
 	td.set_custom_data("asset_id", asset["id"])
+
+## Every GROUND-role tile without collision gets a full-tile navigation polygon on layer 0. A tile
+## that already has one (maybe edited in Godot) is left alone.
+func _configure_navigation(td: TileData, role: String, collision: Dictionary, atlas_cell: Vector2i) -> void:
+	if role != "GROUND" or collision.get("profile", "NONE") != "NONE" or td.get_navigation_polygon(0) != null:
+		return
+	var half := Vector2(atlas_cell) * 0.5
+	var poly := NavigationPolygon.new()
+	poly.vertices = PackedVector2Array([Vector2(-half.x, -half.y), Vector2(half.x, -half.y), Vector2(half.x, half.y), Vector2(-half.x, half.y)])
+	poly.add_polygon(PackedInt32Array([0, 1, 2, 3]))
+	td.set_navigation_polygon(0, poly)
 
 ## TileMapPatterns from sheet objects (T4.06): one pattern per object, in object id order. Every
 ## existing pattern is removed first, so a rebuild never duplicates them.

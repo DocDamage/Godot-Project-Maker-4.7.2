@@ -49,8 +49,9 @@ SMOKE_STEPS_M6 = "res://generated/builder/smoke/smoke_steps_m6.gd"
 # The M6 file composes the M1 and M4 steps in the right order (the game starts at the title).
 SMOKE_STEPS = SMOKE_STEPS_M6
 SMOKE_STEPS_TURN_BASED = "res://generated/builder/smoke/smoke_steps_turn_based.gd"
+SMOKE_STEPS_ARPG = "res://generated/builder/smoke/smoke_steps_arpg.gd"
 # The archetype's own steps run after the shared sequence (which ends in the starter map).
-ARCHETYPE_SMOKE_STEPS = {"turn_based": SMOKE_STEPS_TURN_BASED}
+ARCHETYPE_SMOKE_STEPS = {"turn_based": SMOKE_STEPS_TURN_BASED, "arpg": SMOKE_STEPS_ARPG}
 
 
 def smoke_steps_for(archetype: str) -> str:
@@ -200,7 +201,12 @@ def phase_stage(state: _State) -> None:
 
 def phase_install(state: _State) -> None:
     assert state.staging is not None and state.cfg is not None
-    staging.install_templates(state.staging, paths.templates_root(), state.cfg.archetype)
+    staging.install_templates(
+        state.staging,
+        paths.templates_root(),
+        state.cfg.archetype,
+        editor_tools=bool(state.cfg.features.get("editor_tools", True)),
+    )
     used: set[str] = set()
     for ref in state.cfg.packs:
         opened = archive.open_pack(Path(ref.source), used, pack_id=ref.pack_id)
@@ -517,11 +523,11 @@ def _execute(state: _State) -> RunResult:
 
 
 def default_config_for_pack(
-    pack_dir: Path, name: str, tile_size: int = 16
+    pack_dir: Path, name: str, tile_size: int = 16, archetype: str = "turn_based"
 ) -> config_mod.GeneratorConfig:
     """Config for a single pack folder or archive (used by ``rpggen generate --pack``)."""
     pack_dir = Path(pack_dir)
     stem = pack_dir.name if pack_dir.is_dir() else pack_dir.stem
     pack_id = ids.pack_id_from_name(stem, set())
     ref = config_mod.pack_ref_from_source(pack_dir, pack_id)
-    return config_mod.default_for(name, [ref], base_tile_size=tile_size)
+    return config_mod.default_for(name, [ref], archetype=archetype, base_tile_size=tile_size)

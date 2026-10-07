@@ -573,7 +573,7 @@ def assemble(
     Returns ``(catalog, issues, generated_files)`` where generated_files maps project-relative
     paths (GIF strips) to the absolute files the installer must copy.
     """
-    from rpggen.core import adapters, classifier
+    from rpggen.core import adapters, classifier, terrain
     from rpggen.core.analyzer import analyzer_for
 
     adapters.register_defaults()
@@ -585,10 +585,12 @@ def assemble(
     present_ids: set[str] = set()
     all_results: dict[str, list[Any]] = {}
     extra_rules: list[FolderRule] = []
+    pack_roots: dict[str, Path] = {}
 
     for opened, inv in sorted(packs, key=lambda pair: _sort_key(pair[1].pack_id)):
         pack_id = inv.pack_id
         root = f"assets/packs/{pack_id}"
+        pack_roots[pack_id] = opened.root
         issues.extend(opened.issues)
         issues.extend(i for i in inv.issues if i not in opened.issues)
         ctx = adapters.AdapterContext(
@@ -687,6 +689,12 @@ def assemble(
             )
         )
 
+    # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
+    terrain.apply_tiled_wang(catalog, adapter_tilesets)
+    terrain_result = terrain.generate(catalog, pack_roots, work_dir, issues)
+    generated.update(terrain_result.generated)
+    present_ids.update(a.id for a in catalog.assets)
+
     if previous is not None:
         previous = apply_renames(catalog, previous)
     _carry_previous(catalog, previous, present_ids, issues)
@@ -697,6 +705,7 @@ def assemble(
     apply_folder_rules(catalog, extra_rules)
     _add_objects(catalog, objects_raw, previous)
     assign_tilesets(catalog, previous, adapter_tilesets)
+    terrain.attach_terrain_sets(catalog, terrain_result)
     for asset in catalog.assets:
         asset.status = recompute_status(
             asset,

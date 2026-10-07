@@ -107,7 +107,7 @@ def final_ledger(target: Path, old: Ledger, candidate: Ledger, plan_: PromotionP
         files.pop(rel, None)
     deleted = [d for d in old.deleted_by_user if not paths.from_posix_rel(d, target).is_file()]
     deleted += [rel for rel in plan_.skipped_deleted if rel not in deleted]
-    return Ledger(files, sorted(set(deleted)))
+    return Ledger(files, sorted(set(deleted)), demo_removed=old.demo_removed)
 
 
 # --------------------------------------------------------------------------- file operations

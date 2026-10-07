@@ -1,0 +1,74 @@
+[
+  {
+    "name": "script_lf",
+    "file": "a.gd",
+    "hex": "657874656e6473204e6f64650a7661722078203d20310a",
+    "sha256": "ebf2128299a6157951e2ead0a3c557e8a7c81462d1b37baec603080bb53247e5"
+  },
+  {
+    "name": "script_crlf",
+    "file": "b.gd",
+    "hex": "657874656e6473204e6f64650d0a7661722078203d20310d0a",
+    "sha256": "ebf2128299a6157951e2ead0a3c557e8a7c81462d1b37baec603080bb53247e5"
+  },
+  {
+    "name": "scene_mixed_endings",
+    "file": "map.tscn",
+    "hex": "5b67645f7363656e655d0d0a0d0a5b6e6f6465206e616d653d2241225d0a78203d20310d0a",
+    "sha256": "d9ad01940b2aae1f1a63c15b696879fb9acccfed0da76c7427ae591b1b78b8ec"
+  },
+  {
+    "name": "lone_cr_kept",
+    "file": "c.json",
+    "hex": "7b2261223a0d317d0a",
+    "sha256": "2dd9e61aed511da94126b79f45b62f5b3e1d80174d62c7f4f4e2a8fcecc541c3"
+  },
+  {
+    "name": "dotfile_by_name",
+    "file": ".gitignore",
+    "hex": "2e676f646f742f0d0a",
+    "sha256": "531d0d253cec1addb97b2cb2d144b6589ff934513eb9c9b8cf882cb49e4c0c32"
+  },
+  {
+    "name": "dotfile_lf",
+    "file": ".gitignore",
+    "hex": "2e676f646f742f0a",
+    "sha256": "531d0d253cec1addb97b2cb2d144b6589ff934513eb9c9b8cf882cb49e4c0c32"
+  },
+  {
+    "name": "double_extension",
+    "file": "levels.backup.tres",
+    "hex": "5b67645f7265736f757263655d0d0a",
+    "sha256": "6f570d6f28170f51d612a65e726239dd178885beaa2a8d003ce2958a4fbea5e7"
+  },
+  {
+    "name": "binary_png_with_crlf_bytes",
+    "file": "pic.png",
+    "hex": "89504e470d0a1a0a00010d0a",
+    "sha256": "32b3b85c2544f1b4a2e95c0255b7e95320e1285ec7484a9dd208e7b53d2ac31f"
+  },
+  {
+    "name": "uppercase_extension",
+    "file": "NOTES.MD",
+    "hex": "23207469746c650d0a626f64790d0a",
+    "sha256": "e86561cf7c628e3dffe1bfcb112d463b8ea87b27c10fca3c6ea69f1f2eaf574f"
+  },
+  {
+    "name": "no_extension",
+    "file": "LICENSE",
+    "hex": "4d49540d0a6c6963656e73650d0a",
+    "sha256": "976ef320d5a5c3524c15f94e7b43e4b47664475ea799f26d418e87d081803ff4"
+  },
+  {
+    "name": "empty_text",
+    "file": "empty.txt",
+    "hex": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "utf8_text",
+    "file": "uni.csv",
+    "hex": "6b2c760d0a636166c3a92cc3b10d0a",
+    "sha256": "437506c294bbd7ea2bb514a6d7bfbb1ab5477d9e656d344909b6abd7c295939f"
+  }
+]

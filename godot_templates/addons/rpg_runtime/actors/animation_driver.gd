@@ -32,6 +32,25 @@ func _resolve(frames: SpriteFrames, base: String, facing: String) -> Dictionary:
 			return {"anim": mirrored, "flip": not bool(frames.get_meta("flip_h_" + mirrored, false))}
 	return {}
 
+## True when "<base>_<facing>" (or its mirrored counterpart) exists, with no fallback to other
+## directions.
+func has_animation(base: String, facing: String) -> bool:
+	if sprite == null or sprite.sprite_frames == null:
+		return false
+	return not _resolve(sprite.sprite_frames, base, facing).is_empty()
+
+## Plays "<base>_<facing>" exactly (direct or mirrored) from its first frame. Returns the animation
+## name, or "" when it does not exist.
+func play_exact(base: String, facing: String) -> String:
+	if not has_animation(base, facing):
+		return ""
+	var found := _resolve(sprite.sprite_frames, base, facing)
+	sprite.flip_h = found["flip"]
+	sprite.play(found["anim"])
+	sprite.frame = 0
+	sprite.frame_progress = 0.0
+	return found["anim"]
+
 ## Plays "<base>_<facing>". Falls back in order:
 ## 1. "<base>_<facing>"  2. mirrored counterpart with flip_h (left<->right)
 ## 3. "<base>_down"  4. "walk_<facing>" frame 0 (paused) when base == "idle"

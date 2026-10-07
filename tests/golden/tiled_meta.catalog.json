@@ -35,32 +35,34 @@
         "tile_overrides": {
           "0,0": {
             "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": -1,
+                "left_side": -1,
+                "right_side": -1,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": -1
+              },
               "set": "ground",
-              "wangid": [
-                0,
-                1,
-                0,
-                1,
-                0,
-                1,
-                0,
-                1
-              ]
+              "terrain": 0
             }
           },
           "1,0": {
             "terrain": {
+              "peering": {
+                "bottom_left_corner": 1,
+                "bottom_right_corner": 1,
+                "bottom_side": -1,
+                "left_side": -1,
+                "right_side": -1,
+                "top_left_corner": 1,
+                "top_right_corner": 1,
+                "top_side": -1
+              },
               "set": "ground",
-              "wangid": [
-                0,
-                2,
-                0,
-                2,
-                0,
-                2,
-                0,
-                2
-              ]
+              "terrain": 1
             }
           },
           "1,1": {

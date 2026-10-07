@@ -201,7 +201,9 @@ def test_smoke_steps_follow_the_archetype() -> None:
     turn_based = orchestrator.smoke_steps_for("turn_based").split(",")
     assert turn_based[0].endswith("smoke_steps_m6.gd")
     assert turn_based[1].endswith("smoke_steps_turn_based.gd")
-    assert orchestrator.smoke_steps_for("arpg").split(",") == [orchestrator.SMOKE_STEPS]
+    arpg = orchestrator.smoke_steps_for("arpg").split(",")
+    assert arpg[0].endswith("smoke_steps_m6.gd") and arpg[1].endswith("smoke_steps_arpg.gd")
+    assert len(arpg) == 2
 
 
 def test_the_readme_gets_the_archetype_section(tmp_path: Path) -> None:

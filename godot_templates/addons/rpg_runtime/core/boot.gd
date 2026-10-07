@@ -8,6 +8,8 @@ const UI_DIR := "res://generated/scenes/ui/"
 ## The archetype's combat mode scene (empty until an archetype provides one).
 @export var combat_scene: String = ""
 @export var debug_tools: bool = false
+## The HUD scene under ui/ (an archetype may bring its own).
+@export var hud_scene: String = "hud_basic"
 
 func _ready() -> void:
 	RpgStrings.register_translations()
@@ -29,7 +31,7 @@ func _create_services(router: Node) -> void:
 	router.add_child(audio)
 	router.set("audio", audio)
 	_add_scene(router, "dialogue_box")
-	_add_scene(router, "hud_basic")
+	_add_scene(router, hud_scene)
 	_add_scene(router, "notification", 70)
 	var controller := RpgUiController.new()
 	controller.name = "UiController"

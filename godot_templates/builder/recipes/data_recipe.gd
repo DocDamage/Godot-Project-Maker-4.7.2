@@ -27,11 +27,14 @@ const SEED_STRINGS := {
 	"ITEM_POTION_DESC": "Restores 10 HP.",
 }
 
-func outputs(_ctx) -> PackedStringArray:
+func outputs(ctx) -> PackedStringArray:
+	# Without the demo there is no NPC to greet the player.
+	if ctx.demo_removed:
+		return SeedUtil.missing([HERO_PATH, NEW_GAME_PATH, POTION_PATH])
 	return SeedUtil.missing([HERO_PATH, NEW_GAME_PATH, POTION_PATH, GREETING_PATH])
 
 func input_hash(ctx) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed})
 
 func _player_id(ctx) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -55,10 +58,10 @@ func build(ctx) -> Array:
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx), HERO_PATH, issues)
 	if not FileAccess.file_exists(NEW_GAME_PATH):
-		_save(ctx, _new_game(), NEW_GAME_PATH, issues)
+		_save(ctx, _new_game(ctx.demo_removed), NEW_GAME_PATH, issues)
 	if not FileAccess.file_exists(POTION_PATH):
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
-	if not FileAccess.file_exists(GREETING_PATH):
+	if not ctx.demo_removed and not FileAccess.file_exists(GREETING_PATH):
 		_save(ctx, _greeting(), GREETING_PATH, issues)
 	return issues
 
@@ -80,12 +83,12 @@ func _hero(ctx) -> Resource:
 			def.set("sprite_frames", load(frames_path))
 	return def
 
-func _new_game() -> Resource:
+func _new_game(demo_removed: bool = false) -> Resource:
 	var ng := SeedUtil.make(NEW_GAME)
 	ng.set("start_map", "res://game/maps/starter_map.tscn")
 	ng.set("start_spawn", &"default")
 	ng.set("gold", 50)
-	ng.set("items", SeedUtil.dict_array([{"item_id": "potion", "qty": 2}]))
+	ng.set("items", SeedUtil.dict_array([] if demo_removed else [{"item_id": "potion", "qty": 2}]))
 	return ng
 
 func _potion(ctx) -> Resource:

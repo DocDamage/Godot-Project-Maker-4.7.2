@@ -150,3 +150,20 @@ def test_scan_keeps_seed_entries_and_skips_user_created_files(tmp_path: Path) ->
     assert "game/scripts/mine.gd" not in led.files, "user-created"
     assert "generated/user_made.tres" not in led.files, "user-created"
     assert "generated/new.tres" in led.files
+
+
+def test_demo_removed_flag_round_trips_and_is_omitted_when_false(tmp_path: Path) -> None:
+    plain = Ledger()
+    assert "demo_removed" not in plain.to_json()
+    flagged = Ledger(demo_removed=True)
+    assert flagged.to_json()["demo_removed"] is True
+    path = tmp_path / "ledger.json"
+    flagged.save(path)
+    assert Ledger.load(path).demo_removed is True
+    assert Ledger.from_json(plain.to_json()).demo_removed is False
+
+
+def test_scan_keeps_the_demo_removed_flag(tmp_path: Path) -> None:
+    (tmp_path / "generated").mkdir()
+    (tmp_path / "generated" / "a.txt").write_text("x", encoding="utf-8")
+    assert ledger.scan(tmp_path, None, Ledger(demo_removed=True)).demo_removed is True

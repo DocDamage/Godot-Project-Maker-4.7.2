@@ -75,9 +75,11 @@ class Ledger:
     files: dict[str, LedgerEntry] = field(default_factory=dict)
     deleted_by_user: list[str] = field(default_factory=list)
     generator_version: str = __version__
+    # The user removed the demo content in the editor (T8.08): the demo recipes leave it out.
+    demo_removed: bool = False
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "ledger_version": 1,
             "generator_version": self.generator_version,
             "files": {
@@ -86,6 +88,9 @@ class Ledger:
             },
             "deleted_by_user": sorted(set(self.deleted_by_user)),
         }
+        if self.demo_removed:
+            out["demo_removed"] = True
+        return out
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> Ledger:
@@ -97,6 +102,7 @@ class Ledger:
             },
             list(data["deleted_by_user"]),
             data["generator_version"],
+            bool(data.get("demo_removed", False)),
         )
 
     @classmethod
@@ -184,5 +190,11 @@ def scan(staging: Path, target: Path | None = None, old: Ledger | None = None) -
             continue
         if rel not in old.files and target is not None and (Path(target) / rel).is_file():
             continue  # exists in the target but the ledger never wrote it: user-created
-        files[rel] = LedgerEntry(file_hash(p), _written_by(rel, recipes), owner)
-    return Ledger(files, list(old.deleted_by_user))
+        digest = file_hash(p)
+        previous = old.files.get(rel)
+        if previous is not None and previous.sha256 == digest and previous.owner == owner:
+            # Unchanged content: keep who wrote it (a run that skipped the recipe has no record).
+            files[rel] = previous
+            continue
+        files[rel] = LedgerEntry(digest, _written_by(rel, recipes), owner)
+    return Ledger(files, list(old.deleted_by_user), demo_removed=old.demo_removed)

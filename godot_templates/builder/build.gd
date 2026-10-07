@@ -1,11 +1,19 @@
 extends SceneTree
-# Run: godot --headless --path <proj> --script res://generated/builder/build.gd
+# Run: godot --headless --path <proj> --script res://generated/builder/build.gd [-- --update-ledger]
+# --update-ledger (used by the editor's "Regenerate", T8.05) refreshes the ownership ledger's
+# hashes of the files this run wrote. It does not run promotion.
 # During template tests the path is res://builder/build.gd; the builder directory is derived
 # from this script's own path.
 
 const Paths := preload("lib/paths.gd")
 const BuildContext := preload("lib/build_context.gd")
 const Log := preload("lib/log.gd")
+const JsonUtil := preload("lib/json_util.gd")
+
+const UPDATE_LEDGER_FLAG := "--update-ledger"
+const FILE_HASH := "res://addons/rpg_project_tools/tools/file_hash.gd"
+# Files every build run maintains besides its recipes' outputs.
+const STATE_FILES := ["rpggen/build_state.json", "rpggen/tileset_apply_state.json"]
 
 const RECIPE_ORDER := [
 	"project_settings_recipe",
@@ -27,7 +35,7 @@ const RECIPE_ORDER := [
 ## built because boot adds the archetype's combat mode.
 const ARCHETYPE_RECIPES := {
 	"turn_based": ["turn_based/battle_commands_recipe", "turn_based/enemy_recipes", "turn_based/battle_scene_recipe"],
-	"arpg": [],
+	"arpg": ["arpg/swing_recipe", "arpg/enemy_recipes", "arpg/hud_recipe", "arpg/mode_recipe"],
 }
 
 func _initialize() -> void:
@@ -46,6 +54,8 @@ func _run() -> int:
 	var save_err := ctx.save_build_state()
 	if save_err != OK:
 		ctx.results.add_issue("BUILD-004", {"file": Paths.BUILD_STATE, "err": save_err}, Paths.BUILD_STATE)
+	if OS.get_cmdline_user_args().has(UPDATE_LEDGER_FLAG):
+		_update_ledger(ctx)
 	ctx.results.write(Paths.RESULTS_BUILD)
 	Log.info("build finished ok=%s" % str(ctx.results.ok))
 	return 0 if ctx.results.ok else 1
@@ -96,6 +106,44 @@ func _run_recipe(ctx: RefCounted, builder_dir: String, recipe_name: String) -> v
 		else:
 			ctx.record_output(out, in_hash)
 			ctx.results.add_item({"recipe": recipe_name, "output": _rel(out), "action": "written"})
+
+## Records the hashes of the files this run wrote. Entries of user-owned files (game/) are never
+## touched, and a file the run did not write keeps its entry: a change the user made to it must
+## still show up as a conflict at the next regeneration.
+func _update_ledger(ctx: RefCounted) -> void:
+	var hasher: Variant = load(FILE_HASH)
+	var ledger: Variant = JsonUtil.read(Paths.LEDGER) if FileAccess.file_exists(Paths.LEDGER) else null
+	if hasher == null or not (ledger is Dictionary) or not (ledger.get("files") is Dictionary):
+		ctx.results.add_issue("BUILD-002", {"recipe": "build.gd", "reason": "--update-ledger needs the tools addon and an ownership ledger"}, Paths.LEDGER)
+		return
+	var files: Dictionary = ledger["files"]
+	var written := {}
+	for item in ctx.results.items:
+		if item.get("action", "") == "written":
+			written[String(item["output"])] = String(item["recipe"])
+	for rel in STATE_FILES:
+		if files.has(rel):
+			written[rel] = String(files[rel].get("written_by", "orchestrator"))
+	var rels: Array = written.keys()
+	rels.sort()
+	for rel in rels:
+		var entry: Variant = files.get(rel)
+		if entry is Dictionary and entry.get("owner", "") == "user_seed":
+			continue
+		if not FileAccess.file_exists("res://" + rel):
+			continue
+		var digest: String = hasher.file_hash("res://" + rel)
+		if entry is Dictionary:
+			entry["sha256"] = digest
+		elif _covered(rel):
+			files[rel] = {"sha256": digest, "written_by": written[rel], "owner": "generated"}
+	var err := JsonUtil.write(Paths.LEDGER, ledger)
+	if err != OK:
+		ctx.results.add_issue("BUILD-004", {"file": Paths.LEDGER, "err": err}, Paths.LEDGER)
+
+## Paths a new ledger entry may be created for (the ledger's covered generated-owned folders).
+static func _covered(rel: String) -> bool:
+	return rel.begins_with("generated/") or rel.begins_with("addons/") or rel.begins_with("rpggen/")
 
 static func _rel(res_path: String) -> String:
 	return res_path.trim_prefix("res://")

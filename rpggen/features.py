@@ -2,4 +2,4 @@
 
 from __future__ import annotations
 
-ARPG_AVAILABLE = False  # becomes True when M9 (action RPG) is done
+ARPG_AVAILABLE = True  # the action RPG archetype (M9)

@@ -42,6 +42,9 @@
       "items": {
         "type": "string"
       }
+    },
+    "demo_removed": {
+      "type": "boolean"
     }
   },
   "additionalProperties": false,

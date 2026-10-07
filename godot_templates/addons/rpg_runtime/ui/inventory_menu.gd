@@ -6,12 +6,45 @@ const COLUMNS := 6
 
 var _selected: StringName = &""
 var _buttons: Array = []
+var _extra_buttons: Array[Button] = []  # added by the archetype's combat mode (customize_inventory_menu)
 
 func _ready() -> void:
 	(get_node("%Use") as Button).pressed.connect(_on_use)
 	(get_node("%Back") as Button).pressed.connect(close)
 	_refresh()
 	_focus_first.call_deferred()
+	var router := RpgUtil.router()
+	var mode: Variant = router.get("combat") if router != null else null
+	if mode != null and mode.has_method("customize_inventory_menu"):
+		mode.call("customize_inventory_menu", self)
+
+## The item the player has selected (focused or pressed) in the grid, or &"".
+func selected_item() -> StringName:
+	return _selected
+
+## Adds a button to the Use / Back row (after Use) and includes it in the focus ring.
+func add_extra_button(button: Button) -> void:
+	var use_button := get_node("%Use") as Button
+	var row := use_button.get_parent()
+	row.add_child(button)
+	row.move_child(button, use_button.get_index() + 1 + _extra_buttons.size())
+	_extra_buttons.append(button)
+	_wire_extra_buttons()
+
+func _wire_extra_buttons() -> void:
+	var use_button := get_node("%Use") as Button
+	var back_button := get_node("%Back") as Button
+	var ring: Array[Button] = [use_button]
+	ring.append_array(_extra_buttons)
+	ring.append(back_button)
+	for i in ring.size():
+		var b := ring[i]
+		b.focus_neighbor_left = b.get_path_to(ring[(i - 1 + ring.size()) % ring.size()])
+		b.focus_neighbor_right = b.get_path_to(ring[(i + 1) % ring.size()])
+	for b in _extra_buttons:
+		b.focus_neighbor_top = use_button.focus_neighbor_top  # siblings: the same relative path
+		b.focus_neighbor_bottom = b.get_path_to(back_button)
+		b.disabled = use_button.disabled
 
 func _refresh() -> void:
 	var grid := get_node("%Grid") as GridContainer
@@ -57,6 +90,7 @@ func _refresh() -> void:
 	back_button.focus_neighbor_left = back_button.get_path_to(use_button)
 	back_button.focus_neighbor_right = back_button.get_path_to(use_button)
 	use_button.disabled = _buttons.is_empty()
+	_wire_extra_buttons()
 	var desc := get_node("%Description") as Label
 	desc.text = tr("UI_NO_ITEMS") if _buttons.is_empty() else tr("UI_SELECT_ITEM")
 	_selected = &""

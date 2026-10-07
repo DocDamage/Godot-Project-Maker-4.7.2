@@ -498,6 +498,9 @@
           },
           "minItems": 2,
           "maxItems": 2
+        },
+        "terrain_proposal": {
+          "type": "object"
         }
       },
       "additionalProperties": false,
@@ -842,6 +845,16 @@
         },
         "remove_source": {
           "type": "boolean"
+        },
+        "terrain_proposal": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object"
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -1435,6 +1448,9 @@
           },
           "minItems": 2,
           "maxItems": 2
+        },
+        "terrain_proposal": {
+          "type": "object"
         }
       },
       "additionalProperties": false

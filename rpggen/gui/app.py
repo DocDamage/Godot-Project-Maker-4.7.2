@@ -6,6 +6,7 @@ import logging
 import sys
 import traceback
 from importlib import resources
+from pathlib import Path
 from types import TracebackType
 
 from PySide6.QtWidgets import (
@@ -89,9 +90,13 @@ def create_app(argv: list[str] | None = None) -> QApplication:
     return app
 
 
-def run_gui(argv: list[str] | None = None) -> int:
+def run_gui(argv: list[str] | None = None, target: Path | None = None) -> int:
+    """Open the wizard; with ``target`` (an existing project, e.g. from the editor's "Open
+    generator") the project page starts with that output folder."""
     app = create_app(argv)
     install_excepthook()
     window = MainWindow()
+    if target is not None:
+        window.open_target(target)
     window.show()
     return app.exec()

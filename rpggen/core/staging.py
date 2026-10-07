@@ -181,9 +181,14 @@ def _other_archetype(rel: str, archetype: str | None) -> bool:
 
 
 def install_templates(
-    stg: Staging, templates_root: Path, archetype: str | None = None
+    stg: Staging,
+    templates_root: Path,
+    archetype: str | None = None,
+    editor_tools: bool = True,
 ) -> list[str]:
-    """Copy the runtime addon and the builder into staging. Tests and probes are not copied.
+    """Copy the runtime addon, the editor tools addon and the builder into staging. Tests and
+    probes are not copied. ``editor_tools=False`` (feature off) leaves the tools addon out; the
+    builder then does not enable the plugin and validation skips the content checks.
 
     With an ``archetype`` only that archetype's runtime folder, recipes and smoke steps are
     copied (the template project holds all of them so each is tested). Files whose content is
@@ -193,6 +198,7 @@ def install_templates(
     written: list[str] = []
     for src_rel, dst_rel in (
         ("addons/rpg_runtime", "addons/rpg_runtime"),
+        *((("addons/rpg_project_tools", "addons/rpg_project_tools"),) if editor_tools else ()),
         ("builder", "generated/builder"),
     ):
         src = templates_root / src_rel

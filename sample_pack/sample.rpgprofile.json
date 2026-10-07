@@ -522,6 +522,33 @@
       "tileset": "overworld",
       "usage": "tiles"
     },
+    "tilesets/meadow_a2.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "size": [
+        64,
+        48
+      ],
+      "tags": [
+        "rpgmaker_autotile",
+        "A2"
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
     "tilesets/walls.png": {
       "grid": {
         "cell": [
@@ -600,6 +627,7 @@
       "objects/town.png": "0b900a577a7092ce1e73f71008077315402d3e4fc956a38352d74a60e676c47e",
       "portraits/elder.png": "98caca5169ca69e318594a7a367e850658d47b08a759cace0dd6d9bace391794",
       "tilesets/ground.png": "f3caa309df774e07af496d7144274df0c3eff124a1f27ccda577cc1d85b2d47f",
+      "tilesets/meadow_a2.png": "18183bb377fdc16c8bb79aa62fbf8cf46af01c7bed258af94904253bae748ddb",
       "tilesets/walls.png": "9476805e48ef7e09262bf0e6b472930c70295f87310d9e8e98cd50b3eb01d5df",
       "tilesets/water.png": "526e078bcbed0040e379eb9d61c4ee55b312e60c096ef9d424b417cd9919899e",
       "ui/panel.png": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7"
@@ -789,6 +817,9 @@
         },
         {
           "asset": "tilesets/ground.png"
+        },
+        {
+          "asset": "tilesets/meadow_a2.png"
         },
         {
           "asset": "tilesets/walls.png"

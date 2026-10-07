@@ -1,7 +1,7 @@
 extends RefCounted
 ## Builds one SpriteFrames resource per sprite asset that has animations.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const Paths := preload("../lib/paths.gd")
 
@@ -81,6 +81,12 @@ func _build_asset(ctx, asset: Dictionary, issues: Array) -> void:
 			sf.add_frame(anim_name, at, duration)
 		if spec.get("flip_h", false):
 			sf.set_meta("flip_h_" + anim_name, true)
+		if spec.has("active_frames"):
+			# Frame indices in which an attack hitbox is live (the action RPG reads them).
+			var active := PackedInt32Array()
+			for index in spec["active_frames"]:
+				active.append(int(index))
+			sf.set_meta("active_frames_" + anim_name, active)
 	DirAccess.make_dir_recursive_absolute(out_path.get_base_dir())
 	var err := ResourceSaver.save(sf, out_path)
 	if err != OK:

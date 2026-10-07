@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -136,6 +137,13 @@ class MainWindow(QMainWindow):
 
         if self.pages:
             self.show_page(0)
+
+    def open_target(self, target: Path) -> None:
+        """Fill the project page's output folder (an existing project is regenerated)."""
+        for page in self.pages:
+            if isinstance(page, ProjectPage):
+                page.target_edit.setText(str(target))
+                return
 
     # ------------------------------------------------------------------ navigation
 

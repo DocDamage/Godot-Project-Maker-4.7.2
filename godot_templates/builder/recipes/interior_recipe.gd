@@ -15,7 +15,7 @@ const PLAYER_SCENE := "res://generated/scenes/actors/player.tscn"
 const MAP_SIZE := Vector2i(12, 9)
 
 func outputs(ctx) -> PackedStringArray:
-	if FileAccess.file_exists(OUT_PATH) or ObjectEntries.starter_building(ctx).is_empty():
+	if ctx.demo_removed or FileAccess.file_exists(OUT_PATH) or ObjectEntries.starter_building(ctx).is_empty():
 		return PackedStringArray()
 	return PackedStringArray([OUT_PATH])
 
@@ -38,7 +38,7 @@ func _tileset_for_interior(ctx) -> Dictionary:
 
 func build(ctx) -> Array:
 	var issues: Array = []
-	if FileAccess.file_exists(OUT_PATH):
+	if ctx.demo_removed or FileAccess.file_exists(OUT_PATH):
 		return issues
 	var building := ObjectEntries.starter_building(ctx)
 	if building.is_empty():

@@ -9,6 +9,12 @@ signal facing_changed(f: String)
 @export var facing: String = "down":
 	set = _set_facing_property
 var input_enabled := true
+## Set by an archetype's combat code (attack, dodge, hurt): the input does not move the actor and
+## `facing_locked` keeps move_dir from turning it.
+var move_locked := false
+var facing_locked := false
+## While true the actor does not pick walk/idle animations itself (a combat state is playing one).
+var animation_locked := false
 
 var _components: Dictionary = {}
 var _driver := RpgAnimationDriver.new()
@@ -39,7 +45,7 @@ func move_dir(dir: Vector2) -> void:
 	var movement := component("Movement")
 	if movement != null:
 		movement.set("desired", dir)
-	if dir != Vector2.ZERO:
+	if dir != Vector2.ZERO and not facing_locked:
 		set_facing(RpgAnimationDriver.dir_to_facing(dir))
 
 func set_facing(f: String) -> void:
@@ -54,6 +60,8 @@ func _set_facing_property(f: String) -> void:
 	facing_changed.emit(f)
 
 func _physics_process(_delta: float) -> void:
+	if animation_locked:
+		return
 	if velocity.length() > 1.0:
 		_driver.play("walk", facing)
 	else:

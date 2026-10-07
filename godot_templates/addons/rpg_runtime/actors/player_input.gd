@@ -21,6 +21,8 @@ func _physics_process(_delta: float) -> void:
 	if not actor.input_enabled:
 		actor.move_dir(Vector2.ZERO)
 		return
+	if actor.move_locked:
+		return
 	actor.move_dir(Input.get_vector("move_left", "move_right", "move_up", "move_down"))
 	if Input.is_action_just_pressed("interact") and interaction != null:
 		interaction.try_interact()

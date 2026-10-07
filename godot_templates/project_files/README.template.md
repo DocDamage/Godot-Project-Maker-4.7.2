@@ -95,12 +95,13 @@ the wizard) to bring back the version from before the last regeneration. The bac
 | `game/` | Your maps, scenes, data (items, dialogue) and scripts | You |
 | `generated/` | Scenes, tile sets and animations built from your packs | rpggen (generated) |
 | `addons/rpg_runtime/` | The shared game code: saving, dialogue, inventory, menus | rpggen (generated) |
+| `addons/rpg_project_tools/` | The editor plugin: asset library dock, content checks | rpggen (generated) |
 | `assets/packs/` | A copy of your asset packs, with their licenses | rpggen (generated) |
 | `rpggen/` | The generation report, settings, catalog and ownership ledger | rpggen |
 | `GENERATION_REPORT.md` | What was generated, and what to review | rpggen (generated) |
 | `README.md` | This file | rpggen (generated) |
 
-`addons/rpg_runtime/` and `generated/` are generated-owned. `game/` is yours.
+`addons/rpg_runtime/`, `addons/rpg_project_tools/` and `generated/` are generated-owned. `game/` is yours.
 
 ## 9. Licenses
 
@@ -112,10 +113,24 @@ the wizard) to bring back the version from before the last regeneration. The bac
 
 ## 10. Removing the demo
 
-When you are ready to make your own game, you can delete the demo content:
+When you are ready to make your own game, open the **Assets** dock in the Godot editor, go to
+its **Project** tab and press **Remove demo content**. It removes the demo NPC, chest and enemy
+from the starter map, the demo house interior (when you did not change it) and the starting
+items, and regeneration will not bring them back.
 
-1. Remove the example map, NPC and chest from `game/` (look in `game/maps/` and `game/data/`).
-2. Create your own start map and point **Start Map** in `game/data/new_game.tres` at it.
-3. Leave `generated/` and `addons/rpg_runtime/` alone.
+By hand: remove the example map, NPC and chest from `game/` (look in `game/maps/` and
+`game/data/`), create your own start map and point **Start Map** in `game/data/new_game.tres` at
+it. Leave `generated/` and the addons alone.
 
 The title screen, the pause menu and saving keep working with your own maps.
+
+## 10.1 The Assets dock
+
+With the project open in Godot 4.7 the **Assets** dock (right side) lists every object,
+building, character and enemy of your packs. Search, filter by category, and drag an item into
+the 2D view (or double-click it) to place it: it goes under the map's `YSorted/Entities`, snaps
+to the grid and gets an entity id. Select an item to edit its role, tags, collision, origin and
+animation speed; **Regenerate affected resources** (Project tab) rebuilds what changed.
+**Validate content** (Validate tab) checks entity ids, doors and dialogue; **Fix entity IDs**
+repairs the map being edited. Everything the dock does can be undone in the editor, except
+regeneration.

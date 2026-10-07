@@ -16,7 +16,10 @@ const CSV_PATH := "res://game/i18n/strings.tsv"
 const OUT_DIR := "res://generated/i18n/"
 const STRINGS_SCRIPT := "res://addons/rpg_runtime/ui/strings.gd"
 const ITEMS_DIR := "res://game/data/items"
-const ARCHETYPE_STRINGS := {"turn_based": "res://addons/rpg_runtime/archetypes/turn_based/battle_strings.gd"}
+const ARCHETYPE_STRINGS := {
+	"turn_based": "res://addons/rpg_runtime/archetypes/turn_based/battle_strings.gd",
+	"arpg": "res://addons/rpg_runtime/archetypes/arpg/arpg_strings.gd",
+}
 
 ## [[locale, path]] for the locales in the CSV header (every column after `keys`).
 func _locales() -> Array:

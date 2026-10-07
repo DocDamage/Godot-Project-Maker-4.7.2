@@ -42,6 +42,7 @@ from rpggen.gui.widgets.bulk_panel import (
 )
 from rpggen.gui.widgets.grid_editor import GridEditorDialog
 from rpggen.gui.widgets.object_cutter import ObjectCutterDialog
+from rpggen.gui.widgets.terrain_tab import TerrainTab
 
 QUICK_ROLES = ["GROUND", "WALL", "DECORATION", "BUILDING", "PLAYER", "NPC", "ENEMY", "ITEM", "UI"]
 
@@ -97,6 +98,7 @@ class AuditPage(WizardPage):
         self.tabs.setObjectName("auditTabs")
         self.tabs.addTab(self.grid, self.tr("Assets"))
         self.rules_panel: RulesPanel | None = None
+        self.terrain_tab: TerrainTab | None = None
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.splitter.setObjectName("auditSplitter")
         self.splitter.addWidget(self.tabs)
@@ -155,6 +157,9 @@ class AuditPage(WizardPage):
             self.side.addWidget(self.bulk)
             self.rules_panel = RulesPanel(self.session)
             self.tabs.addTab(self.rules_panel, self.tr("Rules"))
+            self.terrain_tab = TerrainTab(self.session)
+            self.terrain_tab.changed.connect(self.changed.emit)
+            self.tabs.addTab(self.terrain_tab, self.tr("Terrain"))
             self.session.changed.connect(self._on_catalog_changed)
             undo = self.session.undo_stack.createUndoAction(self, self.tr("Undo"))
             redo = self.session.undo_stack.createRedoAction(self, self.tr("Redo"))
@@ -177,6 +182,9 @@ class AuditPage(WizardPage):
         self.resolver = make_resolver(state)
         assert self.detail is not None
         self.detail.resolver = self.resolver
+        if self.terrain_tab is not None:
+            self.terrain_tab.resolver = self.resolver
+            self.terrain_tab.refresh()
         self.grid.set_catalog(session.catalog, self.resolver)
         changed = {a.id for a in session.catalog.assets if a.path in state.changed_paths}
         self.grid.set_changed(changed)

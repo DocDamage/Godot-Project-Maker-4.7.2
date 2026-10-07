@@ -9,6 +9,7 @@ const Log := preload("lib/log.gd")
 
 const CHECK_ROOTS := ["res://addons", "res://generated", "res://game"]
 const RESOURCE_ROOTS := ["res://generated", "res://game"]
+const CONTENT_CHECKS := "res://addons/rpg_project_tools/tools/content_checks.gd"
 const ROUND_TRIP_TMP := "user://rt_test.tscn"
 const MENU_SCENES := [
 	"res://generated/scenes/ui/title_screen.tscn",
@@ -47,6 +48,7 @@ func _initialize() -> void:
 	_check_map_round_trip("res://game/maps/starter_map.tscn")
 	_check_ysort_origins()
 	_check_ysort_parents()
+	_check_content()
 
 func _process(_delta: float) -> bool:
 	if _finished or _ctx == null:
@@ -267,6 +269,21 @@ func _check_map_round_trip(map_path: String) -> void:
 	if not ok:
 		_fail("VAL-010", {"layer": failed_layer}, map_path)
 	_item("map_round_trip", map_path, ok)
+
+# ---------------------------------------------------------------- content (T8.04)
+# Entity ids, doors, dialogue and placeholders: the same checks the editor's validator panel runs
+# (they live in the tools addon, which a project without the editor tools does not have).
+
+func _check_content() -> void:
+	if not ResourceLoader.exists(CONTENT_CHECKS):
+		return
+	var checks: Variant = load(CONTENT_CHECKS)
+	if checks == null:
+		return
+	var findings: Array = checks.run()
+	for f in findings:
+		_fail(String(f["code"]), f["detail"], String(f["file"]))
+	_item("content_checks", "res://game", findings.is_empty())
 
 # ---------------------------------------------------------------- Y-sort (T4.07)
 # Headless mode renders nothing, so Y-sort is checked logically: a visual's bottom edge sits on the
