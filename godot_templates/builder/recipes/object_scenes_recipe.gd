@@ -2,7 +2,7 @@ extends RefCounted
 ## Builds one scene per world object under res://generated/scenes/objects/ and the index
 ## res://rpggen/object_index.json (object id -> scene path).
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
@@ -11,10 +11,13 @@ const Geometry := preload("../lib/geometry.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const ObjectEntries := preload("../lib/object_entries.gd")
 const ObjectIndex := preload("../lib/object_index.gd")
+const ActorBuild := preload("../lib/actor_build.gd")
 
 const WORLD_OBJECT_SCRIPT := "res://addons/rpg_runtime/world/world_object.gd"
 const DOOR_SCRIPT := "res://addons/rpg_runtime/world/door.gd"
 const SPAWN_SCRIPT := "res://addons/rpg_runtime/world/spawn_point.gd"
+const CHEST_SCRIPT := "res://addons/rpg_runtime/world/chest.gd"
+const SIGN_SCRIPT := "res://addons/rpg_runtime/world/sign.gd"
 
 func outputs(ctx) -> PackedStringArray:
 	var out := PackedStringArray([ObjectIndex.INDEX_PATH])
@@ -23,7 +26,7 @@ func outputs(ctx) -> PackedStringArray:
 	return out
 
 func input_hash(ctx) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "tile": _tile_size(ctx), "entries": ObjectEntries.entries(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "tile": _tile_size(ctx), "entries": ObjectEntries.entries(ctx), "chest": ObjectEntries.chest_entry(ctx).get("id", "")})
 
 func _tile_size(ctx) -> int:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
@@ -35,9 +38,10 @@ func build(ctx) -> Array:
 	var issues: Array = []
 	var tile := _tile_size(ctx)
 	var index := {}
+	var chest: Dictionary = ObjectEntries.chest_entry(ctx)
 	for e in ObjectEntries.entries(ctx):
 		var path: String = ObjectIndex.scene_path(e["id"])
-		var err := _build_scene(e, path, tile)
+		var err := _build_scene(e, path, tile, chest.get("id", "") == e["id"], bool(chest.get("fallback", false)))
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
 		else:
@@ -48,11 +52,11 @@ func build(ctx) -> Array:
 	return issues
 
 ## "building", "chest", "sign", "obstacle" or "prop" (T4.03 template selection, in order).
-func template_for(e: Dictionary, tile: int) -> String:
+func template_for(e: Dictionary, tile: int, is_chest: bool = false) -> String:
 	var tags: Array = e["tags"]
 	if tags.has("door") or e["role"] == "BUILDING":
 		return "building"
-	if tags.has("chest"):
+	if tags.has("chest") or is_chest:
 		return "chest"
 	if tags.has("sign"):
 		return "sign"
@@ -62,8 +66,8 @@ func template_for(e: Dictionary, tile: int) -> String:
 		return "obstacle"
 	return "prop"
 
-func _build_scene(e: Dictionary, path: String, tile: int) -> int:
-	var template := template_for(e, tile)
+func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false, chest_fallback: bool = false) -> int:
+	var template := template_for(e, tile, is_chest)
 	var region: Array = e["region"]
 	var origin := Vector2(float(e["origin"][0]), float(e["origin"][1]))
 	var solid := template != "prop"
@@ -77,10 +81,21 @@ func _build_scene(e: Dictionary, path: String, tile: int) -> int:
 	else:
 		root = Node2D.new()
 	root.name = String(e["name"]).validate_node_name() if String(e["name"]) != "" else "Object"
-	SceneUtil.attach_script(root, WORLD_OBJECT_SCRIPT)
-	root.set("asset_id", e["id"])
-	root.set("blocks_movement", solid)
+	if template == "chest" or template == "sign":
+		# Interactable: also on layer 5 so the player's interaction area finds it.
+		root.set_collision_layer_value(5, true)
+		SceneUtil.attach_script(root, CHEST_SCRIPT if template == "chest" else SIGN_SCRIPT)
+		if template == "chest":
+			root.name = "Chest"
+	else:
+		SceneUtil.attach_script(root, WORLD_OBJECT_SCRIPT)
+		root.set("asset_id", e["id"])
+		root.set("blocks_movement", solid)
 	root.set_meta("tags", e["tags"].duplicate())
+	if chest_fallback:
+		var tags: Array = root.get_meta("tags")
+		tags.append("chest_fallback")
+		root.set_meta("tags", tags)
 	root.set_meta("role", e["role"])
 
 	var sprite := Sprite2D.new()
@@ -100,6 +115,8 @@ func _build_scene(e: Dictionary, path: String, tile: int) -> int:
 		shape.polygon = shifted
 		root.add_child(shape)
 
+	if template == "chest":
+		ActorBuild.add_persistent(root)
 	if template == "building":
 		var door := Vector2(float(region[2]) / 2.0, float(region[3]) - 1.0)
 		if e["door"].size() == 2:

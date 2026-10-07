@@ -1,17 +1,22 @@
 extends RefCounted
 ## Seeds game/maps/starter_map.tscn once (user_seed ownership: never rewritten afterwards).
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
 const MapUtil := preload("../lib/map_util.gd")
 const ObjectEntries := preload("../lib/object_entries.gd")
 const ObjectIndex := preload("../lib/object_index.gd")
+const SeedUtil := preload("../lib/seed_util.gd")
+const ActorRecipes := preload("actor_recipes.gd")
 
 const OUT_PATH := "res://game/maps/starter_map.tscn"
 const INTERIOR_PATH := "res://game/maps/interior_1.tscn"
 const PLAYER_SCENE := "res://generated/scenes/actors/player.tscn"
+const GREETING_PATH := "res://game/data/dialogue/npc_greeting.tres"
+const NPC_ID := "starter_map_npc_001"
+const CHEST_ID := "starter_map_chest_001"
 const TILESET_PATH := "res://generated/tilesets/overworld.tres"
 const MAP_SIZE := Vector2i(40, 24)
 const HOUSE_TILE := Vector2i(8, 6)
@@ -35,6 +40,8 @@ func input_hash(ctx) -> String:
 		"seed": ctx.config.get("seed", 0),
 		"starter": ctx.config.get("starter", {}),
 		"entries": ObjectEntries.entries(ctx),
+		"npc": _npc_scene(ctx),
+		"chest": ObjectEntries.chest_entry(ctx).get("id", ""),
 	})
 
 func build(ctx) -> Array:
@@ -64,6 +71,8 @@ func build(ctx) -> Array:
 	if not building.is_empty():
 		_place_building(building, root, entities, tile_px)
 	_place_decorations(ctx, root, entities, tile_px)
+	_place_npc(ctx, root, entities, tile_px, issues)
+	_place_chest(ctx, root, entities, tile_px, issues)
 
 	MapUtil.add_marker(nodes["SpawnPoints"], root, "default", MapUtil.tile_center(SPAWN_TILE, tile_px), true)
 	for spot in RESERVED_SPOTS.keys():
@@ -166,3 +175,47 @@ func _paint_path(ctx, def: Dictionary, tile_set: TileSet, layer: TileMapLayer, b
 		layer.set_cell(Vector2i(x, SPAWN_TILE.y), road["source_id"], road["coords"], 0)
 	for y in range(door_tile.y, SPAWN_TILE.y + 1):
 		layer.set_cell(Vector2i(door_tile.x, y), road["source_id"], road["coords"], 0)
+
+## The NPC scene of the demo: the starter NPC asset, else any NPC character, else the fallback
+## built from the player's sprite. "" when none exists.
+func _npc_scene(ctx) -> String:
+	var wanted := String(ctx.config.get("starter", {}).get("npc", ""))
+	if wanted != "":
+		var path := ActorRecipes.character_scene_path(wanted)
+		if ResourceLoader.exists(path):
+			return path
+	for a in ctx.catalog.assets_by_role("NPC"):
+		var path := ActorRecipes.character_scene_path(a["id"])
+		if ResourceLoader.exists(path):
+			return path
+	if ResourceLoader.exists(ActorRecipes.FALLBACK_NPC_PATH):
+		return ActorRecipes.FALLBACK_NPC_PATH
+	return ""
+
+func _place_npc(ctx, root: Node2D, entities: Node2D, tile_px: int, issues: Array) -> void:
+	var scene := _npc_scene(ctx)
+	if scene == "":
+		return
+	if scene == ActorRecipes.FALLBACK_NPC_PATH:
+		issues.append(ctx.make_issue("ASSET-022", {}))
+	var npc := MapUtil.place(scene, entities, root, MapUtil.tile_center(RESERVED_SPOTS["npc_spot"], tile_px), "Npc1")
+	if npc == null:
+		return
+	npc.set("entity_id", NPC_ID)
+	npc.set("facing", "down")
+	if ResourceLoader.exists(GREETING_PATH):
+		npc.set("dialogue", load(GREETING_PATH))
+
+func _place_chest(ctx, root: Node2D, entities: Node2D, tile_px: int, issues: Array) -> void:
+	var entry := ObjectEntries.chest_entry(ctx)
+	if entry.is_empty():
+		return
+	if entry.get("fallback", false):
+		issues.append(ctx.make_issue("ASSET-023", {"asset": entry["id"]}))
+	var path: String = ObjectIndex.scene_path(entry["id"])
+	var chest := MapUtil.place(path, entities, root, MapUtil.tile_center(RESERVED_SPOTS["chest_spot"], tile_px), "Chest1")
+	if chest == null:
+		return
+	chest.set("entity_id", CHEST_ID)
+	chest.set("loot", SeedUtil.dict_array([{"item_id": "potion", "qty": 1}]))
+	chest.set("gold", 20)

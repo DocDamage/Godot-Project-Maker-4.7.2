@@ -103,3 +103,29 @@ static func starter_building(ctx) -> Dictionary:
 		if e["role"] == "BUILDING":
 			return e
 	return {}
+
+## The entry that becomes the demo chest: `config.starter.chest`, else an entry tagged `chest`,
+## else an ITEM entry (named chest first). The result carries `fallback: true` when it is only an
+## item icon standing in for a chest. {} when there is nothing to use.
+static func chest_entry(ctx) -> Dictionary:
+	var all := entries(ctx)
+	var wanted := String(ctx.config.get("starter", {}).get("chest", ""))
+	if wanted != "":
+		for e in all:
+			if e["id"] == wanted:
+				return _with_fallback(e, not e["tags"].has("chest") and not String(e["id"]).contains("chest"))
+	for e in all:
+		if e["tags"].has("chest"):
+			return _with_fallback(e, false)
+	for e in all:
+		if e["role"] == "ITEM" and String(e["id"]).contains("chest"):
+			return _with_fallback(e, false)
+	for e in all:
+		if e["role"] == "ITEM":
+			return _with_fallback(e, true)
+	return {}
+
+static func _with_fallback(e: Dictionary, fallback: bool) -> Dictionary:
+	var copy: Dictionary = e.duplicate(true)
+	copy["fallback"] = fallback
+	return copy

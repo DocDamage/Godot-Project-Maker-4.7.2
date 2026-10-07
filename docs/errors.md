@@ -42,6 +42,9 @@
 | ASSET-014 | warning | Multiple candidates for {role}: {candidates}. | Pick one in Mapping. |
 | ASSET-020 | warning | RPG Maker RTP asset detected: {file}. | RTP assets are licensed for RPG Maker only; replace them. |
 | ASSET-021 | info | Pack {pack_id} has no license file. | Check the vendor's license terms. |
+| ASSET-022 | info | No NPC asset; the player's sprite stands in for the starter NPC. | Assign an NPC asset in Mapping. |
+| ASSET-023 | info | No chest asset; item icon {asset} stands in for the starter chest. | Assign a chest asset in Mapping. |
+| ASSET-024 | info | Font {asset} was not used: its pack has no license file. | Add the pack's license file, or choose another font. |
 
 ## Adapters (ADAPT)
 
@@ -130,6 +133,7 @@
 | REGEN-003 | warning | Source {asset} removed from pack; tileset source {source_id} kept. | Confirm removal in the audit. |
 | REGEN-004 | error | Staging promotion failed: {reason}. Target restored from backup. | See log. |
 | REGEN-005 | error | The Godot editor appears to be open for {path}. | Close the Godot editor before regenerating; open scenes may be overwritten when the editor saves. |
+| REGEN-006 | error | Runtime upgrade from {old} to {new} needs confirmation. | The new runtime has breaking changes (see the changelog); confirm the upgrade in the wizard or pass --accept-runtime-upgrade. |
 
 ## GUI (GUI)
 

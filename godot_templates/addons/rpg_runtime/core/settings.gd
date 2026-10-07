@@ -1,0 +1,229 @@
+extends Node
+## Autoload "RpgSettings": volumes, fullscreen, text speed, UI scale and input remapping,
+## stored in user://settings.cfg.
+
+signal changed
+
+const TEXT_SPEEDS := {"slow": 20.0, "normal": 40.0, "fast": 80.0, "instant": 0.0}
+const UI_SCALES := [1.0, 1.25, 1.5]
+const BUSES := ["master", "music", "sfx", "ui"]
+const BUS_NAMES := {"master": "Master", "music": "Music", "sfx": "SFX", "ui": "UI"}
+const DEFAULT_VOLUME := 0.8
+
+var path: String = "user://settings.cfg"
+var volumes := {"master": DEFAULT_VOLUME, "music": DEFAULT_VOLUME, "sfx": DEFAULT_VOLUME, "ui": DEFAULT_VOLUME}
+var fullscreen := false
+var text_speed := "normal"
+var ui_scale := 1.0
+
+var _defaults := {}  # action -> Array[InputEvent], captured before user bindings are applied
+
+func _ready() -> void:
+	load_settings()
+	apply()
+
+## Characters per second; 0 means instant.
+func text_cps() -> float:
+	return float(TEXT_SPEEDS.get(text_speed, 40.0))
+
+func set_volume(bus: String, value: float) -> void:
+	if not BUSES.has(bus):
+		return
+	volumes[bus] = clampf(value, 0.0, 1.0)
+	_apply_volume(bus)
+	changed.emit()
+
+func set_fullscreen(on: bool) -> void:
+	fullscreen = on
+	_apply_fullscreen()
+	changed.emit()
+
+func set_text_speed(speed: String) -> void:
+	if TEXT_SPEEDS.has(speed):
+		text_speed = speed
+		changed.emit()
+
+func set_ui_scale(scale: float) -> void:
+	ui_scale = scale if UI_SCALES.has(scale) else 1.0
+	_apply_ui_scale()
+	changed.emit()
+
+func apply() -> void:
+	for bus in BUSES:
+		_apply_volume(bus)
+	_apply_fullscreen()
+	_apply_ui_scale()
+
+func _apply_volume(bus: String) -> void:
+	var idx := AudioServer.get_bus_index(BUS_NAMES[bus])
+	if idx < 0:
+		return
+	var v: float = volumes[bus]
+	AudioServer.set_bus_volume_db(idx, linear_to_db(v) if v > 0.0 else -80.0)
+
+func _apply_fullscreen() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+	if DisplayServer.window_get_mode() != mode:
+		DisplayServer.window_set_mode(mode)
+
+func _apply_ui_scale() -> void:
+	if is_inside_tree():
+		get_tree().root.content_scale_factor = ui_scale
+
+# ---------------------------------------------------------------- files
+
+func save_settings() -> bool:
+	var cfg := ConfigFile.new()
+	for bus in BUSES:
+		cfg.set_value("audio", bus, volumes[bus])
+	cfg.set_value("video", "fullscreen", fullscreen)
+	cfg.set_value("text", "speed", text_speed)
+	cfg.set_value("access", "ui_scale", ui_scale)
+	var bindings := _stored_bindings()
+	for action in bindings.keys():
+		cfg.set_value("input", action, bindings[action])
+	return cfg.save(path) == OK
+
+func load_settings() -> void:
+	_capture_defaults()
+	var cfg := ConfigFile.new()
+	if cfg.load(path) != OK:
+		return
+	for bus in BUSES:
+		volumes[bus] = clampf(float(cfg.get_value("audio", bus, DEFAULT_VOLUME)), 0.0, 1.0)
+	fullscreen = bool(cfg.get_value("video", "fullscreen", false))
+	var speed := str(cfg.get_value("text", "speed", "normal"))
+	text_speed = speed if TEXT_SPEEDS.has(speed) else "normal"
+	var scale := float(cfg.get_value("access", "ui_scale", 1.0))
+	ui_scale = scale if UI_SCALES.has(scale) else 1.0
+	if cfg.has_section("input"):
+		for action in cfg.get_section_keys("input"):
+			if not InputMap.has_action(action):
+				continue
+			var events: Array[InputEvent] = []
+			for raw in cfg.get_value("input", action, []):
+				var ev := deserialize_event(raw)
+				if ev != null:
+					events.append(ev)
+			if events.is_empty():
+				continue
+			# User bindings replace the project defaults for that action.
+			InputMap.action_erase_events(action)
+			for ev in events:
+				InputMap.action_add_event(action, ev)
+
+# ---------------------------------------------------------------- input
+
+func _capture_defaults() -> void:
+	if not _defaults.is_empty():
+		return
+	for action in InputMap.get_actions():
+		if String(action).begins_with("ui_"):
+			continue
+		_defaults[String(action)] = InputMap.action_get_events(action).duplicate()
+
+## Actions whose current events differ from the project defaults.
+func _stored_bindings() -> Dictionary:
+	var out := {}
+	for action in _defaults.keys():
+		if not InputMap.has_action(action):
+			continue
+		var now := InputMap.action_get_events(action)
+		var before: Array = _defaults[action]
+		if not _same_events(now, before):
+			var list: Array = []
+			for ev in now:
+				var s := serialize_event(ev)
+				if not s.is_empty():
+					list.append(s)
+			out[action] = list
+	return out
+
+func _same_events(a: Array, b: Array) -> bool:
+	if a.size() != b.size():
+		return false
+	for i in a.size():
+		if not (a[i] as InputEvent).is_match(b[i], true):
+			return false
+	return true
+
+## Actions that can be remapped (the project's own, not the built-in ui_* ones).
+func remappable_actions() -> Array[String]:
+	_capture_defaults()
+	var out: Array[String] = []
+	for action in _defaults.keys():
+		out.append(action)
+	out.sort()
+	return out
+
+## Replaces `old_event` of `action` by `new_event` (appends when old_event is null) and saves.
+func rebind(action: String, old_event: InputEvent, new_event: InputEvent) -> bool:
+	if not InputMap.has_action(action) or new_event == null:
+		return false
+	_capture_defaults()
+	if old_event != null:
+		for ev in InputMap.action_get_events(action):
+			if ev.is_match(old_event, true):
+				InputMap.action_erase_event(action, ev)
+				break
+	InputMap.action_add_event(action, new_event)
+	changed.emit()
+	return save_settings()
+
+func reset_bindings() -> void:
+	_capture_defaults()
+	for action in _defaults.keys():
+		InputMap.action_erase_events(action)
+		for ev in _defaults[action]:
+			InputMap.action_add_event(action, ev)
+	changed.emit()
+	save_settings()
+
+static func serialize_event(ev: InputEvent) -> Dictionary:
+	if ev is InputEventKey:
+		var k := ev as InputEventKey
+		var code := k.physical_keycode if k.physical_keycode != 0 else k.keycode
+		return {"type": "key", "physical": int(code)}
+	if ev is InputEventJoypadButton:
+		return {"type": "joy_button", "index": int((ev as InputEventJoypadButton).button_index)}
+	if ev is InputEventJoypadMotion:
+		var m := ev as InputEventJoypadMotion
+		return {"type": "joy_axis", "axis": int(m.axis), "value": m.axis_value}
+	if ev is InputEventMouseButton:
+		return {"type": "mouse_button", "index": int((ev as InputEventMouseButton).button_index)}
+	return {}
+
+static func deserialize_event(d: Variant) -> InputEvent:
+	if not (d is Dictionary):
+		return null
+	match str(d.get("type", "")):
+		"key":
+			var k := InputEventKey.new()
+			k.physical_keycode = int(d.get("physical", 0)) as Key
+			return k
+		"joy_button":
+			var b := InputEventJoypadButton.new()
+			b.button_index = int(d.get("index", 0)) as JoyButton
+			return b
+		"joy_axis":
+			var m := InputEventJoypadMotion.new()
+			m.axis = int(d.get("axis", 0)) as JoyAxis
+			m.axis_value = float(d.get("value", 1.0))
+			return m
+		"mouse_button":
+			var mb := InputEventMouseButton.new()
+			mb.button_index = int(d.get("index", 1)) as MouseButton
+			return mb
+	return null
+
+## Short text for a binding ("E", "Joypad Button 0").
+static func event_text(ev: InputEvent) -> String:
+	if ev is InputEventKey:
+		var k := ev as InputEventKey
+		var code := k.physical_keycode if k.physical_keycode != 0 else k.keycode
+		if DisplayServer.get_name() == "headless":  # no keyboard layout to ask
+			return OS.get_keycode_string(code)
+		return OS.get_keycode_string(DisplayServer.keyboard_get_keycode_from_physical(code))
+	return ev.as_text()

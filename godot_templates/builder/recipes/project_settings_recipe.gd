@@ -1,7 +1,19 @@
 extends RefCounted
 ## Applies project settings from the generator config and saves project.godot.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
+
+# Autoloads in registration order (T6): the runtime's singletons, nothing else.
+const AUTOLOADS := [
+	["Events", "res://addons/rpg_runtime/core/events.gd"],
+	["GameState", "res://addons/rpg_runtime/core/game_state.gd"],
+	["SaveManager", "res://addons/rpg_runtime/core/save_manager.gd"],
+	["SceneRouter", "res://addons/rpg_runtime/world/scene_router.gd"],
+	["RpgSettings", "res://addons/rpg_runtime/core/settings.gd"],
+	["RpgSmoke", "res://addons/rpg_runtime/debug/smoke_runner.gd"],
+]
+const THEME_PATH := "res://generated/theme/main_theme.tres"
+const BUS_LAYOUT_PATH := "res://generated/audio/default_bus_layout.tres"
 
 # Physics layer names (ARCHITECTURE §17).
 const PHYSICS_LAYER_NAMES := [
@@ -19,6 +31,8 @@ func input_hash(ctx) -> String:
 		"resolution": ctx.config.get("resolution", []),
 		"window_size": ctx.config.get("window_size", []),
 		"input": ctx.config.get("input", {}),
+		"seed": ctx.config.get("seed", 12345),
+		"debug": bool(ctx.config.get("features", {}).get("debug_tools", false)),
 	})
 
 func build(ctx) -> Array:
@@ -40,15 +54,27 @@ func build(ctx) -> Array:
 	ProjectSettings.set_setting("rendering/2d/snap/snap_2d_vertices_to_pixel", true)
 	for i in PHYSICS_LAYER_NAMES.size():
 		ProjectSettings.set_setting("layer_names/2d_physics/layer_%d" % (i + 1), PHYSICS_LAYER_NAMES[i])
-	# Smoke-test driver: inert unless the game is started with --rpg-smoke (T1.11).
-	ProjectSettings.set_setting("autoload/RpgSmoke", "*res://addons/rpg_runtime/debug/smoke_runner.gd")
-	# Map changes with fade and spawn placement (T4.02).
-	ProjectSettings.set_setting("autoload/SceneRouter", "*res://addons/rpg_runtime/world/scene_router.gd")
-	_apply_input(ctx, cfg.get("input", {}), issues)
+	_apply_autoloads()
+	# The seed of the smoke test (used only with --rpg-smoke).
+	ProjectSettings.set_setting("rpg/seed", int(cfg.get("seed", 12345)))
+	ProjectSettings.set_setting("gui/theme/custom", THEME_PATH)
+	ProjectSettings.set_setting("audio/buses/default_bus_layout", BUS_LAYOUT_PATH)
+	var input: Dictionary = cfg.get("input", {}).duplicate(true)
+	if bool(cfg.get("features", {}).get("debug_tools", false)):
+		input["debug_toggle"] = {"keys": ["F3"]}
+	_apply_input(ctx, input, issues)
 	var err := ProjectSettings.save()
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": "project.godot", "err": err}, "project.godot"))
 	return issues
+
+## Registers the runtime autoloads in order. RpgSmoke is inert unless the game is started with
+## --rpg-smoke.
+func _apply_autoloads() -> void:
+	for i in AUTOLOADS.size():
+		var key: String = "autoload/%s" % AUTOLOADS[i][0]
+		ProjectSettings.set_setting(key, "*" + String(AUTOLOADS[i][1]))
+		ProjectSettings.set_order(key, 1000 + i)
 
 func _apply_input(ctx, input: Dictionary, issues: Array) -> void:
 	var actions: Array = input.keys()

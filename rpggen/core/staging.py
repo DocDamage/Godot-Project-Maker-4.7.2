@@ -11,6 +11,7 @@ from rpggen import jsonio, paths, schema
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.core import ledger as ledger_mod
+from rpggen.core import runtime_version
 from rpggen.core.inventory import Inventory
 from rpggen.errors import Issue, IssueList, RpgGenError
 
@@ -257,10 +258,26 @@ def _write_text(path: Path, text: str) -> None:
         fh.write(text)
 
 
+README_TEMPLATE = "README.template.md"
+
+
+def render_readme(template: str, cfg: config_mod.GeneratorConfig, runtime: str) -> str:
+    """Fill the README template (``str.format`` placeholders; values are never re-interpreted,
+    so braces in a project name are safe)."""
+    packs = "\n".join(f"- {p.pack_id}" for p in cfg.packs) or "- (none)"
+    return template.format(
+        project_name=cfg.project_name,
+        archetype=cfg.archetype,
+        runtime_version=runtime,
+        godot_version=cfg.godot_version,
+        packs_list=packs,
+    )
+
+
 def write_project_files(
     stg: Staging, cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog
 ) -> None:
-    """Write project.godot, generator_config.json, asset_catalog.json and the VCS files.
+    """Write project.godot, generator_config.json, asset_catalog.json, the VCS files and README.md.
 
     When regenerating, project.godot is the user's own (the builder applies the keys it owns on
     top of it) and the VCS files are only rewritten if the template text changed.
@@ -283,6 +300,14 @@ def write_project_files(
         dst = root / name
         if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != text.encode("utf-8"):
             _write_text(dst, text)
+    readme = render_readme(
+        (files / README_TEMPLATE).read_text(encoding="utf-8"),
+        cfg,
+        runtime_version.read_version(paths.templates_root()) or "unknown",
+    )
+    dst = root / "README.md"
+    if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != readme.encode("utf-8"):
+        _write_text(dst, readme)
 
 
 def discard(stg: Staging) -> Path:

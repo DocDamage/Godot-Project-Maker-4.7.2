@@ -29,6 +29,9 @@ const CODES := {
 	"ASSET-014": {"severity": "warning", "message": "Multiple candidates for {role}: {candidates}.", "fix": "Pick one in Mapping."},
 	"ASSET-020": {"severity": "warning", "message": "RPG Maker RTP asset detected: {file}.", "fix": "RTP assets are licensed for RPG Maker only; replace them."},
 	"ASSET-021": {"severity": "info", "message": "Pack {pack_id} has no license file.", "fix": "Check the vendor's license terms."},
+	"ASSET-022": {"severity": "info", "message": "No NPC asset; the player's sprite stands in for the starter NPC.", "fix": "Assign an NPC asset in Mapping."},
+	"ASSET-023": {"severity": "info", "message": "No chest asset; item icon {asset} stands in for the starter chest.", "fix": "Assign a chest asset in Mapping."},
+	"ASSET-024": {"severity": "info", "message": "Font {asset} was not used: its pack has no license file.", "fix": "Add the pack's license file, or choose another font."},
 	"ADAPT-001": {"severity": "warning", "message": "Adapter {adapter} failed on {file}: {reason}.", "fix": "Report a bug with a diagnostic bundle."},
 	"ADAPT-002": {"severity": "warning", "message": "Tiled tileset {file} references missing image {image}.", "fix": "Fix the pack or map the image manually."},
 	"ADAPT-003": {"severity": "info", "message": "Pack profile {profile_id} matched ({ratio}).", "fix": "—"},
@@ -77,5 +80,6 @@ const CODES := {
 	"REGEN-003": {"severity": "warning", "message": "Source {asset} removed from pack; tileset source {source_id} kept.", "fix": "Confirm removal in the audit."},
 	"REGEN-004": {"severity": "error", "message": "Staging promotion failed: {reason}. Target restored from backup.", "fix": "See log."},
 	"REGEN-005": {"severity": "error", "message": "The Godot editor appears to be open for {path}.", "fix": "Close the Godot editor before regenerating; open scenes may be overwritten when the editor saves."},
+	"REGEN-006": {"severity": "error", "message": "Runtime upgrade from {old} to {new} needs confirmation.", "fix": "The new runtime has breaking changes (see the changelog); confirm the upgrade in the wizard or pass --accept-runtime-upgrade."},
 	"GUI-001": {"severity": "error", "message": "Unexpected error: {reason}.", "fix": "Export a diagnostic bundle and report it."},
 }

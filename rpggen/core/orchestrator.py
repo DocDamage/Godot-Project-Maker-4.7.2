@@ -18,6 +18,7 @@ from rpggen.core import (
     preflight,
     promote,
     requirements,
+    runtime_version,
     staging,
     vcs,
 )
@@ -44,7 +45,9 @@ PHASES_M1 = [
 REPORT_NAME = "generation_report.json"
 SMOKE_STEPS_M1 = "res://generated/builder/smoke/smoke_steps_m1.gd"
 SMOKE_STEPS_M4 = "res://generated/builder/smoke/smoke_steps_m4.gd"
-SMOKE_STEPS = f"{SMOKE_STEPS_M1},{SMOKE_STEPS_M4}"
+SMOKE_STEPS_M6 = "res://generated/builder/smoke/smoke_steps_m6.gd"
+# The M6 file composes the M1 and M4 steps in the right order (the game starts at the title).
+SMOKE_STEPS = SMOKE_STEPS_M6
 
 
 @dataclass
@@ -92,6 +95,8 @@ class _State:
     promotion: promote.PromotionResult | None = None
     git_message: str | None = None  # commit the result with this message (git init if needed)
     pack_files: set[str] = field(default_factory=set)  # every pack file installed this run
+    accept_runtime_upgrade: bool = False  # confirm a major runtime version increase
+    runtime: runtime_version.UpgradeInfo | None = None  # templates' runtime vs. the target's
 
 
 # --------------------------------------------------------------------------- helpers
@@ -163,6 +168,15 @@ def phase_preflight(state: _State) -> None:
         and promote.editor_open(state.target)
     ):
         raise RpgGenError("REGEN-005", path=str(state.target))
+    info = runtime_version.check_upgrade(
+        paths.templates_root(), state.target if preflight.is_rpggen_project(state.target) else None
+    )
+    state.runtime = info
+    if info.needs_confirmation and not state.accept_runtime_upgrade:
+        assert info.old is not None
+        for line in info.changelog_text.splitlines():
+            state.cb.on_log(line)
+        raise RpgGenError("REGEN-006", old=info.old, new=info.new)
 
 
 def phase_stage(state: _State) -> None:
@@ -263,7 +277,7 @@ def _sabotage(state: _State) -> None:
         os.environ.get("RPGGEN_DEV") == "1"
         and os.environ.get("RPGGEN_TEST_SABOTAGE") == "broken_player"
     ):
-        target = state.staging.staging / "addons/rpg_runtime/actors/player_controller.gd"
+        target = state.staging.staging / "addons/rpg_runtime/actors/actor.gd"
         with open(target, "a", encoding="utf-8", newline="\n") as fh:
             fh.write("\nthis is not valid gdscript !!!\n")
 
@@ -329,6 +343,7 @@ def _report_data(state: _State, ok: bool) -> dict[str, Any]:
     return {
         "report_version": 1,
         "generator_version": __version__,
+        "runtime_version": state.runtime.new if state.runtime else "",
         "ok": ok,
         "phases_completed": list(state.phases_done),
         "issues": state.issues.to_json(),
@@ -364,6 +379,7 @@ def _write_markdown(
         summary=report_mod.counts(state.catalog, list(state.issues), path.parent if ok else None),
         project=path.parent,
         plan=plan,
+        runtime_version=state.runtime.new if state.runtime else "",
     )
     path.write_text(text, encoding="utf-8", newline="\n")
 
@@ -413,6 +429,7 @@ def run(
     placeholders: list[str] | None = None,
     force_while_open: bool = False,
     git_message: str | None = None,
+    accept_runtime_upgrade: bool = False,
 ) -> RunResult:
     """Generate a project from ``cfg_path`` into ``target`` through staging.
 
@@ -425,6 +442,7 @@ def run(
     state.placeholders = list(placeholders or [])
     state.force_while_open = force_while_open
     state.git_message = git_message
+    state.accept_runtime_upgrade = accept_runtime_upgrade
     return _execute(state)
 
 
@@ -437,6 +455,7 @@ def run_in_memory(
     placeholders: list[str] | None = None,
     force_while_open: bool = False,
     git_message: str | None = None,
+    accept_runtime_upgrade: bool = False,
 ) -> RunResult:
     """``run`` for a config and catalog that only exist in memory (the wizard's).
 
@@ -449,6 +468,7 @@ def run_in_memory(
     state.placeholders = list(placeholders or [])
     state.force_while_open = force_while_open
     state.git_message = git_message
+    state.accept_runtime_upgrade = accept_runtime_upgrade
     return _execute(state)
 
 

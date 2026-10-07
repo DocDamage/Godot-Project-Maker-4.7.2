@@ -11,11 +11,16 @@ const RECIPE_ORDER := [
 	"project_settings_recipe",
 	"tileset_recipe",
 	"sprite_frames_recipe",
-	"player_recipe",
+	"actor_recipes",
+	"data_recipe",
 	"object_scenes_recipe",
 	"interior_recipe",
+	"theme_recipe",
+	"ui_recipes",
+	"audio_bus_recipe",
 	"boot_recipe",
 	"starter_map_recipe",
+	"translations_recipe",
 ]
 
 func _initialize() -> void:

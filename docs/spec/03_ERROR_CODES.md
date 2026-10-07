@@ -32,6 +32,9 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | ASSET-014 | W | Multiple candidates for {role}: {candidates}. | Pick one in Mapping. |
 | ASSET-020 | W | RPG Maker RTP asset detected: {file}. | RTP assets are licensed for RPG Maker only; replace them. |
 | ASSET-021 | I | Pack {pack_id} has no license file. | Check the vendor's license terms. |
+| ASSET-022 | I | No NPC asset; the player's sprite stands in for the starter NPC. | Assign an NPC asset in Mapping. |
+| ASSET-023 | I | No chest asset; item icon {asset} stands in for the starter chest. | Assign a chest asset in Mapping. |
+| ASSET-024 | I | Font {asset} was not used: its pack has no license file. | Add the pack's license file, or choose another font. |
 | ADAPT-001 | W | Adapter {adapter} failed on {file}: {reason}. | Report a bug with a diagnostic bundle. |
 | ADAPT-002 | W | Tiled tileset {file} references missing image {image}. | Fix the pack or map the image manually. |
 | ADAPT-003 | I | Pack profile {profile_id} matched ({ratio}). | — |
@@ -80,6 +83,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | REGEN-003 | W | Source {asset} removed from pack; tileset source {source_id} kept. | Confirm removal in the audit. |
 | REGEN-004 | E | Staging promotion failed: {reason}. Target restored from backup. | See log. |
 | REGEN-005 | E | The Godot editor appears to be open for {path}. | Close the Godot editor before regenerating; open scenes may be overwritten when the editor saves. |
+| REGEN-006 | E | Runtime upgrade from {old} to {new} needs confirmation. | The new runtime has breaking changes (see the changelog); confirm the upgrade in the wizard or pass --accept-runtime-upgrade. |
 | GUI-001 | E | Unexpected error: {reason}. | Export a diagnostic bundle and report it. |
 
 ## Rules for adding codes

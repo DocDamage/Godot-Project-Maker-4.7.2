@@ -33,6 +33,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="regenerate even if a Godot editor seems to have the project open",
     )
     gen.add_argument(
+        "--accept-runtime-upgrade",
+        action="store_true",
+        help="allow regeneration to move the project to a new major runtime version",
+    )
+    gen.add_argument(
         "--git",
         action="store_true",
         help="git init (if needed) and commit the generated project; never pushes",
@@ -88,6 +93,7 @@ def _generate(args: argparse.Namespace) -> int:
             cb,
             placeholders=[r.upper() for r in args.placeholder],
             force_while_open=args.force_while_open,
+            accept_runtime_upgrade=args.accept_runtime_upgrade,
             git_message="rpggen: generate project" if args.git else None,
         )
     for issue in result.issues:

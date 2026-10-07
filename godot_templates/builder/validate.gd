@@ -10,12 +10,24 @@ const Log := preload("lib/log.gd")
 const CHECK_ROOTS := ["res://addons", "res://generated", "res://game"]
 const RESOURCE_ROOTS := ["res://generated", "res://game"]
 const ROUND_TRIP_TMP := "user://rt_test.tscn"
+const MENU_SCENES := [
+	"res://generated/scenes/ui/title_screen.tscn",
+	"res://generated/scenes/ui/pause_menu.tscn",
+	"res://generated/scenes/ui/inventory_menu.tscn",
+	"res://generated/scenes/ui/status_menu.tscn",
+	"res://generated/scenes/ui/save_load_menu.tscn",
+	"res://generated/scenes/ui/settings_menu.tscn",
+]
+const FOCUS_SETTLE_FRAMES := 4
+const FOCUS_MAX_STEPS := 80
 
 var _ctx: RefCounted
 var _scenes: Array = []
 var _scene_index: int = 0
 var _pending: Node = null
+var _pending_path: String = ""
 var _finished: bool = false
+var _focus: Dictionary = {}  # state of the running menu focus walk (empty = none)
 
 func _initialize() -> void:
 	var builder_dir: String = get_script().resource_path.get_base_dir()
@@ -40,8 +52,11 @@ func _process(_delta: float) -> bool:
 	if _finished or _ctx == null:
 		return false
 	if _pending != null:
+		if _pending_path in MENU_SCENES and _focus_walk_step():
+			return false
 		_pending.queue_free()
 		_pending = null
+		_pending_path = ""
 		return false
 	if _scene_index >= _scenes.size():
 		_finish()
@@ -63,6 +78,8 @@ func _process(_delta: float) -> bool:
 		return false
 	root.add_child(inst)
 	_pending = inst
+	_pending_path = path
+	_focus = {}
 	return false
 
 # ---------------------------------------------------------------- helpers
@@ -332,3 +349,74 @@ func _check_ysort_parents() -> void:
 				ok = false
 		inst.free()
 		_item("ysort_parent", path, ok)
+
+# ---------------------------------------------------------------- menu focus (VAL-011)
+# Each menu scene stays in the tree for as long as the walk takes: wait a few frames for the
+# initial focus, then press ui_down once per frame and follow gui_get_focus_owner() until it
+# cycles. Every visible, enabled button must have been reached.
+
+static func _focusables(node: Node, out: Array) -> void:
+	if node is Control:
+		var c := node as Control
+		if not c.visible:
+			return
+		if c.focus_mode != Control.FOCUS_NONE and (node is BaseButton or node is Slider):
+			if not (node is BaseButton and (node as BaseButton).disabled):
+				out.append(c)
+	for child in node.get_children():
+		_focusables(child, out)
+
+func _menu_problem(reason: String) -> void:
+	_fail("VAL-011", {"scene": _pending_path.get_file(), "reason": reason}, _pending_path)
+	_item("ui_focus", _pending_path, false)
+
+func _press_ui_down() -> void:
+	for pressed in [true, false]:
+		var ev := InputEventAction.new()
+		ev.action = "ui_down"
+		ev.pressed = pressed
+		Input.parse_input_event(ev)
+
+## One frame of the walk. Returns true while it still needs more frames.
+func _focus_walk_step() -> bool:
+	if _focus.is_empty():
+		_focus = {"frame": 0, "phase": "settle", "visited": [], "initial": null, "all": []}
+	var f := _focus
+	f["frame"] += 1
+	var owner_now: Control = root.gui_get_focus_owner()
+	match f["phase"]:
+		"settle":
+			if f["frame"] < FOCUS_SETTLE_FRAMES:
+				return true
+			var all: Array = []
+			_focusables(_pending, all)
+			f["all"] = all
+			if all.is_empty():
+				_menu_problem("no focusable control")
+				return false
+			if owner_now == null or not _pending.is_ancestor_of(owner_now):
+				_menu_problem("nothing has focus after opening")
+				return false
+			f["initial"] = owner_now
+			f["visited"] = [owner_now]
+			f["phase"] = "press"
+			_press_ui_down()
+			f["phase"] = "read"
+			return true
+		"read":
+			f["phase"] = "press"
+			if owner_now == null or owner_now == f["initial"] or f["visited"].has(owner_now) or f["visited"].size() >= FOCUS_MAX_STEPS:
+				var missed: Array = []
+				for c in f["all"]:
+					if not f["visited"].has(c):
+						missed.append(String(c.name))
+				if missed.is_empty():
+					_item("ui_focus", _pending_path, true)
+				else:
+					_menu_problem("not reachable with ui_down: %s" % ", ".join(missed))
+				return false
+			f["visited"].append(owner_now)
+			_press_ui_down()
+			f["phase"] = "read"
+			return true
+	return false

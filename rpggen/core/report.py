@@ -59,6 +59,7 @@ def build_markdown(
     summary: dict[str, int] | None = None,
     project: Path | None = None,
     plan: PromotionPlan | None = None,
+    runtime_version: str = "",
 ) -> str:
     """The report. ``project`` is the folder holding the generated files and result files;
     ``plan`` is the promotion plan of a regeneration."""
@@ -67,7 +68,8 @@ def build_markdown(
     lines = [
         "# Generation Report",
         "",
-        f"- Generator: rpggen {__version__} · Godot {godot} · Archetype {archetype}"
+        f"- Generator: rpggen {__version__} · Runtime {runtime_version or '?'}"
+        f" · Godot {godot} · Archetype {archetype}"
         f" · Result: {'SUCCESS' if ok else 'FAILED'}",
     ]
     if failed_phase:

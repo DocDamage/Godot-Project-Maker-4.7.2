@@ -55,7 +55,8 @@ def test_all_m1_and_m4_smoke_steps_pass_for_real(sample: Path) -> None:
     smoke = jsonio.read(sample / "rpggen/results/smoke_results.json")
     assert smoke["ok"] is True
     names = [i["name"] for i in smoke["items"]]
-    assert names[-3:] == ["enter_building", "exit_building", "decor_blocks"]
+    i = names.index("enter_building")
+    assert names[i : i + 3] == ["enter_building", "exit_building", "decor_blocks"]
     assert all(i["ok"] for i in smoke["items"])
     log = (sample / "rpggen/logs/godot_smoke.log").read_text(encoding="utf-8", errors="replace")
     assert "step passes" not in log, "a smoke step passed only because nothing was there to test"
