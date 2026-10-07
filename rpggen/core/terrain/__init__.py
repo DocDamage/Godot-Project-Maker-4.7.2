@@ -196,6 +196,10 @@ def _a2_blocks(
             result.terrain_sets[new_id] = [rpgmaker_a2.terrain_set_def(set_name, index)]
 
 
+# A sheet this small is an icon, not a terrain layout: a coincidental border match is not reported.
+TINY_SHEET = 32
+
+
 def _blob_proposal(
     asset: catalog_mod.Asset,
     file: Path,
@@ -230,7 +234,7 @@ def _blob_proposal(
         if proposal is not None:
             asset.detected["terrain_proposal"] = proposal
             return
-        if recognition is not None:
+        if recognition is not None and max(size) > TINY_SHEET:
             hinted = hinted or recognition.confidence >= 0.5
     if hinted:
         issues.add("TILE-006", asset=asset.id, file=asset.path)

@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import orchestrator, promote, report
 from rpggen.errors import Issue, RpgGenError, Severity
+from rpggen.gui.dialogs import diagnostic_export
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
 
@@ -122,6 +123,7 @@ class ResultsPage(WizardPage):
         self.restore_button = self._button("Restore previous", "restorePrevious", buttons)
         self.failed_button = self._button("Open failed folder", "openFailed", buttons)
         self.logs_button = self._button("View logs", "viewLogs", buttons)
+        self.bundle_button = self._button("Export diagnostic bundle", "exportBundle", buttons)
         buttons.addStretch(1)
         layout.addLayout(buttons)
         self.restore_button.setEnabled(False)
@@ -132,6 +134,7 @@ class ResultsPage(WizardPage):
         self.report_button.clicked.connect(self.view_report)
         self.failed_button.clicked.connect(self.open_failed_folder)
         self.logs_button.clicked.connect(self.view_logs)
+        self.bundle_button.clicked.connect(self.export_bundle)
 
     def _button(self, text: str, name: str, row: QHBoxLayout) -> QPushButton:
         button = QPushButton(self.tr(text))
@@ -278,6 +281,14 @@ class ResultsPage(WizardPage):
     def open_failed_folder(self) -> None:
         if self.result is not None and self.result.failed_staging is not None:
             self.open_path(self.result.failed_staging)
+
+    def export_bundle(self) -> Path | None:
+        """Save a diagnostic bundle of the failed run (or of the project after a success)."""
+        if self.result is None:
+            return None
+        folder = self.result.failed_staging or self.result.target
+        exe = self.state.godot_exe if self.state is not None else None
+        return diagnostic_export.export_bundle(self, folder, exe)
 
     def view_logs(self) -> None:
         if self.result is None or self.result.failed_staging is None:

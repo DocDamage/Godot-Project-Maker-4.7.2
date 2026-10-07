@@ -53,6 +53,12 @@ def _build_parser() -> argparse.ArgumentParser:
     restore = sub.add_parser("restore", help="restore the previous generation from a backup")
     restore.add_argument("--target", type=Path, required=True, help="the generated project")
     restore.add_argument("--backup", help="backup folder name (default: the newest)")
+    diagnose = sub.add_parser(
+        "diagnose", help="write a diagnostic bundle (no art) for a bug report"
+    )
+    diagnose.add_argument("--target", type=Path, required=True, help="project or failed-run folder")
+    diagnose.add_argument("--out", type=Path, help="zip to write (default: next to the folder)")
+    diagnose.add_argument("--godot", type=Path, help="Godot executable (its version is recorded)")
     from rpggen import analyze_cmd
 
     analyze = sub.add_parser("analyze", help="analyze an asset pack")
@@ -133,6 +139,20 @@ def _restore(args: argparse.Namespace) -> int:
     return 0
 
 
+def _diagnose(args: argparse.Namespace) -> int:
+    from rpggen.core import diagnostics
+
+    target: Path = args.target
+    if not target.is_dir():
+        print(f"rpggen diagnose: {target} is not a folder")
+        return 2
+    out = args.out or target.parent / diagnostics.default_bundle_name(target)
+    exe = _resolve_godot(args.godot)
+    diagnostics.make_bundle(target, out, exe)
+    print(f"OK: diagnostic bundle written to {out}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args, _rest = parser.parse_known_args(argv)
@@ -143,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
         return _generate(args)
     if args.command == "restore":
         return _restore(args)
+    if args.command == "diagnose":
+        return _diagnose(args)
     if args.command == "analyze":
         from rpggen import analyze_cmd
 

@@ -1,0 +1,147 @@
+# rpggen user guide
+
+This guide takes you from installation to a project you can play. The pictures are produced by
+`tools/make_doc_screenshots.py` from the bundled sample pack, so they match the program.
+
+## 1. Install
+
+See the [README](../README.md#install). You need rpggen, **Godot 4.7.2** (standard build) and,
+optionally, the Godot **export templates for 4.7.2** (used by the export check). rpggen finds Godot
+in the usual places; you can also pick the executable on the first page. Choose the file that ends
+in `_console.exe` if you have it.
+
+## 2. First run with the sample pack
+
+1. Start rpggen. The first page is **Project**.
+2. Press **Try with sample pack**. rpggen fills in the bundled sample pack, a project name and an
+   output folder in *Documents*, checks them, reads the pack and takes you to the last settings
+   page.
+3. Press **Generate**. The page lists the phases (preflight, stage, install, catalog, import,
+   build, validate, smoke, export, promote, report) with a log underneath. It takes about a minute.
+4. On **Results** press **Open in Godot** and then F5. You start on the title screen, begin a new
+   game, walk around, talk to the villager, open the chest and enter the house.
+
+![Project page](images/wizard_project.png)
+
+## 3. Using a pack you bought
+
+**Project page.** Add one or more packs (drag a folder or archive onto the list, or use *Add Zip/7z…* or *Add Folder…*).
+Packs stay untouched: rpggen copies what it needs into the project. Pick an **output folder**
+that is empty (or an existing rpggen project, see [regeneration](regeneration.md)), the **Godot
+executable** and a **project name**. Red text under a field says what is wrong; the **Next** button
+stays disabled until everything is green. Avoid cloud-sync folders (OneDrive, Dropbox): they can
+lock files during generation (ENV-006).
+
+Rarely, a pack has a password or contains something unsafe (ARCH-002, ARCH-003, ARCH-004); extract
+it yourself and add the folder.
+
+**Archetype page.** Choose how combat works:
+
+* **Turn-based**: encounters on the map start a battle screen with attack, defend, item and run.
+* **Action RPG**: real-time sword swings with hitboxes, enemies that chase and attack, a HUD.
+
+You can generate the other archetype later in a new project; the shared systems (saving,
+dialogue, inventory, menus) are the same.
+
+**Audit page.** rpggen has guessed what every file is. This is where you check the guesses.
+
+![Audit page](images/wizard_audit.png)
+
+* The grid shows thumbnails with a coloured edge: green = confirmed, blue = auto-detected,
+  orange = needs review, red = conflict, purple = missing from the pack, grey = unused. The chips above filter by status; it opens on
+  **Needs attention**. Filters also exist for role, pack and a path search.
+* Select an asset to see its details on the right: usage (tiles, sprite, icon, ...), role (what
+  the generator uses it for, e.g. GROUND, WALL, PLAYER, ENEMY), tile grid, collision, tile set,
+  tags. Change a value and the thumbnail updates; **Confirm** marks an asset as checked,
+  **Exclude** leaves it out. Everything is undoable (Ctrl+Z, Ctrl+Y).
+* **Keys:** `C` confirm, `X` exclude, `1`-`9` quick roles.
+* **Bulk actions:** select many assets (Ctrl/Shift-click) and use the panel at the bottom: every
+  combo reads "— unchanged —" until you pick something.
+* **Rules:** right-click an asset → *Make rule for this folder…* so that everything in a folder
+  (a glob such as `characters/**`) gets the same role or tags, now and after pack updates. The
+  *Rules* tab lists them; drag to reorder.
+* **Grid editor** (*Edit grid…*): cell size, margin and separation with a live readout
+  (`12 × 4, 47 non-empty, remainder 0 px`) and the five best candidates. ASSET-003 appears here
+  when the sheet does not divide evenly.
+* **Animations** (*Animations…*): a direction-grouped list of animations with playback, click the
+  sheet to pick frames, mirror left from right, reverse, ping-pong, origin and baseline, and
+  *active frames* (the hit frames) for the action RPG.
+* **Object cutter** (*Cut objects…*): draw rectangles around a house or tree in a sheet, set its
+  footprint (where it blocks), door and origin. Detected objects appear blue, yours green.
+* **Terrain tab:** autotile proposals for RPG Maker A2 sheets and 47-tile blob sheets.
+* **Profile menu:** export your audit as a profile, import one, or find one online
+  ([profiles](profiles.md)).
+
+**Mapping page.** A checklist of what the starter map and the systems need: ground, wall, player,
+NPC, enemy, chest, building, UI and so on. Each row shows the chosen asset. *Choose…* lists only
+assets that could plausibly fill the role. If a required role has no asset you can continue with a
+**placeholder** (a labelled debug picture, ASSET-010) and fix it later.
+
+**Options page.** Features (dialogue, combat, saving, demo content, editor tools, debug tools),
+resolution and window mode, the **layers** of the map (Ground is always there; add Decoration,
+Collision, anything), and under *Advanced* the random seed, key/gamepad bindings and the option to
+**initialize a git repository** and commit.
+
+![Options page](images/wizard_options.png)
+
+**Generate and Results.** Generation runs on a copy (`.rpggen_staging`) and only a validated,
+smoke-tested result replaces your folder, so a failure never leaves a half project behind.
+
+![Results page](images/wizard_results.png)
+
+* **Open in Godot / Open folder / View report** (`GENERATION_REPORT.md` explains what was
+  generated, what to review and the packs' licenses).
+* **Restore previous** undoes the last regeneration.
+* On failure: the failing phase, the problems with a fix text, **Open failed folder**, **View
+  logs** and **Export diagnostic bundle**.
+
+## 4. In Godot
+
+The project has a `README.md` with the controls and where things are. Your own work goes in
+`game/`; rpggen never overwrites it. The **RPG Project Tools** dock lists every object, building and
+character from your packs: drag one into the map (it lands on the right layer, snapped, Y-sorted),
+edit an asset's role or collision in the inspector and *Rebuild*, validate the content (duplicate
+entity ids, broken doors, missing sprites) and remove the demo content when you start your game.
+
+## 5. Regenerating
+
+Change options, fix the audit, or add a new release of a pack, then run rpggen on the same output
+folder. Your maps, scenes and everything under `game/` are kept. Read [regeneration](regeneration.md).
+
+## 6. Troubleshooting
+
+Every message has a code; [errors.md](errors.md) lists all of them with the fix. The common ones:
+
+| Code | Meaning | What to do |
+|------|---------|------------|
+| ENV-001 / ENV-002 | Godot not found or not 4.7.x | Select the Godot 4.7.2 executable on the project page. |
+| ENV-003 | A different 4.7.x build than the validated 4.7.2 | Works, but use 4.7.2 for guaranteed results. |
+| ENV-005 | Not enough disk space | Free space or pick another drive (3× the pack size is needed). |
+| ENV-006 | Output in a cloud-sync folder | Pick a local folder. |
+| ENV-007 | Paths may exceed 260 characters | Use a shorter output folder or enable Windows long paths. |
+| ENV-009 | The output folder is not empty | Pick an empty folder or an existing rpggen project. |
+| ENV-010 | Export templates missing | Info only: install them from Godot (Editor → Manage Export Templates) to enable the export check. |
+| ASSET-010 | A required role has no asset | Assign one on the Mapping page or use a placeholder. |
+| ASSET-001 / ASSET-003 | Tile size uncertain / grid does not divide | Fix the grid in the audit. |
+| REGEN-005 | The Godot editor has the project open | Close it, press Retry. |
+| REGEN-006 | A new major runtime version | Confirm the upgrade (`--accept-runtime-upgrade` on the CLI). |
+| BUILD-00x / VAL-0xx / SMOKE-00x | A recipe, validation or smoke step failed | View the logs, export a diagnostic bundle. |
+| GUI-001 | An unexpected error in rpggen | Export a diagnostic bundle and report it. |
+
+![The error dialog](images/crash_dialog.png)
+
+## 7. Diagnostic bundles
+
+If something goes wrong that you cannot fix, send a diagnostic bundle with your bug report:
+
+* In the wizard: **Export diagnostic bundle** on the Results page or in the error dialog.
+* On the command line: `rpggen-cli diagnose --target <project or .rpggen_failed folder>`.
+
+The zip has your configuration and catalog, the ownership ledger, build results, the logs (with
+your user name and home folder replaced by `<user>` and `<home>`, each cut to its last 5 MB), a
+manifest of every asset (id, path, hash, size) and system information. **It never contains images
+or audio.** Open it before you send it if you like.
+
+## 8. Privacy and the network
+
+rpggen does not phone home. It only goes online when you press **Find profile online**.

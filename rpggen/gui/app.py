@@ -21,12 +21,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpggen import logging_setup
 from rpggen.errors import CODES
+from rpggen.gui.dialogs import diagnostic_export
 from rpggen.gui.wizard import MainWindow
 
 log = logging.getLogger(__name__)
-
-EXPORT_BUNDLE_AVAILABLE = False  # enabled by M10 (diagnostic bundle)
 
 
 def load_stylesheet() -> str:
@@ -36,8 +36,11 @@ def load_stylesheet() -> str:
 class CrashDialog(QDialog):
     """GUI-001: shows an unhandled exception with a collapsible traceback."""
 
-    def __init__(self, text: str, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, text: str, parent: QWidget | None = None, target: Path | None = None
+    ) -> None:
         super().__init__(parent)
+        self.target = target
         self.setObjectName("crashDialog")
         self.setWindowTitle(self.tr("Unexpected error"))
         self.resize(640, 200)
@@ -62,12 +65,17 @@ class CrashDialog(QDialog):
         buttons = QDialogButtonBox()
         self.export_button = QPushButton(self.tr("Export diagnostic bundle"))
         self.export_button.setObjectName("crashExportButton")
-        self.export_button.setEnabled(EXPORT_BUNDLE_AVAILABLE)
-        self.export_button.setToolTip(self.tr("Available in a later version"))
+        self.export_button.setToolTip(
+            self.tr("Save a zip with logs and settings (no art) to attach to a bug report")
+        )
+        self.export_button.clicked.connect(self.export_bundle)
         buttons.addButton(self.export_button, QDialogButtonBox.ButtonRole.ActionRole)
         buttons.addButton(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def export_bundle(self) -> Path | None:
+        return diagnostic_export.export_bundle(self, self.target)
 
 
 def install_excepthook() -> None:
@@ -94,6 +102,7 @@ def run_gui(argv: list[str] | None = None, target: Path | None = None) -> int:
     """Open the wizard; with ``target`` (an existing project, e.g. from the editor's "Open
     generator") the project page starts with that output folder."""
     app = create_app(argv)
+    logging_setup.configure(diagnostic_export.app_log_dir(), False)
     install_excepthook()
     window = MainWindow()
     if target is not None:

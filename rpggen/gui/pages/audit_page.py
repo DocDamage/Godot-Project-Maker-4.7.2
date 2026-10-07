@@ -23,9 +23,10 @@ from PySide6.QtWidgets import (
 
 from rpggen import ids
 from rpggen.core import catalog as catalog_mod
-from rpggen.core import profiles
+from rpggen.core import profile_registry, profiles
+from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
-from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog
+from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog, FindProfileDialog
 from rpggen.gui.edits import EditSession
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
@@ -86,11 +87,14 @@ class AuditPage(WizardPage):
         self.export_action.setObjectName("exportProfileAction")
         self.import_action = profile_menu.addAction(self.tr("Import profile…"))
         self.import_action.setObjectName("importProfileAction")
+        self.online_action = profile_menu.addAction(self.tr("Find profile online…"))
+        self.online_action.setObjectName("findProfileAction")
         self.profile_button.setMenu(profile_menu)
         bar.addWidget(self.profile_button)
         layout.addLayout(bar)
         self.export_action.triggered.connect(lambda: self.export_profile())
         self.import_action.triggered.connect(lambda: self.import_profile())
+        self.online_action.triggered.connect(lambda: self.find_profile_online())
         self.quick_roles = list(QUICK_ROLES)
         self.archetype = "turn_based"
         self.grid = AssetGrid()
@@ -334,6 +338,48 @@ class AuditPage(WizardPage):
             self.show_error(self.tr("Could not export the profile"), str(exc))
             return None
         return path
+
+    def fetch_registry(self, inventories: list[Inventory]) -> list[profile_registry.Candidate]:
+        """Download the registry index and match it (overridden by tests). Network only here."""
+        return profile_registry.candidates(profile_registry.fetch_index(), inventories)
+
+    def download_registry_profile(self, profile_id: str) -> None:  # overridden by tests
+        profile_registry.download_profile(profile_id)
+
+    def find_profile_online(self) -> bool:
+        """The user-initiated network call: list matching community profiles, install the one
+        the user picks, then analyze again (the user's edits are kept). True when installed."""
+        state = self.state
+        if state is None or self.session is None or not state.inventories:
+            return False
+        try:
+            found = self.fetch_registry(state.inventories)
+        except (profile_registry.RegistryError, OSError) as exc:
+            self.show_error(self.tr("Could not reach the profile registry"), str(exc))
+            return False
+        if not found:
+            self.show_error(
+                self.tr("Find profile online"),
+                self.tr("No community profile matches your packs yet."),
+            )
+            return False
+        dialog = FindProfileDialog(found, self)
+        if not self.run_dialog(dialog):
+            return False
+        chosen = dialog.selected()
+        if chosen is None:
+            return False
+        try:
+            self.download_registry_profile(chosen.profile_id)
+        except (profile_registry.RegistryError, RpgGenError, OSError) as exc:
+            self.show_error(self.tr("Could not install the profile"), str(exc))
+            return False
+        state.catalog = self.session.catalog
+        if not self.run_analysis(state):
+            return False
+        self.enter(state)
+        self.changed.emit()
+        return True
 
     def import_profile(self) -> bool:
         """Install a profile file and analyze the packs again; the user's edits are kept."""

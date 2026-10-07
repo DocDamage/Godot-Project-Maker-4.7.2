@@ -11,6 +11,7 @@ from typing import Any
 from rpggen import __version__, ids, jsonio, paths
 from rpggen.core import (
     archive,
+    export_check,
     godot,
     godot_log,
     inventory,
@@ -39,6 +40,7 @@ PHASES_M1 = [
     "build",
     "validate",
     "smoke",
+    "export",
     "promote",
     "report",
 ]
@@ -348,6 +350,19 @@ def phase_smoke(state: _State) -> None:
         raise _Stop
 
 
+def phase_export(state: _State) -> None:
+    """Optional: export the staged project once to prove it exports (needs export templates)."""
+    assert state.cfg is not None and state.staging is not None and state.log_dir is not None
+    if not state.cfg.validation.get("export_check", True):
+        return
+    issues, _ran = export_check.run_check(
+        state.godot_exe, state.staging.staging, state.cfg.project_name, state.log_dir
+    )
+    state.issues.extend(issues)
+    if any(i.severity is Severity.ERROR for i in issues):
+        raise _Stop
+
+
 def phase_promote(state: _State) -> None:
     assert state.staging is not None
     state.promotion = promote.promote(state.staging)
@@ -408,6 +423,7 @@ PHASE_FUNCS: dict[str, Callable[[_State], None]] = {
     "build": phase_build,
     "validate": phase_validate,
     "smoke": phase_smoke,
+    "export": phase_export,
     "promote": phase_promote,
     "report": phase_report,
 }

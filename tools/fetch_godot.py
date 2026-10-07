@@ -1,8 +1,8 @@
-"""Download and unpack the official Windows Godot build for CI.
+"""Download and unpack the official Godot build for CI (Windows by default, or Linux).
 
-Usage: python tools/fetch_godot.py --version 4.7.2 --out .cache/godot
+Usage: python tools/fetch_godot.py --version 4.7.2 --out .cache/godot [--platform linux]
 
-Prints the path of the console executable on the last line of stdout. The SHA-512 of the zip is
+Prints the path of the executable on the last line of stdout. The SHA-512 of the zip is
 verified against SHA512-SUMS.txt from the same release when that file exists.
 """
 
@@ -19,11 +19,16 @@ from pathlib import Path
 BASE = "https://github.com/godotengine/godot/releases/download/{v}-stable"
 
 
-def zip_name(version: str) -> str:
+def zip_name(version: str, platform: str = "windows") -> str:
+    if platform == "linux":
+        return f"Godot_v{version}-stable_linux.x86_64.zip"
     return f"Godot_v{version}-stable_win64.exe.zip"
 
 
-def console_name(version: str) -> str:
+def console_name(version: str, platform: str = "windows") -> str:
+    """The executable to run: the console build on Windows, the only build on Linux."""
+    if platform == "linux":
+        return f"Godot_v{version}-stable_linux.x86_64"
     return f"Godot_v{version}-stable_win64_console.exe"
 
 
@@ -47,19 +52,19 @@ def _download(url: str, dest: Path) -> None:
             fh.write(chunk)
 
 
-def fetch(version: str, out: Path) -> Path:
+def fetch(version: str, out: Path, platform: str = "windows") -> Path:
     out.mkdir(parents=True, exist_ok=True)
-    console = out / console_name(version)
+    console = out / console_name(version, platform)
     if console.exists():
         return console
-    archive = out / zip_name(version)
-    _download(release_url(version, zip_name(version)), archive)
+    archive = out / zip_name(version, platform)
+    _download(release_url(version, zip_name(version, platform)), archive)
     try:
         with urllib.request.urlopen(release_url(version, "SHA512-SUMS.txt"), timeout=60) as resp:
             sums = parse_sums(resp.read().decode("utf-8"))
     except urllib.error.URLError:
         sums = {}
-    expected = sums.get(zip_name(version))
+    expected = sums.get(zip_name(version, platform))
     if expected is not None:
         actual = hashlib.sha512(archive.read_bytes()).hexdigest()
         if actual != expected:
@@ -70,6 +75,8 @@ def fetch(version: str, out: Path) -> Path:
     with zipfile.ZipFile(archive) as zf:
         zf.extractall(out)
     archive.unlink()
+    if platform == "linux" and console.exists():
+        console.chmod(0o755)
     if not console.exists():
         raise SystemExit(f"{console.name} not found in the downloaded archive")
     return console
@@ -79,8 +86,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", default="4.7.2")
     parser.add_argument("--out", type=Path, default=Path(".cache/godot"))
+    parser.add_argument("--platform", choices=("windows", "linux"), default="windows")
     args = parser.parse_args(argv)
-    print(fetch(args.version, args.out).resolve())
+    print(fetch(args.version, args.out, args.platform).resolve())
     return 0
 
 

@@ -287,7 +287,7 @@
   ],
   "catalog_version": 2,
   "folder_rules": [],
-  "generator_version": "0.1.0",
+  "generator_version": "1.0.0",
   "id_allocations": {
     "entities": {},
     "tilesets": {}

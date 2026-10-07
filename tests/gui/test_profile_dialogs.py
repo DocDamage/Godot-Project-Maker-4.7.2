@@ -137,3 +137,52 @@ def test_cancelled_dialogs_do_nothing(qtbot, tmp_path: Path) -> None:
     assert page.export_profile() is None
     page.choose_open_path = lambda: None  # type: ignore[method-assign]
     assert not page.import_profile()
+
+
+def test_find_profile_online_installs_the_picked_candidate(qtbot, tmp_path: Path) -> None:
+    from rpggen.core import profile_registry
+
+    state = _state()
+    page = _page(qtbot, state)
+    hero = next(a.id for a in state.catalog.assets if a.id.endswith("hero"))
+    page.session.set_override(hero, "role", "NPC")
+    exported = tmp_path / "p.rpgprofile.json"
+    page.run_dialog = lambda dialog: True  # type: ignore[method-assign]
+    page.choose_save_path = lambda name: exported  # type: ignore[method-assign]
+    page.export_profile()
+    data = profiles.load_profile(exported)
+
+    fresh = _state()
+    fresh_page = _page(qtbot, fresh)
+    _sync_analysis(fresh_page)
+    cand = profile_registry.Candidate(data["profile_id"], "Basic", "me", "CC0-1.0", 1.0)
+    fresh_page.fetch_registry = lambda inventories: [cand]  # type: ignore[method-assign]
+    fresh_page.run_dialog = lambda dialog: True  # type: ignore[method-assign]
+    installed: list[str] = []
+
+    def download(profile_id: str) -> None:
+        installed.append(profile_id)
+        profiles.install_profile(exported)
+
+    fresh_page.download_registry_profile = download  # type: ignore[method-assign]
+    assert fresh_page.find_profile_online()
+    assert installed == [data["profile_id"]]
+    assert catalog.effective(fresh.catalog.asset(hero))["role"] == "NPC"
+
+
+def test_find_profile_online_reports_network_failure_and_no_match(qtbot) -> None:
+    from rpggen.core import profile_registry
+
+    page = _page(qtbot, _state())
+    messages: list[str] = []
+    page.show_error = lambda title, message: messages.append(title)  # type: ignore[method-assign]
+
+    def offline(inventories):
+        raise profile_registry.RegistryError("offline")
+
+    page.fetch_registry = offline  # type: ignore[method-assign]
+    assert not page.find_profile_online()
+    page.fetch_registry = lambda inventories: []  # type: ignore[method-assign]
+    assert not page.find_profile_online()
+    assert len(messages) == 2
+    assert page.online_action.text().startswith("Find profile online")

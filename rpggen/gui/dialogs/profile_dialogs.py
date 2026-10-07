@@ -9,11 +9,12 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from rpggen.core import profiles
+from rpggen.core import profile_registry, profiles
 
 
 class ExportProfileDialog(QDialog):
@@ -75,3 +76,41 @@ class ExportProfileDialog(QDialog):
             "author": self.author_edit.text().strip(),
             "license": self.license_edit.text().strip() or profiles.DEFAULT_LICENSE,
         }
+
+
+class FindProfileDialog(QDialog):
+    """Lists the registry profiles that match the user's packs; the user picks one."""
+
+    def __init__(self, found: list[profile_registry.Candidate], parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setObjectName("findProfileDialog")
+        self.setWindowTitle(self.tr("Find profile online"))
+        self.found = found
+        layout = QVBoxLayout(self)
+        layout.addWidget(
+            QLabel(
+                self.tr(
+                    "These community profiles match your packs. A profile only holds audit "
+                    "decisions (no images); it is checked before it is installed."
+                )
+            )
+        )
+        self.list = QListWidget()
+        self.list.setObjectName("profileCandidates")
+        for c in found:
+            by = f" - {c.author}" if c.author else ""
+            self.list.addItem(f"{c.title}{by} ({round(c.overlap * 100)}% match, {c.license})")
+        if found:
+            self.list.setCurrentRow(0)
+        layout.addWidget(self.list)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(self.tr("Install"))
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def selected(self) -> profile_registry.Candidate | None:
+        row = self.list.currentRow()
+        return self.found[row] if 0 <= row < len(self.found) else None

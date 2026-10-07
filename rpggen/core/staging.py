@@ -10,8 +10,8 @@ from pathlib import Path
 from rpggen import jsonio, paths, schema
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
+from rpggen.core import export_check, runtime_version
 from rpggen.core import ledger as ledger_mod
-from rpggen.core import runtime_version
 from rpggen.core.inventory import Inventory
 from rpggen.errors import Issue, IssueList, RpgGenError
 
@@ -340,6 +340,7 @@ def write_project_files(
         dst = root / name
         if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != text.encode("utf-8"):
             _write_text(dst, text)
+    export_check.write_presets(root, cfg.project_name)
     notes_file = files / f"README.{cfg.archetype}.md"
     readme = render_readme(
         (files / README_TEMPLATE).read_text(encoding="utf-8"),

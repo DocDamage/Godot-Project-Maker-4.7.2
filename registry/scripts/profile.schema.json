@@ -1,0 +1,746 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rpggen/profile.schema.json",
+  "title": "*.rpgprofile.json",
+  "type": "object",
+  "properties": {
+    "profile_version": {
+      "const": 1
+    },
+    "profile_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "fingerprint": {
+      "type": "object",
+      "properties": {
+        "required_files": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "maxProperties": 20
+        },
+        "min_match": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "required_files",
+        "min_match"
+      ]
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/FacetsPartial"
+      }
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProfileObject"
+      }
+    },
+    "folder_rules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FolderRule"
+      }
+    },
+    "tilesets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProfileTileSet"
+      }
+    },
+    "author": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "profile_version",
+    "profile_id",
+    "title",
+    "fingerprint",
+    "assets",
+    "objects",
+    "folder_rules",
+    "tilesets"
+  ],
+  "$defs": {
+    "Grid": {
+      "type": "object",
+      "properties": {
+        "cell": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "margin": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "separation": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "cell",
+        "margin",
+        "separation"
+      ]
+    },
+    "CollisionSpec": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "enum": [
+            "NONE",
+            "FULL",
+            "BOTTOM_HALF",
+            "BOTTOM_EDGE",
+            "TOP_EDGE",
+            "LEFT_EDGE",
+            "RIGHT_EDGE",
+            "ALPHA_POLYGON",
+            "CUSTOM"
+          ]
+        },
+        "polygon": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "profile"
+      ],
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "CUSTOM"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "then": {
+        "required": [
+          "polygon"
+        ]
+      }
+    },
+    "TileOverride": {
+      "type": "object",
+      "properties": {
+        "collision": {
+          "$ref": "#/$defs/CollisionSpec"
+        },
+        "terrain": {},
+        "custom": {
+          "type": "object"
+        },
+        "skip": {
+          "type": "boolean"
+        },
+        "anim": {
+          "type": "object",
+          "properties": {
+            "frames": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "durations_ms": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          },
+          "required": [
+            "frames",
+            "durations_ms"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "AnimSpec": {
+      "type": "object",
+      "properties": {
+        "frames": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "fps": {
+          "type": "number"
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "durations": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "flip_h": {
+          "type": "boolean"
+        },
+        "active_frames": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "source": {
+          "type": "string"
+        },
+        "rects": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          }
+        },
+        "offsets": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "frames",
+        "fps",
+        "loop"
+      ]
+    },
+    "FacetsPartial": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "enum": [
+            "GROUND",
+            "WALL",
+            "CLIFF",
+            "WATER",
+            "ROAD",
+            "AUTOTILE",
+            "DECORATION",
+            "BUILDING",
+            "INTERIOR",
+            "PLAYER",
+            "NPC",
+            "ENEMY",
+            "BOSS",
+            "WEAPON",
+            "ITEM",
+            "EFFECT",
+            "PROJECTILE",
+            "UI",
+            "PORTRAIT",
+            "BACKGROUND",
+            "AUDIO_MUSIC",
+            "AUDIO_SFX",
+            "FONT",
+            "NONE"
+          ]
+        },
+        "roles_alt": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "enum": [
+                  "GROUND",
+                  "WALL",
+                  "CLIFF",
+                  "WATER",
+                  "ROAD",
+                  "AUTOTILE",
+                  "DECORATION",
+                  "BUILDING",
+                  "INTERIOR",
+                  "PLAYER",
+                  "NPC",
+                  "ENEMY",
+                  "BOSS",
+                  "WEAPON",
+                  "ITEM",
+                  "EFFECT",
+                  "PROJECTILE",
+                  "UI",
+                  "PORTRAIT",
+                  "BACKGROUND",
+                  "AUDIO_MUSIC",
+                  "AUDIO_SFX",
+                  "FONT",
+                  "NONE"
+                ]
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "usage": {
+          "enum": [
+            "tiles",
+            "sprite",
+            "object",
+            "ui",
+            "portrait",
+            "background",
+            "audio",
+            "font"
+          ]
+        },
+        "grid": {
+          "$ref": "#/$defs/Grid"
+        },
+        "tileset": {
+          "type": "string"
+        },
+        "collision": {
+          "$ref": "#/$defs/CollisionSpec"
+        },
+        "tile_overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/TileOverride"
+          },
+          "propertyNames": {
+            "pattern": "^[0-9]+,[0-9]+$"
+          }
+        },
+        "animations": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/AnimSpec"
+          }
+        },
+        "frame": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "origin": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "directions": {
+          "enum": [
+            1,
+            4,
+            8
+          ]
+        },
+        "character_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ysort": {
+          "type": "boolean"
+        },
+        "audio": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": [
+                "music",
+                "sfx"
+              ]
+            },
+            "loop": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        "nine_slice": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "import": {
+          "type": "object",
+          "properties": {
+            "filter": {
+              "enum": [
+                "nearest",
+                "linear"
+              ]
+            },
+            "mipmaps": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "region": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "FolderRule": {
+      "type": "object",
+      "properties": {
+        "pack_id": {
+          "type": "string"
+        },
+        "glob": {
+          "type": "string"
+        },
+        "set": {
+          "$ref": "#/$defs/FacetsPartial"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "pack_id",
+        "glob",
+        "set"
+      ]
+    },
+    "ProfileObject": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "GROUND",
+            "WALL",
+            "CLIFF",
+            "WATER",
+            "ROAD",
+            "AUTOTILE",
+            "DECORATION",
+            "BUILDING",
+            "INTERIOR",
+            "PLAYER",
+            "NPC",
+            "ENEMY",
+            "BOSS",
+            "WEAPON",
+            "ITEM",
+            "EFFECT",
+            "PROJECTILE",
+            "UI",
+            "PORTRAIT",
+            "BACKGROUND",
+            "AUDIO_MUSIC",
+            "AUDIO_SFX",
+            "FONT",
+            "NONE"
+          ]
+        },
+        "region": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "origin": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "footprint": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "collision": {
+          "$ref": "#/$defs/CollisionSpec"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "door": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "status": {
+          "enum": [
+            "CONFIRMED",
+            "AUTO_DETECTED",
+            "NEEDS_REVIEW",
+            "MISSING",
+            "UNUSED",
+            "CONFLICT"
+          ]
+        },
+        "source": {
+          "enum": [
+            "user",
+            "auto",
+            "tiled"
+          ]
+        },
+        "sheet_path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "role",
+        "region",
+        "origin",
+        "footprint",
+        "collision",
+        "tags",
+        "status",
+        "source",
+        "sheet_path"
+      ]
+    },
+    "ProfileTileSet": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "tile_size": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "asset": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "asset"
+            ]
+          }
+        },
+        "terrain_sets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "mode": {
+                "enum": [
+                  "corners_and_sides",
+                  "corners",
+                  "sides"
+                ]
+              },
+              "terrains": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "color"
+                  ]
+                }
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "mode",
+              "terrains"
+            ]
+          }
+        },
+        "physics_layers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "layer_bits": {
+                "type": "integer"
+              },
+              "mask_bits": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "layer_bits",
+              "mask_bits"
+            ]
+          }
+        },
+        "custom_data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "string",
+                  "float",
+                  "int",
+                  "bool"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "type"
+            ]
+          }
+        },
+        "navigation": {
+          "type": "boolean"
+        },
+        "patterns_from_objects": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "tile_size",
+        "sources",
+        "physics_layers",
+        "custom_data"
+      ]
+    }
+  }
+}

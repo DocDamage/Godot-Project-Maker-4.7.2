@@ -85,7 +85,7 @@ def test_crash_dialog_shows_gui_001(qtbot) -> None:
     dlg = gui_app.CrashDialog("Traceback...\nValueError: boom")
     qtbot.addWidget(dlg)
     assert "GUI-001" in dlg.findChild(QLabel, "crashMessage").text()
-    assert not dlg.export_button.isEnabled()
+    assert dlg.export_button.isEnabled()
     assert dlg.details.isHidden()
     dlg.show()
     dlg.details_toggle.setChecked(True)

@@ -114,6 +114,9 @@
       "properties": {
         "smoke_test": {
           "type": "boolean"
+        },
+        "export_check": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false

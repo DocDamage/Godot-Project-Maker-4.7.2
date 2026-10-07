@@ -18,6 +18,11 @@ def test_names_and_urls() -> None:
     )
 
 
+def test_linux_names() -> None:
+    assert fetch_godot.zip_name("4.7.2", "linux") == "Godot_v4.7.2-stable_linux.x86_64.zip"
+    assert fetch_godot.console_name("4.7.2", "linux") == "Godot_v4.7.2-stable_linux.x86_64"
+
+
 def test_parse_sums() -> None:
     text = "ABC123  Godot_v4.7.2-stable_win64.exe.zip\ndef456 *other.zip\n\nbadline\n"
     assert fetch_godot.parse_sums(text) == {

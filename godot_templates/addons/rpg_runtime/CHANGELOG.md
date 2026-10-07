@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0
+
+* First stable release. The runtime is unchanged in behavior from 0.3.0; the version number now
+  matches rpggen 1.0.0, the diagnostic bundle and the Windows export preset that ship with it.
+* Regenerating a project made with 0.x asks for confirmation once (`--accept-runtime-upgrade`
+  or the dialog in the wizard) because the major version changed.
+
 ## 0.3.0
 
 * Action-RPG archetype (`archetypes/arpg/`): hitboxes that are live only on attack frames, hurtboxes
