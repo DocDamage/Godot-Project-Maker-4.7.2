@@ -447,6 +447,9 @@
             },
             "loop": {
               "type": "boolean"
+            },
+            "duration_s": {
+              "type": "number"
             }
           },
           "additionalProperties": false,

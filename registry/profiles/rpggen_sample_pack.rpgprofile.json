@@ -378,17 +378,47 @@
       "usage": "sprite"
     },
     "items/chest.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
       "frame": [
         16,
         16
       ],
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
       "origin": [
         8,
-        15
+        14
       ],
       "role": "ITEM",
       "size": [
-        16,
+        32,
         16
       ],
       "tags": [
@@ -460,6 +490,22 @@
       ],
       "usage": "sprite"
     },
+    "music/battle_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/town_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
     "objects/town.png": {
       "grid": {
         "cell": [
@@ -498,6 +544,70 @@
         48
       ],
       "usage": "sprite"
+    },
+    "sfx/cancel.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/chest_open.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/coin.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/confirm.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/cursor_blip.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/hit.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/step.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/swing.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
     },
     "tilesets/ground.png": {
       "grid": {
@@ -619,7 +729,7 @@
       "characters/hero.png": "4af0df78db5b7a0633d53ef2480108b1693a3b10fedd7cbeb7667f04ede5e319",
       "characters/npc_villager.png": "2f020af88ddfc52bb7076a3bbf92cd39a350bdcbca59a5810bd64aa34d999e01",
       "enemies/slime_idle.png": "aca41f774627519e67d4dcf01910b735d43ab5588a7af4ba6c7c33514196bc30",
-      "items/chest.png": "e2de800f753e81e73d7b82d5b14f2f398f25b809e866ec66614df2681cd06493",
+      "items/chest.png": "710ed02a78521d4ad3cac2ac51d78a99abff12b79ce84639bee0ee21c508ceea",
       "items/coin.png": "786e07c5db6321fa37ba2c063bf73bb7cecd676f3b5ed79c58452f97ae232293",
       "items/key.png": "27d5e6e4410118108bb3dfef7690c81305d3ebd9375ce6077aae042a26a7c043",
       "items/potion.png": "290367dd0e21e1e27d19879060f8ffe53a5c452ceeadd05bd3346440a560b049",

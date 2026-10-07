@@ -10,8 +10,8 @@ You need Python 3.12 and Git. For the integration tests you also need **Godot 4.
 console build on Windows) and its path in `RPGGEN_GODOT`.
 
 ```bat
-git clone https://github.com/rpggen/rpggen
-cd rpggen
+git clone https://github.com/DocDamage/Godot-Project-Maker-4.7.2
+cd Godot-Project-Maker-4.7.2
 python -m venv .venv
 .venv\Scripts\activate
 pip install -e .[dev]
@@ -40,15 +40,15 @@ finds path-case and path-separator bugs, so do not skip it.
 
 ## How the project is organized
 
-The project was built from task cards (`Implementation Plan and Specs/M01_...M10`), one milestone at
+The project was built from task cards (`docs/spec/M01_...M11`), one milestone at
 a time, and the habits carried over:
 
 * **A task card** has *Depends on*, *Files*, *Spec*, *Tests* and *Done when*. Change only the files
-  the card lists; if another file must change, say why in `IMPLEMENTATION_NOTES.md`.
+  the card lists; if another file must change, say why in `docs/dev/implementation_notes.md`.
 * **Tests first or together.** Never delete or weaken a test to make it pass.
-* Every finished task adds a line to `IMPLEMENTATION_NOTES.md` (`T1.04 done — summary —
+* Every finished task adds a line to `docs/dev/implementation_notes.md` (`T1.04 done — summary —
   deviation`) and is committed as `T1.04: <card title>`.
-* Judgment calls go under *Decisions* in `IMPLEMENTATION_NOTES.md`. Two documents that contradict
+* Judgment calls go under *Decisions* in `docs/dev/implementation_notes.md`. Two documents that contradict
   each other in a way that changes behavior: stop and report it.
 * The conventions (layout, naming, logging, determinism, Godot rules) are in
   `docs/spec/01_CONVENTIONS.md`; the file formats in `docs/spec/02_SCHEMAS.md`.
@@ -89,7 +89,7 @@ implement `match`/`extract`, register it, add a **synthetic pack** (generated, C
 or I), a message template with `{placeholders}` and a recommended fix.
 
 1. Add the row to `docs/spec/03_ERROR_CODES.md` **and** copy it to
-   `Implementation Plan and Specs/03_ERROR_CODES.md` (the two files must stay identical).
+   `docs/spec/03_ERROR_CODES.md`.
 2. Run `python tools/gen_error_codes.py`; it regenerates `rpggen/errors_table.py`,
    `godot_templates/builder/lib/error_codes.gd` and `docs/errors.md`. CI fails when they are stale.
 3. Raise it with `issues.add("AREA-NNN", placeholder=value)` or `raise RpgGenError(...)` in Python,

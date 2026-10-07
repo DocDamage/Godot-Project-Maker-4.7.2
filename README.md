@@ -14,7 +14,7 @@ but only Windows builds are packaged for 1.0.
 ## Install
 
 1. Download `rpggen-<version>-setup.exe` (or the portable `rpggen-<version>-portable.zip`) from the
-   [Releases](https://github.com/rpggen/rpggen/releases) page, together with `SHA256SUMS.txt`.
+   [Releases](https://github.com/DocDamage/Godot-Project-Maker-4.7.2/releases) page, together with `SHA256SUMS.txt`.
 2. Check the download (PowerShell):
    `Get-FileHash .\rpggen-1.0.0-setup.exe -Algorithm SHA256` and compare it with the line in
    `SHA256SUMS.txt`.
@@ -35,9 +35,10 @@ releases do not show this screen.
 
 ## First run
 
-Start rpggen and press **Try with sample pack**. It fills in a bundled CC0 sample pack and an
-output folder under *Documents*, and walks you to the last page; press **Generate** and open the
-result in Godot. [docs/user_guide.md](docs/user_guide.md) explains each page and how to use a pack
+Start rpggen and press **Try the sample** on the welcome view. It fills in a bundled CC0 sample
+pack and an output folder under *Documents*, and walks you to the last page; press **Generate**
+and open the result in Godot. No Godot yet? The welcome view finds one, or downloads the official
+4.7.2 after you confirm (rpggen never goes online without a click). [docs/user_guide.md](docs/user_guide.md) explains each page and how to use a pack
 you bought.
 
 ## Documentation
@@ -67,9 +68,11 @@ rpggen-cli diagnose --target "D:\Games\forest"
 
 ## Privacy
 
-rpggen never uploads anything. The only network access is two buttons you click yourself: **Find
-profile online** (downloads the community profile index and the profile you pick) and, later,
-update checks. A diagnostic bundle is a zip you create and send yourself; it contains no art.
+rpggen never uploads anything. It goes online in exactly three cases, each behind a click:
+**Find profile online** (downloads the community profile index and the profile you pick),
+**Download Godot** (fetches the official Godot 4.7.2 from github.com/godotengine/godot/releases)
+and Help > **Check for updates** (reads the latest release of this project and opens its page; it
+never downloads or installs an update). There is no automatic check. A diagnostic bundle is a zip you create and send yourself; it contains no art.
 
 ## Development
 
@@ -83,7 +86,7 @@ python -m ruff format --check .
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). The build manual the project was written from is in
-`Implementation Plan and Specs/` (start with `00_START_HERE.md`); `docs/spec/` is its copy.
+`docs/spec/` (start with `00_START_HERE.md`).
 
 ## License
 

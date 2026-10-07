@@ -12,3 +12,9 @@ build/
 .cache/
 godot_templates/tests/results.json
 accuracy_report.json
+.mypy_cache/
+validation_runs/
+
+# local Godot install
+Godot_v*/
+Godot_v*.exe

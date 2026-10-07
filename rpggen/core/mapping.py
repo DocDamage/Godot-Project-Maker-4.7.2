@@ -127,6 +127,11 @@ def resolve_starter(
     return out
 
 
+def used_for(role: str) -> str:
+    """ "Used for the player actor": what in the game needs this role."""
+    return requirements.REQUIRED_BY.get(role, role.lower())
+
+
 def missing_required(
     catalog: catalog_mod.Catalog, archetype: str, placeholders: set[str]
 ) -> list[str]:

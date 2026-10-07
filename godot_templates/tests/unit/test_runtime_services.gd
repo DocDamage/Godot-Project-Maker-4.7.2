@@ -11,7 +11,7 @@ func test_events_bus_declares_every_documented_signal(t) -> void:
 		"dialogue_started", "dialogue_finished", "dialogue_event", "item_added", "item_removed",
 		"gold_changed", "player_damaged", "player_healed", "experience_gained", "level_up",
 		"entity_defeated", "encounter_requested", "encounter_finished", "notify", "game_paused",
-		"game_saved", "game_loaded",
+		"game_saved", "game_loaded", "chest_opened", "door_used", "attack_started",
 	]
 	for name in expected:
 		t.ok(events.has_signal(name), name)
@@ -164,3 +164,107 @@ func test_debug_overlay_commands(t) -> void:
 	t.eq(overlay.run_command("dance"), "unknown command (help)")
 	overlay.free()
 	Fixtures.uninstall_state()
+
+# ---------------------------------------------------------------- sound slots (T11.20)
+
+func _bank_with(paths: Dictionary) -> RpgSoundBank:
+	var bank := RpgSoundBank.new()
+	bank.set_paths(paths)
+	return bank
+
+func test_sound_bank_unset_slots_are_silent(t) -> void:
+	var bank := _bank_with({})
+	t.ok(bank.stream(&"sfx_hit") == null, "an unset slot has no stream")
+	t.ok(not bank.has_slot(&"sfx_hit"))
+	var missing := _bank_with({"sfx_hit": "res://does_not_exist.wav"})
+	t.ok(missing.has_slot(&"sfx_hit"))
+	t.ok(missing.stream(&"sfx_hit") == null, "a file that does not load is silent, not an error")
+
+func test_audio_play_on_an_unset_slot_does_nothing(t) -> void:
+	var audio := RpgAudio.new()
+	audio.play(&"sfx_hit")
+	audio.play_ui_slot(&"sfx_ui_move")
+	audio.play_music_slot(&"music_map")
+	t.eq(audio.sfx_busy_count(), 0)
+	audio.free()
+
+class FakeBus extends Node:
+	signal item_added(item_id: StringName, qty: int)
+	signal player_damaged(amount: int)
+	signal level_up(actor_id: StringName, new_level: int)
+	signal game_saved(slot: int)
+	signal chest_opened(entity_id: String)
+	signal door_used(entity_id: String)
+	signal attack_started(actor: Node)
+
+class RecordingAudio extends RpgAudio:
+	var played: Array = []
+	func play(slot: StringName, _volume_db: float = 0.0, _pitch_scale: float = 1.0) -> void:
+		played.append(slot)
+
+func test_events_play_their_slots(t) -> void:
+	var bus := FakeBus.new()
+	var audio := RecordingAudio.new()
+	audio.connect_events(bus)
+	bus.player_damaged.emit(3)
+	bus.level_up.emit(&"hero", 2)
+	bus.game_saved.emit(1)
+	bus.chest_opened.emit("c1")
+	bus.door_used.emit("d1")
+	bus.attack_started.emit(null)
+	t.eq(audio.played, [&"sfx_hit", &"sfx_levelup", &"sfx_save", &"sfx_chest", &"sfx_door", &"sfx_attack"])
+	bus.free()
+	audio.free()
+
+func test_every_event_slot_is_a_sound_slot_name(t) -> void:
+	for signal_name in RpgAudio.EVENT_SLOTS.keys():
+		t.ok(str(RpgAudio.EVENT_SLOTS[signal_name]).begins_with("sfx_"), str(signal_name))
+
+# ---------------------------------------------------------------- game over (T11.21)
+
+func test_defeat_policy_without_a_save_manager(t) -> void:
+	t.eq(RpgDefeatPolicy.latest_save_slot(), -1, "no SaveManager, no slot")
+	t.ok(RpgDefeatPolicy.Choice.CONTINUE != RpgDefeatPolicy.Choice.RETRY)
+	RpgDefeatPolicy.force_screen = true
+	t.ok(not RpgDefeatPolicy.is_automatic(), "a test can force the screen")
+	RpgDefeatPolicy.force_screen = false
+
+func test_game_over_strings_exist_with_defaults(t) -> void:
+	for key in ["UI_GAME_OVER_TITLE", "UI_GAME_OVER_CONTINUE", "UI_GAME_OVER_RETRY", "UI_GAME_OVER_QUIT"]:
+		t.ok(RpgStrings.KEYS.has(key), key)
+		t.ok(RpgStrings.english(key) != key, key)
+
+func test_game_over_screen_emits_one_choice(t) -> void:
+	var screen := RpgGameOver.new()
+	var seen := []
+	screen.chosen.connect(func(choice: int) -> void: seen.append(choice))
+	screen._choose(RpgDefeatPolicy.Choice.RETRY)
+	screen._choose(RpgDefeatPolicy.Choice.QUIT)
+	t.eq(seen, [RpgDefeatPolicy.Choice.RETRY], "a second press is ignored")
+	screen.free()
+
+# ---------------------------------------------------------------- small polish (T11.24)
+
+func test_prompt_text_picks_the_device(t) -> void:
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_E
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_A
+	t.eq(RpgInteraction.key_text([key, pad], false), "E")
+	t.ok(RpgInteraction.key_text([key, pad], true) != "E", "a controller shows its own button")
+	t.eq(RpgInteraction.key_text([key], true), "E", "no pad binding: the key")
+	t.eq(RpgInteraction.key_text([], false), "?")
+
+func test_pause_menu_progress_text(t) -> void:
+	t.eq(RpgPauseMenu.progress_text("res://game/maps/starter_map.tscn", 750.0), "Starter Map  ·  12 min")
+	t.eq(RpgPauseMenu.progress_text("", 59.0), "0 min")
+
+func test_screen_feedback_respects_the_setting(t) -> void:
+	t.ok(RpgScreenFeedback.enabled(), "on without a settings autoload")
+	var settings := Fixtures.install("RpgSettings", Fixtures.SETTINGS)
+	settings.screen_shake = false
+	t.ok(not RpgScreenFeedback.enabled())
+	RpgScreenFeedback.shake(null)  # no camera: nothing happens
+	settings.screen_shake = true
+	t.ok(RpgScreenFeedback.enabled())
+	Fixtures.uninstall("RpgSettings")

@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import catalog as catalog_mod
+from rpggen.core import explain, labels
 from rpggen.gui.edits import EditSession
 from rpggen.gui.widgets.asset_grid import STATUS_COLORS, PathResolver
 from rpggen.gui.widgets.image_view import ImageView
@@ -68,6 +69,17 @@ NEW_TILESET = "New…"
 UNCHANGED = "— detected —"
 
 
+def add_labeled(combo: QComboBox, value: str | None, kind: str, text: str | None = None) -> None:
+    """Adds an item that shows the friendly name of a role or usage (``kind``) and keeps the raw
+    value as its data; the description is the item's tooltip."""
+    if text is None:
+        text = labels.role_label(value or "") if kind == "role" else labels.usage_label(value or "")
+    help_text = labels.role_help(value or "") if kind == "role" else labels.usage_help(value or "")
+    combo.addItem(text, value)
+    if help_text:
+        combo.setItemData(combo.count() - 1, help_text, Qt.ItemDataRole.ToolTipRole)
+
+
 class AssetDetail(QWidget):
     """Edits one asset through the ``EditSession`` (never mutates the catalog itself)."""
 
@@ -103,21 +115,38 @@ class AssetDetail(QWidget):
         self.pack_label.setObjectName("packLabel")
         form.addRow(self.tr("Pack"), self.pack_label)
 
-        self.usage_combo = self._combo("usageCombo", USAGES)
+        self.usage_combo = self._combo("usageCombo", USAGES, "usage")
+        self.usage_combo.setToolTip(
+            self.tr("How the file is used: as tiles, a character, an object...")
+        )
         form.addRow(self.tr("Usage"), self.usage_combo)
-        self.role_combo = self._combo("roleCombo", ROLES)
+        self.role_combo = self._combo("roleCombo", ROLES, "role")
+        self.role_combo.setToolTip(
+            self.tr("What the file is in the game. Changing it confirms the asset.")
+        )
         self.alt_row = QHBoxLayout()
         self.alt_buttons: list[QPushButton] = []
         for i in range(ALT_BUTTONS):
             button = QPushButton()
             button.setObjectName(f"altRoleButton{i}")
+            button.setToolTip(self.tr("Another role the detection considered: click to use it"))
             button.setVisible(False)
             button.clicked.connect(lambda _=False, b=button: self._pick_alt(b))
             self.alt_row.addWidget(button)
             self.alt_buttons.append(button)
+        self.role_help = QLabel()
+        self.role_help.setObjectName("roleHelp")
+        self.role_help.setWordWrap(True)
+        self.role_help.setProperty("muted", True)
+        self.why_label = QLabel()
+        self.why_label.setObjectName("whyLabel")
+        self.why_label.setWordWrap(True)
+        self.why_label.setProperty("muted", True)
         role_box = QVBoxLayout()
         role_box.addWidget(self.role_combo)
+        role_box.addWidget(self.role_help)
         role_box.addLayout(self.alt_row)
+        role_box.addWidget(self.why_label)
         form.addRow(self.tr("Role"), role_box)
 
         self.confidence_bar = QProgressBar()
@@ -132,6 +161,7 @@ class AssetDetail(QWidget):
 
         self.collision_combo = QComboBox()
         self.collision_combo.setObjectName("collisionCombo")
+        self.collision_combo.setToolTip(self.tr("The shape that blocks movement"))
         self.collision_combo.addItem(self.tr(UNCHANGED), None)
         for name in COLLISION_PROFILES:
             self.collision_combo.addItem(name, name)
@@ -139,6 +169,7 @@ class AssetDetail(QWidget):
         form.addRow(self.collision_label, self.collision_combo)
         self.tileset_combo = QComboBox()
         self.tileset_combo.setObjectName("tilesetCombo")
+        self.tileset_combo.setToolTip(self.tr("The TileSet this sheet is added to"))
         self.tileset_label = QLabel(self.tr("Tileset"))
         form.addRow(self.tileset_label, self.tileset_combo)
         self.tags_edit = QLineEdit()
@@ -181,11 +212,11 @@ class AssetDetail(QWidget):
         self.setEnabled(False)
 
     @staticmethod
-    def _combo(name: str, items: list[str]) -> QComboBox:
+    def _combo(name: str, items: list[str], kind: str) -> QComboBox:
         combo = QComboBox()
         combo.setObjectName(name)
         for item in items:
-            combo.addItem(item, item)
+            add_labeled(combo, item, kind)
         return combo
 
     # ------------------------------------------------------------------ showing an asset
@@ -209,6 +240,8 @@ class AssetDetail(QWidget):
         try:
             if asset is None:
                 self.path_label.setText("")
+                self.role_help.setText("")
+                self.why_label.setText("")
                 self.pack_label.setText("")
                 self.status_badge.setText("")
                 self.confidence_bar.setValue(0)
@@ -219,6 +252,8 @@ class AssetDetail(QWidget):
             self.pack_label.setText(asset.pack_id)
             self._select(self.usage_combo, eff.get("usage"))
             self._select(self.role_combo, eff.get("role"))
+            self.role_help.setText(labels.role_help(str(eff.get("role", ""))))
+            self.why_label.setText(self.tr("Why: ") + explain.why(asset))
             self._fill_alternatives(eff)
             self.confidence_bar.setValue(round(asset.confidence * 100))
             self.status_badge.setText(asset.status)
@@ -252,7 +287,8 @@ class AssetDetail(QWidget):
         for i, button in enumerate(self.alt_buttons):
             if i < len(alts):
                 role, conf = alts[i]
-                button.setText(f"{role} {round(conf * 100)}%")
+                button.setText(f"{labels.role_label(role)} {round(conf * 100)}%")
+                button.setToolTip(labels.role_help(role))
                 button.setProperty("role_value", role)
                 button.setVisible(True)
             else:

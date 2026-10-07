@@ -108,4 +108,18 @@ func _finish() -> void:
 	f.store_string(JSON.stringify(data, "  ", true) + "\n")
 	f.close()
 	print("[rpggen] INFO smoke finished ok=%s" % str(ok))
+	await _silence_audio()
 	get_tree().quit(0 if ok else 1)
+
+## Stops every audio player and gives the mixer a moment to let go of the playbacks; a stream that is
+## still playing at exit is reported by Godot as a resource still in use.
+func _silence_audio() -> void:
+	var pending: Array[Node] = [get_tree().root]
+	while not pending.is_empty():
+		var node: Node = pending.pop_back()
+		pending.append_array(node.get_children())
+		if node is AudioStreamPlayer or node is AudioStreamPlayer2D:
+			node.call("stop")
+			node.set("stream", null)
+	await get_tree().create_timer(0.3, true, false, true).timeout
+

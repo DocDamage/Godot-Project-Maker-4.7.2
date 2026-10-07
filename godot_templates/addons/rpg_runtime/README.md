@@ -24,6 +24,24 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 `set_flag:<entity>.<key>=<value>`, `give_item:<id>[:qty]`, `take_item:<id>[:qty]`, `give_gold:N`,
 `set_quest:<id>=<state>`, `heal_full`, `emit:<name>[:arg]` (sent as `Events.dialogue_event`).
 
+## Sound
+
+`RpgAudio` (a child of `SceneRouter`, its `audio` property) plays the **sound slots** of
+the game. `rpggen/sound_bank.json` maps a slot key (`music_map`, `music_battle`, `music_title`,
+`sfx_ui_move`, `sfx_ui_confirm`, `sfx_ui_cancel`, `sfx_hit`, `sfx_attack`, `sfx_pickup`,
+`sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`) to a resource path. `play(slot)`,
+`play_ui_slot(slot)` and `play_music_slot(slot)` do nothing, and log nothing, for a slot that is
+not set. Game events (`item_added`, `player_damaged`, `level_up`, `game_saved`, `chest_opened`,
+`door_used`, `attack_started`) are wired to their slots; the autosave (slot 0) is silent.
+
+## Saving and game over
+
+`SaveManager` has slots 1 to 3 and the autosave slot 0 (`AUTOSAVE_SLOT`); `latest_save_slot()` of
+`RpgDefeatPolicy` is the newest of them, or -1. `RpgDefeatPolicy.show_game_over()` shows
+`RpgGameOver` (continue, try again, quit to title) and carries the choice out; smoke runs and a
+combat mode with an `auto_choose` hook skip the screen and take the default (the newest save,
+else the start of the map with full health).
+
 ## Debug overlay
 
 In debug builds with the debug tools feature on, **F3** shows FPS, map, position, tile and flag

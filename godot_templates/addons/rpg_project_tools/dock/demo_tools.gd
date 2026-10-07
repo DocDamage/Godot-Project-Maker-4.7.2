@@ -12,6 +12,7 @@ const EntityIds := preload("../tools/entity_ids.gd")
 const DEMO_DIR := "res://game/demo"
 const MAP_PATH := "res://game/maps/starter_map.tscn"
 const INTERIOR_PATH := "res://game/maps/interior_1.tscn"
+const FIELD_PATH := "res://game/maps/field_1.tscn"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
 const DEMO_ENTITIES_PATH := "res://rpggen/demo_entities.json"
 const LEDGER_PATH := "res://rpggen/ownership_ledger.json"
@@ -112,7 +113,19 @@ func remove(plugin: EditorPlugin) -> Dictionary:
 			result["messages"].append("Removed interior_1.tscn.")
 		else:
 			result["messages"].append("Kept interior_1.tscn: it was changed.")
-	result["nodes"] = _remove_map_nodes(plugin, interior_removed)
+	# The doors that led to a removed map are cleared (an unset door is not an error), which also
+	# closes the gap in the east wall of the starter map.
+	var cleared: Array = [INTERIOR_PATH] if interior_removed else []
+	if FileAccess.file_exists(FIELD_PATH):
+		if untouched(ledger, FIELD_PATH):
+			DirAccess.remove_absolute(FIELD_PATH)
+			cleared.append(FIELD_PATH)
+			result["files"].append(FIELD_PATH)
+			removed_rels.append(FIELD_PATH.trim_prefix("res://"))
+			result["messages"].append("Removed field_1.tscn.")
+		else:
+			result["messages"].append("Kept field_1.tscn: it was changed.")
+	result["nodes"] = _remove_map_nodes(plugin, cleared)
 	if result["nodes"] > 0:
 		result["messages"].append("Removed %d demo entities from the starter map." % result["nodes"])
 	_empty_start_items(result)
@@ -120,9 +133,9 @@ func remove(plugin: EditorPlugin) -> Dictionary:
 	EditorInterface.get_resource_filesystem().scan()
 	return result
 
-## Takes the demo entities out of the starter map with undo and saves the map. When the interior
-## was removed, the doors that led to it are cleared (an unset door is not an error).
-func _remove_map_nodes(plugin: EditorPlugin, clear_doors: bool) -> int:
+## Takes the demo entities out of the starter map with undo and saves the map. The doors that led
+## to a removed map (`cleared_targets`) are cleared.
+func _remove_map_nodes(plugin: EditorPlugin, cleared_targets: Array) -> int:
 	if not FileAccess.file_exists(MAP_PATH):
 		return 0
 	var root := EditorInterface.get_edited_scene_root()
@@ -132,7 +145,12 @@ func _remove_map_nodes(plugin: EditorPlugin, clear_doors: bool) -> int:
 	if root == null:
 		return 0
 	var nodes := demo_nodes(root, demo_ids())
-	var doors := doors_targeting(root, INTERIOR_PATH) if clear_doors else []
+	var doors: Array = []
+	var door_targets := {}  # door -> the map it led to
+	for target in cleared_targets:
+		for door in doors_targeting(root, String(target)):
+			doors.append(door)
+			door_targets[door] = String(target)
 	if nodes.is_empty() and doors.is_empty():
 		return 0
 	var undo := plugin.get_undo_redo()
@@ -145,7 +163,7 @@ func _remove_map_nodes(plugin: EditorPlugin, clear_doors: bool) -> int:
 		undo.add_undo_reference(node)
 	for door in doors:
 		undo.add_do_property(door, "target_map", "")
-		undo.add_undo_property(door, "target_map", INTERIOR_PATH)
+		undo.add_undo_property(door, "target_map", door_targets[door])
 	undo.commit_action()
 	EditorInterface.save_scene()
 	return nodes.size()

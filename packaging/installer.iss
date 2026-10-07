@@ -9,7 +9,9 @@ AppId={{6C1F6E0A-6A33-4B7E-9C0B-52B7E4A9D1C4}
 AppName=rpggen
 AppVersion={#AppVersion}
 AppPublisher=rpggen contributors
-AppPublisherURL=https://github.com/rpggen/rpggen
+AppPublisherURL=https://github.com/DocDamage/Godot-Project-Maker-4.7.2
+AppSupportURL=https://github.com/DocDamage/Godot-Project-Maker-4.7.2/issues
+AppUpdatesURL=https://github.com/DocDamage/Godot-Project-Maker-4.7.2/releases
 DefaultDirName={autopf}\rpggen
 DefaultGroupName=rpggen
 ; Per-user by default: no administrator rights needed. The user can still choose "all users".

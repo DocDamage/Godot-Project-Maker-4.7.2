@@ -6,6 +6,15 @@ const CRIT_MULTIPLIER := 1.5
 const DEFAULT_CRIT_CHANCE := 0.05
 const PLAYER_INVULN_S := 0.6
 const ENEMY_INVULN_S := 0.15
+## The heavy attack (secondary_attack): slower, stronger, knocks back further.
+const HEAVY_DAMAGE_MULT := 1.75
+const HEAVY_KNOCKBACK_MULT := 1.5
+const HEAVY_DURATION_MULT := 1.6
+const HEAVY_ANIM_SPEED := 0.7
+
+## Damage of a heavy attack whose light version would deal `base` (always more than `base`).
+static func heavy_damage(base: int) -> int:
+	return maxi(base + 1, int(round(float(base) * HEAVY_DAMAGE_MULT)))
 
 ## max(1, attack - defense / 2)
 static func base_damage(attack: int, defense: int) -> int:

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PySide6.QtCore import QStandardPaths, QTimer, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtCore import QStandardPaths, Qt, QTimer, Signal
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -17,22 +18,33 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
-from rpggen import ids, paths
-from rpggen.core import archive, godot, inventory, pack_diff, preflight, profiles
+from rpggen import godot_target, ids, paths
+from rpggen.core import (
+    app_settings,
+    archive,
+    godot,
+    godot_fetch,
+    inventory,
+    pack_diff,
+    preflight,
+    profiles,
+)
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui import state as state_mod
 from rpggen.gui import workers
-from rpggen.gui.pages.base import WizardPage, form_error
+from rpggen.gui.pages.base import WizardPage, form_error, form_missing
 from rpggen.gui.state import WizardState
 from rpggen.gui.widgets import analysis_progress
+from rpggen.gui.widgets.task_progress import error_text, run_task
 
 log = logging.getLogger(__name__)
 
@@ -51,6 +63,8 @@ class InputCheck:
     godot_version: str = ""
     target: list[Issue] = field(default_factory=list)
     packs: list[Issue] = field(default_factory=list)
+    pack_info: dict[str, tuple[str, int | None, int | None]] = field(default_factory=dict)
+    pack_issues: dict[str, list[Issue]] = field(default_factory=dict)
 
 
 def check_inputs(
@@ -72,19 +86,54 @@ def check_inputs(
     if target is not None:
         out.target = preflight.check_target(target, packs)
     for pack in packs:
-        out.packs.extend(preflight.check_pack(pack))
+        found = preflight.check_pack(pack)
+        out.packs.extend(found)
+        out.pack_issues[str(pack)] = found
+        out.pack_info[str(pack)] = preflight.pack_stats(pack)
     return out
 
 
 class PackList(QListWidget):
-    """The pack list; files and folders can be dropped onto it."""
+    """The pack list; files and folders can be dropped onto it. Empty, it draws a dashed frame
+    that says what to drop."""
+
+    EMPTY_TEXT = "Drop asset packs here: folders, .zip, .7z or .rar"
 
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("packList")
         self.setAcceptDrops(True)
         self.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
+        self.setMinimumHeight(96)
         self.on_paths_dropped = lambda paths: None
+
+    def paintEvent(self, event) -> None:  # noqa: ANN001
+        super().paintEvent(event)
+        if self.count():
+            return
+        painter = QPainter(self.viewport())
+        pen = QPen(self.palette().color(QPalette.ColorRole.Mid))
+        pen.setStyle(Qt.PenStyle.DashLine)
+        pen.setWidth(2)
+        painter.setPen(pen)
+        painter.drawRoundedRect(self.viewport().rect().adjusted(6, 6, -6, -6), 6, 6)
+        painter.setPen(self.palette().color(QPalette.ColorRole.PlaceholderText))
+        painter.drawText(
+            self.viewport().rect(), Qt.AlignmentFlag.AlignCenter, self.tr(self.EMPTY_TEXT)
+        )
+        painter.end()
+
+    def paths(self) -> list[Path]:
+        return [
+            Path(self.item(i).data(Qt.ItemDataRole.UserRole) or self.item(i).text())
+            for i in range(self.count())
+        ]
+
+    def add_path(self, path: Path | str) -> QListWidgetItem:
+        item = QListWidgetItem(str(path))
+        item.setData(Qt.ItemDataRole.UserRole, str(path))
+        self.addItem(item)
+        return item
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -98,6 +147,36 @@ class PackList(QListWidget):
         if dropped:
             self.on_paths_dropped(dropped)
             event.acceptProposedAction()
+
+
+_BAD_NAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+
+
+def prefill_name(source: Path) -> str:
+    """A project name from a pack's file or folder name: words title-cased, characters that a
+    folder name cannot hold removed, at most 64 characters."""
+    base = source.stem if source.is_file() else source.name
+    base = _BAD_NAME_CHARS.sub("", re.sub(r"[_\-.]+", " ", base)).strip()
+    name = " ".join(word[:1].upper() + word[1:] for word in base.split())
+    return name[:NAME_MAX].strip() or "My Game"
+
+
+def format_size(size: int | None) -> str:
+    if size is None:
+        return ""
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024 or unit == "GB":
+            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024  # type: ignore[assignment]
+    return ""
+
+
+def set_hint(label: QLabel, text: str) -> None:
+    """A neutral grey line: what the field is for (shown until the user has touched it)."""
+    label.setText(text)
+    label.setProperty("state", "hint")
+    label.style().unpolish(label)
+    label.style().polish(label)
 
 
 def _status_label(name: str) -> QLabel:
@@ -130,6 +209,8 @@ def set_status(label: QLabel, issues: list[Issue], ok_text: str = "") -> None:
 
 class ProjectPage(WizardPage):
     title = "Project"
+    help_anchor = "3. Using a pack you bought"
+    shows_inline_errors = True  # the fields print their own messages
     sampleReady = Signal()  # "Try with sample pack" filled in valid inputs
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -138,6 +219,9 @@ class ProjectPage(WizardPage):
         self._check_key: tuple | None = None
         self._generation = 0  # ignores results of superseded checks
         self._worker: workers.Worker | None = None
+        self._touched = {"packs": False, "target": False, "godot": False, "name": False}
+        self._suggested_target = ""
+        self._suggested_name = ""
         self._name_touched = False
         self._loading = False
         self._pack_updates: dict[str, str] = {}  # new source -> pack_id it replaces
@@ -149,6 +233,7 @@ class ProjectPage(WizardPage):
 
         # packs
         self.pack_list = PackList()
+        self.pack_list.setToolTip(self.tr("The asset packs: drop folders or archives here"))
         self.pack_list.on_paths_dropped = self.add_sources
         self.add_zip_button = QPushButton(self.tr("Add Zip/7z…"))
         self.add_zip_button.setObjectName("addZipButton")
@@ -181,6 +266,7 @@ class ProjectPage(WizardPage):
         # output folder
         self.target_edit = QLineEdit()
         self.target_edit.setObjectName("targetEdit")
+        self.target_edit.setToolTip(self.tr("The folder the Godot project is created in"))
         self.browse_target_button = QPushButton(self.tr("Browse…"))
         self.browse_target_button.setObjectName("browseTargetButton")
         row = QHBoxLayout()
@@ -195,6 +281,7 @@ class ProjectPage(WizardPage):
         # godot
         self.godot_combo = QComboBox()
         self.godot_combo.setObjectName("godotCombo")
+        self.godot_combo.setToolTip(self.tr("The Godot program rpggen uses to build the project"))
         self.godot_combo.setEditable(True)
         self.browse_godot_button = QPushButton(self.tr("Browse…"))
         self.browse_godot_button.setObjectName("browseGodotButton")
@@ -205,11 +292,27 @@ class ProjectPage(WizardPage):
         box.addLayout(row)
         self.godot_status = _status_label("godotStatus")
         box.addWidget(self.godot_status)
-        form.addRow(self.tr("Godot 4.7.2"), box)
+        self.download_godot_button = QPushButton(
+            self.tr("Download Godot {0} (about 60 MB)").format(godot_fetch.DEFAULT_VERSION)
+        )
+        self.download_godot_button.setObjectName("downloadGodotButton")
+        self.download_godot_button.setToolTip(
+            self.tr(
+                "Downloads the official Godot from github.com/godotengine/godot/releases into "
+                "rpggen's own folder. Your other Godot versions are not touched."
+            )
+        )
+        self.download_godot_button.setVisible(False)
+        download_row = QHBoxLayout()
+        download_row.addWidget(self.download_godot_button)
+        download_row.addStretch(1)
+        box.addLayout(download_row)
+        form.addRow(self.tr("Godot executable"), box)
 
         # name
         self.name_edit = QLineEdit()
         self.name_edit.setObjectName("nameEdit")
+        self.name_edit.setToolTip(self.tr("The name of the game (also the window title)"))
         self.name_edit.setMaxLength(NAME_MAX * 2)  # longer text is reported, not silently cut
         box = QVBoxLayout()
         box.addWidget(self.name_edit)
@@ -240,7 +343,12 @@ class ProjectPage(WizardPage):
         self.update_pack_button.clicked.connect(self.update_pack)
         self.browse_target_button.clicked.connect(self._browse_target)
         self.browse_godot_button.clicked.connect(self._browse_godot)
+        self.download_godot_button.clicked.connect(self.download_godot)
         self.target_edit.textChanged.connect(self._on_target_changed)
+        self.target_edit.textEdited.connect(self._on_target_edited)
+        self.godot_combo.activated.connect(lambda _i: self._touch("godot"))
+        if (godot_line := self.godot_combo.lineEdit()) is not None:
+            godot_line.textEdited.connect(lambda _t: self._touch("godot"))
         self.godot_combo.currentTextChanged.connect(self._on_inputs_changed)
         self.name_edit.textEdited.connect(self._on_name_edited)
         self.name_edit.textChanged.connect(self._refresh_name_status)
@@ -278,10 +386,11 @@ class ProjectPage(WizardPage):
         self._loading = True
         try:
             self.pack_list.clear()
-            self.pack_list.addItem(str(sample))
+            self.pack_list.add_path(sample)
             self.target_edit.setText(str(self.sample_target()))
             self.name_edit.setText(SAMPLE_NAME)
             self._name_touched = True
+            self._touched = dict.fromkeys(self._touched, True)
         finally:
             self._loading = False
         self._debounce.stop()
@@ -299,7 +408,7 @@ class ProjectPage(WizardPage):
     # ------------------------------------------------------------------ editing
 
     def sources(self) -> list[Path]:
-        return [Path(self.pack_list.item(i).text()) for i in range(self.pack_list.count())]
+        return self.pack_list.paths()
 
     def add_sources(self, paths_: list[Path]) -> None:
         known = {str(p).casefold() for p in self.sources()}
@@ -308,13 +417,16 @@ class ProjectPage(WizardPage):
             if path.is_file() and path.suffix.lower() not in ARCHIVE_SUFFIXES:
                 continue
             if str(path).casefold() not in known:
-                self.pack_list.addItem(str(path))
+                self.pack_list.add_path(path)
                 known.add(str(path).casefold())
+                self._touched["packs"] = True
+        self._suggest_from_first_pack()
         self._on_inputs_changed()
 
     def remove_selected(self) -> None:
         for item in self.pack_list.selectedItems():
             self.pack_list.takeItem(self.pack_list.row(item))
+        self._touched["packs"] = True
         self._on_inputs_changed()
 
     def target(self) -> Path | None:
@@ -327,26 +439,118 @@ class ProjectPage(WizardPage):
 
     def _browse_archives(self) -> None:
         files, _ = QFileDialog.getOpenFileNames(
-            self, self.tr("Add asset packs"), "", self.tr("Archives (*.zip *.7z *.rar)")
+            self,
+            self.tr("Add asset packs"),
+            app_settings.load().last_pack_dir,
+            self.tr("Archives (*.zip *.7z *.rar)"),
         )
+        if files:
+            app_settings.update(last_pack_dir=str(Path(files[0]).parent))
         self.add_sources([Path(f) for f in files])
 
     def _browse_folder(self) -> None:
-        folder = QFileDialog.getExistingDirectory(self, self.tr("Add asset pack folder"))
+        folder = QFileDialog.getExistingDirectory(
+            self, self.tr("Add asset pack folder"), app_settings.load().last_pack_dir
+        )
         if folder:
+            app_settings.update(last_pack_dir=str(Path(folder).parent))
             self.add_sources([Path(folder)])
 
     def _browse_target(self) -> None:
-        folder = QFileDialog.getExistingDirectory(self, self.tr("Output folder"))
+        folder = QFileDialog.getExistingDirectory(
+            self, self.tr("Output folder"), app_settings.load().last_target_dir
+        )
         if folder:
+            app_settings.update(last_target_dir=str(Path(folder).parent))
             self.target_edit.setText(folder)
 
     def _browse_godot(self) -> None:
         exe, _ = QFileDialog.getOpenFileName(
-            self, self.tr("Godot 4.7.2 executable"), "", self.tr("Executables (*.exe);;All (*)")
+            self,
+            self.tr("Godot executable"),
+            str(Path(app_settings.load().godot_exe).parent)
+            if app_settings.load().godot_exe
+            else "",
+            self.tr("Executables (*.exe);;All (*)"),
         )
         if exe:
             self.godot_combo.setCurrentText(exe)
+
+    # ------------------------------------------------------------------ download godot
+
+    def confirm_godot_download(self, destination: Path) -> bool:  # overridden by tests
+        answer = QMessageBox.question(
+            self,
+            self.tr("Download Godot"),
+            self.tr(
+                "rpggen will download Godot {version} (about 60 MB) from {source} and keep it in:"
+                "\n\n{dest}\n\nThis is the only network access of this step. Continue?"
+            ).format(
+                version=godot_fetch.DEFAULT_VERSION,
+                source=godot_fetch.SOURCE_LABEL,
+                dest=destination,
+            ),
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def download_godot(self) -> Path | None:
+        """Download the supported Godot after a confirmation; selects it. None when declined,
+        cancelled or failed."""
+        destination = godot_fetch.managed_dir()
+        if not self.confirm_godot_download(destination):
+            return None
+        outcome = run_task(
+            self,
+            self.tr("Downloading Godot…"),
+            workers.download_godot,
+            godot_fetch.DEFAULT_VERSION,
+            destination,
+            object_name="godotDownloadProgress",
+            determinate=True,
+        )
+        if outcome.cancelled or isinstance(outcome.error, godot_fetch.FetchCancelled):
+            return None
+        if outcome.error is not None:
+            QMessageBox.warning(
+                self, self.tr("Could not download Godot"), error_text(outcome.error)
+            )
+            return None
+        exe = Path(outcome.value)
+        if self.godot_combo.findText(str(exe)) < 0:
+            self.godot_combo.insertItem(0, str(exe))
+        self.godot_combo.setCurrentText(str(exe))
+        return exe
+
+    def _refresh_godot_download(self) -> None:
+        """Offer the download when there is no usable Godot (none chosen, or not 4.7.x)."""
+        check = self._current_check()
+        missing = self.godot_path() is None
+        unsupported = check is not None and any(i.code == "ENV-002" for i in check.godot)
+        self.download_godot_button.setVisible(missing or unsupported)
+
+    def _touch(self, which: str) -> None:
+        self._touched[which] = True
+        self._refresh_cheap()
+
+    def _on_target_edited(self) -> None:
+        self._touched["target"] = True
+        self._suggested_target = ""  # typed by the user: no more suggestions
+
+    def _suggest_from_first_pack(self) -> None:
+        """Prefill the name from the first pack and suggest an output folder, until the user has
+        typed a name or a folder of their own."""
+        sources = self.sources()
+        if not sources:
+            return
+        name = prefill_name(sources[0])
+        if not self._name_touched and self.name_edit.text() in ("", self._suggested_name):
+            self._suggested_name = name
+            self.name_edit.setText(name)
+        current = self.target_edit.text().strip()
+        if current in ("", self._suggested_target):
+            folder = self.documents_dir() / "rpggen" / (self.name_edit.text().strip() or name)
+            self._suggested_target = str(folder)
+            self.target_edit.setText(str(folder))
 
     def _on_target_changed(self) -> None:
         if not self._name_touched and not self._loading:
@@ -439,8 +643,9 @@ class ProjectPage(WizardPage):
             item = self.pack_list.item(row)
             if item is not None:
                 item.setText(str(new_source))
+                item.setData(Qt.ItemDataRole.UserRole, str(new_source))
         else:
-            self.pack_list.addItem(str(new_source))
+            self.pack_list.add_path(new_source)
         self._pack_updates[str(new_source)] = pack_id
         prefix = f"assets/packs/{pack_id}/"
         self._update_changed |= {prefix + p for p in [*d.changed_paths(), *d.renamed]}
@@ -449,6 +654,8 @@ class ProjectPage(WizardPage):
 
     def _on_name_edited(self) -> None:
         self._name_touched = True
+        self._touched["name"] = True
+        self._suggested_name = ""
         self.changed.emit()
 
     def _on_inputs_changed(self) -> None:
@@ -476,6 +683,10 @@ class ProjectPage(WizardPage):
         def done(result: InputCheck) -> None:
             if generation != self._generation:
                 return
+            try:
+                self.godot_combo.objectName()
+            except RuntimeError:
+                return  # the page was closed while the check ran
             self._check, self._check_key = result, key
             self._refresh_cheap()
             self.changed.emit()
@@ -493,12 +704,44 @@ class ProjectPage(WizardPage):
 
     def _name_issues(self) -> list[Issue]:
         name = self.name_edit.text().strip()
-        if not 1 <= len(name) <= NAME_MAX:
+        if not name:
+            return [form_missing(self.tr("The name needs 1 to 64 characters."))]
+        if len(name) > NAME_MAX:
             return [form_error(self.tr("The name needs 1 to 64 characters."))]
         return []
 
     def _refresh_name_status(self) -> None:
-        set_status(self.name_status, self._name_issues(), self.tr("Name is fine."))
+        issues = self._name_issues()
+        if issues and issues[0].code == "GUI-EMPTY" and not self._touched["name"]:
+            set_hint(self.name_status, self.tr("A name for the game, 1 to 64 characters."))
+        else:
+            set_status(self.name_status, issues, self.tr("Name is fine."))
+
+    def _refresh_pack_rows(self, check: InputCheck | None) -> None:
+        """Each row: the pack, its kind, file count and size once known, and a warning sign with
+        the text of an archive problem."""
+        for row in range(self.pack_list.count()):
+            item = self.pack_list.item(row)
+            path = str(item.data(Qt.ItemDataRole.UserRole) or item.text())
+            text = path
+            tooltip = path
+            icon = ""
+            if check is not None and path in check.pack_info:
+                kind, count, size = check.pack_info[path]
+                bits = [kind]
+                if count is not None:
+                    bits.append(self.tr("{0} files").format(count))
+                if size is not None:
+                    bits.append(format_size(size))
+                text = f"{path}   ·   " + " · ".join(bits)
+                problems = [
+                    i for i in check.pack_issues.get(path, []) if i.code.startswith("ARCH-")
+                ]
+                if problems:
+                    icon = "⚠ "
+                    tooltip = problems[0].message + " " + problems[0].fix
+            item.setText(icon + text)
+            item.setToolTip(tooltip)
 
     def _refresh_cheap(self) -> None:
         """Update the field lines from the latest completed slow check."""
@@ -508,15 +751,34 @@ class ProjectPage(WizardPage):
         )
         if check:
             pack_issues += check.packs
-        set_status(
-            self.packs_status,
-            pack_issues,
-            self.tr("{0} pack(s) ready.").format(len(self.sources())),
-        )
-        if self.godot_path() is None:
-            set_status(
-                self.godot_status, [form_error(self.tr("Select the Godot 4.7.2 executable."))]
+        if not self.sources() and not self._touched["packs"]:
+            set_hint(
+                self.packs_status, self.tr("Drag a folder or archive here, or use the buttons.")
             )
+        else:
+            set_status(
+                self.packs_status,
+                pack_issues,
+                self.tr("{0} pack(s) ready.").format(len(self.sources())),
+            )
+        self._refresh_pack_rows(check)
+        if self.godot_path() is None:
+            if self._touched["godot"]:
+                set_status(
+                    self.godot_status,
+                    [
+                        form_error(
+                            self.tr("Select a Godot {0}.x executable.").format(
+                                godot_target.MAJOR_MINOR
+                            )
+                        )
+                    ],
+                )
+            else:
+                set_hint(
+                    self.godot_status,
+                    self.tr("Select the Godot executable, or press Download Godot."),
+                )
         elif check:
             set_status(
                 self.godot_status,
@@ -525,8 +787,12 @@ class ProjectPage(WizardPage):
             )
         else:
             self._set_pending(self.godot_status)
+        self._refresh_godot_download()
         if self.target() is None:
-            set_status(self.target_status, [form_error(self.tr("Choose an output folder."))])
+            if self._touched["target"]:
+                set_status(self.target_status, [form_error(self.tr("Choose an output folder."))])
+            else:
+                set_hint(self.target_status, self.tr("Where the Godot project will be created."))
         elif check:
             set_status(self.target_status, check.target, self.tr("Output folder is fine."))
         else:
@@ -542,11 +808,15 @@ class ProjectPage(WizardPage):
     def validate(self, state: WizardState) -> list[Issue]:
         issues: list[Issue] = []
         if not self.sources():
-            issues.append(form_error(self.tr("Add at least one asset pack.")))
+            issues.append(form_missing(self.tr("Add at least one asset pack.")))
         if self.target() is None:
-            issues.append(form_error(self.tr("Choose an output folder.")))
+            issues.append(form_missing(self.tr("Choose an output folder.")))
         if self.godot_path() is None:
-            issues.append(form_error(self.tr("Select the Godot 4.7.2 executable.")))
+            issues.append(
+                form_missing(
+                    self.tr("Select a Godot {0}.x executable.").format(godot_target.MAJOR_MINOR)
+                )
+            )
         issues += self._name_issues()
         check = self._current_check()
         if check is None:
@@ -558,6 +828,22 @@ class ProjectPage(WizardPage):
                 issues.append(found)
         return issues
 
+    def reveal_missing(self, state: WizardState) -> None:
+        """Next was pressed with fields still empty: mark them all and focus the first one."""
+        for key in self._touched:
+            self._touched[key] = True
+        self._refresh_cheap()
+        order = (
+            (not self.sources(), self.pack_list),
+            (self.target() is None, self.target_edit),
+            (self.godot_path() is None, self.godot_combo),
+            (not self.name_edit.text().strip(), self.name_edit),
+        )
+        for missing, widget in order:
+            if missing:
+                widget.setFocus()
+                break
+
     # ------------------------------------------------------------------ state <-> widgets
 
     def enter(self, state: WizardState) -> None:
@@ -565,8 +851,11 @@ class ProjectPage(WizardPage):
         try:
             self.pack_list.clear()
             for source in state.pack_sources:
-                self.pack_list.addItem(str(source))
+                self.pack_list.add_path(source)
             self.target_edit.setText(str(state.target) if state.target else "")
+            self._touched["packs"] = bool(state.pack_sources)
+            self._touched["target"] = state.target is not None
+            self._touched["name"] = bool(state.project_name)
             self._name_touched = bool(state.project_name)
             self.name_edit.setText(state.project_name)
             self.godot_combo.clear()
@@ -574,8 +863,13 @@ class ProjectPage(WizardPage):
             if state.godot_exe and str(state.godot_exe) not in candidates:
                 candidates.insert(0, str(state.godot_exe))
             self.godot_combo.addItems(candidates)
+            saved = app_settings.load().godot_exe
             if state.godot_exe:
                 self.godot_combo.setCurrentText(str(state.godot_exe))
+            elif saved and Path(saved).is_file():
+                if saved not in candidates:
+                    self.godot_combo.insertItem(0, saved)
+                self.godot_combo.setCurrentText(saved)
             elif not candidates:
                 self.godot_combo.setCurrentText("")
         finally:
@@ -598,6 +892,8 @@ class ProjectPage(WizardPage):
         state.pack_sources = sources
         state.target = target
         state.godot_exe = self.godot_path()
+        if state.godot_exe is not None and state.godot_exe.is_file():
+            app_settings.update(godot_exe=str(state.godot_exe))
         state.project_name = self.name_edit.text().strip()
         state.pack_updates = {s: p for s, p in self._pack_updates.items() if Path(s) in sources}
         state.changed_paths = set(self._update_changed) if state.pack_updates else set()

@@ -74,6 +74,8 @@ def export_profile(
         if asset.overrides or asset.status == "CONFIRMED":
             facets = copy.deepcopy(catalog_mod.effective(asset))
             out_assets[key] = {k: v for k, v in facets.items() if k not in _DROPPED_FACETS}
+            if isinstance(out_assets[key].get("audio"), dict):  # measured, not a decision
+                out_assets[key]["audio"].pop("duration_s", None)
 
     objects: list[dict[str, Any]] = []
     for obj in sorted(catalog.objects, key=lambda o: o.id):

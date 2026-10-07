@@ -6,12 +6,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -78,9 +77,36 @@ def launch_detached(args: list[str]) -> None:
     )
 
 
+PHASE_FAILED_TEXT = {
+    "preflight": "Something is wrong with your setup, so nothing was built.",
+    "stage": "rpggen could not prepare a work folder next to your output folder.",
+    "install": "rpggen could not copy your packs and the game code.",
+    "catalog": "rpggen could not read what is in your packs.",
+    "import": "Godot could not import your assets.",
+    "build": "Godot could not build the game.",
+    "validate": "The finished game did not pass its checks.",
+    "smoke": "The game started, but the test that plays it failed.",
+    "export": "The test export of the game failed.",
+    "promote": "The finished project could not be put in place.",
+    "report": "The report could not be written.",
+}
+
+
+class ClickableLabel(QLabel):
+    clicked = Signal()
+
+    def mousePressEvent(self, event) -> None:  # noqa: ANN001, N802
+        self.clicked.emit()
+        super().mousePressEvent(event)
+
+
 class ResultsPage(WizardPage):
     title = "Results"
+    help_anchor = "4. In Godot"
     allow_next = False
+    generateAnother = Signal()  # noqa: N815
+    changeOptions = Signal()  # noqa: N815
+    goToProject = Signal()  # noqa: N815
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -93,22 +119,62 @@ class ResultsPage(WizardPage):
         layout.addWidget(self.header)
         self.phase_label = QLabel()
         self.phase_label.setObjectName("failedPhase")
+        self.phase_label.setWordWrap(True)
         layout.addWidget(self.phase_label)
+        # the numbers, as one compact strip
         counts_box = QWidget()
         self.counts_box = counts_box
-        grid = QGridLayout(counts_box)
+        strip = QHBoxLayout(counts_box)
+        strip.setContentsMargins(0, 0, 0, 0)
         self.count_labels: dict[str, QLabel] = {}
-        for row, (key, text) in enumerate(COUNT_LABELS):
-            grid.addWidget(QLabel(self.tr(text)), row, 0)
+        for key, text in COUNT_LABELS:
+            caption = QLabel(self.tr(text))
+            caption.setProperty("muted", True)
             value = QLabel("0")
             value.setObjectName(f"count_{key}")
+            value.setStyleSheet("font-weight: bold;")
             self.count_labels[key] = value
-            grid.addWidget(value, row, 1)
+            strip.addWidget(value)
+            strip.addWidget(caption)
+            strip.addSpacing(14)
+        strip.addStretch(1)
         layout.addWidget(counts_box)
+        # the picture of the starter map, and what to do next
+        self.success_box = QWidget()
+        success = QHBoxLayout(self.success_box)
+        success.setContentsMargins(0, 0, 0, 0)
+        self.map_picture = ClickableLabel()
+        self.map_picture.setObjectName("mapPicture")
+        self.map_picture.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.map_picture.setMinimumSize(320, 200)
+        self.map_picture.setToolTip(
+            self.tr("The starter map as it was built. Click to open it full size.")
+        )
+        self.map_picture.clicked.connect(self.open_picture)
+        success.addWidget(self.map_picture, 3)
+        right = QVBoxLayout()
+        self.godot_button = QPushButton(self.tr("Open in Godot"))
+        self.godot_button.setObjectName("openGodot")
+        self.godot_button.setProperty("primary", True)
+        self.godot_button.setMinimumHeight(40)
+        self.godot_button.setStyleSheet("font-weight: bold; font-size: 14px;")
+        self.godot_button.setToolTip(self.tr("Open the new project in the Godot editor"))
+        right.addWidget(self.godot_button)
+        self.what_next_label = QLabel()
+        self.what_next_label.setObjectName("whatNext")
+        self.what_next_label.setWordWrap(True)
+        self.what_next_label.setTextFormat(Qt.TextFormat.RichText)
+        self.what_next_label.setOpenExternalLinks(False)
+        self.what_next_label.linkActivated.connect(self._on_next_link)
+        right.addWidget(self.what_next_label)
+        right.addStretch(1)
+        success.addLayout(right, 2)
+        layout.addWidget(self.success_box)
         self.issue_title = QLabel()
         layout.addWidget(self.issue_title)
         self.issue_list = QListWidget()
         self.issue_list.setObjectName("issueList")
+        self.issue_list.setToolTip(self.tr("Select a line to read how to fix it"))
         layout.addWidget(self.issue_list, 1)
         self.fix_label = QLabel()
         self.fix_label.setObjectName("fixText")
@@ -117,15 +183,25 @@ class ResultsPage(WizardPage):
         self.issue_list.currentRowChanged.connect(self._on_issue_selected)
 
         buttons = QHBoxLayout()
-        self.godot_button = self._button("Open in Godot", "openGodot", buttons)
         self.folder_button = self._button("Open folder", "openFolder", buttons)
         self.report_button = self._button("View report", "viewReport", buttons)
         self.restore_button = self._button("Restore previous", "restorePrevious", buttons)
         self.failed_button = self._button("Open failed folder", "openFailed", buttons)
         self.logs_button = self._button("View logs", "viewLogs", buttons)
         self.bundle_button = self._button("Export diagnostic bundle", "exportBundle", buttons)
+        self.project_button = self._button("Back to the Project page", "backToProject", buttons)
         buttons.addStretch(1)
+        self.another_button = self._button("Generate another", "generateAnotherButton", buttons)
+        self.options_button = self._button(
+            "Change options and regenerate", "changeOptionsButton", buttons
+        )
         layout.addLayout(buttons)
+        self.another_button.setToolTip(self.tr("Start again from the welcome screen"))
+        self.options_button.setToolTip(self.tr("Go back to the options of this project"))
+        self.project_button.setToolTip(self.tr("Fix the Godot or folder choice on the first page"))
+        self.another_button.clicked.connect(self.generateAnother)
+        self.options_button.clicked.connect(self.changeOptions)
+        self.project_button.clicked.connect(self.goToProject)
         self.restore_button.setEnabled(False)
         self.restore_button.setToolTip(self.tr(NO_BACKUP_TOOLTIP))
         self.restore_button.clicked.connect(self.restore_previous)
@@ -194,22 +270,88 @@ class ResultsPage(WizardPage):
         label.style().polish(label)
 
     def _fill_issues(self, issues: list[Issue]) -> None:
+        """Errors first, then warnings; each row shows its fix under the message."""
         self.shown_issues = issues
         self.issue_list.clear()
         self.fix_label.clear()
         for issue in issues:
             mark = "✖" if issue.severity is Severity.ERROR else "⚠"
-            self.issue_list.addItem(QListWidgetItem(f"{mark} {issue.code}: {issue.message}"))
+            text = f"{mark} {issue.code}: {issue.message}"
+            if issue.fix:
+                text += f"\n      {self.tr('Fix')}: {issue.fix}"
+            self.issue_list.addItem(QListWidgetItem(text))
+
+    # ------------------------------------------------------------------ the picture, what next
+
+    def picture_path(self) -> Path | None:
+        if self.result is None:
+            return None
+        path = self.result.target / "rpggen" / "results" / "starter_map.png"
+        return path if path.is_file() else None
+
+    def _show_picture(self) -> None:
+        path = self.picture_path()
+        pixmap = QPixmap(str(path)) if path is not None else QPixmap()
+        if pixmap.isNull():
+            self.map_picture.clear()
+            self.map_picture.setText(self.tr("No picture of the starter map was made."))
+            return
+        self.map_picture.setPixmap(
+            pixmap.scaled(
+                560,
+                340,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.FastTransformation,
+            )
+        )
+
+    def open_picture(self) -> None:
+        path = self.picture_path()
+        if path is not None:
+            self.open_path(path)
+
+    NEXT_ITEMS = (
+        ("Press <b>F5</b> in Godot to play.", ""),
+        ("Paint on <code>game/maps/starter_map.tscn</code>.", "game/maps/starter_map.tscn"),
+        ("Drag objects from the <b>RPG Project Tools</b> dock into the map.", ""),
+        ("Edit items in <code>game/data/items/</code>.", "game/data/items"),
+        ("Read <code>README.md</code> in the project.", "README.md"),
+    )
+
+    def _fill_next_steps(self) -> None:
+        rows = []
+        for text, rel in self.NEXT_ITEMS:
+            link = f' <a href="show:{rel}">{self.tr("Show")}</a>' if rel else ""
+            rows.append(f"<li>{self.tr(text)}{link}</li>")
+        self.what_next_label.setText(f"<b>{self.tr('What next')}</b><ul>{''.join(rows)}</ul>")
+
+    def _on_next_link(self, link: str) -> None:
+        if self.result is not None and link.startswith("show:"):
+            self.open_path(self.result.target / link.removeprefix("show:"))
 
     def _show_success(self, result: orchestrator.RunResult) -> None:
         self.header.setText(self.tr("Your project was generated."))
         self._set_state(self.header, "ok")
         self.phase_label.clear()
         self.counts_box.setVisible(True)
-        self.issue_title.setText(self.tr("Warnings (select one to see how to fix it)"))
-        self._fill_issues([i for i in result.issues if i.severity is Severity.WARNING])
+        self.success_box.setVisible(True)
+        self._show_picture()
+        self._fill_next_steps()
+        warnings = [i for i in result.issues if i.severity is Severity.WARNING]
+        self.issue_title.setText(
+            self.tr("Warnings ({0}): what to do about each is shown under it").format(len(warnings))
+            if warnings
+            else self.tr("No warnings.")
+        )
+        self.issue_title.setVisible(True)
+        self._fill_issues(warnings)
+        self.issue_list.setVisible(bool(warnings))
+        self.fix_label.setVisible(False)
         for button in (self.godot_button, self.folder_button, self.report_button):
             button.setVisible(True)
+        self.project_button.setVisible(False)
+        self.another_button.setVisible(True)
+        self.options_button.setVisible(True)
         self.restore_button.setVisible(True)
         has_backup = bool(promote.list_backups(result.target))
         self.restore_button.setEnabled(has_backup)
@@ -222,10 +364,19 @@ class ResultsPage(WizardPage):
     def _show_failure(self, result: orchestrator.RunResult) -> None:
         self.header.setText(self.tr("Generation failed. Nothing was delivered."))
         self._set_state(self.header, "error")
+        sentence = PHASE_FAILED_TEXT.get(result.failed_phase or "", "Something went wrong.")
         self.phase_label.setText(
-            self.tr("Failed in phase: {0}").format(result.failed_phase or self.tr("unknown"))
+            f"{self.tr(sentence)}  "
+            f"({self.tr('phase')}: {result.failed_phase or self.tr('unknown')})"
         )
         self.counts_box.setVisible(False)
+        self.success_box.setVisible(False)
+        self.issue_title.setVisible(True)
+        self.issue_list.setVisible(True)
+        self.fix_label.setVisible(True)
+        self.another_button.setVisible(False)
+        self.options_button.setVisible(False)
+        self.project_button.setVisible(any(i.code.startswith("ENV-") for i in result.issues))
         self.issue_title.setText(self.tr("Problems (select one to see how to fix it)"))
         ordered = sorted(
             (i for i in result.issues if i.severity is not Severity.INFO),

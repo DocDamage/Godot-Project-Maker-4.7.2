@@ -24,6 +24,11 @@ func _in_gameplay() -> bool:
 		return false
 	return true
 
+func _input(event: InputEvent) -> void:
+	# Backing out of a menu ticks (the pause menu and its submenus live under this node).
+	if is_pause_open() and event.is_action_pressed("ui_cancel"):
+		RpgMenuUtil.play_ui(&"sfx_ui_cancel")
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("menu"):
 		return

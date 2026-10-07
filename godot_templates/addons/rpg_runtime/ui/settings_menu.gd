@@ -25,6 +25,12 @@ func _ready() -> void:
 	var fullscreen := get_node("%Fullscreen") as CheckButton
 	fullscreen.button_pressed = s != null and s.fullscreen
 	fullscreen.toggled.connect(_on_fullscreen)
+	var shake := get_node("%ScreenShake") as CheckButton
+	shake.button_pressed = s == null or s.screen_shake
+	shake.toggled.connect(_on_screen_shake)
+	var autosave := get_node("%Autosave") as CheckButton
+	autosave.button_pressed = s == null or s.autosave
+	autosave.toggled.connect(_on_autosave)
 	var speed := get_node("%TextSpeed") as OptionButton
 	speed.clear()
 	for sp in SPEEDS:
@@ -51,6 +57,16 @@ func _on_fullscreen(on: bool) -> void:
 	var s := _settings()
 	if s != null:
 		s.set_fullscreen(on)
+
+func _on_screen_shake(on: bool) -> void:
+	var s := _settings()
+	if s != null:
+		s.set_screen_shake(on)
+
+func _on_autosave(on: bool) -> void:
+	var s := _settings()
+	if s != null:
+		s.set_autosave(on)
 
 func _on_speed(index: int) -> void:
 	var s := _settings()

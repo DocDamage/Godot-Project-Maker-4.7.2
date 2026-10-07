@@ -106,3 +106,31 @@ def test_fetch_index_and_the_default_fetcher_refuses_plain_http() -> None:
         profile_registry.fetch_index(fetch, BASE)
     with pytest.raises(profile_registry.RegistryError):
         profile_registry.default_fetcher("http://example.test/index.json", 10)
+
+
+def test_registry_base_is_the_repository_folder_and_can_be_overridden(monkeypatch) -> None:
+    import pytest
+
+    from rpggen import REPO_URL
+
+    monkeypatch.delenv(profile_registry.BASE_ENV, raising=False)
+    base = profile_registry.registry_base()
+    assert base.startswith("https://raw.githubusercontent.com/")
+    assert base.endswith("/main/registry/")
+    assert REPO_URL.split("github.com/")[1] in base
+    monkeypatch.setenv(profile_registry.BASE_ENV, "https://example.org/reg")
+    assert profile_registry.registry_base() == "https://example.org/reg/"
+    monkeypatch.setenv(profile_registry.BASE_ENV, "http://example.org/reg/")
+    with pytest.raises(profile_registry.RegistryError):
+        profile_registry.registry_base()
+
+
+def test_network_failures_are_reported_as_offline(monkeypatch) -> None:
+    import pytest
+
+    def boom(*a, **k):
+        raise OSError("no route")
+
+    monkeypatch.setattr(profile_registry.urllib.request, "urlopen", boom)
+    with pytest.raises(profile_registry.RegistryOffline):
+        profile_registry.default_fetcher("https://example.org/x", 10)

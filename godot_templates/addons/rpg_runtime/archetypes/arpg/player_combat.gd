@@ -42,6 +42,7 @@ var _attack_seconds := GENERIC_ATTACK_S
 var _attack_anim := ""
 var _active_frames: Array[int] = []
 var _buffered := false
+var _heavy := false
 var _dodge_ready_at_ms := 0
 var _saved_speed := 80.0
 var _hurt_knockback := Vector2.ZERO
@@ -72,6 +73,7 @@ func _ready() -> void:
 	machine.changed.connect(_on_machine_changed)
 	if hitbox != null:
 		hitbox.aim(actor.facing)
+		hitbox.hit.connect(_on_hit_landed)
 		actor.facing_changed.connect(_on_facing_changed)
 	if hurtbox != null:
 		hurtbox.damaged.connect(_on_damaged)
@@ -95,6 +97,11 @@ func _on_facing_changed(_f: String) -> void:
 	if hitbox != null and not hitbox.active and machine.state != ATTACK:
 		hitbox.aim(actor.facing)
 
+## A heavy attack that lands gets a hit-stop and a camera shake (Settings > Screen shake).
+func _on_hit_landed(_target: RpgHurtbox) -> void:
+	if _heavy and machine.state == ATTACK:
+		RpgScreenFeedback.heavy_hit(actor.get_node_or_null("Camera") as Camera2D)
+
 func _pressed(action: String) -> bool:
 	return InputMap.has_action(action) and Input.is_action_just_pressed(action)
 
@@ -111,6 +118,10 @@ func _update_free(_delta: float) -> void:
 		machine.go(IDLE)
 		return
 	if _pressed("attack"):
+		_heavy = false
+		machine.go(ATTACK)
+	elif _pressed("secondary_attack"):
+		_heavy = true
 		machine.go(ATTACK)
 	elif _pressed("dodge") and Time.get_ticks_msec() >= _dodge_ready_at_ms:
 		machine.go(DODGE)
@@ -126,29 +137,36 @@ func _enter_attack() -> void:
 		movement.desired = Vector2.ZERO
 	if hitbox != null:
 		hitbox.aim(actor.facing)
+		hitbox.heavy = _heavy
 	_attack_anim = ""
 	_active_frames = []
+	var slow := RpgArpgMath.HEAVY_DURATION_MULT if _heavy else 1.0
 	if sprite != null and _driver.has_animation("attack", actor.facing):
 		_attack_anim = _driver.play_exact("attack", actor.facing)
 		_attack_seconds = RpgArpgMath.animation_seconds(sprite.sprite_frames, _attack_anim)
 		_active_frames = RpgArpgMath.active_frames_of(sprite.sprite_frames, _attack_anim)
+		if _heavy:
+			sprite.speed_scale = RpgArpgMath.HEAVY_ANIM_SPEED
+			_attack_seconds /= RpgArpgMath.HEAVY_ANIM_SPEED
 		actor.animation_locked = true
 	else:
-		_attack_seconds = GENERIC_ATTACK_S
+		_attack_seconds = GENERIC_ATTACK_S * slow
 		if swing != null and hitbox != null:
-			swing.play_at(hitbox.position, RpgArpgMath.facing_vector(actor.facing), GENERIC_ACTIVE_TO)
+			swing.play_at(hitbox.position, RpgArpgMath.facing_vector(actor.facing), GENERIC_ACTIVE_TO * slow)
 	if _attack_seconds <= 0.0:
-		_attack_seconds = GENERIC_ATTACK_S
+		_attack_seconds = GENERIC_ATTACK_S * slow
 	attack_started.emit()
+	RpgUtil.emit(&"attack_started", [actor])
 	_update_hitbox_active()
 
 func _update_attack(delta: float) -> void:
 	_attack_time += delta
 	_update_hitbox_active()
-	if actor.input_enabled and _pressed("attack") and _attack_time >= _attack_seconds * (1.0 - BUFFER_FRACTION):
+	if not _heavy and actor.input_enabled and _pressed("attack") and _attack_time >= _attack_seconds * (1.0 - BUFFER_FRACTION):
 		_buffered = true
 	if _attack_time >= _attack_seconds:
 		if _buffered and actor.input_enabled:
+			_heavy = false
 			machine.go(ATTACK)  # restarts the state: the queued attack
 		else:
 			machine.go(IDLE)
@@ -160,12 +178,17 @@ func _update_hitbox_active() -> void:
 	if _attack_anim != "":
 		on = sprite != null and sprite.animation == _attack_anim and _active_frames.has(sprite.frame) and _attack_time < _attack_seconds
 	else:
-		on = _attack_time >= GENERIC_ACTIVE_FROM and _attack_time < GENERIC_ACTIVE_TO
+		var slow := RpgArpgMath.HEAVY_DURATION_MULT if _heavy else 1.0
+		on = _attack_time >= GENERIC_ACTIVE_FROM * slow and _attack_time < GENERIC_ACTIVE_TO * slow
 	hitbox.active = on
 
 func _exit_attack() -> void:
 	if hitbox != null:
 		hitbox.active = false
+		hitbox.heavy = false
+	if sprite != null:
+		sprite.speed_scale = 1.0
+	_heavy = false
 	if swing != null:
 		swing.stop_effect()
 	actor.move_locked = false

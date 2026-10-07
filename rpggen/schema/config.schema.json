@@ -124,6 +124,45 @@
     "seed": {
       "type": "integer"
     },
+    "sounds": {
+      "type": "object",
+      "properties": {
+        "music_map": {"type": "string"},
+        "music_battle": {"type": "string"},
+        "music_title": {"type": "string"},
+        "sfx_ui_move": {"type": "string"},
+        "sfx_ui_confirm": {"type": "string"},
+        "sfx_ui_cancel": {"type": "string"},
+        "sfx_hit": {"type": "string"},
+        "sfx_attack": {"type": "string"},
+        "sfx_pickup": {"type": "string"},
+        "sfx_chest": {"type": "string"},
+        "sfx_door": {"type": "string"},
+        "sfx_step": {"type": "string"},
+        "sfx_save": {"type": "string"},
+        "sfx_levelup": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "starter_map": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 24, "maximum": 96},
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "buildings": {"type": "integer", "minimum": 0, "maximum": 4},
+        "npcs": {"type": "integer", "minimum": 0, "maximum": 6},
+        "enemies": {"type": "integer", "minimum": 0, "maximum": 8},
+        "chests": {"type": "integer", "minimum": 0, "maximum": 4},
+        "decorations": {"type": "integer", "minimum": 0, "maximum": 40},
+        "ground_patches": {"type": "integer", "minimum": 0, "maximum": 20},
+        "ground": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
     "starter": {
       "type": "object",
       "properties": {

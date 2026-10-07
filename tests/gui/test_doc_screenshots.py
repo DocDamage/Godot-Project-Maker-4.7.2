@@ -32,5 +32,6 @@ def test_every_page_screenshot_is_rendered(
     assert names == {
         "wizard_project.png", "wizard_archetype.png", "wizard_audit.png", "wizard_mapping.png",
         "wizard_options.png", "wizard_generate.png", "wizard_results.png", "crash_dialog.png",
+        "welcome.png", "wizard_audit_light.png", "map_preview.png", "about_dialog.png",
     }  # fmt: skip
     assert all(p.stat().st_size > 500 for p in written)

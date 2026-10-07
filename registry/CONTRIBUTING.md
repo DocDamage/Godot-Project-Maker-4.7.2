@@ -20,12 +20,12 @@ must never be committed here.
 
 ## Open a pull request
 
-Add your file under `profiles/`. CI validates it against the profile schema and regenerates
+Add your file under `registry/profiles/` in the main repository. CI validates it against the profile schema and regenerates
 `index.json`; fix whatever it reports. Run the same check locally with:
 
 ```bash
 pip install jsonschema
-python scripts/build_index.py --check
+python registry/scripts/build_index.py --check
 ```
 
 A maintainer merges the pull request once CI is green and the title and author fields are sensible.

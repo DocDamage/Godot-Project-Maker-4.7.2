@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from rpggen import __version__, jsonio, schema
+from rpggen import __version__, godot_target, jsonio, schema
 from rpggen.errors import RpgGenError
 
 CONFIG_VERSION = 1
-GODOT_VERSION = "4.7.2"
+GODOT_VERSION = godot_target.VERSION
 DEFAULT_MAP_LAYERS = ["Ground", "GroundDetails", "Walls", "Props", "Overhead"]
 FEATURE_KEYS = (
     "tilesets",
@@ -67,6 +67,31 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
     return bindings
 
 
+STARTER_MAP_SIZE_RANGE = (24, 96)
+STARTER_MAP_COUNTS = {  # key -> (minimum, maximum)
+    "buildings": (0, 4),
+    "npcs": (0, 6),
+    "enemies": (0, 8),
+    "chests": (0, 4),
+    "decorations": (0, 40),
+    "ground_patches": (0, 20),
+}
+
+
+def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
+    """The starter map of every project before M11 (so the defaults reproduce it exactly)."""
+    return {
+        "size": [40, 24],
+        "buildings": 1,
+        "npcs": 1,
+        "enemies": 2 if archetype == "arpg" else 1,
+        "chests": 1,
+        "decorations": 8,
+        "ground_patches": 6,
+        "ground": "",
+    }
+
+
 def default_features() -> dict[str, bool]:
     return {key: key != "navigation" for key in FEATURE_KEYS}
 
@@ -85,6 +110,8 @@ class GeneratorConfig:
     seed: int = 12345
     input: dict[str, dict[str, Any]] = field(default_factory=dict)
     starter: dict[str, str] = field(default_factory=dict)  # role key -> asset or object id
+    sounds: dict[str, str] = field(default_factory=dict)  # sound slot -> audio asset id
+    starter_map: dict[str, Any] = field(default_factory=dict)  # overrides of starter_map_defaults
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
     godot_version: str = GODOT_VERSION
@@ -97,7 +124,16 @@ class GeneratorConfig:
         out = self._base_json()
         if self.starter:
             out["starter"] = dict(sorted(self.starter.items()))
+        if self.sounds:
+            out["sounds"] = dict(sorted(self.sounds.items()))
+        options = self.starter_map_options()
+        if options != starter_map_defaults(self.archetype):
+            out["starter_map"] = options
         return out
+
+    def starter_map_options(self) -> dict[str, Any]:
+        """The starter map options with the archetype's defaults filled in (a deep copy)."""
+        return copy.deepcopy({**starter_map_defaults(self.archetype), **self.starter_map})
 
     def _base_json(self) -> dict[str, Any]:
         return {
@@ -132,6 +168,8 @@ class GeneratorConfig:
             seed=data["seed"],
             input=copy.deepcopy(data["input"]),
             starter=dict(data.get("starter", {})),
+            sounds=dict(data.get("sounds", {})),
+            starter_map=copy.deepcopy(data.get("starter_map", {})),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],

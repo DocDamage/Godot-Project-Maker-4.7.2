@@ -25,6 +25,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default="turn_based",
         help="combat archetype for --pack (a --config carries its own)",
     )
+    gen.add_argument(
+        "--preset",
+        metavar="NAME",
+        help="apply a saved option preset (saved on the wizard's Options page) to the config",
+    )
     gen.add_argument("--target", type=Path, help="output folder")
     gen.add_argument("--godot", type=Path, help="Godot 4.7.2 executable")
     gen.add_argument(
@@ -97,6 +102,20 @@ def _generate(args: argparse.Namespace) -> int:
             name = args.name or args.pack.name
             cfg = orchestrator.default_config_for_pack(args.pack, name, archetype=args.archetype)
             cfg_path = Path(tmp) / "generator_config.json"
+            config_mod.save(cfg, cfg_path)
+        if args.preset:
+            from rpggen.core import app_settings, options
+
+            preset = app_settings.load().option_presets.get(args.preset)
+            if preset is None:
+                print(f"rpggen generate: there is no saved preset called {args.preset!r}")
+                return 2
+            try:
+                cfg = options.apply_preset(config_mod.load(cfg_path), preset)
+            except ValueError as exc:
+                print(f"rpggen generate: the preset does not fit this config: {exc}")
+                return 2
+            cfg_path = Path(tmp) / "preset_config.json"
             config_mod.save(cfg, cfg_path)
         cb = orchestrator.Callbacks(on_log=print)
         result = orchestrator.run(

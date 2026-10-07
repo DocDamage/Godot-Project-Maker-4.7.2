@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import shutil
 from pathlib import Path
 
 from PIL import Image
@@ -84,8 +85,12 @@ def test_two_runs_are_identical(tmp_path: Path) -> None:
 
 def test_committed_pack_matches_generator(tmp_path: Path) -> None:
     tool = _load_tool()
-    tool.main(["--out", str(tmp_path)])
     committed = REPO / "test_packs" / "synthetic"
+    # the two real encoded .ogg files of audio_basic are kept by the generator, not rewritten
+    for rel in ("music/battle_bgm.ogg", "sfx/cursor_move.ogg"):
+        (tmp_path / "audio_basic" / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(committed / "audio_basic" / rel, tmp_path / "audio_basic" / rel)
+    tool.main(["--out", str(tmp_path)])
     assert _signatures(tmp_path) == _signatures(committed)
 
 

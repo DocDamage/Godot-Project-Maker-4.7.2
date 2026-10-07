@@ -9,13 +9,14 @@ import contextlib
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, SignalInstance
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -49,6 +50,7 @@ class WelcomePage(QWidget):
         subtitle = QLabel(self.tr("Turn an asset pack into a playable Godot project."))
         subtitle.setObjectName("welcomeSubtitle")
         layout.addWidget(subtitle)
+        layout.addSpacing(12)
 
         cards = QHBoxLayout()
         cards.setSpacing(16)
@@ -85,6 +87,7 @@ class WelcomePage(QWidget):
         self.recent_list.setToolTip(self.tr("Double-click or press Enter to open a project"))
         self.recent_list.itemActivated.connect(self._on_recent_activated)
         layout.addWidget(self.recent_list, 1)
+        layout.addStretch(1)
 
         status = QHBoxLayout()
         self.godot_status = QLabel(self.tr("Looking for Godot…"))
@@ -103,15 +106,27 @@ class WelcomePage(QWidget):
         layout.addLayout(status)
         self.refresh()
 
-    def _card(self, name: str, title: str, text: str, signal: Signal, tip: str) -> QToolButton:
+    def _card(
+        self, name: str, title: str, text: str, signal: SignalInstance, tip: str
+    ) -> QToolButton:
         card = QToolButton()
         card.setObjectName(name)
         card.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        card.setText(f"{title}\n\n{text}")
         card.setToolTip(tip)
-        card.setMinimumHeight(120)
-        card.setStyleSheet("QToolButton { text-align: left; padding: 14px; font-size: 13px; }")
+        card.setAccessibleName(title)
+        card.setMinimumHeight(130)
+        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         card.clicked.connect(signal)
+        inner = QVBoxLayout(card)  # labels, so that the text wraps instead of being cut off
+        inner.setContentsMargins(16, 14, 16, 14)
+        heading = QLabel(f"<b style='font-size:15px'>{title}</b>")
+        body = QLabel(text)
+        body.setWordWrap(True)
+        for label in (heading, body):
+            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        inner.addWidget(heading)
+        inner.addWidget(body)
+        inner.addStretch(1)
         return card
 
     # ------------------------------------------------------------------ content
@@ -154,7 +169,7 @@ class WelcomePage(QWidget):
         self.godot_status.setText(self.tr("Looking for Godot…"))
         worker = workers.Worker(workers.find_working_godot)
 
-        def done(found: object) -> None:
+        def done(found: tuple[Path, str] | None) -> None:
             if generation == self._godot_generation:
                 self.show_godot(found)
 
@@ -167,9 +182,13 @@ class WelcomePage(QWidget):
         self._worker = worker  # keep it alive until its signals are delivered
         worker.start()
 
-    def show_godot(self, found: object) -> None:
+    def show_godot(self, found: tuple[Path, str] | None) -> None:
+        try:
+            self.godot_status.objectName()
+        except RuntimeError:
+            return  # the window was closed while the worker ran
         if found:
-            exe, version = found  # type: ignore[misc]
+            exe, version = found
             self.godot_status.setText(self.tr("Godot {0} found at {1}").format(version, exe))
             self.godot_status.setProperty("state", "ok")
             self.download_button.setVisible(False)

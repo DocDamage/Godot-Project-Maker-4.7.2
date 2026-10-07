@@ -1,0 +1,65 @@
+/* The light stylesheet of the wizard (style.qss has the same selectors with dark colours;
+   a test keeps the two in step). Colors live in these files and nowhere else (STATUS_COLORS in
+   widgets/asset_grid.py mirrors the status variables below; they have 3:1 contrast against both
+   themes' backgrounds, checked by a test). */
+
+/* status-colors (mirrored by STATUS_COLORS in widgets/asset_grid.py; a test compares them)
+CONFLICT=#d32f2f
+NEEDS_REVIEW=#ef6c00
+MISSING=#a53fc8
+AUTO_DETECTED=#1976d2
+CONFIRMED=#388e3c
+UNUSED=#8a8a8a
+*/
+
+QListWidget#sidebar {
+    background: #e6e9ee;
+    color: #1f2328;
+    border: none;
+    font-size: 14px;
+}
+QListWidget#sidebar::item {
+    padding: 10px 12px;
+}
+QListWidget#sidebar::item:selected {
+    background: #3d6fb4;
+    color: #ffffff;
+}
+QListWidget#sidebar::item:disabled {
+    color: #7b8290;
+}
+
+QLabel#problemLabel {
+    color: #b3261e;
+    padding: 4px 2px;
+}
+QLabel[state="ok"] {
+    color: #2e7d32;
+}
+QLabel[state="error"] {
+    color: #b3261e;
+}
+QLabel[state="warning"] {
+    color: #8a5a00;
+}
+QLabel[state="hint"] {
+    color: #6b7280;
+}
+QLabel[muted="true"] {
+    color: #5f6672;
+}
+QLabel#stubLabel {
+    color: #7b8290;
+    font-size: 16px;
+}
+
+QPushButton#nextButton {
+    font-weight: bold;
+    padding: 6px 18px;
+}
+
+QPushButton#chipAttention:checked, QPushButton#chipAuto:checked, QPushButton#chipConfirmed:checked,
+QPushButton#chipUnused:checked, QPushButton#chipAll:checked {
+    background: #3d6fb4;
+    color: #ffffff;
+}

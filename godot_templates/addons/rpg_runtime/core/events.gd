@@ -27,6 +27,10 @@ signal encounter_finished(result: Resource)
 # UI
 signal notify(text: String)  # toast
 signal game_paused(paused: bool)
+# Feedback (sound and effects listen to these; nothing in the game state depends on them)
+signal chest_opened(entity_id: String)
+signal door_used(entity_id: String)
+signal attack_started(actor: Node)
 # Save
 signal game_saved(slot: int)
 signal game_loaded(slot: int)

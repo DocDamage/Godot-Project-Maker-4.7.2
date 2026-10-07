@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 from rpggen import __version__, jsonio, paths
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
+from rpggen.core import labels
 from rpggen.errors import Issue, Severity
 
 if TYPE_CHECKING:
@@ -110,7 +111,8 @@ def build_markdown(
         )
         lines += [
             "",
-            "Assets by role: " + ", ".join(f"{r} {n}" for r, n in sorted(by_role.items())),
+            "Assets by role: "
+            + ", ".join(f"{labels.role_label(r)} {n}" for r, n in sorted(by_role.items())),
         ]
 
     lines += _tileset_lines(catalog)

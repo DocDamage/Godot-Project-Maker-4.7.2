@@ -5,7 +5,7 @@ from __future__ import annotations
 import dataclasses
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMenu,
     QMessageBox,
+    QProgressBar,
     QSplitter,
     QStackedWidget,
     QTabWidget,
@@ -22,10 +23,11 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen import ids
+from rpggen.core import app_settings, labels, profile_registry, profiles
 from rpggen.core import catalog as catalog_mod
-from rpggen.core import profile_registry, profiles
 from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
+from rpggen.gui import workers
 from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog, FindProfileDialog
 from rpggen.gui.edits import EditSession
 from rpggen.gui.pages.base import WizardPage
@@ -43,6 +45,7 @@ from rpggen.gui.widgets.bulk_panel import (
 )
 from rpggen.gui.widgets.grid_editor import GridEditorDialog
 from rpggen.gui.widgets.object_cutter import ObjectCutterDialog
+from rpggen.gui.widgets.task_progress import error_text, run_task
 from rpggen.gui.widgets.terrain_tab import TerrainTab
 
 QUICK_ROLES = ["GROUND", "WALL", "DECORATION", "BUILDING", "PLAYER", "NPC", "ENEMY", "ITEM", "UI"]
@@ -67,17 +70,38 @@ def make_resolver(state: WizardState) -> PathResolver:
 
 
 class AuditPage(WizardPage):
+    focus_next = Signal()  # everything that needed attention is done: the window may focus Next
+
     title = "Audit"
+    help_anchor = "3. Using a pack you bought"
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._done_announced = False
         self.session: EditSession | None = None
         self.resolver: PathResolver = lambda asset: None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.state: WizardState | None = None
-        bar = QHBoxLayout()
-        bar.addStretch(1)
+        # the progress of the review: "328 of 340 reviewed - 12 need attention"
+        progress_row = QHBoxLayout()
+        progress_row.setContentsMargins(6, 4, 6, 0)
+        self.progress_label = QLabel()
+        self.progress_label.setObjectName("reviewProgressLabel")
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setObjectName("reviewProgress")
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(10)
+        self.progress_bar.setToolTip(self.tr("How much of the pack you have looked at"))
+        progress_row.addWidget(self.progress_label)
+        progress_row.addWidget(self.progress_bar, 1)
+        layout.addLayout(progress_row)
+        self.done_label = QLabel()
+        self.done_label.setObjectName("reviewDoneLabel")
+        self.done_label.setProperty("state", "ok")
+        self.done_label.setWordWrap(True)
+        self.done_label.setVisible(False)
+        layout.addWidget(self.done_label)
         self.profile_button = QToolButton()
         self.profile_button.setObjectName("profileButton")
         self.profile_button.setText(self.tr("Profile"))
@@ -90,17 +114,17 @@ class AuditPage(WizardPage):
         self.online_action = profile_menu.addAction(self.tr("Find profile online…"))
         self.online_action.setObjectName("findProfileAction")
         self.profile_button.setMenu(profile_menu)
-        bar.addWidget(self.profile_button)
-        layout.addLayout(bar)
+        self.profile_button.setToolTip(self.tr("Export, import or look online for a pack profile"))
         self.export_action.triggered.connect(lambda: self.export_profile())
         self.import_action.triggered.connect(lambda: self.import_profile())
         self.online_action.triggered.connect(lambda: self.find_profile_online())
-        self.quick_roles = list(QUICK_ROLES)
+        self.quick_roles = list(app_settings.load().quick_roles) or list(QUICK_ROLES)
         self.archetype = "turn_based"
         self.grid = AssetGrid()
         self.tabs = QTabWidget()
         self.tabs.setObjectName("auditTabs")
         self.tabs.addTab(self.grid, self.tr("Assets"))
+        self.tabs.setCornerWidget(self.profile_button, Qt.Corner.TopRightCorner)
         self.rules_panel: RulesPanel | None = None
         self.terrain_tab: TerrainTab | None = None
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -108,7 +132,11 @@ class AuditPage(WizardPage):
         self.splitter.addWidget(self.tabs)
         self.side = QStackedWidget()
         self.side.setObjectName("auditSide")
-        self.empty_label = QLabel(self.tr("Select an asset to see its details."))
+        self.empty_label = QLabel(
+            self.tr("Select an asset to see and correct what rpggen detected.")
+        )
+        self.empty_label.setObjectName("emptySelectionLabel")
+        self.empty_label.setWordWrap(True)
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.side.addWidget(self.empty_label)
         self.detail: AssetDetail | None = None
@@ -116,30 +144,112 @@ class AuditPage(WizardPage):
         self.splitter.setStretchFactor(0, 3)
         self.splitter.setStretchFactor(1, 2)
         layout.addWidget(self.splitter)
+        saved_sizes = app_settings.load().splitters.get("audit")
+        if saved_sizes and len(saved_sizes) == 2 and all(s > 0 for s in saved_sizes):
+            self.splitter.setSizes(saved_sizes)
+        self.splitter.splitterMoved.connect(self._save_splitter)
         self.bulk: BulkPanel | None = None
         self.grid.selectionChanged.connect(self._on_selection)
         view = self.grid.view
         view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         view.customContextMenuRequested.connect(self._on_context_menu)
         view.quickKey.connect(self._on_quick_key)
+        self.grid.confirmAutoRequested.connect(self.confirm_all_auto)
+        self.grid.shortcutsRequested.connect(self.show_shortcuts)
+        self.grid.thumbSizeChanged.connect(self._remember_thumb_size)
+        self.grid.set_thumb_size(app_settings.load().thumb_size)
+
+    def set_thumb_size(self, size: int) -> None:
+        """Called by the View menu."""
+        self.grid.set_thumb_size(size)
+
+    def _remember_thumb_size(self, size: int) -> None:
+        app_settings.update(thumb_size=size)
+
+    # ------------------------------------------------------------------ progress and queue
+
+    def update_progress(self) -> None:
+        if self.session is None:
+            return
+        done, attention, total = catalog_mod.review_progress(self.session.catalog)
+        self.progress_bar.setRange(0, max(total, 1))
+        self.progress_bar.setValue(done)
+        self.progress_label.setText(
+            self.tr("{0} of {1} reviewed - {2} need attention").format(done, total, attention)
+        )
+        finished = total > 0 and attention == 0
+        self.done_label.setVisible(finished)
+        self.done_label.setText(
+            self.tr(
+                "Everything that needed attention is done. Auto-detected assets can be left as "
+                "they are."
+            )
+        )
+        if finished and not self._done_announced:
+            self._done_announced = True
+            self.focus_next.emit()
+        if not finished:
+            self._done_announced = False
+
+    def confirm_all_auto(self) -> bool:
+        """Confirms every auto-detected asset as one undo step."""
+        if self.session is None:
+            return False
+        ids = [a.id for a in self.session.catalog.assets if a.status == "AUTO_DETECTED"]
+        return bool(ids) and self.session.confirm(ids)
+
+    def shortcut_sheet(self) -> str:
+        roles = "\n".join(
+            f"  {i + 1}  {labels.role_label(r)}" for i, r in enumerate(self.quick_roles[:9])
+        )
+        return self.tr(
+            "C  confirm the selected assets (then go to the next one that needs attention)\n"
+            "X  exclude the selected assets (likewise)\n"
+            "N / Shift+N  next / previous asset that needs attention\n"
+            "1-9  give the selected assets a role:\n{0}\n"
+            "Ctrl+Z / Ctrl+Y  undo / redo\n"
+            "Ctrl + mouse wheel  zoom the preview"
+        ).format(roles)
+
+    def show_shortcuts(self) -> None:
+        QMessageBox.information(self, self.tr("Shortcuts of the audit"), self.shortcut_sheet())
+
+    def _save_splitter(self, *_args: object) -> None:
+        settings = app_settings.load()
+        settings.splitters["audit"] = self.splitter.sizes()
+        app_settings.save(settings)
 
     def _on_quick_key(self, key: str) -> None:
         if key == "C":
             self._confirm_selection()
         elif key == "X":
             self._exclude_selection()
+        elif key == "N":
+            self.grid.select_next_attention(True)
+        elif key == "SHIFT+N":
+            self.grid.select_next_attention(False)
         else:
             self._quick_role(int(key))
+
+    def _advance(self, order_before: list[str], edited: list[str]) -> None:
+        """Review flow: after a single asset was confirmed or excluded, select the next one that
+        needs attention, so a review is "look, press C, look, press C"."""
+        if len(edited) == 1:
+            self.grid.advance_after(order_before, edited[0])
 
     def _confirm_selection(self) -> None:
         ids = self.grid.selected_ids()
         if ids and self.session is not None:
-            self.session.confirm(ids)
+            order = self.grid.visible_ids()
+            if self.session.confirm(ids):
+                self._advance(order, ids)
 
     def _exclude_selection(self) -> None:
         ids = self.grid.selected_ids()
         if ids and self.session is not None:
-            self.session.bulk_edit(ids, {"role": "NONE"})
+            order = self.grid.visible_ids()
+            if self.session.bulk_edit(ids, {"role": "NONE"}):
+                self._advance(order, ids)
 
     def _quick_role(self, number: int) -> None:
         ids = self.grid.selected_ids()
@@ -192,6 +302,7 @@ class AuditPage(WizardPage):
         self.grid.set_catalog(session.catalog, self.resolver)
         changed = {a.id for a in session.catalog.assets if a.path in state.changed_paths}
         self.grid.set_changed(changed)
+        self.update_progress()
 
     def leave(self, state: WizardState) -> bool | None:
         if self.session is not None:
@@ -204,6 +315,8 @@ class AuditPage(WizardPage):
         assert self.session is not None
         self.grid.model.catalog = self.session.catalog
         self.grid.model.refresh(ids or None)
+        self.grid._update_counts()
+        self.update_progress()
         self.changed.emit()
 
     def _on_selection(self, ids: list[str]) -> None:
@@ -339,6 +452,15 @@ class AuditPage(WizardPage):
             return None
         return path
 
+    def registry_message(self, error: object) -> str:
+        """Plain words for the three ways the lookup can fail."""
+        if isinstance(error, (profile_registry.RegistryOffline, OSError)):
+            return self.tr(
+                "No connection to the profile registry. Check your network and try again.\n\n"
+                "Details: {0}"
+            ).format(error_text(error))
+        return self.tr("The registry returned something unusable: {0}").format(error_text(error))
+
     def fetch_registry(self, inventories: list[Inventory]) -> list[profile_registry.Candidate]:
         """Download the registry index and match it (overridden by tests). Network only here."""
         return profile_registry.candidates(profile_registry.fetch_index(), inventories)
@@ -352,11 +474,23 @@ class AuditPage(WizardPage):
         state = self.state
         if state is None or self.session is None or not state.inventories:
             return False
-        try:
-            found = self.fetch_registry(state.inventories)
-        except (profile_registry.RegistryError, OSError) as exc:
-            self.show_error(self.tr("Could not reach the profile registry"), str(exc))
+        outcome = run_task(
+            self,
+            self.tr("Looking for matching profiles…"),
+            workers.fetch_registry,
+            state.inventories,
+            fetch=self.fetch_registry,
+            object_name="registryProgress",
+        )
+        if outcome.cancelled:
             return False
+        if outcome.error is not None:
+            self.show_error(
+                self.tr("Could not reach the profile registry"),
+                self.registry_message(outcome.error),
+            )
+            return False
+        found = outcome.value
         if not found:
             self.show_error(
                 self.tr("Find profile online"),
@@ -369,10 +503,18 @@ class AuditPage(WizardPage):
         chosen = dialog.selected()
         if chosen is None:
             return False
-        try:
-            self.download_registry_profile(chosen.profile_id)
-        except (profile_registry.RegistryError, RpgGenError, OSError) as exc:
-            self.show_error(self.tr("Could not install the profile"), str(exc))
+        outcome = run_task(
+            self,
+            self.tr("Downloading the profile…"),
+            workers.download_profile,
+            chosen.profile_id,
+            download=self.download_registry_profile,
+            object_name="registryProgress",
+        )
+        if outcome.cancelled:
+            return False
+        if outcome.error is not None:
+            self.show_error(self.tr("Could not install the profile"), error_text(outcome.error))
             return False
         state.catalog = self.session.catalog
         if not self.run_analysis(state):

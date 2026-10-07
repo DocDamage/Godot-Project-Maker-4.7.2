@@ -25,6 +25,10 @@ decisions automatically. A profile contains **no images**, only file names, hash
    license **CC0-1.0** (required for the registry).
 3. Share the file, or contribute it to the registry (below).
 
+Audio files and fonts are covered too: a profile can give a music or sound file its role
+(`AUDIO_MUSIC`, `AUDIO_SFX`) and tags, which decide which sound slot it fills by default. The
+bundled sample pack's profile does this for its `music/` and `sfx/` files.
+
 Only assets you changed or confirmed are written. Re-running your own export is deterministic.
 
 ## Format
@@ -39,14 +43,15 @@ never executes anything from one; a file that does not validate is rejected whol
 
 ## The community registry
 
-The registry is the `rpggen-profiles` repository: `profiles/<profile_id>.rpgprofile.json` files, an
-`index.json` that CI regenerates, a schema validator and `CONTRIBUTING.md`. Its content is kept
-in this repository under `registry/` until the repository is published. The client
+The registry is the `registry/` folder of the project repository: `profiles/<profile_id>.rpgprofile.json`
+files, an `index.json` that CI regenerates, a schema validator and `CONTRIBUTING.md`. **Find
+profile online** downloads it from `main` on GitHub, in the background, and only after you click.
+Set `RPGGEN_REGISTRY_BASE` (https only) to use a fork or a test server. The client
 (`rpggen/core/profile_registry.py`) additionally requires:
 
 * the license `CC0-1.0`,
 * `profile_id` equal to the file name,
 * a response smaller than 8 MB over HTTPS.
 
-To contribute, follow `registry/CONTRIBUTING.md`: export the profile, add it under `profiles/` and
+To contribute, follow `registry/CONTRIBUTING.md`: export the profile, add it under `registry/profiles/` and
 open a pull request; CI validates it.

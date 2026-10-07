@@ -528,3 +528,23 @@ func test_enemy_slugs_and_scaling(t) -> void:
 	t.eq(EnemyRecipes.scaled(2)["attack"], 6)
 	t.eq(EnemyRecipes.display_name("slime_idle"), "Slime")
 	t.eq(EnemyRecipes.slugs_for(["a.b.slime", "a.b.bat"]), ["slime", "bat"])
+
+func test_heavy_attack_numbers(t) -> void:
+	t.eq(RpgArpgMath.heavy_damage(1), 2, "always more than the light attack")
+	t.eq(RpgArpgMath.heavy_damage(8), 14, "8 x 1.75")
+	t.eq(RpgArpgMath.heavy_damage(10), 18, "17.5 rounds up")
+	for base in range(1, 50):
+		t.ok(RpgArpgMath.heavy_damage(base) > base, "heavy > light at %d" % base)
+
+func test_heavy_hitbox_scales_damage_and_knockback(t) -> void:
+	var light := _fighter("player", 12, 0, 20)
+	var target := _fighter("enemy", 1, 0, 40)
+	var hitbox: RpgHitbox = light.get_node("AttackHitbox")
+	var hurtbox: RpgHurtbox = target.get_node("Hurtbox")
+	var normal := hitbox.build_info(hurtbox)
+	hitbox.heavy = true
+	var heavy := hitbox.build_info(hurtbox)
+	t.ok(heavy.amount > normal.amount, "heavy deals more")
+	t.ok(heavy.knockback.length() > normal.knockback.length(), "heavy pushes further")
+	light.free()
+	target.free()

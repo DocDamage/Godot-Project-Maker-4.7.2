@@ -1,13 +1,15 @@
-/* The one stylesheet of the wizard. Colors live here and nowhere else (STATUS_COLORS in
-   widgets/asset_grid.py mirrors the status variables below). */
+/* The dark stylesheet of the wizard (style_light.qss has the same selectors with light colours;
+   a test keeps the two in step). Colors live in these files and nowhere else (STATUS_COLORS in
+   widgets/asset_grid.py mirrors the status variables below; they have 3:1 contrast against both
+   themes' backgrounds, checked by a test). */
 
 /* status-colors (mirrored by STATUS_COLORS in widgets/asset_grid.py; a test compares them)
 CONFLICT=#d32f2f
-NEEDS_REVIEW=#f57c00
-MISSING=#7b1fa2
+NEEDS_REVIEW=#ef6c00
+MISSING=#a53fc8
 AUTO_DETECTED=#1976d2
 CONFIRMED=#388e3c
-UNUSED=#9e9e9e
+UNUSED=#8a8a8a
 */
 
 QListWidget#sidebar {
@@ -28,17 +30,23 @@ QListWidget#sidebar::item:disabled {
 }
 
 QLabel#problemLabel {
-    color: #b3261e;
+    color: #ef5350;
     padding: 4px 2px;
 }
 QLabel[state="ok"] {
-    color: #2e7d32;
+    color: #66bb6a;
 }
 QLabel[state="error"] {
-    color: #b3261e;
+    color: #ef5350;
 }
 QLabel[state="warning"] {
-    color: #a66a00;
+    color: #ffb74d;
+}
+QLabel[state="hint"] {
+    color: #9aa0aa;
+}
+QLabel[muted="true"] {
+    color: #9aa0aa;
 }
 QLabel#stubLabel {
     color: #7b8290;

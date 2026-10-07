@@ -7,6 +7,7 @@ extends Area2D
 
 var actor: RpgActor
 var _shape: CollisionShape2D
+var _prompt: Label = null
 
 func _ready() -> void:
 	actor = _find_actor()
@@ -26,6 +27,57 @@ func _ready() -> void:
 	if actor != null:
 		actor.facing_changed.connect(_on_facing_changed)
 		_reposition(actor.facing)
+
+## The small key hint above the thing the player can interact with: the first key bound to
+## `interact`, or the gamepad button when a controller is connected.
+func _physics_process(_delta: float) -> void:
+	if actor == null:
+		return
+	var target: Node = find_target() if actor.input_enabled else null
+	if target == null or not target is Node2D:
+		if _prompt != null:
+			_prompt.visible = false
+		return
+	if _prompt == null:
+		_prompt = Label.new()
+		_prompt.name = "Prompt"
+		_prompt.top_level = true  # positioned in the world, not relative to the player
+		_prompt.z_index = 50
+		_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_prompt)
+	_prompt.text = prompt_text()
+	_prompt.size = _prompt.get_minimum_size()
+	_prompt.visible = true
+	_prompt.global_position = (target as Node2D).global_position + Vector2(-_prompt.size.x / 2.0, -tile_size * 1.8 - _prompt.size.y)
+
+## "E" for the keyboard, "A" (or whatever the controller calls it) for a gamepad.
+func prompt_text() -> String:
+	var settings := RpgUtil.settings()
+	var events := InputMap.action_get_events("interact") if InputMap.has_action("interact") else []
+	var pad := not Input.get_connected_joypads().is_empty()
+	return key_text(events, pad, settings)
+
+## The first event of the wanted device as text; "?" when `interact` has none. `settings` is the
+## RpgSettings node (or null).
+static func key_text(events: Array, gamepad: bool, settings: Variant = null) -> String:
+	var first: InputEvent = null
+	for ev in events:
+		var wanted: bool = ev is InputEventJoypadButton if gamepad else ev is InputEventKey
+		if wanted:
+			first = ev
+			break
+	if first == null and not events.is_empty():
+		first = events[0]
+	if first == null:
+		return "?"
+	if settings != null and settings.has_method("event_text"):
+		return str(settings.call("event_text", first))
+	if first is InputEventKey:
+		var key_ev: InputEventKey = first
+		if key_ev.keycode == KEY_NONE:
+			return key_ev.as_text_physical_keycode()
+		return key_ev.as_text_keycode()
+	return first.as_text()
 
 func _find_actor() -> RpgActor:
 	var node := get_parent()

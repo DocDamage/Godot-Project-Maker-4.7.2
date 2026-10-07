@@ -90,11 +90,15 @@ def test_checklist_shows_status_per_role(qtbot) -> None:
     page, state = _page(qtbot, "basic16")
     player = page.rows["PLAYER"]
     assert "assigned" in player.status_label.text()
-    assert player.asset_label.text() == "basic16.characters.hero"
+    assert player.asset_label.text() == "hero.png · basic16"
+    assert player.asset_label.toolTip() == "basic16.characters.hero"
+    assert player.used_label.text() == "Used for the player actor"
+    assert player.role_label.text().startswith("<b>Player *")
     assert not player.thumb_label.pixmap().isNull()
     npc = page.rows["NPC"]
     assert npc.status_label.text().startswith("⚠")
-    assert "Continue without" in npc.fallback.currentText()
+    assert npc.without_radio.isChecked() and not npc.placeholder_radio.isChecked()
+    assert not npc.fallback_box.isHidden() and player.fallback_box.isHidden()
     assert page.validate(state) == []
 
 
@@ -103,9 +107,9 @@ def test_required_missing_blocks_next_until_placeholder_or_choice(qtbot) -> None
     player = page.rows["PLAYER"]
     assert player.status_label.text().startswith("✖")
     assert [i.severity.value for i in page.validate(state)] == ["error"]
-    assert [player.fallback.itemData(i) for i in range(player.fallback.count())] == ["placeholder"]
-    player.fallback.setCurrentIndex(0)
-    player.fallback.activated.emit(0)
+    assert player.without_radio.parent() is player.fallback_box and player.without_radio.isHidden()
+    assert not player.placeholder_radio.isChecked() and not player.without_radio.isChecked()
+    player.placeholder_radio.click()
     assert "PLAYER" in page.placeholders and page.validate(state) == []
     assert "placeholder" in player.status_label.text()
     page.leave(state)
@@ -156,3 +160,107 @@ def test_starter_survives_a_config_round_trip(qtbot, pack) -> None:
     page.leave(state)
     cfg = config.GeneratorConfig.from_json(state.config.to_json())
     assert cfg.starter == state.config.starter
+
+
+# ------------------------------------------------------------------------ sound
+
+
+def test_sound_group_is_collapsed_with_a_summary_and_stores_the_choices(qtbot) -> None:
+    from rpggen.core import sound_slots
+
+    page, state = _page(qtbot, "audio_basic")
+    section = page.sound_section
+    assert not section.isHidden()
+    assert section.body.isHidden()
+    assert section.summary_label.text() == "3 music tracks, 4 sound effects assigned"
+    section.edit_button.setChecked(True)
+    assert not section.body.isHidden()
+    battle = "audio_basic.music.battle_bgm"
+    section.run_picker = lambda dialog: setattr(dialog, "picked", battle) or True  # type: ignore[method-assign]
+    assert section.choose("music_map")
+    assert section.sounds["music_map"] == battle
+    section.clear("sfx_hit")
+    assert section.sounds["sfx_hit"] == sound_slots.CLEARED
+    assert section.summary_label.text() == "3 music tracks, 3 sound effects assigned"
+    page.leave(state)
+    assert state.config.sounds["music_map"] == battle
+    assert state.config.to_json()["sounds"]["sfx_hit"] == ""
+    # coming back keeps the cleared slot silent instead of refilling the default
+    page.enter(state)
+    assert page.sound_section.sounds["sfx_hit"] == ""
+
+
+def test_the_sound_group_hides_when_the_packs_have_no_audio(qtbot) -> None:
+    page, _state = _page(qtbot, "basic16")
+    assert page.sound_section.isHidden()
+
+
+def test_sound_picker_lists_only_the_right_kind_with_lengths(qtbot) -> None:
+    from rpggen.core import sound_slots
+    from rpggen.gui.widgets.sound_section import SoundPickerDialog
+
+    page, state = _page(qtbot, "audio_basic")
+    dialog = SoundPickerDialog(state.catalog, sound_slots.slot("music_map"), None)
+    qtbot.addWidget(dialog)
+    assert dialog.list.count() == 2
+    assert "30.0 s" in dialog.list.item(1).text()
+    sfx = SoundPickerDialog(state.catalog, sound_slots.slot("sfx_hit"), None)
+    qtbot.addWidget(sfx)
+    assert sfx.list.count() == 4
+
+
+def test_rows_are_grouped_and_summarised(qtbot) -> None:
+    page, _state = _page(qtbot, "basic16")
+    headers = [page.findChild(type(page.summary_label), f"group_{g}") for g in ("World", "Characters", "Things", "Interface")]
+    assert all(h is not None for h in headers)
+    assert page.summary_label.text() == "2 of 2 required roles assigned, 0 of 7 optional roles assigned"
+    assert page.rows["GROUND"].role_label.text().startswith("<b>Ground tiles *")
+
+
+def test_clear_returns_a_chosen_role_to_the_automatic_choice(qtbot) -> None:
+    page, state = _page(qtbot, "mixed")
+    sprite = next(a for a in state.catalog.assets if catalog.effective(a).get("usage") == "sprite")
+    page.run_picker = lambda dialog: setattr(dialog, "picked", sprite.id) or True  # type: ignore[method-assign]
+    page.choose("NPC")
+    row = page.rows["NPC"]
+    automatic = mapping.best_for(state.catalog, "NPC")
+    assert row.clear_button.isEnabled() == (automatic != sprite.id)
+    page.clear("NPC")
+    assert page.starter.get("npc") == automatic or (automatic is None and "npc" not in page.starter)
+
+
+def test_a_placeholder_choice_is_remembered_by_the_radio_buttons(qtbot) -> None:
+    page, state = _page(qtbot, "mixed")
+    player = page.rows["PLAYER"]
+    player.placeholder_radio.click()
+    assert "PLAYER" in page.placeholders and player.placeholder_radio.isChecked()
+    assert page.validate(state) == []
+
+
+def test_transparent_thumbnails_sit_on_a_checkerboard(qtbot) -> None:
+    from rpggen.gui.pages.mapping_page import THUMB, checkerboard
+
+    board = checkerboard(THUMB)
+    image = board.toImage()
+    assert image.pixelColor(0, 0) != image.pixelColor(8, 0)  # two shades
+    page, _state = _page(qtbot, "basic16")
+    pixmap = page.rows["GROUND"].thumb_label.pixmap()
+    assert not pixmap.isNull() and pixmap.width() == THUMB
+
+
+def test_a_tile_sheet_thumbnail_starts_at_the_first_filled_cell(tmp_path) -> None:
+    from PIL import Image
+
+    from rpggen.gui import thumbnails
+
+    img = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    for x in range(32, 48):
+        for y in range(0, 16):
+            img.putpixel((x, y), (255, 0, 0, 255))  # the first filled cell is column 2, row 0
+    path = tmp_path / "sheet.png"
+    img.save(path)
+    grid = {"cell": [16, 16], "margin": [0, 0], "separation": [0, 0]}
+    assert thumbnails.first_filled_cell(img, grid) == (2, 0)
+    req = thumbnails.request_for("x", path, {"usage": "tiles", "grid": grid}, size=48, cells=3, skip_empty=True)
+    out = Image.open(__import__("io").BytesIO(thumbnails.render_thumbnail(req, 48)))
+    assert out.getpixel((1, 1))[3] == 255  # starts on the red cell, not on emptiness

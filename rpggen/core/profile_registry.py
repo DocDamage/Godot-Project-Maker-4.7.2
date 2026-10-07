@@ -1,6 +1,6 @@
 """Community profile registry client (T10.04).
 
-The registry is a public git repo (``rpggen-profiles``) with ``index.json`` and
+The registry is the ``registry/`` folder of the project repository, with ``index.json`` and
 ``profiles/<id>.rpgprofile.json``. This module talks to it only when the user asks (the "Find
 profile online" button). Everything it downloads is data: it is parsed as JSON, validated against
 the profile schema and must carry the CC0-1.0 license. Nothing from a profile is ever executed.
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import tempfile
 import urllib.request
@@ -18,14 +19,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from rpggen import schema
+from rpggen import REPO_URL, schema
 from rpggen.core import profiles
 from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
 
 log = logging.getLogger(__name__)
 
-REGISTRY_BASE = "https://raw.githubusercontent.com/rpggen/rpggen-profiles/main/"
+REGISTRY_BASE = (
+    REPO_URL.replace("https://github.com/", "https://raw.githubusercontent.com/")
+    + "/main/registry/"
+)
+BASE_ENV = "RPGGEN_REGISTRY_BASE"
 INDEX_NAME = "index.json"
 REQUIRED_LICENSE = "CC0-1.0"
 MIN_OVERLAP = 0.5
@@ -38,8 +43,22 @@ _SHA = re.compile(r"^[0-9a-f]{64}$")
 Fetcher = Callable[[str, int], bytes]
 
 
+def registry_base() -> str:
+    """The registry base URL: ``RPGGEN_REGISTRY_BASE`` (https only) or the project repository."""
+    override = os.environ.get(BASE_ENV, "").strip()
+    if not override:
+        return REGISTRY_BASE
+    if not override.lower().startswith("https://"):
+        raise RegistryError(f"{BASE_ENV} must be an https URL")
+    return override if override.endswith("/") else override + "/"
+
+
 class RegistryError(Exception):
     """The registry could not be reached or returned something unusable."""
+
+
+class RegistryOffline(RegistryError):
+    """The network request itself failed (no connection, timeout, DNS)."""
 
 
 @dataclass(frozen=True)
@@ -60,7 +79,7 @@ def default_fetcher(url: str, limit: int) -> bytes:
         with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:  # noqa: S310
             data: bytes = response.read(limit + 1)
     except OSError as exc:
-        raise RegistryError(str(exc)) from exc
+        raise RegistryOffline(str(exc)) from exc
     if len(data) > limit:
         raise RegistryError("the response is too large")
     return data
@@ -102,8 +121,9 @@ def parse_index(data: Any) -> list[dict[str, Any]]:
 
 
 def fetch_index(
-    fetcher: Fetcher = default_fetcher, base: str = REGISTRY_BASE
+    fetcher: Fetcher = default_fetcher, base: str | None = None
 ) -> list[dict[str, Any]]:
+    base = base or registry_base()
     return parse_index(_json(fetcher(base + INDEX_NAME, INDEX_LIMIT), "index.json"))
 
 
@@ -126,12 +146,13 @@ def candidates(index: list[dict[str, Any]], inventories: list[Inventory]) -> lis
 
 
 def download_profile(
-    profile_id: str, fetcher: Fetcher = default_fetcher, base: str = REGISTRY_BASE
+    profile_id: str, fetcher: Fetcher = default_fetcher, base: str | None = None
 ) -> dict[str, Any]:
     """Download, validate and install one profile; returns it. Anything that does not validate
     (schema, id, license) is rejected and nothing is installed."""
     if not _SAFE_ID.match(profile_id):
         raise RegistryError(f"not a valid profile id: {profile_id!r}")
+    base = base or registry_base()
     url = f"{base}profiles/{profile_id}{profiles.PROFILE_SUFFIX}"
     data = _json(fetcher(url, PROFILE_LIMIT), "the profile")
     try:

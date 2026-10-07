@@ -2,16 +2,17 @@ extends RefCounted
 ## Builds the audio bus layout (Master, Music, SFX, UI -> Master) and the audio index that maps
 ## catalog audio asset ids to their files (res://rpggen/audio_index.json).
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const JsonUtil := preload("../lib/json_util.gd")
 
 const LAYOUT_PATH := "res://generated/audio/default_bus_layout.tres"
 const INDEX_PATH := "res://rpggen/audio_index.json"
+const BANK_PATH := "res://rpggen/sound_bank.json"
 const BUSES := ["Music", "SFX", "UI"]
 
 func outputs(_ctx) -> PackedStringArray:
-	return PackedStringArray([LAYOUT_PATH, INDEX_PATH])
+	return PackedStringArray([LAYOUT_PATH, INDEX_PATH, BANK_PATH])
 
 func _audio_assets(ctx) -> Array:
 	var out: Array = []
@@ -25,7 +26,20 @@ func input_hash(ctx) -> String:
 	var parts: Array = []
 	for a in _audio_assets(ctx):
 		parts.append([a["id"], a["path"], a.get("sha256", "")])
-	return ctx.stable_hash({"v": RECIPE_VERSION, "audio": parts})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "audio": parts, "sounds": ctx.config.get("sounds", {})})
+
+## {slot: res:// path} of the configured sound slots whose asset is still active ("" = cleared).
+func sound_bank(ctx) -> Dictionary:
+	var by_id := {}
+	for a in _audio_assets(ctx):
+		by_id[a["id"]] = "res://" + String(a["path"])
+	var bank := {}
+	var sounds: Dictionary = ctx.config.get("sounds", {})
+	for slot in sounds.keys():
+		var asset_id := String(sounds[slot])
+		if asset_id != "" and by_id.has(asset_id):
+			bank[slot] = by_id[asset_id]
+	return bank
 
 func build(ctx) -> Array:
 	var issues: Array = []
@@ -49,4 +63,7 @@ func build(ctx) -> Array:
 	var werr := JsonUtil.write(INDEX_PATH, index)
 	if werr != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": INDEX_PATH, "err": werr}, INDEX_PATH))
+	var bank_err := JsonUtil.write(BANK_PATH, sound_bank(ctx))
+	if bank_err != OK:
+		issues.append(ctx.make_issue("BUILD-004", {"file": BANK_PATH, "err": bank_err}, BANK_PATH))
 	return issues

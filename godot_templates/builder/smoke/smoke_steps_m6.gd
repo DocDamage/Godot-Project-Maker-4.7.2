@@ -19,11 +19,13 @@ func _tree() -> SceneTree:
 func steps() -> Array[Dictionary]:
 	var list: Array[Dictionary] = []
 	list.append({"name": "title_new_game", "fn": _title_new_game, "timeout_s": 30.0})
+	list.append({"name": "map_music", "fn": _map_music, "timeout_s": 15.0})
 	list.append_array(_m1.steps())
 	list.append({"name": "npc_dialogue", "fn": _npc_dialogue, "timeout_s": 40.0})
 	list.append({"name": "chest_open", "fn": _chest_open, "timeout_s": 20.0})
 	# building_round_trip: the M4 steps.
 	list.append_array(_m4.steps())
+	list.append({"name": "autosave", "fn": _autosave, "timeout_s": 40.0})
 	list.append({"name": "save_slot_1", "fn": _save_slot_1, "timeout_s": 10.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
@@ -41,6 +43,14 @@ func _player() -> Node2D:
 func _frames(n: int) -> void:
 	for i in n:
 		await _tree().physics_frame
+
+## True as soon as `done` returns true within `max_frames` physics frames.
+func _wait_for(done: Callable, max_frames: int) -> bool:
+	for i in max_frames:
+		if done.call():
+			return true
+		await _tree().physics_frame
+	return bool(done.call())
 
 func _wait_for_map(map_name: String, max_frames: int) -> bool:
 	var tree := _tree()
@@ -135,6 +145,33 @@ func _title_new_game() -> String:
 		return "pressing confirm on New Game did not open the starter map"
 	return ""
 
+## The sound slots of the generated config (slot -> asset id; missing or "" = silent).
+func _configured_sounds() -> Dictionary:
+	var path := "res://rpggen/generator_config.json"
+	if not FileAccess.file_exists(path):
+		return {}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return parsed.get("sounds", {}) if parsed is Dictionary else {}
+
+func _audio() -> Node:
+	var router := _autoload("SceneRouter")
+	return router.get("audio") as Node if router != null else null
+
+## When a map music is configured, the starter map starts it. A pack without music passes with a note.
+func _map_music() -> String:
+	var wanted := str(_configured_sounds().get("music_map", ""))
+	if wanted == "":
+		print("[rpggen] INFO map_music: no map music is configured, step passes")
+		return ""
+	var audio := _audio()
+	if audio == null:
+		return "the game has no audio service"
+	for i in 120:
+		if str(audio.get("current_music_id")) == wanted:
+			return ""
+		await _tree().process_frame
+	return "the map music should be %s but %s plays" % [wanted, str(audio.get("current_music_id"))]
+
 func _npc_dialogue() -> String:
 	var tree := _tree()
 	var scene := tree.current_scene
@@ -175,12 +212,71 @@ func _chest_open() -> String:
 		print("[rpggen] INFO chest_open: the starter map has no chest, step passes")
 		return ""
 	var gold_before: int = state.gold
+	var audio := _audio()
+	var expects_sound: bool = str(_configured_sounds().get("sfx_chest", "")) != "" and audio != null
 	await _stand_below(chest)
 	var opened := func() -> bool: return state.get_flag(CHEST_ID, "opened", false) == true
 	if not await _interact_until(opened):
 		return "interacting with the chest did not open it"
 	if state.gold <= gold_before:
 		return "opening the chest gave no gold"
+	if expects_sound:
+		var chest_sound: AudioStream = audio.bank.stream(&"sfx_chest")
+		var heard := chest_sound == null  # a slot that does not load is VAL-020's business
+		for i in 15:
+			if heard:
+				break
+			for child in audio.get_children():
+				if child is AudioStreamPlayer and child.playing and child.stream == chest_sound:
+					heard = true
+			await _tree().physics_frame
+		if not heard:
+			return "opening the chest played no sound although sfx_chest is configured"
+	else:
+		print("[rpggen] INFO chest_open: no chest sound is configured, the sound check is skipped")
+	return ""
+
+## Entering a map writes the autosave (slot 0) with that map in its header; with the setting off
+## nothing is written. The map is entered again through the router, as the game does it.
+func _autosave() -> String:
+	var tree := _tree()
+	var save: Node = _autoload("SaveManager")
+	var settings: Node = _autoload("RpgSettings")
+	var router: Node = _autoload("SceneRouter")
+	var map := tree.current_scene as RpgMapRoot
+	if save == null or router == null or map == null:
+		return "no SaveManager, SceneRouter or map"
+	var map_path := map.scene_file_path
+	save.set("dir", SAVE_DIR)
+	var was_on: bool = settings == null or bool(settings.get("autosave"))
+	# 1. on: the autosave appears
+	if settings != null:
+		settings.set("autosave", true)
+	save.delete(0)
+	save.reset_autosave_cooldown()
+	router.go_to(map_path, &"default")
+	if not await _wait_for_map("StarterMap", 600):
+		return "the map did not come back"
+	var wrote := await _wait_for(func() -> bool: return save.has_save(0), 120)
+	if not wrote:
+		return "entering the map wrote no autosave"
+	var header: Dictionary = save.header(0)
+	if str(header.get("map", "")) != "starter_map":
+		return "the autosave header names the map '%s', not the starter map" % str(header.get("map", ""))
+	# 2. off: nothing is written
+	if settings != null:
+		settings.set("autosave", false)
+	save.delete(0)
+	save.reset_autosave_cooldown()
+	router.go_to(map_path, &"default")
+	if not await _wait_for_map("StarterMap", 600):
+		return "the map did not come back (autosave off)"
+	await _frames(30)
+	var wrote_anyway: bool = save.has_save(0)
+	if settings != null:
+		settings.set("autosave", was_on)
+	if wrote_anyway:
+		return "an autosave was written although the setting is off"
 	return ""
 
 func _save_slot_1() -> String:

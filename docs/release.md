@@ -21,7 +21,7 @@ sample pack through the frozen `rpggen-cli.exe` (expects exit code 0).
    `godot_templates/addons/rpg_runtime/VERSION` (and a `CHANGELOG.md` heading),
    `godot_templates/addons/rpg_project_tools/plugin.cfg`, `packaging/version_info.txt` and
    `packaging/installer.iss`. `tests/unit/test_release.py` fails when they disagree.
-3. `IMPLEMENTATION_NOTES.md` has no unresolved *stop and report* items and the held-out results
+3. `docs/dev/implementation_notes.md` has no unresolved *stop and report* items and the held-out results
    are published in [coverage.md](coverage.md).
 4. Tag and push: `git tag v1.0.0 && git push origin v1.0.0`. `.github/workflows/release.yml` checks
    that the tag equals `v<version>`, builds, runs the frozen smoke test, signs (below), and attaches
@@ -55,5 +55,30 @@ Signing is a **human step**: it needs an account, and its approval is outside th
 
 Keep `THIRD_PARTY_NOTICES.md` in step with `[project].dependencies` in `pyproject.toml`
 (`test_release.py` checks that every dependency is named). Note the LGPL components (Qt/PySide6,
-py7zr) are shipped as separate libraries in the one-folder build so users can replace them, and
-mutagen is GPL-2.0-or-later: do not drop the paragraph that explains this without legal advice.
+py7zr) are shipped as separate libraries in the one-folder build so users can replace them.
+Audio durations are read by rpggen's own parser (`core/audio_info.py`); do not add a GPL
+dependency (a test keeps a deny-list).
+
+## Updating for a new Godot version
+
+The targeted Godot version lives in one file, `rpggen/godot_target.py`. To move to another
+release:
+
+```bash
+python tools/bump_godot.py 4.7.3      # rewrites it, the CI/release workflows and the error texts
+python tools/bump_godot.py --check    # verifies nothing disagrees (a unit test runs this)
+```
+
+The app's version gate, the **Download Godot** button, `tools/fetch_godot.py` and the generated
+`project.godot` all read that file. The tool prints a checklist of what a person must still do:
+re-run the API probes in `godot_templates/tests/probes`, the integration tests and the GDScript
+tests with the new Godot, and review any golden diff. A patch release of the same series (4.7.x)
+already works without a bump: the app accepts it with a warning (`ENV-003`).
+
+## Before you tag
+
+Run the manual test pass of M11 (T11.29 in `docs/spec/M11_pre_release.md`) on a clean Windows
+machine with the installer, with the Godot you download from the welcome view, and record each
+row as passed or ticketed. The automated gate (T11.30) is `tests/unit`, `tests/gui`, the
+integration tests with `RPGGEN_GODOT` set, the GDScript tests (`python -m rpggen.dev godot-test`)
+and `python tools/make_doc_screenshots.py` when a page changed.

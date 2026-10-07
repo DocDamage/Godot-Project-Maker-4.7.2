@@ -10,6 +10,8 @@ signal hit(hurtbox: RpgHurtbox)
 @export var knockback_strength: float = 160.0
 @export var team: StringName = &"player"
 @export var stun_s: float = 0.0
+## Set by the player's heavy attack for the length of one swing.
+var heavy := false
 ## Where the area sits relative to the owner's feet: `center` is the middle of the body, and the
 ## area is moved `reach` further out toward the facing direction by aim().
 @export var center: Vector2 = Vector2(0, -12)
@@ -100,6 +102,8 @@ func build_info(hurtbox: RpgHurtbox) -> RpgDamageInfo:
 	var rng: Variant = state.get("rng") if state != null else _fallback_rng
 	var rolled := RpgArpgMath.roll_damage(attack, hurtbox.defense(), crit_chance, rng)
 	info.amount = int(rolled["amount"])
+	if heavy:
+		info.amount = RpgArpgMath.heavy_damage(info.amount)
 	info.crit = bool(rolled["crit"])
 	info.stun_s = stun_s
 	var from := actor.global_position if actor != null else global_position
@@ -107,5 +111,5 @@ func build_info(hurtbox: RpgHurtbox) -> RpgDamageInfo:
 	var away := (target.global_position if target != null else hurtbox.global_position) - from
 	if away.length() < 0.01:
 		away = RpgArpgMath.facing_vector(str(actor.get("facing"))) if actor != null else Vector2.DOWN
-	info.knockback = away.normalized() * knockback_strength
+	info.knockback = away.normalized() * knockback_strength * (RpgArpgMath.HEAVY_KNOCKBACK_MULT if heavy else 1.0)
 	return info

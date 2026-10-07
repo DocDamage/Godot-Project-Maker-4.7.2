@@ -154,6 +154,7 @@ func _on_entries_resolved(entries: Array) -> void:
 			continue
 		match str(entry.get("type", "")):
 			"damage":
+				RpgUtil.emit(&"attack_started", [node])
 				_hit(node, target, bool(entry.get("crit", false)))
 				_float_number(node, target, str(int(entry.get("amount", 0))), Color.WHITE)
 			"heal":

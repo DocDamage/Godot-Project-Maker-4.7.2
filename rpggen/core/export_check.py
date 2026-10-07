@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from rpggen import ids, paths
@@ -80,7 +81,11 @@ def templates_installed(version: tuple[int, int, int, str]) -> bool:
 
 
 def run_check(
-    exe: Path, project: Path, project_name: str, log_dir: Path
+    exe: Path,
+    project: Path,
+    project_name: str,
+    log_dir: Path,
+    is_cancelled: Callable[[], bool] | None = None,
 ) -> tuple[list[Issue], bool]:
     """Export the project once and delete the result. Returns (issues, ran).
 
@@ -101,7 +106,10 @@ def run_check(
             timeout_s=EXPORT_TIMEOUT_S,
             log_name="export",
             log_dir=log_dir,
+            is_cancelled=is_cancelled,
         )
+        if run.cancelled:
+            return list(issues), True
         if run.timed_out:
             issues.add("BUILD-003", phase="export", seconds=EXPORT_TIMEOUT_S)
         elif run.returncode != 0:

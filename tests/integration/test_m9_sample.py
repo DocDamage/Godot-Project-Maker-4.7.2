@@ -33,11 +33,13 @@ M9_STEPS = [
     "enemy_detects",
     "player_attack_hits",
     "no_damage_outside_active_frames",
+    "heavy_attack_hits",
     "enemy_dies",
     "player_hurt_invuln",
     "dodge",
     "persist",
     "death_policy",
+    "game_over_screen",
 ]
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -560,6 +561,26 @@ def _license_files(inv: Inventory, root: str) -> list[str]:
     return sorted((f"{root}/{f.path}" for f in inv.files if f.kind == "license"), key=_sort_key)
 
 
+REVIEWED_STATUSES = frozenset({"CONFIRMED", "UNUSED"})
+ATTENTION_STATUSES = frozenset({"CONFLICT", "NEEDS_REVIEW", "MISSING"})
+
+
+def review_progress(catalog: Catalog) -> tuple[int, int, int]:
+    """(reviewed, needing attention, total) assets of a catalog: reviewed is CONFIRMED or UNUSED,
+    attention is CONFLICT, NEEDS_REVIEW or MISSING; the rest were auto-detected."""
+    done = attention = 0
+    for asset in catalog.assets:
+        if asset.status in REVIEWED_STATUSES:
+            done += 1
+        elif asset.status in ATTENTION_STATUSES:
+            attention += 1
+    return done, attention, len(catalog.assets)
+
+
+class AssemblyCancelled(Exception):
+    """``assemble`` stopped between packs because the caller cancelled."""
+
+
 def assemble(
     packs: list[tuple[OpenedPack, Inventory]],
     previous: Catalog | None,
@@ -567,6 +588,7 @@ def assemble(
     *,
     work_dir: Path | None = None,
     use_cache: bool = True,
+    is_cancelled: Callable[[], bool] | None = None,
 ) -> tuple[Catalog, IssueList, dict[str, str]]:
     """Run adapters, classify and merge everything into a Catalog.
 
@@ -588,6 +610,8 @@ def assemble(
     pack_roots: dict[str, Path] = {}
 
     for opened, inv in sorted(packs, key=lambda pair: _sort_key(pair[1].pack_id)):
+        if is_cancelled is not None and is_cancelled():
+            raise AssemblyCancelled
         pack_id = inv.pack_id
         root = f"assets/packs/{pack_id}"
         pack_roots[pack_id] = opened.root
@@ -667,10 +691,20 @@ def assemble(
             if f.kind == "audio":
                 music = role == "AUDIO_MUSIC"
                 facets["audio"] = {"type": "music" if music else "sfx", "loop": music}
+                if duration is not None:
+                    facets["audio"]["duration_s"] = round(duration, 3)
+            detected_by = "inventory"
+            if (f.path, "") in by_key:  # an installed profile decided this file
+                measured = (facets.get("audio") or {}).get("duration_s")
+                decided, role_conf, first = _merge_fragments(by_key[(f.path, "")])
+                facets = {**facets, **decided}
+                if measured is not None and isinstance(facets.get("audio"), dict):
+                    facets["audio"].setdefault("duration_s", round(measured, 3))
+                detected_by = results[first].adapter
             asset_id = ids.asset_id(pack_id, f.path)
             catalog.assets.append(
                 Asset(asset_id, pack_id, f"{root}/{f.path}", f.sha256, f.kind, "AUTO_DETECTED",
-                      facets, {}, "inventory", role_conf)
+                      facets, {}, detected_by, role_conf)
             )  # fmt: skip
             present_ids.add(asset_id)
 

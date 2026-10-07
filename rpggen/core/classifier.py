@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import contextlib
 import re
 import unicodedata
-import wave
 from pathlib import Path
 from typing import Any
 
+from rpggen.core import audio_info
+
 MUSIC_MIN_SECONDS = 20.0
-MUSIC_NAME_TOKENS = {"music", "bgm", "theme", "song"}
+MUSIC_NAME_TOKENS = {"music", "bgm", "theme", "song", "ost", "soundtrack", "overworld"}
 DIRECTION_LETTERS = {"s", "n", "e", "w"}
 MAX_CONFIDENCE = 0.95
 
@@ -81,21 +81,8 @@ def tokens(posix_path: str) -> tuple[list[str], list[str]]:
 
 
 def audio_duration(path: Path) -> float | None:
-    """Duration in seconds: ``wave`` for WAV, mutagen for OGG/MP3; None when unknown."""
-    suffix = path.suffix.lower()
-    if suffix == ".wav":
-        with contextlib.suppress(wave.Error, OSError, EOFError), wave.open(str(path), "rb") as w:
-            return w.getnframes() / float(w.getframerate() or 1)
-        return None
-    try:
-        import mutagen
-    except ImportError:  # pragma: no cover - mutagen is a declared dependency
-        return None
-    with contextlib.suppress(Exception):
-        info = mutagen.File(str(path))
-        if info is not None and info.info is not None:
-            return float(info.info.length)
-    return None
+    """Duration in seconds (WAV, OGG, MP3, FLAC); None when unknown."""
+    return audio_info.duration_seconds(path)
 
 
 def _has_directional_animations(facets: dict[str, Any]) -> bool:

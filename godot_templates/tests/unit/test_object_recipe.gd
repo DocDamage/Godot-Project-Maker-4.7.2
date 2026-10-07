@@ -82,3 +82,45 @@ func test_a_prop_has_no_body_and_no_footprint(t) -> void:
 func test_object_file_names(t) -> void:
 	t.eq(ObjectIndex.stem("pack.town#house"), "pack__town__house")
 	t.eq(ObjectIndex.scene_path("a.b#c"), "res://generated/scenes/objects/a__b__c.tscn")
+
+func _chest(open_region: Array) -> Dictionary:
+	var e := _entry("ITEM", ["chest"], "FULL", [])
+	e["region"] = [0, 0, 16, 16]
+	e["origin"] = [8, 15]
+	e["open_region"] = open_region
+	return e
+
+func test_a_two_frame_chest_carries_its_open_picture(t) -> void:
+	var r := Recipe.new()
+	t.eq(r._build_scene(_chest([16, 0, 16, 16]), OUT, 16, true), OK)
+	var scene := (load(OUT) as PackedScene).instantiate()
+	var sprite := scene.get_node("Sprite") as Sprite2D
+	t.ok(sprite.has_meta("open_texture"), "frame 1 is the open texture")
+	t.eq((sprite.get_meta("open_texture") as AtlasTexture).region, Rect2(16, 0, 16, 16))
+	t.eq((sprite.texture as AtlasTexture).region, Rect2(0, 0, 16, 16), "frame 0 stays the closed chest")
+	scene.apply_opened_state()
+	t.eq((sprite.texture as AtlasTexture).region, Rect2(16, 0, 16, 16), "opening swaps the picture")
+	t.eq(sprite.modulate, Color.WHITE, "no darkening when there is an open frame")
+	scene.free()
+	DirAccess.remove_absolute(OUT)
+
+func test_a_single_frame_chest_is_darkened_when_opened(t) -> void:
+	var r := Recipe.new()
+	t.eq(r._build_scene(_chest([]), OUT, 16, true), OK)
+	var scene := (load(OUT) as PackedScene).instantiate()
+	var sprite := scene.get_node("Sprite") as Sprite2D
+	t.ok(not sprite.has_meta("open_texture"))
+	scene.apply_opened_state()
+	t.ok(sprite.modulate.r < 1.0, "the fallback darkens the sprite")
+	scene.free()
+	DirAccess.remove_absolute(OUT)
+
+func test_open_region_of_strips_sheets_and_animations(t) -> void:
+	var Entries := preload("res://builder/lib/object_entries.gd")
+	var region := [0, 0, 16, 16]
+	t.eq(Entries.open_region({"size": [32, 16]}, region), [16, 0, 16, 16], "horizontal strip")
+	t.eq(Entries.open_region({"size": [16, 32]}, region), [0, 16, 16, 16], "vertical strip")
+	t.eq(Entries.open_region({"size": [16, 16]}, region), [], "one picture")
+	t.eq(Entries.open_region({"size": [34, 16], "grid": {"separation": [2, 0]}}, region), [18, 0, 16, 16], "separation counts")
+	var anim := {"size": [64, 16], "animations": {"open": {"frames": [[0, 0], [1, 0], [3, 0]]}}}
+	t.eq(Entries.open_region(anim, region), [48, 0, 16, 16], "last frame of the open animation")

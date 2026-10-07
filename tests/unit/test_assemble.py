@@ -104,8 +104,10 @@ def test_audio_and_font_files_become_assets(tmp_path: Path) -> None:
     by = {a.id: a for a in cat.assets}
     assert sorted(by) == ["pk.hit", "pk.music.town_theme", "pk.pixel"]
     assert by["pk.music.town_theme"].detected["role"] == "AUDIO_MUSIC"
-    assert by["pk.music.town_theme"].detected["audio"] == {"type": "music", "loop": True}
-    assert by["pk.hit"].detected["audio"] == {"type": "sfx", "loop": False}
+    audio = by["pk.music.town_theme"].detected["audio"]
+    assert (audio["type"], audio["loop"]) == ("music", True)
+    assert abs(audio["duration_s"] - 0.1) < 0.01
+    assert (by["pk.hit"].detected["audio"]["type"], by["pk.hit"].detected["audio"]["loop"]) == ("sfx", False)
     assert by["pk.pixel"].detected["role"] == "FONT" and by["pk.pixel"].kind == "font"
     assert cat.packs[0].license_files == ["assets/packs/pk/LICENSE.txt"]
 

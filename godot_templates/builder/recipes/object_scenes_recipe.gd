@@ -2,7 +2,7 @@ extends RefCounted
 ## Builds one scene per world object under res://generated/scenes/objects/ and the index
 ## res://rpggen/object_index.json (object id -> scene path).
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
@@ -104,6 +104,11 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 	sprite.centered = false
 	sprite.offset = -origin
 	root.add_child(sprite)
+	if template == "chest":
+		var open: Array = e.get("open_region", [])
+		if open.size() == 4:
+			# Frame 0 is the closed chest, the second picture is shown once it is opened.
+			sprite.set_meta("open_texture", TextureUtil.region_texture(e["texture_path"], Rect2i(int(open[0]), int(open[1]), int(open[2]), int(open[3]))))
 
 	if solid:
 		var shape := CollisionPolygon2D.new()

@@ -4,6 +4,36 @@ extends RefCounted
 
 const UI_DIR := "res://generated/scenes/ui/"
 const TITLE_SCENE := "res://generated/scenes/ui/title_screen.tscn"
+## The focus that a menu takes when it opens is silent: opening a menu must not tick.
+const QUIET_AFTER_WIRING_MS := 300
+
+static var _quiet_until_ms := 0
+
+## Plays the sound of a UI slot (silent when the game has no audio or the slot is unset).
+static func play_ui(slot: StringName) -> void:
+	var router := RpgUtil.router()
+	var audio: Variant = router.get("audio") if router != null else null
+	if audio != null and audio.has_method("play_ui_slot"):
+		audio.call("play_ui_slot", slot)
+
+## Connects the cursor and confirm sounds of the controls of a menu, once per control.
+static func attach_sounds(controls: Array) -> void:
+	_quiet_until_ms = Time.get_ticks_msec() + QUIET_AFTER_WIRING_MS
+	for item in controls:
+		var control := item as Control
+		if control == null or control.has_meta("rpg_ui_sounds"):
+			continue
+		control.set_meta("rpg_ui_sounds", true)
+		control.focus_entered.connect(_on_control_focused)
+		if control is BaseButton:
+			(control as BaseButton).pressed.connect(_on_control_pressed)
+
+static func _on_control_focused() -> void:
+	if Time.get_ticks_msec() >= _quiet_until_ms:
+		play_ui(&"sfx_ui_move")
+
+static func _on_control_pressed() -> void:
+	play_ui(&"sfx_ui_confirm")
 
 static func scene_path(menu_name: String) -> String:
 	return UI_DIR + menu_name + ".tscn"
@@ -23,6 +53,7 @@ static func open_submenu(parent: Control, menu_name: String, args: Dictionary = 
 
 ## Wires focus_neighbor_top/bottom of `controls` as a wrapping vertical list.
 static func wire_vertical(controls: Array) -> void:
+	attach_sounds(controls)
 	var n := controls.size()
 	for i in n:
 		var c := controls[i] as Control
@@ -33,6 +64,7 @@ static func wire_vertical(controls: Array) -> void:
 
 ## Wires a grid (row-major) with wrapping in both directions.
 static func wire_grid(controls: Array, columns: int) -> void:
+	attach_sounds(controls)
 	var n := controls.size()
 	if n == 0 or columns <= 0:
 		return

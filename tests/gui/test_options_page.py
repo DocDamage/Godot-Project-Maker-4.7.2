@@ -74,10 +74,13 @@ def test_unchecking_a_dependency_disables_demo_with_a_tooltip(qtbot) -> None:
     demo = page.feature_boxes["demo"]
     assert not demo.isChecked() and not demo.isEnabled()
     assert "Combat" in demo.toolTip()
+    needs = page.feature_needs["demo"]
+    assert not needs.isHidden() and needs.text() == "Needs: Combat"  # in plain sight
     page.leave(state)
     assert state.config.features["demo"] is False and state.config.features["combat"] is False
     page.feature_boxes["combat"].setChecked(True)
-    assert demo.isEnabled() and demo.isChecked() and demo.toolTip() == ""
+    assert demo.isEnabled() and demo.isChecked() and "Requires" not in demo.toolTip()
+    assert needs.isHidden()
 
 
 def test_resolution_presets_custom_and_hint(qtbot) -> None:
@@ -140,7 +143,7 @@ def test_a_missing_ground_layer_is_an_error(qtbot) -> None:
 def test_advanced_seed_and_input_table(qtbot) -> None:
     page, state = _page(qtbot)
     assert page.advanced_body.isHidden()
-    page.advanced.setChecked(True)
+    page.advanced.set_open(True)
     assert not page.advanced_body.isHidden()
     page.seed_box.setValue(777)
     row = next(

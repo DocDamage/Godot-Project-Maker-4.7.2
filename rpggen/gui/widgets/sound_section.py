@@ -1,0 +1,208 @@
+"""The Sound group of the Mapping page: one row per sound slot, collapsed by default (T11.20)."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from pathlib import Path
+
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from rpggen.core import catalog as catalog_mod
+from rpggen.core import classifier, sound_slots
+from rpggen.gui.widgets import audio_preview
+
+Resolver = Callable[[catalog_mod.Asset], Path | None]
+
+
+def describe(asset: catalog_mod.Asset, resolver: Resolver | None = None) -> str:
+    """``name · pack · 24.0 s`` of an audio asset."""
+    name = asset.path.rsplit("/", 1)[-1]
+    text = f"{name} · {asset.pack_id}"
+    seconds = sound_slots.duration_of(asset)
+    if seconds is None and resolver is not None and (path := resolver(asset)) is not None:
+        seconds = classifier.audio_duration(Path(path))
+    if seconds is not None:
+        text += f" · {seconds:.1f} s"
+    return text
+
+
+class SoundPickerDialog(QDialog):
+    """The audio assets of the right kind, each with its length and a ▶ button."""
+
+    def __init__(
+        self,
+        catalog: catalog_mod.Catalog,
+        slot: sound_slots.Slot,
+        resolver: Resolver | None,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName("soundPicker")
+        self.setWindowTitle(self.tr("Choose a sound for {0}").format(slot.label))
+        self.resize(560, 380)
+        self.resolver = resolver
+        self.picked: str | None = None
+        layout = QVBoxLayout(self)
+        self.list = QListWidget()
+        self.list.setObjectName("soundList")
+        self.assets = sound_slots.audio_assets(catalog, slot.kind)
+        for asset in self.assets:
+            item = QListWidgetItem(describe(asset, resolver))
+            item.setData(Qt.ItemDataRole.UserRole, asset.id)
+            self.list.addItem(item)
+        layout.addWidget(self.list, 1)
+        row = QHBoxLayout()
+        self.play_button = QPushButton("▶ " + self.tr("Play"))
+        self.play_button.setObjectName("soundPlay")
+        self.play_button.setToolTip(self.tr("Listen to the selected sound"))
+        self.play_button.setEnabled(False)
+        self.play_button.setVisible(audio_preview.available())
+        row.addWidget(self.play_button)
+        row.addStretch(1)
+        layout.addLayout(row)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        self.ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        self.ok_button.setEnabled(False)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        self.list.currentItemChanged.connect(self._on_current)
+        self.list.itemDoubleClicked.connect(lambda _item: self.accept())
+        self.play_button.clicked.connect(self.play_current)
+        self.finished.connect(lambda _code: audio_preview.stop())
+
+    def _on_current(self, item: QListWidgetItem | None) -> None:
+        self.picked = item.data(Qt.ItemDataRole.UserRole) if item else None
+        self.ok_button.setEnabled(self.picked is not None)
+        self.play_button.setEnabled(self.picked is not None)
+
+    def play_current(self) -> bool:
+        asset = next((a for a in self.assets if a.id == self.picked), None)
+        path = self.resolver(asset) if asset is not None and self.resolver else None
+        return bool(path) and audio_preview.play(Path(path))  # type: ignore[arg-type]
+
+
+class SoundSection(QFrame):
+    """Collapsed to "3 music tracks, 14 sound effects assigned" with an Edit… expander."""
+
+    changed = Signal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("soundSection")
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.catalog: catalog_mod.Catalog | None = None
+        self.resolver: Resolver | None = None
+        self.sounds: dict[str, str] = {}
+        layout = QVBoxLayout(self)
+        head = QHBoxLayout()
+        self.title_label = QLabel("<b>" + self.tr("Sound") + "</b>")
+        self.summary_label = QLabel()
+        self.summary_label.setObjectName("soundSummary")
+        self.edit_button = QPushButton(self.tr("Edit…"))
+        self.edit_button.setObjectName("soundEdit")
+        self.edit_button.setCheckable(True)
+        self.edit_button.setToolTip(self.tr("Show a row for every sound slot"))
+        head.addWidget(self.title_label)
+        head.addWidget(self.summary_label, 1)
+        head.addWidget(self.edit_button)
+        layout.addLayout(head)
+        self.body = QWidget()
+        self.body.setObjectName("soundBody")
+        self.grid = QGridLayout(self.body)
+        self.grid.setColumnStretch(1, 1)
+        self.rows: dict[str, tuple[QLabel, QPushButton, QPushButton, QPushButton]] = {}
+        for i, slot in enumerate(sound_slots.SLOTS):
+            name = QLabel(slot.label)
+            name.setToolTip(slot.help)
+            asset_label = QLabel()
+            asset_label.setObjectName(f"sound_{slot.key}")
+            choose = QPushButton(self.tr("Choose…"))
+            choose.setObjectName(f"soundChoose_{slot.key}")
+            choose.setToolTip(self.tr("Pick another sound for this slot"))
+            play = QPushButton("▶")
+            play.setObjectName(f"soundPlay_{slot.key}")
+            play.setToolTip(self.tr("Listen to the current sound"))
+            play.setVisible(audio_preview.available())
+            clear = QPushButton(self.tr("Clear"))
+            clear.setObjectName(f"soundClear_{slot.key}")
+            clear.setToolTip(self.tr("Leave this slot silent"))
+            for col, widget in enumerate((name, asset_label, choose, play, clear)):
+                self.grid.addWidget(widget, i, col)
+            self.rows[slot.key] = (asset_label, choose, play, clear)
+            choose.clicked.connect(lambda _=False, k=slot.key: self.choose(k))
+            play.clicked.connect(lambda _=False, k=slot.key: self.play(k))
+            clear.clicked.connect(lambda _=False, k=slot.key: self.clear(k))
+        self.body.setVisible(False)
+        layout.addWidget(self.body)
+        self.edit_button.toggled.connect(self.body.setVisible)
+
+    # ------------------------------------------------------------------ data
+
+    def set_data(
+        self, catalog: catalog_mod.Catalog, sounds: dict[str, str], resolver: Resolver | None
+    ) -> None:
+        self.catalog = catalog
+        self.sounds = sound_slots.resolve_sounds(catalog, sounds)
+        self.resolver = resolver
+        self.setVisible(
+            bool(
+                sound_slots.audio_assets(catalog, sound_slots.MUSIC)
+                or sound_slots.audio_assets(catalog, sound_slots.SFX)
+            )
+        )
+        self._refresh()
+
+    def _refresh(self) -> None:
+        assert self.catalog is not None
+        self.summary_label.setText(sound_slots.summary(self.sounds))
+        for slot in sound_slots.SLOTS:
+            label, choose, play, clear = self.rows[slot.key]
+            ident = self.sounds.get(slot.key, "")
+            asset = self.catalog.asset(ident) if ident else None
+            label.setText(describe(asset, self.resolver) if asset else self.tr("(silent)"))
+            clear.setEnabled(asset is not None)
+            play.setEnabled(asset is not None)
+            has_any = bool(sound_slots.audio_assets(self.catalog, slot.kind))
+            choose.setEnabled(has_any)
+
+    # ------------------------------------------------------------------ actions
+
+    def run_picker(self, dialog: SoundPickerDialog) -> bool:  # overridden by tests
+        return bool(dialog.exec())
+
+    def choose(self, key: str) -> bool:
+        assert self.catalog is not None
+        dialog = SoundPickerDialog(self.catalog, sound_slots.slot(key), self.resolver, self)
+        if not self.run_picker(dialog) or dialog.picked is None:
+            return False
+        self.sounds[key] = dialog.picked
+        self._refresh()
+        self.changed.emit()
+        return True
+
+    def clear(self, key: str) -> None:
+        self.sounds[key] = sound_slots.CLEARED
+        self._refresh()
+        self.changed.emit()
+
+    def play(self, key: str) -> bool:
+        assert self.catalog is not None
+        asset = self.catalog.asset(self.sounds.get(key, ""))
+        path = self.resolver(asset) if asset is not None and self.resolver else None
+        return bool(path) and audio_preview.play(Path(path))  # type: ignore[arg-type]

@@ -15,6 +15,20 @@ var _index: Dictionary = {}
 var _index_loaded := false
 var _tween: Tween = null
 var current_music_id := ""
+## The sound slots of the game (res://rpggen/sound_bank.json). Unset slots are silent.
+var bank := RpgSoundBank.new()
+## Events (slot played when the signal fires) wired by connect_events; the player's footsteps,
+## the menu sounds and the map music are driven by their own scripts.
+const EVENT_SLOTS := {
+	&"item_added": &"sfx_pickup",
+	&"player_damaged": &"sfx_hit",
+	&"level_up": &"sfx_levelup",
+	&"game_saved": &"sfx_save",
+	&"chest_opened": &"sfx_chest",
+	&"door_used": &"sfx_door",
+	&"attack_started": &"sfx_attack",
+}
+var _event_bus: Node = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -35,6 +49,46 @@ func _ready() -> void:
 	_ui.name = "Ui"
 	_ui.bus = "UI"
 	add_child(_ui)
+	connect_events(RpgUtil.events())
+
+## Lets go of every stream so that none is still in use when the game quits.
+func _exit_tree() -> void:
+	if _tween != null:
+		_tween.kill()
+	for p in _music + _sfx:
+		p.stop()
+		p.stream = null
+	if _ui != null:
+		_ui.stop()
+		_ui.stream = null
+	bank.set_paths({})
+	_index.clear()
+
+## Connects the event signals of EVENT_SLOTS on `bus` (the Events autoload; a stand-in in tests).
+func connect_events(bus: Node) -> void:
+	if bus == null:
+		return
+	_event_bus = bus
+	for signal_name in EVENT_SLOTS.keys():
+		if bus.has_signal(signal_name):
+			var slot: StringName = EVENT_SLOTS[signal_name]
+			# Every one of these signals has at most two arguments; the sound ignores them.
+			bus.connect(signal_name, func(a: Variant = null, _b: Variant = null) -> void: _on_event(slot, signal_name, a))
+
+func _on_event(slot: StringName, signal_name: StringName, first_arg: Variant = null) -> void:
+	# The automatic save (slot 0) is quiet; it shows a toast instead.
+	if signal_name == &"game_saved" and first_arg is int and int(first_arg) == 0:
+		return
+	# No pickup sound while no map is shown (starting items, loading a save) or one is loading.
+	if signal_name == &"item_added" and not _map_is_live():
+		return
+	play(slot)
+
+func _map_is_live() -> bool:
+	var router := RpgUtil.router()
+	if router == null:
+		return true
+	return router.get("current_map") != null and not router.is_busy()
 
 ## Stream for an asset id from the catalog-derived index, or null.
 func stream_for(asset_id: String) -> AudioStream:
@@ -81,17 +135,35 @@ func play_music(what: Variant, fade: float = 0.5) -> void:
 		current_music_id = ""
 	_tween.chain().tween_callback(old.stop)
 
-func play_sfx(stream: AudioStream) -> void:
+func play_sfx(stream: AudioStream, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
 	if stream == null:
 		return
 	for p in _sfx:
 		if not p.playing:
 			p.stream = stream
+			p.volume_db = volume_db
+			p.pitch_scale = pitch_scale
 			p.play()
 			return
 	# Every player is busy: steal the first one.
 	_sfx[0].stream = stream
+	_sfx[0].volume_db = volume_db
+	_sfx[0].pitch_scale = pitch_scale
 	_sfx[0].play()
+
+## Plays the sound of a slot on the SFX bus. An unset slot is a silent no-op (no warning).
+func play(slot: StringName, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
+	play_sfx(bank.stream(slot), volume_db, pitch_scale)
+
+## Plays the sound of a slot on the UI bus (silent no-op when unset).
+func play_ui_slot(slot: StringName) -> void:
+	play_ui(bank.stream(slot))
+
+## Crossfades to the music of a slot (silent no-op when unset).
+func play_music_slot(slot: StringName, fade: float = 0.5) -> void:
+	var stream := bank.stream(slot)
+	if stream != null:
+		play_music(stream, fade)
 
 func play_ui(stream: AudioStream) -> void:
 	if stream == null or _ui == null:

@@ -1,0 +1,26 @@
+{
+  "characters/hero.png": {
+    "role": "PLAYER"
+  },
+  "music/battle_bgm.ogg": {
+    "role": "AUDIO_MUSIC"
+  },
+  "music/overworld_theme.wav": {
+    "role": "AUDIO_MUSIC"
+  },
+  "sfx/chest_open.wav": {
+    "role": "AUDIO_SFX"
+  },
+  "sfx/confirm.mp3": {
+    "role": "AUDIO_SFX"
+  },
+  "sfx/cursor_move.ogg": {
+    "role": "AUDIO_SFX"
+  },
+  "sfx/hit.wav": {
+    "role": "AUDIO_SFX"
+  },
+  "tiles/terrain.png": {
+    "role": "GROUND"
+  }
+}

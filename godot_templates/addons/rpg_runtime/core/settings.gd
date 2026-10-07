@@ -15,6 +15,8 @@ var volumes := {"master": DEFAULT_VOLUME, "music": DEFAULT_VOLUME, "sfx": DEFAUL
 var fullscreen := false
 var text_speed := "normal"
 var ui_scale := 1.0
+var autosave := true  # an automatic save when a map is entered (SaveManager.autosave)
+var screen_shake := true  # camera shake and hit-stop of the action RPG
 
 var _defaults := {}  # action -> Array[InputEvent], captured before user bindings are applied
 
@@ -42,6 +44,14 @@ func set_text_speed(speed: String) -> void:
 	if TEXT_SPEEDS.has(speed):
 		text_speed = speed
 		changed.emit()
+
+func set_screen_shake(on: bool) -> void:
+	screen_shake = on
+	changed.emit()
+
+func set_autosave(on: bool) -> void:
+	autosave = on
+	changed.emit()
 
 func set_ui_scale(scale: float) -> void:
 	ui_scale = scale if UI_SCALES.has(scale) else 1.0
@@ -81,6 +91,8 @@ func save_settings() -> bool:
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("text", "speed", text_speed)
 	cfg.set_value("access", "ui_scale", ui_scale)
+	cfg.set_value("game", "autosave", autosave)
+	cfg.set_value("game", "screen_shake", screen_shake)
 	var bindings := _stored_bindings()
 	for action in bindings.keys():
 		cfg.set_value("input", action, bindings[action])
@@ -98,6 +110,8 @@ func load_settings() -> void:
 	text_speed = speed if TEXT_SPEEDS.has(speed) else "normal"
 	var scale := float(cfg.get_value("access", "ui_scale", 1.0))
 	ui_scale = scale if UI_SCALES.has(scale) else 1.0
+	autosave = bool(cfg.get_value("game", "autosave", true))
+	screen_shake = bool(cfg.get_value("game", "screen_shake", true))
 	if cfg.has_section("input"):
 		for action in cfg.get_section_keys("input"):
 			if not InputMap.has_action(action):

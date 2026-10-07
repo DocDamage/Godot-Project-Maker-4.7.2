@@ -20,9 +20,11 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QListView,
     QPushButton,
+    QSlider,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -31,7 +33,9 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import catalog as catalog_mod
+from rpggen.core import labels
 from rpggen.gui import thumbnails
+from rpggen.gui.widgets.flow_layout import FlowLayout
 
 AssetIdRole = Qt.ItemDataRole.UserRole + 1
 StatusRole = Qt.ItemDataRole.UserRole + 2
@@ -48,15 +52,34 @@ NEEDS_ATTENTION = frozenset({"CONFLICT", "NEEDS_REVIEW", "MISSING"})
 # Mirrors the ``status-colors`` block of style.qss (a test keeps both in step).
 STATUS_COLORS = {
     "CONFLICT": "#d32f2f",
-    "NEEDS_REVIEW": "#f57c00",
-    "MISSING": "#7b1fa2",
+    "NEEDS_REVIEW": "#ef6c00",
+    "MISSING": "#a53fc8",
     "AUTO_DETECTED": "#1976d2",
     "CONFIRMED": "#388e3c",
-    "UNUSED": "#9e9e9e",
+    "UNUSED": "#8a8a8a",
 }
 
-GRID_SIZE = QSize(112, 132)
+THUMB_SIZES = (64, 96, 128, 192)
 THUMB = thumbnails.THUMB_SIZE
+
+
+def grid_size_for(thumb: int) -> QSize:
+    """The cell of the grid for a thumbnail size (the card adds a strip, margins and a name)."""
+    return QSize(thumb + 16, thumb + 36)
+
+
+GRID_SIZE = grid_size_for(THUMB)
+
+# A small corner glyph next to the coloured edge, so that the audit is usable without telling
+# colours apart.
+STATUS_GLYPHS = {
+    "CONFIRMED": "✔",
+    "NEEDS_REVIEW": "?",
+    "AUTO_DETECTED": "·",
+    "CONFLICT": "!",
+    "MISSING": "∅",
+    "UNUSED": "–",
+}
 
 PathResolver = Callable[[catalog_mod.Asset], Path | None]
 
@@ -82,6 +105,7 @@ class AssetListModel(QAbstractListModel):
         self.loader.ready.connect(self._thumbnail_ready)
         self.resolver: PathResolver = lambda asset: None
         self._placeholder: QPixmap | None = None
+        self.thumb_size = THUMB
 
     # ------------------------------------------------------------------ data
 
@@ -121,6 +145,24 @@ class AssetListModel(QAbstractListModel):
 
     def asset_at(self, row: int) -> catalog_mod.Asset:
         return self._assets[row]
+
+    def status_counts(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for asset in self._assets:
+            counts[asset.status] = counts.get(asset.status, 0) + 1
+        return counts
+
+    def set_thumb_size(self, size: int) -> None:
+        """Another thumbnail size: the pictures are asked for again (the key has the size)."""
+        if size == self.thumb_size:
+            return
+        self.thumb_size = size
+        self._keys.clear()
+        self._by_key.clear()
+        if self._assets:
+            self.dataChanged.emit(
+                self.index(0), self.index(len(self._assets) - 1), [Qt.ItemDataRole.DecorationRole]
+            )
 
     def row_of(self, asset_id: str) -> int | None:
         return self._row_of.get(asset_id)
@@ -170,10 +212,12 @@ class AssetListModel(QAbstractListModel):
     def _pixmap_for(self, asset: catalog_mod.Asset, facets: dict) -> QPixmap:
         key = self._keys.get(asset.id)
         if key is None:
+            if asset.kind != "image":  # audio and fonts have no picture to read
+                return self._placeholder_pixmap()
             path = self.resolver(asset)
             if path is None:
                 return self._placeholder_pixmap()
-            req = thumbnails.request_for(asset.sha256, path, facets)
+            req = thumbnails.request_for(asset.sha256, path, facets, self.thumb_size)
             key = req.key
             self._keys[asset.id] = key
             self._by_key.setdefault(key, []).append(asset.id)
@@ -259,8 +303,12 @@ class AssetCardDelegate(QStyledItemDelegate):
 
     STRIP = 5
 
+    def __init__(self, parent=None) -> None:  # noqa: ANN001
+        super().__init__(parent)
+        self.thumb = THUMB
+
     def sizeHint(self, option: QStyleOptionViewItem, index) -> QSize:  # noqa: ANN001
-        return GRID_SIZE
+        return grid_size_for(self.thumb)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index) -> None:  # noqa: ANN001
         painter.save()
@@ -275,14 +323,23 @@ class AssetCardDelegate(QStyledItemDelegate):
         )
         pixmap = index.data(Qt.ItemDataRole.DecorationRole)
         if isinstance(pixmap, QPixmap) and not pixmap.isNull():
-            area = QRect(rect.left() + self.STRIP + 4, rect.top() + 4, THUMB, THUMB)
+            area = QRect(rect.left() + self.STRIP + 4, rect.top() + 4, self.thumb, self.thumb)
             target = self.fit(pixmap.size(), area.size())
             target.moveCenter(area.center())
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
             painter.drawPixmap(target, pixmap)
-        text_rect = QRect(rect.left() + self.STRIP + 4, rect.top() + THUMB + 8, THUMB, 20)
+        glyph = STATUS_GLYPHS.get(status, "")
+        if glyph:
+            painter.setPen(QColor(STATUS_COLORS.get(status, STATUS_COLORS["UNUSED"])))
+            painter.fillRect(QRect(rect.right() - 16, rect.top() + 2, 14, 14), palette.base())
+            painter.drawText(
+                QRect(rect.right() - 16, rect.top() + 2, 14, 14),
+                Qt.AlignmentFlag.AlignCenter,
+                glyph,
+            )
+        text_rect = QRect(rect.left() + self.STRIP + 4, rect.top() + self.thumb + 8, self.thumb, 20)
         name = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
-        elided = painter.fontMetrics().elidedText(name, Qt.TextElideMode.ElideMiddle, THUMB)
+        elided = painter.fontMetrics().elidedText(name, Qt.TextElideMode.ElideMiddle, self.thumb)
         painter.setPen(palette.highlightedText().color() if selected else palette.text().color())
         painter.drawText(
             text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided
@@ -310,19 +367,31 @@ class AssetGridView(QListView):
         self.setViewMode(QListView.ViewMode.IconMode)
         self.setUniformItemSizes(True)
         self.setGridSize(GRID_SIZE)
+        self.setToolTip("")
         self.setLayoutMode(QListView.LayoutMode.Batched)
         self.setBatchSize(100)
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.setResizeMode(QListView.ResizeMode.Adjust)
         self.setMovement(QListView.Movement.Static)
         self.setWrapping(True)
-        self.setItemDelegate(AssetCardDelegate(self))
+        self.card_delegate = AssetCardDelegate(self)
+        self.setItemDelegate(self.card_delegate)
+
+    def set_thumb_size(self, size: int) -> None:
+        self.card_delegate.thumb = size
+        self.setGridSize(grid_size_for(size))
+        self.doItemsLayout()
 
     def keyPressEvent(self, event) -> None:  # noqa: ANN001
-        plain = event.modifiers() == Qt.KeyboardModifier.NoModifier
+        modifiers = event.modifiers()
+        plain = modifiers == Qt.KeyboardModifier.NoModifier
         text = event.text().upper()
-        if plain and len(text) == 1 and text in "CX123456789":
+        if plain and len(text) == 1 and text in "CX123456789N":
             self.quickKey.emit(text)
+            event.accept()
+            return
+        if event.key() == Qt.Key.Key_N and modifiers == Qt.KeyboardModifier.ShiftModifier:
+            self.quickKey.emit("SHIFT+N")
             event.accept()
             return
         super().keyPressEvent(event)
@@ -342,6 +411,9 @@ class AssetGrid(QWidget):
     """Filter bar + grid. Emits ``selectionChanged(list[str])`` with the selected asset ids."""
 
     selectionChanged = Signal(list)  # noqa: N815
+    confirmAutoRequested = Signal()  # noqa: N815
+    shortcutsRequested = Signal()  # noqa: N815
+    thumbSizeChanged = Signal(int)  # noqa: N815
 
     def __init__(self, parent=None) -> None:  # noqa: ANN001
         super().__init__(parent)
@@ -353,16 +425,19 @@ class AssetGrid(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        bar = QHBoxLayout()
+        bar = FlowLayout()  # row 1: the status chips with their counts (wraps when narrow)
         self.chips: dict[str, QPushButton] = {}
+        self._chip_labels: dict[str, str] = {}
         for name, label, statuses in CHIPS:
             chip = QPushButton(self.tr(label))
             chip.setObjectName(name)
             chip.setCheckable(True)
             chip.setAutoExclusive(True)
+            chip.setToolTip(self.tr("Show only the assets with this status"))
             chip.clicked.connect(lambda _=False, s=statuses: self._show_statuses(s))
             bar.addWidget(chip)
             self.chips[name] = chip
+            self._chip_labels[name] = label
         changed = QPushButton(self.tr("Changed in update"))
         changed.setObjectName(CHANGED_CHIP)
         changed.setCheckable(True)
@@ -372,28 +447,147 @@ class AssetGrid(QWidget):
         bar.addWidget(changed)
         self.chips[CHANGED_CHIP] = changed
         self.changed_ids: set[str] = set()
+        self.confirm_auto_button = QPushButton(self.tr("Confirm all auto-detected"))
+        self.confirm_auto_button.setObjectName("confirmAutoButton")
+        self.confirm_auto_button.setToolTip(
+            self.tr("Mark every auto-detected asset as confirmed (one undo step)")
+        )
+        self.confirm_auto_button.setVisible(False)
+        self.confirm_auto_button.clicked.connect(self.confirmAutoRequested)
+        bar.addWidget(self.confirm_auto_button)
+        self.help_button = QPushButton("?")
+        self.help_button.setObjectName("shortcutsButton")
+        self.help_button.setFixedWidth(28)
+        self.help_button.setToolTip(self.tr("Keyboard shortcuts of this page"))
+        self.help_button.clicked.connect(self.shortcutsRequested)
+        bar.addWidget(self.help_button)
+        layout.addLayout(bar)
+        bar2 = QHBoxLayout()  # row 2: filters, search and the thumbnail size
         self.role_combo = QComboBox()
         self.role_combo.setObjectName("roleFilter")
+        self.role_combo.setToolTip(self.tr("Show only assets with this role"))
         self.pack_combo = QComboBox()
         self.pack_combo.setObjectName("packFilter")
+        self.pack_combo.setToolTip(self.tr("Show only the assets of one pack"))
         self.search = QLineEdit()
         self.search.setObjectName("searchFilter")
-        self.search.setPlaceholderText(self.tr("Search path…"))
+        self.search.setPlaceholderText(self.tr("Search by name or folder"))
         self.search.setClearButtonEnabled(True)
-        bar.addWidget(self.role_combo)
-        bar.addWidget(self.pack_combo)
-        bar.addWidget(self.search, 1)
-        layout.addLayout(bar)
+        self.search.setMinimumWidth(160)
+        self.thumb_slider = QSlider(Qt.Orientation.Horizontal)
+        self.thumb_slider.setObjectName("thumbSlider")
+        self.thumb_slider.setRange(0, len(THUMB_SIZES) - 1)
+        self.thumb_slider.setFixedWidth(110)
+        self.thumb_slider.setToolTip(self.tr("Thumbnail size"))
+        bar2.addWidget(self.role_combo)
+        bar2.addWidget(self.pack_combo)
+        bar2.addWidget(self.search, 1)
+        bar2.addWidget(QLabel(self.tr("Size")))
+        bar2.addWidget(self.thumb_slider)
+        layout.addLayout(bar2)
         layout.addWidget(self.view, 1)
+        self.thumb_slider.setValue(THUMB_SIZES.index(THUMB))
+        self.thumb_slider.valueChanged.connect(
+            lambda i: self.set_thumb_size(THUMB_SIZES[i], from_slider=True)
+        )
+        self.model.modelReset.connect(self._update_counts)
+        self.model.dataChanged.connect(self._on_model_data_changed)
 
         self.chips["chipAttention"].setChecked(True)
         self.proxy.set_statuses(set(NEEDS_ATTENTION))
+        self.chips["chipAuto"].toggled.connect(self.confirm_auto_button.setVisible)
         self.role_combo.currentIndexChanged.connect(self._on_role)
         self.pack_combo.currentIndexChanged.connect(self._on_pack)
         self.search.textChanged.connect(self.proxy.set_text)
         self.view.selectionModel().selectionChanged.connect(
             lambda *_: self.selectionChanged.emit(self.selected_ids())
         )
+
+    # ------------------------------------------------------------------ counts and size
+
+    def _on_model_data_changed(self, _top, _bottom, roles=()) -> None:  # noqa: ANN001
+        if roles and list(roles) == [Qt.ItemDataRole.DecorationRole]:
+            return  # a thumbnail arrived: the statuses are the same
+        self._update_counts()
+
+    def _update_counts(self) -> None:
+        """ "Needs attention 12": every chip shows how many assets it holds."""
+        counts = self.model.status_counts()
+        total = sum(counts.values())
+        attention = sum(n for s, n in counts.items() if s in NEEDS_ATTENTION)
+        numbers = {
+            "chipAttention": attention,
+            "chipAuto": counts.get("AUTO_DETECTED", 0),
+            "chipConfirmed": counts.get("CONFIRMED", 0),
+            "chipUnused": counts.get("UNUSED", 0),
+            "chipAll": total,
+        }
+        for name, n in numbers.items():
+            self.chips[name].setText(f"{self.tr(self._chip_labels[name])} {n}")
+
+    def set_thumb_size(self, size: int, from_slider: bool = False) -> None:
+        if size not in THUMB_SIZES:
+            return
+        self.model.set_thumb_size(size)
+        self.view.set_thumb_size(size)
+        index = THUMB_SIZES.index(size)
+        if not from_slider and self.thumb_slider.value() != index:
+            self.thumb_slider.blockSignals(True)
+            self.thumb_slider.setValue(index)
+            self.thumb_slider.blockSignals(False)
+        self.thumbSizeChanged.emit(size)
+
+    # ------------------------------------------------------------------ the review queue
+
+    def attention_ids(self) -> list[str]:
+        """The assets that need attention in the order the grid shows them (whatever the chip)."""
+        out = []
+        for r in range(self.proxy.rowCount()):
+            index = self.proxy.index(r, 0)
+            if index.data(StatusRole) in NEEDS_ATTENTION:
+                out.append(index.data(AssetIdRole))
+        return out
+
+    def select_next_attention(self, forward: bool = True) -> str | None:
+        """Selects the next (or previous) asset that needs attention, wrapping around; returns
+        its id, or None when nothing needs attention here."""
+        queue = self.attention_ids()
+        if not queue:
+            return None
+        current = self.selected_ids()
+        order = self.visible_ids()
+        position = order.index(current[0]) if current and current[0] in order else -1
+        ranked = {asset_id: order.index(asset_id) for asset_id in queue}
+        if forward:
+            later = [i for i in queue if ranked[i] > position]
+            target = later[0] if later else queue[0]
+        else:
+            earlier = [i for i in queue if ranked[i] < position]
+            target = earlier[-1] if earlier else queue[-1]
+        self.select_ids([target])
+        self.scroll_to(target)
+        return target
+
+    def scroll_to(self, asset_id: str) -> None:
+        for r in range(self.proxy.rowCount()):
+            index = self.proxy.index(r, 0)
+            if index.data(AssetIdRole) == asset_id:
+                self.view.scrollTo(index)
+                return
+
+    def advance_after(self, before_order: list[str], edited_id: str) -> str | None:
+        """After one asset was confirmed or excluded: select the next one that needs attention
+        after it in the order the grid had before the edit."""
+        queue = set(self.attention_ids())
+        if not queue:
+            return None
+        start = before_order.index(edited_id) if edited_id in before_order else -1
+        for asset_id in [*before_order[start + 1 :], *before_order[: max(start, 0)]]:
+            if asset_id in queue:
+                self.select_ids([asset_id])
+                self.scroll_to(asset_id)
+                return asset_id
+        return None
 
     def _show_statuses(self, statuses: set[str] | None) -> None:
         self.proxy.set_only_ids(None)
@@ -428,7 +622,11 @@ class AssetGrid(QWidget):
             combo.clear()
             combo.addItem(label, None)
             for item in items:
-                combo.addItem(item, item)
+                combo.addItem(labels.role_label(item) if combo is self.role_combo else item, item)
+                if combo is self.role_combo:
+                    combo.setItemData(
+                        combo.count() - 1, labels.role_help(item), Qt.ItemDataRole.ToolTipRole
+                    )
             combo.blockSignals(False)
         self.proxy.set_roles(None)
         self.proxy.set_pack(None)

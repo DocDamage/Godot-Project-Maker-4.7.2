@@ -38,23 +38,62 @@ class ThumbRequest:
     grid: dict[str, Any] | None
     frame: list[int] | None
     region: list[int] | None
+    size: int = 96  # THUMB_SIZE; the box the picture is fitted into
+    cells: int = TILE_PREVIEW_CELLS  # tile sheets: how many cells across and down are shown
+    skip_empty: bool = False  # tile sheets: start at the first cell that has something in it
 
 
-def variant_tag(usage: str, grid: Any, frame: Any, region: Any) -> str:
-    text = json.dumps([usage, grid, frame, region], sort_keys=True, separators=(",", ":"))
+def variant_tag(
+    usage: str,
+    grid: Any,
+    frame: Any,
+    region: Any,
+    size: int = THUMB_SIZE,
+    cells: int = TILE_PREVIEW_CELLS,
+    skip_empty: bool = False,
+) -> str:
+    payload: list[Any] = [usage, grid, frame, region]
+    if size != THUMB_SIZE or cells != TILE_PREVIEW_CELLS or skip_empty:
+        payload.append([size, cells, skip_empty])  # the defaults keep the keys already on disk
+    text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
 
 
-def request_for(sha256: str, path: Path, facets: dict[str, Any]) -> ThumbRequest:
+def request_for(
+    sha256: str,
+    path: Path,
+    facets: dict[str, Any],
+    size: int = THUMB_SIZE,
+    cells: int = TILE_PREVIEW_CELLS,
+    skip_empty: bool = False,
+) -> ThumbRequest:
     usage = str(facets.get("usage", ""))
     grid = facets.get("grid")
     frame = facets.get("frame")
     region = facets.get("region")
-    key = f"{sha256}_{variant_tag(usage, grid, frame, region)}"
-    return ThumbRequest(key, str(path), usage, grid, frame, region)
+    key = f"{sha256}_{variant_tag(usage, grid, frame, region, size, cells, skip_empty)}"
+    return ThumbRequest(key, str(path), usage, grid, frame, region, size, cells, skip_empty)
 
 
-def _crop_box(req: ThumbRequest, width: int, height: int) -> tuple[int, int, int, int]:
+def first_filled_cell(image: Image.Image, grid: dict[str, Any]) -> tuple[int, int]:
+    """(column, row) of the first cell, row by row, that has a visible pixel; (0, 0) when none."""
+    cw, ch = grid["cell"]
+    mx, my = grid.get("margin", [0, 0])
+    sx, sy = grid.get("separation", [0, 0])
+    alpha = image.getchannel("A")
+    cols = max(1, (image.width - mx + sx) // (cw + sx))
+    rows = max(1, (image.height - my + sy) // (ch + sy))
+    for row in range(rows):
+        for col in range(cols):
+            x, y = mx + col * (cw + sx), my + row * (ch + sy)
+            if alpha.crop((x, y, x + cw, y + ch)).getbbox() is not None:
+                return col, row
+    return 0, 0
+
+
+def _crop_box(
+    req: ThumbRequest, width: int, height: int, start_cell: tuple[int, int] = (0, 0)
+) -> tuple[int, int, int, int]:
     x0 = y0 = 0
     x1, y1 = width, height
     if req.region and len(req.region) == 4:
@@ -64,7 +103,9 @@ def _crop_box(req: ThumbRequest, width: int, height: int) -> tuple[int, int, int
         cw, ch = req.grid["cell"]
         mx, my = req.grid.get("margin", [0, 0])
         sx, sy = req.grid.get("separation", [0, 0])
-        n = TILE_PREVIEW_CELLS
+        n = req.cells
+        x0 += start_cell[0] * (cw + sx)
+        y0 += start_cell[1] * (ch + sy)
         x1 = min(x1, x0 + mx + n * cw + (n - 1) * sx)
         y1 = min(y1, y0 + my + n * ch + (n - 1) * sy)
         x0, y0 = x0 + mx, y0 + my
@@ -79,7 +120,10 @@ def render_thumbnail(req: ThumbRequest, size: int = THUMB_SIZE) -> bytes:
     everything else the whole image, fitted to ``size`` with nearest-neighbor sampling."""
     with Image.open(req.path) as opened:
         rgba = opened.convert("RGBA")
-        cropped = rgba.crop(_crop_box(req, *rgba.size))
+        start = (0, 0)
+        if req.skip_empty and req.usage == "tiles" and req.grid:
+            start = first_filled_cell(rgba, req.grid)
+        cropped = rgba.crop(_crop_box(req, *rgba.size, start))
     w, h = cropped.size
     scale = min(size / w, size / h)
     if scale >= 1:
@@ -101,7 +145,7 @@ def load_or_render(req: ThumbRequest) -> bytes | None:
     try:
         if cached.exists():
             return cached.read_bytes()
-        data = render_thumbnail(req)
+        data = render_thumbnail(req, req.size)
         cached.parent.mkdir(parents=True, exist_ok=True)
         tmp = cached.with_suffix(".tmp")
         tmp.write_bytes(data)

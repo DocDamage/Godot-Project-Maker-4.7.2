@@ -210,6 +210,11 @@ def make_bundle(
         logs = list((meta / "logs").glob("*.log")) if (meta / "logs").is_dir() else []
         for path in sorted(logs) + [Path(p) for p in (extra_logs or []) if Path(p).is_file()]:
             add_text(f"logs/{path.name}", redact_log(path, redact))
+        from rpggen.core import app_settings
+
+        saved = app_settings.settings_path()
+        if saved.is_file():
+            add_text("settings.json", redact(saved.read_text(encoding="utf-8", errors="replace")))
         manifest = assets_manifest(meta / "asset_catalog.json", folder)
         add_text("assets_manifest.json", _dumps(manifest))
     return out_zip

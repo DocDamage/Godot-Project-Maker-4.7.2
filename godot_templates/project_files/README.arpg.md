@@ -6,20 +6,23 @@ Fighting happens on the map, in real time.
 | Action | Keyboard | Gamepad |
 |--------|----------|---------|
 | Attack | J, left mouse button | X (square) |
+| Heavy attack | K, right mouse button | Y (triangle) |
 | Dodge | Shift | B (circle) |
 | Quick item | Q | left shoulder button |
 
-(The bindings are in the Project Settings under **Input Map**; `secondary_attack` is bound but
-not used yet.)
+(The bindings are in the Project Settings under **Input Map**.)
 
 - **Attack** swings in the direction you face. The hit area is switched on only on the attack
   frames, so a swing that has finished does not hurt anything. Pressing attack again near the end
   of a swing queues the next one.
+- **Heavy attack** (`secondary_attack`) is a slower swing that deals 1.75 times the damage and
+  pushes the enemy back 1.5 times as far. It cannot be chained into another attack, so use it when
+  the enemy is open.
 - **Dodge** is a short dash in the facing direction (about 44 pixels) during which you cannot be
   hurt. It needs 0.6 seconds to recharge.
 - Being hit gives about 0.6 seconds of invulnerability and a little knockback. At 0 HP you fall;
-  after a moment the game returns to your newest save, or, without one, you wake up at the map's
-  default spawn with full health.
+  after a moment the game-over screen offers to continue from your newest save, to try the map
+  again with full health, or to quit to the title (see "Saving, autosave and game over" above).
 - The **HUD** (top left) shows your HP, experience, level, gold and the **quick item**. The first
   consumable you own is the quick item until you pick another one: open the inventory, select an
   item and press **Set quick item**.

@@ -18,6 +18,7 @@ const MENU_SCENES := [
 	"res://generated/scenes/ui/status_menu.tscn",
 	"res://generated/scenes/ui/save_load_menu.tscn",
 	"res://generated/scenes/ui/settings_menu.tscn",
+	"res://generated/scenes/ui/game_over.tscn",
 ]
 const FOCUS_SETTLE_FRAMES := 4
 const FOCUS_MAX_STEPS := 80
@@ -49,6 +50,7 @@ func _initialize() -> void:
 	_check_ysort_origins()
 	_check_ysort_parents()
 	_check_content()
+	_check_sound_bank()
 
 func _process(_delta: float) -> bool:
 	if _finished or _ctx == null:
@@ -284,6 +286,26 @@ func _check_content() -> void:
 	for f in findings:
 		_fail(String(f["code"]), f["detail"], String(f["file"]))
 	_item("content_checks", "res://game", findings.is_empty())
+
+# ---------------------------------------------------------------- sound slots (VAL-020)
+
+const SOUND_BANK_PATH := "res://rpggen/sound_bank.json"
+
+## Every slot of the sound bank must point at a stream that loads.
+func _check_sound_bank() -> void:
+	if not FileAccess.file_exists(SOUND_BANK_PATH):
+		return
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SOUND_BANK_PATH))
+	if not parsed is Dictionary:
+		_fail("VAL-020", {"slot": "(file)", "path": SOUND_BANK_PATH}, SOUND_BANK_PATH)
+		return
+	var ok := true
+	for slot in parsed.keys():
+		var path := String(parsed[slot])
+		if not ResourceLoader.exists(path) or not load(path) is AudioStream:
+			ok = false
+			_fail("VAL-020", {"slot": String(slot), "path": path}, path)
+	_item("sound_bank", SOUND_BANK_PATH, ok)
 
 # ---------------------------------------------------------------- Y-sort (T4.07)
 # Headless mode renders nothing, so Y-sort is checked logically: a visual's bottom edge sits on the

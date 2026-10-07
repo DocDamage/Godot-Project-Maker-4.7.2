@@ -7,7 +7,7 @@
 | Code | Severity | Message | Recommended fix |
 |------|----------|---------|-----------------|
 | ENV-001 | error | Godot executable not found at {path}. | Select the Godot 4.7.2 executable (the `_console.exe` build if available). |
-| ENV-002 | error | Godot version {found} is not supported (need 4.7.x). | Install Godot 4.7.2 and select it. |
+| ENV-002 | error | Godot {found} is not supported: rpggen 1.0 builds projects for Godot 4.7. | Press Download Godot 4.7.2, or select a 4.7.x executable. Your other Godot versions are not touched. |
 | ENV-003 | warning | Godot {found} is not the validated version 4.7.2. | Use 4.7.2 for guaranteed results. |
 | ENV-004 | error | Output folder {path} is not writable. | Choose a folder you can write to. |
 | ENV-005 | error | Not enough disk space: need {need_mb} MB, have {have_mb} MB. | Free disk space or choose another drive. |
@@ -16,6 +16,8 @@
 | ENV-008 | error | Output folder is inside the asset pack folder. | Choose an output folder outside the pack. |
 | ENV-009 | error | Output folder is not empty and is not an rpggen project. | Choose an empty folder or an existing generated project. |
 | ENV-010 | info | Export templates for 4.7.2 not installed; export check skipped. | Install export templates from the Godot editor to enable the check. |
+| ENV-011 | error | Could not download Godot: {reason}. | Check your connection, or install Godot 4.7.2 from godotengine.org and select it. |
+| ENV-012 | info | Could not check for updates: {reason}. | Check your connection, or look at the releases page yourself. |
 
 ## Archives (ARCH)
 
@@ -46,6 +48,8 @@
 | ASSET-023 | info | No chest asset; item icon {asset} stands in for the starter chest. | Assign a chest asset in Mapping. |
 | ASSET-024 | info | Font {asset} was not used: its pack has no license file. | Add the pack's license file, or choose another font. |
 | ASSET-025 | info | No enemy asset; the player's sprite stands in for the starter enemy. | Assign an enemy asset in Mapping. |
+| ASSET-026 | info | No music was found in the packs: the game will be silent. | Add a music track to an asset pack, or assign one in Mapping. |
+| ASSET-027 | info | No sound effects were found in the packs. | Add sound effects to an asset pack, or assign them in Mapping. |
 
 ## Adapters (ADAPT)
 
@@ -117,6 +121,7 @@
 | VAL-017 | error | Door {node} in {file} targets unknown spawn {spawn} in {target}. | Add the spawn point or fix target_spawn. |
 | VAL-018 | warning | Dialogue {file} line {n} mixes and/or; evaluation is left-to-right. | Split the condition or reorder it. |
 | VAL-019 | warning | Dialogue {file} references unknown item {item}. | Create the item or fix the id. |
+| VAL-020 | error | Sound slot {slot} points at {path}, which does not load. | Assign another sound in Mapping, or restore the file. |
 
 ## Smoke test (SMOKE)
 

@@ -50,6 +50,28 @@ def pack_uncompressed_size(source: Path) -> int:
         return 0
 
 
+def pack_stats(source: Path) -> tuple[str, int | None, int | None]:
+    """(kind, file count, size in bytes) of a pack; the counts are None when they cannot be
+    known without unpacking (7z and rar archives)."""
+    source = Path(source)
+    try:
+        if source.is_dir():
+            count = size = 0
+            for p in source.rglob("*"):
+                if p.is_file():
+                    count += 1
+                    size += p.stat().st_size
+            return "folder", count, size
+        kind = source.suffix.lower().lstrip(".") or "file"
+        if kind == "zip":
+            with zipfile.ZipFile(source) as zf:
+                files = [i for i in zf.infolist() if not i.is_dir()]
+                return "zip", len(files), sum(i.file_size for i in files)
+        return kind, None, source.stat().st_size
+    except (OSError, zipfile.BadZipFile):
+        return source.suffix.lower().lstrip(".") or "?", None, None
+
+
 def check_pack(source: Path) -> list[Issue]:
     """Quick readability check: a folder exists; a zip opens and lists its entries."""
     issues = IssueList()

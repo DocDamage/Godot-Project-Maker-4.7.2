@@ -184,8 +184,121 @@ def test_window_next_enabled_when_page_valid(qtbot, fake_godot, tmp_path) -> Non
     qtbot.addWidget(win)
     win.show()
     nxt = win.findChild(QPushButton, "nextButton")
-    assert not nxt.isEnabled()
+    assert nxt.isEnabled()  # empty fields do not disable Next: pressing it says what is missing
     page = win.pages[0]
     page.add_sources([SYNTH / "basic16"])
     page.target_edit.setText(str(tmp_path / "game"))
-    qtbot.waitUntil(nxt.isEnabled, timeout=10000)
+    qtbot.waitUntil(lambda: nxt.isEnabled() and not win.issues, timeout=10000)
+
+
+def test_download_button_shows_for_missing_and_unsupported_godot_only(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    exe = tmp_path / "g.exe"
+    exe.write_text("x")
+    monkeypatch.setattr(godot, "auto_find_godot", lambda: [exe])
+    versions = {"v": (4, 8, 0, "stable")}
+    monkeypatch.setattr(godot, "detect_version", lambda p: versions["v"])
+    page, _state = _page(qtbot)
+    page.show()
+    page.add_sources([SYNTH / "basic16"])
+    page.target_edit.setText(str(tmp_path / "o"))
+    _settled(qtbot, page)
+    assert page.download_godot_button.isVisible()  # a fake 4.8
+    versions["v"] = (4, 7, 1, "stable")
+    page.godot_combo.setCurrentText(str(exe) + " ")  # same exe, forces a new check
+    page._start_check()
+    qtbot.waitUntil(lambda: not page.download_godot_button.isVisible(), timeout=10000)
+    page.godot_combo.setCurrentText("")
+    assert page.download_godot_button.isVisible()  # nothing selected
+
+
+def test_download_godot_selects_the_downloaded_copy(qtbot, tmp_path, monkeypatch) -> None:
+    from rpggen.core import godot_fetch
+
+    page, _state = _page(qtbot)
+    got = tmp_path / "Godot_console.exe"
+    got.write_text("x")
+    monkeypatch.setattr(godot_fetch, "fetch", lambda *a, **k: got)
+    page.confirm_godot_download = lambda dest: False  # type: ignore[method-assign]
+    assert page.download_godot() is None
+    page.confirm_godot_download = lambda dest: True  # type: ignore[method-assign]
+    assert page.download_godot() == got
+    assert page.godot_combo.currentText() == str(got)
+
+
+def _errors(page: ProjectPage) -> list[str]:
+    return [
+        label.objectName()
+        for label in page.findChildren(QLabel)
+        if label.property("state") == "error"
+    ]
+
+
+def test_a_fresh_page_shows_hints_not_errors(qtbot, fake_godot) -> None:
+    page, _state = _page(qtbot)
+    assert _errors(page) == []
+    assert page.packs_status.property("state") == "hint"
+    assert "Where the Godot project will be created" in _text(page, "targetStatus")
+
+
+def test_next_on_an_empty_page_reveals_the_three_errors_and_focuses_the_packs(
+    qtbot, fake_godot, monkeypatch
+) -> None:
+    monkeypatch.setattr(ProjectPage, "documents_dir", lambda self: Path("C:/nowhere"))
+    win = MainWindow(pages=default_pages())
+    qtbot.addWidget(win)
+    win.show()
+    page = win.pages[0]
+    assert win.problem_label.isHidden()  # no duplicate of the page's own lines
+    win.next_button.click()
+    assert win.current_index == 0
+    assert set(_errors(page)) >= {"packsStatus", "targetStatus", "nameStatus"}
+    assert page.pack_list.hasFocus() or page.pack_list.isAncestorOf(win.focusWidget() or page)
+    assert win.problem_label.isHidden()
+
+
+def test_the_name_and_folder_are_suggested_from_the_first_pack_until_edited(
+    qtbot, fake_godot, tmp_path
+) -> None:
+    page, _state = _page(qtbot)
+    page.documents_dir = lambda: tmp_path / "Documents"  # type: ignore[method-assign]
+    page.add_sources([SYNTH / "basic16"])
+    assert page.name_edit.text() == "Basic16"
+    assert page.target() == tmp_path / "Documents" / "rpggen" / "Basic16"
+    page.name_edit.setText("My Game")
+    page.name_edit.textEdited.emit("My Game")  # the user typed
+    page.add_sources([SYNTH / "gutter32"])
+    assert page.name_edit.text() == "My Game"  # no longer suggested
+    page.target_edit.setText(str(tmp_path / "mine"))
+    page.target_edit.textEdited.emit("x")
+    page.remove_selected()
+    assert page.target() == tmp_path / "mine"
+
+
+def test_prefill_name_is_title_cased_and_safe() -> None:
+    from rpggen.gui.pages.project_page import format_size, prefill_name
+
+    assert prefill_name(Path("C:/packs/fantasy_tiles-v2")) == "Fantasy Tiles V2"
+    assert prefill_name(Path("C:/packs/a<b>c")) == "Abc"
+    assert prefill_name(Path("C:/packs/___")) == "My Game"
+    assert len(prefill_name(Path("x" * 200))) <= 64
+    assert format_size(1536) == "1.5 KB" and format_size(10) == "10 B"
+
+
+def test_pack_rows_show_kind_count_and_size_once_known(qtbot, fake_godot, tmp_path) -> None:
+    page, _state = _page(qtbot)
+    page.add_sources([SYNTH / "basic16"])
+    _settled(qtbot, page)
+    text = page.pack_list.item(0).text()
+    assert "folder" in text and "files" in text
+    broken = tmp_path / "broken.zip"
+    broken.write_bytes(b"not a zip")
+    page.add_sources([broken])
+    qtbot.waitUntil(lambda: page.pack_list.item(1).text().startswith("⚠"), timeout=10000)
+
+
+def test_the_empty_pack_list_says_what_to_drop(qtbot) -> None:
+    page = ProjectPage()
+    qtbot.addWidget(page)
+    assert "Drop asset packs here" in page.pack_list.EMPTY_TEXT

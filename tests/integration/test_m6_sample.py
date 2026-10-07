@@ -20,6 +20,7 @@ SAMPLE = REPO / "sample_pack"
 BASIC16 = REPO / "test_packs" / "synthetic" / "basic16"
 M6_STEPS = [
     "title_new_game",
+    "map_music",
     "boot",
     "player_exists",
     "player_moves",
@@ -29,13 +30,16 @@ M6_STEPS = [
     "enter_building",
     "exit_building",
     "decor_blocks",
+    "walk_to_field",
+    "return_from_field",
+    "autosave",
     "save_slot_1",
     "mutate_then_load",
     "pause_menu",
 ]
 UI_SCENES = [
     "dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
-    "save_load_menu", "settings_menu", "notification", "hud_basic",
+    "save_load_menu", "settings_menu", "notification", "hud_basic", "game_over",
 ]  # fmt: skip
 
 
@@ -98,7 +102,7 @@ def test_no_menu_has_focus_problems(sample: Path) -> None:
     results = jsonio.read(sample / "rpggen/results/validation_results.json")
     assert "VAL-011" not in [i["code"] for i in results["issues"]]
     walked = {i["target"] for i in results["items"] if i["check"] == "ui_focus"}
-    assert len(walked) == 6, walked
+    assert len(walked) == 7, walked
 
 
 def test_generated_files_exist(sample: Path) -> None:

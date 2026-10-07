@@ -111,35 +111,9 @@ static func find_entity(entity_id: String) -> Node:
 
 ## The save slot written last, or 0 when there is none.
 static func latest_save_slot() -> int:
-	var save := RpgUtil.autoload(&"SaveManager")
-	if save == null:
-		return 0
-	var best := 0
-	var best_time := ""
-	for slot in range(1, int(save.get("SLOTS")) + 1):
-		if not save.has_save(slot):
-			continue
-		var saved_at := str(save.header(slot).get("saved_at", ""))
-		if best == 0 or saved_at >= best_time:
-			best = slot
-			best_time = saved_at
-	return best
+	return RpgDefeatPolicy.latest_save_slot()
 
-## Defeat policy: the player is never left at 0 HP. With a save, the game goes back to the newest
-## one (HP as saved, at least 1); without one the player goes to the map's default spawn with
-## full HP.
+## The defeat policy is shared with the action-RPG archetype (RpgDefeatPolicy): the game-over
+## screen, or at once the newest save / the start of the map when nobody can press a button.
 func _apply_defeat() -> void:
-	var state := RpgUtil.state()
-	var router := RpgUtil.router()
-	if state == null or router == null:
-		return
-	state.player_stats.hp = maxi(1, state.player_stats.hp)
-	var slot := latest_save_slot()
-	if slot > 0 and RpgUtil.autoload(&"SaveManager").load(slot):
-		while router.is_busy():
-			await get_tree().process_frame
-		return
-	state.player_stats.hp = state.player_stats.max_hp
-	var map := router.get("current_map") as RpgMapRoot
-	if map != null:
-		await router.go_to(map.scene_file_path, &"default")
+	await RpgDefeatPolicy.show_game_over()

@@ -56,7 +56,7 @@ def test_packaging_files_exist_and_reference_each_other() -> None:
 
 def test_third_party_notices_name_every_runtime_dependency() -> None:
     notices = _read("THIRD_PARTY_NOTICES.md")
-    for name in ("PySide6", "Pillow", "NumPy", "py7zr", "jsonschema", "mutagen", "LGPL"):
+    for name in ("PySide6", "Pillow", "NumPy", "py7zr", "jsonschema", "LGPL"):
         assert name in notices
     deps = re.search(r"dependencies = \[(.*?)\]", _read("pyproject.toml"), re.S).group(1)
     for dep in re.findall(r'"([A-Za-z0-9_.-]+)', deps):
@@ -81,9 +81,6 @@ def test_main_ci_runs_the_full_ubuntu_job() -> None:
 
 def test_architecture_doc_is_the_current_spec() -> None:
     assert _read("docs/architecture.md") == _read("docs/spec/ARCHITECTURE.md")
-    assert _read("docs/spec/ARCHITECTURE.md") == _read(
-        "Implementation Plan and Specs/ARCHITECTURE.md"
-    )
 
 
 def test_documentation_set_exists_and_links_resolve() -> None:
@@ -99,3 +96,58 @@ def test_documentation_set_exists_and_links_resolve() -> None:
         base = (REPO / rel).parent
         for target in link.findall(_read(rel)):
             assert (base / target).exists(), f"{rel}: broken link {target}"
+
+
+def test_repository_urls_are_consistent() -> None:
+    import subprocess
+
+    assert rpggen.REPO_URL.endswith("/Godot-Project-Maker-4.7.2")
+    assert f"AppPublisherURL={rpggen.REPO_URL}\n" in _read("packaging/installer.iss")
+    tracked = subprocess.run(
+        ["git", "ls-files"], cwd=REPO, capture_output=True, text=True, check=True
+    ).stdout.splitlines()
+    for rel in tracked:
+        if rel.startswith("docs/spec/"):
+            continue
+        path = REPO / rel
+        if path.suffix.lower() not in {".md", ".py", ".iss", ".yml", ".yaml", ".toml", ".json", ".txt"}:
+            continue
+        if rel == "tests/unit/test_release.py" or not path.is_file():
+            continue
+        assert "github.com/rpggen/" not in path.read_text(encoding="utf-8", errors="ignore"), rel
+
+
+def test_notices_carry_no_gpl_dependency_outside_the_bootloader() -> None:
+    notices = _read("THIRD_PARTY_NOTICES.md")
+    assert "mutagen" not in notices.lower()
+    for line in notices.splitlines():
+        if "GPL-2.0-or-later" in line:
+            assert "LGPL" in line, line  # py7zr is LGPL-2.1-or-later; no plain GPL row remains
+
+
+def test_the_spec_exists_once_and_dev_docs_are_not_bundled() -> None:
+    assert not (REPO / "Implementation Plan and Specs").exists()
+    assert (REPO / "docs/dev/implementation_notes.md").is_file()
+    assert not (REPO / "IMPLEMENTATION_NOTES.md").exists()
+    spec = _read("packaging/rpggen.spec")
+    assert '"spec"' in spec and '"dev"' in spec
+    ignore = _read(".gitignore")
+    assert ".mypy_cache/" in ignore and "validation_runs/" in ignore
+
+
+def test_the_screenshots_match_the_files_the_guide_uses() -> None:
+    """Every picture the guide shows exists, and no picture in docs/images is left unused."""
+    shown = set(re.findall(r"\]\(images/([\w.-]+\.png)\)", _read("docs/user_guide.md")))
+    on_disk = {p.name for p in (REPO / "docs/images").glob("*.png")}
+    readme_uses = set(re.findall(r"docs/images/([\w.-]+\.png)", _read("README.md")))
+    assert shown <= on_disk, sorted(shown - on_disk)
+    assert on_disk <= shown | readme_uses, sorted(on_disk - shown - readme_uses)
+    # the tool that renders them knows every one the guide shows
+    tool = _read("tools/make_doc_screenshots.py")
+    for name in shown:
+        stem = name.removesuffix(".png")
+        assert stem in tool or stem.removeprefix("wizard_") in tool, name
+
+
+def test_the_application_changelog_has_the_current_version() -> None:
+    assert f"## {rpggen.__version__}" in _read("CHANGELOG.md")

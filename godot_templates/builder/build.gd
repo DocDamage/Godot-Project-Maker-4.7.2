@@ -28,6 +28,7 @@ const RECIPE_ORDER := [
 	"audio_bus_recipe",
 	"boot_recipe",
 	"starter_map_recipe",
+	"second_map_recipe",
 	"translations_recipe",
 ]
 

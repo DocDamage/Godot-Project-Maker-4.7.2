@@ -45,8 +45,9 @@ def test_generate_basic16(godot_exe: Path, tmp_path: Path) -> None:
     assert not (target / ".rpggen_failed").exists()
     smoke = jsonio.read(target / "rpggen/results/smoke_results.json")
     assert smoke["ok"] is True
-    assert [i["name"] for i in smoke["items"]][:13] == [
+    assert [i["name"] for i in smoke["items"]][:17] == [
         "title_new_game",
+        "map_music",
         "boot",
         "player_exists",
         "player_moves",
@@ -56,6 +57,9 @@ def test_generate_basic16(godot_exe: Path, tmp_path: Path) -> None:
         "enter_building",
         "exit_building",
         "decor_blocks",
+        "walk_to_field",
+        "return_from_field",
+        "autosave",
         "save_slot_1",
         "mutate_then_load",
         "pause_menu",

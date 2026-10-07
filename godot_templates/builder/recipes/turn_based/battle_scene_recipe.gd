@@ -47,8 +47,12 @@ func _background(ctx) -> Dictionary:
 			return a
 	return {}
 
-## The first music asset whose name contains "battle", or "".
+## The music of the battle: the sound slot music_battle, else the first music asset whose name
+## contains "battle", or "".
 func _music(ctx) -> String:
+	var sounds: Dictionary = ctx.config.get("sounds", {})
+	if sounds.has("music_battle"):
+		return String(sounds["music_battle"])  # "" = the user cleared it
 	for a in ctx.catalog.assets_by_role("AUDIO_MUSIC"):
 		if String(a["id"]).to_lower().contains("battle") or String(a["path"]).get_file().to_lower().contains("battle"):
 			return String(a["id"])

@@ -12,7 +12,6 @@ dependencies = [
   "jsonschema>=4.21",
   "py7zr>=0.21",
   "PySide6>=6.7",
-  "mutagen>=1.47",
 ]
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.5", "mypy>=1.10", "types-jsonschema", "pyinstaller>=6.6"]
@@ -24,9 +23,13 @@ include = ["rpggen*"]
 rpggen = ["schema/*.json", "gui/*.qss"]
 [tool.ruff]
 line-length = 100
-extend-exclude = ["godot_templates", "docs/spec", "Implementation Plan and Specs", ".venv", "rpggen/errors_table.py"]
+extend-exclude = ["godot_templates", "docs/spec", ".venv", "rpggen/errors_table.py"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
+[[tool.mypy.overrides]]
+# a mixin whose methods run on the MainWindow it is mixed into
+module = "rpggen.gui.window_menus"
+disable_error_code = ["attr-defined", "call-overload", "arg-type"]
 [tool.pytest.ini_options]
 markers = ["integration: needs RPGGEN_GODOT", "slow: long-running"]
 testpaths = ["tests"]

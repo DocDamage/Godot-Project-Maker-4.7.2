@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QCloseEvent, QGuiApplication, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -18,10 +19,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpggen.core import app_settings
 from rpggen.errors import Issue, Severity
 from rpggen.gui import state as state_mod
-from rpggen.gui.pages.base import WizardPage, form_error
+from rpggen.gui.pages.base import EMPTY_CODE, WizardPage, form_error
 from rpggen.gui.pages.project_page import ProjectPage
+from rpggen.gui.pages.welcome_page import WelcomePage
+from rpggen.gui.window_menus import WindowMenus
 
 log = logging.getLogger(__name__)
 
@@ -70,16 +74,19 @@ def default_pages() -> list[WizardPage]:
     return pages
 
 
-class MainWindow(QMainWindow):
+class MainWindow(WindowMenus, QMainWindow):
     def __init__(
         self,
         state: state_mod.WizardState | None = None,
         pages: list[WizardPage] | None = None,
+        show_welcome: bool = False,
     ) -> None:
         super().__init__()
         self.setObjectName("mainWindow")
         self.setWindowTitle(self.tr("rpggen"))
         self.resize(1100, 720)
+        self.setMinimumSize(1000, 640)
+        self._restore_geometry()
         self.state = state or state_mod.WizardState()
         self.pages = pages if pages is not None else default_pages()
         self.visited: set[int] = set()
@@ -88,7 +95,13 @@ class MainWindow(QMainWindow):
 
         central = QWidget()
         central.setObjectName("central")
-        self.setCentralWidget(central)
+        self.root_stack = QStackedWidget()
+        self.root_stack.setObjectName("rootStack")
+        self.welcome = WelcomePage()
+        self.root_stack.addWidget(self.welcome)  # index 0
+        self.root_stack.addWidget(central)  # index 1: the wizard
+        self.root_stack.setCurrentIndex(1)
+        self.setCentralWidget(self.root_stack)
         outer = QVBoxLayout(central)
         body = QHBoxLayout()
         outer.addLayout(body, 1)
@@ -111,6 +124,13 @@ class MainWindow(QMainWindow):
             page.changed.connect(self.refresh)
             if isinstance(page, ProjectPage):
                 page.sampleReady.connect(lambda: self.continue_to(OPTIONS_INDEX))
+            if hasattr(page, "generateAnother"):
+                page.generateAnother.connect(self.new_project)  # type: ignore[attr-defined]
+                page.changeOptions.connect(self.change_options)  # type: ignore[attr-defined]
+                page.goToProject.connect(lambda: self.show_page(0))  # type: ignore[attr-defined]
+            focus_signal = getattr(page, "focus_next", None)
+            if focus_signal is not None:  # a page that is finished points at the Next button
+                focus_signal.connect(lambda: self.next_button.setFocus())  # type: ignore[has-type]
             self.stack.addWidget(page)
         body.addWidget(self.stack, 1)
 
@@ -134,9 +154,20 @@ class MainWindow(QMainWindow):
         self.back_button.clicked.connect(self.go_back)
         self.next_button.clicked.connect(self.go_next)
         self.cancel_button.clicked.connect(self.close)
+        self.next_button.setShortcut("Alt+N")
+        self.back_button.setShortcut("Alt+B")
+        self.next_button.setToolTip(self.tr("Go to the next page (Alt+N)"))
+        self.back_button.setToolTip(self.tr("Go back one page (Alt+B)"))
+        self.cancel_button.setToolTip(self.tr("Close rpggen"))
 
+        self._wire_welcome()
+        self._build_menus()
+        help_shortcut = QShortcut(QKeySequence(QKeySequence.StandardKey.HelpContents), self)
+        help_shortcut.activated.connect(self.show_help_here)
         if self.pages:
             self.show_page(0)
+        if show_welcome:
+            self.show_welcome_view()
 
     def open_target(self, target: Path) -> None:
         """Fill the project page's output folder (an existing project is regenerated)."""
@@ -161,6 +192,10 @@ class MainWindow(QMainWindow):
     def go_next(self) -> None:
         if not self.next_button.isEnabled() or self.current_index >= len(self.pages) - 1:
             return
+        if any(i.code == EMPTY_CODE for i in self.issues):
+            self.current_page.reveal_missing(self.state)  # say what is missing; do not leave
+            self.refresh()
+            return
         if self._leave_current():
             self.show_page(self.current_index + 1)
 
@@ -171,6 +206,13 @@ class MainWindow(QMainWindow):
             self.go_next()
             if self.current_index == before:
                 break
+
+    def change_options(self) -> None:
+        """Results > Change options and regenerate: back to Options on the project that exists
+        now, so the next run regenerates it safely."""
+        self.state.regenerating = True
+        self.state.run_result = None
+        self.show_page(OPTIONS_INDEX)
 
     def go_back(self) -> None:
         if self.current_index <= 0:
@@ -196,6 +238,41 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------ state of the controls
 
+    def _restore_geometry(self) -> None:
+        saved = app_settings.load().window
+        screens = [
+            (g.x(), g.y(), g.width(), g.height())
+            for g in (s.availableGeometry() for s in QGuiApplication.screens())
+        ]
+        fitted = app_settings.clamp_geometry(saved, screens, (1000, 640))
+        if fitted is None:
+            return
+        self.setGeometry(*fitted)
+        if saved.get("maximized"):
+            self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
+
+    def _save_geometry(self) -> None:
+        maximized = bool(self.windowState() & Qt.WindowState.WindowMaximized)
+        geometry = self.normalGeometry() if maximized else self.geometry()
+        settings = app_settings.load()
+        settings.window = {
+            "x": geometry.x(),
+            "y": geometry.y(),
+            "w": geometry.width(),
+            "h": geometry.height(),
+            "maximized": int(maximized),
+        }
+        app_settings.save(settings)
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt override
+        for page in self.pages:
+            request = getattr(page, "request_close", None)
+            if request is not None and not request():
+                event.ignore()
+                return
+        self._save_geometry()
+        super().closeEvent(event)
+
     def refresh(self) -> None:
         """Re-validate the current page and update the sidebar and buttons."""
         if self.current_index < 0:
@@ -203,6 +280,7 @@ class MainWindow(QMainWindow):
         page = self.current_page
         self.issues = page.validate(self.state)
         errors = [i for i in self.issues if i.severity is Severity.ERROR]
+        blocking = [i for i in errors if i.code != EMPTY_CODE]  # empty fields wait for the press
         for i in range(self.sidebar.count()):
             item = self.sidebar.item(i)
             enabled = i in self.visited
@@ -214,10 +292,13 @@ class MainWindow(QMainWindow):
         last = self.current_index >= len(self.pages) - 1
         self.back_button.setEnabled(self.current_index > 0 and page.allow_back)
         self.next_button.setVisible(not last)
-        self.next_button.setEnabled(not errors and page.allow_next)
+        self.next_button.setEnabled(not blocking and page.allow_next)
         label = page.next_label or (
             self.tr("Generate") if self.current_index == OPTIONS_INDEX else self.tr("Next")
         )
         self.next_button.setText(label)
-        self.problem_label.setText("\n".join(i.message for i in errors))
-        self.problem_label.setVisible(bool(errors))
+        inline = {"GUI-INPUT", EMPTY_CODE} if page.shows_inline_errors else set()
+        shown = [i for i in errors if i.code not in inline]
+        self.problem_label.setText("\n".join(i.message for i in shown))
+        self.problem_label.setVisible(bool(shown))
+        self._update_title()

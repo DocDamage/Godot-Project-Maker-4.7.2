@@ -186,3 +186,60 @@ def test_find_profile_online_reports_network_failure_and_no_match(qtbot) -> None
     assert not page.find_profile_online()
     assert len(messages) == 2
     assert page.online_action.text().startswith("Find profile online")
+
+
+def test_find_profile_online_keeps_the_event_loop_alive(qtbot) -> None:
+    import time
+
+    from PySide6.QtCore import QTimer
+
+    page = _page(qtbot, _state())
+    ticks: list[int] = []
+    timer = QTimer()
+    timer.timeout.connect(lambda: ticks.append(1))
+    timer.start(20)
+
+    def slow(inventories):
+        time.sleep(0.4)
+        return []
+
+    page.fetch_registry = slow  # type: ignore[method-assign]
+    page.show_error = lambda title, message: None  # type: ignore[method-assign]
+    assert not page.find_profile_online()
+    timer.stop()
+    assert len(ticks) >= 3  # the GUI thread kept processing events during the fetch
+
+
+def test_find_profile_online_cancel_leaves_the_catalog_alone(qtbot) -> None:
+    import time
+
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QProgressDialog, QPushButton
+
+    state = _state()
+    page = _page(qtbot, state)
+    before = [(a.id, catalog.effective(a)["role"]) for a in state.catalog.assets]
+
+    def slow(inventories):
+        time.sleep(0.5)
+        return []  # arrives after the cancel and must be ignored
+
+    page.fetch_registry = slow  # type: ignore[method-assign]
+    page.show_error = lambda title, message: (_ for _ in ()).throw(AssertionError(title))  # type: ignore[method-assign]
+
+    def cancel() -> None:
+        dialog = page.findChild(QProgressDialog, "registryProgress")
+        assert dialog is not None
+        dialog.findChild(QPushButton).click()
+
+    QTimer.singleShot(100, cancel)
+    assert not page.find_profile_online()
+    assert [(a.id, catalog.effective(a)["role"]) for a in state.catalog.assets] == before
+
+
+def test_registry_messages_tell_the_failures_apart(qtbot) -> None:
+    from rpggen.core import profile_registry
+
+    page = _page(qtbot, _state())
+    assert "No connection" in page.registry_message(profile_registry.RegistryOffline("x"))
+    assert "unusable" in page.registry_message(profile_registry.RegistryError("bad json"))

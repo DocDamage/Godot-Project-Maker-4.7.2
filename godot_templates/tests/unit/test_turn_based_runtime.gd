@@ -81,7 +81,7 @@ func test_escape_grace_counts_down(t) -> void:
 func test_combat_mode_without_a_router_refuses_quietly(t) -> void:
 	var mode := RpgTurnBasedMode.new()
 	t.ok(not mode.is_in_combat())
-	t.eq(RpgTurnBasedMode.latest_save_slot(), 0, "no SaveManager, no slot")
+	t.eq(RpgTurnBasedMode.latest_save_slot(), -1, "no SaveManager, no slot")
 	t.ok(RpgTurnBasedMode.find_entity("anything") == null)
 	mode.free()
 

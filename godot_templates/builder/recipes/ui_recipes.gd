@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification and the basic HUD. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 5
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -13,7 +13,7 @@ const SCRIPTS := "res://addons/rpg_runtime/ui/"
 
 const SCENES := [
 	"dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
-	"save_load_menu", "settings_menu", "notification", "hud_basic",
+	"save_load_menu", "settings_menu", "notification", "hud_basic", "game_over",
 ]
 
 static func scene_path(scene_name: String) -> String:
@@ -26,12 +26,18 @@ func outputs(_ctx) -> PackedStringArray:
 	return out
 
 func input_hash(ctx) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "scenes": SCENES})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "scenes": SCENES, "title_music": _title_music(ctx)})
+
+## The asset id of the title music (sound slot music_title), "" for none.
+func _title_music(ctx) -> String:
+	return String(ctx.config.get("sounds", {}).get("music_title", ""))
 
 func build(ctx) -> Array:
 	var issues: Array = []
 	for scene_name in SCENES:
 		var root: Node = call("_build_" + scene_name)
+		if scene_name == "title_screen" and _title_music(ctx) != "":
+			root.set_meta("music_asset_id", _title_music(ctx))
 		var err := SceneUtil.save_scene(root, scene_path(scene_name))
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": scene_path(scene_name), "err": err}, scene_path(scene_name)))
@@ -56,9 +62,23 @@ func _build_title_screen() -> Node:
 	var box := UiUtil.center_panel(root, Vector2(200, 0))
 	var title := UiUtil.label(box, "Title", "", true)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var version := UiUtil.label(box, "Version", "", true)  # the game version (filled in at runtime)
+	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu_buttons(box, [
 		["NewGame", "UI_NEW_GAME"], ["Continue", "UI_CONTINUE"], ["Load", "UI_LOAD"],
 		["Settings", "UI_SETTINGS"], ["Quit", "UI_QUIT"],
+	])
+	return root
+
+func _build_game_over() -> Node:
+	var root := UiUtil.control_root("GameOver", SCRIPTS + "game_over.gd")
+	root.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiUtil.dim_background(root, 0.75)
+	var box := UiUtil.center_panel(root, Vector2(220, 0))
+	var title := UiUtil.label(box, "Title", "UI_GAME_OVER_TITLE")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_menu_buttons(box, [
+		["Continue", "UI_GAME_OVER_CONTINUE"], ["Retry", "UI_GAME_OVER_RETRY"], ["Quit", "UI_GAME_OVER_QUIT"],
 	])
 	return root
 
@@ -67,6 +87,8 @@ func _build_pause_menu() -> Node:
 	root.process_mode = Node.PROCESS_MODE_ALWAYS
 	UiUtil.dim_background(root)
 	var box := UiUtil.center_panel(root, Vector2(160, 0))
+	var info := UiUtil.label(box, "Info", "", true)  # the map and the play time (filled in at runtime)
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu_buttons(box, [
 		["Resume", "UI_RESUME"], ["Inventory", "UI_INVENTORY"], ["Status", "UI_STATUS"],
 		["Save", "UI_SAVE"], ["Load", "UI_LOAD"], ["Settings", "UI_SETTINGS"], ["Title", "UI_TITLE"],
@@ -122,7 +144,7 @@ func _build_save_load_menu() -> Node:
 	UiUtil.dim_background(root, 0.85)
 	var box := UiUtil.center_panel(root, Vector2(320, 0))
 	UiUtil.label(box, "Heading", "UI_SAVE", true)
-	_menu_buttons(box, [["Slot1", "UI_SLOT"], ["Slot2", "UI_SLOT"], ["Slot3", "UI_SLOT"], ["Back", "UI_BACK"]])
+	_menu_buttons(box, [["Slot0", "UI_AUTOSAVE"], ["Slot1", "UI_SLOT"], ["Slot2", "UI_SLOT"], ["Slot3", "UI_SLOT"], ["Back", "UI_BACK"]])
 	return root
 
 func _slider_row(box: Control, row_name: String, text_key: String) -> void:
@@ -179,6 +201,16 @@ func _build_settings_menu() -> Node:
 	fullscreen.text = "UI_FULLSCREEN"
 	UiUtil.unique(fullscreen)
 	inner.add_child(fullscreen)
+	var autosave := CheckButton.new()
+	autosave.name = "Autosave"
+	autosave.text = "UI_AUTOSAVE"
+	UiUtil.unique(autosave)
+	inner.add_child(autosave)
+	var shake := CheckButton.new()
+	shake.name = "ScreenShake"
+	shake.text = "UI_SCREEN_SHAKE"
+	UiUtil.unique(shake)
+	inner.add_child(shake)
 	_option_row(inner, "TextSpeed", "UI_TEXT_SPEED")
 	_option_row(inner, "UiScale", "UI_UI_SCALE")
 	UiUtil.label(inner, "ControlsHeading", "UI_CONTROLS")

@@ -11,11 +11,10 @@ are also available in the packages' `dist-info` folders inside the bundle.
 | NumPy | image analysis | BSD-3-Clause | https://github.com/numpy/numpy/blob/main/LICENSE.txt |
 | py7zr | reading `.7z` packs | LGPL-2.1-or-later | https://github.com/miurahr/py7zr/blob/master/LICENSE |
 | jsonschema (with jsonschema-specifications, referencing, rpds-py) | validating catalogs, configs and profiles | MIT | https://github.com/python-jsonschema/jsonschema/blob/main/COPYING |
-| mutagen | reading audio durations | GPL-2.0-or-later | https://github.com/quodlibet/mutagen/blob/main/COPYING |
 | Python | the runtime | PSF-2.0 | https://docs.python.org/3/license.html |
 | PyInstaller (bootloader) | building the executables | GPL-2.0 with the bootloader exception | https://github.com/pyinstaller/pyinstaller/blob/develop/COPYING.txt |
 
-## Notes on the LGPL and GPL components
+## Notes on the LGPL components
 
 * **Qt / PySide6 (LGPL-3.0).** The Qt libraries are shipped as separate DLLs inside the
   `PySide6` folder of the one-folder build; they can be replaced by a compatible build. The
@@ -23,11 +22,6 @@ are also available in the packages' `dist-info` folders inside the bundle.
   https://code.qt.io/cgit/pyside/pyside-setup.git/.
 * **py7zr (LGPL-2.1+).** Shipped as ordinary Python files in the bundle; source at
   https://github.com/miurahr/py7zr.
-* **mutagen (GPL-2.0+).** Shipped unmodified as Python files; source at
-  https://github.com/quodlibet/mutagen. Because rpggen bundles mutagen, the combined Windows
-  build is distributed under terms that satisfy the GPL as well as the MIT License: the complete
-  corresponding source of rpggen is public at the project's repository, and nothing in the
-  bundle restricts the rights the GPL grants.
 
 ## Assets
 

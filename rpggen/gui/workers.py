@@ -128,6 +128,92 @@ def analyze_packs(state: WizardState, *, callbacks: Callbacks) -> AnalysisResult
     return AnalysisResult(opened_list, [inv for _o, inv in pairs], cat, list(issues))
 
 
+def fetch_registry(
+    inventories: list[inventory.Inventory],
+    *,
+    callbacks: Callbacks,
+    fetch: Callable[[list[inventory.Inventory]], Any] | None = None,
+) -> Any:
+    """Download the registry index and match it against the packs (network; worker thread)."""
+    from rpggen.core import profile_registry
+
+    callbacks.on_phase("Looking for matching profiles…", 0, 0)
+    if fetch is not None:
+        return fetch(inventories)
+    return profile_registry.candidates(profile_registry.fetch_index(), inventories)
+
+
+def download_profile(
+    profile_id: str,
+    *,
+    callbacks: Callbacks,
+    download: Callable[[str], Any] | None = None,
+) -> Any:
+    """Download and install one registry profile (network; worker thread)."""
+    from rpggen.core import profile_registry
+
+    callbacks.on_phase("Downloading the profile…", 0, 0)
+    if download is not None:
+        return download(profile_id)
+    return profile_registry.download_profile(profile_id)
+
+
+def download_godot(
+    version: str, out: Path, *, callbacks: Callbacks, platform: str | None = None
+) -> Path:
+    """Download the official Godot into ``out`` (network; worker thread)."""
+    import sys
+
+    from rpggen.core import godot_fetch
+
+    def progress(done: int, total: int) -> None:
+        mb = 1 << 20
+        text = (
+            f"Downloading Godot {version}… {done // mb} of {total // mb} MB"
+            if total
+            else (f"Downloading Godot {version}… {done // mb} MB")
+        )
+        callbacks.on_phase(text, done, total)
+
+    plat = platform or ("linux" if sys.platform.startswith("linux") else "windows")
+    return godot_fetch.fetch(
+        version, out, plat, progress=progress, is_cancelled=callbacks.is_cancelled
+    )
+
+
+def find_working_godot(*, callbacks: Callbacks) -> tuple[Path, str] | None:
+    """The first Godot (saved path, then the usual places) that passes the version gate, with
+    its version text; None when there is none (worker thread: it launches Godot)."""
+    from rpggen.core import app_settings, godot
+
+    candidates: list[Path] = []
+    saved = app_settings.load().godot_exe
+    if saved and Path(saved).is_file():
+        candidates.append(Path(saved))
+    candidates.extend(p for p in godot.auto_find_godot() if p not in candidates)
+    for exe in candidates:
+        if callbacks.is_cancelled():
+            return None
+        try:
+            version = godot.detect_version(exe)
+            godot.check_version(version)
+        except (RpgGenError, OSError):
+            continue
+        return exe, ".".join(str(p) for p in version[:3]) + f".{version[3]}"
+    return None
+
+
+def check_for_update(
+    *, callbacks: Callbacks, fetch: Callable[[str, int], bytes] | None = None
+) -> Any:
+    """The latest release of the project or None (network; worker thread; raises
+    RegistryError when offline)."""
+    from rpggen.core import update_check
+
+    callbacks.on_phase("Checking for updates…", 0, 0)
+    return update_check.latest_release(fetch)
+
+
 def apply_analysis(state: WizardState, result: AnalysisResult) -> None:
     state.opened_packs = result.opened
     state.inventories = result.inventories

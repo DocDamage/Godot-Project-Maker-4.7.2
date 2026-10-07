@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import sys
 import traceback
-from importlib import resources
 from pathlib import Path
 from types import TracebackType
 
@@ -23,14 +22,15 @@ from PySide6.QtWidgets import (
 
 from rpggen import logging_setup
 from rpggen.errors import CODES
+from rpggen.gui import theme
 from rpggen.gui.dialogs import diagnostic_export
 from rpggen.gui.wizard import MainWindow
 
 log = logging.getLogger(__name__)
 
 
-def load_stylesheet() -> str:
-    return resources.files("rpggen.gui").joinpath("style.qss").read_text(encoding="utf-8")
+def load_stylesheet(name: str = "dark") -> str:
+    return theme.stylesheet(name)
 
 
 class CrashDialog(QDialog):
@@ -94,7 +94,7 @@ def create_app(argv: list[str] | None = None) -> QApplication:
     app = QApplication.instance() or QApplication(argv or sys.argv)
     assert isinstance(app, QApplication)
     app.setStyle("Fusion")
-    app.setStyleSheet(load_stylesheet())
+    theme.apply_theme(theme.saved_theme(), remember=False)
     return app
 
 
@@ -104,7 +104,7 @@ def run_gui(argv: list[str] | None = None, target: Path | None = None) -> int:
     app = create_app(argv)
     logging_setup.configure(diagnostic_export.app_log_dir(), False)
     install_excepthook()
-    window = MainWindow()
+    window = MainWindow(show_welcome=target is None)
     if target is not None:
         window.open_target(target)
     window.show()

@@ -10,7 +10,7 @@ from rpggen.core.inventory import Inventory
 
 log = logging.getLogger(__name__)
 
-ANALYZER_VERSION = 3
+ANALYZER_VERSION = 4
 MIN_REGION_GRID_SCORE = 0.6
 
 

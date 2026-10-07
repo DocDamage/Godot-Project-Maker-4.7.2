@@ -27,7 +27,11 @@ func steps() -> Array[Dictionary]:
 		{"name": "returned_to_map", "fn": _returned_to_map, "timeout_s": 20.0},
 		{"name": "enemy_stays_defeated", "fn": _enemy_stays_defeated, "timeout_s": 60.0},
 		{"name": "defeat_policy", "fn": _defeat_policy, "timeout_s": 90.0},
+		{"name": "game_over_screen", "fn": _game_over_screen, "timeout_s": 40.0},
 	]
+
+func _game_over_screen() -> String:
+	return await preload("game_over_check.gd").new().run()
 
 # ---------------------------------------------------------------- helpers
 
@@ -227,7 +231,7 @@ func _defeat_policy() -> String:
 	var save := _autoload("SaveManager")
 	var combat := _combat()
 	save.set("dir", SAVE_DIR)
-	for slot in range(1, 4):
+	for slot in range(int(save.get("AUTOSAVE_SLOT")), 4):
 		save.delete(slot)
 
 	# 1. No save: back at the map's default spawn with full HP.

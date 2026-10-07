@@ -1,0 +1,9 @@
+{
+  "music_battle": "audio_basic.music.battle_bgm",
+  "music_map": "audio_basic.music.overworld_theme",
+  "music_title": "audio_basic.music.overworld_theme",
+  "sfx_chest": "audio_basic.sfx.chest_open",
+  "sfx_hit": "audio_basic.sfx.hit",
+  "sfx_ui_confirm": "audio_basic.sfx.confirm",
+  "sfx_ui_move": "audio_basic.sfx.cursor_move"
+}

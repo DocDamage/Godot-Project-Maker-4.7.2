@@ -67,4 +67,4 @@ class Adapter(Protocol):
    0.95, usage 0.95, role 0.85, animations 0.90) must still pass.
 7. If you need a new message, follow the error-code process in
    [CONTRIBUTING.md](../CONTRIBUTING.md#error-codes).
-8. Add the format to the table above and a line to `IMPLEMENTATION_NOTES.md`.
+8. Add the format to the table above and a line to `docs/dev/implementation_notes.md`.

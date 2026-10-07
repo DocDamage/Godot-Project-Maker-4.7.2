@@ -37,6 +37,7 @@ func use() -> bool:
 		push_warning("[RPG-WORLD] door %s has no target_map" % name)
 		return false
 	used.emit()
+	RpgUtil.emit(&"door_used", [str(name)])
 	var router := get_node_or_null("/root/SceneRouter")
 	if router == null:
 		push_error("[RPG-WORLD] SceneRouter autoload is missing")

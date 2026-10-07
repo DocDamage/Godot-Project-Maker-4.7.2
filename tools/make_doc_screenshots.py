@@ -42,6 +42,8 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
     from rpggen.core import godot as godot_mod
     from rpggen.gui import app as gui_app
     from rpggen.gui import state as state_mod
+    from rpggen.gui import theme
+    from rpggen.gui.dialogs.about_dialog import AboutDialog
     from rpggen.gui.pages.generate_page import GeneratePage
     from rpggen.gui.pages.project_page import ProjectPage
     from rpggen.gui.wizard import OPTIONS_INDEX, MainWindow, default_pages
@@ -68,10 +70,18 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
             window.grab().save(str(path))
             written.append(path)
 
+        window.show_welcome_view()
+        _pump(qapp, 1.0)  # the Godot check runs in the background
+        grab("welcome")
+        window.leave_welcome()
+        window.show_page(0)
         grab("wizard_project")
         page0 = window.pages[0]
         assert isinstance(page0, ProjectPage)
         page0.sample_button.click()  # fills the inputs and presses Next to the options page
+        deadline = time.time() + 120
+        while window.state.catalog is None and time.time() < deadline:
+            _pump(qapp, 0.2)  # the pack is analyzed in the background
         _pump(qapp, 1.0)
         for index, name in enumerate(PAGES):
             if index == 0:
@@ -85,6 +95,15 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
                 window.current_page.grid.view.setCurrentIndex(pick)
             _pump(qapp, 1.5 if name == "audit" else 0.3)  # thumbnails load in the background
             grab(f"wizard_{name}")
+            if name == "audit":  # the light theme, on the page that uses the most colour
+                theme.apply_theme("light", remember=False)
+                grab("wizard_audit_light")
+                theme.apply_theme("dark", remember=False)
+            if name == "options":
+                _pump(qapp, 1.0)  # the starter map preview renders in the background
+                picture = out / "map_preview.png"
+                window.current_page.preview.grab().save(str(picture))
+                written.append(picture)
         if godot is not None:
             window.show_page(OPTIONS_INDEX)
             window.next_button.click()
@@ -96,6 +115,13 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
             grab("wizard_generate")
             window.next_button.click()
             grab("wizard_results")
+        about = AboutDialog(window)
+        about.show()
+        _pump(qapp)
+        about_path = out / "about_dialog.png"
+        about.grab().save(str(about_path))
+        written.append(about_path)
+        about.close()
         dialog = gui_app.CrashDialog("Traceback (most recent call last):\nValueError: example")
         dialog.show()
         _pump(qapp)

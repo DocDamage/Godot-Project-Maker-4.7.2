@@ -100,3 +100,18 @@ def templates_root() -> Path:
     if getattr(sys, "frozen", False):
         return Path(getattr(sys, "_MEIPASS", ".")) / "godot_templates"
     return Path(__file__).resolve().parent.parent / "godot_templates"
+
+
+def docs_root() -> Path:
+    """The user documentation (``docs/`` next to the template project; inside the bundle when
+    frozen). The spec and developer notes are not bundled."""
+    return templates_root().parent / "docs"
+
+
+def notices_path() -> Path:
+    """THIRD_PARTY_NOTICES.md (bundled as LICENSE_AND_NOTICES.txt next to the exe when frozen)."""
+    root = templates_root().parent
+    for name in ("THIRD_PARTY_NOTICES.md", "LICENSE_AND_NOTICES.txt"):
+        if (root / name).is_file():
+            return root / name
+    return root / "THIRD_PARTY_NOTICES.md"

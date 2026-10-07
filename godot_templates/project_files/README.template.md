@@ -134,3 +134,48 @@ animation speed; **Regenerate affected resources** (Project tab) rebuilds what c
 **Validate content** (Validate tab) checks entity ids, doors and dialogue; **Fix entity IDs**
 repairs the map being edited. Everything the dock does can be undone in the editor, except
 regeneration.
+
+## 11. Sound
+
+The sounds of the game are **sound slots**: a fixed list (map, battle and title music; menu
+cursor, confirm and cancel; hit, attack, pick-up, chest, door, footstep, save, level-up). rpggen
+filled the slots from the audio of your packs by file name; the choice is stored in
+`rpggen/generator_config.json` under `sounds`, and `rpggen/sound_bank.json` (rebuilt on every
+generation) maps each slot to its file. A slot without a sound stays silent and writes nothing
+to the log.
+
+* **Change a slot:** run rpggen again on this folder, open **Mapping → Sound → Edit…**, choose
+  another file (▶ plays it) and generate. Nothing you edited is overwritten.
+* **Map music** is the **Music Asset Id** property of the map's root node (`StarterMap`). The map
+  you already have keeps what is in it; for a new map, set the property to an audio asset id
+  (see `rpggen/audio_index.json`). A map without one keeps the music that is playing.
+* **Volumes** are the sliders of the Settings menu (Master, Music, SFX, UI).
+
+## 12. How the maps are connected
+
+A new project has three maps: `starter_map.tscn`, the house `interior_1.tscn` and a second
+outdoor map, `field_1.tscn`. They are joined by two kinds of door (both are the `RpgDoor` script
+on an `Area2D`):
+
+* **The house door** (the `Entrance` node inside the house object) leads to `interior_1`; the
+  `Exit` door of the interior leads back to the starter map.
+* **The east exit** (`starter_map_east_exit`, under `Triggers` in the starter map) sits in a gap
+  in the east wall and leads to the `west_entry` spawn of `field_1`; its `field_1_west_exit`
+  door leads back to the `east_entry` spawn of the starter map.
+
+To connect your own maps, put an `RpgDoor` where the player should leave, set its **Target Map**
+and **Target Spawn**, and add a spawn point with that name in the target map. The map you paint
+over is yours: regenerating never changes it. **Remove demo content** in the Assets dock
+removes `field_1.tscn` when you did not change it and clears the door that led to it.
+
+## 13. Saving, autosave and game over
+
+* **Slots.** The pause menu and the title screen offer three save slots. Slot 0 is the
+  **autosave**: the game writes it when you enter a map (at most once every few seconds) and
+  shows a small notice instead of playing the save sound. You can load it but not save into
+  it. Turn it off with **Settings → Autosave**. A save that cannot be read falls back to its
+  backup file; a game from a newer runtime is refused with a message, never half-loaded.
+* **Game over.** When the player is defeated a screen offers **Continue** (the newest save, the
+  autosave included; hidden when there is none), **Try again** (the start of the current map
+  with full health) and **Quit to title**. The scene is `generated/scenes/ui/game_over.tscn`;
+  the choices are carried out by `RpgDefeatPolicy` in `addons/rpg_runtime/combat/`.

@@ -38,7 +38,8 @@ def test_basic16_has_both_required_roles() -> None:
     assert not issues.has_errors()
     missing = [role for code, _, role in _codes(issues) if code == "ASSET-010"]
     assert missing == ["NPC", "ENEMY", "BUILDING", "WALL", "ITEM", "UI", "PORTRAIT"]
-    assert all(i.severity is Severity.WARNING for i in issues)
+    assert all(i.severity is Severity.WARNING for i in issues if i.code == "ASSET-010")
+    assert [i.code for i in issues if i.severity is Severity.INFO] == ["ASSET-026", "ASSET-027"]
 
 
 def test_missing_required_roles_are_errors() -> None:

@@ -35,7 +35,7 @@ class ProfileAdapter:
         for key, facets in profile["assets"].items():
             path, variant = profiles.split_key(key)
             f = files.get(path)
-            if f is None or f.kind != "image":
+            if f is None or f.kind not in ("image", "audio", "font"):
                 continue
             expected = fingerprinted.get(path)
             if expected is not None and expected != f.sha256:

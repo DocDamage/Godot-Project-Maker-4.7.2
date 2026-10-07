@@ -49,6 +49,7 @@ class TerrainTab(QWidget):
         left = QVBoxLayout()
         self.list = QListWidget()
         self.list.setObjectName("terrainList")
+        self.list.setToolTip(self.tr("Terrains rpggen found in your tile sheets"))
         left.addWidget(self.list)
         self.info = QLabel(self.tr("No terrain proposals."))
         self.info.setObjectName("terrainInfo")

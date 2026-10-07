@@ -35,6 +35,7 @@ M7_STEPS = [
     "returned_to_map",
     "enemy_stays_defeated",
     "defeat_policy",
+    "game_over_screen",
 ]
 BATTLE_COMMANDS = ["attack", "defend", "item", "run", "skill"]
 

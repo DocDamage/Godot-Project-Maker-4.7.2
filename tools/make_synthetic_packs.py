@@ -729,7 +729,118 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "objects_in_sheet": make_objects_in_sheet,
     "weird_names": make_weird_names,
     "zipped": make_zipped,
+    "audio_basic": lambda out: make_audio_basic(out),
 }
+
+
+# ----------------------------------------------------------------------------- audio fixtures
+# Hand-built headers, enough for the duration parser (rpggen.core.audio_info), not for players.
+
+
+def wav_bytes(seconds: float, rate: int = 8000) -> bytes:
+    """Silent 16-bit mono WAV of the given length."""
+    import io
+    import wave
+
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(b"\x00\x00" * int(seconds * rate))
+    return buf.getvalue()
+
+
+def _ogg_page(kind: int, granule: int, seq: int, payload: bytes) -> bytes:
+    import struct
+
+    segments = [255] * (len(payload) // 255) + [len(payload) % 255]
+    head = b"OggS" + bytes([0, kind]) + struct.pack("<qIII", granule, 1, seq, 0)
+    return head + bytes([len(segments)]) + bytes(segments) + payload
+
+
+def ogg_vorbis_bytes(seconds: float, rate: int = 22050) -> bytes:
+    import struct
+
+    ident = b"\x01vorbis" + struct.pack("<IBIiii", 0, 1, rate, 0, 64000, 0) + b"\xb8\x01"
+    return _ogg_page(2, 0, 0, ident) + _ogg_page(4, int(seconds * rate), 1, b"\x00" * 40)
+
+
+def ogg_opus_bytes(seconds: float, pre_skip: int = 312) -> bytes:
+    import struct
+
+    head = b"OpusHead" + bytes([1, 1]) + struct.pack("<HIhB", pre_skip, 48000, 0, 0)
+    return _ogg_page(2, 0, 0, head) + _ogg_page(4, int(seconds * 48000) + pre_skip, 1, b"\x00" * 40)
+
+
+def mp3_bytes(seconds: float, *, xing: bool = False, id3: bool = False) -> bytes:
+    """CBR MPEG-1 Layer III, 128 kbit/s, 44.1 kHz stereo; optionally a Xing frame count."""
+    frames = -(-int(seconds * 44100) // 1152)
+    frame = b"\xff\xfb\x90\x00" + b"\x00" * 413  # 417 bytes
+    out = b""
+    if id3:  # an ID3v2 tag with 100 bytes of payload (synchsafe size)
+        out += b"ID3\x03\x00\x00\x00\x00\x00\x64" + b"\x00" * 100
+    if xing:
+        tag = b"Xing" + (1).to_bytes(4, "big") + frames.to_bytes(4, "big")
+        out += b"\xff\xfb\x90\x00" + b"\x00" * 32 + tag + b"\x00" * (413 - 32 - len(tag))
+    return out + frame * frames
+
+
+def flac_bytes(seconds: float, rate: int = 22050) -> bytes:
+    total = int(seconds * rate)
+    info = bytearray(34)
+    info[0:2] = (4096).to_bytes(2, "big")
+    info[2:4] = (4096).to_bytes(2, "big")
+    packed = (rate << 44) | (0 << 41) | (15 << 36) | total  # rate:20 ch-1:3 bps-1:5 samples:36
+    info[10:18] = packed.to_bytes(8, "big")
+    return b"fLaC" + bytes([0x80, 0, 0, 34]) + bytes(info)
+
+
+def make_audio_basic(out: Path) -> None:
+    """basic16's images plus audio in three formats (wav, ogg, mp3), to check durations, roles and slot defaults."""
+    pack = out / "audio_basic"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_terrain(), pack / "tiles" / "terrain.png")
+    _save_png(_hero(), pack / "characters" / "hero.png")
+    files = {
+        "music/overworld_theme.wav": wav_bytes(30.0, rate=2000),
+        "music/battle_bgm.ogg": ogg_vorbis_bytes(24.0),
+        "sfx/cursor_move.ogg": ogg_vorbis_bytes(0.4),
+        "sfx/confirm.mp3": mp3_bytes(0.5),
+        "sfx/hit.wav": wav_bytes(0.3),
+        "sfx/chest_open.wav": wav_bytes(0.6),
+    }
+    for rel, data in files.items():
+        target = pack / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        # The .ogg stubs only have headers; Godot cannot load them. A real encoded file (made once
+        # with ffmpeg, libvorbis, same length) that is already there is kept so the pack can be built.
+        if target.suffix == ".ogg" and target.exists() and target.stat().st_size > 1000:
+            continue
+        target.write_bytes(data)
+    expected = {
+        "tiles/terrain.png": {"role": "GROUND"},
+        "characters/hero.png": {"role": "PLAYER"},
+        "music/overworld_theme.wav": {"role": "AUDIO_MUSIC"},
+        "music/battle_bgm.ogg": {"role": "AUDIO_MUSIC"},
+        "sfx/cursor_move.ogg": {"role": "AUDIO_SFX"},
+        "sfx/confirm.mp3": {"role": "AUDIO_SFX"},
+        "sfx/hit.wav": {"role": "AUDIO_SFX"},
+        "sfx/chest_open.wav": {"role": "AUDIO_SFX"},
+    }
+    _expected(out, "audio_basic", expected)
+    jsonio.write(
+        out / "audio_basic.slots.json",
+        {
+            "music_map": "audio_basic.music.overworld_theme",
+            "music_battle": "audio_basic.music.battle_bgm",
+            "music_title": "audio_basic.music.overworld_theme",
+            "sfx_ui_move": "audio_basic.sfx.cursor_move",
+            "sfx_ui_confirm": "audio_basic.sfx.confirm",
+            "sfx_hit": "audio_basic.sfx.hit",
+            "sfx_chest": "audio_basic.sfx.chest_open",
+        },
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

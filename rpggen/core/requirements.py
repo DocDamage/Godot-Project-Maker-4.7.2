@@ -52,6 +52,10 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     for role in RECOMMENDED:
         if not _filled(catalog, role):
             issues.add("ASSET-010", role=role, feature=REQUIRED_BY.get(role, role.lower()))
+    if not _assets_with_role(catalog, "AUDIO_MUSIC"):
+        issues.add("ASSET-026")
+    if not _assets_with_role(catalog, "AUDIO_SFX"):
+        issues.add("ASSET-027")
     players = _assets_with_role(catalog, "PLAYER")
     if len(players) > 1 and not any(p.status == "CONFIRMED" for p in players):
         issues.add("ASSET-014", role="PLAYER", candidates=", ".join(p.id for p in players))

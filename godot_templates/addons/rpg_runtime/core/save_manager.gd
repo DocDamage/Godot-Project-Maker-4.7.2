@@ -3,9 +3,17 @@ extends Node
 
 const SAVE_VERSION := 1
 const SLOTS := 3
+## The extra slot of the automatic save, beside the manual slots 1 to SLOTS (their numbers do not
+## shift, so existing saves stay valid).
+const AUTOSAVE_SLOT := 0
+## "No save" for functions that answer with a slot number.
+const NO_SLOT := -1
+## At least this long between two automatic saves.
+const AUTOSAVE_COOLDOWN_MS := 10000
 
 ## Where saves live. A test may point it somewhere else.
 var dir: String = "user://saves"
+var _last_autosave_ms := -AUTOSAVE_COOLDOWN_MS
 ## {from_version: Callable(Dictionary) -> Dictionary}. Empty at v1; tests install a fake one.
 var MIGRATIONS := {}
 
@@ -51,8 +59,54 @@ func _header(state: Node) -> Dictionary:
 		"saved_at": Time.get_datetime_string_from_system(true),
 	}
 
+func _ready() -> void:
+	var bus := RpgUtil.events()
+	if bus != null:
+		bus.map_entered.connect(_on_map_entered)
+
+## An automatic save one frame after a map is entered, so that the map's persistent entities are
+## already in place. This also covers returning to the map after a battle.
+func _on_map_entered(_map_id: StringName) -> void:
+	await get_tree().process_frame
+	autosave()
+
+## True when an automatic save may happen now: the setting is on, a map is shown and settled (no
+## fade, no battle, no dialogue), the player is alive and the last one was 10 or more seconds ago.
+func can_autosave() -> bool:
+	var settings := RpgUtil.settings()
+	if settings != null and not bool(settings.get("autosave")):
+		return false
+	var state := RpgUtil.state()
+	var router := RpgUtil.router()
+	if state == null or router == null or router.get("current_map") == null or router.is_busy():
+		return false
+	var combat: Variant = router.get("combat")
+	if combat != null and combat.is_in_combat():
+		return false
+	var box := RpgUtil.service(&"rpg_dialogue_box")
+	if box != null and box.call("is_open"):
+		return false
+	if state.player_stats.hp <= 0:
+		return false
+	return Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_COOLDOWN_MS
+
+## Saves into the autosave slot (the normal save path: temp file, verify, backup, rename) and
+## shows a small toast. False when it may not happen now or the save failed.
+func autosave() -> bool:
+	if not can_autosave():
+		return false
+	if not save(AUTOSAVE_SLOT):
+		return false
+	_last_autosave_ms = Time.get_ticks_msec()
+	RpgUtil.notify(tr("UI_AUTOSAVED"))
+	return true
+
+## Lets the next autosave happen at once (tests).
+func reset_autosave_cooldown() -> void:
+	_last_autosave_ms = -AUTOSAVE_COOLDOWN_MS
+
 func save(slot: int) -> bool:
-	if slot < 1 or slot > SLOTS or not _capture_world():
+	if slot < AUTOSAVE_SLOT or slot > SLOTS or not _capture_world():
 		return false
 	var state := RpgUtil.state()
 	var data: Dictionary = state.to_dict()
@@ -106,7 +160,7 @@ func has_save(slot: int) -> bool:
 	return FileAccess.file_exists(_slot_path(slot)) or FileAccess.file_exists(_backup_path(slot))
 
 func any_save() -> bool:
-	for slot in range(1, SLOTS + 1):
+	for slot in range(AUTOSAVE_SLOT, SLOTS + 1):
 		if has_save(slot):
 			return true
 	return false

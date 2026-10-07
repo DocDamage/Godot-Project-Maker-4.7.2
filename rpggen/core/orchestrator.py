@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -20,6 +21,7 @@ from rpggen.core import (
     promote,
     requirements,
     runtime_version,
+    sound_slots,
     staging,
     vcs,
 )
@@ -79,10 +81,16 @@ class RunResult:
     failed_phase: str | None = None
     catalog: catalog_mod.Catalog | None = None
     cfg: config_mod.GeneratorConfig | None = None
+    cancelled: bool = False
+    timings: dict[str, float] = field(default_factory=dict)  # seconds per phase (never in a file)
 
 
 class _Stop(Exception):
     """Internal: a phase decided the run cannot continue (issues already recorded)."""
+
+
+class _Cancelled(_Stop):
+    """Internal: the user cancelled; staging is discarded and nothing is delivered."""
 
 
 @dataclass
@@ -109,6 +117,7 @@ class _State:
     pack_files: set[str] = field(default_factory=set)  # every pack file installed this run
     accept_runtime_upgrade: bool = False  # confirm a major runtime version increase
     runtime: runtime_version.UpgradeInfo | None = None  # templates' runtime vs. the target's
+    timings: dict[str, float] = field(default_factory=dict)
 
 
 # --------------------------------------------------------------------------- helpers
@@ -147,7 +156,10 @@ def _run_phase_godot(
         timeout_s=timeout_s,
         log_name=log_name,
         log_dir=state.log_dir,
+        is_cancelled=state.cb.is_cancelled,
     )
+    if run.cancelled:
+        raise _Cancelled
     if run.timed_out:
         state.issues.add("BUILD-003", phase=phase, seconds=timeout_s)
         raise _Stop
@@ -211,6 +223,8 @@ def phase_install(state: _State) -> None:
     )
     used: set[str] = set()
     for ref in state.cfg.packs:
+        if state.cb.is_cancelled():
+            raise _Cancelled
         opened = archive.open_pack(Path(ref.source), used, pack_id=ref.pack_id)
         used.add(opened.pack_id)
         state.issues.extend(opened.issues)
@@ -222,9 +236,16 @@ def phase_install(state: _State) -> None:
 def phase_catalog(state: _State) -> None:
     assert state.staging is not None and state.cfg is not None and state.log_dir is not None
     work_dir = state.staging.staging / "rpggen" / "work"
-    catalog, issues, generated = catalog_mod.assemble(
-        state.opened, state.catalog_in, [], work_dir=work_dir
-    )
+    try:
+        catalog, issues, generated = catalog_mod.assemble(
+            state.opened,
+            state.catalog_in,
+            [],
+            work_dir=work_dir,
+            is_cancelled=state.cb.is_cancelled,
+        )
+    except catalog_mod.AssemblyCancelled:
+        raise _Cancelled from None
     # archive issues were reported while opening the packs; do not list them twice
     known = {(i.code, i.message) for i in state.issues}
     state.issues.extend(i for i in issues if (i.code, i.message) not in known)
@@ -236,6 +257,9 @@ def phase_catalog(state: _State) -> None:
         )
         state.issues.extend(placeholder_issues)
     state.catalog = catalog
+    if not state.cfg.sounds:
+        # nothing was chosen (the command line, an older project): the packs' audio is used
+        state.cfg.sounds = sound_slots.default_sounds(catalog)
     state.generated = generated
     if state.staging.regenerate:
         # Files of assets that vanished from their pack stay: tile set sources, scenes and
@@ -257,7 +281,10 @@ def phase_import(state: _State) -> None:
         timeout_s=godot.IMPORT_TIMEOUT_S,
         log_name="import",
         log_dir=state.log_dir,
+        is_cancelled=state.cb.is_cancelled,
     )
+    if run.cancelled:
+        raise _Cancelled
     if run.timed_out:
         state.issues.add("BUILD-003", phase="import", seconds=godot.IMPORT_TIMEOUT_S)
         raise _Stop
@@ -320,7 +347,57 @@ def phase_validate(state: _State) -> None:
         raise _Stop
 
 
+STARTER_VIEW = "rpggen/results/starter_map_cells.json"
+STARTER_PICTURE = "rpggen/results/starter_map.png"
+
+
+def _starter_picture(state: _State) -> None:
+    """A picture of the starter map as it was really built (T11.27), for the Results page.
+
+    Headless Godot cannot take a screenshot, so a Godot script dumps the cells and the entities
+    and the picture is drawn here. Any problem is a line in the log, never a failed generation."""
+    assert state.staging is not None and state.log_dir is not None
+    root = state.staging.staging
+    if not (root / "game" / "maps" / "starter_map.tscn").is_file():
+        return
+    view_path = root / STARTER_VIEW
+    try:
+        run = godot.run_godot(
+            godot.find_console_exe(state.godot_exe),
+            root,
+            [
+                "--script",
+                "res://generated/builder/tools/dump_map_view.gd",
+                "--",
+                f"--out={view_path}",
+            ],
+            timeout_s=60,
+            log_name="map_view",
+            log_dir=state.log_dir,
+            is_cancelled=state.cb.is_cancelled,
+        )
+        if run.cancelled:
+            raise _Cancelled
+        if run.returncode != 0 or not view_path.is_file():
+            state.cb.on_log("starter map picture skipped: Godot could not dump the map")
+            return
+        from rpggen.core import map_preview
+
+        image = map_preview.render_view(jsonio.read(view_path), root, 2)
+        image.save(root / STARTER_PICTURE, format="PNG")
+        state.cb.on_log(f"starter map picture written to {STARTER_PICTURE}")
+    except _Cancelled:
+        raise
+    except Exception as exc:  # noqa: BLE001 - the picture is a nicety
+        state.cb.on_log(f"starter map picture skipped: {exc}")
+
+
 def phase_smoke(state: _State) -> None:
+    _run_smoke(state)
+    _starter_picture(state)
+
+
+def _run_smoke(state: _State) -> None:
     assert state.cfg is not None
     if not state.cfg.validation.get("smoke_test", True):
         return
@@ -356,8 +433,14 @@ def phase_export(state: _State) -> None:
     if not state.cfg.validation.get("export_check", True):
         return
     issues, _ran = export_check.run_check(
-        state.godot_exe, state.staging.staging, state.cfg.project_name, state.log_dir
+        state.godot_exe,
+        state.staging.staging,
+        state.cfg.project_name,
+        state.log_dir,
+        is_cancelled=state.cb.is_cancelled,
     )
+    if state.cb.is_cancelled():
+        raise _Cancelled
     state.issues.extend(issues)
     if any(i.severity is Severity.ERROR for i in issues):
         raise _Stop
@@ -432,6 +515,24 @@ PHASE_FUNCS: dict[str, Callable[[_State], None]] = {
 # --------------------------------------------------------------------------- entry point
 
 
+def _cancel(state: _State) -> RunResult:
+    """A cancelled run: staging is deleted (no .rpggen_failed folder) and nothing is delivered."""
+    if state.staging is not None and state.staging.staging.exists():
+        shutil.rmtree(state.staging.staging, ignore_errors=True)
+    return RunResult(
+        False,
+        Path(state.target),
+        list(state.issues),
+        None,
+        None,
+        failed_phase=state.current_phase,
+        catalog=state.catalog,
+        cfg=state.cfg,
+        cancelled=True,
+        timings=dict(state.timings),
+    )
+
+
 def _fail(state: _State) -> RunResult:
     failed: Path | None = None
     report: Path | None = None
@@ -449,6 +550,7 @@ def _fail(state: _State) -> RunResult:
         failed_phase=state.current_phase,
         catalog=state.catalog,
         cfg=state.cfg,
+        timings=dict(state.timings),
     )
 
 
@@ -509,14 +611,20 @@ def _execute(state: _State) -> RunResult:
     try:
         for i, name in enumerate(PHASES_M1, start=1):
             if cb.is_cancelled():
-                return _fail(state)
+                return _cancel(state)
             state.current_phase = name
             cb.on_phase(name, i, n)
             cb.on_log(f"phase {i}/{n}: {name}")
-            PHASE_FUNCS[name](state)
+            started = time.monotonic()
+            try:
+                PHASE_FUNCS[name](state)
+            finally:
+                state.timings[name] = round(time.monotonic() - started, 2)
             state.phases_done.append(name)
             if name != "report" and state.issues.has_errors():
                 return _fail(state)
+    except _Cancelled:
+        return _cancel(state)
     except _Stop:
         return _fail(state)
     except RpgGenError as exc:
@@ -535,6 +643,7 @@ def _execute(state: _State) -> RunResult:
         None,
         catalog=state.catalog,
         cfg=state.cfg,
+        timings=dict(state.timings),
     )
 
 

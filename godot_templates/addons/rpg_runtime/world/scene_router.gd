@@ -131,6 +131,16 @@ func _transition(map_path: String, spawn_id: StringName, at_position: bool, posi
 	map_changed.emit(id)
 	if current_map != null:
 		RpgUtil.emit(&"map_entered", [id])
+		_apply_map_music()
+
+## Starts the music the map asks for (`music_asset_id`) unless that track already plays. A map
+## without one keeps the current track.
+func _apply_map_music() -> void:
+	if current_map == null or audio == null:
+		return
+	var wanted := str(current_map.music_asset_id)
+	if wanted != "" and wanted != str(audio.get("current_music_id")):
+		audio.call("play_music", wanted)
 
 func _remember_map(map_path: String, spawn_id: StringName) -> void:
 	var state := RpgUtil.state()

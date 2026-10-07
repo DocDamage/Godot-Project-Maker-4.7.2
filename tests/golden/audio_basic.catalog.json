@@ -1,0 +1,413 @@
+{
+  "assets": [
+    {
+      "confidence": 0.4,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          23
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.4
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "audio_basic.characters.hero",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "audio_basic",
+      "path": "assets/packs/audio_basic/characters/hero.png",
+      "sha256": "6db6c4fa70e4b80958c60aebacbaee61a574845f079d03ed9d2a905330048600",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 24.0,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "audio_basic.music.battle_bgm",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "audio_basic",
+      "path": "assets/packs/audio_basic/music/battle_bgm.ogg",
+      "sha256": "fb74144562a285465e98eaf39ac44d90407e9f7d88cf7da82ca2f1dd2f51fcfd",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 30.0,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "audio_basic.music.overworld_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "audio_basic",
+      "path": "assets/packs/audio_basic/music/overworld_theme.wav",
+      "sha256": "dffc4b90451e2fa2575f0ffc7ecb329a1f1a3f97bc5ae2cc74716ac88e082508",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.6,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "audio_basic.sfx.chest_open",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "audio_basic",
+      "path": "assets/packs/audio_basic/sfx/chest_open.wav",
+      "sha256": "a4123500a65062486be13aaf56f984afa5a692562f85ded21df5bb41224a4619",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.521,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "audio_basic.sfx.confirm",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "audio_basic",
+      "path": "assets/packs/audio_basic/sfx/confirm.mp3",
+      "sha256": "a27b2b01b01931b00cb8075f084c6143ef6ab7f423d170538ad83ba3eda46b35",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.4,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "audio_basic.sfx.cursor_move",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "audio_basic",
+      "path": "assets/packs/audio_basic/sfx/cursor_move.ogg",
+      "sha256": "432570f3070a3e53f9f36c00b70f170acf0937acf6ac04af98139763940af5a9",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.3,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "audio_basic.sfx.hit",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "audio_basic",
+      "path": "assets/packs/audio_basic/sfx/hit.wav",
+      "sha256": "1abc382caecf8e3c86c758feb1a74af366d82827ec5ffbadc96c4141e80abdf4",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.4345,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.0625
+          ],
+          [
+            "WALL",
+            0.03125
+          ]
+        ],
+        "size": [
+          128,
+          64
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "audio_basic.tiles.terrain",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "audio_basic",
+      "path": "assets/packs/audio_basic/tiles/terrain.png",
+      "sha256": "b0722cbbe8365b85a6b955ea53425f8253fe97bca34ff795ab2097ada5b8f817",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.0.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license_files": [
+        "assets/packs/audio_basic/LICENSE.txt"
+      ],
+      "pack_id": "audio_basic",
+      "profile_id": null,
+      "root": "assets/packs/audio_basic",
+      "source_sha256": "fcbd28983bc5fe10c1910b8170e58e8d7eaf2fa35dc2bd7c4b4a1cb194f36f9f",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "audio_basic.tiles.terrain",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

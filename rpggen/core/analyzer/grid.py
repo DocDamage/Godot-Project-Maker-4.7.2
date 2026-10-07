@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 
 # All tunable constants of the algorithm live here (T2.05). Record any tuning in
-# IMPLEMENTATION_NOTES.md.
+# docs/dev/implementation_notes.md.
 GRID_CONSTANTS: dict[str, Any] = {
     "SIZES": [8, 12, 16, 24, 32, 48, 64, 96, 128],
     "MARGINS": [0, 1, 2],
@@ -120,7 +120,7 @@ def _score_axis(ax: _Axis, c: int, m: int, s: int) -> _AxisCandidate | None:
     if s == 0:
         # A grid of size c is suspect when a larger valid size k*c exists whose boundaries are the
         # strong ones: the boundaries c has in between (the "odd" ones for k = 2) are weak.
-        # The spec only describes k = 2; k >= 2 is a tuning (see IMPLEMENTATION_NOTES.md).
+        # The spec only describes k = 2; k >= 2 is a tuning (see docs/dev/implementation_notes.md).
         for k in range(2, K["MAX_MULTIPLE"] + 1):
             big = k * c
             if big not in K["SIZES"] or (length - 2 * m) // big < 1 or len(boundaries) < k:

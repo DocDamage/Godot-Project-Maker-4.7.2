@@ -14,7 +14,7 @@ EXCLUDED_QT = [
     "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtWebEngineQuick",
     "PySide6.QtWebChannel", "PySide6.QtWebSockets", "PySide6.QtWebView",
     "PySide6.Qt3DCore", "PySide6.Qt3DRender", "PySide6.Qt3DInput", "PySide6.Qt3DLogic",
-    "PySide6.Qt3DAnimation", "PySide6.Qt3DExtras", "PySide6.QtMultimedia",
+    "PySide6.Qt3DAnimation", "PySide6.Qt3DExtras",
     "PySide6.QtMultimediaWidgets", "PySide6.QtQml", "PySide6.QtQuick", "PySide6.QtQuickWidgets",
     "PySide6.QtQuick3D", "PySide6.QtQuickControls2", "PySide6.QtCharts", "PySide6.QtDataVisualization",
     "PySide6.QtGraphs", "PySide6.QtPdf", "PySide6.QtPdfWidgets", "PySide6.QtSql", "PySide6.QtTest",
@@ -43,11 +43,14 @@ datas = []
 # The Godot template project, without its tests and the editor's import cache.
 datas += tree(os.path.join(ROOT, "godot_templates"), "godot_templates", skip_dirs={"tests", ".godot"})
 datas += tree(os.path.join(ROOT, "sample_pack"), "sample_pack")
-datas += tree(os.path.join(ROOT, "docs"), "docs", skip_dirs={"spec"})
+datas += tree(os.path.join(ROOT, "docs"), "docs", skip_dirs={"spec", "dev"})
 datas += [(os.path.join(ROOT, name), ".") for name in ("LICENSE", "THIRD_PARTY_NOTICES.md", "README.md")]
 datas += [(os.path.join(ROOT, "rpggen", "schema", f), os.path.join("rpggen", "schema"))
           for f in os.listdir(os.path.join(ROOT, "rpggen", "schema")) if f.endswith(".json")]
-datas += [(os.path.join(ROOT, "rpggen", "gui", "style.qss"), os.path.join("rpggen", "gui"))]
+datas += [
+    (os.path.join(ROOT, "rpggen", "gui", name), os.path.join("rpggen", "gui"))
+    for name in ("style.qss", "style_light.qss")
+]
 datas += collect_data_files("jsonschema_specifications")  # referenced schemas of jsonschema
 
 hidden = []

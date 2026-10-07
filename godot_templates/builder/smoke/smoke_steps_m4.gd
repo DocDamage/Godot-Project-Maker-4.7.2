@@ -10,6 +10,8 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "enter_building", "fn": _enter_building, "timeout_s": 15.0})
 	list.append({"name": "exit_building", "fn": _exit_building, "timeout_s": 15.0})
 	list.append({"name": "decor_blocks", "fn": _decor_blocks, "timeout_s": 20.0})
+	list.append({"name": "walk_to_field", "fn": _walk_to_field, "timeout_s": 30.0})
+	list.append({"name": "return_from_field", "fn": _return_from_field, "timeout_s": 30.0})
 	return list
 
 func _router() -> Node:
@@ -87,6 +89,73 @@ func _exit_building() -> String:
 		return "the starter map has no building exit spawn"
 	var dist := p.global_position.distance_to((spawns[0] as Node2D).global_position)
 	return "" if dist <= 16.0 else "player is %.1f px from the exit spawn" % dist
+
+## The door node called `door_name` below `scene`, or null.
+func _door_named(scene: Node, door_name: String) -> Area2D:
+	return scene.find_child(door_name, true, false) as Area2D
+
+func _tile_px(scene: Node) -> float:
+	var ground := scene.get_node_or_null("Ground") as TileMapLayer
+	return float(ground.tile_set.tile_size.x) if ground != null and ground.tile_set != null else 16.0
+
+## Stands the player `tiles` tiles from `door` on the `side` (-1 west, +1 east) and walks toward it
+## until the map changes (at most `frames` physics frames).
+func _walk_through(door: Area2D, side: int, action: String, frames: int) -> void:
+	var tree := _tree()
+	var p := _player()
+	var tile := _tile_px(tree.current_scene)
+	p.global_position = door.global_position + Vector2(side * 1.5 * tile, 0.0)
+	await tree.physics_frame
+	var scene_before := tree.current_scene
+	Input.action_press(action)
+	for i in frames:
+		await tree.physics_frame
+		if tree.current_scene != scene_before or _router().is_busy():
+			break
+	Input.action_release(action)
+
+## The east exit of the starter map leads to the field, and the game knows where the player is.
+func _walk_to_field() -> String:
+	var tree := _tree()
+	var scene := tree.current_scene
+	if scene == null or scene.name != "StarterMap":
+		return "not in the starter map"
+	var door := _door_named(scene, "starter_map_east_exit")
+	if door == null:
+		print("[rpggen] INFO walk_to_field: this starter map has no east exit, step passes")
+		return ""
+	await _walk_through(door, -1, "move_right", 180)
+	if not await _wait_for_map("Field1", 600):
+		return "walking into the east exit did not open the field map"
+	var state := tree.root.get_node_or_null("GameState")
+	if state != null and not String(state.current_map).ends_with("field_1.tscn"):
+		return "GameState.current_map is %s, not the field map" % String(state.current_map)
+	var spawn := tree.current_scene.get_node_or_null("SpawnPoints/west_entry") as Node2D
+	var p := _player()
+	if spawn == null or p == null or p.global_position.distance_to(spawn.global_position) > 48.0:
+		return "the player did not arrive at the west entry of the field"
+	return ""
+
+func _return_from_field() -> String:
+	var tree := _tree()
+	var scene := tree.current_scene
+	if scene == null or scene.name != "Field1":
+		print("[rpggen] INFO return_from_field: not in the field map, step passes")
+		return ""
+	var door := _door_named(scene, "field_1_west_exit")
+	if door == null:
+		return "the field map has no west exit"
+	await _walk_through(door, 1, "move_left", 180)
+	if not await _wait_for_map("StarterMap", 600):
+		return "walking into the west exit did not bring the player back to the starter map"
+	var state := tree.root.get_node_or_null("GameState")
+	if state != null and not String(state.current_map).ends_with("starter_map.tscn"):
+		return "GameState.current_map is %s, not the starter map" % String(state.current_map)
+	var spawn := tree.current_scene.get_node_or_null("SpawnPoints/east_entry") as Node2D
+	var p := _player()
+	if spawn == null or p == null or p.global_position.distance_to(spawn.global_position) > 48.0:
+		return "the player did not arrive at the east entry of the starter map"
+	return ""
 
 func _decor_blocks() -> String:
 	var tree := _tree()

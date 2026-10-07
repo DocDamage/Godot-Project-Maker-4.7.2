@@ -6,6 +6,26 @@
   matches rpggen 1.0.0, the diagnostic bundle and the Windows export preset that ship with it.
 * Regenerating a project made with 0.x asks for confirmation once (`--accept-runtime-upgrade`
   or the dialog in the wizard) because the major version changed.
+* Before the release (M11): the action-RPG **heavy attack** (`secondary_attack`: 1.75x damage,
+  1.5x knockback, slower swing); chests built from a two-frame strip, sheet or an `open`
+  animation show their open picture; the action-RPG HUD uses a nine-sliced UI bar from the pack
+  when there is one and sits on the project theme's panel.
+* Sound slots: a sound bank (`rpggen/sound_bank.json`), `RpgAudio.play`, `play_ui_slot` and
+  `play_music_slot` (silent no-ops for an unset slot), sounds for pick-ups, hits, attacks,
+  level-ups, saving, chests, doors, menus (cursor, confirm, cancel) and footsteps, the map music
+  of the map root, the battle music and the title music. New events: `chest_opened`,
+  `door_used` and `attack_started`.
+* A game-over screen (`RpgGameOver`, `RpgDefeatPolicy` shared by both archetypes): continue from
+  the newest save, try the map again or quit to the title; smoke runs skip it.
+* Autosave: a fourth save slot 0 beside slots 1 to 3, written when a map is entered (never during
+  a battle, dialogue or fade, and at most every 10 s), listed first in the load menu; the
+  Settings menu can turn it off. Slot numbers 1 to 3 are unchanged, save version stays 1.
+* A second outdoor map `field_1.tscn` behind a gap in the east wall of a new starter map; screen
+  shake and hit-stop on a landed heavy attack (Settings > Screen shake); a key prompt over what the
+  player can interact with; the game version on the title screen; the map and play time in the
+  pause menu.
+* Fixed while running M11 against Godot 4.7.2: the interact prompt shows `E`, not
+  `E - Physical`; `RpgAudio` lets go of its streams when it leaves the tree.
 
 ## 0.3.0
 

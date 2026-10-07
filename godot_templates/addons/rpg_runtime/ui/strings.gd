@@ -42,6 +42,13 @@ const KEYS := {
 	"UI_SPEED": "Speed",
 	"UI_MAGIC": "Magic",
 	"UI_RESISTANCE": "Resistance",
+	"UI_GAME_OVER_TITLE": "You were defeated",
+	"UI_GAME_OVER_CONTINUE": "Continue from last save",
+	"UI_GAME_OVER_RETRY": "Try again from the start of the map",
+	"UI_GAME_OVER_QUIT": "Quit to title",
+	"UI_SCREEN_SHAKE": "Screen shake",
+	"UI_AUTOSAVED": "Saved",
+	"UI_AUTOSAVE": "Autosave",
 	"UI_GAME_SAVED": "Game saved",
 	"UI_SAVE_FAILED": "Saving failed",
 	"UI_LOAD_FAILED": "Loading failed",
@@ -87,4 +94,19 @@ static func register_translations() -> int:
 		if t != null:
 			TranslationServer.add_translation(t)
 			added += 1
+	_add_missing_defaults()
 	return added
+
+## A project made before a key existed has no row for it in game/i18n/strings.tsv (the file is the
+## user's and is never rewritten). Keys that no registered translation knows get their English
+## text from KEYS, so new screens are not shown as raw keys.
+static func _add_missing_defaults() -> void:
+	var fallback := Translation.new()
+	fallback.locale = "en"
+	var any := false
+	for key in KEYS.keys():
+		if str(TranslationServer.translate(StringName(key))) == key:
+			fallback.add_message(StringName(key), KEYS[key])
+			any = true
+	if any:
+		TranslationServer.add_translation(fallback)

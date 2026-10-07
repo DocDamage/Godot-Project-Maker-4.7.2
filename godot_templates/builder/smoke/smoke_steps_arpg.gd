@@ -24,12 +24,17 @@ func steps() -> Array[Dictionary]:
 		{"name": "enemy_detects", "fn": _enemy_detects, "timeout_s": 25.0},
 		{"name": "player_attack_hits", "fn": _player_attack_hits, "timeout_s": 15.0},
 		{"name": "no_damage_outside_active_frames", "fn": _no_damage_outside_active_frames, "timeout_s": 15.0},
+		{"name": "heavy_attack_hits", "fn": _heavy_attack_hits, "timeout_s": 25.0},
 		{"name": "enemy_dies", "fn": _enemy_dies, "timeout_s": 25.0},
 		{"name": "player_hurt_invuln", "fn": _player_hurt_invuln, "timeout_s": 30.0},
 		{"name": "dodge", "fn": _dodge, "timeout_s": 15.0},
 		{"name": "persist", "fn": _persist, "timeout_s": 40.0},
 		{"name": "death_policy", "fn": _death_policy, "timeout_s": 40.0},
+		{"name": "game_over_screen", "fn": _game_over_screen, "timeout_s": 40.0},
 	]
+
+func _game_over_screen() -> String:
+	return await preload("game_over_check.gd").new().run()
 
 # ---------------------------------------------------------------- helpers
 
@@ -207,6 +212,56 @@ func _no_damage_outside_active_frames() -> String:
 		return "no player stats"
 	return ""
 
+## The heavy attack (secondary_attack) deals more than the light attack to the same frozen enemy.
+## Critical hits are skipped (they would blur the comparison) and the swing is repeated.
+func _heavy_attack_hits() -> String:
+	var p := _player()
+	var e1 := _find_enemy(ENEMY_1)
+	var combat := _combat_of(p)
+	if e1 == null:
+		return "enemy %s is missing" % ENEMY_1
+	if not await _wait_idle(combat, 180):
+		return "the player did not return to IDLE (state %s)" % combat.state()
+	var seen := {"last": null}
+	var on_damaged := func(info: RpgDamageInfo) -> void: seen["last"] = info
+	e1.hurtbox.damaged.connect(on_damaged)
+	var amounts := {}
+	# a heavy hit must not kill the enemy (a dead enemy cannot be hit again): lend it a big health pool
+	var stats := e1.health.stats()
+	var real_max := stats.max_hp
+	stats.max_hp = 500
+	for action in ["attack", "secondary_attack"]:
+		for attempt in 5:
+			_freeze(e1)
+			e1.hurtbox.invulnerable_until_ms = 0
+			e1.health.heal(999)
+			seen["last"] = null
+			await _stand_next_to(p, e1, 1.0)
+			_freeze(e1)
+			e1.global_position = p.global_position + Vector2(e1.tile_size, 0.0)
+			await _frames(2)
+			await _tap(action)
+			for i in 75:
+				if seen["last"] != null:
+					break
+				await _tree().physics_frame
+			var info: RpgDamageInfo = seen["last"]
+			await _wait_idle(combat, 180)
+			if info != null and not info.crit:
+				amounts[action] = info.amount
+				break
+		if not amounts.has(action):
+			e1.hurtbox.damaged.disconnect(on_damaged)
+			stats.max_hp = real_max
+			e1.health.heal(999)
+			return "the %s did not land a normal hit on the enemy in 5 tries (last: %s, player state %s)" % [action, "no hit" if seen["last"] == null else ("crit" if seen["last"].crit else "hit"), combat.state()]
+	e1.hurtbox.damaged.disconnect(on_damaged)
+	stats.max_hp = real_max
+	e1.health.heal(999)
+	if int(amounts["secondary_attack"]) <= int(amounts["attack"]):
+		return "the heavy attack dealt %d, not more than the light attack's %d" % [amounts["secondary_attack"], amounts["attack"]]
+	return ""
+
 func _enemy_dies() -> String:
 	var tree := _tree()
 	var state := _autoload("GameState")
@@ -369,8 +424,8 @@ func _death_policy() -> String:
 	var save := _autoload("SaveManager")
 	var router := _autoload("SceneRouter")
 	save.set("dir", SAVE_DIR)
-	for slot in range(1, 4):
-		save.delete(slot)  # no save: the player wakes up at the default spawn
+	for slot in range(int(save.get("AUTOSAVE_SLOT")), 4):
+		save.delete(slot)  # no save, the autosave included: the player wakes up at the default spawn
 	var p := _player()
 	var e2 := _find_enemy(ENEMY_2)
 	if p == null or e2 == null:

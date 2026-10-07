@@ -24,17 +24,20 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import catalog as catalog_mod
 from rpggen.gui.edits import EditSession
-from rpggen.gui.widgets.asset_detail import COLLISION_PROFILES, ROLES, USAGES
+from rpggen.gui.widgets.asset_detail import COLLISION_PROFILES, ROLES, USAGES, add_labeled
 
 UNCHANGED = "— unchanged —"
 
 
-def _optional_combo(name: str, items: list[str]) -> QComboBox:
+def _optional_combo(name: str, items: list[str], kind: str = "") -> QComboBox:
     combo = QComboBox()
     combo.setObjectName(name)
     combo.addItem(UNCHANGED, None)
     for item in items:
-        combo.addItem(item, item)
+        if kind:
+            add_labeled(combo, item, kind)
+        else:
+            combo.addItem(item, item)
     return combo
 
 
@@ -56,8 +59,8 @@ class BulkPanel(QWidget):
         layout.addWidget(self.count_label)
         form = QFormLayout()
         layout.addLayout(form)
-        self.role_combo = _optional_combo("bulkRole", ROLES)
-        self.usage_combo = _optional_combo("bulkUsage", USAGES)
+        self.role_combo = _optional_combo("bulkRole", ROLES, "role")
+        self.usage_combo = _optional_combo("bulkUsage", USAGES, "usage")
         self.collision_combo = _optional_combo("bulkCollision", COLLISION_PROFILES)
         self.tileset_combo = _optional_combo("bulkTileset", [])
         self.add_tags_edit = QLineEdit()
@@ -173,7 +176,7 @@ class FolderRuleDialog(QDialog):
         self.pack_combo.setCurrentText(pack_id)
         self.glob_edit = QLineEdit(glob)
         self.glob_edit.setObjectName("ruleGlob")
-        self.role_combo = _optional_combo("ruleRole", ROLES)
+        self.role_combo = _optional_combo("ruleRole", ROLES, "role")
         self.usage_combo = _optional_combo("ruleUsage", USAGES)
         for combo, key in ((self.role_combo, "role"), (self.usage_combo, "usage")):
             if key in values:
@@ -213,6 +216,7 @@ class RulesPanel(QWidget):
         layout = QVBoxLayout(self)
         self.list = QListWidget()
         self.list.setObjectName("rulesList")
+        self.list.setToolTip(self.tr("Folder rules: what happens to every file in a folder"))
         self.list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.list.setDefaultDropAction(Qt.DropAction.MoveAction)
         layout.addWidget(self.list, 1)

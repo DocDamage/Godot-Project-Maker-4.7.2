@@ -5,7 +5,7 @@ verified. Add a row before using an API for the first time (see `00_START_HERE.m
 
 Results below were verified on **Godot 4.7.1 stable** (the version installed on the developer
 machine). CI re-runs the probes on 4.7.2 (`python -m rpggen.dev godot-test`); if a row differs on
-4.7.2, update it and note the difference in `IMPLEMENTATION_NOTES.md`.
+4.7.2, update it and note the difference in `docs/dev/implementation_notes.md`.
 
 | API | Signature / usage | Verified by | Date | Result |
 |-----|-------------------|-------------|------|--------|

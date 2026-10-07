@@ -1,7 +1,7 @@
 extends RefCounted
 ## Applies project settings from the generator config and saves project.godot.
 
-const RECIPE_VERSION := 4
+const RECIPE_VERSION := 5
 
 # Autoloads in registration order (T6): the runtime's singletons, nothing else.
 const AUTOLOADS := [
@@ -48,6 +48,8 @@ func build(ctx) -> Array:
 	var res: Array = cfg.get("resolution", [640, 360])
 	var win: Array = cfg.get("window_size", [1280, 720])
 	ProjectSettings.set_setting("application/config/name", str(cfg.get("project_name", "rpggen game")))
+	if str(ProjectSettings.get_setting("application/config/version", "")) == "":
+		ProjectSettings.set_setting("application/config/version", "0.1.0")  # the game's own number: change it when you like
 	ProjectSettings.set_setting("application/run/main_scene", "res://generated/scenes/bootstrap/boot.tscn")
 	ProjectSettings.set_setting("display/window/size/viewport_width", int(res[0]))
 	ProjectSettings.set_setting("display/window/size/viewport_height", int(res[1]))

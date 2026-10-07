@@ -34,6 +34,7 @@ func interact(_actor: Node = null) -> void:
 	if entity_id != "":
 		state.set_flag(entity_id, "opened", true)
 	apply_opened_state()
+	RpgUtil.emit(&"chest_opened", [entity_id])
 	RpgUtil.notify("Found %s" % ", ".join(found) if not found.is_empty() else "The chest is empty")
 
 func _item_text(state: Node, id: StringName, qty: int) -> String:

@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 import copy
+import time
 from pathlib import Path
 
+from PySide6.QtCore import QEventLoop, Qt, QTimer
 from PySide6.QtWidgets import (
+    QApplication,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QSystemTrayIcon,
     QVBoxLayout,
     QWidget,
 )
 
-from rpggen.core import orchestrator, vcs
+from rpggen.core import app_settings, orchestrator, vcs
 from rpggen.errors import Issue, IssueList
 from rpggen.gui import workers
 from rpggen.gui.pages.base import WizardPage, form_error
@@ -24,6 +28,20 @@ from rpggen.gui.state import WizardState
 from rpggen.gui.widgets.log_view import LogView
 
 PHASES = orchestrator.PHASES_M1
+GODOT_PHASES = {"import", "build", "validate", "smoke", "export"}
+PHASE_LABELS = {
+    "preflight": "Checking your setup",
+    "stage": "Preparing a work folder",
+    "install": "Copying your packs and the game code",
+    "catalog": "Reading what is in your packs",
+    "import": "Importing assets into Godot",
+    "build": "Building the game",
+    "validate": "Checking the game for problems",
+    "smoke": "Playing the game to test it",
+    "export": "Test-exporting the game",
+    "promote": "Delivering the project",
+    "report": "Writing the report",
+}
 ICON_PENDING = "○"
 ICON_RUNNING = "⏳"
 ICON_DONE = "✔"
@@ -32,6 +50,7 @@ ICON_FAILED = "✖"
 
 class GeneratePage(WizardPage):
     title = "Generate"
+    help_anchor = "2. First run with the sample pack"
     next_label = "Show results"
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -40,25 +59,45 @@ class GeneratePage(WizardPage):
         self.worker: workers.Worker | None = None
         self.running = False
         self.cancelled = False
+        self.current_phase = ""
         self.allow_back = False
         self.allow_next = False
         layout = QVBoxLayout(self)
         self.status_label = QLabel()
         self.status_label.setObjectName("generateStatus")
         layout.addWidget(self.status_label)
+        self.elapsed_label = QLabel()
+        self.elapsed_label.setObjectName("elapsedLabel")
+        self.elapsed_label.setProperty("muted", True)
+        layout.addWidget(self.elapsed_label)
+        self._clock = QTimer(self)
+        self._clock.setInterval(1000)
+        self._clock.timeout.connect(self._tick)
+        self._run_started = 0.0
+        self._phase_started = 0.0
+        self._durations: dict[str, float] = {}
         self.progress = QProgressBar()
         self.progress.setObjectName("generateProgress")
         self.progress.setRange(0, len(PHASES))
         layout.addWidget(self.progress)
         self.phase_list = QListWidget()
         self.phase_list.setObjectName("phaseList")
+        self.phase_list.setToolTip(self.tr("The steps of the generation and how long each took"))
         self.phase_list.setMaximumHeight(24 * (len(PHASES) + 1))
         for _ in PHASES:
             self.phase_list.addItem(QListWidgetItem())
         self._set_icons({})
         layout.addWidget(self.phase_list)
+        self.details_button = QPushButton(self.tr("Show details"))
+        self.details_button.setObjectName("generateDetails")
+        self.details_button.setCheckable(True)
+        self.details_button.setToolTip(self.tr("Show the log of the run"))
+        layout.addWidget(self.details_button, 0, Qt.AlignmentFlag.AlignLeft)
         self.log_view = LogView()
+        self.log_view.setVisible(False)
         layout.addWidget(self.log_view, 1)
+        layout.addStretch(0)
+        self.details_button.toggled.connect(self._show_details)
         self.cancel_button = QPushButton(self.tr("Cancel"))
         self.cancel_button.setObjectName("generateCancel")
         self.cancel_button.clicked.connect(self.cancel)
@@ -70,7 +109,46 @@ class GeneratePage(WizardPage):
         for i, name in enumerate(PHASES):
             item = self.phase_list.item(i)
             if item is not None:
-                item.setText(f"{icons.get(name, ICON_PENDING)}  {name}")
+                text = f"{icons.get(name, ICON_PENDING)}  {self.tr(PHASE_LABELS.get(name, name))}"
+                if name in self._durations and icons.get(name) in (ICON_DONE, ICON_FAILED):
+                    text += f"  ·  {self._durations[name]:.0f} s"
+                item.setText(text)
+                item.setToolTip(name)
+
+    def _show_details(self, shown: bool) -> None:
+        self.log_view.setVisible(shown)
+        self.details_button.setText(self.tr("Hide details") if shown else self.tr("Show details"))
+
+    # ------------------------------------------------------------------ the clock
+
+    @staticmethod
+    def format_seconds(seconds: float) -> str:
+        seconds = max(0, int(seconds))
+        return f"{seconds // 60}:{seconds % 60:02d}"
+
+    def estimate_left(
+        self, timings: dict[str, float], current: str, in_phase: float
+    ) -> float | None:
+        """Seconds left from the last run's timings; None without a full history (no guess)."""
+        if not current or current not in PHASES or any(p not in timings for p in PHASES):
+            return None
+        position = PHASES.index(current)
+        rest = sum(timings[p] for p in PHASES[position + 1 :])
+        return rest + max(0.0, timings[current] - in_phase)
+
+    def _tick(self) -> None:
+        if not self.running:
+            return
+        elapsed = time.monotonic() - self._run_started
+        text = self.tr("Elapsed {0}").format(self.format_seconds(elapsed))
+        left = self.estimate_left(
+            app_settings.load().phase_timings,
+            self.current_phase,
+            time.monotonic() - self._phase_started,
+        )
+        if left is not None:
+            text += "  ·  " + self.tr("about {0} s left").format(max(5, round(left / 5) * 5))
+        self.elapsed_label.setText(text)
 
     def _phase_icon(self, name: str) -> str:
         item = self.phase_list.item(PHASES.index(name))
@@ -92,6 +170,31 @@ class GeneratePage(WizardPage):
 
     def leave(self, state: WizardState) -> bool | None:
         return False if self.running else None
+
+    def ask_stop_and_close(self) -> bool:  # overridden by tests
+        answer = QMessageBox.question(
+            self,
+            self.tr("Generation is running"),
+            self.tr("Generation is running. Stop it and close?"),
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def request_close(self, timeout_ms: int = 15000) -> bool:
+        """True when the window may close: nothing runs, or the user chose to stop it (the run
+        is cancelled and awaited so that no Godot process is left behind)."""
+        if not self.running or self.worker is None:
+            return True
+        if not self.ask_stop_and_close():
+            return False
+        worker = self.worker
+        self.cancel()
+        loop = QEventLoop()
+        worker.signals.finished.connect(loop.quit)
+        worker.signals.failed.connect(loop.quit)
+        QTimer.singleShot(timeout_ms, loop.quit)
+        if self.running:
+            loop.exec()
+        return True
 
     # ------------------------------------------------------------------ running
 
@@ -127,6 +230,10 @@ class GeneratePage(WizardPage):
         assert state is not None
         self.cancelled = False
         self.log_view.clear()
+        self._durations = {}
+        self._run_started = self._phase_started = time.monotonic()
+        self.elapsed_label.setText(self.tr("Elapsed {0}").format("0:00"))
+        self._clock.start()
         self._set_icons({})
         self.progress.setValue(0)
         if state.config is None or state.target is None or state.godot_exe is None:
@@ -134,6 +241,7 @@ class GeneratePage(WizardPage):
                 IssueList().add("GUI-001", reason="the project, output folder or Godot is not set")
             )
             return
+        self.current_phase = ""
         self.running = True
         self.allow_back = False
         self.allow_next = False
@@ -163,19 +271,34 @@ class GeneratePage(WizardPage):
             self.cancelled = True
             self.worker.cancel()
             self.cancel_button.setEnabled(False)
-            self.status_label.setText(self.tr("Cancelling…"))
+            self.status_label.setText(
+                self.tr("Stopping Godot…")
+                if self.current_phase in GODOT_PHASES
+                else self.tr("Cancelling…")
+            )
 
     def _on_progress(self, name: str, index: int, total: int) -> None:
         if name not in PHASES:
             return
+        now = time.monotonic()
+        if self.current_phase and self.current_phase != name:
+            self._durations[self.current_phase] = now - self._phase_started
+        if self.current_phase != name:
+            self._phase_started = now
+        self.current_phase = name
         icons = {p: ICON_DONE for p in PHASES[: index - 1]}
         icons[name] = ICON_RUNNING
         self._set_icons(icons)
         self.progress.setMaximum(total)
         self.progress.setValue(index - 1)
-        self.status_label.setText(self.tr("Phase {0} of {1}: {2}").format(index, total, name))
+        self.status_label.setText(
+            self.tr("Phase {0} of {1}: {2}").format(
+                index, total, self.tr(PHASE_LABELS.get(name, name))
+            )
+        )
 
     def _stop_running(self) -> None:
+        self._clock.stop()
         self.running = False
         self.cancel_button.setEnabled(False)
         self.worker = None
@@ -206,6 +329,20 @@ class GeneratePage(WizardPage):
             self.state.run_result = result
         self._show_finished(result)
 
+    def notify(self, title: str, text: str) -> None:
+        """A system notification when the run ends while this window is not the active one."""
+        if QApplication.activeWindow() is not None:
+            return
+        self.show_notification(title, text)
+
+    def show_notification(self, title: str, text: str) -> None:  # overridden by tests
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return
+        tray = QSystemTrayIcon(self.windowIcon(), self)
+        tray.show()
+        tray.showMessage(title, text)
+        QTimer.singleShot(6000, tray.hide)
+
     def _show_cancelled(self) -> None:
         self.status_label.setText(self.tr("Generation was cancelled; nothing was delivered."))
         self.status_label.setProperty("state", "warning")
@@ -213,9 +350,32 @@ class GeneratePage(WizardPage):
         self.allow_next = False
         self.changed.emit()
 
+    def _remember_project(self, result: orchestrator.RunResult) -> None:
+        """A finished generation goes into the recent projects (and remembers the folders)."""
+        state = self.state
+        if state is None or state.config is None or state.target is None:
+            return
+        settings = app_settings.load()
+        app_settings.add_recent(
+            settings, state.target, state.config.project_name, state.config.archetype
+        )
+        settings.last_target_dir = str(Path(state.target).parent)
+        if state.godot_exe is not None:
+            settings.godot_exe = str(state.godot_exe)
+        app_settings.save(settings)
+
     def _show_finished(self, result: orchestrator.RunResult) -> None:
+        if result.timings:
+            self._durations.update(result.timings)
         if result.ok:
+            self._remember_project(result)
+            if result.timings:
+                app_settings.update(phase_timings=dict(result.timings))
             self._set_icons({p: ICON_DONE for p in PHASES})
+            self.elapsed_label.setText(
+                self.tr("Finished in {0}").format(self.format_seconds(sum(result.timings.values())))
+            )
+            self.notify(self.tr("rpggen"), self.tr("Your project was generated."))
             self.progress.setValue(len(PHASES))
             self.status_label.setText(self.tr("Generation finished."))
             self.status_label.setProperty("state", "ok")
@@ -229,6 +389,8 @@ class GeneratePage(WizardPage):
             if result.failed_phase in PHASES:
                 icons[result.failed_phase] = ICON_FAILED
             self._set_icons(icons)
+            self.details_button.setChecked(True)  # a failure opens the log by itself
+            self.notify(self.tr("rpggen"), self.tr("Generation failed."))
             self.status_label.setText(self.tr("Generation failed."))
             self.status_label.setProperty("state", "error")
             self.allow_back = True

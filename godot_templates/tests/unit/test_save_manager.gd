@@ -66,8 +66,10 @@ func test_header_and_delete(t) -> void:
 func test_slot_numbers_are_checked(t) -> void:
 	var ctx := _setup()
 	var save: Node = ctx[1]
-	t.ok(not save.save(0))
+	t.ok(not save.save(-1))
 	t.ok(not save.save(4))
+	t.ok(save.save(0), "slot 0 is the autosave slot")
+	t.ok(save.has_save(0) and not save.has_save(1))
 	t.ok(not save.load(2), "no file")
 	_cleanup(ctx[2])
 
@@ -161,4 +163,40 @@ func test_save_leaves_no_temp_file(t) -> void:
 	var files := DirAccess.get_files_at(ctx[2])
 	t.ok(not files.has("slot_2.tmp"))
 	t.ok(files.has("slot_2.json") and files.has("slot_2.backup.json"))
+	_cleanup(ctx[2])
+
+# ---------------------------------------------------------------- autosave (T11.22)
+
+func test_the_autosave_slot_is_separate_and_counts_as_a_save(t) -> void:
+	var ctx := _setup()
+	var state: Node = ctx[0]
+	var save: Node = ctx[1]
+	state.gold = 77
+	t.ok(save.save(save.AUTOSAVE_SLOT))
+	t.ok(save.any_save(), "Continue is available with only an autosave")
+	t.ok(not save.has_save(1) and not save.has_save(2) and not save.has_save(3))
+	t.eq(save.header(0)["gold"], 77)
+	state.gold = 0
+	t.ok(save.load(save.AUTOSAVE_SLOT))
+	t.eq(state.gold, 77)
+	_cleanup(ctx[2])
+
+func test_autosave_needs_a_settled_map_and_waits_between_saves(t) -> void:
+	var ctx := _setup()
+	var save: Node = ctx[1]
+	# No SceneRouter in this fixture: nothing to autosave, and nothing breaks.
+	t.ok(not save.can_autosave())
+	t.ok(not save.autosave())
+	t.ok(not save.has_save(0))
+	_cleanup(ctx[2])
+
+func test_latest_save_slot_picks_an_autosave_that_is_newer(t) -> void:
+	var ctx := _setup()
+	var save: Node = ctx[1]
+	t.eq(RpgDefeatPolicy.latest_save_slot(), -1, "no save at all")
+	t.ok(save.save(2))
+	t.eq(RpgDefeatPolicy.latest_save_slot(), 2)
+	OS.delay_msec(1100)  # saved_at has a resolution of one second
+	t.ok(save.save(save.AUTOSAVE_SLOT))
+	t.eq(RpgDefeatPolicy.latest_save_slot(), 0, "the newer autosave wins (Continue and game over use it)")
 	_cleanup(ctx[2])

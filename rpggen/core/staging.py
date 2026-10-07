@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from rpggen import jsonio, paths, schema
+from rpggen import godot_target, jsonio, paths, schema
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.core import export_check, runtime_version
@@ -33,14 +33,16 @@ config_version=5
 [application]
 
 config/name="{name}"
-config/features=PackedStringArray("4.7")
+config/features=PackedStringArray("{godot_major_minor}")
 """
 
 
 def minimal_project_godot(name: str) -> str:
     """MINIMAL_PROJECT_GODOT with ``config/name`` set (quotes and backslashes escaped)."""
     escaped = name.replace("\\", "\\\\").replace('"', '\\"')
-    return MINIMAL_PROJECT_GODOT.replace("{name}", escaped)
+    return MINIMAL_PROJECT_GODOT.replace("{godot_major_minor}", godot_target.MAJOR_MINOR).replace(
+        "{name}", escaped
+    )
 
 
 BACKUPS_NAME = ".rpggen_backups"
