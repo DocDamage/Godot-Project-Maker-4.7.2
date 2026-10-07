@@ -38,6 +38,34 @@ Integration tests are **skipped, not failed**, when `RPGGEN_GODOT` is unset; CI 
 CI (`.github/workflows/ci.yml`) runs the whole list on Windows and on Ubuntu; the Linux job is what
 finds path-case and path-separator bugs, so do not skip it.
 
+## Things that have bitten CI
+
+* **Formatting covers `tests/` and `tools/`** as well as `rpggen/`: run `python -m ruff format .`
+  before you push, not only `ruff check`.
+* **PNG and zip bytes depend on the platform's zlib.** The synthetic packs under
+  `test_packs/synthetic/` are compared byte for byte only on Windows in CI;
+  `tests/unit/test_synthetic_packs.py` compares decoded pixels and zip contents everywhere. After
+  changing `tools/make_synthetic_packs.py`, regenerate on Windows and run
+  `python -m rpggen.dev update-goldens`. Godot cannot load the header-only audio stubs the tool
+  writes, so the two `.ogg` files of `audio_basic` are real encoded files that the tool keeps.
+* **Git repacks in the background**, so integration tests that snapshot a generated project leave
+  `.git/` out and check the repository with `vcs.is_clean`.
+* **Kill the whole process tree.** `rpggen/core/godot.py` starts Godot in its own session on
+  POSIX and kills the group, because Godot starts children of its own.
+* **A late worker callback can reach a closed page.** Callbacks that touch widgets guard with a
+  `try: widget.objectName() except RuntimeError: return`.
+* **Smoke steps that depend on saves** must clear the autosave slot (`AUTOSAVE_SLOT`, 0) as well
+  as slots 1 to 3.
+* **Smoke-test lists** are asserted by the integration tests (`M6_STEPS`, `M7_STEPS`, `M9_STEPS`
+  and the list in `test_generate_basic16.py`); adding a step means updating them.
+* **A local Godot** can sit in the project folder (`Godot_v*` is git-ignored); point
+  `RPGGEN_GODOT` at its console executable.
+
+To change the Godot version the app targets, use `python tools/bump_godot.py <version>`
+([docs/release.md](docs/release.md)). To refresh the pictures in the user guide, run
+`python tools/make_doc_screenshots.py --godot <exe>` (a test checks that the guide and the images
+agree).
+
 ## How the project is organized
 
 The project was built from task cards (`docs/spec/M01_...M11`), one milestone at
