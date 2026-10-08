@@ -11,6 +11,12 @@ var _extra_buttons: Array[Button] = []  # added by the archetype's combat mode (
 func _ready() -> void:
 	(get_node("%Use") as Button).pressed.connect(_on_use)
 	(get_node("%Back") as Button).pressed.connect(close)
+	var equip_button := Button.new()
+	equip_button.name = "Equip"
+	equip_button.text = tr("UI_EQUIP")
+	add_extra_button(equip_button)
+	RpgMenuUtil.attach_sounds([equip_button])
+	equip_button.pressed.connect(_on_equip)
 	_refresh()
 	_focus_first.call_deferred()
 	var router := RpgUtil.router()
@@ -117,6 +123,28 @@ func _on_use() -> void:
 		RpgUtil.notify(tr("UI_CANNOT_USE_NOW"))
 		return
 	_refresh()
+	_focus_first.call_deferred()
+
+## Opens the equip picker for the slot of the selected item, with that item focused.
+func _on_equip() -> void:
+	var state := RpgUtil.state()
+	if state == null or _selected == &"":
+		return
+	var def: RpgItemDefinition = state.items.get(_selected)
+	var slot := RpgGameState.slot_of(def)
+	if slot == &"":
+		RpgUtil.notify(tr("UI_CANNOT_EQUIP"))
+		return
+	var picker := RpgEquipPicker.new()
+	picker.actor_id = state.player_actor_id
+	picker.slot = slot
+	picker.focus_item = _selected
+	add_child(picker)
+	picker.closed.connect(_on_picker_closed, CONNECT_ONE_SHOT)
+
+func _on_picker_closed(changed: bool) -> void:
+	if changed:
+		_refresh()
 	_focus_first.call_deferred()
 
 func _unhandled_input(event: InputEvent) -> void:

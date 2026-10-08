@@ -11,7 +11,7 @@ func execute(user: RpgBattleActor, targets_list: Array[RpgBattleActor], battle: 
 	for target in targets_list:
 		if not target.alive:
 			continue
-		var roll := RpgBattleMath.roll_damage(user.stats.attack, target.stats.defense, target.defending, battle.rng)
+		var roll := RpgBattleMath.roll_damage(user.stat(&"attack"), target.stat(&"defense"), target.defending, battle.rng)
 		var amount: int = mini(RpgUtil.to_int(roll["amount"]), target.stats.hp)
 		target.stats.hp -= amount
 		var key := "BATTLE_ATTACK_CRIT" if roll["crit"] else "BATTLE_ATTACK_HIT"

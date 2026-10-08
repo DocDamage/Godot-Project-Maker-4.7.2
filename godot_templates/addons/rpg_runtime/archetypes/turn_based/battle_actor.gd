@@ -17,6 +17,13 @@ var alive: bool:
 	get:
 		return stats != null and stats.hp > 0
 
+## A stat as combat sees it: the player side wears its equipment, enemies use their stats as they are.
+func stat(stat_name: StringName) -> int:
+	var state := RpgUtil.state() if is_player_side else null
+	if state != null:
+		return roundi(state.effective_stat(stats, stat_name))
+	return roundi(stats.get_stat(stat_name))
+
 static func make(actor_id: StringName, actor_name: String, actor_stats: RpgStats, player_side: bool) -> RpgBattleActor:
 	var a := RpgBattleActor.new()
 	a.id = actor_id

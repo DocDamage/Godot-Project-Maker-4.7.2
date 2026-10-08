@@ -30,6 +30,7 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "autosave", "fn": _autosave, "timeout_s": 40.0})
 	list.append({"name": "save_slot_1", "fn": _save_slot_1, "timeout_s": 10.0})
 	list.append({"name": "save_overwrite_confirm", "fn": _save_overwrite_confirm, "timeout_s": 15.0})
+	list.append({"name": "equip_raises_attack", "fn": _equip_raises_attack, "timeout_s": 15.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
 	return list
@@ -340,6 +341,60 @@ func _save_overwrite_confirm() -> String:
 		save.delete(3)
 	state.gold = gold
 	save.save(1)  # slot 1 is what it was after save_slot_1, for the next step
+	menu.queue_free()
+	return failure
+
+## Wearing a weapon from the status menu raises the attack stat (and the menu says so); taking it
+## off puts the stat back. The sword is a test item, removed again afterwards.
+func _equip_raises_attack() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	if state == null:
+		return "GameState is missing"
+	var sword := RpgItemDefinition.new()
+	sword.id = &"smoke_sword"
+	sword.display_name = "Smoke Sword"
+	sword.category = RpgItemDefinition.Category.WEAPON
+	sword.max_stack = 1
+	var mods: Array[Dictionary] = [{"stat": "attack", "add": 3.0, "mul": 1.0}]
+	sword.modifiers = mods
+	state.items[sword.id] = sword
+	state.inventory.add(sword.id, 1)
+	var id: StringName = state.player_actor_id
+	var before: float = state.stat_of(id, &"attack")
+	var menu := (load(RpgMenuUtil.scene_path("status_menu")) as PackedScene).instantiate() as RpgStatusMenu
+	_tree().root.add_child(menu)
+	await _frames(2)
+	var failure := ""
+	var slot_button := menu.find_child("Slot_weapon", true, false) as Button
+	if slot_button == null:
+		failure = "the status menu has no weapon slot"
+	else:
+		slot_button.pressed.emit()
+		await _frames(2)
+		var choice := menu.find_child("Choice_smoke_sword", true, false) as Button
+		if choice == null:
+			failure = "the equip picker does not offer the sword"
+		else:
+			choice.pressed.emit()
+			await _frames(3)
+	if failure == "":
+		var after: float = state.stat_of(id, &"attack")
+		var shown := ""
+		for label in menu.find_children("*", "Label", true, false):
+			if (label as Label).text.begins_with(menu.tr("UI_ATTACK") + ":"):
+				shown = (label as Label).text
+		if state.equipped_in(id, &"weapon") != sword.id:
+			failure = "the sword was not equipped"
+		elif absf(after - before - 3.0) > 0.001:
+			failure = "attack went from %s to %s, expected +3" % [before, after]
+		elif not shown.ends_with(str(roundi(after))):
+			failure = "the status menu shows '%s', expected attack %d" % [shown, roundi(after)]
+	if state.equipped_in(id, &"weapon") == sword.id:
+		state.unequip(id, &"weapon")
+	if failure == "" and absf(state.stat_of(id, &"attack") - before) > 0.001:
+		failure = "attack did not return to %s after taking the sword off" % before
+	state.inventory.remove(sword.id, state.inventory.count(sword.id))
+	state.items.erase(sword.id)
 	menu.queue_free()
 	return failure
 

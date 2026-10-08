@@ -85,6 +85,16 @@ const KEYS := {
 	"UI_MONTH_10": "Oct",
 	"UI_MONTH_11": "Nov",
 	"UI_MONTH_12": "Dec",
+	"UI_EQUIP": "Equip",
+	"UI_EQUIPMENT": "Equipment",
+	"UI_TAKE_OFF": "Take off",
+	"UI_SLOT_WEAPON": "Weapon",
+	"UI_SLOT_ARMOR": "Armor",
+	"UI_SLOT_ACCESSORY": "Accessory",
+	"UI_NO_CHANGE": "No change",
+	"UI_NOTHING_TO_EQUIP": "Nothing to wear here",
+	"UI_CANNOT_EQUIP": "Cannot equip that",
+	"UI_MOVE_SPEED": "Move speed",
 }
 
 ## English text of a key (the key itself when unknown).

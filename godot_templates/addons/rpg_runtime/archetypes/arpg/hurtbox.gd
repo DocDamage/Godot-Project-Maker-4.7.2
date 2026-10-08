@@ -25,7 +25,10 @@ func make_invulnerable(seconds: float) -> void:
 func defense() -> int:
 	var h := health()
 	var s := h.stats() if h != null else null
-	return s.defense if s != null else 0
+	if s == null:
+		return 0
+	var state := RpgUtil.state()
+	return roundi(state.effective_stat(s, &"defense")) if state != null else s.defense
 
 ## Returns true when the hit landed.
 func receive(info: RpgDamageInfo) -> bool:

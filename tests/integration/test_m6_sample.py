@@ -35,6 +35,7 @@ M6_STEPS = [
     "autosave",
     "save_slot_1",
     "save_overwrite_confirm",
+    "equip_raises_attack",
     "mutate_then_load",
     "pause_menu",
 ]

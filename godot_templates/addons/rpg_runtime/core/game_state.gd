@@ -5,6 +5,10 @@ extends Node
 const ITEMS_DIR := "res://game/data/items"
 const HERO_PATH := "res://game/data/actors/hero.tres"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
+## The equipment slots, in display order. An item goes to the slot of its category.
+const EQUIP_SLOTS: Array[StringName] = [&"weapon", &"armor", &"accessory"]
+## The stats an equipment preview compares.
+const PREVIEW_STATS: Array[StringName] = [&"max_hp", &"attack", &"defense", &"speed", &"magic", &"resistance", &"move_speed"]
 
 var player_actor_id: StringName = &"hero"
 var player_stats: RpgStats = RpgStats.new()
@@ -18,6 +22,9 @@ var player_position := Vector2.ZERO
 var player_facing := "down"
 var flags: Dictionary = {}  # entity_id -> {key: value}
 var quests: Dictionary = {}
+## actor id (String) -> {slot: item id (String)}. Keyed by actor from the start so party members
+## (T12.47) get their own; a missing actor or slot means nothing is worn.
+var equipment: Dictionary = {}
 var playtime_s: float = 0.0
 var pending_encounter: RpgEncounterData = null
 var rng: RpgRng = RpgRng.new()
@@ -82,6 +89,7 @@ func new_game() -> void:
 	inventory.slots.clear()
 	flags.clear()
 	quests.clear()
+	equipment.clear()
 	playtime_s = 0.0
 	pending_encounter = null
 	gold = data.gold
@@ -105,6 +113,133 @@ func set_flag(entity_id: String, key: String, value: Variant) -> void:
 		flags[entity_id] = {}
 	flags[entity_id][key] = value
 	RpgUtil.emit(&"entity_state_changed", [entity_id, key, value])
+
+# ------------------------------------------------------------------ equipment (T12.45)
+
+## The slot an item is worn in, or &"" when it cannot be equipped.
+static func slot_of(def: RpgItemDefinition) -> StringName:
+	if def == null:
+		return &""
+	match def.category:
+		RpgItemDefinition.Category.WEAPON:
+			return &"weapon"
+		RpgItemDefinition.Category.ARMOR:
+			return &"armor"
+		RpgItemDefinition.Category.ACCESSORY:
+			return &"accessory"
+	return &""
+
+## The item worn in `slot` by the actor, or &"".
+func equipped_in(actor_id: StringName, slot: StringName) -> StringName:
+	var worn: Variant = equipment.get(String(actor_id))
+	if worn is Dictionary:
+		var worn_slots: Dictionary = worn
+		return StringName(str(worn_slots.get(String(slot), "")))
+	return &""
+
+## {slot: item id} for every slot (&"" for an empty one).
+func equipped_items(actor_id: StringName) -> Dictionary:
+	var out: Dictionary = {}
+	for slot in EQUIP_SLOTS:
+		out[slot] = equipped_in(actor_id, slot)
+	return out
+
+## The `modifiers` of everything the actor wears: what every get_stat call takes.
+func equipped_modifiers(actor_id: StringName, replacing: Dictionary = {}) -> Array:
+	var out: Array = []
+	for slot in EQUIP_SLOTS:
+		var item_id := equipped_in(actor_id, slot)
+		if replacing.has(slot):
+			item_id = StringName(str(replacing[slot]))
+		var def: RpgItemDefinition = items.get(item_id)
+		if def != null:
+			out.append_array(def.modifiers)
+	return out
+
+## The actor's stats: the player's, or a party member's.
+func stats_of(actor_id: StringName) -> RpgStats:
+	if actor_id == player_actor_id:
+		return player_stats
+	for member in party:
+		if member["actor_id"] == actor_id:
+			var member_stats: RpgStats = member["stats"]
+			return member_stats
+	return null
+
+## The id of the actor that owns `stats` (&"" for an enemy or an unknown copy).
+func actor_of(stats: RpgStats) -> StringName:
+	if stats == null:
+		return &""
+	if stats == player_stats:
+		return player_actor_id
+	for member in party:
+		if member["stats"] == stats:
+			var member_id: StringName = member["actor_id"]
+			return member_id
+	return &""
+
+## A stat with the actor's equipment applied. Combat reads attack and defense through this.
+func stat_of(actor_id: StringName, stat_name: StringName) -> float:
+	var stats := stats_of(actor_id)
+	return stats.get_stat(stat_name, equipped_modifiers(actor_id)) if stats != null else 0.0
+
+## Same, for a stats object (the combat code holds the stats, not the actor id).
+func effective_stat(stats: RpgStats, stat_name: StringName) -> float:
+	var actor_id := actor_of(stats)
+	if actor_id == &"":
+		return stats.get_stat(stat_name) if stats != null else 0.0
+	return stats.get_stat(stat_name, equipped_modifiers(actor_id))
+
+## How each stat would change if `item_id` replaced what is worn in its slot (&"" takes the slot's
+## item off): {stat: delta}, only the stats that change.
+func equip_preview(actor_id: StringName, slot: StringName, item_id: StringName) -> Dictionary:
+	var stats := stats_of(actor_id)
+	var out: Dictionary = {}
+	if stats == null:
+		return out
+	var before := equipped_modifiers(actor_id)
+	var after := equipped_modifiers(actor_id, {slot: item_id})
+	for stat_name in PREVIEW_STATS:
+		var delta := stats.get_stat(stat_name, after) - stats.get_stat(stat_name, before)
+		if absf(delta) > 0.0001:
+			out[stat_name] = delta
+	return out
+
+## Moves one `item_id` from the inventory into its slot; what was worn there goes back to the
+## inventory. False (and nothing changes) when the item cannot be worn, is not held, or the old
+## piece has nowhere to go.
+func equip(actor_id: StringName, item_id: StringName) -> bool:
+	var def: RpgItemDefinition = items.get(item_id)
+	var slot := slot_of(def)
+	if slot == &"" or stats_of(actor_id) == null or not inventory.has(item_id):
+		return false
+	var old := equipped_in(actor_id, slot)
+	inventory.remove(item_id, 1)
+	if old != &"" and inventory.add(old, 1) == 0:
+		inventory.add(item_id, 1)
+		return false
+	_set_worn(actor_id, slot, item_id)
+	return true
+
+## Takes the piece in `slot` off, into the inventory. False when the slot is empty or the inventory
+## is full.
+func unequip(actor_id: StringName, slot: StringName) -> bool:
+	var old := equipped_in(actor_id, slot)
+	if old == &"" or inventory.add(old, 1) == 0:
+		return false
+	_set_worn(actor_id, slot, &"")
+	return true
+
+func _set_worn(actor_id: StringName, slot: StringName, item_id: StringName) -> void:
+	var key := String(actor_id)
+	if not equipment.has(key) or not (equipment[key] is Dictionary):
+		equipment[key] = {}
+	var worn: Dictionary = equipment[key]
+	if item_id == &"":
+		worn.erase(String(slot))
+	else:
+		worn[String(slot)] = String(item_id)
+	RpgUtil.emit(&"equipment_changed", [actor_id, slot])
 
 func flag_count() -> int:
 	var n := 0
@@ -133,6 +268,7 @@ func to_dict() -> Dictionary:
 		"player_facing": player_facing,
 		"flags": flags.duplicate(true),
 		"quests": quests.duplicate(true),
+		"equipment": equipment.duplicate(true),
 		"playtime_s": playtime_s,
 		"rng": rng.get_state(),
 	}
@@ -159,9 +295,31 @@ func from_dict(d: Dictionary) -> void:
 	flags = flags_data.duplicate(true)
 	var quests_data: Dictionary = data.get("quests", {})
 	quests = quests_data.duplicate(true)
+	equipment = _equipment_from(data.get("equipment", {}))
 	playtime_s = RpgUtil.to_float(data.get("playtime_s", 0.0))
 	var rng_data: Dictionary = data.get("rng", {})
 	rng.set_state(rng_data)
+
+## The optional `equipment` key of a save: anything that is not {actor: {slot: item}} is dropped,
+## so an old save (no key) loads with empty slots.
+static func _equipment_from(raw: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if not (raw is Dictionary):
+		return out
+	var by_actor: Dictionary = raw
+	for actor_key: Variant in by_actor:
+		var worn: Variant = by_actor[actor_key]
+		if not (worn is Dictionary):
+			continue
+		var worn_slots: Dictionary = worn
+		var kept: Dictionary = {}
+		for slot in EQUIP_SLOTS:
+			var item_id := str(worn_slots.get(String(slot), ""))
+			if item_id != "":
+				kept[String(slot)] = item_id
+		if not kept.is_empty():
+			out[str(actor_key)] = kept
+	return out
 
 func _party_to_array() -> Array:
 	var out: Array = []

@@ -94,11 +94,13 @@ func build_info(hurtbox: RpgHurtbox) -> RpgDamageInfo:
 	var actor := owner_actor()
 	info.source = actor
 	var stats := _attacker_stats()
-	var attack := stats.attack if stats != null else damage
+	var state := RpgUtil.state()
+	var attack := damage
+	if stats != null:
+		attack = roundi(state.effective_stat(stats, &"attack")) if state != null else stats.attack
 	var crit_chance := RpgArpgMath.DEFAULT_CRIT_CHANCE
 	if stats != null:
 		crit_chance = RpgUtil.to_float(stats.extra.get("crit_chance", RpgArpgMath.DEFAULT_CRIT_CHANCE))
-	var state := RpgUtil.state()
 	var rng: RpgRng = state.rng if state != null else _fallback_rng
 	var rolled := RpgArpgMath.roll_damage(attack, hurtbox.defense(), crit_chance, rng)
 	info.amount = RpgUtil.to_int(rolled["amount"])

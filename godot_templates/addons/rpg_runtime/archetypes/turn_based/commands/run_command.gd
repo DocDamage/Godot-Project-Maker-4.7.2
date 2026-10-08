@@ -23,5 +23,5 @@ static func _speeds(actors: Array[RpgBattleActor]) -> Array:
 	var out: Array = []
 	for a in actors:
 		if a.alive:
-			out.append(a.stats.speed)
+			out.append(a.stat(&"speed"))
 	return out

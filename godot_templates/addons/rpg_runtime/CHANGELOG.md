@@ -42,6 +42,18 @@
   `SaveManager.SLOTS`. New keys: `UI_LV`, `UI_PLAYED`, `UI_OVERWRITE_SAVE`, `UI_YES`, `UI_NO` and
   `UI_MONTH_1` to `UI_MONTH_12`. Fixed: a toast that was dropped to make room no longer logs an
   error when its timer ends.
+* Equipment (M12): `GameState.equipment` ({actor id: {weapon, armor, accessory}}, keyed by actor for
+  party members), `equip`, `unequip`, `equipped_modifiers`, `stat_of` / `effective_stat` and
+  `equip_preview`. Items of the categories WEAPON, ARMOR and ACCESSORY go to their slot; the old
+  piece returns to the inventory. Both combat systems read attack, defense (and, turn-based,
+  speed) through `get_stat` with the worn modifiers (`RpgBattleActor.stat`, the hitbox and the
+  hurtbox); enemies wear nothing. The inventory menu has an Equip button and the status menu lists
+  the slots; both open `RpgEquipPicker`, which shows the stat changes (green gain, red loss) of
+  the focused choice before it is confirmed. The save has the optional key `equipment` (an older
+  save loads with empty slots; `save_version` stays 1). New keys: `UI_EQUIP`, `UI_EQUIPMENT`,
+  `UI_TAKE_OFF`, `UI_SLOT_WEAPON`, `UI_SLOT_ARMOR`, `UI_SLOT_ACCESSORY`, `UI_NO_CHANGE`,
+  `UI_NOTHING_TO_EQUIP`, `UI_CANNOT_EQUIP` and `UI_MOVE_SPEED`. Hit points are not changed by an
+  item's `max_hp` modifier in the HUD yet; only the stat functions see it.
 
 ## 0.3.0
 

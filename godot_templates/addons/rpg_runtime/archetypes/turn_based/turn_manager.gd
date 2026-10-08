@@ -19,8 +19,10 @@ static func _before(a: Dictionary, b: Dictionary) -> bool:
 	var prio_b: int = command_b.priority
 	if prio_a != prio_b:
 		return prio_a > prio_b
-	if actor_a.stats.speed != actor_b.stats.speed:
-		return actor_a.stats.speed > actor_b.stats.speed
+	var speed_a := actor_a.stat(&"speed")
+	var speed_b := actor_b.stat(&"speed")
+	if speed_a != speed_b:
+		return speed_a > speed_b
 	if actor_a.is_player_side != actor_b.is_player_side:
 		return actor_a.is_player_side
 	return String(actor_a.id) < String(actor_b.id)

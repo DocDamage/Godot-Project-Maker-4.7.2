@@ -2,7 +2,7 @@ extends RefCounted
 ## Seeds the data files of the demo under game/data/ (user_seed: written once, never again):
 ## hero actor, new-game data, the potion item and the starter NPC's dialogue.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const Paths := preload("../lib/paths.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
@@ -27,16 +27,38 @@ const DLG_CHOICE := "res://addons/rpg_runtime/dialogue/dialogue_choice.gd"
 const SEED_STRINGS := {
 	"ITEM_POTION_NAME": "Potion",
 	"ITEM_POTION_DESC": "Restores 10 HP.",
+	"ITEM_SWORD_NAME": "Sword",
+	"ITEM_SWORD_DESC": "A plain blade. Attack +2.",
+	"ITEM_AXE_NAME": "Axe",
+	"ITEM_AXE_DESC": "A woodsman's axe. Attack +2.",
+	"ITEM_BOW_NAME": "Bow",
+	"ITEM_BOW_DESC": "A short bow. Attack +2.",
+	"ITEM_ARMOR_NAME": "Armor",
+	"ITEM_ARMOR_DESC": "Sturdy armor. Defense +2.",
+	"ITEM_SHIELD_NAME": "Shield",
+	"ITEM_SHIELD_DESC": "A wooden shield. Defense +2.",
+	"ITEM_HELMET_NAME": "Helmet",
+	"ITEM_HELMET_DESC": "A plain helmet. Defense +2.",
 }
+
+## The starter equipment: the first ITEM asset whose name contains one of the words becomes the
+## starter weapon (sword, axe, bow) and the starter armor (armor, shield, helmet). Each gives +2 to
+## one stat. The item id is the word.
+const WEAPON_WORDS: Array[String] = ["sword", "axe", "bow"]
+const ARMOR_WORDS: Array[String] = ["armor", "shield", "helmet"]
+const GEAR_BONUS := 2
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
 	# Without the demo there is no NPC to greet the player.
-	if ctx.demo_removed:
-		return SeedUtil.missing([HERO_PATH, NEW_GAME_PATH, POTION_PATH])
-	return SeedUtil.missing([HERO_PATH, NEW_GAME_PATH, POTION_PATH, GREETING_PATH])
+	var wanted: Array = [HERO_PATH, NEW_GAME_PATH, POTION_PATH]
+	for word: String in _gear(ctx):
+		wanted.append(_gear_path(word))
+	if not ctx.demo_removed:
+		wanted.append(GREETING_PATH)
+	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx)})
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -55,12 +77,40 @@ func _icon_asset(ctx: BuildContext) -> Dictionary:
 			first = a
 	return first
 
+func _gear_path(word: String) -> String:
+	return "res://game/data/items/%s.tres" % word
+
+## {word: asset} of the starter weapon and armor that the project's ITEM assets suggest.
+func _gear(ctx: BuildContext) -> Dictionary:
+	var out: Dictionary = {}
+	for group: Array in [WEAPON_WORDS, ARMOR_WORDS]:
+		for word: String in group:
+			var found := _asset_named(ctx, word)
+			if not found.is_empty():
+				out[word] = found
+				break
+	return out
+
+func _asset_named(ctx: BuildContext, word: String) -> Dictionary:
+	for a in ctx.catalog.assets_by_role("ITEM"):
+		var eff: Dictionary = ctx.catalog.effective(a)
+		if a.get("status", "") in ["UNUSED", "MISSING"] or not ["sprite", "object"].has(eff.get("usage", "")):
+			continue
+		if (JsonUtil.to_str(a["id"]) + " " + JsonUtil.to_str(a.get("path", ""))).to_lower().contains(word):
+			return a
+	return {}
+
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
+	var gear := _gear(ctx)
+	for word: String in gear:
+		var asset: Dictionary = gear[word]
+		if not FileAccess.file_exists(_gear_path(word)):
+			_save(ctx, _gear_item(ctx, word, asset), _gear_path(word), issues)
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx), HERO_PATH, issues)
 	if not FileAccess.file_exists(NEW_GAME_PATH):
-		_save(ctx, _new_game(ctx.demo_removed), NEW_GAME_PATH, issues)
+		_save(ctx, _new_game(ctx.demo_removed, gear.keys()), NEW_GAME_PATH, issues)
 	if not FileAccess.file_exists(POTION_PATH):
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(GREETING_PATH):
@@ -85,12 +135,15 @@ func _hero(ctx: BuildContext) -> Resource:
 			def.set("sprite_frames", load(frames_path))
 	return def
 
-func _new_game(demo_removed: bool = false) -> Resource:
+func _new_game(demo_removed: bool = false, gear_words: Array = []) -> Resource:
 	var ng := SeedUtil.make(NEW_GAME)
 	ng.set("start_map", "res://game/maps/starter_map.tscn")
 	ng.set("start_spawn", &"default")
 	ng.set("gold", 50)
-	ng.set("items", SeedUtil.dict_array([] if demo_removed else [{"item_id": "potion", "qty": 2}]))
+	var starting: Array = [] if demo_removed else [{"item_id": "potion", "qty": 2}]
+	for word: String in gear_words:
+		starting.append({"item_id": word, "qty": 1})
+	ng.set("items", SeedUtil.dict_array(starting))
 	return ng
 
 func _potion(ctx: BuildContext) -> Resource:
@@ -107,6 +160,23 @@ func _potion(ctx: BuildContext) -> Resource:
 		var eff: Dictionary = ctx.catalog.effective(icon)
 		var size: Array = eff.get("frame", eff.get("size", [16, 16]))
 		item.set("icon", TextureUtil.region_texture("res://" + JsonUtil.to_str(icon["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))))
+	return item
+
+func _gear_item(ctx: BuildContext, word: String, asset: Dictionary) -> Resource:
+	var item := SeedUtil.make(ITEM_DEF)
+	var is_weapon := WEAPON_WORDS.has(word)
+	item.set("id", StringName(word))
+	item.set("display_name", "ITEM_%s_NAME" % word.to_upper())
+	item.set("description", "ITEM_%s_DESC" % word.to_upper())
+	item.set("category", 1 if is_weapon else 2)  # RpgItemDefinition.Category.WEAPON / ARMOR
+	item.set("max_stack", 1)
+	item.set("value", 25)
+	var mods: Array[Dictionary] = []
+	mods.append({"stat": "attack" if is_weapon else "defense", "add": GEAR_BONUS, "mul": 1.0})
+	item.set("modifiers", mods)
+	var eff: Dictionary = ctx.catalog.effective(asset)
+	var size: Array = eff.get("frame", eff.get("size", [16, 16]))
+	item.set("icon", TextureUtil.region_texture("res://" + JsonUtil.to_str(asset["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))))
 	return item
 
 func _line(line_id: String, speaker: String, text: String, next: String, condition: String, events: Array, choices: Array) -> Resource:

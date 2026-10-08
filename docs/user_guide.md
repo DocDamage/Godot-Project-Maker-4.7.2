@@ -54,7 +54,7 @@ it yourself and add the folder.
 * **Action RPG**: real-time sword swings with hitboxes, enemies that chase and attack, a HUD.
 
 You can generate the other archetype later in a new project; the shared systems (saving,
-dialogue, inventory, menus) are the same.
+dialogue, inventory, equipment, menus) are the same.
 
 ![Archetype page](images/wizard_archetype.png)
 
