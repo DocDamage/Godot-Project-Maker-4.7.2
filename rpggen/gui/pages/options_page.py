@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import random
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import Qt
@@ -34,7 +35,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rpggen.core import app_settings, options, vcs
+from rpggen.core import app_settings, options, preflight, vcs
 from rpggen.core import config as config_mod
 from rpggen.errors import Issue
 from rpggen.gui.pages.base import WizardPage, form_error
@@ -42,10 +43,12 @@ from rpggen.gui.state import WizardState
 from rpggen.gui.widgets.binding_table import BindingTable
 from rpggen.gui.widgets.collapsible import CollapsibleSection
 from rpggen.gui.widgets.map_preview import MapPreviewWidget
+from rpggen.gui.widgets.options_summary import OptionsSummary
 
 INPUT_COLUMNS = ("Action", "Keys", "Mouse buttons", "Joy buttons")
 SEED_MAX = 2**31 - 1
 WIDE_WIDTH = 1100  # at this width and more the options use two columns
+SUMMARY_SIDE_WIDTH = 1200  # at this width and more the summary has a column of its own
 LAYER_MESSAGES = {
     options.LAYER_GROUND_REQUIRED: "The Ground layer is required.",
     options.LAYER_EMPTY: "Layer names cannot be empty.",
@@ -254,7 +257,24 @@ class OptionsPage(WizardPage):
         self.columns.addWidget(self.left, 1)
         self.columns.addWidget(self.right, 1)
         scroll.setWidget(content)
-        outer.addWidget(scroll, 1)
+        # the summary card: on top, or in a right-hand column at SUMMARY_SIDE_WIDTH and more
+        self.summary = OptionsSummary()
+        outer.addWidget(self.summary)
+        body = QHBoxLayout()
+        body.addWidget(scroll, 1)
+        self.side = QWidget()
+        self.side.setObjectName("summarySide")
+        self.side_layout = QVBoxLayout(self.side)
+        self.side_layout.setContentsMargins(0, 0, 6, 0)
+        self.side_layout.addStretch(1)
+        self.side.setFixedWidth(300)
+        self.side.setVisible(False)
+        body.addWidget(self.side)
+        outer.addLayout(body, 1)
+        self._summary_outer = outer
+        self._summary_on_side = False
+        self._pack_bytes_key: tuple | None = None
+        self._pack_bytes = 0
 
         # ---------------------------------------------------------------- features
         self.feature_boxes: dict[str, QCheckBox] = {}
@@ -501,6 +521,56 @@ class OptionsPage(WizardPage):
     def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
         super().resizeEvent(event)
         self._apply_columns(self.width() >= WIDE_WIDTH)
+        self._place_summary(self.width() >= SUMMARY_SIDE_WIDTH)
+
+    def _place_summary(self, side: bool) -> None:
+        """Move the summary card between the top of the page and the right-hand column."""
+        if side == self._summary_on_side:
+            return
+        self._summary_on_side = side
+        if side:
+            self._summary_outer.removeWidget(self.summary)
+            self.side_layout.insertWidget(0, self.summary)
+        else:
+            self.side_layout.removeWidget(self.summary)
+            self._summary_outer.insertWidget(1, self.summary)
+        self.side.setVisible(side)
+        self.summary.show()
+
+    @property
+    def summary_on_side(self) -> bool:
+        return self._summary_on_side
+
+    def refresh_summary(self) -> None:
+        """Re-draw the summary from the options as they are now (it updates live)."""
+        if self.draft is None:
+            return
+        wanted = {k: b.isChecked() for k, b in self.feature_boxes.items()}
+        summary = options.summarize(
+            self.draft.archetype,
+            wanted,
+            self.draft.starter_map_options(),
+            self.draft.base_tile_size,
+            self.resolution.value(),
+        )
+        settings = app_settings.get()
+        assets = len(self.state.catalog.assets) if self.state and self.state.catalog else 0
+        seconds = options.estimate_generation_seconds(
+            settings.phase_timings, settings.timing_assets, assets
+        )
+        pack_bytes = self._pack_size()
+        self.summary.set_summary(
+            summary, seconds, options.estimate_project_bytes(pack_bytes) if pack_bytes else None
+        )
+
+    def _pack_size(self) -> int:
+        """The bytes of the packs (an archive counts as its unpacked size when it is a zip),
+        read once per set of packs."""
+        sources = tuple(str(p) for p in (self.state.pack_sources if self.state else []))
+        if sources != self._pack_bytes_key:
+            self._pack_bytes_key = sources
+            self._pack_bytes = sum(preflight.pack_stats(Path(s))[2] or 0 for s in sources)
+        return self._pack_bytes
 
     @property
     def two_columns(self) -> bool:
@@ -579,6 +649,7 @@ class OptionsPage(WizardPage):
         self._update_dependencies()
         self._update_hint()
         self._schedule_preview()
+        self.refresh_summary()
 
     def leave(self, state: WizardState) -> bool | None:
         cfg = state.config
@@ -731,6 +802,7 @@ class OptionsPage(WizardPage):
             return
         self._collect_starter()
         self._schedule_preview()
+        self.refresh_summary()
         self.changed.emit()
 
     def _collect_starter(self) -> None:
@@ -983,6 +1055,7 @@ class OptionsPage(WizardPage):
             return
         self._update_hint()
         self._update_layer_buttons()
+        self.refresh_summary()
         self.changed.emit()
 
     # ------------------------------------------------------------------ wizard hooks

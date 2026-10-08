@@ -61,6 +61,7 @@ class AppSettings:
     option_presets: dict[str, dict[str, Any]] = field(default_factory=dict)
     quick_roles: list[str] = field(default_factory=list)  # the 1-9 keys of the audit page
     phase_timings: dict[str, float] = field(default_factory=dict)  # seconds of the last run
+    timing_assets: int = 0  # how many assets that run had (the estimate scales by the ratio)
     cache_limit_gb: float = 10.0  # extracted archives: least recently used go beyond this
     keep_full_failed_runs: bool = False  # a failed run keeps its pack art and import cache
 
@@ -77,6 +78,7 @@ class AppSettings:
             "option_presets": self.option_presets,
             "quick_roles": list(self.quick_roles),
             "phase_timings": dict(self.phase_timings),
+            "timing_assets": self.timing_assets,
             "cache_limit_gb": self.cache_limit_gb,
             "keep_full_failed_runs": self.keep_full_failed_runs,
         }
@@ -147,6 +149,9 @@ def from_json(data: Any) -> AppSettings:
             for k, v in timings.items()
             if isinstance(v, (int, float)) and not isinstance(v, bool)
         }
+    counted = data.get("timing_assets")
+    if isinstance(counted, int) and not isinstance(counted, bool) and counted >= 0:
+        s.timing_assets = counted
     keep = data.get("keep_full_failed_runs")
     if isinstance(keep, bool):
         s.keep_full_failed_runs = keep

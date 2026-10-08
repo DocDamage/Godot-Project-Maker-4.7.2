@@ -208,3 +208,91 @@ def test_version_control_offers_three_ways_to_handle_the_pack_art(qtbot) -> None
     page.pack_art_radios["commit"].setChecked(True)
     page.leave(state)
     assert state.config.git == {} and "git" not in state.config.to_json()  # the default is omitted
+
+
+# ------------------------------------------------------------------------ T12.37: the summary
+
+
+def test_summary_core_follows_the_options() -> None:
+    feats = config.default_features()
+    sm = config.starter_map_defaults()
+    summary = options.summarize("turn_based", feats, sm, 16, (640, 360))
+    assert summary.maps == ["Starter map", "Second area", "1 interior"]
+    assert "Demo scene" in summary.systems and "Navigation" not in summary.systems
+    assert summary.tiles == "≈ 40 × 22.5 tiles on screen" and summary.tile_size == 16
+    feats["demo"] = False
+    bare = options.summarize("arpg", feats, {**sm, "buildings": 3}, 32, (640, 360))
+    assert bare.maps == [] and "Demo scene" not in bare.systems
+    more = options.summarize(
+        "arpg", config.default_features(), {**sm, "buildings": 3}, 16, (640, 360)
+    )
+    assert more.maps[-1] == "3 interiors"
+
+
+def test_estimates() -> None:
+    timings = {"import": 10.0, "build": 20.0, "smoke": 10.0}
+    assert options.estimate_generation_seconds(timings, 20, 40) == 80.0
+    assert options.estimate_generation_seconds({}, 20, 40) is None
+    assert options.estimate_generation_seconds(timings, 0, 40) is None
+    assert options.estimate_generation_seconds(timings, 20, 0) is None
+    assert options.estimate_project_bytes(1_000_000) == 1_800_000
+    assert options.estimate_project_bytes(-5) == 0
+
+
+def test_the_summary_follows_feature_toggles_and_the_screen(qtbot) -> None:
+    page, _state = _page(qtbot)
+    summary = page.summary
+    assert "Turn-based RPG" in summary.archetype_label.text()
+    assert "Starter map" in summary.maps_label.text() and "1 interior" in summary.maps_label.text()
+    chips = [c.text() for c in summary.chips]
+    assert "Demo scene" in chips and "Navigation" not in chips
+    page.feature_boxes["navigation"].setChecked(True)
+    assert "Navigation" in [c.text() for c in summary.chips]
+    page.feature_boxes["combat"].setChecked(False)  # the demo needs combat: it goes with it
+    chips = [c.text() for c in summary.chips]
+    assert "Combat" not in chips and "Demo scene" not in chips
+    assert "No starter maps" in summary.maps_label.text()
+    page.resolution.set_value((320, 180))
+    assert "20 × 11.25" in summary.tiles_label.text()
+    page.starter_counts["buildings"].setValue(3)
+    page.feature_boxes["combat"].setChecked(True)
+    assert (
+        "3 interiors" in summary.maps_label.text() or "No starter maps" in summary.maps_label.text()
+    )
+
+
+def test_the_time_estimate_is_hidden_without_saved_timings(qtbot, monkeypatch) -> None:
+    from rpggen.core import app_settings
+
+    app_settings.update(phase_timings={}, timing_assets=0)
+    page, _state = _page(qtbot)
+    assert page.summary.time_label.isHidden()
+    app_settings.update(phase_timings={"build": 30.0}, timing_assets=10)
+    page.refresh_summary()
+    assert page.summary.time_label.isHidden()  # no catalog: no asset count to scale to
+    from pathlib import Path
+
+    from rpggen.core.orchestrator import Callbacks
+    from rpggen.gui import workers
+
+    synth = Path(__file__).resolve().parents[2] / "test_packs" / "synthetic" / "basic16"
+    state = WizardState(pack_sources=[synth], config=config.default_for("T", [REF]))
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    page.enter(state)
+    assert not page.summary.time_label.isHidden() and "about" in page.summary.time_label.text()
+    assert (
+        not page.summary.size_label.isHidden()
+        and "MB" in page.summary.size_label.text()
+        or ("KB" in page.summary.size_label.text())
+    )
+
+
+def test_the_summary_moves_to_a_right_hand_column_when_very_wide(qtbot) -> None:
+    page, _state = _page(qtbot)
+    page.resize(1000, 700)
+    assert not page.summary_on_side and page.side.isHidden()
+    page.resize(1300, 700)
+    assert page.summary_on_side and not page.side.isHidden()
+    assert page.summary.parentWidget() is page.side
+    page.resize(900, 700)
+    assert not page.summary_on_side and page.summary.isVisible()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+from dataclasses import dataclass
 from typing import Any
 
 from rpggen import schema
@@ -116,6 +117,59 @@ def _tiles(value: float) -> str:
 
 def tiles_hint(resolution: tuple[int, int], tile: int) -> str:
     return f"≈ {_tiles(resolution[0] / tile)} × {_tiles(resolution[1] / tile)} tiles on screen"
+
+
+IMPORT_OVERHEAD = 1.8  # project bytes / pack bytes, measured on sample_pack: 3,378,223 / 1,860,386
+# (the copied art, Godot's import cache and the runtime, tests and scripts every project carries)
+
+
+@dataclass(frozen=True)
+class Summary:
+    """What the Options page's summary card shows (plain data, no widgets)."""
+
+    archetype: str
+    maps: list[str]  # "Starter map", "Second area", "3 interiors"
+    systems: list[str]  # the labels of the features that are on
+    tile_size: int
+    tiles: str  # "≈ 40 × 22.5 tiles on screen"
+
+
+def summarize(
+    archetype: str,
+    features: dict[str, bool],
+    starter_map: dict[str, Any],
+    tile_size: int,
+    resolution: tuple[int, int],
+) -> Summary:
+    """The summary of the current (unsaved) options. The demo feature makes the starter map and
+    its second area; each building of the starter map has an interior."""
+    maps: list[str] = []
+    if features.get("demo", False):
+        maps.append("Starter map")
+        maps.append("Second area")
+        buildings = int(starter_map.get("buildings", 0) or 0)
+        if buildings:
+            maps.append(f"{buildings} interior" + ("s" if buildings != 1 else ""))
+    systems = [
+        FEATURE_INFO[key][1] for key in FEATURE_INFO if effective_features(features).get(key)
+    ]
+    return Summary(archetype, maps, systems, tile_size, tiles_hint(resolution, tile_size))
+
+
+def estimate_generation_seconds(
+    timings: dict[str, float], saved_assets: int, assets: int
+) -> float | None:
+    """The saved phase timings scaled by the ratio of asset counts; None without history (no
+    timings, or no count of the assets they were measured on)."""
+    total = sum(v for v in timings.values() if v > 0)
+    if total <= 0 or saved_assets <= 0 or assets <= 0:
+        return None
+    return total * assets / saved_assets
+
+
+def estimate_project_bytes(pack_bytes: int) -> int:
+    """The size of the generated project: the packs' bytes times ``IMPORT_OVERHEAD``."""
+    return round(max(0, pack_bytes) * IMPORT_OVERHEAD)
 
 
 TILES_ACROSS = 20  # about this many tiles across is a comfortable view for a 2D RPG

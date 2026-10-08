@@ -457,7 +457,8 @@ class GeneratePage(WizardPage):
         if result.ok:
             self._remember_project(result)
             if result.timings:
-                app_settings.update(phase_timings=dict(result.timings))
+                assets = len(result.catalog.assets) if result.catalog is not None else 0
+                app_settings.update(phase_timings=dict(result.timings), timing_assets=assets)
             self._set_icons({p: ICON_DONE for p in PHASES})
             self.elapsed_label.setText(
                 self.tr("Finished in {0}").format(self.format_seconds(sum(result.timings.values())))
