@@ -5,10 +5,11 @@ from __future__ import annotations
 import dataclasses
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPainter, QPixmap
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QColor, QIcon, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFrame,
@@ -107,6 +108,23 @@ class AssetPickerDialog(QDialog):
             self.accept()
 
 
+NONE_DATA = "__none__"
+MORE_DATA = "__more__"
+CANDIDATES = 5
+
+
+class CandidateCombo(QComboBox):
+    """The asset of a role as a combo: the current one, the best candidates (each with a picture,
+    its name and how sure the detection was), "None" and "More…". The candidates are filled when
+    the list is opened, so a page with many rows does not render pictures nobody looks at."""
+
+    popupOpening = Signal()  # noqa: N815
+
+    def showPopup(self) -> None:  # noqa: N802 - Qt override
+        self.popupOpening.emit()
+        super().showPopup()
+
+
 class RoleRowWidget(QFrame):
     """One role: its friendly name, the status, a 48 px picture, the asset's file and pack, what
     the role is used for, and Choose… / Clear. A row without an asset offers the fallbacks as
@@ -115,6 +133,7 @@ class RoleRowWidget(QFrame):
     def __init__(self, row: mapping.RoleRow, page: MappingPage) -> None:
         super().__init__()
         self.row = row
+        self._candidates_filled = False
         self.setObjectName(f"row_{row.role}")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         # a row is never squeezed below its size hint: the page scrolls instead
@@ -128,14 +147,20 @@ class RoleRowWidget(QFrame):
         self.status_label.setObjectName(f"status_{row.role}")
         self.thumb_label = QLabel()
         self.thumb_label.setFixedSize(THUMB + 4, THUMB + 4)
-        self.asset_label = QLabel()
-        self.asset_label.setObjectName(f"asset_{row.role}")
+        self.asset_combo = CandidateCombo()
+        self.asset_combo.setObjectName(f"asset_{row.role}")
+        self.asset_combo.setIconSize(QSize(32, 32))
+        self.asset_combo.setSizeAdjustPolicy(
+            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
+        self.asset_combo.setMinimumContentsLength(18)
+        self.asset_combo.setToolTip(self.tr("The asset for this role: pick another candidate"))
         self.used_label = QLabel(self.tr("Used for {0}").format(mapping.used_for(row.role)))
         self.used_label.setObjectName(f"used_{row.role}")
         self.used_label.setProperty("muted", True)
         text_box = QVBoxLayout()
         text_box.setSpacing(0)
-        text_box.addWidget(self.asset_label)
+        text_box.addWidget(self.asset_combo)
         text_box.addWidget(self.used_label)
         self.choose_button = QPushButton(self.tr("Choose…"))
         self.choose_button.setObjectName(f"choose_{row.role}")
@@ -179,6 +204,8 @@ class RoleRowWidget(QFrame):
         grid.addWidget(self.fallback_box, 1, 3, 1, 3)
         grid.setColumnStretch(3, 1)
         self.choose_button.clicked.connect(lambda: page.choose(row.role))
+        self.asset_combo.popupOpening.connect(lambda: page.fill_candidates(row.role))
+        self.asset_combo.activated.connect(lambda _i: page.on_combo(row.role))
         self.clear_button.clicked.connect(lambda: page.clear(row.role))
         self.placeholder_radio.clicked.connect(lambda _c: page.on_fallback(row.role, "placeholder"))
         self.without_radio.clicked.connect(lambda _c: page.on_fallback(row.role, "without"))
@@ -224,7 +251,19 @@ class MappingPage(WizardPage):
         )
         self.summary_label = QLabel()
         self.summary_label.setObjectName("mappingSummary")
-        self.layout_.addWidget(self.summary_label)
+        self._history: list[tuple] = []  # (starter, placeholders, without, catalog) before a change
+        self.undo_button = QPushButton(self.tr("Undo"))
+        self.undo_button.setObjectName("mappingUndo")
+        self.undo_button.setToolTip(self.tr("Take back the last choice (Ctrl+Z)"))
+        self.undo_button.setEnabled(False)
+        self.undo_button.clicked.connect(self.undo)
+        summary_row = QHBoxLayout()
+        summary_row.addWidget(self.summary_label, 1)
+        summary_row.addWidget(self.undo_button)
+        self.layout_.addLayout(summary_row)
+        shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
+        shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        shortcut.activated.connect(self.undo)
         # the rows and the sound group scroll; the intro and the summary stay in view
         self.scroll = QScrollArea()
         self.scroll.setObjectName("mappingScroll")
@@ -254,6 +293,8 @@ class MappingPage(WizardPage):
         self.starter = mapping.resolve_starter(state.catalog, archetype, current)
         self.placeholders = set(state.placeholders)
         self.without = set()
+        self._history.clear()
+        self.undo_button.setEnabled(False)
         while self.rows_box.count():
             item = self.rows_box.takeAt(0)
             widget = item.widget() if item else None
@@ -321,8 +362,7 @@ class MappingPage(WizardPage):
             if ident is not None:
                 self._set_status(widget, "ok", "✔ " + self.tr("assigned"))
                 text, tip = self._display_name(catalog, ident)
-                widget.asset_label.setText(text)
-                widget.asset_label.setToolTip(tip)
+                self._show_current(widget, ident, text, tip)
                 widget.thumb_label.setPixmap(self._thumb(catalog, ident))
                 widget.fallback_box.setVisible(False)
                 key = mapping.ROLE_KEYS.get(role)
@@ -342,8 +382,7 @@ class MappingPage(WizardPage):
                 )
                 state = "ok" if placeholder else ("error" if widget.row.required else "warning")
                 self._set_status(widget, state, text)
-                widget.asset_label.setText("")
-                widget.asset_label.setToolTip("")
+                self._show_current(widget, None, "", "")
                 widget.thumb_label.clear()
                 widget.fallback_box.setVisible(True)
                 widget.clear_button.setVisible(False)
@@ -356,6 +395,103 @@ class MappingPage(WizardPage):
         archetype = self._archetype()
         self.summary_label.setText(self._summary(archetype, assigned))
         self.changed.emit()
+
+    def _show_current(self, widget: RoleRowWidget, ident: str | None, text: str, tip: str) -> None:
+        """The combo holds the current choice (or nothing); the candidates come with the popup."""
+        combo = widget.asset_combo
+        combo.blockSignals(True)
+        combo.clear()
+        widget._candidates_filled = False  # noqa: SLF001
+        if ident is not None:
+            combo.addItem(text, ident)
+            combo.setItemData(0, tip, Qt.ItemDataRole.ToolTipRole)
+        else:
+            combo.addItem(self.tr("(no asset)"), NONE_DATA)
+        combo.setCurrentIndex(0)
+        combo.setToolTip(tip or self.tr("The asset for this role: pick another candidate"))
+        combo.blockSignals(False)
+
+    def fill_candidates(self, role: str) -> None:
+        """The combo's list: the current choice, the top five candidates, None and More…."""
+        assert self.state is not None and self.state.catalog is not None
+        widget = self.rows[role]
+        if getattr(widget, "_candidates_filled", False):
+            return
+        widget._candidates_filled = True  # noqa: SLF001
+        catalog = self.state.catalog
+        combo = widget.asset_combo
+        current = self.selection_for(role)
+        combo.blockSignals(True)
+        combo.clear()
+        if current is not None:
+            text, tip = self._display_name(catalog, current)
+            current_asset = catalog.asset(current)
+            if current_asset is not None:
+                text += f"  {round(current_asset.confidence * 100)}%"
+            combo.addItem(QIcon(self._thumb(catalog, current)), text, current)
+            combo.setItemData(0, tip, Qt.ItemDataRole.ToolTipRole)
+        for asset in mapping.candidates(catalog, role)[:CANDIDATES]:
+            if asset.id == current:
+                continue
+            name, tip = self._display_name(catalog, asset.id)
+            combo.addItem(
+                QIcon(self._thumb(catalog, asset.id)),
+                f"{name}  {round(asset.confidence * 100)}%",
+                asset.id,
+            )
+            combo.setItemData(combo.count() - 1, tip, Qt.ItemDataRole.ToolTipRole)
+        if mapping.ROLE_KEYS.get(role):
+            combo.addItem(self.tr("None"), NONE_DATA)
+        combo.addItem(self.tr("More…"), MORE_DATA)
+        combo.setCurrentIndex(0 if current is not None else -1)
+        combo.blockSignals(False)
+
+    def candidate_ids(self, role: str) -> list[str]:
+        """The asset ids the combo of ``role`` offers, in order (for tests and the keyboard)."""
+        combo = self.rows[role].asset_combo
+        return [str(combo.itemData(i)) for i in range(combo.count())]
+
+    def on_combo(self, role: str) -> None:
+        """An item of a role's combo was chosen: an asset, None, or More… (the picker)."""
+        combo = self.rows[role].asset_combo
+        data = combo.currentData()
+        if data == MORE_DATA:
+            self.choose(role)
+            self._refresh()
+        elif data == NONE_DATA:
+            self.choose_none(role)
+        elif isinstance(data, str) and data != self.selection_for(role):
+            self.assign(role, data)
+        else:
+            self._refresh()
+
+    def choose_none(self, role: str) -> None:
+        """ "None": the role has no asset, so it offers the placeholder and without choices."""
+        key = mapping.ROLE_KEYS.get(role)
+        if not key or key not in self.starter:
+            self._refresh()
+            return
+        self._push_history()
+        del self.starter[key]
+        self._refresh()
+
+    def _push_history(self) -> None:
+        assert self.state is not None
+        self._history.append(
+            (dict(self.starter), set(self.placeholders), set(self.without), self.state.catalog)
+        )
+        self.undo_button.setEnabled(True)
+
+    def undo(self) -> bool:
+        """Take back the last choice (an asset, None, Clear or a fallback)."""
+        if not self._history or self.state is None:
+            return False
+        starter, placeholders, without, catalog = self._history.pop()
+        self.starter, self.placeholders, self.without = starter, placeholders, without
+        self.state.catalog = catalog
+        self.undo_button.setEnabled(bool(self._history))
+        self._refresh()
+        return True
 
     def _summary(self, archetype: str, assigned: dict[str, bool]) -> str:
         required = [r for r in mapping.rows(archetype) if r.required]
@@ -424,6 +560,7 @@ class MappingPage(WizardPage):
 
     def assign(self, role: str, ident: str) -> None:
         assert self.state is not None and self.state.catalog is not None
+        self._push_history()
         catalog = self.state.catalog
         asset = catalog.asset(ident)
         if asset is not None and catalog_mod.effective(asset).get("role") != role:
@@ -442,6 +579,7 @@ class MappingPage(WizardPage):
         key = mapping.ROLE_KEYS.get(role)
         if not key:
             return
+        self._push_history()
         automatic = mapping.best_for(self.state.catalog, role)
         if automatic is not None:
             self.starter[key] = automatic
@@ -457,6 +595,7 @@ class MappingPage(WizardPage):
                 if widget.placeholder_radio.isChecked()
                 else ("without" if widget.without_radio.isChecked() else None)
             )
+        self._push_history()
         if choice == "placeholder":
             self.placeholders.add(role)
             self.without.discard(role)

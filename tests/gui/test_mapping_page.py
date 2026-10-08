@@ -3,11 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import Qt
 
 from rpggen.core import archive, catalog, config, inventory, mapping
 from rpggen.core.orchestrator import Callbacks
 from rpggen.gui import workers
-from rpggen.gui.pages.mapping_page import AssetPickerDialog, MappingPage
+from rpggen.gui.pages.mapping_page import MORE_DATA, NONE_DATA, AssetPickerDialog, MappingPage
 from rpggen.gui.state import WizardState
 
 SYNTH = Path(__file__).resolve().parents[2] / "test_packs" / "synthetic"
@@ -90,8 +91,8 @@ def test_checklist_shows_status_per_role(qtbot) -> None:
     page, state = _page(qtbot, "basic16")
     player = page.rows["PLAYER"]
     assert "assigned" in player.status_label.text()
-    assert player.asset_label.text() == "hero.png · basic16"
-    assert player.asset_label.toolTip() == "basic16.characters.hero"
+    assert player.asset_combo.currentText() == "hero.png · basic16"
+    assert player.asset_combo.toolTip() == "basic16.characters.hero"
     assert player.used_label.text() == "Used for the player actor"
     assert player.role_label.text().startswith("<b>Player *")
     assert not player.thumb_label.pixmap().isNull()
@@ -317,3 +318,65 @@ def test_reveal_missing_scrolls_to_the_first_required_row_without_an_asset(qtbot
     _settle()
     assert top() >= 0 and top() + row.height() <= viewport.height()
     assert row.choose_button.hasFocus()
+
+
+# ------------------------------------------------------------------------ T12.36: the combo
+
+
+def test_the_combo_offers_the_top_candidates_in_rank_order(qtbot) -> None:
+    page, state = _page(qtbot, "mixed")
+    row = page.rows["ITEM"]
+    page.fill_candidates("ITEM")
+    ids = page.candidate_ids("ITEM")
+    ranked = [a.id for a in mapping.candidates(state.catalog, "ITEM")]
+    current = page.selection_for("ITEM")
+    offered = [i for i in ids if i not in (NONE_DATA, MORE_DATA)]
+    expected = ([current] if current else []) + [i for i in ranked[:5] if i != current]
+    assert offered == expected[: len(offered)] and len(offered) <= 6
+    assert ids[-1] == MORE_DATA
+    combo = row.asset_combo
+    first_candidate = next(i for i in range(combo.count()) if combo.itemData(i) in ranked)
+    assert "%" in combo.itemText(first_candidate)  # the confidence
+    assert not combo.itemIcon(first_candidate).isNull()
+
+
+def test_choosing_in_the_combo_assigns_and_can_be_undone(qtbot) -> None:
+    page, state = _page(qtbot, "mixed")
+    sprite = next(a for a in state.catalog.assets if catalog.effective(a).get("usage") == "sprite")
+    original_catalog = state.catalog
+    page.fill_candidates("PLAYER")
+    combo = page.rows["PLAYER"].asset_combo
+    assert sprite.id in page.candidate_ids("PLAYER")
+    combo.setCurrentIndex(combo.findData(sprite.id))
+    page.on_combo("PLAYER")
+    assert page.starter["player"] == sprite.id
+    assert catalog.effective(state.catalog.asset(sprite.id))["role"] == "PLAYER"
+    assert page.undo_button.isEnabled()
+    assert page.undo()
+    assert "player" not in page.starter and state.catalog is original_catalog
+    assert not page.undo_button.isEnabled() and not page.undo()
+
+
+def test_none_and_more_in_the_combo(qtbot) -> None:
+    page, state = _page(qtbot, "basic16")
+    assert page.starter["player"]
+    page.fill_candidates("PLAYER")
+    combo = page.rows["PLAYER"].asset_combo
+    combo.setCurrentIndex(combo.findData(NONE_DATA))
+    page.on_combo("PLAYER")
+    assert "player" not in page.starter and page.rows["PLAYER"].status_label.text().startswith("✖")
+    page.undo()
+    assert page.starter["player"]
+    asked: list[str] = []
+    page.choose = lambda role: asked.append(role) or False  # type: ignore[method-assign]
+    page.fill_candidates("PLAYER")
+    combo.setCurrentIndex(combo.findData(MORE_DATA))
+    page.on_combo("PLAYER")
+    assert asked == ["PLAYER"]
+
+
+def test_the_combo_is_reachable_by_keyboard(qtbot) -> None:
+    page, _state = _page(qtbot, "basic16")
+    combo = page.rows["PLAYER"].asset_combo
+    assert combo.focusPolicy() != Qt.FocusPolicy.NoFocus
+    assert page.rows["PLAYER"].choose_button.isEnabled()  # More… and Choose… both open the picker
