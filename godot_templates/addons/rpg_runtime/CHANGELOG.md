@@ -32,6 +32,16 @@
   `UI_CHEST_FOUND` and `UI_CHEST_EMPTY`. Projects made earlier fall back to the English text.
 * Fixed while running M11 against Godot 4.7.2: the interact prompt shows `E`, not
   `E - Physical`; `RpgAudio` lets go of its streams when it leaves the tree.
+* Save and load screens (M12): a slot reads "Slot 2 — Village · Lv 3 · 1:12 played · 12 Oct 14:05"
+  (the map's name, level, play time and the local time of saving); the header gained the optional
+  fields `saved_unix` and `map_name` (a translation key from the new `RpgMapRoot.display_name`
+  export, default `MAP_<ID>`; a map without a translation shows its file name), so
+  `save_version` stays 1 and older saves still read (they show no date). Saving over a used slot
+  asks for confirmation with the focus on "No"; a 160x90 picture of the screen is kept beside the
+  slot (`slot_N.png`, not when headless) and shown on its button; the slot loops use
+  `SaveManager.SLOTS`. New keys: `UI_LV`, `UI_PLAYED`, `UI_OVERWRITE_SAVE`, `UI_YES`, `UI_NO` and
+  `UI_MONTH_1` to `UI_MONTH_12`. Fixed: a toast that was dropped to make room no longer logs an
+  error when its timer ends.
 
 ## 0.3.0
 

@@ -9,6 +9,8 @@ const SLOTS := 3
 const AUTOSAVE_SLOT := 0
 ## "No save" for functions that answer with a slot number.
 const NO_SLOT := -1
+## The size of the picture kept beside a slot.
+const THUMB_SIZE := Vector2i(160, 90)
 ## At least this long between two automatic saves.
 const AUTOSAVE_COOLDOWN_MS := 10000
 
@@ -26,6 +28,10 @@ func _tmp_path(slot: int) -> String:
 
 func _backup_path(slot: int) -> String:
 	return dir.path_join("slot_%d.backup.json" % slot)
+
+## The 160x90 picture saved beside a slot (absent for saves made headless or before it existed).
+func thumbnail_path(slot: int) -> String:
+	return dir.path_join("slot_%d.png" % slot)
 
 static func checksum_of(data: Dictionary) -> String:
 	var copy := data.duplicate(true)
@@ -54,11 +60,36 @@ func _capture_world() -> bool:
 func _header(state: RpgGameState) -> Dictionary:
 	return {
 		"map": str(state.current_map).get_file().get_basename(),
+		"map_name": _map_name_key(),
 		"playtime_s": state.playtime_s,
 		"level": state.player_stats.level,
 		"gold": state.gold,
 		"saved_at": Time.get_datetime_string_from_system(true),
+		"saved_unix": int(Time.get_unix_time_from_system()),
 	}
+
+## The translation key of the current map's name ("" when no map is shown).
+func _map_name_key() -> String:
+	var router := RpgUtil.router()
+	if router != null and router.current_map != null:
+		return router.current_map.name_key()
+	return ""
+
+## Keeps a 160x90 picture of the screen beside the slot (not when running headless).
+func _save_thumbnail(slot: int) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var viewport := get_viewport()
+	if viewport == null:
+		return
+	var texture: ViewportTexture = viewport.get_texture()
+	if texture == null:
+		return
+	var image := texture.get_image()
+	if image == null or image.is_empty():
+		return
+	image.resize(THUMB_SIZE.x, THUMB_SIZE.y, Image.INTERPOLATE_BILINEAR)
+	image.save_png(thumbnail_path(slot))
 
 func _ready() -> void:
 	var bus := RpgUtil.events()
@@ -145,6 +176,7 @@ func save(slot: int) -> bool:
 	if not _move_into_place(tmp, main):
 		push_error("[RPG-SAVE] cannot move %s into place" % tmp)
 		return false
+	_save_thumbnail(slot)
 	RpgUtil.emit(&"game_saved", [slot])
 	return true
 
@@ -192,7 +224,7 @@ func header(slot: int) -> Dictionary:
 	return RpgUtil.restore_numbers(h) if h is Dictionary else {}
 
 func delete(slot: int) -> void:
-	for p: String in [_slot_path(slot), _backup_path(slot), _tmp_path(slot)]:
+	for p: String in [_slot_path(slot), _backup_path(slot), _tmp_path(slot), thumbnail_path(slot)]:
 		if FileAccess.file_exists(p):
 			DirAccess.remove_absolute(p)
 

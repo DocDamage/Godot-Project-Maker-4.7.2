@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification and the basic HUD. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 5
+const RECIPE_VERSION := 6
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -148,7 +148,11 @@ func _build_save_load_menu() -> Node:
 	UiUtil.dim_background(root, 0.85)
 	var box := UiUtil.center_panel(root, Vector2(320, 0))
 	UiUtil.label(box, "Heading", "UI_SAVE", true)
-	_menu_buttons(box, [["Slot0", "UI_AUTOSAVE"], ["Slot1", "UI_SLOT"], ["Slot2", "UI_SLOT"], ["Slot3", "UI_SLOT"], ["Back", "UI_BACK"]])
+	var rows: Array = []
+	for slot in range(RpgSaveManager.AUTOSAVE_SLOT, RpgSaveManager.SLOTS + 1):
+		rows.append(["Slot%d" % slot, "UI_AUTOSAVE" if slot == RpgSaveManager.AUTOSAVE_SLOT else "UI_SLOT"])
+	rows.append(["Back", "UI_BACK"])
+	_menu_buttons(box, rows)
 	return root
 
 func _slider_row(box: Control, row_name: String, text_key: String) -> void:

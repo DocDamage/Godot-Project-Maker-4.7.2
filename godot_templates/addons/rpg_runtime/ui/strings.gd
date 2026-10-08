@@ -68,6 +68,23 @@ const KEYS := {
 	"UI_ACTION_MENU": "Menu",
 	"UI_ACTION_ATTACK": "Attack",
 	"UI_ACTION_DODGE": "Dodge",
+	"UI_LV": "Lv",
+	"UI_PLAYED": "played",
+	"UI_OVERWRITE_SAVE": "Overwrite this save?",
+	"UI_YES": "Yes",
+	"UI_NO": "No",
+	"UI_MONTH_1": "Jan",
+	"UI_MONTH_2": "Feb",
+	"UI_MONTH_3": "Mar",
+	"UI_MONTH_4": "Apr",
+	"UI_MONTH_5": "May",
+	"UI_MONTH_6": "Jun",
+	"UI_MONTH_7": "Jul",
+	"UI_MONTH_8": "Aug",
+	"UI_MONTH_9": "Sep",
+	"UI_MONTH_10": "Oct",
+	"UI_MONTH_11": "Nov",
+	"UI_MONTH_12": "Dec",
 }
 
 ## English text of a key (the key itself when unknown).

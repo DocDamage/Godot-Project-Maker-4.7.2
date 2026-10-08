@@ -4,6 +4,15 @@ extends Node2D
 
 @export var map_id: StringName = &""
 @export var music_asset_id: String = ""
+## The name shown on a save slot: a translation key. Empty means "MAP_<ID>" from `map_id`.
+@export var display_name: String = ""
+
+## The translation key of this map's name ("MAP_STARTER_MAP" for the map `starter_map`).
+func name_key() -> String:
+	if display_name != "":
+		return display_name
+	var id := str(map_id) if str(map_id) != "" else scene_file_path.get_file().get_basename()
+	return "MAP_" + id.to_upper()
 
 ## The spawn with this id; else "default"; else the first spawn in the map; else null.
 func get_spawn(spawn_id: StringName) -> RpgSpawnPoint:

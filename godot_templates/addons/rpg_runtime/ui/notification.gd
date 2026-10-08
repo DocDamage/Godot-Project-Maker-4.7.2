@@ -33,7 +33,13 @@ func show_toast(text: String) -> void:
 	if is_inside_tree():
 		get_tree().create_timer(LIFETIME, true).timeout.connect(_expire.bind(panel))
 
-func _expire(panel: Node) -> void:
-	if is_instance_valid(panel) and panel.get_parent() != null:
-		panel.get_parent().remove_child(panel)
-		panel.queue_free()
+## A toast that was dropped to make room has been freed by the time its timer ends, so the
+## parameter takes anything and is checked before use.
+func _expire(panel: Variant) -> void:
+	if not is_instance_valid(panel):
+		return
+	var node: Node = panel
+	var parent := node.get_parent()
+	if parent != null:
+		parent.remove_child(node)
+		node.queue_free()

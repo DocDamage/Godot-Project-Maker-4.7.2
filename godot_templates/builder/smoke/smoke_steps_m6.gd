@@ -29,6 +29,7 @@ func steps() -> Array[Dictionary]:
 	list.append_array(_m4.steps())
 	list.append({"name": "autosave", "fn": _autosave, "timeout_s": 40.0})
 	list.append({"name": "save_slot_1", "fn": _save_slot_1, "timeout_s": 10.0})
+	list.append({"name": "save_overwrite_confirm", "fn": _save_overwrite_confirm, "timeout_s": 15.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
 	return list
@@ -289,6 +290,58 @@ func _autosave() -> String:
 func _save_slot_1() -> String:
 	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	return "" if save.save(1) else "SaveManager.save(1) returned false"
+
+var _asked: Array[int] = []
+var _answer := false
+
+## The save menu's auto-confirm hook (instead of the dialog): records the slot, answers `_answer`.
+func _on_overwrite_asked(slot: int) -> bool:
+	_asked.append(slot)
+	return _answer
+
+## Saving over a used slot asks first: "no" leaves the save as it was, "yes" replaces it, and an
+## empty slot is saved without a question.
+func _save_overwrite_confirm() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
+	if state == null or save == null or not save.has_save(1):
+		return "slot 1 has no save to overwrite"
+	var menu := (load(RpgMenuUtil.scene_path("save_load_menu")) as PackedScene).instantiate() as RpgSaveLoadMenu
+	menu.mode = "save"
+	menu.confirm_overwrite = _on_overwrite_asked
+	_tree().root.add_child(menu)
+	_asked.clear()
+	var gold: int = state.gold
+	var failure := ""
+	state.gold = gold + 1
+	_answer = false
+	(menu.get_node("%Slot1") as Button).pressed.emit()
+	await _frames(3)
+	if _asked != [1]:
+		failure = "pressing a used slot asked %s, expected [1]" % str(_asked)
+	elif RpgUtil.to_int(save.header(1).get("gold", -1)) != gold:
+		failure = "the save was replaced although the answer was no"
+	if failure == "":
+		_answer = true
+		(menu.get_node("%Slot1") as Button).pressed.emit()
+		await _frames(3)
+		if _asked != [1, 1]:
+			failure = "the second press asked %s, expected [1, 1]" % str(_asked)
+		elif RpgUtil.to_int(save.header(1).get("gold", -1)) != gold + 1:
+			failure = "the save was not replaced although the answer was yes"
+	if failure == "":
+		save.delete(3)
+		(menu.get_node("%Slot3") as Button).pressed.emit()
+		await _frames(3)
+		if _asked.size() != 2:
+			failure = "an empty slot asked before saving"
+		elif not save.has_save(3):
+			failure = "an empty slot was not saved"
+		save.delete(3)
+	state.gold = gold
+	save.save(1)  # slot 1 is what it was after save_slot_1, for the next step
+	menu.queue_free()
+	return failure
 
 func _mutate_then_load() -> String:
 	var tree := _tree()

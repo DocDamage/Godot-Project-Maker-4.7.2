@@ -126,6 +126,24 @@ func test_strings_table(t) -> void:
 		t.ok(String(RpgStrings.KEYS[key]) != "", key)
 	t.eq(RpgStrings.register_translations(), 0, "no generated translations in the template project")
 
+func test_a_dropped_toast_expiring_later_is_harmless(t) -> void:
+	var root := Control.new()
+	var stack := VBoxContainer.new()
+	stack.name = "Stack"
+	root.add_child(stack)
+	root.set_script(load("res://addons/rpg_runtime/ui/notification.gd"))
+	Fixtures.tree().root.add_child(root)
+	stack.owner = root
+	stack.unique_name_in_owner = true
+	var gone := Control.new()
+	gone.free()
+	root._expire(gone)  # a freed toast: no error, nothing to do
+	root.show_toast("kept")
+	root._expire(stack.get_child(0))
+	t.eq(root.toast_count(), 0, "a live toast is removed")
+	Fixtures.tree().root.remove_child(root)
+	root.free()
+
 func test_notification_stack_is_capped_at_three(t) -> void:
 	var root := Control.new()
 	var stack := VBoxContainer.new()

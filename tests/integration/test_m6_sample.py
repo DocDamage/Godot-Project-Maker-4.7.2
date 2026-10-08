@@ -34,6 +34,7 @@ M6_STEPS = [
     "return_from_field",
     "autosave",
     "save_slot_1",
+    "save_overwrite_confirm",
     "mutate_then_load",
     "pause_menu",
 ]
