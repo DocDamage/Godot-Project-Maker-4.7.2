@@ -329,3 +329,27 @@ def test_the_default_config_hashes_no_pack_on_the_gui_thread(qtbot, tmp_path, mo
         state.inventories[0].source_sha256,
         state.opened_packs[1].source_sha256,
     ]
+
+
+def test_pack_cards_show_the_format_the_licence_and_errors(qtbot, fake_godot, tmp_path) -> None:
+    from rpggen.gui.pages.project_page import CARD_ROLE
+
+    page, _state = _page(qtbot)
+    page.add_sources([SYNTH / "rpgmaker_like", tmp_path / "gone"])
+    qtbot.waitUntil(lambda: page.pack_list.item(1).data(CARD_ROLE)["error"] != "", timeout=10000)
+    card = page.pack_list.item(0).data(CARD_ROLE)
+    texts = [t for t, _kind in card["chips"]]
+    assert card["name"] == "rpgmaker_like" and "folder" in card["detail"]
+    assert "RPG Maker · 48 px" in texts and "Licence found" in texts
+    missing = page.pack_list.item(1).data(CARD_ROLE)
+    assert "does not exist" in missing["error"] and not missing["chips"]
+
+
+def test_the_cross_on_a_card_removes_the_pack(qtbot, fake_godot) -> None:
+    page, _state = _page(qtbot)
+    page.add_sources([SYNTH / "basic16", SYNTH / "mixed"])
+    delegate = page.pack_list.card_delegate
+    delegate.removeRequested.emit(0)
+    assert [p.name for p in page.sources()] == ["mixed"]
+    page.remove_row(7)  # out of range: nothing happens
+    assert len(page.sources()) == 1

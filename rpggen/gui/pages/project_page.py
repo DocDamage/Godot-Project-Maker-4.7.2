@@ -7,8 +7,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PySide6.QtCore import QStandardPaths, Qt, QTimer, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QPainter, QPalette, QPen
+from PySide6.QtCore import QEvent, QRect, QSize, QStandardPaths, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -21,6 +21,8 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QStyle,
+    QStyledItemDelegate,
     QVBoxLayout,
     QWidget,
 )
@@ -33,6 +35,7 @@ from rpggen.core import (
     godot_fetch,
     inventory,
     pack_diff,
+    pack_sniff,
     preflight,
     profiles,
 )
@@ -65,6 +68,7 @@ class InputCheck:
     packs: list[Issue] = field(default_factory=list)
     pack_info: dict[str, tuple[str, int | None, int | None]] = field(default_factory=dict)
     pack_issues: dict[str, list[Issue]] = field(default_factory=dict)
+    pack_sniff: dict[str, pack_sniff.PackSniff] = field(default_factory=dict)
 
 
 def check_inputs(
@@ -90,7 +94,100 @@ def check_inputs(
         out.packs.extend(found)
         out.pack_issues[str(pack)] = found
         out.pack_info[str(pack)] = preflight.pack_stats(pack)
+        out.pack_sniff[str(pack)] = pack_sniff.sniff(pack)
     return out
+
+
+CARD_ROLE = Qt.ItemDataRole.UserRole + 1  # the dict a pack card is drawn from
+CHIP_COLORS = {"format": "#1976d2", "ok": "#388e3c", "warn": "#ef6c00", "error": "#d32f2f"}
+
+
+class PackCardDelegate(QStyledItemDelegate):
+    """Draws a pack as a card: name, kind/files/size, a format chip, a licence chip, an inline
+    error and a remove button (a click on the cross emits ``removeRequested(row)``)."""
+
+    removeRequested = Signal(int)  # noqa: N815
+    HEIGHT = 68
+
+    def sizeHint(self, option, index) -> QSize:  # noqa: ANN001
+        return QSize(220, self.HEIGHT)
+
+    @staticmethod
+    def remove_rect(rect: QRect) -> QRect:
+        return QRect(rect.right() - 26, rect.top() + 6, 20, 20)
+
+    def paint(self, painter: QPainter, option, index) -> None:  # noqa: ANN001
+        card = index.data(CARD_ROLE) or {}
+        painter.save()
+        rect = option.rect.adjusted(2, 2, -2, -2)
+        palette = option.palette
+        selected = bool(option.state & QStyle.StateFlag.State_Selected)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setBrush(palette.highlight() if selected else palette.base())
+        painter.setPen(QPen(palette.color(QPalette.ColorRole.Mid)))
+        painter.drawRoundedRect(rect, 6, 6)
+        ink = palette.highlightedText().color() if selected else palette.text().color()
+        muted = palette.color(QPalette.ColorRole.PlaceholderText) if not selected else ink
+        left, width = rect.left() + 10, rect.width() - 46
+        font = painter.font()
+        bold = painter.font()
+        bold.setBold(True)
+        painter.setFont(bold)
+        painter.setPen(ink)
+        name = card.get("name") or str(index.data(Qt.ItemDataRole.UserRole) or "")
+        painter.drawText(
+            QRect(left, rect.top() + 4, width, 18),
+            Qt.AlignmentFlag.AlignVCenter,
+            painter.fontMetrics().elidedText(name, Qt.TextElideMode.ElideMiddle, width),
+        )
+        painter.setFont(font)
+        painter.setPen(muted)
+        detail = card.get("detail") or str(index.data(Qt.ItemDataRole.UserRole) or "")
+        painter.drawText(
+            QRect(left, rect.top() + 22, width, 16),
+            Qt.AlignmentFlag.AlignVCenter,
+            painter.fontMetrics().elidedText(detail, Qt.TextElideMode.ElideMiddle, width),
+        )
+        painter.setPen(ink)
+        painter.drawText(self.remove_rect(rect), Qt.AlignmentFlag.AlignCenter, "×")
+        x = left
+        for text, kind in card.get("chips", []):
+            chip_w = painter.fontMetrics().horizontalAdvance(text) + 14
+            chip = QRect(x, rect.top() + 42, chip_w, 18)
+            if chip.right() > rect.right() - 6:
+                break
+            color = QColor(CHIP_COLORS.get(kind, CHIP_COLORS["format"]))
+            fill = QColor(color)
+            fill.setAlpha(50)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(fill)
+            painter.drawRoundedRect(chip, 8, 8)
+            painter.setPen(ink if not selected else ink)
+            painter.drawText(chip, Qt.AlignmentFlag.AlignCenter, text)
+            x += chip_w + 6
+        error = card.get("error")
+        if error:
+            painter.setPen(QColor(CHIP_COLORS["error"]))
+            painter.drawText(
+                QRect(left, rect.top() + 42, width + 30, 18),
+                Qt.AlignmentFlag.AlignVCenter,
+                painter.fontMetrics().elidedText(
+                    "⚠ " + error, Qt.TextElideMode.ElideRight, width + 30
+                ),
+            )
+        painter.restore()
+
+    def editorEvent(self, event, model, option, index) -> bool:  # noqa: ANN001
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and event.button() == Qt.MouseButton.LeftButton
+            and self.remove_rect(option.rect.adjusted(2, 2, -2, -2)).contains(
+                event.position().toPoint()
+            )
+        ):
+            self.removeRequested.emit(index.row())
+            return True
+        return super().editorEvent(event, model, option, index)
 
 
 class PackList(QListWidget):
@@ -104,8 +201,11 @@ class PackList(QListWidget):
         self.setObjectName("packList")
         self.setAcceptDrops(True)
         self.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
-        self.setMinimumHeight(96)
+        self.setMinimumHeight(140)
         self.on_paths_dropped = lambda paths: None
+        self.card_delegate = PackCardDelegate(self)
+        self.setItemDelegate(self.card_delegate)
+        self.setSpacing(1)
 
     def paintEvent(self, event) -> None:  # noqa: ANN001
         super().paintEvent(event)
@@ -235,6 +335,7 @@ class ProjectPage(WizardPage):
         self.pack_list = PackList()
         self.pack_list.setToolTip(self.tr("The asset packs: drop folders or archives here"))
         self.pack_list.on_paths_dropped = self.add_sources
+        self.pack_list.card_delegate.removeRequested.connect(self.remove_row)
         self.add_zip_button = QPushButton(self.tr("Add Zip/7z…"))
         self.add_zip_button.setObjectName("addZipButton")
         self.add_folder_button = QPushButton(self.tr("Add Folder…"))
@@ -422,6 +523,13 @@ class ProjectPage(WizardPage):
                 self._touched["packs"] = True
         self._suggest_from_first_pack()
         self._on_inputs_changed()
+
+    def remove_row(self, row: int) -> None:
+        """The cross on a pack card."""
+        if 0 <= row < self.pack_list.count():
+            self.pack_list.takeItem(row)
+            self._touched["packs"] = True
+            self._on_inputs_changed()
 
     def remove_selected(self) -> None:
         for item in self.pack_list.selectedItems():
@@ -715,6 +823,46 @@ class ProjectPage(WizardPage):
         else:
             set_status(self.name_status, issues, self.tr("Name is fine."))
 
+    FORMAT_NAMES = {
+        "rpgmaker": "RPG Maker",
+        "lpc": "LPC",
+        "tiled": "Tiled",
+        "ldtk": "LDtk",
+        "aseprite": "Aseprite",
+        "generic": "Generic",
+    }
+
+    def _card_for(self, path: str, check: InputCheck | None) -> dict:
+        """What the pack card shows: name, kind/files/size, the chips and an inline error."""
+        source = Path(path)
+        card: dict = {"name": source.name or path, "detail": path, "chips": [], "error": ""}
+        if check is None or path not in check.pack_info:
+            return card
+        kind, count, size = check.pack_info[path]
+        bits = [kind]
+        if count is not None:
+            bits.append(self.tr("{0} files").format(count))
+        if size is not None:
+            bits.append(format_size(size))
+        card["detail"] = " · ".join(bits)
+        sniffed = check.pack_sniff.get(path)
+        problems = [i for i in check.pack_issues.get(path, []) if i.code.startswith("ARCH-")]
+        if sniffed is not None:
+            problems += [i for i in sniffed.issues if i not in problems]
+        if problems:
+            card["error"] = problems[0].message
+            return card
+        if sniffed is not None and sniffed.format:
+            label = self.tr(self.FORMAT_NAMES.get(sniffed.format, sniffed.format))
+            if sniffed.tile_size:
+                label += f" · {sniffed.tile_size} px"
+            card["chips"].append((label, "format"))
+            if sniffed.has_license is True:
+                card["chips"].append((self.tr("Licence found"), "ok"))
+            elif sniffed.has_license is False:
+                card["chips"].append((self.tr("No licence file"), "warn"))
+        return card
+
     def _refresh_pack_rows(self, check: InputCheck | None) -> None:
         """Each row: the pack, its kind, file count and size once known, and a warning sign with
         the text of an archive problem."""
@@ -740,6 +888,7 @@ class ProjectPage(WizardPage):
                     tooltip = problems[0].message + " " + problems[0].fix
             item.setText(icon + text)
             item.setToolTip(tooltip)
+            item.setData(CARD_ROLE, self._card_for(path, check))
 
     def _refresh_cheap(self) -> None:
         """Update the field lines from the latest completed slow check."""
