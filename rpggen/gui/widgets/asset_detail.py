@@ -23,6 +23,7 @@ from rpggen.core import catalog as catalog_mod
 from rpggen.core import explain, labels
 from rpggen.gui.edits import EditSession
 from rpggen.gui.widgets.asset_grid import STATUS_COLORS, PathResolver
+from rpggen.gui.widgets.flow_layout import FlowLayout
 from rpggen.gui.widgets.image_view import ImageView
 
 USAGES = ["tiles", "sprite", "object", "ui", "portrait", "background", "audio", "font"]
@@ -124,7 +125,7 @@ class AssetDetail(QWidget):
         self.role_combo.setToolTip(
             self.tr("What the file is in the game. Changing it confirms the asset.")
         )
-        self.alt_row = QHBoxLayout()
+        self.alt_row = FlowLayout()
         self.alt_buttons: list[QPushButton] = []
         for i in range(ALT_BUTTONS):
             button = QPushButton()
@@ -176,7 +177,7 @@ class AssetDetail(QWidget):
         self.tags_edit.setObjectName("tagsEdit")
         form.addRow(self.tr("Tags"), self.tags_edit)
 
-        buttons = QHBoxLayout()
+        buttons = FlowLayout()  # wraps when the panel is narrow
         self.confirm_button = QPushButton(self.tr("Confirm"))
         self.confirm_button.setObjectName("confirmButton")
         self.exclude_button = QPushButton(self.tr("Exclude"))

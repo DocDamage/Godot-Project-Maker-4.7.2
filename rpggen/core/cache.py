@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def _root() -> Path:
-    return paths.local_cache_dir() / "analysis"
+    return paths.cache_dir() / "analysis"
 
 
 def _entry_path(sha256: str) -> Path:

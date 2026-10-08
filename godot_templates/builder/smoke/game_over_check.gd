@@ -16,7 +16,7 @@ func _frames(n: int) -> void:
 ## Returns "" on success, else what went wrong.
 func run() -> String:
 	var tree := _tree()
-	var router := _autoload("SceneRouter")
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
 	if router == null or _autoload("GameState") == null:
 		return "SceneRouter or GameState is missing"
 	for i in 300:  # the map of the previous step may still be fading in

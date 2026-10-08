@@ -31,6 +31,26 @@ sample pack through the frozen `rpggen-cli.exe` (expects exit code 0).
 
 Local test build: `python tools/package.py --smoke --godot <Godot exe> [--installer]`.
 
+## A reproducible, gated build
+
+* **The lock file.** The release is built from `requirements/release.txt` (every version and hash,
+  Python 3.12 on Windows), installed with `pip install --require-hashes -r requirements/release.txt`
+  and `pip install --no-build-isolation --no-deps -e .`; never from "whatever is latest". After a
+  change to the dependencies in `pyproject.toml` regenerate it and commit it:
+
+  ```bat
+  pip install pip-tools
+  pip-compile --generate-hashes --allow-unsafe --extra dev --strip-extras -o requirements/release.txt pyproject.toml
+  ```
+
+  CI regenerates the file and fails when it differs, so a stale lock never reaches a tag.
+* **The whole suite first.** `release.yml` calls `ci.yml` (unit, GUI, GDScript, integration, perf on
+  Windows and Ubuntu) on the tagged commit before it builds anything.
+* **The gate.** A tag build stops while `docs/coverage.md` still has a `*(pending)*` row: the
+  held-out accuracy table (T10.09, T10.10) must be filled in with numbers measured on real packs.
+* **Pinned actions.** Every third-party action in `.github/workflows/` is pinned to a full commit
+  SHA with its tag in a comment; Dependabot proposes updates weekly.
+
 ## Code signing
 
 Windows SmartScreen warns about unsigned downloads. The plan:

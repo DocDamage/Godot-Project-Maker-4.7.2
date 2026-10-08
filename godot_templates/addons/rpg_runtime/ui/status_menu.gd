@@ -25,9 +25,10 @@ func _ready() -> void:
 			["UI_RESISTANCE", str(s.resistance)],
 			["UI_GOLD", str(state.gold)],
 		]
-		for row in rows:
+		for row: Array in rows:
 			var label := Label.new()
-			label.text = "%s: %s" % [tr(row[0]), row[1]]
+			var row_key: String = row[0]
+			label.text = "%s: %s" % [tr(row_key), row[1]]
 			list.add_child(label)
 	back.grab_focus.call_deferred()
 

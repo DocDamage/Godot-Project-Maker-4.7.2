@@ -31,6 +31,8 @@ log = logging.getLogger(__name__)
 
 PAGE_NAMES = ["Project", "Archetype", "Audit", "Mapping", "Options", "Generate", "Results"]
 OPTIONS_INDEX = 4  # the last page before generation: its Next button reads "Generate"
+DEFAULT_WINDOW = (1100, 720)
+MIN_WINDOW = (1000, 640)  # the layout test (tests/gui/test_layout_fit.py) runs at this size
 
 
 class StubPage(WizardPage):
@@ -84,8 +86,8 @@ class MainWindow(WindowMenus, QMainWindow):
         super().__init__()
         self.setObjectName("mainWindow")
         self.setWindowTitle(self.tr("rpggen"))
-        self.resize(1100, 720)
-        self.setMinimumSize(1000, 640)
+        self.resize(*DEFAULT_WINDOW)
+        self.setMinimumSize(*MIN_WINDOW)
         self._restore_geometry()
         self.state = state or state_mod.WizardState()
         self.pages = pages if pages is not None else default_pages()
@@ -239,12 +241,12 @@ class MainWindow(WindowMenus, QMainWindow):
     # ------------------------------------------------------------------ state of the controls
 
     def _restore_geometry(self) -> None:
-        saved = app_settings.load().window
+        saved = app_settings.get().window
         screens = [
             (g.x(), g.y(), g.width(), g.height())
             for g in (s.availableGeometry() for s in QGuiApplication.screens())
         ]
-        fitted = app_settings.clamp_geometry(saved, screens, (1000, 640))
+        fitted = app_settings.clamp_geometry(saved, screens, MIN_WINDOW)
         if fitted is None:
             return
         self.setGeometry(*fitted)
@@ -254,15 +256,15 @@ class MainWindow(WindowMenus, QMainWindow):
     def _save_geometry(self) -> None:
         maximized = bool(self.windowState() & Qt.WindowState.WindowMaximized)
         geometry = self.normalGeometry() if maximized else self.geometry()
-        settings = app_settings.load()
-        settings.window = {
-            "x": geometry.x(),
-            "y": geometry.y(),
-            "w": geometry.width(),
-            "h": geometry.height(),
-            "maximized": int(maximized),
-        }
-        app_settings.save(settings)
+        app_settings.update(
+            window={
+                "x": geometry.x(),
+                "y": geometry.y(),
+                "w": geometry.width(),
+                "h": geometry.height(),
+                "maximized": int(maximized),
+            }
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt override
         for page in self.pages:

@@ -5,7 +5,7 @@ const Fixtures := preload("../lib/fixtures.gd")
 const S := RpgBattleController.State
 
 ## No spread, no crits, the first target: every number in these tests can be worked out by hand.
-class FixedRng extends RefCounted:
+class FixedRng extends RpgRng:
 	var roll := 0.5
 	func randf_range(_a: float, _b: float) -> float:
 		return 1.0

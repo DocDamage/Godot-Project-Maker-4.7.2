@@ -8,7 +8,7 @@ from typing import Any
 
 from rpggen import __version__, ids, jsonio, schema
 from rpggen.core.adapters.base import AssetFragment
-from rpggen.core.archive import OpenedPack
+from rpggen.core.archive import Cancelled, OpenedPack, Progress
 from rpggen.core.inventory import Inventory
 from rpggen.errors import IssueList, RpgGenError
 
@@ -577,8 +577,42 @@ def review_progress(catalog: Catalog) -> tuple[int, int, int]:
     return done, attention, len(catalog.assets)
 
 
-class AssemblyCancelled(Exception):
-    """``assemble`` stopped between packs because the caller cancelled."""
+def _tile_count(catalog: Catalog, tileset: TileSetDef) -> int:
+    """How many tiles the sheets of a tile set hold (cells of each sheet's grid)."""
+    total = 0
+    for source in tileset.sources:
+        asset = catalog.asset(source["asset"])
+        if asset is None:
+            continue
+        facets = effective(asset)
+        grid = facets.get("grid") or {}
+        size = facets.get("size") or asset.detected.get("size")
+        cell = grid.get("cell")
+        if not cell or not size or min(cell) <= 0:
+            continue
+        margin = grid.get("margin") or [0, 0]
+        gap = grid.get("separation") or [0, 0]
+        cols = (size[0] - 2 * margin[0] + gap[0]) // (cell[0] + gap[0])
+        rows = (size[1] - 2 * margin[1] + gap[1]) // (cell[1] + gap[1])
+        total += max(cols, 0) * max(rows, 0)
+    return total
+
+
+def dominant_tile_size(catalog: Catalog) -> int | None:
+    """The tile size of a catalog's packs: the cell size of the ``overworld`` tile set, else of
+    the tile set with the most tiles (a tie goes to the smaller size); None without tile sets."""
+    sets = [t for t in catalog.tilesets if t.tile_size and t.tile_size[0] > 0]
+    if not sets:
+        return None
+    overworld = next((t for t in sets if t.name == "overworld"), None)
+    if overworld is not None:
+        return int(overworld.tile_size[0])
+    best = max(sets, key=lambda t: (_tile_count(catalog, t), -t.tile_size[0]))
+    return int(best.tile_size[0])
+
+
+class AssemblyCancelled(Cancelled):
+    """``assemble`` stopped because the caller cancelled (between packs or between images)."""
 
 
 def assemble(
@@ -589,14 +623,18 @@ def assemble(
     work_dir: Path | None = None,
     use_cache: bool = True,
     is_cancelled: Callable[[], bool] | None = None,
+    progress: Progress | None = None,
 ) -> tuple[Catalog, IssueList, dict[str, str]]:
     """Run adapters, classify and merge everything into a Catalog.
+
+    ``progress`` receives ``("Analyzing images", done, total)`` per pack and ``is_cancelled`` is
+    polled before every image, so a cancel raises ``AssemblyCancelled`` within one image.
 
     Returns ``(catalog, issues, generated_files)`` where generated_files maps project-relative
     paths (GIF strips) to the absolute files the installer must copy.
     """
     from rpggen.core import adapters, classifier, terrain
-    from rpggen.core.analyzer import analyzer_for
+    from rpggen.core.analyzer import analyzer_for, prewarm
 
     adapters.register_defaults()
     issues = IssueList()
@@ -617,12 +655,29 @@ def assemble(
         pack_roots[pack_id] = opened.root
         issues.extend(opened.issues)
         issues.extend(i for i in inv.issues if i not in opened.issues)
-        ctx = adapters.AdapterContext(
-            pack_id=pack_id,
-            analyze=analyzer_for(inv, opened.root, use_cache=use_cache),
-            work_dir=work_dir,
-        )
-        results = adapters.run_adapters(inv, opened.root, ctx)
+        try:
+            # the images are analyzed in parallel first; the adapters then read the results
+            warm = prewarm(
+                inv,
+                opened.root,
+                use_cache=use_cache,
+                is_cancelled=is_cancelled,
+                on_progress=progress,
+            )
+            ctx = adapters.AdapterContext(
+                pack_id=pack_id,
+                analyze=analyzer_for(
+                    inv,
+                    opened.root,
+                    use_cache=use_cache,
+                    is_cancelled=is_cancelled,
+                    prewarmed=warm,
+                ),
+                work_dir=work_dir,
+            )
+            results = adapters.run_adapters(inv, opened.root, ctx)
+        except Cancelled as exc:
+            raise AssemblyCancelled from exc
         all_results[pack_id] = results
         warnings: list[str] = []
         for res in results:

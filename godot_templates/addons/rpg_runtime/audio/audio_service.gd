@@ -69,7 +69,7 @@ func connect_events(bus: Node) -> void:
 	if bus == null:
 		return
 	_event_bus = bus
-	for signal_name in EVENT_SLOTS.keys():
+	for signal_name: StringName in EVENT_SLOTS.keys():
 		if bus.has_signal(signal_name):
 			var slot: StringName = EVENT_SLOTS[signal_name]
 			# Every one of these signals has at most two arguments; the sound ignores them.
@@ -77,7 +77,7 @@ func connect_events(bus: Node) -> void:
 
 func _on_event(slot: StringName, signal_name: StringName, first_arg: Variant = null) -> void:
 	# The automatic save (slot 0) is quiet; it shows a toast instead.
-	if signal_name == &"game_saved" and first_arg is int and int(first_arg) == 0:
+	if signal_name == &"game_saved" and first_arg is int and RpgUtil.to_int(first_arg) == 0:
 		return
 	# No pickup sound while no map is shown (starting items, loading a save) or one is loading.
 	if signal_name == &"item_added" and not _map_is_live():

@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import app_settings, orchestrator, vcs
-from rpggen.errors import Issue, IssueList
+from rpggen.errors import CODES, Issue, IssueList
 from rpggen.gui import workers
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
@@ -46,6 +46,13 @@ ICON_PENDING = "○"
 ICON_RUNNING = "⏳"
 ICON_DONE = "✔"
 ICON_FAILED = "✖"
+ICON_SKIPPED = "–"
+# why a check did not run, in a few words (the issue's own text is in the tooltip)
+SKIP_REASONS = {
+    "ENV-010": "export templates are not installed",
+    "VAL-021": "turned off in the config",
+    "VAL-022": "turned off in the config",
+}
 
 
 class GeneratePage(WizardPage):
@@ -66,6 +73,12 @@ class GeneratePage(WizardPage):
         self.status_label = QLabel()
         self.status_label.setObjectName("generateStatus")
         layout.addWidget(self.status_label)
+        # what the running Godot phase is doing: "Building tile sets (7 of 31)", or the last line
+        # Godot printed while it imports
+        self.step_label = QLabel()
+        self.step_label.setObjectName("generateStep")
+        self.step_label.setProperty("muted", True)
+        layout.addWidget(self.step_label)
         self.elapsed_label = QLabel()
         self.elapsed_label.setObjectName("elapsedLabel")
         self.elapsed_label.setProperty("muted", True)
@@ -76,6 +89,8 @@ class GeneratePage(WizardPage):
         self._run_started = 0.0
         self._phase_started = 0.0
         self._durations: dict[str, float] = {}
+        self._skipped: dict[str, str] = {}  # phase -> code: a check that did not run
+        self._timings: dict[str, float] = {}  # the last run's phase times, read once per run
         self.progress = QProgressBar()
         self.progress.setObjectName("generateProgress")
         self.progress.setRange(0, len(PHASES))
@@ -96,6 +111,16 @@ class GeneratePage(WizardPage):
         self.log_view = LogView()
         self.log_view.setVisible(False)
         layout.addWidget(self.log_view, 1)
+        self.log_note = QLabel(
+            self.tr(
+                "Older lines are not shown here; the whole log is in the project's rpggen/logs."
+            )
+        )
+        self.log_note.setObjectName("logNote")
+        self.log_note.setProperty("muted", True)
+        self.log_note.setVisible(False)
+        layout.addWidget(self.log_note)
+        self.log_view.truncated.connect(lambda: self.log_note.setVisible(self.log_view.isVisible()))
         layout.addStretch(0)
         self.details_button.toggled.connect(self._show_details)
         self.cancel_button = QPushButton(self.tr("Cancel"))
@@ -108,15 +133,28 @@ class GeneratePage(WizardPage):
     def _set_icons(self, icons: dict[str, str]) -> None:
         for i, name in enumerate(PHASES):
             item = self.phase_list.item(i)
-            if item is not None:
-                text = f"{icons.get(name, ICON_PENDING)}  {self.tr(PHASE_LABELS.get(name, name))}"
-                if name in self._durations and icons.get(name) in (ICON_DONE, ICON_FAILED):
-                    text += f"  ·  {self._durations[name]:.0f} s"
-                item.setText(text)
-                item.setToolTip(name)
+            if item is None:
+                continue
+            label = self.tr(PHASE_LABELS.get(name, name))
+            code = self._skipped.get(name)
+            if code and icons.get(name) in (ICON_RUNNING, ICON_DONE):
+                # a check that did not run is never shown as passed
+                reason = self.tr(
+                    SKIP_REASONS.get(code, CODES[code].message if code in CODES else code)
+                )
+                item.setText(f"{ICON_SKIPPED}  {label}  ·  {self.tr('skipped')}: {reason}")
+                fix = CODES[code].fix if code in CODES else ""
+                item.setToolTip(f"{code}: {fix}" if fix else code)
+                continue
+            text = f"{icons.get(name, ICON_PENDING)}  {label}"
+            if name in self._durations and icons.get(name) in (ICON_DONE, ICON_FAILED):
+                text += f"  ·  {self._durations[name]:.0f} s"
+            item.setText(text)
+            item.setToolTip(name)
 
     def _show_details(self, shown: bool) -> None:
         self.log_view.setVisible(shown)
+        self.log_note.setVisible(shown and self.log_view.dropped)
         self.details_button.setText(self.tr("Hide details") if shown else self.tr("Show details"))
 
     # ------------------------------------------------------------------ the clock
@@ -142,7 +180,7 @@ class GeneratePage(WizardPage):
         elapsed = time.monotonic() - self._run_started
         text = self.tr("Elapsed {0}").format(self.format_seconds(elapsed))
         left = self.estimate_left(
-            app_settings.load().phase_timings,
+            self._timings,
             self.current_phase,
             time.monotonic() - self._phase_started,
         )
@@ -230,7 +268,11 @@ class GeneratePage(WizardPage):
         assert state is not None
         self.cancelled = False
         self.log_view.clear()
+        self.log_note.setVisible(False)
+        self.step_label.clear()
+        self._timings = dict(app_settings.get().phase_timings)  # once per run, not every second
         self._durations = {}
+        self._skipped = {}
         self._run_started = self._phase_started = time.monotonic()
         self.elapsed_label.setText(self.tr("Elapsed {0}").format("0:00"))
         self._clock.start()
@@ -259,7 +301,9 @@ class GeneratePage(WizardPage):
             state.force_while_open,
         )
         worker.signals.progress.connect(self._on_progress)
-        worker.signals.log.connect(self.log_view.append_line)
+        worker.signals.log.connect(self.log_view.append_line)  # a batch may hold many lines
+        worker.signals.step.connect(self._on_step)
+        worker.signals.skipped.connect(self._on_skipped)
         worker.signals.finished.connect(self._on_finished)
         worker.signals.failed.connect(self._on_failed)
         self.worker = worker
@@ -285,6 +329,8 @@ class GeneratePage(WizardPage):
             self._durations[self.current_phase] = now - self._phase_started
         if self.current_phase != name:
             self._phase_started = now
+        if self.current_phase != name:
+            self.step_label.clear()
         self.current_phase = name
         icons = {p: ICON_DONE for p in PHASES[: index - 1]}
         icons[name] = ICON_RUNNING
@@ -297,8 +343,46 @@ class GeneratePage(WizardPage):
             )
         )
 
+    STEP_VERBS = {
+        "build": "Building {label} ({i} of {n})",
+        "validate": "Checking {label} ({i} of {n})",
+    }
+
+    def step_text(self, phase: str, i: int, n: int, label: str) -> str:
+        """The sub-line under the running phase."""
+        if n > 0 and phase in self.STEP_VERBS:
+            return self.tr(self.STEP_VERBS[phase]).format(label=label, i=i, n=n)
+        return label  # no protocol (the import): the last line Godot printed
+
+    def _on_step(self, phase: str, i: int, n: int, label: str) -> None:
+        if phase != self.current_phase:
+            return  # a late line of the phase before
+        text = self.step_text(phase, i, n, label)
+        width = max(self.step_label.width(), 200)
+        self.step_label.setText(
+            self.step_label.fontMetrics().elidedText(text, Qt.TextElideMode.ElideMiddle, width)
+        )
+        self.step_label.setToolTip(text)
+
+    def _on_skipped(self, phase: str, code: str) -> None:
+        """A check did not run (no export templates, a test turned off): say so in its row."""
+        if phase in PHASES:
+            self._skipped[phase] = code
+            self._set_icons(self._current_icons())
+
+    def _current_icons(self) -> dict[str, str]:
+        """The icons the list shows now, read back from the rows (a skipped row counts as done)."""
+        icons = {}
+        for i, name in enumerate(PHASES):
+            item = self.phase_list.item(i)
+            first = item.text().split()[0] if item is not None and item.text() else ""
+            if first in (ICON_DONE, ICON_RUNNING, ICON_FAILED, ICON_SKIPPED):
+                icons[name] = ICON_DONE if first == ICON_SKIPPED else first
+        return icons
+
     def _stop_running(self) -> None:
         self._clock.stop()
+        self.step_label.clear()
         self.running = False
         self.cancel_button.setEnabled(False)
         self.worker = None
@@ -355,18 +439,21 @@ class GeneratePage(WizardPage):
         state = self.state
         if state is None or state.config is None or state.target is None:
             return
-        settings = app_settings.load()
-        app_settings.add_recent(
-            settings, state.target, state.config.project_name, state.config.archetype
-        )
-        settings.last_target_dir = str(Path(state.target).parent)
-        if state.godot_exe is not None:
-            settings.godot_exe = str(state.godot_exe)
-        app_settings.save(settings)
+        target, name, archetype = state.target, state.config.project_name, state.config.archetype
+        godot_exe = state.godot_exe
+
+        def remember(settings: app_settings.AppSettings) -> None:
+            app_settings.add_recent(settings, target, name, archetype)
+            settings.last_target_dir = str(Path(target).parent)
+            if godot_exe is not None:
+                settings.godot_exe = str(godot_exe)
+
+        app_settings.store().update(remember)
 
     def _show_finished(self, result: orchestrator.RunResult) -> None:
         if result.timings:
             self._durations.update(result.timings)
+        self._skipped.update(result.skipped)
         if result.ok:
             self._remember_project(result)
             if result.timings:

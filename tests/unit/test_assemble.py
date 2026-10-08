@@ -329,3 +329,143 @@ def test_catalog_roundtrip_with_rule_layer(tmp_path: Path) -> None:
     loaded = catalog.load(path)
     assert loaded.to_json() == cat.to_json()
     assert copy.deepcopy(loaded.asset("mixed.items.item_01").rule) == {"role": "WEAPON"}
+
+
+# ------------------------------------------------------------------------ progress and cancel (T12.06)
+
+
+def _many_images(root: Path, count: int = 200) -> Path:
+    pack = root / "many"
+    (pack / "tiles").mkdir(parents=True)
+    for i in range(count):
+        # a different picture every time, so that no cache entry is shared
+        Image.new("RGBA", (16, 16), (i % 256, (i * 7) % 256, (i * 13) % 256, 255)).save(
+            pack / "tiles" / f"t{i:03d}.png"
+        )
+    return pack
+
+
+def test_assemble_reports_images_and_a_cancel_stops_within_one_image(tmp_path: Path) -> None:
+    import time
+
+    pack = _many_images(tmp_path)
+    opened = archive.open_pack(pack, set())
+    inv = inventory.build_inventory(opened)
+    seen: list[tuple[str, int, int]] = []
+    catalog.assemble([(opened, inv)], None, [], use_cache=False, progress=lambda *a: seen.append(a))
+    analyzing = [e for e in seen if e[0] == "Analyzing images"]
+    assert analyzing and all(total == 200 for _l, _d, total in analyzing)
+    done = [d for _l, d, _t in analyzing]
+    assert done == sorted(done) and done[0] > 0 and done[-1] == 200
+
+    count = {"n": 0}
+
+    def cancelled() -> bool:
+        count["n"] += 1
+        return count["n"] > 20
+
+    started = time.monotonic()
+    with pytest.raises(catalog.AssemblyCancelled):
+        catalog.assemble([(opened, inv)], None, [], use_cache=False, is_cancelled=cancelled)
+    assert time.monotonic() - started < 2.0
+    assert count["n"] < 40  # it stopped near image 20, not at the end
+
+
+def test_the_inventory_reports_files_and_obeys_a_cancel(tmp_path: Path) -> None:
+    pack = _many_images(tmp_path, 60)  # above the pool threshold: the process pool is used
+    opened = archive.open_pack(pack, set())
+    seen: list[tuple[str, int, int]] = []
+    inventory.build_inventory(opened, progress=lambda *a: seen.append(a))
+    assert seen[-1] == ("Reading files", 60, 60)
+    assert [d for _l, d, _t in seen] == sorted(d for _l, d, _t in seen)
+    with pytest.raises(archive.Cancelled):
+        inventory.build_inventory(opened, is_cancelled=lambda: True)
+
+
+# ------------------------------------------------------------------------ parallel analysis (T12.17)
+
+
+@pytest.mark.parametrize("pack", PACKS, ids=[p.stem for p in PACKS])
+def test_the_catalog_is_the_same_with_and_without_the_parallel_prewarm(
+    pack: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from rpggen.core import analyzer
+
+    with_prewarm = jsonio.dumps(_assemble(pack)[0].to_json())  # the serial path (a small pack)
+    monkeypatch.setattr(analyzer, "POOL_THRESHOLD", 2)  # the process pool, even for this pack
+    pooled = jsonio.dumps(_assemble(pack)[0].to_json())
+    monkeypatch.setattr(analyzer, "prewarm", lambda *a, **k: {})
+    without = jsonio.dumps(_assemble(pack)[0].to_json())
+    assert with_prewarm == pooled == without
+
+
+def test_prewarm_analyzes_only_what_the_cache_lacks_and_the_workers_fill_the_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from rpggen.core import analyzer, cache
+
+    pack = _many_images(tmp_path, 40)
+    opened = archive.open_pack(pack, set())
+    inv = inventory.build_inventory(opened)
+    monkeypatch.setattr(analyzer, "POOL_THRESHOLD", 2)
+    seen: list[tuple[str, int, int]] = []
+    results = analyzer.prewarm(inv, opened.root, on_progress=lambda *a: seen.append(a))
+    assert len(results) == 40 and seen[-1] == ("Analyzing images", 40, 40)
+    assert all(cache.get(f.sha256, analyzer.ANALYZER_VERSION) is not None for f in inv.files)
+    assert analyzer.prewarm(inv, opened.root) == {}  # nothing left to do
+
+
+def test_without_the_cache_the_results_stay_in_memory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from rpggen.core import analyzer, cache
+
+    pack = _many_images(tmp_path, 10)
+    opened = archive.open_pack(pack, set())
+    inv = inventory.build_inventory(opened)
+    results = analyzer.prewarm(inv, opened.root, use_cache=False)
+    assert len(results) == 10
+    assert all(cache.get(f.sha256, analyzer.ANALYZER_VERSION) is None for f in inv.files)
+
+
+def test_a_huge_image_is_analyzed_in_this_process_one_at_a_time(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import concurrent.futures
+
+    from rpggen.core import analyzer
+
+    pack = _many_images(tmp_path, 40)
+    opened = archive.open_pack(pack, set())
+    inv = inventory.build_inventory(opened)
+    monkeypatch.setattr(analyzer, "POOL_THRESHOLD", 2)
+    monkeypatch.setattr(analyzer, "HUGE_PIXELS", 10)  # every 16 x 16 image counts as huge
+
+    def no_pool(*_a, **_k):
+        raise AssertionError("a pool was started for huge images")
+
+    monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", no_pool)
+    assert len(analyzer.prewarm(inv, opened.root, use_cache=False)) == 40
+
+
+def test_a_cancel_stops_the_pool_without_finishing_the_queue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import time
+
+    from rpggen.core import analyzer
+
+    pack = _many_images(tmp_path, 400)
+    opened = archive.open_pack(pack, set())
+    inv = inventory.build_inventory(opened)
+    monkeypatch.setattr(analyzer, "POOL_THRESHOLD", 2)
+    calls = {"n": 0}
+
+    def cancelled() -> bool:
+        calls["n"] += 1
+        return calls["n"] > 3
+
+    started = time.monotonic()
+    with pytest.raises(archive.Cancelled):
+        analyzer.prewarm(inv, opened.root, use_cache=False, is_cancelled=cancelled)
+    assert time.monotonic() - started < 10

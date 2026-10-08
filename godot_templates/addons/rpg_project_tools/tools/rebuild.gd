@@ -31,12 +31,15 @@ static func build_arguments() -> PackedStringArray:
 ## The issues of the last build, from build_results.json ([] when there is none).
 static func read_issues() -> Array:
 	var data: Variant = JsonIo.read(RESULTS_PATH)
-	if data is Dictionary and data.get("issues") is Array:
-		return data["issues"]
+	if data is Dictionary:
+		var results: Dictionary = data
+		if results.get("issues") is Array:
+			var listed: Array = results["issues"]
+			return listed
 	return []
 
 static func has_errors(issues: Array) -> bool:
-	for issue in issues:
+	for issue: Dictionary in issues:
 		if issue.get("severity", "") == "error":
 			return true
 	return false

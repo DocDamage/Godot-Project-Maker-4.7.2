@@ -53,7 +53,7 @@ datas += [
 ]
 datas += collect_data_files("jsonschema_specifications")  # referenced schemas of jsonschema
 
-hidden = []
+hidden = ["psutil"]  # imported inside a function (promote.editor_open)
 
 
 def analysis(script):

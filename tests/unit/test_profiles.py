@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from rpggen import schema
+from rpggen import paths, schema
 from rpggen.core import archive, catalog, inventory, profiles
 from rpggen.core.adapters import profile as profile_adapter
 from rpggen.core.catalog import FolderRule
@@ -143,7 +143,7 @@ def test_no_installed_profiles_means_no_match() -> None:
 
 
 def test_invalid_profile_files_are_ignored(_cache: Path) -> None:
-    folder = _cache / "profiles"
+    folder = paths.data_dir() / "profiles"
     folder.mkdir(parents=True)
     (folder / "bad.rpgprofile.json").write_text("{not json", encoding="utf-8")
     (folder / "wrong.rpgprofile.json").write_text('{"profile_version": 1}', encoding="utf-8")

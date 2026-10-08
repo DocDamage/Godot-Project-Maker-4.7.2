@@ -39,9 +39,9 @@ class WizardState:
 
 
 def draft_path(target: Path) -> Path:
-    """``local_cache_dir()/drafts/<sha256(str(target.resolve()).casefold())[:16]>.json``"""
+    """``data_dir()/drafts/<sha256(str(target.resolve()).casefold())[:16]>.json``"""
     key = hashlib.sha256(str(Path(target).resolve()).casefold().encode("utf-8")).hexdigest()
-    return paths.local_cache_dir() / "drafts" / f"{key[:16]}.json"
+    return paths.data_dir() / "drafts" / f"{key[:16]}.json"
 
 
 def save_draft(state: WizardState) -> Path | None:

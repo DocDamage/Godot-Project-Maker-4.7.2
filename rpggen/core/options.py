@@ -108,8 +108,24 @@ def effective_features(wanted: dict[str, bool]) -> dict[str, bool]:
     return out
 
 
+def _tiles(value: float) -> str:
+    """40, 22.5 and 11.25 as they are; an unending fraction (13.333...) to one decimal."""
+    exact = round(value, 2)
+    return f"{exact:g}" if abs(value - exact) < 1e-9 else f"{round(value, 1):g}"
+
+
 def tiles_hint(resolution: tuple[int, int], tile: int) -> str:
-    return f"≈ {resolution[0] / tile:g} × {resolution[1] / tile:g} tiles on screen"
+    return f"≈ {_tiles(resolution[0] / tile)} × {_tiles(resolution[1] / tile)} tiles on screen"
+
+
+TILES_ACROSS = 20  # about this many tiles across is a comfortable view for a 2D RPG
+
+
+def suggested_preset(presets: list[tuple[int, int]], tile: int) -> tuple[int, int] | None:
+    """The preset that shows about ``TILES_ACROSS`` tiles across (the larger one on a tie)."""
+    if not presets or tile <= 0:
+        return None
+    return min(presets, key=lambda p: (abs(p[0] / tile - TILES_ACROSS), -p[0]))
 
 
 def preset_index(presets: list[tuple[int, int]], value: tuple[int, int]) -> int:

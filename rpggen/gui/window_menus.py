@@ -17,6 +17,7 @@ from rpggen.gui import theme, workers
 from rpggen.gui.dialogs import diagnostic_export, help_viewer
 from rpggen.gui.dialogs.about_dialog import AboutDialog
 from rpggen.gui.dialogs.error_lookup import ErrorLookupDialog
+from rpggen.gui.dialogs.storage_dialog import StorageDialog
 from rpggen.gui.widgets.task_progress import error_text, run_task
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -74,6 +75,10 @@ class WindowMenus:
             "redoMenuAction",
             lambda: self._forward_edit("redo_action"),
         )
+        edit_menu.addSeparator()
+        self.storage_action = self._action(
+            edit_menu, self.tr("&Storage…"), "storageAction", self.show_storage
+        )
         edit_menu.aboutToShow.connect(self._sync_edit_actions)
 
         view_menu = bar.addMenu(self.tr("&View"))
@@ -91,7 +96,7 @@ class WindowMenus:
         size_menu = view_menu.addMenu(self.tr("Thumbnail size"))
         size_group = QActionGroup(self)
         self.thumb_actions: dict[int, QAction] = {}
-        current = app_settings.load().thumb_size
+        current = app_settings.get().thumb_size
         for size in app_settings.THUMB_SIZES:
             action = self._action(
                 size_menu,
@@ -200,7 +205,7 @@ class WindowMenus:
         folder = QFileDialog.getExistingDirectory(
             self,
             self.tr("Open project"),
-            app_settings.load().last_target_dir,  # type: ignore[arg-type]
+            app_settings.get().last_target_dir,  # type: ignore[arg-type]
         )
         return Path(folder) if folder else None
 
@@ -229,11 +234,13 @@ class WindowMenus:
 
     def _fill_recent_menu(self) -> None:
         self.recent_menu.clear()
-        recent = app_settings.load().recent_projects
+        recent = app_settings.get().recent_projects
+        unreachable = self.welcome.unavailable  # type: ignore[attr-defined]
         for project in recent:
             label = project.name or Path(project.target).name
             action = self.recent_menu.addAction(f"{label}  ({project.target})")
             action.triggered.connect(lambda _=False, t=project.target: self.open_project(Path(t)))
+            action.setEnabled(project.target not in unreachable)  # known from the welcome view
         self.recent_menu.setEnabled(bool(recent))
 
     # ------------------------------------------------------------------ Edit menu
@@ -271,7 +278,7 @@ class WindowMenus:
             action.setChecked(True)
 
     def set_thumb_size(self, size: int) -> None:
-        app_settings.update(thumb_size=size)
+        app_settings.schedule(thumb_size=size)
         if size in self.thumb_actions:
             self.thumb_actions[size].setChecked(True)
         audit = self._audit_page()
@@ -297,6 +304,9 @@ class WindowMenus:
 
     def show_about(self) -> None:
         AboutDialog(self).exec()  # type: ignore[arg-type]
+
+    def show_storage(self) -> None:
+        StorageDialog(self).exec()  # type: ignore[arg-type]
 
     def ask_export_before_report(self) -> bool | None:  # overridden by tests
         """True: export a bundle first, False: just open the issues page, None: cancel."""

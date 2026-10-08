@@ -8,6 +8,6 @@ func _init() -> void:
 	targets = TARGET_SELF
 	priority = 10
 
-func execute(user: RpgBattleActor, _targets: Array[RpgBattleActor], _battle: Variant) -> Array[Dictionary]:
+func execute(user: RpgBattleActor, _targets: Array[RpgBattleActor], _battle: RpgBattleController) -> Array[Dictionary]:
 	user.defending = true
 	return [RpgBattleCommand.entry("status", RpgBattleText.t("BATTLE_DEFENDS", [user.display_name]), user)]

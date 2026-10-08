@@ -175,3 +175,36 @@ def test_changes_emit_changed_for_revalidation(qtbot) -> None:
     page, _state = _page(qtbot)
     with qtbot.waitSignal(page.changed, timeout=500):
         page.feature_boxes["save"].setChecked(False)
+
+
+def test_the_hint_uses_the_tile_size_of_the_packs_and_a_resolution_is_suggested(qtbot) -> None:
+    state = WizardState(config=config.default_for("T", [REF], base_tile_size=48))
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.show()
+    page.enter(state)
+    page.resolution.combo.setCurrentIndex(3)  # 640 x 360
+    assert page.hint_label.text() == "≈ 13.3 × 7.5 tiles on screen"
+    texts = [page.resolution.combo.itemText(i) for i in range(4)]
+    assert [t.endswith("(suggested)") for t in texts] == [False, False, False, True]
+    state16 = WizardState(config=config.default_for("T", [REF]))
+    page.enter(state16)
+    page.resolution.combo.setCurrentIndex(0)
+    assert page.resolution.combo.itemText(0).endswith("(suggested)")
+    assert not page.resolution.combo.itemText(3).endswith("(suggested)")
+
+
+def test_version_control_offers_three_ways_to_handle_the_pack_art(qtbot) -> None:
+    page, state = _page(qtbot)
+    assert set(page.pack_art_radios) == {"commit", "lfs", "ignore"}
+    assert page.pack_art_radios["commit"].isChecked()  # the default
+    assert "public" in page.findChild(type(page.hint_label), "packArtNote").text()
+    page.pack_art_radios["ignore"].setChecked(True)
+    page.leave(state)
+    assert state.config.git == {"pack_art": "ignore"}
+    assert state.config.to_json()["git"] == {"pack_art": "ignore"}
+    page.enter(state)  # coming back shows the choice that was made
+    assert page.pack_art_radios["ignore"].isChecked()
+    page.pack_art_radios["commit"].setChecked(True)
+    page.leave(state)
+    assert state.config.git == {} and "git" not in state.config.to_json()  # the default is omitted

@@ -36,7 +36,8 @@ func _start_from_state() -> void:
 		return
 	var state := RpgUtil.state()
 	if state != null:
-		_begin(state.get("pending_encounter") as RpgEncounterData)
+		var pending: RpgEncounterData = state.get("pending_encounter")
+		_begin(pending)
 
 func _begin(data: RpgEncounterData) -> void:
 	if started or data == null or controller == null or ui == null:
@@ -44,9 +45,15 @@ func _begin(data: RpgEncounterData) -> void:
 	started = true
 	controller.setup(data)
 	var router := RpgUtil.router()
-	var combat: Variant = router.get("combat") if router != null else null
-	if combat != null and combat.get("auto_choose") is Callable and (combat.get("auto_choose") as Callable).is_valid():
-		controller.auto_choose = combat.get("auto_choose")
+	var combat: Object = null
+	if router != null:
+		combat = router.get("combat")
+	if combat != null:
+		var chooser: Variant = combat.get("auto_choose")
+		if chooser is Callable:
+			var auto: Callable = chooser
+			if auto.is_valid():
+				controller.auto_choose = auto
 	_build_visuals()
 	ui.bind(controller, _anchor_of)
 	controller.ui = ui
@@ -65,11 +72,14 @@ func _run() -> void:
 
 func _audio() -> Node:
 	var router := RpgUtil.router()
-	return router.get("audio") as Node if router != null else null
+	if router == null:
+		return null
+	var audio: Node = router.get("audio")
+	return audio
 
 func _leave(result: RpgEncounterResult, previous_music: String) -> void:
 	var router := RpgUtil.router()
-	if router == null or int(router.call("stack_depth")) == 0:
+	if router == null or RpgUtil.to_int(router.call("stack_depth")) == 0:
 		return  # running on its own: there is nowhere to go back to
 	while router.is_busy():  # the fade-in of this scene may still be running
 		await get_tree().process_frame
@@ -106,11 +116,13 @@ func _place_group(actors: Array[RpgBattleActor], slots: Array[Node2D], player_si
 func _pick_animation(frames: SpriteFrames, player_side: bool) -> String:
 	var names := Array(frames.get_animation_names())
 	names.sort()
-	var wanted: Array = ["idle_up", "idle_left"] if player_side else ["idle_down"]
+	var wanted: Array[String] = ["idle_down"]
+	if player_side:
+		wanted = ["idle_up", "idle_left"]
 	for w in wanted:
 		if names.has(w):
 			return w
-	return String(names[0]) if not names.is_empty() else ""
+	return RpgUtil.to_str(names[0]) if not names.is_empty() else ""
 
 func _make_visual(actor: RpgBattleActor, player_side: bool) -> Node2D:
 	var frames := actor.sprite_frames
@@ -136,29 +148,31 @@ func _make_visual(actor: RpgBattleActor, player_side: bool) -> Node2D:
 
 ## Where the target arrow should touch `actor`: just above its sprite.
 func _anchor_of(actor: RpgBattleActor) -> Vector2:
-	var node := _visuals.get(actor) as Node2D
+	var node: Node2D = _visuals.get(actor)
 	if node == null:
 		return Vector2.ZERO
-	return node.global_position + Vector2(0, -(_sizes.get(actor, PLACEHOLDER_SIZE) as Vector2).y / 2.0 - 4.0)
+	var size: Vector2 = _sizes.get(actor, PLACEHOLDER_SIZE)
+	return node.global_position + Vector2(0, -size.y / 2.0 - 4.0)
 
 func visual_of(actor: RpgBattleActor) -> Node2D:
-	return _visuals.get(actor) as Node2D
+	var node: Node2D = _visuals.get(actor)
+	return node
 
 # ---------------------------------------------------------------- hit feedback
 
 func _on_entries_resolved(entries: Array) -> void:
-	for entry in entries:
-		var target := entry.get("target") as RpgBattleActor
-		var node := _visuals.get(target) as Node2D
+	for entry: Dictionary in entries:
+		var target: RpgBattleActor = entry.get("target")
+		var node: Node2D = _visuals.get(target)
 		if target == null or node == null:
 			continue
 		match str(entry.get("type", "")):
 			"damage":
 				RpgUtil.emit(&"attack_started", [node])
-				_hit(node, target, bool(entry.get("crit", false)))
-				_float_number(node, target, str(int(entry.get("amount", 0))), Color.WHITE)
+				_hit(node, target, RpgUtil.to_bool(entry.get("crit", false)))
+				_float_number(node, target, str(RpgUtil.to_int(entry.get("amount", 0))), Color.WHITE)
 			"heal":
-				_float_number(node, target, "+%d" % int(entry.get("amount", 0)), Color(0.5, 1.0, 0.5))
+				_float_number(node, target, "+%d" % RpgUtil.to_int(entry.get("amount", 0)), Color(0.5, 1.0, 0.5))
 	ui.refresh()
 
 ## A 0.1 s white flash, a short shake on a crit and a fade when the battler falls.
@@ -171,7 +185,7 @@ func _hit(node: Node2D, target: RpgBattleActor, crit: bool) -> void:
 	if crit:
 		var base := node.position.x
 		var shake := create_tween()
-		for dx in [3.0, -3.0, 2.0, -2.0, 0.0]:
+		for dx: float in [3.0, -3.0, 2.0, -2.0, 0.0]:
 			shake.tween_property(node, "position:x", base + dx, 0.03)
 
 func _float_number(node: Node2D, target: RpgBattleActor, text: String, color: Color) -> void:
@@ -182,7 +196,8 @@ func _float_number(node: Node2D, target: RpgBattleActor, text: String, color: Co
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 	label.add_theme_constant_override("outline_size", 3)
 	add_child(label)
-	var half_height := (_sizes.get(target, PLACEHOLDER_SIZE) as Vector2).y / 2.0
+	var size: Vector2 = _sizes.get(target, PLACEHOLDER_SIZE)
+	var half_height := size.y / 2.0
 	label.position = node.position + Vector2(-8, -half_height - 10)
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(label, "position:y", label.position.y - NUMBER_RISE_PX, 0.6)

@@ -88,17 +88,146 @@ def update_goldens() -> int:
     return 0
 
 
+LAYOUT_ARCHETYPES = ("turn_based", "arpg")
+LAYOUT_THEMES = ("dark", "light")
+
+
+_FONT_FILES = (
+    r"C:\Windows\Fonts\segoeui.ttf",
+    r"C:\Windows\Fonts\arial.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/Library/Fonts/Arial.ttf",
+)
+
+
+def ensure_real_font() -> str | None:
+    """Make the application use a real font and return its family (None when the machine has
+    none). Qt's offscreen platform on Windows has no font database, so every glyph is a box about
+    twice as wide as a letter and layouts measured there are not those a user sees."""
+    from PySide6.QtGui import QFont, QFontDatabase
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if not isinstance(app, QApplication):
+        return None
+    families = QFontDatabase.families()
+    if not families:
+        for candidate in _FONT_FILES:
+            if Path(candidate).is_file():
+                font_id = QFontDatabase.addApplicationFont(candidate)
+                families = QFontDatabase.applicationFontFamilies(font_id) if font_id >= 0 else []
+                if families:
+                    break
+    if not families:
+        return None
+    family = next(
+        (f for f in ("Segoe UI", "DejaVu Sans", "Arial", "Helvetica") if f in families), families[0]
+    )
+    app.setFont(QFont(family, 9))
+    return family
+
+
+def layout_sizes() -> dict[str, tuple[int, int]]:
+    """The two window sizes the layout test and ``layout-shots`` use."""
+    from rpggen.gui import wizard
+
+    return {"minimum": wizard.MIN_WINDOW, "default": wizard.DEFAULT_WINDOW}
+
+
+def layout_state(archetype: str, scratch: Path):  # noqa: ANN201 - WizardState, imported lazily
+    """A wizard state analysed from the sample pack (no Godot needed), with a finished run in
+    ``scratch`` so that the Generate and Results pages show their finished views."""
+    from rpggen import paths
+    from rpggen.core import config, orchestrator, report
+    from rpggen.core.orchestrator import Callbacks
+    from rpggen.gui import workers
+    from rpggen.gui.state import WizardState
+
+    sample = paths.sample_pack_root()
+    state = WizardState(project_name="Layout check", pack_sources=[sample], archetype=archetype)
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    ref = config.PackRef("sample_pack", str(sample), "0" * 64, "folder")
+    state.config = config.default_for("Layout check", [ref], archetype=archetype)
+    state.target = scratch / "layout_project"
+    state.godot_exe = scratch / "godot.exe"
+    (state.target / "generated").mkdir(parents=True, exist_ok=True)
+    (state.target / "generated" / "a.tscn").write_text("", encoding="utf-8")
+    (state.target / report.REPORT_MD).write_text("# Generation Report\n", encoding="utf-8")
+    state.run_result = orchestrator.RunResult(
+        True, state.target, [], None, None, catalog=state.catalog, cfg=state.config
+    )
+    return state
+
+
+def show_each_page(window, on_page) -> None:  # noqa: ANN001 - MainWindow, imported lazily
+    """Show every wizard page of ``window`` (and the welcome view) and call
+    ``on_page(name, widget)`` once the page has been laid out."""
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+
+    def settle() -> None:  # a scroll area lays its content out over a few turns
+        for _ in range(3):
+            app.processEvents()
+
+    for index, page in enumerate(window.pages):
+        window.show_page(index)
+        settle()
+        on_page(f"{index + 1}_{page.title.lower()}", window)
+    window.show_welcome_view()
+    settle()
+    on_page("0_welcome", window)
+
+
+def layout_shots(out: Path | None = None) -> int:
+    """Write a PNG of every page, in both themes, both archetypes and both window sizes."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from rpggen.gui import app as gui_app
+    from rpggen.gui import theme
+    from rpggen.gui.wizard import MainWindow, default_pages
+
+    out = out or Path(tempfile.mkdtemp(prefix="rpggen_layout_shots_"))
+    out.mkdir(parents=True, exist_ok=True)
+    os.environ["RPGGEN_CACHE_DIR"] = str(out / "cache")
+    gui_app.create_app()
+    ensure_real_font()
+    count = 0
+    for archetype in LAYOUT_ARCHETYPES:
+        state = layout_state(archetype, out)
+        for theme_name in LAYOUT_THEMES:
+            theme.apply_theme(theme_name, remember=False)
+            for size_name, (width, height) in layout_sizes().items():
+                window = MainWindow(state, default_pages())
+                window.resize(width, height)
+                window.show()
+
+                def shoot(name: str, win, prefix: str = f"{archetype}_{theme_name}_{size_name}"):
+                    win.grab().save(str(out / f"{prefix}_{name}.png"))
+
+                show_each_page(window, shoot)
+                count += 1 + len(window.pages)
+                window.close()
+    print(f"wrote {count} pictures to {out}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m rpggen.dev")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("godot-test", help="run the template project's GDScript tests")
     sub.add_parser("make-fixtures", help="regenerate test_packs/synthetic")
     sub.add_parser("update-goldens", help="rewrite tests/golden/*.catalog.json")
+    shots = sub.add_parser("layout-shots", help="picture every wizard page, theme and size")
+    shots.add_argument("--out", type=Path, default=None, help="folder for the PNG files")
     args = parser.parse_args(argv)
     if args.command == "godot-test":
         return godot_test()
     if args.command == "update-goldens":
         return update_goldens()
+    if args.command == "layout-shots":
+        return layout_shots(args.out)
     return make_fixtures()
 
 

@@ -70,13 +70,14 @@ class Candidate:
     overlap: float  # fraction of the entry's fingerprint hashes found in the local packs
 
 
-def default_fetcher(url: str, limit: int) -> bytes:
-    """GET ``url`` (https only) and return at most ``limit`` bytes; more is an error."""
+def default_fetcher(url: str, limit: int, *, timeout: float = TIMEOUT_S) -> bytes:
+    """GET ``url`` (https only) and return at most ``limit`` bytes; more is an error. The timeout
+    is an argument: callers on other threads each pass their own, nothing global is changed."""
     if not url.lower().startswith("https://"):
         raise RegistryError(f"refusing a non-https URL: {url}")
     request = urllib.request.Request(url, headers={"User-Agent": "rpggen"})
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:  # noqa: S310
+        with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
             data: bytes = response.read(limit + 1)
     except OSError as exc:
         raise RegistryOffline(str(exc)) from exc

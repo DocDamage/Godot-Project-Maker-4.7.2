@@ -27,6 +27,7 @@ from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui.dialogs import diagnostic_export
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
+from rpggen.gui.widgets.collapsible import CollapsibleSection
 
 COUNT_LABELS = (
     ("assets", "Assets processed"),
@@ -117,6 +118,13 @@ class ResultsPage(WizardPage):
         self.header = QLabel()
         self.header.setObjectName("resultsHeader")
         layout.addWidget(self.header)
+        self.run_label = QLabel()
+        self.run_label.setObjectName("runLabel")
+        self.run_label.setProperty("muted", True)
+        self.run_label.setToolTip(
+            self.tr("The number of this run: the lines of the log and the report that belong to it")
+        )
+        layout.addWidget(self.run_label)
         self.phase_label = QLabel()
         self.phase_label.setObjectName("failedPhase")
         self.phase_label.setWordWrap(True)
@@ -181,6 +189,17 @@ class ResultsPage(WizardPage):
         self.fix_label.setWordWrap(True)
         layout.addWidget(self.fix_label)
         self.issue_list.currentRowChanged.connect(self._on_issue_selected)
+        # notes (the INFO issues; the checks that did not run come first)
+        self.notes = CollapsibleSection(self.tr("Notes"))
+        self.notes.setObjectName("notesSection")
+        notes_layout = QVBoxLayout(self.notes.body)
+        notes_layout.setContentsMargins(0, 0, 0, 0)
+        self.notes_list = QListWidget()
+        self.notes_list.setObjectName("notesList")
+        self.notes_list.setToolTip(self.tr("Things that were left out or only worth knowing"))
+        self.notes_list.setMaximumHeight(130)
+        notes_layout.addWidget(self.notes_list)
+        layout.addWidget(self.notes)
 
         buttons = QHBoxLayout()
         self.folder_button = self._button("Open folder", "openFolder", buttons)
@@ -255,7 +274,9 @@ class ResultsPage(WizardPage):
         self.result = result
         if result is None:
             self.header.setText(self.tr("Nothing has been generated yet."))
+            self.run_label.clear()
             return
+        self.run_label.setText(self.tr("Run {0}").format(result.run_id) if result.run_id else "")
         counts = report.counts(result.catalog, result.issues, result.target if result.ok else None)
         for key, label in self.count_labels.items():
             label.setText(str(counts[key]))
@@ -268,6 +289,21 @@ class ResultsPage(WizardPage):
         label.setProperty("state", state)
         label.style().unpolish(label)
         label.style().polish(label)
+
+    def _fill_notes(self, result: orchestrator.RunResult) -> None:
+        """The INFO issues in a folded section; a check that did not run is listed first."""
+        skipped_codes = set(result.skipped.values())
+        notes = [i for i in result.issues if i.severity is Severity.INFO]
+        notes.sort(key=lambda i: i.code not in skipped_codes)  # stable: the rest keeps its order
+        self.notes_list.clear()
+        for issue in notes:
+            mark = "–" if issue.code in skipped_codes else "ℹ"
+            text = f"{mark} {issue.code}: {issue.message}"
+            if issue.fix and issue.fix != "—":
+                text += f"\n      {self.tr('Fix')}: {issue.fix}"
+            self.notes_list.addItem(QListWidgetItem(text))
+        self.notes.set_title(self.tr("Notes ({0})").format(len(notes)))
+        self.notes.setVisible(bool(notes))
 
     def _fill_issues(self, issues: list[Issue]) -> None:
         """Errors first, then warnings; each row shows its fix under the message."""
@@ -347,6 +383,7 @@ class ResultsPage(WizardPage):
         self._fill_issues(warnings)
         self.issue_list.setVisible(bool(warnings))
         self.fix_label.setVisible(False)
+        self._fill_notes(result)
         for button in (self.godot_button, self.folder_button, self.report_button):
             button.setVisible(True)
         self.project_button.setVisible(False)
@@ -377,6 +414,7 @@ class ResultsPage(WizardPage):
         self.another_button.setVisible(False)
         self.options_button.setVisible(False)
         self.project_button.setVisible(any(i.code.startswith("ENV-") for i in result.issues))
+        self.notes.setVisible(False)
         self.issue_title.setText(self.tr("Problems (select one to see how to fix it)"))
         ordered = sorted(
             (i for i in result.issues if i.severity is not Severity.INFO),

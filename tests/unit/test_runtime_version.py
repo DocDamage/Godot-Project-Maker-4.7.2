@@ -177,6 +177,7 @@ def test_template_only_has_known_placeholders() -> None:
         "runtime_version",
         "godot_version",
         "packs_list",
+        "version_control_note",  # T12.12: what git does with the purchased art
     }
     assert text.count("{") == text.count("}")
     for needle in ("addons/rpg_runtime", "generated/", ".rpggen-new", "MIT-0", "F5"):

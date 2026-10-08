@@ -10,12 +10,13 @@ extends RefCounted
 
 const EntityIds := preload("entity_ids.gd")
 const Condition := preload("res://addons/rpg_runtime/dialogue/condition.gd")
+const JsonIo := preload("json_io.gd")
 
 const MAPS_DIR := "res://game/maps"
 const DIALOGUE_DIR := "res://game/data/dialogue"
 const ITEMS_DIR := "res://game/data/items"
 const PLACEHOLDER_DIR := "res://generated/debug_placeholders/"
-const RESOURCE_ROOTS := ["res://generated", "res://game"]
+const RESOURCE_ROOTS: Array[String] = ["res://generated", "res://game"]
 const DOOR_SUFFIX := "/world/door.gd"
 const SPAWN_SUFFIX := "/world/spawn_point.gd"
 
@@ -24,14 +25,16 @@ const SPAWN_SUFFIX := "/world/spawn_point.gd"
 static func run(dirs: Dictionary = {}) -> Array:
 	var findings: Array = []
 	var cache := {}  # map path -> instantiated scene (or null), freed at the end
-	var maps := list_files(String(dirs.get("maps", MAPS_DIR)), ["tscn"])
+	var maps := list_files(JsonIo.to_str(dirs.get("maps", MAPS_DIR)), ["tscn"])
 	_check_entity_ids(maps, cache, findings)
 	_check_doors(maps, cache, findings)
-	_check_dialogue(String(dirs.get("dialogue", DIALOGUE_DIR)), String(dirs.get("items", ITEMS_DIR)), findings)
-	_check_placeholders(dirs.get("resources", RESOURCE_ROOTS), String(dirs.get("placeholders", PLACEHOLDER_DIR)), findings)
-	for key in cache.keys():
-		if cache[key] != null:
-			cache[key].free()
+	_check_dialogue(JsonIo.to_str(dirs.get("dialogue", DIALOGUE_DIR)), JsonIo.to_str(dirs.get("items", ITEMS_DIR)), findings)
+	var roots: Array = dirs.get("resources", RESOURCE_ROOTS)
+	_check_placeholders(roots, JsonIo.to_str(dirs.get("placeholders", PLACEHOLDER_DIR)), findings)
+	for key: Variant in cache.keys():
+		var cached: Node = cache[key]
+		if cached != null:
+			cached.free()
 	findings.sort_custom(_before)
 	return findings
 
@@ -46,25 +49,27 @@ static func finding(code: String, detail: Dictionary, file: String, node: String
 	return {"code": code, "detail": d, "file": file, "node": node}
 
 ## Files below dir_path with one of the extensions, sorted by path, recursive.
-static func list_files(dir_path: String, extensions: Array) -> Array:
-	var found: Array = []
+static func list_files(dir_path: String, extensions: Array) -> Array[String]:
+	var found: Array[String] = []
 	var dir := DirAccess.open(dir_path)
 	if dir == null:
 		return found
-	var entries: Array = []
+	var entries: Array[Array] = []
 	dir.list_dir_begin()
 	var entry := dir.get_next()
 	while entry != "":
 		entries.append([entry, dir.current_is_dir()])
 		entry = dir.get_next()
 	dir.list_dir_end()
-	entries.sort_custom(func(a: Array, b: Array) -> bool: return String(a[0]) < String(b[0]))
-	for e in entries:
-		var full: String = dir_path + "/" + e[0]
-		if e[1]:
-			if not String(e[0]).begins_with("."):
+	entries.sort_custom(func(a: Array, b: Array) -> bool: return JsonIo.to_str(a[0]) < JsonIo.to_str(b[0]))
+	for e: Array in entries:
+		var entry_name: String = e[0]
+		var is_dir: bool = e[1]
+		var full: String = dir_path + "/" + entry_name
+		if is_dir:
+			if not entry_name.begins_with("."):
 				found.append_array(list_files(full, extensions))
-		elif extensions.has(String(e[0]).get_extension()):
+		elif extensions.has(entry_name.get_extension()):
 			found.append(full)
 	return found
 
@@ -75,7 +80,7 @@ static func _instance(path: String, cache: Dictionary) -> Node:
 	return cache[path]
 
 static func _script_ends_with(node: Node, suffix: String) -> bool:
-	var script := node.get_script() as Script
+	var script: Script = node.get_script()
 	return script != null and script.resource_path.ends_with(suffix)
 
 static func _walk(node: Node, out: Array) -> void:
@@ -85,7 +90,7 @@ static func _walk(node: Node, out: Array) -> void:
 
 # ---------------------------------------------------------------- entity ids (VAL-008, VAL-009)
 
-static func _check_entity_ids(maps: Array, cache: Dictionary, findings: Array) -> void:
+static func _check_entity_ids(maps: Array[String], cache: Dictionary, findings: Array) -> void:
 	var owners := {}  # id -> Array of map paths (one entry per node)
 	for path in maps:
 		var root := _instance(path, cache)
@@ -100,37 +105,39 @@ static func _check_entity_ids(maps: Array, cache: Dictionary, findings: Array) -
 				continue
 			if not owners.has(id):
 				owners[id] = []
-			owners[id].append(path)
+			var owner_files: Array = owners[id]
+			owner_files.append(path)
 	var ids: Array = owners.keys()
 	ids.sort()
-	for id in ids:
+	for id: String in ids:
 		var files: Array = owners[id]
 		if files.size() < 2:
 			continue
 		var unique: Array = []
-		for f in files:
-			var shown := String(f).trim_prefix("res://")
+		for f: Variant in files:
+			var shown := JsonIo.to_str(f).trim_prefix("res://")
 			if not unique.has(shown):
 				unique.append(shown)
-		findings.append(finding("VAL-008", {"id": id, "files": ", ".join(unique)}, files[0]))
+		var first_file: String = files[0]
+		findings.append(finding("VAL-008", {"id": id, "files": ", ".join(unique)}, first_file))
 
 # ---------------------------------------------------------------- doors (VAL-016, VAL-017)
 
-static func _spawn_ids(root: Node) -> Array:
-	var nodes: Array = []
+static func _spawn_ids(root: Node) -> Array[String]:
+	var nodes: Array[Node] = []
 	_walk(root, nodes)
-	var out: Array = []
+	var out: Array[String] = []
 	for n in nodes:
 		if _script_ends_with(n, SPAWN_SUFFIX):
 			out.append(str(n.get("spawn_id")))
 	return out
 
-static func _check_doors(maps: Array, cache: Dictionary, findings: Array) -> void:
+static func _check_doors(maps: Array[String], cache: Dictionary, findings: Array) -> void:
 	for path in maps:
 		var root := _instance(path, cache)
 		if root == null:
 			continue
-		var nodes: Array = []
+		var nodes: Array[Node] = []
 		_walk(root, nodes)
 		for node in nodes:
 			if not _script_ends_with(node, DOOR_SUFFIX):
@@ -149,8 +156,8 @@ static func _check_doors(maps: Array, cache: Dictionary, findings: Array) -> voi
 
 # ---------------------------------------------------------------- dialogue (VAL-018, VAL-019)
 
-static func _item_ids(items_dir: String) -> Array:
-	var ids: Array = []
+static func _item_ids(items_dir: String) -> Array[String]:
+	var ids: Array[String] = []
 	for path in list_files(items_dir, ["tres"]):
 		var res := load(path)
 		if res != null and res.get("id") != null:
@@ -158,15 +165,15 @@ static func _item_ids(items_dir: String) -> Array:
 	return ids
 
 ## Item ids an expression refers to: its item:<id>[>=N] atoms.
-static func condition_items(expr: String) -> Array:
-	var out: Array = []
+static func condition_items(expr: String) -> Array[String]:
+	var out: Array[String] = []
 	for token in expr.strip_edges().split(" ", false):
 		if token.begins_with("item:"):
 			out.append(token.trim_prefix("item:").get_slice(">=", 0))
 	return out
 
 ## Item ids an event refers to: give_item:<id>[:qty] and take_item:<id>[:qty].
-static func event_items(event: String) -> Array:
+static func event_items(event: String) -> Array[String]:
 	var parts := event.strip_edges().split(":")
 	if parts.size() >= 2 and (parts[0] == "give_item" or parts[0] == "take_item"):
 		return [parts[1]]
@@ -187,18 +194,20 @@ static func _check_dialogue(dialogue_dir: String, items_dir: String, findings: A
 			var line: Object = lines[i]
 			if line == null:
 				continue
-			var conditions: Array = [str(line.get("condition"))]
-			for choice in line.get("choices"):
+			var conditions: Array[String] = [str(line.get("condition"))]
+			var line_choices: Array = line.get("choices")
+			for choice: Object in line_choices:
 				if choice != null:
 					conditions.append(str(choice.get("condition")))
 			for expr in conditions:
 				if Condition.mixes_operators(expr):
 					findings.append(finding("VAL-018", {"n": i + 1}, path))
 					break
-			var items: Array = []
+			var items: Array[String] = []
 			for expr in conditions:
 				items.append_array(condition_items(expr))
-			for event in line.get("events"):
+			var line_events: Variant = line.get("events")
+			for event: Variant in line_events:
 				items.append_array(event_items(str(event)))
 			for item in items:
 				if not known.has(item) and not reported.has(item):
@@ -208,7 +217,7 @@ static func _check_dialogue(dialogue_dir: String, items_dir: String, findings: A
 # ---------------------------------------------------------------- placeholders (VAL-012)
 
 static func _check_placeholders(roots: Array, placeholder_dir: String, findings: Array) -> void:
-	for root_dir in roots:
+	for root_dir: String in roots:
 		for path in list_files(root_dir, ["tres", "tscn"]):
 			for dep in ResourceLoader.get_dependencies(path):
 				if _dependency_path(String(dep)).begins_with(placeholder_dir):

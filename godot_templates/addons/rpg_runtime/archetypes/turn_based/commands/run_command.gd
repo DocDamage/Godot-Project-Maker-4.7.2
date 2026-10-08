@@ -7,10 +7,10 @@ func _init() -> void:
 	label = "BATTLE_RUN"
 	targets = TARGET_SELF
 
-func can_use(_user: RpgBattleActor, battle: Variant) -> bool:
-	return bool(battle.can_escape)
+func can_use(_user: RpgBattleActor, battle: RpgBattleController) -> bool:
+	return RpgUtil.to_bool(battle.can_escape)
 
-func execute(user: RpgBattleActor, _targets: Array[RpgBattleActor], battle: Variant) -> Array[Dictionary]:
+func execute(user: RpgBattleActor, _targets: Array[RpgBattleActor], battle: RpgBattleController) -> Array[Dictionary]:
 	if not battle.can_escape:
 		return [RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_NO_ESCAPE"), user)]
 	var chance := RpgBattleMath.escape_chance(_speeds(battle.party), _speeds(battle.enemies))
@@ -19,7 +19,7 @@ func execute(user: RpgBattleActor, _targets: Array[RpgBattleActor], battle: Vari
 		return [RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_ESCAPED"), user)]
 	return [RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_ESCAPE_FAILED"), user)]
 
-static func _speeds(actors: Array) -> Array:
+static func _speeds(actors: Array[RpgBattleActor]) -> Array:
 	var out: Array = []
 	for a in actors:
 		if a.alive:

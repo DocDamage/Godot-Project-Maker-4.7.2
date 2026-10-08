@@ -3,13 +3,15 @@ extends ItemList
 ## The library's item list. Dragging an item starts a file drag of its scene, which the 2D editor
 ## instances like a scene dragged from the FileSystem dock.
 
+const JsonIo := preload("../tools/json_io.gd")
+
 signal drag_started(scene_path: String)
 
 func _get_drag_data(at_position: Vector2) -> Variant:
 	var index := get_item_at_position(at_position, true)
 	if index < 0:
 		return null
-	var scene_path := String(get_item_metadata(index))
+	var scene_path := JsonIo.to_str(get_item_metadata(index))
 	if scene_path == "":
 		return null
 	var preview := TextureRect.new()

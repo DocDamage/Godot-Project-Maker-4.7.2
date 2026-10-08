@@ -92,3 +92,162 @@ def test_a_chatty_process_cannot_block_on_a_full_pipe(big: int) -> None:
         [sys.executable, "-c", f"print('x' * {big})"], timeout_s=30, env={}
     )
     assert code == 0 and not timed_out and len(out.strip()) == big
+
+
+# ------------------------------------------------------------------------ live output (T12.19)
+
+
+def _fake_godot(tmp_path: Path, body: str) -> Path:
+    """A "Godot" that runs ``body`` (Python); the arguments rpggen passes are ignored."""
+    script = tmp_path / "fake.py"
+    script.write_text(body, encoding="utf-8")
+    if sys.platform == "win32":
+        fake = tmp_path / "fake_godot.bat"
+        fake.write_text(f'@"{sys.executable}" "{script}"\r\n')
+    else:
+        fake = tmp_path / "fake_godot.sh"
+        fake.write_text(f'#!/bin/sh\n"{sys.executable}" "{script}"\n')
+        fake.chmod(0o755)
+    return fake
+
+
+PAUSING = (
+    "import sys, time\n"
+    "print('first line', flush=True)\n"
+    "time.sleep(1.5)\n"
+    "print('error text', file=sys.stderr, flush=True)\n"
+    "print('second line', flush=True)\n"
+)
+
+
+def test_on_line_receives_lines_before_the_process_exits(tmp_path: Path) -> None:
+    fake = _fake_godot(tmp_path, PAUSING)
+    seen: list[tuple[float, str]] = []
+    started = time.monotonic()
+    run = godot.run_godot(
+        fake,
+        tmp_path,
+        [],
+        timeout_s=60,
+        log_name="live",
+        log_dir=tmp_path / "logs",
+        on_line=lambda line: seen.append((time.monotonic() - started, line)),
+    )
+    total = time.monotonic() - started
+    assert [line for _t, line in seen] == ["first line", "error text", "second line"]
+    assert seen[0][0] < total - 1.0  # the first line came while the program was still running
+    assert run.stdout.splitlines() == ["first line", "second line"]
+    assert run.stderr.strip() == "error text"
+    # the log has both streams, in the order they were printed
+    assert run.log_path.read_text(encoding="utf-8").splitlines() == [
+        "first line",
+        "error text",
+        "second line",
+    ]
+
+
+def test_the_log_file_is_written_while_the_process_runs_and_survives_a_cancel(
+    tmp_path: Path,
+) -> None:
+    fake = _fake_godot(
+        tmp_path, "import time\nprint('before the crash', flush=True)\ntime.sleep(60)\n"
+    )
+    flag = threading.Event()
+    log_dir = tmp_path / "logs"
+    log_path = log_dir / "godot_crash.log"
+
+    def watcher() -> None:
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            if log_path.exists() and "before the crash" in log_path.read_text(encoding="utf-8"):
+                flag.set()  # the line is already on disk although Godot is still running
+                return
+            time.sleep(0.05)
+
+    threading.Thread(target=watcher, daemon=True).start()
+    started = time.monotonic()
+    run = godot.run_godot(
+        fake,
+        tmp_path,
+        [],
+        timeout_s=120,
+        log_name="crash",
+        log_dir=log_dir,
+        is_cancelled=flag.is_set,
+    )
+    assert run.cancelled and time.monotonic() - started < 15
+    assert "before the crash" in log_path.read_text(encoding="utf-8")
+
+
+def test_a_chatty_program_is_still_cancelled_within_a_fraction_of_a_second(tmp_path: Path) -> None:
+    fake = _fake_godot(
+        tmp_path,
+        "import sys, time\nwhile True:\n    print('x' * 200, flush=True)\n    time.sleep(0.001)\n",
+    )
+    flag = threading.Event()
+    threading.Timer(1.0, flag.set).start()
+    lines: list[str] = []
+    started = time.monotonic()
+    run = godot.run_godot(
+        fake,
+        tmp_path,
+        [],
+        timeout_s=120,
+        log_name="chatty",
+        log_dir=tmp_path / "logs",
+        is_cancelled=flag.is_set,
+        on_line=lines.append,
+    )
+    assert run.cancelled and time.monotonic() - started < 3.5  # 1 s + the kill (0.2 s poll)
+    assert len(lines) > 50
+
+
+def test_the_step_protocol_is_parsed() -> None:
+    parse = godot.parse_step
+    assert parse("@rpggen step build 7/31 tileset") == ("build", 7, 31, "tileset")
+    assert parse("@rpggen step validate 12/12 scenes and menus\r") == (
+        "validate",
+        12,
+        12,
+        "scenes and menus",
+    )
+    assert parse("@rpggen step build 1/2") == ("build", 1, 2, "")
+    for other in ("[rpggen] INFO running x", "@rpggen steps", "", "  text @rpggen step a 1/2 b"):
+        assert parse(other) is None
+
+
+def test_the_forwarder_batches_prefixes_and_keeps_progress_lines_out_of_the_log() -> None:
+    logs: list[str] = []
+    steps: list[tuple[str, int, int, str]] = []
+    forwarder = godot.LineForwarder(
+        "build", logs.append, lambda *a: steps.append(a), interval=3600, max_batch=3
+    )
+    for line in ("one", "@rpggen step build 1/2 first", "two", "three", "four", "five"):
+        forwarder.feed(line)
+    assert logs == [] and steps == [("build", 1, 2, "first")]  # nothing sent before a tick
+    forwarder.close()  # sends what is left, at most 3 lines at a time
+    assert logs == ["[godot] one\n[godot] two\n[godot] three", "[godot] four\n[godot] five"]
+    assert steps == [("build", 1, 2, "first")]  # build has the protocol: no "last line" steps
+
+
+def test_without_the_protocol_the_last_line_stands_in_for_the_step() -> None:
+    logs: list[str] = []
+    steps: list[tuple[str, int, int, str]] = []
+    forwarder = godot.LineForwarder(
+        "import", logs.append, lambda *a: steps.append(a), interval=3600
+    )
+    for line in ("importing a.png", "importing b.png", ""):
+        forwarder.feed(line)
+    forwarder.close()
+    assert steps == [("import", 0, 0, "importing b.png")]
+
+
+def test_the_forwarder_sends_on_its_own_timer() -> None:
+    logs: list[str] = []
+    forwarder = godot.LineForwarder("import", logs.append, interval=0.05)
+    forwarder.feed("hello")
+    deadline = time.monotonic() + 3
+    while not logs and time.monotonic() < deadline:
+        time.sleep(0.02)
+    forwarder.close()
+    assert logs == ["[godot] hello"]

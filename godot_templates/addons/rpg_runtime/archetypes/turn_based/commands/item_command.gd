@@ -8,22 +8,23 @@ func _init() -> void:
 	targets = TARGET_ONE_ALLY
 
 ## True when the user holds at least one consumable that does something.
-func can_use(user: RpgBattleActor, battle: Variant) -> bool:
+func can_use(user: RpgBattleActor, battle: RpgBattleController) -> bool:
 	return not usable_items(user, battle).is_empty()
 
 ## [{item_id, qty}] of the usable consumables the user holds, in inventory order.
-func usable_items(user: RpgBattleActor, battle: Variant) -> Array[Dictionary]:
+func usable_items(user: RpgBattleActor, battle: RpgBattleController) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var inv: RpgInventory = battle.inventory_of(user)
 	if inv == null:
 		return out
 	for slot in inv.slots:
-		var def := inv.definition(slot["item_id"])
+		var slot_id: StringName = slot["item_id"]
+		var def := inv.definition(slot_id)
 		if def != null and def.category == RpgItemDefinition.Category.CONSUMABLE and def.use_effect != &"":
-			out.append({"item_id": slot["item_id"], "qty": int(slot["qty"])})
+			out.append({"item_id": slot_id, "qty": RpgUtil.to_int(slot["qty"])})
 	return out
 
-func execute(user: RpgBattleActor, targets_list: Array[RpgBattleActor], battle: Variant) -> Array[Dictionary]:
+func execute(user: RpgBattleActor, targets_list: Array[RpgBattleActor], battle: RpgBattleController) -> Array[Dictionary]:
 	var inv: RpgInventory = battle.inventory_of(user)
 	var item_id := user.chosen_item
 	var target: RpgBattleActor = targets_list[0] if not targets_list.is_empty() else user

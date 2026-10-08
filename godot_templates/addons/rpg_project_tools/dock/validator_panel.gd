@@ -7,8 +7,9 @@ extends VBoxContainer
 const ContentChecks := preload("../tools/content_checks.gd")
 const EntityIds := preload("../tools/entity_ids.gd")
 const Placement := preload("placement.gd")
+const JsonIo := preload("../tools/json_io.gd")
 
-const ERROR_CODES_PATHS := ["res://generated/builder/lib/error_codes.gd", "res://builder/lib/error_codes.gd"]
+const ERROR_CODES_PATHS: Array[String] = ["res://generated/builder/lib/error_codes.gd", "res://builder/lib/error_codes.gd"]
 
 var plugin: EditorPlugin = null
 var _tree: Tree
@@ -53,10 +54,11 @@ static func _error_codes() -> Dictionary:
 ## The message of a finding (its code's template filled with its detail), and the severity.
 static func describe(finding: Dictionary, codes: Dictionary) -> Dictionary:
 	var info: Dictionary = codes.get(finding["code"], {})
-	var text := String(info.get("message", finding["code"]))
-	for key in finding["detail"].keys():
-		text = text.replace("{%s}" % str(key), str(finding["detail"][key]))
-	return {"severity": String(info.get("severity", "warning")), "message": "%s: %s" % [finding["code"], text]}
+	var text := JsonIo.to_str(info.get("message", finding["code"]))
+	var detail: Dictionary = finding["detail"]
+	for key: Variant in detail.keys():
+		text = text.replace("{%s}" % str(key), str(detail[key]))
+	return {"severity": JsonIo.to_str(info.get("severity", "warning")), "message": "%s: %s" % [finding["code"], text]}
 
 func validate_now() -> void:
 	_findings = ContentChecks.run()
@@ -65,11 +67,12 @@ func validate_now() -> void:
 	var root := _tree.create_item()
 	var errors := 0
 	var warnings := 0
-	for f in _findings:
+	for f: Dictionary in _findings:
 		var d := describe(f, codes)
 		var item := _tree.create_item(root)
-		item.set_text(0, d["message"])
-		item.set_text(1, String(f["file"]).trim_prefix("res://"))
+		var message: String = d["message"]
+		item.set_text(0, message)
+		item.set_text(1, JsonIo.to_str(f["file"]).trim_prefix("res://"))
 		item.set_metadata(0, f)
 		match d["severity"]:
 			"error":
@@ -97,14 +100,14 @@ func _on_item_activated() -> void:
 
 ## Opens the scene of a finding (a scene file) and selects the node it is about.
 static func open_finding(f: Dictionary) -> void:
-	var path := String(f["file"])
+	var path := JsonIo.to_str(f["file"])
 	if path.get_extension() != "tscn":
 		return
 	var edited := EditorInterface.get_edited_scene_root()
 	if edited == null or edited.scene_file_path != path:
 		EditorInterface.open_scene_from_path(path)
 		edited = EditorInterface.get_edited_scene_root()
-	var node_path := String(f["node"])
+	var node_path := JsonIo.to_str(f["node"])
 	if edited != null and node_path != "":
 		var node := edited.get_node_or_null(node_path)
 		if node != null:
@@ -126,13 +129,15 @@ func fix_entity_ids() -> int:
 		return 0
 	var undo := plugin.get_undo_redo()
 	undo.create_action("Fix entity IDs", UndoRedo.MERGE_DISABLE, root)
-	for c in changes:
-		undo.add_do_property(c["node"], "entity_id", c["new"])
-		undo.add_undo_property(c["node"], "entity_id", c["old"])
+	for c: Dictionary in changes:
+		var changed: Node = c["node"]
+		undo.add_do_property(changed, "entity_id", c["new"])
+		undo.add_undo_property(changed, "entity_id", c["old"])
 	undo.commit_action()
 	var map_id := EntityIds.map_id_of(root)
-	for kind in fixes["allocations"].keys():
-		Placement.record_allocation(map_id, String(kind), int(fixes["allocations"][kind]))
+	var allocations: Dictionary = fixes["allocations"]
+	for kind: Variant in allocations.keys():
+		Placement.record_allocation(map_id, JsonIo.to_str(kind), JsonIo.to_int(allocations[kind]))
 	_summary.text = "%d entity id(s) assigned or renamed. Save the scene to keep them." % changes.size()
 	return changes.size()
 

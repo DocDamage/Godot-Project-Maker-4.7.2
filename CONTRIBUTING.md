@@ -116,8 +116,7 @@ implement `match`/`extract`, register it, add a **synthetic pack** (generated, C
 `docs/spec/03_ERROR_CODES.md` is the single source of truth: one row per code with severity (E, W
 or I), a message template with `{placeholders}` and a recommended fix.
 
-1. Add the row to `docs/spec/03_ERROR_CODES.md` **and** copy it to
-   `docs/spec/03_ERROR_CODES.md`.
+1. Add the row to `docs/spec/03_ERROR_CODES.md`.
 2. Run `python tools/gen_error_codes.py`; it regenerates `rpggen/errors_table.py`,
    `godot_templates/builder/lib/error_codes.gd` and `docs/errors.md`. CI fails when they are stale.
 3. Raise it with `issues.add("AREA-NNN", placeholder=value)` or `raise RpgGenError(...)` in Python,

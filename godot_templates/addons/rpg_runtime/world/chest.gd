@@ -24,20 +24,20 @@ func interact(_actor: Node = null) -> void:
 	var found: PackedStringArray = []
 	for entry in loot:
 		var id := StringName(str(entry.get("item_id", "")))
-		var qty := int(entry.get("qty", 1))
+		var qty := RpgUtil.to_int(entry.get("qty", 1))
 		var added: int = state.inventory.add(id, qty)
 		if added > 0:
 			found.append(_item_text(state, id, added))
 	if gold > 0:
-		state.gold = int(state.gold) + gold
-		found.append("%d gold" % gold)
+		state.gold = RpgUtil.to_int(state.gold) + gold
+		found.append("%d %s" % [gold, tr("UI_GOLD")])
 	if entity_id != "":
 		state.set_flag(entity_id, "opened", true)
 	apply_opened_state()
 	RpgUtil.emit(&"chest_opened", [entity_id])
-	RpgUtil.notify("Found %s" % ", ".join(found) if not found.is_empty() else "The chest is empty")
+	RpgUtil.notify(tr("UI_CHEST_FOUND") % ", ".join(found) if not found.is_empty() else tr("UI_CHEST_EMPTY"))
 
-func _item_text(state: Node, id: StringName, qty: int) -> String:
+func _item_text(state: RpgGameState, id: StringName, qty: int) -> String:
 	var def: RpgItemDefinition = state.items.get(id)
 	var item_name := tr(def.display_name) if def != null and def.display_name != "" else String(id)
 	return item_name if qty == 1 else "%s x%d" % [item_name, qty]
@@ -49,6 +49,7 @@ func apply_opened_state() -> void:
 	if sprite == null:
 		return
 	if sprite.has_meta("open_texture"):
-		sprite.texture = sprite.get_meta("open_texture") as Texture2D
+		var open_texture: Texture2D = sprite.get_meta("open_texture")
+		sprite.texture = open_texture
 	else:
 		sprite.modulate = Color(0.55, 0.55, 0.55)

@@ -2,6 +2,8 @@ extends RefCounted
 ## Helpers shared by the map recipes (starter map and interior).
 
 const SceneUtil := preload("scene_util.gd")
+const JsonUtil := preload("json_util.gd")
+const BuildContext := preload("build_context.gd")
 
 const DEFAULT_LAYERS := ["Ground", "GroundDetails", "Walls", "Props", "Overhead"]
 const COLLIDING_LAYERS := ["Walls", "Props"]
@@ -25,14 +27,16 @@ static func build_layers(root: Node2D, layer_names: Array, tile_set: TileSet) ->
 	var wanted: Array = layer_names.duplicate()
 	if not wanted.has("Ground"):
 		wanted.push_front("Ground")
-	for structural in ["Ground", "GroundDetails", "Walls"]:
+	for structural: String in ["Ground", "GroundDetails", "Walls"]:
 		if wanted.has(structural):
-			nodes[structural] = _layer(structural, tile_set)
-			root.add_child(nodes[structural])
-	for extra in wanted:
+			var structural_layer := _layer(structural, tile_set)
+			nodes[structural] = structural_layer
+			root.add_child(structural_layer)
+	for extra: String in wanted:
 		if not DEFAULT_LAYERS.has(extra):
-			nodes[extra] = _layer(extra, tile_set)
-			root.add_child(nodes[extra])
+			var extra_layer := _layer(extra, tile_set)
+			nodes[extra] = extra_layer
+			root.add_child(extra_layer)
 	var ysorted := Node2D.new()
 	ysorted.name = "YSorted"
 	ysorted.y_sort_enabled = true
@@ -78,7 +82,13 @@ static func fill(layer: TileMapLayer, rect: Rect2i, tile: Dictionary) -> void:
 		return
 	for y in range(rect.position.y, rect.end.y):
 		for x in range(rect.position.x, rect.end.x):
-			layer.set_cell(Vector2i(x, y), tile["source_id"], tile["coords"], 0)
+			put(layer, Vector2i(x, y), tile)
+
+## Paints the tile {source_id, coords} (see first_tile) into one cell.
+static func put(layer: TileMapLayer, cell: Vector2i, tile: Dictionary) -> void:
+	var source: int = tile["source_id"]
+	var coords: Vector2i = tile["coords"]
+	layer.set_cell(cell, source, coords, 0)
 
 ## One-tile border of `rect`; cells listed in `skip` stay empty (e.g. a doorway).
 static func border(layer: TileMapLayer, rect: Rect2i, tile: Dictionary, skip: Array = []) -> void:
@@ -88,7 +98,7 @@ static func border(layer: TileMapLayer, rect: Rect2i, tile: Dictionary, skip: Ar
 		for x in range(rect.position.x, rect.end.x):
 			var on_edge := x == rect.position.x or y == rect.position.y or x == rect.end.x - 1 or y == rect.end.y - 1
 			if on_edge and not skip.has(Vector2i(x, y)):
-				layer.set_cell(Vector2i(x, y), tile["source_id"], tile["coords"], 0)
+				put(layer, Vector2i(x, y), tile)
 
 ## Four invisible collision rectangles along the edge of a `size`-tile map, for maps without a
 ## WALL tile. Cells in `skip` are left open.
@@ -100,12 +110,12 @@ static func border_collision(root: Node2D, size: Vector2i, tile_px: int, skip: A
 	body.set_collision_layer_value(1, true)
 	root.add_child(body)
 	body.owner = root
-	var rects: Array = []
+	var rects: Array[Vector2i] = []
 	for x in size.x:
-		for y in [0, size.y - 1]:
+		for y: int in [0, size.y - 1]:
 			rects.append(Vector2i(x, y))
 	for y in range(1, size.y - 1):
-		for x in [0, size.x - 1]:
+		for x: int in [0, size.x - 1]:
 			rects.append(Vector2i(x, y))
 	for cell in rects:
 		if skip.has(cell):
@@ -122,27 +132,30 @@ static func border_collision(root: Node2D, size: Vector2i, tile_px: int, skip: A
 
 # ---------------------------------------------------------------- finding tiles
 
-static func _sorted_sources(def: Dictionary) -> Array:
-	var sources: Array = def.get("sources", []).duplicate()
-	sources.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["source_id"]) < int(b["source_id"]))
+static func _sorted_sources(def: Dictionary) -> Array[Dictionary]:
+	var raw: Array = def.get("sources", [])
+	var sources: Array[Dictionary] = []
+	sources.assign(raw)
+	sources.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return JsonUtil.to_int(a["source_id"]) < JsonUtil.to_int(b["source_id"]))
 	return sources
 
 ## {source_id, coords} of the first tile of the first asset with `role` in the tile set, or {}.
-static func find_tile(ctx, def: Dictionary, tile_set: TileSet, role: String) -> Dictionary:
+static func find_tile(ctx: BuildContext, def: Dictionary, tile_set: TileSet, role: String) -> Dictionary:
 	for s in _sorted_sources(def):
-		var asset: Dictionary = ctx.catalog.asset(s["asset"])
+		var asset_id: String = s["asset"]
+		var asset: Dictionary = ctx.catalog.asset(asset_id)
 		if asset.is_empty() or ctx.catalog.effective(asset).get("role", "") != role:
 			continue
-		var tile := first_tile(tile_set, int(s["source_id"]))
+		var tile := first_tile(tile_set, JsonUtil.to_int(s["source_id"]))
 		if not tile.is_empty():
 			return tile
 	return {}
 
 ## {source_id, coords} of the first tile of the tile sheet `asset_id`, or {}.
-static func tile_of_asset(ctx, def: Dictionary, tile_set: TileSet, asset_id: String) -> Dictionary:
+static func tile_of_asset(ctx: BuildContext, def: Dictionary, tile_set: TileSet, asset_id: String) -> Dictionary:
 	for s in _sorted_sources(def):
 		if s["asset"] == asset_id:
-			return first_tile(tile_set, int(s["source_id"]))
+			return first_tile(tile_set, JsonUtil.to_int(s["source_id"]))
 	return {}
 
 static func first_tile(tile_set: TileSet, source_id: int) -> Dictionary:
@@ -152,38 +165,45 @@ static func first_tile(tile_set: TileSet, source_id: int) -> Dictionary:
 	return {}
 
 ## Up to `count` other tiles of the same source (not `base`), in tile order.
-static func other_tiles(tile_set: TileSet, base: Dictionary, count: int) -> Array:
-	var out: Array = []
-	var src := tile_set.get_source(int(base["source_id"])) as TileSetAtlasSource
+static func other_tiles(tile_set: TileSet, base: Dictionary, count: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var base_source: int = JsonUtil.to_int(base["source_id"])
+	var base_coords: Vector2i = base["coords"]
+	var src := tile_set.get_source(base_source) as TileSetAtlasSource
 	if src == null:
 		return out
 	for i in src.get_tiles_count():
 		var coords := src.get_tile_id(i)
-		if coords != base["coords"]:
-			out.append({"source_id": base["source_id"], "coords": coords})
+		if coords != base_coords:
+			out.append({"source_id": base_source, "coords": coords})
 			if out.size() >= count:
 				break
 	return out
 
 ## The first tile (row-major) a catalog override marks as WALL (`custom.role == "WALL"`): the way
 ## hand-annotated packs mark wall tiles inside a ground sheet.
-static func override_wall_tile(ctx, def: Dictionary) -> Dictionary:
+static func override_wall_tile(ctx: BuildContext, def: Dictionary) -> Dictionary:
 	for s in _sorted_sources(def):
-		var eff: Dictionary = ctx.catalog.effective(ctx.catalog.asset(s["asset"]))
-		var best := {}
-		for key in eff.get("tile_overrides", {}).keys():
-			var ov: Dictionary = eff["tile_overrides"][key]
-			if ov.get("custom", {}).get("role", "") != "WALL":
+		var asset_id: String = s["asset"]
+		var eff: Dictionary = ctx.catalog.effective(ctx.catalog.asset(asset_id))
+		var found := false
+		var best_coords := Vector2i.ZERO
+		var overrides: Dictionary = eff.get("tile_overrides", {})
+		for key: Variant in overrides.keys():
+			var ov: Dictionary = overrides[key]
+			var custom: Dictionary = ov.get("custom", {})
+			if custom.get("role", "") != "WALL":
 				continue
-			var parts := String(key).split(",")
+			var parts := JsonUtil.to_str(key).split(",")
 			var coords := Vector2i(int(parts[0]), int(parts[1]))
-			if best.is_empty() or coords.y < best["coords"].y or (coords.y == best["coords"].y and coords.x < best["coords"].x):
-				best = {"source_id": int(s["source_id"]), "coords": coords}
-		if not best.is_empty():
-			return best
+			if not found or coords.y < best_coords.y or (coords.y == best_coords.y and coords.x < best_coords.x):
+				found = true
+				best_coords = coords
+		if found:
+			return {"source_id": JsonUtil.to_int(s["source_id"]), "coords": best_coords}
 	return {}
 
-static func wall_tile(ctx, def: Dictionary, tile_set: TileSet) -> Dictionary:
+static func wall_tile(ctx: BuildContext, def: Dictionary, tile_set: TileSet) -> Dictionary:
 	var tile := find_tile(ctx, def, tile_set, "WALL")
 	return tile if not tile.is_empty() else override_wall_tile(ctx, def)
 

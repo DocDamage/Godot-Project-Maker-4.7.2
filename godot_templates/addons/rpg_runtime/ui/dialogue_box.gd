@@ -65,7 +65,7 @@ func _show_current() -> void:
 
 func _cps() -> float:
 	var settings := RpgUtil.settings()
-	return float(settings.text_cps()) if settings != null else 40.0
+	return RpgUtil.to_float(settings.text_cps()) if settings != null else 40.0
 
 func _clear_choices() -> void:
 	for child in _choices().get_children():

@@ -30,6 +30,10 @@ class CollapsibleSection(QWidget):
         self.header.toggled.connect(self._on_toggled)
         self._update_text()
 
+    def set_title(self, title: str) -> None:
+        self._title = title
+        self._update_text()
+
     def _update_text(self) -> None:
         arrow = "▾" if self.header.isChecked() else "▸"
         self.header.setText(f"{arrow} {self._title}")

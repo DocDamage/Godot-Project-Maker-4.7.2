@@ -65,6 +65,44 @@ rpggen-cli diagnose --target "D:\Games\forest"
 ```
 
 `rpggen.exe` with no arguments opens the wizard; `rpggen-cli.exe` is the console build for scripts.
+Mistyped options are an error (exit code 2), never a guess.
+
+### For scripts: `--json`, exit codes and `--dry-run`
+
+**`--json`** (on `generate`, `analyze`, `restore` and `diagnose`) prints one JSON document on
+stdout. Everything meant for a person (progress, the issue list) goes to stderr, so
+`rpggen-cli generate ... --json > result.json` leaves a file that parses and a console that still
+shows what is going on. The documents are described in `docs/spec/02_SCHEMAS.md` (section 11) and
+checked against `rpggen/schema/cli.schema.json`. For `generate` the document holds `ok`, `target`,
+`failed_phase`, `failed_staging`, `skipped`, `timings` and `issues` (`code`, `severity`,
+`message`, `fix`, `file`):
+
+```powershell
+$result = rpggen-cli generate --pack "C:\Packs\forest" --target "D:\Games\forest" --json 2> progress.txt | Out-String | ConvertFrom-Json
+if (-not $result.ok) { $result.issues | Where-Object severity -eq error | Format-Table code, message }
+```
+
+**Exit codes** are the same for every command:
+
+| Code | Meaning |
+|-----:|---------|
+| 0 | OK |
+| 1 | Generation failed (`BUILD`, `VAL`, `SMOKE`, `REGEN` or `TILE` errors); the work folder was kept as `.rpggen_failed` |
+| 2 | Usage error: a missing or unknown argument, an unknown preset |
+| 3 | Environment or input: Godot or a pack could not be found or opened, the output folder is not usable, a required role has no asset (`ENV`, `ARCH`, `CAT`, `ASSET`, `ADAPT`) |
+| 4 | Cancelled with Ctrl+C. The work folder is discarded and nothing is delivered; a second Ctrl+C quits at once |
+| 70 | Internal error (`BUILD-005`). Run `rpggen-cli diagnose` and report it |
+
+**`--dry-run`** (on `generate`) does everything that needs no Godot: it checks the config, the
+packs and the output folder, analyses the packs, makes the requirement check and plans the
+starter map, then prints what it found (roles, tile size, map size and what stands on the map).
+It creates no work folder, starts no Godot and leaves the output folder as it is, so it also
+shows what a regeneration would run into. The exit code is the one a real run would give
+for what it found.
+
+```bat
+rpggen-cli generate --pack "C:\Packs\forest" --target "D:\Games\forest" --dry-run --placeholder PLAYER
+```
 
 ## Privacy
 

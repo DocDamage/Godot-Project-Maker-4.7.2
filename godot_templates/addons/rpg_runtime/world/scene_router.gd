@@ -1,3 +1,4 @@
+class_name RpgSceneRouter
 extends Node
 ## Autoload "SceneRouter": changes maps with a fade, puts the player on a spawn point, keeps a small
 ## scene stack for battles, and hosts the persistent services boot creates (audio, combat mode).
@@ -98,7 +99,8 @@ func pop_scene(result: Resource = null) -> void:
 		push_error("[RPG-WORLD] pop_scene with an empty stack")
 		return
 	var entry: Dictionary = _stack.pop_back()
-	await _transition(str(entry["map"]), &"default", true, entry["position"], str(entry["facing"]))
+	var back_position: Vector2 = entry["position"]
+	await _transition(str(entry["map"]), &"default", true, back_position, str(entry["facing"]))
 	var state := RpgUtil.state()
 	if state != null:
 		state.pending_encounter = null

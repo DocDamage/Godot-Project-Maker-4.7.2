@@ -38,7 +38,7 @@ func _footsteps(delta: float) -> void:
 		return
 	_step_distance = fmod(_step_distance, step_interval_px)
 	var router := RpgUtil.router()
-	var audio: Variant = router.get("audio") if router != null else null
+	var audio: Node = router.audio if router != null else null
 	if audio == null or not audio.has_method("play"):
 		return
 	var slot := _surface_slot(audio)
@@ -46,7 +46,7 @@ func _footsteps(delta: float) -> void:
 
 ## `sfx_step_<surface>` when the tile under the player has `footstep` custom data and the sound
 ## bank has that slot; else `sfx_step`.
-func _surface_slot(audio: Variant) -> StringName:
+func _surface_slot(audio: Node) -> StringName:
 	var router := RpgUtil.router()
 	var map: Node = router.get("current_map") if router != null else null
 	if map == null or not audio.get("bank") is RpgSoundBank:

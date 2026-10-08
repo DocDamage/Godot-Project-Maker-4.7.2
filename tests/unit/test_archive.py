@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import os
 import shutil
 import struct
 import unicodedata
@@ -9,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from rpggen import paths
 from rpggen.core import archive
 from rpggen.errors import RpgGenError
 
@@ -18,9 +20,8 @@ SYNTH = REPO / "test_packs" / "synthetic"
 
 @pytest.fixture(autouse=True)
 def cache_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    cache = tmp_path / "cache"
-    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(cache))
-    return cache
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    return paths.cache_dir()
 
 
 def _zip(
@@ -240,3 +241,206 @@ def test_nested_archives_only_one_level(tmp_path: Path) -> None:
     assert "sub/inner_extracted/inner2.zip" in files  # not extracted further
     assert "sub/inner.zip" not in files
     shutil.rmtree(pack.root)
+
+
+# ------------------------------------------------------------------------ progress and cancel (T12.06)
+
+
+def _no_partial(cache: Path) -> bool:
+    extracted = cache / "extracted"
+    return not extracted.exists() or not any(
+        p.name.endswith(".partial") for p in extracted.iterdir()
+    )
+
+
+def test_extraction_reports_bytes_and_ends_on_the_total(tmp_path: Path) -> None:
+    block = bytes(range(256)) * 4096  # 1 MiB
+    source = _zip(tmp_path / "big.zip", [(f"a{i}.bin", block) for i in range(4)])
+    seen: list[tuple[str, int, int]] = []
+    archive.open_pack(source, set(), progress=lambda *a: seen.append(a))
+    extracting = [e for e in seen if e[0].startswith("Extracting big.zip")]
+    assert extracting and all(total == 4 * len(block) for _l, _d, total in extracting)
+    done = [d for _l, d, _t in extracting]
+    assert done == sorted(done) and done[-1] == 4 * len(block)
+    assert [e for e in seen if e[0].startswith("Reading big.zip")]  # the hash is a stage too
+
+
+def test_a_cancel_stops_between_chunks_and_removes_the_partial_folder(
+    tmp_path: Path, cache_dir: Path
+) -> None:
+    block = bytes(range(256)) * 4096
+    source = _zip(tmp_path / "big.zip", [(f"a{i}.bin", block) for i in range(6)])
+    calls = {"n": 0}
+
+    def cancelled() -> bool:
+        calls["n"] += 1
+        return calls["n"] > 9  # after the hash (6 chunks) and a few chunks of the extraction
+
+    with pytest.raises(archive.Cancelled):
+        archive.open_pack(source, set(), is_cancelled=cancelled)
+    assert _no_partial(cache_dir)
+    assert not (cache_dir / "extracted" / archive.sha256_file(source)).exists()
+
+
+def test_a_cancel_stops_a_7z_extraction(tmp_path: Path, cache_dir: Path) -> None:
+    import py7zr
+
+    source = tmp_path / "many.7z"
+    with py7zr.SevenZipFile(source, "w") as z:
+        for i in range(8):
+            z.writestr(bytes([i]) * 200_000, f"f{i}.bin")
+    reports: list[tuple[str, int, int]] = []
+    archive.open_pack(source, set(), progress=lambda *a: reports.append(a))
+    assert reports[-1][1] == reports[-1][2] == 8 * 200_000
+    shutil.rmtree(cache_dir)
+    seen = {"n": 0}
+
+    def cancelled() -> bool:
+        seen["n"] += 1
+        return seen["n"] > 3
+
+    with pytest.raises(archive.Cancelled):
+        archive.open_pack(source, set(), is_cancelled=cancelled)
+    assert _no_partial(cache_dir)
+
+
+# ------------------------------------------------------------------------ links, collisions, budget (T12.09)
+
+
+def _symlink_or_skip(link: Path, target: Path) -> None:
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError):
+        pytest.skip("this account may not create symbolic links")
+
+
+def test_nested_archives_share_one_budget(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    payload = bytes(range(256)) * 8  # 2 KB each
+    inner_a = _zip(tmp_path / "a.zip", [("a.bin", payload)])
+    inner_b = _zip(tmp_path / "b.zip", [("b.bin", payload)])
+    outer = _zip(
+        tmp_path / "outer.zip",
+        [("a.zip", inner_a.read_bytes()), ("b.zip", inner_b.read_bytes())],
+    )
+    # the outer archive declares about 4.4 KB, each inner one 2 KB: alone each is below 6 KB
+    monkeypatch.setitem(archive.LIMITS, "max_total_bytes", 6000)
+    with pytest.raises(RpgGenError) as raised:
+        archive.open_pack(outer, set())
+    assert raised.value.code == "ARCH-004"
+    monkeypatch.setitem(archive.LIMITS, "max_total_bytes", 10_000)
+    pack = archive.open_pack(outer, set())  # the same archive within a bigger budget
+    assert "ARCH-006" in _codes(pack)
+
+
+def test_nested_archives_count_their_files_in_the_same_budget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    inner = _zip(tmp_path / "i.zip", [(f"f{n}.txt", b"x") for n in range(4)])
+    outer = _zip(tmp_path / "o.zip", [("i.zip", inner.read_bytes()), ("j.zip", inner.read_bytes())])
+    monkeypatch.setitem(archive.LIMITS, "max_files", 8)  # 2 outer + 4 + 4 = 10 > 8
+    with pytest.raises(RpgGenError) as raised:
+        archive.open_pack(outer, set())
+    assert raised.value.code == "ARCH-004"
+
+
+@pytest.mark.skipif(archive.find_7z() is None, reason="7-Zip is not installed")
+def test_a_rar_extracts_exactly_the_file_the_collision_report_keeps(tmp_path: Path) -> None:
+    import py7zr
+
+    # 7-Zip reads any format through the same command line as a RAR; the entries are named in
+    # the order that makes "the last one wins" differ from "the first sorted one is kept".
+    source = tmp_path / "pack.7z"
+    with py7zr.SevenZipFile(source, "w") as z:
+        z.writestr(b"upper", "Tree.png")
+        z.writestr(b"lower", "tree.png")
+        z.writestr(b"junk", "Thumbs.db")
+    dest = tmp_path / "out"
+    dest.mkdir()
+    issues = archive.IssueList()
+    archive._extract_rar(source, dest, issues, archive.Control())
+    codes = [i.code for i in issues]
+    assert "ARCH-005" in codes and "ARCH-008" in codes
+    kept = next(i for i in issues if i.code == "ARCH-005").detail["kept"]
+    assert (dest / kept).read_bytes() == b"upper"  # the file ARCH-005 names is the one on disk
+    assert not (dest / "Thumbs.db").exists()  # junk was never extracted
+
+
+def test_a_folder_pack_does_not_follow_a_link_out_of_itself(tmp_path: Path) -> None:
+    from rpggen.core import config, inventory
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.png").write_bytes(b"\x89PNG-secret")
+    pack = tmp_path / "pack"
+    pack.mkdir()
+    (pack / "a.png").write_bytes(b"\x89PNG-a")
+    _symlink_or_skip(pack / "linked_file.png", outside / "secret.png")
+    _symlink_or_skip(pack / "linked_dir", outside)
+    files, links = archive.walk_files(pack)
+    assert files == ["a.png"] and links == ["linked_dir", "linked_file.png"]
+    inv = inventory.build_inventory(archive.open_pack(pack, set()))
+    assert [f.path for f in inv.files] == ["a.png"]
+    assert sorted(s["path"] for s in inv.skipped if s["reason"] == "link") == [
+        "linked_dir",
+        "linked_file.png",
+    ]
+    assert [i.code for i in inv.issues].count("ARCH-009") == 2
+    only_a = tmp_path / "only_a"
+    only_a.mkdir()
+    (only_a / "a.png").write_bytes(b"\x89PNG-a")
+    assert config.folder_sha256(pack) == config.folder_sha256(only_a)  # links are not hashed
+
+
+def test_a_7z_symlink_entry_is_not_extracted(tmp_path: Path) -> None:
+    import py7zr
+
+    target = tmp_path / "real.txt"
+    target.write_text("real", encoding="utf-8")
+    link = tmp_path / "link.txt"
+    _symlink_or_skip(link, target)
+    source = tmp_path / "links.7z"
+    with py7zr.SevenZipFile(source, "w") as z:
+        z.write(target, "real.txt")
+        z.write(link, "link.txt")
+    pack = archive.open_pack(source, set())
+    assert "ARCH-009" in _codes(pack)
+    assert (pack.root / "real.txt").is_file() and not (pack.root / "link.txt").exists()
+
+
+def test_scrubbing_removes_links_left_by_an_extractor(tmp_path: Path) -> None:
+    dest = tmp_path / "dest"
+    dest.mkdir()
+    (dest / "ok.txt").write_text("ok", encoding="utf-8")
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside", encoding="utf-8")
+    _symlink_or_skip(dest / "sneaky.txt", outside)
+    issues = archive.IssueList()
+    archive._scrub_links(dest, issues)
+    assert (
+        not (dest / "sneaky.txt").is_symlink() and outside.read_text(encoding="utf-8") == "outside"
+    )
+    assert [i.code for i in issues] == ["ARCH-009"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="junctions exist on Windows only")
+def test_a_junction_is_a_link_too(tmp_path: Path) -> None:
+    import subprocess
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.png").write_bytes(b"\x89PNG-secret")
+    pack = tmp_path / "pack"
+    pack.mkdir()
+    (pack / "a.png").write_bytes(b"\x89PNG-a")
+    made = subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(pack / "junction"), str(outside)],
+        capture_output=True,
+        check=False,
+    )
+    if made.returncode != 0:
+        pytest.skip("could not create a junction")
+    assert archive.walk_files(pack) == (["a.png"], ["junction"])
+    issues = archive.IssueList()
+    archive._scrub_links(pack, issues)
+    assert [i.code for i in issues] == ["ARCH-009"]
+    assert not (pack / "junction").exists() and (outside / "secret.png").is_file()  # target intact

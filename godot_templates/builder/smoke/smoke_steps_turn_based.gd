@@ -6,6 +6,8 @@ extends RefCounted
 ## The battle is driven by `combat.auto_choose` (always attack the first enemy), and the player's
 ## stats are set to a smoke profile first (attack 99), so the outcome does not depend on luck.
 
+const JsonUtil := preload("../lib/json_util.gd")
+
 const ENEMY_ID := "starter_map_enemy_001"
 const STARTER_MAP := "res://game/maps/starter_map.tscn"
 const INTERIOR_MAP := "res://game/maps/interior_1.tscn"
@@ -38,9 +40,9 @@ func _game_over_screen() -> String:
 func _autoload(autoload_name: String) -> Node:
 	return _tree().root.get_node_or_null(autoload_name)
 
-func _player() -> Node2D:
+func _player() -> RpgActor:
 	var players := _tree().get_nodes_in_group("player")
-	return players[0] as Node2D if players.size() == 1 else null
+	return players[0] as RpgActor if players.size() == 1 else null
 
 func _frames(n: int) -> void:
 	for i in n:
@@ -56,15 +58,15 @@ func _wait_for_map(map_name: String, max_frames: int) -> bool:
 	var tree := _tree()
 	for i in max_frames:
 		await tree.physics_frame
-		var router := _autoload("SceneRouter")
+		var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
 		var scene := tree.current_scene
 		if router != null and not router.is_busy() and scene != null and scene.name == map_name:
 			return true
 	return false
 
-func _combat() -> Node:
-	var router := _autoload("SceneRouter")
-	return router.get("combat") as Node if router != null else null
+func _combat() -> RpgCombatMode:
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
+	return router.combat if router != null else null
 
 ## Always attack the first living enemy.
 func _attack_first(_actor: Object, _battle: Variant) -> Dictionary:
@@ -82,8 +84,8 @@ func _wait_for_result(box: Dictionary, seconds: float) -> bool:
 func _encounter_start() -> String:
 	var tree := _tree()
 	var scene := tree.current_scene
-	var state := _autoload("GameState")
-	var bus := _autoload("Events")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var bus: RpgEvents = _autoload("Events") as RpgEvents
 	var combat := _combat()
 	if combat == null:
 		return "SceneRouter.combat is not set: boot did not create the combat mode"
@@ -92,7 +94,7 @@ func _encounter_start() -> String:
 	var enemy := _find_entity(scene, ENEMY_ID)
 	if enemy == null:
 		return "the starter map has no enemy %s" % ENEMY_ID
-	var def := enemy.get("definition") as RpgEnemyDefinition
+	var def: RpgEnemyDefinition = enemy.get("definition")
 	if def == null:
 		return "the enemy has no definition"
 
@@ -101,7 +103,7 @@ func _encounter_start() -> String:
 	stats.attack = 99
 	stats.hp = stats.max_hp
 	_before["def"] = def
-	_before["gold"] = int(state.get("gold"))
+	_before["gold"] = JsonUtil.to_int(state.get("gold"))
 	_before["xp_gained"] = -1
 	_before["result"] = null
 	bus.experience_gained.connect(func(_id: StringName, amount: int) -> void: _before["xp_gained"] = amount)
@@ -111,7 +113,7 @@ func _encounter_start() -> String:
 
 	# Walk into it from two tiles away.
 	var p := _player()
-	var tile := float(enemy.get("tile_size"))
+	var tile := JsonUtil.to_float(enemy.get("tile_size"))
 	p.global_position = enemy.global_position + Vector2(-2.0 * tile, 0.0)
 	p.set_facing("right")
 	await _frames(3)
@@ -134,7 +136,7 @@ func _battle_victory() -> String:
 	# Step 1 hooked encounter_finished into _before["result"].
 	if not await _wait_for_result(_before, 25.0):
 		return "the battle did not finish within 25 s"
-	var result := _before["result"] as RpgEncounterResult
+	var result: RpgEncounterResult = _before["result"]
 	if result.outcome != VICTORY:
 		return "the battle ended with outcome %d instead of VICTORY" % result.outcome
 	if result.entity_id != ENEMY_ID:
@@ -142,14 +144,14 @@ func _battle_victory() -> String:
 	return ""
 
 func _rewards_granted() -> String:
-	var state := _autoload("GameState")
-	var def := _before["def"] as RpgEnemyDefinition
-	var result := _before["result"] as RpgEncounterResult
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var def: RpgEnemyDefinition = _before["def"]
+	var result: RpgEncounterResult = _before["result"]
 	if result.xp != def.xp_reward or result.gold != def.gold_reward:
 		return "the result says %d xp / %d gold, the enemy is worth %d / %d" % [result.xp, result.gold, def.xp_reward, def.gold_reward]
-	if int(_before["xp_gained"]) != def.xp_reward:
+	if JsonUtil.to_int(_before["xp_gained"]) != def.xp_reward:
 		return "experience_gained reported %d, expected %d" % [_before["xp_gained"], def.xp_reward]
-	var gold_delta: int = int(state.get("gold")) - int(_before["gold"])
+	var gold_delta: int = JsonUtil.to_int(state.get("gold")) - JsonUtil.to_int(_before["gold"])
 	if gold_delta != def.gold_reward:
 		return "gold changed by %d, expected %d" % [gold_delta, def.gold_reward]
 	return ""
@@ -162,10 +164,11 @@ func _returned_to_map() -> String:
 	var p := _player()
 	if p == null:
 		return "no player after the battle"
-	var drift: float = p.global_position.distance_to(_before["pre_pos"])
+	var pre_pos: Vector2 = _before["pre_pos"]
+	var drift: float = p.global_position.distance_to(pre_pos)
 	if drift > 1.0:
 		return "the player is %.1f px from where the battle started" % drift
-	if not bool(p.get("input_enabled")):
+	if not JsonUtil.to_bool(p.get("input_enabled")):
 		return "the player's input is still frozen"
 	if tree.paused:
 		return "the game is paused"
@@ -173,9 +176,9 @@ func _returned_to_map() -> String:
 
 func _enemy_stays_defeated() -> String:
 	var tree := _tree()
-	var state := _autoload("GameState")
-	var save := _autoload("SaveManager")
-	var router := _autoload("SceneRouter")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
 	save.set("dir", SAVE_DIR)
 	await _frames(3)  # the freed node leaves the tree
 	if _find_entity(tree.current_scene, ENEMY_ID) != null:
@@ -206,9 +209,10 @@ func _enemy_stays_defeated() -> String:
 
 ## Starts a fight the player cannot win (an enemy with attack 99 that moves first) and waits for it.
 func _lost_fight() -> Dictionary:
-	var state := _autoload("GameState")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
 	var combat := _combat()
-	var def := (_before["def"] as RpgEnemyDefinition).duplicate(true) as RpgEnemyDefinition
+	var base_def: RpgEnemyDefinition = _before["def"]
+	var def := base_def.duplicate(true) as RpgEnemyDefinition
 	def.base_stats.attack = 99
 	def.base_stats.speed = 99
 	def.base_stats.max_hp = 9999
@@ -225,18 +229,23 @@ func _lost_fight() -> Dictionary:
 	await _wait_for_result(box, 40.0)
 	return box
 
+## True when the lost fight ended in a DEFEAT result.
+func _was_defeat(box: Dictionary) -> bool:
+	var result: RpgEncounterResult = box["result"]
+	return result != null and result.outcome == DEFEAT
+
 func _defeat_policy() -> String:
 	var tree := _tree()
-	var state := _autoload("GameState")
-	var save := _autoload("SaveManager")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	var combat := _combat()
 	save.set("dir", SAVE_DIR)
-	for slot in range(int(save.get("AUTOSAVE_SLOT")), 4):
+	for slot in range(JsonUtil.to_int(save.get("AUTOSAVE_SLOT")), 4):
 		save.delete(slot)
 
 	# 1. No save: back at the map's default spawn with full HP.
 	var box := await _lost_fight()
-	if box["result"] == null or (box["result"] as RpgEncounterResult).outcome != DEFEAT:
+	if not _was_defeat(box):
 		return "the lost fight did not end in DEFEAT"
 	if not await _wait_for_map("StarterMap", 900):
 		return "no map after the defeat"
@@ -256,7 +265,7 @@ func _defeat_policy() -> String:
 	if not save.save(SAVE_SLOT):
 		return "SaveManager.save(%d) failed" % SAVE_SLOT
 	box = await _lost_fight()
-	if box["result"] == null or (box["result"] as RpgEncounterResult).outcome != DEFEAT:
+	if not _was_defeat(box):
 		return "the second lost fight did not end in DEFEAT"
 	if not await _wait_for_map("StarterMap", 900):
 		return "no map after the second defeat"

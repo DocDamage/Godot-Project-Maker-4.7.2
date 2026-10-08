@@ -73,4 +73,4 @@ def apply_theme(name: str, *, remember: bool = True) -> str:
 
 
 def saved_theme() -> str:
-    return app_settings.load().theme
+    return app_settings.get().theme

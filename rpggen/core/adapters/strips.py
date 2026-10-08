@@ -157,7 +157,7 @@ class StripsAdapter:
         result: AdapterResult,
         issues: IssueList,
     ) -> None:
-        work = (ctx.work_dir or paths.local_cache_dir()) / "gif_strips"
+        work = (ctx.work_dir or paths.cache_dir()) / "gif_strips"
         dest = work / gif_strip_name(f.sha256)
         try:
             count, size, durations = _write_gif_strip(root / f.path, dest)

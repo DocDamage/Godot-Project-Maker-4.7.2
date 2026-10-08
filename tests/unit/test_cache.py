@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from rpggen import paths
 from rpggen.core import cache
 
 SHA = "ab" + "0" * 62
@@ -12,7 +13,7 @@ SHA = "ab" + "0" * 62
 @pytest.fixture(autouse=True)
 def cache_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
-    return tmp_path / "cache"
+    return paths.cache_dir()
 
 
 def test_miss_then_hit() -> None:

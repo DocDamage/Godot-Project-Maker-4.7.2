@@ -11,6 +11,12 @@ from rpggen.core.ledger import Ledger, LedgerEntry
 from rpggen.errors import RpgGenError
 
 
+@pytest.fixture(autouse=True)
+def _isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Settings, caches and drafts of the machine are never read or written by these tests."""
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "_rpggen"))
+
+
 def _write(root: Path, rel: str, data: bytes | str) -> Path:
     path = root / rel
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -219,3 +225,146 @@ def test_the_readme_gets_the_archetype_section(tmp_path: Path) -> None:
     stg = staging.create_staging(tmp_path / "arpg")
     staging.write_project_files(stg, other, catalog.Catalog())
     assert "Battles and enemies" not in (stg.staging / "README.md").read_text(encoding="utf-8")
+
+
+def test_place_does_not_read_the_source_when_its_hash_is_known(tmp_path: Path, monkeypatch) -> None:
+    from rpggen.core.archive import sha256_file
+
+    src = tmp_path / "src.png"
+    src.write_bytes(b"\x89PNG-data")
+    known = sha256_file(src)
+    dst = tmp_path / "out" / "dst.png"
+    reads: list[Path] = []
+    real_file_hash = ledger.file_hash
+    monkeypatch.setattr(ledger, "file_hash", lambda p: reads.append(Path(p)) or real_file_hash(p))
+    real_sha = staging.sha256_file
+    monkeypatch.setattr(staging, "sha256_file", lambda p: reads.append(Path(p)) or real_sha(p))
+    assert staging._place(src, dst, known) is True  # a new file: nothing is hashed at all
+    assert reads == []
+    assert staging._place(src, dst, known) is False  # an existing copy: only the copy is hashed
+    assert reads == [dst]
+    dst.write_bytes(b"changed")
+    assert staging._place(src, dst, known) is True
+    assert dst.read_bytes() == b"\x89PNG-data"
+    assert src not in reads
+
+
+# ------------------------------------------------------------------------ git and the pack art (T12.12)
+
+
+def _lfs_lines(root: Path) -> list[str]:
+    text = (root / ".gitattributes").read_text(encoding="utf-8")
+    return [line for line in text.splitlines() if "filter=lfs" in line and not line.startswith("#")]
+
+
+def _git_files(tmp_path: Path, pack_art: str, lfs: bool = True):
+    from rpggen.core import catalog, config, vcs
+
+    cfg = config.default_for("T", [config.PackRef("p", str(tmp_path), "0" * 64, "folder")])
+    if pack_art != "commit":
+        cfg.git["pack_art"] = pack_art
+    stg = staging.create_staging(tmp_path / "t")
+    original = vcs.lfs_available
+    vcs.lfs_available = lambda: lfs  # type: ignore[assignment]
+    try:
+        issues = staging.write_project_files(stg, cfg, catalog.Catalog())
+    finally:
+        vcs.lfs_available = original  # type: ignore[assignment]
+    return stg.staging, issues
+
+
+def test_by_default_the_pack_art_is_committed_and_the_readme_says_so(tmp_path: Path) -> None:
+    root, issues = _git_files(tmp_path, "commit")
+    assert issues == []
+    assert "assets/packs" not in (root / ".gitignore").read_text(encoding="utf-8")
+    assert _lfs_lines(root) == []
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "## 9.1 Version control" in readme and "do not push this repository" in readme
+
+
+def test_ignore_puts_the_pack_folder_into_gitignore(tmp_path: Path) -> None:
+    root, issues = _git_files(tmp_path, "ignore")
+    assert issues == []
+    lines = (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert "assets/packs/" in lines and ".godot/" in lines  # the usual lines stay
+    assert "is **not** committed" in (root / "README.md").read_text(encoding="utf-8")
+
+
+def test_lfs_turns_on_the_lfs_lines_for_the_pack_art_only(tmp_path: Path) -> None:
+    root, issues = _git_files(tmp_path, "lfs", lfs=True)
+    assert issues == []
+    attributes = (root / ".gitattributes").read_text(encoding="utf-8").splitlines()
+    assert "assets/packs/**/*.png filter=lfs diff=lfs merge=lfs -text" in attributes
+    assert "assets/packs/**/*.ogg filter=lfs diff=lfs merge=lfs -text" in attributes
+    assert not any(line.startswith("*.png filter=lfs") for line in attributes)  # not the rest
+    assert "Git LFS" in (root / "README.md").read_text(encoding="utf-8")
+
+
+def test_lfs_without_git_lfs_falls_back_to_commit_with_a_warning(tmp_path: Path) -> None:
+    root, issues = _git_files(tmp_path, "lfs", lfs=False)
+    assert [i.code for i in issues] == ["ENV-013"]
+    assert _lfs_lines(root) == []
+    assert "is committed with the rest" in (root / "README.md").read_text(encoding="utf-8")
+
+
+# ------------------------------------------------------------------------ lean failed runs (T12.20)
+
+
+def _failed_run(tmp_path: Path) -> staging.Staging:
+    target = tmp_path / "t"
+    target.mkdir()
+    stg = staging.create_staging(target)
+    root = stg.staging
+    for rel, data in (
+        ("assets/packs/p/a.png", b"\x89PNG-art"),
+        ("assets/packs/p/LICENSE.txt", b"CC0"),
+        (".godot/imported/a.ctex", b"import cache"),
+        (".godot/editor/state.cfg", b"editor"),
+        ("generated/scenes/a.tscn", b"scene"),
+        ("game/maps/starter_map.tscn", b"map"),
+        ("rpggen/logs/godot_build.log", b"log"),
+        ("rpggen/results/build_results.json", b"{}"),
+        ("rpggen/generation_report.json", b"{}"),
+        ("project.godot", b"config_version=5"),
+    ):
+        file = root / rel
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_bytes(data)
+    return stg
+
+
+def test_a_failed_run_leaves_no_art_and_no_import_cache(tmp_path: Path) -> None:
+    kept = staging.discard(_failed_run(tmp_path), keep_everything=False)
+    assert not list(kept.rglob("*.png")) and not list(kept.rglob("*.ctex"))
+    assert not (kept / "assets" / "packs").exists() and not (kept / ".godot" / "imported").exists()
+    for rel in (
+        "generated/scenes/a.tscn",
+        "game/maps/starter_map.tscn",
+        "rpggen/logs/godot_build.log",
+        "rpggen/results/build_results.json",
+        "rpggen/generation_report.json",
+        "project.godot",
+        ".godot/editor/state.cfg",
+    ):
+        assert (kept / rel).is_file(), rel
+    note = (kept / "FAILED_RUN.md").read_text(encoding="utf-8")
+    assert "`assets/packs/`" in note and "`.godot/imported/`" in note
+    assert "Keep the whole folder of a failed run" in " ".join(note.split())
+
+
+def test_with_the_setting_on_the_art_is_kept(tmp_path: Path) -> None:
+    from rpggen.core import app_settings
+
+    app_settings.update(keep_full_failed_runs=True)
+    kept = staging.discard(_failed_run(tmp_path))  # the setting decides
+    assert (kept / "assets" / "packs" / "p" / "a.png").is_file()
+    assert (kept / ".godot" / "imported" / "a.ctex").is_file()
+    assert "Nothing was deleted" in (kept / "FAILED_RUN.md").read_text(encoding="utf-8")
+
+
+def test_the_default_is_a_lean_failed_run(tmp_path: Path) -> None:
+    from rpggen.core import app_settings
+
+    assert app_settings.get().keep_full_failed_runs is False
+    kept = staging.discard(_failed_run(tmp_path))
+    assert not (kept / "assets" / "packs").exists()

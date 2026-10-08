@@ -9,6 +9,8 @@ const Paths := preload("../../lib/paths.gd")
 const SceneUtil := preload("../../lib/scene_util.gd")
 const ActorBuild := preload("../../lib/actor_build.gd")
 const SeedUtil := preload("../../lib/seed_util.gd")
+const JsonUtil := preload("../../lib/json_util.gd")
+const BuildContext := preload("../../lib/build_context.gd")
 
 const DEFINITIONS_DIR := "res://game/data/enemies/"
 const SCENES_DIR := "res://generated/scenes/enemies/"
@@ -41,30 +43,31 @@ static func display_name(slug: String) -> String:
 	return " ".join(words).capitalize()
 
 ## Short readable file names: the last part of the asset id, the whole id when two would clash.
-static func slugs_for(ids: Array) -> Array:
+static func slugs_for(ids: Array) -> Array[String]:
 	var counts := {}
-	var shorts: Array = []
-	for id in ids:
-		var s := String(id)
+	var shorts: Array[String] = []
+	for id: Variant in ids:
+		var s := JsonUtil.to_str(id)
 		var short := s.substr(s.rfind(".") + 1).replace("#", "_")
 		shorts.append(short)
-		counts[short] = int(counts.get(short, 0)) + 1
-	var out: Array = []
+		counts[short] = JsonUtil.to_int(counts.get(short, 0)) + 1
+	var out: Array[String] = []
 	for i in ids.size():
-		out.append(shorts[i] if int(counts[shorts[i]]) == 1 else String(ids[i]).replace(".", "__").replace("#", "__"))
+		out.append(shorts[i] if JsonUtil.to_int(counts[shorts[i]]) == 1 else JsonUtil.to_str(ids[i]).replace(".", "__").replace("#", "__"))
 	return out
 
-func _usable(ctx, a: Dictionary) -> bool:
+func _usable(ctx: BuildContext, a: Dictionary) -> bool:
 	var eff: Dictionary = ctx.catalog.effective(a)
-	return eff.get("usage", "") == "sprite" and not eff.get("animations", {}).is_empty() and not (a.get("status", "") in ["UNUSED", "MISSING"])
+	var animations: Dictionary = eff.get("animations", {})
+	return eff.get("usage", "") == "sprite" and not animations.is_empty() and not (a.get("status", "") in ["UNUSED", "MISSING"])
 
 ## [{asset, slug, index, fallback}] sorted by asset id; the fallback entry when there is no enemy asset.
-func entries(ctx) -> Array:
-	var assets: Array = []
+func entries(ctx: BuildContext) -> Array[Dictionary]:
+	var assets: Array[Dictionary] = []
 	for a in ctx.catalog.assets_by_role("ENEMY"):
 		if _usable(ctx, a):
 			assets.append(a)
-	var out: Array = []
+	var out: Array[Dictionary] = []
 	if not assets.is_empty():
 		var ids: Array = []
 		for a in assets:
@@ -79,41 +82,47 @@ func entries(ctx) -> Array:
 			break
 	return out
 
-func _tile(ctx) -> int:
+func _tile(ctx: BuildContext) -> int:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
 	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
 		def = ctx.catalog.tileset_defs()[0]
-	return int(def["tile_size"][0]) if not def.is_empty() else int(ctx.config.get("base_tile_size", 16))
+	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
 
 ## The scene of the enemy the starter map places: the starter.enemy asset, else the first enemy.
-func starter_scene(ctx) -> String:
-	var wanted := String(ctx.config.get("starter", {}).get("enemy", ""))
+func starter_scene(ctx: BuildContext) -> String:
+	var wanted := JsonUtil.to_str(ctx.section("starter").get("enemy", ""))
 	var list := entries(ctx)
 	for e in list:
-		if wanted != "" and e["asset"]["id"] == wanted and ResourceLoader.exists(scene_path(e["slug"])):
-			return scene_path(e["slug"])
+		var asset: Dictionary = e["asset"]
+		var slug: String = e["slug"]
+		if wanted != "" and asset["id"] == wanted and ResourceLoader.exists(scene_path(slug)):
+			return scene_path(slug)
 	for e in list:
-		if ResourceLoader.exists(scene_path(e["slug"])):
-			return scene_path(e["slug"])
+		var slug: String = e["slug"]
+		if ResourceLoader.exists(scene_path(slug)):
+			return scene_path(slug)
 	return ""
 
-func outputs(ctx) -> PackedStringArray:
+func outputs(ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray()
-	for e in entries(ctx):
-		out.append(scene_path(e["slug"]))
-	for e in entries(ctx):
-		if not FileAccess.file_exists(definition_path(e["slug"])):
-			out.append(definition_path(e["slug"]))
+	var list := entries(ctx)
+	for e in list:
+		var slug: String = e["slug"]
+		out.append(scene_path(slug))
+	for e in list:
+		var slug: String = e["slug"]
+		if not FileAccess.file_exists(definition_path(slug)):
+			out.append(definition_path(slug))
 	return out
 
-func input_hash(ctx) -> String:
+func input_hash(ctx: BuildContext) -> String:
 	var parts: Array = []
 	for e in entries(ctx):
 		var a: Dictionary = e["asset"]
 		parts.append({"id": a["id"], "slug": e["slug"], "fallback": e["fallback"], "sha256": a.get("sha256", ""), "eff": ctx.catalog.effective(a)})
 	return ctx.stable_hash({"v": RECIPE_VERSION, "enemies": parts, "tile": _tile(ctx)})
 
-func build(ctx) -> Array:
+func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var list := entries(ctx)
 	if list.is_empty():
@@ -137,14 +146,14 @@ func build(ctx) -> Array:
 			issues.append(ctx.make_issue("VAL-002", {"file": definition_path(slug)}, definition_path(slug)))
 			continue
 		var fo := ActorBuild.frame_and_origin(ctx.catalog.effective(a))
-		var node := _build_scene(frames, fo, tile, def, bool(e["fallback"]))
+		var node := _build_scene(frames, fo, tile, def, JsonUtil.to_bool(e["fallback"]))
 		var err := SceneUtil.save_scene(node, scene_path(slug))
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": scene_path(slug), "err": err}, scene_path(slug)))
 	return issues
 
-func _save_definition(ctx, e: Dictionary, frames: SpriteFrames, issues: Array) -> void:
-	var s := scaled(int(e["index"]))
+func _save_definition(ctx: BuildContext, e: Dictionary, frames: SpriteFrames, issues: Array) -> void:
+	var s := scaled(JsonUtil.to_int(e["index"]))
 	var stats := SeedUtil.make(STATS)
 	stats.set("max_hp", s["hp"])
 	stats.set("hp", s["hp"])
@@ -153,15 +162,16 @@ func _save_definition(ctx, e: Dictionary, frames: SpriteFrames, issues: Array) -
 	var loot := SeedUtil.make(LOOT)
 	loot.set("entries", SeedUtil.dict_array([{"item_id": "potion", "chance": 0.3, "min": 1, "max": 1}]))
 	var def := SeedUtil.make(ENEMY_DEF)
-	def.set("id", StringName(e["slug"]))
-	def.set("display_name", "Enemy" if e["fallback"] else display_name(String(e["slug"])))
+	def.set("id", JsonUtil.to_name(e["slug"]))
+	def.set("display_name", "Enemy" if e["fallback"] else display_name(JsonUtil.to_str(e["slug"])))
 	def.set("sprite_frames", frames)
 	def.set("base_stats", stats)
 	def.set("xp_reward", s["xp"])
 	def.set("gold_reward", s["gold"])
 	def.set("loot", loot)
 	def.set("behavior", {"turn_based": {"attack": 1.0, "defend": 0.0}})
-	var path := definition_path(e["slug"])
+	var slug: String = e["slug"]
+	var path := definition_path(slug)
 	var err := SeedUtil.save(def, path)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
@@ -171,7 +181,8 @@ func _save_definition(ctx, e: Dictionary, frames: SpriteFrames, issues: Array) -
 ## built by the same function as every other actor.)
 func _build_scene(frames: SpriteFrames, fo: Dictionary, tile: int, def: Resource, fallback: bool) -> Node:
 	var frame: Vector2i = fo["frame"]
-	var root := ActorBuild.build("base", "Enemy", frames, frame, fo["origin"], tile)
+	var origin: Vector2i = fo["origin"]
+	var root := ActorBuild.build("base", "Enemy", frames, frame, origin, tile)
 	SceneUtil.attach_script(root, ENEMY_SCRIPT)
 	root.collision_layer = 0
 	root.set_collision_layer_value(3, true)  # enemies

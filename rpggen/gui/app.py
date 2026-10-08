@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from rpggen import logging_setup
 from rpggen.errors import CODES
-from rpggen.gui import theme
+from rpggen.gui import theme, workers
 from rpggen.gui.dialogs import diagnostic_export
 from rpggen.gui.wizard import MainWindow
 
@@ -101,6 +101,9 @@ def create_app(argv: list[str] | None = None) -> QApplication:
 def run_gui(argv: list[str] | None = None, target: Path | None = None) -> int:
     """Open the wizard; with ``target`` (an existing project, e.g. from the editor's "Open
     generator") the project page starts with that output folder."""
+    from rpggen.core import cache_policy
+
+    cache_policy.migrate()  # an older version kept everything in one folder
     app = create_app(argv)
     logging_setup.configure(diagnostic_export.app_log_dir(), False)
     install_excepthook()
@@ -108,4 +111,6 @@ def run_gui(argv: list[str] | None = None, target: Path | None = None) -> int:
     if target is not None:
         window.open_target(target)
     window.show()
+    pruning = workers.Worker(workers.prune_job)  # bounded caches: the oldest archives go first
+    pruning.start()
     return app.exec()

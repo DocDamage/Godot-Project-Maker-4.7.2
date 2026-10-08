@@ -6,10 +6,13 @@ extends RefCounted
 ## Tile-based navigation is the simple default. For large maps bake a NavigationRegion2D instead
 ## and keep nav_mode = "agent" (the generated README says so).
 
+const JsonUtil := preload("../../lib/json_util.gd")
+const BuildContext := preload("../../lib/build_context.gd")
+
 ## True when the project wants agent navigation.
-static func enabled(ctx) -> bool:
-	return bool(ctx.config.get("features", {}).get("navigation", false))
+static func enabled(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ctx.section("features").get("navigation", false))
 
 ## "agent" with navigation, else "direct" (the enemy's behavior key nav_mode).
-static func nav_mode(ctx) -> String:
+static func nav_mode(ctx: BuildContext) -> String:
 	return "agent" if enabled(ctx) else "direct"

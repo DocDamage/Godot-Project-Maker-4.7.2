@@ -20,8 +20,9 @@ func _ensure_loaded() -> void:
 		return
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(BANK_PATH))
 	if parsed is Dictionary:
-		for slot in parsed.keys():
-			var path := str(parsed[slot])
+		var table: Dictionary = parsed
+		for slot: Variant in table.keys():
+			var path := str(table[slot])
 			if path != "":
 				_paths[str(slot)] = path
 
@@ -44,9 +45,12 @@ func path_of(slot: StringName) -> String:
 	_ensure_loaded()
 	return str(_paths.get(str(slot), ""))
 
-func slots() -> Array:
+func slots() -> Array[String]:
 	_ensure_loaded()
-	return _paths.keys()
+	var out: Array[String] = []
+	for key: String in _paths.keys():
+		out.append(key)
+	return out
 
 ## The stream of a slot (loaded once), or null when the slot is unset or the file does not load.
 func stream(slot: StringName) -> AudioStream:

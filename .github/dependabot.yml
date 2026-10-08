@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # The third-party actions are pinned to full commit SHAs (a test checks it); this keeps them
+  # current, one pull request a week.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

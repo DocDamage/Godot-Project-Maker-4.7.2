@@ -1,3 +1,4 @@
+class_name RpgSettingsStore
 extends Node
 ## Autoload "RpgSettings": volumes, fullscreen, text speed, UI scale and input remapping,
 ## stored in user://settings.cfg.
@@ -6,7 +7,7 @@ signal changed
 
 const TEXT_SPEEDS := {"slow": 20.0, "normal": 40.0, "fast": 80.0, "instant": 0.0}
 const UI_SCALES := [1.0, 1.25, 1.5]
-const BUSES := ["master", "music", "sfx", "ui"]
+const BUSES: Array[String] = ["master", "music", "sfx", "ui"]
 const BUS_NAMES := {"master": "Master", "music": "Music", "sfx": "SFX", "ui": "UI"}
 const DEFAULT_VOLUME := 0.8
 
@@ -26,7 +27,7 @@ func _ready() -> void:
 
 ## Characters per second; 0 means instant.
 func text_cps() -> float:
-	return float(TEXT_SPEEDS.get(text_speed, 40.0))
+	return RpgUtil.to_float(TEXT_SPEEDS.get(text_speed, 40.0))
 
 func set_volume(bus: String, value: float) -> void:
 	if not BUSES.has(bus):
@@ -65,7 +66,8 @@ func apply() -> void:
 	_apply_ui_scale()
 
 func _apply_volume(bus: String) -> void:
-	var idx := AudioServer.get_bus_index(BUS_NAMES[bus])
+	var bus_name: String = BUS_NAMES[bus]
+	var idx := AudioServer.get_bus_index(bus_name)
 	if idx < 0:
 		return
 	var v: float = volumes[bus]
@@ -94,7 +96,7 @@ func save_settings() -> bool:
 	cfg.set_value("game", "autosave", autosave)
 	cfg.set_value("game", "screen_shake", screen_shake)
 	var bindings := _stored_bindings()
-	for action in bindings.keys():
+	for action: String in bindings.keys():
 		cfg.set_value("input", action, bindings[action])
 	return cfg.save(path) == OK
 
@@ -104,20 +106,21 @@ func load_settings() -> void:
 	if cfg.load(path) != OK:
 		return
 	for bus in BUSES:
-		volumes[bus] = clampf(float(cfg.get_value("audio", bus, DEFAULT_VOLUME)), 0.0, 1.0)
-	fullscreen = bool(cfg.get_value("video", "fullscreen", false))
+		volumes[bus] = clampf(RpgUtil.to_float(cfg.get_value("audio", bus, DEFAULT_VOLUME)), 0.0, 1.0)
+	fullscreen = RpgUtil.to_bool(cfg.get_value("video", "fullscreen", false))
 	var speed := str(cfg.get_value("text", "speed", "normal"))
 	text_speed = speed if TEXT_SPEEDS.has(speed) else "normal"
-	var scale := float(cfg.get_value("access", "ui_scale", 1.0))
+	var scale := RpgUtil.to_float(cfg.get_value("access", "ui_scale", 1.0))
 	ui_scale = scale if UI_SCALES.has(scale) else 1.0
-	autosave = bool(cfg.get_value("game", "autosave", true))
-	screen_shake = bool(cfg.get_value("game", "screen_shake", true))
+	autosave = RpgUtil.to_bool(cfg.get_value("game", "autosave", true))
+	screen_shake = RpgUtil.to_bool(cfg.get_value("game", "screen_shake", true))
 	if cfg.has_section("input"):
 		for action in cfg.get_section_keys("input"):
 			if not InputMap.has_action(action):
 				continue
 			var events: Array[InputEvent] = []
-			for raw in cfg.get_value("input", action, []):
+			var raws: Array = cfg.get_value("input", action, [])
+			for raw: Variant in raws:
 				var ev := deserialize_event(raw)
 				if ev != null:
 					events.append(ev)
@@ -141,11 +144,11 @@ func _capture_defaults() -> void:
 ## Actions whose current events differ from the project defaults.
 func _stored_bindings() -> Dictionary:
 	var out := {}
-	for action in _defaults.keys():
+	for action: String in _defaults.keys():
 		if not InputMap.has_action(action):
 			continue
 		var now := InputMap.action_get_events(action)
-		var before: Array = _defaults[action]
+		var before: Array[InputEvent] = _defaults[action]
 		if not _same_events(now, before):
 			var list: Array = []
 			for ev in now:
@@ -155,11 +158,11 @@ func _stored_bindings() -> Dictionary:
 			out[action] = list
 	return out
 
-func _same_events(a: Array, b: Array) -> bool:
+func _same_events(a: Array[InputEvent], b: Array[InputEvent]) -> bool:
 	if a.size() != b.size():
 		return false
 	for i in a.size():
-		if not (a[i] as InputEvent).is_match(b[i], true):
+		if not a[i].is_match(b[i], true):
 			return false
 	return true
 
@@ -167,7 +170,7 @@ func _same_events(a: Array, b: Array) -> bool:
 func remappable_actions() -> Array[String]:
 	_capture_defaults()
 	var out: Array[String] = []
-	for action in _defaults.keys():
+	for action: String in _defaults.keys():
 		out.append(action)
 	out.sort()
 	return out
@@ -188,9 +191,9 @@ func rebind(action: String, old_event: InputEvent, new_event: InputEvent) -> boo
 
 func reset_bindings() -> void:
 	_capture_defaults()
-	for action in _defaults.keys():
+	for action: String in _defaults.keys():
 		InputMap.action_erase_events(action)
-		for ev in _defaults[action]:
+		for ev: InputEvent in _defaults[action]:
 			InputMap.action_add_event(action, ev)
 	changed.emit()
 	save_settings()
@@ -212,23 +215,24 @@ static func serialize_event(ev: InputEvent) -> Dictionary:
 static func deserialize_event(d: Variant) -> InputEvent:
 	if not (d is Dictionary):
 		return null
-	match str(d.get("type", "")):
+	var data: Dictionary = d
+	match str(data.get("type", "")):
 		"key":
 			var k := InputEventKey.new()
-			k.physical_keycode = int(d.get("physical", 0)) as Key
+			k.physical_keycode = RpgUtil.to_int(data.get("physical", 0)) as Key
 			return k
 		"joy_button":
 			var b := InputEventJoypadButton.new()
-			b.button_index = int(d.get("index", 0)) as JoyButton
+			b.button_index = RpgUtil.to_int(data.get("index", 0)) as JoyButton
 			return b
 		"joy_axis":
 			var m := InputEventJoypadMotion.new()
-			m.axis = int(d.get("axis", 0)) as JoyAxis
-			m.axis_value = float(d.get("value", 1.0))
+			m.axis = RpgUtil.to_int(data.get("axis", 0)) as JoyAxis
+			m.axis_value = RpgUtil.to_float(data.get("value", 1.0))
 			return m
 		"mouse_button":
 			var mb := InputEventMouseButton.new()
-			mb.button_index = int(d.get("index", 1)) as MouseButton
+			mb.button_index = RpgUtil.to_int(data.get("index", 1)) as MouseButton
 			return mb
 	return null
 

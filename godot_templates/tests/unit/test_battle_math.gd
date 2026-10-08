@@ -2,7 +2,7 @@ extends RefCounted
 ## Battle formulas and turn order (T7.01, T7.02).
 
 ## A stand-in for RpgRng: fixed spread and crit roll.
-class FixedRng extends RefCounted:
+class FixedRng extends RpgRng:
 	var spread := 1.0
 	var roll := 0.5
 	func randf_range(_a: float, _b: float) -> float:

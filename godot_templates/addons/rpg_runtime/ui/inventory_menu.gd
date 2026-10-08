@@ -5,7 +5,7 @@ extends Control
 const COLUMNS := 6
 
 var _selected: StringName = &""
-var _buttons: Array = []
+var _buttons: Array[Button] = []
 var _extra_buttons: Array[Button] = []  # added by the archetype's combat mode (customize_inventory_menu)
 
 func _ready() -> void:
@@ -14,7 +14,7 @@ func _ready() -> void:
 	_refresh()
 	_focus_first.call_deferred()
 	var router := RpgUtil.router()
-	var mode: Variant = router.get("combat") if router != null else null
+	var mode: RpgCombatMode = router.combat if router != null else null
 	if mode != null and mode.has_method("customize_inventory_menu"):
 		mode.call("customize_inventory_menu", self)
 
@@ -66,7 +66,7 @@ func _refresh() -> void:
 			b.custom_minimum_size = Vector2(40, 40)
 			b.icon = def.icon
 			b.expand_icon = true
-			b.text = "x%d" % int(slot["qty"])
+			b.text = "x%d" % RpgUtil.to_int(slot["qty"])
 			b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			b.pressed.connect(_select.bind(id))
 			b.focus_entered.connect(_select.bind(id))
@@ -77,8 +77,8 @@ func _refresh() -> void:
 	var back_button := get_node("%Back") as Button
 	# Use and Back sit below the grid; the grid's last row leads down to Use.
 	if not _buttons.is_empty():
-		for b in _buttons:
-			(b as Button).focus_neighbor_bottom = (b as Button).get_path_to(use_button)
+		for b: Button in _buttons:
+			b.focus_neighbor_bottom = b.get_path_to(use_button)
 		use_button.focus_neighbor_top = use_button.get_path_to(_buttons[0])
 	else:
 		use_button.focus_neighbor_top = use_button.get_path_to(back_button)
@@ -97,7 +97,7 @@ func _refresh() -> void:
 
 func _focus_first() -> void:
 	if not _buttons.is_empty():
-		(_buttons[0] as Button).grab_focus()
+		_buttons[0].grab_focus()
 	else:
 		(get_node("%Back") as Button).grab_focus()
 
@@ -114,7 +114,7 @@ func _on_use() -> void:
 	if state == null or _selected == &"":
 		return
 	if not state.inventory.use(_selected, state.player_stats):
-		RpgUtil.notify("Cannot use that now")
+		RpgUtil.notify(tr("UI_CANNOT_USE_NOW"))
 		return
 	_refresh()
 	_focus_first.call_deferred()

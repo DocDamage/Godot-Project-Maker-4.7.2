@@ -50,12 +50,7 @@ def is_newer(tag: str, current: str) -> bool:
 
 
 def _fetch(url: str, limit: int) -> bytes:
-    original = profile_registry.TIMEOUT_S
-    profile_registry.TIMEOUT_S = TIMEOUT_S
-    try:
-        return profile_registry.default_fetcher(url, limit)
-    finally:
-        profile_registry.TIMEOUT_S = original
+    return profile_registry.default_fetcher(url, limit, timeout=TIMEOUT_S)
 
 
 def latest_release(fetcher: Fetcher | None = None) -> Release | None:

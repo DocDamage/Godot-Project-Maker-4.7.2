@@ -1,0 +1,701 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rpggen/cli.schema.json",
+  "title": "rpggen <command> --json",
+  "description": "The one document a command prints on stdout with --json (T12.28).",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/generate"
+    },
+    {
+      "$ref": "#/$defs/analyze_pack"
+    },
+    {
+      "$ref": "#/$defs/analyze_corpus"
+    },
+    {
+      "$ref": "#/$defs/analyze_private"
+    },
+    {
+      "$ref": "#/$defs/analyze_failed"
+    },
+    {
+      "$ref": "#/$defs/restore"
+    },
+    {
+      "$ref": "#/$defs/diagnose"
+    },
+    {
+      "$ref": "#/$defs/failed"
+    }
+  ],
+  "$defs": {
+    "issue": {
+      "type": "object",
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "fix",
+        "file"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z]+-[0-9]{3}$"
+        },
+        "severity": {
+          "enum": [
+            "error",
+            "warning",
+            "info"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "fix": {
+          "type": "string"
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "summary": {
+      "description": "What a dry run found; {} when the run stopped in preflight.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_name": {
+          "type": "string"
+        },
+        "archetype": {
+          "enum": [
+            "turn_based",
+            "arpg"
+          ]
+        },
+        "regeneration": {
+          "type": "boolean"
+        },
+        "godot": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "packs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tile_size": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 256
+        },
+        "tile_size_from": {
+          "enum": [
+            "config",
+            "packs"
+          ]
+        },
+        "resolution": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "assets": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "objects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tilesets": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "roles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "count",
+              "need"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "need": {
+                "enum": [
+                  "required",
+                  "recommended",
+                  "optional"
+                ]
+              }
+            }
+          }
+        },
+        "placeholders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "map": {
+          "type": "object",
+          "required": [
+            "size",
+            "counts",
+            "warnings"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "size": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "counts": {
+              "type": "object",
+              "required": [
+                "buildings",
+                "npcs",
+                "enemies",
+                "chests",
+                "decorations"
+              ],
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": [
+        "id",
+        "path",
+        "usage",
+        "role",
+        "grid",
+        "frame",
+        "confidence",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "usage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "grid": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "frame": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "generate": {
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "target",
+        "dry_run",
+        "cancelled",
+        "run_id",
+        "failed_phase",
+        "failed_staging",
+        "skipped",
+        "timings",
+        "issues"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "const": "generate"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1,
+            3,
+            4,
+            70
+          ]
+        },
+        "target": {
+          "type": "string"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "cancelled": {
+          "type": "boolean"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{8})?$"
+        },
+        "failed_phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failed_staging": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skipped": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "timings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/issue"
+          }
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        }
+      }
+    },
+    "analyze_pack": {
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "mode",
+        "pack",
+        "assets",
+        "objects",
+        "tilesets",
+        "catalog_file",
+        "issues"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "const": "analyze"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            0
+          ]
+        },
+        "mode": {
+          "const": "pack"
+        },
+        "pack": {
+          "type": "string"
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/asset"
+          }
+        },
+        "objects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tilesets": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "catalog_file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/issue"
+          }
+        },
+        "accuracy": {
+          "type": "object",
+          "required": [
+            "groups",
+            "correct",
+            "total",
+            "misses"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "groups": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "correct": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            },
+            "misses": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "analyze_corpus": {
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "mode",
+        "report",
+        "passed",
+        "failures",
+        "groups",
+        "thresholds"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "const": "analyze"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "mode": {
+          "const": "corpus"
+        },
+        "report": {
+          "type": "string"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "groups": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "thresholds": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "analyze_private": {
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "mode",
+        "report",
+        "summary"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "const": "analyze"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            0
+          ]
+        },
+        "mode": {
+          "const": "private_corpus"
+        },
+        "report": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "object"
+        }
+      }
+    },
+    "analyze_failed": {
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "issues"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "const": "analyze"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            1,
+            3
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/issue"
+          }
+        }
+      }
+    },
+    "restore": {
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "target",
+        "backup",
+        "saved_state",
+        "issues"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "const": "restore"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1,
+            3
+          ]
+        },
+        "target": {
+          "type": "string"
+        },
+        "backup": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saved_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/issue"
+          }
+        }
+      }
+    },
+    "diagnose": {
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "target",
+        "bundle"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "const": "diagnose"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            0
+          ]
+        },
+        "target": {
+          "type": "string"
+        },
+        "bundle": {
+          "type": "string"
+        }
+      }
+    },
+    "failed": {
+      "description": "A usage error, a cancel or an internal error that no command document covers.",
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "error"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "enum": [
+            "generate",
+            "analyze",
+            "restore",
+            "diagnose"
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            2,
+            4,
+            70
+          ]
+        },
+        "error": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

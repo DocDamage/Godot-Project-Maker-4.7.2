@@ -13,16 +13,16 @@ func _ready() -> void:
 	_focus_first.call_deferred()
 
 func _slot_text(slot: int) -> String:
-	var save := RpgUtil.autoload(&"SaveManager")
+	var save := RpgUtil.save_manager()
 	var h: Dictionary = save.header(slot) if save != null else {}
 	var label := tr("UI_AUTOSAVE") if slot == 0 else "%s %d" % [tr("UI_SLOT"), slot]
 	if h.is_empty():
 		return "%s: %s" % [label, tr("UI_EMPTY")]
-	var minutes := int(float(h.get("playtime_s", 0.0)) / 60.0)
-	return "%s: %s  %s %d  %s %d  %dm" % [label, str(h.get("map", "")), tr("UI_LEVEL"), int(h.get("level", 1)), tr("UI_GOLD"), int(h.get("gold", 0)), minutes]
+	var minutes := int(RpgUtil.to_float(h.get("playtime_s", 0.0)) / 60.0)
+	return "%s: %s  %s %d  %s %d  %dm" % [label, str(h.get("map", "")), tr("UI_LEVEL"), RpgUtil.to_int(h.get("level", 1)), tr("UI_GOLD"), RpgUtil.to_int(h.get("gold", 0)), minutes]
 
 func _refresh() -> void:
-	var save := RpgUtil.autoload(&"SaveManager")
+	var save := RpgUtil.save_manager()
 	var buttons: Array = []
 	for slot in range(0, 4):
 		var b := get_node("%%Slot%d" % slot) as Button
@@ -48,7 +48,7 @@ func _focus_first() -> void:
 	(get_node("%Back") as Button).grab_focus()
 
 func _on_slot(slot: int) -> void:
-	var save := RpgUtil.autoload(&"SaveManager")
+	var save := RpgUtil.save_manager()
 	if save == null:
 		return
 	if mode == "save":

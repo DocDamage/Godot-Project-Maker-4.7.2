@@ -1,3 +1,4 @@
+class_name RpgEvents
 extends Node
 ## Autoload "Events": the signal bus. Signals only, no logic.
 

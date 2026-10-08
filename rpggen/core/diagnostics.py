@@ -7,6 +7,7 @@ image or audio bytes, so a bundle is safe to share even for a commercial pack.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import locale
 import logging
@@ -16,7 +17,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from rpggen import __version__, jsonio, paths
+from rpggen import __version__, jsonio, logging_setup, paths
 
 log = logging.getLogger(__name__)
 
@@ -176,11 +177,15 @@ def make_bundle(
     *,
     home: Path | None = None,
     user: str | None = None,
+    app_log_dir: Path | None = None,
 ) -> Path:
     """Write the diagnostic bundle for a project or a failed-generation folder to ``out_zip``.
 
-    ``extra_logs`` are additional log files (for example the application log). ``home`` and
-    ``user`` exist for tests; they default to the current user's.
+    ``extra_logs`` are additional log files. The application log (``app_log_dir``, default
+    ``paths.log_dir()``) contributes only the lines of the run that made this project, found by
+    the run id in its report (``logs/rpggen_app.log``); with no run id (a crash outside a
+    generation) it contributes its last 300 lines. ``home`` and ``user`` exist for tests; they
+    default to the current user's.
     """
     folder = Path(target_or_failed_dir)
     meta = meta_root(folder)
@@ -201,8 +206,13 @@ def make_bundle(
         report = folder / "generation_report.json"
         if not report.is_file():
             report = meta / "generation_report.json"
+        run_id = ""
         if report.is_file():
-            add_text("generation_report.json", redact(report.read_text(encoding="utf-8")))
+            report_text = report.read_text(encoding="utf-8")
+            add_text("generation_report.json", redact(report_text))
+            with contextlib.suppress(ValueError):
+                found = json.loads(report_text).get("run_id", "")
+                run_id = found if isinstance(found, str) else ""
         results = meta / "results"
         if results.is_dir():
             for path in sorted(results.glob("*.json")):
@@ -210,6 +220,14 @@ def make_bundle(
         logs = list((meta / "logs").glob("*.log")) if (meta / "logs").is_dir() else []
         for path in sorted(logs) + [Path(p) for p in (extra_logs or []) if Path(p).is_file()]:
             add_text(f"logs/{path.name}", redact_log(path, redact))
+        log_folder = Path(app_log_dir) if app_log_dir is not None else paths.log_dir()
+        app_lines = (
+            logging_setup.read_run_lines(log_folder, run_id)
+            if run_id
+            else logging_setup.tail_lines(log_folder)
+        )
+        if app_lines:
+            add_text("logs/rpggen_app.log", redact("\n".join(app_lines) + "\n"))
         from rpggen.core import app_settings
 
         saved = app_settings.settings_path()

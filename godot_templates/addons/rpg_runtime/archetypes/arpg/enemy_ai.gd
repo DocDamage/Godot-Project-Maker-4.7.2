@@ -27,7 +27,7 @@ const DEFAULT_BEHAVIOR := {
 	"wander_radius_px": 32, "wander_pause_s": [1.0, 2.5], "knockback_resist": 0.0,
 	"nav_mode": "direct",
 }
-const PIXEL_KEYS := ["vision_px", "lose_px", "attack_range_px", "move_speed", "chase_speed", "wander_radius_px"]
+const PIXEL_KEYS: Array[String] = ["vision_px", "lose_px", "attack_range_px", "move_speed", "chase_speed", "wander_radius_px"]
 
 @export var entity_id: String = ""
 @export var tile_size: float = 16.0
@@ -54,8 +54,8 @@ static func merged_behavior(overrides: Dictionary, tile: float = 16.0) -> Dictio
 	var out: Dictionary = DEFAULT_BEHAVIOR.duplicate(true)
 	var scale := tile / 16.0
 	for key in PIXEL_KEYS:
-		out[key] = float(out[key]) * scale
-	for key in overrides.keys():
+		out[key] = RpgUtil.to_float(out[key]) * scale
+	for key: Variant in overrides.keys():
 		if out.has(key):
 			out[key] = overrides[key]
 	return out
@@ -100,23 +100,23 @@ func _ready() -> void:
 ## Hands the behavior numbers to the components.
 func configure() -> void:
 	if detection != null:
-		detection.vision_px = float(behavior["vision_px"])
+		detection.vision_px = RpgUtil.to_float(behavior["vision_px"])
 	if chase != null:
-		chase.speed = float(behavior["chase_speed"])
-		chase.lose_px = float(behavior["lose_px"])
-		chase.attack_range_px = float(behavior["attack_range_px"])
+		chase.speed = RpgUtil.to_float(behavior["chase_speed"])
+		chase.lose_px = RpgUtil.to_float(behavior["lose_px"])
+		chase.attack_range_px = RpgUtil.to_float(behavior["attack_range_px"])
 		chase.nav_mode = str(behavior["nav_mode"])
 	if wander != null:
-		wander.speed = float(behavior["move_speed"])
-		wander.radius_px = float(behavior["wander_radius_px"])
+		wander.speed = RpgUtil.to_float(behavior["move_speed"])
+		wander.radius_px = RpgUtil.to_float(behavior["wander_radius_px"])
 		var pause: Array = behavior["wander_pause_s"]
-		wander.pause_range = Vector2(float(pause[0]), float(pause[1]))
+		wander.pause_range = Vector2(RpgUtil.to_float(pause[0]), RpgUtil.to_float(pause[1]))
 		wander.home = global_position
 		wander.seed_from(entity_id if entity_id != "" else String(name))
 	if attack != null:
-		attack.windup_s = float(behavior["windup_s"])
-		attack.active_s = float(behavior["active_s"])
-		attack.cooldown_s = float(behavior["attack_cooldown_s"])
+		attack.windup_s = RpgUtil.to_float(behavior["windup_s"])
+		attack.active_s = RpgUtil.to_float(behavior["active_s"])
+		attack.cooldown_s = RpgUtil.to_float(behavior["attack_cooldown_s"])
 
 func state() -> StringName:
 	return machine.state
@@ -230,7 +230,7 @@ func _apply_knockback() -> void:
 	_stop()
 	var movement := component("Movement") as RpgMovement
 	if movement != null and _hit != null:
-		movement.external_velocity = _hit.knockback * (1.0 - clampf(float(behavior["knockback_resist"]), 0.0, 1.0))
+		movement.external_velocity = _hit.knockback * (1.0 - clampf(RpgUtil.to_float(behavior["knockback_resist"]), 0.0, 1.0))
 	var sprite := get_node_or_null("Visual") as AnimatedSprite2D
 	if sprite != null:
 		sprite.modulate = Color(1.0, 0.6, 0.6)

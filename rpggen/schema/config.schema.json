@@ -32,15 +32,9 @@
       "minItems": 1
     },
     "base_tile_size": {
-      "enum": [
-        8,
-        12,
-        16,
-        24,
-        32,
-        48,
-        64
-      ]
+      "type": "integer",
+      "minimum": 8,
+      "maximum": 256
     },
     "resolution": {
       "type": "array",
@@ -160,6 +154,13 @@
         "decorations": {"type": "integer", "minimum": 0, "maximum": 40},
         "ground_patches": {"type": "integer", "minimum": 0, "maximum": 20},
         "ground": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "pack_art": {"enum": ["commit", "lfs", "ignore"]}
       },
       "additionalProperties": false
     },

@@ -97,14 +97,14 @@ func build_info(hurtbox: RpgHurtbox) -> RpgDamageInfo:
 	var attack := stats.attack if stats != null else damage
 	var crit_chance := RpgArpgMath.DEFAULT_CRIT_CHANCE
 	if stats != null:
-		crit_chance = float(stats.extra.get("crit_chance", RpgArpgMath.DEFAULT_CRIT_CHANCE))
+		crit_chance = RpgUtil.to_float(stats.extra.get("crit_chance", RpgArpgMath.DEFAULT_CRIT_CHANCE))
 	var state := RpgUtil.state()
-	var rng: Variant = state.get("rng") if state != null else _fallback_rng
+	var rng: RpgRng = state.rng if state != null else _fallback_rng
 	var rolled := RpgArpgMath.roll_damage(attack, hurtbox.defense(), crit_chance, rng)
-	info.amount = int(rolled["amount"])
+	info.amount = RpgUtil.to_int(rolled["amount"])
 	if heavy:
 		info.amount = RpgArpgMath.heavy_damage(info.amount)
-	info.crit = bool(rolled["crit"])
+	info.crit = RpgUtil.to_bool(rolled["crit"])
 	info.stun_s = stun_s
 	var from := actor.global_position if actor != null else global_position
 	var target := hurtbox.get_parent() as Node2D

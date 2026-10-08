@@ -7,6 +7,8 @@ extends RefCounted
 ## Enemies are frozen (`machine.enabled = false`) while the step under test is about the player,
 ## so the outcome does not depend on what the enemy does.
 
+const JsonUtil := preload("../lib/json_util.gd")
+
 const ENEMY_1 := "starter_map_enemy_001"
 const ENEMY_2 := "starter_map_enemy_002"
 const SAVE_DIR := "user://smoke_saves"
@@ -41,9 +43,9 @@ func _game_over_screen() -> String:
 func _autoload(autoload_name: String) -> Node:
 	return _tree().root.get_node_or_null(autoload_name)
 
-func _player() -> Node2D:
+func _player() -> RpgActor:
 	var players := _tree().get_nodes_in_group("player")
-	return players[0] as Node2D if players.size() == 1 else null
+	return players[0] as RpgActor if players.size() == 1 else null
 
 func _combat_of(player: Node) -> RpgPlayerCombat:
 	return player.get_node_or_null("PlayerCombat") as RpgPlayerCombat
@@ -53,7 +55,7 @@ func _frames(n: int) -> void:
 		await _tree().physics_frame
 
 func _seconds(s: float) -> void:
-	await _frames(int(ceil(s * 60.0)))
+	await _frames(JsonUtil.to_int(ceil(s * 60.0)))
 
 func _find_enemy(entity_id: String) -> RpgEnemyAi:
 	var scene := _tree().current_scene
@@ -68,7 +70,7 @@ func _wait_for_map(map_name: String, max_frames: int) -> bool:
 	var tree := _tree()
 	for i in max_frames:
 		await tree.physics_frame
-		var router := _autoload("SceneRouter")
+		var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
 		var scene := tree.current_scene
 		if router != null and not router.is_busy() and scene != null and scene.name == map_name:
 			return true
@@ -230,7 +232,7 @@ func _heavy_attack_hits() -> String:
 	var stats := e1.health.stats()
 	var real_max := stats.max_hp
 	stats.max_hp = 500
-	for action in ["attack", "secondary_attack"]:
+	for action: String in ["attack", "secondary_attack"]:
 		for attempt in 5:
 			_freeze(e1)
 			e1.hurtbox.invulnerable_until_ms = 0
@@ -258,21 +260,21 @@ func _heavy_attack_hits() -> String:
 	e1.hurtbox.damaged.disconnect(on_damaged)
 	stats.max_hp = real_max
 	e1.health.heal(999)
-	if int(amounts["secondary_attack"]) <= int(amounts["attack"]):
+	if JsonUtil.to_int(amounts["secondary_attack"]) <= JsonUtil.to_int(amounts["attack"]):
 		return "the heavy attack dealt %d, not more than the light attack's %d" % [amounts["secondary_attack"], amounts["attack"]]
 	return ""
 
 func _enemy_dies() -> String:
 	var tree := _tree()
-	var state := _autoload("GameState")
-	var bus := _autoload("Events")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var bus: RpgEvents = _autoload("Events") as RpgEvents
 	var p := _player()
 	var e1 := _find_enemy(ENEMY_1)
 	var combat := _combat_of(p)
 	var def := e1.definition as RpgEnemyDefinition
 	var stats: RpgStats = state.get("player_stats")
 	stats.attack = 99
-	_box["gold"] = int(state.get("gold"))
+	_box["gold"] = JsonUtil.to_int(state.get("gold"))
 	_box["xp"] = -1
 	var died := {"v": false}
 	bus.experience_gained.connect(func(_id: StringName, amount: int) -> void: _box["xp"] = amount, CONNECT_ONE_SHOT)
@@ -292,9 +294,9 @@ func _enemy_dies() -> String:
 		return "the enemy did not die within 5 s of attacking"
 	e1.machine.enabled = true  # lets the dead enemy free itself
 	await _frames(2)
-	if int(_box["xp"]) != def.xp_reward:
+	if JsonUtil.to_int(_box["xp"]) != def.xp_reward:
 		return "experience_gained reported %d, expected %d" % [_box["xp"], def.xp_reward]
-	var gold_delta: int = int(state.get("gold")) - int(_box["gold"])
+	var gold_delta: int = JsonUtil.to_int(state.get("gold")) - JsonUtil.to_int(_box["gold"])
 	if gold_delta != def.gold_reward:
 		return "gold changed by %d, expected %d" % [gold_delta, def.gold_reward]
 	if state.get_flag(ENEMY_1, "defeated", false) != true:
@@ -303,8 +305,8 @@ func _enemy_dies() -> String:
 
 func _player_hurt_invuln() -> String:
 	var tree := _tree()
-	var state := _autoload("GameState")
-	var bus := _autoload("Events")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var bus: RpgEvents = _autoload("Events") as RpgEvents
 	var p := _player()
 	var combat := _combat_of(p)
 	var e2 := _find_enemy(ENEMY_2)
@@ -332,7 +334,7 @@ func _player_hurt_invuln() -> String:
 	# Freeze the enemy: the next hits are made by hand.
 	_freeze(e2)
 	var base := RpgArpgMath.base_damage(e2.health.stats().attack, stats.defense)
-	if hits[0] != base and hits[0] != int(round(base * RpgArpgMath.CRIT_MULTIPLIER)):
+	if hits[0] != base and hits[0] != JsonUtil.to_int(round(base * RpgArpgMath.CRIT_MULTIPLIER)):
 		return "the hit did %d damage, the formula gives %d" % [hits[0], base]
 	var hp_after_first := stats.hp
 	if hp_after_first != stats.max_hp - hits[0]:
@@ -396,8 +398,8 @@ func _dodge() -> String:
 
 func _persist() -> String:
 	var tree := _tree()
-	var state := _autoload("GameState")
-	var save := _autoload("SaveManager")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	save.set("dir", SAVE_DIR)
 	await _seconds(0.8)  # a dead enemy frees itself 0.6 s after dying
 	if _find_enemy(ENEMY_1) != null:
@@ -420,11 +422,11 @@ func _persist() -> String:
 
 func _death_policy() -> String:
 	var tree := _tree()
-	var state := _autoload("GameState")
-	var save := _autoload("SaveManager")
-	var router := _autoload("SceneRouter")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
 	save.set("dir", SAVE_DIR)
-	for slot in range(int(save.get("AUTOSAVE_SLOT")), 4):
+	for slot in range(JsonUtil.to_int(save.get("AUTOSAVE_SLOT")), 4):
 		save.delete(slot)  # no save, the autosave included: the player wakes up at the default spawn
 	var p := _player()
 	var e2 := _find_enemy(ENEMY_2)
@@ -464,6 +466,6 @@ func _death_policy() -> String:
 	var spawn := (tree.current_scene as RpgMapRoot).get_spawn(&"default")
 	if after.global_position.distance_to(spawn.global_position) > 1.0:
 		return "the player did not respawn at the default spawn"
-	if not bool(after.get("input_enabled")):
+	if not JsonUtil.to_bool(after.get("input_enabled")):
 		return "the respawned player cannot move"
 	return ""

@@ -85,6 +85,26 @@ default). rpggen never pushes. If git has no identity configured, the commit use
 
 A regeneration that changes nothing leaves `git status` empty.
 
+**What a commit contains.**
+
+* A repository that rpggen creates (a new project) gets everything the first generation wrote.
+* In a repository that **already exists** (yours, or the one rpggen made earlier) rpggen stages and
+  commits **exactly the files it wrote or deleted**: the promoted files, the `.rpggen-new`
+  conflict copies, the ownership ledger and the two reports. Your own staged or unstaged changes,
+  and files you have not added, stay where they are and are not part of the commit. If there were
+  any, the result says so (`REGEN-008`, information).
+* If the commit fails (a pre-commit hook, a lock, a missing identity) the project is still
+  generated and the result shows `REGEN-007` with the reason; commit by hand when it is fixed.
+
+**Purchased art.** By default the pack art in `assets/packs/` is committed, which is the safest
+copy for yourself and the riskiest for a public repository: most pack licences do not allow
+redistribution. Under **Options > Version control** you can instead *leave the pack art out of
+git* (`assets/packs/` is added to the generated `.gitignore`; art that is already tracked stays
+tracked until you remove it with `git rm --cached`) or *use Git LFS* (the pack's image and audio
+files are routed through LFS in `.gitattributes`; without git-lfs installed rpggen commits the art
+as it is and warns with `ENV-013`). The choice is the optional `git.pack_art` key of
+`generator_config.json`, and the generated README explains it.
+
 ## Troubleshooting
 
 * *REGEN-001* — you changed a generated file. Compare it with the `.rpggen-new` file next to it,

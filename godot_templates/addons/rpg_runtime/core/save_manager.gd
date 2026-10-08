@@ -1,3 +1,4 @@
+class_name RpgSaveManager
 extends Node
 ## Autoload "SaveManager": three slots of checksummed JSON with a backup copy and migrations.
 
@@ -41,7 +42,7 @@ func _capture_world() -> bool:
 	if state == null:
 		return false
 	if router != null and router.get("current_map") != null:
-		var map := router.get("current_map") as RpgMapRoot
+		var map := router.current_map
 		state.current_map = map.scene_file_path
 		var player := map.get_player()
 		if player != null:
@@ -50,7 +51,7 @@ func _capture_world() -> bool:
 				state.player_facing = str(player.get("facing"))
 	return true
 
-func _header(state: Node) -> Dictionary:
+func _header(state: RpgGameState) -> Dictionary:
 	return {
 		"map": str(state.current_map).get_file().get_basename(),
 		"playtime_s": state.playtime_s,
@@ -74,13 +75,13 @@ func _on_map_entered(_map_id: StringName) -> void:
 ## fade, no battle, no dialogue), the player is alive and the last one was 10 or more seconds ago.
 func can_autosave() -> bool:
 	var settings := RpgUtil.settings()
-	if settings != null and not bool(settings.get("autosave")):
+	if settings != null and not RpgUtil.to_bool(settings.get("autosave")):
 		return false
 	var state := RpgUtil.state()
 	var router := RpgUtil.router()
 	if state == null or router == null or router.get("current_map") == null or router.is_busy():
 		return false
-	var combat: Variant = router.get("combat")
+	var combat := router.combat
 	if combat != null and combat.is_in_combat():
 		return false
 	var box := RpgUtil.service(&"rpg_dialogue_box")
@@ -135,13 +136,28 @@ func save(slot: int) -> bool:
 		return false
 	var main := _slot_path(slot)
 	if FileAccess.file_exists(main):
-		DirAccess.copy_absolute(main, _backup_path(slot))
-		DirAccess.remove_absolute(main)
-	if DirAccess.rename_absolute(tmp, main) != OK:
+		# Only a save that verifies becomes the backup: a damaged main file must never replace
+		# the last good one.
+		if _read_verified(main).is_empty():
+			push_warning("[RPG-SAVE] skipped backing up a damaged save")
+		else:
+			DirAccess.copy_absolute(main, _backup_path(slot))
+	if not _move_into_place(tmp, main):
 		push_error("[RPG-SAVE] cannot move %s into place" % tmp)
 		return false
 	RpgUtil.emit(&"game_saved", [slot])
 	return true
+
+## Moves the verified temporary file onto the slot. DirAccess.rename_absolute replaces an
+## existing file (docs/godot_api_verified.md, probe_rename_replace.gd), so the main file is never
+## missing in between; if a platform refuses, the main file goes first and the backup covers
+## the gap.
+func _move_into_place(from: String, to: String) -> bool:
+	if DirAccess.rename_absolute(from, to) == OK:
+		return true
+	if FileAccess.file_exists(to):
+		DirAccess.remove_absolute(to)
+	return DirAccess.rename_absolute(from, to) == OK
 
 ## The parsed file when it exists, parses and its checksum matches; otherwise {}.
 func _read_verified(path: String) -> Dictionary:
@@ -176,18 +192,19 @@ func header(slot: int) -> Dictionary:
 	return RpgUtil.restore_numbers(h) if h is Dictionary else {}
 
 func delete(slot: int) -> void:
-	for p in [_slot_path(slot), _backup_path(slot), _tmp_path(slot)]:
+	for p: String in [_slot_path(slot), _backup_path(slot), _tmp_path(slot)]:
 		if FileAccess.file_exists(p):
 			DirAccess.remove_absolute(p)
 
 ## Applies MIGRATIONS[v] for v in save_version .. SAVE_VERSION-1.
 func _migrate(d: Dictionary) -> Dictionary:
 	var data := d
-	var version := int(data.get("save_version", 0))
+	var version := RpgUtil.to_int(data.get("save_version", 0))
 	while version < SAVE_VERSION:
 		var step: Variant = MIGRATIONS.get(version)
 		if step is Callable:
-			data = (step as Callable).call(data)
+			var migrate: Callable = step
+			data = migrate.call(data)
 		data["save_version"] = version + 1
 		version += 1
 	return data
@@ -201,11 +218,11 @@ func load(slot: int) -> bool:
 		data = _read_verified(_backup_path(slot))
 		if data.is_empty():
 			return false
-		RpgUtil.notify("Save was damaged; loaded backup.")
+		RpgUtil.notify(tr("UI_SAVE_DAMAGED_LOADED_BACKUP"))
 	data = RpgUtil.restore_numbers(data)
-	var version := int(data.get("save_version", 0))
+	var version := RpgUtil.to_int(data.get("save_version", 0))
 	if version > SAVE_VERSION:
-		RpgUtil.notify("Save from newer version")
+		RpgUtil.notify(tr("UI_SAVE_FROM_NEWER_VERSION"))
 		return false
 	if version < SAVE_VERSION:
 		data = _migrate(data)

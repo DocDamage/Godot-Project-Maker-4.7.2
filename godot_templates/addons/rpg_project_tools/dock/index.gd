@@ -13,7 +13,7 @@ const JsonIo := preload("../tools/json_io.gd")
 const OBJECT_INDEX := "res://rpggen/object_index.json"
 const CHARACTER_INDEX := "res://rpggen/character_index.json"
 const ENEMY_DIR := "res://generated/scenes/enemies"
-const CATEGORIES := ["All", "Buildings", "Decorations", "Interior", "Characters", "Enemies", "Items", "Interactables"]
+const CATEGORIES: Array[String] = ["All", "Buildings", "Decorations", "Interior", "Characters", "Enemies", "Items", "Interactables"]
 
 ## The category of a library entry.
 static func category_of(role: String, tags: Array, kind: String) -> String:
@@ -38,24 +38,26 @@ static func _last_part(id: String) -> String:
 	return id.get_slice("#", id.get_slice_count("#") - 1) if id.contains("#") else id.get_slice(".", id.get_slice_count(".") - 1)
 
 ## Entries for every scene of the indexes, sorted by name then id.
-static func build(catalog: Dictionary = {}) -> Array:
-	var entries: Array = []
+static func build(catalog: Dictionary = {}) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
 	var objects: Variant = JsonIo.read(OBJECT_INDEX)
 	if objects is Dictionary:
-		for id in objects.keys():
-			entries.append(_object_entry(String(id), String(objects[id]), catalog))
+		var object_table: Dictionary = objects
+		for id: Variant in object_table.keys():
+			entries.append(_object_entry(JsonIo.to_str(id), JsonIo.to_str(object_table[id]), catalog))
 	var characters: Variant = JsonIo.read(CHARACTER_INDEX)
 	if characters is Dictionary:
-		for id in characters.keys():
-			entries.append(_character_entry(String(id), String(characters[id]), catalog))
+		var character_table: Dictionary = characters
+		for id: Variant in character_table.keys():
+			entries.append(_character_entry(JsonIo.to_str(id), JsonIo.to_str(character_table[id]), catalog))
 	var dir := DirAccess.open(ENEMY_DIR)
 	if dir != null:
 		for file_name in dir.get_files():
 			if file_name.get_extension() == "tscn":
 				entries.append(_enemy_entry(ENEMY_DIR + "/" + file_name))
 	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var ka := String(a["name"]).to_lower() + "|" + String(a["id"])
-		var kb := String(b["name"]).to_lower() + "|" + String(b["id"])
+		var ka := JsonIo.to_str(a["name"]).to_lower() + "|" + JsonIo.to_str(a["id"])
+		var kb := JsonIo.to_str(b["name"]).to_lower() + "|" + JsonIo.to_str(b["id"])
 		return ka < kb)
 	return entries
 
@@ -66,15 +68,15 @@ static func _object_entry(id: String, scene_path: String, catalog: Dictionary) -
 	var index := CatalogEdit.object_index(catalog, id)
 	if index >= 0:
 		var obj: Dictionary = catalog["objects"][index]
-		role = String(obj.get("role", "NONE"))
-		tags = obj.get("tags", []).duplicate()
-		display = String(obj.get("name", display))
+		role = JsonIo.to_str(obj.get("role", "NONE"))
+		tags = JsonIo.to_array(obj.get("tags", [])).duplicate()
+		display = JsonIo.to_str(obj.get("name", display))
 	else:
 		var asset := CatalogEdit.find_asset(catalog, id)
 		if not asset.is_empty():
 			var eff := CatalogEdit.effective(asset)
-			role = String(eff.get("role", "NONE"))
-			tags = eff.get("tags", []).duplicate()
+			role = JsonIo.to_str(eff.get("role", "NONE"))
+			tags = JsonIo.to_array(eff.get("tags", [])).duplicate()
 	return {"id": id, "name": display, "role": role, "category": category_of(role, tags, "object"),
 		"kind": "object", "scene_path": scene_path, "tags": tags, "asset_id": id}
 
@@ -84,8 +86,8 @@ static func _character_entry(id: String, scene_path: String, catalog: Dictionary
 	var asset := CatalogEdit.find_asset(catalog, id)
 	if not asset.is_empty():
 		var eff := CatalogEdit.effective(asset)
-		role = String(eff.get("role", "NPC"))
-		tags = eff.get("tags", []).duplicate()
+		role = JsonIo.to_str(eff.get("role", "NPC"))
+		tags = JsonIo.to_array(eff.get("tags", [])).duplicate()
 	return {"id": id, "name": _last_part(id), "role": role, "category": category_of(role, tags, "character"),
 		"kind": "character", "scene_path": scene_path, "tags": tags, "asset_id": id}
 
@@ -95,14 +97,15 @@ static func _enemy_entry(scene_path: String) -> Dictionary:
 		"kind": "enemy", "scene_path": scene_path, "tags": [], "asset_id": ""}
 
 ## Entries matching the search text (name, id and tags, case-insensitive) and the category.
-static func filter(entries: Array, text: String, category: String) -> Array:
+static func filter(entries: Array, text: String, category: String) -> Array[Dictionary]:
 	var needle := text.strip_edges().to_lower()
-	var out: Array = []
-	for e in entries:
+	var out: Array[Dictionary] = []
+	for e: Dictionary in entries:
 		if category != "All" and e["category"] != category:
 			continue
 		if needle != "":
-			var hay := (String(e["name"]) + " " + String(e["id"]) + " " + " ".join(PackedStringArray(e["tags"]))).to_lower()
+			var tag_list: Array = e["tags"]
+			var hay := (JsonIo.to_str(e["name"]) + " " + JsonIo.to_str(e["id"]) + " " + " ".join(PackedStringArray(tag_list))).to_lower()
 			if not hay.contains(needle):
 				continue
 		out.append(e)
@@ -112,7 +115,7 @@ static func filter(entries: Array, text: String, category: String) -> Array:
 ## needed when it changes.
 static func fingerprint() -> String:
 	var parts: PackedStringArray = []
-	for path in [OBJECT_INDEX, CHARACTER_INDEX, CatalogEdit.CATALOG_PATH]:
+	for path: String in [OBJECT_INDEX, CHARACTER_INDEX, CatalogEdit.CATALOG_PATH]:
 		parts.append("%s:%d" % [path, FileAccess.get_modified_time(path) if FileAccess.file_exists(path) else 0])
 	var dir := DirAccess.open(ENEMY_DIR)
 	if dir != null:
@@ -138,7 +141,7 @@ static func _first_texture(node: Node) -> Texture2D:
 		var sprite := node as AnimatedSprite2D
 		var frames := sprite.sprite_frames
 		if frames != null:
-			for anim in ["idle_down", "walk_down", "default"]:
+			for anim: String in ["idle_down", "walk_down", "default"]:
 				if frames.has_animation(anim) and frames.get_frame_count(anim) > 0:
 					return frames.get_frame_texture(anim, 0)
 			for anim in frames.get_animation_names():

@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QProgressBar,
+    QSizePolicy,
     QSplitter,
     QStackedWidget,
     QTabWidget,
@@ -100,6 +101,7 @@ class AuditPage(WizardPage):
         self.done_label.setObjectName("reviewDoneLabel")
         self.done_label.setProperty("state", "ok")
         self.done_label.setWordWrap(True)
+        self.done_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.done_label.setVisible(False)
         layout.addWidget(self.done_label)
         self.profile_button = QToolButton()
@@ -118,7 +120,7 @@ class AuditPage(WizardPage):
         self.export_action.triggered.connect(lambda: self.export_profile())
         self.import_action.triggered.connect(lambda: self.import_profile())
         self.online_action.triggered.connect(lambda: self.find_profile_online())
-        self.quick_roles = list(app_settings.load().quick_roles) or list(QUICK_ROLES)
+        self.quick_roles = list(app_settings.get().quick_roles) or list(QUICK_ROLES)
         self.archetype = "turn_based"
         self.grid = AssetGrid()
         self.tabs = QTabWidget()
@@ -143,8 +145,8 @@ class AuditPage(WizardPage):
         self.splitter.addWidget(self.side)
         self.splitter.setStretchFactor(0, 3)
         self.splitter.setStretchFactor(1, 2)
-        layout.addWidget(self.splitter)
-        saved_sizes = app_settings.load().splitters.get("audit")
+        layout.addWidget(self.splitter, 1)  # the grid takes the spare height, not the labels
+        saved_sizes = app_settings.get().splitters.get("audit")
         if saved_sizes and len(saved_sizes) == 2 and all(s > 0 for s in saved_sizes):
             self.splitter.setSizes(saved_sizes)
         self.splitter.splitterMoved.connect(self._save_splitter)
@@ -157,14 +159,14 @@ class AuditPage(WizardPage):
         self.grid.confirmAutoRequested.connect(self.confirm_all_auto)
         self.grid.shortcutsRequested.connect(self.show_shortcuts)
         self.grid.thumbSizeChanged.connect(self._remember_thumb_size)
-        self.grid.set_thumb_size(app_settings.load().thumb_size)
+        self.grid.set_thumb_size(app_settings.get().thumb_size)
 
     def set_thumb_size(self, size: int) -> None:
         """Called by the View menu."""
         self.grid.set_thumb_size(size)
 
     def _remember_thumb_size(self, size: int) -> None:
-        app_settings.update(thumb_size=size)
+        app_settings.schedule(thumb_size=size)
 
     # ------------------------------------------------------------------ progress and queue
 
@@ -215,9 +217,8 @@ class AuditPage(WizardPage):
         QMessageBox.information(self, self.tr("Shortcuts of the audit"), self.shortcut_sheet())
 
     def _save_splitter(self, *_args: object) -> None:
-        settings = app_settings.load()
-        settings.splitters["audit"] = self.splitter.sizes()
-        app_settings.save(settings)
+        sizes = self.splitter.sizes()
+        app_settings.schedule(splitters={**app_settings.get().splitters, "audit": sizes})
 
     def _on_quick_key(self, key: str) -> None:
         if key == "C":

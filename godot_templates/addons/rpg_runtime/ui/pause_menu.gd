@@ -10,7 +10,7 @@ var _submenu: Control = null
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_show_progress()
-	var save := RpgUtil.autoload(&"SaveManager")
+	var save := RpgUtil.save_manager()
 	(get_node("%Load") as Button).disabled = save == null or not save.any_save()
 	(get_node("%Resume") as Button).pressed.connect(close)
 	(get_node("%Inventory") as Button).pressed.connect(_open.bind("inventory_menu", {}))
@@ -28,7 +28,7 @@ func _show_progress() -> void:
 	var state := RpgUtil.state()
 	if label == null or state == null:
 		return
-	label.text = progress_text(str(state.current_map), float(state.playtime_s))
+	label.text = progress_text(str(state.current_map), RpgUtil.to_float(state.playtime_s))
 
 ## "Starter Map  ·  12 min" from a map path and the play time in seconds.
 static func progress_text(map_path: String, playtime_s: float) -> String:

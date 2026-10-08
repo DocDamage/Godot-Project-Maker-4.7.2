@@ -204,6 +204,24 @@ RESULTS: dict[str, Any] = {
     ],
 }
 
+CLI: dict[str, Any] = {
+    "json_version": 1,
+    "command": "generate",
+    "ok": False,
+    "exit_code": 1,
+    "target": "C:/games/demo",
+    "dry_run": False,
+    "cancelled": False,
+    "run_id": "0123abcd",
+    "failed_phase": "validate",
+    "failed_staging": "C:/games/demo/.rpggen_failed",
+    "skipped": {"export": "ENV-010"},
+    "timings": {"build": 2.5},
+    "issues": [
+        {"code": "VAL-001", "severity": "error", "message": "m", "fix": "f", "file": None},
+    ],
+}
+
 EXAMPLES: dict[str, dict[str, Any]] = {
     "config": CONFIG,
     "inventory": INVENTORY,
@@ -211,6 +229,7 @@ EXAMPLES: dict[str, dict[str, Any]] = {
     "ledger": LEDGER,
     "profile": PROFILE,
     "results": RESULTS,
+    "cli": CLI,
 }
 
 
@@ -245,7 +264,7 @@ def test_enum_violations() -> None:
     with pytest.raises(RpgGenError, match="/assets/0/status"):
         schema.validate("catalog", bad)
     bad = copy.deepcopy(CONFIG)
-    bad["base_tile_size"] = 15
+    bad["base_tile_size"] = 7  # below 8 (the range is 8 to 256, T12.03)
     with pytest.raises(RpgGenError):
         schema.validate("config", bad)
 

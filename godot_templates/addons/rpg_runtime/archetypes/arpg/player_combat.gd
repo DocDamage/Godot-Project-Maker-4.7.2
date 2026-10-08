@@ -305,6 +305,6 @@ func _update_dead(_delta: float) -> void:
 	_dead_reported = true
 	defeated.emit()
 	var router := RpgUtil.router()
-	var combat: Variant = router.get("combat") if router != null else null
+	var combat: RpgCombatMode = router.combat if router != null else null
 	if combat != null and combat.has_method("apply_defeat"):
 		combat.call("apply_defeat")

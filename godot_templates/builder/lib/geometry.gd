@@ -2,6 +2,8 @@ extends RefCounted
 ## Collision polygon helpers. Profile polygons are in top-left pixel space of the cell; tile
 ## collision polygons are centered on the tile, so use to_tile_space() before assigning them.
 
+const JsonUtil := preload("json_util.gd")
+
 static func rect_poly(x: float, y: float, w: float, h: float) -> PackedVector2Array:
 	return PackedVector2Array([Vector2(x, y), Vector2(x + w, y), Vector2(x + w, y + h), Vector2(x, y + h)])
 
@@ -29,8 +31,8 @@ static func profile_polygon(profile: String, cell: Vector2i, custom: Array = [])
 			return rect_poly(w - tr, 0, tr, h)
 		"CUSTOM":
 			var pts := PackedVector2Array()
-			for p in custom:
-				pts.append(Vector2(float(p[0]), float(p[1])))
+			for p: Array in custom:
+				pts.append(Vector2(JsonUtil.to_float(p[0]), JsonUtil.to_float(p[1])))
 			return pts
 		_:
 			# NONE, and ALPHA_POLYGON (traced from pixels by the tileset recipe).

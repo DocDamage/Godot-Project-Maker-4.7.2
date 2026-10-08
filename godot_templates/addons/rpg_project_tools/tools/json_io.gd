@@ -32,3 +32,72 @@ static func write(path: String, data: Variant) -> int:
 			DirAccess.remove_absolute(path)
 		err = DirAccess.rename_absolute(tmp, path)
 	return err
+
+# ---- typed conversions of Variant values (strict GDScript, T12.29) -------------------------------
+# JSON and Dictionary values arrive as Variant. Passing one to a typed parameter, or converting it
+# with int()/float()/bool(), is flagged by the strict warnings; these functions are the one place
+# that looks at the type. They return the fallback when the value is not what was expected.
+
+## `int(v)` for a Variant: numbers (JSON numbers are floats), booleans and numeric strings.
+static func to_int(v: Variant, fallback: int = 0) -> int:
+	match typeof(v):
+		TYPE_INT:
+			var i: int = v
+			return i
+		TYPE_FLOAT:
+			var f: float = v
+			return int(f)
+		TYPE_BOOL:
+			var b: bool = v
+			return int(b)
+		TYPE_STRING, TYPE_STRING_NAME:
+			var s: String = v
+			return s.to_int()
+	return fallback
+
+## `float(v)` for a Variant.
+static func to_float(v: Variant, fallback: float = 0.0) -> float:
+	match typeof(v):
+		TYPE_INT, TYPE_FLOAT:
+			var f: float = v
+			return f
+		TYPE_BOOL:
+			var b: bool = v
+			return float(b)
+		TYPE_STRING, TYPE_STRING_NAME:
+			var s: String = v
+			return s.to_float()
+	return fallback
+
+## `bool(v)` for a Variant: booleans and numbers (zero is false).
+static func to_bool(v: Variant, fallback: bool = false) -> bool:
+	match typeof(v):
+		TYPE_BOOL:
+			var b: bool = v
+			return b
+		TYPE_INT, TYPE_FLOAT:
+			var f: float = v
+			return f != 0.0
+	return fallback
+
+## `String(v)` for a Variant (any value prints as text).
+static func to_str(v: Variant) -> String:
+	return str(v)
+
+## `StringName(v)` for a Variant.
+static func to_name(v: Variant) -> StringName:
+	return StringName(str(v))
+
+## The Dictionary in `v`, or an empty one.
+static func to_dict(v: Variant) -> Dictionary:
+	if v is Dictionary:
+		var d: Dictionary = v
+		return d
+	return {}
+
+## The Array in `v`, or an empty one.
+static func to_array(v: Variant) -> Array:
+	if v is Array:
+		var a: Array = v
+		return a
+	return []

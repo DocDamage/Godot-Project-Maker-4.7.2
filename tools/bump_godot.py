@@ -5,7 +5,8 @@ Usage:
     python tools/bump_godot.py --check      verify that nothing disagrees (CI runs this as a test)
 
 Rewrites ``rpggen/godot_target.py`` (the single source: the app's gate, the Download Godot
-button, the default of tools/fetch_godot.py), ``GODOT_VERSION`` in the CI and release workflows,
+button, the default of tools/fetch_godot.py, and the pinned SHA-512 of the official zips, which it
+reads from the new release's SHA512-SUMS.txt), ``GODOT_VERSION`` in the CI and release workflows,
 and the version in ``docs/spec/03_ERROR_CODES.md`` (then regenerates the error tables). It cannot
 verify that the new Godot still behaves the same; the checklist it prints is the part for a
 person.
@@ -17,6 +18,8 @@ import argparse
 import re
 import subprocess
 import sys
+import urllib.request
+from collections.abc import Callable
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -28,6 +31,12 @@ WORKFLOWS = [
 ERROR_SPEC = REPO / "docs" / "spec" / "03_ERROR_CODES.md"
 _VERSION_LINE = re.compile(r'^VERSION = "(\d+\.\d+\.\d+)"', re.M)
 _ENV_LINE = re.compile(r'^(\s*GODOT_VERSION:\s*)"([^"]+)"', re.M)
+_SHA_BLOCK = re.compile(r"^SHA512 = \{.*?^\}\n", re.M | re.S)
+PLATFORM_ZIPS = {
+    "windows": "Godot_v{v}-stable_win64.exe.zip",
+    "linux": "Godot_v{v}-stable_linux.x86_64.zip",
+    "macos": "Godot_v{v}-stable_macos.universal.zip",
+}
 
 CHECKLIST = """\
 Still to do by hand (the tool cannot know whether Godot changed behaviour):
@@ -41,6 +50,9 @@ Still to do by hand (the tool cannot know whether Godot changed behaviour):
   5. Redo the manual rows of docs/spec/M11_pre_release.md T11.29 that touch the editor.
   6. If the new Godot's series differs (e.g. 4.7 -> 4.8), check godot_templates/project.godot
      and the 'config/features' line, and bump the runtime/app version if generated output changed.
+  7. Compare the SHA512 values the tool wrote into rpggen/godot_target.py with the ones on the
+     release page (https://github.com/godotengine/godot/releases) by eye: they were read from the
+     same release, so they only protect against a change made after this commit.
 """
 
 
@@ -82,16 +94,53 @@ def rewrite_spec(text: str, old: str, new: str) -> str:
     return text
 
 
-def bump(new: str) -> None:
+def _http_get(url: str) -> bytes:
+    request = urllib.request.Request(url, headers={"User-Agent": "rpggen-bump"})
+    with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
+        return response.read(1 << 20)
+
+
+def release_hashes(version: str, get: Callable[[str], bytes] = _http_get) -> dict[str, str]:
+    """The SHA-512 of the official zip of every platform, from the release's SHA512-SUMS.txt."""
+    url = f"https://github.com/godotengine/godot/releases/download/{version}-stable/SHA512-SUMS.txt"
+    try:
+        text = get(url).decode("utf-8", "replace")
+    except OSError as exc:
+        raise SystemExit(f"cannot read {url}: {exc}") from exc
+    sums: dict[str, str] = {}
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) >= 2:
+            sums[parts[-1].lstrip("*")] = parts[0].lower()
+    found: dict[str, str] = {}
+    for platform, pattern in PLATFORM_ZIPS.items():
+        name = pattern.format(v=version)
+        if name not in sums:
+            raise SystemExit(f"{name} is not in the release's SHA512-SUMS.txt")
+        found[platform] = sums[name]
+    return found
+
+
+def sha_block(version: str, hashes: dict[str, str]) -> str:
+    lines = [f'    "{platform}": "{digest}",' for platform, digest in hashes.items()]
+    return "SHA512 = {\n" + "\n".join(lines) + "\n}\n"
+
+
+def bump(new: str, get: Callable[[str], bytes] = _http_get) -> None:
     if not re.fullmatch(r"\d+\.\d+\.\d+", new):
         raise SystemExit(f"not a version like 4.8.1: {new}")
     old = current_version()
+    hashes = release_hashes(new, get)  # first: nothing is rewritten when the release is unreadable
     _rewrite(TARGET, lambda s: _VERSION_LINE.sub(f'VERSION = "{new}"', s))
+    _rewrite(TARGET, lambda s: _SHA_BLOCK.sub(lambda _m: sha_block(new, hashes), s))
     for path in WORKFLOWS:
         _rewrite(path, lambda s: _ENV_LINE.sub(lambda m: f'{m.group(1)}"{new}"', s))
     _rewrite(ERROR_SPEC, lambda s: rewrite_spec(s, old, new))
     subprocess.run([sys.executable, str(REPO / "tools" / "gen_error_codes.py")], check=True)
     print(f"Godot {old} -> {new}\n")
+    for platform, digest in hashes.items():
+        print(f"  pinned {platform:8} {digest[:16]}...{digest[-8:]}")
+    print()
     print(CHECKLIST)
 
 

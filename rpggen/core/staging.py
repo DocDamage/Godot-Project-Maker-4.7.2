@@ -8,10 +8,12 @@ from datetime import datetime
 from pathlib import Path
 
 from rpggen import godot_target, jsonio, paths, schema
+from rpggen.core import app_settings, export_check, runtime_version, vcs
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
-from rpggen.core import export_check, runtime_version
 from rpggen.core import ledger as ledger_mod
+from rpggen.core.archive import sha256_file
+from rpggen.core.archive import walk_files as archive_walk_files
 from rpggen.core.inventory import Inventory
 from rpggen.errors import Issue, IssueList, RpgGenError
 
@@ -139,14 +141,21 @@ def _is_junk(rel_parts: tuple[str, ...]) -> bool:
     return rel_parts[-1].lower() in JUNK_NAMES or any(p.lower() in JUNK_DIRS for p in rel_parts)
 
 
-def _place(src: Path, dst: Path) -> bool:
-    """Copy ``src`` to ``dst`` unless ``dst`` already has the same content (ledger hash).
+def _place(src: Path, dst: Path, src_hash: str | None = None) -> bool:
+    """Copy ``src`` to ``dst`` unless ``dst`` already has the same content.
+
+    Only an existing ``dst`` is hashed. With ``src_hash`` (the inventory's sha256 of a pack
+    file) ``src`` is not read at all and the comparison is byte for byte; without it both files
+    are compared by their ledger hash (text files with normalized line endings).
 
     A changed file is replaced, never written in place: the old one may be a hard link to a file
     of the target project.
     """
     if dst.is_file():
-        if ledger_mod.file_hash(dst) == ledger_mod.file_hash(src):
+        if src_hash is not None:
+            if sha256_file(dst) == src_hash:
+                return False
+        elif ledger_mod.file_hash(dst) == ledger_mod.file_hash(src):
             return False
         dst.unlink()
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -229,19 +238,14 @@ def install_pack(
     pack_dir = Path(pack_dir)
     dst = stg.staging / "assets" / "packs" / pack_id
     if inv is not None:
-        sources = [pack_dir / f.path for f in inv.files]
+        sources = [(pack_dir / f.path, f.sha256) for f in inv.files]
     else:
-        sources = [
-            p
-            for p in sorted(
-                pack_dir.rglob("*"), key=lambda q: q.relative_to(pack_dir).as_posix().casefold()
-            )
-            if p.is_file() and not _is_junk(p.relative_to(pack_dir).parts)
-        ]
+        files, _links = archive_walk_files(pack_dir)  # links are skipped, never followed
+        sources = [(pack_dir / rel, None) for rel in files if not _is_junk(tuple(rel.split("/")))]
     written: list[str] = []
-    for p in sources:
+    for p, digest in sources:
         out = dst / p.relative_to(pack_dir)
-        _place(p, out)
+        _place(p, out, digest)
         written.append(paths.to_posix_rel(out, stg.staging))
     return sorted(written, key=lambda s: (s.casefold(), s))
 
@@ -299,6 +303,68 @@ def _write_text(path: Path, text: str) -> None:
 README_TEMPLATE = "README.template.md"
 
 
+def effective_pack_art(cfg: config_mod.GeneratorConfig) -> tuple[str, list[Issue]]:
+    """How the pack art is handled by git: ``commit``, ``lfs`` or ``ignore``. Git LFS without
+    git-lfs falls back to ``commit`` and says so (ENV-013)."""
+    choice = cfg.pack_art
+    if choice == "lfs" and not vcs.lfs_available():
+        found = IssueList()
+        found.add("ENV-013")
+        return "commit", list(found)
+    return choice, []
+
+
+def gitignore_text(base: str, pack_art: str) -> str:
+    if pack_art != "ignore":
+        return base
+    return (
+        base.rstrip("\n")
+        + "\n# Purchased art stays out of the repository (Options > Version control)\n"
+        + "assets/packs/\n"
+    )
+
+
+def gitattributes_text(base: str, pack_art: str) -> str:
+    if pack_art != "lfs":
+        return base
+    lines = [
+        f"assets/packs/**/*.{ext} filter=lfs diff=lfs merge=lfs -text" for ext in vcs.LFS_EXTENSIONS
+    ]
+    return (
+        base.rstrip("\n")
+        + "\n# The pack art goes through Git LFS (Options > Version control)\n"
+        + ("\n".join(lines) + "\n")
+    )
+
+
+def version_control_note(pack_art: str) -> str:
+    """The README section that explains what git does with the purchased art."""
+    if pack_art == "ignore":
+        body = (
+            "The pack art in `assets/packs/` is **not** committed: it is listed in "
+            "`.gitignore`, so most pack licences (which do not allow the art to be public) are "
+            "respected when you push. Keep your own copy of the packs: a fresh clone has to get "
+            "them back into "
+            "`assets/packs/`. Options > Version control in rpggen changes this."
+        )
+    elif pack_art == "lfs":
+        body = (
+            "The pack art in `assets/packs/` goes through **Git LFS** (see `.gitattributes`): the "
+            "repository holds small pointers and the art itself lives on the LFS server. Run "
+            "`git lfs install` once on every computer that uses the repository. A public host "
+            "still makes the art public, which most pack licences do not allow."
+        )
+    else:
+        body = (
+            "The pack art in `assets/packs/` is committed with the rest, so the repository is "
+            "complete. **Most pack licences do not allow the art to be public: do not push this "
+            "repository to a public host** unless every licence in `GENERATION_REPORT.md` allows "
+            "it. To keep the art out of git, add `assets/packs/` to `.gitignore`, or choose "
+            '"Leave the pack art out" under Options > Version control and generate again.'
+        )
+    return f"## 9.1 Version control\n\n{body}"
+
+
 def render_readme(
     template: str, cfg: config_mod.GeneratorConfig, runtime: str, archetype_notes: str = ""
 ) -> str:
@@ -312,13 +378,14 @@ def render_readme(
         runtime_version=runtime,
         godot_version=cfg.godot_version,
         packs_list=packs,
+        version_control_note=version_control_note(effective_pack_art(cfg)[0]),
     )
     return text + archetype_notes
 
 
 def write_project_files(
     stg: Staging, cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog
-) -> None:
+) -> list[Issue]:
     """Write project.godot, generator_config.json, asset_catalog.json, the VCS files and README.md.
 
     When regenerating, project.godot is the user's own (the builder applies the keys it owns on
@@ -334,11 +401,12 @@ def write_project_files(
     schema.validate("catalog", cat_data)
     jsonio.write(root / paths.CATALOG, cat_data)
     files = paths.templates_root() / "project_files"
-    for name, template in (
-        (".gitignore", "gitignore.txt"),
-        (".gitattributes", "gitattributes.txt"),
+    pack_art, issues = effective_pack_art(cfg)
+    for name, template, make in (
+        (".gitignore", "gitignore.txt", gitignore_text),
+        (".gitattributes", "gitattributes.txt", gitattributes_text),
     ):
-        text = (files / template).read_text(encoding="utf-8")
+        text = make((files / template).read_text(encoding="utf-8"), pack_art)
         dst = root / name
         if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != text.encode("utf-8"):
             _write_text(dst, text)
@@ -353,10 +421,54 @@ def write_project_files(
     dst = root / "README.md"
     if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != readme.encode("utf-8"):
         _write_text(dst, readme)
+    return issues
 
 
-def discard(stg: Staging) -> Path:
-    """Move staging to ``target/.rpggen_failed/<timestamp>/`` and keep the newest three."""
+# What a failed run leaves out unless the setting "keep_full_failed_runs" is on: the pack art
+# (a copy of every purchased file) and Godot's import cache. Both come back with the next run.
+FAILED_TRIMMED = ("assets/packs", ".godot/imported")
+FAILED_NOTE = "FAILED_RUN.md"
+
+
+def _trim_failed(folder: Path) -> list[str]:
+    """Delete the bulky folders of a failed run; returns the ones that were removed."""
+    removed: list[str] = []
+    for rel in FAILED_TRIMMED:
+        path = folder.joinpath(*rel.split("/"))
+        if path.is_dir():
+            shutil.rmtree(path, ignore_errors=True)
+            removed.append(rel + "/")
+    return removed
+
+
+def _write_failed_note(folder: Path, removed: list[str]) -> None:
+    lines = [
+        "# A failed run",
+        "",
+        "This is what generation had built when it stopped: the logs (`rpggen/logs/`), the results",
+        "(`rpggen/results/`), the reports, `generated/`, `game/` and `project.godot`.",
+        "",
+    ]
+    if removed:
+        lines += ["To save disk space these folders were deleted from this copy:", ""]
+        lines += [f"* `{rel}`" for rel in removed]
+        lines += [
+            "",
+            "The art was never changed: it is still in the asset pack you chose, and the next",
+            "run copies it again. To keep everything of a failed run, turn on **Keep the whole",
+            "folder of a failed run** in Edit > Storage….",
+        ]
+    else:
+        lines += ["Nothing was deleted from this copy (the setting to keep everything is on)."]
+    (folder / FAILED_NOTE).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+
+
+def discard(stg: Staging, keep_everything: bool | None = None) -> Path:
+    """Move staging to ``target/.rpggen_failed/<timestamp>/`` and keep the newest three.
+
+    Unless the setting ``keep_full_failed_runs`` is on (``keep_everything`` overrides it), the
+    pack art and the import cache are deleted from the kept copy and ``FAILED_RUN.md`` says so: a
+    2 GB pack would otherwise leave 6 GB in the output folder, three times over."""
     failed_root = stg.target / FAILED_NAME
     failed_root.mkdir(exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -366,6 +478,9 @@ def discard(stg: Staging) -> Path:
         n += 1
         dest = failed_root / f"{stamp}-{n}"
     shutil.move(str(stg.staging), str(dest))
+    if keep_everything is None:
+        keep_everything = app_settings.get().keep_full_failed_runs
+    _write_failed_note(dest, [] if keep_everything else _trim_failed(dest))
     old = sorted((p for p in failed_root.iterdir() if p.is_dir()), key=lambda p: p.name)
     for p in old[:-KEEP_FAILED]:
         shutil.rmtree(p, ignore_errors=True)

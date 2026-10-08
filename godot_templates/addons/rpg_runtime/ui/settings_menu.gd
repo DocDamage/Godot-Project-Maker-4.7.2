@@ -2,25 +2,25 @@ class_name RpgSettingsMenu
 extends Control
 ## Volume sliders, fullscreen, text speed, UI scale and the Controls remap list.
 
-const SPEEDS := ["slow", "normal", "fast", "instant"]
-const SCALES := [1.0, 1.25, 1.5]
+const SPEEDS: Array[String] = ["slow", "normal", "fast", "instant"]
+const SCALES: Array[float] = [1.0, 1.25, 1.5]
 const SLIDERS := {"MasterSlider": "master", "MusicSlider": "music", "SfxSlider": "sfx", "UiSlider": "ui"}
 
 var _capturing_action := ""
 var _capturing_button: Button = null
 var _capturing_old: InputEvent = null
 
-func _settings() -> Node:
+func _settings() -> RpgSettingsStore:
 	return RpgUtil.settings()
 
 func _ready() -> void:
 	var s := _settings()
-	for slider_name in SLIDERS.keys():
+	for slider_name: String in SLIDERS.keys():
 		var slider := get_node("%" + slider_name) as HSlider
 		slider.min_value = 0.0
 		slider.max_value = 1.0
 		slider.step = 0.05
-		slider.value = float(s.volumes[SLIDERS[slider_name]]) if s != null else 0.8
+		slider.value = RpgUtil.to_float(s.volumes[SLIDERS[slider_name]]) if s != null else 0.8
 		slider.value_changed.connect(_on_volume.bind(SLIDERS[slider_name]))
 	var fullscreen := get_node("%Fullscreen") as CheckButton
 	fullscreen.button_pressed = s != null and s.fullscreen
@@ -40,7 +40,7 @@ func _ready() -> void:
 	var scale := get_node("%UiScale") as OptionButton
 	scale.clear()
 	for sc in SCALES:
-		scale.add_item("%d%%" % int(sc * 100.0))
+		scale.add_item("%d%%" % RpgUtil.to_int(sc * 100.0))
 	scale.select(maxi(0, SCALES.find(s.ui_scale)) if s != null else 0)
 	scale.item_selected.connect(_on_scale)
 	(get_node("%Back") as Button).pressed.connect(close)
@@ -125,9 +125,11 @@ func _input(event: InputEvent) -> void:
 	if _capturing_action == "":
 		return
 	var accept := false
-	if event is InputEventKey and event.pressed and not event.echo:
+	var key := event as InputEventKey
+	var pad := event as InputEventJoypadButton
+	if key != null and key.pressed and not key.echo:
 		accept = true
-	elif event is InputEventJoypadButton and event.pressed:
+	elif pad != null and pad.pressed:
 		accept = true
 	if not accept:
 		return

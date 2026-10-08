@@ -32,6 +32,10 @@ def _normalized(rel: str, data: bytes) -> bytes:
             if "ms" in item:
                 item["ms"] = 0
         return json.dumps(doc, sort_keys=True, indent=1).encode("utf-8")
+    if rel == "rpggen/generation_report.json":
+        doc = json.loads(data)
+        doc["run_id"] = "x"  # a new one for every run, by design (T12.24)
+        return json.dumps(doc, sort_keys=True, indent=1).encode("utf-8")
     if rel == "rpggen/ownership_ledger.json":
         # the ledger hashes the raw bytes of Godot-saved files, which carry random ids
         doc = json.loads(data)

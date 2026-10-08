@@ -14,19 +14,19 @@ const HEAVY_ANIM_SPEED := 0.7
 
 ## Damage of a heavy attack whose light version would deal `base` (always more than `base`).
 static func heavy_damage(base: int) -> int:
-	return maxi(base + 1, int(round(float(base) * HEAVY_DAMAGE_MULT)))
+	return maxi(base + 1, RpgUtil.to_int(round(float(base) * HEAVY_DAMAGE_MULT)))
 
 ## max(1, attack - defense / 2)
 static func base_damage(attack: int, defense: int) -> int:
 	return maxi(1, attack - floori(defense / 2.0))
 
-## {amount, crit}. Always draws exactly one number from `rng` (an RpgRng or RandomNumberGenerator),
+## {amount, crit}. Always draws exactly one number from `rng` (an RpgRng),
 ## so the sequence of a seeded game does not depend on the outcome.
-static func roll_damage(attack: int, defense: int, crit_chance: float, rng: Variant) -> Dictionary:
+static func roll_damage(attack: int, defense: int, crit_chance: float, rng: RpgRng) -> Dictionary:
 	var amount := base_damage(attack, defense)
 	var crit: bool = rng != null and rng.randf() < crit_chance
 	if crit:
-		amount = int(round(float(amount) * CRIT_MULTIPLIER))
+		amount = RpgUtil.to_int(round(float(amount) * CRIT_MULTIPLIER))
 	return {"amount": amount, "crit": crit}
 
 ## Unit vector of a facing name ("up", "down", "left", "right").
@@ -70,8 +70,8 @@ static func active_frames_of(frames: SpriteFrames, anim: String) -> Array[int]:
 	var stored: Variant = frames.get_meta("active_frames_" + anim) if frames.has_meta("active_frames_" + anim) else null
 	var out: Array[int] = []
 	if stored is Array or stored is PackedInt32Array or stored is PackedInt64Array:
-		for v in stored:
-			out.append(int(v))
+		for v: Variant in stored:
+			out.append(RpgUtil.to_int(v))
 	if out.is_empty():
 		out = default_active_frames(frames.get_frame_count(anim))
 	return out

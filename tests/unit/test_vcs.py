@@ -92,3 +92,100 @@ def test_without_git_the_function_returns_false(
 ) -> None:
     monkeypatch.setattr(vcs, "git_available", lambda: False)
     assert vcs.init_and_commit(tmp_path, "m") is False
+
+
+# ------------------------------------------------------------------------ only what rpggen wrote (T12.12)
+
+
+def _repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A repository of the user's, with one commit of their own."""
+    _isolate_git(tmp_path, monkeypatch)
+    config = tmp_path / "empty.gitconfig"
+    config.write_text("[user]\n\tname = Dana\n\temail = dana@example.com\n", encoding="utf-8")
+    project = tmp_path / "game"
+    project.mkdir()
+    (project / "mine.txt").write_text("mine 1\n", encoding="utf-8")
+    (project / "generated.txt").write_text("gen 1\n", encoding="utf-8")
+    assert vcs.commit(project, "the user's first commit").committed
+    return project
+
+
+def test_an_existing_repository_gets_only_the_files_rpggen_wrote(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _repo(tmp_path, monkeypatch)
+    (project / "mine.txt").write_text("mine 2 (not committed yet)\n", encoding="utf-8")  # unstaged
+    (project / "notes.txt").write_text("a new file of the user\n", encoding="utf-8")  # untracked
+    (project / "staged.txt").write_text("staged by the user\n", encoding="utf-8")
+    _git(project, "add", "staged.txt")
+    (project / "generated.txt").write_text("gen 2\n", encoding="utf-8")
+    (project / "rpggen").mkdir()
+    (project / "rpggen" / "report.json").write_text("{}\n", encoding="utf-8")
+    files = ["generated.txt", "rpggen/report.json"]
+    assert vcs.foreign_changes(project, files)  # the user has work of their own in there
+    result = vcs.commit(project, "rpggen: regenerate project", files)
+    assert result.ok and result.committed
+    assert _git(project, "log", "-1", "--format=%s") == "rpggen: regenerate project"
+    assert sorted(_git(project, "show", "--name-only", "--format=", "HEAD").split()) == [
+        "generated.txt",
+        "rpggen/report.json",
+    ]
+    status = _git(project, "status", "--porcelain")
+    assert "mine.txt" in status and "notes.txt" in status and "staged.txt" in status
+    assert "A  staged.txt" in status  # still staged, never committed by rpggen
+
+
+def test_a_deleted_generated_file_is_committed_as_a_deletion(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _repo(tmp_path, monkeypatch)
+    (project / "generated.txt").unlink()
+    result = vcs.commit(
+        project, "rpggen: regenerate project", ["generated.txt", "never_existed.txt"]
+    )
+    assert result.ok and result.committed
+    assert _git(project, "show", "--name-status", "--format=", "HEAD") == "D\tgenerated.txt"
+
+
+def test_nothing_of_ours_changed_means_no_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _repo(tmp_path, monkeypatch)
+    (project / "mine.txt").write_text("mine 2\n", encoding="utf-8")
+    before = _git(project, "rev-list", "--count", "HEAD")
+    result = vcs.commit(project, "rpggen: regenerate project", ["generated.txt"])
+    assert result.ok and not result.committed
+    assert _git(project, "rev-list", "--count", "HEAD") == before
+
+
+def test_a_repository_rpggen_creates_gets_everything(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _isolate_git(tmp_path, monkeypatch)
+    project = tmp_path / "fresh"
+    project.mkdir()
+    (project / "a.txt").write_text("a\n", encoding="utf-8")
+    (project / "b.txt").write_text("b\n", encoding="utf-8")
+    result = vcs.commit(project, "rpggen: generate project", ["a.txt"])  # files are ignored here
+    assert result.committed
+    assert sorted(_git(project, "show", "--name-only", "--format=", "HEAD").split()) == [
+        "a.txt",
+        "b.txt",
+    ]
+
+
+def test_a_failing_hook_is_reported_not_swallowed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _repo(tmp_path, monkeypatch)
+    hook = project / ".git" / "hooks" / "pre-commit"
+    hook.write_text("#!/bin/sh\necho 'lint says no' >&2\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    (project / "generated.txt").write_text("gen 2\n", encoding="utf-8")
+    result = vcs.commit(project, "rpggen: regenerate project", ["generated.txt"])
+    assert not result.ok and not result.committed
+    assert "lint says no" in result.reason
+
+
+def test_without_a_repository_there_are_no_foreign_changes(tmp_path: Path) -> None:
+    assert vcs.foreign_changes(tmp_path, ["a.txt"]) is False

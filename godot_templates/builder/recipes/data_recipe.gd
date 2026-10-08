@@ -7,6 +7,8 @@ const RECIPE_VERSION := 1
 const Paths := preload("../lib/paths.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
 const TextureUtil := preload("../lib/texture_util.gd")
+const JsonUtil := preload("../lib/json_util.gd")
+const BuildContext := preload("../lib/build_context.gd")
 
 const HERO_PATH := "res://game/data/actors/hero.tres"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
@@ -27,33 +29,33 @@ const SEED_STRINGS := {
 	"ITEM_POTION_DESC": "Restores 10 HP.",
 }
 
-func outputs(ctx) -> PackedStringArray:
+func outputs(ctx: BuildContext) -> PackedStringArray:
 	# Without the demo there is no NPC to greet the player.
 	if ctx.demo_removed:
 		return SeedUtil.missing([HERO_PATH, NEW_GAME_PATH, POTION_PATH])
 	return SeedUtil.missing([HERO_PATH, NEW_GAME_PATH, POTION_PATH, GREETING_PATH])
 
-func input_hash(ctx) -> String:
+func input_hash(ctx: BuildContext) -> String:
 	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed})
 
-func _player_id(ctx) -> String:
+func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
-	return String(players[0]["id"]) if not players.is_empty() else ""
+	return JsonUtil.to_str(players[0]["id"]) if not players.is_empty() else ""
 
 ## The ITEM asset that serves as the potion icon: one named potion, else the first ITEM sprite.
-func _icon_asset(ctx) -> Dictionary:
+func _icon_asset(ctx: BuildContext) -> Dictionary:
 	var first: Dictionary = {}
 	for a in ctx.catalog.assets_by_role("ITEM"):
 		var eff: Dictionary = ctx.catalog.effective(a)
 		if a.get("status", "") in ["UNUSED", "MISSING"] or not ["sprite", "object"].has(eff.get("usage", "")):
 			continue
-		if String(a["id"]).contains("potion"):
+		if JsonUtil.to_str(a["id"]).contains("potion"):
 			return a
 		if first.is_empty():
 			first = a
 	return first
 
-func build(ctx) -> Array:
+func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx), HERO_PATH, issues)
@@ -65,12 +67,12 @@ func build(ctx) -> Array:
 		_save(ctx, _greeting(), GREETING_PATH, issues)
 	return issues
 
-func _save(ctx, res: Resource, path: String, issues: Array) -> void:
+func _save(ctx: BuildContext, res: Resource, path: String, issues: Array) -> void:
 	var err := SeedUtil.save(res, path)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
 
-func _hero(ctx) -> Resource:
+func _hero(ctx: BuildContext) -> Resource:
 	var def := SeedUtil.make(ACTOR_DEF)
 	def.set("id", &"hero")
 	def.set("display_name", "Hero")
@@ -91,7 +93,7 @@ func _new_game(demo_removed: bool = false) -> Resource:
 	ng.set("items", SeedUtil.dict_array([] if demo_removed else [{"item_id": "potion", "qty": 2}]))
 	return ng
 
-func _potion(ctx) -> Resource:
+func _potion(ctx: BuildContext) -> Resource:
 	var item := SeedUtil.make(ITEM_DEF)
 	item.set("id", &"potion")
 	item.set("display_name", "ITEM_POTION_NAME")
@@ -104,7 +106,7 @@ func _potion(ctx) -> Resource:
 	if not icon.is_empty():
 		var eff: Dictionary = ctx.catalog.effective(icon)
 		var size: Array = eff.get("frame", eff.get("size", [16, 16]))
-		item.set("icon", TextureUtil.region_texture("res://" + String(icon["path"]), Rect2i(0, 0, int(size[0]), int(size[1]))))
+		item.set("icon", TextureUtil.region_texture("res://" + JsonUtil.to_str(icon["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))))
 	return item
 
 func _line(line_id: String, speaker: String, text: String, next: String, condition: String, events: Array, choices: Array) -> Resource:
@@ -116,13 +118,14 @@ func _line(line_id: String, speaker: String, text: String, next: String, conditi
 	line.set("condition", condition)
 	line.set("events", PackedStringArray(events))
 	var typed: Array = []
-	for c in choices:
+	for c: Array in choices:
 		var choice := SeedUtil.make(DLG_CHOICE)
 		choice.set("text", c[0])
-		choice.set("next", StringName(c[1]))
+		choice.set("next", JsonUtil.to_name(c[1]))
 		typed.append(choice)
 	if not typed.is_empty():
-		line.get("choices").assign(typed)
+		var line_choices: Array = line.get("choices")
+		line_choices.assign(typed)
 	return line
 
 ## A greeting, a choice ("Any tips?" / "Bye") and a branch that gives a potion the first time only.
@@ -135,5 +138,6 @@ func _greeting() -> Resource:
 		_line("tips_again", "Villager", "I have already told you everything I know.", "bye", "flag:starter_npc.talked", [], []),
 		_line("bye", "Villager", "Safe travels!", "", "", [], []),
 	]
-	res.get("lines").assign(lines)
+	var res_lines: Array = res.get("lines")
+	res_lines.assign(lines)
 	return res

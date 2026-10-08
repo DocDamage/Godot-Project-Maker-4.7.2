@@ -413,15 +413,51 @@ def _tile_images(path: Path, grid: dict[str, Any], count: int) -> list[Image.Ima
     return out
 
 
+def _overworld(catalog: Any) -> Any:
+    found = next((t for t in catalog.tilesets if t.name == "overworld"), None)
+    return found if found is not None else (catalog.tilesets[0] if catalog.tilesets else None)
+
+
+def building_geometry(
+    region: tuple[int, int], door: list[int] | None, tile: int
+) -> tuple[tuple[int, int], tuple[int, int]]:
+    """``(size, door)`` in tiles of a building cut from a sheet: ``region`` is its width and
+    height in pixels, ``door`` the pixel of its doorway (the middle of the bottom row when none
+    is set). The door lies one row below the base."""
+    width, height = region
+    size = (-(-width // tile), -(-height // tile))
+    x, y = door or [width // 2, height - 1]
+    return size, (int(x) // tile, int(y) // tile + 1)
+
+
+def starter_buildings(catalog: Any, building_id: str = "") -> list[Any]:
+    """The sheet objects that can be the starter building, the chosen one first."""
+    houses = [o for o in catalog.objects if o.status != "UNUSED" and o.role == "BUILDING"]
+    if building_id:
+        houses = [o for o in houses if o.id == building_id] or houses
+    return houses
+
+
+def building_info_for(catalog: Any, building_id: str = "") -> dict[str, Any]:
+    """``building_info`` from the catalog alone: no picture is opened, so the plan of a project
+    that has not been generated yet (``rpggen generate --dry-run``) can be made."""
+    houses = starter_buildings(catalog, building_id)
+    if not houses:
+        return {}
+    overworld = _overworld(catalog)
+    tile = int(overworld.tile_size[0]) if overworld is not None else Art.tile_px
+    _x, _y, w, h = houses[0].region
+    size, door = building_geometry((w, h), houses[0].door, tile)
+    return {"size": list(size), "door": list(door)}
+
+
 def load_art(catalog: Any, resolver: Any, ground_id: str = "", building_id: str = "") -> Art:
     """Pictures for the preview from a catalog: the ground set, wall, road, the starter building
     and the decorations. ``resolver(asset)`` gives the file of an asset."""
     from rpggen.core import catalog as catalog_mod  # imported late: the planner needs none of it
 
     art = Art()
-    overworld = next((t for t in catalog.tilesets if t.name == "overworld"), None)
-    if overworld is None and catalog.tilesets:
-        overworld = catalog.tilesets[0]
+    overworld = _overworld(catalog)
     if overworld is not None:
         art.tile_px = int(overworld.tile_size[0])
     sources = sorted(overworld.sources, key=lambda s: s["source_id"]) if overworld else []
@@ -462,17 +498,14 @@ def load_art(catalog: Any, resolver: Any, ground_id: str = "", building_id: str 
         return picture, (int(obj.origin[0]), int(obj.origin[1]))
 
     objects = [o for o in catalog.objects if o.status != "UNUSED"]
-    houses = [o for o in objects if o.role == "BUILDING"]
-    if building_id:
-        houses = [o for o in houses if o.id == building_id] or houses
+    houses = starter_buildings(catalog, building_id)
     if houses:
         found = object_image(houses[0])
         if found is not None:
             art.building = found[0]
-            tile = art.tile_px
-            art.building_size = (-(-found[0].width // tile), -(-found[0].height // tile))
-            door = houses[0].door or [found[0].width // 2, found[0].height - 1]
-            art.building_door = (int(door[0]) // tile, int(door[1]) // tile + 1)
+            art.building_size, art.building_door = building_geometry(
+                found[0].size, houses[0].door, art.tile_px
+            )
     for obj in objects:
         if obj.role == "DECORATION":
             found = object_image(obj)

@@ -8,14 +8,14 @@ func _ready() -> void:
 	layer = 20
 	var bus := RpgUtil.events()
 	if bus != null:
-		for signal_name in [&"player_damaged", &"player_healed", &"gold_changed", &"experience_gained",
+		for signal_name: StringName in [&"player_damaged", &"player_healed", &"gold_changed", &"experience_gained",
 				&"level_up", &"item_added", &"item_removed", &"map_entered", &"game_loaded"]:
 			if bus.has_signal(signal_name):
 				bus.connect(signal_name, _on_event)
 	var router := RpgUtil.router()
 	if router != null:
 		router.map_changed.connect(_on_event)
-		var mode: Variant = router.get("combat")
+		var mode: RpgCombatMode = router.combat
 		if mode != null and mode.has_signal("quick_item_changed"):
 			mode.connect("quick_item_changed", _on_event)
 	refresh()
@@ -26,8 +26,8 @@ func _on_event(_a: Variant = null, _b: Variant = null) -> void:
 
 func _mode() -> Node:
 	var router := RpgUtil.router()
-	var mode: Variant = router.get("combat") if router != null else null
-	return mode as Node if mode != null and mode.has_method("quick_item") else null
+	var mode: RpgCombatMode = router.combat if router != null else null
+	return mode if mode != null and mode.has_method("quick_item") else null
 
 func refresh() -> void:
 	var state := RpgUtil.state()
@@ -52,10 +52,10 @@ func refresh() -> void:
 		level.text = "%s %d" % [tr("UI_LEVEL"), stats.level]
 	var gold := get_node_or_null("%Gold") as Label
 	if gold != null:
-		gold.text = "%s: %d" % [tr("UI_GOLD"), int(state.gold)]
+		gold.text = "%s: %d" % [tr("UI_GOLD"), RpgUtil.to_int(state.gold)]
 	_refresh_quick_item(state)
 
-func _refresh_quick_item(state: Node) -> void:
+func _refresh_quick_item(state: RpgGameState) -> void:
 	var icon := get_node_or_null("%QuickIcon") as TextureRect
 	var qty := get_node_or_null("%QuickQty") as Label
 	var mode := _mode()
@@ -71,7 +71,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var router := RpgUtil.router()
 	var player := get_tree().get_first_node_in_group("player")
-	if router == null or router.is_busy() or player == null or not bool(player.get("input_enabled")):
+	if router == null or router.is_busy() or player == null or not RpgUtil.to_bool(player.get("input_enabled")):
 		return
 	var mode := _mode()
 	if mode != null:

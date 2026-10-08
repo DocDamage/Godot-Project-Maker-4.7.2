@@ -27,12 +27,13 @@ func _ready() -> void:
 func _run(steps_path: String) -> void:
 	var steps: Array = _load_steps(steps_path)
 	var index := 0
-	for step in steps:
+	for step: Dictionary in steps:
 		index += 1
 		var started := Time.get_ticks_msec()
 		var state := {"done": false, "result": ""}
-		_exec(step["fn"], state)
-		var timeout_ms := int(float(step.get("timeout_s", 10.0)) * 1000.0)
+		var step_fn: Callable = step["fn"]
+		_exec(step_fn, state)
+		var timeout_ms := int(RpgUtil.to_float(step.get("timeout_s", 10.0)) * 1000.0)
 		while not state["done"] and Time.get_ticks_msec() - started < timeout_ms:
 			await get_tree().process_frame
 		var elapsed := Time.get_ticks_msec() - started
@@ -40,7 +41,7 @@ func _run(steps_path: String) -> void:
 			_items.append({"step": index, "name": step["name"], "ok": false, "ms": elapsed, "detail": "timed out"})
 			_issues.append(_issue("SMOKE-002", {"step": index}))
 			break
-		var detail := String(state["result"])
+		var detail := RpgUtil.to_str(state["result"])
 		_items.append({"step": index, "name": step["name"], "ok": detail == "", "ms": elapsed, "detail": detail})
 		if detail != "":
 			_issues.append(_issue("SMOKE-001", {"step": index, "name": step["name"], "detail": detail}))
@@ -66,9 +67,11 @@ func _load_steps(steps_path: String) -> Array:
 		if script == null or not (script is GDScript):
 			_issues.append(_issue("SMOKE-001", {"step": 0, "name": "load_steps", "detail": "steps script failed to load: %s" % path}))
 			return []
-		var provider: RefCounted = script.new()
+		var steps_script: GDScript = script
+		var provider: RefCounted = steps_script.new()
 		_providers.append(provider)
-		all.append_array(provider.steps())
+		var provided: Array = provider.call("steps")
+		all.append_array(provided)
 	return all
 
 func _issue(code: String, detail: Dictionary) -> Dictionary:
@@ -76,18 +79,19 @@ func _issue(code: String, detail: Dictionary) -> Dictionary:
 	var message := code
 	var fix := ""
 	if ResourceLoader.exists(ERROR_CODES_PATH):
-		var codes: Dictionary = load(ERROR_CODES_PATH).CODES
+		var codes_script: GDScript = load(ERROR_CODES_PATH)
+		var codes: Dictionary = codes_script.get_script_constant_map()["CODES"]
 		if codes.has(code):
 			severity = codes[code]["severity"]
 			message = codes[code]["message"]
 			fix = codes[code]["fix"]
-			for key in detail.keys():
+			for key: Variant in detail.keys():
 				message = message.replace("{%s}" % str(key), str(detail[key]))
 	return {"code": code, "severity": severity, "message": message, "fix": fix}
 
 func _finish() -> void:
 	var ok := true
-	for issue in _issues:
+	for issue: Dictionary in _issues:
 		if issue["severity"] == "error":
 			ok = false
 	var data := {

@@ -1,7 +1,7 @@
 class_name RpgBattleMath
 extends RefCounted
-## The battle formulas as pure static functions. `rng` is anything with randf() and
-## randf_range() (an RpgRng or a RandomNumberGenerator), so tests can feed fixed numbers.
+## The battle formulas as pure static functions. `rng` is an RpgRng (tests hand over a subclass
+## that returns fixed numbers).
 
 const SPREAD_MIN := 0.9
 const SPREAD_MAX := 1.1
@@ -17,7 +17,7 @@ static func base_damage(attack: int, defense: int) -> int:
 	return maxi(1, attack * 2 - defense)
 
 ## {amount: int, crit: bool}. Draws two numbers in a fixed order: the spread, then the crit roll.
-static func roll_damage(attack: int, defense: int, defending: bool, rng: Variant) -> Dictionary:
+static func roll_damage(attack: int, defense: int, defending: bool, rng: RpgRng) -> Dictionary:
 	var base := base_damage(attack, defense)
 	var spread: float = rng.randf_range(SPREAD_MIN, SPREAD_MAX)
 	var crit: bool = rng.randf() < CRIT_CHANCE
@@ -35,6 +35,6 @@ static func _average(values: Array) -> float:
 	if values.is_empty():
 		return 0.0
 	var total := 0.0
-	for v in values:
-		total += float(v)
+	for v: Variant in values:
+		total += RpgUtil.to_float(v)
 	return total / values.size()

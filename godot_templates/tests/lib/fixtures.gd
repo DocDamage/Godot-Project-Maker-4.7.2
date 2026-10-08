@@ -45,6 +45,19 @@ static func uninstall_state() -> void:
 	uninstall("GameState")
 	uninstall("Events")
 
+## Registers an English Translation of every RpgStrings key (what a running game has), so that
+## tr("UI_...") gives the text. Pass the result to uninstall_english().
+static func install_english() -> Translation:
+	var english := Translation.new()
+	english.locale = "en"
+	for key in RpgStrings.KEYS.keys():
+		english.add_message(StringName(key), RpgStrings.KEYS[key])
+	TranslationServer.add_translation(english)
+	return english
+
+static func uninstall_english(english: Translation) -> void:
+	TranslationServer.remove_translation(english)
+
 static func item(id: StringName, max_stack: int = 99, effect: StringName = &"", amount: int = 0) -> RpgItemDefinition:
 	var def := RpgItemDefinition.new()
 	def.id = id

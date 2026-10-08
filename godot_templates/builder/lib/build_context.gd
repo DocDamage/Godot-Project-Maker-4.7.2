@@ -9,8 +9,8 @@ const Log := preload("log.gd")
 
 var builder_dir: String = ""
 var config: Dictionary = {}
-var catalog: RefCounted = null  # CatalogReader
-var results: RefCounted = null  # Results
+var catalog: CatalogReader = null
+var results: Results = null
 var build_state: Dictionary = {"build_state_version": 1, "outputs": {}}
 ## True when the user removed the demo content (T8.08): the ledger's `demo_removed` flag. The demo
 ## recipes then leave the demo out of everything they create.
@@ -20,6 +20,14 @@ func _init(p_builder_dir: String, phase: String = "build") -> void:
 	builder_dir = p_builder_dir
 	results = Results.new(phase)
 	catalog = CatalogReader.new({})
+
+## One section of the config (an object such as `features` or `sounds`), or {}.
+func section(key: String) -> Dictionary:
+	var value: Variant = config.get(key, {})
+	if value is Dictionary:
+		var out: Dictionary = value
+		return out
+	return {}
 
 ## Reads CONFIG and CATALOG. On failure adds CAT-001 and returns false.
 func load_inputs() -> bool:
@@ -32,17 +40,24 @@ func load_inputs() -> bool:
 		results.add_issue("CAT-001", {"file": Paths.CATALOG, "reason": "missing or not a JSON object"}, Paths.CATALOG)
 		return false
 	config = cfg
-	catalog = CatalogReader.new(cat)
+	var catalog_data: Dictionary = cat
+	catalog = CatalogReader.new(catalog_data)
 	var ledger: Variant = JsonUtil.read(Paths.LEDGER) if FileAccess.file_exists(Paths.LEDGER) else null
-	demo_removed = ledger is Dictionary and ledger.get("demo_removed", false) == true
+	demo_removed = false
+	if ledger is Dictionary:
+		var ledger_data: Dictionary = ledger
+		demo_removed = ledger_data.get("demo_removed", false) == true
 	return true
 
 func load_build_state() -> void:
 	var state: Variant = null
 	if FileAccess.file_exists(Paths.BUILD_STATE):
 		state = JsonUtil.read(Paths.BUILD_STATE)
-	if state is Dictionary and state.get("outputs") is Dictionary:
-		build_state = state
+	var loaded: Dictionary = {}
+	if state is Dictionary:
+		loaded = state
+	if loaded.get("outputs") is Dictionary:
+		build_state = loaded
 		# JSON parsing returns numbers as floats; keep the version an int so a rebuild without
 		# changes writes the same bytes.
 		build_state["build_state_version"] = 1
@@ -73,4 +88,4 @@ static func stable_hash(v: Variant) -> String:
 
 ## Vector2i from a [x, y] array parsed from JSON (numbers arrive as floats).
 static func vec2i(a: Variant) -> Vector2i:
-	return Vector2i(int(a[0]), int(a[1]))
+	return Vector2i(JsonUtil.to_int(a[0]), JsonUtil.to_int(a[1]))

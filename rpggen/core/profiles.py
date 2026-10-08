@@ -24,7 +24,7 @@ _DROPPED_FACETS = {"roles_alt"}
 
 
 def profiles_dir() -> Path:
-    return paths.local_cache_dir() / "profiles"
+    return paths.data_dir() / "profiles"
 
 
 def _pack_relative(asset: catalog_mod.Asset, pack_id: str) -> str:

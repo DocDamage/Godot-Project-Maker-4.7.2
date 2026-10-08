@@ -136,3 +136,142 @@ def test_nothing_to_review(tmp_path: Path) -> None:
         asset.status = "CONFIRMED"
     md = report.build_markdown(_cfg(), cat, [], True)
     assert "Nothing needs review." in md
+
+
+# ------------------------------------------------------------------------ skipped checks (T12.07)
+
+
+def test_the_report_names_the_checks_that_did_not_run() -> None:
+    text = report.build_markdown(
+        _cfg(), _catalog(), [], True, skipped={"export": "ENV-010", "smoke": "VAL-021"}
+    )
+    assert "## Checks not run" in text
+    assert "**export** (ENV-010): Export templates for 4.7.2 not installed" in text
+    assert "**smoke** (VAL-021): The smoke test is turned off in the config" in text
+    assert "## Checks not run" not in report.build_markdown(_cfg(), _catalog(), [], True)
+
+
+def _state(tmp_path: Path, **validation: bool):
+    from types import SimpleNamespace
+
+    from rpggen.core import orchestrator
+
+    skipped: list[tuple[str, str]] = []
+    cb = orchestrator.Callbacks(on_skip=lambda phase, code: skipped.append((phase, code)))
+    state = orchestrator._State(None, tmp_path / "out", Path("godot"), cb)
+    state.cfg = _cfg()
+    state.cfg.validation.update(validation)
+    state.staging = SimpleNamespace(staging=tmp_path / "stg")  # type: ignore[assignment]
+    state.log_dir = tmp_path / "logs"
+    return state, skipped
+
+
+def test_an_export_without_templates_is_a_skipped_check(tmp_path: Path, monkeypatch) -> None:
+    from rpggen.core import export_check, orchestrator
+
+    monkeypatch.setenv("RPGGEN_EXPORT_TEMPLATES_DIR", str(tmp_path / "none"))
+    monkeypatch.setattr(export_check.godot, "detect_version", lambda exe: (4, 7, 2, "stable"))
+    state, seen = _state(tmp_path)
+    orchestrator.phase_export(state)
+    assert state.skipped == {"export": "ENV-010"} and seen == [("export", "ENV-010")]
+    assert [i.code for i in state.issues] == ["ENV-010"]
+    assert not state.issues.has_errors()
+
+
+def test_turned_off_checks_are_skipped_with_their_own_note(tmp_path: Path) -> None:
+    from rpggen.core import orchestrator
+
+    state, seen = _state(tmp_path, smoke_test=False, export_check=False)
+    orchestrator._run_smoke(state)
+    orchestrator.phase_export(state)
+    assert state.skipped == {"smoke": "VAL-021", "export": "VAL-022"}
+    assert seen == [("smoke", "VAL-021"), ("export", "VAL-022")]
+    assert sorted(i.code for i in state.issues) == ["VAL-021", "VAL-022"]
+    assert all(i.severity is Severity.INFO for i in state.issues)
+
+
+def test_the_results_and_the_report_json_carry_the_skips(tmp_path: Path) -> None:
+    from rpggen.core import orchestrator
+
+    state, _seen = _state(tmp_path, smoke_test=False)
+    orchestrator._run_smoke(state)
+    data = orchestrator._report_data(state, True)
+    assert data["skipped"] == {"smoke": "VAL-021"}
+    state.skipped.clear()
+    assert "skipped" not in orchestrator._report_data(state, True)  # nothing to report: no key
+
+
+# ------------------------------------------------------------------------ git outcomes (T12.12)
+
+
+def _git_state(tmp_path: Path, message: str | None):
+    from types import SimpleNamespace
+
+    from rpggen.core import orchestrator, promote
+
+    target = tmp_path / "out"
+    (target / "rpggen").mkdir(parents=True)
+    state = orchestrator._State(None, target, Path("godot"), orchestrator.Callbacks())
+    state.cfg = _cfg()
+    state.staging = SimpleNamespace(staging=tmp_path / "stg", regenerate=True)  # type: ignore[assignment]
+    state.promotion = promote.PromotionResult(
+        promote.PromotionPlan(write=["a.txt"]), None, [], None
+    )  # type: ignore[arg-type]
+    state.git_message = message
+    return state
+
+
+def test_a_failed_commit_is_a_warning_on_the_result_and_in_the_report(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from rpggen.core import orchestrator, vcs
+
+    state = _git_state(tmp_path, "rpggen: regenerate project")
+    monkeypatch.setattr(vcs, "is_repository", lambda target: True)
+    monkeypatch.setattr(vcs, "foreign_changes", lambda target, files: False)
+    monkeypatch.setattr(
+        vcs,
+        "commit",
+        lambda target, message, files=None: vcs.CommitResult(False, reason="hook said no"),
+    )
+    orchestrator.phase_report(state)
+    issues = {i.code: i for i in state.issues}
+    assert issues["REGEN-007"].severity is Severity.WARNING
+    assert "hook said no" in issues["REGEN-007"].message
+    text = (state.target / "GENERATION_REPORT.md").read_text(encoding="utf-8")
+    assert "REGEN-007" in text  # the report was written again with the failure in it
+
+
+def test_the_users_own_changes_are_named_in_a_note_and_only_our_files_are_committed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from rpggen.core import orchestrator, vcs
+
+    state = _git_state(tmp_path, "rpggen: regenerate project")
+    seen: dict = {}
+    monkeypatch.setattr(vcs, "is_repository", lambda target: True)
+    monkeypatch.setattr(vcs, "foreign_changes", lambda target, files: True)
+
+    def commit(target, message, files=None):
+        seen["files"] = files
+        return vcs.CommitResult(True, committed=True)
+
+    monkeypatch.setattr(vcs, "commit", commit)
+    orchestrator.phase_report(state)
+    assert [i.code for i in state.issues] == ["REGEN-008"]
+    assert "a.txt" in seen["files"] and "rpggen/ownership_ledger.json" in seen["files"]
+    assert (
+        "GENERATION_REPORT.md" in seen["files"] and "rpggen/generation_report.json" in seen["files"]
+    )
+
+
+def test_without_a_commit_message_git_is_not_touched(tmp_path: Path, monkeypatch) -> None:
+    from rpggen.core import orchestrator, vcs
+
+    state = _git_state(tmp_path, None)
+    monkeypatch.setattr(vcs, "commit", lambda *a, **k: (_ for _ in ()).throw(AssertionError()))
+    monkeypatch.setattr(
+        vcs, "foreign_changes", lambda *a, **k: (_ for _ in ()).throw(AssertionError())
+    )
+    orchestrator.phase_report(state)
+    assert not [i for i in state.issues if i.code.startswith("REGEN-00")]

@@ -30,6 +30,8 @@ from rpggen.gui import workers
 class WelcomePage(QWidget):
     """Emits what the user chose; the window does the navigation."""
 
+    AVAILABLE_TIMEOUT_S = 2.0  # how long one folder may take to answer
+
     trySampleRequested = Signal()
     ownPackRequested = Signal()
     openProjectRequested = Signal()  # ask for a folder
@@ -40,6 +42,9 @@ class WelcomePage(QWidget):
         super().__init__(parent)
         self.setObjectName("welcomePage")
         self._godot_generation = 0
+        self._available_generation = 0
+        self._available_worker: workers.Worker | None = None
+        self.unavailable: set[str] = set()  # recent projects whose folder cannot be reached
         self._worker: workers.Worker | None = None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 24, 32, 16)
@@ -87,6 +92,24 @@ class WelcomePage(QWidget):
         self.recent_list.setToolTip(self.tr("Double-click or press Enter to open a project"))
         self.recent_list.itemActivated.connect(self._on_recent_activated)
         layout.addWidget(self.recent_list, 1)
+        recent_buttons = QHBoxLayout()
+        self.locate_button = QPushButton(self.tr("Locate…"))
+        self.locate_button.setObjectName("recentLocate")
+        self.locate_button.setToolTip(
+            self.tr("Point a project that moved (or whose drive has another letter) at its folder")
+        )
+        self.remove_button = QPushButton(self.tr("Remove"))
+        self.remove_button.setObjectName("recentRemove")
+        self.remove_button.setToolTip(
+            self.tr("Take the project off this list (nothing is deleted)")
+        )
+        recent_buttons.addWidget(self.locate_button)
+        recent_buttons.addWidget(self.remove_button)
+        recent_buttons.addStretch(1)
+        layout.addLayout(recent_buttons)
+        self.locate_button.clicked.connect(self.locate_selected)
+        self.remove_button.clicked.connect(self.remove_selected)
+        self.recent_list.currentItemChanged.connect(lambda *_: self._sync_recent_buttons())
         layout.addStretch(1)
 
         status = QHBoxLayout()
@@ -137,8 +160,10 @@ class WelcomePage(QWidget):
         self.check_godot()
 
     def _fill_recent(self) -> None:
+        """List every recent project at once (no folder is touched here); whether each one can be
+        reached is found out in a worker and shown when it is known."""
         self.recent_list.clear()
-        recent = app_settings.load().recent_projects  # folders that vanished are dropped
+        recent = app_settings.get().recent_projects
         for project in recent:
             when = ""
             with contextlib.suppress(ValueError):
@@ -152,6 +177,102 @@ class WelcomePage(QWidget):
             self.recent_list.addItem(item)
         self.recent_label.setVisible(bool(recent))
         self.recent_list.setVisible(bool(recent))
+        self.locate_button.setVisible(bool(recent))
+        self.remove_button.setVisible(bool(recent))
+        self._sync_recent_buttons()
+        if recent:
+            self._check_available([p.target for p in recent])
+
+    def _check_available(self, targets: list[str]) -> None:
+        self._available_generation += 1
+        generation = self._available_generation
+
+        def job(*, callbacks) -> dict[str, bool]:  # noqa: ANN001
+            return app_settings.available(targets, timeout_s=self.AVAILABLE_TIMEOUT_S)
+
+        worker = workers.Worker(job)
+        worker.signals.finished.connect(
+            lambda result: (
+                self.show_available(result) if generation == self._available_generation else None
+            )
+        )
+        self._available_worker = worker  # keep it alive until its signal is delivered
+        worker.start()
+
+    def show_available(self, result: dict[str, bool]) -> None:
+        """Grey out the projects whose folder cannot be reached (they stay in the list)."""
+        try:
+            self.recent_list.objectName()
+        except RuntimeError:
+            return  # the window was closed while the worker ran
+        self.unavailable = {target for target, ok in result.items() if not ok}
+        for i in range(self.recent_list.count()):
+            item = self.recent_list.item(i)
+            target = item.data(Qt.ItemDataRole.UserRole)
+            missing = target in self.unavailable
+            item.setData(Qt.ItemDataRole.UserRole + 1, missing)
+            item.setForeground(
+                self.palette().color(
+                    self.palette().ColorGroup.Disabled, self.palette().ColorRole.Text
+                )
+                if missing
+                else self.palette().color(self.palette().ColorRole.Text)
+            )
+            item.setToolTip(
+                self.tr(
+                    "This folder cannot be reached now (an unplugged drive or share?). "
+                    "Plug it in, or use Locate…"
+                )
+                if missing
+                else ""
+            )
+        self._sync_recent_buttons()
+
+    def _sync_recent_buttons(self) -> None:
+        item = self.recent_list.currentItem()
+        selected = item is not None
+        missing = selected and bool(item.data(Qt.ItemDataRole.UserRole + 1))
+        self.remove_button.setEnabled(selected)
+        self.locate_button.setEnabled(missing)
+
+    def ask_folder(self, start: str) -> str:  # overridden by tests
+        from PySide6.QtWidgets import QFileDialog
+
+        return QFileDialog.getExistingDirectory(self, self.tr("Where is the project now?"), start)
+
+    def locate_selected(self) -> bool:
+        """Point the selected (unreachable) project at the folder where it is now."""
+        item = self.recent_list.currentItem()
+        if item is None:
+            return False
+        old = item.data(Qt.ItemDataRole.UserRole)
+        new = self.ask_folder(str(Path(old).parent))
+        if not new or str(Path(new)) == str(Path(old)):
+            return False
+
+        def move(settings: app_settings.AppSettings) -> None:
+            for project in settings.recent_projects:
+                if project.target == old:
+                    project.target = str(Path(new))
+                    project.last_opened = datetime.now().isoformat(timespec="seconds")
+
+        app_settings.store().update(move)
+        self._fill_recent()
+        return True
+
+    def remove_selected(self) -> bool:
+        """Take the selected project off the list (the folder is not touched)."""
+        item = self.recent_list.currentItem()
+        if item is None:
+            return False
+        old = item.data(Qt.ItemDataRole.UserRole)
+
+        def drop(settings: app_settings.AppSettings) -> None:
+            settings.recent_projects = [p for p in settings.recent_projects if p.target != old]
+
+        app_settings.store().update(drop)
+        self._fill_recent()
+        return True
 
     def recent_targets(self) -> list[str]:
         return [
@@ -160,6 +281,8 @@ class WelcomePage(QWidget):
         ]
 
     def _on_recent_activated(self, item: QListWidgetItem) -> None:
+        if item.data(Qt.ItemDataRole.UserRole + 1):  # known to be unreachable: Locate… instead
+            return
         self.recentChosen.emit(item.data(Qt.ItemDataRole.UserRole))
 
     def check_godot(self) -> None:

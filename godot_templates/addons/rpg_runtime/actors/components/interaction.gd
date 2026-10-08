@@ -59,9 +59,9 @@ func prompt_text() -> String:
 
 ## The first event of the wanted device as text; "?" when `interact` has none. `settings` is the
 ## RpgSettings node (or null).
-static func key_text(events: Array, gamepad: bool, settings: Variant = null) -> String:
+static func key_text(events: Array, gamepad: bool, settings: RpgSettingsStore = null) -> String:
 	var first: InputEvent = null
-	for ev in events:
+	for ev: InputEvent in events:
 		var wanted: bool = ev is InputEventJoypadButton if gamepad else ev is InputEventKey
 		if wanted:
 			first = ev
@@ -70,8 +70,8 @@ static func key_text(events: Array, gamepad: bool, settings: Variant = null) -> 
 		first = events[0]
 	if first == null:
 		return "?"
-	if settings != null and settings.has_method("event_text"):
-		return str(settings.call("event_text", first))
+	if settings != null:
+		return RpgSettingsStore.event_text(first)
 	if first is InputEventKey:
 		var key_ev: InputEventKey = first
 		if key_ev.keycode == KEY_NONE:
@@ -109,7 +109,7 @@ func find_target() -> Node:
 	var best: Node = null
 	var best_dist := INF
 	var feet := actor.global_position if actor != null else global_position
-	var candidates: Array = []
+	var candidates: Array[Node] = []
 	candidates.append_array(get_overlapping_bodies())
 	candidates.append_array(get_overlapping_areas())
 	for c in candidates:

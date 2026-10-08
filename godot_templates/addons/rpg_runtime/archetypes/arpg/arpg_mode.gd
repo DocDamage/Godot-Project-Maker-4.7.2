@@ -91,4 +91,5 @@ func _on_set_quick_pressed(menu: Control) -> void:
 	if id == &"" or state == null or not set_quick_item(id):
 		RpgUtil.notify(RpgArpgText.t("ARPG_QUICK_NONE"))
 		return
-	RpgUtil.notify(RpgArpgText.t("ARPG_QUICK_SET", [RpgArpgText.item_name(state.items.get(id), id)]))
+	var def: RpgItemDefinition = state.items.get(id)
+	RpgUtil.notify(RpgArpgText.t("ARPG_QUICK_SET", [RpgArpgText.item_name(def, id)]))

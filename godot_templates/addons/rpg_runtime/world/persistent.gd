@@ -22,7 +22,7 @@ func _ready() -> void:
 	if state == null or entity == null or id == "":
 		return
 	for key in keys:
-		if not bool(state.get_flag(id, key, false)):
+		if not RpgUtil.to_bool(state.get_flag(id, key, false)):
 			continue
 		if key == "opened":
 			if entity.has_method("apply_opened_state"):

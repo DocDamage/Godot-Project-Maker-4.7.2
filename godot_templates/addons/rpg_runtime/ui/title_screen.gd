@@ -29,12 +29,12 @@ func _ready() -> void:
 func _start_music() -> void:
 	var wanted := str(get_meta("music_asset_id", ""))
 	var router := RpgUtil.router()
-	var audio: Variant = router.get("audio") if router != null else null
+	var audio: Node = router.audio if router != null else null
 	if wanted != "" and audio != null and wanted != str(audio.get("current_music_id")):
 		audio.call("play_music", wanted)
 
-func _save_manager() -> Node:
-	return RpgUtil.autoload(&"SaveManager")
+func _save_manager() -> RpgSaveManager:
+	return RpgUtil.save_manager()
 
 func _focus_initial() -> void:
 	var continue_button := get_node("%Continue") as Button

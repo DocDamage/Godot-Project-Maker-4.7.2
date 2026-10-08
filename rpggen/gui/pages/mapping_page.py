@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QPushButton,
     QRadioButton,
+    QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -115,6 +117,8 @@ class RoleRowWidget(QFrame):
         self.row = row
         self.setObjectName(f"row_{row.role}")
         self.setFrameShape(QFrame.Shape.StyledPanel)
+        # a row is never squeezed below its size hint: the page scrolls instead
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         grid = QGridLayout(self)
         title = labels.role_label(row.role) + (" *" if row.required else "")
         self.role_label = QLabel(f"<b>{title}</b>")
@@ -221,12 +225,23 @@ class MappingPage(WizardPage):
         self.summary_label = QLabel()
         self.summary_label.setObjectName("mappingSummary")
         self.layout_.addWidget(self.summary_label)
+        # the rows and the sound group scroll; the intro and the summary stay in view
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("mappingScroll")
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        body = QWidget()
+        body.setObjectName("mappingBody")
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(0, 0, 6, 0)
         self.rows_box = QVBoxLayout()
-        self.layout_.addLayout(self.rows_box)
+        body_layout.addLayout(self.rows_box)
         self.sound_section = SoundSection()
         self.sound_section.changed.connect(self.changed.emit)
-        self.layout_.addWidget(self.sound_section)
-        self.layout_.addStretch(1)
+        body_layout.addWidget(self.sound_section)
+        body_layout.addStretch(1)
+        self.scroll.setWidget(body)
+        self.layout_.addWidget(self.scroll, 1)
 
     # ------------------------------------------------------------------ building
 
@@ -452,6 +467,16 @@ class MappingPage(WizardPage):
         self._refresh()
 
     # ------------------------------------------------------------------ wizard hooks
+
+    def reveal_missing(self, state: WizardState) -> None:
+        """Scrolls the first required role that has neither an asset nor a placeholder into view."""
+        if state.catalog is None:
+            return
+        missing = mapping.missing_required(state.catalog, self._archetype(), self.placeholders)
+        widget = self.rows.get(missing[0]) if missing else None
+        if widget is not None:
+            self.scroll.ensureWidgetVisible(widget)
+            widget.choose_button.setFocus()
 
     def validate(self, state: WizardState) -> list[Issue]:
         if state.catalog is None:

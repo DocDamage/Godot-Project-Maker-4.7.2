@@ -10,27 +10,29 @@ const RECIPE_VERSION := 2
 const SceneUtil := preload("../../lib/scene_util.gd")
 const UiUtil := preload("../../lib/ui_util.gd")
 const TextureUtil := preload("../../lib/texture_util.gd")
+const JsonUtil := preload("../../lib/json_util.gd")
+const BuildContext := preload("../../lib/build_context.gd")
 
 const OUT_PATH := "res://generated/scenes/ui/hud_arpg.tscn"
 const SCRIPT_PATH := "res://addons/rpg_runtime/archetypes/arpg/ui/hud.gd"
-const COIN_WORDS := ["coin", "gold"]
-const BAR_WORDS := ["bar", "gauge", "health", "hp"]
+const COIN_WORDS: Array[String] = ["coin", "gold"]
+const BAR_WORDS: Array[String] = ["bar", "gauge", "health", "hp"]
 const BAR_BACK := Color(0.08, 0.08, 0.1, 0.85)
 const HP_COLOR := Color(0.82, 0.2, 0.22)
 const XP_COLOR := Color(0.3, 0.55, 0.9)
 
-func outputs(_ctx) -> PackedStringArray:
+func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([OUT_PATH])
 
 ## The ITEM asset that looks like a coin, or {}.
-func coin_asset(ctx) -> Dictionary:
+func coin_asset(ctx: BuildContext) -> Dictionary:
 	for a in ctx.catalog.assets_by_role("ITEM"):
 		if a.get("status", "") in ["UNUSED", "MISSING"]:
 			continue
 		var eff: Dictionary = ctx.catalog.effective(a)
 		if not ["sprite", "object"].has(eff.get("usage", "")):
 			continue
-		var text := String(a["id"]).to_lower()
+		var text := JsonUtil.to_str(a["id"]).to_lower()
 		for word in COIN_WORDS:
 			if text.contains(word):
 				return a
@@ -38,16 +40,20 @@ func coin_asset(ctx) -> Dictionary:
 
 ## The UI asset used to style the bars: a nine-sliced UI asset tagged `bar` or named like one
 ## (bar, gauge, health, hp), or {}.
-func bar_asset(ctx) -> Dictionary:
+func bar_asset(ctx: BuildContext) -> Dictionary:
 	for a in ctx.catalog.assets_by_role("UI"):
 		if a.get("status", "") in ["UNUSED", "MISSING"]:
 			continue
 		var eff: Dictionary = ctx.catalog.effective(a)
-		if eff.get("usage", "") != "ui" or not (eff.get("nine_slice", null) is Array and eff["nine_slice"].size() == 4):
+		var nine_slice: Array = []
+		if eff.get("nine_slice", null) is Array:
+			nine_slice = eff["nine_slice"]
+		if eff.get("usage", "") != "ui" or nine_slice.size() != 4:
 			continue
-		if (eff.get("tags", []) as Array).has("bar"):
+		var tags: Array = eff.get("tags", [])
+		if tags.has("bar"):
 			return a
-		var file_name := String(a["id"]).get_slice(".", String(a["id"]).get_slice_count(".") - 1).to_lower()
+		var file_name := JsonUtil.to_str(a["id"]).get_slice(".", JsonUtil.to_str(a["id"]).get_slice_count(".") - 1).to_lower()
 		for token in file_name.split("_", false):
 			if BAR_WORDS.has(token):
 				return a
@@ -56,7 +62,7 @@ func bar_asset(ctx) -> Dictionary:
 				return a
 	return {}
 
-func input_hash(ctx) -> String:
+func input_hash(ctx: BuildContext) -> String:
 	var coin := coin_asset(ctx)
 	var bar := bar_asset(ctx)
 	return ctx.stable_hash({
@@ -68,7 +74,7 @@ func input_hash(ctx) -> String:
 		"bar_nine": ctx.catalog.effective(bar).get("nine_slice", []) if not bar.is_empty() else [],
 	})
 
-func build(ctx) -> Array:
+func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var root := CanvasLayer.new()
 	root.name = "HudArpg"
@@ -134,11 +140,11 @@ func build(ctx) -> Array:
 	return issues
 
 ## {texture, nine} of the bar art, or {} for the flat styles.
-func _bar_style(ctx) -> Dictionary:
+func _bar_style(ctx: BuildContext) -> Dictionary:
 	var asset := bar_asset(ctx)
 	if asset.is_empty():
 		return {}
-	var tex := load("res://" + String(asset["path"])) as Texture2D
+	var tex := load("res://" + JsonUtil.to_str(asset["path"])) as Texture2D
 	if tex == null:
 		return {}
 	return {"texture": tex, "nine": ctx.catalog.effective(asset)["nine_slice"]}
@@ -147,10 +153,10 @@ func _textured(art: Dictionary, tint: Color) -> StyleBoxTexture:
 	var nine: Array = art["nine"]
 	var sb := StyleBoxTexture.new()
 	sb.texture = art["texture"]
-	sb.texture_margin_left = float(nine[0])
-	sb.texture_margin_top = float(nine[1])
-	sb.texture_margin_right = float(nine[2])
-	sb.texture_margin_bottom = float(nine[3])
+	sb.texture_margin_left = JsonUtil.to_float(nine[0])
+	sb.texture_margin_top = JsonUtil.to_float(nine[1])
+	sb.texture_margin_right = JsonUtil.to_float(nine[2])
+	sb.texture_margin_bottom = JsonUtil.to_float(nine[3])
 	sb.modulate_color = tint
 	return sb
 
@@ -178,10 +184,10 @@ func _bar(bar_name: String, size: Vector2, fill: Color, art: Dictionary = {}) ->
 	UiUtil.unique(bar)
 	return bar
 
-func _coin_texture(ctx) -> Texture2D:
+func _coin_texture(ctx: BuildContext) -> Texture2D:
 	var coin := coin_asset(ctx)
 	if coin.is_empty():
 		return null
 	var eff: Dictionary = ctx.catalog.effective(coin)
 	var size: Array = eff.get("frame", eff.get("size", [16, 16]))
-	return TextureUtil.region_texture("res://" + String(coin["path"]), Rect2i(0, 0, int(size[0]), int(size[1])))
+	return TextureUtil.region_texture("res://" + JsonUtil.to_str(coin["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1])))

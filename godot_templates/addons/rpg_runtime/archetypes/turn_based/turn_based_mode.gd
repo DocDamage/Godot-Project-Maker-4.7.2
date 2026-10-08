@@ -41,12 +41,12 @@ func start_encounter(data: RpgEncounterData) -> void:
 	RpgUtil.emit(&"encounter_requested", [data])
 	router.push_scene(battle_scene_path, data)
 
-func _player_of(router: Node) -> Node2D:
-	var map := router.get("current_map") as RpgMapRoot
+func _player_of(router: RpgSceneRouter) -> Node2D:
+	var map := router.current_map
 	return map.get_player() if map != null else null
 
-func _fill_way_back(data: RpgEncounterData, router: Node) -> void:
-	var map := router.get("current_map") as RpgMapRoot
+func _fill_way_back(data: RpgEncounterData, router: RpgSceneRouter) -> void:
+	var map := router.current_map
 	if map == null:
 		return
 	if data.return_map == "":
@@ -57,7 +57,7 @@ func _fill_way_back(data: RpgEncounterData, router: Node) -> void:
 		if "facing" in player:
 			data.return_facing = str(player.get("facing"))
 
-func _freeze_player(router: Node) -> void:
+func _freeze_player(router: RpgSceneRouter) -> void:
 	var player := _player_of(router)
 	if player != null and "input_enabled" in player:
 		player.set("input_enabled", false)
@@ -101,7 +101,7 @@ static func find_entity(entity_id: String) -> Node:
 	var router := RpgUtil.router()
 	if router == null or entity_id == "":
 		return null
-	var map := router.get("current_map") as RpgMapRoot
+	var map := router.current_map
 	if map == null:
 		return null
 	for node in map.find_children("*", "", true, false):

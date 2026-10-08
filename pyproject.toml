@@ -11,7 +11,8 @@ dependencies = [
   "numpy>=1.26",
   "jsonschema>=4.21",
   "py7zr>=0.21",
-  "PySide6>=6.7",
+  "PySide6>=6.7,<7",
+  "psutil>=5.9",
 ]
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.5", "mypy>=1.10", "types-jsonschema", "pyinstaller>=6.6"]
@@ -36,3 +37,4 @@ testpaths = ["tests"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E501"]
 "rpggen/core/classifier.py" = ["E501"]
+"rpggen/godot_target.py" = ["E501"]  # the pinned 128-digit checksums

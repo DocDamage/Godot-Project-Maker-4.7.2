@@ -153,3 +153,103 @@ def test_inventory_json_roundtrip() -> None:
     inv = _inv(SYNTH / "basic16")
     again = inventory.Inventory.from_json(inv.to_json())
     assert again.to_json() == inv.to_json()
+
+
+# ------------------------------------------------------------------------ folder cache (T12.18)
+
+
+def _folder(tmp_path: Path, count: int = 5) -> Path:
+    folder = tmp_path / "pack"
+    (folder / "tiles").mkdir(parents=True)
+    for i in range(count):
+        Image.new("RGBA", (16, 16), (i * 20, 0, 0, 255)).save(folder / "tiles" / f"t{i}.png")
+    (folder / "LICENSE.txt").write_text("CC0", encoding="utf-8")
+    return folder
+
+
+def _scans(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    calls: list[str] = []
+    real = inventory._scan_file
+
+    def spy(args):
+        calls.append(args[0])
+        return real(args)
+
+    monkeypatch.setattr(inventory, "_scan_file", spy)
+    return calls
+
+
+def test_a_second_build_of_an_unchanged_folder_reads_no_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = _folder(tmp_path)
+    first = _inv(folder)
+    calls = _scans(monkeypatch)
+    second = _inv(folder)
+    assert calls == []  # nothing was read, hashed or probed again
+    assert second.to_json() == first.to_json()
+    assert second.source_sha256 == first.source_sha256  # the identity is the same
+
+
+def test_touching_one_file_rescans_only_that_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import os
+
+    folder = _folder(tmp_path)
+    before = _inv(folder)
+    target = folder / "tiles" / "t2.png"
+    Image.new("RGBA", (16, 16), (1, 2, 3, 255)).save(target)  # another picture, same size
+    os.utime(target, ns=(target.stat().st_atime_ns, target.stat().st_mtime_ns + 5_000_000_000))
+    calls = _scans(monkeypatch)
+    after = _inv(folder)
+    assert calls == ["tiles/t2.png"]
+    changed = [
+        f.path for f, g in zip(before.files, after.files, strict=True) if f.sha256 != g.sha256
+    ]
+    assert changed == ["tiles/t2.png"] and after.source_sha256 != before.source_sha256
+
+
+def test_added_and_deleted_files_are_handled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = _folder(tmp_path)
+    _inv(folder)
+    (folder / "tiles" / "t0.png").unlink()
+    Image.new("RGBA", (8, 8), (9, 9, 9, 255)).save(folder / "tiles" / "new.png")
+    calls = _scans(monkeypatch)
+    after = _inv(folder)
+    assert calls == ["tiles/new.png"]
+    assert [f.path for f in after.files] == [
+        "LICENSE.txt",
+        "tiles/new.png",
+        "tiles/t1.png",
+        "tiles/t2.png",
+        "tiles/t3.png",
+        "tiles/t4.png",
+    ]
+
+
+def test_no_cache_reads_everything_and_a_damaged_cache_is_a_miss(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = _folder(tmp_path)
+    _inv(folder)
+    calls = _scans(monkeypatch)
+    inventory.build_inventory(archive.open_pack(folder, set()), use_cache=False)
+    assert len(calls) == 6
+    calls.clear()
+    cache_file = inventory._folder_cache_path(folder)
+    cache_file.write_text("{ not json", encoding="utf-8")
+    _inv(folder)
+    assert len(calls) == 6  # a corrupt cache is only a miss
+    calls.clear()
+    _inv(folder)
+    assert calls == []  # and it was written again
+
+
+def test_the_folder_cache_is_named_by_the_path_only(tmp_path: Path) -> None:
+    a, b = _folder(tmp_path / "a"), _folder(tmp_path / "b")
+    assert inventory._folder_cache_path(a) != inventory._folder_cache_path(b)
+    assert inventory._folder_cache_path(a) == inventory._folder_cache_path(a)
+    assert inventory._folder_cache_path(a).name.startswith("folder_")

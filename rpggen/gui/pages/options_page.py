@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QBoxLayout,
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -25,6 +26,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QScrollArea,
     QSpinBox,
     QTableWidgetItem,
@@ -73,6 +75,13 @@ def _spin(low: int, high: int) -> QSpinBox:
     return box
 
 
+PACK_ART_LABELS = {
+    "commit": "Commit the pack art with the project",
+    "lfs": "Use Git LFS for the pack art",
+    "ignore": "Leave the pack art out of git",
+}
+
+
 class SizeEditor(QWidget):
     """A preset combo plus width / height spin boxes that are enabled for Custom."""
 
@@ -86,12 +95,14 @@ class SizeEditor(QWidget):
     ) -> None:
         super().__init__()
         self.presets = presets
+        self._labels: list[str] = []
         self.combo = QComboBox()
         self.combo.setObjectName(f"{name}Combo")
         for w, h in presets:
             label = f"{w} × {h}"
             if names and (w, h) in names:
                 label = f"{self.tr(names[(w, h)])} {label}"
+            self._labels.append(label)
             self.combo.addItem(label, (w, h))
         self.combo.addItem(self.tr("Custom"), None)
         self.width_box = _spin(low, high)
@@ -115,6 +126,12 @@ class SizeEditor(QWidget):
         if value is not None:
             self.width_box.setValue(value[0])
             self.height_box.setValue(value[1])
+
+    def mark_suggested(self, preset: tuple[int, int] | None) -> None:
+        """Adds "(suggested)" to the label of ``preset`` (and takes it off the others)."""
+        for index, (label, item) in enumerate(zip(self._labels, self.presets, strict=True)):
+            suffix = " " + self.tr("(suggested)") if item == preset else ""
+            self.combo.setItemText(index, label + suffix)
 
     def value(self) -> tuple[int, int]:
         return (self.width_box.value(), self.height_box.value())
@@ -395,10 +412,33 @@ class OptionsPage(WizardPage):
         self.down_button.clicked.connect(lambda: self.move_layer(1))
         self.layer_list.currentRowChanged.connect(lambda _r: self._update_layer_buttons())
 
+        git_group = QGroupBox(self.tr("Version control"))
+        git_group.setObjectName("versionControl")
+        git_layout = QVBoxLayout(git_group)
         self.git_box = QCheckBox()
         self.git_box.setObjectName("gitBox")
         self.git_box.toggled.connect(self._on_git)
-        right.addWidget(self.git_box)
+        git_layout.addWidget(self.git_box)
+        self.pack_art_radios: dict[str, QRadioButton] = {}
+        pack_art_group = QButtonGroup(git_group)
+        for choice, label in PACK_ART_LABELS.items():
+            radio = QRadioButton(self.tr(label))
+            radio.setObjectName(f"packArt_{choice}")
+            self.pack_art_radios[choice] = radio
+            pack_art_group.addButton(radio)
+            git_layout.addWidget(radio)
+            radio.toggled.connect(lambda on, c=choice: on and self._on_pack_art(c))
+        licence_note = QLabel(
+            self.tr(
+                "Most pack licences do not allow the art to be public: if you will push this "
+                "project to a public site, leave the pack art out."
+            )
+        )
+        licence_note.setObjectName("packArtNote")
+        licence_note.setWordWrap(True)
+        licence_note.setProperty("muted", True)
+        git_layout.addWidget(licence_note)
+        right.addWidget(git_group)
 
         # ---------------------------------------------------------------- advanced
         self.advanced = CollapsibleSection(self.tr("Advanced"))
@@ -487,6 +527,15 @@ class OptionsPage(WizardPage):
         if self.state is not None:
             self.state.git_commit = checked
 
+    def _on_pack_art(self, choice: str) -> None:
+        if self._loading or self.draft is None:
+            return
+        if choice == config_mod.GIT_DEFAULTS["pack_art"]:
+            self.draft.git.pop("pack_art", None)
+        else:
+            self.draft.git["pack_art"] = choice
+        self.changed.emit()
+
     def enter(self, state: WizardState) -> None:
         self.state = state
         self._refresh_git_box(state)
@@ -502,6 +551,7 @@ class OptionsPage(WizardPage):
             input=copy.deepcopy(cfg.input),
             validation=dict(cfg.validation),
             starter_map=copy.deepcopy(cfg.starter_map),
+            git=dict(cfg.git),
         )
         self._fill_ground_choices()
         self._lock_starter_if_it_exists()
@@ -523,6 +573,7 @@ class OptionsPage(WizardPage):
             self.input_map = copy.deepcopy(self.draft.input)
             self._fill_input_table()
             self._load_starter(self.draft.starter_map_options())
+            self.pack_art_radios[self.draft.pack_art].setChecked(True)
         finally:
             self._loading = False
         self._update_dependencies()
@@ -541,6 +592,7 @@ class OptionsPage(WizardPage):
         cfg.seed = self.draft.seed
         cfg.input = copy.deepcopy(self.draft.input)
         cfg.validation = dict(self.draft.validation)
+        cfg.git = dict(self.draft.git)
         if not self._starter_locked:
             cfg.starter_map = copy.deepcopy(self.draft.starter_map)
         return None
@@ -598,6 +650,7 @@ class OptionsPage(WizardPage):
     def _update_hint(self) -> None:
         tile = self.draft.base_tile_size if self.draft else 16
         self.hint_label.setText(options.tiles_hint(self.resolution.value(), tile))
+        self.resolution.mark_suggested(options.suggested_preset(options.RESOLUTION_PRESETS, tile))
 
     def _reset_screen(self) -> None:
         self.resolution.set_value(config_mod.GeneratorConfig("x", []).resolution)
@@ -832,7 +885,7 @@ class OptionsPage(WizardPage):
         self.preset_combo.clear()
         self.preset_combo.addItem(self.tr("Choose a preset…"), None)
         self.preset_combo.addItem(self.tr("Defaults"), DEFAULTS_ITEM)
-        for name in sorted(app_settings.load().option_presets):
+        for name in sorted(app_settings.get().option_presets):
             self.preset_combo.addItem(name, name)
         self.preset_combo.blockSignals(False)
 
@@ -840,7 +893,7 @@ class OptionsPage(WizardPage):
         """Applies a saved preset (or the defaults) to the page; False when it does not fit."""
         if self.draft is None:
             return False
-        saved = app_settings.load().option_presets
+        saved = app_settings.get().option_presets
         preset = (
             options.default_preset(self.draft.archetype)
             if name == DEFAULTS_ITEM
@@ -886,22 +939,23 @@ class OptionsPage(WizardPage):
         if name is None or name == self.tr("Defaults"):
             return None
         self._collect()
-        settings = app_settings.load()
-        settings.option_presets[name] = options.to_preset(self.draft)
-        app_settings.save(settings)
+        preset = options.to_preset(self.draft)
+        app_settings.store().update(lambda settings: settings.option_presets.update({name: preset}))
         self._fill_presets()
         return name
 
     def manage_presets(self) -> None:
-        settings = app_settings.load()
-        dialog = ManagePresetsDialog(sorted(settings.option_presets), self)
+        dialog = ManagePresetsDialog(sorted(app_settings.get().option_presets), self)
         self.run_dialog(dialog)
-        for old, new in dialog.renames.items():
-            if old in settings.option_presets:
-                settings.option_presets[new] = settings.option_presets.pop(old)
-        for name in dialog.deleted:
-            settings.option_presets.pop(name, None)
-        app_settings.save(settings)
+
+        def apply(settings: app_settings.AppSettings) -> None:
+            for old, new in dialog.renames.items():
+                if old in settings.option_presets:
+                    settings.option_presets[new] = settings.option_presets.pop(old)
+            for name in dialog.deleted:
+                settings.option_presets.pop(name, None)
+
+        app_settings.store().update(apply)
         self._fill_presets()
 
     def run_dialog(self, dialog) -> bool:  # noqa: ANN001 - overridden by tests

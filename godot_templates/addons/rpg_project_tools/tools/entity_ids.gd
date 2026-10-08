@@ -2,12 +2,14 @@
 extends RefCounted
 ## Entity ids (<map_id>_<kind>_<nnn>) of the nodes in a map: reading, allocating, repairing.
 
+const JsonIo := preload("json_io.gd")
+
 const PERSISTENT_SUFFIX := "/world/persistent.gd"
 
 ## True for nodes that carry an `entity_id` property (world objects, actors, chests, doors ...).
 ## The RpgPersistent component has one too, but it only mirrors its parent's.
 static func has_entity_id(node: Node) -> bool:
-	var script := node.get_script() as Script
+	var script: Script = node.get_script()
 	if script != null and script.resource_path.ends_with(PERSISTENT_SUFFIX):
 		return false
 	return node.get("entity_id") != null
@@ -16,15 +18,15 @@ static func has_entity_id(node: Node) -> bool:
 ## entity_id are not persistent and need no id.
 static func is_persistent(node: Node) -> bool:
 	for child in node.get_children():
-		var script := child.get_script() as Script
+		var script: Script = child.get_script()
 		if script != null and script.resource_path.ends_with(PERSISTENT_SUFFIX):
 			return true
 	return false
 
 ## Every node below `root` (root included) with an entity_id property, in tree order. Nodes inside
 ## an instanced scene are included.
-static func entity_nodes(root: Node) -> Array:
-	var out: Array = []
+static func entity_nodes(root: Node) -> Array[Node]:
+	var out: Array[Node] = []
 	_collect(root, out)
 	return out
 
@@ -65,8 +67,8 @@ static func number_of(id: String, map_id: String, kind: String) -> int:
 ## already in the map, so a stale catalog allocation cannot produce a duplicate.
 static func next_number(ids: Array, map_id: String, kind: String) -> int:
 	var highest := 0
-	for id in ids:
-		highest = maxi(highest, number_of(String(id), map_id, kind))
+	for id: Variant in ids:
+		highest = maxi(highest, number_of(JsonIo.to_str(id), map_id, kind))
 	return highest + 1
 
 ## The kind to use for a node already in a map (a node without a known kind gets its script-less
@@ -78,7 +80,7 @@ static func kind_of_node(node: Node, map_id: String) -> String:
 		var role := str(node.get_meta("role", ""))
 		if tags.has("chest") or tags.has("sign") or role != "":
 			return kind_of(role, tags)
-	var script := node.get_script() as Script
+	var script: Script = node.get_script()
 	if script != null:
 		var base := script.resource_path.get_file().get_basename()
 		if base in ["npc", "chest", "sign", "overworld_enemy"]:
@@ -123,6 +125,6 @@ static func plan_fixes(root: Node, elsewhere: Dictionary = {}) -> Dictionary:
 		var new_id := make_id(map_id, kind, number)
 		taken.append(new_id)
 		seen[new_id] = true
-		allocations[kind] = maxi(int(allocations.get(kind, 0)), number)
+		allocations[kind] = maxi(JsonIo.to_int(allocations.get(kind, 0)), number)
 		changes.append({"node": n, "old": old, "new": new_id})
 	return {"changes": changes, "allocations": allocations}

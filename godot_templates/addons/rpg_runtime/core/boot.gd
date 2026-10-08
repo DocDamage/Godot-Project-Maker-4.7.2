@@ -16,7 +16,7 @@ func _ready() -> void:
 	if first_scene == "":
 		push_error("[RPG-BOOT] first_scene is not set")
 		return
-	var router := get_node_or_null("/root/SceneRouter")
+	var router := get_node_or_null("/root/SceneRouter") as RpgSceneRouter
 	if router == null:
 		get_tree().change_scene_to_file.call_deferred(first_scene)
 		return
@@ -25,7 +25,7 @@ func _ready() -> void:
 		_create_services(router)
 	router.go_to.call_deferred(first_scene)
 
-func _create_services(router: Node) -> void:
+func _create_services(router: RpgSceneRouter) -> void:
 	var audio := RpgAudio.new()
 	audio.name = "Audio"
 	router.add_child(audio)

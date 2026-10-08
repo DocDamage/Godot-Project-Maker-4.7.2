@@ -15,12 +15,12 @@ static var force_screen := false
 
 ## The save slot written last (the autosave slot 0 counts), or -1 when there is none.
 static func latest_save_slot() -> int:
-	var save := RpgUtil.autoload(&"SaveManager")
+	var save := RpgUtil.save_manager()
 	if save == null:
 		return -1
 	var best := -1
 	var best_time := ""
-	for slot in range(int(save.get("AUTOSAVE_SLOT")), int(save.get("SLOTS")) + 1):
+	for slot in range(RpgUtil.to_int(save.get("AUTOSAVE_SLOT")), RpgUtil.to_int(save.get("SLOTS")) + 1):
 		if not save.has_save(slot):
 			continue
 		var saved_at := str(save.header(slot).get("saved_at", ""))
@@ -36,9 +36,12 @@ static func is_automatic() -> bool:
 	if OS.get_cmdline_user_args().has("--rpg-smoke"):
 		return true
 	var router := RpgUtil.router()
-	var combat: Variant = router.get("combat") if router != null else null
-	if combat != null and combat.get("auto_choose") is Callable:
-		return (combat.get("auto_choose") as Callable).is_valid()
+	var combat: RpgCombatMode = router.combat if router != null else null
+	if combat != null:
+		var chooser: Variant = combat.get("auto_choose")
+		if chooser is Callable:
+			var auto: Callable = chooser
+			return auto.is_valid()
 	return false
 
 ## Shows the game-over screen (or applies the default at once) and carries out the choice. Await it.
@@ -51,7 +54,7 @@ static func show_game_over() -> void:
 	if is_automatic() or not ResourceLoader.exists(path):
 		await apply(Choice.CONTINUE if latest_save_slot() >= 0 else Choice.RETRY)
 		return
-	var screen := (load(path) as PackedScene).instantiate() as Control
+	var screen := (load(path) as PackedScene).instantiate() as RpgGameOver
 	var layer := CanvasLayer.new()
 	layer.name = "GameOverLayer"
 	layer.layer = 80
@@ -76,11 +79,11 @@ static func apply(choice: int) -> void:
 		return
 	if choice == Choice.CONTINUE:
 		var slot := latest_save_slot()
-		if slot >= 0 and RpgUtil.autoload(&"SaveManager").load(slot):
+		if slot >= 0 and RpgUtil.save_manager().load(slot):
 			while router.is_busy():
 				await router.get_tree().process_frame
 			return
 	state.player_stats.hp = state.player_stats.max_hp
-	var map := router.get("current_map") as RpgMapRoot
+	var map := router.current_map
 	if map != null:
 		await router.go_to(map.scene_file_path, &"default")

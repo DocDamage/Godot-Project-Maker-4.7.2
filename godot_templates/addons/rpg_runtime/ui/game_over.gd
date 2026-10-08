@@ -22,7 +22,8 @@ func _ready() -> void:
 func _focus_first() -> void:
 	var buttons := RpgMenuUtil.focusables(self)
 	if not buttons.is_empty():
-		(buttons[0] as Control).grab_focus()
+		var first: Control = buttons[0]
+		first.grab_focus()
 
 func _choose(choice: int) -> void:
 	if _done:

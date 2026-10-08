@@ -197,6 +197,20 @@ your user name and home folder replaced by `<user>` and `<home>`, each cut to it
 manifest of every asset (id, path, hash, size) and system information. **It never contains images
 or audio.** Open it before you send it if you like.
 
+## 7a. Running rpggen from a script
+
+Everything the wizard does for a finished config is also a command (`rpggen-cli`, see the README).
+Three options are meant for scripts and build servers:
+
+* `--dry-run` (on `generate`) checks the packs, the output folder and the requirements and plans
+  the starter map without writing anything or starting Godot. Use it to find out, before a long
+  run, that a role has no asset or that the folder belongs to something else.
+* `--json` prints one JSON document on stdout; the readable lines go to stderr.
+* The **exit code** says why a command stopped: 0 OK, 1 generation failed, 2 usage error,
+  3 environment or input (Godot or a pack not found, an unusable folder, a required role with no
+  asset), 4 cancelled with Ctrl+C (nothing is delivered), 70 internal error (send a diagnostic
+  bundle).
+
 ## 8. Privacy and the network
 
 rpggen does not phone home. It goes online in exactly three cases, and only after you click:
@@ -211,3 +225,26 @@ rpggen does not phone home. It goes online in exactly three cases, and only afte
    to open its download page in your browser. rpggen never downloads or installs an update.
 
 There is no start-up check, no background timer and no setting that enables one.
+
+## 9. Where rpggen keeps its files
+
+rpggen keeps what it needs in three folders, so that a disk-cleanup tool (which empties folders
+called "cache") cannot take your work with it. **Edit → Storage…** shows how big each part is and
+clears it.
+
+| Folder | What is in it | Windows | Linux | macOS |
+|--------|---------------|---------|-------|-------|
+| Settings | `settings.json`: window, theme, recent projects, option presets | `%LOCALAPPDATA%\rpggen\config` | `~/.config/rpggen` | `~/Library/Application Support/rpggen` |
+| Your data | drafts of audits you have not generated yet, installed pack profiles, the Godot rpggen downloaded, the logs | `%LOCALAPPDATA%\rpggen\data` | `~/.local/share/rpggen` | `~/Library/Application Support/rpggen` |
+| Cache | extracted archives, analysis results, file lists, thumbnails, GIF strips, terrain sheets | `%LOCALAPPDATA%\rpggen\cache` | `~/.cache/rpggen` | `~/Library/Caches/rpggen` |
+
+(On Linux the `XDG_CONFIG_HOME`, `XDG_DATA_HOME` and `XDG_CACHE_HOME` variables are honoured.)
+
+* **The cache can always be made again**, so it is kept small: extracted packs beyond the limit
+  in **Storage…** (10 GB by default) are removed, the least recently used first and never the one
+  you are working with; analysis results, file lists and thumbnails together stay under 1 GB.
+* **Your data is only deleted by you.** Clearing it in **Storage…** first lists what you lose. A
+  half-downloaded Godot that was not resumed for a week is the only thing removed by itself.
+* A version before 1.0 kept everything in one folder; the first start moves the settings, drafts,
+  profiles, Godot and logs to their new places and never overwrites what is already there.
+* Your **generated projects** are never in these folders: they are where you chose to put them.

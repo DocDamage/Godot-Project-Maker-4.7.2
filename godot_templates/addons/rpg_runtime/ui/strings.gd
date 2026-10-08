@@ -52,6 +52,11 @@ const KEYS := {
 	"UI_GAME_SAVED": "Game saved",
 	"UI_SAVE_FAILED": "Saving failed",
 	"UI_LOAD_FAILED": "Loading failed",
+	"UI_SAVE_DAMAGED_LOADED_BACKUP": "Save was damaged; loaded backup.",
+	"UI_SAVE_FROM_NEWER_VERSION": "Save from newer version",
+	"UI_CANNOT_USE_NOW": "Cannot use that now",
+	"UI_CHEST_FOUND": "Found %s",
+	"UI_CHEST_EMPTY": "The chest is empty",
 	"UI_PLAYTIME": "Playtime",
 	"UI_ACTION_MOVE_UP": "Move up",
 	"UI_ACTION_MOVE_DOWN": "Move down",
@@ -104,9 +109,9 @@ static func _add_missing_defaults() -> void:
 	var fallback := Translation.new()
 	fallback.locale = "en"
 	var any := false
-	for key in KEYS.keys():
-		if str(TranslationServer.translate(StringName(key))) == key:
-			fallback.add_message(StringName(key), KEYS[key])
+	for key: String in KEYS.keys():
+		if str(TranslationServer.translate(RpgUtil.to_name(key))) == key:
+			fallback.add_message(RpgUtil.to_name(key), RpgUtil.to_name(KEYS[key]))
 			any = true
 	if any:
 		TranslationServer.add_translation(fallback)

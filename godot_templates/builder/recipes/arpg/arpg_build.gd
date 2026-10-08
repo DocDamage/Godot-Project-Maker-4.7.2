@@ -6,6 +6,7 @@ extends RefCounted
 ## hurtbox 9, enemy hurtbox 10; enemies 3 (they look at world 1 and the player 2).
 
 const SceneUtil := preload("../../lib/scene_util.gd")
+const JsonUtil := preload("../../lib/json_util.gd")
 
 const DIR := "res://addons/rpg_runtime/archetypes/arpg/"
 const HEALTH := DIR + "health.gd"
@@ -49,8 +50,8 @@ static func _layers(area: CollisionObject2D, layer: int, mask: Array) -> void:
 	area.collision_layer = 0
 	area.collision_mask = 0
 	area.set_collision_layer_value(layer, true)
-	for m in mask:
-		area.set_collision_mask_value(int(m), true)
+	for m: Variant in mask:
+		area.set_collision_mask_value(JsonUtil.to_int(m), true)
 
 static func add_health(root: Node) -> Node:
 	var health := Node.new()
@@ -113,10 +114,11 @@ static func augment_enemy(root: CharacterBody2D, frame: Vector2i, tile: int, age
 	root.set_collision_mask_value(1, true)  # world
 	root.set_collision_mask_value(2, true)  # player
 	var components := root.get_node("Components")
-	for part in [["Detection", DETECTION], ["Chase", CHASE], ["Wander", WANDER], ["EnemyAttack", ENEMY_ATTACK], ["LootDrop", LOOT_DROP]]:
+	for part: Array in [["Detection", DETECTION], ["Chase", CHASE], ["Wander", WANDER], ["EnemyAttack", ENEMY_ATTACK], ["LootDrop", LOOT_DROP]]:
 		var node := Node.new()
 		node.name = part[0]
-		SceneUtil.attach_script(node, part[1])
+		var part_script: String = part[1]
+		SceneUtil.attach_script(node, part_script)
 		components.add_child(node)
 	add_health(root)
 	add_hurtbox(root, "enemy", 10, ENEMY_INVULN_S, frame, tile)

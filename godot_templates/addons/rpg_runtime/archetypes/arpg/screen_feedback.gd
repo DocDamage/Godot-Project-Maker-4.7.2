@@ -13,7 +13,7 @@ static var _stopped := false
 
 static func enabled() -> bool:
 	var settings := RpgUtil.settings()
-	return settings == null or bool(settings.get("screen_shake"))
+	return settings == null or RpgUtil.to_bool(settings.get("screen_shake"))
 
 ## Freezes the game for `frames` physics frames (60 per second), unless one hit-stop is running.
 static func hit_stop(frames: int = HIT_STOP_FRAMES) -> void:

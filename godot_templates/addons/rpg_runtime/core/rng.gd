@@ -15,7 +15,7 @@ func seed_value(s: int) -> void:
 ## generator is randomized.
 func seed_from_config() -> void:
 	if OS.get_cmdline_user_args().has("--rpg-smoke"):
-		gen.seed = int(ProjectSettings.get_setting("rpg/seed", 12345))
+		gen.seed = RpgUtil.to_int(ProjectSettings.get_setting("rpg/seed", 12345))
 	else:
 		gen.randomize()
 

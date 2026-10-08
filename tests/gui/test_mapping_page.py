@@ -69,8 +69,8 @@ def test_buildings_may_be_objects() -> None:
 # ------------------------------------------------------------------------ the page
 
 
-def _page(qtbot, pack: str) -> tuple[MappingPage, WizardState]:
-    state = WizardState(pack_sources=[SYNTH / pack], target=None)
+def _page(qtbot, pack: str, archetype: str = "turn_based") -> tuple[MappingPage, WizardState]:
+    state = WizardState(pack_sources=[SYNTH / pack], target=None, archetype=archetype)
     workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
     ref = config.PackRef(
         state.opened_packs[0].pack_id,
@@ -78,7 +78,7 @@ def _page(qtbot, pack: str) -> tuple[MappingPage, WizardState]:
         "0" * 64,
         "folder",
     )
-    state.config = config.default_for("T", [ref])
+    state.config = config.default_for("T", [ref], archetype=archetype)
     page = MappingPage()
     qtbot.addWidget(page)
     page.show()
@@ -272,3 +272,48 @@ def test_a_tile_sheet_thumbnail_starts_at_the_first_filled_cell(tmp_path) -> Non
     )
     out = Image.open(__import__("io").BytesIO(thumbnails.render_thumbnail(req, 48)))
     assert out.getpixel((1, 1))[3] == 255  # starts on the red cell, not on emptiness
+
+
+# ------------------------------------------------------------------------ scrolling (T12.01)
+
+
+def _settle() -> None:
+    """A scroll area needs a few turns of the event loop to lay its content out."""
+    from PySide6.QtWidgets import QApplication
+
+    for _ in range(3):
+        QApplication.processEvents()
+
+
+@pytest.mark.parametrize("archetype", ["turn_based", "arpg"])
+def test_rows_keep_their_size_at_the_window_minimum(qtbot, archetype: str) -> None:
+    from rpggen.gui.wizard import MIN_WINDOW
+
+    page, _state = _page(qtbot, "basic16", archetype)
+    # the page inside the window: minus the sidebar, the button bar and the margins
+    page.resize(MIN_WINDOW[0] - 200, MIN_WINDOW[1] - 120)
+    _settle()
+    assert page.rows
+    for widget in page.rows.values():
+        assert widget.height() >= widget.minimumSizeHint().height(), widget.objectName()
+        assert widget.choose_button.height() >= widget.choose_button.sizeHint().height()
+    assert page.scroll.verticalScrollBar().maximum() > 0  # more rows than the window shows
+
+
+def test_reveal_missing_scrolls_to_the_first_required_row_without_an_asset(qtbot) -> None:
+    from PySide6.QtCore import QPoint
+
+    page, state = _page(qtbot, "mixed")  # ground and items but no player
+    page.resize(700, 320)
+    _settle()
+    row = page.rows["PLAYER"]
+    viewport = page.scroll.viewport()
+
+    def top() -> int:
+        return row.mapTo(viewport, QPoint(0, 0)).y()
+
+    assert top() + row.height() > viewport.height()  # below the fold
+    page.reveal_missing(state)
+    _settle()
+    assert top() >= 0 and top() + row.height() <= viewport.height()
+    assert row.choose_button.hasFocus()

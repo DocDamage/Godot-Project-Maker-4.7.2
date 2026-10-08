@@ -19,7 +19,7 @@ func _in_gameplay() -> bool:
 	var box := RpgUtil.service(&"rpg_dialogue_box")
 	if box != null and box.call("is_open"):
 		return false
-	var combat: Variant = router.get("combat")
+	var combat := router.combat
 	if combat != null and combat.is_in_combat():
 		return false
 	return true

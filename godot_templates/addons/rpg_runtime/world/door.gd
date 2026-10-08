@@ -38,7 +38,7 @@ func use() -> bool:
 		return false
 	used.emit()
 	RpgUtil.emit(&"door_used", [str(name)])
-	var router := get_node_or_null("/root/SceneRouter")
+	var router := get_node_or_null("/root/SceneRouter") as RpgSceneRouter
 	if router == null:
 		push_error("[RPG-WORLD] SceneRouter autoload is missing")
 		return false

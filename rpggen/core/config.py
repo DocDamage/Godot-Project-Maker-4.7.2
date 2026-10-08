@@ -12,6 +12,8 @@ from rpggen.errors import RpgGenError
 CONFIG_VERSION = 1
 GODOT_VERSION = godot_target.VERSION
 DEFAULT_MAP_LAYERS = ["Ground", "GroundDetails", "Walls", "Props", "Overhead"]
+GIT_DEFAULTS = {"pack_art": "commit"}
+PACK_ART_CHOICES = ("commit", "lfs", "ignore")
 FEATURE_KEYS = (
     "tilesets",
     "collision",
@@ -112,6 +114,7 @@ class GeneratorConfig:
     starter: dict[str, str] = field(default_factory=dict)  # role key -> asset or object id
     sounds: dict[str, str] = field(default_factory=dict)  # sound slot -> audio asset id
     starter_map: dict[str, Any] = field(default_factory=dict)  # overrides of starter_map_defaults
+    git: dict[str, str] = field(default_factory=dict)  # {"pack_art": "commit" | "lfs" | "ignore"}
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
     godot_version: str = GODOT_VERSION
@@ -129,7 +132,15 @@ class GeneratorConfig:
         options = self.starter_map_options()
         if options != starter_map_defaults(self.archetype):
             out["starter_map"] = options
+        git = {k: v for k, v in sorted(self.git.items()) if v != GIT_DEFAULTS.get(k)}
+        if git:
+            out["git"] = git
         return out
+
+    @property
+    def pack_art(self) -> str:
+        """How the purchased art is handled by git: ``commit`` (default), ``lfs`` or ``ignore``."""
+        return self.git.get("pack_art", GIT_DEFAULTS["pack_art"])
 
     def starter_map_options(self) -> dict[str, Any]:
         """The starter map options with the archetype's defaults filled in (a deep copy)."""
@@ -170,6 +181,7 @@ class GeneratorConfig:
             starter=dict(data.get("starter", {})),
             sounds=dict(data.get("sounds", {})),
             starter_map=copy.deepcopy(data.get("starter_map", {})),
+            git=dict(data.get("git", {})),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],
@@ -210,27 +222,39 @@ def hash_file_list(entries: list[tuple[str, str]]) -> str:
 
 
 def folder_sha256(folder: Path) -> str:
-    """Identity hash of a folder: sha256 of its sorted ``path:sha256`` lines."""
-    return hash_file_list(
-        [
-            (p.relative_to(folder).as_posix(), hashlib.sha256(p.read_bytes()).hexdigest())
-            for p in folder.rglob("*")
-            if p.is_file()
-        ]
-    )
+    """Identity hash of a folder pack: the sorted ``path:sha256`` lines of its files, junk
+    (``Thumbs.db``, ``.DS_Store``, ...) left out. It is the hash the inventory computes too, so
+    the config and the catalog agree on one identity."""
+    from rpggen.core import archive
+
+    entries: list[tuple[str, str]] = []
+    files, _links = archive.walk_files(Path(folder))  # a link is never followed or hashed
+    for rel in files:
+        if rel == archive.COMPLETE_MARKER or rel.endswith(".partial") or archive.is_junk(rel):
+            continue
+        entries.append((rel, archive.sha256_file(Path(folder) / rel)))
+    return hash_file_list(entries)
 
 
-def pack_ref_from_source(source: Path, pack_id: str) -> PackRef:
-    """PackRef for a pack folder or a .zip / .7z / .rar archive."""
+def pack_ref_from_source(source: Path, pack_id: str, known_sha256: str | None = None) -> PackRef:
+    """PackRef for a pack folder or a .zip / .7z / .rar archive.
+
+    ``known_sha256`` is the identity the analysis already computed (``Inventory.source_sha256``);
+    with it no pack file is read. Without it an archive is streamed, never read into memory.
+    """
+    from rpggen.core import archive
+
     source = Path(source)
     if source.is_dir():
-        return PackRef(pack_id, str(source.resolve()), folder_sha256(source), "folder")
+        return PackRef(
+            pack_id, str(source.resolve()), known_sha256 or folder_sha256(source), "folder"
+        )
     if not source.is_file():
         raise RpgGenError("ARCH-001", path=str(source), reason="does not exist")
     kind = source.suffix.lower().lstrip(".")
     if kind not in ("zip", "7z", "rar"):
         raise RpgGenError("ARCH-001", path=str(source), reason="unsupported file type")
-    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    digest = known_sha256 or archive.sha256_file(source)
     return PackRef(pack_id, str(source.resolve()), digest, kind)
 
 

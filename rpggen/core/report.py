@@ -48,6 +48,21 @@ def _cell(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ")
 
 
+def _skipped_lines(skipped: dict[str, str]) -> list[str]:
+    """ "Checks not run": a check that was skipped is never reported as passed."""
+    if not skipped:
+        return []
+    from rpggen.errors import CODES
+
+    lines = ["", "## Checks not run", ""]
+    for phase, code in sorted(skipped.items()):
+        info = CODES.get(code)
+        reason = info.message if info else code
+        fix = f" {info.fix}" if info and info.fix and info.fix != "—" else ""
+        lines.append(f"- **{phase}** ({code}): {reason}{fix}")
+    return lines
+
+
 def build_markdown(
     cfg: config_mod.GeneratorConfig | None,
     catalog: catalog_mod.Catalog | None,
@@ -61,9 +76,11 @@ def build_markdown(
     project: Path | None = None,
     plan: PromotionPlan | None = None,
     runtime_version: str = "",
+    skipped: dict[str, str] | None = None,
 ) -> str:
     """The report. ``project`` is the folder holding the generated files and result files;
-    ``plan`` is the promotion plan of a regeneration."""
+    ``plan`` is the promotion plan of a regeneration; ``skipped`` maps a phase that did not run
+    to the code that says why."""
     godot = godot_version or (cfg.godot_version if cfg else "")
     archetype = cfg.archetype if cfg else "?"
     lines = [
@@ -122,6 +139,7 @@ def build_markdown(
         lines += _regeneration_lines(plan)
     lines += _validation_lines(project)
     lines += _smoke_lines(project)
+    lines += _skipped_lines(skipped or {})
 
     lines += ["", "## Issues", ""]
     if issues:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,6 +29,8 @@ class Cancelled(Exception):
 class WorkerSignals(QObject):
     progress = Signal(str, int, int)  # phase/label, i, n
     log = Signal(str)
+    skipped = Signal(str, str)  # phase, issue code: a check that did not run
+    step = Signal(str, int, int, str)  # phase, i, n, label: progress inside a Godot phase
     finished = Signal(object)  # result
     failed = Signal(object)  # Issue or exception
 
@@ -61,6 +64,8 @@ class Worker(QRunnable):
             on_phase=lambda name, i, n: self._emit("progress", name, i, n),
             on_log=lambda line: self._emit("log", line),
             is_cancelled=self.is_cancelled,
+            on_skip=lambda phase, code: self._emit("skipped", phase, code),
+            on_step=lambda phase, i, n, label: self._emit("step", phase, i, n, label),
         )
 
     def run(self) -> None:
@@ -89,14 +94,66 @@ class AnalysisResult:
     issues: list[Issue] = field(default_factory=list)
 
 
+PROGRESS_INTERVAL_S = 0.1  # at most ten progress signals a second
+
+
+def format_bytes(count: int) -> str:
+    """1.2 GB, 340 MB or 12 KB (binary units, one decimal from a gigabyte on)."""
+    if count >= 1 << 30:
+        return f"{count / (1 << 30):.1f} GB"
+    if count >= 1 << 20:
+        return f"{count / (1 << 20):.0f} MB"
+    return f"{max(count, 0) / (1 << 10):.0f} KB"
+
+
+class ProgressSink:
+    """Turns the progress of the layers (extract, read, analyze) into ``on_phase`` calls.
+
+    A stage reports ``(label, done, total)``; the label shown is "label — done of total" with
+    bytes or counts. The calls are throttled to ten a second, but the last one of a stage (done
+    equals total) always goes through, so a bar reaches its maximum only at the end of a stage.
+    Values of a byte stage are sent in KB, which stay within the range of a progress bar.
+    """
+
+    def __init__(self, callbacks: Callbacks, interval: float = PROGRESS_INTERVAL_S) -> None:
+        self.callbacks = callbacks
+        self.interval = interval
+        self._last = 0.0
+        self._stage = ""
+
+    def _send(self, text: str, done: int, total: int, last: bool) -> None:
+        now = time.monotonic()
+        if not last and now - self._last < self.interval:
+            return
+        self._last = now
+        self.callbacks.on_phase(text, done, total)
+
+    def bytes(self, label: str, done: int, total: int) -> None:
+        if total <= 0:
+            self._send(label, 0, 0, last=label != self._stage)
+        else:
+            text = f"{label} — {format_bytes(done)} of {format_bytes(total)}"
+            self._send(text, done >> 10, total >> 10, last=done >= total or label != self._stage)
+        self._stage = label
+
+    def count(self, label: str, done: int, total: int) -> None:
+        if total <= 0:
+            self._send(label, 0, 0, last=label != self._stage)
+        else:
+            text = f"{label} — {done:,} of {total:,}"
+            self._send(text, done, total, last=done >= total or label != self._stage)
+        self._stage = label
+
+
 def analyze_packs(state: WizardState, *, callbacks: Callbacks) -> AnalysisResult:
     """Open, inventory and assemble the packs of ``state`` (reads the state, never mutates it).
 
     The existing ``state.catalog`` (a draft or a generated project's catalog) is the ``previous``
-    of ``assemble`` so the user's overrides survive.
+    of ``assemble`` so the user's overrides survive. Every stage reports its progress and polls
+    ``callbacks.is_cancelled``: a cancel answers within one file, one chunk or one image.
     """
     sources = list(state.pack_sources)
-    total = len(sources) + 1
+    sink = ProgressSink(callbacks)
     used: set[str] = set()
     # A project that is regenerated keeps its pack ids (also for a pack that was updated from
     # an archive with another name), or every asset id would change.
@@ -108,24 +165,57 @@ def analyze_packs(state: WizardState, *, callbacks: Callbacks) -> AnalysisResult
     opened_list: list[archive.OpenedPack] = []
     pairs: list[tuple[archive.OpenedPack, inventory.Inventory]] = []
     issues = IssueList()
-    for i, source in enumerate(sources, start=1):
+    try:
+        for source in sources:
+            if callbacks.is_cancelled():
+                raise Cancelled
+            callbacks.on_phase(f"Reading {source.name}", 0, 0)  # until the first real figure
+            callbacks.on_log(f"opening {source}")
+            opened = archive.open_pack(
+                source,
+                used,
+                pack_id=wanted.get(str(Path(source).resolve()).casefold()),
+                progress=sink.bytes,
+                is_cancelled=callbacks.is_cancelled,
+            )
+            used.add(opened.pack_id)
+            inv = inventory.build_inventory(
+                opened, progress=sink.count, is_cancelled=callbacks.is_cancelled
+            )
+            opened_list.append(opened)
+            pairs.append((opened, inv))
         if callbacks.is_cancelled():
             raise Cancelled
-        callbacks.on_phase(f"Reading {source.name}", i, total)
-        callbacks.on_log(f"opening {source}")
-        opened = archive.open_pack(
-            source, used, pack_id=wanted.get(str(Path(source).resolve()).casefold())
+        callbacks.on_phase("Analyzing images", 0, 0)
+        cat, found, _generated = catalog_mod.assemble(
+            pairs,
+            state.catalog,
+            [],
+            is_cancelled=callbacks.is_cancelled,
+            progress=sink.count,
         )
-        used.add(opened.pack_id)
-        inv = inventory.build_inventory(opened)
-        opened_list.append(opened)
-        pairs.append((opened, inv))
-    if callbacks.is_cancelled():
-        raise Cancelled
-    callbacks.on_phase("Analyzing images", total, total)
-    cat, found, _generated = catalog_mod.assemble(pairs, state.catalog, [])
+    except archive.Cancelled as exc:  # also catalog.AssemblyCancelled
+        raise Cancelled from exc
     issues.extend(found)
+    _prune_caches([o.root for o in opened_list])  # the packs just opened are in use
     return AnalysisResult(opened_list, [inv for _o, inv in pairs], cat, list(issues))
+
+
+def _prune_caches(in_use: list[Path]) -> None:
+    """Keep the caches within their limits (never the archives in use); never raises."""
+    from rpggen.core import app_settings, cache_policy
+
+    try:
+        cache_policy.prune(app_settings.get().cache_limit_gb, keep=in_use)
+    except Exception:  # noqa: BLE001 - housekeeping must never fail an analysis
+        log.debug("pruning the caches failed", exc_info=True)
+
+
+def prune_job(*, callbacks: Callbacks) -> dict[str, int]:
+    """Start-up housekeeping, run in a worker."""
+    from rpggen.core import app_settings, cache_policy
+
+    return cache_policy.prune(app_settings.get().cache_limit_gb)
 
 
 def fetch_registry(
@@ -187,7 +277,7 @@ def find_working_godot(*, callbacks: Callbacks) -> tuple[Path, str] | None:
     from rpggen.core import app_settings, godot
 
     candidates: list[Path] = []
-    saved = app_settings.load().godot_exe
+    saved = app_settings.get().godot_exe
     if saved and Path(saved).is_file():
         candidates.append(Path(saved))
     candidates.extend(p for p in godot.auto_find_godot() if p not in candidates)

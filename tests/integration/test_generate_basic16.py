@@ -81,6 +81,13 @@ def test_sabotaged_player_script_fails_generation(
     assert result.report_path is not None and result.report_path.exists()
     # nothing was promoted into the target
     assert not (result.target / "project.godot").exists()
+    # T12.20: the kept copy has the logs and no copy of the art
+    failed = result.failed_staging
+    assert not list(failed.rglob("*.png")), "a failed run must not keep the pack art"
+    assert not (failed / "assets" / "packs").exists()
+    assert (failed / "rpggen" / "logs").is_dir() and (failed / "project.godot").is_file()
+    note = (failed / "FAILED_RUN.md").read_text(encoding="utf-8")
+    assert "assets/packs/" in note
 
 
 def test_sabotage_hook_is_inert_without_dev_flag(

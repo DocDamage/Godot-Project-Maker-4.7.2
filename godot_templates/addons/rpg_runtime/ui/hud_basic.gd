@@ -27,5 +27,5 @@ func _refresh() -> void:
 	var router := RpgUtil.router()
 	var label := get_node_or_null("%Gold") as Label
 	if label != null and state != null:
-		label.text = "%s: %d" % [tr("UI_GOLD"), int(state.gold)]
+		label.text = "%s: %d" % [tr("UI_GOLD"), RpgUtil.to_int(state.gold)]
 	visible = router != null and router.get("current_map") != null

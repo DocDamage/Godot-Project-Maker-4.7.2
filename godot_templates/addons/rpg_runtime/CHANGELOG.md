@@ -24,6 +24,12 @@
   shake and hit-stop on a landed heavy attack (Settings > Screen shake); a key prompt over what the
   player can interact with; the game version on the title screen; the map and play time in the
   pause menu.
+* Review follow-ups (M12): a save over a **damaged** slot file no longer replaces the last good
+  backup with it (the backup is made only from a file that verifies, and the new save is moved
+  into place by renaming it over the old one); four messages that bypassed translation (a damaged
+  save, a save from a newer version, "cannot use that now" and the chest text) now use the keys
+  `UI_SAVE_DAMAGED_LOADED_BACKUP`, `UI_SAVE_FROM_NEWER_VERSION`, `UI_CANNOT_USE_NOW`,
+  `UI_CHEST_FOUND` and `UI_CHEST_EMPTY`. Projects made earlier fall back to the English text.
 * Fixed while running M11 against Godot 4.7.2: the interact prompt shows `E`, not
   `E - Physical`; `RpgAudio` lets go of its streams when it leaves the tree.
 

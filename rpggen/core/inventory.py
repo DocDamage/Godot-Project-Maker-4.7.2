@@ -4,6 +4,7 @@ import concurrent.futures
 import hashlib
 import logging
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,7 @@ from rpggen import jsonio, paths, schema
 from rpggen.core import archive as archive_mod
 from rpggen.core.archive import OpenedPack
 from rpggen.core.config import hash_file_list
-from rpggen.errors import Issue, IssueList
+from rpggen.errors import Issue, IssueList, RpgGenError
 
 log = logging.getLogger(__name__)
 
@@ -150,17 +151,58 @@ def _scan_file(args: tuple[str, str]) -> tuple[str, str, int, dict[str, Any] | N
     return rel, h.hexdigest(), size, image
 
 
+def _scan_batch(batch: list[tuple[str, str]]) -> list[tuple[str, str, int, dict[str, Any] | None]]:
+    """Worker: one chunk of files (a future per chunk keeps the pool's overhead small)."""
+    return [_scan_file(job) for job in batch]
+
+
+CHUNK = 8  # files per task of the process pool
+
+
+def _scan_all(
+    jobs: list[tuple[str, str]],
+    ctl: archive_mod.Control,
+    already_done: int = 0,
+    total: int | None = None,
+) -> list[tuple[str, str, int, dict[str, Any] | None]]:
+    """Hash and probe every file in ``jobs``. A big pack uses a process pool; progress arrives as
+    results complete (``already_done`` files came from the cache, ``total`` is the pack's size),
+    and a cancel drops the tasks that have not started."""
+    count = len(jobs)
+    total = already_done + count if total is None else total
+    label = "Reading files"
+    results: list[tuple[str, str, int, dict[str, Any] | None]] = []
+    if count >= POOL_THRESHOLD:
+        workers = min(8, os.cpu_count() or 1)
+        pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
+        try:
+            futures = [
+                pool.submit(_scan_batch, jobs[i : i + CHUNK]) for i in range(0, count, CHUNK)
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                ctl.check()
+                results.extend(future.result())
+                ctl.report(label, already_done + len(results), total)
+        finally:
+            pool.shutdown(wait=True, cancel_futures=True)
+    else:
+        for job in jobs:
+            ctl.check()
+            results.append(_scan_file(job))
+            ctl.report(label, already_done + len(results), total)
+    return results
+
+
 def _cache_path(source_sha256: str) -> Path:
-    return paths.local_cache_dir() / "inventories" / f"{source_sha256}.json"
+    return paths.cache_dir() / "inventories" / f"{source_sha256}.json"
 
 
 def _list_files(root: Path) -> tuple[list[str], list[dict[str, str]]]:
     rels: list[str] = []
     skipped: list[dict[str, str]] = []
-    for p in root.rglob("*"):
-        if not p.is_file():
-            continue
-        rel = p.relative_to(root).as_posix()
+    files, links = archive_mod.walk_files(root)  # never follows a link out of the pack
+    skipped.extend({"path": rel, "reason": "link"} for rel in links)
+    for rel in files:
         if rel == archive_mod.COMPLETE_MARKER or rel.endswith(".partial"):
             continue
         if archive_mod.is_junk(rel):
@@ -172,8 +214,62 @@ def _list_files(root: Path) -> tuple[list[str], list[dict[str, str]]]:
     return rels, skipped
 
 
-def build_inventory(pack: OpenedPack) -> Inventory:
-    """Inventory of every file in the pack: hashes, sizes, kinds and image facts."""
+FOLDER_CACHE_VERSION = 1
+
+
+def _folder_cache_path(root: Path) -> Path:
+    """``inventories/folder_<sha256(resolved path, case-folded)[:16]>.json``"""
+    key = hashlib.sha256(str(Path(root).resolve()).casefold().encode("utf-8")).hexdigest()
+    return paths.cache_dir() / "inventories" / f"folder_{key[:16]}.json"
+
+
+def _load_folder_cache(root: Path) -> dict[str, dict[str, Any]]:
+    """What the last build of this folder found, per file: size, mtime_ns, sha256 and image facts.
+    Missing, unreadable or of another version: nothing."""
+    path = _folder_cache_path(root)
+    try:
+        data = jsonio.read(path)
+    except (OSError, RpgGenError):
+        return {}
+    if not isinstance(data, dict) or data.get("version") != FOLDER_CACHE_VERSION:
+        return {}
+    files = data.get("files")
+    return files if isinstance(files, dict) else {}
+
+
+def _save_folder_cache(root: Path, files: dict[str, dict[str, Any]]) -> None:
+    try:
+        jsonio.write(
+            _folder_cache_path(root),
+            {"version": FOLDER_CACHE_VERSION, "root": str(Path(root).resolve()), "files": files},
+        )
+    except OSError:
+        log.debug("could not write the folder cache of %s", root, exc_info=True)
+
+
+def _stat_key(path: Path) -> tuple[int, int]:
+    stat = path.stat()
+    return stat.st_size, stat.st_mtime_ns
+
+
+def build_inventory(
+    pack: OpenedPack,
+    *,
+    progress: archive_mod.Progress | None = None,
+    is_cancelled: Callable[[], bool] | None = None,
+    use_cache: bool = True,
+) -> Inventory:
+    """Inventory of every file in the pack: hashes, sizes, kinds and image facts.
+
+    ``progress`` receives ``("Reading files", done, total)``; ``is_cancelled`` is polled as files
+    complete and a cancel raises ``archive.Cancelled``.
+
+    An archive is cached by its hash. A folder is cached by its path: a file whose size and
+    modification time are unchanged is not read again, only added or changed files are. (The one
+    blind spot: a tool that rewrites a file and keeps both its size and its modification time;
+    ``use_cache=False``, the command line's ``--no-cache``, reads everything.)
+    """
+    ctl = archive_mod.Control(progress, is_cancelled)
     if pack.source_sha256:
         cache = _cache_path(pack.source_sha256)
         if cache.exists():
@@ -189,14 +285,36 @@ def build_inventory(pack: OpenedPack) -> Inventory:
                 cache.unlink(missing_ok=True)
 
     rels, skipped = _list_files(pack.root)
-    jobs = [(rel, str(pack.root / rel)) for rel in rels]
-    if len(jobs) >= POOL_THRESHOLD:
-        workers = min(8, os.cpu_count() or 1)
-        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as pool:
-            results = list(pool.map(_scan_file, jobs, chunksize=8))
-    else:
-        results = [_scan_file(j) for j in jobs]
+    folder_cache = _load_folder_cache(pack.root) if use_cache and not pack.source_sha256 else {}
+    keys: dict[str, tuple[int, int]] = {}
+    known: list[tuple[str, str, int, dict[str, Any] | None]] = []
+    jobs: list[tuple[str, str]] = []
+    for rel in rels:
+        absolute = pack.root / rel
+        keys[rel] = _stat_key(absolute)
+        entry = folder_cache.get(rel)
+        if entry and (entry.get("size"), entry.get("mtime_ns")) == keys[rel]:
+            known.append((rel, entry["sha256"], entry["size"], entry.get("image")))
+        else:
+            jobs.append((rel, str(absolute)))
+    ctl.check()
+    scanned = _scan_all(jobs, ctl, already_done=len(known), total=len(rels))
+    ctl.report("Reading files", len(rels), len(rels))
+    results = known + scanned
     results.sort(key=lambda r: (r[0].casefold(), r[0]))
+    if not pack.source_sha256:
+        _save_folder_cache(
+            pack.root,
+            {
+                rel: {
+                    "size": keys[rel][0],
+                    "mtime_ns": keys[rel][1],
+                    "sha256": digest,
+                    "image": image,
+                }
+                for rel, digest, _size, image in results
+            },
+        )
 
     files = [
         InventoryFile(
@@ -222,4 +340,7 @@ def _decode_issues(inv: Inventory) -> list[Issue]:
     for f in inv.files:
         if f.kind == "image" and f.image is None:
             issues.add("ASSET-002", file=f.path)
+    for item in inv.skipped:
+        if item.get("reason") == "link":
+            issues.add("ARCH-009", entry=item["path"])
     return list(issues)

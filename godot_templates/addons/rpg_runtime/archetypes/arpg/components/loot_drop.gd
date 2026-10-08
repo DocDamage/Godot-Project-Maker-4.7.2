@@ -18,7 +18,7 @@ func roll() -> Array[Dictionary]:
 	if def == null or def.loot == null:
 		return []
 	var state := RpgUtil.state()
-	var rng: Variant = state.get("rng") if state != null else RpgRng.new()
+	var rng: RpgRng = state.rng if state != null else RpgRng.new()
 	return def.loot.roll(rng)
 
 ## Spawns the rolled items and grants the gold. Returns the dropped items.
@@ -35,7 +35,7 @@ func drop() -> Array[Dictionary]:
 		var item_def: RpgItemDefinition = state.items.get(id)
 		if item_def != null:
 			icon = item_def.icon
-		var pickup := RpgPickup.create(id, int(items[i]["qty"]), icon)
+		var pickup := RpgPickup.create(id, RpgUtil.to_int(items[i]["qty"]), icon)
 		# Spread several drops a little so they do not stack.
 		pickup.position = actor.position + Vector2((i - (items.size() - 1) * 0.5) * 8.0, 2.0)
 		parent.add_child.call_deferred(pickup)

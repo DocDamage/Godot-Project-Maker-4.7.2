@@ -302,3 +302,30 @@ def test_the_empty_pack_list_says_what_to_drop(qtbot) -> None:
     page = ProjectPage()
     qtbot.addWidget(page)
     assert "Drop asset packs here" in page.pack_list.EMPTY_TEXT
+
+
+def test_the_default_config_hashes_no_pack_on_the_gui_thread(qtbot, tmp_path, monkeypatch) -> None:
+    import hashlib
+    import threading
+
+    from rpggen.core.orchestrator import Callbacks
+    from rpggen.gui import workers
+
+    state = state_mod.WizardState(pack_sources=[SYNTH / "basic16", SYNTH / "zipped.zip"])
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    page = ProjectPage()
+    qtbot.addWidget(page)
+    seen: list[threading.Thread] = []
+    real = hashlib.sha256
+
+    def recording(*args, **kwargs):
+        seen.append(threading.current_thread())
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(hashlib, "sha256", recording)
+    cfg = page._default_config(state)
+    assert seen == []  # not one SHA-256 on this thread
+    assert [p.source_sha256 for p in cfg.packs] == [
+        state.inventories[0].source_sha256,
+        state.opened_packs[1].source_sha256,
+    ]

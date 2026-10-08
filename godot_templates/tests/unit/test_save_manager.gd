@@ -86,9 +86,11 @@ func test_a_corrupted_main_file_falls_back_to_the_backup(t) -> void:
 	f.close()
 	var notes := []
 	RpgUtil.events().notify.connect(func(text: String) -> void: notes.append(text))
+	var english := Fixtures.install_english()
 	t.ok(save.load(1))
 	t.eq(state.gold, 11, "the backup holds the previous save")
-	t.eq(notes, ["Save was damaged; loaded backup."])
+	t.eq(notes, [RpgStrings.english("UI_SAVE_DAMAGED_LOADED_BACKUP")])
+	Fixtures.uninstall_english(english)
 	t.eq(save.header(1)["gold"], 11)
 	_cleanup(ctx[2])
 
@@ -149,11 +151,57 @@ func test_a_save_from_a_newer_version_is_refused(t) -> void:
 	f.close()
 	var notes := []
 	RpgUtil.events().notify.connect(func(text: String) -> void: notes.append(text))
+	var english := Fixtures.install_english()
 	state.gold = 0
 	t.ok(not save.load(1))
 	t.eq(state.gold, 0)
-	t.eq(notes, ["Save from newer version"])
+	t.eq(notes, [RpgStrings.english("UI_SAVE_FROM_NEWER_VERSION")])
+	Fixtures.uninstall_english(english)
 	_cleanup(ctx[2])
+
+func test_a_damaged_main_file_never_replaces_the_good_backup(t) -> void:
+	var ctx := _setup()
+	var state: Node = ctx[0]
+	var save: Node = ctx[1]
+	state.gold = 11
+	save.save(1)
+	state.gold = 22
+	save.save(1)  # main holds 22, the backup 11
+	var main: String = ctx[2] + "/slot_1.json"
+	var backup: String = ctx[2] + "/slot_1.backup.json"
+	var f := FileAccess.open(main, FileAccess.WRITE)
+	f.store_string("{ damaged")
+	f.close()
+	state.gold = 33
+	t.ok(save.save(1), "saving over a damaged file still works")
+	t.eq(save._read_verified(backup).get("gold"), 11, "the last good backup was kept")
+	t.eq(save._read_verified(main).get("gold"), 33)
+	_cleanup(ctx[2])
+
+func test_a_good_main_file_becomes_the_backup(t) -> void:
+	var ctx := _setup()
+	var state: Node = ctx[0]
+	var save: Node = ctx[1]
+	state.gold = 5
+	save.save(1)
+	state.gold = 6
+	save.save(1)
+	t.eq(save._read_verified(ctx[2] + "/slot_1.backup.json").get("gold"), 5)
+	t.eq(save._read_verified(ctx[2] + "/slot_1.json").get("gold"), 6)
+	_cleanup(ctx[2])
+
+func test_rename_replaces_an_existing_file_on_this_platform(t) -> void:
+	# The save path relies on it (probe_rename_replace.gd); every CI platform proves it here.
+	var dir := "user://test_rename_%d" % Time.get_ticks_usec()
+	DirAccess.make_dir_recursive_absolute(dir)
+	for pair in [["/a.txt", "old"], ["/b.txt", "new"]]:
+		var f := FileAccess.open(dir + pair[0], FileAccess.WRITE)
+		f.store_string(pair[1])
+		f.close()
+	t.eq(DirAccess.rename_absolute(dir + "/b.txt", dir + "/a.txt"), OK)
+	t.eq(FileAccess.get_file_as_string(dir + "/a.txt"), "new")
+	DirAccess.remove_absolute(dir + "/a.txt")
+	DirAccess.remove_absolute(dir)
 
 func test_save_leaves_no_temp_file(t) -> void:
 	var ctx := _setup()

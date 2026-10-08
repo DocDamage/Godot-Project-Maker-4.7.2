@@ -22,20 +22,31 @@ static func save_catalog(catalog: Dictionary, path: String = CATALOG_PATH) -> in
 ## value (arrays too) replaces.
 static func merge(base: Dictionary, over: Dictionary) -> Dictionary:
 	var result: Dictionary = base.duplicate(true)
-	for key in over.keys():
+	for key: Variant in over.keys():
 		var value: Variant = over[key]
 		if value == null:
 			result.erase(key)
 		elif value is Dictionary:
 			var existing: Variant = result.get(key)
-			result[key] = merge(existing if existing is Dictionary else {}, value)
+			var base_child: Dictionary = {}
+			if existing is Dictionary:
+				base_child = existing
+			var over_child: Dictionary = value
+			result[key] = merge(base_child, over_child)
 		else:
-			result[key] = value.duplicate(true) if (value is Array) else value
+			if value is Array:
+				var items: Array = value
+				result[key] = items.duplicate(true)
+			else:
+				result[key] = value
 	return result
 
 ## detected <- rule <- overrides.
 static func effective(asset: Dictionary) -> Dictionary:
-	return merge(merge(asset.get("detected", {}), asset.get("rule", {})), asset.get("overrides", {}))
+	var detected: Dictionary = asset.get("detected", {})
+	var rule: Dictionary = asset.get("rule", {})
+	var overrides: Dictionary = asset.get("overrides", {})
+	return merge(merge(detected, rule), overrides)
 
 ## Status of an asset (02_SCHEMAS.md section 4.3). CONFLICT stays until the user resolves it.
 static func recompute_status(asset: Dictionary, file_missing: bool = false, user_confirmed: bool = false) -> String:
@@ -46,8 +57,11 @@ static func recompute_status(asset: Dictionary, file_missing: bool = false, user
 	if effective(asset).get("role", "") == "NONE":
 		return "UNUSED"
 	var overrides: Variant = asset.get("overrides", {})
-	var has_overrides: bool = overrides is Dictionary and not overrides.is_empty()
-	var confidence := float(asset.get("confidence", 0.0))
+	var has_overrides := false
+	if overrides is Dictionary:
+		var override_dict: Dictionary = overrides
+		has_overrides = not override_dict.is_empty()
+	var confidence := JsonIo.to_float(asset.get("confidence", 0.0))
 	if has_overrides or confidence >= CONFIRMED_CONFIDENCE or user_confirmed:
 		return "CONFIRMED"
 	if confidence >= AUTO_CONFIDENCE:
@@ -55,7 +69,8 @@ static func recompute_status(asset: Dictionary, file_missing: bool = false, user
 	return "NEEDS_REVIEW"
 
 static func find_asset(catalog: Dictionary, id: String) -> Dictionary:
-	for a in catalog.get("assets", []):
+	var list: Array = catalog.get("assets", [])
+	for a: Dictionary in list:
 		if a["id"] == id:
 			return a
 	return {}
@@ -74,10 +89,11 @@ static func apply_overrides(catalog: Dictionary, asset_id: String, changes: Dict
 	var asset := find_asset(catalog, asset_id)
 	if asset.is_empty():
 		return ""
-	var merged := merge(asset.get("overrides", {}), changes)
+	var current: Dictionary = asset.get("overrides", {})
+	var merged := merge(current, changes)
 	asset["overrides"] = merged
 	asset["status"] = recompute_status(asset)
-	return String(asset["status"])
+	return JsonIo.to_str(asset["status"])
 
 ## Replaces fields of a sheet object (role, tags, collision, origin, footprint ...). An edited
 ## object is the user's: source "user", status CONFIRMED. Returns false for an unknown object.
@@ -86,7 +102,7 @@ static func apply_object_changes(catalog: Dictionary, object_id: String, changes
 	if index < 0:
 		return false
 	var obj: Dictionary = catalog["objects"][index]
-	for key in changes.keys():
+	for key: Variant in changes.keys():
 		if changes[key] == null:
 			obj.erase(key)
 		else:
@@ -102,6 +118,8 @@ static func entity_allocations(catalog: Dictionary, map_id: String) -> Dictionar
 	var alloc: Dictionary = catalog["id_allocations"]
 	if not (alloc.get("entities") is Dictionary):
 		alloc["entities"] = {}
-	if not (alloc["entities"].get(map_id) is Dictionary):
-		alloc["entities"][map_id] = {}
-	return alloc["entities"][map_id]
+	var by_map: Dictionary = alloc["entities"]
+	if not (by_map.get(map_id) is Dictionary):
+		by_map[map_id] = {}
+	var allocation: Dictionary = by_map[map_id]
+	return allocation

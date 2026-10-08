@@ -18,3 +18,6 @@ validation_runs/
 # local Godot install
 Godot_v*/
 Godot_v*.exe
+perf.json
+private_corpus_report.json
+private_corpus_report.md

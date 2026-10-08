@@ -11,18 +11,19 @@ const ValidatorPanel := preload("validator_panel.gd")
 const DemoTools := preload("demo_tools.gd")
 const Rebuild := preload("../tools/rebuild.gd")
 const CatalogEdit := preload("../tools/catalog_edit.gd")
+const JsonIo := preload("../tools/json_io.gd")
 
 const ICON_SIZE := 48
 ## Seconds a drag stays armed after it ended: the editor adds the dropped scene a moment later.
 const DROP_WINDOW := 1.5
-const SNAP_CHOICES := ["Off", "8", "Tile", "32", "Custom"]
+const SNAP_CHOICES: Array[String] = ["Off", "8", "Tile", "32", "Custom"]
 
 var plugin: EditorPlugin = null
 var placement := Placement.new()
 
 var _built := false
-var _entries: Array = []
-var _shown: Array = []
+var _entries: Array[Dictionary] = []
+var _shown: Array[Dictionary] = []
 var _icons: Dictionary = {}  # scene path -> Texture2D
 var _fingerprint := ""
 var _catalog: Dictionary = {}
@@ -213,10 +214,11 @@ func _refresh_list() -> void:
 	_list.clear()
 	_shown = Index.filter(_entries, _search.text, _category.get_item_text(_category.selected))
 	for e in _shown:
-		var scene_path := String(e["scene_path"])
+		var scene_path := JsonIo.to_str(e["scene_path"])
 		if not _icons.has(scene_path):
 			_icons[scene_path] = Index.icon_of(scene_path)
-		var i := _list.add_item(String(e["name"]), _icons[scene_path])
+		var icon: Texture2D = _icons[scene_path]
+		var i := _list.add_item(JsonIo.to_str(e["name"]), icon)
 		_list.set_item_metadata(i, scene_path)
 		_list.set_item_tooltip(i, "%s\n%s" % [e["id"], scene_path])
 	_set_status("%d of %d assets." % [_shown.size(), _entries.size()])
@@ -250,9 +252,10 @@ func _apply_settings() -> void:
 
 ## The map tile size (the overworld tile set's), 16 when unknown.
 func _tile_size() -> int:
-	for def in _catalog.get("tilesets", []):
+	var tilesets: Array = _catalog.get("tilesets", [])
+	for def: Dictionary in tilesets:
 		if def.get("name", "") == "overworld":
-			return int(def["tile_size"][0])
+			return JsonIo.to_int(def["tile_size"][0])
 	return 16
 
 # ---------------------------------------------------------------- placement
@@ -279,9 +282,10 @@ func _process_selection() -> void:
 		_armed_scene = ""
 	if root != null and _armed_scene != "" and plugin != null:
 		for node in nodes:
-			if node is Node2D and node != root and node.scene_file_path == _armed_scene and not _handled.has(node.get_instance_id()) and root.is_ancestor_of(node):
+			var dropped := node as Node2D
+			if dropped != null and node != root and node.scene_file_path == _armed_scene and not _handled.has(node.get_instance_id()) and root.is_ancestor_of(node):
 				_handled[node.get_instance_id()] = true
-				_fix_dropped(node, root)
+				_fix_dropped(dropped, root)
 	if not nodes.is_empty() and nodes[0].scene_file_path != _armed_scene:
 		_previous_selection = nodes[0]
 
@@ -296,8 +300,8 @@ func _fix_dropped(node: Node2D, root: Node) -> void:
 	var entry := _entry_for_scene(node.scene_file_path)
 	var selected: Node = _previous_selection if is_instance_valid(_previous_selection) else null
 	var p := placement.plan(node, root, entry, selected)
-	placement.apply(p, node, root, plugin.get_undo_redo(), String(entry["name"]))
-	_set_status("Placed %s%s." % [entry["name"], " as " + String(p["entity_id"]) if String(p["entity_id"]) != "" else ""])
+	placement.apply(p, node, root, plugin.get_undo_redo(), JsonIo.to_str(entry["name"]))
+	_set_status("Placed %s%s." % [entry["name"], " as " + JsonIo.to_str(p["entity_id"]) if JsonIo.to_str(p["entity_id"]) != "" else ""])
 
 func _on_item_activated(index: int) -> void:
 	var root := EditorInterface.get_edited_scene_root()
@@ -321,10 +325,11 @@ func _on_item_activated(index: int) -> void:
 func regenerate_now() -> void:
 	_set_status("Regenerating: running the builder…")
 	var result := Rebuild.regenerate()
+	var issue_list: Array = result["issues"]
 	var errors := 0
 	var warnings := 0
-	for issue in result["issues"]:
-		match String(issue.get("severity", "")):
+	for issue: Dictionary in issue_list:
+		match JsonIo.to_str(issue.get("severity", "")):
 			"error":
 				errors += 1
 			"warning":
@@ -333,11 +338,11 @@ func regenerate_now() -> void:
 		_set_status("Regenerated. %d warning(s)." % warnings)
 	else:
 		var first := ""
-		for issue in result["issues"]:
+		for issue: Dictionary in issue_list:
 			if issue.get("severity", "") == "error":
-				first = String(issue.get("message", ""))
+				first = JsonIo.to_str(issue.get("message", ""))
 				break
-		_set_status("The build failed (%d error(s)): %s" % [errors, first if first != "" else "exit code %d, see rpggen/results/build_results.json" % int(result["exit_code"])])
+		_set_status("The build failed (%d error(s)): %s" % [errors, first if first != "" else "exit code %d, see rpggen/results/build_results.json" % JsonIo.to_int(result["exit_code"])])
 	rescan()
 
 func _open_generator() -> void:
@@ -350,5 +355,9 @@ func _remove_demo() -> void:
 	if plugin == null:
 		return
 	var result := DemoTools.new().remove(plugin)
-	_set_status(" ".join(PackedStringArray(result["messages"])) if not result["messages"].is_empty() else "There was no demo content to remove.")
+	var messages: Array = result["messages"]
+	if messages.is_empty():
+		_set_status("There was no demo content to remove.")
+	else:
+		_set_status(" ".join(PackedStringArray(messages)))
 	rescan()

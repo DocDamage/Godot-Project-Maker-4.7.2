@@ -29,11 +29,11 @@ const SkillCommand := preload("commands/skill_command.gd")
 const RunCommand := preload("commands/run_command.gd")
 
 var data: RpgEncounterData
-## RpgRng (GameState.rng); anything with randf(), randf_range(), randi_range() and pick().
-var rng: Variant = null
-## Optional UI node: request_command(actor, battle) -> Dictionary, show_log(entries),
+## GameState.rng; tests hand over a subclass with fixed rolls.
+var rng: RpgRng = null
+## Optional UI: request_command(actor, battle) -> Dictionary, show_log(entries),
 ## show_message(text) and show_rewards(result, level_ups); all of them may await.
-var ui: Node = null
+var ui: RpgBattleUi = null
 ## Replaces the UI: called as auto_choose.call(actor, battle), returns {command_id, target_index}
 ## (target_index counts the living candidates of that command).
 var auto_choose: Callable = Callable()
@@ -52,7 +52,7 @@ var _choices: Dictionary = {}  # actor -> {command, targets, item_id}
 var _state_node: Node = null
 
 ## Builds the battlers from the encounter data and GameState.
-func setup(p_data: RpgEncounterData, p_rng: Variant = null) -> void:
+func setup(p_data: RpgEncounterData, p_rng: RpgRng = null) -> void:
 	data = p_data
 	_state_node = RpgUtil.state()
 	rng = p_rng
@@ -95,8 +95,8 @@ static func load_commands() -> Array[RpgBattleCommand]:
 			out.append(by_id[command_id])
 		else:
 			out.append(_builtin(command_id))
-	var extra: Array = []
-	for command_id in by_id.keys():
+	var extra: Array[StringName] = []
+	for command_id: StringName in by_id.keys():
 		if not COMMAND_ORDER.has(command_id):
 			extra.append(command_id)
 	extra.sort()
@@ -145,7 +145,8 @@ static func _one(actor: RpgBattleActor) -> Array[RpgBattleActor]:
 ## The inventory an actor's items come from: GameState's for the player side, its own for enemies.
 func inventory_of(actor: RpgBattleActor) -> RpgInventory:
 	if actor.is_player_side and _state_node != null:
-		return _state_node.get("inventory") as RpgInventory
+		var inventory: RpgInventory = _state_node.get("inventory")
+		return inventory
 	return actor.inventory
 
 ## Who a command can be aimed at, for `actor`.
@@ -232,7 +233,10 @@ func _choose_player(actor: RpgBattleActor) -> Dictionary:
 		raw = auto_choose.call(actor, self)
 	elif ui != null:
 		raw = await ui.request_command(actor, self)
-	return _sanitize(actor, raw if raw is Dictionary else {})
+	var chosen: Dictionary = {}
+	if raw is Dictionary:
+		chosen = raw
+	return _sanitize(actor, chosen)
 
 ## Turns {command_id, target_index, item_id} into a usable choice. Anything unknown or not
 ## allowed becomes a plain attack on the first enemy.
@@ -242,7 +246,7 @@ func _sanitize(actor: RpgBattleActor, raw: Dictionary) -> Dictionary:
 		command = command_by_id(&"attack")
 		raw = {}
 	var list := candidates(actor, command)
-	var index := clampi(int(raw.get("target_index", 0)), 0, maxi(0, list.size() - 1))
+	var index := clampi(RpgUtil.to_int(raw.get("target_index", 0)), 0, maxi(0, list.size() - 1))
 	var picked: Array[RpgBattleActor] = []
 	if command.targets == RpgBattleCommand.TARGET_ALL_ENEMIES:
 		picked = list
@@ -264,22 +268,22 @@ func _choose_enemy(actor: RpgBattleActor) -> Dictionary:
 	if command.targets == RpgBattleCommand.TARGET_SELF:
 		picked = _one(actor)
 	else:
-		var target: Variant = rng.pick(candidates(actor, command))
+		var target: RpgBattleActor = rng.pick(candidates(actor, command))
 		if target != null:
-			picked = _one(target as RpgBattleActor)
+			picked = _one(target)
 	return {"command": command, "targets": picked, "item_id": &""}
 
 func _roll_weighted(weights: Dictionary) -> StringName:
 	var keys: Array = weights.keys()
 	keys.sort()
 	var total := 0.0
-	for k in keys:
-		total += maxf(0.0, float(weights[k]))
+	for k: Variant in keys:
+		total += maxf(0.0, RpgUtil.to_float(weights[k]))
 	if total <= 0.0:
 		return &"attack"
 	var roll: float = rng.randf() * total
-	for k in keys:
-		roll -= maxf(0.0, float(weights[k]))
+	for k: Variant in keys:
+		roll -= maxf(0.0, RpgUtil.to_float(weights[k]))
 		if roll < 0.0:
 			return StringName(str(k))
 	return StringName(str(keys[keys.size() - 1]))
@@ -288,24 +292,26 @@ func _heal_item(actor: RpgBattleActor) -> StringName:
 	if actor.inventory == null:
 		return &""
 	for slot in actor.inventory.slots:
-		var def := actor.inventory.definition(slot["item_id"])
-		if def != null and def.use_effect == &"heal" and int(slot["qty"]) > 0:
-			return slot["item_id"]
+		var item_id: StringName = slot["item_id"]
+		var def := actor.inventory.definition(item_id)
+		if def != null and def.use_effect == &"heal" and RpgUtil.to_int(slot["qty"]) > 0:
+			return item_id
 	return &""
 
 # ---------------------------------------------------------------- executing
 
 func _execute_round() -> void:
 	var entries: Array = []
-	for actor in _choices.keys():
+	for actor: RpgBattleActor in _choices.keys():
 		entries.append({"actor": actor, "command": _choices[actor]["command"]})
-	for entry in RpgTurnManager.order(entries):
+	for entry: Dictionary in RpgTurnManager.order(entries):
 		var actor: RpgBattleActor = entry["actor"]
 		if not actor.alive:
 			continue
 		var choice: Dictionary = _choices[actor]
 		var command: RpgBattleCommand = choice["command"]
-		var targets := _live_targets(actor, command, choice["targets"])
+		var chosen: Array[RpgBattleActor] = choice["targets"]
+		var targets := _live_targets(actor, command, chosen)
 		actor.chosen_item = choice["item_id"]
 		var log_entries := command.execute(actor, targets, self)
 		actor.chosen_item = &""
@@ -340,8 +346,8 @@ func _victory() -> void:
 		result.gold += def.gold_reward
 		if def.loot != null:
 			for drop in def.loot.roll(rng):
-				loot[drop["item_id"]] = int(loot.get(drop["item_id"], 0)) + int(drop["qty"])
-	for item_id in loot.keys():
+				loot[drop["item_id"]] = RpgUtil.to_int(loot.get(drop["item_id"], 0)) + RpgUtil.to_int(drop["qty"])
+	for item_id: Variant in loot.keys():
 		result.items.append({"item_id": item_id, "qty": loot[item_id]})
 	_apply_rewards()
 	if ui != null and not _auto_active():
@@ -355,15 +361,16 @@ func _apply_rewards() -> void:
 			level_ups.append({"actor": member, "level": before + gained})
 			RpgUtil.notify(RpgBattleText.t("BATTLE_LEVEL_UP", [member.display_name, before + gained]))
 	if _state_node != null:
-		_state_node.set("gold", int(_state_node.get("gold")) + result.gold)
-		var inv := _state_node.get("inventory") as RpgInventory
+		_state_node.set("gold", RpgUtil.to_int(_state_node.get("gold")) + result.gold)
+		var inv: RpgInventory = _state_node.get("inventory")
 		for drop in result.items:
-			inv.add(drop["item_id"], int(drop["qty"]))
+			var drop_id: StringName = drop["item_id"]
+			inv.add(drop_id, RpgUtil.to_int(drop["qty"]))
 
 ## The live player goes through GameState so experience_gained / level_up are emitted.
 func _grant_xp(member: RpgBattleActor, xp: int) -> int:
 	if _state_node != null and _state_node.get("player_stats") == member.stats:
-		return int(_state_node.call("give_experience", xp))
+		return RpgUtil.to_int(_state_node.call("give_experience", xp))
 	return member.stats.add_experience(xp)
 
 func _show_message(text: String) -> void:
@@ -380,33 +387,38 @@ func _build_party() -> Array[RpgBattleActor]:
 	if ResourceLoader.exists(HERO_PATH):
 		hero = load(HERO_PATH) as RpgActorDefinition
 	var hero_name := hero.display_name if hero != null and hero.display_name != "" else "Hero"
-	var player := RpgBattleActor.make(_state_node.get("player_actor_id"), hero_name, _state_node.get("player_stats"), true)
+	var player_id: StringName = _state_node.get("player_actor_id")
+	var player_stats: RpgStats = _state_node.get("player_stats")
+	var player := RpgBattleActor.make(player_id, hero_name, player_stats, true)
 	if hero != null:
 		player.sprite_frames = hero.sprite_frames
 		player.portrait = hero.portrait
 	out.append(player)
-	for member in _state_node.get("party"):
+	var members: Array = _state_node.get("party")
+	for member: Dictionary in members:
 		if out.size() >= MAX_PER_SIDE:
 			break
-		out.append(RpgBattleActor.make(member["actor_id"], String(member["actor_id"]).capitalize(), member["stats"], true))
+		var member_id: StringName = member["actor_id"]
+		var member_stats: RpgStats = member["stats"]
+		out.append(RpgBattleActor.make(member_id, String(member_id).capitalize(), member_stats, true))
 	return out
 
 func _build_enemies(defs: Array) -> Array[RpgBattleActor]:
 	var out: Array[RpgBattleActor] = []
 	var totals: Dictionary = {}
-	for d in defs:
-		totals[d] = int(totals.get(d, 0)) + 1
+	for d: RpgEnemyDefinition in defs:
+		totals[d] = RpgUtil.to_int(totals.get(d, 0)) + 1
 	var seen: Dictionary = {}
-	for d in defs:
+	for d: RpgEnemyDefinition in defs:
 		if out.size() >= MAX_PER_SIDE:
 			break
-		var def := d as RpgEnemyDefinition
+		var def := d
 		if def == null:
 			continue
-		var n := int(seen.get(def, 0))
+		var n := RpgUtil.to_int(seen.get(def, 0))
 		seen[def] = n + 1
 		var base_name := def.display_name if def.display_name != "" else String(def.id).capitalize()
-		var suffix := "" if int(totals[def]) == 1 else " " + char(65 + n)
+		var suffix := "" if RpgUtil.to_int(totals[def]) == 1 else " " + char(65 + n)
 		var stats := RpgStats.new()
 		if def.base_stats != null:
 			stats = def.base_stats.duplicate(true) as RpgStats
@@ -416,7 +428,8 @@ func _build_enemies(defs: Array) -> Array[RpgBattleActor]:
 		actor.sprite_frames = def.sprite_frames
 		actor.portrait = def.portrait
 		actor.behavior = def.behavior.duplicate(true)
-		_give_items(actor, def.behavior.get("items", []))
+		var pockets: Array = def.behavior.get("items", [])
+		_give_items(actor, pockets)
 		out.append(actor)
 	return out
 
@@ -426,8 +439,12 @@ func _give_items(actor: RpgBattleActor, items: Array) -> void:
 	actor.inventory = RpgInventory.new()
 	if _state_node != null:
 		actor.inventory.registry = _state_node.get("items")
-	for entry in items:  # slots are filled directly: an enemy's pockets are not news for the bus
-		var item_id := StringName(str(entry.get("item_id", ""))) if entry is Dictionary else StringName(str(entry))
-		var qty := int(entry.get("qty", 1)) if entry is Dictionary else 1
+	for entry: Variant in items:  # slots are filled directly: an enemy's pockets are not news for the bus
+		var item_id := StringName(str(entry))
+		var qty := 1
+		if entry is Dictionary:
+			var pocket: Dictionary = entry
+			item_id = StringName(str(pocket.get("item_id", "")))
+			qty = RpgUtil.to_int(pocket.get("qty", 1))
 		if item_id != &"" and qty > 0:
 			actor.inventory.slots.append({"item_id": item_id, "qty": qty})

@@ -14,11 +14,11 @@ const TARGET_ALL_ENEMIES := 3
 @export var targets: int = TARGET_ONE_ENEMY
 @export var priority: int = 0  # higher acts first within a round (Defend uses 10)
 
-func can_use(_user: RpgBattleActor, _battle: Variant) -> bool:
+func can_use(_user: RpgBattleActor, _battle: RpgBattleController) -> bool:
 	return true
 
 ## Returns log entries: [{type: "damage"|"heal"|"text"|"status", target, amount, text}].
-func execute(_user: RpgBattleActor, _targets: Array[RpgBattleActor], _battle: Variant) -> Array[Dictionary]:
+func execute(_user: RpgBattleActor, _targets: Array[RpgBattleActor], _battle: RpgBattleController) -> Array[Dictionary]:
 	return []
 
 ## A log entry with the optional fields filled in.

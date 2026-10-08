@@ -46,7 +46,7 @@ func _process(_delta: float) -> void:
 	var router := RpgUtil.router()
 	var lines: PackedStringArray = ["FPS %d" % Engine.get_frames_per_second()]
 	if router != null and router.get("current_map") != null:
-		var map := router.get("current_map") as RpgMapRoot
+		var map := router.current_map
 		lines.append("map %s" % map.map_id)
 		var player := map.get_player()
 		if player != null:
@@ -100,7 +100,7 @@ func run_command(text: String) -> String:
 		"tp":
 			if parts.size() < 2 or router == null or router.get("current_map") == null:
 				return "usage: tp <spawn_id> (inside a map)"
-			var map := router.get("current_map") as RpgMapRoot
+			var map := router.current_map
 			var spawn := map.get_spawn(StringName(parts[1]))
 			var player := map.get_player()
 			if spawn == null or player == null or spawn.spawn_id != StringName(parts[1]):
@@ -115,7 +115,7 @@ func run_command(text: String) -> String:
 			return "collision shapes %s (affects shapes created from now on)" % ("on" if tree.debug_collisions_hint else "off")
 	return "unknown command (help)"
 
-func _start_test_encounter(router: Node) -> String:
+func _start_test_encounter(router: RpgSceneRouter) -> String:
 	if router == null or router.get("combat") == null:
 		return "no combat mode in this game"
 	var enemy: RpgEnemyDefinition = null
@@ -128,7 +128,7 @@ func _start_test_encounter(router: Node) -> String:
 	var data := RpgEncounterData.new()
 	data.enemies = [enemy]
 	data.entity_id = "debug_encounter"
-	router.get("combat").call("start_encounter", data)
+	router.combat.start_encounter(data)
 	return "encounter started"
 
 func _enemy_paths() -> Array[String]:

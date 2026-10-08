@@ -19,30 +19,33 @@ const LEDGER_PATH := "res://rpggen/ownership_ledger.json"
 const DOOR_SUFFIX := "/world/door.gd"
 ## The ids the recipes give the demo entities; used when rpggen/demo_entities.json is missing
 ## (a project generated before M8).
-const DEFAULT_IDS := ["starter_map_npc_001", "starter_map_chest_001", "starter_map_enemy_001"]
+const DEFAULT_IDS: Array[String] = ["starter_map_npc_001", "starter_map_chest_001", "starter_map_enemy_001"]
 
 ## The ids of the demo entities: rpggen/demo_entities.json, else the defaults.
 static func demo_ids(entities_json: Variant = null) -> Array:
 	var data: Variant = entities_json if entities_json != null else JsonIo.read(DEMO_ENTITIES_PATH)
-	if data is Dictionary and data.get("entities") is Array:
-		return data["entities"].duplicate()
+	if data is Dictionary:
+		var table: Dictionary = data
+		if table.get("entities") is Array:
+			var listed: Array = table["entities"]
+			return listed.duplicate()
 	return DEFAULT_IDS.duplicate()
 
 ## The nodes below `root` whose entity_id is one of `ids`.
-static func demo_nodes(root: Node, ids: Array) -> Array:
-	var out: Array = []
+static func demo_nodes(root: Node, ids: Array) -> Array[Node]:
+	var out: Array[Node] = []
 	for node in EntityIds.entity_nodes(root):
 		if ids.has(str(node.get("entity_id"))):
 			out.append(node)
 	return out
 
 ## Door nodes below `root` whose target_map is `target`.
-static func doors_targeting(root: Node, target: String) -> Array:
-	var out: Array = []
-	var stack: Array = [root]
+static func doors_targeting(root: Node, target: String) -> Array[Node]:
+	var out: Array[Node] = []
+	var stack: Array[Node] = [root]
 	while not stack.is_empty():
 		var node: Node = stack.pop_back()
-		var script := node.get_script() as Script
+		var script: Script = node.get_script()
 		if script != null and script.resource_path.ends_with(DOOR_SUFFIX) and str(node.get("target_map")) == target:
 			out.append(node)
 		stack.append_array(node.get_children())
@@ -53,15 +56,19 @@ static func untouched(ledger: Dictionary, res_path: String) -> bool:
 	var files: Variant = ledger.get("files")
 	if not (files is Dictionary):
 		return false
-	var entry: Variant = files.get(res_path.trim_prefix("res://"))
-	return entry is Dictionary and FileHash.file_hash(res_path) == String(entry.get("sha256", ""))
+	var table: Dictionary = files
+	var entry: Variant = table.get(res_path.trim_prefix("res://"))
+	if not (entry is Dictionary):
+		return false
+	var recorded: Dictionary = entry
+	return FileHash.file_hash(res_path) == JsonIo.to_str(recorded.get("sha256", ""))
 
 ## The ledger after the removal: demo_removed set, the removed files recorded as user deletions.
 static func updated_ledger(ledger: Dictionary, removed: Array) -> Dictionary:
 	var out := ledger.duplicate(true)
 	out["demo_removed"] = true
 	var deleted: Array = out.get("deleted_by_user", [])
-	for rel in removed:
+	for rel: Variant in removed:
 		if not deleted.has(rel):
 			deleted.append(rel)
 	deleted.sort()
@@ -69,8 +76,8 @@ static func updated_ledger(ledger: Dictionary, removed: Array) -> Dictionary:
 	return out
 
 ## Every file below a directory (res:// paths), recursive.
-static func files_below(dir_path: String) -> Array:
-	var out: Array = []
+static func files_below(dir_path: String) -> Array[String]:
+	var out: Array[String] = []
 	var dir := DirAccess.open(dir_path)
 	if dir == null:
 		return out
@@ -93,49 +100,54 @@ static func _remove_dir(dir_path: String) -> void:
 ## Removes the demo. Returns {nodes, files, messages}: how many map nodes were removed, the
 ## res:// files deleted and a line per step for the status label.
 func remove(plugin: EditorPlugin) -> Dictionary:
-	var result := {"nodes": 0, "files": [], "messages": []}
+	var files_deleted: Array[String] = []
+	var messages: Array[String] = []
 	var ledger_data: Variant = JsonIo.read(LEDGER_PATH)
-	var ledger: Dictionary = ledger_data if ledger_data is Dictionary else {}
-	var removed_rels: Array = []
+	var ledger: Dictionary = {}
+	if ledger_data is Dictionary:
+		ledger = ledger_data
+	var removed_rels: Array[String] = []
 	for f in files_below(DEMO_DIR):
-		result["files"].append(f)
-		removed_rels.append(String(f).trim_prefix("res://"))
+		files_deleted.append(f)
+		removed_rels.append(f.trim_prefix("res://"))
 	_remove_dir(DEMO_DIR)
-	if not result["files"].is_empty():
-		result["messages"].append("Deleted game/demo/ (%d files)." % result["files"].size())
+	if not files_deleted.is_empty():
+		messages.append("Deleted game/demo/ (%d files)." % files_deleted.size())
 	var interior_removed := false
 	if FileAccess.file_exists(INTERIOR_PATH):
 		if untouched(ledger, INTERIOR_PATH):
 			DirAccess.remove_absolute(INTERIOR_PATH)
 			interior_removed = true
-			result["files"].append(INTERIOR_PATH)
+			files_deleted.append(INTERIOR_PATH)
 			removed_rels.append(INTERIOR_PATH.trim_prefix("res://"))
-			result["messages"].append("Removed interior_1.tscn.")
+			messages.append("Removed interior_1.tscn.")
 		else:
-			result["messages"].append("Kept interior_1.tscn: it was changed.")
+			messages.append("Kept interior_1.tscn: it was changed.")
 	# The doors that led to a removed map are cleared (an unset door is not an error), which also
 	# closes the gap in the east wall of the starter map.
-	var cleared: Array = [INTERIOR_PATH] if interior_removed else []
+	var cleared: Array[String] = []
+	if interior_removed:
+		cleared.append(INTERIOR_PATH)
 	if FileAccess.file_exists(FIELD_PATH):
 		if untouched(ledger, FIELD_PATH):
 			DirAccess.remove_absolute(FIELD_PATH)
 			cleared.append(FIELD_PATH)
-			result["files"].append(FIELD_PATH)
+			files_deleted.append(FIELD_PATH)
 			removed_rels.append(FIELD_PATH.trim_prefix("res://"))
-			result["messages"].append("Removed field_1.tscn.")
+			messages.append("Removed field_1.tscn.")
 		else:
-			result["messages"].append("Kept field_1.tscn: it was changed.")
-	result["nodes"] = _remove_map_nodes(plugin, cleared)
-	if result["nodes"] > 0:
-		result["messages"].append("Removed %d demo entities from the starter map." % result["nodes"])
-	_empty_start_items(result)
+			messages.append("Kept field_1.tscn: it was changed.")
+	var nodes_removed := _remove_map_nodes(plugin, cleared)
+	if nodes_removed > 0:
+		messages.append("Removed %d demo entities from the starter map." % nodes_removed)
+	_empty_start_items(messages)
 	JsonIo.write(LEDGER_PATH, updated_ledger(ledger, removed_rels))
 	EditorInterface.get_resource_filesystem().scan()
-	return result
+	return {"nodes": nodes_removed, "files": files_deleted, "messages": messages}
 
 ## Takes the demo entities out of the starter map with undo and saves the map. The doors that led
 ## to a removed map (`cleared_targets`) are cleared.
-func _remove_map_nodes(plugin: EditorPlugin, cleared_targets: Array) -> int:
+func _remove_map_nodes(plugin: EditorPlugin, cleared_targets: Array[String]) -> int:
 	if not FileAccess.file_exists(MAP_PATH):
 		return 0
 	var root := EditorInterface.get_edited_scene_root()
@@ -145,12 +157,12 @@ func _remove_map_nodes(plugin: EditorPlugin, cleared_targets: Array) -> int:
 	if root == null:
 		return 0
 	var nodes := demo_nodes(root, demo_ids())
-	var doors: Array = []
+	var doors: Array[Node] = []
 	var door_targets := {}  # door -> the map it led to
-	for target in cleared_targets:
-		for door in doors_targeting(root, String(target)):
+	for target: String in cleared_targets:
+		for door in doors_targeting(root, JsonIo.to_str(target)):
 			doors.append(door)
-			door_targets[door] = String(target)
+			door_targets[door] = JsonIo.to_str(target)
 	if nodes.is_empty() and doors.is_empty():
 		return 0
 	var undo := plugin.get_undo_redo()
@@ -169,12 +181,18 @@ func _remove_map_nodes(plugin: EditorPlugin, cleared_targets: Array) -> int:
 	return nodes.size()
 
 ## new_game.tres starts without items.
-func _empty_start_items(result: Dictionary) -> void:
+func _empty_start_items(messages: Array[String]) -> void:
 	if not FileAccess.file_exists(NEW_GAME_PATH):
 		return
 	var ng := ResourceLoader.load(NEW_GAME_PATH, "", ResourceLoader.CACHE_MODE_IGNORE)
-	if ng == null or ng.get("items") == null or ng.get("items").is_empty():
+	if ng == null:
 		return
-	ng.get("items").clear()
+	var raw_items: Variant = ng.get("items")
+	var items: Array = []
+	if raw_items is Array:
+		items = raw_items
+	if items.is_empty():
+		return
+	items.clear()
 	if ResourceSaver.save(ng, NEW_GAME_PATH) == OK:
-		result["messages"].append("The new game starts without items.")
+		messages.append("The new game starts without items.")

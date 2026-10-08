@@ -31,7 +31,7 @@ static func center_panel(root: Control, min_size: Vector2 = Vector2(220, 0)) -> 
 	center.add_child(panel)
 	var margin := MarginContainer.new()
 	margin.name = "Margin"
-	for side in ["left", "top", "right", "bottom"]:
+	for side: String in ["left", "top", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 8)
 	panel.add_child(margin)
 	var box := VBoxContainer.new()
@@ -65,9 +65,9 @@ static func button(parent: Node, node_name: String, text_key: String) -> Button:
 static func wire_vertical(controls: Array) -> void:
 	var n := controls.size()
 	for i in n:
-		var c := controls[i] as Control
-		var prev := controls[(i - 1 + n) % n] as Control
-		var nxt := controls[(i + 1) % n] as Control
+		var c: Control = controls[i]
+		var prev: Control = controls[(i - 1 + n) % n]
+		var nxt: Control = controls[(i + 1) % n]
 		c.focus_neighbor_top = c.get_path_to(prev)
 		c.focus_neighbor_bottom = c.get_path_to(nxt)
 		c.focus_neighbor_left = c.get_path_to(c)

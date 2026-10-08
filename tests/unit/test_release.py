@@ -160,3 +160,77 @@ def test_the_screenshots_match_the_files_the_guide_uses() -> None:
 
 def test_the_application_changelog_has_the_current_version() -> None:
     assert f"## {rpggen.__version__}" in _read("CHANGELOG.md")
+
+
+# ------------------------------------------------------------------------ hygiene (T12.15)
+
+
+def test_every_third_party_action_is_pinned_to_a_full_commit_sha() -> None:
+    sha = re.compile(r"^[0-9a-f]{40}$")
+    found = 0
+    for path in sorted((REPO / ".github" / "workflows").glob("*.yml")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            match = re.match(r"\s*(?:-\s*)?uses:\s*(\S+)", line)
+            if not match or match.group(1).startswith("./"):
+                continue  # a workflow of this repository is not third-party
+            found += 1
+            name, _, ref = match.group(1).partition("@")
+            assert sha.match(ref), f"{path.name}: {name} is pinned to {ref!r}, not a commit SHA"
+            assert "#" in line, f"{path.name}: {name} has no tag comment next to its SHA"
+    assert found >= 10
+
+
+def test_dependabot_keeps_the_actions_current_every_week() -> None:
+    text = _read(".github/dependabot.yml")
+    assert 'package-ecosystem: "github-actions"' in text and 'interval: "weekly"' in text
+
+
+def _normalized(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def test_the_lock_file_names_every_dependency_of_pyproject() -> None:
+    pyproject = _read("pyproject.toml")
+    runtime = re.search(r"dependencies = \[(.*?)\]", pyproject, re.S).group(1)
+    dev = re.search(r"^dev = \[(.*?)\]", pyproject, re.S | re.M).group(1)
+    wanted = {_normalized(m) for m in re.findall(r'"([A-Za-z0-9_.-]+)', runtime + dev)}
+    lock = _read("requirements/release.txt")
+    pinned = {_normalized(m) for m in re.findall(r"^([A-Za-z0-9_.-]+)==", lock, re.M)}
+    assert wanted <= pinned, sorted(wanted - pinned)
+    assert "--hash=sha256:" in lock and "setuptools==" in lock  # hashed, and setuptools pinned too
+    assert "--generate-hashes" in lock.splitlines()[4] and "--extra=dev" in lock.splitlines()[4]
+
+
+def test_the_release_runs_the_whole_ci_first_and_installs_from_the_lock() -> None:
+    release = _read(".github/workflows/release.yml")
+    assert "uses: ./.github/workflows/ci.yml" in release and "needs: ci" in release
+    assert "pip install --require-hashes -r requirements/release.txt" in release
+    assert "pip install --no-build-isolation --no-deps -e ." in release
+    assert "pip install -e .[dev]" not in release
+    ci = _read(".github/workflows/ci.yml")
+    assert "workflow_call:" in ci
+    assert (
+        "pip-compile --generate-hashes" in ci
+        and "git diff --exit-code requirements/release.txt" in ci
+    )
+
+
+def test_a_tag_build_stops_while_the_coverage_tables_are_pending() -> None:
+    release = _read(".github/workflows/release.yml")
+    gate = release[release.index("The 1.0 gate") :]
+    assert "github.ref_type == 'tag'" in gate.split("run:")[0]
+    assert "docs/coverage.md" in gate and "(pending)" in gate and "exit 1" in gate
+
+
+def test_contributing_does_not_tell_anyone_to_copy_a_file_onto_itself() -> None:
+    text = _read("CONTRIBUTING.md")
+    assert "and copy it to" not in text
+    assert "1. Add the row to `docs/spec/03_ERROR_CODES.md`." in text
+
+
+def test_pyside6_has_an_upper_bound_and_ci_tests_the_oldest_and_the_newest() -> None:
+    assert '"PySide6>=6.7,<7"' in _read("pyproject.toml")
+    ci = _read(".github/workflows/ci.yml")
+    assert 'pyside: ["6.7.*", "latest"]' in ci and "fail-fast: false" in ci
+    assert 'pip install "PySide6==${{ matrix.pyside }}"' in ci
+    assert "tests/gui" in ci

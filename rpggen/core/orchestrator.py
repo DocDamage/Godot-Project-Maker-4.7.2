@@ -4,12 +4,13 @@ import logging
 import os
 import shutil
 import time
+import traceback
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from rpggen import __version__, ids, jsonio, paths
+from rpggen import __version__, ids, jsonio, logging_setup, paths
 from rpggen.core import (
     archive,
     export_check,
@@ -69,6 +70,9 @@ class Callbacks:
     on_phase: Callable[[str, int, int], None] = lambda name, i, n: None  # phase i of n
     on_log: Callable[[str], None] = lambda line: None
     is_cancelled: Callable[[], bool] = lambda: False
+    on_skip: Callable[[str, str], None] = lambda phase, code: None  # a check that did not run
+    # progress inside a Godot phase: (phase, i, n, label); n is 0 when only a label is known
+    on_step: Callable[[str, int, int, str], None] = lambda phase, i, n, label: None
 
 
 @dataclass
@@ -83,6 +87,8 @@ class RunResult:
     cfg: config_mod.GeneratorConfig | None = None
     cancelled: bool = False
     timings: dict[str, float] = field(default_factory=dict)  # seconds per phase (never in a file)
+    skipped: dict[str, str] = field(default_factory=dict)  # a phase that did not run -> issue code
+    run_id: str = ""  # eight hex characters: the lines of this run in the application log
 
 
 class _Stop(Exception):
@@ -118,6 +124,9 @@ class _State:
     accept_runtime_upgrade: bool = False  # confirm a major runtime version increase
     runtime: runtime_version.UpgradeInfo | None = None  # templates' runtime vs. the target's
     timings: dict[str, float] = field(default_factory=dict)
+    skipped: dict[str, str] = field(default_factory=dict)
+    run_id: str = field(default_factory=logging_setup.new_run_id)
+    derive_tile_size: bool = False  # the --pack path: base_tile_size comes from the packs
 
 
 # --------------------------------------------------------------------------- helpers
@@ -149,21 +158,36 @@ def _run_phase_godot(
     state: _State, args: list[str], timeout_s: int, log_name: str, phase: str
 ) -> godot.GodotRun:
     assert state.staging is not None and state.log_dir is not None
-    run = godot.run_godot(
-        state.godot_exe,
-        state.staging.staging,
-        args,
-        timeout_s=timeout_s,
-        log_name=log_name,
-        log_dir=state.log_dir,
-        is_cancelled=state.cb.is_cancelled,
-    )
-    if run.cancelled:
+    forwarder = godot.LineForwarder(phase, state.cb.on_log, state.cb.on_step)
+    try:
+        run = godot.run_godot(
+            state.godot_exe,
+            state.staging.staging,
+            args,
+            timeout_s=timeout_s,
+            log_name=log_name,
+            log_dir=state.log_dir,
+            is_cancelled=state.cb.is_cancelled,
+            on_line=forwarder.feed,
+        )
+    finally:
+        forwarder.close()
+    # a Ctrl+C in the console reaches Godot too: if it died of that before the poll saw the
+    # cancel, this is still a cancel and not a failed phase
+    if run.cancelled or state.cb.is_cancelled():
         raise _Cancelled
     if run.timed_out:
         state.issues.add("BUILD-003", phase=phase, seconds=timeout_s)
         raise _Stop
     return run
+
+
+def _skip(state: _State, phase: str, code: str, **detail: object) -> None:
+    """A check that did not run: remember it (never show it as passed) and add its note."""
+    state.skipped[phase] = code
+    if not any(i.code == code for i in state.issues):
+        state.issues.add(code, **detail)
+    state.cb.on_skip(phase, code)
 
 
 def _results_path(state: _State, rel: str) -> Path:
@@ -181,6 +205,13 @@ def phase_preflight(state: _State) -> None:
     version = godot.detect_version(exe)
     for issue in godot.check_version(version):
         state.issues.append(issue)
+    check_target(state)
+
+
+def check_target(state: _State) -> None:
+    """The part of preflight that needs no Godot: load the config, check the target and the
+    packs, refuse a project that is open in an editor, and look at the runtime version. The dry
+    run of ``rpggen generate --dry-run`` makes exactly these checks."""
     if state.cfg is None:
         assert state.cfg_path is not None
         state.cfg = config_mod.load(state.cfg_path)
@@ -251,6 +282,10 @@ def phase_catalog(state: _State) -> None:
     state.issues.extend(i for i in issues if (i.code, i.message) not in known)
     staging.install_generated(state.staging, generated)
     shutil.rmtree(work_dir, ignore_errors=True)
+    if state.derive_tile_size:
+        derived = catalog_mod.dominant_tile_size(catalog)
+        state.cfg.base_tile_size = derived or 16
+        state.cb.on_log(f"base tile size {state.cfg.base_tile_size} (from the packs)")
     if state.placeholders:
         _written, placeholder_issues = placeholders.add_placeholder_assets(
             catalog, state.placeholders, state.cfg.base_tile_size, state.staging.staging
@@ -269,21 +304,26 @@ def phase_catalog(state: _State) -> None:
         state.issues.extend(staging.prune_packs(state.staging, state.old_ledger, keep))
     # A required role without any asset stops generation before Godot runs.
     state.issues.extend(requirements.check(catalog, state.cfg))
-    staging.write_project_files(state.staging, state.cfg, catalog)
+    state.issues.extend(staging.write_project_files(state.staging, state.cfg, catalog))
 
 
 def phase_import(state: _State) -> None:
     assert state.staging is not None and state.log_dir is not None
-    run = godot.run_godot(
-        godot.find_console_exe(state.godot_exe),
-        state.staging.staging,
-        ["--import"],
-        timeout_s=godot.IMPORT_TIMEOUT_S,
-        log_name="import",
-        log_dir=state.log_dir,
-        is_cancelled=state.cb.is_cancelled,
-    )
-    if run.cancelled:
+    forwarder = godot.LineForwarder("import", state.cb.on_log, state.cb.on_step)
+    try:
+        run = godot.run_godot(
+            godot.find_console_exe(state.godot_exe),
+            state.staging.staging,
+            ["--import"],
+            timeout_s=godot.IMPORT_TIMEOUT_S,
+            log_name="import",
+            log_dir=state.log_dir,
+            is_cancelled=state.cb.is_cancelled,
+            on_line=forwarder.feed,
+        )
+    finally:
+        forwarder.close()
+    if run.cancelled or state.cb.is_cancelled():
         raise _Cancelled
     if run.timed_out:
         state.issues.add("BUILD-003", phase="import", seconds=godot.IMPORT_TIMEOUT_S)
@@ -376,7 +416,7 @@ def _starter_picture(state: _State) -> None:
             log_dir=state.log_dir,
             is_cancelled=state.cb.is_cancelled,
         )
-        if run.cancelled:
+        if run.cancelled or state.cb.is_cancelled():
             raise _Cancelled
         if run.returncode != 0 or not view_path.is_file():
             state.cb.on_log("starter map picture skipped: Godot could not dump the map")
@@ -400,6 +440,7 @@ def phase_smoke(state: _State) -> None:
 def _run_smoke(state: _State) -> None:
     assert state.cfg is not None
     if not state.cfg.validation.get("smoke_test", True):
+        _skip(state, "smoke", "VAL-021")
         return
     run = _run_phase_godot(
         state,
@@ -431,8 +472,9 @@ def phase_export(state: _State) -> None:
     """Optional: export the staged project once to prove it exports (needs export templates)."""
     assert state.cfg is not None and state.staging is not None and state.log_dir is not None
     if not state.cfg.validation.get("export_check", True):
+        _skip(state, "export", "VAL-022")
         return
-    issues, _ran = export_check.run_check(
+    issues, ran = export_check.run_check(
         state.godot_exe,
         state.staging.staging,
         state.cfg.project_name,
@@ -442,6 +484,9 @@ def phase_export(state: _State) -> None:
     if state.cb.is_cancelled():
         raise _Cancelled
     state.issues.extend(issues)
+    if not ran:  # no export templates: the test export did not happen
+        state.skipped["export"] = "ENV-010"
+        state.cb.on_skip("export", "ENV-010")
     if any(i.severity is Severity.ERROR for i in issues):
         raise _Stop
 
@@ -459,24 +504,47 @@ def _report_data(state: _State, ok: bool) -> dict[str, Any]:
         "runtime_version": state.runtime.new if state.runtime else "",
         "ok": ok,
         "phases_completed": list(state.phases_done),
+        "run_id": state.run_id,
+        **({"skipped": dict(sorted(state.skipped.items()))} if state.skipped else {}),
         "issues": state.issues.to_json(),
     }
 
 
+def _commit_files(state: _State) -> list[str]:
+    """What rpggen wrote or deleted in the target: the promoted files, the conflict copies, the
+    ledger and the reports. Only these are committed in a repository that already existed."""
+    found = {paths.LEDGER, f"rpggen/{REPORT_NAME}", report_mod.REPORT_MD}
+    if state.promotion is not None:
+        plan = state.promotion.plan
+        found |= set(plan.write) | set(plan.delete)
+        found |= {f"{rel}.rpggen-new" for rel in plan.conflicts}
+    return sorted(found)
+
+
 def phase_report(state: _State) -> None:
     ok = not state.issues.has_errors()
-    path = Path(state.target) / "rpggen" / REPORT_NAME
+    target = Path(state.target)
+    path = target / "rpggen" / REPORT_NAME
     assert state.staging is not None
     plan = state.promotion.plan if state.promotion and state.staging.regenerate else None
     unchanged = plan is not None and not (
         plan.write or plan.conflicts or plan.delete or plan.skipped_deleted
     )
+    existing_repo = bool(state.git_message) and vcs.is_repository(target)
+    files = _commit_files(state) if existing_repo else None
+    if files is not None and vcs.foreign_changes(target, files):
+        state.issues.add("REGEN-008")  # the user's own uncommitted work stays out of the commit
     # A regeneration that changed nothing leaves the report as it was: the project is identical.
-    if not (unchanged and path.is_file()):
+    write_report = not (unchanged and path.is_file())
+    if write_report:
         jsonio.write(path, _report_data(state, ok))
-        _write_markdown(state, Path(state.target) / report_mod.REPORT_MD, ok, plan)
+        _write_markdown(state, target / report_mod.REPORT_MD, ok, plan)
     if state.git_message:
-        vcs.init_and_commit(Path(state.target), state.git_message)
+        committed = vcs.commit(target, state.git_message, files)
+        if not committed.ok:
+            state.issues.add("REGEN-007", reason=committed.reason)
+            jsonio.write(path, _report_data(state, ok))  # the report tells that it failed
+            _write_markdown(state, target / report_mod.REPORT_MD, ok, plan)
 
 
 def _write_markdown(
@@ -493,6 +561,7 @@ def _write_markdown(
         project=path.parent,
         plan=plan,
         runtime_version=state.runtime.new if state.runtime else "",
+        skipped=state.skipped,
     )
     path.write_text(text, encoding="utf-8", newline="\n")
 
@@ -530,6 +599,7 @@ def _cancel(state: _State) -> RunResult:
         cfg=state.cfg,
         cancelled=True,
         timings=dict(state.timings),
+        skipped=dict(state.skipped),
     )
 
 
@@ -551,6 +621,7 @@ def _fail(state: _State) -> RunResult:
         catalog=state.catalog,
         cfg=state.cfg,
         timings=dict(state.timings),
+        skipped=dict(state.skipped),
     )
 
 
@@ -563,12 +634,14 @@ def run(
     force_while_open: bool = False,
     git_message: str | None = None,
     accept_runtime_upgrade: bool = False,
+    derive_tile_size: bool = False,
 ) -> RunResult:
     """Generate a project from ``cfg_path`` into ``target`` through staging.
 
     ``placeholders`` lists roles for which a debug placeholder asset is created when the packs
     have none. ``force_while_open`` regenerates even if a Godot editor seems to have the
-    project open.
+    project open. ``derive_tile_size`` replaces the config's ``base_tile_size`` with the tile
+    size of the packs (the command line's ``--pack``, which has no better source).
     """
     cb = cb or Callbacks()
     state = _State(Path(cfg_path), Path(target), Path(godot_exe), cb)
@@ -576,6 +649,7 @@ def run(
     state.force_while_open = force_while_open
     state.git_message = git_message
     state.accept_runtime_upgrade = accept_runtime_upgrade
+    state.derive_tile_size = derive_tile_size
     return _execute(state)
 
 
@@ -605,7 +679,32 @@ def run_in_memory(
     return _execute(state)
 
 
+def _crash(state: _State, exc: Exception) -> RunResult:
+    """An exception nobody planned for: the traceback goes to ``rpggen/logs/crash.log`` of the
+    kept work folder, the run fails with BUILD-005 (naming the phase) and both reports are
+    written, so that the wizard shows Results with "Export diagnostic bundle" and the command
+    line prints the issue instead of a traceback."""
+    log.error("unexpected error in phase %s", state.current_phase, exc_info=exc)
+    if state.staging is not None and state.staging.staging.exists():
+        crash = state.staging.staging / "rpggen" / "logs" / "crash.log"
+        crash.parent.mkdir(parents=True, exist_ok=True)
+        crash.write_text("".join(traceback.format_exception(exc)), encoding="utf-8", newline="\n")
+    reason = f"{type(exc).__name__}: {exc}".strip()
+    state.issues.add("BUILD-005", phase=state.current_phase or "unknown", reason=reason[:300])
+    return _fail(state)
+
+
 def _execute(state: _State) -> RunResult:
+    """Run every phase; each log record made meanwhile carries the run's id."""
+    with logging_setup.run_context(state.run_id):
+        log.info("generation %s started for %s", state.run_id, state.target)
+        result = _run_phases(state)
+        log.info("generation %s finished: ok=%s", state.run_id, result.ok)
+    result.run_id = state.run_id
+    return result
+
+
+def _run_phases(state: _State) -> RunResult:
     cb = state.cb
     n = len(PHASES_M1)
     try:
@@ -630,7 +729,9 @@ def _execute(state: _State) -> RunResult:
     except RpgGenError as exc:
         state.issues.append(exc.issue)
         return _fail(state)
-    except BaseException:
+    except Exception as exc:  # noqa: BLE001 - an unexpected error is a report, not a traceback
+        return _crash(state, exc)
+    except BaseException:  # Ctrl+C, SystemExit: the work folder goes, the signal goes on
         if state.staging is not None and state.staging.staging.exists():
             staging.discard(state.staging)
         raise
@@ -644,6 +745,7 @@ def _execute(state: _State) -> RunResult:
         catalog=state.catalog,
         cfg=state.cfg,
         timings=dict(state.timings),
+        skipped=dict(state.skipped),
     )
 
 

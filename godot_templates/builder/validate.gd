@@ -6,12 +6,13 @@ extends SceneTree
 const Paths := preload("lib/paths.gd")
 const BuildContext := preload("lib/build_context.gd")
 const Log := preload("lib/log.gd")
+const JsonUtil := preload("lib/json_util.gd")
 
-const CHECK_ROOTS := ["res://addons", "res://generated", "res://game"]
-const RESOURCE_ROOTS := ["res://generated", "res://game"]
+const CHECK_ROOTS: Array[String] = ["res://addons", "res://generated", "res://game"]
+const RESOURCE_ROOTS: Array[String] = ["res://generated", "res://game"]
 const CONTENT_CHECKS := "res://addons/rpg_project_tools/tools/content_checks.gd"
 const ROUND_TRIP_TMP := "user://rt_test.tscn"
-const MENU_SCENES := [
+const MENU_SCENES: Array[String] = [
 	"res://generated/scenes/ui/title_screen.tscn",
 	"res://generated/scenes/ui/pause_menu.tscn",
 	"res://generated/scenes/ui/inventory_menu.tscn",
@@ -23,34 +24,55 @@ const MENU_SCENES := [
 const FOCUS_SETTLE_FRAMES := 4
 const FOCUS_MAX_STEPS := 80
 
-var _ctx: RefCounted
-var _scenes: Array = []
+var _ctx: BuildContext
+var _scenes: Array[String] = []
 var _scene_index: int = 0
 var _pending: Node = null
 var _pending_path: String = ""
 var _finished: bool = false
 var _focus: Dictionary = {}  # state of the running menu focus walk (empty = none)
 
+## One progress line per check (T12.19); the last one covers the scene loop of _process.
+const STEP_TOTAL := 12
+var _step_index := 0
+
+func _announce(label: String) -> void:
+	_step_index += 1
+	Log.step("validate", _step_index, STEP_TOTAL, label)
+
 func _initialize() -> void:
-	var builder_dir: String = get_script().resource_path.get_base_dir()
+	var here: Script = get_script()
+	var builder_dir: String = here.resource_path.get_base_dir()
 	_ctx = BuildContext.new(builder_dir, "validate")
 	if not _ctx.load_inputs():
 		_finish()
 		return
+	_announce("scripts")
 	_check_scripts()
+	_announce("resources")
 	var resources := _check_resources()
+	_announce("dependencies")
 	_check_dependencies(resources)
+	_announce("main scene")
 	_check_main_scene()
+	_announce("autoloads")
 	_check_autoloads()
+	_announce("input actions")
 	_check_input_actions()
 	for path in resources:
-		if String(path).ends_with(".tscn"):
+		if JsonUtil.to_str(path).ends_with(".tscn"):
 			_scenes.append(path)
+	_announce("starter map")
 	_check_map_round_trip("res://game/maps/starter_map.tscn")
+	_announce("y-sort origins")
 	_check_ysort_origins()
+	_announce("y-sort parents")
 	_check_ysort_parents()
+	_announce("content")
 	_check_content()
+	_announce("sound bank")
 	_check_sound_bank()
+	_announce("scenes and menus")
 
 func _process(_delta: float) -> bool:
 	if _finished or _ctx == null:
@@ -104,25 +126,27 @@ func _finish() -> void:
 	Log.info("validate finished ok=%s" % str(_ctx.results.ok))
 	quit(0 if _ctx.results.ok and err == OK else 1)
 
-static func _list_files(dir_path: String, extensions: Array) -> Array:
-	var found: Array = []
+static func _list_files(dir_path: String, extensions: Array) -> Array[String]:
+	var found: Array[String] = []
 	var dir := DirAccess.open(dir_path)
 	if dir == null:
 		return found
-	var entries: Array = []
+	var entries: Array[Array] = []
 	dir.list_dir_begin()
 	var name := dir.get_next()
 	while name != "":
 		entries.append([name, dir.current_is_dir()])
 		name = dir.get_next()
 	dir.list_dir_end()
-	entries.sort_custom(func(a: Array, b: Array) -> bool: return String(a[0]) < String(b[0]))
-	for e in entries:
-		var full: String = dir_path + "/" + e[0]
-		if e[1]:
-			if not String(e[0]).begins_with("."):
+	entries.sort_custom(func(a: Array, b: Array) -> bool: return JsonUtil.to_str(a[0]) < JsonUtil.to_str(b[0]))
+	for e: Array in entries:
+		var entry_name: String = e[0]
+		var is_dir: bool = e[1]
+		var full: String = dir_path + "/" + entry_name
+		if is_dir:
+			if not entry_name.begins_with("."):
 				found.append_array(_list_files(full, extensions))
-		elif extensions.has(String(e[0]).get_extension()):
+		elif extensions.has(entry_name.get_extension()):
 			found.append(full)
 	return found
 
@@ -135,16 +159,17 @@ func _is_editor_only(script: GDScript) -> bool:
 func _check_scripts() -> void:
 	for root_dir in CHECK_ROOTS:
 		for path in _list_files(root_dir, ["gd"]):
-			var script: Variant = load(path)
-			var ok: bool = script != null and script is GDScript
-			if ok and not _is_editor_only(script):
-				ok = (script as GDScript).can_instantiate()
+			var script: Resource = load(path)
+			var gd := script as GDScript
+			var ok: bool = gd != null
+			if ok and not _is_editor_only(gd):
+				ok = gd.can_instantiate()
 			if not ok:
 				_fail("VAL-001", {"file": path}, path)
 			_item("script_parse", path, ok)
 
-func _check_resources() -> Array:
-	var paths: Array = []
+func _check_resources() -> Array[String]:
+	var paths: Array[String] = []
 	for root_dir in RESOURCE_ROOTS:
 		paths.append_array(_list_files(root_dir, ["tres", "tscn"]))
 	for path in paths:
@@ -165,7 +190,7 @@ static func _dependency_path(dep: String) -> String:
 		return ""
 	return path
 
-func _check_dependencies(resources: Array) -> void:
+func _check_dependencies(resources: Array[String]) -> void:
 	for path in resources:
 		var ok := true
 		for dep in ResourceLoader.get_dependencies(path):
@@ -176,7 +201,7 @@ func _check_dependencies(resources: Array) -> void:
 		_item("dependencies", path, ok)
 
 func _check_main_scene() -> void:
-	var main_scene := String(ProjectSettings.get_setting("application/run/main_scene", ""))
+	var main_scene := JsonUtil.to_str(ProjectSettings.get_setting("application/run/main_scene", ""))
 	var ok := main_scene != "" and ResourceLoader.exists(main_scene)
 	if not ok:
 		_fail("VAL-005", {})
@@ -184,24 +209,24 @@ func _check_main_scene() -> void:
 
 func _check_autoloads() -> void:
 	for prop in ProjectSettings.get_property_list():
-		var name := String(prop["name"])
+		var name := JsonUtil.to_str(prop["name"])
 		if not name.begins_with("autoload/"):
 			continue
-		var value := String(ProjectSettings.get_setting(name)).trim_prefix("*")
+		var value := JsonUtil.to_str(ProjectSettings.get_setting(name)).trim_prefix("*")
 		var ok := ResourceLoader.exists(value)
 		if not ok:
 			_fail("VAL-006", {"name": name.trim_prefix("autoload/")})
 		_item("autoload", name, ok)
 
 func _check_input_actions() -> void:
-	var input: Dictionary = _ctx.config.get("input", {})
+	var input: Dictionary = _ctx.section("input")
 	var actions: Array = input.keys()
 	actions.sort()
-	for action in actions:
+	for action: String in actions:
 		var ok := InputMap.has_action(action) and InputMap.action_get_events(action).size() > 0
 		if not ok:
 			_fail("VAL-007", {"action": action})
-		_item("input_action", String(action), ok)
+		_item("input_action", JsonUtil.to_str(action), ok)
 
 func _collect_layers(node: Node, out: Array) -> void:
 	if node is TileMapLayer:
@@ -223,7 +248,7 @@ func _check_map_round_trip(map_path: String) -> void:
 	if packed == null:
 		return
 	var inst := packed.instantiate()
-	var layers: Array = []
+	var layers: Array[TileMapLayer] = []
 	_collect_layers(inst, layers)
 	var before := {}
 	var test_cell := Vector2i(-100, -100)
@@ -241,24 +266,24 @@ func _check_map_round_trip(map_path: String) -> void:
 	var failed_layer := ""
 	if ok:
 		var reloaded := (ResourceLoader.load(ROUND_TRIP_TMP, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
-		for layer_path in before.keys():
+		for layer_path: NodePath in before.keys():
 			var layer := reloaded.get_node_or_null(layer_path) as TileMapLayer
 			var original: Dictionary = before[layer_path]
 			if layer == null:
 				ok = false
-				failed_layer = String(layer_path)
+				failed_layer = JsonUtil.to_str(layer_path)
 				break
 			var now := _cell_set(layer)
 			var expected := original.duplicate()
 			expected[test_cell] = true
 			if now.keys().size() != expected.keys().size() or not now.has(test_cell):
 				ok = false
-				failed_layer = String(layer_path)
+				failed_layer = JsonUtil.to_str(layer_path)
 				break
-			for c in original.keys():
+			for c: Vector2i in original.keys():
 				if not now.has(c):
 					ok = false
-					failed_layer = String(layer_path)
+					failed_layer = JsonUtil.to_str(layer_path)
 					break
 			if not ok:
 				break
@@ -279,12 +304,13 @@ func _check_map_round_trip(map_path: String) -> void:
 func _check_content() -> void:
 	if not ResourceLoader.exists(CONTENT_CHECKS):
 		return
-	var checks: Variant = load(CONTENT_CHECKS)
+	var checks: Resource = load(CONTENT_CHECKS)
 	if checks == null:
 		return
-	var findings: Array = checks.run()
-	for f in findings:
-		_fail(String(f["code"]), f["detail"], String(f["file"]))
+	var findings: Array = checks.call("run")
+	for f: Dictionary in findings:
+		var detail: Dictionary = f["detail"]
+		_fail(JsonUtil.to_str(f["code"]), detail, JsonUtil.to_str(f["file"]))
 	_item("content_checks", "res://game", findings.is_empty())
 
 # ---------------------------------------------------------------- sound slots (VAL-020)
@@ -300,11 +326,12 @@ func _check_sound_bank() -> void:
 		_fail("VAL-020", {"slot": "(file)", "path": SOUND_BANK_PATH}, SOUND_BANK_PATH)
 		return
 	var ok := true
-	for slot in parsed.keys():
-		var path := String(parsed[slot])
+	var table: Dictionary = parsed
+	for slot: Variant in table.keys():
+		var path := JsonUtil.to_str(table[slot])
 		if not ResourceLoader.exists(path) or not load(path) is AudioStream:
 			ok = false
-			_fail("VAL-020", {"slot": String(slot), "path": path}, path)
+			_fail("VAL-020", {"slot": JsonUtil.to_str(slot), "path": path}, path)
 	_item("sound_bank", SOUND_BANK_PATH, ok)
 
 # ---------------------------------------------------------------- Y-sort (T4.07)
@@ -312,7 +339,7 @@ func _check_sound_bank() -> void:
 # node origin (y = 0), and every placed entity has a Y-sorted parent.
 
 const ORIGIN_TOLERANCE := 2.0
-const ENTITY_DIRS := ["res://generated/scenes/objects/", "res://generated/scenes/actors/"]
+const ENTITY_DIRS: Array[String] = ["res://generated/scenes/objects/", "res://generated/scenes/actors/"]
 
 ## Bottom edge (y, relative to the scene root) of a Sprite2D / AnimatedSprite2D, or NAN.
 static func visual_bottom(visual: Node2D, scene_root: Node) -> float:
@@ -354,7 +381,7 @@ func _check_ysort_origins() -> void:
 			if packed == null:
 				continue
 			var inst := packed.instantiate()
-			var visuals: Array = []
+			var visuals: Array[Node2D] = []
 			_collect_visuals(inst, visuals)
 			var ok := true
 			for v in visuals:
@@ -378,7 +405,7 @@ func _check_ysort_parents() -> void:
 		if packed == null:
 			continue
 		var inst := packed.instantiate()
-		var entities: Array = []
+		var entities: Array[Node] = []
 		_collect_entities(inst, entities)
 		var ok := true
 		for e in entities:
@@ -410,7 +437,7 @@ func _menu_problem(reason: String) -> void:
 	_item("ui_focus", _pending_path, false)
 
 func _press_ui_down() -> void:
-	for pressed in [true, false]:
+	for pressed: bool in [true, false]:
 		var ev := InputEventAction.new()
 		ev.action = "ui_down"
 		ev.pressed = pressed
@@ -444,17 +471,19 @@ func _focus_walk_step() -> bool:
 			return true
 		"read":
 			f["phase"] = "press"
-			if owner_now == null or owner_now == f["initial"] or f["visited"].has(owner_now) or f["visited"].size() >= FOCUS_MAX_STEPS:
+			var visited: Array = f["visited"]
+			if owner_now == null or owner_now == f["initial"] or visited.has(owner_now) or visited.size() >= FOCUS_MAX_STEPS:
 				var missed: Array = []
-				for c in f["all"]:
-					if not f["visited"].has(c):
-						missed.append(String(c.name))
+				var all_controls: Array = f["all"]
+				for c: Control in all_controls:
+					if not visited.has(c):
+						missed.append(JsonUtil.to_str(c.name))
 				if missed.is_empty():
 					_item("ui_focus", _pending_path, true)
 				else:
 					_menu_problem("not reachable with ui_down: %s" % ", ".join(missed))
 				return false
-			f["visited"].append(owner_now)
+			visited.append(owner_now)
 			_press_ui_down()
 			f["phase"] = "read"
 			return true

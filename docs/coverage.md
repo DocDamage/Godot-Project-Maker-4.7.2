@@ -17,6 +17,26 @@ is a human step and is marked *pending* until a maintainer fills it in. Nothing 
 The synthetic corpus is the set the heuristics were tuned on, so its 1.000 guards against
 regressions and says little about unfamiliar packs. That is what the held-out runs are for.
 
+## Accuracy on real packs without keeping their art (T12.26)
+
+The packs a person buys cannot be committed, but what a person *decided* about them can. A corpus
+**entry** is one JSON file with the fingerprint of a pack (the path, size and SHA-256 of every
+file) and the decisions confirmed in the Audit (the exported profile: roles, grids, animations,
+objects). It holds no pixels.
+
+```bat
+python tools/corpus_fingerprint.py --pack "C:\Packsorest" --profile forest.rpgprofile.json --out corpusorest.corpus.json
+python -m rpggen analyze --private-corpus corpus --packs "C:\Packs" --report private_report.json
+```
+
+The second command finds each pack under `--packs` by its fingerprint (at least 80% of the files
+unchanged), analyzes it and writes `private_report.json` and `private_report.md`: per pack the grid,
+usage, role and animation accuracy, per role the precision and recall, the confusion matrix (which
+role a confirmed role was detected as) and how many of the confirmed objects were found. A pack
+that is not there is listed as not found. CI runs it on a self-hosted runner when the repository
+variables `PRIVATE_CORPUS` and `PRIVATE_PACKS` name the two folders. Use it to fill the held-out
+table below.
+
 ## Pack-coverage study (ARCHITECTURE §51)
 
 *Pending (human).* Sample about 30 popular top-down RPG packs, free and paid. For each record the

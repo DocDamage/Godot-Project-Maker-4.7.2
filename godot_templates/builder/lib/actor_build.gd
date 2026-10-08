@@ -7,6 +7,7 @@ extends RefCounted
 ## inherited scene from the generated one in the editor.
 
 const SceneUtil := preload("scene_util.gd")
+const JsonUtil := preload("json_util.gd")
 
 const ACTOR_SCRIPT := "res://addons/rpg_runtime/actors/actor.gd"
 const NPC_SCRIPT := "res://addons/rpg_runtime/actors/npc.gd"
@@ -30,7 +31,7 @@ static func build(kind: String, root_name: String, frames: SpriteFrames, frame: 
 	match kind:
 		"player":
 			root.set_collision_layer_value(2, true)  # player
-			for layer in [1, 3, 4]:  # world, enemies, npcs
+			for layer: int in [1, 3, 4]:  # world, enemies, npcs
 				root.set_collision_mask_value(layer, true)
 			root.add_to_group("player", true)
 		"npc":
@@ -100,9 +101,9 @@ static func build(kind: String, root_name: String, frames: SpriteFrames, frame: 
 ## Frame size and origin of a sprite asset from its effective facets.
 static func frame_and_origin(eff: Dictionary) -> Dictionary:
 	var f: Array = eff.get("frame", [DEFAULT_FRAME.x, DEFAULT_FRAME.y])
-	var frame := Vector2i(int(f[0]), int(f[1]))
+	var frame := Vector2i(JsonUtil.to_int(f[0]), JsonUtil.to_int(f[1]))
 	var o: Array = eff.get("origin", [frame.x / 2, frame.y - 1])
-	return {"frame": frame, "origin": Vector2i(int(o[0]), int(o[1]))}
+	return {"frame": frame, "origin": Vector2i(JsonUtil.to_int(o[0]), JsonUtil.to_int(o[1]))}
 
 ## Adds an RpgPersistent child (owner is set by the scene saver).
 static func add_persistent(parent: Node) -> Node:

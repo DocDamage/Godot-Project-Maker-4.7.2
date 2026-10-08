@@ -441,7 +441,7 @@ class ProjectPage(WizardPage):
         files, _ = QFileDialog.getOpenFileNames(
             self,
             self.tr("Add asset packs"),
-            app_settings.load().last_pack_dir,
+            app_settings.get().last_pack_dir,
             self.tr("Archives (*.zip *.7z *.rar)"),
         )
         if files:
@@ -450,7 +450,7 @@ class ProjectPage(WizardPage):
 
     def _browse_folder(self) -> None:
         folder = QFileDialog.getExistingDirectory(
-            self, self.tr("Add asset pack folder"), app_settings.load().last_pack_dir
+            self, self.tr("Add asset pack folder"), app_settings.get().last_pack_dir
         )
         if folder:
             app_settings.update(last_pack_dir=str(Path(folder).parent))
@@ -458,7 +458,7 @@ class ProjectPage(WizardPage):
 
     def _browse_target(self) -> None:
         folder = QFileDialog.getExistingDirectory(
-            self, self.tr("Output folder"), app_settings.load().last_target_dir
+            self, self.tr("Output folder"), app_settings.get().last_target_dir
         )
         if folder:
             app_settings.update(last_target_dir=str(Path(folder).parent))
@@ -468,9 +468,7 @@ class ProjectPage(WizardPage):
         exe, _ = QFileDialog.getOpenFileName(
             self,
             self.tr("Godot executable"),
-            str(Path(app_settings.load().godot_exe).parent)
-            if app_settings.load().godot_exe
-            else "",
+            str(Path(app_settings.get().godot_exe).parent) if app_settings.get().godot_exe else "",
             self.tr("Executables (*.exe);;All (*)"),
         )
         if exe:
@@ -863,7 +861,7 @@ class ProjectPage(WizardPage):
             if state.godot_exe and str(state.godot_exe) not in candidates:
                 candidates.insert(0, str(state.godot_exe))
             self.godot_combo.addItems(candidates)
-            saved = app_settings.load().godot_exe
+            saved = app_settings.get().godot_exe
             if state.godot_exe:
                 self.godot_combo.setCurrentText(str(state.godot_exe))
             elif saved and Path(saved).is_file():
@@ -924,7 +922,7 @@ class ProjectPage(WizardPage):
         old = {str(Path(p.source)).casefold(): p for p in state.config.packs}
         used = {p.pack_id for p in state.config.packs}
         refs = []
-        for source in state.pack_sources:
+        for index, source in enumerate(state.pack_sources):
             known = old.get(str(source).casefold())
             if known is not None:
                 refs.append(known)
@@ -934,18 +932,37 @@ class ProjectPage(WizardPage):
                 stem = source.name if source.is_dir() else source.stem
                 pack_id = ids.pack_id_from_name(stem, used)
                 used.add(pack_id)
-            refs.append(config_mod.pack_ref_from_source(source, pack_id))
+            refs.append(
+                config_mod.pack_ref_from_source(source, pack_id, self._analysed_hash(state, index))
+            )
         state.config.packs = refs
         return state.config
 
+    @staticmethod
+    def _analysed_hash(state: WizardState, index: int) -> str | None:
+        """The identity the analysis worker already computed for pack ``index`` (archives: the
+        file hash, folders: the hash of the file list), so that no pack file is read here, on
+        the GUI thread."""
+        if index < len(state.opened_packs) and state.opened_packs[index].source_sha256:
+            return state.opened_packs[index].source_sha256
+        if index < len(state.inventories):
+            return state.inventories[index].source_sha256 or None
+        return None
+
     def _default_config(self, state: WizardState) -> config_mod.GeneratorConfig:
         refs = []
-        used: set[str] = set()
-        for opened, source in zip(state.opened_packs, state.pack_sources, strict=True):
-            ref = config_mod.pack_ref_from_source(source, opened.pack_id)
-            refs.append(ref)
-            used.add(opened.pack_id)
-        return config_mod.default_for(state.project_name, refs, archetype=state.archetype)
+        for index, (opened, source) in enumerate(
+            zip(state.opened_packs, state.pack_sources, strict=True)
+        ):
+            refs.append(
+                config_mod.pack_ref_from_source(
+                    source, opened.pack_id, self._analysed_hash(state, index)
+                )
+            )
+        tile = catalog_mod.dominant_tile_size(state.catalog) if state.catalog else None
+        return config_mod.default_for(
+            state.project_name, refs, archetype=state.archetype, base_tile_size=tile or 16
+        )
 
     def _load_previous(self, state: WizardState, target: Path) -> catalog_mod.Catalog | None:
         """The catalog to build on: an existing project's, or a saved draft (when resumed)."""

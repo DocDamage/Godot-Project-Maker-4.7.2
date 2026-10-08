@@ -1,3 +1,4 @@
+class_name RpgGameState
 extends Node
 ## Autoload "GameState": everything that is saved.
 
@@ -85,7 +86,7 @@ func new_game() -> void:
 	pending_encounter = null
 	gold = data.gold
 	for entry in data.items:
-		inventory.add(StringName(str(entry.get("item_id", ""))), int(entry.get("qty", 1)))
+		inventory.add(StringName(str(entry.get("item_id", ""))), RpgUtil.to_int(entry.get("qty", 1)))
 	current_map = data.start_map
 	current_spawn = data.start_spawn
 	player_position = Vector2.ZERO
@@ -95,7 +96,8 @@ func new_game() -> void:
 func get_flag(entity_id: String, key: String, default: Variant = null) -> Variant:
 	var entry: Variant = flags.get(entity_id)
 	if entry is Dictionary:
-		return entry.get(key, default)
+		var entry_flags: Dictionary = entry
+		return entry_flags.get(key, default)
 	return default
 
 func set_flag(entity_id: String, key: String, value: Variant) -> void:
@@ -106,8 +108,8 @@ func set_flag(entity_id: String, key: String, value: Variant) -> void:
 
 func flag_count() -> int:
 	var n := 0
-	for entity_id in flags.keys():
-		n += (flags[entity_id] as Dictionary).size()
+	for entity_flags: Dictionary in flags.values():
+		n += entity_flags.size()
 	return n
 
 ## Grants experience to the player and emits the progression events.
@@ -138,26 +140,34 @@ func to_dict() -> Dictionary:
 func from_dict(d: Dictionary) -> void:
 	var data: Dictionary = RpgUtil.restore_numbers(d)
 	player_actor_id = StringName(str(data.get("player_actor_id", "hero")))
-	player_stats = RpgStats.from_dict(data.get("player_stats", {}))
+	var stats_data: Dictionary = data.get("player_stats", {})
+	player_stats = RpgStats.from_dict(stats_data)
 	party.clear()
-	for entry in data.get("party", []):
-		party.append({"actor_id": StringName(str(entry.get("actor_id", ""))), "stats": RpgStats.from_dict(entry.get("stats", {}))})
-	inventory.load_array(data.get("inventory", []))
-	gold = int(data.get("gold", 0))
+	var party_data: Array = data.get("party", [])
+	for entry: Dictionary in party_data:
+		var member_data: Dictionary = entry.get("stats", {})
+		party.append({"actor_id": StringName(str(entry.get("actor_id", ""))), "stats": RpgStats.from_dict(member_data)})
+	var inventory_data: Array = data.get("inventory", [])
+	inventory.load_array(inventory_data)
+	gold = RpgUtil.to_int(data.get("gold", 0))
 	current_map = str(data.get("current_map", ""))
 	current_spawn = StringName(str(data.get("current_spawn", "default")))
 	var pos: Array = data.get("player_position", [0, 0])
-	player_position = Vector2(float(pos[0]), float(pos[1]))
+	player_position = Vector2(RpgUtil.to_float(pos[0]), RpgUtil.to_float(pos[1]))
 	player_facing = str(data.get("player_facing", "down"))
-	flags = (data.get("flags", {}) as Dictionary).duplicate(true)
-	quests = (data.get("quests", {}) as Dictionary).duplicate(true)
-	playtime_s = float(data.get("playtime_s", 0.0))
-	rng.set_state(data.get("rng", {}))
+	var flags_data: Dictionary = data.get("flags", {})
+	flags = flags_data.duplicate(true)
+	var quests_data: Dictionary = data.get("quests", {})
+	quests = quests_data.duplicate(true)
+	playtime_s = RpgUtil.to_float(data.get("playtime_s", 0.0))
+	var rng_data: Dictionary = data.get("rng", {})
+	rng.set_state(rng_data)
 
 func _party_to_array() -> Array:
 	var out: Array = []
 	for member in party:
-		out.append({"actor_id": String(member["actor_id"]), "stats": (member["stats"] as RpgStats).to_dict()})
+		var member_stats: RpgStats = member["stats"]
+		out.append({"actor_id": RpgUtil.to_str(member["actor_id"]), "stats": member_stats.to_dict()})
 	return out
 
 func _process(delta: float) -> void:

@@ -2,6 +2,8 @@ extends RefCounted
 ## M4 smoke scenario (runs after the M1 steps): enter the starter building, leave it again and
 ## bump into a decoration.
 
+const JsonUtil := preload("../lib/json_util.gd")
+
 func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
 
@@ -14,12 +16,12 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "return_from_field", "fn": _return_from_field, "timeout_s": 30.0})
 	return list
 
-func _router() -> Node:
-	return _tree().root.get_node_or_null("SceneRouter")
+func _router() -> RpgSceneRouter:
+	return _tree().root.get_node_or_null("SceneRouter") as RpgSceneRouter
 
-func _player() -> Node2D:
+func _player() -> RpgActor:
 	var players := _tree().get_nodes_in_group("player")
-	return players[0] as Node2D if players.size() == 1 else null
+	return players[0] as RpgActor if players.size() == 1 else null
 
 ## Waits (physics frames) until the router is idle and the current scene is `map_name`.
 func _wait_for_map(map_name: String, max_frames: int) -> bool:
@@ -43,11 +45,11 @@ func _enter_building() -> String:
 	var scene := tree.current_scene
 	if scene == null or scene.name != "StarterMap":
 		return "not in the starter map"
-	var doors: Array = []
+	var doors: Array[Area2D] = []
 	_find_doors(scene, doors)
 	var entrance: Area2D = null
 	for d in doors:
-		if String(d.get("target_map")).ends_with("interior_1.tscn"):
+		if JsonUtil.to_str(d.get("target_map")).ends_with("interior_1.tscn"):
 			entrance = d
 	if entrance == null:
 		print("[rpggen] INFO enter_building: the starter map has no building entrance, step passes")
@@ -81,13 +83,13 @@ func _exit_building() -> String:
 	if not arrived:
 		return "walking down to the exit did not return to the starter map"
 	p = _player()
-	var spawns: Array = []
+	var spawns: Array[Node2D] = []
 	for node in tree.get_nodes_in_group("spawn_points"):
-		if String(node.get("spawn_id")).ends_with("_exit"):
+		if JsonUtil.to_str(node.get("spawn_id")).ends_with("_exit"):
 			spawns.append(node)
 	if spawns.is_empty() or p == null:
 		return "the starter map has no building exit spawn"
-	var dist := p.global_position.distance_to((spawns[0] as Node2D).global_position)
+	var dist := p.global_position.distance_to(spawns[0].global_position)
 	return "" if dist <= 16.0 else "player is %.1f px from the exit spawn" % dist
 
 ## The door node called `door_name` below `scene`, or null.
@@ -127,9 +129,9 @@ func _walk_to_field() -> String:
 	await _walk_through(door, -1, "move_right", 180)
 	if not await _wait_for_map("Field1", 600):
 		return "walking into the east exit did not open the field map"
-	var state := tree.root.get_node_or_null("GameState")
-	if state != null and not String(state.current_map).ends_with("field_1.tscn"):
-		return "GameState.current_map is %s, not the field map" % String(state.current_map)
+	var state := tree.root.get_node_or_null("GameState") as RpgGameState
+	if state != null and not JsonUtil.to_str(state.current_map).ends_with("field_1.tscn"):
+		return "GameState.current_map is %s, not the field map" % JsonUtil.to_str(state.current_map)
 	var spawn := tree.current_scene.get_node_or_null("SpawnPoints/west_entry") as Node2D
 	var p := _player()
 	if spawn == null or p == null or p.global_position.distance_to(spawn.global_position) > 48.0:
@@ -148,9 +150,9 @@ func _return_from_field() -> String:
 	await _walk_through(door, 1, "move_left", 180)
 	if not await _wait_for_map("StarterMap", 600):
 		return "walking into the west exit did not bring the player back to the starter map"
-	var state := tree.root.get_node_or_null("GameState")
-	if state != null and not String(state.current_map).ends_with("starter_map.tscn"):
-		return "GameState.current_map is %s, not the starter map" % String(state.current_map)
+	var state := tree.root.get_node_or_null("GameState") as RpgGameState
+	if state != null and not JsonUtil.to_str(state.current_map).ends_with("starter_map.tscn"):
+		return "GameState.current_map is %s, not the starter map" % JsonUtil.to_str(state.current_map)
 	var spawn := tree.current_scene.get_node_or_null("SpawnPoints/east_entry") as Node2D
 	var p := _player()
 	if spawn == null or p == null or p.global_position.distance_to(spawn.global_position) > 48.0:

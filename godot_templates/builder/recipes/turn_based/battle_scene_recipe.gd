@@ -16,6 +16,8 @@ const RECIPE_VERSION := 1
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const UiUtil := preload("../../lib/ui_util.gd")
+const JsonUtil := preload("../../lib/json_util.gd")
+const BuildContext := preload("../../lib/build_context.gd")
 
 const BATTLE_PATH := "res://generated/scenes/battle/battle.tscn"
 const COMBAT_PATH := "res://generated/scenes/combat/combat_mode.tscn"
@@ -23,42 +25,42 @@ const ARCH := "res://addons/rpg_runtime/archetypes/turn_based/"
 const SLOT_COUNT := 4
 const DEFAULT_RESOLUTION := [640, 360]
 
-func outputs(_ctx) -> PackedStringArray:
+func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([BATTLE_PATH, COMBAT_PATH])
 
-func input_hash(ctx) -> String:
+func input_hash(ctx: BuildContext) -> String:
 	return ctx.stable_hash({
 		"v": RECIPE_VERSION, "resolution": _resolution(ctx),
 		"background": _background(ctx).get("id", ""), "music": _music(ctx),
 	})
 
-func _resolution(ctx) -> Vector2:
+func _resolution(ctx: BuildContext) -> Vector2:
 	var r: Array = ctx.config.get("resolution", DEFAULT_RESOLUTION)
-	return Vector2(float(r[0]), float(r[1]))
+	return Vector2(JsonUtil.to_float(r[0]), JsonUtil.to_float(r[1]))
 
-func _usable(ctx, a: Dictionary) -> bool:
+func _usable(ctx: BuildContext, a: Dictionary) -> bool:
 	var eff: Dictionary = ctx.catalog.effective(a)
 	return not (a.get("status", "") in ["UNUSED", "MISSING"]) and ["sprite", "object", "background"].has(eff.get("usage", "sprite"))
 
 ## The first BACKGROUND asset (by id), or {}.
-func _background(ctx) -> Dictionary:
+func _background(ctx: BuildContext) -> Dictionary:
 	for a in ctx.catalog.assets_by_role("BACKGROUND"):
-		if _usable(ctx, a) and ResourceLoader.exists("res://" + String(a["path"])):
+		if _usable(ctx, a) and ResourceLoader.exists("res://" + JsonUtil.to_str(a["path"])):
 			return a
 	return {}
 
 ## The music of the battle: the sound slot music_battle, else the first music asset whose name
 ## contains "battle", or "".
-func _music(ctx) -> String:
+func _music(ctx: BuildContext) -> String:
 	var sounds: Dictionary = ctx.config.get("sounds", {})
 	if sounds.has("music_battle"):
-		return String(sounds["music_battle"])  # "" = the user cleared it
+		return JsonUtil.to_str(sounds["music_battle"])  # "" = the user cleared it
 	for a in ctx.catalog.assets_by_role("AUDIO_MUSIC"):
-		if String(a["id"]).to_lower().contains("battle") or String(a["path"]).get_file().to_lower().contains("battle"):
-			return String(a["id"])
+		if JsonUtil.to_str(a["id"]).to_lower().contains("battle") or JsonUtil.to_str(a["path"]).get_file().to_lower().contains("battle"):
+			return JsonUtil.to_str(a["id"])
 	return ""
 
-func build(ctx) -> Array:
+func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var err := SceneUtil.save_scene(_build_battle(ctx), BATTLE_PATH)
 	if err != OK:
@@ -73,7 +75,7 @@ func build(ctx) -> Array:
 
 # ---------------------------------------------------------------- the battle scene
 
-func _build_battle(ctx) -> Node:
+func _build_battle(ctx: BuildContext) -> Node:
 	var size := _resolution(ctx)
 	var root := Node2D.new()
 	root.name = "Battle"
@@ -90,7 +92,7 @@ func _build_battle(ctx) -> Node:
 	root.add_child(_ui(size))
 	return root
 
-func _background_node(ctx) -> CanvasLayer:
+func _background_node(ctx: BuildContext) -> CanvasLayer:
 	var layer := CanvasLayer.new()
 	layer.name = "Background"
 	layer.layer = -10
@@ -98,13 +100,13 @@ func _background_node(ctx) -> CanvasLayer:
 	if not asset.is_empty():
 		var picture := TextureRect.new()
 		picture.name = "Picture"
-		picture.texture = load("res://" + String(asset["path"])) as Texture2D
+		picture.texture = load("res://" + JsonUtil.to_str(asset["path"])) as Texture2D
 		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		picture.stretch_mode = TextureRect.STRETCH_SCALE
 		picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		layer.add_child(picture)
 		return layer
-	for part in [["Sky", Color("#2b3a67"), 0.0, 0.55], ["Ground", Color("#3d5a3a"), 0.55, 1.0]]:
+	for part: Array in [["Sky", Color("#2b3a67"), 0.0, 0.55], ["Ground", Color("#3d5a3a"), 0.55, 1.0]]:
 		var rect := ColorRect.new()
 		rect.name = part[0]
 		rect.color = part[1]
@@ -140,7 +142,7 @@ func _panel(parent: Node, panel_name: String, min_width: float) -> VBoxContainer
 	parent.add_child(panel)
 	var margin := MarginContainer.new()
 	margin.name = "Margin"
-	for side in ["left", "top", "right", "bottom"]:
+	for side: String in ["left", "top", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 6)
 	panel.add_child(margin)
 	var box := VBoxContainer.new()
@@ -161,7 +163,8 @@ func _ui(size: Vector2) -> CanvasLayer:
 	UiUtil.unique(commands)
 	commands.add_theme_constant_override("separation", 2)
 	commands_box.add_child(commands)
-	_pin(commands_box.get_parent().get_parent(), Control.PRESET_BOTTOM_LEFT, Vector2(8, 8))
+	var commands_panel := commands_box.get_parent().get_parent() as Control
+	_pin(commands_panel, Control.PRESET_BOTTOM_LEFT, Vector2(8, 8))
 
 	var cursor := Control.new()
 	cursor.name = "TargetCursor"

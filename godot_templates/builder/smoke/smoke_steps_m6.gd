@@ -5,6 +5,8 @@ extends RefCounted
 ## The M1 and M4 step files are composed in here because the game now starts at the title screen
 ## and the order matters (the NPC and chest steps sit between them).
 
+const JsonUtil := preload("../lib/json_util.gd")
+
 const SAVE_DIR := "user://smoke_saves"
 const NPC_ID := "starter_map_npc_001"
 const CHEST_ID := "starter_map_chest_001"
@@ -36,9 +38,9 @@ func steps() -> Array[Dictionary]:
 func _autoload(autoload_name: String) -> Node:
 	return _tree().root.get_node_or_null(autoload_name)
 
-func _player() -> Node2D:
+func _player() -> RpgActor:
 	var players := _tree().get_nodes_in_group("player")
-	return players[0] as Node2D if players.size() == 1 else null
+	return players[0] as RpgActor if players.size() == 1 else null
 
 func _frames(n: int) -> void:
 	for i in n:
@@ -50,13 +52,13 @@ func _wait_for(done: Callable, max_frames: int) -> bool:
 		if done.call():
 			return true
 		await _tree().physics_frame
-	return bool(done.call())
+	return JsonUtil.to_bool(done.call())
 
 func _wait_for_map(map_name: String, max_frames: int) -> bool:
 	var tree := _tree()
 	for i in max_frames:
 		await tree.physics_frame
-		var router := _autoload("SceneRouter")
+		var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
 		var scene := tree.current_scene
 		if router != null and not router.is_busy() and scene != null and scene.name == map_name:
 			return true
@@ -98,13 +100,13 @@ func _interact_until(done: Callable, max_frames: int = 60) -> bool:
 		if done.call():
 			return true
 		await tree.physics_frame
-	return bool(done.call())
+	return JsonUtil.to_bool(done.call())
 
 # ---------------------------------------------------------------- steps
 
 func _title_new_game() -> String:
 	var tree := _tree()
-	var save: Node = _autoload("SaveManager")
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	if save == null or _autoload("GameState") == null:
 		return "SaveManager or GameState autoload is missing"
 	save.set("dir", SAVE_DIR)  # never touch the player's real saves
@@ -119,7 +121,7 @@ func _title_new_game() -> String:
 			break
 	if title == null:
 		return "the title screen did not appear"
-	var router: Node = _autoload("SceneRouter")
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
 	for i in 600:  # the fade-in of the title is still running; go_to calls during it are ignored
 		if not router.is_busy():
 			break
@@ -151,11 +153,15 @@ func _configured_sounds() -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
-	return parsed.get("sounds", {}) if parsed is Dictionary else {}
+	if parsed is Dictionary:
+		var table: Dictionary = parsed
+		var sounds: Dictionary = table.get("sounds", {})
+		return sounds
+	return {}
 
-func _audio() -> Node:
-	var router := _autoload("SceneRouter")
-	return router.get("audio") as Node if router != null else null
+func _audio() -> RpgAudio:
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
+	return router.audio as RpgAudio if router != null else null
 
 ## When a map music is configured, the starter map starts it. A pack without music passes with a note.
 func _map_music() -> String:
@@ -175,8 +181,8 @@ func _map_music() -> String:
 func _npc_dialogue() -> String:
 	var tree := _tree()
 	var scene := tree.current_scene
-	var state: Node = _autoload("GameState")
-	var bus: Node = _autoload("Events")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var bus: RpgEvents = _autoload("Events") as RpgEvents
 	var npc := _find_entity(scene, NPC_ID)
 	if npc == null:
 		print("[rpggen] INFO npc_dialogue: the starter map has no NPC, step passes")
@@ -206,7 +212,7 @@ func _npc_dialogue() -> String:
 func _chest_open() -> String:
 	var tree := _tree()
 	var scene := tree.current_scene
-	var state: Node = _autoload("GameState")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
 	var chest := _find_entity(scene, CHEST_ID)
 	if chest == null:
 		print("[rpggen] INFO chest_open: the starter map has no chest, step passes")
@@ -227,7 +233,8 @@ func _chest_open() -> String:
 			if heard:
 				break
 			for child in audio.get_children():
-				if child is AudioStreamPlayer and child.playing and child.stream == chest_sound:
+				var player := child as AudioStreamPlayer
+				if player != null and player.playing and player.stream == chest_sound:
 					heard = true
 			await _tree().physics_frame
 		if not heard:
@@ -240,15 +247,15 @@ func _chest_open() -> String:
 ## nothing is written. The map is entered again through the router, as the game does it.
 func _autosave() -> String:
 	var tree := _tree()
-	var save: Node = _autoload("SaveManager")
-	var settings: Node = _autoload("RpgSettings")
-	var router: Node = _autoload("SceneRouter")
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
+	var settings: RpgSettingsStore = _autoload("RpgSettings") as RpgSettingsStore
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
 	var map := tree.current_scene as RpgMapRoot
 	if save == null or router == null or map == null:
 		return "no SaveManager, SceneRouter or map"
 	var map_path := map.scene_file_path
 	save.set("dir", SAVE_DIR)
-	var was_on: bool = settings == null or bool(settings.get("autosave"))
+	var was_on: bool = settings == null or JsonUtil.to_bool(settings.get("autosave"))
 	# 1. on: the autosave appears
 	if settings != null:
 		settings.set("autosave", true)
@@ -280,13 +287,13 @@ func _autosave() -> String:
 	return ""
 
 func _save_slot_1() -> String:
-	var save: Node = _autoload("SaveManager")
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	return "" if save.save(1) else "SaveManager.save(1) returned false"
 
 func _mutate_then_load() -> String:
 	var tree := _tree()
-	var state: Node = _autoload("GameState")
-	var save: Node = _autoload("SaveManager")
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	var p := _player()
 	if tree.current_scene == null or tree.current_scene.name != "StarterMap" or p == null:
 		return "not in the starter map"
@@ -312,7 +319,7 @@ func _mutate_then_load() -> String:
 	if state.gold != saved_gold:
 		return "gold is %d after loading, expected %d" % [state.gold, saved_gold]
 	var chest := _find_entity(tree.current_scene, CHEST_ID)
-	if chest != null and not bool(chest.get("opened")):
+	if chest != null and not JsonUtil.to_bool(chest.get("opened")):
 		return "the chest is closed again after loading"
 	return ""
 
@@ -334,7 +341,7 @@ func _pause_menu() -> String:
 		if failure == "" and tree.paused:
 			failure = "cancel did not close the pause menu"
 	tree.paused = false
-	var save: Node = _autoload("SaveManager")
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	for slot in range(1, 4):
 		save.delete(slot)
 	return failure

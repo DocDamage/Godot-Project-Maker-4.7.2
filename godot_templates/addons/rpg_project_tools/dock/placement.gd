@@ -6,6 +6,7 @@ extends RefCounted
 
 const EntityIds := preload("../tools/entity_ids.gd")
 const CatalogEdit := preload("../tools/catalog_edit.gd")
+const JsonIo := preload("../tools/json_io.gd")
 
 const YSORT_PATH := "YSorted/Entities"
 
@@ -78,11 +79,12 @@ func plan(instance: Node2D, root: Node, entry: Dictionary, selected: Node = null
 		var visual := visual_of(instance)
 		if visual != null:
 			out["flip_node"] = visual
-			out["old_flip"] = bool(visual.get("flip_h"))
+			out["old_flip"] = JsonIo.to_bool(visual.get("flip_h"))
 			out["flip"] = true
 	if auto_id and EntityIds.has_entity_id(instance) and EntityIds.is_persistent(instance) and str(instance.get("entity_id")) == "":
 		var map_id := EntityIds.map_id_of(root)
-		var kind := EntityIds.kind_of(String(entry.get("role", "")), entry.get("tags", []))
+		var entry_tags: Array = entry.get("tags", [])
+		var kind := EntityIds.kind_of(JsonIo.to_str(entry.get("role", "")), entry_tags)
 		var number := EntityIds.next_number(existing_ids(root, instance), map_id, kind)
 		out["entity_id"] = EntityIds.make_id(map_id, kind, number)
 		out["kind"] = kind
@@ -104,15 +106,16 @@ func apply(plan: Dictionary, instance: Node2D, root: Node, undo: EditorUndoRedoM
 		undo.add_undo_method(instance, "reparent", plan["old_parent"], false)
 	undo.add_do_property(instance, "position", plan["position"])
 	undo.add_undo_property(instance, "position", plan["old_position"])
-	if plan["flip_node"] != null:
-		undo.add_do_property(plan["flip_node"], "flip_h", plan["flip"])
-		undo.add_undo_property(plan["flip_node"], "flip_h", plan["old_flip"])
-	if String(plan["entity_id"]) != "":
+	var flip_node: Node = plan["flip_node"]
+	if flip_node != null:
+		undo.add_do_property(flip_node, "flip_h", plan["flip"])
+		undo.add_undo_property(flip_node, "flip_h", plan["old_flip"])
+	if JsonIo.to_str(plan["entity_id"]) != "":
 		undo.add_do_property(instance, "entity_id", plan["entity_id"])
 		undo.add_undo_property(instance, "entity_id", plan["old_entity_id"])
 	undo.commit_action()
-	if String(plan["entity_id"]) != "":
-		record_allocation(String(plan["map_id"]), String(plan["kind"]), int(plan["number"]))
+	if JsonIo.to_str(plan["entity_id"]) != "":
+		record_allocation(JsonIo.to_str(plan["map_id"]), JsonIo.to_str(plan["kind"]), JsonIo.to_int(plan["number"]))
 
 ## Writes the number used for an id into the catalog's id_allocations.entities.
 static func record_allocation(map_id: String, kind: String, number: int) -> void:
@@ -120,7 +123,7 @@ static func record_allocation(map_id: String, kind: String, number: int) -> void
 	if catalog.is_empty():
 		return
 	var allocations := CatalogEdit.entity_allocations(catalog, map_id)
-	if int(allocations.get(kind, 0)) == number:
+	if JsonIo.to_int(allocations.get(kind, 0)) == number:
 		return
 	allocations[kind] = number
 	if CatalogEdit.save_catalog(catalog) != OK:
@@ -129,12 +132,12 @@ static func record_allocation(map_id: String, kind: String, number: int) -> void
 ## Instances a library scene at `world_position` (the double-click path) and applies the same
 ## fix-ups. Returns the new node, or null when the scene cannot be loaded.
 func place_new(entry: Dictionary, root: Node, undo: EditorUndoRedoManager, world_position: Vector2, selected: Node = null) -> Node:
-	var packed := load(String(entry["scene_path"])) as PackedScene
+	var packed := load(JsonIo.to_str(entry["scene_path"])) as PackedScene
 	if packed == null:
 		return null
 	var instance := packed.instantiate() as Node2D
 	if instance == null:
 		return null
 	var p := plan(instance, root, entry, selected, world_position)
-	apply(p, instance, root, undo, String(entry["name"]))
+	apply(p, instance, root, undo, JsonIo.to_str(entry["name"]))
 	return instance

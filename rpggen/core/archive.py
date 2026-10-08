@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import hashlib
 import logging
+import os
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 import unicodedata
 import zipfile
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
 from rpggen import ids, jsonio, paths
+from rpggen.core import cache_policy
 from rpggen.errors import Issue, IssueList, RpgGenError
 
 log = logging.getLogger(__name__)
@@ -29,6 +34,49 @@ JUNK = {"__MACOSX", ".DS_Store", "Thumbs.db", "desktop.ini"}  # any path part eq
 _JUNK_FOLDED = {j.casefold() for j in JUNK}
 COMPLETE_MARKER = ".complete"
 _WIN_DRIVE = re.compile(r"^[A-Za-z]:")
+
+Progress = Callable[[str, int, int], None]  # (label, done, total); a total of 0 means unknown
+
+
+class Cancelled(Exception):
+    """A long step (extracting, hashing, analyzing) stopped because the caller cancelled."""
+
+
+@dataclass
+class Budget:
+    """The files and bytes an archive and every archive nested in it may add up to (a nested
+    archive does not get a fresh allowance)."""
+
+    files: int = 0
+    total_bytes: int = 0
+
+    def charge(self, files: int, nbytes: int, source: str) -> None:
+        self.files += files
+        self.total_bytes += nbytes
+        if self.files > LIMITS["max_files"]:
+            raise RpgGenError(
+                "ARCH-004", reason=f"more than {LIMITS['max_files']} files", path=source
+            )
+        if self.total_bytes > LIMITS["max_total_bytes"]:
+            raise RpgGenError("ARCH-004", reason="total uncompressed size too large", path=source)
+
+
+@dataclass(frozen=True)
+class Control:
+    """The progress and cancel callbacks of one operation (both optional) and the budget that its
+    archive and the archives nested in it share."""
+
+    progress: Progress | None = None
+    is_cancelled: Callable[[], bool] | None = None
+    budget: Budget = field(default_factory=Budget)
+
+    def check(self) -> None:
+        if self.is_cancelled is not None and self.is_cancelled():
+            raise Cancelled
+
+    def report(self, label: str, done: int, total: int) -> None:
+        if self.progress is not None:
+            self.progress(label, done, total)
 
 
 @dataclass(frozen=True)
@@ -48,11 +96,19 @@ class _Entry:
     compressed: int
 
 
-def sha256_file(path: Path) -> str:
+def sha256_file(path: Path, ctl: Control | None = None, label: str = "") -> str:
+    """sha256 of a file, streamed. With ``ctl`` the bytes read are reported under ``label`` and a
+    cancel stops between two chunks."""
     h = hashlib.sha256()
+    total = Path(path).stat().st_size if ctl is not None and ctl.progress is not None else 0
+    done = 0
     with open(path, "rb") as fh:
         while chunk := fh.read(1024 * 1024):
             h.update(chunk)
+            if ctl is not None:
+                ctl.check()
+                done += len(chunk)
+                ctl.report(label or f"Reading {Path(path).name}", done, total)
     return h.hexdigest()
 
 
@@ -85,8 +141,12 @@ def _sort_key(s: str) -> tuple[str, str]:
 # --------------------------------------------------------------------------- validation
 
 
-def _select_entries(entries: list[_Entry], issues: IssueList, source: str) -> list[_Entry]:
-    """Apply safety rules, limits, junk and case-collision handling; returns entries to extract."""
+def _select_entries(
+    entries: list[_Entry], issues: IssueList, source: str, budget: Budget | None = None
+) -> list[_Entry]:
+    """Apply safety rules, limits, junk and case-collision handling; returns entries to extract.
+
+    ``budget`` is shared with the nested archives: what is selected is charged to it."""
     if len(entries) > LIMITS["max_files"]:
         raise RpgGenError("ARCH-004", reason=f"more than {LIMITS['max_files']} files", path=source)
     total = 0
@@ -116,6 +176,8 @@ def _select_entries(entries: list[_Entry], issues: IssueList, source: str) -> li
             issues.add("ARCH-005", a=chosen[folded].name, b=entry.name, kept=chosen[folded].name)
             continue
         chosen[folded] = entry
+    if budget is not None:
+        budget.charge(len(chosen), sum(max(e.size, 0) for e in chosen.values()), source)
     return sorted(chosen.values(), key=lambda e: _sort_key(e.name))
 
 
@@ -142,14 +204,16 @@ def _zip_entries(zf: zipfile.ZipFile) -> list[_Entry]:
     return entries
 
 
-def _extract_zip(archive: Path, dest: Path, issues: IssueList) -> None:
+def _extract_zip(archive: Path, dest: Path, issues: IssueList, ctl: Control) -> None:
     try:
         zf = zipfile.ZipFile(archive)
     except (zipfile.BadZipFile, OSError) as exc:
         raise RpgGenError("ARCH-001", path=str(archive), reason=str(exc)) from exc
     with zf:
-        entries = _select_entries(_zip_entries(zf), issues, str(archive))
+        entries = _select_entries(_zip_entries(zf), issues, str(archive), ctl.budget)
         total = 0
+        declared = sum(max(e.size, 0) for e in entries)
+        label = f"Extracting {archive.name}"
         for entry in entries:
             info = entry.raw
             assert isinstance(info, zipfile.ZipInfo)
@@ -160,6 +224,7 @@ def _extract_zip(archive: Path, dest: Path, issues: IssueList) -> None:
             written = 0
             with zf.open(info) as src, open(target, "wb") as out:
                 while chunk := src.read(1024 * 1024):
+                    ctl.check()
                     written += len(chunk)
                     total += len(chunk)
                     if written > max(entry.size, 0) or written > LIMITS["max_entry_bytes"]:
@@ -169,12 +234,92 @@ def _extract_zip(archive: Path, dest: Path, issues: IssueList) -> None:
                     if total > LIMITS["max_total_bytes"]:
                         raise RpgGenError("ARCH-004", reason="total uncompressed size too large")
                     out.write(chunk)
+                    ctl.report(label, total, declared)
+        ctl.report(label, declared, declared)
 
 
 # --------------------------------------------------------------------------- 7z
 
 
-def _extract_7z(archive: Path, dest: Path, issues: IssueList) -> None:
+@functools.cache
+def _seven_zip_factory_class() -> type:
+    """The writer factory py7zr extracts through (py7zr is imported only when a 7z is opened).
+
+    Writing the files ourselves, instead of letting py7zr extract to disk, gives a cancel point
+    at every block (an exception raised in ``write`` reaches the caller of ``extract``),
+    progress, and the same size checks the zip extractor has.
+    """
+    from py7zr.io import Py7zIO, WriterFactory
+
+    class Writer(Py7zIO):
+        def __init__(self, path: Path, entry: _Entry, owner: Factory) -> None:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            self.entry = entry
+            self.owner = owner
+            self.written = 0
+            self.fh = open(path, "wb")  # noqa: SIM115 - closed by py7zr (close) or the factory
+
+        def write(self, s: bytes | bytearray) -> int:
+            self.owner.ctl.check()
+            self.written += len(s)
+            self.owner.total += len(s)
+            if self.written > max(self.entry.size, 0) or self.written > LIMITS["max_entry_bytes"]:
+                raise RpgGenError(
+                    "ARCH-004", reason=f"entry {self.entry.name} exceeds its declared size"
+                )
+            if self.owner.total > LIMITS["max_total_bytes"]:
+                raise RpgGenError("ARCH-004", reason="total uncompressed size too large")
+            self.fh.write(s)
+            self.owner.ctl.report(self.owner.label, self.owner.total, self.owner.declared)
+            return len(s)
+
+        def read(self, size: int | None = None) -> bytes:
+            return b""
+
+        def seek(self, offset: int, whence: int = 0) -> int:
+            return self.fh.seek(offset, whence)
+
+        def flush(self) -> None:
+            self.fh.flush()
+
+        def size(self) -> int:
+            return self.written
+
+        def close(self) -> None:
+            self.fh.close()
+
+    class Factory(WriterFactory):
+        def __init__(
+            self, dest: Path, entries: dict[str, _Entry], ctl: Control, label: str
+        ) -> None:
+            self.dest = dest
+            self.entries = entries
+            self.ctl = ctl
+            self.label = label
+            self.declared = sum(max(e.size, 0) for e in entries.values())
+            self.total = 0
+            self.writers: list[Writer] = []
+
+        def create(self, filename: str) -> Py7zIO:
+            entry = self.entries.get(filename)
+            if entry is None:  # py7zr asked for an entry that was not selected
+                raise RpgGenError("ARCH-003", entry=filename)
+            target = self.dest.joinpath(*PurePosixPath(entry.name).parts)
+            if not _inside(self.dest, target):
+                raise RpgGenError("ARCH-003", entry=entry.name)
+            writer = Writer(target, entry, self)
+            self.writers.append(writer)
+            return writer
+
+        def close_all(self) -> None:
+            for writer in self.writers:
+                if not writer.fh.closed:
+                    writer.fh.close()
+
+    return Factory
+
+
+def _extract_7z(archive: Path, dest: Path, issues: IssueList, ctl: Control) -> None:
     import py7zr
 
     try:
@@ -186,27 +331,32 @@ def _extract_7z(archive: Path, dest: Path, issues: IssueList) -> None:
         raise
     except Exception as exc:  # noqa: BLE001 - py7zr raises many different error types
         raise RpgGenError("ARCH-001", path=str(archive), reason=str(exc)) from exc
-    entries = [
-        _Entry(
-            normalize_name(i.filename),
-            i.filename,
-            int(i.uncompressed or 0),
-            int(i.compressed or 0) if getattr(i, "compressed", None) else 0,
+    entries = []
+    for info in infos:
+        if info.is_directory:
+            continue
+        if getattr(info, "is_symlink", False) or getattr(info, "is_junction", False):
+            issues.add("ARCH-009", entry=normalize_name(info.filename))
+            continue
+        entries.append(
+            _Entry(
+                normalize_name(info.filename),
+                info.filename,
+                int(info.uncompressed or 0),
+                int(info.compressed or 0) if getattr(info, "compressed", None) else 0,
+            )
         )
-        for i in infos
-        if not i.is_directory
-    ]
-    allowed = _select_entries(entries, issues, str(archive))
-    names = [str(e.raw) for e in allowed]
-    # All names were validated above; py7zr extracts only the allowed targets.
-    with py7zr.SevenZipFile(archive) as z:
-        z.extract(path=dest, targets=names)
-    for entry in allowed:
-        raw = dest.joinpath(*PurePosixPath(str(entry.raw)).parts)
-        norm = dest.joinpath(*PurePosixPath(entry.name).parts)
-        if raw != norm and raw.exists() and not norm.exists():
-            norm.parent.mkdir(parents=True, exist_ok=True)
-            raw.rename(norm)
+    allowed = _select_entries(entries, issues, str(archive), ctl.budget)
+    by_raw = {str(e.raw): e for e in allowed}
+    label = f"Extracting {archive.name}"
+    factory = _seven_zip_factory_class()(dest, by_raw, ctl, label)
+    try:
+        # All names were validated above; only the allowed targets are handed to the factory.
+        with py7zr.SevenZipFile(archive) as z:
+            z.extract(targets=list(by_raw), factory=factory)
+    finally:
+        factory.close_all()
+    ctl.report(label, factory.declared, factory.declared)
     _check_extracted_size(dest)
 
 
@@ -247,41 +397,100 @@ def _parse_7z_listing(text: str) -> list[_Entry]:
     return entries
 
 
-def _extract_rar(archive: Path, dest: Path, issues: IssueList) -> None:
-    exe = find_7z()
-    if exe is None:
-        raise RpgGenError("ARCH-007")
-    listing = subprocess.run(
-        [str(exe), "l", "-slt", str(archive)],
-        capture_output=True,
+def _run_7z(command: list[str], ctl: Control) -> subprocess.CompletedProcess[str]:
+    """Run 7-Zip, polling for a cancel (the process is killed, nothing is left half-written)."""
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
         errors="replace",
     )
+    try:
+        while True:
+            try:
+                out, err = process.communicate(timeout=0.2)
+                return subprocess.CompletedProcess(command, process.returncode, out, err)
+            except subprocess.TimeoutExpired:
+                ctl.check()
+    except BaseException:
+        process.kill()
+        process.communicate()
+        raise
+
+
+def _extract_rar(archive: Path, dest: Path, issues: IssueList, ctl: Control) -> None:
+    exe = find_7z()
+    if exe is None:
+        raise RpgGenError("ARCH-007")
+    ctl.report(f"Reading {archive.name}", 0, 0)
+    listing = _run_7z([str(exe), "l", "-slt", str(archive)], ctl)
     if listing.returncode != 0:
         raise RpgGenError("ARCH-001", path=str(archive), reason=listing.stderr.strip()[:200])
     # The first block describes the archive itself ("Type = Rar"): it has no Attributes line.
     entries = _parse_7z_listing(listing.stdout)
-    _select_entries(entries, issues, str(archive))
-    run = subprocess.run(
-        [str(exe), "x", f"-o{dest}", "-y", str(archive)],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    allowed = _select_entries(entries, issues, str(archive), ctl.budget)
+    ctl.report(f"Extracting {archive.name}", 0, 0)
+    # Only the entries that passed the checks are extracted, named in a UTF-8 list file (-ssc: the
+    # names match case-sensitively even on Windows): what ARCH-005 reports as kept is what lands
+    # on disk, and junk and oversized files are never written.
+    with tempfile.TemporaryDirectory(prefix="rpggen_rar_") as scratch:
+        names = Path(scratch) / "names.txt"
+        names.write_text("\n".join(str(e.raw) for e in allowed) + "\n", encoding="utf-8")
+        run = _run_7z(
+            [str(exe), "x", f"-o{dest}", "-y", "-ssc", "-scsUTF-8", str(archive), f"@{names}"], ctl
+        )
     if run.returncode != 0:
         raise RpgGenError("ARCH-001", path=str(archive), reason=run.stderr.strip()[:200])
     _check_extracted_size(dest)
-    for p in sorted(dest.rglob("*")):
-        if p.is_file() and is_junk(p.relative_to(dest).as_posix()):
-            p.unlink()
+
+
+# --------------------------------------------------------------------------- links
+
+
+def walk_files(root: Path) -> tuple[list[str], list[str]]:
+    """``(files, links)`` of a folder as POSIX paths relative to ``root``, sorted.
+
+    A symbolic link or a junction is never followed: it is listed under ``links`` (a link to a
+    folder is not entered), so that a pack cannot pull a file from outside itself.
+    """
+    files: list[str] = []
+    links: list[str] = []
+    pending = [Path(root)]
+    while pending:
+        folder = pending.pop()
+        with os.scandir(folder) as entries:
+            for entry in entries:
+                rel = Path(entry.path).relative_to(root).as_posix()
+                if entry.is_symlink() or entry.is_junction():
+                    links.append(rel)
+                elif entry.is_dir(follow_symlinks=False):
+                    pending.append(Path(entry.path))
+                elif entry.is_file(follow_symlinks=False):
+                    files.append(rel)
+    return sorted(files, key=_sort_key), sorted(links, key=_sort_key)
+
+
+def _scrub_links(dest: Path, issues: IssueList) -> None:
+    """After an extraction: remove every link (ARCH-009) and check that every file is inside."""
+    files, links = walk_files(dest)
+    for rel in links:
+        link = dest.joinpath(*PurePosixPath(rel).parts)
+        try:
+            link.unlink()
+        except (PermissionError, IsADirectoryError):
+            os.rmdir(link)  # a junction or a directory link on Windows
+        issues.add("ARCH-009", entry=rel)
+    for rel in files:
+        if not _inside(dest, dest.joinpath(*PurePosixPath(rel).parts)):
+            raise RpgGenError("ARCH-003", entry=rel)
 
 
 # --------------------------------------------------------------------------- nested archives
 
 
-def _extract_nested(root: Path, issues: IssueList) -> None:
+def _extract_nested(root: Path, issues: IssueList, ctl: Control) -> None:
     """Extract every .zip/.7z one level into ``<name>_extracted/`` and remove the archive."""
     nested = sorted(
         (p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in (".zip", ".7z")),
@@ -293,9 +502,9 @@ def _extract_nested(root: Path, issues: IssueList) -> None:
         dest.mkdir(parents=True, exist_ok=True)
         # Nested archives are only extracted one level: their own nested archives stay files.
         if archive.suffix.lower() == ".zip":
-            _extract_zip(archive, dest, issues)
+            _extract_zip(archive, dest, issues, ctl)
         else:
-            _extract_7z(archive, dest, issues)
+            _extract_7z(archive, dest, issues, ctl)
         archive.unlink()
         issues.add("ARCH-006", entry=rel)
 
@@ -319,14 +528,25 @@ def _kind_of(source: Path) -> Literal["zip", "7z", "rar", "folder"]:
 
 
 def extracted_root(sha256: str) -> Path:
-    return paths.local_cache_dir() / "extracted" / sha256
+    return paths.cache_dir() / "extracted" / sha256
 
 
-def open_pack(source: Path, existing_ids: set[str], pack_id: str | None = None) -> OpenedPack:
+def open_pack(
+    source: Path,
+    existing_ids: set[str],
+    pack_id: str | None = None,
+    *,
+    progress: Progress | None = None,
+    is_cancelled: Callable[[], bool] | None = None,
+) -> OpenedPack:
     """Open a pack folder or archive; archives are extracted (safely) into the cache.
 
-    ``pack_id`` pins the id (a regeneration reuses the id stored in the config).
+    ``pack_id`` pins the id (a regeneration reuses the id stored in the config). ``progress``
+    receives ``(label, bytes done, bytes total)`` while an archive is hashed and extracted;
+    ``is_cancelled`` is polled between chunks, and a cancel (``Cancelled``) removes the
+    half-extracted folder.
     """
+    ctl = Control(progress, is_cancelled)
     source = Path(source)
     if not source.exists():
         raise RpgGenError("ARCH-001", path=str(source), reason="does not exist")
@@ -337,10 +557,11 @@ def open_pack(source: Path, existing_ids: set[str], pack_id: str | None = None) 
     if kind == "folder":
         return OpenedPack(pack_id, "folder", source, "", [])  # never written to
 
-    digest = sha256_file(source)
+    digest = sha256_file(source, ctl, f"Reading {source.name}")
     target = extracted_root(digest)
     marker = target / COMPLETE_MARKER
     if marker.exists():
+        cache_policy.touch_used(target)  # recently used archives are the last to be pruned
         stored = jsonio.read(marker)
         issues = [
             Issue(
@@ -360,12 +581,14 @@ def open_pack(source: Path, existing_ids: set[str], pack_id: str | None = None) 
     partial.mkdir(parents=True)
     issues = IssueList()
     try:
-        _EXTRACTORS[kind](source, partial, issues)
-        _extract_nested(partial, issues)
+        _EXTRACTORS[kind](source, partial, issues, ctl)
+        _extract_nested(partial, issues, ctl)
+        _scrub_links(partial, issues)
         jsonio.write(partial / COMPLETE_MARKER, {"issues": issues.to_json()})
         if target.exists():
             shutil.rmtree(target)
         _move_dir(partial, target)
+        cache_policy.touch_used(target)
     except BaseException:
         shutil.rmtree(partial, ignore_errors=True)
         raise

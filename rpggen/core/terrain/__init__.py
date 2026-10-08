@@ -94,7 +94,7 @@ def generate(
     ``catalog.assets`` (pack ``generated``); the atlases are written below ``work_dir``.
     """
     result = TerrainResult()
-    work = (work_dir or paths.local_cache_dir()) / "terrain_atlases"
+    work = (work_dir or paths.cache_dir()) / "terrain_atlases"
     used_sets: set[str] = set()
     added: list[catalog_mod.Asset] = []
     for asset in sorted(catalog.assets, key=lambda a: catalog_mod._sort_key(a.id)):

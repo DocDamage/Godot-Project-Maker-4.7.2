@@ -148,3 +148,40 @@ def test_a_notification_only_when_the_window_is_not_active(
     page.notify("rpggen", "again")
     assert sent == ["done"]
     assert orchestrator is not None
+
+
+def test_notes_list_the_info_issues_with_the_skipped_checks_first(qtbot, tmp_path: Path) -> None:
+    from rpggen.errors import CODES
+
+    state = _state(tmp_path)
+    plain = Issue("ADAPT-003", Severity.INFO, "Pack profile x matched.", "")
+    skipped = Issue("ENV-010", Severity.INFO, CODES["ENV-010"].message, CODES["ENV-010"].fix)
+    state.run_result = _ok_result(tmp_path, [plain, skipped])
+    state.run_result.skipped = {"export": "ENV-010"}
+    page = _results(qtbot, state)
+    assert not page.notes.isHidden()
+    assert page.notes.header.text().endswith("Notes (2)")
+    assert page.notes_list.item(0).text().startswith("– ENV-010")
+    assert "Fix: Install export templates" in page.notes_list.item(0).text()
+    assert page.notes_list.item(1).text().startswith("ℹ ADAPT-003")
+    assert page.issue_list.count() == 0  # the notes are not warnings
+
+
+def test_no_notes_no_section_and_a_failure_has_none(qtbot, tmp_path: Path) -> None:
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path)
+    assert _results(qtbot, state).notes.isHidden()
+    state = _state(tmp_path)
+    state.run_result = _fail_result(tmp_path)
+    assert _results(qtbot, state).notes.isHidden()
+
+
+def test_the_results_page_shows_the_run_number(qtbot, tmp_path: Path) -> None:
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path)
+    state.run_result.run_id = "3f9a1c2e"
+    assert _results(qtbot, state).run_label.text() == "Run 3f9a1c2e"
+    state = _state(tmp_path)
+    state.run_result = _fail_result(tmp_path)
+    state.run_result.run_id = "0badf00d"
+    assert _results(qtbot, state).run_label.text() == "Run 0badf00d"

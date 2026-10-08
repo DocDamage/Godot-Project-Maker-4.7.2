@@ -136,7 +136,7 @@ def render_thumbnail(req: ThumbRequest, size: int = THUMB_SIZE) -> bytes:
 
 
 def thumb_cache_dir() -> Path:
-    return paths.local_cache_dir() / "thumbs"
+    return paths.cache_dir() / "thumbs"
 
 
 def load_or_render(req: ThumbRequest) -> bytes | None:

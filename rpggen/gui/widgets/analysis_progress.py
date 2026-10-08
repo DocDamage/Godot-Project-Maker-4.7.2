@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QEventLoop, Qt
-from PySide6.QtWidgets import QMessageBox, QProgressDialog, QWidget
+from PySide6.QtCore import SIGNAL, SLOT, QEventLoop, QObject, Qt
+from PySide6.QtWidgets import QMessageBox, QProgressDialog, QPushButton, QWidget
 
 from rpggen.gui import workers
 from rpggen.gui.state import WizardState
@@ -16,13 +16,26 @@ def run_analysis(parent: QWidget, state: WizardState) -> bool:
     dialog.setObjectName("analysisProgress")
     dialog.setWindowModality(Qt.WindowModality.WindowModal)
     dialog.setMinimumDuration(0)
+    # QProgressDialog hides itself on Cancel; it should stay and say "Stopping…" until the worker
+    # has really stopped (within one file, one chunk or one image).
+    QObject.disconnect(dialog, SIGNAL("canceled()"), dialog, SLOT("cancel()"))
     outcome: dict[str, object] = {}
     loop = QEventLoop()
 
     def on_progress(label: str, i: int, n: int) -> None:
+        if outcome.get("stopping"):
+            return  # the label stays on "Stopping…" until the worker has stopped
         dialog.setLabelText(label)
-        dialog.setMaximum(n)
+        dialog.setMaximum(n)  # 0 is a busy bar: the size of the stage is not known yet
         dialog.setValue(i)
+
+    def on_cancel() -> None:
+        outcome["stopping"] = True
+        dialog.setLabelText(parent.tr("Stopping…"))
+        cancel_button = dialog.findChild(QPushButton)
+        if cancel_button is not None:
+            cancel_button.setEnabled(False)
+        worker.cancel()
 
     def on_done(result: object) -> None:
         outcome["result"] = result
@@ -35,7 +48,7 @@ def run_analysis(parent: QWidget, state: WizardState) -> bool:
     worker.signals.progress.connect(on_progress)
     worker.signals.finished.connect(on_done)
     worker.signals.failed.connect(on_failed)
-    dialog.canceled.connect(worker.cancel)
+    dialog.canceled.connect(on_cancel)
     dialog.show()
     worker.start()
     loop.exec()

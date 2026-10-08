@@ -2,9 +2,11 @@
 
 Usage: python tools/fetch_godot.py --version 4.7.2 --out .cache/godot [--platform linux]
 
-Prints the path of the executable on the last line of stdout. The SHA-512 of the zip is
-verified against SHA512-SUMS.txt from the same release when that file lists it. The logic lives
-in ``rpggen.core.godot_fetch`` (the wizard's Download Godot button uses the same code).
+Prints the path of the executable on the last line of stdout. The SHA-512 of the zip must match
+the one pinned in ``rpggen/godot_target.py`` (for the version this program is built for) and the
+one in SHA512-SUMS.txt of the same release; another ``--version`` is verified against the sums
+file alone when it lists the zip. The logic lives in ``rpggen.core.godot_fetch`` (the wizard's
+Download Godot button uses the same code).
 """
 
 from __future__ import annotations

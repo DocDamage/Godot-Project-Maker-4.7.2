@@ -7,11 +7,13 @@ const RECIPE_VERSION := 5
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
+const JsonUtil := preload("../lib/json_util.gd")
+const BuildContext := preload("../lib/build_context.gd")
 
 const UI_DIR := "res://generated/scenes/ui/"
 const SCRIPTS := "res://addons/rpg_runtime/ui/"
 
-const SCENES := [
+const SCENES: Array[String] = [
 	"dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
 	"save_load_menu", "settings_menu", "notification", "hud_basic", "game_over",
 ]
@@ -19,20 +21,20 @@ const SCENES := [
 static func scene_path(scene_name: String) -> String:
 	return UI_DIR + scene_name + ".tscn"
 
-func outputs(_ctx) -> PackedStringArray:
+func outputs(_ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray()
 	for s in SCENES:
 		out.append(scene_path(s))
 	return out
 
-func input_hash(ctx) -> String:
+func input_hash(ctx: BuildContext) -> String:
 	return ctx.stable_hash({"v": RECIPE_VERSION, "scenes": SCENES, "title_music": _title_music(ctx)})
 
 ## The asset id of the title music (sound slot music_title), "" for none.
-func _title_music(ctx) -> String:
-	return String(ctx.config.get("sounds", {}).get("music_title", ""))
+func _title_music(ctx: BuildContext) -> String:
+	return JsonUtil.to_str(ctx.section("sounds").get("music_title", ""))
 
-func build(ctx) -> Array:
+func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	for scene_name in SCENES:
 		var root: Node = call("_build_" + scene_name)
@@ -47,8 +49,10 @@ func build(ctx) -> Array:
 
 func _menu_buttons(box: Control, names_keys: Array) -> Array:
 	var buttons: Array = []
-	for pair in names_keys:
-		buttons.append(UiUtil.button(box, pair[0], pair[1]))
+	for pair: Array in names_keys:
+		var button_name: String = pair[0]
+		var button_key: String = pair[1]
+		buttons.append(UiUtil.button(box, button_name, button_key))
 	UiUtil.wire_vertical(buttons)
 	return buttons
 

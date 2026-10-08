@@ -41,6 +41,21 @@ def _filled(catalog: catalog_mod.Catalog, role: str) -> bool:
     )
 
 
+def role_counts(catalog: catalog_mod.Catalog) -> dict[str, int]:
+    """How many active assets (and sheet objects) fill each role, by role name."""
+    counts: dict[str, int] = {}
+    for asset in catalog.assets:
+        if asset.status in _INACTIVE:
+            continue
+        role = catalog_mod.effective(asset).get("role")
+        if role:
+            counts[str(role)] = counts.get(str(role), 0) + 1
+    for obj in catalog.objects:
+        if obj.status not in _INACTIVE and obj.role:
+            counts[obj.role] = counts.get(obj.role, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     """ASSET-010 for missing required (error) and recommended (warning) roles; ASSET-014 when
     several PLAYER assets exist and none is CONFIRMED."""

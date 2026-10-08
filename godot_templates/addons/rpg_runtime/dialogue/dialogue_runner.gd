@@ -124,7 +124,7 @@ static func execute_event(event: String) -> bool:
 		"give_gold":
 			if not arg.is_valid_int():
 				return _bad(event)
-			state.gold = int(state.gold) + int(arg)
+			state.gold = RpgUtil.to_int(state.gold) + RpgUtil.to_int(arg)
 		"set_quest":
 			if not arg.contains("="):
 				return _bad(event)

@@ -23,7 +23,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `project_name` | string | — | 1–64 chars; written to `application/config/name`. |
 | `archetype` | enum `turn_based`/`arpg` | `turn_based` | |
 | `packs` | array of PackRef | — | At least 1 item. |
-| `base_tile_size` | int | detected | One of 8, 12, 16, 24, 32, 48, 64. |
+| `base_tile_size` | int | detected | 8 to 256. The wizard and `rpggen generate --pack` set it from the packs (`catalog.dominant_tile_size`); 16 when they have no tile set. |
 | `resolution` | vec2i | `[640, 360]` | Both values between 160 and 3840. |
 | `window_size` | vec2i | `[1280, 720]` | |
 | `map_layers` | array of string | see below | Must contain `Ground`. Unique entries. |
@@ -33,6 +33,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `input` | object | see §1.1 | Action → bindings. |
 | `sounds` | object | `{}` | Optional (T11.20). Sound slot → audio asset id. Slots: `music_map`, `music_battle`, `music_title`, `sfx_ui_move`, `sfx_ui_confirm`, `sfx_ui_cancel`, `sfx_hit`, `sfx_attack`, `sfx_pickup`, `sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`. A slot that is absent is silent. Omitted from the JSON when empty. |
 | `starter_map` | object | defaults | Optional (T11.25). `size` [w, h] tiles (24..96 each), `buildings` 0..4, `npcs` 0..6, `enemies` 0..8, `chests` 0..4, `decorations` 0..40, `ground_patches` 0..20, `ground` asset id or "". Omitted from the JSON when equal to the defaults. |
+| `git` | object | `{}` | Optional (T12.12). `pack_art`: `"commit"` (default), `"lfs"` (the pack art goes through Git LFS; falls back to `commit` with ENV-013 when git-lfs is missing) or `"ignore"` (`assets/packs/` is added to the generated `.gitignore`). Omitted when it holds the default. |
 | `starter` | object | `{}` | Optional (T3.11). Starter selections of the demo recipes: `player`, `npc`, `enemy`, `ground`, `building`, `chest`, `portrait` → an asset id or an object id. Omitted when empty. |
 
 Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]`.
@@ -391,3 +392,103 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `anim`, `terrain.peering` | `tile_overrides` entries | T2.09, T8.06 |
 | `terrain_proposal` | Facets | T8.06 |
 | `terrain: {set, terrain, peering}` replaces `terrain.wangid` | `tile_overrides` entries | T8.06 |
+
+---
+
+## 11. Command-line documents (`--json`, json_version 1)
+
+`rpggen generate|analyze|restore|diagnose --json` prints **one** JSON document on stdout; every
+human line goes to stderr. The schema is `rpggen/schema/cli.schema.json`. The document is not a
+file in a project: it is the answer to one command, so it is written with `json.dumps(indent=2)`
+and its keys are in the order below, not sorted. Every document starts with the envelope:
+
+```json
+{ "json_version": 1, "command": "generate", "ok": false, "exit_code": 1, … }
+```
+
+* `ok` is `exit_code == 0`. The exit codes are the same for every command:
+
+  | Code | Meaning |
+  |-----:|---------|
+  | 0 | OK |
+  | 1 | Generation failed (`BUILD`, `VAL`, `SMOKE`, `REGEN` or `TILE` errors) |
+  | 2 | Usage error |
+  | 3 | Environment or input (`ENV`, `ARCH`, `CAT`, `ASSET`, `ADAPT` errors) |
+  | 4 | Cancelled with Ctrl+C (the work folder is discarded) |
+  | 70 | Internal error (`BUILD-005`) |
+
+  For a run that failed, the first error decides between 1 and 3; `BUILD-005` anywhere makes it 70.
+* A **usage error** (2), a **cancel** that no running command noticed (4) and an **internal error**
+  outside a generation (70) are `{ envelope…, "error": "<one sentence>" }` and nothing else.
+  A mistake that `argparse` finds (an unknown option) exits with 2 and prints no document.
+* `issue` is `{ "code", "severity", "message", "fix", "file" }`. `file` is always there: a
+  `posix_rel` path, or `null`.
+
+### 11.1 `generate`
+
+```json
+{
+  "json_version": 1, "command": "generate", "ok": true, "exit_code": 0,
+  "target": "C:/games/demo",
+  "dry_run": false,
+  "cancelled": false,
+  "run_id": "0123abcd",
+  "failed_phase": null,
+  "failed_staging": null,
+  "skipped": { "export": "ENV-010" },
+  "timings": { "preflight": 0.4, "build": 12.5 },
+  "issues": [ { "code": "ASSET-010", "severity": "warning", "message": "…", "fix": "…", "file": null } ]
+}
+```
+
+* `failed_phase` is the phase that stopped the run (`PHASES_M1` names; a dry run uses
+  `preflight`, `catalog` and `plan`). `failed_staging` is the kept work folder
+  (`.rpggen_failed`) of a failed run. `skipped` maps a check that did not run to the code of
+  the note that says why (T12.07). `timings` are seconds per phase; they vary from run to run
+  and are never written to a project file. `run_id` is the eight hex characters that mark the
+  run's lines in the application log (empty for a dry run).
+* `cancelled` is true for exit code 4.
+* With `--dry-run`, `dry_run` is true, nothing was made, and the document has a `summary`
+  (it is `{}` when preflight already stopped the run):
+
+```json
+"summary": {
+  "project_name": "forest", "archetype": "turn_based", "regeneration": false,
+  "godot": null,
+  "packs": ["forest"],
+  "tile_size": 16, "tile_size_from": "packs", "resolution": [640, 360],
+  "assets": 51, "objects": 2, "tilesets": 1,
+  "roles": { "GROUND": { "count": 3, "need": "required" } },
+  "placeholders": ["PLAYER"],
+  "map": { "size": [40, 24],
+           "counts": { "buildings": 1, "npcs": 1, "enemies": 1, "chests": 1, "decorations": 8 },
+           "warnings": [] }
+}
+```
+
+  `tile_size_from` is `packs` when the size was read from the packs (`--pack` without
+  `--tile-size`) and `config` otherwise. `roles` lists every required and recommended role and
+  every other role that has an asset; `need` is `required`, `recommended` or `optional`.
+  `placeholders` are the roles `--placeholder` would fill (those that have no asset).
+  `map` is present when the requirement check passed. `godot` is the executable that was found
+  (never started), or `null`.
+
+### 11.2 `analyze`
+
+`mode` tells the three shapes apart:
+
+* `"pack"`: `pack`, `assets` (the table as data: `id`, `path`, `usage`, `role`, `grid`,
+  `frame`, `confidence`, `status`), `objects` and `tilesets` (counts), `catalog_file` (the `--out`
+  file or `null`), `issues` and, with `--expected`, `accuracy` (`groups`, `correct`, `total`,
+  `misses`).
+* `"corpus"`: `report` (the file written), `passed`, `failures`, `groups`, `thresholds`. The exit
+  code is 1 when a threshold is missed.
+* `"private_corpus"`: `report` and `summary` (the content of the written report).
+
+An error (`ARCH-*` and so on) is `{ envelope…, "issues": [ … ] }` with exit code 3 (or 1).
+
+### 11.3 `restore` and `diagnose`
+
+* `restore`: `target`, `backup` (the `--backup` name or `null`), `saved_state` (the folder the replaced state
+  was saved to; `null` on failure) and `issues` (the error that stopped it, or `[]`).
+* `diagnose`: `target` and `bundle` (the zip written).

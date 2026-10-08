@@ -11,7 +11,8 @@ var capacity: int = 40  # distinct stacks
 var registry: Dictionary = {}
 
 func definition(item_id: StringName) -> RpgItemDefinition:
-	return registry.get(item_id) as RpgItemDefinition
+	var def: RpgItemDefinition = registry.get(item_id)
+	return def
 
 func _max_stack(item_id: StringName) -> int:
 	var def := definition(item_id)
@@ -27,10 +28,10 @@ func add(item_id: StringName, qty: int = 1) -> int:
 	for slot in slots:
 		if remaining == 0:
 			break
-		if slot["item_id"] == item_id and int(slot["qty"]) < limit:
-			var room := limit - int(slot["qty"])
+		if slot["item_id"] == item_id and RpgUtil.to_int(slot["qty"]) < limit:
+			var room := limit - RpgUtil.to_int(slot["qty"])
 			var put := mini(room, remaining)
-			slot["qty"] = int(slot["qty"]) + put
+			slot["qty"] = RpgUtil.to_int(slot["qty"]) + put
 			remaining -= put
 	while remaining > 0 and slots.size() < capacity:
 		var put := mini(limit, remaining)
@@ -50,10 +51,10 @@ func remove(item_id: StringName, qty: int = 1) -> bool:
 	while i >= 0 and remaining > 0:
 		var slot := slots[i]
 		if slot["item_id"] == item_id:
-			var take := mini(int(slot["qty"]), remaining)
-			slot["qty"] = int(slot["qty"]) - take
+			var take := mini(RpgUtil.to_int(slot["qty"]), remaining)
+			slot["qty"] = RpgUtil.to_int(slot["qty"]) - take
 			remaining -= take
-			if int(slot["qty"]) == 0:
+			if RpgUtil.to_int(slot["qty"]) == 0:
 				slots.remove_at(i)
 		i -= 1
 	RpgUtil.emit(&"item_removed", [item_id, qty])
@@ -63,7 +64,7 @@ func count(item_id: StringName) -> int:
 	var total := 0
 	for slot in slots:
 		if slot["item_id"] == item_id:
-			total += int(slot["qty"])
+			total += RpgUtil.to_int(slot["qty"])
 	return total
 
 func has(item_id: StringName, qty: int = 1) -> bool:
@@ -91,11 +92,15 @@ func use(item_id: StringName, target_stats: RpgStats) -> bool:
 func to_array() -> Array:
 	var out: Array = []
 	for slot in slots:
-		out.append({"item_id": String(slot["item_id"]), "qty": int(slot["qty"])})
+		out.append({"item_id": RpgUtil.to_str(slot["item_id"]), "qty": RpgUtil.to_int(slot["qty"])})
 	return out
 
 func load_array(a: Array) -> void:
 	slots.clear()
-	for entry in a:
-		if entry is Dictionary and int(entry.get("qty", 0)) > 0:
-			slots.append({"item_id": StringName(str(entry.get("item_id", ""))), "qty": int(entry["qty"])})
+	for entry: Variant in a:
+		if not (entry is Dictionary):
+			continue
+		var row: Dictionary = entry
+		var qty := RpgUtil.to_int(row.get("qty", 0))
+		if qty > 0:
+			slots.append({"item_id": StringName(str(row.get("item_id", ""))), "qty": qty})

@@ -7,41 +7,45 @@ extends RefCounted
 const RECIPE_VERSION := 1
 
 const Paths := preload("../../lib/paths.gd")
+const JsonUtil := preload("../../lib/json_util.gd")
+const BuildContext := preload("../../lib/build_context.gd")
 
 const OUT_PATH := "res://generated/effects/swing_frames.tres"
 const ANIMATION := "swing"
 const FRAME_COUNT := 4
 const FPS := 20.0
-const WORDS := ["slash", "swing"]
+const WORDS: Array[String] = ["slash", "swing"]
 const OUTLINE := Color(0.08, 0.08, 0.12, 1.0)
 ## The arc is a ring segment around a point near the left edge, opening toward +x (facing right).
 const SWEEP_START := -1.0471976  # -60 degrees
 const SWEEP_END := 1.0471976  # 60 degrees
 
-func _tile(ctx) -> int:
+func _tile(ctx: BuildContext) -> int:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
 	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
 		def = ctx.catalog.tileset_defs()[0]
-	return int(def["tile_size"][0]) if not def.is_empty() else int(ctx.config.get("base_tile_size", 16))
+	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
 
 ## The pack's slash / swing EFFECT asset with animations, or {}.
-func pack_effect(ctx) -> Dictionary:
+func pack_effect(ctx: BuildContext) -> Dictionary:
 	for a in ctx.catalog.assets_by_role("EFFECT"):
 		if a.get("status", "") in ["UNUSED", "MISSING"]:
 			continue
 		var eff: Dictionary = ctx.catalog.effective(a)
-		if eff.get("usage", "") != "sprite" or eff.get("animations", {}).is_empty():
+		var animations: Dictionary = eff.get("animations", {})
+		if eff.get("usage", "") != "sprite" or animations.is_empty():
 			continue
-		var text := String(a["id"]).to_lower() + " " + " ".join(PackedStringArray(eff.get("tags", [])))
+		var tags: Array = eff.get("tags", [])
+		var text := JsonUtil.to_str(a["id"]).to_lower() + " " + " ".join(PackedStringArray(tags))
 		for word in WORDS:
 			if text.contains(word):
 				return a
 	return {}
 
-func outputs(_ctx) -> PackedStringArray:
+func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([OUT_PATH])
 
-func input_hash(ctx) -> String:
+func input_hash(ctx: BuildContext) -> String:
 	var effect := pack_effect(ctx)
 	return ctx.stable_hash({
 		"v": RECIPE_VERSION, "tile": _tile(ctx),
@@ -49,7 +53,7 @@ func input_hash(ctx) -> String:
 		"eff": ctx.catalog.effective(effect) if not effect.is_empty() else {},
 	})
 
-func build(ctx) -> Array:
+func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var frames: SpriteFrames = null
 	var effect := pack_effect(ctx)
@@ -84,7 +88,7 @@ func _from_pack(effect: Dictionary) -> SpriteFrames:
 
 ## 4 frames of the arc, growing from a short stroke to the full sweep.
 static func drawn_frames(tile: int) -> SpriteFrames:
-	var size := maxi(12, int(round(tile * 1.5)))
+	var size := maxi(12, JsonUtil.to_int(round(tile * 1.5)))
 	var out := SpriteFrames.new()
 	out.remove_animation("default")
 	out.add_animation(ANIMATION)

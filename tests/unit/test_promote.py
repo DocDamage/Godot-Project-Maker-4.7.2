@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import subprocess
+import os
 from pathlib import Path
 
+import psutil
 import pytest
 
 from rpggen import paths
@@ -352,28 +353,120 @@ def test_restore_makes_a_safety_backup_of_what_it_replaces(project: Project) -> 
 # --------------------------------------------------------------------------- editor check
 
 
-def test_editor_open_looks_for_the_project_in_godot_command_lines(
+class _Proc:
+    """What ``psutil.process_iter`` yields: an object whose ``info`` holds the asked attributes."""
+
+    def __init__(self, name: str, cmdline: list[str] | None, cwd: str | None = None) -> None:
+        self.info = {"name": name, "cmdline": cmdline, "cwd": cwd}
+
+
+class _Denied:
+    @property
+    def info(self) -> dict:
+        raise psutil.AccessDenied(1)
+
+
+def _running(monkeypatch: pytest.MonkeyPatch, *procs: object) -> None:
+    monkeypatch.setattr(psutil, "process_iter", lambda _attrs=None: iter(procs))
+
+
+def _folder(tmp_path: Path, name: str) -> Path:
+    folder = tmp_path / name
+    folder.mkdir()
+    return folder
+
+
+def test_a_folder_that_only_starts_like_the_open_one_is_not_open(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    project = tmp_path / "My Game"
-    project.mkdir()
+    forest = _folder(tmp_path, "forest")
+    forest_v2 = _folder(tmp_path, "forest_v2")
+    _running(monkeypatch, _Proc("Godot.exe", ["Godot.exe", "--path", str(forest_v2), "--editor"]))
+    assert promote.editor_open(forest) is False
+    assert promote.editor_open(forest_v2) is True
 
-    def fake_run(*_a: object, **_k: object) -> subprocess.CompletedProcess[str]:
-        out = f'"Godot.exe" --path "{project}" --editor\n"Godot.exe" --path "C:\\Other" --editor\n'
-        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
 
-    monkeypatch.setattr(promote.subprocess, "run", fake_run)
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda p: ["godot", "--path", str(p), "--editor"],
+        lambda p: ["godot", f"--path={p}"],
+        lambda p: ["godot", "--path", str(p) + os.sep],  # a trailing separator
+        lambda p: ["godot", "--path", str(p) + "/"],
+        lambda p: ["godot", str(p / "project.godot")],  # a positional project file
+        lambda p: ["godot", "-e", str(p)],  # a positional folder after -e
+        lambda p: ["godot", "--editor", str(p)],
+    ],
+)
+def test_the_ways_a_project_is_given_to_godot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, build
+) -> None:
+    project = _folder(tmp_path, "My Game")
+    _running(monkeypatch, _Proc("Godot_v4.7.2-stable_win64.exe", build(project)))
     assert promote.editor_open(project) is True
-    other = tmp_path / "Not Open"
-    other.mkdir()
-    assert promote.editor_open(other) is False
+
+
+def test_a_relative_path_uses_the_working_directory_of_its_process(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _folder(tmp_path, "My Game")
+    _running(monkeypatch, _Proc("godot", ["godot", "--path", "My Game"], cwd=str(tmp_path)))
+    assert promote.editor_open(project) is True
+    _running(monkeypatch, _Proc("godot", ["godot", "--path", "My Game"], cwd=None))
+    assert promote.editor_open(project) is False  # nothing to resolve it against
+
+
+@pytest.mark.skipif(os.name != "nt", reason="case-insensitive paths")
+def test_paths_are_compared_without_case_on_windows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _folder(tmp_path, "Forest")
+    shouted = str(project).upper().replace("\\", "/")
+    _running(monkeypatch, _Proc("Godot.exe", ["Godot.exe", "--path", shouted]))
+    assert promote.editor_open(project) is True
+
+
+def test_only_godot_processes_count(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _folder(tmp_path, "My Game")
+    _running(
+        monkeypatch,
+        _Proc("notepad.exe", ["notepad.exe", "--path", str(project)]),
+        _Proc("godot_helper", None),
+        _Proc("Godot.exe", ["Godot.exe", "--path", str(tmp_path / "Other")]),
+    )
+    assert promote.editor_open(project) is False
+
+
+def test_a_process_that_denies_access_is_skipped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = _folder(tmp_path, "My Game")
+    _running(monkeypatch, _Denied(), _Proc("godot", ["godot", "--path", str(project)]))
+    assert promote.editor_open(project) is True
+    _running(monkeypatch, _Denied())
+    assert promote.editor_open(project) is False
 
 
 def test_editor_open_is_false_when_the_system_cannot_be_asked(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def broken(*_a: object, **_k: object) -> None:
-        raise OSError("no powershell")
+        raise psutil.Error("cannot list")
 
-    monkeypatch.setattr(promote.subprocess, "run", broken)
+    monkeypatch.setattr(psutil, "process_iter", broken)
     assert promote.editor_open(tmp_path) is False
+
+
+def test_the_check_is_fast_and_starts_no_program(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    import time
+
+    def refuse(*_a: object, **_k: object) -> None:
+        raise AssertionError("a program was started")
+
+    monkeypatch.setattr(subprocess, "Popen", refuse)
+    started = time.monotonic()
+    assert promote.editor_open(_folder(tmp_path, "x")) in (True, False)
+    assert time.monotonic() - started < 1.0  # 200 ms on a normal machine; slack for CI

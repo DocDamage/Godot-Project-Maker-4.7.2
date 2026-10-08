@@ -67,6 +67,7 @@ func collect() -> bool:
 	if added <= 0:
 		return false
 	_collected = true
-	RpgUtil.notify(RpgArpgText.t("ARPG_ITEM_GAINED", [RpgArpgText.item_name(state.items.get(item_id), item_id), added]))
+	var def: RpgItemDefinition = state.items.get(item_id)
+	RpgUtil.notify(RpgArpgText.t("ARPG_ITEM_GAINED", [RpgArpgText.item_name(def, item_id), added]))
 	queue_free()
 	return true

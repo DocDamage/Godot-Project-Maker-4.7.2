@@ -9,6 +9,7 @@ from rpggen.core.adapters.base import (
     AdapterResult,
     AssetFragment,
 )
+from rpggen.core.archive import Cancelled
 from rpggen.core.inventory import Inventory
 from rpggen.errors import IssueList
 
@@ -66,6 +67,8 @@ def run_adapters(
             already_claimed = set(ctx.claimed)
             result = adapter.extract(inv, root, ctx)
             result.assets = [f for f in result.assets if f.path not in already_claimed]
+        except Cancelled:
+            raise  # a cancel is not an adapter failure
         except Exception as exc:  # noqa: BLE001 - adapter failures must not stop generation
             log.debug("adapter %s failed", adapter.name, exc_info=True)
             issues = IssueList()

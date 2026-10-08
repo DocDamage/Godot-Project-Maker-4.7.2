@@ -111,6 +111,8 @@ the wizard) to bring back the version from before the last regeneration. The bac
   `assets/packs/<pack>/`. Read them before you publish your game; some require credit.
   `GENERATION_REPORT.md` lists every pack and the license files found.
 
+{version_control_note}
+
 ## 10. Removing the demo
 
 When you are ready to make your own game, open the **Assets** dock in the Godot editor, go to

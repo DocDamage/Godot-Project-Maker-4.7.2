@@ -9,19 +9,20 @@ static func save(res: Resource, path: String) -> int:
 ## Paths from `candidates` that do not exist yet (the recipe's outputs while it is a seed).
 static func missing(candidates: Array) -> PackedStringArray:
 	var out := PackedStringArray()
-	for p in candidates:
+	for p: String in candidates:
 		if not FileAccess.file_exists(p):
 			out.append(p)
 	return out
 
 ## A script instance of the runtime addon (no class_name dependency inside the builder).
 static func make(script_path: String) -> Resource:
-	var script := load(script_path) as Script
-	return script.new() as Resource
+	var script := load(script_path) as GDScript
+	var instance: Resource = script.new()
+	return instance
 
 ## Typed Array[Dictionary] from untyped dictionaries.
 static func dict_array(items: Array) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for i in items:
+	for i: Dictionary in items:
 		out.append(i)
 	return out

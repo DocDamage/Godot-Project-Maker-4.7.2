@@ -42,7 +42,8 @@ func _collect(root: Node, node: Node, view: Dictionary) -> void:
 	if node is TileMapLayer:
 		_add_layer(node as TileMapLayer, view)
 	elif node is Node2D and node != root and node.scene_file_path != "":
-		view["entities"].append(_entity(root, node as Node2D))
+		var entities: Array = view["entities"]
+		entities.append(_entity(root, node as Node2D))
 		return  # what is inside an instanced scene belongs to it
 	for child in node.get_children():
 		_collect(root, child, view)
@@ -57,7 +58,8 @@ func _add_layer(layer: TileMapLayer, view: Dictionary) -> void:
 			if a[i] != b[i]:
 				return a[i] < b[i]
 		return false)
-	view["layers"].append({"name": String(layer.name), "z": layer.z_index, "cells": cells})
+	var layers: Array = view["layers"]
+	layers.append({"name": String(layer.name), "z": layer.z_index, "cells": cells})
 	var tile_set := layer.tile_set
 	if tile_set == null:
 		return
@@ -65,7 +67,8 @@ func _add_layer(layer: TileMapLayer, view: Dictionary) -> void:
 	for i in tile_set.get_source_count():
 		var id := tile_set.get_source_id(i)
 		var key := str(id)
-		if view["sources"].has(key):
+		var known_sources: Dictionary = view["sources"]
+		if known_sources.has(key):
 			continue
 		var source := tile_set.get_source(id) as TileSetAtlasSource
 		if source == null or source.texture == null:

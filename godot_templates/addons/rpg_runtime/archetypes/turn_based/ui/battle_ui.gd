@@ -34,7 +34,7 @@ func _node(unique_name: String) -> Node:
 
 func _ready() -> void:
 	layer = 20
-	for hidden in ["CommandPanel", "ItemSubmenu", "BattleLog"]:
+	for hidden: String in ["CommandPanel", "ItemSubmenu", "BattleLog"]:
 		var panel := _node(hidden) as Control
 		if panel != null:
 			panel.visible = false
@@ -102,21 +102,22 @@ static func _bar_style(color: Color) -> StyleBoxFlat:
 
 ## Updates every HP bar and number from the battlers' stats.
 func refresh() -> void:
-	for actor in _rows.keys():
+	for actor: RpgBattleActor in _rows.keys():
 		var row: Dictionary = _rows[actor]
 		var bar: ProgressBar = row["bar"]
 		bar.max_value = maxi(1, actor.stats.max_hp)
 		bar.value = maxi(0, actor.stats.hp)
-		var numbers := row["text"] as Label
+		var numbers: Label = row["text"]
 		if numbers != null:
 			numbers.text = "%s %d/%d" % [tr("UI_HP"), maxi(0, actor.stats.hp), actor.stats.max_hp]
-		(row["name"] as Label).modulate = Color.WHITE if actor.alive else Color(1, 1, 1, 0.45)
+		var name_label: Label = row["name"]
+		name_label.modulate = Color.WHITE if actor.alive else Color(1, 1, 1, 0.45)
 
 # ---------------------------------------------------------------- asking for a command
 
 ## The controller's question: which command, and for whom? Returns
 ## {command_id, target_index, item_id} once the player has decided.
-func request_command(actor: RpgBattleActor, _battle: Variant = null) -> Dictionary:
+func request_command(actor: RpgBattleActor, _battle: RpgBattleController = null) -> Dictionary:
 	_actor = actor
 	_show_commands()
 	var choice: Dictionary = await choice_made
@@ -130,7 +131,7 @@ func _show_commands() -> void:
 	_show_log_text("")
 	var panel := _node("CommandPanel") as Control
 	panel.visible = true
-	var enabled: Array = []
+	var enabled: Array[Button] = []
 	for command in controller.commands:
 		var b: Button = _buttons[command.id]
 		b.disabled = not command.can_use(_actor, controller)
@@ -138,7 +139,7 @@ func _show_commands() -> void:
 			enabled.append(b)
 	RpgMenuUtil.wire_vertical(enabled)
 	if not enabled.is_empty():
-		(enabled[0] as Button).grab_focus()
+		enabled[0].grab_focus()
 
 func _on_command_pressed(command: RpgBattleCommand) -> void:
 	if _mode != &"commands":
@@ -157,14 +158,15 @@ func _show_items(command: RpgBattleCommand) -> void:
 	var list := _node("ItemList") as VBoxContainer
 	var submenu := _node("ItemSubmenu") as Control
 	_clear(list)
-	var buttons: Array = []
+	var buttons: Array[Button] = []
 	for slot in (command as RpgItemCommand).usable_items(_actor, controller):
 		var inv := controller.inventory_of(_actor)
 		var b := Button.new()
-		b.name = "Item_" + String(slot["item_id"])
-		b.text = "%s x%d" % [RpgBattleText.item_name(inv.definition(slot["item_id"]), slot["item_id"]), slot["qty"]]
+		var item_id: StringName = slot["item_id"]
+		b.name = "Item_" + String(item_id)
+		b.text = "%s x%d" % [RpgBattleText.item_name(inv.definition(item_id), item_id), slot["qty"]]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(_on_item_pressed.bind(command, slot["item_id"]))
+		b.pressed.connect(_on_item_pressed.bind(command, item_id))
 		list.add_child(b)
 		buttons.append(b)
 	if buttons.is_empty():
@@ -175,7 +177,7 @@ func _show_items(command: RpgBattleCommand) -> void:
 	RpgMenuUtil.wire_vertical(buttons)
 	_mode = &"items"
 	submenu.visible = true
-	(buttons[0] as Button).grab_focus()
+	buttons[0].grab_focus()
 
 func _on_item_pressed(command: RpgBattleCommand, item_id: StringName) -> void:
 	if _mode != &"items":
@@ -202,7 +204,8 @@ func _begin_target(command: RpgBattleCommand, extra: Dictionary, from_items: boo
 func _point_cursor() -> void:
 	var cursor := _node("TargetCursor") as RpgTargetCursor
 	if cursor != null and _anchor_of.is_valid():
-		cursor.point_at(_anchor_of.call(_candidates[_target_index]))
+		var tip: Vector2 = _anchor_of.call(_candidates[_target_index])
+		cursor.point_at(tip)
 
 func _hide_cursor() -> void:
 	var cursor := _node("TargetCursor") as RpgTargetCursor
@@ -261,12 +264,15 @@ func _target_input(event: InputEvent) -> void:
 		_point_cursor()
 	elif _pressed(event, "confirm") or _pressed(event, "ui_accept"):
 		_hide_cursor()
-		_decide(_pending["command"], _target_index, _pending["extra"])
+		var picked_command: RpgBattleCommand = _pending["command"]
+		var picked_extra: Dictionary = _pending["extra"]
+		_decide(picked_command, _target_index, picked_extra)
 	elif _pressed(event, "cancel") or _pressed(event, "ui_cancel"):
 		_hide_cursor()
 		if _from_items:
 			_show_commands()
-			_show_items(_pending["command"])
+			var back_command: RpgBattleCommand = _pending["command"]
+			_show_items(back_command)
 		else:
 			_show_commands()
 	else:
@@ -287,11 +293,11 @@ func _wait_advance(seconds: float) -> void:
 		waited += get_process_delta_time()
 
 ## Shows the entries one after the other; `confirm` skips ahead, otherwise each stays 0.8 s.
-func show_log(entries: Array) -> void:
+func show_log(entries: Array[Dictionary]) -> void:
 	refresh()
 	_mode = &"log"
-	for entry in entries:
-		var text := String(entry.get("text", ""))
+	for entry: Dictionary in entries:
+		var text := RpgUtil.to_str(entry.get("text", ""))
 		if text == "":
 			continue
 		_show_log_text(text)
@@ -312,13 +318,20 @@ func show_rewards(result: RpgEncounterResult, level_ups: Array) -> void:
 	var lines: PackedStringArray = [RpgBattleText.t("BATTLE_VICTORY"), RpgBattleText.t("BATTLE_REWARDS", [result.xp, result.gold])]
 	if not result.items.is_empty():
 		var names: PackedStringArray = []
-		var inv := controller.inventory_of(controller.party[0]) if not controller.party.is_empty() else null
+		var inv: RpgInventory = null
+		if not controller.party.is_empty():
+			inv = controller.inventory_of(controller.party[0])
 		for drop in result.items:
-			var item_label := RpgBattleText.item_name(inv.definition(drop["item_id"]) if inv != null else null, drop["item_id"])
-			names.append(item_label if int(drop["qty"]) == 1 else "%s x%d" % [item_label, drop["qty"]])
+			var drop_id: StringName = drop["item_id"]
+			var drop_def: RpgItemDefinition = null
+			if inv != null:
+				drop_def = inv.definition(drop_id)
+			var item_label := RpgBattleText.item_name(drop_def, drop_id)
+			names.append(item_label if RpgUtil.to_int(drop["qty"]) == 1 else "%s x%d" % [item_label, drop["qty"]])
 		lines.append(RpgBattleText.t("BATTLE_FOUND", [", ".join(names)]))
-	for up in level_ups:
-		lines.append(RpgBattleText.t("BATTLE_LEVEL_UP", [(up["actor"] as RpgBattleActor).display_name, up["level"]]))
+	for up: Dictionary in level_ups:
+		var leveled: RpgBattleActor = up["actor"]
+		lines.append(RpgBattleText.t("BATTLE_LEVEL_UP", [leveled.display_name, up["level"]]))
 	_mode = &"log"
 	for line in lines:
 		_show_log_text(line)

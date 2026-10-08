@@ -1,4 +1,6 @@
 extends SceneTree
+
+const JsonUtil := preload("../lib/json_util.gd")
 # Dumps every painted tile of every map under res://game/maps as sorted tuples, so a test can
 # compare the cells before and after a regeneration (the tile invariant, M5).
 # Run: godot --headless --path <proj> --script res://generated/builder/tools/dump_map_cells.gd -- --out=<file>
@@ -52,12 +54,12 @@ func _collect(root: Node, node: Node, layers: Dictionary) -> void:
 	for child in node.get_children():
 		_collect(root, child, layers)
 
-func _list_scenes(dir_path: String) -> Array:
-	var found: Array = []
+func _list_scenes(dir_path: String) -> Array[String]:
+	var found: Array[String] = []
 	var dir := DirAccess.open(dir_path)
 	if dir == null:
 		return found
-	var names: Array = []
+	var names: Array[Array] = []
 	dir.list_dir_begin()
 	var name := dir.get_next()
 	while name != "":
@@ -65,10 +67,12 @@ func _list_scenes(dir_path: String) -> Array:
 		name = dir.get_next()
 	dir.list_dir_end()
 	names.sort()
-	for e in names:
-		var full: String = dir_path + "/" + e[0]
-		if e[1]:
+	for e: Array in names:
+		var entry_name: String = e[0]
+		var is_dir: bool = e[1]
+		var full: String = dir_path + "/" + entry_name
+		if is_dir:
 			found.append_array(_list_scenes(full))
-		elif String(e[0]).ends_with(".tscn"):
+		elif entry_name.ends_with(".tscn"):
 			found.append(full)
 	return found

@@ -304,3 +304,84 @@ def test_failure_has_no_deliver_anyway_and_shows_the_phase(qtbot, tmp_path) -> N
 def test_results_without_a_run_say_so(qtbot, tmp_path) -> None:
     page = _results(qtbot, _state(tmp_path))
     assert "Nothing" in page.header.text()
+
+
+# ------------------------------------------------------------------------ live output (T12.19)
+
+
+def test_log_view_keeps_5000_lines_takes_batches_and_says_when_it_dropped(qtbot) -> None:
+    from rpggen.gui.widgets.log_view import MAX_LINES
+
+    assert MAX_LINES == 5000
+    view = LogView(max_lines=100)
+    qtbot.addWidget(view)
+    view.resize(300, 100)
+    view.show()
+    dropped: list[bool] = []
+    view.truncated.connect(lambda: dropped.append(True))
+    view.append_lines([f"a{i}" for i in range(100)])  # exactly full: nothing dropped yet
+    assert not view.dropped and dropped == []
+    view.append_lines(["b0", "b1"])
+    assert view.dropped and dropped == [True]
+    view.append_lines(["b2"])
+    assert dropped == [True]  # said once
+    assert view.lines() <= 101 and view.toPlainText().splitlines()[-1] == "b2"
+    assert view.at_bottom()
+    view.clear()
+    assert not view.dropped and view.lines() <= 1
+
+
+def test_a_batch_follows_the_end_unless_the_user_scrolled_up(qtbot) -> None:
+    view = LogView()
+    qtbot.addWidget(view)
+    view.resize(300, 100)
+    view.show()
+    view.append_lines([f"line {i}" for i in range(200)])
+    assert view.at_bottom()
+    view.verticalScrollBar().setValue(0)
+    view.append_lines(["new one", "new two"])
+    assert view.verticalScrollBar().value() == 0  # the user is reading: no jump
+    view.verticalScrollBar().setValue(view.verticalScrollBar().maximum())
+    view.append_lines(["follow"])
+    assert view.at_bottom()
+
+
+def test_the_generate_page_shows_what_the_running_phase_is_doing(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    state = _state(tmp_path)
+
+    def fake(cfg, cat, target, godot, placeholders, git_message=None, force=False, *, callbacks):
+        callbacks.on_phase("build", 6, len(PHASES))
+        callbacks.on_step("build", 7, 31, "tileset")
+        callbacks.on_log("[godot] one\n[godot] two")
+        callbacks.on_phase("validate", 7, len(PHASES))
+        callbacks.on_step("validate", 3, 12, "dependencies")
+        return _ok_result(tmp_path)
+
+    monkeypatch.setattr(workers, "generate", fake)
+    page = GeneratePage()
+    qtbot.addWidget(page)
+    page.show_notification = lambda title, text: None  # type: ignore[method-assign]
+    shown: list[str] = []
+    real = page._on_step
+    page._on_step = lambda *a: (real(*a), shown.append(page.step_label.toolTip()))  # type: ignore[method-assign]
+    page.enter(state)
+    qtbot.waitUntil(lambda: not page.running, timeout=20000)
+    assert "Building tileset (7 of 31)" in shown and "Checking dependencies (3 of 12)" in shown
+    assert page.step_label.text() == ""  # nothing is "running" any more
+    assert "[godot] two" in page.log_view.toPlainText()
+
+
+def test_the_sub_line_of_the_import_is_the_last_line_godot_printed(qtbot) -> None:
+    page = GeneratePage()
+    qtbot.addWidget(page)
+    assert page.step_text("import", 0, 0, "Importing a.png") == "Importing a.png"
+    assert page.step_text("build", 7, 31, "tileset") == "Building tileset (7 of 31)"
+    assert page.step_text("validate", 1, 12, "scripts") == "Checking scripts (1 of 12)"
+    page.current_phase = "import"
+    page.resize(300, 200)
+    page._on_step("import", 0, 0, "x" * 500)
+    assert len(page.step_label.text()) < 500 and page.step_label.toolTip() == "x" * 500  # elided
+    page._on_step("build", 1, 2, "late line of the phase before")
+    assert page.step_label.toolTip() == "x" * 500  # ignored: not the running phase

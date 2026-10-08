@@ -13,8 +13,10 @@ static func order(entries: Array) -> Array:
 static func _before(a: Dictionary, b: Dictionary) -> bool:
 	var actor_a: RpgBattleActor = a["actor"]
 	var actor_b: RpgBattleActor = b["actor"]
-	var prio_a: int = (a["command"] as RpgBattleCommand).priority
-	var prio_b: int = (b["command"] as RpgBattleCommand).priority
+	var command_a: RpgBattleCommand = a["command"]
+	var prio_a: int = command_a.priority
+	var command_b: RpgBattleCommand = b["command"]
+	var prio_b: int = command_b.priority
 	if prio_a != prio_b:
 		return prio_a > prio_b
 	if actor_a.stats.speed != actor_b.stats.speed:

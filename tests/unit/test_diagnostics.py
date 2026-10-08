@@ -93,3 +93,142 @@ def test_failed_run_folder_and_cli(tmp_path: Path, capsys) -> None:
 def test_short_user_names_are_not_redacted_everywhere() -> None:
     redact = diagnostics.redactor(Path("C:/Users/a"), "a")
     assert redact("a banana") == "a banana"
+
+
+# ------------------------------------------------------------------------ one log, rotated, run ids (T12.24)
+
+
+def _reset_logging():
+    import logging
+
+    for handler in list(logging.getLogger().handlers):
+        if getattr(handler, "_rpggen", False):
+            logging.getLogger().removeHandler(handler)
+            handler.close()
+
+
+def test_the_command_line_and_the_wizard_log_to_the_same_folder(tmp_path, monkeypatch) -> None:
+    from rpggen import logging_setup, paths
+    from rpggen.gui.dialogs import diagnostic_export
+
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "_rpggen"))
+    assert diagnostic_export.app_log_dir() == paths.log_dir()
+    seen: list[Path] = []
+    monkeypatch.setattr(logging_setup, "configure", lambda folder, verbose: seen.append(folder))
+    monkeypatch.setenv("RPGGEN_GODOT", "godot")
+    from rpggen.core import orchestrator
+
+    monkeypatch.setattr(
+        orchestrator,
+        "run",
+        lambda *a, **k: orchestrator.RunResult(True, Path(a[1]), [], None, None),
+    )
+    assert cli.main(["generate", "--pack", str(tmp_path), "--target", str(tmp_path / "t")]) == 0
+    assert seen == [paths.log_dir()]  # the folder the GUI's run_gui configures as well
+
+
+def test_the_log_rotates_at_two_megabytes_and_keeps_five_older_files(tmp_path) -> None:
+    import logging
+
+    from rpggen import logging_setup
+
+    _reset_logging()
+    try:
+        logging_setup.MAX_BYTES = 4000
+        logging_setup.configure(tmp_path / "logs", False)
+        log = logging.getLogger("rpggen.test")
+        for i in range(400):
+            log.info("a line of the log that is long enough to fill the file %d", i)
+        logging.shutdown()
+        names = sorted(p.name for p in (tmp_path / "logs").iterdir())
+        assert names == [
+            "rpggen.log",
+            "rpggen.log.1",
+            "rpggen.log.2",
+            "rpggen.log.3",
+            "rpggen.log.4",
+            "rpggen.log.5",
+        ]
+        assert logging_setup.BACKUPS == 5
+        assert [p.name for p in logging_setup.log_files(tmp_path / "logs")][-1] == "rpggen.log"
+    finally:
+        logging_setup.MAX_BYTES = 2 * 1024 * 1024
+        _reset_logging()
+
+
+def test_records_carry_the_run_id_of_the_run_they_were_made_in(tmp_path) -> None:
+    import logging
+
+    from rpggen import logging_setup
+
+    _reset_logging()
+    try:
+        logging_setup.configure(tmp_path / "logs", False)
+        log = logging.getLogger("rpggen.test")
+        log.info("before any run")
+        with logging_setup.run_context("3f9a1c2e"):
+            log.info("inside the run")
+            try:
+                _ = 1 / 0
+            except ZeroDivisionError:
+                log.exception("a failure with a traceback")
+        log.info("after the run")
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+        text = (tmp_path / "logs" / "rpggen.log").read_text(encoding="utf-8")
+        assert "[-] rpggen.test: before any run" in text
+        assert "[3f9a1c2e] rpggen.test: inside the run" in text
+        assert "[-] rpggen.test: after the run" in text
+        lines = logging_setup.read_run_lines(tmp_path / "logs", "3f9a1c2e")
+        assert any("inside the run" in line for line in lines)
+        assert any("ZeroDivisionError" in line for line in lines)  # the traceback came along
+        assert not any("before any run" in line or "after the run" in line for line in lines)
+        assert len(logging_setup.new_run_id()) == 8
+    finally:
+        _reset_logging()
+
+
+def test_a_bundle_holds_only_the_lines_of_its_own_run(tmp_path) -> None:
+    import logging
+
+    from rpggen import logging_setup
+
+    _reset_logging()
+    try:
+        app_logs = tmp_path / "applogs"
+        logging_setup.configure(app_logs, False)
+        log = logging.getLogger("rpggen.test")
+        with logging_setup.run_context("aaaaaaaa"):
+            log.info("the other run, alice")
+        with logging_setup.run_context("bbbbbbbb"):
+            log.info("my run, said by alice")
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+        project = _project(tmp_path / "proj")
+        (project / "rpggen" / "generation_report.json").write_text(
+            '{"run_id": "bbbbbbbb", "ok": true}', encoding="utf-8"
+        )
+        out = diagnostics.make_bundle(
+            project, tmp_path / "b.zip", None, home=HOME, user="alice", app_log_dir=app_logs
+        )
+        with zipfile.ZipFile(out) as zf:
+            app = zf.read("logs/rpggen_app.log").decode()
+            assert "my run" in app and "the other run" not in app
+            assert "alice" not in app  # redacted like the other logs
+        # a project with no run id (older, or a crash outside a generation) gets the end of the log
+        (project / "rpggen" / "generation_report.json").write_text('{"ok": true}', encoding="utf-8")
+        out = diagnostics.make_bundle(
+            project, tmp_path / "c.zip", None, home=HOME, user="alice", app_log_dir=app_logs
+        )
+        with zipfile.ZipFile(out) as zf:
+            assert "the other run" in zf.read("logs/rpggen_app.log").decode()
+    finally:
+        _reset_logging()
+
+
+def test_the_report_and_the_result_carry_the_run_id(tmp_path, monkeypatch) -> None:
+    from rpggen.core import orchestrator
+
+    state = orchestrator._State(None, tmp_path, Path("godot"), orchestrator.Callbacks())
+    assert len(state.run_id) == 8
+    assert orchestrator._report_data(state, True)["run_id"] == state.run_id

@@ -8,18 +8,20 @@ const SceneUtil := preload("../lib/scene_util.gd")
 const MapUtil := preload("../lib/map_util.gd")
 const ObjectEntries := preload("../lib/object_entries.gd")
 const ObjectIndex := preload("../lib/object_index.gd")
+const JsonUtil := preload("../lib/json_util.gd")
+const BuildContext := preload("../lib/build_context.gd")
 
 const OUT_PATH := "res://game/maps/interior_1.tscn"
 const STARTER_MAP := "res://game/maps/starter_map.tscn"
 const PLAYER_SCENE := "res://generated/scenes/actors/player.tscn"
 const MAP_SIZE := Vector2i(12, 9)
 
-func outputs(ctx) -> PackedStringArray:
+func outputs(ctx: BuildContext) -> PackedStringArray:
 	if ctx.demo_removed or FileAccess.file_exists(OUT_PATH) or ObjectEntries.starter_building(ctx).is_empty():
 		return PackedStringArray()
 	return PackedStringArray([OUT_PATH])
 
-func input_hash(ctx) -> String:
+func input_hash(ctx: BuildContext) -> String:
 	var interior: Dictionary = ctx.catalog.tileset_def("interior")
 	var overworld: Dictionary = ctx.catalog.tileset_def("overworld")
 	return ctx.stable_hash({
@@ -30,13 +32,13 @@ func input_hash(ctx) -> String:
 		"overworld": overworld,
 	})
 
-func _tileset_for_interior(ctx) -> Dictionary:
+func _tileset_for_interior(ctx: BuildContext) -> Dictionary:
 	var interior: Dictionary = ctx.catalog.tileset_def("interior")
 	if not interior.is_empty() and ResourceLoader.exists(Paths.TILESETS_DIR + "interior.tres"):
 		return interior
 	return ctx.catalog.tileset_def("overworld")
 
-func build(ctx) -> Array:
+func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	if ctx.demo_removed or FileAccess.file_exists(OUT_PATH):
 		return issues
@@ -52,21 +54,27 @@ func build(ctx) -> Array:
 	if tile_set == null:
 		issues.append(ctx.make_issue("VAL-002", {"file": tile_path}, tile_path))
 		return issues
-	var tile_px: int = int(def["tile_size"][0])
+	var tile_px: int = JsonUtil.to_int(def["tile_size"][0])
 
 	var root := MapUtil.new_map_root("Interior1", "interior_1")
-	var nodes := MapUtil.build_layers(root, ctx.config.get("map_layers", MapUtil.DEFAULT_LAYERS), tile_set)
+	var layer_names: Array = ctx.config.get("map_layers", MapUtil.DEFAULT_LAYERS)
+	var nodes := MapUtil.build_layers(root, layer_names, tile_set)
+	var ground: TileMapLayer = nodes["Ground"]
+	var spawns: Node2D = nodes["SpawnPoints"]
+	var triggers: Node2D = nodes["Triggers"]
+	var entities: Node2D = nodes["Entities"]
 	var exit_cell := Vector2i(MAP_SIZE.x / 2, MAP_SIZE.y - 1)
 
-	MapUtil.fill(nodes["Ground"], Rect2i(Vector2i.ZERO, MAP_SIZE), MapUtil.find_tile(ctx, def, tile_set, "GROUND"))
+	MapUtil.fill(ground, Rect2i(Vector2i.ZERO, MAP_SIZE), MapUtil.find_tile(ctx, def, tile_set, "GROUND"))
 	var wall := MapUtil.wall_tile(ctx, def, tile_set)
 	if not wall.is_empty() and nodes.has("Walls"):
-		MapUtil.border(nodes["Walls"], Rect2i(Vector2i.ZERO, MAP_SIZE), wall, [exit_cell])
+		var walls: TileMapLayer = nodes["Walls"]
+		MapUtil.border(walls, Rect2i(Vector2i.ZERO, MAP_SIZE), wall, [exit_cell])
 	else:
 		MapUtil.border_collision(root, MAP_SIZE, tile_px, [exit_cell])
 
 	var spawn_cell := exit_cell + Vector2i(0, -1)
-	MapUtil.add_marker(nodes["SpawnPoints"], root, "default", MapUtil.tile_center(spawn_cell, tile_px), true, "up")
+	MapUtil.add_marker(spawns, root, "default", MapUtil.tile_center(spawn_cell, tile_px), true, "up")
 
 	var exit_door := Area2D.new()
 	SceneUtil.attach_script(exit_door, MapUtil.DOOR_SCRIPT)
@@ -76,8 +84,9 @@ func build(ctx) -> Array:
 	exit_door.set_collision_mask_value(2, true)  # player
 	exit_door.position = MapUtil.tile_center(exit_cell, tile_px)
 	exit_door.set("target_map", STARTER_MAP)
-	exit_door.set("target_spawn", ObjectIndex.exit_spawn_id(building["id"]))
-	SceneUtil.add(nodes["Triggers"], exit_door, root, "Exit")
+	var building_id: String = building["id"]
+	exit_door.set("target_spawn", ObjectIndex.exit_spawn_id(building_id))
+	SceneUtil.add(triggers, exit_door, root, "Exit")
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
 	var rect := RectangleShape2D.new()
@@ -85,7 +94,7 @@ func build(ctx) -> Array:
 	shape.shape = rect
 	exit_door.add_child(shape)
 
-	var player := MapUtil.place(PLAYER_SCENE, nodes["Entities"], root, MapUtil.tile_center(spawn_cell, tile_px))
+	var player := MapUtil.place(PLAYER_SCENE, entities, root, MapUtil.tile_center(spawn_cell, tile_px))
 	if player == null:
 		issues.append(ctx.make_issue("VAL-002", {"file": PLAYER_SCENE}, PLAYER_SCENE))
 		root.free()

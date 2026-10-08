@@ -156,6 +156,8 @@ def test_thumbnail_size_is_remembered_and_changes_the_grid(qtbot) -> None:
 
     page, _state = _page(qtbot)
     page.set_thumb_size(128)
+    assert app_settings.get().thumb_size == 128
+    app_settings.store().flush()  # the write waits a moment for the next change
     assert app_settings.load().thumb_size == 128
     assert page.grid.thumb_slider.value() == 2
     assert page.grid.view.gridSize().width() == 128 + 16
@@ -167,3 +169,25 @@ def test_the_shortcut_sheet_lists_the_current_roles(qtbot) -> None:
     sheet = page.shortcut_sheet()
     assert "N / Shift+N" in sheet and "1  Ground tiles" in sheet and "C  confirm" in sheet
     assert isinstance(page.grid.help_button.parent(), QWidget)
+
+
+# ------------------------------------------------------------------------ layout (T12.14)
+
+
+def test_the_grid_gets_the_spare_height_not_the_done_label(qtbot) -> None:
+    from PySide6.QtWidgets import QApplication
+
+    page, _state = _page(qtbot, width=900)
+    # everything reviewed: the done label shows, and still the splitter takes the room
+    for asset in page.session.catalog.assets:
+        if asset.status != "CONFIRMED":
+            page.session.confirm([asset.id])
+    assert not page.done_label.isHidden()
+    QApplication.processEvents()
+    layout = page.layout()
+    margins = layout.contentsMargins()
+    spacing = layout.spacing() if layout.spacing() >= 0 else 6
+    taken = page.done_label.height() + page.progress_label.height() + 4  # the progress row
+    taken += 2 * spacing + margins.top() + margins.bottom()
+    assert page.splitter.height() >= page.height() - taken - 8
+    assert page.done_label.height() <= page.done_label.sizeHint().height() + 8

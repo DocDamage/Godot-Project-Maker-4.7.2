@@ -8,6 +8,7 @@ const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const ActorBuild := preload("../lib/actor_build.gd")
+const BuildContext := preload("../lib/build_context.gd")
 
 const ACTORS_DIR := "res://generated/scenes/actors/"
 const BASE_PATH := ACTORS_DIR + "actor_base.tscn"
@@ -25,16 +26,18 @@ static func character_scene_path(asset_id: String) -> String:
 	return CHARACTERS_DIR + asset_id.replace(".", "__").replace("#", "__") + ".tscn"
 
 ## Assets with an actor role (PLAYER first), as {asset, kind} entries sorted by id.
-func _characters(ctx) -> Array:
-	var out: Array = []
-	for role in ["PLAYER", "NPC"]:
+func _characters(ctx: BuildContext) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for role: String in ["PLAYER", "NPC"]:
 		for a in ctx.catalog.assets_by_role(role):
 			var eff: Dictionary = ctx.catalog.effective(a)
-			if eff.get("usage", "") != "sprite" or eff.get("animations", {}).is_empty():
+			var animations: Dictionary = eff.get("animations", {})
+			if eff.get("usage", "") != "sprite" or animations.is_empty():
 				continue
 			if a.get("status", "") in ["UNUSED", "MISSING"]:
 				continue
-			out.append({"asset": a, "kind": "player" if role == "PLAYER" else "npc", "path": character_scene_path(a["id"])})
+			var asset_id: String = a["id"]
+			out.append({"asset": a, "kind": "player" if role == "PLAYER" else "npc", "path": character_scene_path(asset_id)})
 	# Without an NPC asset the player's sprite also serves as the NPC (tagged as a fallback).
 	var has_npc := false
 	var player_entry: Dictionary = {}
@@ -47,32 +50,33 @@ func _characters(ctx) -> Array:
 		out.append({"asset": player_entry["asset"], "kind": "npc", "path": FALLBACK_NPC_PATH})
 	return out
 
-func _player_asset(ctx) -> Dictionary:
+func _player_asset(ctx: BuildContext) -> Dictionary:
 	for c in _characters(ctx):
 		if c["kind"] == "player":
 			return c["asset"]
 	return {}
 
-func _tile(ctx) -> int:
+func _tile(ctx: BuildContext) -> int:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
 	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
 		def = ctx.catalog.tileset_defs()[0]
-	return int(def["tile_size"][0]) if not def.is_empty() else int(ctx.config.get("base_tile_size", 16))
+	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
 
-func outputs(ctx) -> PackedStringArray:
+func outputs(ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray([BASE_PATH, PLAYER_PATH, NPC_PATH, INDEX_PATH])
 	for c in _characters(ctx):
-		out.append(c["path"])
+		var char_path: String = c["path"]
+		out.append(char_path)
 	return out
 
-func input_hash(ctx) -> String:
+func input_hash(ctx: BuildContext) -> String:
 	var parts: Array = []
 	for c in _characters(ctx):
 		var a: Dictionary = c["asset"]
 		parts.append({"id": a["id"], "kind": c["kind"], "path": c["path"], "sha256": a.get("sha256", ""), "eff": ctx.catalog.effective(a)})
 	return ctx.stable_hash({"v": RECIPE_VERSION, "chars": parts, "tile": _tile(ctx), "archetype": ctx.config.get("archetype", "")})
 
-func build(ctx) -> Array:
+func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var tile := _tile(ctx)
 	_save(ctx, ActorBuild.build("base", "ActorBase", null, ActorBuild.DEFAULT_FRAME, Vector2i(8, 23), tile), BASE_PATH, issues)
@@ -90,15 +94,19 @@ func build(ctx) -> Array:
 			issues.append(ctx.make_issue("VAL-002", {"file": frames_path}, frames_path))
 			continue
 		var fo := ActorBuild.frame_and_origin(ctx.catalog.effective(a))
-		var root_name := "Player" if c["kind"] == "player" else "Npc"
-		var node := ActorBuild.build(c["kind"], root_name, frames, fo["frame"], fo["origin"], tile)
-		if c["kind"] == "player":
+		var kind: String = c["kind"]
+		var char_path: String = c["path"]
+		var frame: Vector2i = fo["frame"]
+		var origin: Vector2i = fo["origin"]
+		var root_name := "Player" if kind == "player" else "Npc"
+		var node := ActorBuild.build(kind, root_name, frames, frame, origin, tile)
+		if kind == "player":
 			_augment_player(ctx, node, fo, tile)
-		_save(ctx, node, c["path"], issues)
-		if c["path"] != FALLBACK_NPC_PATH:
-			index[a["id"]] = c["path"]
-		if c["kind"] == "player" and a["id"] == player_asset["id"]:
-			var main := ActorBuild.build("player", "Player", frames, fo["frame"], fo["origin"], tile)
+		_save(ctx, node, char_path, issues)
+		if char_path != FALLBACK_NPC_PATH:
+			index[a["id"]] = char_path
+		if kind == "player" and a["id"] == player_asset["id"]:
+			var main := ActorBuild.build("player", "Player", frames, frame, origin, tile)
 			_augment_player(ctx, main, fo, tile)
 			_save(ctx, main, PLAYER_PATH, issues)
 	var write_err := JsonUtil.write(INDEX_PATH, index)
@@ -108,15 +116,16 @@ func build(ctx) -> Array:
 
 ## Adds the archetype's combat parts to a player actor (the arpg player gets its hurtbox, hitbox,
 ## health and combat state machine).
-func _augment_player(ctx, node: Node, fo: Dictionary, tile: int) -> void:
-	var rel: String = PLAYER_AUGMENTERS.get(String(ctx.config.get("archetype", "")), "")
+func _augment_player(ctx: BuildContext, node: Node, fo: Dictionary, tile: int) -> void:
+	var rel: String = PLAYER_AUGMENTERS.get(JsonUtil.to_str(ctx.config.get("archetype", "")), "")
 	if rel == "":
 		return
-	var script := load(get_script().resource_path.get_base_dir().path_join(rel)) as GDScript
+	var here: Script = get_script()
+	var script := load(here.resource_path.get_base_dir().path_join(rel)) as GDScript
 	if script != null:
 		script.call("augment_player", node, fo["frame"], fo["origin"], tile)
 
-func _save(ctx, node: Node, path: String, issues: Array) -> void:
+func _save(ctx: BuildContext, node: Node, path: String, issues: Array) -> void:
 	var err := SceneUtil.save_scene(node, path)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))

@@ -5,8 +5,8 @@ const ErrorCodes := preload("error_codes.gd")
 const JsonUtil := preload("json_util.gd")
 
 var phase: String = "build"
-var issues: Array = []
-var items: Array = []
+var issues: Array[Dictionary] = []
+var items: Array[Dictionary] = []
 var _start_ms: int = 0
 
 func _init(p_phase: String = "build") -> void:
@@ -16,7 +16,7 @@ func _init(p_phase: String = "build") -> void:
 ## Replaces {key} placeholders in a template with values from detail. Unknown keys stay as-is.
 static func format_template(template: String, detail: Dictionary) -> String:
 	var out := template
-	for key in detail.keys():
+	for key: Variant in detail.keys():
 		out = out.replace("{%s}" % str(key), str(detail[key]))
 	return out
 
@@ -27,14 +27,15 @@ func add_issue(code: String, detail: Dictionary = {}, file: String = "") -> void
 		push_error("[RPG-RESULTS] unknown error code %s" % code)
 		issue = {"code": code, "severity": "error", "message": "Unknown error code %s." % code, "fix": ""}
 	else:
+		var entry: Dictionary = info
 		var d := detail.duplicate()
 		if file != "" and not d.has("file"):
 			d["file"] = file
 		issue = {
 			"code": code,
-			"severity": info["severity"],
-			"message": format_template(info["message"], d),
-			"fix": info["fix"],
+			"severity": entry["severity"],
+			"message": format_template(JsonUtil.to_str(entry["message"]), d),
+			"fix": entry["fix"],
 		}
 	if file != "":
 		issue["file"] = file
@@ -42,7 +43,7 @@ func add_issue(code: String, detail: Dictionary = {}, file: String = "") -> void
 
 ## Adds issue dictionaries produced by recipes ({code, severity, message, file?, fix?}).
 func add_issues(list: Array) -> void:
-	for issue in list:
+	for issue: Dictionary in list:
 		issues.append(issue)
 
 func add_item(item: Dictionary) -> void:

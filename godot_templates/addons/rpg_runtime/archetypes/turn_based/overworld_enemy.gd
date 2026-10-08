@@ -95,9 +95,9 @@ func build_encounter() -> RpgEncounterData:
 
 func _try_encounter() -> void:
 	var router := RpgUtil.router()
-	if router == null or router.get("combat") == null:
+	if router == null or router.combat == null:
 		return
-	var combat: Variant = router.get("combat")
+	var combat := router.combat
 	if combat.is_in_combat() or router.is_busy():
 		return  # tried again on the next physics frame
 	if _group_definitions().is_empty():

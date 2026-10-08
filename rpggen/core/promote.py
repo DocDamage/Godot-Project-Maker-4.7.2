@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import subprocess
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -317,39 +316,78 @@ def promote(stg: Staging) -> PromotionResult:
 # --------------------------------------------------------------------------- Godot editor
 
 
+def _project_arguments(cmdline: list[str]) -> list[str]:
+    """The project folders (and ``project.godot`` files) a Godot command line names:
+    ``--path P``, ``--path=P``, a positional ``.../project.godot`` and the folder that follows
+    ``-e`` / ``--editor``."""
+    args = cmdline[1:]
+    found: list[str] = []
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        following = args[i + 1] if i + 1 < len(args) else None
+        if arg == "--path" and following is not None:
+            found.append(following)
+            i += 2
+            continue
+        if arg.startswith("--path="):
+            found.append(arg[len("--path=") :])
+        elif arg in ("-e", "--editor") and following is not None and not following.startswith("-"):
+            found.append(following)
+            i += 2
+            continue
+        elif not arg.startswith("-") and arg.replace("\\", "/").lower().endswith("project.godot"):
+            found.append(arg)
+        i += 1
+    return found
+
+
+def _normalized(path: str, cwd: str | None) -> str | None:
+    """A comparable form of a path: resolved, and case-folded where the file system is. A
+    relative path needs the working directory of its process (None: it cannot be used)."""
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        if not cwd:
+            return None
+        candidate = Path(cwd) / candidate
+    return os.path.normcase(str(candidate.resolve(strict=False)))
+
+
 def editor_open(target: Path) -> bool:
     """Best effort: is a Godot editor running on this project?
 
     Godot keeps no lock file that was found to be reliable (VERIFY in the manual gate), so the
-    command lines of running Godot processes are searched for the project folder. Failing to
-    ask the system means "not open".
+    command lines of the running Godot processes are parsed for the project they were given: the
+    project is open when one of those paths is the folder itself or its ``project.godot`` (never
+    a folder that merely starts with the same text). Failing to ask the system means "not open".
     """
-    target = Path(target).resolve()
-    needle = str(target).lower()
     try:
-        if os.name == "nt":
-            script = (
-                "Get-CimInstance Win32_Process -Filter \"Name like 'Godot%'\" | "
-                "ForEach-Object { $_.CommandLine }"
-            )
-            out = subprocess.run(
-                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
-                capture_output=True,
-                text=True,
-                timeout=15,
-                check=False,
-            ).stdout
-        else:
-            out = subprocess.run(
-                ["ps", "-eo", "args"], capture_output=True, text=True, timeout=15, check=False
-            ).stdout
-    except (OSError, subprocess.SubprocessError):
+        import psutil
+    except ImportError:  # pragma: no cover - psutil is a dependency
+        log.debug("psutil is missing: cannot look for an open editor")
         return False
-    needle = needle.replace("/", "\\")
-    return any(
-        "godot" in line.lower() and needle in line.lower().replace("/", "\\")
-        for line in out.splitlines()
-    )
+    folder = _normalized(str(Path(target).resolve()), None)
+    if folder is None:
+        return False
+    wanted = {folder, os.path.normcase(os.path.join(folder, "project.godot"))}
+    try:
+        for proc in psutil.process_iter(["name", "cmdline", "cwd"]):
+            try:
+                info = proc.info
+                name = (info.get("name") or "").lower()
+                cmdline = info.get("cmdline") or []
+                cwd = info.get("cwd")
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                continue
+            if not name.startswith("godot") or not cmdline:
+                continue
+            for argument in _project_arguments(list(cmdline)):
+                if _normalized(argument, cwd) in wanted:
+                    return True
+    except (psutil.Error, OSError) as exc:
+        log.debug("could not list the running programs: %s", exc)
+        return False
+    return False
 
 
 # --------------------------------------------------------------------------- restore

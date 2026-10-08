@@ -12,15 +12,15 @@ static var _quiet_until_ms := 0
 ## Plays the sound of a UI slot (silent when the game has no audio or the slot is unset).
 static func play_ui(slot: StringName) -> void:
 	var router := RpgUtil.router()
-	var audio: Variant = router.get("audio") if router != null else null
+	var audio: Node = router.audio if router != null else null
 	if audio != null and audio.has_method("play_ui_slot"):
 		audio.call("play_ui_slot", slot)
 
 ## Connects the cursor and confirm sounds of the controls of a menu, once per control.
 static func attach_sounds(controls: Array) -> void:
 	_quiet_until_ms = Time.get_ticks_msec() + QUIET_AFTER_WIRING_MS
-	for item in controls:
-		var control := item as Control
+	for item: Control in controls:
+		var control := item
 		if control == null or control.has_meta("rpg_ui_sounds"):
 			continue
 		control.set_meta("rpg_ui_sounds", true)
@@ -46,8 +46,8 @@ static func open_submenu(parent: Control, menu_name: String, args: Dictionary = 
 		push_error("[RPG-UI] menu scene %s is missing" % path)
 		return null
 	var menu := (load(path) as PackedScene).instantiate() as Control
-	for key in args.keys():  # before add_child, so _ready() already sees them
-		menu.set(key, args[key])
+	for key: Variant in args.keys():  # before add_child, so _ready() already sees them
+		menu.set(StringName(str(key)), args[key])
 	parent.add_child(menu)
 	return menu
 
@@ -56,9 +56,9 @@ static func wire_vertical(controls: Array) -> void:
 	attach_sounds(controls)
 	var n := controls.size()
 	for i in n:
-		var c := controls[i] as Control
-		var prev := controls[(i - 1 + n) % n] as Control
-		var nxt := controls[(i + 1) % n] as Control
+		var c: Control = controls[i]
+		var prev: Control = controls[(i - 1 + n) % n]
+		var nxt: Control = controls[(i + 1) % n]
 		c.focus_neighbor_top = c.get_path_to(prev)
 		c.focus_neighbor_bottom = c.get_path_to(nxt)
 
@@ -70,7 +70,7 @@ static func wire_grid(controls: Array, columns: int) -> void:
 		return
 	var rows := ceili(float(n) / columns)
 	for i in n:
-		var c := controls[i] as Control
+		var c: Control = controls[i]
 		var col := i % columns
 		var row := i / columns
 		var left := row * columns + (col - 1 + columns) % columns
@@ -85,10 +85,14 @@ static func wire_grid(controls: Array, columns: int) -> void:
 		var down := ((row + 1) % rows) * columns + col
 		if down >= n:
 			down = col
-		c.focus_neighbor_left = c.get_path_to(controls[left])
-		c.focus_neighbor_right = c.get_path_to(controls[right])
-		c.focus_neighbor_top = c.get_path_to(controls[up])
-		c.focus_neighbor_bottom = c.get_path_to(controls[down])
+		var to_left: Control = controls[left]
+		c.focus_neighbor_left = c.get_path_to(to_left)
+		var to_right: Control = controls[right]
+		c.focus_neighbor_right = c.get_path_to(to_right)
+		var to_up: Control = controls[up]
+		c.focus_neighbor_top = c.get_path_to(to_up)
+		var to_down: Control = controls[down]
+		c.focus_neighbor_bottom = c.get_path_to(to_down)
 
 ## All visible, enabled Buttons and sliders under `node`, in tree order.
 static func focusables(node: Node) -> Array:

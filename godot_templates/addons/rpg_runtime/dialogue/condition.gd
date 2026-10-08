@@ -64,7 +64,7 @@ static func _atom(atom: String) -> bool:
 		var dot := body.rfind(".")
 		if dot <= 0:
 			return _unknown(atom)
-		return bool(state.get_flag(body.substr(0, dot), body.substr(dot + 1), false))
+		return RpgUtil.to_bool(state.get_flag(body.substr(0, dot), body.substr(dot + 1), false))
 	if atom.begins_with("item:"):
 		var body := atom.trim_prefix("item:")
 		var need := 1
@@ -73,9 +73,9 @@ static func _atom(atom: String) -> bool:
 			body = body.get_slice(">=", 0)
 		return state.inventory.count(StringName(body)) >= need
 	if atom.begins_with("gold>="):
-		return int(state.gold) >= int(atom.trim_prefix("gold>="))
+		return RpgUtil.to_int(state.gold) >= RpgUtil.to_int(atom.trim_prefix("gold>="))
 	if atom.begins_with("level>="):
-		return int(state.player_stats.level) >= int(atom.trim_prefix("level>="))
+		return RpgUtil.to_int(state.player_stats.level) >= RpgUtil.to_int(atom.trim_prefix("level>="))
 	if atom.begins_with("quest:"):
 		var body := atom.trim_prefix("quest:")
 		if not body.contains("="):

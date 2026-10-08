@@ -11,7 +11,7 @@ from rpggen.core import diagnostics
 
 
 def app_log_dir() -> Path:
-    return paths.local_cache_dir() / "logs"
+    return paths.log_dir()
 
 
 def choose_save_path(parent: QWidget | None, default_name: str) -> Path | None:
@@ -34,11 +34,11 @@ def export_bundle(
     out = choose_save_path(parent, default)
     if out is None:
         return None
-    logs = sorted(app_log_dir().glob("*.log")) if app_log_dir().is_dir() else []
     source = folder if folder is not None and Path(folder).is_dir() else app_log_dir()
     source.mkdir(parents=True, exist_ok=True)
     try:
-        diagnostics.make_bundle(source, out, godot_exe, extra_logs=logs)
+        # the application log contributes only the lines of the run that made the project
+        diagnostics.make_bundle(source, out, godot_exe, app_log_dir=app_log_dir())
     except OSError as exc:
         QMessageBox.warning(parent, "rpggen", str(exc))
         return None

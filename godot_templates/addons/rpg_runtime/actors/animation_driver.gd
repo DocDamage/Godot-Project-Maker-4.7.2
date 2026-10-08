@@ -24,12 +24,12 @@ static func _mirror(facing: String) -> String:
 func _resolve(frames: SpriteFrames, base: String, facing: String) -> Dictionary:
 	var direct := "%s_%s" % [base, facing]
 	if frames.has_animation(direct):
-		return {"anim": direct, "flip": bool(frames.get_meta("flip_h_" + direct, false))}
+		return {"anim": direct, "flip": RpgUtil.to_bool(frames.get_meta("flip_h_" + direct, false))}
 	var other := _mirror(facing)
 	if other != "":
 		var mirrored := "%s_%s" % [base, other]
 		if frames.has_animation(mirrored):
-			return {"anim": mirrored, "flip": not bool(frames.get_meta("flip_h_" + mirrored, false))}
+			return {"anim": mirrored, "flip": not RpgUtil.to_bool(frames.get_meta("flip_h_" + mirrored, false))}
 	return {}
 
 ## True when "<base>_<facing>" (or its mirrored counterpart) exists, with no fallback to other
@@ -46,7 +46,8 @@ func play_exact(base: String, facing: String) -> String:
 		return ""
 	var found := _resolve(sprite.sprite_frames, base, facing)
 	sprite.flip_h = found["flip"]
-	sprite.play(found["anim"])
+	var anim: StringName = found["anim"]
+	sprite.play(anim)
 	sprite.frame = 0
 	sprite.frame_progress = 0.0
 	return found["anim"]

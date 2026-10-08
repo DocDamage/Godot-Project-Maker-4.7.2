@@ -18,6 +18,7 @@
 | ENV-010 | info | Export templates for 4.7.2 not installed; export check skipped. | Install export templates from the Godot editor to enable the check. |
 | ENV-011 | error | Could not download Godot: {reason}. | Check your connection, or install Godot 4.7.2 from godotengine.org and select it. |
 | ENV-012 | info | Could not check for updates: {reason}. | Check your connection, or look at the releases page yourself. |
+| ENV-013 | warning | Git LFS was chosen for the pack art, but git-lfs is not installed; the art is committed as it is. | Install git-lfs (git-lfs.com) and generate again, or choose another way to handle the pack art. |
 
 ## Archives (ARCH)
 
@@ -31,6 +32,7 @@
 | ARCH-006 | info | Nested archive {entry} extracted. | — |
 | ARCH-007 | warning | RAR archives need 7-Zip or UnRAR installed. | Install 7-Zip, or extract manually. |
 | ARCH-008 | info | Skipped OS junk file {entry}. | — |
+| ARCH-009 | warning | {entry} is a link and was skipped. | Put the real file into the pack (or into a copy of it); links are never followed. |
 
 ## Assets (ASSET)
 
@@ -50,6 +52,7 @@
 | ASSET-025 | info | No enemy asset; the player's sprite stands in for the starter enemy. | Assign an enemy asset in Mapping. |
 | ASSET-026 | info | No music was found in the packs: the game will be silent. | Add a music track to an asset pack, or assign one in Mapping. |
 | ASSET-027 | info | No sound effects were found in the packs. | Add sound effects to an asset pack, or assign them in Mapping. |
+| ASSET-028 | warning | Pack {pack_id} needs attribution, but no author was found in its license files. | Enter the author on the Audit page (pack information) so that the credits screen names them. |
 
 ## Adapters (ADAPT)
 
@@ -58,6 +61,7 @@
 | ADAPT-001 | warning | Adapter {adapter} failed on {file}: {reason}. | Report a bug with a diagnostic bundle. |
 | ADAPT-002 | warning | Tiled tileset {file} references missing image {image}. | Fix the pack or map the image manually. |
 | ADAPT-003 | info | Pack profile {profile_id} matched ({ratio}). | — |
+| ADAPT-004 | warning | The frame numbers of {sequence} have a gap ({frames}). | Add the missing frames, or rename the files so that the numbers run without a gap. |
 
 ## Catalog (CAT)
 
@@ -81,6 +85,7 @@
 | TILE-006 | warning | Terrain layout in {asset} not recognized; terrain skipped. | Paint manually or set terrain in the audit. |
 | TILE-007 | info | Collision on {asset} {coords} was edited in Godot and kept. | — |
 | TILE-008 | info | Tile animation at {coords} in {asset} is not a horizontal run and was skipped. | Rearrange frames in a copy of the sheet if needed. |
+| TILE-009 | warning | Layer {layer} of map {map} was skipped: {reason}. | Save the map with zlib or gzip compression, or assign the layer's tile set in the audit. |
 
 ## Animation (ANIM)
 
@@ -97,6 +102,7 @@
 | BUILD-002 | error | Recipe {recipe} failed: {reason}. | See the godot_build log. |
 | BUILD-003 | error | Godot {phase} timed out after {seconds}s. | Retry; if it repeats, file a bug with diagnostics. |
 | BUILD-004 | error | Could not save {file}: Godot error {err}. | Check disk space and permissions. |
+| BUILD-005 | error | Unexpected error in phase {phase}: {reason}. | Export a diagnostic bundle and report it. |
 
 ## Validation (VAL)
 
@@ -122,6 +128,8 @@
 | VAL-018 | warning | Dialogue {file} line {n} mixes and/or; evaluation is left-to-right. | Split the condition or reorder it. |
 | VAL-019 | warning | Dialogue {file} references unknown item {item}. | Create the item or fix the id. |
 | VAL-020 | error | Sound slot {slot} points at {path}, which does not load. | Assign another sound in Mapping, or restore the file. |
+| VAL-021 | info | The smoke test is turned off in the config; the game was not played. | Set validation.smoke_test to true. |
+| VAL-022 | info | The export check is turned off in the config; the project was not test-exported. | Set validation.export_check to true. |
 
 ## Smoke test (SMOKE)
 
@@ -140,6 +148,8 @@
 | REGEN-004 | error | Staging promotion failed: {reason}. Target restored from backup. | See log. |
 | REGEN-005 | error | The Godot editor appears to be open for {path}. | Close the Godot editor before regenerating; open scenes may be overwritten when the editor saves. |
 | REGEN-006 | error | Runtime upgrade from {old} to {new} needs confirmation. | The new runtime has breaking changes (see the changelog); confirm the upgrade in the wizard or pass --accept-runtime-upgrade. |
+| REGEN-007 | warning | The project was generated but the git commit failed: {reason}. | Fix the repository problem (a hook, a lock, a missing identity) and commit by hand. |
+| REGEN-008 | info | Your own uncommitted changes were left out of rpggen's commit. | Commit them yourself when you are ready. |
 
 ## GUI (GUI)
 

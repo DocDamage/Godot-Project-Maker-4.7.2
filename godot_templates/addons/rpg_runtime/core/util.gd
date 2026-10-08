@@ -13,17 +13,20 @@ static func autoload(autoload_name: StringName) -> Node:
 		return null
 	return t.root.get_node_or_null(NodePath(String(autoload_name)))
 
-static func events() -> Node:
-	return autoload(&"Events")
+static func events() -> RpgEvents:
+	return autoload(&"Events") as RpgEvents
 
-static func state() -> Node:
-	return autoload(&"GameState")
+static func state() -> RpgGameState:
+	return autoload(&"GameState") as RpgGameState
 
-static func router() -> Node:
-	return autoload(&"SceneRouter")
+static func router() -> RpgSceneRouter:
+	return autoload(&"SceneRouter") as RpgSceneRouter
 
-static func settings() -> Node:
-	return autoload(&"RpgSettings")
+static func save_manager() -> RpgSaveManager:
+	return autoload(&"SaveManager") as RpgSaveManager
+
+static func settings() -> RpgSettingsStore:
+	return autoload(&"RpgSettings") as RpgSettingsStore
 
 ## Emits a signal on the Events bus when the bus exists.
 static func emit(signal_name: StringName, args: Array = []) -> void:
@@ -58,12 +61,83 @@ static func restore_numbers(value: Variant) -> Variant:
 		return f
 	if value is Array:
 		var out: Array = []
-		for v in value:
+		var items: Array = value
+		for v: Variant in items:
 			out.append(restore_numbers(v))
 		return out
 	if value is Dictionary:
 		var out_d := {}
-		for k in value.keys():
-			out_d[k] = restore_numbers(value[k])
+		var table: Dictionary = value
+		for k: Variant in table.keys():
+			out_d[k] = restore_numbers(table[k])
 		return out_d
 	return value
+
+# ---- typed conversions of Variant values (strict GDScript, T12.29) -------------------------------
+# JSON and Dictionary values arrive as Variant. Passing one to a typed parameter, or converting it
+# with int()/float()/bool(), is flagged by the strict warnings; these functions are the one place
+# that looks at the type. They return the fallback when the value is not what was expected.
+
+## `int(v)` for a Variant: numbers (JSON numbers are floats), booleans and numeric strings.
+static func to_int(v: Variant, fallback: int = 0) -> int:
+	match typeof(v):
+		TYPE_INT:
+			var i: int = v
+			return i
+		TYPE_FLOAT:
+			var f: float = v
+			return int(f)
+		TYPE_BOOL:
+			var b: bool = v
+			return int(b)
+		TYPE_STRING, TYPE_STRING_NAME:
+			var s: String = v
+			return s.to_int()
+	return fallback
+
+## `float(v)` for a Variant.
+static func to_float(v: Variant, fallback: float = 0.0) -> float:
+	match typeof(v):
+		TYPE_INT, TYPE_FLOAT:
+			var f: float = v
+			return f
+		TYPE_BOOL:
+			var b: bool = v
+			return float(b)
+		TYPE_STRING, TYPE_STRING_NAME:
+			var s: String = v
+			return s.to_float()
+	return fallback
+
+## `bool(v)` for a Variant: booleans and numbers (zero is false).
+static func to_bool(v: Variant, fallback: bool = false) -> bool:
+	match typeof(v):
+		TYPE_BOOL:
+			var b: bool = v
+			return b
+		TYPE_INT, TYPE_FLOAT:
+			var f: float = v
+			return f != 0.0
+	return fallback
+
+## `String(v)` for a Variant (any value prints as text).
+static func to_str(v: Variant) -> String:
+	return str(v)
+
+## `StringName(v)` for a Variant.
+static func to_name(v: Variant) -> StringName:
+	return StringName(str(v))
+
+## The Dictionary in `v`, or an empty one.
+static func to_dict(v: Variant) -> Dictionary:
+	if v is Dictionary:
+		var d: Dictionary = v
+		return d
+	return {}
+
+## The Array in `v`, or an empty one.
+static func to_array(v: Variant) -> Array:
+	if v is Array:
+		var a: Array = v
+		return a
+	return []

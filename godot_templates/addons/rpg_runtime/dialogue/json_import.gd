@@ -10,17 +10,21 @@ extends RefCounted
 static func from_json(text: String) -> RpgDialogueResource:
 	var parsed: Variant = JSON.parse_string(text)
 	var raw_lines: Array = []
-	if parsed is Dictionary and parsed.get("lines") is Array:
-		raw_lines = parsed["lines"]
+	var table: Dictionary = {}
+	if parsed is Dictionary:
+		table = parsed
+	if table.get("lines") is Array:
+		raw_lines = table["lines"]
 	elif parsed is Array:
 		raw_lines = parsed
 	else:
 		push_error("[RPG-DLG] dialogue JSON must be an array or an object with a 'lines' array")
 		return null
 	var res := RpgDialogueResource.new()
-	for raw in raw_lines:
-		if not (raw is Dictionary):
+	for raw_line: Variant in raw_lines:
+		if not (raw_line is Dictionary):
 			continue
+		var raw: Dictionary = raw_line
 		var line := RpgDialogueLine.new()
 		line.id = StringName(str(raw.get("id", "")))
 		line.speaker = str(raw.get("speaker", ""))
@@ -28,12 +32,15 @@ static func from_json(text: String) -> RpgDialogueResource:
 		line.condition = str(raw.get("condition", ""))
 		line.next = StringName(str(raw.get("next", "")))
 		var events := PackedStringArray()
-		for e in raw.get("events", []):
+		var raw_events: Array = raw.get("events", [])
+		for e: Variant in raw_events:
 			events.append(str(e))
 		line.events = events
-		for raw_choice in raw.get("choices", []):
-			if not (raw_choice is Dictionary):
+		var raw_choices: Array = raw.get("choices", [])
+		for raw_choice_value: Variant in raw_choices:
+			if not (raw_choice_value is Dictionary):
 				continue
+			var raw_choice: Dictionary = raw_choice_value
 			var choice := RpgDialogueChoice.new()
 			choice.text = str(raw_choice.get("text", ""))
 			choice.next = StringName(str(raw_choice.get("next", "")))

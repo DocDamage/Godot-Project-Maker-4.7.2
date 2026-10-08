@@ -67,10 +67,10 @@ func test_loot_roll_is_deterministic_for_a_seed(t) -> void:
 		{"item_id": "potion", "chance": 0.5, "min": 1, "max": 3},
 		{"item_id": "gem", "chance": 1.0, "min": 2, "max": 2},
 	]
-	var a := RandomNumberGenerator.new()
-	a.seed = 42
-	var b := RandomNumberGenerator.new()
-	b.seed = 42
+	var a := RpgRng.new()
+	a.seed_value(42)
+	var b := RpgRng.new()
+	b.seed_value(42)
 	t.eq(table.roll(a), table.roll(b))
 	var rolled := table.roll(a)
 	var gem := 0
@@ -82,8 +82,8 @@ func test_loot_roll_is_deterministic_for_a_seed(t) -> void:
 func test_loot_chance_zero_never_drops(t) -> void:
 	var table := RpgLootTable.new()
 	table.entries = [{"item_id": "potion", "chance": 0.0, "min": 1, "max": 1}]
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 1
+	var rng := RpgRng.new()
+	rng.seed_value(1)
 	for i in 20:
 		t.eq(table.roll(rng).size(), 0)
 

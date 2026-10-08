@@ -18,9 +18,9 @@ func _boot() -> String:
 		await tree.process_frame
 	return ""
 
-func _player() -> Node2D:
+func _player() -> RpgActor:
 	var players := _tree().get_nodes_in_group("player")
-	return players[0] as Node2D if players.size() == 1 else null
+	return players[0] as RpgActor if players.size() == 1 else null
 
 func _player_exists() -> String:
 	var count := _tree().get_nodes_in_group("player").size()

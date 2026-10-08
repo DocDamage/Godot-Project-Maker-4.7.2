@@ -9,6 +9,8 @@ extends RefCounted
 
 const MapUtil := preload("map_util.gd")
 const SceneUtil := preload("scene_util.gd")
+const JsonUtil := preload("json_util.gd")
+const BuildContext := preload("build_context.gd")
 
 const DEFAULT_SIZE := Vector2i(40, 24)
 const DEFAULT_HOUSE := Vector2i(8, 6)
@@ -17,7 +19,7 @@ const DEFAULT_NPC := Vector2i(16, 12)
 const DEFAULT_CHEST := Vector2i(18, 8)
 const DEFAULT_ENEMY := Vector2i(28, 12)
 const ENEMY_OFFSET_TILES := 4
-const DEFAULT_DECOR := [Vector2i(20, 4), Vector2i(24, 5), Vector2i(30, 8), Vector2i(33, 14),
+const DEFAULT_DECOR: Array[Vector2i] = [Vector2i(20, 4), Vector2i(24, 5), Vector2i(30, 8), Vector2i(33, 14),
 	Vector2i(6, 17), Vector2i(14, 19), Vector2i(26, 18), Vector2i(35, 20)]
 const ENEMY_MIN_DISTANCE := 8
 const CLEARANCE := 3
@@ -72,25 +74,25 @@ static func merged_options(options: Dictionary, archetype: String) -> Dictionary
 		"enemies": 2 if archetype == "arpg" else 1, "chests": 1, "decorations": 8,
 		"ground_patches": 6, "ground": "",
 	}
-	for key in options.keys():
+	for key: Variant in options.keys():
 		out[key] = options[key]
 	return out
 
 static func is_default(options: Dictionary, archetype: String) -> bool:
 	var defaults := merged_options({}, archetype)
-	for key in defaults.keys():
+	for key: String in defaults.keys():
 		if key == "ground":
 			continue
 		if key == "size":
-			if int(options["size"][0]) != DEFAULT_SIZE.x or int(options["size"][1]) != DEFAULT_SIZE.y:
+			if JsonUtil.to_int(options["size"][0]) != DEFAULT_SIZE.x or JsonUtil.to_int(options["size"][1]) != DEFAULT_SIZE.y:
 				return false
-		elif int(options[key]) != int(defaults[key]):
+		elif JsonUtil.to_int(options[key]) != JsonUtil.to_int(defaults[key]):
 			return false
 	return true
 
 ## A road from the spawn along its row to the door's column, then up to the door.
-static func path_cells(spawn: Vector2i, door: Vector2i) -> Array:
-	var cells: Array = []
+static func path_cells(spawn: Vector2i, door: Vector2i) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
 	var step := 1 if door.x >= spawn.x else -1
 	for x in range(spawn.x, door.x + step, step):
 		cells.append(Vector2i(x, spawn.y))
@@ -98,16 +100,21 @@ static func path_cells(spawn: Vector2i, door: Vector2i) -> Array:
 		cells.append(Vector2i(door.x, y))
 	return cells
 
-## The east exit: [the gap in the east wall, the road to it]. The road goes down from the spawn to a
-## row three tiles lower, then east to the wall.
-static func exit_route(spawn: Vector2i, size: Vector2i) -> Array:
+## The east exit: the gap in the east wall and the road to it.
+class ExitRoute extends RefCounted:
+	var gap := Vector2i.ZERO
+	var cells: Array[Vector2i] = []
+
+## The east exit. The road goes down from the spawn to a row three tiles lower, then east to the wall.
+static func exit_route(spawn: Vector2i, size: Vector2i) -> ExitRoute:
 	var exit_y := mini(spawn.y + 3, size.y - 3)
-	var cells: Array = []
+	var route := ExitRoute.new()
 	for y in range(spawn.y, exit_y + 1):
-		cells.append(Vector2i(spawn.x, y))
+		route.cells.append(Vector2i(spawn.x, y))
 	for x in range(spawn.x + 1, size.x - 1):
-		cells.append(Vector2i(x, exit_y))
-	return [Vector2i(size.x - 1, exit_y), cells]
+		route.cells.append(Vector2i(x, exit_y))
+	route.gap = Vector2i(size.x - 1, exit_y)
+	return route
 
 static func _rect_has(r: Rect2i, x: int, y: int) -> bool:
 	return x >= r.position.x and x < r.position.x + r.size.x and y >= r.position.y and y < r.position.y + r.size.y
@@ -117,28 +124,36 @@ static func _rects_intersect(a: Rect2i, b: Rect2i) -> bool:
 		and a.position.y < b.position.y + b.size.y and b.position.y < a.position.y + a.size.y
 
 static func _default_plan(opts: Dictionary, building: Dictionary) -> Dictionary:
-	var has_building := not building.is_empty() and int(opts["buildings"]) > 0
-	var buildings: Array = [DEFAULT_HOUSE] if has_building else []
-	var doors: Array = []
-	var path: Array = []
+	var has_building := not building.is_empty() and JsonUtil.to_int(opts["buildings"]) > 0
+	var buildings: Array[Vector2i] = []
 	if has_building:
-		var door := DEFAULT_HOUSE + Vector2i(int(building["door"][0]), int(building["door"][1]))
+		buildings.append(DEFAULT_HOUSE)
+	var doors: Array[Vector2i] = []
+	var path: Array[Vector2i] = []
+	if has_building:
+		var door := DEFAULT_HOUSE + Vector2i(JsonUtil.to_int(building["door"][0]), JsonUtil.to_int(building["door"][1]))
 		doors.append(door)
 		path = path_cells(DEFAULT_SPAWN, door)
-	var enemies: Array = []
-	for i in int(opts["enemies"]):
+	var enemies: Array[Vector2i] = []
+	for i in JsonUtil.to_int(opts["enemies"]):
 		enemies.append(DEFAULT_ENEMY + Vector2i(ENEMY_OFFSET_TILES * i, 0))
-	var npcs: Array = [DEFAULT_NPC] if int(opts["npcs"]) >= 1 else []
-	var chests: Array = [DEFAULT_CHEST] if int(opts["chests"]) >= 1 else []
-	var size := Vector2i(int(opts["size"][0]), int(opts["size"][1]))
+	var npcs: Array[Vector2i] = []
+	if JsonUtil.to_int(opts["npcs"]) >= 1:
+		npcs.append(DEFAULT_NPC)
+	var chests: Array[Vector2i] = []
+	if JsonUtil.to_int(opts["chests"]) >= 1:
+		chests.append(DEFAULT_CHEST)
+	var size := Vector2i(JsonUtil.to_int(opts["size"][0]), JsonUtil.to_int(opts["size"][1]))
 	var route := exit_route(DEFAULT_SPAWN, size)
+	var no_patches: Array[Dictionary] = []
+	var no_warnings: Array[String] = []
 	return {
-		"size": size, "exit_gap": route[0], "exit_path": route[1],
+		"size": size, "exit_gap": route.gap, "exit_path": route.cells,
 		"buildings": buildings, "doors": doors, "spawn": DEFAULT_SPAWN,
 		"npcs": npcs, "chests": chests, "enemies": enemies,
 		"decorations": DEFAULT_DECOR.duplicate(), "path": path,
-		"patches": [], "legacy_patches": true, "patch_count": int(opts["ground_patches"]),
-		"warnings": [], "is_default": true,
+		"patches": no_patches, "legacy_patches": true, "patch_count": JsonUtil.to_int(opts["ground_patches"]),
+		"warnings": no_warnings, "is_default": true,
 	}
 
 ## State of one planning run.
@@ -162,8 +177,8 @@ class Grid extends RefCounted:
 		var cell := Vector2i(x, y)
 		return inside(x, y) and not in_building(x, y) and not occupied.has(cell) and not reserved.has(cell)
 
-	func free_tiles() -> Array:
-		var out: Array = []
+	func free_tiles() -> Array[Vector2i]:
+		var out: Array[Vector2i] = []
 		for y in range(1, h - 1):
 			for x in range(1, w - 1):
 				if is_free(x, y):
@@ -179,20 +194,20 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 	var opts := merged_options(options, archetype)
 	if is_default(opts, archetype):
 		return _default_plan(opts, building)
-	var w := int(opts["size"][0])
-	var h := int(opts["size"][1])
+	var w := JsonUtil.to_int(opts["size"][0])
+	var h := JsonUtil.to_int(opts["size"][1])
 	var rng := Lcg.new(stream_seed(map_seed, "starter_map"))
-	var warnings: Array = []
+	var warnings: Array[String] = []
 	var grid := Grid.new()
 	grid.w = w
 	grid.h = h
 
 	# buildings on a coarse grid with 3 tiles of clearance; the door side stays free
-	var doors: Array = []
-	if not building.is_empty() and int(opts["buildings"]) > 0:
-		var bw := int(building["size"][0])
-		var bh := int(building["size"][1])
-		var candidates: Array = []
+	var doors: Array[Vector2i] = []
+	if not building.is_empty() and JsonUtil.to_int(opts["buildings"]) > 0:
+		var bw := JsonUtil.to_int(building["size"][0])
+		var bh := JsonUtil.to_int(building["size"][1])
+		var candidates: Array[Vector2i] = []
 		var y := 2
 		while y + bh + 2 <= h - 2:
 			var x := CLEARANCE
@@ -201,11 +216,11 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 				x += bw + 2 * CLEARANCE
 			y += bh + 2 * CLEARANCE
 		rng.shuffle(candidates)
-		var count := mini(int(opts["buildings"]), candidates.size())
+		var count := mini(JsonUtil.to_int(opts["buildings"]), candidates.size())
 		for i in count:
 			var at: Vector2i = candidates[i]
 			grid.rects.append(Rect2i(at.x, at.y, bw, bh))
-			doors.append(Vector2i(at.x + int(building["door"][0]), at.y + int(building["door"][1])))
+			doors.append(Vector2i(at.x + JsonUtil.to_int(building["door"][0]), at.y + JsonUtil.to_int(building["door"][1])))
 
 	# the spawn in front of the first door, else the centre
 	var spawn := Vector2i(w >> 1, h >> 1)
@@ -217,16 +232,16 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 	var route := exit_route(spawn, Vector2i(w, h))
 	if grid.rects.size() > 1:
 		var kept_rects: Array[Rect2i] = [grid.rects[0]]
-		var kept_doors: Array = [doors[0]]
+		var kept_doors: Array[Vector2i] = [doors[0]]
 		var roads := {}
-		for cell in route[1]:
+		for cell in route.cells:
 			roads[cell] = true
 		for cell in path_cells(spawn, doors[0]):
 			roads[cell] = true
 		for i in range(1, grid.rects.size()):
 			var road := path_cells(spawn, doors[i])
 			var blocked := false
-			for cell in roads.keys():
+			for cell: Vector2i in roads.keys():
 				if _rect_has(grid.rects[i], cell.x, cell.y):
 					blocked = true
 					break
@@ -245,18 +260,18 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 					roads[cell] = true
 		grid.rects = kept_rects
 		doors = kept_doors
-	if not building.is_empty() and grid.rects.size() < int(opts["buildings"]):
-		warnings.append("buildings: placed %d of %d" % [grid.rects.size(), int(opts["buildings"])])
-	var path: Array = []
+	if not building.is_empty() and grid.rects.size() < JsonUtil.to_int(opts["buildings"]):
+		warnings.append("buildings: placed %d of %d" % [grid.rects.size(), JsonUtil.to_int(opts["buildings"])])
+	var path: Array[Vector2i] = []
 	var seen_path := {}
 	for door in doors:
 		for cell in path_cells(spawn, door):
 			if not seen_path.has(cell):
 				seen_path[cell] = true
 				path.append(cell)
-	for cell in seen_path.keys():
+	for cell: Vector2i in seen_path.keys():
 		grid.reserved[cell] = true
-	for cell in route[1]:
+	for cell in route.cells:
 		grid.reserved[cell] = true
 	for dx in range(-1, 2):
 		for dy in range(-1, 2):
@@ -267,14 +282,14 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 		grid.reserved[Vector2i(door.x, door.y + 2)] = true
 
 	# NPCs beside the road
-	var npcs: Array = []
-	for _i in int(opts["npcs"]):
-		var beside: Array = []
+	var npcs: Array[Vector2i] = []
+	for _i in JsonUtil.to_int(opts["npcs"]):
+		var beside: Array[Vector2i] = []
 		for cell in path:
-			for cand in [Vector2i(cell.x - 1, cell.y), Vector2i(cell.x + 1, cell.y)]:
+			for cand: Vector2i in [Vector2i(cell.x - 1, cell.y), Vector2i(cell.x + 1, cell.y)]:
 				if grid.is_free(cand.x, cand.y) and not beside.has(cand):
 					beside.append(cand)
-		var near: Array = beside
+		var near: Array[Vector2i] = beside
 		if near.is_empty():
 			for y in range(1, h - 1):
 				for x in range(1, w - 1):
@@ -282,22 +297,22 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 						near.append(Vector2i(x, y))
 		var found: Variant = rng.pick(near)
 		if found == null:
-			warnings.append("npcs: placed %d of %d" % [npcs.size(), int(opts["npcs"])])
+			warnings.append("npcs: placed %d of %d" % [npcs.size(), JsonUtil.to_int(opts["npcs"])])
 			break
 		grid.occupied[found] = true
 		npcs.append(found)
 
 	# chests against a building or the border
-	var chests: Array = []
-	for _i in int(opts["chests"]):
-		var against: Array = []
+	var chests: Array[Vector2i] = []
+	for _i in JsonUtil.to_int(opts["chests"]):
+		var against: Array[Vector2i] = []
 		for y in range(1, h - 1):
 			for x in range(1, w - 1):
 				if not grid.is_free(x, y):
 					continue
 				var hit := x == 1 or y == 1 or x == w - 2 or y == h - 2
 				if not hit:
-					for n in [Vector2i(x - 1, y), Vector2i(x + 1, y), Vector2i(x, y - 1), Vector2i(x, y + 1)]:
+					for n: Vector2i in [Vector2i(x - 1, y), Vector2i(x + 1, y), Vector2i(x, y - 1), Vector2i(x, y + 1)]:
 						if grid.in_building(n.x, n.y):
 							hit = true
 							break
@@ -307,50 +322,50 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 		if found == null:
 			found = rng.pick(grid.free_tiles())
 		if found == null:
-			warnings.append("chests: placed %d of %d" % [chests.size(), int(opts["chests"])])
+			warnings.append("chests: placed %d of %d" % [chests.size(), JsonUtil.to_int(opts["chests"])])
 			break
 		grid.occupied[found] = true
 		chests.append(found)
 
 	# enemies at least 8 tiles from the spawn
-	var enemies: Array = []
-	for _i in int(opts["enemies"]):
+	var enemies: Array[Vector2i] = []
+	for _i in JsonUtil.to_int(opts["enemies"]):
 		var found: Variant = rng.pick(_far_tiles(grid, spawn, ENEMY_MIN_DISTANCE))
 		if found == null:
 			found = rng.pick(_far_tiles(grid, spawn, 4))
 		if found == null:
-			warnings.append("enemies: placed %d of %d" % [enemies.size(), int(opts["enemies"])])
+			warnings.append("enemies: placed %d of %d" % [enemies.size(), JsonUtil.to_int(opts["enemies"])])
 			break
 		grid.occupied[found] = true
 		enemies.append(found)
 
 	# decorations anywhere left: never on the road, a door approach or within 1 tile of an entity
 	var keep_clear := {}
-	for cell in grid.occupied.keys():
+	for cell: Vector2i in grid.occupied.keys():
 		keep_clear[cell] = true
-	for cell in seen_path.keys():
+	for cell: Vector2i in seen_path.keys():
 		keep_clear[cell] = true
-	for cell in route[1]:
+	for cell in route.cells:
 		keep_clear[cell] = true
 	for door in doors:
 		keep_clear[door] = true
 		keep_clear[Vector2i(door.x, door.y + 1)] = true
 		keep_clear[Vector2i(door.x, door.y + 2)] = true
-	var spots: Array = []
+	var spots: Array[Vector2i] = []
 	for y in range(1, h - 1):
 		for x in range(1, w - 1):
 			if grid.is_free(x, y) and _clear_of_entities(grid, keep_clear, x, y):
 				spots.append(Vector2i(x, y))
-	var decorations: Array = []
-	for _i in int(opts["decorations"]):
+	var decorations: Array[Vector2i] = []
+	for _i in JsonUtil.to_int(opts["decorations"]):
 		if spots.is_empty():
-			warnings.append("decorations: placed %d of %d" % [decorations.size(), int(opts["decorations"])])
+			warnings.append("decorations: placed %d of %d" % [decorations.size(), JsonUtil.to_int(opts["decorations"])])
 			break
 		decorations.append(spots.pop_at(rng.range_inclusive(0, spots.size() - 1)))
 
 	# patches of other ground, away from the buildings
-	var patches: Array = []
-	for i in int(opts["ground_patches"]):
+	var patches: Array[Dictionary] = []
+	for i in JsonUtil.to_int(opts["ground_patches"]):
 		var pw := rng.range_inclusive(2, 4)
 		var ph := rng.range_inclusive(2, 4)
 		var rect := Rect2i()
@@ -371,19 +386,19 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 		if placed:
 			patches.append({"rect": rect, "index": i})
 
-	var buildings: Array = []
+	var buildings: Array[Vector2i] = []
 	for r in grid.rects:
 		buildings.append(r.position)
 	return {
-		"size": Vector2i(w, h), "exit_gap": route[0], "exit_path": route[1],
+		"size": Vector2i(w, h), "exit_gap": route.gap, "exit_path": route.cells,
 		"buildings": buildings, "doors": doors, "spawn": spawn,
 		"npcs": npcs, "chests": chests, "enemies": enemies, "decorations": decorations,
 		"path": path, "patches": patches, "legacy_patches": false,
-		"patch_count": int(opts["ground_patches"]), "warnings": warnings, "is_default": false,
+		"patch_count": JsonUtil.to_int(opts["ground_patches"]), "warnings": warnings, "is_default": false,
 	}
 
-static func _far_tiles(grid: Grid, spawn: Vector2i, distance: int) -> Array:
-	var out: Array = []
+static func _far_tiles(grid: Grid, spawn: Vector2i, distance: int) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
 	for y in range(1, grid.h - 1):
 		for x in range(1, grid.w - 1):
 			if grid.is_free(x, y) and maxi(absi(x - spawn.x), absi(y - spawn.y)) >= distance:
@@ -400,11 +415,12 @@ static func _clear_of_entities(grid: Grid, keep_clear: Dictionary, x: int, y: in
 ## The plan as plain arrays ([x, y] tiles, [x, y, w, h] rectangles), the shape of the fixture file.
 static func to_json(p: Dictionary) -> Dictionary:
 	var out := {}
-	for key in p.keys():
+	for key: Variant in p.keys():
 		var v: Variant = p[key]
 		if key == "patches":
 			var list: Array = []
-			for item in v:
+			var patch_items: Array = v
+			for item: Dictionary in patch_items:
 				var r: Rect2i = item["rect"]
 				list.append({"rect": [r.position.x, r.position.y, r.size.x, r.size.y], "index": item["index"]})
 			out[key] = list
@@ -412,7 +428,8 @@ static func to_json(p: Dictionary) -> Dictionary:
 			out[key] = [v.x, v.y]
 		elif v is Array and key != "warnings":
 			var tiles: Array = []
-			for item in v:
+			var tile_items: Array = v
+			for item: Vector2i in tile_items:
 				tiles.append([item.x, item.y])
 			out[key] = tiles
 		else:
@@ -440,22 +457,27 @@ static func paint_legacy_patches(ground: TileMapLayer, size: Vector2i, others: A
 				break
 			rect = Rect2i()
 		if rect.size != Vector2i.ZERO:
-			MapUtil.fill(ground, rect, others[i % others.size()])
+			var other_tile: Dictionary = others[i % others.size()]
+			MapUtil.fill(ground, rect, other_tile)
 
 ## The planned patches (see `plan`).
 static func paint_planned_patches(ground: TileMapLayer, patches: Array, others: Array) -> void:
-	for item in patches:
-		MapUtil.fill(ground, item["rect"], others[int(item["index"]) % others.size()])
+	for item: Dictionary in patches:
+		var patch_rect: Rect2i = item["rect"]
+		var patch_tile: Dictionary = others[JsonUtil.to_int(item["index"]) % others.size()]
+		MapUtil.fill(ground, patch_rect, patch_tile)
 
 ## The border: wall tiles when the map has a Walls layer, else ground tiles that look like a wall
 ## plus invisible collision rectangles.
 static func paint_walls(root: Node2D, nodes: Dictionary, size: Vector2i, wall: Dictionary, tile_px: int, skip: Array = []) -> void:
 	var rect := Rect2i(Vector2i.ZERO, size)
 	if not wall.is_empty() and nodes.has("Walls"):
-		MapUtil.border(nodes["Walls"], rect, wall, skip)
+		var walls: TileMapLayer = nodes["Walls"]
+		MapUtil.border(walls, rect, wall, skip)
 	else:
 		if not wall.is_empty():
-			MapUtil.border(nodes["Ground"], rect, wall, skip)  # looks like a wall; the rectangles block
+			var ground: TileMapLayer = nodes["Ground"]
+			MapUtil.border(ground, rect, wall, skip)  # looks like a wall; the rectangles block
 		MapUtil.border_collision(root, size, tile_px, skip)
 
 ## A trigger in a wall gap that sends the player to another map (the same node as a building's
@@ -480,13 +502,14 @@ static func add_exit_door(triggers: Node, root: Node, node_name: String, cell: V
 	return door
 
 ## {source_id, coords} of the first tile of the `nth` (0-based) tile sheet that has `role`, or {}.
-static func nth_tile_with_role(ctx, def: Dictionary, tile_set: TileSet, role: String, nth: int) -> Dictionary:
+static func nth_tile_with_role(ctx: BuildContext, def: Dictionary, tile_set: TileSet, role: String, nth: int) -> Dictionary:
 	var seen := 0
 	for s in MapUtil._sorted_sources(def):
-		var asset: Dictionary = ctx.catalog.asset(s["asset"])
+		var asset_id: String = s["asset"]
+		var asset: Dictionary = ctx.catalog.asset(asset_id)
 		if asset.is_empty() or ctx.catalog.effective(asset).get("role", "") != role:
 			continue
-		var tile := MapUtil.first_tile(tile_set, int(s["source_id"]))
+		var tile := MapUtil.first_tile(tile_set, JsonUtil.to_int(s["source_id"]))
 		if tile.is_empty():
 			continue
 		if seen == nth:
@@ -495,8 +518,8 @@ static func nth_tile_with_role(ctx, def: Dictionary, tile_set: TileSet, role: St
 	return {}
 
 ## Roads on `layer` for every cell of a plan's path.
-static func paint_path(layer: TileMapLayer, path: Array, road: Dictionary) -> void:
+static func paint_path(layer: TileMapLayer, path: Array[Vector2i], road: Dictionary) -> void:
 	if road.is_empty():
 		return
 	for cell in path:
-		layer.set_cell(cell, road["source_id"], road["coords"], 0)
+		MapUtil.put(layer, cell, road)

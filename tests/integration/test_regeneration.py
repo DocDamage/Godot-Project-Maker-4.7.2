@@ -340,3 +340,77 @@ def test_7_restore_returns_to_the_previous_generation(godot_exe: Path, tmp_path:
     assert promote.list_backups(target), "a backup was made"
     promote.restore(target)
     assert _diff(before, _stable(target)) == []
+
+
+# --------------------------------------------------------------------------- git (T12.12)
+
+
+def _git(folder: Path, *args: str) -> str:
+    import subprocess
+
+    return subprocess.run(
+        ["git", *args], cwd=folder, capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+
+@pytest.mark.skipif(not vcs.git_available(), reason="git is not installed")
+def test_a_regeneration_in_a_dirty_repository_commits_only_what_rpggen_wrote(
+    godot_exe: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "Dana")
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", "dana@example.com")
+    monkeypatch.setenv("GIT_COMMITTER_NAME", "Dana")
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", "dana@example.com")
+    pack = _make_pack(tmp_path)
+    target = tmp_path / "game"
+    _generate(godot_exe, pack, target, git_message="rpggen: generate project")
+    assert vcs.is_clean(target)
+    # the user's own work: an untracked file and an edit of a file of theirs
+    (target / "my_notes.txt").write_text("remember the boss fight\n", encoding="utf-8")
+    tsv = target / "game" / "i18n" / "strings.tsv"
+    tsv.write_text(tsv.read_text(encoding="utf-8") + "MY_KEY\tMine\n", encoding="utf-8")
+    # the pack gets a new picture, so that a regeneration really writes something
+    shutil.copy(next(pack.rglob("*.png")), pack / "brand_new.png")
+    result = orchestrator.run(
+        target / paths.CONFIG,
+        target,
+        godot_exe,
+        git_message="rpggen: regenerate project",
+        force_while_open=True,
+    )
+    assert result.ok, [f"{i.code}: {i.message}" for i in result.issues]
+    assert "REGEN-008" in _codes(result)  # the user's changes were left out, and the user is told
+    assert _git(target, "log", "-1", "--format=%s") == "rpggen: regenerate project"
+    committed = _git(target, "show", "--name-only", "--format=", "HEAD").split("\n")
+    assert any(name.endswith("brand_new.png") for name in committed)
+    assert "my_notes.txt" not in committed and "game/i18n/strings.tsv" not in committed
+    status = _git(target, "status", "--porcelain")
+    assert "my_notes.txt" in status and "strings.tsv" in status  # still the user's to commit
+
+
+@pytest.mark.skipif(not vcs.git_available(), reason="git is not installed")
+def test_the_ignore_choice_keeps_the_pack_art_out_of_the_first_commit(
+    godot_exe: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "Dana")
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", "dana@example.com")
+    monkeypatch.setenv("GIT_COMMITTER_NAME", "Dana")
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", "dana@example.com")
+    pack = _make_pack(tmp_path)
+    opened = archive.open_pack(pack, set(), pack_id="sample_pack")
+    cat, _issues, _generated = catalog.assemble(
+        [(opened, inventory.build_inventory(opened))], None, []
+    )
+    cfg = config.default_for("Sample RPG", [config.pack_ref_from_source(pack, "sample_pack")])
+    cfg.starter = mapping.default_starter(cat, "turn_based")
+    cfg.git = {"pack_art": "ignore"}
+    target = tmp_path / "game"
+    result = orchestrator.run_in_memory(
+        cfg, None, target, godot_exe, git_message="rpggen: generate project"
+    )
+    assert result.ok, [f"{i.code}: {i.message}" for i in result.issues]
+    assert "assets/packs/" in (target / ".gitignore").read_text(encoding="utf-8").splitlines()
+    tracked = _git(target, "ls-files").splitlines()
+    assert tracked and not [name for name in tracked if name.startswith("assets/packs/")]
+    assert (target / "assets" / "packs" / "sample_pack").is_dir()  # the art is there, untracked
+    assert vcs.is_clean(target)

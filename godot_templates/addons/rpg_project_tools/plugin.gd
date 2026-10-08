@@ -16,7 +16,7 @@ func _enter_tree() -> void:
 		push_error("[RPG-TOOLS] could not load %s" % DOCK_SCRIPT)
 		return
 	dock = script.new()
-	dock.plugin = self
+	dock.set("plugin", self)
 	add_dock(dock)
 
 func _exit_tree() -> void:

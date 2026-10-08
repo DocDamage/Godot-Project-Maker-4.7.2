@@ -92,17 +92,104 @@ def _kill_tree(proc: subprocess.Popen[str]) -> None:
             proc.kill()
 
 
+PROTOCOL_PHASES = ("build", "validate")  # the phases that print "@rpggen step" lines
+STEP_RE = re.compile(r"^@rpggen step (\w+) (\d+)/(\d+)(?: (.*))?$")
+
+
+def parse_step(line: str) -> tuple[str, int, int, str] | None:
+    """``@rpggen step <phase> <i>/<n> <label>`` as ``(phase, i, n, label)``; None for any other
+    line. The builder and the validator print one such line per recipe and per check."""
+    match = STEP_RE.match(line.strip())
+    if match is None:
+        return None
+    return match.group(1), int(match.group(2)), int(match.group(3)), match.group(4) or ""
+
+
+class LineForwarder:
+    """Hands Godot's output to the callbacks of a run (T12.19).
+
+    Progress lines (``parse_step``) go to ``on_step`` at once and are not forwarded. Every other
+    line is prefixed ``[godot] `` and sent to ``on_log`` in batches (one every ``interval``, at
+    most ``max_batch`` lines each, a burst waits for the next tick; ``close`` sends the rest). A
+    phase without the protocol (the import, the smoke test) tells ``on_step(phase, 0, 0, last
+    line)`` instead, so that a slow step still shows that something moves."""
+
+    def __init__(
+        self,
+        phase: str,
+        on_log: Callable[[str], None],
+        on_step: Callable[[str, int, int, str], None] | None = None,
+        *,
+        interval: float = 0.1,
+        max_batch: int = 200,
+        prefix: str = "[godot] ",
+    ) -> None:
+        self.phase = phase
+        self.on_log = on_log
+        self.on_step = on_step
+        self.interval = interval
+        self.max_batch = max_batch
+        self.prefix = prefix
+        self._lines: list[str] = []
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._last_line_steps = phase not in PROTOCOL_PHASES
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def feed(self, line: str) -> None:
+        step = parse_step(line)
+        if step is not None:
+            if self.on_step is not None:
+                self.on_step(*step)
+            return
+        with self._lock:
+            self._lines.append(line)
+
+    def _flush_once(self) -> bool:
+        """Send one batch; True when lines are still waiting."""
+        with self._lock:
+            batch = self._lines[: self.max_batch]
+            del self._lines[: self.max_batch]
+            more = bool(self._lines)
+        if batch:
+            self.on_log("\n".join(self.prefix + line for line in batch))
+            if self.on_step is not None and self._last_line_steps:
+                last = next((ln for ln in reversed(batch) if ln.strip()), "")
+                if last:
+                    self.on_step(self.phase, 0, 0, last.strip())
+        return more
+
+    def _loop(self) -> None:
+        while not self._stop.wait(self.interval):
+            self._flush_once()
+
+    def close(self) -> None:
+        """Stop the timer and send everything that is left."""
+        self._stop.set()
+        self._thread.join(timeout=2)
+        while self._flush_once():
+            pass
+
+
 def _run(
     cmd: list[str],
     *,
     timeout_s: int,
     env: dict[str, str],
     is_cancelled: Callable[[], bool] | None = None,
+    on_line: Callable[[str], None] | None = None,
+    log_file: IO[str] | None = None,
 ) -> tuple[int, str, str, bool, bool]:
     """Run ``cmd``; returns (code, stdout, stderr, timed_out, cancelled).
 
     The pipes are drained on two daemon threads so a chatty process cannot block on a full pipe,
-    and the wait polls ``is_cancelled`` so a cancel kills the whole process tree within ~0.2 s."""
+    and the wait polls ``is_cancelled`` so a cancel kills the whole process tree within ~0.2 s.
+
+    Output is handled a line at a time, as it arrives: ``on_line(line)`` gets each line without
+    its newline (from a drain thread) and ``log_file`` receives it at once, so that a crash or a
+    cancel leaves the log of what happened and "Show details" can follow a long import."""
+    write_lock = threading.Lock()
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -120,8 +207,14 @@ def _run(
         if stream is None:
             return
         with contextlib.suppress(OSError, ValueError):
-            for chunk in iter(lambda: stream.read(8192), ""):
-                sink.append(chunk)
+            for line in iter(stream.readline, ""):
+                sink.append(line)
+                with write_lock:
+                    if log_file is not None:
+                        log_file.write(line if line.endswith("\n") else line + "\n")
+                        log_file.flush()
+                if on_line is not None:
+                    on_line(line.rstrip("\r\n"))
 
     readers = [
         threading.Thread(target=drain, args=(proc.stdout, out_parts), daemon=True),
@@ -162,30 +255,33 @@ def run_godot(
     log_name: str,
     log_dir: Path,
     is_cancelled: Callable[[], bool] | None = None,
+    on_line: Callable[[str], None] | None = None,
 ) -> GodotRun:
     """Run ``exe --headless --path project *args``; never raises on a non-zero exit code.
 
     ``is_cancelled`` is polled while Godot runs; when it turns true the process tree is killed
-    and the result has ``cancelled=True``."""
+    and the result has ``cancelled=True``. ``on_line`` receives every line of output as it is
+    printed. The log file (``godot_<name>.log``, stdout and stderr in the order they came) is open
+    from the start and written as lines arrive."""
     cmd = [str(exe), "--headless", "--path", str(project), *args]
     env = dict(os.environ)
     env["RPGGEN"] = "1"
     log.debug("running %s", cmd)
-    try:
-        code, out, err, timed_out, cancelled = _run(
-            cmd, timeout_s=timeout_s, env=env, is_cancelled=is_cancelled
-        )
-    except FileNotFoundError as exc:
-        raise RpgGenError("ENV-001", path=str(exe)) from exc
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"godot_{log_name}.log"
     with open(log_path, "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(out)
-        if err:
-            if out and not out.endswith("\n"):
-                fh.write("\n")
-            fh.write(err)
+        try:
+            code, out, err, timed_out, cancelled = _run(
+                cmd,
+                timeout_s=timeout_s,
+                env=env,
+                is_cancelled=is_cancelled,
+                on_line=on_line,
+                log_file=fh,
+            )
+        except FileNotFoundError as exc:
+            raise RpgGenError("ENV-001", path=str(exe)) from exc
     return GodotRun(code, out, err, log_path, timed_out, cancelled)
 
 

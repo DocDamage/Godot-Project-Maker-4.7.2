@@ -149,6 +149,7 @@ func test_chest_gives_its_contents_once(t) -> void:
 	state.new_game()
 	var notes := []
 	RpgUtil.events().notify.connect(func(text: String) -> void: notes.append(text))
+	var english := Fixtures.install_english()
 	var chest := _chest("map_chest_001", [{"item_id": "potion", "qty": 2}], 20)
 	var gold: int = state.gold
 	var potions: int = state.inventory.count(&"potion")
@@ -159,6 +160,8 @@ func test_chest_gives_its_contents_once(t) -> void:
 	t.ok(chest.is_opened())
 	t.eq(notes.size(), 1)
 	t.ok(String(notes[0]).begins_with("Found "))
+	t.ok(String(notes[0]).contains("20 Gold"), "the gold is named with the translated word")
+	Fixtures.uninstall_english(english)
 	t.near((chest.get_node("Sprite") as Sprite2D).modulate.r, 0.55)
 	chest.interact()
 	t.eq(state.gold, gold + 20, "a second interaction gives nothing")
@@ -185,9 +188,11 @@ func test_empty_chest_says_so(t) -> void:
 	var state := Fixtures.install_state()
 	var notes := []
 	RpgUtil.events().notify.connect(func(text: String) -> void: notes.append(text))
+	var english := Fixtures.install_english()
 	var chest := _chest("empty_one", [], 0)
 	chest.interact()
-	t.eq(notes, ["The chest is empty"])
+	t.eq(notes, [RpgStrings.english("UI_CHEST_EMPTY")])
+	Fixtures.uninstall_english(english)
 	chest.free()
 	t.ok(state != null)
 	Fixtures.uninstall_state()

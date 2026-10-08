@@ -76,18 +76,93 @@ def glob_match(rel: str, pattern: str) -> bool:
     return _glob_regex(pattern).fullmatch(rel) is not None
 
 
-def local_cache_dir() -> Path:
-    """Per-user cache dir. The only place in the codebase that checks the platform.
+_folder_name = "rpggen"
 
-    The environment variable RPGGEN_CACHE_DIR overrides it (used by tests and CI).
+
+def _override() -> Path | None:
+    """``RPGGEN_CACHE_DIR``: tests and CI keep every folder of the program under one root."""
+    value = os.environ.get("RPGGEN_CACHE_DIR")
+    return Path(value) if value else None
+
+
+def _xdg(variable: str, fallback: str) -> Path:
+    value = os.environ.get(variable)
+    base = Path(value) if value and Path(value).is_absolute() else Path.home() / fallback
+    return base / _folder_name
+
+
+def _windows_root() -> Path:
+    base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+    return Path(base) / _folder_name
+
+
+def config_dir() -> Path:
+    """Settings (``settings.json``): small, and the user's. The only platform checks of the
+    program are in this group of functions.
+
+    | Platform | Folder |
+    |----------|--------|
+    | Windows  | ``%LOCALAPPDATA%\\rpggen\\config`` |
+    | Linux    | ``$XDG_CONFIG_HOME/rpggen`` (``~/.config``) |
+    | macOS    | ``~/Library/Application Support/rpggen`` |
+
+    With ``RPGGEN_CACHE_DIR`` set it is ``config/`` below that folder.
     """
-    override = os.environ.get("RPGGEN_CACHE_DIR")
+    override = _override()
     if override:
-        return Path(override)
+        return override / "config"
     if sys.platform == "win32":
-        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-        return Path(base) / "rpggen" / "cache"
-    return Path.home() / ".cache" / "rpggen"
+        return _windows_root() / "config"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / _folder_name
+    return _xdg("XDG_CONFIG_HOME", ".config")
+
+
+def data_dir() -> Path:
+    """Work the user would miss if it vanished: drafts of unfinished audits, installed pack
+    profiles, the downloaded Godot and the logs. A disk-cleanup tool must not find it in a
+    folder called "cache"."""
+    override = _override()
+    if override:
+        return override / "data"
+    if sys.platform == "win32":
+        return _windows_root() / "data"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / _folder_name
+    return _xdg("XDG_DATA_HOME", ".local/share")
+
+
+def cache_dir() -> Path:
+    """What can be made again: extracted archives, analysis, inventories, thumbnails, GIF
+    strips and terrain atlases. It is bounded (``core/cache_policy.py``)."""
+    override = _override()
+    if override:
+        return override / "cache"
+    if sys.platform == "win32":
+        return _windows_root() / "cache"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Caches" / _folder_name
+    return _xdg("XDG_CACHE_HOME", ".cache")
+
+
+def local_cache_dir() -> Path:
+    """The cache folder. Kept for one release as an alias of ``cache_dir()``."""
+    return cache_dir()
+
+
+def log_dir() -> Path:
+    """The logs of the command line and the wizard (below the data folder)."""
+    return data_dir() / "logs"
+
+
+def legacy_cache_dir() -> Path | None:
+    """Where everything lived before M12 (one folder for settings, drafts, profiles, Godot, logs
+    and caches); None when ``RPGGEN_CACHE_DIR`` isolates the program (nothing to migrate)."""
+    if _override():
+        return None
+    if sys.platform == "win32":
+        return _windows_root() / "cache"
+    return Path.home() / ".cache" / _folder_name
 
 
 def sample_pack_root() -> Path:
