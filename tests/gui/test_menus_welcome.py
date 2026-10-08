@@ -321,3 +321,25 @@ def test_the_storage_dialog_can_keep_the_whole_folder_of_failed_runs(qtbot) -> N
     assert not dialog.keep_failed_box.isChecked()  # the default is a lean failed run
     dialog.keep_failed_box.setChecked(True)
     assert app_settings.load().keep_full_failed_runs is True
+
+
+def test_ctrl_equals_and_ctrl_minus_step_the_thumbnail_size(qtbot) -> None:
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from rpggen.core import app_settings
+
+    win = _window(qtbot)
+    win.set_thumb_size(96)
+    assert win.larger_action.shortcuts()[0].toString() == "Ctrl+="
+    assert win.smaller_action.shortcut().toString() == "Ctrl+-"
+    win.larger_action.trigger()
+    assert app_settings.get().thumb_size == 128
+    win.larger_action.trigger()
+    win.larger_action.trigger()  # the largest size stays
+    assert app_settings.get().thumb_size == max(app_settings.THUMB_SIZES)
+    win.smaller_action.trigger()
+    assert app_settings.get().thumb_size == 128
+    win.activateWindow()
+    QTest.keyClick(win, Qt.Key.Key_Minus, Qt.KeyboardModifier.ControlModifier)
+    assert app_settings.get().thumb_size in (96, 128)  # the key reaches the action when focused

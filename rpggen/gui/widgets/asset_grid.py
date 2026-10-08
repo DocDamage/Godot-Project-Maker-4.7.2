@@ -20,11 +20,9 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QHBoxLayout,
-    QLabel,
     QLineEdit,
     QListView,
     QPushButton,
-    QSlider,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -458,6 +456,7 @@ CHIPS: list[tuple[str, str, set[str] | None]] = [
     ("chipUnused", "Unused", {"UNUSED"}),
     ("chipAll", "All", None),
 ]
+COMBO_MAX_WIDTH = 240
 CHANGED_CHIP = "chipChanged"  # shown only after a pack update
 
 
@@ -509,9 +508,8 @@ class AssetGrid(QWidget):
         self.confirm_auto_button.setVisible(False)
         self.confirm_auto_button.clicked.connect(self.confirmAutoRequested)
         bar.addWidget(self.confirm_auto_button)
-        self.help_button = QPushButton("?")
+        self.help_button = QPushButton(self.tr("Shortcuts"))
         self.help_button.setObjectName("shortcutsButton")
-        self.help_button.setFixedWidth(28)
         self.help_button.setToolTip(self.tr("Keyboard shortcuts of this page"))
         self.help_button.clicked.connect(self.shortcutsRequested)
         bar.addWidget(self.help_button)
@@ -528,24 +526,13 @@ class AssetGrid(QWidget):
         self.search.setPlaceholderText(self.tr("Search by name or folder"))
         self.search.setClearButtonEnabled(True)
         self.search.setMinimumWidth(120)
-        self.thumb_slider = QSlider(Qt.Orientation.Horizontal)
-        self.thumb_slider.setObjectName("thumbSlider")
-        self.thumb_slider.setRange(0, len(THUMB_SIZES) - 1)
-        self.thumb_slider.setFixedWidth(110)
-        self.thumb_slider.setToolTip(self.tr("Thumbnail size"))
-        size_label = QLabel(self.tr("Size"))
-        size_label.setFixedWidth(size_label.fontMetrics().horizontalAdvance(size_label.text()) + 8)
+        for combo in (self.role_combo, self.pack_combo):
+            combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         bar2.addWidget(self.role_combo)
         bar2.addWidget(self.pack_combo)
         bar2.addWidget(self.search, 1)
-        bar2.addWidget(size_label)
-        bar2.addWidget(self.thumb_slider)
         layout.addLayout(bar2)
         layout.addWidget(self.view, 1)
-        self.thumb_slider.setValue(THUMB_SIZES.index(THUMB))
-        self.thumb_slider.valueChanged.connect(
-            lambda i: self.set_thumb_size(THUMB_SIZES[i], from_slider=True)
-        )
         self.model.modelReset.connect(self._update_counts)
         self.model.dataChanged.connect(self._on_model_data_changed)
 
@@ -581,16 +568,12 @@ class AssetGrid(QWidget):
         for name, n in numbers.items():
             self.chips[name].setText(f"{self.tr(self._chip_labels[name])} {n}")
 
-    def set_thumb_size(self, size: int, from_slider: bool = False) -> None:
+    def set_thumb_size(self, size: int) -> None:
+        """The size comes from View > Thumbnail size (and Ctrl+= / Ctrl+-)."""
         if size not in THUMB_SIZES:
             return
         self.model.set_thumb_size(size)
         self.view.set_thumb_size(size)
-        index = THUMB_SIZES.index(size)
-        if not from_slider and self.thumb_slider.value() != index:
-            self.thumb_slider.blockSignals(True)
-            self.thumb_slider.setValue(index)
-            self.thumb_slider.blockSignals(False)
         self.thumbSizeChanged.emit(size)
 
     # ------------------------------------------------------------------ the review queue
@@ -684,14 +667,20 @@ class AssetGrid(QWidget):
                         combo.count() - 1, labels.role_help(item), Qt.ItemDataRole.ToolTipRole
                     )
             combo.blockSignals(False)
+            # wide enough for the longest item, but not wider than a filter should be
+            combo.setMinimumWidth(0)
+            combo.setMinimumWidth(min(combo.sizeHint().width(), COMBO_MAX_WIDTH))
+            combo.setToolTip(combo.currentText() if combo.count() else "")
         self.proxy.set_roles(None)
         self.proxy.set_pack(None)
 
     def _on_role(self) -> None:
+        self.role_combo.setToolTip(self.role_combo.currentText())
         value = self.role_combo.currentData()
         self.proxy.set_roles(None if value is None else {value})
 
     def _on_pack(self) -> None:
+        self.pack_combo.setToolTip(self.pack_combo.currentText())
         self.proxy.set_pack(self.pack_combo.currentData())
 
     def selected_ids(self) -> list[str]:

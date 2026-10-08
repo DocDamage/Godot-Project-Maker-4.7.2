@@ -119,6 +119,8 @@ class AuditPage(WizardPage):
         self.online_action.setObjectName("findProfileAction")
         self.profile_button.setMenu(profile_menu)
         self.profile_button.setToolTip(self.tr("Export, import or look online for a pack profile"))
+        # the tab bar's corner gives a widget its minimum width: ask for the whole button
+        self.profile_button.setMinimumWidth(self.profile_button.sizeHint().width() + 12)
         self.export_action.triggered.connect(lambda: self.export_profile())
         self.import_action.triggered.connect(lambda: self.import_profile())
         self.online_action.triggered.connect(lambda: self.find_profile_online())

@@ -27,6 +27,7 @@ SHORTCUTS = (
     ("F1", "Open the user guide at the current page"),
     ("Alt+N / Alt+B", "Next / Back"),
     ("Ctrl+Q", "Quit rpggen"),
+    ("Ctrl+= / Ctrl+-", "Larger / smaller thumbnails (Audit page)"),
     ("Ctrl+Z / Ctrl+Y", "Undo / Redo (Audit page)"),
     ("C", "Confirm the selected assets (Audit page)"),
     ("X", "Exclude the selected assets (Audit page)"),
@@ -110,6 +111,15 @@ class WindowMenus:
             action.setChecked(size == current)
             size_group.addAction(action)
             self.thumb_actions[size] = action
+        size_menu.addSeparator()
+        self.larger_action = self._action(
+            size_menu, self.tr("Larger"), "thumbLarger", lambda: self.step_thumb_size(1)
+        )
+        self.larger_action.setShortcuts([QKeySequence("Ctrl+="), QKeySequence("Ctrl++")])
+        self.smaller_action = self._action(
+            size_menu, self.tr("Smaller"), "thumbSmaller", lambda: self.step_thumb_size(-1)
+        )
+        self.smaller_action.setShortcut(QKeySequence("Ctrl+-"))
 
         help_menu = bar.addMenu(self.tr("&Help"))
         self.guide_action = self._action(
@@ -286,6 +296,13 @@ class WindowMenus:
         audit = self._audit_page()
         if audit is not None and hasattr(audit, "set_thumb_size"):
             audit.set_thumb_size(size)
+
+    def step_thumb_size(self, direction: int) -> None:
+        """Ctrl+= and Ctrl+-: the next larger or smaller thumbnail size."""
+        sizes = app_settings.THUMB_SIZES
+        current = app_settings.get().thumb_size
+        index = sizes.index(current) if current in sizes else 0
+        self.set_thumb_size(sizes[max(0, min(len(sizes) - 1, index + direction))])
 
     # ------------------------------------------------------------------ Help menu
 

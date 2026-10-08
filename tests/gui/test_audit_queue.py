@@ -141,7 +141,6 @@ def test_no_toolbar_widget_is_squeezed_below_its_size_hint_at_1000_px(qtbot) -> 
         page.grid.role_combo,
         page.grid.pack_combo,
         page.grid.search,
-        page.grid.thumb_slider,
         page.profile_button,
     ):
         if widget.isHidden():
@@ -159,7 +158,6 @@ def test_thumbnail_size_is_remembered_and_changes_the_grid(qtbot) -> None:
     assert app_settings.get().thumb_size == 128
     app_settings.store().flush()  # the write waits a moment for the next change
     assert app_settings.load().thumb_size == 128
-    assert page.grid.thumb_slider.value() == 2
     assert page.grid.view.gridSize().width() == 128 + 16
     assert page.grid.model.thumb_size == 128
 
@@ -191,3 +189,21 @@ def test_the_grid_gets_the_spare_height_not_the_done_label(qtbot) -> None:
     taken += 2 * spacing + margins.top() + margins.bottom()
     assert page.splitter.height() >= page.height() - taken - 8
     assert page.done_label.height() <= page.done_label.sizeHint().height() + 8
+
+
+def test_filter_bar_labels_and_widths_fit(qtbot) -> None:
+    page, _state = _page(qtbot, width=1000)
+    grid = page.grid
+    assert grid.help_button.text() == "Shortcuts"
+    assert not hasattr(grid, "thumb_slider")
+    for combo in (grid.role_combo, grid.pack_combo):
+        assert combo.sizeAdjustPolicy().name == "AdjustToContents"
+        widest = max(
+            combo.fontMetrics().horizontalAdvance(combo.itemText(i)) for i in range(combo.count())
+        )
+        assert combo.width() >= min(widest, 200), combo.objectName()
+    grid.role_combo.setCurrentIndex(1)
+    assert grid.role_combo.toolTip() == grid.role_combo.currentText()
+    assert page.profile_button.width() >= page.profile_button.fontMetrics().horizontalAdvance(
+        "Profile"
+    )
