@@ -145,4 +145,4 @@ static func place(node: Node2D, trail: Array[Vector2], distance: float, moving: 
 		node.set_meta("facing", facing)
 	var driver := RpgAnimationDriver.new()
 	driver.sprite = node.get_node_or_null("Visual") as AnimatedSprite2D
-	driver.play("walk" if moving else "idle", facing)
+	driver.play("walk" if moving else "idle", facing, ahead - at)

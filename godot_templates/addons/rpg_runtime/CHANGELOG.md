@@ -173,6 +173,14 @@
   a new *Credits* button on the title screen and in the pause menu (both look the button up with
   `get_node_or_null`, so scenes built before it still work). New keys `UI_CREDITS`,
   `UI_CREDITS_ASSETS`, `UI_CREDITS_ENGINE`, `UI_CREDITS_BY`.
+* Eight-direction sprites (M12): a sprite can have the animations `<action>_down_left`,
+  `_down_right`, `_up_left` and `_up_right`. `RpgAnimationDriver.play` takes an optional third
+  argument, the direction of travel, and plays the diagonal along it when the sprite has one (a
+  missing left or right diagonal is the other one mirrored); `RpgActor` passes its velocity and
+  remembers it for the idle picture, and followers pass the way their path goes. A facing with no
+  animation of its own now shows the direction 45 degrees next to it before it falls back to
+  `down`, so a sprite drawn only in the four diagonals works. New: `dir_to_facing8`. `facing`
+  stays one of four directions, so hitboxes, interaction and saves are unchanged.
 
 ## 0.3.0
 

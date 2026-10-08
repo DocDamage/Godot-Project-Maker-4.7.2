@@ -332,6 +332,70 @@ def make_strips(out: Path) -> None:
     )
 
 
+def _frame(color_index: int, shift: int, fw: int = 16, fh: int = 16) -> Image.Image:
+    img = Image.new("RGBA", (fw, fh), (0, 0, 0, 0))
+    _character(ImageDraw.Draw(img), 0, 0, fw, fh, pal(color_index), shift, fh - 1)
+    return img
+
+
+def make_sequences(out: Path) -> None:
+    """One image per frame (T12.50): numbered, ``(n)``, a folder per animation, and a gap."""
+    pack = out / "sequences"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    # numbers without zero padding: 10 must play after 9
+    for i in range(10):
+        _save_png(_frame(0, i), pack / f"hero_walk_down_{i + 1}.png")
+    for i in range(4):
+        _save_png(_frame(1, i), pack / f"hero_walk_up_{i + 1:02d}.png")
+        _save_png(_frame(2, i), pack / f"hero_walk_side_{i + 1:02d}.png")
+    for n, direction in enumerate(("down_left", "down_right", "up_left", "up_right")):
+        for i in range(2):
+            _save_png(_frame(3 + n, i), pack / f"hero_walk_{direction}_{i + 1:02d}.png")
+    for i in range(3):
+        _save_png(_frame(7, i), pack / f"hero-cast-{i + 1}.png")
+    for i in range(4):
+        _save_png(_frame(9, i), pack / "slime" / f"Idle ({i + 1}).png")
+    for i in range(4):
+        _save_png(_frame(10, i, 24, 24), pack / "enemies" / "bat" / "move" / f"{i + 1:04d}.png")
+    for i in range(3):
+        _save_png(_frame(11, i, 24, 24), pack / "enemies" / "bat" / "attack" / f"{i + 1:04d}.png")
+    for number in (1, 2, 4):  # frame 3 is missing: ADAPT-004
+        _save_png(_frame(12, number), pack / f"skeleton_idle_{number:02d}.png")
+    # numbered files without an action word are variants, not frames
+    for i in range(3):
+        _save_png(_item_icon(i), pack / "items" / f"gem_{i + 1:02d}.png")
+    expected: dict[str, dict] = {
+        # The asset of a character is the first frame of its first sequence.
+        "hero-cast-1.png": {
+            "usage": "sprite",
+            "role": "PLAYER",
+            "frame": [16, 16],
+            "anims": [
+                "cast_down",
+                "walk_down",
+                "walk_down_left",
+                "walk_down_right",
+                "walk_left",
+                "walk_right",
+                "walk_up",
+                "walk_up_left",
+                "walk_up_right",
+            ],
+        },
+        "slime/Idle (1).png": {"usage": "sprite", "role": "ENEMY", "anims": ["idle_down"]},
+        "enemies/bat/attack/0001.png": {
+            "usage": "sprite",
+            "role": "ENEMY",
+            "frame": [24, 24],
+            "anims": ["attack_down", "walk_down"],
+        },
+        "skeleton_idle_01.png": {"usage": "sprite", "role": "ENEMY", "anims": ["idle_down"]},
+    }
+    for i in range(3):
+        expected[f"items/gem_{i + 1:02d}.png"] = {"usage": "sprite", "role": "ITEM"}
+    _expected(out, "sequences", expected)
+
+
 def make_rpgmaker_like(out: Path) -> None:
     pack = out / "rpgmaker_like"
     _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
@@ -941,6 +1005,7 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "gutterless48": make_gutterless48,
     "mixed": make_mixed,
     "strips": make_strips,
+    "sequences": make_sequences,
     "rpgmaker_like": make_rpgmaker_like,
     "lpc_like": make_lpc_like,
     "tiled_meta": make_tiled_meta,

@@ -89,7 +89,11 @@ dialogue, inventory, equipment, menus) are the same.
   when the sheet does not divide evenly.
 * **Animations** (*Animations…*): a direction-grouped list of animations with playback, click the
   sheet to pick frames, mirror left from right, reverse, ping-pong, origin and baseline, and
-  *active frames* (the hit frames) for the action RPG.
+  *active frames* (the hit frames) for the action RPG. An animation saved as one numbered image
+  per frame (`hero_walk_down_01.png`, `hero/walk/0001.png`, `Walk (3).png`) is read as one
+  animation when its name has an action word such as walk, attack or cast; a missing number in
+  the row gives ADAPT-004 and the frames that exist are used. Characters drawn in eight directions
+  (`walk_down_left`, `walk_ne`) use the diagonal pictures while they move diagonally.
 * **Object cutter** (*Cut objects…*): draw rectangles around a house or tree in a sheet, set its
   footprint (where it blocks), door and origin. Detected objects appear blue, yours green.
 * **Terrain tab:** autotile proposals for RPG Maker A2 sheets and 47-tile blob sheets.
@@ -259,7 +263,7 @@ clears it.
 |--------|---------------|---------|-------|-------|
 | Settings | `settings.json`: window, theme, recent projects, option presets | `%LOCALAPPDATA%\rpggen\config` | `~/.config/rpggen` | `~/Library/Application Support/rpggen` |
 | Your data | drafts of audits you have not generated yet, installed pack profiles, the Godot rpggen downloaded, the logs | `%LOCALAPPDATA%\rpggen\data` | `~/.local/share/rpggen` | `~/Library/Application Support/rpggen` |
-| Cache | extracted archives, analysis results, file lists, thumbnails, GIF strips, terrain sheets | `%LOCALAPPDATA%\rpggen\cache` | `~/.cache/rpggen` | `~/Library/Caches/rpggen` |
+| Cache | extracted archives, analysis results, file lists, thumbnails, GIF and frame strips, terrain sheets | `%LOCALAPPDATA%\rpggen\cache` | `~/.cache/rpggen` | `~/Library/Caches/rpggen` |
 
 (On Linux the `XDG_CONFIG_HOME`, `XDG_DATA_HOME` and `XDG_CACHE_HOME` variables are honoured.)
 

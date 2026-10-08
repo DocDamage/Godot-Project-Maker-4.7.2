@@ -31,6 +31,7 @@ CACHE_LABELS = {
     "inventories": "File lists of packs",
     "thumbs": "Thumbnails",
     "gif_strips": "Animation strips made from GIFs",
+    "frame_strips": "Animation strips made from numbered frames",
     "terrain_atlases": "Terrain sheets",
 }
 DATA_LABELS = {

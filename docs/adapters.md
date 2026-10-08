@@ -19,10 +19,45 @@ unsupported.
 | `ldtk` | 30 | LDtk tile set definitions; the tile, auto and IntGrid layers and the spawn, door and sign entities of every level (T12.49) |
 | `rpgmaker` | 40 | RPG Maker MV/MZ tilesets (A1-A5, B-E), character sheets, faces |
 | `lpc` | 50 | Liberated Pixel Cup / Universal LPC character sheets |
+| `sequences` | 55 | animations saved as one numbered image per frame (T12.50, see below) |
 | `strips` | 60 | horizontal animation strips (incl. GIF) |
 | `generic_grid` | 100 | everything else: grid detection, strips, character sheets, small sprites |
 
 Lower priority runs first. A fragment with `claim="full"` makes later adapters skip that file.
+
+## Animation names
+
+`strips` reads whole strips named `<name>_<action>[_<direction>]`; `sequences` reads the same
+names with a frame number at the end. The words are in `rpggen/core/adapters/naming.py`:
+
+* **Actions:** idle, walk, run, attack, hurt, death, die, hit, move, jump, fall, cast, shoot,
+  slash, thrust, block, roll, dash, climb, swim and interact. Run and move become `walk`, hit
+  becomes `hurt`, die becomes `death`; the others keep their name (`cast_down`).
+* **Directions:** down, up, left, right (also front, back, side, s, n, e, w) and the diagonals
+  down_left, down_right, up_left, up_right (also sw, se, nw, ne). A name without a direction is
+  taken as down. The game's `RpgAnimationDriver` plays a diagonal animation while a character
+  moves diagonally, and the nearest direction that exists otherwise.
+
+## Frame sequences
+
+`hero_walk_down_01.png`, `hero/walk/0001.png` and `Walk (3).png` are frames of one animation
+(`rpggen/core/adapters/sequences.py`).
+
+* The files of one folder that share a stem without its trailing number are a sequence. The
+  number follows `_`, `-` or a space, or stands in brackets; a number glued to the name
+  (`tileset2`) is part of the name.
+* The name comes from the stem, then from the folders above it: `hero/walk/0001.png` is the walk
+  of `hero`, `hero/walk/down/0001.png` its walk down.
+* A sequence needs at least two frames of the same size and an action word. Numbered files without
+  one (`item_01.png` to `item_12.png`) stay separate assets: they are variants far more often than
+  frames.
+* Frames play in numeric order, so 10 comes after 9. A missing number gives `ADAPT-004` (a
+  warning); the frames that exist are still used.
+* The frames of an animation are composited into `generated/frame_strips/<sha>.png` (named after
+  the frames, so the same frames give the same file), as GIFs are into `generated/gif_strips`. A
+  strip wider than 4096 px wraps into rows. The originals stay in `assets/packs`.
+* The animations of one character with the same frame size become one sprite asset, whose path is
+  the first frame of its first sequence; the other frames are `consumed`.
 
 ## The interface
 

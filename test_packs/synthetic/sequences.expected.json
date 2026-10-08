@@ -1,0 +1,59 @@
+{
+  "enemies/bat/attack/0001.png": {
+    "anims": [
+      "attack_down",
+      "walk_down"
+    ],
+    "frame": [
+      24,
+      24
+    ],
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "hero-cast-1.png": {
+    "anims": [
+      "cast_down",
+      "walk_down",
+      "walk_down_left",
+      "walk_down_right",
+      "walk_left",
+      "walk_right",
+      "walk_up",
+      "walk_up_left",
+      "walk_up_right"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "items/gem_01.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/gem_02.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/gem_03.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "skeleton_idle_01.png": {
+    "anims": [
+      "idle_down"
+    ],
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "slime/Idle (1).png": {
+    "anims": [
+      "idle_down"
+    ],
+    "role": "ENEMY",
+    "usage": "sprite"
+  }
+}

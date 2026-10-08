@@ -25,7 +25,15 @@ from rpggen import paths
 
 log = logging.getLogger(__name__)
 
-CACHE_ITEMS = ("extracted", "analysis", "inventories", "thumbs", "gif_strips", "terrain_atlases")
+CACHE_ITEMS = (
+    "extracted",
+    "analysis",
+    "inventories",
+    "thumbs",
+    "gif_strips",
+    "frame_strips",
+    "terrain_atlases",
+)
 DATA_ITEMS = ("drafts", "profiles", "godot", "logs")
 SMALL_CACHES = ("analysis", "inventories", "thumbs")  # together at most SMALL_CAP_BYTES
 SMALL_CAP_BYTES = 1 << 30

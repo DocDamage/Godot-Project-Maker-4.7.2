@@ -1,6 +1,24 @@
 class_name RpgAnimationDriver
 extends RefCounted
 ## Picks and plays "<base>_<facing>" animations on an AnimatedSprite2D, with fallbacks.
+##
+## A facing is one of four directions (down, up, left, right). A sprite can also have animations
+## for the four diagonals (down_left, down_right, up_left, up_right): `play` uses them when it is
+## given the direction of travel, and a sprite that has only some directions shows the nearest.
+
+## tan(22.5 degrees): a direction closer than this to an axis counts as that axis.
+const DIAGONAL_SLOPE := 0.41421356
+## The directions 45 degrees to either side of a direction, in the order they are tried.
+const NEIGHBOURS: Dictionary = {
+	"down": ["down_left", "down_right"],
+	"up": ["up_left", "up_right"],
+	"left": ["down_left", "up_left"],
+	"right": ["down_right", "up_right"],
+	"down_left": ["down", "left"],
+	"down_right": ["down", "right"],
+	"up_left": ["up", "left"],
+	"up_right": ["up", "right"],
+}
 
 var sprite: AnimatedSprite2D
 
@@ -10,12 +28,28 @@ static func dir_to_facing(d: Vector2) -> String:
 		return "right" if d.x > 0.0 else "left"
 	return "down" if d.y >= 0.0 else "up"
 
+## One of eight directions: a diagonal when `d` is more than 22.5 degrees away from both axes.
+static func dir_to_facing8(d: Vector2) -> String:
+	var ax := absf(d.x)
+	var ay := absf(d.y)
+	if ay <= ax * DIAGONAL_SLOPE or ax <= ay * DIAGONAL_SLOPE:
+		return dir_to_facing(d)
+	return ("down" if d.y > 0.0 else "up") + ("_right" if d.x > 0.0 else "_left")
+
 static func _mirror(facing: String) -> String:
 	match facing:
 		"left":
 			return "right"
 		"right":
 			return "left"
+		"down_left":
+			return "down_right"
+		"down_right":
+			return "down_left"
+		"up_left":
+			return "up_right"
+		"up_right":
+			return "up_left"
 		_:
 			return ""
 
@@ -31,6 +65,31 @@ func _resolve(frames: SpriteFrames, base: String, facing: String) -> Dictionary:
 		if frames.has_animation(mirrored):
 			return {"anim": mirrored, "flip": not RpgUtil.to_bool(frames.get_meta("flip_h_" + mirrored, false))}
 	return {}
+
+## "<base>_<facing>" (direct or mirrored), else the direction next to it that exists: a sprite
+## with only diagonal animations shows one of them for "down", and one with only four directions
+## shows "down" or "right" for "down_right".
+func _nearest(frames: SpriteFrames, base: String, facing: String) -> Dictionary:
+	var found := _resolve(frames, base, facing)
+	if not found.is_empty():
+		return found
+	var neighbours: Array = NEIGHBOURS.get(facing, [])
+	for other: String in neighbours:
+		found = _resolve(frames, base, other)
+		if not found.is_empty():
+			return found
+	return {}
+
+## The animation for `facing`, or for the diagonal `dir` points along when the sprite has it and
+## it agrees with `facing` (moving down and right while facing down or right).
+func _pick(frames: SpriteFrames, base: String, facing: String, dir: Vector2) -> Dictionary:
+	if dir != Vector2.ZERO:
+		var fine := dir_to_facing8(dir)
+		if fine != facing and facing in fine.split("_"):
+			var found := _resolve(frames, base, fine)
+			if not found.is_empty():
+				return found
+	return _nearest(frames, base, facing)
 
 ## True when "<base>_<facing>" (or its mirrored counterpart) exists, with no fallback to other
 ## directions.
@@ -54,20 +113,22 @@ func play_exact(base: String, facing: String) -> String:
 
 ## Plays "<base>_<facing>". Falls back in order:
 ## 1. "<base>_<facing>"  2. mirrored counterpart with flip_h (left<->right)
-## 3. "<base>_down"  4. "walk_<facing>" frame 0 (paused) when base == "idle"
-## Does nothing if sprite or sprite_frames is null.
-func play(base: String, facing: String) -> void:
+## 3. the direction 45 degrees next to it  4. "<base>_down"
+## 5. "walk_<facing>" frame 0 (paused) when base == "idle"
+## With `dir` (the direction of travel) a diagonal animation such as "walk_down_left" is used
+## when the sprite has one. Does nothing if sprite or sprite_frames is null.
+func play(base: String, facing: String, dir: Vector2 = Vector2.ZERO) -> void:
 	if sprite == null or sprite.sprite_frames == null:
 		return
 	var frames: SpriteFrames = sprite.sprite_frames
-	var found := _resolve(frames, base, facing)
+	var found := _pick(frames, base, facing, dir)
 	var paused := false
 	if found.is_empty():
-		found = _resolve(frames, base, "down")
+		found = _nearest(frames, base, "down")
 	if found.is_empty() and base == "idle":
-		found = _resolve(frames, "walk", facing)
+		found = _pick(frames, "walk", facing, dir)
 		if found.is_empty():
-			found = _resolve(frames, "walk", "down")
+			found = _nearest(frames, "walk", "down")
 		paused = not found.is_empty()
 	if found.is_empty():
 		return

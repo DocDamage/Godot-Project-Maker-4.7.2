@@ -1,0 +1,611 @@
+{
+  "assets": [
+    {
+      "confidence": 0.615385,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/c79d4a0e9992454f8d1becff79664aa11abdc0b63d039d65d81ab4cc130f8a44.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/a399de5fdbaf756163ea0e650d7393409014d38d7658fd8bfcebcacb2c263ba8.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.192308
+          ],
+          [
+            "PLAYER",
+            0.038462
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sequences",
+      "id": "sequences.enemies.bat.attack.n0001",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sequences",
+      "path": "assets/packs/sequences/enemies/bat/attack/0001.png",
+      "sha256": "6242882da9af89bcb956715d9f464dd237404279c6c3fc105452cd898fc81974",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "cast_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/511b42b3ca651ed010fadb0755f8da661ce2d5875d764377b37aff5525f5b526.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                8,
+                0
+              ],
+              [
+                9,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/202bb4d47fdd84299dd6725cec03117dc4f93e73a300a14c9db1f1ecf470c55e.png"
+          },
+          "walk_down_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/2e5d20270613d6ddf545c42569b19c9131b9fd334fa36bb9725c0e15aac97172.png"
+          },
+          "walk_down_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/a5f4a2c335fc5badf6c2c3df47ae0cabaa37c38d3e1c4d450c2e908ea6d3b32d.png"
+          },
+          "walk_left": {
+            "flip_h": true,
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/e6da066585d3d032916d52a0e0809531b87438249c027a3d101d72a7d0f290ed.png"
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/e6da066585d3d032916d52a0e0809531b87438249c027a3d101d72a7d0f290ed.png"
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/6f27639176747c1f97822b17948872b682c7f08a7da7d2eca5f242355f789707.png"
+          },
+          "walk_up_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/203f083419fcb6f017a7b8cf88aa65a9715593265535aad2512eba53ff48bdf0.png"
+          },
+          "walk_up_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/0e44510e29bae26b1fed47301a4420d73af3352d1a0dfb405ea4eb7f24d1014c.png"
+          }
+        },
+        "directions": 8,
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sequences",
+      "id": "sequences.hero_cast_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sequences",
+      "path": "assets/packs/sequences/hero-cast-1.png",
+      "sha256": "f59a63136724771318f4736e4f0caca0ec0d97bb761d4fdfc1d5ed8bae393b7e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sequences.items.gem_01",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sequences",
+      "path": "assets/packs/sequences/items/gem_01.png",
+      "sha256": "be0c2d57a5ab96f2d40cd13271b65861467caeb2f3d1d29720c6b3534adce755",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sequences.items.gem_02",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sequences",
+      "path": "assets/packs/sequences/items/gem_02.png",
+      "sha256": "c98904108f0c831980c5300764d8eb3e7bc6e347172d90e7f40eba27ca44d46d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sequences.items.gem_03",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sequences",
+      "path": "assets/packs/sequences/items/gem_03.png",
+      "sha256": "d99cd1f1c5db52349705442f27224083c27f9e041f933e978575f76c76453cc3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.473684,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/f36331dbd5ec3a713d0f3871a9bb68a8b1ad889ab207e4e1116951437287d3b7.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.263158
+          ],
+          [
+            "PLAYER",
+            0.052632
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sequences",
+      "id": "sequences.skeleton_idle_01",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sequences",
+      "path": "assets/packs/sequences/skeleton_idle_01.png",
+      "sha256": "ef31c5efb406f65f87e1bcec57d273175ed3bb3f49ab0daffe52d1e076991f1a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/6b42acf395d4cfbc7a9f4455feec057c75ff5050c92522b8e05a3b02a47989c9.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sequences",
+      "id": "sequences.slime.idle_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sequences",
+      "path": "assets/packs/sequences/slime/Idle (1).png",
+      "sha256": "6031733ff4f368bedc68a12fb096508efcb4f585fc018ac4929721c2337f41d5",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.0.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "sequences",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/sequences/LICENSE.txt"
+      ],
+      "pack_id": "sequences",
+      "profile_id": null,
+      "root": "assets/packs/sequences",
+      "source_sha256": "2c9c91c175e8a37b776d8772d09b12732cc5f214d9f85d9745ca249af817746d",
+      "warnings": [
+        "sequences_direction_assumed:enemies/bat/attack",
+        "sequences_direction_assumed:enemies/bat/move",
+        "sequences_direction_assumed:hero-cast",
+        "sequences_direction_assumed:skeleton_idle",
+        "sequences_direction_assumed:slime/Idle"
+      ]
+    }
+  ],
+  "tilesets": []
+}

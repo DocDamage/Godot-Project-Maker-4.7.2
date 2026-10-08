@@ -21,6 +21,8 @@ var scripted_walk := false
 
 var _components: Dictionary = {}
 var _driver := RpgAnimationDriver.new()
+## The last direction of travel: a sprite with diagonal animations shows them along it.
+var _look := Vector2.ZERO
 
 func _ready() -> void:
 	_cache_components()
@@ -66,7 +68,9 @@ func _physics_process(_delta: float) -> void:
 	if animation_locked:
 		return
 	if velocity.length() > 1.0 or scripted_walk:
-		_driver.play("walk", facing)
+		if velocity.length() > 1.0:
+			_look = velocity
+		_driver.play("walk", facing, _look)
 	else:
 		_play_idle()
 
@@ -85,4 +89,4 @@ func release_animation() -> void:
 	_play_idle()
 
 func _play_idle() -> void:
-	_driver.play("idle", facing)
+	_driver.play("idle", facing, _look)

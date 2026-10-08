@@ -184,6 +184,12 @@ per activation, polls overlaps because a hurtbox that is already inside gives no
 Layers: player hitbox 7 (mask 10), enemy hitbox 8 (mask 9), player hurtbox 9, enemy hurtbox 10.
 `RpgArpgMath`: `max(1, attack - defense / 2)`, x1.5 on a crit, one `GameState.rng` draw per roll.
 
+Animations are named `<action>_<facing>`. A facing is down, up, left or right; a sprite can also
+have the diagonals `down_left`, `down_right`, `up_left` and `up_right`. `RpgAnimationDriver.play(
+base, facing, dir)` plays the diagonal that `dir` (the direction of travel) points along when the
+sprite has it, mirrors a missing left or right side, and otherwise falls back to the direction
+45 degrees next to the facing, then to `down`. `RpgActor.facing` itself stays one of four.
+
 `RpgPlayerCombat` is the player's state machine (`IDLE`, `MOVE`, `ATTACK`, `HURT`, `DODGE`,
 `DEAD`; a generic `RpgStateMachine`). It uses the actor's `move_locked`, `facing_locked` and
 `animation_locked` flags so the input and the automatic walk / idle animations do not fight it.

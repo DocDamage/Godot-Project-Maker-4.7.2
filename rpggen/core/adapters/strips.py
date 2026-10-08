@@ -16,17 +16,11 @@ from rpggen.core.inventory import Inventory, InventoryFile
 from rpggen.errors import IssueList
 
 STRIP_NAME = re.compile(
-    r"^(?P<name>.+?)[_\- ](?P<action>idle|walk|run|attack|hurt|death|die|hit|move)"
-    r"(?:[_\- ](?P<dir>down|up|left|right|front|back|side|s|n|e|w))?$",
+    rf"^(?P<name>.+?)[_\- ](?P<action>{naming.ACTION_PATTERN})"
+    rf"(?:[_\- ](?P<dir>{naming.DIRECTION_PATTERN}))?$",
     re.IGNORECASE,
 )
-DEFAULT_FPS = {"idle": 4.0, "walk": 8.0, "attack": 12.0, "hurt": 10.0, "death": 8.0}
 GIF_STRIP_DIR = "generated/gif_strips"
-STANDARD_ACTIONS = {"idle", "walk", "attack", "hurt", "death"}
-
-
-def _fps(action: str) -> float:
-    return DEFAULT_FPS.get(action.split("_")[0], 8.0)
 
 
 def _is_still_png(f: InventoryFile) -> bool:
@@ -121,7 +115,7 @@ class StripsAdapter:
                 continue
             spec: dict[str, Any] = {
                 "frames": [[i, 0] for i in range(strip.frames)],
-                "fps": _fps(norm.action),
+                "fps": naming.fps(norm.action),
                 "loop": naming.is_looping(norm.action),
                 "source": f"assets/packs/{pack_id}/{f.path}",
             }
@@ -173,7 +167,7 @@ class StripsAdapter:
             if m
             else None
         )
-        name = norm.name if norm and norm.action in STANDARD_ACTIONS else "idle_down"
+        name = norm.name if norm and norm.action in naming.CANONICAL_ACTIONS else "idle_down"
         action = name.split("_")[0]
         base_ms = sorted(durations)[len(durations) // 2] or 100
         project_path = f"{GIF_STRIP_DIR}/{gif_strip_name(f.sha256)}"
