@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
 from functools import partial
 from pathlib import Path
@@ -30,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import anim_edit
+from rpggen.gui import theme
 from rpggen.gui.widgets.image_view import ImageView
 
 Anim = dict[str, Any]
@@ -48,6 +50,7 @@ class FramePreview(QWidget):
         self.pixmap: QPixmap | None = None
         self.origin: tuple[int, int] | None = None
         self.scale = PREVIEW_SCALE
+        theme.signals.changed.connect(lambda _name: self._repaint())
         self.setMinimumSize(160, 200)
 
     def set_frame(self, pixmap: QPixmap | None, flip: bool = False) -> None:
@@ -59,6 +62,10 @@ class FramePreview(QWidget):
                 1, min(8, min(200 // max(1, pixmap.width()), 220 // max(1, pixmap.height())))
             )
         self.update()
+
+    def _repaint(self) -> None:
+        with contextlib.suppress(RuntimeError):  # the widget was deleted
+            self.update()
 
     def set_origin(self, origin: tuple[int, int] | None) -> None:
         self.origin = origin
@@ -72,7 +79,7 @@ class FramePreview(QWidget):
 
     def paintEvent(self, event) -> None:  # noqa: ANN001
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(70, 70, 70))
+        painter.fillRect(self.rect(), theme.token("canvas_bg_alt"))
         if self.pixmap is None:
             painter.end()
             return

@@ -34,7 +34,7 @@ def test_missing_and_corrupt_files_give_defaults(_cache: Path) -> None:
     assert app_settings.load().to_json() == app_settings.AppSettings().to_json()
     _cache.mkdir(parents=True)
     (_cache / app_settings.FILE_NAME).write_text("{not json", encoding="utf-8")
-    assert app_settings.load().theme == "dark"
+    assert app_settings.load().theme == "system"
     (_cache / app_settings.FILE_NAME).write_text("[1, 2]", encoding="utf-8")
     assert app_settings.load().thumb_size == 96
 
@@ -50,7 +50,7 @@ def test_unknown_keys_and_wrong_types_are_ignored(_cache: Path) -> None:
     }
     (_cache / app_settings.FILE_NAME).write_text(json.dumps(data), encoding="utf-8")
     s = app_settings.load()
-    assert (s.godot_exe, s.theme, s.thumb_size) == ("", "dark", 96)
+    assert (s.godot_exe, s.theme, s.thumb_size) == ("", "system", 96)
     assert s.window == {"w": 5}
 
 
@@ -171,7 +171,7 @@ def test_get_does_no_file_io_after_the_first_call(_cache: Path, monkeypatch) -> 
     monkeypatch.setattr(io, "open", refuse)
     monkeypatch.setattr(Path, "read_text", refuse)
     for _ in range(100):
-        assert app_settings.get().theme == "dark"
+        assert app_settings.get().theme == "system"
 
 
 def test_the_store_belongs_to_the_settings_file(tmp_path: Path, monkeypatch) -> None:

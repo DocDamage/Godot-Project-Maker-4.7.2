@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 FILE_NAME = "settings.json"
 RECENT_MAX = 10
 THUMB_SIZES = (64, 96, 128, 192)
-THEMES = ("dark", "light")
+THEMES = ("system", "dark", "light")  # "system" follows the operating system
 WRITE_DELAY_S = 0.3  # a scheduled write waits this long for the next change
 
 
@@ -56,7 +56,7 @@ class AppSettings:
     recent_projects: list[RecentProject] = field(default_factory=list)  # newest first, max 10
     window: dict[str, int] = field(default_factory=dict)  # x, y, w, h, maximized
     splitters: dict[str, list[int]] = field(default_factory=dict)  # e.g. "audit"
-    theme: str = "dark"
+    theme: str = "system"  # a first run follows the system; a saved choice is kept
     thumb_size: int = 96
     option_presets: dict[str, dict[str, Any]] = field(default_factory=dict)
     quick_roles: list[str] = field(default_factory=list)  # the 1-9 keys of the audit page

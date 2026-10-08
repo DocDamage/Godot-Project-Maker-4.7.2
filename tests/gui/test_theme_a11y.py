@@ -207,3 +207,77 @@ def test_the_archetype_cards_show_a_check_when_chosen(qtbot) -> None:
     assert not page.arpg_card.check_label.isHidden() and page.turn_card.check_label.isHidden()
     assert "Controls" in page.arpg_card.bullet_label.text() or page.arpg_card.bullet_label.text()
     assert "other kind later" in page.same_label.text()
+
+
+# ------------------------------------------------------------------------ T12.42: system theme
+
+
+def test_the_system_theme_follows_a_faked_scheme_change(qtbot, monkeypatch) -> None:
+    app = QApplication.instance()
+    scheme = {"now": "dark"}
+    monkeypatch.setattr(theme, "system_scheme", lambda: scheme["now"])
+    seen: list[str] = []
+    theme.signals.changed.connect(seen.append)
+    try:
+        assert theme.apply_theme("system", remember=False) == "system"
+        assert theme.current() == "dark"
+        assert app.palette().color(QPalette.ColorRole.Base).name() == theme.BACKGROUNDS["dark"]
+        scheme["now"] = "light"
+        theme.on_system_scheme_changed()  # what the colorSchemeChanged signal calls
+        assert theme.current() == "light" and seen[-1] == "light"
+        assert app.palette().color(QPalette.ColorRole.Base).name() == theme.BACKGROUNDS["light"]
+        theme.apply_theme("dark", remember=False)  # an explicit choice does not follow
+        scheme["now"] = "dark"
+        scheme["now"] = "light"
+        theme.on_system_scheme_changed()
+        assert theme.current() == "dark"
+    finally:
+        theme.signals.changed.disconnect(seen.append)
+        theme.apply_theme("dark", remember=False)
+
+
+def test_a_first_run_follows_the_system_and_a_saved_choice_is_kept(tmp_path) -> None:
+    import json
+
+    assert app_settings.AppSettings().theme == "system"
+    assert "system" in app_settings.THEMES
+    kept = tmp_path / "settings.json"
+    kept.write_text(json.dumps({"theme": "light"}), encoding="utf-8")
+    assert app_settings.from_json(json.loads(kept.read_text(encoding="utf-8"))).theme == "light"
+    assert app_settings.from_json({}).theme == "system"
+    assert app_settings.from_json({"theme": "nonsense"}).theme == "system"
+
+
+def test_the_canvas_colour_differs_between_themes_and_views_follow(qtbot) -> None:
+    from rpggen.gui.widgets.image_view import ImageView
+
+    assert theme.token("canvas_bg", "dark") != theme.token("canvas_bg", "light")
+    assert theme.token("canvas_bg_alt", "dark") != theme.token("canvas_bg_alt", "light")
+    assert theme.token("grid_line", "dark") != theme.token("grid_line", "light")
+    view = ImageView()
+    qtbot.addWidget(view)
+    try:
+        theme.apply_theme("light", remember=False)
+        assert view.backgroundBrush().color() == theme.token("canvas_bg", "light")
+        theme.apply_theme("dark", remember=False)
+        assert view.backgroundBrush().color() == theme.token("canvas_bg", "dark")
+    finally:
+        theme.apply_theme("dark", remember=False)
+
+
+def test_the_light_canvases_are_light_enough_for_dark_text(qtbot) -> None:
+    for name in ("canvas_bg", "canvas_bg_alt"):
+        assert theme.token(name, "light").lightness() > 180
+        assert theme.token(name, "dark").lightness() < 100
+
+
+def test_the_menu_offers_the_system_theme(qtbot) -> None:
+    from rpggen.gui.wizard import MainWindow, stub_pages
+
+    win = MainWindow(None, stub_pages())
+    qtbot.addWidget(win)
+    assert set(win.theme_actions) == {"system", "dark", "light"}
+    win.theme_actions["system"].trigger()
+    assert app_settings.get().theme == "system"
+    win.set_theme("dark")
+    assert app_settings.get().theme == "dark"

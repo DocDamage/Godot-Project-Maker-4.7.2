@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QMouseEvent, QPen, QPixmap, QWheelEvent
 from PySide6.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QWidget
 
+from rpggen.gui import theme
+
 MARGIN_TINT = QColor(255, 160, 0, 70)
 GUTTER_TINT = QColor(0, 200, 255, 70)
-LINE_COLOR = QColor(255, 255, 255, 150)
 
 
 class ImageView(QGraphicsView):
@@ -24,7 +26,9 @@ class ImageView(QGraphicsView):
         self._press: QPoint | None = None
         self.setObjectName(object_name)
         self.setScene(QGraphicsScene(self))
-        self.setBackgroundBrush(QColor(60, 60, 60))
+        self._grid: dict | None = None
+        self.setBackgroundBrush(theme.token("canvas_bg"))
+        theme.signals.changed.connect(self._on_theme_changed)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.zoom = 1.0
@@ -36,6 +40,7 @@ class ImageView(QGraphicsView):
         scene = self.scene()
         scene.clear()
         self.grid_items = []
+        self._grid = None
         self.pixmap_item = None
         self.image_size = (0, 0)
         if path is None or not Path(path).exists():
@@ -52,6 +57,13 @@ class ImageView(QGraphicsView):
         if fit:
             self.fit()
 
+    def _on_theme_changed(self, _name: str = "") -> None:
+        """The canvas follows the theme: its background and the colour of the grid lines."""
+        with contextlib.suppress(RuntimeError):  # the view was deleted
+            self.setBackgroundBrush(theme.token("canvas_bg"))
+            if self._grid is not None:
+                self.draw_grid(self._grid)
+
     def clear_grid(self) -> None:
         for item in self.grid_items:
             self.scene().removeItem(item)
@@ -59,11 +71,12 @@ class ImageView(QGraphicsView):
 
     def draw_grid(self, grid: dict) -> None:
         self.clear_grid()
+        self._grid = grid
         width, height = self.image_size
         if not width:
             return
         scene = self.scene()
-        line = QPen(LINE_COLOR)
+        line = QPen(theme.token("grid_line"))
         line.setCosmetic(True)
         none = QPen(Qt.PenStyle.NoPen)
         cw, ch = grid["cell"]

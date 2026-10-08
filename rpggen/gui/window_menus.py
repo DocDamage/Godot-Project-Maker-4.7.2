@@ -96,7 +96,11 @@ class WindowMenus:
         theme_menu = view_menu.addMenu(self.tr("Theme"))
         theme_group = QActionGroup(self)
         self.theme_actions: dict[str, QAction] = {}
-        for key, label in (("dark", self.tr("Dark")), ("light", self.tr("Light"))):
+        for key, label in (
+            ("system", self.tr("Follow the system")),
+            ("dark", self.tr("Dark")),
+            ("light", self.tr("Light")),
+        ):
             action = self._action(
                 theme_menu, label, f"theme_{key}", lambda _=False, k=key: self.set_theme(k)
             )
