@@ -1,4 +1,4 @@
-"""The wizard window: sidebar of pages, stacked page widgets and the Back / Next / Cancel bar."""
+"""The wizard window: sidebar of pages, stacked page widgets and the Back / Next / Quit bar."""
 
 from __future__ import annotations
 
@@ -32,7 +32,9 @@ log = logging.getLogger(__name__)
 PAGE_NAMES = ["Project", "Archetype", "Audit", "Mapping", "Options", "Generate", "Results"]
 OPTIONS_INDEX = 4  # the last page before generation: its Next button reads "Generate"
 DEFAULT_WINDOW = (1100, 720)
-MIN_WINDOW = (1000, 640)  # the layout test (tests/gui/test_layout_fit.py) runs at this size
+NARROW_BELOW = 1000  # narrower than this the sidebar shows the numbers only
+SIDEBAR_WIDE, SIDEBAR_NARROW = 170, 52
+MIN_WINDOW = (880, 540)  # the layout test (tests/gui/test_layout_fit.py) runs at this size
 
 
 class StubPage(WizardPage):
@@ -110,10 +112,13 @@ class MainWindow(WindowMenus, QMainWindow):
 
         self.sidebar = QListWidget()
         self.sidebar.setObjectName("sidebar")
-        self.sidebar.setFixedWidth(170)
+        self.sidebar.setFixedWidth(SIDEBAR_WIDE)
+        self._sidebar_names: list[str] = []
         for i, page in enumerate(self.pages):
-            name = PAGE_NAMES[i] if i < len(PAGE_NAMES) else page.title
-            item = QListWidgetItem(f"{i + 1}. {self.tr(name)}")
+            name = self.tr(PAGE_NAMES[i] if i < len(PAGE_NAMES) else page.title)
+            self._sidebar_names.append(name)
+            item = QListWidgetItem(f"{i + 1}. {name}")
+            item.setToolTip(name)
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
             self.sidebar.addItem(item)
         self.sidebar.itemClicked.connect(self._on_sidebar_clicked)
@@ -146,21 +151,21 @@ class MainWindow(WindowMenus, QMainWindow):
         self.back_button.setObjectName("backButton")
         self.next_button = QPushButton(self.tr("Next"))
         self.next_button.setObjectName("nextButton")
-        self.cancel_button = QPushButton(self.tr("Cancel"))
-        self.cancel_button.setObjectName("cancelButton")
-        bar.addWidget(self.cancel_button)
+        self.quit_button = QPushButton(self.tr("Quit"))
+        self.quit_button.setObjectName("quitButton")
+        bar.addWidget(self.quit_button)
         bar.addStretch(1)
         bar.addWidget(self.back_button)
         bar.addWidget(self.next_button)
         outer.addLayout(bar)
         self.back_button.clicked.connect(self.go_back)
         self.next_button.clicked.connect(self.go_next)
-        self.cancel_button.clicked.connect(self.close)
+        self.quit_button.clicked.connect(self.close)
         self.next_button.setShortcut("Alt+N")
         self.back_button.setShortcut("Alt+B")
         self.next_button.setToolTip(self.tr("Go to the next page (Alt+N)"))
         self.back_button.setToolTip(self.tr("Go back one page (Alt+B)"))
-        self.cancel_button.setToolTip(self.tr("Close rpggen"))
+        self.quit_button.setToolTip(self.tr("Close rpggen (Ctrl+Q)"))
 
         self._wire_welcome()
         self._build_menus()
@@ -266,6 +271,17 @@ class MainWindow(WindowMenus, QMainWindow):
             }
         )
 
+    def resizeEvent(self, event) -> None:  # type: ignore[no-untyped-def]  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        self._fit_sidebar()
+
+    def _fit_sidebar(self) -> None:
+        """Below ``NARROW_BELOW`` px the sidebar keeps the step numbers; the names are tooltips."""
+        narrow = self.width() < NARROW_BELOW
+        self.sidebar.setFixedWidth(SIDEBAR_NARROW if narrow else SIDEBAR_WIDE)
+        for i, name in enumerate(self._sidebar_names):
+            self.sidebar.item(i).setText(f"{i + 1}" if narrow else f"{i + 1}. {name}")
+
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt override
         for page in self.pages:
             request = getattr(page, "request_close", None)
@@ -294,6 +310,7 @@ class MainWindow(WindowMenus, QMainWindow):
         last = self.current_index >= len(self.pages) - 1
         self.back_button.setEnabled(self.current_index > 0 and page.allow_back)
         self.next_button.setVisible(not last)
+        self.quit_button.setVisible(not getattr(page, "running", False))  # Cancel is the page's
         self.next_button.setEnabled(not blocking and page.allow_next)
         label = page.next_label or (
             self.tr("Generate") if self.current_index == OPTIONS_INDEX else self.tr("Next")

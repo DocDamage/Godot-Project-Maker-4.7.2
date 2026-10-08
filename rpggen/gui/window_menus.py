@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import QAction, QActionGroup, QDesktopServices
+from PySide6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
 import rpggen
@@ -26,6 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover
 SHORTCUTS = (
     ("F1", "Open the user guide at the current page"),
     ("Alt+N / Alt+B", "Next / Back"),
+    ("Ctrl+Q", "Quit rpggen"),
     ("Ctrl+Z / Ctrl+Y", "Undo / Redo (Audit page)"),
     ("C", "Confirm the selected assets (Audit page)"),
     ("X", "Exclude the selected assets (Audit page)"),
@@ -60,7 +61,8 @@ class WindowMenus:
         self.recent_menu.setObjectName("recentMenu")
         file_menu.aboutToShow.connect(self._fill_recent_menu)
         file_menu.addSeparator()
-        self.exit_action = self._action(file_menu, self.tr("E&xit"), "exitAction", self.close)
+        self.exit_action = self._action(file_menu, self.tr("&Quit"), "exitAction", self.close)
+        self.exit_action.setShortcut(QKeySequence("Ctrl+Q"))
 
         edit_menu = bar.addMenu(self.tr("&Edit"))
         self.undo_menu_action = self._action(

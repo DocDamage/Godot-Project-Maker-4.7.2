@@ -22,7 +22,7 @@ def test_window_opens_with_seven_pages(qtbot) -> None:
     sidebar = win.findChild(QListWidget, "sidebar")
     assert sidebar.count() == len(PAGE_NAMES) == 7
     assert win.findChild(QStackedWidget, "pageStack").count() == 7
-    assert win.findChild(QPushButton, "cancelButton") is not None
+    assert win.findChild(QPushButton, "quitButton") is not None
 
 
 def test_next_is_disabled_on_an_empty_first_page(qtbot) -> None:
@@ -90,3 +90,33 @@ def test_crash_dialog_shows_gui_001(qtbot) -> None:
     dlg.show()
     dlg.details_toggle.setChecked(True)
     assert not dlg.details.isHidden()
+
+
+def test_the_bottom_left_button_is_quit_with_ctrl_q(qtbot) -> None:
+    win = _window(qtbot)
+    assert win.quit_button.text() == "Quit"
+    assert win.findChild(QPushButton, "cancelButton") is None
+    assert win.exit_action.shortcut().toString() == "Ctrl+Q"
+    assert "Quit" in win.exit_action.text().replace("&", "")
+
+
+def test_quit_is_hidden_while_a_page_is_running(qtbot) -> None:
+    win = _window(qtbot)
+    assert win.quit_button.isVisibleTo(win)
+    win.current_page.running = True
+    win.refresh()
+    assert not win.quit_button.isVisibleTo(win)
+    win.current_page.running = False
+    win.refresh()
+    assert win.quit_button.isVisibleTo(win)
+
+
+def test_minimum_size_and_narrow_sidebar(qtbot) -> None:
+    win = _window(qtbot)
+    assert (win.minimumWidth(), win.minimumHeight()) == (880, 540)
+    win.resize(1100, 720)
+    assert win.sidebar.item(0).text().startswith("1. ")
+    win.resize(900, 560)
+    assert win.sidebar.item(0).text() == "1"
+    assert win.sidebar.item(0).toolTip() == PAGE_NAMES[0]
+    assert win.sidebar.width() < 100

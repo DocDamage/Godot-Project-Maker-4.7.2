@@ -35,7 +35,7 @@ def test_bulk_role_change_is_one_undo_step(qtbot) -> None:
     page, state = _page(qtbot)
     ids = _ids(state)
     page.grid.select_ids(ids)
-    assert page.side.currentWidget() is page.bulk
+    assert page.side.currentWidget() is page.bulk_scroll
     assert page.bulk.count_label.text() == "3 assets selected"
     before = page.session.catalog
     page.bulk.role_combo.setCurrentIndex(page.bulk.role_combo.findData("WALL"))

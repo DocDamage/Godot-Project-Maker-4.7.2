@@ -179,7 +179,7 @@ def test_the_main_buttons_have_mnemonic_shortcuts(qtbot) -> None:
     qtbot.addWidget(win)
     assert win.next_button.shortcut().toString() == "Alt+N"
     assert win.back_button.shortcut().toString() == "Alt+B"
-    assert win.next_button.toolTip() and win.back_button.toolTip() and win.cancel_button.toolTip()
+    assert win.next_button.toolTip() and win.back_button.toolTip() and win.quit_button.toolTip()
 
 
 def test_tab_order_runs_through_the_project_page_fields(qtbot) -> None:

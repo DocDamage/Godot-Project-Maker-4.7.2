@@ -9,11 +9,13 @@ from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QMenu,
     QMessageBox,
     QProgressBar,
+    QScrollArea,
     QSizePolicy,
     QSplitter,
     QStackedWidget,
@@ -259,17 +261,28 @@ class AuditPage(WizardPage):
 
     # ------------------------------------------------------------------ session wiring
 
+    @staticmethod
+    def _scrolled(panel: QWidget) -> QScrollArea:
+        """The side panels scroll when the window is too short for them (the 540 px minimum)."""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(panel)
+        return scroll
+
     def _ensure_session(self, state: WizardState) -> EditSession:
         assert state.catalog is not None
         if self.session is None:
             self.session = EditSession(state.catalog, self)
             self.detail = AssetDetail(self.session)
-            self.side.addWidget(self.detail)
+            self.detail_scroll = self._scrolled(self.detail)
+            self.side.addWidget(self.detail_scroll)
             self.detail.gridEditRequested.connect(self.edit_grid)
             self.detail.animationsRequested.connect(self.edit_animations)
             self.detail.cutObjectsRequested.connect(self.cut_objects)
             self.bulk = BulkPanel(self.session)
-            self.side.addWidget(self.bulk)
+            self.bulk_scroll = self._scrolled(self.bulk)
+            self.side.addWidget(self.bulk_scroll)
             self.rules_panel = RulesPanel(self.session)
             self.tabs.addTab(self.rules_panel, self.tr("Rules"))
             self.terrain_tab = TerrainTab(self.session)
@@ -325,11 +338,11 @@ class AuditPage(WizardPage):
             return
         if len(ids) == 1:
             self.detail.set_asset(ids[0])
-            self.side.setCurrentWidget(self.detail)
+            self.side.setCurrentWidget(self.detail_scroll)
         elif len(ids) > 1 and self.bulk is not None:
             self.detail.set_asset(None)
             self.bulk.set_assets(ids)
-            self.side.setCurrentWidget(self.bulk)
+            self.side.setCurrentWidget(self.bulk_scroll)
         else:
             self.detail.set_asset(None)
             self.side.setCurrentWidget(self.empty_label)
