@@ -145,8 +145,20 @@ Location: `<project>/rpggen/asset_catalog.json`.
 { "pack_id": "forest_pack", "source_sha256": "…", "root": "assets/packs/forest_pack",
   "license_files": ["assets/packs/forest_pack/LICENSE.txt"],
   "adapters_matched": ["tiled", "generic_grid"], "profile_id": null,
-  "warnings": ["rpgmaker_rtp_detected"] }
+  "warnings": ["rpgmaker_rtp_detected"],
+  "license": { "license_id": "CC-BY-4.0", "author": "", "url": "https://example.itch.io/forest",
+               "attribution_required": true },
+  "license_overrides": { "author": "Jane Doe" } }
 ```
+
+`license` (T12.51) is what `rpggen/core/licenses.py` read from the licence, credits and readme
+files: `license_id` is `CC0-1.0`, a Creative Commons BY id (`CC-BY-4.0`, `CC-BY-SA-3.0`,
+`CC-BY-NC-4.0`, …), `OGA-BY-3.0`, `MIT`, `commercial` (a vendor's licence that allows commercial
+use), `rpgmaker` (the RPG Maker terms) or `""` (unknown). `license_overrides` (optional, omitted
+when empty) holds the Audit page's corrections of the same keys and survives a new analysis; the
+effective licence is `license` with the overrides on top, and a `license_id` chosen there without
+`attribution_required` brings that licence's own rule. A catalog without `license` reads an
+unknown licence.
 
 ### 4.3 Asset
 

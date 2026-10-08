@@ -37,6 +37,7 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "followers_trail", "fn": _followers_trail, "timeout_s": 20.0})
 	list.append({"name": "sequence_plays", "fn": _sequence_plays, "timeout_s": 40.0})
 	list.append({"name": "keys_and_switches", "fn": _keys_and_switches, "timeout_s": 30.0})
+	list.append({"name": "credits_screen", "fn": _credits_screen, "timeout_s": 15.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
 	return list
@@ -518,6 +519,45 @@ func _quest_journal() -> String:
 	state.quests = quests_before
 	state.flags = flags_before
 	state.gold = gold
+	return failure
+
+## The title screen and the pause menu have a Credits button; the generated credits name every
+## pack of the build with its licence, the seeded credits_extra.tsv adds nothing yet, and the
+## screen lists the packs and the engine (T12.51).
+func _credits_screen() -> String:
+	for scene_name: String in ["title_screen", "pause_menu"]:
+		var root := (load(RpgMenuUtil.scene_path(scene_name)) as PackedScene).instantiate()
+		var has_button := root.find_child("Credits", true, false) is Button
+		root.free()
+		if not has_button:
+			return "the %s has no Credits button" % scene_name
+	if not ResourceLoader.exists(RpgCredits.PATH):
+		return "%s was not generated" % RpgCredits.PATH
+	if not FileAccess.file_exists(RpgCredits.EXTRA_PATH):
+		return "%s was not seeded" % RpgCredits.EXTRA_PATH
+	var credits := RpgCredits.load_project()
+	if credits.packs.is_empty():
+		return "the generated credits list no pack"
+	var menu := (load(RpgMenuUtil.scene_path("credits_menu")) as PackedScene).instantiate() as RpgCreditsMenu
+	_tree().root.add_child(menu)
+	await _frames(2)
+	var shown := menu.shown_texts()
+	var failure := ""
+	for pack in credits.packs:
+		var named := false
+		for text in shown:
+			if text.begins_with(str(pack.get("name", "?"))):
+				named = true
+		if not named:
+			failure = "the credits screen does not name the pack %s (%s)" % [pack.get("pack_id", "?"), str(shown)]
+		elif str(pack.get("license", "")) == "":
+			failure = "the pack %s has no licence line" % pack.get("pack_id", "?")
+	if failure == "" and not shown.has(RpgCreditsMenu.ENGINE_NAME):
+		failure = "the credits screen does not name the engine"
+	if failure == "":
+		print("[rpggen] INFO credits_screen: %s" % " | ".join(shown))
+	menu.queue_free()
+	await _frames(1)
 	return failure
 
 ## A character joins through the dialogue event (the seeded companion of a turn-based demo, else a

@@ -21,6 +21,7 @@ const RECIPE_ORDER: Array[String] = [
 	"sprite_frames_recipe",
 	"actor_recipes",
 	"data_recipe",
+	"credits_recipe",
 	"object_scenes_recipe",
 	"interior_recipe",
 	"theme_recipe",

@@ -49,6 +49,7 @@ from rpggen.gui.widgets.bulk_panel import (
 from rpggen.gui.widgets.changes_panel import ChangesPanel
 from rpggen.gui.widgets.grid_editor import GridEditorDialog
 from rpggen.gui.widgets.object_cutter import ObjectCutterDialog
+from rpggen.gui.widgets.pack_info import PackInfoPanel
 from rpggen.gui.widgets.task_progress import error_text, run_task
 from rpggen.gui.widgets.terrain_tab import TerrainTab
 
@@ -134,6 +135,7 @@ class AuditPage(WizardPage):
         self.tabs.setCornerWidget(self.profile_button, Qt.Corner.TopRightCorner)
         self.rules_panel: RulesPanel | None = None
         self.terrain_tab: TerrainTab | None = None
+        self.packs_panel: PackInfoPanel | None = None
         self.changes_panel: ChangesPanel | None = None
         self.changes_index = -1
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -316,6 +318,8 @@ class AuditPage(WizardPage):
             self.terrain_tab = TerrainTab(self.session)
             self.terrain_tab.changed.connect(self.changed.emit)
             self.tabs.addTab(self.terrain_tab, self.tr("Terrain"))
+            self.packs_panel = PackInfoPanel(self.session)
+            self.tabs.addTab(self._scrolled(self.packs_panel), self.tr("Packs"))
             self.changes_panel = ChangesPanel(self.session)
             self.changes_index = self.tabs.addTab(self.changes_panel, self.tr("Changes (0)"))
             self.changes_panel.countChanged.connect(self._on_changes_counted)

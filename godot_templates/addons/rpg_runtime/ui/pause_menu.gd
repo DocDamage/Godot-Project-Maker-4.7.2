@@ -1,7 +1,7 @@
 class_name RpgPauseMenu
 extends Control
 ## Opens on `menu` during gameplay and pauses the tree. Resume, Inventory, Status, Journal, Save, Load,
-## Settings, Title. `cancel` closes it.
+## Settings, Credits, Title. `cancel` closes it.
 
 signal closed
 
@@ -21,6 +21,9 @@ func _ready() -> void:
 	(get_node("%Save") as Button).pressed.connect(_open.bind("save_load_menu", {"mode": "save"}))
 	(get_node("%Load") as Button).pressed.connect(_open.bind("save_load_menu", {"mode": "load"}))
 	(get_node("%Settings") as Button).pressed.connect(_open.bind("settings_menu", {}))
+	var credits := get_node_or_null("%Credits") as Button  # projects built before the credits have none
+	if credits != null:
+		credits.pressed.connect(_open.bind("credits_menu", {}))
 	(get_node("%Title") as Button).pressed.connect(_to_title)
 	RpgMenuUtil.attach_sounds(RpgMenuUtil.focusables(self))
 	_focus_resume.call_deferred()

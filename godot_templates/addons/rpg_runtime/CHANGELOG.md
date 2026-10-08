@@ -168,6 +168,11 @@
   sleep and venom, a hero who knows fire, a companion with cure and sleep, an antidote and an
   ether in the shop, and enemies with a weakness, a resistance or a rule. The skill command's label
   key is now `BATTLE_SKILL` (`BATTLE_SKILLS_NONE` stays, as "Skill", for older seeded files).
+* Credits (M12): `RpgCredits` (`generated/data/credits.tres`, written on every build from the
+  packs' licences, and the user's `game/data/credits_extra.tsv`) and `RpgCreditsMenu`, opened by
+  a new *Credits* button on the title screen and in the pause menu (both look the button up with
+  `get_node_or_null`, so scenes built before it still work). New keys `UI_CREDITS`,
+  `UI_CREDITS_ASSETS`, `UI_CREDITS_ENGINE`, `UI_CREDITS_BY`.
 
 ## 0.3.0
 

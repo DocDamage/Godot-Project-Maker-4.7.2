@@ -1,6 +1,6 @@
 class_name RpgTitleScreen
 extends Control
-## Title: New Game, Continue (disabled without a save), Load, Settings, Quit.
+## Title: New Game, Continue (disabled without a save), Load, Settings, Credits, Quit.
 
 var _submenu: Control = null
 
@@ -20,6 +20,9 @@ func _ready() -> void:
 	continue_button.pressed.connect(_on_continue)
 	(get_node("%Load") as Button).pressed.connect(_on_load)
 	(get_node("%Settings") as Button).pressed.connect(_on_settings)
+	var credits := get_node_or_null("%Credits") as Button  # projects built before the credits have none
+	if credits != null:
+		credits.pressed.connect(_open.bind("credits_menu", {}))
 	(get_node("%Quit") as Button).pressed.connect(_on_quit)
 	RpgMenuUtil.attach_sounds(RpgMenuUtil.focusables(self))
 	_start_music()

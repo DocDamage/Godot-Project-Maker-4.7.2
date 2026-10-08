@@ -58,7 +58,8 @@ def role_counts(catalog: catalog_mod.Catalog) -> dict[str, int]:
 
 def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     """ASSET-010 for missing required (error) and recommended (warning) roles; ASSET-014 when
-    several PLAYER assets exist and none is CONFIRMED."""
+    several PLAYER assets exist and none is CONFIRMED; ASSET-028 for a pack whose licence asks
+    for credit but names no author (after the Audit page's corrections)."""
     issues = IssueList()
     for role in REQUIRED.get(cfg.archetype, REQUIRED["turn_based"]):
         if not _filled(catalog, role):
@@ -74,4 +75,8 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     players = _assets_with_role(catalog, "PLAYER")
     if len(players) > 1 and not any(p.status == "CONFIRMED" for p in players):
         issues.add("ASSET-014", role="PLAYER", candidates=", ".join(p.id for p in players))
+    for pack in sorted(catalog.packs, key=lambda p: p.pack_id):
+        found = pack.effective_license()
+        if found.attribution_required and not found.author.strip():
+            issues.add("ASSET-028", pack_id=pack.pack_id)
     return issues

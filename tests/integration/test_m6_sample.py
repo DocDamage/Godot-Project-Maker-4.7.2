@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from rpggen import jsonio
+from rpggen import jsonio, paths
 from rpggen.core import archive, catalog, config, inventory, mapping, orchestrator, profiles
 
 pytestmark = pytest.mark.integration
@@ -42,12 +42,14 @@ M6_STEPS = [
     "followers_trail",
     "sequence_plays",
     "keys_and_switches",
+    "credits_screen",
     "mutate_then_load",
     "pause_menu",
 ]
 UI_SCENES = [
     "dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
     "save_load_menu", "settings_menu", "notification", "hud_basic", "game_over", "shop_menu", "journal_menu",
+    "credits_menu",
 ]  # fmt: skip
 
 
@@ -110,7 +112,7 @@ def test_no_menu_has_focus_problems(sample: Path) -> None:
     results = jsonio.read(sample / "rpggen/results/validation_results.json")
     assert "VAL-011" not in [i["code"] for i in results["issues"]]
     walked = {i["target"] for i in results["items"] if i["check"] == "ui_focus"}
-    assert len(walked) == 9, walked
+    assert len(walked) == 10, walked
 
 
 def test_generated_files_exist(sample: Path) -> None:
@@ -165,6 +167,17 @@ def test_dialogue_and_translations_are_seeded(sample: Path) -> None:
     assert "not flag:starter_npc.talked" in greeting and "give_item:potion:1" in greeting
 
 
+def test_the_credits_name_the_sample_pack(sample: Path) -> None:
+    credits = (sample / "generated/data/credits.tres").read_text(encoding="utf-8")
+    assert '"sample_pack"' in credits and '"Sample Pack"' in credits
+    assert '"CC0 1.0"' in credits and "publicdomain/zero/1.0" in credits
+    extra = (sample / "game/data/credits_extra.tsv").read_text(encoding="utf-8")
+    assert extra.startswith("section\ttext\n")
+    files = jsonio.read(sample / paths.LEDGER)["files"]
+    assert files["game/data/credits_extra.tsv"]["owner"] == "user_seed"
+    assert files["generated/data/credits.tres"]["owner"] == "generated"
+
+
 def test_a_rebuild_changes_nothing(sample: Path, godot_exe: Path) -> None:
     csv = sample / "game/i18n/strings.tsv"
     index = sample / "rpggen/audio_index.json"
@@ -184,7 +197,8 @@ def test_runtime_scripts_do_not_depend_on_game_content_paths() -> None:
         "new_game_data.gd",
         "debug_overlay.gd",
         "battle_controller.gd",
-    }  # registries, new-game data, test enemy, the user's battle commands and hero
+        "credits.gd",
+    }  # registries, new-game data, test enemy, the user's battle commands and hero, own credits
     offenders = []
     for path in sorted((REPO / "godot_templates/addons/rpg_runtime").rglob("*.gd")):
         if path.name in allowed:

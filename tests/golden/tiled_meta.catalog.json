@@ -165,6 +165,12 @@
       "adapters_matched": [
         "tiled"
       ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
       "license_files": [
         "assets/packs/tiled_meta/LICENSE.txt"
       ],

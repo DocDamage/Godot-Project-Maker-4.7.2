@@ -16,6 +16,7 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QUndoCommand, QUndoStack
 
 from rpggen.core import catalog as catalog_mod
+from rpggen.core import licenses
 from rpggen.core.catalog import Asset, Catalog
 
 RETILE_KEYS = frozenset({"grid", "usage", "tileset", "role"})  # facets that change tile sets
@@ -153,6 +154,24 @@ def reorder_folder_rules(catalog: Catalog, order: list[int]) -> Catalog:
     if sorted(order) != list(range(len(catalog.folder_rules))) or order == sorted(order):
         return catalog
     return _with_rules(catalog, [catalog.folder_rules[i] for i in order])
+
+
+def set_pack_license(catalog: Catalog, pack_id: str, key: str, value: Any) -> Catalog:
+    """A correction of a pack's licence (``key`` one of ``licenses.KEYS``). A value that equals
+    what the pack would have without the correction removes it."""
+    pack = next((p for p in catalog.packs if p.pack_id == pack_id), None)
+    if pack is None or key not in licenses.KEYS:
+        return catalog
+    overrides = {k: v for k, v in pack.license_overrides.items() if k != key}
+    if value != getattr(licenses.effective(pack.license, overrides), key):
+        overrides[key] = value
+    if overrides == pack.license_overrides:
+        return catalog
+    packs = [
+        dataclasses.replace(p, license_overrides=overrides) if p is pack else p
+        for p in catalog.packs
+    ]
+    return dataclasses.replace(catalog, packs=packs)
 
 
 def _with_objects(catalog: Catalog, objects: list[catalog_mod.SheetObject]) -> Catalog:
@@ -311,6 +330,11 @@ class EditSession(QObject):
             f"Revert {change.key}",
             lambda c: clear_override(c, change.asset_id, change.key),
             [change.asset_id],
+        )
+
+    def set_pack_license(self, pack_id: str, key: str, value: Any) -> bool:
+        return self.apply(
+            "Edit pack information", lambda c: set_pack_license(c, pack_id, key, value)
         )
 
     def add_rule(self, rule: catalog_mod.FolderRule) -> bool:

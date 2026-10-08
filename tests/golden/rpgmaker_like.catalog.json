@@ -27253,6 +27253,12 @@
   "packs": [
     {
       "adapters_matched": [],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "",
+        "url": ""
+      },
       "license_files": [],
       "pack_id": "generated",
       "profile_id": null,
@@ -27264,6 +27270,12 @@
       "adapters_matched": [
         "rpgmaker"
       ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
       "license_files": [
         "assets/packs/rpgmaker_like/LICENSE.txt"
       ],

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 from rpggen import __version__, jsonio, paths
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
-from rpggen.core import labels
+from rpggen.core import labels, licenses
 from rpggen.errors import Issue, Severity
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ REPORT_MD = "GENERATION_REPORT.md"
 LIST_CAP = 40  # entries per list in the Regeneration section
 _ORDER = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.INFO: 2}
 _CONFLICT_CODES = {"REGEN-001", "TILE-004"}
-_LICENSE_CODES = {"ASSET-020", "ASSET-021"}
+_LICENSE_CODES = {"ASSET-020", "ASSET-021", "ASSET-028"}
 
 
 def counts(
@@ -98,13 +98,17 @@ def build_markdown(
     lines += ["", "## Packs and licenses", ""]
     if catalog and catalog.packs:
         for pack in catalog.packs:
-            licenses = ", ".join(pack.license_files) or "none found"
+            license_files = ", ".join(pack.license_files) or "none found"
             source = (
                 next((p.source for p in cfg.packs if p.pack_id == pack.pack_id), "") if cfg else ""
             )
             name = Path(source).name if source else ""
             origin = f" — source: {name}" if name else ""
-            lines.append(f"- **{pack.pack_id}**{origin} — licenses: {licenses}")
+            lines.append(f"- **{pack.pack_id}**{origin} — licenses: {license_files}")
+            found = pack.effective_license()
+            credit = "credit required" if found.attribution_required else "no credit required"
+            who = f", by {found.author}" if found.author else ""
+            lines.append(f"  - {licenses.label(found.license_id)}{who} ({credit})")
             lines += [f"  - warning: {w}" for w in pack.warnings]
     else:
         lines.append("No packs were read.")

@@ -95,6 +95,17 @@ not set. Game events (`item_added`, `player_damaged`, `level_up`, `game_saved`, 
 combat mode with an `auto_choose` hook skip the screen and take the default (the newest save,
 else the start of the map with full health).
 
+## Credits
+
+`RpgCredits` (`data/credits.gd`) is the data of the Credits screen: `packs` (one
+`{name, author, license, license_url, url, attribution_required}` per asset pack) and `extra`
+(`{section, text}` rows). The builder's `credits_recipe` writes it to
+`generated/data/credits.tres` on every build and seeds `game/data/credits_extra.tsv` once.
+`extra_lines()` reads the .tsv when the project has it and the baked rows otherwise.
+`RpgCreditsMenu` (`ui/credits_menu.gd`, scene `generated/scenes/ui/credits_menu.tscn`) lists your
+lines by section, the packs and the engine; up and down scroll, Back or `cancel` closes it. The
+title screen and the pause menu open it from their *Credits* button.
+
 ## Debug overlay
 
 In debug builds with the debug tools feature on, **F3** shows FPS, map, position, tile and flag

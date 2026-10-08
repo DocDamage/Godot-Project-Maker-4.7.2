@@ -97,6 +97,12 @@
           "items": {
             "type": "string"
           }
+        },
+        "license": {
+          "$ref": "#/$defs/PackLicense"
+        },
+        "license_overrides": {
+          "$ref": "#/$defs/PackLicenseOverrides"
         }
       },
       "additionalProperties": false,
@@ -1663,6 +1669,48 @@
           }
         }
       ]
+    },
+    "PackLicense": {
+      "type": "object",
+      "properties": {
+        "license_id": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "attribution_required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "license_id",
+        "author",
+        "url",
+        "attribution_required"
+      ]
+    },
+    "PackLicenseOverrides": {
+      "type": "object",
+      "properties": {
+        "license_id": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "attribution_required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

@@ -1,9 +1,9 @@
 extends RefCounted
 ## Builds the UI scenes under res://generated/scenes/ui/: dialogue box, title screen, pause menu,
-## inventory, status, save/load, settings, notification and the basic HUD. Scripts live in
+## inventory, status, save/load, settings, notification, the basic HUD, shop, journal and credits. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 8
+const RECIPE_VERSION := 9
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -16,6 +16,7 @@ const SCRIPTS := "res://addons/rpg_runtime/ui/"
 const SCENES: Array[String] = [
 	"dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
 	"save_load_menu", "settings_menu", "notification", "hud_basic", "game_over", "shop_menu", "journal_menu",
+	"credits_menu",
 ]
 
 static func scene_path(scene_name: String) -> String:
@@ -70,7 +71,7 @@ func _build_title_screen() -> Node:
 	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu_buttons(box, [
 		["NewGame", "UI_NEW_GAME"], ["Continue", "UI_CONTINUE"], ["Load", "UI_LOAD"],
-		["Settings", "UI_SETTINGS"], ["Quit", "UI_QUIT"],
+		["Settings", "UI_SETTINGS"], ["Credits", "UI_CREDITS"], ["Quit", "UI_QUIT"],
 	])
 	return root
 
@@ -95,7 +96,8 @@ func _build_pause_menu() -> Node:
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu_buttons(box, [
 		["Resume", "UI_RESUME"], ["Inventory", "UI_INVENTORY"], ["Status", "UI_STATUS"], ["Journal", "UI_JOURNAL"],
-		["Save", "UI_SAVE"], ["Load", "UI_LOAD"], ["Settings", "UI_SETTINGS"], ["Title", "UI_TITLE"],
+		["Save", "UI_SAVE"], ["Load", "UI_LOAD"], ["Settings", "UI_SETTINGS"], ["Credits", "UI_CREDITS"],
+		["Title", "UI_TITLE"],
 	])
 	return root
 
@@ -170,6 +172,28 @@ func _build_journal_menu() -> Node:
 	desc.custom_minimum_size = Vector2(280, 60)
 	var back := UiUtil.button(box, "Back", "UI_BACK")
 	UiUtil.wire_vertical([active_tab, done_tab, back])
+	return root
+
+func _build_credits_menu() -> Node:
+	var root := UiUtil.control_root("CreditsMenu", SCRIPTS + "credits_menu.gd")
+	root.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiUtil.dim_background(root, 0.9)
+	var box := UiUtil.center_panel(root, Vector2(320, 0))
+	var heading := UiUtil.label(box, "Heading", "UI_CREDITS", true)
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.custom_minimum_size = Vector2(300, 150)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiUtil.unique(scroll)
+	box.add_child(scroll)
+	var list := VBoxContainer.new()  # one Label per line, filled in at runtime
+	list.name = "List"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiUtil.unique(list)
+	scroll.add_child(list)
+	var back := UiUtil.button(box, "Back", "UI_BACK")
+	UiUtil.wire_vertical([back])
 	return root
 
 func _build_shop_menu() -> Node:

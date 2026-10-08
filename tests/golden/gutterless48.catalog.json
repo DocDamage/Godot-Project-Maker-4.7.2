@@ -63,6 +63,12 @@
       "adapters_matched": [
         "generic_grid"
       ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
       "license_files": [
         "assets/packs/gutterless48/LICENSE.txt"
       ],

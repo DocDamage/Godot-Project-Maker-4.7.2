@@ -93,6 +93,10 @@ dialogue, inventory, equipment, menus) are the same.
 * **Object cutter** (*Cut objects…*): draw rectangles around a house or tree in a sheet, set its
   footprint (where it blocks), door and origin. Detected objects appear blue, yours green.
 * **Terrain tab:** autotile proposals for RPG Maker A2 sheets and 47-tile blob sheets.
+* **Packs tab:** the licence, author and URL rpggen read from each pack's licence files, and
+  whether the licence asks for credit. Correct anything that is wrong: the game's *Credits*
+  screen (title screen and pause menu) lists every pack with these values. A pack that needs
+  credit but names no author gets ASSET-028 until you enter one.
 * **Profile menu:** export your audit as a profile, import one, or find one online
   ([profiles](profiles.md)).
 

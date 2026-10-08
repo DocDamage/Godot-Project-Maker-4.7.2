@@ -109,7 +109,15 @@ the wizard) to bring back the version from before the last regeneration. The bac
   in any project without credit. See `addons/rpg_runtime/LICENSE`.
 - Your asset packs keep their own licenses. Each pack's license files are copied next to it in
   `assets/packs/<pack>/`. Read them before you publish your game; some require credit.
-  `GENERATION_REPORT.md` lists every pack and the license files found.
+  `GENERATION_REPORT.md` lists every pack, the license files found and the licence rpggen read
+  from them.
+- **Credits.** *Credits* on the title screen and in the pause menu lists your own lines, every
+  asset pack with its author and licence, and the engine. The packs' part is generated
+  (`generated/data/credits.tres`), so a regeneration updates it: correct a pack's author, URL or
+  licence on rpggen's Audit page (*Packs* tab). Your own lines go in `game/data/credits_extra.tsv`
+  (yours, never overwritten): one line per row, a section name, a tab, then the text, for example
+  `Made by<TAB>Your name`. Rows that start with `#` are notes. An exported game shows the lines of
+  the last build; a run from the editor reads the file directly.
 
 {version_control_note}
 

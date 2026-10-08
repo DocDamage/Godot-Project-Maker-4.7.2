@@ -250,6 +250,12 @@
       "adapters_matched": [
         "strips"
       ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
       "license_files": [
         "assets/packs/strips/LICENSE.txt"
       ],

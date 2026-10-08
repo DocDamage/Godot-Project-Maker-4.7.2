@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from rpggen import __version__, ids, jsonio, schema
+from rpggen.core import licenses
 from rpggen.core.adapters.base import AssetFragment
 from rpggen.core.archive import Cancelled, OpenedPack, Progress
 from rpggen.core.inventory import Inventory
@@ -63,9 +64,15 @@ class CatalogPack:
     adapters_matched: list[str] = field(default_factory=list)
     profile_id: str | None = None
     warnings: list[str] = field(default_factory=list)
+    # what the licence files say (licenses.PackLicense as JSON) and the Audit page's corrections
+    license: dict[str, Any] = field(default_factory=lambda: licenses.PackLicense().to_json())
+    license_overrides: dict[str, Any] = field(default_factory=dict)
+
+    def effective_license(self) -> licenses.PackLicense:
+        return licenses.effective(self.license, self.license_overrides)
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        out = {
             "pack_id": self.pack_id,
             "source_sha256": self.source_sha256,
             "root": self.root,
@@ -73,7 +80,11 @@ class CatalogPack:
             "adapters_matched": list(self.adapters_matched),
             "profile_id": self.profile_id,
             "warnings": list(self.warnings),
+            "license": licenses.PackLicense.from_json(self.license).to_json(),
         }
+        if self.license_overrides:
+            out["license_overrides"] = dict(sorted(self.license_overrides.items()))
+        return out
 
     @classmethod
     def from_json(cls, d: dict[str, Any]) -> CatalogPack:
@@ -85,6 +96,8 @@ class CatalogPack:
             list(d["adapters_matched"]),
             d["profile_id"],
             list(d["warnings"]),
+            licenses.PackLicense.from_json(d.get("license")).to_json(),
+            dict(d.get("license_overrides", {})),
         )
 
 
@@ -776,18 +789,21 @@ def assemble(
             )  # fmt: skip
             present_ids.add(asset_id)
 
-        licenses = _license_files(inv, root)
-        if not licenses:
+        license_files = _license_files(inv, root)
+        if not license_files:
             issues.add("ASSET-021", pack_id=pack_id, file=root)
         catalog.packs.append(
             CatalogPack(
                 pack_id,
                 inv.source_sha256,
                 root,
-                licenses,
+                license_files,
                 [r.adapter for r in results if r.assets or r.objects or r.tilesets],
                 next((r.profile_id for r in results if r.profile_id), None),
                 sorted(set(warnings)),
+                licenses.detect_files(
+                    opened.root, [f.path for f in inv.files if f.kind == "license"]
+                ).to_json(),
             )
         )
 
@@ -1002,6 +1018,10 @@ def _carry_previous(
     """Overrides, confirmations and MISSING assets of the previous catalog (T2.14 steps 5-6)."""
     if previous is None:
         return
+    old_packs = {p.pack_id: p for p in previous.packs}
+    for pack in catalog.packs:
+        if pack.pack_id in old_packs:  # the licence corrections of the Audit page stay
+            pack.license_overrides = dict(old_packs[pack.pack_id].license_overrides)
     prev_tile_assets = {src["asset"] for tdef in previous.tilesets for src in tdef.sources}
     for asset in catalog.assets:
         old = previous.asset(asset.id)
