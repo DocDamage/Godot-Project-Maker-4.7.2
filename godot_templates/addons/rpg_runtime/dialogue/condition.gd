@@ -6,7 +6,7 @@ extends RefCounted
 ##
 ## Evaluated left to right with NO operator precedence. Atoms:
 ##   flag:<entity>.<key>    item:<id>[>=N]    gold>=N    level>=N    quest:<id>=<state>
-##   quest_active:<id>    quest_done:<id>    quest_stage:<id>:<stage>
+##   quest_active:<id>    quest_done:<id>    quest_stage:<id>:<stage>    party:<actor id>
 ## Unknown atoms are false and log "[RPG-DLG] unknown condition atom".
 
 static func evaluate(expr: String) -> bool:
@@ -77,6 +77,8 @@ static func _atom(atom: String) -> bool:
 		return RpgUtil.to_int(state.gold) >= RpgUtil.to_int(atom.trim_prefix("gold>="))
 	if atom.begins_with("level>="):
 		return RpgUtil.to_int(state.player_stats.level) >= RpgUtil.to_int(atom.trim_prefix("level>="))
+	if atom.begins_with("party:"):
+		return state.in_party(StringName(atom.trim_prefix("party:")))
 	if atom.begins_with("quest_active:"):
 		return state.quest_is_active(StringName(atom.trim_prefix("quest_active:")))
 	if atom.begins_with("quest_done:"):

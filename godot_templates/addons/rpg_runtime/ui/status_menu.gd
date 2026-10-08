@@ -1,9 +1,25 @@
 class_name RpgStatusMenu
 extends Control
-## Player stats as labels (with the equipment applied) and the equipment slots: pressing a slot opens
-## the equip picker.
+## Stats as labels (with the equipment applied) and the equipment slots of one party member:
+## pressing a slot opens the equip picker. With more than one member a first button, or left /
+## right, pages through them.
 
 var _slot_buttons: Array[Button] = []
+var _members: Array[StringName] = []
+var _index := 0  # the member on show
+var _picker_open := false
+var _pager: Button = null
+
+## The member on show.
+func shown_actor() -> StringName:
+	return _members[_index] if _index < _members.size() else &""
+
+## Shows the next member (previous for -1), wrapping around.
+func page(step: int) -> void:
+	if _members.size() < 2:
+		return
+	_index = (_index + step + _members.size()) % _members.size()
+	_build(&"member")
 
 func _ready() -> void:
 	var back := get_node("%Back") as Button
@@ -18,10 +34,19 @@ func _build(focus_slot: StringName = &"") -> void:
 		list.remove_child(child)
 		child.queue_free()
 	_slot_buttons.clear()
+	_pager = null
 	var state := RpgUtil.state()
 	if state != null:
-		var s: RpgStats = state.player_stats
-		var id: StringName = state.player_actor_id
+		_members = state.party_ids()
+		_index = clampi(_index, 0, _members.size() - 1)
+		var id := shown_actor()
+		var s: RpgStats = state.stats_of(id)
+		if _members.size() > 1:
+			_pager = Button.new()
+			_pager.name = "Member"
+			_pager.text = "< %s (%d/%d) >" % [state.actor_name(id), _index + 1, _members.size()]
+			_pager.pressed.connect(page.bind(1))
+			list.add_child(_pager)
 		var rows := [
 			["UI_LEVEL", str(s.level)],
 			["UI_HP", "%d / %d" % [s.hp, RpgUtil.max_hp(s)]],
@@ -53,9 +78,13 @@ func _build(focus_slot: StringName = &"") -> void:
 			list.add_child(b)
 			_slot_buttons.append(b)
 	var ring: Array = _slot_buttons.duplicate()
+	if _pager != null:
+		ring.push_front(_pager)
 	ring.append(back)
 	RpgMenuUtil.wire_vertical(ring)
 	var start: Button = back
+	if focus_slot == &"member" and _pager != null:
+		start = _pager
 	for b in _slot_buttons:
 		if b.name == "Slot_%s" % focus_slot:
 			start = b
@@ -66,13 +95,31 @@ func _open_picker(slot: StringName) -> void:
 	if state == null:
 		return
 	var picker := RpgEquipPicker.new()
-	picker.actor_id = state.player_actor_id
+	picker.actor_id = shown_actor()
 	picker.slot = slot
+	_picker_open = true
 	add_child(picker)
 	picker.closed.connect(_on_picker_closed.bind(slot), CONNECT_ONE_SHOT)
 
 func _on_picker_closed(_changed: bool, slot: StringName) -> void:
+	_picker_open = false
 	_build.call_deferred(slot)
+
+## Left / right page through the members (the first button does the same for the mouse).
+func _input(event: InputEvent) -> void:
+	if _picker_open or _members.size() < 2:
+		return
+	var step := 0
+	if _pressed(event, "move_left") or _pressed(event, "ui_left"):
+		step = -1
+	elif _pressed(event, "move_right") or _pressed(event, "ui_right"):
+		step = 1
+	if step != 0:
+		get_viewport().set_input_as_handled()
+		page(step)
+
+static func _pressed(event: InputEvent, action: String) -> bool:
+	return InputMap.has_action(action) and event.is_action_pressed(action)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("cancel"):

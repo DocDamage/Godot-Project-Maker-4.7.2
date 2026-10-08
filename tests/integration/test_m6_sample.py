@@ -38,6 +38,7 @@ M6_STEPS = [
     "equip_raises_attack",
     "shop_buy_sell",
     "quest_journal",
+    "party_members",
     "mutate_then_load",
     "pause_menu",
 ]

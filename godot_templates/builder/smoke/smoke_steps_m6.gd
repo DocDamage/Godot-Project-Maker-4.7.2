@@ -33,6 +33,7 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "equip_raises_attack", "fn": _equip_raises_attack, "timeout_s": 15.0})
 	list.append({"name": "shop_buy_sell", "fn": _shop_buy_sell, "timeout_s": 20.0})
 	list.append({"name": "quest_journal", "fn": _quest_journal, "timeout_s": 20.0})
+	list.append({"name": "party_members", "fn": _party_members, "timeout_s": 20.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
 	return list
@@ -510,6 +511,51 @@ func _quest_journal() -> String:
 	state.quests = quests_before
 	state.flags = flags_before
 	state.gold = gold
+	return failure
+
+## A character joins through the dialogue event (the seeded companion of a turn-based demo, else a
+## stand-in), the status menu pages to them, the save data lists them, and the event takes them out
+## again. The party is put back afterwards.
+func _party_members() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	if state == null:
+		return "GameState is missing"
+	var ally: StringName = &"companion"
+	var stand_in := state.actor_definition(ally) == null
+	if stand_in:  # an action RPG, or a demo without the villager: a made-up ally
+		ally = &"smoke_ally"
+		var def := RpgActorDefinition.new()
+		def.id = ally
+		def.display_name = "Ally"
+		def.base_stats = RpgStats.new()
+		state.actor_defs[ally] = def
+	var party_before: Array[Dictionary] = state.party.duplicate()
+	state.party.clear()
+	var failure := ""
+	RpgDialogueRunner.execute_event("join_party:%s" % ally)
+	if not state.in_party(ally):
+		failure = "join_party:%s did not add the character" % ally
+	var menu := (load(RpgMenuUtil.scene_path("status_menu")) as PackedScene).instantiate() as RpgStatusMenu
+	_tree().root.add_child(menu)
+	await _frames(2)
+	if failure == "" and menu.find_child("Member", true, false) == null:
+		failure = "the status menu has no member button with two characters"
+	if failure == "":
+		menu.page(1)
+		await _frames(2)
+		if menu.shown_actor() != ally:
+			failure = "the status menu shows %s after paging, expected %s" % [menu.shown_actor(), ally]
+	menu.queue_free()
+	if failure == "":
+		var saved: Array = RpgUtil.to_array(state.to_dict().get("party"))
+		if saved.size() != 1 or str(RpgUtil.to_dict(saved[0]).get("actor_id", "")) != String(ally):
+			failure = "the save data lists %s as the party" % str(saved)
+	if failure == "":
+		RpgDialogueRunner.execute_event("leave_party:%s" % ally)
+		if state.in_party(ally):
+			failure = "leave_party:%s did not remove the character" % ally
+	state.party.assign(party_before)
+	state.actor_defs.erase(&"smoke_ally")
 	return failure
 
 func _mutate_then_load() -> String:

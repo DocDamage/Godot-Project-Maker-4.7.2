@@ -4,7 +4,7 @@ extends RefCounted
 ##
 ## Events (strings, never eval'd): set_flag:<entity>.<key>=<value>, give_item:<id>[:qty],
 ## take_item:<id>[:qty], give_gold:N, open_shop:<id> (the shop opens when the dialogue closes), quest_start:<id>,
-## quest_stage:<id>:<stage>, quest_complete:<id>, set_quest:<id>=<state>, heal_full, emit:<name>[:arg].
+## quest_stage:<id>:<stage>, quest_complete:<id>, join_party:<actor>, leave_party:<actor>, set_quest:<id>=<state>, heal_full, emit:<name>[:arg].
 
 const MAX_JUMPS := 1000
 
@@ -142,8 +142,16 @@ static func execute_event(event: String) -> bool:
 			if arg == "":
 				return _bad(event)
 			state.quest_complete(StringName(arg))
+		"join_party":
+			if arg == "":
+				return _bad(event)
+			state.join_party(StringName(arg))
+		"leave_party":
+			if arg == "":
+				return _bad(event)
+			state.leave_party(StringName(arg))
 		"heal_full":
-			state.player_stats.hp = RpgUtil.max_hp(state.player_stats)
+			state.heal_party_full()
 		"open_shop":
 			if arg == "":
 				return _bad(event)

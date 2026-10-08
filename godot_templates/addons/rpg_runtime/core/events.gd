@@ -19,6 +19,7 @@ signal gold_changed(new_total: int)
 signal quest_changed(quest_id: StringName, state: String)
 signal shop_requested(shop_id: StringName)
 signal equipment_changed(actor_id: StringName, slot: StringName)
+signal party_changed
 # Actors / progression
 signal player_damaged(amount: int)
 signal player_healed(amount: int)

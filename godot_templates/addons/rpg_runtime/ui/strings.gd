@@ -114,6 +114,9 @@ const KEYS := {
 	"UI_QUEST_NEW": "New quest: %s",
 	"UI_QUEST_UPDATED": "Quest updated: %s",
 	"UI_QUEST_DONE": "Quest complete: %s",
+	"UI_USE_ON": "Use on",
+	"UI_PARTY_JOINED": "%s joined the party",
+	"UI_PARTY_LEFT": "%s left the party",
 }
 
 ## English text of a key (the key itself when unknown).

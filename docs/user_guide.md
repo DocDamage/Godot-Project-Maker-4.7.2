@@ -51,7 +51,9 @@ it yourself and add the folder.
 **Archetype page.** Choose how combat works:
 
 * **Turn-based**: encounters on the map start a battle screen with attack, defend, item and run.
+  Up to four characters can fight together (the demo villager can bring a companion along).
 * **Action RPG**: real-time sword swings with hitboxes, enemies that chase and attack, a HUD.
+  It has no party members or followers in 1.0.
 
 You can generate the other archetype later in a new project; the shared systems (saving,
 dialogue, inventory, equipment, menus) are the same.

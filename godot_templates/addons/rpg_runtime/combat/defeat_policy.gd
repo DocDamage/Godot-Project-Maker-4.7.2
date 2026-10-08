@@ -73,7 +73,7 @@ static func apply(choice: int) -> void:
 	var router := RpgUtil.router()
 	if state == null or router == null:
 		return
-	state.player_stats.hp = maxi(1, state.player_stats.hp)
+	state.revive_party()
 	if choice == Choice.QUIT:
 		await router.go_to(RpgMenuUtil.TITLE_SCENE)
 		return
@@ -83,7 +83,7 @@ static func apply(choice: int) -> void:
 			while router.is_busy():
 				await router.get_tree().process_frame
 			return
-	state.player_stats.hp = RpgUtil.max_hp(state.player_stats)
+	state.heal_party_full()
 	var map := router.current_map
 	if map != null:
 		await router.go_to(map.scene_file_path, &"default")

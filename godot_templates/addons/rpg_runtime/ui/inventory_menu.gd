@@ -119,7 +119,20 @@ func _on_use() -> void:
 	var state := RpgUtil.state()
 	if state == null or _selected == &"":
 		return
-	if not state.inventory.use(_selected, state.player_stats):
+	if state.party_ids().size() > 1:  # a party: ask on whom
+		var picker := RpgMemberPicker.new()
+		add_child(picker)
+		picker.chosen.connect(use_on)
+		picker.closed.connect(_focus_first.call_deferred, CONNECT_ONE_SHOT)
+		return
+	use_on(state.player_actor_id)
+
+## Uses the selected item on one party member.
+func use_on(actor_id: StringName) -> void:
+	var state := RpgUtil.state()
+	if state == null or _selected == &"":
+		return
+	if not state.inventory.use(_selected, state.stats_of(actor_id)):
 		RpgUtil.notify(tr("UI_CANNOT_USE_NOW"))
 		return
 	_refresh()

@@ -20,13 +20,26 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 | `quest:<id>=<state>` | the quest is in that state |
 | `quest_active:<id>` / `quest_done:<id>` | the quest is under way / finished |
 | `quest_stage:<id>:<stage>` | the quest is at that stage |
+| `party:<actor id>` | the character is in the party (the player always is) |
 
 ## Dialogue events
 
 `set_flag:<entity>.<key>=<value>`, `give_item:<id>[:qty]`, `take_item:<id>[:qty]`, `give_gold:N`,
 `set_quest:<id>=<state>`, `quest_start:<id>`, `quest_stage:<id>:<stage>`, `quest_complete:<id>`,
-`heal_full`, `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
+`join_party:<actor id>` / `leave_party:<actor id>` (turn-based; see below), `heal_full` (the whole party), `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
 dialogue closes) and `emit:<name>[:arg]` (sent as `Events.dialogue_event`).
+
+## Party members (turn-based)
+
+`join_party:<id>` adds the character defined in `game/data/actors/<id>.tres` (an
+`RpgActorDefinition`: name, sprite frames, portrait, starting stats); `leave_party:<id>` takes them
+out again and returns what they wore to the inventory. The party holds at most 4 characters, the
+player included. In battle every member picks a command in party order, ally-targeted commands
+(items) can be aimed at any standing member, and experience is shared: each member who is standing
+at the end gets the full amount. A member who fell is back on their feet with 1 HP when the battle
+is over. The status menu pages through the members (left / right, or its first button), and each
+has their own equipment. The party is part of the save. **The action RPG has no followers in 1.0**:
+the events work there, but nothing appears in the world.
 
 ## Sound
 

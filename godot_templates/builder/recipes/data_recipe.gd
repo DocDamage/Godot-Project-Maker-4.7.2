@@ -2,7 +2,7 @@ extends RefCounted
 ## Seeds the data files of the demo under game/data/ (user_seed: written once, never again):
 ## hero actor, new-game data, the potion item and the starter NPC's dialogue.
 
-const RECIPE_VERSION := 4
+const RECIPE_VERSION := 5
 
 const Paths := preload("../lib/paths.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
@@ -13,6 +13,8 @@ const MapBuild := preload("../lib/map_build.gd")
 const ObjectEntries := preload("../lib/object_entries.gd")
 
 const HERO_PATH := "res://game/data/actors/hero.tres"
+const COMPANION_ID := "companion"
+const COMPANION_PATH := "res://game/data/actors/companion.tres"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
 const POTION_PATH := "res://game/data/items/potion.tres"
 const GREETING_PATH := "res://game/data/dialogue/npc_greeting.tres"
@@ -69,10 +71,12 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 		wanted.append(GREETING_PATH)
 		wanted.append(SHOP_PATH)
 		wanted.append(QUEST_PATH)
+		if _has_party_demo(ctx):
+			wanted.append(COMPANION_PATH)
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx)})
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -128,7 +132,9 @@ func build(ctx: BuildContext) -> Array:
 	if not FileAccess.file_exists(POTION_PATH):
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(GREETING_PATH):
-		_save(ctx, _greeting(), GREETING_PATH, issues)
+		_save(ctx, _greeting(_has_party_demo(ctx)), GREETING_PATH, issues)
+	if _has_party_demo(ctx) and not FileAccess.file_exists(COMPANION_PATH):
+		_save(ctx, _companion(ctx), COMPANION_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(QUEST_PATH):
 		_save(ctx, _quest(_has_chest(ctx)), QUEST_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(SHOP_PATH):
@@ -151,6 +157,22 @@ func _hero(ctx: BuildContext) -> Resource:
 		var frames_path: String = Paths.SPRITE_FRAMES_DIR + "%s.tres" % pid
 		if ResourceLoader.exists(frames_path):
 			def.set("sprite_frames", load(frames_path))
+	return def
+
+## A second character for the party (looks like the hero until the sprite is replaced). The
+## villager's "join me" choice adds them with the event join_party:companion.
+func _companion(ctx: BuildContext) -> Resource:
+	var def := _hero(ctx)
+	def.set("id", StringName(COMPANION_ID))
+	def.set("display_name", "Mira")
+	var stats := SeedUtil.make(STATS)
+	stats.set("max_hp", 18)
+	stats.set("hp", 18)
+	stats.set("attack", 4)
+	stats.set("defense", 2)
+	stats.set("speed", 6)
+	stats.set("magic", 3)
+	def.set("base_stats", stats)
 	return def
 
 func _new_game(demo_removed: bool = false, gear_words: Array = []) -> Resource:
@@ -179,6 +201,11 @@ func _potion(ctx: BuildContext) -> Resource:
 		var size: Array = eff.get("frame", eff.get("size", [16, 16]))
 		item.set("icon", TextureUtil.region_texture("res://" + JsonUtil.to_str(icon["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))))
 	return item
+
+## The party demo (a companion the villager can bring along) is for the turn-based archetype
+## only: the action RPG has no followers.
+func _has_party_demo(ctx: BuildContext) -> bool:
+	return not ctx.demo_removed and JsonUtil.to_str(ctx.config.get("archetype", "turn_based")) == "turn_based"
 
 ## Whether the starter map gets a chest: the options allow one and the packs have something to use.
 func _has_chest(ctx: BuildContext) -> bool:
@@ -251,17 +278,31 @@ func _line(line_id: String, speaker: String, text: String, next: String, conditi
 	return line
 
 ## A greeting, a choice ("Any tips?" / "Bye") and a branch that gives a potion the first time only.
-func _greeting() -> Resource:
+## With `party_demo` the villager can also bring the companion along, and send them home again.
+func _greeting(party_demo: bool = false) -> Resource:
 	var res := SeedUtil.make(DLG_RES)
+	var party_choices: Array = []
+	var party_lines: Array = []
+	if party_demo:
+		var join_condition := "not party:" + COMPANION_ID
+		party_choices = [["Would you like to travel with me?", "join", join_condition], ["You can stay here now.", "leave", "party:" + COMPANION_ID]]
+		party_lines = [
+			_line("join", "Villager", "Mira has been looking for an adventure. Take good care of her!", "bye", "", ["join_party:" + COMPANION_ID], []),
+			_line("leave", "Villager", "Mira is welcome back at the village any time.", "bye", "", ["leave_party:" + COMPANION_ID], []),
+		]
+	var ask_choices: Array = [["Any tips?", "tips"], ["I opened the chest.", "report", "quest_stage:errand:return"], ["Show me your wares", "shop", "flag:starter_npc.talked"]]
+	ask_choices.append_array(party_choices)
+	ask_choices.append(["Bye", "bye"])
 	var lines: Array = [
 		_line("greet", "Villager", "Hello, traveler! Welcome to our village.", "", "", ["quest_start:" + QUEST_ID], []),
-		_line("ask", "Villager", "Is there anything I can help you with?", "", "", [], [["Any tips?", "tips"], ["I opened the chest.", "report", "quest_stage:errand:return"], ["Show me your wares", "shop", "flag:starter_npc.talked"], ["Bye", "bye"]]),
+		_line("ask", "Villager", "Is there anything I can help you with?", "", "", [], ask_choices),
 		_line("tips", "Villager", "Take this potion. Walk into the house to see inside, and open the chest nearby.", "bye", "not flag:starter_npc.talked", ["set_flag:starter_npc.talked=true", "give_item:potion:1"], []),
 		_line("tips_again", "Villager", "I have already told you everything I know.", "bye", "flag:starter_npc.talked", [], []),
 		_line("report", "Villager", "Wonderful! Take this for your trouble.", "bye", "", ["set_flag:starter_npc.reported=true"], []),
 		_line("shop", "Villager", "Take a look at what I have.", "bye", "", ["open_shop:" + SHOP_ID], []),
-		_line("bye", "Villager", "Safe travels!", "", "", [], []),
 	]
+	lines.append_array(party_lines)  # before "bye": it has to stay the last line, or it would run on
+	lines.append(_line("bye", "Villager", "Safe travels!", "", "", [], []))
 	var res_lines: Array = res.get("lines")
 	res_lines.assign(lines)
 	return res

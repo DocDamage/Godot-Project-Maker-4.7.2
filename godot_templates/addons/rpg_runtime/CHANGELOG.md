@@ -53,6 +53,18 @@
   save loads with empty slots; `save_version` stays 1). New keys: `UI_EQUIP`, `UI_EQUIPMENT`,
   `UI_TAKE_OFF`, `UI_SLOT_WEAPON`, `UI_SLOT_ARMOR`, `UI_SLOT_ACCESSORY`, `UI_NO_CHANGE`,
   `UI_NOTHING_TO_EQUIP`, `UI_CANNOT_EQUIP` and `UI_MOVE_SPEED`.
+* Party members (M12, turn-based): `GameState.join_party` / `leave_party` (at most `MAX_PARTY` = 4
+  characters, the player included; a member is built from `game/data/actors/<id>.tres`),
+  `party_ids`, `in_party`, `actor_definition` / `actor_name`, `give_experience_to`, `revive_party`
+  and `heal_party_full`. Dialogue events `join_party:<id>` and `leave_party:<id>`, the condition
+  `party:<id>`, and the new event `party_changed`. In battle every member acts (the controller
+  already built the party from `GameState.party`; it now uses their names and art), experience is
+  shared (`give_experience` now grants it to the whole party), and a fallen member stands up at
+  1 HP after a victory or an escape; the defeat policy revives or heals the whole party. The
+  battle UI marks whose turn it is. The status menu pages through the members with its own
+  equipment. `heal_full` heals everyone. The party was already in the save. The action RPG has no
+  followers in 1.0. New keys: `UI_PARTY_JOINED` and `UI_PARTY_LEFT`. New turn-based projects get the
+  actor "Mira" (`companion.tres`) and a villager choice that brings her along.
 * Quest journal (M12): `RpgQuestDefinition` (`game/data/quests/<id>.tres`: a title key, ordered
   `stages` [{id, description key, complete_when condition}] and `rewards` {gold, experience,
   items}). `GameState.quests[id]` holds the current stage id, or `"done"`, so saves are unchanged

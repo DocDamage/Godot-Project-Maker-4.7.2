@@ -214,6 +214,8 @@ func run() -> RpgEncounterResult:
 	return _end(outcome)
 
 func _end(outcome: RpgEncounterResult.Outcome) -> RpgEncounterResult:
+	if outcome != RpgEncounterResult.Outcome.DEFEAT and _state_node != null and _state_node.has_method("revive_party"):
+		_state_node.call("revive_party")  # a member who fell is back on their feet, at 1 HP (defeat: the policy decides)
 	if result == null:
 		result = RpgEncounterResult.new()
 		result.outcome = outcome
@@ -367,10 +369,10 @@ func _apply_rewards() -> void:
 			var drop_id: StringName = drop["item_id"]
 			inv.add(drop_id, RpgUtil.to_int(drop["qty"]))
 
-## The live player goes through GameState so experience_gained / level_up are emitted.
+## The player and the members go through GameState so experience_gained / level_up are emitted.
 func _grant_xp(member: RpgBattleActor, xp: int) -> int:
-	if _state_node != null and _state_node.get("player_stats") == member.stats:
-		return RpgUtil.to_int(_state_node.call("give_experience", xp))
+	if _state_node != null and member.is_player_side and RpgUtil.to_bool(_state_node.call("in_party", member.id)):
+		return RpgUtil.to_int(_state_node.call("give_experience_to", member.id, xp))
 	return member.stats.add_experience(xp)
 
 func _show_message(text: String) -> void:
@@ -389,6 +391,7 @@ func _build_party() -> Array[RpgBattleActor]:
 	var hero_name := hero.display_name if hero != null and hero.display_name != "" else "Hero"
 	var player_id: StringName = _state_node.get("player_actor_id")
 	var player_stats: RpgStats = _state_node.get("player_stats")
+	var game := RpgUtil.state()
 	var player := RpgBattleActor.make(player_id, hero_name, player_stats, true)
 	if hero != null:
 		player.sprite_frames = hero.sprite_frames
@@ -400,7 +403,12 @@ func _build_party() -> Array[RpgBattleActor]:
 			break
 		var member_id: StringName = member["actor_id"]
 		var member_stats: RpgStats = member["stats"]
-		out.append(RpgBattleActor.make(member_id, String(member_id).capitalize(), member_stats, true))
+		var member_actor := RpgBattleActor.make(member_id, game.actor_name(member_id) if game != null else String(member_id).capitalize(), member_stats, true)
+		var member_def: RpgActorDefinition = game.actor_definition(member_id) if game != null else null
+		if member_def != null:
+			member_actor.sprite_frames = member_def.sprite_frames
+			member_actor.portrait = member_def.portrait
+		out.append(member_actor)
 	return out
 
 func _build_enemies(defs: Array) -> Array[RpgBattleActor]:

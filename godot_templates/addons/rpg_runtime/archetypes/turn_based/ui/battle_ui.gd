@@ -15,6 +15,9 @@ signal choice_made(choice: Dictionary)
 const LOG_SECONDS := 0.8
 const MESSAGE_SECONDS := 1.2
 const REWARD_SECONDS := 1.6
+## From this many battlers a side's status panel uses small text, so four rows still fit the screen.
+const COMPACT_FROM := 3
+const COMPACT_FONT := 9
 
 var controller: RpgBattleController = null
 
@@ -73,11 +76,15 @@ func _build_status(box: Node, actors: Array[RpgBattleActor], with_numbers: bool)
 	if box == null:
 		return
 	_clear(box)
+	var compact := actors.size() >= COMPACT_FROM
 	for actor in actors:
 		var row := VBoxContainer.new()
 		row.name = "Row_" + String(actor.id)
+		row.add_theme_constant_override("separation", 0 if compact else 4)
 		var name_label := Label.new()
 		name_label.text = actor.display_name
+		if compact:
+			name_label.add_theme_font_size_override("font_size", COMPACT_FONT)
 		row.add_child(name_label)
 		var bar := ProgressBar.new()
 		bar.show_percentage = false
@@ -90,6 +97,8 @@ func _build_status(box: Node, actors: Array[RpgBattleActor], with_numbers: bool)
 		var numbers: Label = null
 		if with_numbers:
 			numbers = Label.new()
+			if compact:
+				numbers.add_theme_font_size_override("font_size", COMPACT_FONT)
 			row.add_child(numbers)
 		box.add_child(row)
 		_rows[actor] = {"bar": bar, "text": numbers, "name": name_label}
@@ -124,8 +133,15 @@ func request_command(actor: RpgBattleActor, _battle: RpgBattleController = null)
 	_hide_input_panels()
 	return choice
 
+## Marks whose turn it is in the party panel (nobody for null): "> Name".
+func _mark_active(active: RpgBattleActor) -> void:
+	for actor: RpgBattleActor in _rows.keys():
+		var name_label: Label = _rows[actor]["name"]
+		name_label.text = ("> " if actor == active else "") + actor.display_name
+
 func _show_commands() -> void:
 	_mode = &"commands"
+	_mark_active(_actor)
 	_hide(_node("ItemSubmenu"))
 	_hide_cursor()
 	_show_log_text("")
@@ -223,6 +239,7 @@ func _hide(node: Node) -> void:
 		(node as Control).visible = false
 
 func _hide_input_panels() -> void:
+	_mark_active(null)
 	_hide(_node("CommandPanel"))
 	_hide(_node("ItemSubmenu"))
 	_hide_cursor()

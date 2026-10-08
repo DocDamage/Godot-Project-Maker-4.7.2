@@ -4,6 +4,9 @@ extends Node
 
 const ITEMS_DIR := "res://game/data/items"
 const HERO_PATH := "res://game/data/actors/hero.tres"
+const ACTORS_DIR := "res://game/data/actors"
+## The most characters in the party, the player included (a battle fits four a side).
+const MAX_PARTY := 4
 const SHOPS_DIR := "res://game/data/shops"
 const QUESTS_DIR := "res://game/data/quests"
 ## The value of GameState.quests[id] once a quest is finished.
@@ -16,7 +19,9 @@ const PREVIEW_STATS: Array[StringName] = [&"max_hp", &"attack", &"defense", &"sp
 
 var player_actor_id: StringName = &"hero"
 var player_stats: RpgStats = RpgStats.new()
-var party: Array[Dictionary] = []  # reserved; [{actor_id, stats}] (turn-based may use)
+## The party members besides the player, in joining order: [{actor_id, stats}]. Only the turn-based
+## battle uses them; the action RPG has no followers.
+var party: Array[Dictionary] = []
 var inventory := RpgInventory.new()
 var gold: int = 0:
 	set = set_gold
@@ -34,6 +39,7 @@ var playtime_s: float = 0.0
 var pending_encounter: RpgEncounterData = null
 var rng: RpgRng = RpgRng.new()
 var items: Dictionary = {}  # item id -> RpgItemDefinition
+var actor_defs: Dictionary = {}  # actor id -> RpgActorDefinition (loaded from game/data/actors on demand)
 
 func _ready() -> void:
 	inventory.registry = items
@@ -391,20 +397,111 @@ func _set_worn(actor_id: StringName, slot: StringName, item_id: StringName) -> v
 			worn_stats.hp = 1
 	RpgUtil.emit(&"equipment_changed", [actor_id, slot])
 
+# ------------------------------------------------------------------ party (T12.47)
+
+## The definition of an actor: game/data/actors/<id>.tres (hero.tres for the player), or null.
+func actor_definition(actor_id: StringName) -> RpgActorDefinition:
+	if actor_defs.has(actor_id):
+		var known: RpgActorDefinition = actor_defs[actor_id]
+		return known
+	var path := HERO_PATH if actor_id == player_actor_id else "%s/%s.tres" % [ACTORS_DIR, actor_id]
+	if actor_id == &"" or not ResourceLoader.exists(path):
+		return null
+	var def := load(path) as RpgActorDefinition
+	if def != null:
+		actor_defs[actor_id] = def
+	return def
+
+## The name shown for an actor: its definition's display name (a translation key), else its id.
+func actor_name(actor_id: StringName) -> String:
+	var def := actor_definition(actor_id)
+	var shown := def.display_name if def != null and def.display_name != "" else ""
+	return String(TranslationServer.translate(shown)) if shown != "" else String(actor_id).capitalize()
+
+## The player first, then the members: everyone who fights.
+func party_ids() -> Array[StringName]:
+	var out: Array[StringName] = [player_actor_id]
+	for member in party:
+		var member_id: StringName = member["actor_id"]
+		out.append(member_id)
+	return out
+
+func in_party(actor_id: StringName) -> bool:
+	return party_ids().has(actor_id)
+
+## Adds a character (game/data/actors/<id>.tres) at its starting stats. False when it is already in
+## the party, the party is full (MAX_PARTY, the player counted) or there is no such actor.
+func join_party(actor_id: StringName) -> bool:
+	if actor_id == &"" or in_party(actor_id) or party.size() + 1 >= MAX_PARTY:
+		return false
+	var def := actor_definition(actor_id)
+	if def == null:
+		push_error("[RPG-DATA] join_party: no actor definition for '%s'" % actor_id)
+		return false
+	var member_stats := RpgStats.new()
+	if def.base_stats != null:
+		member_stats = def.base_stats.duplicate(true) as RpgStats
+	party.append({"actor_id": actor_id, "stats": member_stats})
+	member_stats.hp = RpgUtil.max_hp(member_stats)  # what they wear (kept from an earlier stay) counts
+	RpgUtil.notify(String(TranslationServer.translate("UI_PARTY_JOINED")) % actor_name(actor_id))
+	RpgUtil.emit(&"party_changed")
+	return true
+
+## Removes a member; what they wore goes back to the inventory (what does not fit stays with them
+## until they come back). The player cannot leave. False when the character is not a member.
+func leave_party(actor_id: StringName) -> bool:
+	for i in party.size():
+		if party[i]["actor_id"] != actor_id:
+			continue
+		for slot in EQUIP_SLOTS:
+			unequip(actor_id, slot)
+		party.remove_at(i)
+		RpgUtil.notify(String(TranslationServer.translate("UI_PARTY_LEFT")) % actor_name(actor_id))
+		RpgUtil.emit(&"party_changed")
+		return true
+	return false
+
+## Nobody is left at 0 hit points once a battle is over.
+func revive_party() -> void:
+	player_stats.hp = maxi(1, player_stats.hp)
+	for member in party:
+		var member_stats: RpgStats = member["stats"]
+		member_stats.hp = maxi(1, member_stats.hp)
+
+## Full hit points (equipment counted) for the player and every member.
+func heal_party_full() -> void:
+	player_stats.hp = RpgUtil.max_hp(player_stats)
+	for member in party:
+		var member_stats: RpgStats = member["stats"]
+		member_stats.hp = RpgUtil.max_hp(member_stats)
+
 func flag_count() -> int:
 	var n := 0
 	for entity_flags: Dictionary in flags.values():
 		n += entity_flags.size()
 	return n
 
-## Grants experience to the player and emits the progression events.
+## Grants experience to the player and every party member (experience is shared) and emits the
+## progression events. Returns the player's levels gained.
 func give_experience(amount: int) -> int:
-	var gained := player_stats.add_experience(amount)
+	var gained := give_experience_to(player_actor_id, amount)
+	for member: Dictionary in party.duplicate():
+		var member_id: StringName = member["actor_id"]
+		give_experience_to(member_id, amount)
+	return gained
+
+## Grants experience to one actor; a level-up refills their hit points (equipment counted). Returns
+## the levels gained (0 for an unknown actor).
+func give_experience_to(actor_id: StringName, amount: int) -> int:
+	var actor_stats := stats_of(actor_id)
+	if actor_stats == null:
+		return 0
+	var gained := actor_stats.add_experience(amount)
 	if gained > 0:
-		player_stats.hp = RpgUtil.max_hp(player_stats)  # the level-up refill counts the equipment
-	RpgUtil.emit(&"experience_gained", [player_actor_id, amount])
+		actor_stats.hp = RpgUtil.max_hp(actor_stats)  # the level-up refill counts the equipment
+	RpgUtil.emit(&"experience_gained", [actor_id, amount])
 	for i in gained:
-		RpgUtil.emit(&"level_up", [player_actor_id, player_stats.level - gained + i + 1])
+		RpgUtil.emit(&"level_up", [actor_id, actor_stats.level - gained + i + 1])
 	return gained
 
 func to_dict() -> Dictionary:
@@ -433,6 +530,8 @@ func from_dict(d: Dictionary) -> void:
 	party.clear()
 	var party_data: Array = data.get("party", [])
 	for entry: Dictionary in party_data:
+		if str(entry.get("actor_id", "")) == "" or party.size() + 1 >= MAX_PARTY:
+			continue
 		var member_data: Dictionary = entry.get("stats", {})
 		party.append({"actor_id": StringName(str(entry.get("actor_id", ""))), "stats": RpgStats.from_dict(member_data)})
 	var inventory_data: Array = data.get("inventory", [])
