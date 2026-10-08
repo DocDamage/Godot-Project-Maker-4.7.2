@@ -167,6 +167,7 @@ def show_each_page(window, on_page) -> None:  # noqa: ANN001 - MainWindow, impor
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance()
+    assert app is not None
 
     def settle() -> None:  # a scroll area lays its content out over a few turns
         for _ in range(3):

@@ -9,11 +9,12 @@ from typing import Any
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from rpggen.core import map_preview
 from rpggen.core.orchestrator import Callbacks
 from rpggen.gui import thumbnails, workers
+from rpggen.gui.widgets.flow_layout import FlowLayout
 
 DEBOUNCE_MS = 200
 
@@ -46,6 +47,14 @@ class MapPreviewWidget(QWidget):
     rerollRequested = Signal()  # noqa: N815
     rendered = Signal()
 
+    MARKER_NAMES = {
+        "spawn": "start",
+        "npc": "villager",
+        "enemy": "enemy",
+        "chest": "chest",
+        "exit": "east exit",
+    }
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("mapPreview")
@@ -57,6 +66,33 @@ class MapPreviewWidget(QWidget):
         self.image_label.setMinimumSize(QSize(240, 140))
         self.image_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         layout.addWidget(self.image_label)
+        # the legend is made of widgets (a dot and a name each), so it stays legible at any size
+        # and is translated; the picture itself carries no text
+        self.legend_box = QWidget()
+        self.legend_box.setObjectName("mapLegend")
+        legend = FlowLayout(self.legend_box, spacing=10)
+        self.legend_labels: dict[str, QLabel] = {}
+        self.legend_dots: dict[str, QLabel] = {}
+        for kind in map_preview.MARKER_ORDER:
+            item = QWidget()
+            row = QHBoxLayout(item)
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(4)
+            r, g, b = map_preview.MARKER_COLORS[kind]
+            dot = QLabel()
+            dot.setObjectName(f"legendDot_{kind}")
+            dot.setFixedSize(10, 10)
+            dot.setStyleSheet(
+                f"background: rgb({r},{g},{b}); border: 1px solid black; border-radius: 5px;"
+            )
+            label = QLabel(self.tr(self.MARKER_NAMES[kind]))
+            label.setObjectName(f"legend_{kind}")
+            row.addWidget(dot)
+            row.addWidget(label)
+            legend.addWidget(item)
+            self.legend_dots[kind] = dot
+            self.legend_labels[kind] = label
+        layout.addWidget(self.legend_box)
         self.note_label = QLabel()
         self.note_label.setObjectName("mapPreviewNote")
         self.note_label.setWordWrap(True)

@@ -97,7 +97,7 @@ def build_scene_art(state: WizardState, resolver=None) -> SceneArt | None:  # no
         asset_id = mapping.best_for(cat, role)
         asset = cat.asset(asset_id) if asset_id else None
         path = resolver(asset) if asset is not None else None
-        if path is None:
+        if asset is None or path is None:
             return None
         return _pixmap(loader(path, catalog_mod.effective(asset)))
 

@@ -368,7 +368,7 @@ MARKER_COLORS = {
     "chest": (255, 193, 7),
     "exit": (171, 71, 188),
 }
-LEGEND_NOTE = "Preview: the generated map can differ in tile details."
+MARKER_ORDER = ("spawn", "npc", "enemy", "chest", "exit")  # the legend's order
 FLAT_GROUND = (86, 140, 72)
 FLAT_WALL = (70, 70, 80)
 FLAT_ROAD = (176, 150, 100)
@@ -527,10 +527,10 @@ def _scaled(picture: Image.Image, scale: int) -> Image.Image:
     return picture.resize((picture.width * scale, picture.height * scale), Image.Resampling.NEAREST)
 
 
-def render(plan: dict[str, Any], art: Art, scale: int = 2, legend: bool = True) -> Image.Image:
+def render(plan: dict[str, Any], art: Art, scale: int = 2) -> Image.Image:
     """A picture of the plan: ground, patches, the wall border and the exit gap, the road,
-    buildings, decorations and coloured markers (start, villagers, enemies, chests) with a
-    legend. It is a preview, not a pixel-exact render."""
+    buildings, decorations and coloured markers (start, villagers, enemies, chests). The legend
+    is the widget's (``MARKER_NAMES`` has the kinds). It is a preview, not a pixel-exact render."""
     w, h = plan["size"]
     tile = art.tile_px
     px = tile * scale
@@ -613,30 +613,7 @@ def render(plan: dict[str, Any], art: Art, scale: int = 2, legend: bool = True) 
                 fill=MARKER_COLORS[kind] + (255,),
                 outline=(0, 0, 0, 255),
             )
-    if not legend:
-        return canvas
-    names = {
-        "spawn": "start",
-        "npc": "villager",
-        "enemy": "enemy",
-        "chest": "chest",
-        "exit": "east exit",
-    }
-    bar_h = 16
-    out = Image.new("RGBA", (canvas.width, canvas.height + 2 * bar_h), (30, 30, 36, 255))
-    out.paste(canvas, (0, 0))
-    d = ImageDraw.Draw(out)
-    x = 6
-    for kind in ("spawn", "npc", "enemy", "chest", "exit"):
-        d.ellipse(
-            [x, canvas.height + 4, x + 8, canvas.height + 12],
-            fill=MARKER_COLORS[kind] + (255,),
-            outline=(0, 0, 0, 255),
-        )
-        d.text((x + 12, canvas.height + 2), names[kind], fill=(220, 220, 220, 255))
-        x += 14 + 7 * len(names[kind]) + 12
-    d.text((6, canvas.height + bar_h + 1), LEGEND_NOTE, fill=(170, 170, 180, 255))
-    return out
+    return canvas
 
 
 # --------------------------------------------------------------- the map that was really built

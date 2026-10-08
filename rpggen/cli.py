@@ -6,6 +6,7 @@ import sys
 import tempfile
 import traceback
 from pathlib import Path
+from typing import Any
 
 from rpggen import __version__, cli_support
 from rpggen.cli_support import Output
@@ -150,7 +151,7 @@ def _document(
     }
 
 
-def _not_found(message: str, **detail: object) -> IssueList:
+def _not_found(message: str, **detail: Any) -> IssueList:
     issues = IssueList()
     issues.add("ENV-001", message, **detail)
     return issues
@@ -212,6 +213,8 @@ def _run(
     args: argparse.Namespace, out: Output, cfg_path: Path, exe: Path | None, derive: bool
 ) -> int:
     from rpggen.core import orchestrator
+
+    assert exe is not None  # only a dry run goes on without Godot
 
     def show(text: str) -> None:
         # Godot's own lines (a screenful per second) only with --verbose

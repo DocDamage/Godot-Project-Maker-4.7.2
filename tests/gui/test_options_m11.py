@@ -191,3 +191,47 @@ def test_the_preview_renders_after_a_pause_and_the_reroll_changes_the_seed(qtbot
     page.preview.reroll_button.click()
     assert page.seed_box.value() != seed_before
     assert "can differ" in page.preview.note_label.text()
+
+
+def test_the_legend_is_five_translated_labels_and_the_image_is_just_the_map(qtbot) -> None:
+    import io
+
+    from PIL import Image
+    from PySide6.QtCore import QCoreApplication, QTranslator
+
+    from rpggen.gui.widgets.map_preview import MapPreviewWidget
+
+    class Shout(QTranslator):
+        def translate(self, context, source, disambiguation=None, n=-1):  # type: ignore[no-untyped-def]
+            return source.upper() if context == "MapPreviewWidget" else ""
+
+    plain = MapPreviewWidget()
+    qtbot.addWidget(plain)
+    assert [label.text() for label in plain.legend_labels.values()] == [
+        "start",
+        "villager",
+        "enemy",
+        "chest",
+        "east exit",
+    ]
+    translator = Shout()
+    QCoreApplication.installTranslator(translator)
+    try:
+        shouted = MapPreviewWidget()
+        qtbot.addWidget(shouted)
+        assert [label.text() for label in shouted.legend_labels.values()][0] == "START"
+        assert len(shouted.legend_labels) == len(shouted.legend_dots) == 5
+    finally:
+        QCoreApplication.removeTranslator(translator)
+
+    state = WizardState(pack_sources=[SYNTH / "basic16"])
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    state.config = config.default_for("T", [REF])
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.show()
+    page.enter(state)
+    with qtbot.waitSignal(page.preview.rendered, timeout=20000):
+        page.preview.flush()
+    image = Image.open(io.BytesIO(page.preview.last_png))
+    assert image.height * 40 == image.width * 24  # the 40 x 24 map and nothing underneath

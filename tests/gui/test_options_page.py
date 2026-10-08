@@ -280,11 +280,8 @@ def test_the_time_estimate_is_hidden_without_saved_timings(qtbot, monkeypatch) -
     workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
     page.enter(state)
     assert not page.summary.time_label.isHidden() and "about" in page.summary.time_label.text()
-    assert (
-        not page.summary.size_label.isHidden()
-        and "MB" in page.summary.size_label.text()
-        or ("KB" in page.summary.size_label.text())
-    )
+    assert not page.summary.size_label.isHidden()
+    assert any(unit in page.summary.size_label.text() for unit in ("KB", "MB"))
 
 
 def test_the_summary_moves_to_a_right_hand_column_when_very_wide(qtbot) -> None:

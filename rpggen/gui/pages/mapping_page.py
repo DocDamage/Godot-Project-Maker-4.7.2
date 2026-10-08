@@ -265,10 +265,10 @@ class MappingPage(WizardPage):
         shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         shortcut.activated.connect(self.undo)
         # the rows and the sound group scroll; the intro and the summary stay in view
-        self.scroll = QScrollArea()
-        self.scroll.setObjectName("mappingScroll")
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setObjectName("mappingScroll")
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         body = QWidget()
         body.setObjectName("mappingBody")
         body_layout = QVBoxLayout(body)
@@ -279,8 +279,8 @@ class MappingPage(WizardPage):
         self.sound_section.changed.connect(self.changed.emit)
         body_layout.addWidget(self.sound_section)
         body_layout.addStretch(1)
-        self.scroll.setWidget(body)
-        self.layout_.addWidget(self.scroll, 1)
+        self.scroll_area.setWidget(body)
+        self.layout_.addWidget(self.scroll_area, 1)
 
     # ------------------------------------------------------------------ building
 
@@ -614,7 +614,7 @@ class MappingPage(WizardPage):
         missing = mapping.missing_required(state.catalog, self._archetype(), self.placeholders)
         widget = self.rows.get(missing[0]) if missing else None
         if widget is not None:
-            self.scroll.ensureWidgetVisible(widget)
+            self.scroll_area.ensureWidgetVisible(widget)
             widget.choose_button.setFocus()
 
     def status(self, state: WizardState) -> tuple[str, int]:

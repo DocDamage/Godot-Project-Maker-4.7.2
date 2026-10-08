@@ -182,7 +182,7 @@ def _run_phase_godot(
     return run
 
 
-def _skip(state: _State, phase: str, code: str, **detail: object) -> None:
+def _skip(state: _State, phase: str, code: str, **detail: Any) -> None:
     """A check that did not run: remember it (never show it as passed) and add its note."""
     state.skipped[phase] = code
     if not any(i.code == code for i in state.issues):

@@ -238,7 +238,7 @@ def install_pack(
     pack_dir = Path(pack_dir)
     dst = stg.staging / "assets" / "packs" / pack_id
     if inv is not None:
-        sources = [(pack_dir / f.path, f.sha256) for f in inv.files]
+        sources: list[tuple[Path, str | None]] = [(pack_dir / f.path, f.sha256) for f in inv.files]
     else:
         files, _links = archive_walk_files(pack_dir)  # links are skipped, never followed
         sources = [(pack_dir / rel, None) for rel in files if not _is_junk(tuple(rel.split("/")))]

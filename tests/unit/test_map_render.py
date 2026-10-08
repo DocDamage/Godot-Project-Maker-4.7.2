@@ -32,10 +32,10 @@ def test_the_default_plan_draws_the_house_and_the_markers(sample) -> None:
     plan = map_preview.plan(config.starter_map_defaults(), 12345, map_preview.building_info(art))
     assert plan["is_default"] and plan["buildings"] == [[8, 6]]
     scale = 2
-    image = map_preview.render(plan, art, scale, legend=False)
+    image = map_preview.render(plan, art, scale)
     tile = art.tile_px
     assert image.size == (40 * tile * scale, 24 * tile * scale)
-    flat = map_preview.render(plan, map_preview.Art(tile_px=tile), scale, legend=False)
+    flat = map_preview.render(plan, map_preview.Art(tile_px=tile), scale)
     house = image.getpixel((8 * tile * scale + 20, 6 * tile * scale + 20))
     assert house != flat.getpixel((8 * tile * scale + 20, 6 * tile * scale + 20))
     # the spawn marker is a white dot with a black outline in the middle of its tile
@@ -50,14 +50,15 @@ def test_the_default_plan_draws_the_house_and_the_markers(sample) -> None:
     )
 
 
-def test_the_legend_adds_two_rows_and_says_the_map_may_differ(sample) -> None:
+def test_the_image_is_exactly_the_map_and_carries_no_legend(sample) -> None:
     cat, resolver = sample
     art = map_preview.load_art(cat, resolver)
     plan = map_preview.plan(config.starter_map_defaults(), 1, map_preview.building_info(art))
-    with_legend = map_preview.render(plan, art, 1, legend=True)
-    without = map_preview.render(plan, art, 1, legend=False)
-    assert with_legend.size == (without.width, without.height + 32)
-    assert "can differ" in map_preview.LEGEND_NOTE
+    image = map_preview.render(plan, art, 1)
+    w, h = plan["size"]
+    assert image.size == (w * art.tile_px, h * art.tile_px)  # no rows added below the map
+    assert not hasattr(map_preview, "LEGEND_NOTE")
+    assert set(map_preview.MARKER_ORDER) == set(map_preview.MARKER_COLORS)
 
 
 def test_a_larger_map_with_more_of_everything_still_renders(sample) -> None:
@@ -71,12 +72,12 @@ def test_a_larger_map_with_more_of_everything_still_renders(sample) -> None:
         "decorations": 30,
     }
     plan = map_preview.plan(options, 7, map_preview.building_info(art))
-    image = map_preview.render(plan, art, 1, legend=True)
+    image = map_preview.render(plan, art, 1)
     assert image.width == 64 * art.tile_px
     assert plan["exit_gap"][0] == 63
 
 
 def test_without_any_art_flat_colours_are_used() -> None:
     plan = map_preview.plan(config.starter_map_defaults(), 1, {})
-    image = map_preview.render(plan, map_preview.Art(), 1, legend=False)
+    image = map_preview.render(plan, map_preview.Art(), 1)
     assert image.getpixel((20 * 16 + 4, 5 * 16)) != (0, 0, 0, 0)

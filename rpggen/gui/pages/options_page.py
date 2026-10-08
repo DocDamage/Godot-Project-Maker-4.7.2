@@ -260,8 +260,8 @@ class OptionsPage(WizardPage):
         # the summary card: on top, or in a right-hand column at SUMMARY_SIDE_WIDTH and more
         self.summary = OptionsSummary()
         outer.addWidget(self.summary)
-        body = QHBoxLayout()
-        body.addWidget(scroll, 1)
+        main_row = QHBoxLayout()
+        main_row.addWidget(scroll, 1)
         self.side = QWidget()
         self.side.setObjectName("summarySide")
         self.side_layout = QVBoxLayout(self.side)
@@ -269,8 +269,8 @@ class OptionsPage(WizardPage):
         self.side_layout.addStretch(1)
         self.side.setFixedWidth(300)
         self.side.setVisible(False)
-        body.addWidget(self.side)
-        outer.addLayout(body, 1)
+        main_row.addWidget(self.side)
+        outer.addLayout(main_row, 1)
         self._summary_outer = outer
         self._summary_on_side = False
         self._pack_bytes_key: tuple | None = None
@@ -447,7 +447,7 @@ class OptionsPage(WizardPage):
             self.pack_art_radios[choice] = radio
             pack_art_group.addButton(radio)
             git_layout.addWidget(radio)
-            radio.toggled.connect(lambda on, c=choice: on and self._on_pack_art(c))
+            radio.toggled.connect(lambda on, c=choice: self._on_pack_art(c) if on else None)
         licence_note = QLabel(
             self.tr(
                 "Most pack licences do not allow the art to be public: if you will push this "

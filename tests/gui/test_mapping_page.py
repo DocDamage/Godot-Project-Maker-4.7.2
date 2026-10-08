@@ -298,7 +298,7 @@ def test_rows_keep_their_size_at_the_window_minimum(qtbot, archetype: str) -> No
     for widget in page.rows.values():
         assert widget.height() >= widget.minimumSizeHint().height(), widget.objectName()
         assert widget.choose_button.height() >= widget.choose_button.sizeHint().height()
-    assert page.scroll.verticalScrollBar().maximum() > 0  # more rows than the window shows
+    assert page.scroll_area.verticalScrollBar().maximum() > 0  # more rows than the window shows
 
 
 def test_reveal_missing_scrolls_to_the_first_required_row_without_an_asset(qtbot) -> None:
@@ -308,7 +308,7 @@ def test_reveal_missing_scrolls_to_the_first_required_row_without_an_asset(qtbot
     page.resize(700, 320)
     _settle()
     row = page.rows["PLAYER"]
-    viewport = page.scroll.viewport()
+    viewport = page.scroll_area.viewport()
 
     def top() -> int:
         return row.mapTo(viewport, QPoint(0, 0)).y()

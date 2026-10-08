@@ -362,7 +362,7 @@ def editor_open(target: Path) -> bool:
     a folder that merely starts with the same text). Failing to ask the system means "not open".
     """
     try:
-        import psutil
+        import psutil  # type: ignore[import-untyped]
     except ImportError:  # pragma: no cover - psutil is a dependency
         log.debug("psutil is missing: cannot look for an open editor")
         return False
