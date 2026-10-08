@@ -62,6 +62,10 @@ class WindowMenus:
         self.recent_menu.setObjectName("recentMenu")
         file_menu.aboutToShow.connect(self._fill_recent_menu)
         file_menu.addSeparator()
+        self.conflicts_action = self._action(
+            file_menu, self.tr("Resolve &conflicts…"), "resolveConflictsAction", self.show_conflicts
+        )
+        file_menu.addSeparator()
         self.exit_action = self._action(file_menu, self.tr("&Quit"), "exitAction", self.close)
         self.exit_action.setShortcut(QKeySequence("Ctrl+Q"))
 
@@ -335,6 +339,25 @@ class WindowMenus:
 
     def show_about(self) -> None:
         AboutDialog(self).exec()  # type: ignore[arg-type]
+
+    def show_conflicts(self) -> None:
+        """The resolver (T12.58) for the project the wizard has open."""
+        from rpggen.core import conflicts
+        from rpggen.gui.dialogs.conflict_dialog import ConflictDialog
+
+        target = self.state.target  # type: ignore[attr-defined]
+        if target is None or not conflicts.list_conflicts(target):
+            QMessageBox.information(
+                self,  # type: ignore[arg-type]
+                self.tr("Resolve conflicts"),
+                self.tr(
+                    "The open project has no files with a .rpggen-new version."
+                    if target is not None
+                    else "Open a generated project first."
+                ),
+            )
+            return
+        ConflictDialog(target, None, self).exec()
 
     def show_storage(self) -> None:
         StorageDialog(self).exec()  # type: ignore[arg-type]

@@ -93,7 +93,7 @@ const CODES := {
 	"VAL-026": {"severity": "warning", "message": "Battle data problem in {file}: {problem}.", "fix": "Fix the skill, actor, enemy or item resource (README.md, section 11, explains skills, statuses and enemy rules)."},
 	"SMOKE-001": {"severity": "error", "message": "Smoke step {step} \"{name}\" failed: {detail}.", "fix": "See smoke log and smoke_results.json."},
 	"SMOKE-002": {"severity": "error", "message": "Smoke test timed out at step {step}.", "fix": "See smoke log."},
-	"REGEN-001": {"severity": "warning", "message": "User-modified generated file {file} not overwritten; new version at {file}.rpggen-new.", "fix": "Merge changes manually."},
+	"REGEN-001": {"severity": "warning", "message": "User-modified generated file {file} not overwritten; new version at {file}.rpggen-new.", "fix": "Resolve it with *Resolve conflicts* on the Results page or `rpggen conflicts --target <project>`."},
 	"REGEN-002": {"severity": "info", "message": "File {file} was deleted by the user and was not recreated.", "fix": "—"},
 	"REGEN-003": {"severity": "warning", "message": "Source {asset} removed from pack; tileset source {source_id} kept.", "fix": "Confirm removal in the audit."},
 	"REGEN-004": {"severity": "error", "message": "Staging promotion failed: {reason}. Target restored from backup.", "fix": "See log."},
@@ -101,5 +101,7 @@ const CODES := {
 	"REGEN-006": {"severity": "error", "message": "Runtime upgrade from {old} to {new} needs confirmation.", "fix": "The new runtime has breaking changes (see the changelog); confirm the upgrade in the wizard or pass --accept-runtime-upgrade."},
 	"REGEN-007": {"severity": "warning", "message": "The project was generated but the git commit failed: {reason}.", "fix": "Fix the repository problem (a hook, a lock, a missing identity) and commit by hand."},
 	"REGEN-008": {"severity": "info", "message": "Your own uncommitted changes were left out of rpggen's commit.", "fix": "Commit them yourself when you are ready."},
+	"REGEN-009": {"severity": "error", "message": "There is no .rpggen-new file for {file}: nothing to resolve.", "fix": "Run `rpggen conflicts --target <project>` to list the files that have one."},
+	"REGEN-010": {"severity": "error", "message": "{file} is not a text file, so it cannot be merged.", "fix": "Keep yours or take the new version."},
 	"GUI-001": {"severity": "error", "message": "Unexpected error: {reason}.", "fix": "Export a diagnostic bundle and report it."},
 }

@@ -111,6 +111,9 @@ def plan(target: Path, staging: Path, old: Ledger, new: Ledger) -> PromotionPlan
         if rel in ledger_mod.MERGE_MANAGED:
             result.write.append(rel)
         elif state is FileState.MODIFIED:
+            declined = old.files[rel].declined_sha256 if rel in old.files else None
+            if declined is not None and declined == new.files[rel].sha256:
+                continue  # "Keep mine" (T12.58): the user declined exactly this content
             result.conflicts.append(rel)
         else:  # UNTOUCHED or ABSENT
             result.write.append(rel)

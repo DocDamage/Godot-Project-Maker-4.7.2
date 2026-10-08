@@ -96,7 +96,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | VAL-026 | W | Battle data problem in {file}: {problem}. | Fix the skill, actor, enemy or item resource (README.md, section 11, explains skills, statuses and enemy rules). |
 | SMOKE-001 | E | Smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. |
 | SMOKE-002 | E | Smoke test timed out at step {step}. | See smoke log. |
-| REGEN-001 | W | User-modified generated file {file} not overwritten; new version at {file}.rpggen-new. | Merge changes manually. |
+| REGEN-001 | W | User-modified generated file {file} not overwritten; new version at {file}.rpggen-new. | Resolve it with *Resolve conflicts* on the Results page or `rpggen conflicts --target <project>`. |
 | REGEN-002 | I | File {file} was deleted by the user and was not recreated. | — |
 | REGEN-003 | W | Source {asset} removed from pack; tileset source {source_id} kept. | Confirm removal in the audit. |
 | REGEN-004 | E | Staging promotion failed: {reason}. Target restored from backup. | See log. |
@@ -104,6 +104,8 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | REGEN-006 | E | Runtime upgrade from {old} to {new} needs confirmation. | The new runtime has breaking changes (see the changelog); confirm the upgrade in the wizard or pass --accept-runtime-upgrade. |
 | REGEN-007 | W | The project was generated but the git commit failed: {reason}. | Fix the repository problem (a hook, a lock, a missing identity) and commit by hand. |
 | REGEN-008 | I | Your own uncommitted changes were left out of rpggen's commit. | Commit them yourself when you are ready. |
+| REGEN-009 | E | There is no .rpggen-new file for {file}: nothing to resolve. | Run `rpggen conflicts --target <project>` to list the files that have one. |
+| REGEN-010 | E | {file} is not a text file, so it cannot be merged. | Keep yours or take the new version. |
 | GUI-001 | E | Unexpected error: {reason}. | Export a diagnostic bundle and report it. |
 
 ## Rules for adding codes

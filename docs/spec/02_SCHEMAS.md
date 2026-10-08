@@ -343,6 +343,8 @@ Python reads `.tmx`/`.tmj` (Tiled) and `.ldtk` (LDtk, one map per level); Godot 
 ```
 
 * `owner` is either `generated` (may be rewritten) or `user_seed` (written once, then never touched).
+* `declined_sha256` (optional, T12.58): the hash of a generated version the user declined with
+  *Keep mine*. Promotion skips the conflict while the new content has this hash.
 * Keys are posix_rel paths, sorted.
 * Covered paths (T5.01): `generated/`, `addons/rpg_runtime/`, `addons/rpg_project_tools/`, `rpggen/` (except `rpggen/logs/`, `rpggen/results/`, the ledger itself and `rpggen/generation_report.json`), `assets/packs/`, `game/` (as `user_seed`), `project.godot`, `.gitignore`, `.gitattributes` and `README.md`. `GENERATION_REPORT.md` is not covered: it is rewritten after promotion.
 * `project.godot`, `rpggen/generator_config.json` and `rpggen/asset_catalog.json` are merge-managed: they never produce a conflict.
@@ -441,6 +443,7 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `remove_source` | Facets (override only) | T5.04 |
 | `starter` | generator_config | T3.11 |
 | `demo_removed` | ownership_ledger | T8.08 |
+| `declined_sha256` (file entries) | ownership_ledger | T12.58 |
 | `anim`, `terrain.peering` | `tile_overrides` entries | T2.09, T8.06 |
 | `terrain_proposal` | Facets | T8.06 |
 | `terrain: {set, terrain, peering}` replaces `terrain.wangid` | `tile_overrides` entries | T8.06 |

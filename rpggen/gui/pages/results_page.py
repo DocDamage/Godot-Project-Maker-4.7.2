@@ -23,10 +23,11 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen import procenv
-from rpggen.core import godot, orchestrator, promote, report
+from rpggen.core import conflicts, godot, orchestrator, promote, report
 from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui import fixes
 from rpggen.gui.dialogs import diagnostic_export, error_lookup
+from rpggen.gui.dialogs.conflict_dialog import ConflictDialog
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
 from rpggen.gui.widgets.collapsible import CollapsibleSection
@@ -251,6 +252,11 @@ class ResultsPage(WizardPage):
         self.folder_button = self._button("Open folder", "openFolder", buttons)
         self.report_button = self._button("View report", "viewReport", buttons)
         self.restore_button = self._button("Restore previous", "restorePrevious", buttons)
+        self.conflicts_button = self._button("Resolve conflicts…", "resolveConflicts", buttons)
+        self.conflicts_button.setVisible(False)
+        self.conflicts_button.setToolTip(
+            self.tr("Choose between your changes and the new versions rpggen made (.rpggen-new)")
+        )
         self.failed_button = self._button("Open failed folder", "openFailed", buttons)
         self.logs_button = self._button("View logs", "viewLogs", buttons)
         self.bundle_button = self._button("Export diagnostic bundle", "exportBundle", buttons)
@@ -270,6 +276,7 @@ class ResultsPage(WizardPage):
         self.restore_button.setEnabled(False)
         self.restore_button.setToolTip(self.tr(NO_BACKUP_TOOLTIP))
         self.restore_button.clicked.connect(self.restore_previous)
+        self.conflicts_button.clicked.connect(lambda: self.resolve_conflicts())
         self.godot_button.clicked.connect(self.open_in_godot)
         self.play_button.clicked.connect(self.play)
         self.starter_button.clicked.connect(self.open_starter_map)
@@ -295,6 +302,22 @@ class ResultsPage(WizardPage):
 
     def run_viewer(self, viewer: TextViewer) -> None:
         viewer.exec()
+
+    def run_conflict_dialog(self, dialog: ConflictDialog) -> None:
+        dialog.exec()
+
+    def resolve_conflicts(self, select: str | None = None) -> None:
+        """The resolver of T12.58 for this project, showing ``select`` first."""
+        if self.result is None:
+            return
+        self.run_conflict_dialog(ConflictDialog(self.result.target, select, self))
+        self._update_conflicts_button()
+
+    def _update_conflicts_button(self) -> None:
+        target = self.result.target if self.result is not None else None
+        count = len(conflicts.list_conflicts(target)) if target and target.is_dir() else 0
+        self.conflicts_button.setVisible(bool(count))
+        self.conflicts_button.setText(self.tr("Resolve conflicts ({0})…").format(count))
 
     def confirm_restore(self) -> bool:
         answer = QMessageBox.question(
@@ -498,6 +521,7 @@ class ResultsPage(WizardPage):
         )
         self.failed_button.setVisible(False)
         self.logs_button.setVisible(False)
+        self._update_conflicts_button()
 
     def _show_failure(self, result: orchestrator.RunResult) -> None:
         self.header.setText(self.tr("Generation failed. Nothing was delivered."))
@@ -525,6 +549,7 @@ class ResultsPage(WizardPage):
         for button in (self.godot_button, self.folder_button, self.report_button):
             button.setVisible(False)
         self.restore_button.setVisible(False)
+        self.conflicts_button.setVisible(False)
         has_folder = result.failed_staging is not None
         self.failed_button.setVisible(True)
         self.failed_button.setEnabled(has_folder)
@@ -569,6 +594,9 @@ class ResultsPage(WizardPage):
             def open_folder(self) -> None:
                 if page.result is not None:
                     page.open_path(page.result.target)
+
+            def resolve_conflicts(self, file: str | None) -> None:
+                page.resolve_conflicts(file)
 
         return Nav()
 
@@ -639,6 +667,7 @@ class ResultsPage(WizardPage):
             self.tr("Restored"), self.tr("The previous version of the project was restored.")
         )
         self.restore_button.setEnabled(bool(promote.list_backups(self.result.target)))
+        self._update_conflicts_button()
         return True
 
     def view_report(self) -> None:

@@ -321,6 +321,9 @@ class _Nav:
     def open_folder(self) -> None:
         self.calls.append("folder")
 
+    def resolve_conflicts(self, file: str | None) -> None:
+        self.calls.append(("resolve", file))
+
 
 def _issue(code: str, severity: Severity = Severity.ERROR, **detail) -> Issue:  # type: ignore[no-untyped-def]
     return Issue(code, severity, f"{code} happened.", "Fix it.", detail=detail)
@@ -374,8 +377,11 @@ def test_each_action_leaves_the_expected_state(tmp_path: Path) -> None:
     fixes.apply(upgrade, _issue("REGEN-006"), state, nav)
     assert state.accept_runtime_upgrade is True and state.run_result is None
     (conflicts,) = fixes.fixes_for("REGEN-001")
+    named = Issue("REGEN-001", Severity.WARNING, "m", "f", file="generated/a.tscn")
+    fixes.apply(conflicts, named, state, nav)
+    assert nav.calls[-1] == ("resolve", "generated/a.tscn")  # T12.58: the resolver, at that file
     fixes.apply(conflicts, _issue("REGEN-001"), state, nav)
-    assert nav.calls[-1] == "folder"
+    assert nav.calls[-1] == ("resolve", None)
 
 
 def test_the_results_row_shows_buttons_only_for_registered_codes(qtbot, tmp_path: Path) -> None:
@@ -398,7 +404,7 @@ def test_the_results_row_shows_buttons_only_for_registered_codes(qtbot, tmp_path
     assert state.placeholders == {"PLAYER"} and again == [True]
 
 
-def test_a_note_offers_its_fix_too_and_regen_001_opens_the_folder(qtbot, tmp_path: Path) -> None:
+def test_a_note_offers_its_fix_too_and_regen_001_opens_the_resolver(qtbot, tmp_path: Path) -> None:
     note = _issue("ENV-010", Severity.INFO)
     conflict = _issue("REGEN-001", Severity.WARNING, file="generated/x.tres")
     state = _state(tmp_path)
@@ -411,10 +417,10 @@ def test_a_note_offers_its_fix_too_and_regen_001_opens_the_folder(qtbot, tmp_pat
     page.fix_buttons[0].click()
     assert helps == ["1. Install"]
     page.issue_list.setCurrentRow(0)
-    opened: list[Path] = []
-    page.open_path = opened.append  # type: ignore[method-assign]
+    opened: list[object] = []
+    page.run_conflict_dialog = lambda dialog: opened.append(dialog.target)  # type: ignore[method-assign]
     page.fix_buttons[0].click()
-    assert opened == [state.run_result.target]
+    assert opened == [state.run_result.target]  # T12.58: the resolver of this project
 
 
 def test_the_wizard_runs_the_generation_again_after_a_fix(qtbot, tmp_path: Path) -> None:

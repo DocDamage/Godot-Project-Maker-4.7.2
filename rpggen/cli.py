@@ -105,6 +105,38 @@ def _build_parser() -> argparse.ArgumentParser:
     restore.add_argument("--target", type=Path, required=True, help="the generated project")
     restore.add_argument("--backup", help="backup folder name (default: the newest)")
     _add_json(restore)
+    resolver = sub.add_parser(
+        "conflicts",
+        help="list the files with a .rpggen-new version, or resolve one (T12.58)",
+        allow_abbrev=False,
+    )
+    resolver.add_argument("--target", type=Path, required=True, help="the generated project")
+    how = resolver.add_mutually_exclusive_group()
+    how.add_argument(
+        "--keep-mine",
+        dest="action",
+        action="store_const",
+        const="keep_mine",
+        help="keep your file; this generated version is not offered again",
+    )
+    how.add_argument(
+        "--take-new",
+        dest="action",
+        action="store_const",
+        const="take_new",
+        help="replace your file with the new version",
+    )
+    how.add_argument(
+        "--merge",
+        dest="action",
+        action="store_const",
+        const="merge",
+        help="merge line by line (text files), with conflict markers where both changed",
+    )
+    resolver.add_argument(
+        "file", nargs="?", help="the project file (posix path, without .rpggen-new)"
+    )
+    _add_json(resolver)
     diagnose = sub.add_parser(
         "diagnose", help="write a diagnostic bundle (no art) for a bug report", allow_abbrev=False
     )
@@ -349,6 +381,51 @@ def _restore(args: argparse.Namespace) -> int:
     return out.done(cli_support.OK, **{**fields, "saved_state": str(safety)}, issues=[])
 
 
+def _conflicts(args: argparse.Namespace) -> int:
+    from rpggen.core import conflicts
+
+    out = Output("conflicts", args.json)
+    target: Path = args.target
+    if not target.is_dir():
+        return out.usage(f"{target} is not a folder")
+    if args.action is None:
+        if args.file:
+            return out.usage("say what to do with the file: --keep-mine, --take-new or --merge")
+        found = conflicts.list_conflicts(target)
+        for rel in found:
+            base = conflicts.find_base(target, rel) is not None
+            out.say(f"{rel}  ({'3 versions' if base else '2 versions: no base found'})")
+        out.say(f"{len(found)} file(s) with a .rpggen-new version")
+        return out.done(cli_support.OK, target=str(target), files=found)
+    if not args.file:
+        return out.usage("name the file to resolve (see the list without an action)")
+    rel = args.file.replace("\\", "/").removesuffix(conflicts.NEW_SUFFIX)
+    fields = {"target": str(target), "file": rel, "action": args.action}
+    try:
+        done = conflicts.resolve(target, rel, args.action)
+    except RpgGenError as exc:
+        out.issues([exc.issue])
+        return out.done(
+            cli_support.exit_code_for([exc.issue]),
+            **fields,
+            issues=[cli_support.issue_json(exc.issue)],
+        )
+    words = {"keep_mine": "kept yours", "take_new": "took the new version", "merge": "merged"}
+    out.say(f"OK: {rel}: {words[args.action]}; the old files were saved to {done.backup}")
+    if done.conflicts:
+        out.say(f"   {done.conflicts} region(s) have conflict markers (<<<<<<< yours): edit them")
+    if done.check_in_godot:
+        out.say("   open the file in Godot to check that it still loads")
+    return out.done(
+        cli_support.OK,
+        **fields,
+        backup=str(done.backup),
+        conflict_regions=done.conflicts,
+        check_in_godot=done.check_in_godot,
+        issues=[],
+    )
+
+
 def _diagnose(args: argparse.Namespace) -> int:
     from rpggen.core import diagnostics
 
@@ -387,6 +464,8 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _restore(args)
     if args.command == "diagnose":
         return _diagnose(args)
+    if args.command == "conflicts":
+        return _conflicts(args)
     from rpggen import analyze_cmd
 
     return analyze_cmd.main(args)

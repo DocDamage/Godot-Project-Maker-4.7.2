@@ -33,6 +33,9 @@ loading and playing it headless, and regenerates it later without touching your 
 * **Generate and Results pages**: each phase with its time and an estimate of the time left,
   cancel, a desktop notification when the window is in the background, and a results page that
   leads with a picture of the generated starter map and a *What next* list.
+* **Resolve conflicts**: generated files you changed and rpggen remade (`.rpggen-new`) side by
+  side with the version rpggen last wrote; keep yours, take the new one or merge them line by
+  line, each backed up first (also `rpggen conflicts`).
 * Tooltips and accessible names on every control, `Alt+N` / `Alt+B`, a tab order, and status
   colours that keep a 3:1 contrast on both themes.
 

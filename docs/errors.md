@@ -146,7 +146,7 @@
 
 | Code | Severity | Message | Recommended fix |
 |------|----------|---------|-----------------|
-| REGEN-001 | warning | User-modified generated file {file} not overwritten; new version at {file}.rpggen-new. | Merge changes manually. |
+| REGEN-001 | warning | User-modified generated file {file} not overwritten; new version at {file}.rpggen-new. | Resolve it with *Resolve conflicts* on the Results page or `rpggen conflicts --target <project>`. |
 | REGEN-002 | info | File {file} was deleted by the user and was not recreated. | — |
 | REGEN-003 | warning | Source {asset} removed from pack; tileset source {source_id} kept. | Confirm removal in the audit. |
 | REGEN-004 | error | Staging promotion failed: {reason}. Target restored from backup. | See log. |
@@ -154,6 +154,8 @@
 | REGEN-006 | error | Runtime upgrade from {old} to {new} needs confirmation. | The new runtime has breaking changes (see the changelog); confirm the upgrade in the wizard or pass --accept-runtime-upgrade. |
 | REGEN-007 | warning | The project was generated but the git commit failed: {reason}. | Fix the repository problem (a hook, a lock, a missing identity) and commit by hand. |
 | REGEN-008 | info | Your own uncommitted changes were left out of rpggen's commit. | Commit them yourself when you are ready. |
+| REGEN-009 | error | There is no .rpggen-new file for {file}: nothing to resolve. | Run `rpggen conflicts --target <project>` to list the files that have one. |
+| REGEN-010 | error | {file} is not a text file, so it cannot be merged. | Keep yours or take the new version. |
 
 ## GUI (GUI)
 

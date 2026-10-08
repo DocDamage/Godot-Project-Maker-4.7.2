@@ -172,6 +172,9 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
 * **Open in Godot / Open folder / View report** (`GENERATION_REPORT.md` explains what was
   generated, what to review and the packs' licenses).
 * **Restore previous** undoes the last regeneration.
+* **Resolve conflicts…** appears when generated files you changed have a new version beside them
+  (`.rpggen-new`): keep yours, take the new one or merge the two, file by file
+  ([regeneration.md](regeneration.md#resolving-conflicts)).
 * On failure: the failing phase, the problems with a fix text, **Open failed folder**, **View
   logs** and **Export diagnostic bundle**.
 

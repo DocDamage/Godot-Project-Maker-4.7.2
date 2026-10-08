@@ -75,6 +75,41 @@ rpggen restore --target <project> [--backup <name>]
 The default is the newest backup. What a restore replaces is saved first, so a restore can be
 undone too. Files the undone generation created are removed if you did not touch them.
 
+## Resolving conflicts
+
+When you changed a generated file and a regeneration produces a different version of it, your
+file stays and the new version is written beside it as `<file>.rpggen-new` (`REGEN-001`).
+**Resolve conflicts…** on the results page (also *File > Resolve conflicts…*, and the button on a
+`REGEN-001` row) lists those files and shows, side by side:
+
+* **Last generated** — the version rpggen wrote before you changed it. It is found in the
+  backups (newest first) or, for a project under git, in its history; when neither has it the
+  pane is hidden and only two versions are shown.
+* **Yours** and **New**, with the lines that differ highlighted.
+
+For each file choose:
+
+| Action | What it does |
+|--------|--------------|
+| **Keep mine** | Deletes the `.rpggen-new` file and remembers that you declined that version (the ledger entry's `declined_sha256`). Regenerating does not raise the conflict again while rpggen still makes exactly that content; a different version is offered again. |
+| **Take new** | Replaces your file with the new version. Later regenerations update the file as usual. |
+| **Merge** | Text files only. A line-based three-way merge: what only one side changed is taken, and where both changed the same lines (or neighbouring lines) the file gets markers to edit by hand: `<<<<<<< yours`, `\|\|\|\|\|\|\| last generated`, `=======`, `>>>>>>> rpggen`. Without the last generated version every difference is marked. The new version then counts as what rpggen last wrote, and it is not offered again. Open a merged `.tscn` or `.tres` in Godot to check that it still loads. |
+
+Every action first copies the file, its `.rpggen-new` and the ledger to a new backup folder, so
+**Restore previous** undoes it (restoring brings the conflict back). These backups count towards
+the three that are kept, at the next regeneration.
+
+From a terminal:
+
+```
+rpggen conflicts --target <project>                         # list
+rpggen conflicts --target <project> --keep-mine <file>      # or --take-new, --merge
+```
+
+`<file>` is the project path with forward slashes (a trailing `.rpggen-new` is accepted). With
+`--json` the list or the result is a JSON document; `REGEN-009` means the file has no
+`.rpggen-new`, `REGEN-010` that a binary file cannot be merged.
+
 ## Git
 
 New projects get a `.gitignore` (the `.godot/` cache, logs and results, `.rpggen_*` working
@@ -107,8 +142,9 @@ as it is and warns with `ENV-013`). The choice is the optional `git.pack_art` ke
 
 ## Troubleshooting
 
-* *REGEN-001* — you changed a generated file. Compare it with the `.rpggen-new` file next to it,
-  merge what you want and delete the `.rpggen-new` file.
+* *REGEN-001* — you changed a generated file. Use **Resolve conflicts…** (see
+  [Resolving conflicts](#resolving-conflicts)), or compare it with the `.rpggen-new` file next to
+  it yourself, merge what you want and delete the `.rpggen-new` file.
 * *REGEN-004* — a file could not be written (often antivirus or the Godot editor holding it). The
   project was restored from the backup; close the other program and run again.
 * *REGEN-005* — the Godot editor seems to be open.

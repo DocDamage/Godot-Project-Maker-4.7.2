@@ -21,11 +21,13 @@ TOKENS: dict[str, dict[str, QColor]] = {
         "canvas_bg": QColor("#3c3c3c"),
         "canvas_bg_alt": QColor("#464646"),
         "grid_line": QColor(255, 255, 255, 150),
+        "diff_changed": QColor(230, 170, 40, 70),  # lines that differ (conflict dialog)
     },
     "light": {
         "canvas_bg": QColor("#d9dce2"),
         "canvas_bg_alt": QColor("#cdd1d8"),
         "grid_line": QColor(20, 24, 32, 160),
+        "diff_changed": QColor(230, 160, 20, 90),
     },
 }
 

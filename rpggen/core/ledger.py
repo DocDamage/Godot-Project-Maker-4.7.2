@@ -50,12 +50,26 @@ EXCLUDED_FILES = ("GENERATION_REPORT.md", "rpggen/generation_report.json", paths
 MERGE_MANAGED = ("project.godot", paths.CONFIG, paths.CATALOG)
 
 
+def is_text(rel: str) -> bool:
+    """True for files hashed (and merged, T12.58) as text: by extension, or name for dotfiles."""
+    p = Path(rel)
+    return p.suffix.lower() in TEXT_EXTS or p.name.lower() in TEXT_NAMES
+
+
+def hash_bytes(data: bytes, rel: str) -> str:
+    """The ledger hash of ``data`` as the content of ``rel``: ``file_hash`` without the file, so
+    that a ``.rpggen-new`` copy is hashed as the file it stands for."""
+    if is_text(rel):
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()
+
+
 def file_hash(path: Path) -> str:
     """sha256. Text files (by extension, or name for dotfiles): read bytes, replace CRLF with LF
     and hash. Other files: raw bytes."""
     path = Path(path)
-    if path.suffix.lower() in TEXT_EXTS or path.name.lower() in TEXT_NAMES:
-        return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+    if is_text(path.name):
+        return hash_bytes(path.read_bytes(), path.name)
     h = hashlib.sha256()
     with open(path, "rb") as fh:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
@@ -68,6 +82,16 @@ class LedgerEntry:
     sha256: str
     written_by: str
     owner: Literal["generated", "user_seed"]
+    # T12.58: generated content the user declined ("Keep mine"); promotion does not raise the
+    # conflict again while the generator still produces exactly this
+    declined_sha256: str | None = None
+
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"sha256": self.sha256, "written_by": self.written_by}
+        out["owner"] = self.owner
+        if self.declined_sha256:
+            out["declined_sha256"] = self.declined_sha256
+        return out
 
 
 @dataclass
@@ -82,10 +106,7 @@ class Ledger:
         out: dict[str, Any] = {
             "ledger_version": 1,
             "generator_version": self.generator_version,
-            "files": {
-                rel: {"sha256": e.sha256, "written_by": e.written_by, "owner": e.owner}
-                for rel, e in sorted(self.files.items())
-            },
+            "files": {rel: e.to_json() for rel, e in sorted(self.files.items())},
             "deleted_by_user": sorted(set(self.deleted_by_user)),
         }
         if self.demo_removed:
@@ -97,7 +118,7 @@ class Ledger:
         schema.validate("ledger", data)
         return cls(
             {
-                rel: LedgerEntry(e["sha256"], e["written_by"], e["owner"])
+                rel: LedgerEntry(e["sha256"], e["written_by"], e["owner"], e.get("declined_sha256"))
                 for rel, e in data["files"].items()
             },
             list(data["deleted_by_user"]),

@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import shutil
 import subprocess
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -62,6 +62,31 @@ def _git(
         check=False,
         env=procenv.child_env(),
     )
+
+
+def committed_versions(target: Path, rel: str, limit: int = 20) -> Iterator[bytes]:
+    """The contents of ``rel`` in the last ``limit`` commits that changed it, newest first
+    (T12.58: the base of a conflict). Nothing without git or a repository."""
+    target = Path(target)
+    if not (git_available() and is_repository(target)):
+        return
+    log_run = _git(target, "log", f"-n{limit}", "--format=%H", "--", rel)
+    if log_run.returncode != 0:
+        return
+    for commit_id in log_run.stdout.split():
+        try:
+            show = subprocess.run(
+                ["git", "show", f"{commit_id}:{rel}"],
+                cwd=target,
+                capture_output=True,
+                timeout=TIMEOUT_S,
+                check=False,
+                env=procenv.child_env(),
+            )
+        except (OSError, subprocess.SubprocessError):
+            return
+        if show.returncode == 0:
+            yield show.stdout
 
 
 def _has_identity(target: Path) -> bool:

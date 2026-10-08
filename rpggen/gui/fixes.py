@@ -33,6 +33,8 @@ class Navigation(Protocol):
 
     def open_folder(self) -> None: ...
 
+    def resolve_conflicts(self, file: str | None) -> None: ...
+
 
 _GODOT = (
     Fix("download_godot", "Download Godot 4.7.2"),
@@ -46,7 +48,6 @@ FIXES: dict[str, tuple[Fix, ...]] = {
     "ENV-010": (Fix("export_help", "How to install export templates"),),
     "ASSET-010": (Fix("use_placeholder", "Use a placeholder and generate again"),),
     "REGEN-006": (Fix("accept_upgrade", "Accept the runtime upgrade and generate again"),),
-    # the resolver of T12.58 is not built yet: until it lands the button opens the folder
     "REGEN-001": (Fix("resolve_conflicts", "Resolve conflicts"),),
 }
 
@@ -83,8 +84,9 @@ def apply(fix: Fix, issue: Issue, state: WizardState, nav: Navigation) -> bool:
         state.accept_runtime_upgrade = True
         state.run_result = None
         nav.generate_again()
-    elif action == "resolve_conflicts":
-        nav.open_folder()
+    elif action == "resolve_conflicts":  # T12.58: the resolver, showing the issue's file
+        file = issue.file or issue.detail.get("file")  # REGEN-001 names the file in ``file``
+        nav.resolve_conflicts(file if isinstance(file, str) and file else None)
     else:
         return False
     return True

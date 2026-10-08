@@ -104,7 +104,7 @@ CODES: dict[str, CodeInfo] = {
     "VAL-026": CodeInfo("VAL-026", "warning", "Battle data problem in {file}: {problem}.", "Fix the skill, actor, enemy or item resource (README.md, section 11, explains skills, statuses and enemy rules)."),
     "SMOKE-001": CodeInfo("SMOKE-001", "error", "Smoke step {step} \"{name}\" failed: {detail}.", "See smoke log and smoke_results.json."),
     "SMOKE-002": CodeInfo("SMOKE-002", "error", "Smoke test timed out at step {step}.", "See smoke log."),
-    "REGEN-001": CodeInfo("REGEN-001", "warning", "User-modified generated file {file} not overwritten; new version at {file}.rpggen-new.", "Merge changes manually."),
+    "REGEN-001": CodeInfo("REGEN-001", "warning", "User-modified generated file {file} not overwritten; new version at {file}.rpggen-new.", "Resolve it with *Resolve conflicts* on the Results page or `rpggen conflicts --target <project>`."),
     "REGEN-002": CodeInfo("REGEN-002", "info", "File {file} was deleted by the user and was not recreated.", "—"),
     "REGEN-003": CodeInfo("REGEN-003", "warning", "Source {asset} removed from pack; tileset source {source_id} kept.", "Confirm removal in the audit."),
     "REGEN-004": CodeInfo("REGEN-004", "error", "Staging promotion failed: {reason}. Target restored from backup.", "See log."),
@@ -112,5 +112,7 @@ CODES: dict[str, CodeInfo] = {
     "REGEN-006": CodeInfo("REGEN-006", "error", "Runtime upgrade from {old} to {new} needs confirmation.", "The new runtime has breaking changes (see the changelog); confirm the upgrade in the wizard or pass --accept-runtime-upgrade."),
     "REGEN-007": CodeInfo("REGEN-007", "warning", "The project was generated but the git commit failed: {reason}.", "Fix the repository problem (a hook, a lock, a missing identity) and commit by hand."),
     "REGEN-008": CodeInfo("REGEN-008", "info", "Your own uncommitted changes were left out of rpggen's commit.", "Commit them yourself when you are ready."),
+    "REGEN-009": CodeInfo("REGEN-009", "error", "There is no .rpggen-new file for {file}: nothing to resolve.", "Run `rpggen conflicts --target <project>` to list the files that have one."),
+    "REGEN-010": CodeInfo("REGEN-010", "error", "{file} is not a text file, so it cannot be merged.", "Keep yours or take the new version."),
     "GUI-001": CodeInfo("GUI-001", "error", "Unexpected error: {reason}.", "Export a diagnostic bundle and report it."),
 }
