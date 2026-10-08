@@ -952,6 +952,11 @@ class ProjectPage(WizardPage):
         label.style().unpolish(label)
         label.style().polish(label)
 
+    def status(self, state: WizardState) -> tuple[str, int]:
+        if state.catalog is None:
+            return ("none", 0)
+        return ("ok", len(state.pack_sources))
+
     def validate(self, state: WizardState) -> list[Issue]:
         issues: list[Issue] = []
         if not self.sources():

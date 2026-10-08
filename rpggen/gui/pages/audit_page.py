@@ -272,6 +272,13 @@ class AuditPage(WizardPage):
         scroll.setWidget(panel)
         return scroll
 
+    def status(self, state: WizardState) -> tuple[str, int]:
+        """How many assets still need attention (a warning, never a block)."""
+        if state.catalog is None:
+            return ("none", 0)
+        _done, attention, _total = catalog_mod.review_progress(state.catalog)
+        return ("attention", attention) if attention else ("ok", 0)
+
     def _ensure_session(self, state: WizardState) -> EditSession:
         assert state.catalog is not None
         if self.session is None:

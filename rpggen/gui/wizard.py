@@ -34,6 +34,7 @@ OPTIONS_INDEX = 4  # the last page before generation: its Next button reads "Gen
 DEFAULT_WINDOW = (1100, 720)
 NARROW_BELOW = 1000  # narrower than this the sidebar shows the numbers only
 SIDEBAR_WIDE, SIDEBAR_NARROW = 170, 52
+STATUS_GLYPHS = {"ok": "✓", "attention": "⚠", "error": "✖"}
 MIN_WINDOW = (880, 540)  # the layout test (tests/gui/test_layout_fit.py) runs at this size
 
 
@@ -240,7 +241,12 @@ class MainWindow(WindowMenus, QMainWindow):
 
     def _on_sidebar_clicked(self, item: QListWidgetItem) -> None:
         index = self.sidebar.row(item)
-        if index in self.visited and index != self.current_index and self._leave_current():
+        if index == self.current_index:
+            return
+        if index > self.current_index and index <= OPTIONS_INDEX and self.next_button.isEnabled():
+            self.continue_to(index)  # forward: every page in between is entered and left, as
+            return  # with Next, and the walk stops at the first one that blocks
+        if index in self.visited and self._leave_current():
             self.show_page(index)
 
     # ------------------------------------------------------------------ state of the controls
@@ -277,10 +283,44 @@ class MainWindow(WindowMenus, QMainWindow):
 
     def _fit_sidebar(self) -> None:
         """Below ``NARROW_BELOW`` px the sidebar keeps the step numbers; the names are tooltips."""
+        self.sidebar.setFixedWidth(SIDEBAR_NARROW if self.width() < NARROW_BELOW else SIDEBAR_WIDE)
+        self._update_sidebar_text()
+
+    def _step_status(self, index: int) -> tuple[str, int]:
+        """The status of a page the user has been to (the others show nothing)."""
+        if index not in self.visited:
+            return ("none", 0)
+        try:
+            return self.pages[index].status(self.state)
+        except Exception:  # noqa: BLE001 - a status must never break the window
+            log.warning("status of page %d failed", index, exc_info=True)
+            return ("none", 0)
+
+    def _update_sidebar_text(self) -> None:
+        """ "3. Audit · 12 ⚠": number, name, a count, and a glyph so colour is never the only
+        cue; narrow, only the number and the glyph (the rest is the tooltip)."""
         narrow = self.width() < NARROW_BELOW
-        self.sidebar.setFixedWidth(SIDEBAR_NARROW if narrow else SIDEBAR_WIDE)
         for i, name in enumerate(self._sidebar_names):
-            self.sidebar.item(i).setText(f"{i + 1}" if narrow else f"{i + 1}. {name}")
+            kind, count = self._step_status(i)
+            glyph = STATUS_GLYPHS.get(kind, "")
+            number = f"{i + 1}"
+            if narrow:
+                text = f"{number} {glyph}".strip()
+            else:
+                text = f"{number}. {name}" + (f" · {count}" if count else "")
+                text += f"  {glyph}" if glyph else ""
+            item = self.sidebar.item(i)
+            item.setText(text)
+            meaning = {
+                "ok": self.tr("done"),
+                "attention": self.tr("needs attention"),
+                "error": self.tr("must be fixed"),
+            }.get(kind, "")
+            spoken = self.tr("Step {0}, {1}").format(i + 1, name)
+            if meaning:
+                spoken += ", " + meaning + (f" ({count})" if count else "")
+            item.setData(Qt.ItemDataRole.AccessibleTextRole, spoken)
+            item.setToolTip(spoken if meaning else name)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt override
         for page in self.pages:
@@ -299,13 +339,17 @@ class MainWindow(WindowMenus, QMainWindow):
         self.issues = page.validate(self.state)
         errors = [i for i in self.issues if i.severity is Severity.ERROR]
         blocking = [i for i in errors if i.code != EMPTY_CODE]  # empty fields wait for the press
+        forward_ok = not blocking and page.allow_next
         for i in range(self.sidebar.count()):
             item = self.sidebar.item(i)
-            enabled = i in self.visited
+            enabled = i in self.visited or (
+                i > self.current_index and i <= OPTIONS_INDEX and forward_ok
+            )
             flags = item.flags()
             item.setFlags(
                 flags | Qt.ItemFlag.ItemIsEnabled if enabled else flags & ~Qt.ItemFlag.ItemIsEnabled
             )
+        self._update_sidebar_text()
         self.sidebar.setCurrentRow(self.current_index)
         last = self.current_index >= len(self.pages) - 1
         self.back_button.setEnabled(self.current_index > 0 and page.allow_back)

@@ -987,6 +987,9 @@ class OptionsPage(WizardPage):
 
     # ------------------------------------------------------------------ wizard hooks
 
+    def status(self, state: WizardState) -> tuple[str, int]:
+        return ("ok", 0) if state.config is not None else ("none", 0)
+
     def validate(self, state: WizardState) -> list[Issue]:
         if self.draft is None:
             return []

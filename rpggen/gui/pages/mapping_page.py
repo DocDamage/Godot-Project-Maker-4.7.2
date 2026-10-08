@@ -478,6 +478,14 @@ class MappingPage(WizardPage):
             self.scroll.ensureWidgetVisible(widget)
             widget.choose_button.setFocus()
 
+    def status(self, state: WizardState) -> tuple[str, int]:
+        """The required roles that have neither an asset nor a placeholder (they block Next)."""
+        if state.catalog is None:
+            return ("none", 0)
+        archetype = state.archetype or "turn_based"
+        missing = mapping.missing_required(state.catalog, archetype, set(state.placeholders))
+        return ("error", len(missing)) if missing else ("ok", 0)
+
     def validate(self, state: WizardState) -> list[Issue]:
         if state.catalog is None:
             return []

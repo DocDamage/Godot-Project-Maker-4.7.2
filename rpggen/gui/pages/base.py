@@ -29,6 +29,12 @@ class WizardPage(QWidget):
         """Issues of the current values; Next is disabled while an error exists."""
         return []
 
+    def status(self, state: WizardState) -> tuple[str, int]:
+        """What the sidebar shows for this step: (kind, count), kind one of ``none``, ``ok``,
+        ``attention`` or ``error``. Computed from ``state`` alone, so it is right for a page that
+        is not the current one."""
+        return ("none", 0)
+
     def reveal_missing(self, state: WizardState) -> None:  # noqa: B027 - optional hook
         """Next was pressed while required fields are empty: mark them and focus the first."""
 

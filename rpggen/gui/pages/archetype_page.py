@@ -370,6 +370,9 @@ class ArchetypePage(WizardPage):
         self.turn_card.setChecked(True)
         self.group.buttonToggled.connect(lambda *_: self._on_toggled())
 
+    def status(self, state: WizardState) -> tuple[str, int]:
+        return ("ok", 0)
+
     def _update_art(self, state: WizardState) -> None:
         """Draw the cards with the pack's art; one build per catalog."""
         if state.catalog is not None and state.catalog is self._art_catalog:
