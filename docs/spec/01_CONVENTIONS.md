@@ -58,6 +58,8 @@ rpggen/                                  ← git repository root
 │   │   ├── wizard.py
 │   │   ├── pages/ (project_page.py, archetype_page.py, audit_page.py, mapping_page.py,
 │   │   │           options_page.py, generate_page.py, results_page.py)
+│   │   ├── models/ (what a page decides, without PySide6: forms.py, project_model.py,
+│   │   │            options_model.py; T12.25)
 │   │   ├── widgets/ (asset_grid.py, asset_detail.py, grid_editor.py, anim_preview.py,
 │   │   │             object_cutter.py, log_view.py, status_badge.py)
 │   │   └── workers.py

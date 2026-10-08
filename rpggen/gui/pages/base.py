@@ -5,7 +5,14 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 
-from rpggen.errors import Issue, Severity
+from rpggen.errors import Issue
+from rpggen.gui.models.forms import (  # noqa: F401 - the pages import them from here
+    EMPTY_CODE,
+    FORM_CODE,
+    form_error,
+    form_missing,
+    form_ok,
+)
 from rpggen.gui.state import WizardState
 
 
@@ -41,21 +48,3 @@ class WizardPage(QWidget):
     def leave(self, state: WizardState) -> bool | None:
         """Write the widget values into ``state``. Returning False keeps the page open."""
         return None
-
-
-FORM_CODE = "GUI-INPUT"  # form hints are not pipeline errors, so they have no table entry
-EMPTY_CODE = "GUI-EMPTY"  # a required field that is only empty: Next stays enabled, pressing it
-# marks the field and says what is missing
-
-
-def form_error(message: str, fix: str = "") -> Issue:
-    return Issue(FORM_CODE, Severity.ERROR, message, fix)
-
-
-def form_missing(message: str, fix: str = "") -> Issue:
-    """An empty required field (not an error until the user presses Next)."""
-    return Issue(EMPTY_CODE, Severity.ERROR, message, fix)
-
-
-def form_ok(message: str) -> Issue:
-    return Issue(FORM_CODE, Severity.INFO, message, "")
