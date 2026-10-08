@@ -227,3 +227,98 @@ def test_tags_and_leave_writes_the_catalog_to_the_state(qtbot) -> None:
     page.leave(state)
     assert state.catalog is page.session.catalog
     assert state.catalog.asset(asset.id).overrides["tags"] == ["forest", "summer"]
+
+
+# ------------------------------------------------------------------------ T12.43: the Changes tab
+
+
+def test_describe_changes_lists_overrides_rules_and_objects(cat) -> None:
+    session = edits.EditSession(cat)
+    assert edits.describe_changes(cat) == []
+    asset = cat.assets[0]
+    other = cat.assets[1]
+    session.set_override(asset.id, "role", "WALL")
+    session.set_override(other.id, "role", "NONE")
+    session.set_override(other.id, "tags", ["x"])
+    session.add_rule(catalog.FolderRule(asset.pack_id, "tiles/*", {"role": "GROUND"}))
+    found = edits.describe_changes(session.catalog)
+    kinds = sorted(c.kind for c in found)
+    assert kinds == ["excluded", "other", "role", "rules"]
+    role = next(c for c in found if c.kind == "role")
+    assert (
+        role.asset_id == asset.id and role.after == "WALL" and role.before == asset.detected["role"]
+    )
+    assert next(c for c in found if c.kind == "rules").label.endswith("tiles/*")
+
+
+def test_an_override_equal_to_the_detection_is_not_a_change(cat) -> None:
+    session = edits.EditSession(cat)
+    asset = cat.assets[0]
+    session.set_override(asset.id, "role", asset.detected["role"])
+    assert edits.describe_changes(session.catalog) == []
+
+
+def test_revert_restores_the_detected_value_and_can_be_undone(qtbot, cat) -> None:
+    session = edits.EditSession(cat)
+    asset = cat.assets[0]
+    session.set_override(asset.id, "role", "WALL")
+    (change,) = edits.describe_changes(session.catalog)
+    assert session.revert(change)
+    assert session.catalog.asset(asset.id).overrides == {}
+    assert edits.describe_changes(session.catalog) == []
+    session.undo_stack.undo()  # the revert is an undo step of its own
+    assert session.catalog.asset(asset.id).overrides == {"role": "WALL"}
+    assert len(edits.describe_changes(session.catalog)) == 1
+
+
+def test_the_changes_tab_counts_and_follows_every_edit(qtbot) -> None:
+    page, state = _page(qtbot)
+    assert page.tabs.tabText(page.changes_index) == "Changes (0)"
+    assert page.changes_panel.count() == 0 and not page.changes_panel.empty_label.isHidden()
+    ids = [a.id for a in page.session.catalog.assets]
+    page.session.set_override(ids[0], "role", "WALL")
+    assert page.tabs.tabText(page.changes_index) == "Changes (1)"
+    page.session.set_override(ids[1], "role", "NONE")
+    assert page.changes_panel.count() == 2
+    rows = page.changes_panel.row_texts()
+    assert {r[0] for r in rows} == {"Role", "Excluded"}
+    assert any(r[3] == "Wall tiles" for r in rows)  # the friendly name, not WALL
+    page.session.undo_stack.undo()
+    assert page.tabs.tabText(page.changes_index) == "Changes (1)"
+    page.session.undo_stack.redo()
+    assert page.tabs.tabText(page.changes_index) == "Changes (2)"
+
+
+def test_the_revert_button_and_the_kind_filter(qtbot) -> None:
+    page, _state = _page(qtbot)
+    panel = page.changes_panel
+    ids = [a.id for a in page.session.catalog.assets]
+    page.session.set_override(ids[0], "role", "WALL")
+    page.session.set_override(ids[1], "role", "NONE")
+    panel.kind_filter.setCurrentIndex(panel.kind_filter.findData("excluded"))
+    assert [r[0] for r in panel.row_texts()] == ["Excluded"]
+    assert panel.count() == 2  # the count ignores the filter
+    panel.table.cellWidget(0, 4).click()
+    assert panel.count() == 1 and page.session.catalog.asset(ids[1]).overrides == {}
+    page.session.undo_stack.undo()
+    assert panel.count() == 2
+
+
+def test_double_clicking_a_change_selects_the_asset_in_the_grid(qtbot) -> None:
+    page, _state = _page(qtbot, "mixed")
+    target = page.session.catalog.assets[2].id
+    page.session.set_override(target, "role", "WALL")
+    page.grid.chips["chipAttention"].click()  # a filter that may hide it
+    page.tabs.setCurrentWidget(page.changes_panel)
+    page.changes_panel.table.cellDoubleClicked.emit(0, 1)
+    assert page.tabs.currentWidget() is page.grid
+    assert page.grid.selected_ids() == [target]
+
+
+def test_folder_rules_have_a_revert_too(qtbot) -> None:
+    page, _state = _page(qtbot)
+    asset = page.session.catalog.assets[0]
+    page.session.add_rule(catalog.FolderRule(asset.pack_id, "tiles/*", {"role": "GROUND"}))
+    assert page.changes_panel.count() == 1
+    page.changes_panel.table.cellWidget(0, 4).click()
+    assert page.changes_panel.count() == 0 and page.session.catalog.folder_rules == []

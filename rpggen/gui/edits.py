@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from PySide6.QtCore import QObject, Signal
@@ -295,6 +296,23 @@ class EditSession(QObject):
 
         return self.apply("Edit selection", change, ids)
 
+    def revert(self, change: Change) -> bool:
+        """Put one change back to the detected state (an undo step of its own)."""
+        if change.key == "folder_rule":
+            return self.delete_rule(int(change.ref))
+        if change.key == "object":
+            if change.after == "rejected":
+                return self.apply(
+                    "Revert object",
+                    lambda c: update_object(c, str(change.ref), status="AUTO_DETECTED"),
+                )
+            return self.remove_object(str(change.ref))
+        return self.apply(
+            f"Revert {change.key}",
+            lambda c: clear_override(c, change.asset_id, change.key),
+            [change.asset_id],
+        )
+
     def add_rule(self, rule: catalog_mod.FolderRule) -> bool:
         return self.apply("Add folder rule", lambda c: add_folder_rule(c, rule))
 
@@ -321,3 +339,63 @@ class EditSession(QObject):
 
     def set_sheet_objects(self, sheet_id: str, objects: list[catalog_mod.SheetObject]) -> bool:
         return self.apply("Edit objects", lambda c: set_sheet_objects(c, sheet_id, objects))
+
+
+# --------------------------------------------------------------------------- what changed (T12.43)
+
+CHANGE_KINDS = ("role", "excluded", "grid", "collision", "animations", "objects", "rules", "other")
+_OVERRIDE_KIND = {
+    "role": "role",
+    "grid": "grid",
+    "collision": "collision",
+    "animations": "animations",
+}
+
+
+@dataclass(frozen=True)
+class Change:
+    """One difference between what was detected and what the catalog says now."""
+
+    kind: str  # one of CHANGE_KINDS
+    key: str  # the facet ("role", "grid", ...), "folder_rule" or "object"
+    label: str  # the asset's path, the rule's glob or the object's name
+    before: Any  # the detected value (None: there was none)
+    after: Any
+    asset_id: str = ""  # the asset (or the sheet of an object) the row belongs to
+    ref: Any = None  # rule index or object id, for the revert
+
+
+def describe_changes(catalog: Catalog) -> list[Change]:
+    """Every asset override that differs from the detection, the folder rules and the objects
+    the user added or rejected, in a stable order (assets by path, then rules, then objects)."""
+    found: list[Change] = []
+    for asset in sorted(catalog.assets, key=lambda a: a.path):
+        for key, after in sorted(asset.overrides.items()):
+            before = asset.detected.get(key)
+            if before == after:
+                continue
+            if key == "role" and after == "NONE":
+                kind = "excluded"
+            else:
+                kind = _OVERRIDE_KIND.get(key, "other")
+            found.append(Change(kind, key, asset.path, before, after, asset.id))
+    for index, rule in enumerate(catalog.folder_rules):
+        found.append(
+            Change(
+                "rules",
+                "folder_rule",
+                f"{rule.pack_id}: {rule.glob}",
+                None,
+                dict(rule.set),
+                "",
+                index,
+            )
+        )
+    for obj in sorted(catalog.objects, key=lambda o: o.id):
+        if obj.status == "UNUSED":
+            found.append(
+                Change("objects", "object", obj.name, "detected", "rejected", obj.sheet, obj.id)
+            )
+        elif obj.source != "auto":
+            found.append(Change("objects", "object", obj.name, None, "added", obj.sheet, obj.id))
+    return found

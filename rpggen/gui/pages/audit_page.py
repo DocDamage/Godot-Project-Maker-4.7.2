@@ -46,6 +46,7 @@ from rpggen.gui.widgets.bulk_panel import (
     common_folder,
     default_glob,
 )
+from rpggen.gui.widgets.changes_panel import ChangesPanel
 from rpggen.gui.widgets.grid_editor import GridEditorDialog
 from rpggen.gui.widgets.object_cutter import ObjectCutterDialog
 from rpggen.gui.widgets.task_progress import error_text, run_task
@@ -133,6 +134,8 @@ class AuditPage(WizardPage):
         self.tabs.setCornerWidget(self.profile_button, Qt.Corner.TopRightCorner)
         self.rules_panel: RulesPanel | None = None
         self.terrain_tab: TerrainTab | None = None
+        self.changes_panel: ChangesPanel | None = None
+        self.changes_index = -1
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.splitter.setObjectName("auditSplitter")
         self.splitter.addWidget(self.tabs)
@@ -272,6 +275,18 @@ class AuditPage(WizardPage):
         scroll.setWidget(panel)
         return scroll
 
+    def _on_changes_counted(self, count: int) -> None:
+        self.tabs.setTabText(self.changes_index, self.tr("Changes ({0})").format(count))
+
+    def show_asset(self, asset_id: str) -> None:
+        """Select an asset in the grid (the Changes tab's double-click): back on the Assets tab,
+        with the filters that would hide it put aside."""
+        self.tabs.setCurrentWidget(self.grid)
+        if asset_id not in self.grid.visible_ids():
+            self.grid.chips["chipAll"].click()
+        self.grid.select_ids([asset_id])
+        self.grid.scroll_to(asset_id)
+
     def show_assets(self, asset_ids: set[str]) -> None:
         """Filter the grid to these assets (the ones the results named)."""
         self.grid.show_ids(asset_ids)
@@ -301,6 +316,11 @@ class AuditPage(WizardPage):
             self.terrain_tab = TerrainTab(self.session)
             self.terrain_tab.changed.connect(self.changed.emit)
             self.tabs.addTab(self.terrain_tab, self.tr("Terrain"))
+            self.changes_panel = ChangesPanel(self.session)
+            self.changes_index = self.tabs.addTab(self.changes_panel, self.tr("Changes (0)"))
+            self.changes_panel.countChanged.connect(self._on_changes_counted)
+            self.changes_panel.assetActivated.connect(self.show_asset)
+            self._on_changes_counted(self.changes_panel.count())
             self.session.changed.connect(self._on_catalog_changed)
             undo = self.session.undo_stack.createUndoAction(self, self.tr("Undo"))
             redo = self.session.undo_stack.createRedoAction(self, self.tr("Redo"))
