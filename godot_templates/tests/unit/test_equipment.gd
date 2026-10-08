@@ -3,6 +3,7 @@ extends RefCounted
 ## reading stats through get_stat, and the picker's preview.
 
 const Fixtures := preload("../lib/fixtures.gd")
+const ActorBuild := preload("res://builder/lib/actor_build.gd")
 
 func _gear(id: StringName, category: RpgItemDefinition.Category, stat: StringName, add: float, mul: float = 1.0) -> RpgItemDefinition:
 	var def := Fixtures.item(id, 1)
@@ -187,3 +188,86 @@ func test_the_picker_lists_the_candidates_and_equips_on_press(t) -> void:
 	t.eq(closed, [true])
 	Fixtures.uninstall_state()
 	Fixtures.uninstall_english(english)
+
+# ------------------------------------------------------------------ max_hp and move_speed
+
+func _boots(id: StringName, stat: StringName, add: float) -> RpgItemDefinition:
+	return _gear(id, RpgItemDefinition.Category.ACCESSORY, stat, add)
+
+func test_a_max_hp_modifier_raises_the_cap_and_does_not_heal(t) -> void:
+	var state := _state()
+	state.items[&"amulet"] = _boots(&"amulet", &"max_hp", 10.0)
+	var base: int = state.player_stats.max_hp
+	state.player_stats.hp = base - 5
+	t.eq(RpgUtil.max_hp(state.player_stats), base)
+	state.inventory.add(&"amulet")
+	state.equip(&"hero", &"amulet")
+	t.eq(RpgUtil.max_hp(state.player_stats), base + 10)
+	t.eq(state.player_stats.hp, base - 5, "wearing it does not heal")
+	t.eq(RpgBattleActor.make(&"hero", "Hero", state.player_stats, true).max_hp(), base + 10)
+	t.eq(RpgBattleActor.make(&"x", "X", RpgStats.new(), false).max_hp(), RpgStats.new().max_hp, "enemies wear nothing")
+	# a potion heals up to the new cap
+	state.items[&"big"] = Fixtures.item(&"big", 99, &"heal", 100)
+	state.inventory.add(&"big")
+	t.ok(state.inventory.use(&"big", state.player_stats))
+	t.eq(state.player_stats.hp, base + 10)
+	t.ok(not state.inventory.use(&"big", state.player_stats), "full at the new cap")
+	Fixtures.uninstall_state()
+
+func test_taking_off_a_max_hp_item_pulls_the_hp_down_but_not_to_zero(t) -> void:
+	var state := _state()
+	state.items[&"amulet"] = _boots(&"amulet", &"max_hp", 10.0)
+	var base: int = state.player_stats.max_hp
+	state.inventory.add(&"amulet")
+	state.equip(&"hero", &"amulet")
+	state.player_stats.hp = base + 10
+	t.ok(state.unequip(&"hero", &"accessory"))
+	t.eq(state.player_stats.hp, base, "clamped to the smaller cap")
+	state.player_stats.hp = 3
+	state.equip(&"hero", &"amulet")
+	state.unequip(&"hero", &"accessory")
+	t.eq(state.player_stats.hp, 3, "a lower hp is left alone")
+	Fixtures.uninstall_state()
+
+func test_a_level_up_refills_to_the_equipped_cap(t) -> void:
+	var state := _state()
+	state.items[&"amulet"] = _boots(&"amulet", &"max_hp", 10.0)
+	state.inventory.add(&"amulet")
+	state.equip(&"hero", &"amulet")
+	state.player_stats.hp = 1
+	t.ok(state.give_experience(1000) > 0)
+	t.eq(state.player_stats.hp, RpgUtil.max_hp(state.player_stats))
+	t.eq(state.player_stats.hp, state.player_stats.max_hp + 10)
+	Fixtures.uninstall_state()
+
+func test_a_move_speed_modifier_scales_the_players_walk(t) -> void:
+	var state := _state()
+	state.items[&"boots"] = _boots(&"boots", &"move_speed", 20.0)
+	t.near(state.move_speed_factor(state.player_stats), 1.0)
+	var player := ActorBuild.build("player", "Hero", null, Vector2i(16, 24), Vector2i(8, 23), 16) as RpgActor
+	var movement: RpgMovement = player.component("Movement")
+	movement.actor = player
+	var walk := movement.speed
+	t.near(movement.walk_speed(), walk)
+	state.inventory.add(&"boots")
+	state.equip(&"hero", &"boots")
+	t.near(state.move_speed_factor(state.player_stats), 1.25)  # 80 -> 100
+	t.near(movement.walk_speed(), walk * 1.25)
+	var npc := ActorBuild.build("base", "Npc", null, Vector2i(16, 24), Vector2i(8, 23), 16) as RpgActor
+	var npc_movement: RpgMovement = npc.component("Movement")
+	npc_movement.actor = npc
+	t.near(npc_movement.walk_speed(), npc_movement.speed, 0.0001)
+	t.near(state.move_speed_factor(RpgStats.new()), 1.0, 0.0001)
+	player.free()
+	npc.free()
+	Fixtures.uninstall_state()
+
+func test_equipping_announces_itself_on_the_event_bus(t) -> void:
+	var state := _state()
+	var seen := []
+	RpgUtil.events().equipment_changed.connect(func(actor: StringName, slot: StringName) -> void: seen.append([actor, slot]))
+	state.inventory.add(&"sword")
+	state.equip(&"hero", &"sword")
+	state.unequip(&"hero", &"weapon")
+	t.eq(seen, [[&"hero", &"weapon"], [&"hero", &"weapon"]])
+	Fixtures.uninstall_state()

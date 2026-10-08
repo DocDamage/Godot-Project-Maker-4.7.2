@@ -52,8 +52,13 @@
   the focused choice before it is confirmed. The save has the optional key `equipment` (an older
   save loads with empty slots; `save_version` stays 1). New keys: `UI_EQUIP`, `UI_EQUIPMENT`,
   `UI_TAKE_OFF`, `UI_SLOT_WEAPON`, `UI_SLOT_ARMOR`, `UI_SLOT_ACCESSORY`, `UI_NO_CHANGE`,
-  `UI_NOTHING_TO_EQUIP`, `UI_CANNOT_EQUIP` and `UI_MOVE_SPEED`. Hit points are not changed by an
-  item's `max_hp` modifier in the HUD yet; only the stat functions see it.
+  `UI_NOTHING_TO_EQUIP`, `UI_CANNOT_EQUIP` and `UI_MOVE_SPEED`.
+* An item's `max_hp` modifier raises the cap everywhere (`RpgUtil.max_hp(stats)`: the status menu,
+  both HUDs, healing items and heals, full refills, the level-up refill); wearing it does not heal,
+  and taking it off pulls the current hp down to the smaller cap (never to 0). A `move_speed`
+  modifier scales the player's walk (`RpgMovement.walk_speed()`; it is a factor on the base
+  `move_speed`, so the dodge is scaled too). New event `equipment_changed(actor_id, slot)`, which
+  the action-RPG HUD listens to; it was emitted before the signal existed, so nobody saw it.
 
 ## 0.3.0
 

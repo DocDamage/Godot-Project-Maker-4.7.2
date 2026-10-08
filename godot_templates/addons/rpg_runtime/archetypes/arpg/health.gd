@@ -24,7 +24,7 @@ func hp() -> int:
 
 func max_hp() -> int:
 	var s := stats()
-	return s.max_hp if s != null else 0
+	return RpgUtil.max_hp(s) if s != null else 0
 
 func is_dead() -> bool:
 	var s := stats()
@@ -37,7 +37,7 @@ func take(info: RpgDamageInfo) -> void:
 		return
 	var dealt := comp.take_damage(info.amount)
 	if dealt > 0:
-		changed.emit(comp.stats.hp, comp.stats.max_hp)
+		changed.emit(comp.stats.hp, RpgUtil.max_hp(comp.stats))
 	if comp.stats.hp <= 0 and not _dead:
 		_dead = true
 		died.emit()
@@ -47,7 +47,7 @@ func heal(n: int) -> void:
 	if comp == null or comp.stats == null:
 		return
 	if comp.heal(n) > 0:
-		changed.emit(comp.stats.hp, comp.stats.max_hp)
+		changed.emit(comp.stats.hp, RpgUtil.max_hp(comp.stats))
 	if comp.stats.hp > 0:
 		_dead = false
 
@@ -56,6 +56,6 @@ func revive() -> void:
 	var s := stats()
 	if s == null:
 		return
-	s.hp = s.max_hp
+	s.hp = RpgUtil.max_hp(s)
 	_dead = false
-	changed.emit(s.hp, s.max_hp)
+	changed.emit(s.hp, RpgUtil.max_hp(s))

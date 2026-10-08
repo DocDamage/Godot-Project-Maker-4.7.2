@@ -190,6 +190,13 @@ func effective_stat(stats: RpgStats, stat_name: StringName) -> float:
 		return stats.get_stat(stat_name) if stats != null else 0.0
 	return stats.get_stat(stat_name, equipped_modifiers(actor_id))
 
+## Walking speed relative to the base move_speed (1.0 without equipment or for anyone but the
+## actors that wear some).
+func move_speed_factor(stats: RpgStats) -> float:
+	if equipment.is_empty() or stats == null or stats.move_speed <= 0.0:
+		return 1.0
+	return effective_stat(stats, &"move_speed") / stats.move_speed
+
 ## How each stat would change if `item_id` replaced what is worn in its slot (&"" takes the slot's
 ## item off): {stat: delta}, only the stats that change.
 func equip_preview(actor_id: StringName, slot: StringName, item_id: StringName) -> Dictionary:
@@ -232,6 +239,9 @@ func unequip(actor_id: StringName, slot: StringName) -> bool:
 
 func _set_worn(actor_id: StringName, slot: StringName, item_id: StringName) -> void:
 	var key := String(actor_id)
+	var old_hp := 0
+	if stats_of(actor_id) != null:
+		old_hp = stats_of(actor_id).hp
 	if not equipment.has(key) or not (equipment[key] is Dictionary):
 		equipment[key] = {}
 	var worn: Dictionary = equipment[key]
@@ -239,6 +249,12 @@ func _set_worn(actor_id: StringName, slot: StringName, item_id: StringName) -> v
 		worn.erase(String(slot))
 	else:
 		worn[String(slot)] = String(item_id)
+	# A smaller max_hp pulls the current hp down with it; a larger one does not heal.
+	var worn_stats := stats_of(actor_id)
+	if worn_stats != null:
+		worn_stats.hp = mini(worn_stats.hp, RpgUtil.max_hp(worn_stats))
+		if worn_stats.hp <= 0 and old_hp > 0:
+			worn_stats.hp = 1
 	RpgUtil.emit(&"equipment_changed", [actor_id, slot])
 
 func flag_count() -> int:
@@ -250,6 +266,8 @@ func flag_count() -> int:
 ## Grants experience to the player and emits the progression events.
 func give_experience(amount: int) -> int:
 	var gained := player_stats.add_experience(amount)
+	if gained > 0:
+		player_stats.hp = RpgUtil.max_hp(player_stats)  # the level-up refill counts the equipment
 	RpgUtil.emit(&"experience_gained", [player_actor_id, amount])
 	for i in gained:
 		RpgUtil.emit(&"level_up", [player_actor_id, player_stats.level - gained + i + 1])

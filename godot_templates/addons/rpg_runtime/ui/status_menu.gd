@@ -24,7 +24,7 @@ func _build(focus_slot: StringName = &"") -> void:
 		var id: StringName = state.player_actor_id
 		var rows := [
 			["UI_LEVEL", str(s.level)],
-			["UI_HP", "%d / %d" % [s.hp, s.max_hp]],
+			["UI_HP", "%d / %d" % [s.hp, RpgUtil.max_hp(s)]],
 			["UI_XP", "%d / %d" % [s.experience, s.xp_to_next()]],
 			["UI_ATTACK", str(roundi(state.stat_of(id, &"attack")))],
 			["UI_DEFENSE", str(roundi(state.stat_of(id, &"defense")))],

@@ -95,7 +95,7 @@ func run_command(text: String) -> String:
 			RpgDialogueRunner.execute_event("set_flag:" + parts[1])
 			return "ok"
 		"heal":
-			state.player_stats.hp = state.player_stats.max_hp
+			state.player_stats.hp = RpgUtil.max_hp(state.player_stats)
 			return "healed"
 		"tp":
 			if parts.size() < 2 or router == null or router.get("current_map") == null:

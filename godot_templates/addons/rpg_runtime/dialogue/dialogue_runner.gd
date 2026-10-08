@@ -130,7 +130,7 @@ static func execute_event(event: String) -> bool:
 				return _bad(event)
 			state.quests[arg.get_slice("=", 0)] = arg.get_slice("=", 1)
 		"heal_full":
-			state.player_stats.hp = state.player_stats.max_hp
+			state.player_stats.hp = RpgUtil.max_hp(state.player_stats)
 		"emit":
 			var ev_name := arg.get_slice(":", 0)
 			var ev_arg := arg.substr(ev_name.length() + 1) if arg.contains(":") else ""

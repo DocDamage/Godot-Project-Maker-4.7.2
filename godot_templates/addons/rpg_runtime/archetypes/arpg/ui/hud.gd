@@ -9,7 +9,7 @@ func _ready() -> void:
 	var bus := RpgUtil.events()
 	if bus != null:
 		for signal_name: StringName in [&"player_damaged", &"player_healed", &"gold_changed", &"experience_gained",
-				&"level_up", &"item_added", &"item_removed", &"map_entered", &"game_loaded"]:
+				&"level_up", &"equipment_changed", &"item_added", &"item_removed", &"map_entered", &"game_loaded"]:
 			if bus.has_signal(signal_name):
 				bus.connect(signal_name, _on_event)
 	var router := RpgUtil.router()
@@ -36,13 +36,14 @@ func refresh() -> void:
 	if state == null:
 		return
 	var stats: RpgStats = state.player_stats
+	var max_hp := RpgUtil.max_hp(stats)
 	var hp_bar := get_node_or_null("%HpBar") as ProgressBar
 	if hp_bar != null:
-		hp_bar.max_value = maxf(1.0, stats.max_hp)
+		hp_bar.max_value = maxf(1.0, max_hp)
 		hp_bar.value = stats.hp
 	var hp_text := get_node_or_null("%HpText") as Label
 	if hp_text != null:
-		hp_text.text = "%d/%d" % [stats.hp, stats.max_hp]
+		hp_text.text = "%d/%d" % [stats.hp, max_hp]
 	var xp_bar := get_node_or_null("%XpBar") as ProgressBar
 	if xp_bar != null:
 		xp_bar.max_value = maxf(1.0, stats.xp_to_next())

@@ -78,10 +78,11 @@ func use(item_id: StringName, target_stats: RpgStats) -> bool:
 		return false
 	match String(def.use_effect):
 		"heal":
-			if target_stats.hp >= target_stats.max_hp:
+			var max_hp := RpgUtil.max_hp(target_stats)
+			if target_stats.hp >= max_hp:
 				return false
 			var before := target_stats.hp
-			target_stats.hp = mini(target_stats.max_hp, target_stats.hp + def.effect_amount)
+			target_stats.hp = mini(max_hp, target_stats.hp + def.effect_amount)
 			var state := RpgUtil.state()
 			if state != null and state.get("player_stats") == target_stats:
 				RpgUtil.emit(&"player_healed", [target_stats.hp - before])

@@ -41,7 +41,7 @@ func take_damage(amount: int) -> int:
 		return 0
 	var dealt := mini(amount, stats.hp)
 	stats.hp -= dealt
-	hp_changed.emit(stats.hp, stats.max_hp)
+	hp_changed.emit(stats.hp, RpgUtil.max_hp(stats))
 	if is_player():
 		RpgUtil.emit(&"player_damaged", [dealt])
 	if stats.hp <= 0:
@@ -52,11 +52,12 @@ func take_damage(amount: int) -> int:
 func heal(amount: int) -> int:
 	if stats == null or amount <= 0:
 		return 0
-	var healed := mini(amount, stats.max_hp - stats.hp)
+	var max_hp := RpgUtil.max_hp(stats)
+	var healed := mini(amount, max_hp - stats.hp)
 	if healed <= 0:
 		return 0
 	stats.hp += healed
-	hp_changed.emit(stats.hp, stats.max_hp)
+	hp_changed.emit(stats.hp, max_hp)
 	if is_player():
 		RpgUtil.emit(&"player_healed", [healed])
 	return healed

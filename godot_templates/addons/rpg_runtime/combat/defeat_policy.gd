@@ -83,7 +83,7 @@ static func apply(choice: int) -> void:
 			while router.is_busy():
 				await router.get_tree().process_frame
 			return
-	state.player_stats.hp = state.player_stats.max_hp
+	state.player_stats.hp = RpgUtil.max_hp(state.player_stats)
 	var map := router.current_map
 	if map != null:
 		await router.go_to(map.scene_file_path, &"default")

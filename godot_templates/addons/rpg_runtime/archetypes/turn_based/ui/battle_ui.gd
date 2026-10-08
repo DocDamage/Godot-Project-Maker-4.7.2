@@ -84,7 +84,7 @@ func _build_status(box: Node, actors: Array[RpgBattleActor], with_numbers: bool)
 		bar.custom_minimum_size = Vector2(88, 6)
 		bar.add_theme_stylebox_override("fill", _bar_style(Color("#5cc96a") if with_numbers else Color("#d9534f")))
 		bar.add_theme_stylebox_override("background", _bar_style(Color(0, 0, 0, 0.55)))
-		bar.max_value = maxi(1, actor.stats.max_hp)
+		bar.max_value = maxi(1, actor.max_hp())
 		bar.value = actor.stats.hp
 		row.add_child(bar)
 		var numbers: Label = null
@@ -105,11 +105,11 @@ func refresh() -> void:
 	for actor: RpgBattleActor in _rows.keys():
 		var row: Dictionary = _rows[actor]
 		var bar: ProgressBar = row["bar"]
-		bar.max_value = maxi(1, actor.stats.max_hp)
+		bar.max_value = maxi(1, actor.max_hp())
 		bar.value = maxi(0, actor.stats.hp)
 		var numbers: Label = row["text"]
 		if numbers != null:
-			numbers.text = "%s %d/%d" % [tr("UI_HP"), maxi(0, actor.stats.hp), actor.stats.max_hp]
+			numbers.text = "%s %d/%d" % [tr("UI_HP"), maxi(0, actor.stats.hp), actor.max_hp()]
 		var name_label: Label = row["name"]
 		name_label.modulate = Color.WHITE if actor.alive else Color(1, 1, 1, 0.45)
 

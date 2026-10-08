@@ -72,10 +72,19 @@ func _surface_slot(audio: Node) -> StringName:
 			return StringName("sfx_step_" + surface)
 	return &"sfx_step"
 
+## `speed` scaled by what the player wears (a move_speed modifier of equipment); everyone else
+## walks at `speed`.
+func walk_speed() -> float:
+	if actor != null and actor.is_in_group("player"):
+		var state := RpgUtil.state()
+		if state != null:
+			return speed * state.move_speed_factor(state.player_stats)
+	return speed
+
 func _physics_process(_delta: float) -> void:
 	if actor == null:
 		return
-	actor.velocity = desired * speed + external_velocity
+	actor.velocity = desired * walk_speed() + external_velocity
 	actor.move_and_slide()
 	_footsteps(_delta)
 	external_velocity *= 0.85

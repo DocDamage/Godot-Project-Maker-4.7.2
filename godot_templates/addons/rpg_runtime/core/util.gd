@@ -19,6 +19,11 @@ static func events() -> RpgEvents:
 static func state() -> RpgGameState:
 	return autoload(&"GameState") as RpgGameState
 
+## The most hit points `stats` can have: max_hp with the owner's equipment applied.
+static func max_hp(stats: RpgStats) -> int:
+	var game := state()
+	return roundi(game.effective_stat(stats, &"max_hp")) if game != null else stats.max_hp
+
 static func router() -> RpgSceneRouter:
 	return autoload(&"SceneRouter") as RpgSceneRouter
 

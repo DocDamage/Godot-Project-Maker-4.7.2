@@ -24,6 +24,10 @@ func stat(stat_name: StringName) -> int:
 		return roundi(state.effective_stat(stats, stat_name))
 	return roundi(stats.get_stat(stat_name))
 
+## The most hit points this combatant can have (the player side counts its equipment).
+func max_hp() -> int:
+	return RpgUtil.max_hp(stats) if is_player_side else stats.max_hp
+
 static func make(actor_id: StringName, actor_name: String, actor_stats: RpgStats, player_side: bool) -> RpgBattleActor:
 	var a := RpgBattleActor.new()
 	a.id = actor_id
