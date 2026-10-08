@@ -2,7 +2,7 @@ extends RefCounted
 ## Seeds the data files of the demo under game/data/ (user_seed: written once, never again):
 ## hero actor, new-game data, the potion item and the starter NPC's dialogue.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const Paths := preload("../lib/paths.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
@@ -14,6 +14,8 @@ const HERO_PATH := "res://game/data/actors/hero.tres"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
 const POTION_PATH := "res://game/data/items/potion.tres"
 const GREETING_PATH := "res://game/data/dialogue/npc_greeting.tres"
+const SHOP_ID := "village_shop"
+const SHOP_PATH := "res://game/data/shops/village_shop.tres"
 
 const STATS := "res://addons/rpg_runtime/data/stats.gd"
 const ACTOR_DEF := "res://addons/rpg_runtime/data/actor_definition.gd"
@@ -22,6 +24,7 @@ const ITEM_DEF := "res://addons/rpg_runtime/data/item_definition.gd"
 const DLG_RES := "res://addons/rpg_runtime/dialogue/dialogue_resource.gd"
 const DLG_LINE := "res://addons/rpg_runtime/dialogue/dialogue_line.gd"
 const DLG_CHOICE := "res://addons/rpg_runtime/dialogue/dialogue_choice.gd"
+const SHOP_DEF := "res://addons/rpg_runtime/data/shop_definition.gd"
 
 ## English text of the seeded content keys (the translations recipe adds them to strings.csv).
 const SEED_STRINGS := {
@@ -55,6 +58,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 		wanted.append(_gear_path(word))
 	if not ctx.demo_removed:
 		wanted.append(GREETING_PATH)
+		wanted.append(SHOP_PATH)
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
@@ -115,6 +119,8 @@ func build(ctx: BuildContext) -> Array:
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(GREETING_PATH):
 		_save(ctx, _greeting(), GREETING_PATH, issues)
+	if not ctx.demo_removed and not FileAccess.file_exists(SHOP_PATH):
+		_save(ctx, _shop(gear.keys()), SHOP_PATH, issues)
 	return issues
 
 func _save(ctx: BuildContext, res: Resource, path: String, issues: Array) -> void:
@@ -162,6 +168,18 @@ func _potion(ctx: BuildContext) -> Resource:
 		item.set("icon", TextureUtil.region_texture("res://" + JsonUtil.to_str(icon["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))))
 	return item
 
+## The village shop: potions and the starter gear, at their item values.
+func _shop(gear_words: Array) -> Resource:
+	var shop := SeedUtil.make(SHOP_DEF)
+	shop.set("id", StringName(SHOP_ID))
+	shop.set("title", "UI_SHOP")
+	var stock: Array = [{"item_id": "potion", "price": -1}]
+	for word: String in gear_words:
+		stock.append({"item_id": word, "price": -1})
+	shop.set("stock", SeedUtil.dict_array(stock))
+	shop.set("sell_ratio", 0.5)
+	return shop
+
 func _gear_item(ctx: BuildContext, word: String, asset: Dictionary) -> Resource:
 	var item := SeedUtil.make(ITEM_DEF)
 	var is_weapon := WEAPON_WORDS.has(word)
@@ -192,6 +210,8 @@ func _line(line_id: String, speaker: String, text: String, next: String, conditi
 		var choice := SeedUtil.make(DLG_CHOICE)
 		choice.set("text", c[0])
 		choice.set("next", JsonUtil.to_name(c[1]))
+		if c.size() > 2:
+			choice.set("condition", c[2])
 		typed.append(choice)
 	if not typed.is_empty():
 		var line_choices: Array = line.get("choices")
@@ -203,9 +223,10 @@ func _greeting() -> Resource:
 	var res := SeedUtil.make(DLG_RES)
 	var lines: Array = [
 		_line("greet", "Villager", "Hello, traveler! Welcome to our village.", "", "", [], []),
-		_line("ask", "Villager", "Is there anything I can help you with?", "", "", [], [["Any tips?", "tips"], ["Bye", "bye"]]),
+		_line("ask", "Villager", "Is there anything I can help you with?", "", "", [], [["Any tips?", "tips"], ["Show me your wares", "shop", "flag:starter_npc.talked"], ["Bye", "bye"]]),
 		_line("tips", "Villager", "Take this potion. Walk into the house to see inside, and open the chest nearby.", "bye", "not flag:starter_npc.talked", ["set_flag:starter_npc.talked=true", "give_item:potion:1"], []),
 		_line("tips_again", "Villager", "I have already told you everything I know.", "bye", "flag:starter_npc.talked", [], []),
+		_line("shop", "Villager", "Take a look at what I have.", "bye", "", ["open_shop:" + SHOP_ID], []),
 		_line("bye", "Villager", "Safe travels!", "", "", [], []),
 	]
 	var res_lines: Array = res.get("lines")

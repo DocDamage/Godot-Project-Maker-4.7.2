@@ -3,7 +3,7 @@ extends RefCounted
 ## Walks an RpgDialogueResource. Owned by the DialogueBox.
 ##
 ## Events (strings, never eval'd): set_flag:<entity>.<key>=<value>, give_item:<id>[:qty],
-## take_item:<id>[:qty], give_gold:N, set_quest:<id>=<state>, heal_full, emit:<name>[:arg].
+## take_item:<id>[:qty], give_gold:N, open_shop:<id> (the shop opens when the dialogue closes), set_quest:<id>=<state>, heal_full, emit:<name>[:arg].
 
 const MAX_JUMPS := 1000
 
@@ -131,6 +131,10 @@ static func execute_event(event: String) -> bool:
 			state.quests[arg.get_slice("=", 0)] = arg.get_slice("=", 1)
 		"heal_full":
 			state.player_stats.hp = RpgUtil.max_hp(state.player_stats)
+		"open_shop":
+			if arg == "":
+				return _bad(event)
+			RpgUtil.emit(&"shop_requested", [StringName(arg)])
 		"emit":
 			var ev_name := arg.get_slice(":", 0)
 			var ev_arg := arg.substr(ev_name.length() + 1) if arg.contains(":") else ""

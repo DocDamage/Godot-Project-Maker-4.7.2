@@ -53,6 +53,17 @@
   save loads with empty slots; `save_version` stays 1). New keys: `UI_EQUIP`, `UI_EQUIPMENT`,
   `UI_TAKE_OFF`, `UI_SLOT_WEAPON`, `UI_SLOT_ARMOR`, `UI_SLOT_ACCESSORY`, `UI_NO_CHANGE`,
   `UI_NOTHING_TO_EQUIP`, `UI_CANNOT_EQUIP` and `UI_MOVE_SPEED`.
+* Shops (M12): `RpgShopDefinition` (`game/data/shops/<id>.tres`: `stock` = [{item_id, price}] where
+  a price below 0 means the item's `value`, and `sell_ratio`, default 0.5) with all-or-nothing
+  `buy` / `sell` that return `""` or why they were refused (not enough gold, no room in the bag,
+  not held, worthless; key and quest items are never bought). The dialogue event `open_shop:<id>`
+  sends `Events.shop_requested`; `RpgUiController` opens `RpgShopMenu` (a new generated scene
+  `shop_menu.tscn`) when the dialogue closes, with the game paused. The menu has Buy and Sell tabs,
+  one button per item, the gold you have and the item's description, and one focus ring for the
+  gamepad. `RpgInventory.room_for(item_id)`. New keys: `UI_SHOP`, `UI_BUY`, `UI_SELL`,
+  `UI_GOLD_SHORT`, `UI_BOUGHT`, `UI_SOLD`, `UI_NOT_ENOUGH_GOLD`, `UI_NO_ROOM`, `UI_CANNOT_TRADE`,
+  `UI_NOTHING_FOR_SALE` and `UI_NOTHING_TO_SELL`. New projects get a `village_shop` and a villager
+  who offers it after the first talk.
 * An item's `max_hp` modifier raises the cap everywhere (`RpgUtil.max_hp(stats)`: the status menu,
   both HUDs, healing items and heals, full refills, the level-up refill); wearing it does not heal,
   and taking it off pulls the current hp down to the smaller cap (never to 0). A `move_speed`

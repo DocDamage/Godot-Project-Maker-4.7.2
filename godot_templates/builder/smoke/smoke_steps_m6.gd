@@ -31,6 +31,7 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "save_slot_1", "fn": _save_slot_1, "timeout_s": 10.0})
 	list.append({"name": "save_overwrite_confirm", "fn": _save_overwrite_confirm, "timeout_s": 15.0})
 	list.append({"name": "equip_raises_attack", "fn": _equip_raises_attack, "timeout_s": 15.0})
+	list.append({"name": "shop_buy_sell", "fn": _shop_buy_sell, "timeout_s": 20.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
 	return list
@@ -397,6 +398,78 @@ func _equip_raises_attack() -> String:
 	state.items.erase(sword.id)
 	menu.queue_free()
 	return failure
+
+## The village shop through the event bus (what `open_shop:village_shop` does): it opens paused,
+## pressing the potion buys one for its price, pressing it with no gold buys nothing, and the Sell
+## tab pays back half. Everything is put back afterwards.
+func _shop_buy_sell() -> String:
+	var tree := _tree()
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var router: Node = _autoload("SceneRouter")
+	var controller := router.get_node_or_null("UiController") as RpgUiController if router != null else null
+	if state == null or controller == null:
+		return "GameState or the UiController is missing"
+	if RpgShopDefinition.load_shop(&"village_shop") == null:
+		return "game/data/shops/village_shop.tres was not seeded"
+	var gold: int = state.gold
+	var potions: int = state.inventory.count(&"potion")
+	state.gold = 100
+	RpgUtil.emit(&"shop_requested", [&"village_shop"])
+	var menu: RpgShopMenu = null
+	for i in 30:
+		await tree.physics_frame
+		menu = _shop_menu(controller)
+		if menu != null:
+			break
+	var failure := ""
+	if menu == null:
+		failure = "the shop did not open"
+	elif not tree.paused:
+		failure = "the game was not paused behind the shop"
+	if failure == "":
+		var potion := _shop_row(menu, &"potion")
+		if potion == null:
+			failure = "the potion is not on sale"
+		else:
+			potion.pressed.emit()
+			await _frames(2)
+			if state.gold != 90 or state.inventory.count(&"potion") != potions + 1:
+				failure = "buying a potion left gold %d and %d potions" % [state.gold, state.inventory.count(&"potion")]
+	if failure == "":
+		state.gold = 0
+		_shop_row(menu, &"potion").pressed.emit()
+		await _frames(2)
+		if state.inventory.count(&"potion") != potions + 1:
+			failure = "a potion was bought without gold"
+	if failure == "":
+		menu.set_mode(RpgShopMenu.SELL)
+		await _frames(2)
+		var sell_row := _shop_row(menu, &"potion")
+		if sell_row == null:
+			failure = "the potion cannot be sold"
+		else:
+			sell_row.pressed.emit()
+			await _frames(2)
+			if state.gold != 5 or state.inventory.count(&"potion") != potions:
+				failure = "selling left gold %d and %d potions" % [state.gold, state.inventory.count(&"potion")]
+	if menu != null and is_instance_valid(menu):
+		menu.close()
+	await _frames(2)
+	if failure == "" and tree.paused:
+		failure = "closing the shop did not unpause the game"
+	tree.paused = false
+	state.gold = gold
+	return failure
+
+func _shop_menu(controller: RpgUiController) -> RpgShopMenu:
+	var open_menu: Node = controller.get("_menu")
+	return open_menu as RpgShopMenu
+
+func _shop_row(menu: RpgShopMenu, item_id: StringName) -> Button:
+	for row in menu.rows():
+		if menu.item_of(row) == item_id:
+			return row
+	return null
 
 func _mutate_then_load() -> String:
 	var tree := _tree()

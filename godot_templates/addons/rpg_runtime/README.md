@@ -22,7 +22,8 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 ## Dialogue events
 
 `set_flag:<entity>.<key>=<value>`, `give_item:<id>[:qty]`, `take_item:<id>[:qty]`, `give_gold:N`,
-`set_quest:<id>=<state>`, `heal_full`, `emit:<name>[:arg]` (sent as `Events.dialogue_event`).
+`set_quest:<id>=<state>`, `heal_full`, `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
+dialogue closes) and `emit:<name>[:arg]` (sent as `Events.dialogue_event`).
 
 ## Sound
 

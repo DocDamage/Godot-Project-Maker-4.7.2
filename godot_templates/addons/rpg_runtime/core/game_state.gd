@@ -4,6 +4,7 @@ extends Node
 
 const ITEMS_DIR := "res://game/data/items"
 const HERO_PATH := "res://game/data/actors/hero.tres"
+const SHOPS_DIR := "res://game/data/shops"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
 ## The equipment slots, in display order. An item goes to the slot of its category.
 const EQUIP_SLOTS: Array[StringName] = [&"weapon", &"armor", &"accessory"]

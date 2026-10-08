@@ -42,6 +42,17 @@ func add(item_id: StringName, qty: int = 1) -> int:
 		RpgUtil.emit(&"item_added", [item_id, added])
 	return added
 
+## How many more of `item_id` fit: the room left in its stacks plus the free slots.
+func room_for(item_id: StringName) -> int:
+	if item_id == &"":
+		return 0
+	var limit := _max_stack(item_id)
+	var room := maxi(0, capacity - slots.size()) * limit
+	for slot in slots:
+		if slot["item_id"] == item_id:
+			room += maxi(0, limit - RpgUtil.to_int(slot["qty"]))
+	return room
+
 ## All-or-nothing: returns false (and changes nothing) when fewer than `qty` are held.
 func remove(item_id: StringName, qty: int = 1) -> bool:
 	if qty <= 0 or count(item_id) < qty:

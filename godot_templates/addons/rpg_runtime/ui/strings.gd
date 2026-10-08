@@ -95,6 +95,17 @@ const KEYS := {
 	"UI_NOTHING_TO_EQUIP": "Nothing to wear here",
 	"UI_CANNOT_EQUIP": "Cannot equip that",
 	"UI_MOVE_SPEED": "Move speed",
+	"UI_SHOP": "Shop",
+	"UI_BUY": "Buy",
+	"UI_SELL": "Sell",
+	"UI_GOLD_SHORT": "G",
+	"UI_BOUGHT": "Bought %s",
+	"UI_SOLD": "Sold %s",
+	"UI_NOT_ENOUGH_GOLD": "Not enough gold",
+	"UI_NO_ROOM": "No room in the bag",
+	"UI_CANNOT_TRADE": "Cannot do that",
+	"UI_NOTHING_FOR_SALE": "Nothing for sale",
+	"UI_NOTHING_TO_SELL": "Nothing to sell",
 }
 
 ## English text of a key (the key itself when unknown).

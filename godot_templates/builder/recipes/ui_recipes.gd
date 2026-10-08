@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification and the basic HUD. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 6
+const RECIPE_VERSION := 7
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -15,7 +15,7 @@ const SCRIPTS := "res://addons/rpg_runtime/ui/"
 
 const SCENES: Array[String] = [
 	"dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
-	"save_load_menu", "settings_menu", "notification", "hud_basic", "game_over",
+	"save_load_menu", "settings_menu", "notification", "hud_basic", "game_over", "shop_menu",
 ]
 
 static func scene_path(scene_name: String) -> String:
@@ -140,6 +140,39 @@ func _build_status_menu() -> Node:
 	box.add_child(stats)
 	var back := UiUtil.button(box, "Back", "UI_BACK")
 	UiUtil.wire_vertical([back])
+	return root
+
+func _build_shop_menu() -> Node:
+	var root := UiUtil.control_root("ShopMenu", SCRIPTS + "shop_menu.gd")
+	root.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiUtil.dim_background(root, 0.85)
+	var box := UiUtil.center_panel(root, Vector2(300, 0))
+	UiUtil.label(box, "Heading", "UI_SHOP", true)
+	UiUtil.label(box, "Gold", "UI_GOLD", true)
+	var tabs := HBoxContainer.new()
+	tabs.name = "Tabs"
+	box.add_child(tabs)
+	var buy_tab := UiUtil.button(tabs, "BuyTab", "UI_BUY")
+	var sell_tab := UiUtil.button(tabs, "SellTab", "UI_SELL")
+	for tab: Button in [buy_tab, sell_tab]:
+		tab.toggle_mode = true
+		UiUtil.unique(tab)
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.custom_minimum_size = Vector2(280, 110)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.name = "List"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiUtil.unique(list)
+	scroll.add_child(list)
+	var desc := UiUtil.label(box, "Description", "", true)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.custom_minimum_size = Vector2(280, 40)
+	var back := UiUtil.button(box, "Back", "UI_BACK")
+	UiUtil.unique(back)
+	UiUtil.wire_vertical([buy_tab, sell_tab, back])
 	return root
 
 func _build_save_load_menu() -> Node:
