@@ -14,6 +14,9 @@ GODOT_VERSION = godot_target.VERSION
 DEFAULT_MAP_LAYERS = ["Ground", "GroundDetails", "Walls", "Props", "Overhead"]
 GIT_DEFAULTS = {"pack_art": "commit"}
 PACK_ART_CHOICES = ("commit", "lfs", "ignore")
+# export targets in their fixed order (the presets in export_check.TARGETS follow it)
+EXPORT_TARGETS = ("windows", "web", "linux", "macos")
+EXPORT_TARGET_DEFAULT = ("windows",)
 FEATURE_KEYS = (
     "tilesets",
     "collision",
@@ -117,6 +120,8 @@ class GeneratorConfig:
     # Tiled and LDtk maps to build (T12.49): {"include": [map id, ...], "starter": map id}
     imported_maps: dict[str, Any] = field(default_factory=dict)
     git: dict[str, str] = field(default_factory=dict)  # {"pack_art": "commit" | "lfs" | "ignore"}
+    # platforms that get an export preset and the export check (T12.52)
+    export_targets: list[str] = field(default_factory=lambda: list(EXPORT_TARGET_DEFAULT))
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
     godot_version: str = GODOT_VERSION
@@ -137,6 +142,9 @@ class GeneratorConfig:
         git = {k: v for k, v in sorted(self.git.items()) if v != GIT_DEFAULTS.get(k)}
         if git:
             out["git"] = git
+        targets = self.selected_export_targets()
+        if targets != list(EXPORT_TARGET_DEFAULT):
+            out["export_targets"] = targets
         imported = self.imported_map_selection()
         if imported["include"] or imported["starter"]:
             out["imported_maps"] = {
@@ -150,6 +158,11 @@ class GeneratorConfig:
         starter = str(self.imported_maps.get("starter", ""))
         include = sorted({str(i) for i in self.imported_maps.get("include", [])} | {starter} - {""})
         return {"include": include, "starter": starter}
+
+    def selected_export_targets(self) -> list[str]:
+        """The export targets in the fixed order; Windows when none is chosen."""
+        chosen = set(self.export_targets)
+        return [t for t in EXPORT_TARGETS if t in chosen] or list(EXPORT_TARGET_DEFAULT)
 
     @property
     def pack_art(self) -> str:
@@ -197,6 +210,7 @@ class GeneratorConfig:
             starter_map=copy.deepcopy(data.get("starter_map", {})),
             imported_maps=copy.deepcopy(data.get("imported_maps", {})),
             git=dict(data.get("git", {})),
+            export_targets=list(data.get("export_targets", EXPORT_TARGET_DEFAULT)),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],

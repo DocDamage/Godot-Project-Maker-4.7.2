@@ -35,6 +35,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `starter_map` | object | defaults | Optional (T11.25). `size` [w, h] tiles (24..96 each), `buildings` 0..4, `npcs` 0..6, `enemies` 0..8, `chests` 0..4, `decorations` 0..40, `ground_patches` 0..20, `ground` asset id or "". Omitted from the JSON when equal to the defaults. |
 | `imported_maps` | object | `{}` | Optional (T12.49). `include`: ids of the catalog's `maps` to build into `game/maps/imported/<pack>/`; `starter`: the id of the map that becomes `game/maps/starter_map.tscn` (the layout planner is then skipped, and the map has none of the demo's villager, chest or enemy). The starter is built even when it is not in `include`. Omitted when empty. |
 | `git` | object | `{}` | Optional (T12.12). `pack_art`: `"commit"` (default), `"lfs"` (the pack art goes through Git LFS; falls back to `commit` with ENV-013 when git-lfs is missing) or `"ignore"` (`assets/packs/` is added to the generated `.gitignore`). Omitted when it holds the default. |
+| `export_targets` | array of strings | `["windows"]` | Optional (T12.52). The platforms that get a preset in `export_presets.cfg` and a test export: `windows`, `web`, `linux`, `macos` (at least one, no repeats; written in that order). Omitted when it is `["windows"]`. |
 | `starter` | object | `{}` | Optional (T3.11). Starter selections of the demo recipes: `player`, `npc`, `enemy`, `ground`, `building`, `chest`, `portrait` → an asset id or an object id. Omitted when empty. |
 
 Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]`.
@@ -445,6 +446,7 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `terrain: {set, terrain, peering}` replaces `terrain.wangid` | `tile_overrides` entries | T8.06 |
 | `maps` | asset_catalog | T12.49 |
 | `imported_maps` | generator_config | T12.49 |
+| `export_targets` | generator_config | T12.52 |
 
 ---
 

@@ -92,12 +92,19 @@ class OptionsPage(WizardPage):
         self.screen_box = sections.ScreenBox()
         self.layers_box = sections.LayersBox()
         self.version_control = sections.VersionControlBox()
+        self.export_targets = sections.ExportTargetsBox()
         self.advanced = sections.AdvancedOptions()
         column: tuple[QWidget, ...] = (self.features, self.starter_box, self.imported_box)
         for widget in column:
             left.addWidget(widget)
         left.addStretch(1)
-        column = (self.screen_box, self.layers_box, self.version_control, self.advanced)
+        column = (
+            self.screen_box,
+            self.layers_box,
+            self.version_control,
+            self.export_targets,
+            self.advanced,
+        )
         for widget in column:
             right.addWidget(widget)
         right.addStretch(1)
@@ -123,6 +130,7 @@ class OptionsPage(WizardPage):
         self.layers_reset = layers.reset
         self.git_box = self.version_control.git_box
         self.pack_art_radios = self.version_control.pack_art_radios
+        self.export_target_boxes = self.export_targets.boxes
         self.advanced_body = self.advanced.body
         self.seed_box, self.input_table = self.advanced.seed_box, self.advanced.input_table
 
@@ -142,6 +150,8 @@ class OptionsPage(WizardPage):
         self.git_box.toggled.connect(self.model.set_git)
         for choice, radio in self.pack_art_radios.items():
             radio.toggled.connect(lambda on, c=choice: self._on_pack_art(c) if on else None)
+        for key, check in self.export_target_boxes.items():
+            check.toggled.connect(lambda on, k=key: self._on_export_target(k, on))
         self.seed_box.valueChanged.connect(self._on_seed_edited)
         self.input_table.itemChanged.connect(lambda _item: self._on_edited())
         self.preset_combo.activated.connect(self._on_preset_chosen)
@@ -237,6 +247,7 @@ class OptionsPage(WizardPage):
                 self.imported_box.load(chosen)
             self._update_starter_state()
             self.pack_art_radios[draft.pack_art].setChecked(True)
+            self.export_targets.set_values(draft.selected_export_targets())
         finally:
             self._loading = False
         self._update_dependencies()
@@ -255,6 +266,14 @@ class OptionsPage(WizardPage):
         if self._loading or self.draft is None:
             return
         self.model.set_pack_art(choice)
+        self.changed.emit()
+
+    def _on_export_target(self, key: str, checked: bool) -> None:
+        if self._loading or self.draft is None:
+            return
+        if not self.model.set_export_target(key, checked):  # the last one stays on
+            self.export_targets.set_values(self.draft.selected_export_targets())
+            return
         self.changed.emit()
 
     # ------------------------------------------------------------------ features

@@ -48,8 +48,9 @@ def _cell(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ")
 
 
-def _skipped_lines(skipped: dict[str, str]) -> list[str]:
-    """ "Checks not run": a check that was skipped is never reported as passed."""
+def _skipped_lines(skipped: dict[str, str], issues: list[Issue]) -> list[str]:
+    """ "Checks not run": a check that was skipped is never reported as passed. The reason is
+    the text of the run's issues with that code (they can name a target), else the code's."""
     if not skipped:
         return []
     from rpggen.errors import CODES
@@ -57,7 +58,8 @@ def _skipped_lines(skipped: dict[str, str]) -> list[str]:
     lines = ["", "## Checks not run", ""]
     for phase, code in sorted(skipped.items()):
         info = CODES.get(code)
-        reason = info.message if info else code
+        said = list(dict.fromkeys(i.message for i in issues if i.code == code))
+        reason = " ".join(said) if said else (info.message if info else code)
         fix = f" {info.fix}" if info and info.fix and info.fix != "—" else ""
         lines.append(f"- **{phase}** ({code}): {reason}{fix}")
     return lines
@@ -143,7 +145,7 @@ def build_markdown(
         lines += _regeneration_lines(plan)
     lines += _validation_lines(project)
     lines += _smoke_lines(project)
-    lines += _skipped_lines(skipped or {})
+    lines += _skipped_lines(skipped or {}, issues)
 
     lines += ["", "## Issues", ""]
     if issues:

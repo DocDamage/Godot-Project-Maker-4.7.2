@@ -12,7 +12,7 @@ const CODES := {
 	"ENV-007": {"severity": "warning", "message": "Some output paths may exceed 260 characters (longest: {length}).", "fix": "Use a shorter output folder or enable Windows long paths."},
 	"ENV-008": {"severity": "error", "message": "Output folder is inside the asset pack folder.", "fix": "Choose an output folder outside the pack."},
 	"ENV-009": {"severity": "error", "message": "Output folder is not empty and is not an rpggen project.", "fix": "Choose an empty folder or an existing generated project."},
-	"ENV-010": {"severity": "info", "message": "Export templates for 4.7.2 not installed; export check skipped.", "fix": "Install export templates from the Godot editor to enable the check."},
+	"ENV-010": {"severity": "info", "message": "{target} export templates for 4.7.2 are not installed; that export check was skipped.", "fix": "Install export templates from the Godot editor to enable the check."},
 	"ENV-011": {"severity": "error", "message": "Could not download Godot: {reason}.", "fix": "Check your connection, or install Godot 4.7.2 from godotengine.org and select it."},
 	"ENV-012": {"severity": "info", "message": "Could not check for updates: {reason}.", "fix": "Check your connection, or look at the releases page yourself."},
 	"ENV-013": {"severity": "warning", "message": "Git LFS was chosen for the pack art, but git-lfs is not installed; the art is committed as it is.", "fix": "Install git-lfs (git-lfs.com) and generate again, or choose another way to handle the pack art."},

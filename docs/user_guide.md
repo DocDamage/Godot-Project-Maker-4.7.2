@@ -144,6 +144,15 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
   and markers with a `text`. A layer saved with Zstandard compression cannot be read (TILE-009):
   save the map with zlib or gzip. Like the other maps these are yours: regenerating never
   rewrites them.
+* **Export targets.** Each checked platform gets an export preset in `export_presets.cfg`, so
+  *Project → Export…* in Godot is ready to use: **Windows** (on by default, one `.exe` with the
+  game inside), **Web** (`export/web/index.html`; thread support is off, so the build runs on
+  itch.io without special server headers), **Linux** (`.x86_64`) and **macOS** (a `.zip` with an
+  ad-hoc signature: no Apple developer ID and no notarization, so players must right-click →
+  *Open* the first time; set your own bundle identifier in place of `com.example.<name>` before
+  you publish). The export check test-exports each checked platform whose export templates are
+  installed and notes the others (ENV-010). Checking a platform later adds its preset when you
+  regenerate; presets already in the file, and your changes to them, are never touched.
 
 ![Options page](images/wizard_options.png)
 
@@ -193,7 +202,7 @@ Every message has a code; [errors.md](errors.md) lists all of them with the fix.
 | ENV-006 | Output in a cloud-sync folder | Pick a local folder. |
 | ENV-007 | Paths may exceed 260 characters | Use a shorter output folder or enable Windows long paths. |
 | ENV-009 | The output folder is not empty | Pick an empty folder or an existing rpggen project. |
-| ENV-010 | Export templates missing | Info only: install them from Godot (Editor → Manage Export Templates) to enable the export check. |
+| ENV-010 | Export templates missing | Info only: install them from Godot (Editor → Manage Export Templates) to enable the export check for that platform. |
 | ASSET-010 | A required role has no asset | Assign one on the Mapping page or use a placeholder. |
 | ASSET-001 / ASSET-003 | Tile size uncertain / grid does not divide | Fix the grid in the audit. |
 | REGEN-005 | The Godot editor has the project open | Close it, press Retry. |

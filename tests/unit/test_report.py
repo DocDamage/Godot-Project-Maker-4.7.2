@@ -142,11 +142,15 @@ def test_nothing_to_review(tmp_path: Path) -> None:
 
 
 def test_the_report_names_the_checks_that_did_not_run() -> None:
+    from rpggen.errors import IssueList
+
+    notes = IssueList()
+    notes.add("ENV-010", target="Web")
     text = report.build_markdown(
-        _cfg(), _catalog(), [], True, skipped={"export": "ENV-010", "smoke": "VAL-021"}
+        _cfg(), _catalog(), list(notes), True, skipped={"export": "ENV-010", "smoke": "VAL-021"}
     )
     assert "## Checks not run" in text
-    assert "**export** (ENV-010): Export templates for 4.7.2 not installed" in text
+    assert "**export** (ENV-010): Web export templates for 4.7.2 are not installed" in text
     assert "**smoke** (VAL-021): The smoke test is turned off in the config" in text
     assert "## Checks not run" not in report.build_markdown(_cfg(), _catalog(), [], True)
 
@@ -176,6 +180,29 @@ def test_an_export_without_templates_is_a_skipped_check(tmp_path: Path, monkeypa
     assert state.skipped == {"export": "ENV-010"} and seen == [("export", "ENV-010")]
     assert [i.code for i in state.issues] == ["ENV-010"]
     assert not state.issues.has_errors()
+
+
+def test_an_export_that_ran_for_one_target_is_not_skipped(tmp_path: Path, monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    from rpggen.core import export_check, orchestrator
+
+    folder = tmp_path / "templates" / "4.7.2.stable"
+    folder.mkdir(parents=True)
+    (folder / "windows_release_x86_64.exe").write_bytes(b"x")
+    monkeypatch.setenv("RPGGEN_EXPORT_TEMPLATES_DIR", str(folder.parent))
+    monkeypatch.setattr(export_check.godot, "detect_version", lambda exe: (4, 7, 2, "stable"))
+
+    def fake_run(exe, project, args, **kw):  # type: ignore[no-untyped-def]
+        Path(args[2]).write_bytes(b"exe")
+        return SimpleNamespace(cancelled=False, timed_out=False, returncode=0)
+
+    monkeypatch.setattr(export_check.godot, "run_godot", fake_run)
+    state, seen = _state(tmp_path)
+    state.cfg.export_targets = ["windows", "web"]
+    orchestrator.phase_export(state)
+    assert state.skipped == {} and seen == []
+    assert [(i.code, i.message.split()[0]) for i in state.issues] == [("ENV-010", "Web")]
 
 
 def test_turned_off_checks_are_skipped_with_their_own_note(tmp_path: Path) -> None:

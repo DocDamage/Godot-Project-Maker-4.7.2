@@ -23,7 +23,7 @@ CODES: dict[str, CodeInfo] = {
     "ENV-007": CodeInfo("ENV-007", "warning", "Some output paths may exceed 260 characters (longest: {length}).", "Use a shorter output folder or enable Windows long paths."),
     "ENV-008": CodeInfo("ENV-008", "error", "Output folder is inside the asset pack folder.", "Choose an output folder outside the pack."),
     "ENV-009": CodeInfo("ENV-009", "error", "Output folder is not empty and is not an rpggen project.", "Choose an empty folder or an existing generated project."),
-    "ENV-010": CodeInfo("ENV-010", "info", "Export templates for 4.7.2 not installed; export check skipped.", "Install export templates from the Godot editor to enable the check."),
+    "ENV-010": CodeInfo("ENV-010", "info", "{target} export templates for 4.7.2 are not installed; that export check was skipped.", "Install export templates from the Godot editor to enable the check."),
     "ENV-011": CodeInfo("ENV-011", "error", "Could not download Godot: {reason}.", "Check your connection, or install Godot 4.7.2 from godotengine.org and select it."),
     "ENV-012": CodeInfo("ENV-012", "info", "Could not check for updates: {reason}.", "Check your connection, or look at the releases page yourself."),
     "ENV-013": CodeInfo("ENV-013", "warning", "Git LFS was chosen for the pack art, but git-lfs is not installed; the art is committed as it is.", "Install git-lfs (git-lfs.com) and generate again, or choose another way to handle the pack art."),

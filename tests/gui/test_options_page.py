@@ -210,6 +210,28 @@ def test_version_control_offers_three_ways_to_handle_the_pack_art(qtbot) -> None
     assert state.config.git == {} and "git" not in state.config.to_json()  # the default is omitted
 
 
+def test_export_targets_default_to_windows_and_keep_at_least_one(qtbot) -> None:
+    page, state = _page(qtbot)
+    boxes = page.export_target_boxes
+    assert list(boxes) == ["windows", "web", "linux", "macos"]
+    assert [k for k, b in boxes.items() if b.isChecked()] == ["windows"]
+    boxes["macos"].setChecked(True)
+    boxes["web"].setChecked(True)
+    page.leave(state)
+    assert state.config.export_targets == ["windows", "web", "macos"]
+    assert state.config.to_json()["export_targets"] == ["windows", "web", "macos"]
+    page.enter(state)  # coming back shows the choice that was made
+    assert [k for k, b in boxes.items() if b.isChecked()] == ["windows", "web", "macos"]
+    for key in ("windows", "web", "macos"):
+        boxes[key].setChecked(False)
+    assert boxes["macos"].isChecked()  # the last target cannot be turned off
+    boxes["windows"].setChecked(True)
+    boxes["macos"].setChecked(False)
+    page.leave(state)
+    assert state.config.export_targets == ["windows"]
+    assert "export_targets" not in state.config.to_json()  # the default is omitted
+
+
 # ------------------------------------------------------------------------ T12.37: the summary
 
 

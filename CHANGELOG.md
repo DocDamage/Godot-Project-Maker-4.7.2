@@ -49,5 +49,6 @@ loading and playing it headless, and regenerates it later without touching your 
   moves the app, the workflows and the texts to a new release.
 * A deterministic starter-map planner shared by the preview (Python) and the builder (GDScript),
   checked against one fixture.
-* Diagnostic bundles, a Windows export preset and check, the community profile registry client,
+* Diagnostic bundles, export presets for Windows, Web, Linux and macOS with a test export per
+  target, the community profile registry client,
   and packaging (PyInstaller, Inno Setup, a release workflow).

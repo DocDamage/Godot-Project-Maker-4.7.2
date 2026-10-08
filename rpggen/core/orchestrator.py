@@ -482,11 +482,12 @@ def phase_export(state: _State) -> None:
         state.cfg.project_name,
         state.log_dir,
         is_cancelled=state.cb.is_cancelled,
+        targets=state.cfg.selected_export_targets(),
     )
     if state.cb.is_cancelled():
         raise _Cancelled
     state.issues.extend(issues)
-    if not ran:  # no export templates: the test export did not happen
+    if not ran:  # no target had export templates: no test export happened
         state.skipped["export"] = "ENV-010"
         state.cb.on_skip("export", "ENV-010")
     if any(i.severity is Severity.ERROR for i in issues):

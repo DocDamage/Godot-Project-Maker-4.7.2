@@ -410,7 +410,7 @@ def write_project_files(
         dst = root / name
         if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != text.encode("utf-8"):
             _write_text(dst, text)
-    export_check.write_presets(root, cfg.project_name)
+    export_check.write_presets(root, cfg.project_name, cfg.selected_export_targets())
     notes_file = files / f"README.{cfg.archetype}.md"
     readme = render_readme(
         (files / README_TEMPLATE).read_text(encoding="utf-8"),

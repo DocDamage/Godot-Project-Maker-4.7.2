@@ -29,6 +29,7 @@ from rpggen.core import config as config_mod
 from rpggen.core import options
 from rpggen.gui.models.options_model import (
     DEFAULTS_ITEM,
+    EXPORT_TARGET_LABELS,
     INPUT_COLUMNS,
     PACK_ART_LABELS,
     SEED_MAX,
@@ -535,6 +536,37 @@ class VersionControlBox(QGroupBox):
         self.git_box.setToolTip(tooltip)
         self.git_box.setChecked(checked)
         self.git_box.blockSignals(False)
+
+
+class ExportTargetsBox(QGroupBox):
+    """One check box per platform that gets an export preset (T12.52)."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setTitle(self.tr("Export targets"))
+        self.setObjectName("exportTargets")
+        layout = QVBoxLayout(self)
+        self.boxes: dict[str, QCheckBox] = {}
+        for key, label in EXPORT_TARGET_LABELS.items():
+            box = QCheckBox(self.tr(label))
+            box.setObjectName(f"exportTarget_{key}")
+            self.boxes[key] = box
+            layout.addWidget(box)
+        layout.addWidget(
+            _muted(
+                self.tr(
+                    "Each target gets an export preset. The export check tests the ones whose "
+                    "export templates are installed."
+                ),
+                "exportTargetsNote",
+            )
+        )
+
+    def set_values(self, chosen: list[str]) -> None:
+        for key, box in self.boxes.items():
+            box.blockSignals(True)
+            box.setChecked(key in chosen)
+            box.blockSignals(False)
 
 
 class AdvancedOptions(CollapsibleSection):

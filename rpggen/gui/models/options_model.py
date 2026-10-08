@@ -45,6 +45,12 @@ PACK_ART_LABELS = {
     "lfs": "Use Git LFS for the pack art",
     "ignore": "Leave the pack art out of git",
 }
+EXPORT_TARGET_LABELS = {
+    "windows": "Windows",
+    "web": "Web (for itch.io)",
+    "linux": "Linux",
+    "macos": "macOS (unsigned)",
+}
 
 
 @dataclass(frozen=True)
@@ -113,6 +119,7 @@ class OptionsModel:
             starter_map=copy.deepcopy(cfg.starter_map),
             imported_maps=copy.deepcopy(cfg.imported_maps),
             git=dict(cfg.git),
+            export_targets=cfg.selected_export_targets(),
         )
         self.starter_locked = self.starter_exists()
 
@@ -133,6 +140,7 @@ class OptionsModel:
         cfg.input = copy.deepcopy(self.draft.input)
         cfg.validation = dict(self.draft.validation)
         cfg.git = dict(self.draft.git)
+        cfg.export_targets = self.draft.selected_export_targets()
         if not self.starter_locked:
             cfg.starter_map = copy.deepcopy(self.draft.starter_map)
         cfg.imported_maps = copy.deepcopy(self.draft.imported_maps)
@@ -165,6 +173,22 @@ class OptionsModel:
             self.draft.git.pop("pack_art", None)
         else:
             self.draft.git["pack_art"] = choice
+
+    # ------------------------------------------------------------------ export targets
+
+    def set_export_target(self, key: str, checked: bool) -> bool:
+        """Turns one export target on or off. False (and nothing changes) when it would leave
+        no target: the project always has at least one export preset."""
+        assert self.draft is not None
+        chosen = set(self.draft.selected_export_targets())
+        if checked:
+            chosen.add(key)
+        else:
+            chosen.discard(key)
+        if not chosen:
+            return False
+        self.draft.export_targets = [t for t in config_mod.EXPORT_TARGETS if t in chosen]
+        return True
 
     # ------------------------------------------------------------------ features
 

@@ -165,6 +165,12 @@
       },
       "additionalProperties": false
     },
+    "export_targets": {
+      "type": "array",
+      "items": {"enum": ["windows", "web", "linux", "macos"]},
+      "minItems": 1,
+      "uniqueItems": true
+    },
     "git": {
       "type": "object",
       "properties": {
