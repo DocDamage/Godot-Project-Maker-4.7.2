@@ -470,3 +470,67 @@ def test_the_check_is_fast_and_starts_no_program(
     started = time.monotonic()
     assert promote.editor_open(_folder(tmp_path, "x")) in (True, False)
     assert time.monotonic() - started < 1.0  # 200 ms on a normal machine; slack for CI
+
+
+# --------------------------------------------------------------------------- the preview (T12.40)
+
+
+def _regeneration(project: Project) -> Staging:
+    project.user_edit("generated/modified.tres")  # a conflict once staging changes it too
+    project.staging_sets("generated/modified.tres", "v2")
+    project.staging_sets("generated/untouched.tres", "v2")
+    project.staging_drops("generated/removed.tres")
+    project.user_delete("generated/deleted.tres")
+    project.staging_sets("generated/deleted.tres", "v2")
+    return Staging(project.target, project.stg, "regenerate")
+
+
+def _write_ledger(project: Project) -> None:
+    project.old.save(project.target / paths.LEDGER)
+
+
+def test_the_summary_lists_what_the_plan_does(project: Project) -> None:
+    stg = _regeneration(project)
+    _write_ledger(project)
+    prepared = promote.prepare(stg)
+    summary = promote.summarize(prepared.plan, project.target)
+    assert summary.write == ["generated/untouched.tres"]
+    assert summary.conflicts == ["generated/modified.tres"]
+    assert summary.delete == ["generated/removed.tres"]
+    assert summary.skipped_deleted == ["generated/deleted.tres"]
+    assert summary.backup.startswith(BACKUPS_NAME + "/") and summary.changes
+
+
+def test_a_declined_confirmation_leaves_the_target_byte_identical(project: Project) -> None:
+    stg = _regeneration(project)
+    _write_ledger(project)
+    before = _files(project.target)
+    asked: list[promote.PromotionSummary] = []
+
+    def no(summary: promote.PromotionSummary) -> bool:
+        asked.append(summary)
+        return False
+
+    with pytest.raises(promote.PromotionDeclined):
+        promote.promote(stg, no)
+    assert len(asked) == 1 and asked[0].conflicts == ["generated/modified.tres"]
+    assert _files(project.target) == before
+    assert not (project.target / BACKUPS_NAME).exists()
+
+
+def test_a_confirmed_promotion_goes_on_and_a_run_without_changes_is_not_asked(
+    project: Project,
+) -> None:
+    stg = _regeneration(project)
+    _write_ledger(project)
+    result = promote.promote(stg, lambda summary: True)
+    assert (project.target / "generated/untouched.tres").read_text() == "v2"
+    assert result.backup is not None
+    # nothing to change: the callback is never called
+    quiet = Project(project.target.parent / "q")
+    _write_ledger(quiet)
+    asked: list[bool] = []
+    promote.promote(
+        Staging(quiet.target, quiet.stg, "regenerate"), lambda s: asked.append(True) or False
+    )
+    assert asked == []

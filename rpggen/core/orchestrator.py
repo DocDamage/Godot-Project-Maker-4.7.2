@@ -73,6 +73,8 @@ class Callbacks:
     on_skip: Callable[[str, str], None] = lambda phase, code: None  # a check that did not run
     # progress inside a Godot phase: (phase, i, n, label); n is 0 when only a label is known
     on_step: Callable[[str, int, int, str], None] = lambda phase, i, n, label: None
+    # a regeneration that is about to write, replace or delete files asks first; False cancels
+    confirm_promotion: Callable[[promote.PromotionSummary], bool] = lambda summary: True
 
 
 @dataclass
@@ -493,7 +495,10 @@ def phase_export(state: _State) -> None:
 
 def phase_promote(state: _State) -> None:
     assert state.staging is not None
-    state.promotion = promote.promote(state.staging)
+    try:
+        state.promotion = promote.promote(state.staging, state.cb.confirm_promotion)
+    except promote.PromotionDeclined:
+        raise _Cancelled from None  # the work folder goes, the project is as it was
     state.issues.extend(state.promotion.issues)
 
 

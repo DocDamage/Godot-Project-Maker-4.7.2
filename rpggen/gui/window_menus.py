@@ -82,6 +82,14 @@ class WindowMenus:
         self.storage_action = self._action(
             edit_menu, self.tr("&Storage…"), "storageAction", self.show_storage
         )
+        self.confirm_regen_action = self._action(
+            edit_menu,
+            self.tr("Show changes before regenerating"),
+            "confirmRegeneration",
+            lambda checked=False: app_settings.update(confirm_regeneration=bool(checked)),
+        )
+        self.confirm_regen_action.setCheckable(True)
+        self.confirm_regen_action.setChecked(app_settings.get().confirm_regeneration)
         edit_menu.aboutToShow.connect(self._sync_edit_actions)
 
         view_menu = bar.addMenu(self.tr("&View"))

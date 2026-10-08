@@ -11,6 +11,7 @@ import logging
 import os
 import shutil
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -44,6 +45,38 @@ class PromotionPlan:
         for rel in self.skipped_deleted:
             found.add("REGEN-002", file=rel)
         return list(found)
+
+
+@dataclass
+class PromotionSummary:
+    """What a regeneration is about to do to the project, for a person to look at first."""
+
+    write: list[str]  # files that will be created or updated
+    conflicts: list[str]  # changed by the user: the new version is written beside, as .rpggen-new
+    delete: list[str]  # generated files the run no longer produces
+    skipped_deleted: list[str]  # the user deleted these: they are not brought back
+    backup: str  # the folder of the backup, relative to the project
+
+    @property
+    def changes(self) -> bool:
+        """True when the run writes, replaces or deletes anything."""
+        return bool(self.write or self.conflicts or self.delete)
+
+
+class PromotionDeclined(Exception):
+    """The person (or a script) looked at the summary and said no: nothing was changed."""
+
+
+def summarize(plan_: PromotionPlan, target: Path) -> PromotionSummary:
+    """The summary of ``plan_``; the backup folder is named as ``execute`` would name it."""
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    return PromotionSummary(
+        list(plan_.write),
+        list(plan_.conflicts),
+        list(plan_.delete),
+        list(plan_.skipped_deleted),
+        f"{BACKUPS_NAME}/{stamp}",
+    )
 
 
 def _same(target: Path, staging: Path, rel: str) -> bool:
@@ -293,17 +326,48 @@ def load_ledger(target: Path) -> Ledger:
     return Ledger.load(path) if path.is_file() else baseline_ledger(target)
 
 
-def promote(stg: Staging) -> PromotionResult:
-    """Promote a validated staging folder (new or regeneration) and remove it."""
+@dataclass
+class PreparedPromotion:
+    """A regeneration's plan, worked out but not carried out (nothing in the target changed)."""
+
+    old: Ledger
+    candidate: Ledger
+    plan: PromotionPlan
+    committed: Ledger
+
+
+def prepare(stg: Staging) -> PreparedPromotion:
+    """Work out what promoting ``stg`` into its existing target would do."""
+    old = load_ledger(stg.target)
+    candidate = ledger_mod.scan(stg.staging, stg.target, old)
+    plan_ = plan(stg.target, stg.staging, old, candidate)
+    return PreparedPromotion(old, candidate, plan_, final_ledger(stg.target, old, candidate, plan_))
+
+
+def promote(
+    stg: Staging, confirm: Callable[[PromotionSummary], bool] | None = None
+) -> PromotionResult:
+    """Promote a validated staging folder (new or regeneration) and remove it.
+
+    ``confirm`` (regenerations only) is asked with the summary when the run would write, replace
+    or delete something; a False answer raises ``PromotionDeclined`` with the target untouched.
+    """
     if not stg.regenerate:
         candidate = ledger_mod.scan(stg.staging)
         plan_ = PromotionPlan(write=sorted(candidate.files))
         promote_new(stg, candidate)
         return PromotionResult(plan_, None, [], candidate)
-    old = load_ledger(stg.target)
-    candidate = ledger_mod.scan(stg.staging, stg.target, old)
-    plan_ = plan(stg.target, stg.staging, old, candidate)
-    committed = final_ledger(stg.target, old, candidate, plan_)
+    prepared = prepare(stg)
+    old, candidate, plan_, committed = (
+        prepared.old,
+        prepared.candidate,
+        prepared.plan,
+        prepared.committed,
+    )
+    if confirm is not None:
+        summary = summarize(plan_, stg.target)
+        if summary.changes and not confirm(summary):
+            raise PromotionDeclined
     backup = execute(plan_, stg.target, stg.staging, stg.target, old=old, new=committed)
     for _ in range(RETRIES):
         shutil.rmtree(stg.staging, ignore_errors=True)

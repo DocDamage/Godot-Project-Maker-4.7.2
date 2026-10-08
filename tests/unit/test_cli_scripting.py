@@ -476,3 +476,74 @@ def test_the_dry_run_plan_matches_the_planner(tmp_path: Path) -> None:
     assert info == {"size": list(size), "door": list(door)} and size[0] >= 1 and size[1] >= 1
     assert map_preview.building_info_for(cat, "no such building") == info  # falls back
     assert dry_run.PLAN_COUNTS == ("buildings", "npcs", "enemies", "chests", "decorations")
+
+
+# ------------------------------------------------------------------------ --confirm (T12.40)
+
+
+def _summary():  # type: ignore[no-untyped-def]
+    from rpggen.core import promote
+
+    return promote.PromotionSummary(
+        ["generated/a.tres"], ["generated/b.tres"], [], [], ".rpggen_backups/20260101-000000"
+    )
+
+
+def _confirm_run(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys, *extra: str):
+    exe = _fake_godot(monkeypatch, tmp_path)
+    answers: list[bool] = []
+
+    def promote_phase(state) -> None:
+        if not state.cb.confirm_promotion(_summary()):
+            answers.append(False)
+            raise orchestrator._Cancelled
+        answers.append(True)
+
+    monkeypatch.setitem(orchestrator.PHASE_FUNCS, "catalog", promote_phase)
+    code, doc, err = _call(
+        capsys,
+        "generate",
+        "--pack",
+        str(SYNTH / "basic16"),
+        "--target",
+        str(tmp_path / "game"),
+        "--godot",
+        str(exe),
+        *extra,
+    )
+    return code, answers, err
+
+
+def test_confirm_answered_n_cancels(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys
+) -> None:
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True, raising=False)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "n")
+    code, answers, err = _confirm_run(monkeypatch, tmp_path, capsys, "--confirm")
+    assert code == 4 and answers == [False]
+    assert "conflict: generated/b.tres" in err and "1 .rpggen-new" in err
+
+
+def test_confirm_answered_y_goes_on_and_no_confirm_never_asks(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys
+) -> None:
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True, raising=False)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "y")
+    _code, answers, _err = _confirm_run(monkeypatch, tmp_path, capsys, "--confirm")
+    assert answers == [True]
+
+    def boom(prompt: str = "") -> str:
+        raise AssertionError("asked")
+
+    monkeypatch.setattr("builtins.input", boom)
+    (tmp_path / "two").mkdir()
+    _code, answers, _err = _confirm_run(monkeypatch, tmp_path / "two", capsys)
+    assert answers == [True]  # without --confirm the callback says yes by itself
+
+
+def test_confirm_without_a_terminal_is_a_no(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys
+) -> None:
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False, raising=False)
+    code, answers, err = _confirm_run(monkeypatch, tmp_path, capsys, "--confirm")
+    assert code == 4 and answers == [False] and "No terminal" in err

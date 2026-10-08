@@ -200,11 +200,16 @@ or audio.** Open it before you send it if you like.
 ## 7a. Running rpggen from a script
 
 Everything the wizard does for a finished config is also a command (`rpggen-cli`, see the README).
-Three options are meant for scripts and build servers:
+Four options are meant for scripts and build servers:
 
 * `--dry-run` (on `generate`) checks the packs, the output folder and the requirements and plans
   the starter map without writing anything or starting Godot. Use it to find out, before a long
   run, that a role has no asset or that the folder belongs to something else.
+* `--confirm` (on `generate`) prints what a regeneration is about to change (files to update,
+  your changed files that get a `.rpggen-new` copy, deletions) and asks y/N on a terminal. Without
+  a terminal the answer is no and the run is cancelled (exit code 4). In the wizard the same list
+  is shown in a dialog before a regeneration writes anything (Edit > Show changes before
+  regenerating, on by default).
 * `--json` prints one JSON document on stdout; the readable lines go to stderr.
 * The **exit code** says why a command stopped: 0 OK, 1 generation failed, 2 usage error,
   3 environment or input (Godot or a pack not found, an unusable folder, a required role with no

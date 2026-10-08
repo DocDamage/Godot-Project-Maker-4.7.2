@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from rpggen.core import app_settings, orchestrator, vcs
 from rpggen.errors import CODES, Issue, IssueList
 from rpggen.gui import workers
+from rpggen.gui.dialogs.promotion_dialog import PromotionDialog
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
 from rpggen.gui.widgets.log_view import LogView
@@ -222,7 +223,11 @@ class GeneratePage(WizardPage):
         is cancelled and awaited so that no Godot process is left behind)."""
         if not self.running or self.worker is None:
             return True
-        if not self.ask_stop_and_close():
+        if self._promotion_dialog is not None:  # closing the window answers the question: no
+            self._promotion_dialog.reject()
+            self.worker.answer(False)
+            self.cancel()
+        elif not self.ask_stop_and_close():
             return False
         worker = self.worker
         self.cancel()
@@ -304,11 +309,36 @@ class GeneratePage(WizardPage):
         worker.signals.log.connect(self.log_view.append_line)  # a batch may hold many lines
         worker.signals.step.connect(self._on_step)
         worker.signals.skipped.connect(self._on_skipped)
+        worker.confirm_promotions = app_settings.get().confirm_regeneration
+        worker.signals.confirmation.connect(self._on_confirmation)
         worker.signals.finished.connect(self._on_finished)
         worker.signals.failed.connect(self._on_failed)
         self.worker = worker
         self.changed.emit()
         worker.start()
+
+    def ask_promotion(self, summary) -> bool:  # noqa: ANN001 - overridden by tests
+        """Show what the regeneration will change; True to go on."""
+        dialog = PromotionDialog(summary, self)
+        self._promotion_dialog = dialog
+        try:
+            return bool(dialog.exec())
+        finally:
+            self._promotion_dialog = None
+
+    def _on_confirmation(self, summary) -> None:  # noqa: ANN001
+        worker = self.worker
+        if worker is None:
+            return
+        self.status_label.setText(self.tr("Waiting for you to look at the changes…"))
+        answer = self.ask_promotion(summary)
+        worker.answer(answer)
+        if not answer:
+            self.cancel()
+        else:
+            self.status_label.setText(self.tr("Generating…"))
+
+    _promotion_dialog: PromotionDialog | None = None
 
     def cancel(self) -> None:
         if self.worker is not None and self.running:

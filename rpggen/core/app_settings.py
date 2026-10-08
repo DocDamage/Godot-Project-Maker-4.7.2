@@ -64,6 +64,7 @@ class AppSettings:
     timing_assets: int = 0  # how many assets that run had (the estimate scales by the ratio)
     cache_limit_gb: float = 10.0  # extracted archives: least recently used go beyond this
     keep_full_failed_runs: bool = False  # a failed run keeps its pack art and import cache
+    confirm_regeneration: bool = True  # show the changes before a regeneration writes them
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -81,6 +82,7 @@ class AppSettings:
             "timing_assets": self.timing_assets,
             "cache_limit_gb": self.cache_limit_gb,
             "keep_full_failed_runs": self.keep_full_failed_runs,
+            "confirm_regeneration": self.confirm_regeneration,
         }
 
 
@@ -152,6 +154,9 @@ def from_json(data: Any) -> AppSettings:
     counted = data.get("timing_assets")
     if isinstance(counted, int) and not isinstance(counted, bool) and counted >= 0:
         s.timing_assets = counted
+    confirm = data.get("confirm_regeneration")
+    if isinstance(confirm, bool):
+        s.confirm_regeneration = confirm
     keep = data.get("keep_full_failed_runs")
     if isinstance(keep, bool):
         s.keep_full_failed_runs = keep

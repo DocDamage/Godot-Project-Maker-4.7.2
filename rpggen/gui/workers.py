@@ -33,6 +33,7 @@ class WorkerSignals(QObject):
     step = Signal(str, int, int, str)  # phase, i, n, label: progress inside a Godot phase
     finished = Signal(object)  # result
     failed = Signal(object)  # Issue or exception
+    confirmation = Signal(object)  # a PromotionSummary: the page asks, then calls ``answer``
 
 
 class Worker(QRunnable):
@@ -45,6 +46,9 @@ class Worker(QRunnable):
         self.kwargs = kwargs
         self.signals = WorkerSignals()
         self._cancel = threading.Event()
+        self.confirm_promotions = False  # ask the page before a regeneration writes
+        self._answered = threading.Event()
+        self._answer = False
         self.setAutoDelete(False)  # the signals object must outlive run() for queued delivery
 
     def cancel(self) -> None:
@@ -52,6 +56,22 @@ class Worker(QRunnable):
 
     def is_cancelled(self) -> bool:
         return self._cancel.is_set()
+
+    def answer(self, yes: bool) -> None:
+        """The page's reply to a ``confirmation`` signal."""
+        self._answer = yes
+        self._answered.set()
+
+    def _confirm_promotion(self, summary: Any) -> bool:
+        """Runs on the worker thread: ask the page and wait for the reply (a cancel is a no)."""
+        if not self.confirm_promotions:
+            return True
+        self._answered.clear()
+        self._emit("confirmation", summary)
+        while not self._answered.wait(0.1):
+            if self.is_cancelled():
+                return False
+        return self._answer and not self.is_cancelled()
 
     def _emit(self, signal_name: str, *args: Any) -> None:
         try:
@@ -66,6 +86,7 @@ class Worker(QRunnable):
             is_cancelled=self.is_cancelled,
             on_skip=lambda phase, code: self._emit("skipped", phase, code),
             on_step=lambda phase, i, n, label: self._emit("step", phase, i, n, label),
+            confirm_promotion=self._confirm_promotion,
         )
 
     def run(self) -> None:

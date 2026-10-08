@@ -264,3 +264,110 @@ def test_git_option_text_and_defaults(qtbot, monkeypatch) -> None:
 
 def test_promote_backups_are_what_the_restore_button_looks_at(tmp_path) -> None:
     assert promote.list_backups(tmp_path) == []
+
+
+# ------------------------------------------------------------------------ the preview (T12.40)
+
+
+def _summary():  # type: ignore[no-untyped-def]
+    from rpggen.core import promote
+
+    return promote.PromotionSummary(
+        ["generated/a.tres", "game/maps/starter_map.tscn"],
+        ["generated/mine.tres"],
+        ["generated/old.tres"],
+        ["generated/gone.tres"],
+        ".rpggen_backups/20260101-000000",
+    )
+
+
+def test_the_promotion_dialog_lists_every_group(qtbot) -> None:
+    from rpggen.gui.dialogs.promotion_dialog import PromotionDialog
+
+    dialog = PromotionDialog(_summary())
+    qtbot.addWidget(dialog)
+    assert dialog.listed(dialog.update_item) == ["game/maps/starter_map.tscn", "generated/a.tres"]
+    assert dialog.listed(dialog.conflict_item) == ["generated/mine.tres"]
+    assert ".rpggen-new" in dialog.conflict_item.text(0)
+    assert dialog.listed(dialog.respected_item) == ["generated/gone.tres"]
+    assert dialog.listed(dialog.delete_item) == ["generated/old.tres"]
+    assert ".rpggen_backups/20260101-000000" in dialog.backup_label.text()
+
+
+def test_declining_the_dialog_cancels_the_run_and_accepting_goes_on(qtbot, tmp_path) -> None:
+    from rpggen.gui import workers
+
+    page, _state = _generate_page(qtbot, tmp_path)
+    worker = workers.Worker(lambda callbacks: None)
+    page.worker = worker
+    cancelled: list[bool] = []
+    page.cancel = lambda: cancelled.append(True)  # type: ignore[method-assign]
+    page.ask_promotion = lambda summary: False  # type: ignore[method-assign]
+    page._on_confirmation(_summary())
+    assert worker._answered.is_set() and worker._answer is False and cancelled == [True]
+    worker2 = workers.Worker(lambda callbacks: None)
+    page.worker = worker2
+    page.ask_promotion = lambda summary: True  # type: ignore[method-assign]
+    page._on_confirmation(_summary())
+    assert worker2._answer is True and cancelled == [True]
+
+
+def test_the_worker_waits_for_the_answer_and_a_cancel_is_a_no() -> None:
+    import threading
+
+    from PySide6.QtCore import Qt
+
+    from rpggen.gui import workers
+
+    worker = workers.Worker(lambda callbacks: None)
+    assert worker.callbacks().confirm_promotion(_summary()) is True  # not asked unless enabled
+    worker.confirm_promotions = True
+    asked: list[object] = []
+    worker.signals.confirmation.connect(asked.append, Qt.ConnectionType.DirectConnection)
+    result: list[bool] = []
+    thread = threading.Thread(
+        target=lambda: result.append(worker.callbacks().confirm_promotion(_summary()))
+    )
+    thread.start()
+    thread.join(0.3)
+    assert thread.is_alive() and len(asked) == 1  # waiting
+    worker.answer(True)
+    thread.join(2)
+    assert result == [True]
+    stopped = workers.Worker(lambda callbacks: None)
+    stopped.confirm_promotions = True
+    stopped.cancel()
+    assert stopped.callbacks().confirm_promotion(_summary()) is False
+
+
+def test_closing_the_window_while_the_dialog_is_open_cancels(qtbot, tmp_path) -> None:
+    from rpggen.gui import workers
+
+    page, _state = _generate_page(qtbot, tmp_path)
+    page.worker = workers.Worker(lambda callbacks: None)
+    page.running = True
+    rejected: list[bool] = []
+
+    class FakeDialog:
+        def reject(self) -> None:
+            rejected.append(True)
+
+    page._promotion_dialog = FakeDialog()  # type: ignore[assignment]
+    cancelled: list[bool] = []
+    page.cancel = lambda: cancelled.append(True)  # type: ignore[method-assign]
+    assert page.request_close(timeout_ms=50) is True
+    assert rejected == [True] and cancelled and page.worker._answer is False
+
+
+def test_the_setting_is_on_by_default_and_the_menu_changes_it(qtbot) -> None:
+    from rpggen.core import app_settings
+    from rpggen.gui.wizard import MainWindow, stub_pages
+
+    assert app_settings.get().confirm_regeneration is True
+    win = MainWindow(None, stub_pages())
+    qtbot.addWidget(win)
+    assert win.confirm_regen_action.isChecked()
+    win.confirm_regen_action.trigger()
+    assert app_settings.get().confirm_regeneration is False
+    win.confirm_regen_action.trigger()
+    assert app_settings.get().confirm_regeneration is True

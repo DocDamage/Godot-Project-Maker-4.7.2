@@ -81,6 +81,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="allow regeneration to move the project to a new major runtime version",
     )
     gen.add_argument(
+        "--confirm",
+        action="store_true",
+        help="before a regeneration writes anything, print what it will change and ask y/N "
+        "(on a terminal; without one the answer is no)",
+    )
+    gen.add_argument(
         "--git",
         action="store_true",
         help="git init (if needed) and commit the generated project; never pushes",
@@ -209,6 +215,30 @@ def _generate(args: argparse.Namespace) -> int:
         return _run(args, out, cfg_path, exe, derive)
 
 
+def _ask_promotion(out: Output) -> Any:
+    """``--confirm``: print the summary of a regeneration, then ask y/N on a terminal (no terminal,
+    no answer: the run is cancelled rather than going on unasked)."""
+
+    def ask(summary: Any) -> bool:
+        out.say(
+            f"This regeneration will update {len(summary.write)} file(s), write "
+            f"{len(summary.conflicts)} .rpggen-new copy(ies) beside files you changed, delete "
+            f"{len(summary.delete)} and leave {len(summary.skipped_deleted)} you deleted alone. "
+            f"The old versions are saved in {summary.backup}."
+        )
+        for rel in summary.conflicts:
+            out.say(f"  conflict: {rel}")
+        if not sys.stdin.isatty():
+            out.say("No terminal to ask on: not regenerating.")
+            return False
+        try:
+            return input("Regenerate? [y/N] ").strip().lower() in ("y", "yes")
+        except EOFError:
+            return False
+
+    return ask
+
+
 def _run(
     args: argparse.Namespace, out: Output, cfg_path: Path, exe: Path | None, derive: bool
 ) -> int:
@@ -226,7 +256,11 @@ def _run(
             cfg_path,
             args.target,
             exe,
-            orchestrator.Callbacks(on_log=show, is_cancelled=is_cancelled),
+            orchestrator.Callbacks(
+                on_log=show,
+                is_cancelled=is_cancelled,
+                confirm_promotion=_ask_promotion(out) if args.confirm else (lambda summary: True),
+            ),
             placeholders=[r.upper() for r in args.placeholder],
             force_while_open=args.force_while_open,
             accept_runtime_upgrade=args.accept_runtime_upgrade,
