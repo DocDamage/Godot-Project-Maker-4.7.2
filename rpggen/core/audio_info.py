@@ -45,6 +45,50 @@ def duration_seconds(path: Path) -> float | None:
     return None
 
 
+def format_duration(seconds: float | None) -> str:
+    """``3.2 s`` under ten seconds, ``0:42`` or ``2:05`` above; an unknown length is ``--``."""
+    if seconds is None:
+        return "--"
+    if seconds < 10:
+        return f"{seconds:.1f} s"
+    whole = round(seconds)
+    return f"{whole // 60}:{whole % 60:02d}"
+
+
+WAVE_SAMPLE_FRAMES = 1024
+
+
+def waveform(path: Path, bins: int = 40) -> list[float] | None:
+    """Peak level (0 to 1) of ``bins`` evenly spaced slices of a WAV file, read with the standard
+    ``wave`` module by sampling a short run of frames in each slice. Other formats and files that
+    cannot be read give ``None``."""
+    if path.suffix.lower() not in (".wav", ".wave"):
+        return None
+    try:
+        with wave.open(str(path), "rb") as w:
+            frames, width, channels = w.getnframes(), w.getsampwidth(), w.getnchannels()
+            if frames <= 0 or width not in (1, 2, 3, 4) or channels <= 0:
+                return None
+            full = 128 if width == 1 else 1 << (8 * width - 1)
+            step = width * channels
+            peaks: list[float] = []
+            for i in range(bins):
+                w.setpos(frames * i // bins)
+                data = w.readframes(min(WAVE_SAMPLE_FRAMES, max(1, frames // bins)))
+                top = 0
+                for at in range(0, len(data) - width + 1, step):
+                    chunk = data[at : at + width]
+                    if width == 1:
+                        value = chunk[0] - 128
+                    else:
+                        value = int.from_bytes(chunk, "little", signed=True)
+                    top = max(top, abs(value))
+                peaks.append(min(1.0, top / full))
+            return peaks
+    except (wave.Error, OSError, EOFError, ValueError):
+        return None
+
+
 def _wav(path: Path) -> float | None:
     with contextlib.suppress(wave.Error, OSError, EOFError), wave.open(str(path), "rb") as w:
         rate = w.getframerate()

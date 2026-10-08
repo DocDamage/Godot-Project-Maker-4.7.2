@@ -12,11 +12,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QColor, QPixmap
 
 from rpggen import paths
+from rpggen.core import audio_info
 from rpggen.core.orchestrator import Callbacks
 from rpggen.gui import workers
 
@@ -26,6 +27,7 @@ THUMB_SIZE = 96
 CACHE_SIZE = 2000
 TILE_PREVIEW_CELLS = 4
 BATCH_SIZE = 24
+CARD_VERSION = 1  # bump when the audio or font card drawing changes
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,8 @@ class ThumbRequest:
     size: int = 96  # THUMB_SIZE; the box the picture is fitted into
     cells: int = TILE_PREVIEW_CELLS  # tile sheets: how many cells across and down are shown
     skip_empty: bool = False  # tile sheets: start at the first cell that has something in it
+    kind: str = "image"  # "audio" and "font" cards are drawn, not read as pictures
+    duration: float | None = None  # audio cards: the length shown on the card
 
 
 def variant_tag(
@@ -51,10 +55,14 @@ def variant_tag(
     size: int = THUMB_SIZE,
     cells: int = TILE_PREVIEW_CELLS,
     skip_empty: bool = False,
+    kind: str = "image",
+    duration: float | None = None,
 ) -> str:
     payload: list[Any] = [usage, grid, frame, region]
     if size != THUMB_SIZE or cells != TILE_PREVIEW_CELLS or skip_empty:
         payload.append([size, cells, skip_empty])  # the defaults keep the keys already on disk
+    if kind != "image":
+        payload.append(["card", CARD_VERSION, kind, duration])
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
 
@@ -66,13 +74,18 @@ def request_for(
     size: int = THUMB_SIZE,
     cells: int = TILE_PREVIEW_CELLS,
     skip_empty: bool = False,
+    kind: str = "image",
+    duration: float | None = None,
 ) -> ThumbRequest:
     usage = str(facets.get("usage", ""))
     grid = facets.get("grid")
     frame = facets.get("frame")
     region = facets.get("region")
-    key = f"{sha256}_{variant_tag(usage, grid, frame, region, size, cells, skip_empty)}"
-    return ThumbRequest(key, str(path), usage, grid, frame, region, size, cells, skip_empty)
+    tag = variant_tag(usage, grid, frame, region, size, cells, skip_empty, kind, duration)
+    return ThumbRequest(
+        f"{sha256}_{tag}", str(path), usage, grid, frame, region, size, cells, skip_empty,
+        kind, duration,
+    )  # fmt: skip
 
 
 def first_filled_cell(image: Image.Image, grid: dict[str, Any]) -> tuple[int, int]:
@@ -115,9 +128,86 @@ def _crop_box(
     return x0, y0, max(x1, x0 + 1), max(y1, y0 + 1)
 
 
+def _png(image: Image.Image) -> bytes:
+    out = io.BytesIO()
+    image.save(out, format="PNG")
+    return out.getvalue()
+
+
+def _small_font(size: int) -> Any:
+    return ImageFont.load_default(size=max(8, size))
+
+
+def render_audio_card(path: Path, duration: float | None, size: int = THUMB_SIZE) -> bytes:
+    """A speaker glyph, a waveform strip (WAV only) and the duration, on a fixed dark card."""
+    k = size / 96
+
+    def px(v: float) -> int:
+        return round(v * k)
+
+    image = Image.new("RGBA", (size, size), (38, 46, 64, 255))
+    draw = ImageDraw.Draw(image)
+    ink = (214, 224, 244, 255)
+    wave_ink = (104, 168, 240, 255)
+    cx, cy = size // 2 - px(12), px(26)  # the speaker's box meets its cone at (cx, cy)
+    draw.rectangle([cx - px(10), cy - px(6), cx, cy + px(6)], fill=ink)
+    draw.polygon(
+        [
+            (cx, cy - px(6)),
+            (cx + px(14), cy - px(16)),
+            (cx + px(14), cy + px(16)),
+            (cx, cy + px(6)),
+        ],
+        fill=ink,
+    )
+    for r in (px(14), px(24)):
+        draw.arc(
+            [cx + px(14) - r, cy - r, cx + px(14) + r, cy + r],
+            -45,
+            45,
+            fill=ink,
+            width=max(1, px(2)),
+        )
+    mid, height, margin = px(62), px(22), px(8)
+    peaks = audio_info.waveform(path, bins=max(16, size // 3))
+    if peaks:
+        step = (size - 2 * margin) / len(peaks)
+        for i, peak in enumerate(peaks):
+            x = round(margin + i * step)
+            half = max(1, round(peak * height / 2))
+            draw.line(
+                [(x, mid - half), (x, mid + half)], fill=wave_ink, width=max(1, round(step) - 1)
+            )
+    else:
+        draw.line([(margin, mid), (size - margin, mid)], fill=wave_ink, width=1)
+    text = audio_info.format_duration(duration)
+    font = _small_font(px(13))
+    draw.text((size / 2, px(84)), text, fill=ink, font=font, anchor="mm")
+    return _png(image)
+
+
+def render_font_card(path: Path, size: int = THUMB_SIZE) -> bytes:
+    """ "Aa Bb 123" drawn from the font file; "Aa" in the default font when it cannot be read."""
+    image = Image.new("RGBA", (size, size), (244, 244, 240, 255))
+    draw = ImageDraw.Draw(image)
+    ink = (30, 30, 34, 255)
+    try:
+        font = ImageFont.truetype(str(path), max(10, size // 5))
+        draw.text((size // 2, size // 3), "Aa Bb", fill=ink, font=font, anchor="mm")
+        draw.text((size // 2, size * 2 // 3), "123", fill=ink, font=font, anchor="mm")
+    except (OSError, ValueError):
+        draw.text((size // 2, size // 2), "Aa", fill=ink, font=_small_font(size // 2), anchor="mm")
+    return _png(image)
+
+
 def render_thumbnail(req: ThumbRequest, size: int = THUMB_SIZE) -> bytes:
     """PNG bytes of the preview: tiles show their first 4x4 cells, sprites their first frame,
-    everything else the whole image, fitted to ``size`` with nearest-neighbor sampling."""
+    everything else the whole image, fitted to ``size`` with nearest-neighbor sampling. Audio and
+    font files get a drawn card."""
+    if req.kind == "audio":
+        return render_audio_card(Path(req.path), req.duration, size)
+    if req.kind == "font":
+        return render_font_card(Path(req.path), size)
     with Image.open(req.path) as opened:
         rgba = opened.convert("RGBA")
         start = (0, 0)
@@ -129,10 +219,7 @@ def render_thumbnail(req: ThumbRequest, size: int = THUMB_SIZE) -> bytes:
     if scale >= 1:
         scale = max(1, int(scale))  # integer upscale keeps pixels square
     new_size = (max(1, round(w * scale)), max(1, round(h * scale)))
-    resized = cropped.resize(new_size, Image.Resampling.NEAREST)
-    out = io.BytesIO()
-    resized.save(out, format="PNG")
-    return out.getvalue()
+    return _png(cropped.resize(new_size, Image.Resampling.NEAREST))
 
 
 def thumb_cache_dir() -> Path:

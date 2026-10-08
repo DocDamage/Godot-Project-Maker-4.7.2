@@ -90,7 +90,7 @@ def test_view_settings(qtbot, basic_catalog) -> None:
     cat, root = basic_catalog
     view = _grid(qtbot, cat, root).view
     assert view.viewMode().name == "IconMode" and view.uniformItemSizes()
-    assert view.gridSize() == QSize(112, 132)
+    assert view.gridSize() == QSize(112, 152)
     assert view.layoutMode().name == "Batched"
     assert view.selectionMode().name == "ExtendedSelection"
 

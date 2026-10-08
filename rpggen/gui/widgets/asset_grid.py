@@ -64,8 +64,9 @@ THUMB = thumbnails.THUMB_SIZE
 
 
 def grid_size_for(thumb: int) -> QSize:
-    """The cell of the grid for a thumbnail size (the card adds a strip, margins and a name)."""
-    return QSize(thumb + 16, thumb + 36)
+    """The cell of the grid for a thumbnail size (the card adds a strip, margins, a confidence
+    bar, a name and a role chip)."""
+    return QSize(thumb + 16, thumb + 56)
 
 
 GRID_SIZE = grid_size_for(THUMB)
@@ -212,12 +213,13 @@ class AssetListModel(QAbstractListModel):
     def _pixmap_for(self, asset: catalog_mod.Asset, facets: dict) -> QPixmap:
         key = self._keys.get(asset.id)
         if key is None:
-            if asset.kind != "image":  # audio and fonts have no picture to read
-                return self._placeholder_pixmap()
             path = self.resolver(asset)
             if path is None:
                 return self._placeholder_pixmap()
-            req = thumbnails.request_for(asset.sha256, path, facets, self.thumb_size)
+            duration = (facets.get("audio") or {}).get("duration_s")
+            req = thumbnails.request_for(
+                asset.sha256, path, facets, self.thumb_size, kind=asset.kind, duration=duration
+            )
             key = req.key
             self._keys[asset.id] = key
             self._by_key.setdefault(key, []).append(asset.id)
@@ -328,6 +330,8 @@ class AssetCardDelegate(QStyledItemDelegate):
             target.moveCenter(area.center())
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
             painter.drawPixmap(target, pixmap)
+        if status in ("AUTO_DETECTED", "NEEDS_REVIEW"):
+            self._paint_confidence(painter, rect, index.data(ConfidenceRole), status)
         glyph = STATUS_GLYPHS.get(status, "")
         if glyph:
             painter.setPen(QColor(STATUS_COLORS.get(status, STATUS_COLORS["UNUSED"])))
@@ -337,14 +341,64 @@ class AssetCardDelegate(QStyledItemDelegate):
                 Qt.AlignmentFlag.AlignCenter,
                 glyph,
             )
-        text_rect = QRect(rect.left() + self.STRIP + 4, rect.top() + self.thumb + 8, self.thumb, 20)
+        text_rect = QRect(
+            rect.left() + self.STRIP + 4, rect.top() + self.thumb + 10, self.thumb, 18
+        )
         name = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
         elided = painter.fontMetrics().elidedText(name, Qt.TextElideMode.ElideMiddle, self.thumb)
         painter.setPen(palette.highlightedText().color() if selected else palette.text().color())
         painter.drawText(
             text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided
         )
+        self._paint_chip(
+            painter,
+            rect,
+            index,
+            palette.highlightedText().color() if selected else palette.text().color(),
+        )
         painter.restore()
+
+    @staticmethod
+    def chip_text(index) -> str:  # noqa: ANN001
+        """The friendly role name shown on the card ("" when the asset has no role)."""
+        role = str(index.data(RoleRole) or "")
+        return "" if role in ("", "NONE") else labels.role_label(role)
+
+    def chip_rect(self, rect: QRect) -> QRect:
+        return QRect(rect.left() + self.STRIP + 4, rect.top() + self.thumb + 30, self.thumb, 16)
+
+    def _paint_chip(self, painter: QPainter, rect: QRect, index, ink: QColor) -> None:  # noqa: ANN001
+        text = self.chip_text(index)
+        if not text:
+            return
+        chip = self.chip_rect(rect)
+        base = QColor(
+            STATUS_COLORS.get(index.data(StatusRole) or "UNUSED", STATUS_COLORS["UNUSED"])
+        )
+        fill = QColor(base)
+        fill.setAlpha(46)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(fill)
+        painter.drawRoundedRect(chip, 7, 7)
+        painter.setPen(ink)
+        elided = painter.fontMetrics().elidedText(
+            text, Qt.TextElideMode.ElideRight, chip.width() - 10
+        )
+        painter.drawText(chip, Qt.AlignmentFlag.AlignCenter, elided)
+
+    def _paint_confidence(self, painter: QPainter, rect: QRect, confidence, status: str) -> None:  # noqa: ANN001
+        """A thin bar under the picture: its length is how sure the detection was."""
+        try:
+            value = max(0.0, min(1.0, float(confidence)))
+        except (TypeError, ValueError):
+            return
+        left = rect.left() + self.STRIP + 4
+        top = rect.top() + self.thumb + 6
+        painter.fillRect(QRect(left, top, self.thumb, 3), QColor(128, 128, 128, 70))
+        painter.fillRect(
+            QRect(left, top, max(1, round(self.thumb * value)), 3),
+            QColor(STATUS_COLORS.get(status, STATUS_COLORS["UNUSED"])),
+        )
 
     @staticmethod
     def fit(size: QSize, box: QSize) -> QRect:

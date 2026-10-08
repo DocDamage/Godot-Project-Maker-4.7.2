@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -19,9 +19,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpggen.core import audio_info, explain, labels
 from rpggen.core import catalog as catalog_mod
-from rpggen.core import explain, labels
 from rpggen.gui.edits import EditSession
+from rpggen.gui.widgets import audio_preview
 from rpggen.gui.widgets.asset_grid import STATUS_COLORS, PathResolver
 from rpggen.gui.widgets.flow_layout import FlowLayout
 from rpggen.gui.widgets.image_view import ImageView
@@ -100,6 +101,24 @@ class AssetDetail(QWidget):
         self.preview = ImageView("assetPreview")
         self.preview.setMinimumHeight(180)
         layout.addWidget(self.preview, 2)
+        # audio files have no picture: a Play button and what is known about the file instead
+        self.audio_box = QWidget()
+        self.audio_box.setObjectName("audioBox")
+        audio_row = QHBoxLayout(self.audio_box)
+        audio_row.setContentsMargins(0, 0, 0, 0)
+        self.play_button = QPushButton(self.tr("Play"))
+        self.play_button.setObjectName("playButton")
+        self.play_button.setToolTip(self.tr("Play or stop the sound (Space)"))
+        self.audio_info_label = QLabel()
+        self.audio_info_label.setObjectName("audioInfoLabel")
+        audio_row.addWidget(self.play_button)
+        audio_row.addWidget(self.audio_info_label, 1)
+        layout.addWidget(self.audio_box)
+        self.audio_box.setVisible(False)
+        self.play_button.clicked.connect(self.toggle_playback)
+        self._space = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
+        self._space.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self._space.activated.connect(self.toggle_playback)
 
         form = QFormLayout()
         layout.addLayout(form)
@@ -228,6 +247,9 @@ class AssetDetail(QWidget):
     def set_asset(self, asset_id: str | None) -> None:
         previous = self.asset_id
         self.asset_id = asset_id
+        if previous != asset_id:
+            audio_preview.stop()
+            self.play_button.setText(self.tr("Play"))
         self.setEnabled(asset_id is not None)
         self.reload(reload_image=previous != asset_id)
 
@@ -261,6 +283,7 @@ class AssetDetail(QWidget):
             color = STATUS_COLORS.get(asset.status, STATUS_COLORS["UNUSED"])
             self.status_badge.setStyleSheet(f"color: {color}; font-weight: bold;")
             usage = eff.get("usage")
+            self._show_media_kind(asset, eff)
             show_collision = usage in COLLISION_USAGES
             self.collision_combo.setVisible(show_collision)
             self.collision_label.setVisible(show_collision)
@@ -272,10 +295,44 @@ class AssetDetail(QWidget):
             self.anim_button.setEnabled(usage == "sprite")
             self.cut_button.setEnabled(usage in ("tiles", "object", "sprite", "ui"))
             if reload_image:
-                grid = eff.get("grid") if usage in GRID_USAGES else None
-                self.preview.set_image(self.resolver(asset), grid)
+                if asset.kind == "image":
+                    grid = eff.get("grid") if usage in GRID_USAGES else None
+                    self.preview.set_image(self.resolver(asset), grid)
+                else:
+                    self.preview.set_image(None)
         finally:
             self._loading = False
+
+    def _show_media_kind(self, asset: catalog_mod.Asset, eff: dict) -> None:
+        """Audio and fonts hide the (empty) picture; audio gets Play, its length and its type."""
+        is_image = asset.kind == "image"
+        self.preview.setVisible(is_image)
+        is_audio = asset.kind == "audio"
+        self.audio_box.setVisible(is_audio)
+        if not is_audio:
+            return
+        audio = eff.get("audio") or {}
+        seconds = audio.get("duration_s")
+        kind = {"music": self.tr("music"), "sfx": self.tr("sound effect")}.get(
+            str(audio.get("type")), self.tr("audio")
+        )
+        suffix = asset.path.rsplit(".", 1)[-1].upper() if "." in asset.path else ""
+        parts = [audio_info.format_duration(seconds), kind] + ([suffix] if suffix else [])
+        self.audio_info_label.setText(" · ".join(parts))
+        self.play_button.setVisible(audio_preview.available())
+
+    def toggle_playback(self) -> None:
+        """Play the selected sound, or stop it when it is already playing."""
+        asset = self.asset()
+        if asset is None or asset.kind != "audio" or not audio_preview.available():
+            return
+        if audio_preview.is_playing():
+            audio_preview.stop()
+            self.play_button.setText(self.tr("Play"))
+            return
+        path = self.resolver(asset)
+        if path is not None and audio_preview.play(Path(path)):
+            self.play_button.setText(self.tr("Stop"))
 
     @staticmethod
     def _select(combo: QComboBox, value: object) -> None:
