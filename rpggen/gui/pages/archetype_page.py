@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from PySide6.QtCore import QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QPainter, QPaintEvent, QPalette, QPen
+from PySide6.QtGui import QColor, QImage, QPainter, QPaintEvent, QPalette, QPen, QPixmap
 from PySide6.QtWidgets import (
     QButtonGroup,
     QHBoxLayout,
@@ -17,6 +19,8 @@ from PySide6.QtWidgets import (
 from rpggen import features
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
+from rpggen.core import mapping
+from rpggen.gui import thumbnails
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
 
@@ -60,6 +64,68 @@ class FlowDiagram(QWidget):
         painter.end()
 
 
+@dataclass
+class SceneArt:
+    """The pack's own pictures for the cards: a ground tile, the hero and (when there is one) an
+    enemy, as pixmaps at their file size."""
+
+    player: QPixmap
+    ground: QPixmap | None = None
+    enemy: QPixmap | None = None
+
+
+def _pixmap(image) -> QPixmap | None:  # noqa: ANN001 - a PIL image or None
+    if image is None:
+        return None
+    rgba = image.convert("RGBA")
+    qimage = QImage(rgba.tobytes(), rgba.width, rgba.height, QImage.Format.Format_RGBA8888)
+    return QPixmap.fromImage(qimage.copy())
+
+
+def build_scene_art(state: WizardState, resolver=None) -> SceneArt | None:  # noqa: ANN001
+    """Ground, player and enemy art of the analysed packs; None without a ``PLAYER`` (the cards
+    keep their drawing). A piece that cannot be read is left out."""
+    cat = state.catalog
+    if cat is None:
+        return None
+    if resolver is None:
+        from rpggen.gui.pages.audit_page import make_resolver
+
+        resolver = make_resolver(state)
+
+    def art_of(role: str, loader):  # noqa: ANN001, ANN202
+        asset_id = mapping.best_for(cat, role)
+        asset = cat.asset(asset_id) if asset_id else None
+        path = resolver(asset) if asset is not None else None
+        if path is None:
+            return None
+        return _pixmap(loader(path, catalog_mod.effective(asset)))
+
+    player = art_of("PLAYER", thumbnails.first_frame_image)
+    if player is None:
+        return None
+    return SceneArt(
+        player,
+        art_of("GROUND", thumbnails.ground_tile_image),
+        art_of("ENEMY", thumbnails.first_frame_image),
+    )
+
+
+def scaled_to_height(pixmap: QPixmap, height: float) -> QPixmap:
+    """Nearest-neighbour: a whole-number factor when the picture is smaller than ``height`` (the
+    pixels stay square), the nearest size below it when it is larger."""
+    h = max(1, pixmap.height())
+    if height >= h:
+        factor = max(1, int(height // h))
+        return pixmap.scaled(
+            pixmap.width() * factor,
+            h * factor,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.FastTransformation,
+        )
+    return pixmap.scaledToHeight(max(1, int(height)), Qt.TransformationMode.FastTransformation)
+
+
 class MockScreen(QWidget):
     """A drawing of what the game looks like, made with QPainter (no pictures): two battlers, a
     command box and HP rows for the turn-based game; a room, a swing and a HUD bar for the action
@@ -68,9 +134,57 @@ class MockScreen(QWidget):
     def __init__(self, kind: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.kind = kind
+        self.art: SceneArt | None = None
         self.setMinimumSize(QSize(240, 130))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+    def set_art(self, art: SceneArt | None) -> None:
+        self.art = art
+        self.update()
+
+    def _paint_art(self, painter: QPainter, rect) -> None:  # noqa: ANN001
+        """The scene with the pack's pictures; the layout is the drawing's, the pieces are art."""
+        art = self.art
+        assert art is not None
+        w, h = rect.width(), rect.height()
+        x0, y0 = rect.left(), rect.top()
+        painter.save()
+        painter.setClipRect(rect)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
+        if art.ground is not None:
+            tile = scaled_to_height(art.ground, 24)
+            painter.drawTiledPixmap(rect, tile)
+        player = scaled_to_height(art.player, h * 0.30)
+        enemy = scaled_to_height(art.enemy, h * 0.30) if art.enemy is not None else None
+        if self.kind == "turn_based":
+            if enemy is not None:
+                for i in range(2):  # the enemies on the left
+                    painter.drawPixmap(int(x0 + w * 0.14), int(y0 + h * (0.12 + 0.30 * i)), enemy)
+            for i in range(2):  # the party on the right
+                painter.drawPixmap(int(x0 + w * 0.72), int(y0 + h * (0.12 + 0.30 * i)), player)
+            painter.setBrush(QColor(20, 24, 36, 220))
+            painter.setPen(QPen(QColor(220, 220, 230), 1))
+            painter.drawRoundedRect(QRectF(x0 + w * 0.05, y0 + h * 0.70, w * 0.40, h * 0.24), 3, 3)
+            for i in range(3):  # the command list
+                y = int(y0 + h * (0.76 + 0.055 * i))
+                painter.drawLine(int(x0 + w * 0.09), y, int(x0 + w * 0.30), y)
+        else:
+            painter.drawPixmap(int(x0 + w * 0.30), int(y0 + h * 0.40), player)
+            if enemy is not None:
+                painter.drawPixmap(int(x0 + w * 0.70), int(y0 + h * 0.40), enemy)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(QColor(250, 250, 250), 3))  # the swing, next to the enemy
+            painter.drawArc(
+                QRectF(x0 + w * 0.40, y0 + h * 0.26, w * 0.26, h * 0.46), -50 * 16, 100 * 16
+            )
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(60, 60, 70))  # the HUD bar
+            painter.drawRect(QRectF(x0 + w * 0.06, y0 + h * 0.10, w * 0.30, h * 0.07))
+            painter.setBrush(QColor(210, 70, 70))
+            painter.drawRect(QRectF(x0 + w * 0.06, y0 + h * 0.10, w * 0.22, h * 0.07))
+        painter.restore()
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802 - Qt override
         painter = QPainter(self)
@@ -82,7 +196,9 @@ class MockScreen(QWidget):
         w, h = rect.width(), rect.height()
         x0, y0 = rect.left(), rect.top()
         painter.setPen(Qt.PenStyle.NoPen)
-        if self.kind == "turn_based":
+        if self.art is not None:
+            self._paint_art(painter, rect)
+        elif self.kind == "turn_based":
             painter.setBrush(QColor(224, 96, 88))  # the enemies
             for i in range(2):
                 painter.drawRoundedRect(
@@ -254,6 +370,20 @@ class ArchetypePage(WizardPage):
         self.turn_card.setChecked(True)
         self.group.buttonToggled.connect(lambda *_: self._on_toggled())
 
+    def _update_art(self, state: WizardState) -> None:
+        """Draw the cards with the pack's art; one build per catalog."""
+        if state.catalog is not None and state.catalog is self._art_catalog:
+            return
+        self._art_catalog = state.catalog
+        try:
+            art = build_scene_art(state)
+        except Exception:  # noqa: BLE001 - the plain drawing is always there
+            art = None
+        for card in (self.turn_card, self.arpg_card):
+            card.mock.set_art(art)
+
+    _art_catalog: catalog_mod.Catalog | None = None
+
     def _on_toggled(self) -> None:
         self._update_warning()
         self.changed.emit()
@@ -266,6 +396,7 @@ class ArchetypePage(WizardPage):
 
     def enter(self, state: WizardState) -> None:
         self._has_attack = has_attack_animation(state.catalog)
+        self._update_art(state)
         archetype = (
             state.archetype
             if state.archetype == "turn_based" or features.ARPG_AVAILABLE

@@ -222,6 +222,56 @@ def render_thumbnail(req: ThumbRequest, size: int = THUMB_SIZE) -> bytes:
     return _png(cropped.resize(new_size, Image.Resampling.NEAREST))
 
 
+def _cell_box(grid: dict[str, Any], col: int, row: int) -> tuple[int, int, int, int]:
+    cw, ch = grid["cell"]
+    mx, my = grid.get("margin", [0, 0])
+    sx, sy = grid.get("separation", [0, 0])
+    x, y = mx + col * (cw + sx), my + row * (ch + sy)
+    return x, y, x + cw, y + ch
+
+
+def first_frame_image(path: Path, facets: dict[str, Any]) -> Image.Image | None:
+    """The first frame of a character or an enemy: the first cell of ``idle_down``, else of
+    ``walk_down`` or of any animation, else the first cell (or frame) of the sheet. None when the
+    file cannot be read."""
+    grid = facets.get("grid")
+    animations = facets.get("animations") or {}
+    cell = (0, 0)
+    for name in ("idle_down", "walk_down", *animations):
+        frames = (animations.get(name) or {}).get("frames")
+        if frames:
+            cell = (int(frames[0][0]), int(frames[0][1]))
+            break
+    try:
+        with Image.open(path) as opened:
+            rgba = opened.convert("RGBA")
+    except (OSError, ValueError):
+        return None
+    if grid:
+        box = _cell_box(grid, *cell)
+    elif facets.get("frame"):
+        fw, fh = facets["frame"]
+        box = (0, 0, fw, fh)
+    else:
+        return rgba
+    cropped = rgba.crop(box)
+    return cropped if cropped.getbbox() is not None else None
+
+
+def ground_tile_image(path: Path, facets: dict[str, Any]) -> Image.Image | None:
+    """The first cell of a tile sheet that has something in it; None when it cannot be read."""
+    grid = facets.get("grid")
+    if not grid:
+        return None
+    try:
+        with Image.open(path) as opened:
+            rgba = opened.convert("RGBA")
+    except (OSError, ValueError):
+        return None
+    col, row = first_filled_cell(rgba, grid)
+    return rgba.crop(_cell_box(grid, col, row))
+
+
 def thumb_cache_dir() -> Path:
     return paths.cache_dir() / "thumbs"
 
