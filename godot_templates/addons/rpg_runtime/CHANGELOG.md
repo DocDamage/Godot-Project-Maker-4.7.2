@@ -61,7 +61,8 @@
   already built the party from `GameState.party`; it now uses their names and art), experience is
   shared (`give_experience` now grants it to the whole party), and a fallen member stands up at
   1 HP after a victory or an escape; the defeat policy revives or heals the whole party. The
-  battle UI marks whose turn it is. The status menu pages through the members with its own
+  battle UI marks whose turn it is (small text for a party of three or more), and the
+  inventory menu asks on whom to use an item (`UI_USE_ON`). The status menu pages through the members with its own
   equipment. `heal_full` heals everyone. The party was already in the save. The action RPG has no
   followers in 1.0. New keys: `UI_PARTY_JOINED` and `UI_PARTY_LEFT`. New turn-based projects get the
   actor "Mira" (`companion.tres`) and a villager choice that brings her along.
