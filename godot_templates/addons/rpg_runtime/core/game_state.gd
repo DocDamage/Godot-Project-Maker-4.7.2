@@ -5,6 +5,9 @@ extends Node
 const ITEMS_DIR := "res://game/data/items"
 const HERO_PATH := "res://game/data/actors/hero.tres"
 const SHOPS_DIR := "res://game/data/shops"
+const QUESTS_DIR := "res://game/data/quests"
+## The value of GameState.quests[id] once a quest is finished.
+const QUEST_DONE := "done"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
 ## The equipment slots, in display order. An item goes to the slot of its category.
 const EQUIP_SLOTS: Array[StringName] = [&"weapon", &"armor", &"accessory"]
@@ -22,7 +25,8 @@ var current_spawn: StringName = &"default"
 var player_position := Vector2.ZERO
 var player_facing := "down"
 var flags: Dictionary = {}  # entity_id -> {key: value}
-var quests: Dictionary = {}
+var quests: Dictionary = {}  # quest id -> the id of its current stage, or QUEST_DONE
+var quest_defs: Dictionary = {}  # quest id -> RpgQuestDefinition (game/data/quests)
 ## actor id (String) -> {slot: item id (String)}. Keyed by actor from the start so party members
 ## (T12.47) get their own; a missing actor or slot means nothing is worn.
 var equipment: Dictionary = {}
@@ -35,6 +39,12 @@ func _ready() -> void:
 	inventory.registry = items
 	rng.seed_from_config()
 	load_items()
+	load_quests()
+	var bus := RpgUtil.events()
+	if bus != null:
+		for signal_name: StringName in [&"entity_state_changed", &"item_added", &"item_removed", &"gold_changed", &"level_up", &"dialogue_finished", &"game_loaded"]:
+			if bus.has_signal(signal_name) and not bus.is_connected(signal_name, _on_quest_event):
+				bus.connect(signal_name, _on_quest_event)
 
 func set_gold(value: int) -> void:
 	gold = maxi(0, value)
@@ -54,6 +64,129 @@ func load_items(dir_path: String = ITEMS_DIR) -> void:
 			push_error("[RPG-DATA] duplicate item id %s in %s" % [def.id, path])
 			continue
 		items[def.id] = def
+
+## Loads every .tres under res://game/data/quests/ into `quest_defs`.
+func load_quests(dir_path: String = QUESTS_DIR) -> void:
+	quest_defs.clear()
+	var paths := _list_tres(dir_path)
+	paths.sort()
+	for path in paths:
+		var def := load(path) as RpgQuestDefinition
+		if def != null and def.id != &"" and not quest_defs.has(def.id):
+			quest_defs[def.id] = def
+
+# ------------------------------------------------------------------ quests (T12.48)
+
+func quest_state(quest_id: StringName) -> String:
+	return str(quests.get(String(quest_id), ""))
+
+func quest_is_active(quest_id: StringName) -> bool:
+	var current := quest_state(quest_id)
+	return current != "" and current != QUEST_DONE
+
+func quest_is_done(quest_id: StringName) -> bool:
+	return quest_state(quest_id) == QUEST_DONE
+
+func _quest_title(quest_id: StringName) -> String:
+	var def: RpgQuestDefinition = quest_defs.get(quest_id)
+	return TranslationServer.translate(def.title if def != null and def.title != "" else String(quest_id))
+
+## Starts a quest at its first stage ("active" for a quest without stages or definition). False
+## when it was started before.
+func quest_start(quest_id: StringName) -> bool:
+	if quest_state(quest_id) != "":
+		return false
+	var def: RpgQuestDefinition = quest_defs.get(quest_id)
+	var first := def.first_stage() if def != null else &""
+	quests[String(quest_id)] = String(first) if first != &"" else "active"
+	RpgUtil.notify(String(TranslationServer.translate("UI_QUEST_NEW")) % _quest_title(quest_id))
+	RpgUtil.emit(&"quest_changed", [quest_id, quest_state(quest_id)])
+	refresh_quests()
+	return true
+
+## Moves an active quest to `stage_id` (a stage of its definition, when it has one).
+func quest_set_stage(quest_id: StringName, stage_id: StringName) -> bool:
+	if not quest_is_active(quest_id) or stage_id == &"" or String(stage_id) == QUEST_DONE:
+		return false
+	var def: RpgQuestDefinition = quest_defs.get(quest_id)
+	if def != null and def.stage_index(stage_id) < 0:
+		return false
+	if quest_state(quest_id) == String(stage_id):
+		return false
+	quests[String(quest_id)] = String(stage_id)
+	RpgUtil.notify(String(TranslationServer.translate("UI_QUEST_UPDATED")) % _quest_title(quest_id))
+	RpgUtil.emit(&"quest_changed", [quest_id, quest_state(quest_id)])
+	refresh_quests()
+	return true
+
+## Finishes a quest and gives its rewards, once. A quest that was never started is started and
+## finished.
+func quest_complete(quest_id: StringName) -> bool:
+	if quest_is_done(quest_id):
+		return false
+	quests[String(quest_id)] = QUEST_DONE
+	var def: RpgQuestDefinition = quest_defs.get(quest_id)
+	if def != null:
+		_give_quest_rewards(def.rewards)
+	RpgUtil.notify(String(TranslationServer.translate("UI_QUEST_DONE")) % _quest_title(quest_id))
+	RpgUtil.emit(&"quest_changed", [quest_id, QUEST_DONE])
+	return true
+
+func _give_quest_rewards(rewards: Dictionary) -> void:
+	gold += RpgUtil.to_int(rewards.get("gold", 0))
+	var experience := RpgUtil.to_int(rewards.get("experience", 0))
+	if experience > 0:
+		give_experience(experience)
+	var reward_items: Variant = rewards.get("items", [])
+	if reward_items is Array:
+		var list: Array = reward_items
+		for entry: Variant in list:
+			if entry is Dictionary:
+				var row: Dictionary = entry
+				inventory.add(StringName(str(row.get("item_id", ""))), RpgUtil.to_int(row.get("qty", 1)))
+
+var _refreshing_quests := false
+
+func _on_quest_event(_a: Variant = null, _b: Variant = null, _c: Variant = null) -> void:
+	refresh_quests()
+
+## Moves every active quest past the stages whose `complete_when` holds; finishing the last stage
+## completes the quest. Safe to call at any time (a reward that changes state does not recurse).
+func refresh_quests() -> void:
+	if _refreshing_quests:
+		return
+	_refreshing_quests = true
+	var progressed := true
+	var guard := 0
+	while progressed and guard < 64:
+		progressed = false
+		guard += 1
+		for quest_id: StringName in quest_defs:
+			if not quest_is_active(quest_id):
+				continue
+			var def: RpgQuestDefinition = quest_defs[quest_id]
+			var index := def.stage_index(StringName(quest_state(quest_id)))
+			if index < 0:
+				continue
+			var condition := str(def.stage(index).get("complete_when", ""))
+			if condition == "" or not RpgCondition.evaluate(condition):
+				continue
+			progressed = true
+			if index + 1 >= def.stages.size():
+				quest_complete(quest_id)
+			else:
+				quest_set_stage(quest_id, StringName(str(def.stage(index + 1).get("id", ""))))
+	_refreshing_quests = false
+
+## The ids of the defined quests that are active (or finished), in id order.
+func journal_ids(finished: bool) -> Array[StringName]:
+	var out: Array[StringName] = []
+	var ids: Array = quest_defs.keys()
+	ids.sort()
+	for quest_id: StringName in ids:
+		if (quest_is_done(quest_id) if finished else quest_is_active(quest_id)):
+			out.append(quest_id)
+	return out
 
 func _list_tres(dir_path: String) -> Array[String]:
 	var found: Array[String] = []

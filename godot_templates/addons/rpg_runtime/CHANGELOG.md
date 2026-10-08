@@ -53,6 +53,20 @@
   save loads with empty slots; `save_version` stays 1). New keys: `UI_EQUIP`, `UI_EQUIPMENT`,
   `UI_TAKE_OFF`, `UI_SLOT_WEAPON`, `UI_SLOT_ARMOR`, `UI_SLOT_ACCESSORY`, `UI_NO_CHANGE`,
   `UI_NOTHING_TO_EQUIP`, `UI_CANNOT_EQUIP` and `UI_MOVE_SPEED`.
+* Quest journal (M12): `RpgQuestDefinition` (`game/data/quests/<id>.tres`: a title key, ordered
+  `stages` [{id, description key, complete_when condition}] and `rewards` {gold, experience,
+  items}). `GameState.quests[id]` holds the current stage id, or `"done"`, so saves are unchanged
+  (and the older `set_quest:` / `quest:` still work on the same dictionary). `quest_start`,
+  `quest_set_stage`, `quest_complete` (rewards once), `refresh_quests` (a stage whose
+  `complete_when` holds moves on by itself, and the last one completes the quest; it runs on flag,
+  item, gold, level-up, dialogue and load events) and `journal_ids`. Dialogue events
+  `quest_start:<id>`, `quest_stage:<id>:<stage>` and `quest_complete:<id>`; conditions
+  `quest_active:<id>`, `quest_done:<id>` and `quest_stage:<id>:<stage>`; a toast for every
+  start, stage change and completion; new event `quest_changed`. The pause menu has a Journal
+  button (`journal_menu.tscn`: Active and Completed tabs, the stages of the quest in focus).
+  New keys: `UI_JOURNAL`, `UI_QUESTS_ACTIVE`, `UI_QUESTS_DONE`, `UI_NO_QUESTS_ACTIVE`,
+  `UI_NO_QUESTS_DONE`, `UI_QUEST_NEW`, `UI_QUEST_UPDATED` and `UI_QUEST_DONE`. New projects get the
+  quest "The villager's errand" (talk, open the chest if the map has one, tell the villager).
 * Shops (M12): `RpgShopDefinition` (`game/data/shops/<id>.tres`: `stock` = [{item_id, price}] where
   a price below 0 means the item's `value`, and `sell_ratio`, default 0.5) with all-or-nothing
   `buy` / `sell` that return `""` or why they were refused (not enough gold, no room in the bag,

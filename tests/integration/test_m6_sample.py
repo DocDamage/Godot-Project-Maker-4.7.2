@@ -37,12 +37,13 @@ M6_STEPS = [
     "save_overwrite_confirm",
     "equip_raises_attack",
     "shop_buy_sell",
+    "quest_journal",
     "mutate_then_load",
     "pause_menu",
 ]
 UI_SCENES = [
     "dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
-    "save_load_menu", "settings_menu", "notification", "hud_basic", "game_over", "shop_menu",
+    "save_load_menu", "settings_menu", "notification", "hud_basic", "game_over", "shop_menu", "journal_menu",
 ]  # fmt: skip
 
 
@@ -105,7 +106,7 @@ def test_no_menu_has_focus_problems(sample: Path) -> None:
     results = jsonio.read(sample / "rpggen/results/validation_results.json")
     assert "VAL-011" not in [i["code"] for i in results["issues"]]
     walked = {i["target"] for i in results["items"] if i["check"] == "ui_focus"}
-    assert len(walked) == 8, walked
+    assert len(walked) == 9, walked
 
 
 def test_generated_files_exist(sample: Path) -> None:

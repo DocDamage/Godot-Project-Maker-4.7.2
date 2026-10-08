@@ -21,6 +21,7 @@ const MENU_SCENES: Array[String] = [
 	"res://generated/scenes/ui/settings_menu.tscn",
 	"res://generated/scenes/ui/game_over.tscn",
 	"res://generated/scenes/ui/shop_menu.tscn",
+	"res://generated/scenes/ui/journal_menu.tscn",
 ]
 const FOCUS_SETTLE_FRAMES := 4
 const FOCUS_MAX_STEPS := 80

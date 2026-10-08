@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification and the basic HUD. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 7
+const RECIPE_VERSION := 8
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -15,7 +15,7 @@ const SCRIPTS := "res://addons/rpg_runtime/ui/"
 
 const SCENES: Array[String] = [
 	"dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
-	"save_load_menu", "settings_menu", "notification", "hud_basic", "game_over", "shop_menu",
+	"save_load_menu", "settings_menu", "notification", "hud_basic", "game_over", "shop_menu", "journal_menu",
 ]
 
 static func scene_path(scene_name: String) -> String:
@@ -94,7 +94,7 @@ func _build_pause_menu() -> Node:
 	var info := UiUtil.label(box, "Info", "", true)  # the map and the play time (filled in at runtime)
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu_buttons(box, [
-		["Resume", "UI_RESUME"], ["Inventory", "UI_INVENTORY"], ["Status", "UI_STATUS"],
+		["Resume", "UI_RESUME"], ["Inventory", "UI_INVENTORY"], ["Status", "UI_STATUS"], ["Journal", "UI_JOURNAL"],
 		["Save", "UI_SAVE"], ["Load", "UI_LOAD"], ["Settings", "UI_SETTINGS"], ["Title", "UI_TITLE"],
 	])
 	return root
@@ -140,6 +140,36 @@ func _build_status_menu() -> Node:
 	box.add_child(stats)
 	var back := UiUtil.button(box, "Back", "UI_BACK")
 	UiUtil.wire_vertical([back])
+	return root
+
+func _build_journal_menu() -> Node:
+	var root := UiUtil.control_root("JournalMenu", SCRIPTS + "journal_menu.gd")
+	root.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiUtil.dim_background(root, 0.85)
+	var box := UiUtil.center_panel(root, Vector2(300, 0))
+	UiUtil.label(box, "Heading", "UI_JOURNAL", true)
+	var tabs := HBoxContainer.new()
+	tabs.name = "Tabs"
+	box.add_child(tabs)
+	var active_tab := UiUtil.button(tabs, "ActiveTab", "UI_QUESTS_ACTIVE")
+	var done_tab := UiUtil.button(tabs, "DoneTab", "UI_QUESTS_DONE")
+	active_tab.toggle_mode = true
+	done_tab.toggle_mode = true
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.custom_minimum_size = Vector2(280, 70)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.name = "List"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiUtil.unique(list)
+	scroll.add_child(list)
+	var desc := UiUtil.label(box, "Description", "", true)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.custom_minimum_size = Vector2(280, 60)
+	var back := UiUtil.button(box, "Back", "UI_BACK")
+	UiUtil.wire_vertical([active_tab, done_tab, back])
 	return root
 
 func _build_shop_menu() -> Node:

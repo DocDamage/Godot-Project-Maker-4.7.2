@@ -18,11 +18,14 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 | `gold>=N` | the player has at least N gold |
 | `level>=N` | the player's level is at least N |
 | `quest:<id>=<state>` | the quest is in that state |
+| `quest_active:<id>` / `quest_done:<id>` | the quest is under way / finished |
+| `quest_stage:<id>:<stage>` | the quest is at that stage |
 
 ## Dialogue events
 
 `set_flag:<entity>.<key>=<value>`, `give_item:<id>[:qty]`, `take_item:<id>[:qty]`, `give_gold:N`,
-`set_quest:<id>=<state>`, `heal_full`, `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
+`set_quest:<id>=<state>`, `quest_start:<id>`, `quest_stage:<id>:<stage>`, `quest_complete:<id>`,
+`heal_full`, `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
 dialogue closes) and `emit:<name>[:arg]` (sent as `Events.dialogue_event`).
 
 ## Sound

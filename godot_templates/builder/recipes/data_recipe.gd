@@ -2,18 +2,22 @@ extends RefCounted
 ## Seeds the data files of the demo under game/data/ (user_seed: written once, never again):
 ## hero actor, new-game data, the potion item and the starter NPC's dialogue.
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 4
 
 const Paths := preload("../lib/paths.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
 const TextureUtil := preload("../lib/texture_util.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
+const MapBuild := preload("../lib/map_build.gd")
+const ObjectEntries := preload("../lib/object_entries.gd")
 
 const HERO_PATH := "res://game/data/actors/hero.tres"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
 const POTION_PATH := "res://game/data/items/potion.tres"
 const GREETING_PATH := "res://game/data/dialogue/npc_greeting.tres"
+const QUEST_ID := "errand"
+const QUEST_PATH := "res://game/data/quests/errand.tres"
 const SHOP_ID := "village_shop"
 const SHOP_PATH := "res://game/data/shops/village_shop.tres"
 
@@ -25,11 +29,16 @@ const DLG_RES := "res://addons/rpg_runtime/dialogue/dialogue_resource.gd"
 const DLG_LINE := "res://addons/rpg_runtime/dialogue/dialogue_line.gd"
 const DLG_CHOICE := "res://addons/rpg_runtime/dialogue/dialogue_choice.gd"
 const SHOP_DEF := "res://addons/rpg_runtime/data/shop_definition.gd"
+const QUEST_DEF := "res://addons/rpg_runtime/data/quest_definition.gd"
 
 ## English text of the seeded content keys (the translations recipe adds them to strings.csv).
 const SEED_STRINGS := {
 	"ITEM_POTION_NAME": "Potion",
 	"ITEM_POTION_DESC": "Restores 10 HP.",
+	"QUEST_ERRAND_TITLE": "The villager's errand",
+	"QUEST_ERRAND_TALK": "Talk to the villager",
+	"QUEST_ERRAND_CHEST": "Open the chest",
+	"QUEST_ERRAND_RETURN": "Tell the villager about it",
 	"ITEM_SWORD_NAME": "Sword",
 	"ITEM_SWORD_DESC": "A plain blade. Attack +2.",
 	"ITEM_AXE_NAME": "Axe",
@@ -59,10 +68,11 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	if not ctx.demo_removed:
 		wanted.append(GREETING_PATH)
 		wanted.append(SHOP_PATH)
+		wanted.append(QUEST_PATH)
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx)})
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -119,6 +129,8 @@ func build(ctx: BuildContext) -> Array:
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(GREETING_PATH):
 		_save(ctx, _greeting(), GREETING_PATH, issues)
+	if not ctx.demo_removed and not FileAccess.file_exists(QUEST_PATH):
+		_save(ctx, _quest(_has_chest(ctx)), QUEST_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(SHOP_PATH):
 		_save(ctx, _shop(gear.keys()), SHOP_PATH, issues)
 	return issues
@@ -167,6 +179,26 @@ func _potion(ctx: BuildContext) -> Resource:
 		var size: Array = eff.get("frame", eff.get("size", [16, 16]))
 		item.set("icon", TextureUtil.region_texture("res://" + JsonUtil.to_str(icon["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))))
 	return item
+
+## Whether the starter map gets a chest: the options allow one and the packs have something to use.
+func _has_chest(ctx: BuildContext) -> bool:
+	var options := MapBuild.merged_options(ctx.section("starter_map"), JsonUtil.to_str(ctx.config.get("archetype", "turn_based")))
+	return JsonUtil.to_int(options["chests"]) >= 1 and not ObjectEntries.chest_entry(ctx).is_empty()
+
+## Talk to the villager -> open the chest -> tell the villager (the chest stage only when the
+## starter map has a chest). Each stage finishes by itself when
+## its condition holds; the dialogue starts the quest and sets the last flag.
+func _quest(has_chest: bool = true) -> Resource:
+	var quest := SeedUtil.make(QUEST_DEF)
+	quest.set("id", StringName(QUEST_ID))
+	quest.set("title", "QUEST_ERRAND_TITLE")
+	var stages: Array = [{"id": "talk", "description": "QUEST_ERRAND_TALK", "complete_when": "flag:starter_npc.talked"}]
+	if has_chest:  # a map without a chest would leave the quest stuck here
+		stages.append({"id": "chest", "description": "QUEST_ERRAND_CHEST", "complete_when": "flag:starter_map_chest_001.opened"})
+	stages.append({"id": "return", "description": "QUEST_ERRAND_RETURN", "complete_when": "flag:starter_npc.reported"})
+	quest.set("stages", SeedUtil.dict_array(stages))
+	quest.set("rewards", {"gold": 25, "experience": 5})
+	return quest
 
 ## The village shop: potions and the starter gear, at their item values.
 func _shop(gear_words: Array) -> Resource:
@@ -222,10 +254,11 @@ func _line(line_id: String, speaker: String, text: String, next: String, conditi
 func _greeting() -> Resource:
 	var res := SeedUtil.make(DLG_RES)
 	var lines: Array = [
-		_line("greet", "Villager", "Hello, traveler! Welcome to our village.", "", "", [], []),
-		_line("ask", "Villager", "Is there anything I can help you with?", "", "", [], [["Any tips?", "tips"], ["Show me your wares", "shop", "flag:starter_npc.talked"], ["Bye", "bye"]]),
+		_line("greet", "Villager", "Hello, traveler! Welcome to our village.", "", "", ["quest_start:" + QUEST_ID], []),
+		_line("ask", "Villager", "Is there anything I can help you with?", "", "", [], [["Any tips?", "tips"], ["I opened the chest.", "report", "quest_stage:errand:return"], ["Show me your wares", "shop", "flag:starter_npc.talked"], ["Bye", "bye"]]),
 		_line("tips", "Villager", "Take this potion. Walk into the house to see inside, and open the chest nearby.", "bye", "not flag:starter_npc.talked", ["set_flag:starter_npc.talked=true", "give_item:potion:1"], []),
 		_line("tips_again", "Villager", "I have already told you everything I know.", "bye", "flag:starter_npc.talked", [], []),
+		_line("report", "Villager", "Wonderful! Take this for your trouble.", "bye", "", ["set_flag:starter_npc.reported=true"], []),
 		_line("shop", "Villager", "Take a look at what I have.", "bye", "", ["open_shop:" + SHOP_ID], []),
 		_line("bye", "Villager", "Safe travels!", "", "", [], []),
 	]

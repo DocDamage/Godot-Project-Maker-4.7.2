@@ -32,6 +32,7 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "save_overwrite_confirm", "fn": _save_overwrite_confirm, "timeout_s": 15.0})
 	list.append({"name": "equip_raises_attack", "fn": _equip_raises_attack, "timeout_s": 15.0})
 	list.append({"name": "shop_buy_sell", "fn": _shop_buy_sell, "timeout_s": 20.0})
+	list.append({"name": "quest_journal", "fn": _quest_journal, "timeout_s": 20.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
 	return list
@@ -470,6 +471,46 @@ func _shop_row(menu: RpgShopMenu, item_id: StringName) -> Button:
 		if menu.item_of(row) == item_id:
 			return row
 	return null
+
+## The demo quest "errand" followed the real play so far (the villager started it, the talk and the
+## chest finished two stages), telling the villager finishes it and pays 25 gold, and the journal
+## lists it under Completed. The pause menu has a Journal button. The state is put back afterwards.
+func _quest_journal() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	if state == null or not state.quest_defs.has(&"errand"):
+		return "the demo quest game/data/quests/errand.tres was not seeded"
+	var failure := ""
+	var quests_before: Dictionary = state.quests.duplicate(true)
+	var flags_before: Dictionary = state.flags.duplicate(true)
+	var gold: int = state.gold
+	if state.quest_state(&"errand") != "return":
+		failure = "after the talk and the chest the quest is at '%s', expected 'return' (flags %s)" % [state.quest_state(&"errand"), str(state.flags)]
+	var pause := (load(RpgMenuUtil.scene_path("pause_menu")) as PackedScene).instantiate() as Control
+	if failure == "" and pause.get_node_or_null("%Journal") == null:
+		failure = "the pause menu has no Journal button"
+	pause.free()
+	var menu := (load(RpgMenuUtil.scene_path("journal_menu")) as PackedScene).instantiate() as RpgJournalMenu
+	_tree().root.add_child(menu)
+	await _frames(2)
+	if failure == "" and menu.rows().size() != 1:
+		failure = "the journal lists %d active quests, expected 1" % menu.rows().size()
+	if failure == "":
+		RpgDialogueRunner.execute_event("set_flag:starter_npc.reported=true")
+		await _frames(2)
+		if not state.quest_is_done(&"errand"):
+			failure = "telling the villager did not finish the quest (%s)" % state.quest_state(&"errand")
+		elif state.gold != gold + 25:
+			failure = "the reward was not paid: gold %d, expected %d" % [state.gold, gold + 25]
+	if failure == "":
+		menu.set_tab(RpgJournalMenu.FINISHED)
+		await _frames(2)
+		if menu.rows().size() != 1 or menu.quest_of(menu.rows()[0]) != &"errand":
+			failure = "the Completed tab does not list the quest"
+	menu.queue_free()
+	state.quests = quests_before
+	state.flags = flags_before
+	state.gold = gold
+	return failure
 
 func _mutate_then_load() -> String:
 	var tree := _tree()

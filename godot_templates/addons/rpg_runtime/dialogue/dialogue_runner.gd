@@ -3,7 +3,8 @@ extends RefCounted
 ## Walks an RpgDialogueResource. Owned by the DialogueBox.
 ##
 ## Events (strings, never eval'd): set_flag:<entity>.<key>=<value>, give_item:<id>[:qty],
-## take_item:<id>[:qty], give_gold:N, open_shop:<id> (the shop opens when the dialogue closes), set_quest:<id>=<state>, heal_full, emit:<name>[:arg].
+## take_item:<id>[:qty], give_gold:N, open_shop:<id> (the shop opens when the dialogue closes), quest_start:<id>,
+## quest_stage:<id>:<stage>, quest_complete:<id>, set_quest:<id>=<state>, heal_full, emit:<name>[:arg].
 
 const MAX_JUMPS := 1000
 
@@ -129,6 +130,18 @@ static func execute_event(event: String) -> bool:
 			if not arg.contains("="):
 				return _bad(event)
 			state.quests[arg.get_slice("=", 0)] = arg.get_slice("=", 1)
+		"quest_start":
+			if arg == "":
+				return _bad(event)
+			state.quest_start(StringName(arg))
+		"quest_stage":
+			if arg.get_slice(":", 0) == "" or not arg.contains(":"):
+				return _bad(event)
+			state.quest_set_stage(StringName(arg.get_slice(":", 0)), StringName(arg.get_slice(":", 1)))
+		"quest_complete":
+			if arg == "":
+				return _bad(event)
+			state.quest_complete(StringName(arg))
 		"heal_full":
 			state.player_stats.hp = RpgUtil.max_hp(state.player_stats)
 		"open_shop":

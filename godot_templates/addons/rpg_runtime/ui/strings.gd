@@ -106,6 +106,14 @@ const KEYS := {
 	"UI_CANNOT_TRADE": "Cannot do that",
 	"UI_NOTHING_FOR_SALE": "Nothing for sale",
 	"UI_NOTHING_TO_SELL": "Nothing to sell",
+	"UI_JOURNAL": "Journal",
+	"UI_QUESTS_ACTIVE": "Active",
+	"UI_QUESTS_DONE": "Completed",
+	"UI_NO_QUESTS_ACTIVE": "No active quests",
+	"UI_NO_QUESTS_DONE": "No completed quests",
+	"UI_QUEST_NEW": "New quest: %s",
+	"UI_QUEST_UPDATED": "Quest updated: %s",
+	"UI_QUEST_DONE": "Quest complete: %s",
 }
 
 ## English text of a key (the key itself when unknown).

@@ -16,6 +16,7 @@ signal dialogue_event(name: String, arg: String)
 signal item_added(item_id: StringName, qty: int)
 signal item_removed(item_id: StringName, qty: int)
 signal gold_changed(new_total: int)
+signal quest_changed(quest_id: StringName, state: String)
 signal shop_requested(shop_id: StringName)
 signal equipment_changed(actor_id: StringName, slot: StringName)
 # Actors / progression
