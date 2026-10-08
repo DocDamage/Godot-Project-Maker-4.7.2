@@ -228,10 +228,10 @@ jobs:
         shell: bash
         run: |
           if ! git ls-remote --exit-code --heads origin gh-pages > /dev/null; then
-            git switch --orphan gh-pages
-            git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com               commit --allow-empty -m "Performance trend"
-            git push origin gh-pages
-            git checkout -
+            # an empty commit made without switching branches (the checkout stays as it is)
+            empty_tree=$(git mktree < /dev/null)
+            commit=$(git -c user.name=github-actions               -c user.email=github-actions@users.noreply.github.com               commit-tree "$empty_tree" -m "Performance trend")
+            git push origin "$commit:refs/heads/gh-pages"
           fi
       # The hard ceilings stay in the tests. This keeps the numbers of every run on main and
       # comments when one is more than 30% above the previous run; it never fails the build.

@@ -185,7 +185,9 @@ def test_cancel_during_analysis_returns_fast_and_leaves_no_partial_folder(
                 worker.cancel()
 
         worker.signals.progress.connect(on_progress)
-        with qtbot.waitSignal(worker.signals.failed, timeout=10000) as blocker:
+        # the whole run may be slow on a busy CI runner (reading, hashing, starting the worker
+        # processes); what must be fast is the stop after the cancel, checked below
+        with qtbot.waitSignal(worker.signals.failed, timeout=60000) as blocker:
             worker.start()
         assert isinstance(blocker.args[0], workers.Cancelled)
         assert time.monotonic() - stopped["at"] < 2.0
