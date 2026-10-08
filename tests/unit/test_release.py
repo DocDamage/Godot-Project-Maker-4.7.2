@@ -234,3 +234,53 @@ def test_pyside6_has_an_upper_bound_and_ci_tests_the_oldest_and_the_newest() -> 
     assert 'pyside: ["6.7.*", "latest"]' in ci and "fail-fast: false" in ci
     assert 'pip install "PySide6==${{ matrix.pyside }}"' in ci
     assert "tests/gui" in ci
+
+
+# ------------------------------------------------------------------------ T12.63: three platforms
+
+
+def _pins(rel: str) -> dict[str, str]:
+    text = _read(rel)
+    return {_normalized(n): v for n, v in re.findall(r"^([A-Za-z0-9_.-]+)==(\S+)", text, re.M)}
+
+
+def test_the_release_builds_and_smoke_tests_every_platform_then_publishes_one_sum_file() -> None:
+    release = _read(".github/workflows/release.yml")
+    for job, runner, lock in (
+        ("windows", "windows-latest", "requirements/release.txt"),
+        ("linux", "ubuntu-22.04", "requirements/release-linux.txt"),
+        ("macos", "macos-14", "requirements/release-macos.txt"),
+    ):
+        body = release[release.index(f"\n  {job}:") :]
+        body = body[: body.find("\n  ", 3 + len(job)) if False else len(body)]
+        assert f"runs-on: {runner}" in body.split("steps:")[0], job
+        section = body.split("\n  publish:")[0]
+        assert f"pip install --require-hashes -r {lock}" in section, job
+        assert "tools/package.py --smoke" in section and "fetch_godot.py" in section, job
+    publish = release[release.index("\n  publish:") :]
+    assert "needs: [windows, linux, macos]" in publish
+    assert "sha256sum rpggen-* > SHA256SUMS.txt" in publish
+    for kind in ("setup.exe", "portable.zip", "AppImage", "linux-x86_64.tar.gz", "macos-"):
+        assert kind in publish, kind
+
+
+def test_the_platform_locks_pin_the_same_versions_as_the_windows_lock() -> None:
+    windows = _pins("requirements/release.txt")
+    for rel in ("requirements/release-linux.txt", "requirements/release-macos.txt"):
+        other = _pins(rel)
+        shared = set(windows) & set(other)
+        assert {n for n in shared if windows[n] != other[n]} == set(), rel
+        assert {"pyside6", "pyinstaller", "pillow", "numpy"} <= shared, rel
+        assert "--hash=sha256:" in _read(rel)
+    assert "macholib" in _pins("requirements/release-macos.txt")  # PyInstaller needs it there
+    assert "pywin32-ctypes" not in _pins("requirements/release-linux.txt")
+
+
+def test_the_linux_package_files_exist() -> None:
+    desktop = _read("packaging/linux/rpggen.desktop")
+    assert "Exec=rpggen" in desktop and "Icon=rpggen" in desktop and "Type=Application" in desktop
+    apprun = _read("packaging/linux/AppRun")
+    assert apprun.startswith("#!/bin/sh") and "usr/lib/rpggen/rpggen-cli" in apprun
+    assert (REPO / "packaging/linux/rpggen.png").is_file()
+    spec = _read("packaging/rpggen.spec")
+    assert "BUNDLE(" in spec and "rpggen.app" in spec and "IS_MAC" in spec

@@ -273,8 +273,6 @@ def download_godot(
     version: str, out: Path, *, callbacks: Callbacks, platform: str | None = None
 ) -> Path:
     """Download the official Godot into ``out`` (network; worker thread)."""
-    import sys
-
     from rpggen.core import godot_fetch
 
     def progress(done: int, total: int) -> None:
@@ -286,7 +284,7 @@ def download_godot(
         )
         callbacks.on_phase(text, done, total)
 
-    plat = platform or ("linux" if sys.platform.startswith("linux") else "windows")
+    plat = platform or godot_fetch.current_platform()
     return godot_fetch.fetch(
         version, out, plat, progress=progress, is_cancelled=callbacks.is_cancelled
     )

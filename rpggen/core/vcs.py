@@ -14,6 +14,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from rpggen import procenv
+
 log = logging.getLogger(__name__)
 
 TIMEOUT_S = 120
@@ -32,7 +34,12 @@ def lfs_available() -> bool:
         return False
     try:
         run = subprocess.run(
-            ["git", "lfs", "version"], capture_output=True, text=True, timeout=30, check=False
+            ["git", "lfs", "version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            env=procenv.child_env(),
         )
     except (OSError, subprocess.SubprocessError):
         return False
@@ -53,6 +60,7 @@ def _git(
         errors="replace",
         timeout=TIMEOUT_S,
         check=False,
+        env=procenv.child_env(),
     )
 
 

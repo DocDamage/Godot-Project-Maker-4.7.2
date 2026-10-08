@@ -51,4 +51,5 @@ loading and playing it headless, and regenerates it later without touching your 
   checked against one fixture.
 * Diagnostic bundles, export presets for Windows, Web, Linux and macOS with a test export per
   target, the community profile registry client,
-  and packaging (PyInstaller, Inno Setup, a release workflow).
+  and packaging for Windows (installer and portable zip), Linux (AppImage and tar.gz) and macOS
+  (an unsigned `.app`), each smoke-tested frozen, with one `SHA256SUMS.txt`.

@@ -117,7 +117,10 @@ class ProjectForm(QWidget):
         self.browse_godot_button = _button(self.tr("Browse…"), "browseGodotButton")
         self.godot_status = _status_label("godotStatus")
         self.download_godot_button = _button(
-            self.tr("Download Godot {0} (about 60 MB)").format(godot_fetch.DEFAULT_VERSION),
+            self.tr("Download Godot {0} (about {1} MB)").format(
+                godot_fetch.DEFAULT_VERSION,
+                godot_fetch.DOWNLOAD_MB[godot_fetch.current_platform()],
+            ),
             "downloadGodotButton",
             self.tr(
                 "Downloads the official Godot from github.com/godotengine/godot/releases into "

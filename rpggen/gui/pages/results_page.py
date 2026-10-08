@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpggen import procenv
 from rpggen.core import godot, orchestrator, promote, report
 from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui import fixes
@@ -77,6 +78,7 @@ def launch_detached(args: list[str]) -> None:
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        env=procenv.child_env(),
         **kwargs,
     )
 

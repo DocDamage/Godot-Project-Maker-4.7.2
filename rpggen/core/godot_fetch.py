@@ -9,6 +9,9 @@ The checksum of the version this program is built for is pinned in ``godot_targe
 release's ``SHA512-SUMS.txt`` is still read and must agree with it. Another version
 (``tools/fetch_godot.py --version``) is verified against the sums file alone.
 
+On macOS the archive holds ``Godot.app``: every member must lie under that folder (no ``..``, no
+links), the tree is extracted as it is, and the executable is ``Godot.app/Contents/MacOS/Godot``.
+
 A download that stops (the network, or the user) leaves ``<name>.part`` and ``<name>.part.json``
 (url, bytes, etag); the next attempt asks for the rest with ``Range`` / ``If-Range`` and only
 starts again when the server cannot continue. A network error is retried three times (2, 5 and
@@ -22,6 +25,8 @@ import hashlib
 import http.client
 import json
 import shutil
+import stat
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -50,20 +55,41 @@ class FetchCancelled(Exception):
     """The user cancelled the download; nothing is left behind."""
 
 
+PLATFORMS = ("windows", "linux", "macos")
+MAC_APP = "Godot.app"
+# the size of the download in MB, for the button text (approximate, the same for every 4.x)
+DOWNLOAD_MB = {"windows": 85, "linux": 80, "macos": 170}
+
+
+def current_platform() -> str:
+    """``windows``, ``macos`` or ``linux``: the Godot build that runs on this computer."""
+    if sys.platform == "win32":
+        return "windows"
+    if sys.platform == "darwin":
+        return "macos"
+    return "linux"
+
+
 def zip_name(version: str, platform: str = "windows") -> str:
     if platform == "linux":
         return f"Godot_v{version}-stable_linux.x86_64.zip"
+    if platform == "macos":
+        return f"Godot_v{version}-stable_macos.universal.zip"
     return f"Godot_v{version}-stable_win64.exe.zip"
 
 
 def console_name(version: str, platform: str = "windows") -> str:
-    """The executable to run: the console build on Windows, the only build on Linux."""
+    """The executable to run, relative to the download folder: the console build on Windows,
+    the only build on Linux, the executable inside the app on macOS."""
     if platform == "linux":
         return f"Godot_v{version}-stable_linux.x86_64"
+    if platform == "macos":
+        return f"{MAC_APP}/Contents/MacOS/Godot"
     return f"Godot_v{version}-stable_win64_console.exe"
 
 
 def expected_members(version: str, platform: str = "windows") -> set[str]:
+    """The exact members of a flat archive (Windows, Linux); macOS uses ``_safe_app_member``."""
     if platform == "linux":
         return {console_name(version, platform)}
     return {console_name(version, platform), f"Godot_v{version}-stable_win64.exe"}
@@ -91,8 +117,9 @@ def managed_dir(version: str = DEFAULT_VERSION) -> Path:
     return paths.data_dir() / "godot" / version
 
 
-def managed_executable(version: str = DEFAULT_VERSION, platform: str = "windows") -> Path:
-    return managed_dir(version) / console_name(version, platform)
+def managed_executable(version: str = DEFAULT_VERSION, platform: str | None = None) -> Path:
+    """The downloaded Godot for ``platform`` (default: this computer's)."""
+    return managed_dir(version) / console_name(version, platform or current_platform())
 
 
 def default_opener(url: str, headers: dict[str, str] | None = None) -> Any:
@@ -124,6 +151,36 @@ def _safe_member(name: str, allowed: set[str]) -> bool:
         or "\\" in name
         or "/" in name
     )
+
+
+def _safe_app_member(info: zipfile.ZipInfo) -> bool:
+    """A member of the macOS archive: a relative path under ``Godot.app/`` without ``..``,
+    backslashes or a drive, and not a link."""
+    name = info.filename
+    parts = PurePosixPath(name).parts
+    if (
+        not parts
+        or parts[0] != MAC_APP
+        or ".." in parts
+        or "\\" in name
+        or name.startswith("/")
+        or PureWindowsPath(name).drive
+    ):
+        return False
+    return not stat.S_ISLNK(info.external_attr >> 16)
+
+
+def _extract_member(zf: zipfile.ZipFile, info: zipfile.ZipInfo, staging: Path) -> None:
+    dst = staging.joinpath(*PurePosixPath(info.filename).parts)
+    if info.is_dir():
+        dst.mkdir(parents=True, exist_ok=True)
+        return
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    with zf.open(info) as src, dst.open("wb") as out:
+        shutil.copyfileobj(src, out)
+    mode = (info.external_attr >> 16) & 0o777
+    if mode & 0o111:  # keep the executable bit (macOS): 0755, never more
+        dst.chmod(0o755)
 
 
 def _info_path(part: Path) -> Path:
@@ -313,24 +370,28 @@ def fetch(
         if expected is not None and actual != expected:
             raise _fail(f"the download's SHA-512 does not match the release ({name})")
         allowed = expected_members(version, platform)
+        rel = console_name(version, platform)
         try:
             with zipfile.ZipFile(part) as zf:
-                infos = [i for i in zf.infolist() if not i.is_dir()]
-                bad = [i.filename for i in infos if not _safe_member(i.filename, allowed)]
+                if platform == "macos":
+                    infos = zf.infolist()
+                    bad = [i.filename for i in infos if not _safe_app_member(i)]
+                else:
+                    infos = [i for i in zf.infolist() if not i.is_dir()]
+                    bad = [i.filename for i in infos if not _safe_member(i.filename, allowed)]
                 if bad:
                     raise _fail(f"the archive contains an unexpected file: {bad[0]}")
                 shutil.rmtree(staging, ignore_errors=True)
                 staging.mkdir()
                 for info in infos:
-                    with zf.open(info) as src, (staging / info.filename).open("wb") as dst:
-                        shutil.copyfileobj(src, dst)
+                    _extract_member(zf, info, staging)
         except zipfile.BadZipFile as exc:
             raise _fail("the downloaded file is not a valid archive") from exc
-        if not (staging / console.name).exists():
-            raise _fail(f"{console.name} is not in the downloaded archive")
+        if not staging.joinpath(*PurePosixPath(rel).parts).is_file():
+            raise _fail(f"{rel} is not in the downloaded archive")
         for member in staging.iterdir():
             member.replace(out / member.name)
-        if platform == "linux":
+        if platform != "windows":
             console.chmod(0o755)
     except FetchCancelled:
         raise

@@ -1,7 +1,7 @@
 # Third-party notices
 
-rpggen is released under the MIT License (see `LICENSE`). The Windows build bundles the following
-components. Each keeps its own license; this file names them and links to the full texts, which
+rpggen is released under the MIT License (see `LICENSE`). The Windows, Linux and macOS builds
+bundle the following components. Each keeps its own license; this file names them and links to the full texts, which
 are also available in the packages' `dist-info` folders inside the bundle.
 
 | Component | Used for | License | Full text |
@@ -14,6 +14,7 @@ are also available in the packages' `dist-info` folders inside the bundle.
 | jsonschema (with jsonschema-specifications, referencing, rpds-py) | validating catalogs, configs and profiles | MIT | https://github.com/python-jsonschema/jsonschema/blob/main/COPYING |
 | Python | the runtime | PSF-2.0 | https://docs.python.org/3/license.html |
 | PyInstaller (bootloader) | building the executables | GPL-2.0 with the bootloader exception | https://github.com/pyinstaller/pyinstaller/blob/develop/COPYING.txt |
+| AppImage type2 runtime (Linux AppImage only) | starting the AppImage | MIT; it links libfuse 3 (LGPL-2.1) and squashfuse (BSD-2-Clause) statically | https://github.com/AppImage/type2-runtime |
 
 ## Notes on the LGPL components
 
@@ -21,6 +22,10 @@ are also available in the packages' `dist-info` folders inside the bundle.
   `PySide6` folder of the one-folder build; they can be replaced by a compatible build. The
   corresponding source is available from https://download.qt.io/ and
   https://code.qt.io/cgit/pyside/pyside-setup.git/.
+* **AppImage runtime (Linux).** The few hundred KB at the start of the AppImage are the
+  type2 runtime of release 20251108, which includes libfuse 3 (LGPL-2.1). Its source, and the
+  build that produced it, are at https://github.com/AppImage/type2-runtime; the tar.gz has the
+  same application without it.
 * **py7zr (LGPL-2.1+).** Shipped as ordinary Python files in the bundle; source at
   https://github.com/miurahr/py7zr.
 

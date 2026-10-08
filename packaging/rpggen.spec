@@ -1,14 +1,22 @@
 # PyInstaller spec: one-folder build with two executables sharing one set of libraries.
-#   rpggen.exe      windowed GUI (no console)
-#   rpggen-cli.exe  console build for scripts and CI
+#   rpggen(.exe)      windowed GUI (no console)
+#   rpggen-cli(.exe)  console build for scripts and CI
 # Build from the repository root:  python -m PyInstaller packaging/rpggen.spec --noconfirm
-# Output:                          dist/rpggen/
+# Output:  dist/rpggen/ (Windows, Linux); dist/rpggen.app with both executables in
+#          Contents/MacOS (macOS, T12.63)
 import os
+import sys
 
 from PyInstaller.utils.hooks import collect_data_files
 
 ROOT = os.path.abspath(os.path.join(SPECPATH, os.pardir))
-VERSION_FILE = os.path.join(SPECPATH, "version_info.txt")
+IS_WINDOWS = sys.platform == "win32"
+IS_MAC = sys.platform == "darwin"
+# the Windows version resource; Linux and macOS have none (the .app gets an Info.plist below)
+VERSION_FILE = os.path.join(SPECPATH, "version_info.txt") if IS_WINDOWS else None
+ICON = os.path.join(ROOT, "packaging", "rpggen.ico")  # converted with Pillow on macOS
+sys.path.insert(0, ROOT)
+from rpggen import __version__ as APP_VERSION  # noqa: E402
 
 EXCLUDED_QT = [
     "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtWebEngineQuick",
@@ -77,16 +85,32 @@ cli_pyz = PYZ(cli_a.pure)
 
 gui_exe = EXE(
     gui_pyz, gui_a.scripts, [], exclude_binaries=True, name="rpggen",
-    console=False, version=VERSION_FILE, icon=os.path.join(ROOT, "packaging", "rpggen.ico"),
-    upx=False,
+    console=False, version=VERSION_FILE, icon=ICON, upx=False,
 )
 cli_exe = EXE(
     cli_pyz, cli_a.scripts, [], exclude_binaries=True, name="rpggen-cli",
-    console=True, version=VERSION_FILE, icon=os.path.join(ROOT, "packaging", "rpggen.ico"),
-    upx=False,
+    console=True, version=VERSION_FILE, icon=ICON, upx=False,
 )
-COLLECT(
+coll = COLLECT(
     gui_exe, gui_a.binaries, gui_a.datas,
     cli_exe, cli_a.binaries, cli_a.datas,
     strip=False, upx=False, name="rpggen",
 )
+if IS_MAC:
+    # The first executable of the COLLECT (the GUI) is the app's CFBundleExecutable; rpggen-cli
+    # sits next to it in Contents/MacOS. Unsigned: notarization is a later step (docs/release.md).
+    BUNDLE(
+        coll,
+        name="rpggen.app",
+        icon=ICON,
+        bundle_identifier="io.github.docdamage.rpggen",
+        version=APP_VERSION,
+        info_plist={
+            "CFBundleName": "rpggen",
+            "CFBundleDisplayName": "rpggen",
+            "CFBundleExecutable": "rpggen",
+            "CFBundleShortVersionString": APP_VERSION,
+            "LSMinimumSystemVersion": "13.0",
+            "NSHighResolutionCapable": True,
+        },
+    )

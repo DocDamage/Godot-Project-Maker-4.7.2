@@ -1,0 +1,9 @@
+#!/bin/sh
+# AppImage entry point (T12.63). "rpggen-<version>-x86_64.AppImage" opens the wizard;
+# "rpggen-<version>-x86_64.AppImage cli <arguments>" runs the command-line build instead.
+HERE="$(dirname "$(readlink -f "$0")")"
+if [ "$1" = "cli" ]; then
+    shift
+    exec "$HERE/usr/lib/rpggen/rpggen-cli" "$@"
+fi
+exec "$HERE/usr/lib/rpggen/rpggen" "$@"

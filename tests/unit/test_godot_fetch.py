@@ -374,3 +374,96 @@ def test_a_bad_download_is_not_kept_for_resuming(
     with pytest.raises(RpgGenError):
         godot_fetch.fetch(VERSION, tmp_path, opener=_opener(archive))
     assert list(tmp_path.iterdir()) == []  # a wrong file is not a half file
+
+
+# ------------------------------------------------------------------ T12.63: Linux and macOS
+
+
+@pytest.mark.parametrize(
+    ("platform", "archive", "exe"),
+    [
+        ("windows", "Godot_v4.7.2-stable_win64.exe.zip", "Godot_v4.7.2-stable_win64_console.exe"),
+        ("linux", "Godot_v4.7.2-stable_linux.x86_64.zip", "Godot_v4.7.2-stable_linux.x86_64"),
+        ("macos", "Godot_v4.7.2-stable_macos.universal.zip", "Godot.app/Contents/MacOS/Godot"),
+    ],
+)
+def test_file_names_per_platform(platform: str, archive: str, exe: str) -> None:
+    assert godot_fetch.zip_name(VERSION, platform) == archive
+    assert godot_fetch.console_name(VERSION, platform) == exe
+    assert godot_target.SHA512.get(platform) is None  # the autouse fixture clears the pins
+    assert platform in godot_fetch.PLATFORMS and platform in godot_fetch.DOWNLOAD_MB
+
+
+def test_the_current_platform_follows_sys_platform(monkeypatch: pytest.MonkeyPatch) -> None:
+    for value, expected in (("win32", "windows"), ("darwin", "macos"), ("linux", "linux")):
+        monkeypatch.setattr(godot_fetch.sys, "platform", value)
+        assert godot_fetch.current_platform() == expected
+
+
+def _mac_zip(extra: dict[str, tuple[bytes, int]] | None = None) -> bytes:
+    """A small Godot.app: (data, unix mode) per member; directories end with a slash."""
+    members = {
+        "Godot.app/": (b"", 0o40755),
+        "Godot.app/Contents/": (b"", 0o40755),
+        "Godot.app/Contents/Info.plist": (b"<plist/>", 0o100644),
+        "Godot.app/Contents/MacOS/": (b"", 0o40755),
+        "Godot.app/Contents/MacOS/Godot": (b"mach-o", 0o100755),
+        "Godot.app/Contents/Resources/en.lproj/": (b"", 0o40755),
+        **(extra or {}),
+    }
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for name, (data, mode) in members.items():
+            info = zipfile.ZipInfo(name)
+            info.external_attr = mode << 16
+            zf.writestr(info, data)
+    return buf.getvalue()
+
+
+def _mac_opener(archive: bytes):
+    name = godot_fetch.zip_name(VERSION, "macos")
+    digest = hashlib.sha512(archive).hexdigest()
+
+    def opener(url: str):
+        if url.endswith("SHA512-SUMS.txt"):
+            return _Resp(f"{digest}  {name}\n".encode())
+        assert url.endswith(name)
+        return _Resp(archive)
+
+    return opener
+
+
+def test_the_macos_app_is_extracted_as_a_tree(tmp_path: Path) -> None:
+    exe = godot_fetch.fetch(VERSION, tmp_path, "macos", opener=_mac_opener(_mac_zip()))
+    assert exe == tmp_path / "Godot.app" / "Contents" / "MacOS" / "Godot"
+    assert exe.read_bytes() == b"mach-o"
+    assert (tmp_path / "Godot.app/Contents/Info.plist").is_file()
+    assert (tmp_path / "Godot.app/Contents/Resources/en.lproj").is_dir()
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["Godot.app"]  # no .part, no .extract
+    # a second call finds it without downloading
+    assert godot_fetch.fetch(VERSION, tmp_path, "macos", opener=None) == exe
+
+
+@pytest.mark.parametrize(
+    ("name", "mode"),
+    [
+        ("evil.sh", 0o100755),  # outside Godot.app
+        ("Godot.app/../evil.sh", 0o100644),
+        ("/Godot.app/evil.sh", 0o100644),
+        ("Godot.app/Contents/link", 0o120777),  # a symbolic link
+    ],
+)
+def test_unsafe_macos_members_are_rejected(tmp_path: Path, name: str, mode: int) -> None:
+    archive = _mac_zip({name: (b"x", mode)})
+    with pytest.raises(RpgGenError) as ei:
+        godot_fetch.fetch(VERSION, tmp_path, "macos", opener=_mac_opener(archive))
+    assert ei.value.code == "ENV-011"
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_a_macos_archive_without_the_executable_is_refused(tmp_path: Path) -> None:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("Godot.app/Contents/Info.plist", b"<plist/>")
+    with pytest.raises(RpgGenError, match="Godot.app/Contents/MacOS/Godot"):
+        godot_fetch.fetch(VERSION, tmp_path, "macos", opener=_mac_opener(buf.getvalue()))

@@ -2,17 +2,35 @@
 
 ## What a release contains
 
-| File | What |
-|------|------|
-| `rpggen-<version>-setup.exe` | Inno Setup installer: per-user install (no administrator), Start-menu shortcut, uninstaller, license page with MIT + the third-party notices |
-| `rpggen-<version>-portable.zip` | the same one-folder build, unzip and run `rpggen\rpggen.exe` |
-| `SHA256SUMS.txt` | SHA-256 of both files |
+| File | Built on | What |
+|------|----------|------|
+| `rpggen-<version>-setup.exe` | `windows-latest` | Inno Setup installer: per-user install (no administrator), Start-menu shortcut, uninstaller, license page with MIT + the third-party notices |
+| `rpggen-<version>-portable.zip` | `windows-latest` | the same one-folder build, unzip and run `rpggen\rpggen.exe` |
+| `rpggen-<version>-x86_64.AppImage` | `ubuntu-22.04` | the Linux one-folder build in an AppImage (`AppRun` starts the GUI; `… cli <args>` the CLI) |
+| `rpggen-<version>-linux-x86_64.tar.gz` | `ubuntu-22.04` | the same build as a folder: `rpggen/rpggen`, `rpggen/rpggen-cli` |
+| `rpggen-<version>-macos-arm64.zip` | `macos-14` | `rpggen.app` (both executables in `Contents/MacOS`), zipped with `ditto`; unsigned |
+| `SHA256SUMS.txt` | publish job | SHA-256 of every file above |
 
-The one-folder build (`dist/rpggen/`) holds `rpggen.exe` (windowed GUI) and `rpggen-cli.exe`
-(console) sharing one set of libraries. `tools/package.py` builds it with PyInstaller using
-`packaging/rpggen.spec`, creates `dist/LICENSE_AND_NOTICES.txt`, the portable zip, optionally the
-installer (`--installer`, needs Inno Setup 6) and the checksums, and with `--smoke` generates the
-sample pack through the frozen `rpggen-cli.exe` (expects exit code 0).
+The one-folder build holds `rpggen` (windowed GUI) and `rpggen-cli` (console) sharing one set of
+libraries (`.exe` on Windows; inside `rpggen.app` on macOS). `tools/package.py` builds the packages
+of the platform it runs on with PyInstaller using `packaging/rpggen.spec`, creates
+`dist/LICENSE_AND_NOTICES.txt` and the checksums, and with `--smoke` generates the sample pack
+through the frozen `rpggen-cli` (expects exit code 0). Windows: the portable zip and, with
+`--installer` (Inno Setup 6), the installer. Linux: the tar.gz and the AppImage (`--no-appimage`
+skips it); the AppImage is made from `packaging/linux/` (`AppRun`, `rpggen.desktop`,
+`rpggen.png`) with appimagetool 1.9.1 and the type2 runtime of release 20251108, both downloaded
+to `.cache/appimage` and checked against the SHA-256 pinned in `tools/package.py`. macOS: the
+`.app` zip.
+
+The release workflow runs one build job per platform, each with its own frozen smoke test against
+the Godot 4.7.2 of that platform (`tools/fetch_godot.py`; the macOS download is the
+`macos.universal` zip with its pinned SHA-512). The `publish` job collects the files, writes one
+`SHA256SUMS.txt`, checks that every platform is there and attaches everything to the release.
+
+**Libraries of the frozen Linux build.** The bootloader points `LD_LIBRARY_PATH` at the bundle.
+The entry points put the user's value back at start (`rpggen/procenv.py`), and every program rpggen
+starts (Godot, git, 7-Zip, the editor) gets `procenv.child_env()`, without the bundle's library
+and Qt plugin paths. Otherwise Godot loads the bundle's copies of system libraries and can abort.
 
 ## Procedure
 
@@ -29,7 +47,9 @@ sample pack through the frozen `rpggen-cli.exe` (expects exit code 0).
 5. Download the release on a clean machine, verify the checksum, run the installer, press *Try with
    sample pack*.
 
-Local test build: `python tools/package.py --smoke --godot <Godot exe> [--installer]`.
+Local test build: `python tools/package.py --smoke --godot <Godot exe> [--installer]`. On Windows
+with WSL the Linux packages can be built the same way inside the distribution (Python 3.12, the
+Linux lock file, the Linux Godot).
 
 ## A reproducible, gated build
 
@@ -44,6 +64,20 @@ Local test build: `python tools/package.py --smoke --godot <Godot exe> [--instal
   ```
 
   CI regenerates the file and fails when it differs, so a stale lock never reaches a tag.
+
+  The Linux and macOS builds install from `requirements/release-linux.txt` and
+  `requirements/release-macos.txt`: the same versions (they are compiled with `release.txt` as a
+  constraint, and `test_release.py` checks that every shared package has the same version), without
+  the Windows-only packages and, on macOS, with `macholib` for PyInstaller. Regenerate them after
+  `release.txt`, with [uv](https://docs.astral.sh/uv/):
+
+  ```bat
+  uv pip compile pyproject.toml --extra dev --generate-hashes --python-version 3.12 --python-platform x86_64-manylinux_2_35 --constraint requirements/release.txt -o requirements/release-linux.txt
+  uv pip compile pyproject.toml --extra dev --generate-hashes --python-version 3.12 --python-platform aarch64-apple-darwin --constraint requirements/release.txt -o requirements/release-macos.txt
+  ```
+
+  The Linux target is glibc 2.35 (Ubuntu 22.04, the build runner): PySide6 6.11 publishes Linux
+  wheels for glibc 2.34 and later only, so that is the oldest Linux rpggen runs on.
 * **The whole suite first.** `release.yml` calls `ci.yml` (unit, GUI, GDScript, integration, perf on
   Windows and Ubuntu) on the tagged commit before it builds anything.
 * **The gate.** A tag build stops while `docs/coverage.md` still has a `*(pending)*` row: the
@@ -70,6 +104,22 @@ Windows SmartScreen warns about unsigned downloads. The plan:
    machine; `tools/make_doc_screenshots.py` cannot render OS dialogs).
 
 Signing is a **human step**: it needs an account, and its approval is outside this repository.
+
+### macOS: signing and notarization (a later step)
+
+The macOS app is unsigned for 1.0: PyInstaller gives it an ad-hoc signature (which lets it start
+on Apple silicon), and Gatekeeper asks the user to confirm the first launch (the README explains
+how). To ship without that step:
+
+1. Join the Apple Developer Program and create a *Developer ID Application* certificate.
+2. Store the certificate (p12, base64) and its password as repository secrets, import them into a
+   temporary keychain in the `macos` job, and pass `codesign_identity` and an entitlements file to
+   `BUNDLE`/`EXE` in `packaging/rpggen.spec` (hardened runtime; PySide6 needs
+   `com.apple.security.cs.disable-library-validation`).
+3. Notarize the zip with `xcrun notarytool submit … --wait` (an App Store Connect API key as
+   secrets), staple the ticket to the app with `xcrun stapler staple rpggen.app`, and zip again.
+
+Until then the release notes and the README carry the Gatekeeper note.
 
 ## Third-party notices
 

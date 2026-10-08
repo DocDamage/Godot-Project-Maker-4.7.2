@@ -1,8 +1,10 @@
 name: Release
 
-# Runs on a version tag (v1.0.0, ...). Builds the one-folder bundle, runs the frozen smoke test,
-# builds the installer and the portable zip, signs everything when signing is configured, and
-# attaches the artifacts with SHA-256 sums to a GitHub Release. See docs/release.md.
+# Runs on a version tag (v1.0.0, ...). On Windows, Linux and macOS: builds the one-folder bundle
+# and runs the frozen smoke test. Windows: the installer and the portable zip, signed when signing
+# is configured. Linux (Ubuntu 22.04, the glibc floor): an AppImage and a tar.gz. macOS: the .app
+# in a zip, unsigned. The publish job attaches everything with one SHA256SUMS.txt to a GitHub
+# Release. See docs/release.md.
 on:
   push:
     tags: ["v*"]
@@ -23,7 +25,7 @@ jobs:
     permissions:
       contents: read
 
-  build:
+  windows:
     needs: ci
     runs-on: windows-latest
     steps:
@@ -61,7 +63,7 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .cache/godot
-          key: godot-${{ env.GODOT_VERSION }}
+          key: godot-${{ runner.os }}-${{ env.GODOT_VERSION }}
       - name: Fetch Godot
         shell: bash
         run: |
@@ -111,17 +113,100 @@ jobs:
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: release-files
+          name: release-windows
           path: |
             dist/rpggen-*-setup.exe
             dist/rpggen-*-portable.zip
-            dist/SHA256SUMS.txt
+
+  # Linux: built on the oldest supported Ubuntu, so the bundle runs on newer glibc versions too
+  # (PySide6 6.11 itself needs glibc 2.34).
+  linux:
+    needs: ci
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install from the Linux lock file
+        run: |
+          pip install --require-hashes -r requirements/release-linux.txt
+          pip install --no-build-isolation --no-deps -e .
+      - name: Tools the AppImage build checks the desktop file with
+        run: sudo apt-get update && sudo apt-get install -y desktop-file-utils
+      - name: Cache Godot
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/godot
+          key: godot-${{ runner.os }}-${{ env.GODOT_VERSION }}
+      - name: Fetch Godot
+        run: |
+          exe=$(python tools/fetch_godot.py --version "$GODOT_VERSION" --out .cache/godot | tail -n 1)
+          echo "RPGGEN_GODOT=$exe" >> "$GITHUB_ENV"
+      - name: Build the bundle, run the frozen smoke test, make the AppImage and the tar.gz
+        run: python tools/package.py --smoke --godot "$RPGGEN_GODOT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-linux
+          path: |
+            dist/rpggen-*.AppImage
+            dist/rpggen-*-linux-x86_64.tar.gz
+
+  # macOS: an arm64 .app, unsigned for now (notarization is a later step, docs/release.md).
+  macos:
+    needs: ci
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install from the macOS lock file
+        run: |
+          pip install --require-hashes -r requirements/release-macos.txt
+          pip install --no-build-isolation --no-deps -e .
+      - name: Cache Godot
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/godot
+          key: godot-${{ runner.os }}-${{ env.GODOT_VERSION }}
+      - name: Fetch Godot
+        run: |
+          exe=$(python tools/fetch_godot.py --version "$GODOT_VERSION" --out .cache/godot | tail -n 1)
+          echo "RPGGEN_GODOT=$exe" >> "$GITHUB_ENV"
+      - name: Build the app, run the frozen smoke test and zip it
+        run: python tools/package.py --smoke --godot "$RPGGEN_GODOT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-macos
+          path: dist/rpggen-*-macos-*.zip
+
+  publish:
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: One SHA256SUMS.txt for every platform
+        run: |
+          cd dist
+          sha256sum rpggen-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          for kind in setup.exe portable.zip x86_64.AppImage linux-x86_64.tar.gz macos-; do
+            ls rpggen-*"$kind"* > /dev/null || { echo "missing: $kind"; exit 1; }
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-files
+          path: dist/
       - name: Publish the GitHub Release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
-            dist/rpggen-*-setup.exe
-            dist/rpggen-*-portable.zip
+            dist/rpggen-*
             dist/SHA256SUMS.txt
           generate_release_notes: true

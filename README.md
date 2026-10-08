@@ -6,21 +6,35 @@ a starter map with a building you can walk into, dialogue, inventory, saving, me
 system (turn-based or action-RPG). It checks the result by loading and playing it headless before
 it gives it to you, and it can regenerate the project later without touching your work.
 
-It is a Windows desktop application. The code also runs on Linux and macOS for development and CI,
-but only Windows builds are packaged for 1.0.
+It is a desktop application for **Windows**, **Linux** and **macOS**.
 
 ![The audit page](docs/images/wizard_audit.png)
 
 ## Install
 
-1. Download `rpggen-<version>-setup.exe` (or the portable `rpggen-<version>-portable.zip`) from the
-   [Releases](https://github.com/DocDamage/Godot-Project-Maker-4.7.2/releases) page, together with `SHA256SUMS.txt`.
-2. Check the download (PowerShell):
-   `Get-FileHash .\rpggen-1.0.0-setup.exe -Algorithm SHA256` and compare it with the line in
-   `SHA256SUMS.txt`.
-3. Run the installer. It installs for the current user only and needs no administrator rights.
-4. Install **Godot 4.7.2** from <https://godotengine.org/> (the standard build, not .NET) and, to
-   enable the export check, its export templates (Editor → Manage Export Templates).
+Download the file for your system from the
+[Releases](https://github.com/DocDamage/Godot-Project-Maker-4.7.2/releases) page, together with
+`SHA256SUMS.txt`, and compare the file's SHA-256 with its line there before you run it.
+
+| System | File | Check the download |
+|--------|------|--------------------|
+| Windows 10/11 (x64) | `rpggen-<version>-setup.exe`, or the portable `rpggen-<version>-portable.zip` | PowerShell: `Get-FileHash .\rpggen-1.0.0-setup.exe -Algorithm SHA256` |
+| Linux (x86_64, glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Fedora 36 and later) | `rpggen-<version>-x86_64.AppImage`, or `rpggen-<version>-linux-x86_64.tar.gz` | `sha256sum -c SHA256SUMS.txt --ignore-missing` |
+| macOS 13 or newer (Apple silicon) | `rpggen-<version>-macos-arm64.zip` | `shasum -a 256 -c SHA256SUMS.txt --ignore-missing` |
+
+* **Windows:** run the installer. It installs for the current user only and needs no
+  administrator rights.
+* **Linux:** `chmod +x rpggen-*.AppImage` and run it; `./rpggen-<version>-x86_64.AppImage cli
+  --help` runs the command-line version. Or unpack the tar.gz and run `rpggen/rpggen` (or
+  `rpggen/rpggen-cli`). Qt needs the `libxcb-cursor0` package (`sudo apt install libxcb-cursor0`
+  on Ubuntu and Debian); without FUSE, start the AppImage with `APPIMAGE_EXTRACT_AND_RUN=1`.
+* **macOS:** unzip and move `rpggen.app` to *Applications*. The command-line version is
+  `rpggen.app/Contents/MacOS/rpggen-cli`.
+
+Then install **Godot 4.7.2** from <https://godotengine.org/> (the standard build, not .NET), or let
+rpggen download it, and, to enable the export check, its export templates (Editor → Manage Export
+Templates). rpggen looks for Godot on `PATH`, in `%LOCALAPPDATA%\Programs` (Windows),
+`~/.local/bin` (Linux) and `/Applications` or `~/Applications` (macOS).
 
 ### "Windows protected your PC"
 
@@ -32,6 +46,18 @@ the installer and the executables are **not signed**, and Windows SmartScreen ma
 
 Only do this for files whose SHA-256 matches `SHA256SUMS.txt` on the official Releases page. Signed
 releases do not show this screen.
+
+### "rpggen cannot be opened" (macOS)
+
+The macOS app is **not signed with an Apple developer ID and not notarized** yet, so Gatekeeper
+stops it the first time. After checking the SHA-256:
+
+1. In Finder, **Control-click** (or right-click) `rpggen.app` and choose **Open**.
+2. Click **Open** in the dialog. macOS remembers the choice.
+
+On macOS 15 and later the dialog has no *Open* button: try to open the app once, then go to
+**System Settings → Privacy & Security** and click **Open Anyway** next to the message about
+rpggen.
 
 ## First run
 

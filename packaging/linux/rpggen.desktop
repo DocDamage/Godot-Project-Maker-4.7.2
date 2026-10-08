@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=rpggen
+GenericName=RPG project generator
+Comment=Turn a 2D RPG asset pack into a Godot 4.7.2 project
+Exec=rpggen %F
+Icon=rpggen
+Terminal=false
+Categories=Development;
+Keywords=godot;rpg;game;tileset;

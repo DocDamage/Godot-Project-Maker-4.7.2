@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
-from rpggen import ids, jsonio, paths
+from rpggen import ids, jsonio, paths, procenv
 from rpggen.core import cache_policy
 from rpggen.errors import Issue, IssueList, RpgGenError
 
@@ -406,6 +406,7 @@ def _run_7z(command: list[str], ctl: Control) -> subprocess.CompletedProcess[str
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=procenv.child_env(),
     )
     try:
         while True:

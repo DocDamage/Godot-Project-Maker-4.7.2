@@ -1,6 +1,6 @@
-"""Download and unpack the official Godot build for CI (Windows by default, or Linux).
+"""Download and unpack the official Godot build for CI (this computer's platform by default).
 
-Usage: python tools/fetch_godot.py --version 4.7.2 --out .cache/godot [--platform linux]
+Usage: python tools/fetch_godot.py --version 4.7.2 --out .cache/godot [--platform linux|macos]
 
 Prints the path of the executable on the last line of stdout. The SHA-512 of the zip must match
 the one pinned in ``rpggen/godot_target.py`` (for the version this program is built for) and the
@@ -31,7 +31,8 @@ from rpggen.core.godot_fetch import (  # noqa: E402,F401
 from rpggen.errors import RpgGenError  # noqa: E402
 
 
-def fetch(version: str, out: Path, platform: str = "windows") -> Path:
+def fetch(version: str, out: Path, platform: str | None = None) -> Path:
+    platform = platform or godot_fetch.current_platform()
     try:
         return godot_fetch.fetch(version, out, platform, require_checksum=False)
     except RpgGenError as exc:
@@ -42,7 +43,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", default=godot_target.VERSION)
     parser.add_argument("--out", type=Path, default=Path(".cache/godot"))
-    parser.add_argument("--platform", choices=("windows", "linux"), default="windows")
+    parser.add_argument(
+        "--platform", choices=godot_fetch.PLATFORMS, default=godot_fetch.current_platform()
+    )
     args = parser.parse_args(argv)
     print(fetch(args.version, args.out, args.platform).resolve())
     return 0

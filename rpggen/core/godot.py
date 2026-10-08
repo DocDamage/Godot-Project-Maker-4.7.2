@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import IO
 
-from rpggen import godot_target
+from rpggen import godot_target, procenv
 from rpggen.core import godot_fetch
 from rpggen.errors import Issue, IssueList, RpgGenError
 
@@ -278,7 +278,7 @@ def run_godot(
     printed. The log file (``godot_<name>.log``, stdout and stderr in the order they came) is open
     from the start and written as lines arrive."""
     cmd = [str(exe), "--headless", "--path", str(project), *args]
-    env = dict(os.environ)
+    env = procenv.child_env(os.environ) or dict(os.environ)
     env["RPGGEN"] = "1"
     log.debug("running %s", cmd)
     log_dir = Path(log_dir)
@@ -304,7 +304,7 @@ def detect_version(exe: Path) -> tuple[int, int, int, str]:
     console = find_console_exe(Path(exe))
     if not console.exists():
         raise RpgGenError("ENV-001", path=str(exe))
-    env = dict(os.environ)
+    env = procenv.child_env(os.environ) or dict(os.environ)
     env["RPGGEN"] = "1"
     try:
         code, out, _err, timed_out, _cancelled = _run(
@@ -317,41 +317,65 @@ def detect_version(exe: Path) -> tuple[int, int, int, str]:
     return parse_version(out)
 
 
-def auto_find_godot() -> list[Path]:
-    """Candidate Godot executables: $RPGGEN_GODOT, PATH matches, %LOCALAPPDATA%/Programs/Godot*."""
+# macOS: the folders that hold applications (tests replace them)
+MAC_APP_DIRS: tuple[Path, ...] = (Path("/Applications"), Path.home() / "Applications")
+
+
+def _runnable(p: Path) -> bool:
+    return p.is_file() and (sys.platform == "win32" or os.access(p, os.X_OK))
+
+
+def _usual_places(platform: str) -> list[Path]:
+    """Godot executables in the places each OS keeps programs (beyond PATH)."""
+    out: list[Path] = []
+    try:
+        if platform == "windows":
+            local = os.environ.get("LOCALAPPDATA")
+            if local:
+                for d in (Path(local) / "Programs").glob("[Gg]odot*"):
+                    out.extend(sorted(d.glob("*.exe")) if d.is_dir() else [d])
+        elif platform == "macos":
+            for apps in MAC_APP_DIRS:
+                for app in sorted(apps.glob("[Gg]odot*.app")):
+                    out.append(app / "Contents" / "MacOS" / "Godot")
+        else:
+            out.extend(sorted((Path.home() / ".local" / "bin").glob("[Gg]odot*")))
+    except OSError:
+        pass
+    return out
+
+
+def auto_find_godot(platform: str | None = None) -> list[Path]:
+    """Candidate Godot executables: $RPGGEN_GODOT, the copy rpggen downloaded, PATH matches, and
+    the usual places of the OS (Windows: %LOCALAPPDATA%/Programs/Godot*; macOS:
+    /Applications/Godot*.app and ~/Applications; Linux: ~/.local/bin)."""
+    platform = platform or godot_fetch.current_platform()
     found: dict[str, Path] = {}
 
     def add(p: Path) -> None:
-        if p.is_file():
-            found[str(p.resolve()).casefold()] = p
+        try:
+            if _runnable(p):
+                found[str(p.resolve()).casefold()] = p
+        except OSError:
+            pass
 
     env_exe = os.environ.get("RPGGEN_GODOT")
     if env_exe:
         add(Path(env_exe))
+    pattern = "[Gg]odot*.exe" if platform == "windows" else "[Gg]odot*"
     for entry in os.environ.get("PATH", "").split(os.pathsep):
         if not entry:
             continue
-        d = Path(entry)
         try:
-            for p in d.glob("[Gg]odot*.exe"):
+            for p in Path(entry).glob(pattern):
                 add(p)
         except OSError:
             continue
-    managed = godot_fetch.managed_executable()
+    managed = godot_fetch.managed_executable(platform=platform)
     if managed.is_file():
         found[str(managed.resolve()).casefold()] = managed
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        programs = Path(local) / "Programs"
-        try:
-            for d in programs.glob("[Gg]odot*"):
-                if d.is_dir():
-                    for p in d.glob("*.exe"):
-                        add(p)
-                else:
-                    add(d)
-        except OSError:
-            pass
+    for p in _usual_places(platform):
+        add(p)
     # The copy rpggen downloaded itself comes first: it is the version the project is built for.
     return sorted(
         found.values(),

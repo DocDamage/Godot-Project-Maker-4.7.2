@@ -13,7 +13,10 @@ def main() -> int:
         sys.stdout = io.StringIO()
     if sys.stderr is None:
         sys.stderr = io.StringIO()
+    from rpggen import procenv
     from rpggen.cli import main as cli_main
+
+    procenv.restore_library_path()  # children get the user's LD_LIBRARY_PATH, not the bundle's
 
     return cli_main(sys.argv[1:] or ["gui"])
 

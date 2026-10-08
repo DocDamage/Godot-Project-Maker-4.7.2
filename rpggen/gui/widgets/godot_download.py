@@ -21,10 +21,11 @@ def confirm(parent: QWidget, destination: Path) -> bool:
         parent,
         _tr("Download Godot"),
         _tr(
-            "rpggen will download Godot {version} (about 60 MB) from {source} and keep it in:"
+            "rpggen will download Godot {version} (about {mb} MB) from {source} and keep it in:"
             "\n\n{dest}\n\nThis is the only network access of this step. Continue?"
         ).format(
             version=godot_fetch.DEFAULT_VERSION,
+            mb=godot_fetch.DOWNLOAD_MB[godot_fetch.current_platform()],
             source=godot_fetch.SOURCE_LABEL,
             dest=destination,
         ),
