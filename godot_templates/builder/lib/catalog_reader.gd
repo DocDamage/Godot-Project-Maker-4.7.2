@@ -83,6 +83,20 @@ func object(id: String) -> Dictionary:
 			return o
 	return {}
 
+## Maps imported from Tiled and LDtk files (T12.49), sorted by id.
+func map_defs() -> Array[Dictionary]:
+	var list := _list("maps")
+	list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return JsonUtil.to_str(a["id"]) < JsonUtil.to_str(b["id"]))
+	return list
+
+## One imported map by id, or {}.
+func map_def(map_id: String) -> Dictionary:
+	var raw: Array = catalog.get("maps", [])
+	for m: Dictionary in raw:
+		if m["id"] == map_id:
+			return m
+	return {}
+
 ## Tileset definition by name, or {}.
 func tileset_def(tileset_name: String) -> Dictionary:
 	var raw: Array = catalog.get("tilesets", [])

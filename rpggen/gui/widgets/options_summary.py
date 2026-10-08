@@ -100,7 +100,14 @@ class OptionsSummary(QGroupBox):
             )
 
     def _interiors(self, text: str) -> str:
+        """ "1 interior", "3 interiors" or "2 imported maps": a map count with its noun."""
         count = int(text.split()[0])
+        if text.split()[1].startswith("imported"):
+            return (
+                self.tr("{0} imported map").format(count)
+                if count == 1
+                else self.tr("{0} imported maps").format(count)
+            )
         return (
             self.tr("{0} interior").format(count)
             if count == 1

@@ -204,6 +204,16 @@ def _summary(
 def _plan(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict[str, Any]:
     """The starter map a real run would build: its size, what stands on it and the planner's
     warnings (for instance a building that does not fit)."""
+    imported = next(
+        (m for m in catalog.maps if m["id"] == cfg.imported_map_selection()["starter"]), None
+    )
+    if imported is not None:  # the planner is skipped: the starter map is that map
+        return {
+            "size": list(imported["size"]),
+            "imported": imported["id"],
+            "counts": {},
+            "warnings": [],
+        }
     building = map_preview.building_info_for(catalog, cfg.starter.get("building", ""))
     plan = map_preview.plan(cfg.starter_map_options(), cfg.seed, building, cfg.archetype)
     return {
@@ -248,6 +258,12 @@ def format_summary(summary: dict[str, Any]) -> list[str]:
         lines.append(row("placeholders", ", ".join(summary["placeholders"])))
     if "map" in summary:
         plan = summary["map"]
+        if "imported" in plan:
+            size = plan["size"]
+            lines.append(
+                row("starter map", f"{plan['imported']} (imported), {size[0]} x {size[1]} tiles")
+            )
+            return lines
         counts = ", ".join(f"{plan['counts'][n]} {n}" for n in PLAN_COUNTS)
         lines.append(row("starter map", f"{plan['size'][0]} x {plan['size'][1]} tiles; {counts}"))
         lines.extend(row("", f"note: {w}") for w in plan["warnings"])

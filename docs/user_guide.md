@@ -125,6 +125,18 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
   *Reroll* picks a new seed (under *Advanced*). With the default settings the map is the one earlier versions made. A project that
   already has a starter map keeps it; the box then says so and the preview is switched off.
 
+* **Imported maps.** A pack that ships Tiled (`.tmx`, `.tmj`) or LDtk (`.ldtk`) maps lists them in
+  the *Imported maps* box, each with a checkbox. A checked map is built into
+  `game/maps/imported/<pack>/` (nothing is built unless you check it). The *Starter map* list under
+  it can make one of them the starter map: the layout options above are then skipped, and that map
+  has none of the demo's villager, chest or enemy (put your own in Godot). Tile layers go into the
+  map layer of the same name (see *Map layers*) or become a layer of their own; flipped tiles keep
+  their flips; the solid values of an LDtk IntGrid layer block the player (*Solid values…* chooses them; a value named wall, solid or collision starts solid); objects on layers named
+  `spawn`, `door` or `sign` become spawn points, doors (properties `target_map`, `target_spawn`)
+  and markers with a `text`. A layer saved with Zstandard compression cannot be read (TILE-009):
+  save the map with zlib or gzip. Like the other maps these are yours: regenerating never
+  rewrites them.
+
 ![Options page](images/wizard_options.png)
 
 ![The starter map preview](images/map_preview.png)

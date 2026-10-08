@@ -501,6 +501,141 @@ static func add_exit_door(triggers: Node, root: Node, node_name: String, cell: V
 	door.add_child(shape)
 	return door
 
+# ---------------------------------------------------------------- imported maps (T12.49)
+
+## The transform bits of the catalog's cells (adapters/maps.py): flip x, flip y, transpose.
+const BIT_FLIP_H := 1
+const BIT_FLIP_V := 2
+const BIT_TRANSPOSE := 4
+
+## The alternative-tile id of a cell with the catalog's transform bits. Godot keeps the flips of a
+## cell in the bits of its alternative tile, so the tile set needs no extra tiles for them.
+static func transform_alt(bits: int) -> int:
+	var alt := 0
+	if bits & BIT_FLIP_H:
+		alt |= TileSetAtlasSource.TRANSFORM_FLIP_H
+	if bits & BIT_FLIP_V:
+		alt |= TileSetAtlasSource.TRANSFORM_FLIP_V
+	if bits & BIT_TRANSPOSE:
+		alt |= TileSetAtlasSource.TRANSFORM_TRANSPOSE
+	return alt
+
+## Paints the run-length encoded cells of a tile layer (`[count, source_id, column, row, bits]`,
+## source id -1 for an empty cell, row by row on a map `width` cells wide). Returns the number of
+## cells whose tile does not exist in the tile set; they stay empty.
+static func paint_runs(layer: TileMapLayer, tile_set: TileSet, width: int, runs: Array) -> int:
+	var missing := 0
+	var index := 0
+	for item: Variant in runs:
+		var run: Array = item
+		var count := JsonUtil.to_int(run[0])
+		var source_id := JsonUtil.to_int(run[1])
+		if source_id >= 0 and width > 0:
+			var coords := Vector2i(JsonUtil.to_int(run[2]), JsonUtil.to_int(run[3]))
+			var source: TileSetAtlasSource = null
+			if tile_set.has_source(source_id):
+				source = tile_set.get_source(source_id) as TileSetAtlasSource
+			if source == null or not source.has_tile(coords):
+				missing += count
+			else:
+				var alt := transform_alt(JsonUtil.to_int(run[4]))
+				for k in count:
+					var at := index + k
+					@warning_ignore("integer_division")
+					var row := at / width
+					layer.set_cell(Vector2i(at % width, row), source_id, coords, alt)
+		index += count
+	return missing
+
+## The values of an IntGrid layer's `values` list that are solid.
+static func solid_values(values: Array) -> Array[int]:
+	var out: Array[int] = []
+	for item: Variant in values:
+		var v: Dictionary = item
+		if JsonUtil.to_bool(v.get("solid", false)):
+			out.append(JsonUtil.to_int(v["value"]))
+	return out
+
+## The cells of an IntGrid layer whose value is in `solid`, as few rectangles as a simple merge
+## finds: runs along each row, joined with an identical run on the row above.
+static func solid_rects(width: int, runs: Array, solid: Array[int]) -> Array[Rect2i]:
+	var cells: Array[int] = []
+	for item: Variant in runs:
+		var run: Array = item
+		var value := JsonUtil.to_int(run[1])
+		for k in JsonUtil.to_int(run[0]):
+			cells.append(value)
+	var done: Array[Rect2i] = []
+	var open := {}  # "x:w" -> the rectangle that ends on the row above
+	var rows := 0
+	if width > 0:
+		@warning_ignore("integer_division")
+		rows = cells.size() / width
+	for y in rows:
+		var next_open := {}
+		var x := 0
+		while x < width:
+			if not solid.has(cells[y * width + x]):
+				x += 1
+				continue
+			var start := x
+			while x < width and solid.has(cells[y * width + x]):
+				x += 1
+			var key := "%d:%d" % [start, x - start]
+			if open.has(key):
+				var rect: Rect2i = open[key]
+				rect.size.y += 1
+				next_open[key] = rect
+				open.erase(key)
+			else:
+				next_open[key] = Rect2i(start, y, x - start, 1)
+		for key: String in open.keys():
+			done.append(open[key])
+		open = next_open
+	for key: String in open.keys():
+		done.append(open[key])
+	done.sort_custom(func(a: Rect2i, b: Rect2i) -> bool: return a.position.y < b.position.y or (a.position.y == b.position.y and a.position.x < b.position.x))
+	return done
+
+## A static body with one invisible rectangle per solid area (layer 1, the world), the way the
+## border of a map without a wall tile blocks. Returns null for no rectangles.
+static func add_solid_body(root: Node2D, body_name: String, rects: Array[Rect2i], tile_px: int) -> StaticBody2D:
+	if rects.is_empty():
+		return null
+	var body := StaticBody2D.new()
+	body.name = body_name
+	body.collision_layer = 0
+	body.collision_mask = 0
+	body.set_collision_layer_value(1, true)
+	root.add_child(body)
+	body.owner = root
+	for r in rects:
+		var shape := CollisionShape2D.new()
+		shape.name = "Solid_%d_%d" % [r.position.x, r.position.y]
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(r.size) * tile_px
+		shape.shape = rect
+		shape.position = (Vector2(r.position) + Vector2(r.size) / 2.0) * tile_px
+		body.add_child(shape)
+		shape.owner = root
+	return body
+
+## The cell nearest to the middle of the map that is not solid; Vector2i(-1, -1) when all are.
+static func free_cell_near_centre(size: Vector2i, solid_cells: Dictionary) -> Vector2i:
+	var centre := Vector2i(size.x >> 1, size.y >> 1)
+	var best := Vector2i(-1, -1)
+	var best_distance := 1 << 30
+	for y in size.y:
+		for x in size.x:
+			var cell := Vector2i(x, y)
+			if solid_cells.has(cell):
+				continue
+			var d := absi(x - centre.x) + absi(y - centre.y)
+			if d < best_distance:
+				best_distance = d
+				best = cell
+	return best
+
 ## {source_id, coords} of the first tile of the `nth` (0-based) tile sheet that has `role`, or {}.
 static func nth_tile_with_role(ctx: BuildContext, def: Dictionary, tile_set: TileSet, role: String, nth: int) -> Dictionary:
 	var seen := 0

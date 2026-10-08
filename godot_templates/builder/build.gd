@@ -29,6 +29,7 @@ const RECIPE_ORDER: Array[String] = [
 	"boot_recipe",
 	"starter_map_recipe",
 	"second_map_recipe",
+	"imported_maps_recipe",
 	"translations_recipe",
 ]
 

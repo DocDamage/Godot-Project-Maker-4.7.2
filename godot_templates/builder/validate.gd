@@ -66,6 +66,8 @@ func _initialize() -> void:
 			_scenes.append(path)
 	_announce("starter map")
 	_check_map_round_trip("res://game/maps/starter_map.tscn")
+	for imported_path in _list_files("res://game/maps/imported", ["tscn"]):
+		_check_map_round_trip(imported_path)  # the maps imported from Tiled and LDtk (T12.49)
 	_announce("y-sort origins")
 	_check_ysort_origins()
 	_announce("y-sort parents")

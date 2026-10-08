@@ -157,6 +157,14 @@
       },
       "additionalProperties": false
     },
+    "imported_maps": {
+      "type": "object",
+      "properties": {
+        "include": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "starter": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
     "git": {
       "type": "object",
       "properties": {

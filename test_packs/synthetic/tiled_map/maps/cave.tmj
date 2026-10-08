@@ -1,0 +1,41 @@
+{
+  "type": "map",
+  "version": "1.10",
+  "orientation": "orthogonal",
+  "width": 3,
+  "height": 2,
+  "tilewidth": 16,
+  "tileheight": 16,
+  "infinite": false,
+  "tilesets": [
+    {
+      "firstgid": 1,
+      "source": "../terrain.tsx"
+    }
+  ],
+  "layers": [
+    {
+      "type": "tilelayer",
+      "name": "Floor",
+      "width": 3,
+      "height": 2,
+      "encoding": "base64",
+      "compression": "gzip",
+      "data": "H4sIAAAAAAAECgEYAOf/AQAAAAEAAAABAAAAEgAAAAEAAAABAAAASBHefRgAAAA="
+    },
+    {
+      "type": "tilelayer",
+      "name": "Plain",
+      "width": 3,
+      "height": 2,
+      "data": [
+        0,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

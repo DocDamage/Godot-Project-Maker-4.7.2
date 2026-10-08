@@ -7,6 +7,7 @@ extends RefCounted
 ## stats are set to a smoke profile first (attack 99), so the outcome does not depend on luck.
 
 const JsonUtil := preload("../lib/json_util.gd")
+const ImportedStarter := preload("imported_starter.gd")
 
 const ENEMY_ID := "starter_map_enemy_001"
 const STARTER_MAP := "res://game/maps/starter_map.tscn"
@@ -22,7 +23,7 @@ func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
 
 func steps() -> Array[Dictionary]:
-	return [
+	var list: Array[Dictionary] = [
 		{"name": "encounter_start", "fn": _encounter_start, "timeout_s": 25.0},
 		{"name": "battle_victory", "fn": _battle_victory, "timeout_s": 30.0},
 		{"name": "rewards_granted", "fn": _rewards_granted, "timeout_s": 10.0},
@@ -31,6 +32,12 @@ func steps() -> Array[Dictionary]:
 		{"name": "defeat_policy", "fn": _defeat_policy, "timeout_s": 90.0},
 		{"name": "game_over_screen", "fn": _game_over_screen, "timeout_s": 40.0},
 	]
+	if ImportedStarter.active():  # the imported starter map has no enemy to fight
+		for step in list:
+			var step_name: String = step["name"]
+			if step_name != "game_over_screen":
+				step["fn"] = func() -> String: return ImportedStarter.note(step_name)
+	return list
 
 func _game_over_screen() -> String:
 	return await preload("game_over_check.gd").new().run()

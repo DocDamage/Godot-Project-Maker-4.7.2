@@ -66,6 +66,10 @@
   equipment. `heal_full` heals everyone. The party was already in the save. The action RPG has no
   followers in 1.0. New keys: `UI_PARTY_JOINED` and `UI_PARTY_LEFT`. New turn-based projects get the
   actor "Mira" (`companion.tres`) and a villager choice that brings her along.
+* Imported maps (M12): the generator builds the Tiled and LDtk maps of a pack that the user ticks
+  as `game/maps/imported/<pack>/<map>.tscn`, or as the starter map. No runtime script changed; the
+  smoke steps that fight the demo's enemy pass with a note in a project whose starter map was
+  imported.
 * Quest journal (M12): `RpgQuestDefinition` (`game/data/quests/<id>.tres`: a title key, ordered
   `stages` [{id, description key, complete_when condition}] and `rewards` {gold, experience,
   items}). `GameState.quests[id]` holds the current stage id, or `"done"`, so saves are unchanged

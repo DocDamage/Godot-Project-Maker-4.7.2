@@ -1,17 +1,23 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import posixpath
+import struct
 import xml.etree.ElementTree as ET  # noqa: S405 - local pack files; size-limited below
+import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from rpggen.core.adapters import maps as maps_mod
 from rpggen.core.adapters.base import AdapterContext, AdapterResult, AssetFragment
 from rpggen.core.inventory import Inventory
 from rpggen.errors import IssueList
 
 MAX_METADATA_BYTES = 8 * 1024 * 1024
+MAX_TILE_BYTES = 64 * 1024 * 1024  # decompressed tile data of one layer
 CUSTOM_DATA_NAMES = ("footstep", "move_cost")  # the TileSetDef custom data layers (T1.10)
 WANG_MODES = {"corner": "corners", "edge": "sides", "mixed": "corners_and_sides"}
 FLOAT_PROPERTIES = {"move_cost"}
@@ -240,6 +246,359 @@ def _resolve_image(ts: _Tileset) -> str | None:
     return joined
 
 
+# --------------------------------------------------------------------------- maps (T12.49)
+
+GID_MASK = 0x1FFFFFFF
+GID_FLIP_H = 0x80000000
+GID_FLIP_V = 0x40000000
+GID_FLIP_D = 0x20000000
+
+
+class _Unsupported(Exception):
+    """Tile data this reader cannot use; the message becomes the reason of TILE-009."""
+
+
+@dataclass
+class _Ref:
+    firstgid: int
+    tileset: _Tileset | None
+
+
+@dataclass
+class _Layer:
+    name: str
+    kind: str  # "tiles" | "objects"
+    cells: dict[tuple[int, int], int] = field(default_factory=dict)
+    objects: list[dict[str, Any]] = field(default_factory=list)
+    error: str = ""
+
+
+@dataclass
+class _TiledMap:
+    tile_w: int
+    tile_h: int
+    width: int
+    height: int
+    infinite: bool
+    orientation: str
+    refs: list[_Ref] = field(default_factory=list)
+    layers: list[_Layer] = field(default_factory=list)
+
+
+def _inflate(raw: bytes, wbits: int) -> bytes:
+    inflater = zlib.decompressobj(wbits)
+    out = inflater.decompress(raw, MAX_TILE_BYTES + 1)
+    if len(out) > MAX_TILE_BYTES:
+        raise _Unsupported("the tile data is too large")
+    return out
+
+
+def _decode(data: Any, encoding: str | None, compression: str | None) -> list[int]:
+    """The global tile ids of one ``data`` element (CSV, a JSON list, or base64 with
+    zlib or gzip). Zstandard and anything else raise ``_Unsupported``."""
+    if isinstance(data, list):
+        return [int(v) for v in data]
+    text = str(data or "").strip()
+    if encoding in (None, "", "csv"):
+        try:
+            return [int(v) for v in text.split(",") if v.strip() != ""]
+        except ValueError as exc:
+            raise _Unsupported("the tile data is damaged") from exc
+    if encoding != "base64":
+        raise _Unsupported(f"{encoding} encoding is not supported")
+    try:
+        raw = base64.b64decode(text, validate=False)
+        if compression == "zlib":
+            raw = _inflate(raw, zlib.MAX_WBITS)
+        elif compression == "gzip":
+            raw = _inflate(raw, 16 + zlib.MAX_WBITS)
+        elif compression:
+            raise _Unsupported(f"{compression} compression is not supported")
+    except (binascii.Error, zlib.error, ValueError) as exc:
+        raise _Unsupported("the tile data is damaged") from exc
+    if len(raw) % 4:
+        raise _Unsupported("the tile data is damaged")
+    return list(struct.unpack(f"<{len(raw) // 4}I", raw))
+
+
+def _place(layer: _Layer, values: list[int], x0: int, y0: int, width: int) -> None:
+    if width <= 0 or len(values) % width:
+        raise _Unsupported("the tile data does not fit the layer")
+    for i, gid in enumerate(values):
+        if gid & GID_MASK:
+            layer.cells[(x0 + i % width, y0 + i // width)] = gid
+
+
+def _properties_xml(el: ET.Element) -> dict[str, Any]:
+    return {
+        p.get("name", ""): _prop_value(p.get("type"), p.get("value", p.text or ""))
+        for p in el.findall("./properties/property")
+    }
+
+
+def _properties_json(items: Any) -> dict[str, Any]:
+    return {
+        str(p.get("name", "")): _prop_value(p.get("type"), p.get("value"))
+        for p in items or []
+        if isinstance(p, dict)
+    }
+
+
+def _object(
+    name: str, kind: str, x: Any, y: Any, w: Any, h: Any, props: dict[str, Any]
+) -> dict[str, Any]:
+    return {
+        "name": name,
+        "type": kind,
+        "x": _num(x or 0),
+        "y": _num(y or 0),
+        "w": _num(w or 0),
+        "h": _num(h or 0),
+        "props": props,
+    }
+
+
+def _xml_layers(parent: ET.Element, out: list[_Layer]) -> None:
+    for el in parent:
+        if el.tag == "group":
+            _xml_layers(el, out)
+        elif el.tag == "layer":
+            layer = _Layer(el.get("name", "layer"), "tiles")
+            data = el.find("data")
+            try:
+                if data is not None:
+                    enc, comp = data.get("encoding"), data.get("compression")
+                    chunks = data.findall("chunk")
+                    if chunks:
+                        for ch in chunks:
+                            _place(
+                                layer,
+                                _decode(ch.text, enc, comp),
+                                int(ch.get("x", 0)),
+                                int(ch.get("y", 0)),
+                                int(ch.get("width", 0)),
+                            )
+                    elif enc is None and data.findall("tile"):
+                        values = [int(t.get("gid", 0)) for t in data.findall("tile")]
+                        _place(layer, values, 0, 0, int(el.get("width", 0)))
+                    else:
+                        width = int(el.get("width", 0))
+                        values = _decode(data.text, enc, comp)
+                        if len(values) != width * int(el.get("height", 0)):
+                            raise _Unsupported("the tile data does not fit the layer")
+                        _place(layer, values, 0, 0, width)
+            except _Unsupported as exc:
+                layer.error = str(exc)
+            out.append(layer)
+        elif el.tag == "objectgroup":
+            layer = _Layer(el.get("name", "objects"), "objects")
+            for o in el.findall("object"):
+                kind = o.get("type") or o.get("class") or ""
+                layer.objects.append(
+                    _object(
+                        o.get("name", ""),
+                        kind,
+                        o.get("x"),
+                        o.get("y"),
+                        o.get("width"),
+                        o.get("height"),
+                        _properties_xml(o),
+                    )  # fmt: skip
+                )
+            out.append(layer)
+
+
+def _json_layers(items: Any, out: list[_Layer]) -> None:
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        kind = item.get("type")
+        if kind == "group":
+            _json_layers(item.get("layers"), out)
+        elif kind == "tilelayer":
+            layer = _Layer(str(item.get("name", "layer")), "tiles")
+            enc, comp = item.get("encoding"), item.get("compression")
+            try:
+                if item.get("chunks"):
+                    for ch in item["chunks"]:
+                        _place(
+                            layer,
+                            _decode(ch.get("data"), enc, comp),
+                            int(ch.get("x", 0)),
+                            int(ch.get("y", 0)),
+                            int(ch.get("width", 0)),
+                        )
+                else:
+                    width = int(item.get("width", 0))
+                    values = _decode(item.get("data"), enc, comp)
+                    if len(values) != width * int(item.get("height", 0)):
+                        raise _Unsupported("the tile data does not fit the layer")
+                    _place(layer, values, 0, 0, width)
+            except _Unsupported as exc:
+                layer.error = str(exc)
+            out.append(layer)
+        elif kind == "objectgroup":
+            layer = _Layer(str(item.get("name", "objects")), "objects")
+            for o in item.get("objects", []):
+                layer.objects.append(
+                    _object(
+                        str(o.get("name", "")),
+                        str(o.get("type") or o.get("class") or ""),
+                        o.get("x"),
+                        o.get("y"),
+                        o.get("width"),
+                        o.get("height"),
+                        _properties_json(o.get("properties")),
+                    )  # fmt: skip
+                )
+            out.append(layer)
+
+
+def _external_tileset(
+    map_dir: str, source: str, root: Path, by_lower: dict[str, str]
+) -> _Tileset | None:
+    joined = posixpath.normpath(posixpath.join(map_dir, source.replace("\\", "/")))
+    path = by_lower.get(joined.casefold())
+    if path is None:
+        return None
+    text = _read_limited(root / path)
+    if text is None:
+        return None
+    base = posixpath.dirname(path)
+    if path.casefold().endswith(".tsx"):
+        return _xml_tileset(ET.fromstring(text), base, path)  # noqa: S314
+    return _json_tileset(json.loads(text), base, path)
+
+
+def _read_tiled_map(
+    ext: str, text: str, rel: str, root: Path, by_lower: dict[str, str]
+) -> _TiledMap:
+    base = posixpath.dirname(rel)
+    if ext == ".tmx":
+        el = ET.fromstring(text)  # noqa: S314
+        tm = _TiledMap(
+            int(el.get("tilewidth", 0)), int(el.get("tileheight", 0)),
+            int(el.get("width", 0)), int(el.get("height", 0)),
+            el.get("infinite", "0") == "1", el.get("orientation", "orthogonal"),
+        )  # fmt: skip
+        for t in el.findall("tileset"):
+            src = t.get("source")
+            ts = _external_tileset(base, src, root, by_lower) if src else _xml_tileset(t, base, rel)
+            tm.refs.append(_Ref(int(t.get("firstgid", 1)), ts))
+        _xml_layers(el, tm.layers)
+    else:
+        d = json.loads(text)
+        tm = _TiledMap(
+            int(d.get("tilewidth", 0)), int(d.get("tileheight", 0)),
+            int(d.get("width", 0)), int(d.get("height", 0)),
+            bool(d.get("infinite", False)), str(d.get("orientation", "orthogonal")),
+        )  # fmt: skip
+        for t in d.get("tilesets", []):
+            if not isinstance(t, dict):
+                continue
+            src = t.get("source")
+            ts = (
+                _external_tileset(base, src, root, by_lower) if src else _json_tileset(t, base, rel)
+            )
+            tm.refs.append(_Ref(int(t.get("firstgid", 1)), ts))
+        _json_layers(d.get("layers"), tm.layers)
+    tm.refs.sort(key=lambda r: r.firstgid)
+    return tm
+
+
+def _raw_map(
+    tm: _TiledMap, rel: str, by_lower: dict[str, str], issues: IssueList
+) -> dict[str, Any] | None:
+    """The raw map (adapters.maps) of one Tiled map; None when nothing in it can be imported."""
+    stem = posixpath.splitext(posixpath.basename(rel))[0]
+    if tm.orientation != "orthogonal" or tm.tile_w <= 0 or tm.tile_h <= 0:
+        issues.add(
+            "TILE-009", file=rel, layer="(all layers)", map=rel,
+            reason="only orthogonal maps are imported",
+        )  # fmt: skip
+        return None
+    if tm.infinite:  # flattened to the bounds of the tiles
+        keys = [k for ly in tm.layers if not ly.error for k in ly.cells]
+        if keys:
+            ox, oy = min(k[0] for k in keys), min(k[1] for k in keys)
+            width = max(k[0] for k in keys) - ox + 1
+            height = max(k[1] for k in keys) - oy + 1
+        else:
+            ox = oy = 0
+            width = height = 1
+    else:
+        ox = oy = 0
+        width, height = tm.width, tm.height
+    if width <= 0 or height <= 0 or width * height > maps_mod.MAX_CELLS:
+        issues.add(
+            "TILE-009", file=rel, layer="(all layers)", map=rel,
+            reason="the map is empty or larger than 4,000,000 cells",
+        )  # fmt: skip
+        return None
+
+    images: dict[int, str | None] = {}
+
+    def image_of(ref: _Ref) -> str | None:
+        if id(ref) not in images:
+            ts = ref.tileset
+            found = _resolve_image(ts) if ts and ts.columns > 0 else None
+            images[id(ref)] = by_lower.get(found.casefold()) if found else None
+        return images[id(ref)]
+
+    layers: list[dict[str, Any]] = []
+    for layer in tm.layers:
+        if layer.kind == "tiles":
+            if layer.error:
+                issues.add("TILE-009", file=rel, layer=layer.name, map=rel, reason=layer.error)
+                continue
+            tiles: list[list[Any]] = []
+            lost = 0
+            for (x, y), raw in sorted(layer.cells.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+                gid = raw & GID_MASK
+                ref = next((r for r in reversed(tm.refs) if r.firstgid <= gid), None)
+                image = image_of(ref) if ref else None
+                if ref is None or ref.tileset is None or image is None:
+                    lost += 1
+                    continue
+                alt = (
+                    (maps_mod.FLIP_H if raw & GID_FLIP_H else 0)
+                    | (maps_mod.FLIP_V if raw & GID_FLIP_V else 0)
+                    | (maps_mod.FLIP_D if raw & GID_FLIP_D else 0)
+                )
+                tid = gid - ref.firstgid
+                columns = ref.tileset.columns
+                tiles.append([x - ox, y - oy, image, tid % columns, tid // columns, alt])
+            if not tiles and lost:
+                issues.add(
+                    "TILE-009", file=rel, layer=layer.name, map=rel,
+                    reason="its tile sheet was not found in the pack",
+                )  # fmt: skip
+            if tiles:
+                layers.append(maps_mod.tile_layer(layer.name, tiles))
+        else:
+            objects = []
+            for o in layer.objects:
+                kind = maps_mod.marker_kind(layer.name, o["type"])
+                if kind is None:
+                    continue
+                marker = dict(o, type=kind)
+                marker["x"] = _num(o["x"] - ox * tm.tile_w)
+                marker["y"] = _num(o["y"] - oy * tm.tile_h)
+                objects.append(marker)
+            if objects:
+                layers.append(maps_mod.objects_layer(layer.name, objects))
+    if not layers:
+        return None
+    return {
+        "name": stem,
+        "source": rel,
+        "format": "tiled",
+        "tile_size": [tm.tile_w, tm.tile_h],
+        "size": [width, height],
+        "layers": layers,
+    }
+
+
 class TiledAdapter:
     name = "tiled"
     priority = 10
@@ -338,6 +697,21 @@ class TiledAdapter:
                     "terrain_sets": terrain_sets,
                 }
             )
+        for f in inv.files:
+            if f.ext not in (".tmx", ".tmj"):
+                continue
+            try:
+                text = _read_limited(root / f.path)
+                if text is None:
+                    continue
+                parsed = _read_tiled_map(f.ext, text, f.path, root, by_lower)
+                raw = _raw_map(parsed, f.path, by_lower, issues)
+            except (ET.ParseError, json.JSONDecodeError, ValueError, KeyError, OSError) as exc:
+                if not any(i.code == "ADAPT-001" and i.file == f.path for i in issues):
+                    issues.add("ADAPT-001", adapter=self.name, file=f.path, reason=str(exc))
+                continue
+            if raw is not None:
+                result.maps.append(raw)
         if hulled:
             result.pack_warnings.append("tiled_multi_object_collision_hulled")
         if ignored:

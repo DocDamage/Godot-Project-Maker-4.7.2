@@ -252,6 +252,8 @@ class Catalog:
     folder_rules: list[FolderRule] = field(default_factory=list)
     generator_version: str = __version__
     catalog_version: int = CATALOG_VERSION
+    # Maps read from Tiled and LDtk files (T12.49); see ``resolve_maps`` for the shape.
+    maps: list[dict[str, Any]] = field(default_factory=list)
 
     def allocate_source_id(self, tileset: str) -> int:
         """Return the next never-reused source id of ``tileset`` and advance the counter."""
@@ -266,6 +268,14 @@ class Catalog:
         return next((a for a in self.assets if a.id == asset_id), None)
 
     def to_json(self) -> dict[str, Any]:
+        out = self._to_json()
+        if self.maps:  # optional: a catalog without maps is unchanged
+            out["maps"] = [
+                copy.deepcopy(m) for m in sorted(self.maps, key=lambda m: _sort_key(m["id"]))
+            ]
+        return out
+
+    def _to_json(self) -> dict[str, Any]:
         return {
             "catalog_version": self.catalog_version,
             "generator_version": self.generator_version,
@@ -290,6 +300,7 @@ class Catalog:
             folder_rules=[FolderRule.from_json(r) for r in d["folder_rules"]],
             generator_version=d["generator_version"],
             catalog_version=d["catalog_version"],
+            maps=copy.deepcopy(d.get("maps", [])),
         )
 
 
@@ -642,6 +653,7 @@ def assemble(
     generated: dict[str, str] = {}
     adapter_tilesets: list[dict[str, Any]] = []
     objects_raw: list[tuple[str, dict[str, Any]]] = []  # (pack_id, adapter object dict)
+    maps_raw: list[tuple[str, dict[str, Any]]] = []  # (pack_id, raw map of a Tiled/LDtk file)
     present_ids: set[str] = set()
     all_results: dict[str, list[Any]] = {}
     extra_rules: list[FolderRule] = []
@@ -689,6 +701,7 @@ def assemble(
             generated.update(res.generated)
             adapter_tilesets.extend(res.tilesets)
             objects_raw.extend((pack_id, o) for o in res.objects)
+            maps_raw.extend((pack_id, m) for m in res.maps)
 
         # collect fragments per (path, variant)
         by_key: dict[tuple[str, str], list[tuple[int, AssetFragment]]] = {}
@@ -795,6 +808,7 @@ def assemble(
     _add_objects(catalog, objects_raw, previous)
     assign_tilesets(catalog, previous, adapter_tilesets)
     terrain.attach_terrain_sets(catalog, terrain_result)
+    resolve_maps(catalog, maps_raw, previous, issues)
     for asset in catalog.assets:
         asset.status = recompute_status(
             asset,
@@ -803,6 +817,131 @@ def assemble(
         )
     catalog.assets.sort(key=lambda a: _sort_key(a.id))
     return catalog, issues, generated
+
+
+# --------------------------------------------------------------------------- maps (T12.49)
+
+EMPTY_CELL = (-1, 0, 0, 0)  # source id, atlas column, atlas row, transform bits
+
+
+def _previous_solid(previous: Catalog | None) -> dict[tuple[str, str, int], bool]:
+    """The solid flag of every IntGrid value of the previous catalog: the user's choice stays."""
+    out: dict[tuple[str, str, int], bool] = {}
+    for m in previous.maps if previous else []:
+        for layer in m.get("layers", []):
+            for v in layer.get("values", []):
+                out[(m["id"], layer["name"], int(v["value"]))] = bool(v["solid"])
+    return out
+
+
+def resolve_maps(
+    catalog: Catalog,
+    maps_raw: list[tuple[str, dict[str, Any]]],
+    previous: Catalog | None,
+    issues: IssueList,
+) -> None:
+    """Fill ``catalog.maps`` from the raw maps of the adapters.
+
+    A catalog map is ``{id, pack_id, source, format, tile_size, size, layers}``; a layer is
+    ``{name, kind: tiles, tileset, cells}`` (``cells`` is run-length encoded row by row:
+    ``[count, source_id, column, row, transform]``, source id -1 for an empty cell),
+    ``{name, kind: intgrid, cells, values}`` (runs ``[count, value]``; ``values`` lists
+    ``{value, name, solid}``) or ``{name, kind: objects, objects}`` (markers). A layer whose
+    tiles belong to several tile sets becomes one layer per tile set. A layer whose tile sheets
+    are in no tile set is skipped with TILE-009.
+    """
+    from rpggen.core.adapters import maps as maps_mod
+
+    asset_of = {a.path: a.id for a in catalog.assets if "#" not in a.id}
+    sheet_of = {
+        src["asset"]: (tdef.name, int(src["source_id"]))
+        for tdef in catalog.tilesets
+        for src in tdef.sources
+    }
+    solid_before = _previous_solid(previous)
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for pack_id, raw in maps_raw:
+        base = ids.asset_id(pack_id, raw["source"])
+        if raw.get("format") == "ldtk":
+            base += "." + ids.slug(raw["name"])
+        map_id, n = base, 1
+        while map_id in seen:
+            n += 1
+            map_id = f"{base}__{n}"
+        seen.add(map_id)
+        width, height = int(raw["size"][0]), int(raw["size"][1])
+        source = f"assets/packs/{pack_id}/{raw['source']}"
+        layers: list[dict[str, Any]] = []
+        for layer in raw["layers"]:
+            kind = layer["kind"]
+            if kind == "tiles":
+                by_sheet: dict[str, dict[tuple[int, int], tuple[int, int, int, int]]] = {}
+                lost = 0
+                for x, y, image, col, row, alt in layer["tiles"]:
+                    ref = sheet_of.get(asset_of.get(f"assets/packs/{pack_id}/{image}", ""))
+                    if ref is None:
+                        lost += 1
+                    elif 0 <= x < width and 0 <= y < height:
+                        by_sheet.setdefault(ref[0], {})[(x, y)] = (ref[1], col, row, alt)
+                if not by_sheet:
+                    issues.add(
+                        "TILE-009", file=source, layer=layer["name"], map=map_id,
+                        reason="its tile sheets are not part of a tile set",
+                    )  # fmt: skip
+                    continue
+                for tileset_name, cells in by_sheet.items():
+                    grid = [
+                        cells.get((x, y), EMPTY_CELL) for y in range(height) for x in range(width)
+                    ]
+                    name = (
+                        layer["name"] if len(by_sheet) == 1 else f"{layer['name']} ({tileset_name})"
+                    )
+                    layers.append(
+                        {
+                            "name": name,
+                            "kind": "tiles",
+                            "tileset": tileset_name,
+                            "cells": maps_mod.rle(grid),
+                        }
+                    )
+            elif kind == "intgrid":
+                values = [
+                    {
+                        "value": int(v["value"]),
+                        "name": v["name"],
+                        "solid": solid_before.get(
+                            (map_id, layer["name"], int(v["value"])), v["solid"]
+                        ),
+                    }
+                    for v in layer["values"]
+                ]
+                cells_int = [(int(v),) for v in layer["data"]]
+                layers.append(
+                    {
+                        "name": layer["name"],
+                        "kind": "intgrid",
+                        "cells": maps_mod.rle(cells_int),
+                        "values": values,
+                    }
+                )
+            else:
+                layers.append(
+                    {"name": layer["name"], "kind": "objects", "objects": layer["objects"]}
+                )
+        if layers:
+            out.append(
+                {
+                    "id": map_id,
+                    "pack_id": pack_id,
+                    "source": source,
+                    "format": raw["format"],
+                    "tile_size": list(raw["tile_size"]),
+                    "size": [width, height],
+                    "layers": layers,
+                }
+            )
+    catalog.maps = out
 
 
 def _variant(asset_id: str) -> str:

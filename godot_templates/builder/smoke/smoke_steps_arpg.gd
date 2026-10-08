@@ -8,6 +8,7 @@ extends RefCounted
 ## so the outcome does not depend on what the enemy does.
 
 const JsonUtil := preload("../lib/json_util.gd")
+const ImportedStarter := preload("imported_starter.gd")
 
 const ENEMY_1 := "starter_map_enemy_001"
 const ENEMY_2 := "starter_map_enemy_002"
@@ -22,7 +23,7 @@ func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
 
 func steps() -> Array[Dictionary]:
-	return [
+	var list: Array[Dictionary] = [
 		{"name": "enemy_detects", "fn": _enemy_detects, "timeout_s": 25.0},
 		{"name": "player_attack_hits", "fn": _player_attack_hits, "timeout_s": 15.0},
 		{"name": "no_damage_outside_active_frames", "fn": _no_damage_outside_active_frames, "timeout_s": 15.0},
@@ -34,6 +35,12 @@ func steps() -> Array[Dictionary]:
 		{"name": "death_policy", "fn": _death_policy, "timeout_s": 40.0},
 		{"name": "game_over_screen", "fn": _game_over_screen, "timeout_s": 40.0},
 	]
+	if ImportedStarter.active():  # the imported starter map has no enemies to fight
+		for step in list:
+			var step_name: String = step["name"]
+			if step_name != "game_over_screen":
+				step["fn"] = func() -> String: return ImportedStarter.note(step_name)
+	return list
 
 func _game_over_screen() -> String:
 	return await preload("game_over_check.gd").new().run()

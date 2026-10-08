@@ -42,6 +42,12 @@
       "items": {
         "$ref": "#/$defs/FolderRule"
       }
+    },
+    "maps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Map"
+      }
     }
   },
   "additionalProperties": false,
@@ -1457,6 +1463,206 @@
         }
       },
       "additionalProperties": false
+    },
+    "Map": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "pack_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "tiled",
+            "ldtk"
+          ]
+        },
+        "tile_size": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MapLayer"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "pack_id",
+        "source",
+        "format",
+        "tile_size",
+        "size",
+        "layers"
+      ]
+    },
+    "MapLayer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "tiles",
+            "intgrid",
+            "objects"
+          ]
+        },
+        "tileset": {
+          "type": "string"
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 5
+          }
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "solid": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "name",
+              "solid"
+            ]
+          }
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "spawn",
+                  "door",
+                  "sign"
+                ]
+              },
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "w": {
+                "type": "number"
+              },
+              "h": {
+                "type": "number"
+              },
+              "props": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "type",
+              "x",
+              "y",
+              "w",
+              "h",
+              "props"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "tiles"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "tileset",
+              "cells"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "intgrid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "cells",
+              "values"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "objects"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "objects"
+            ]
+          }
+        }
+      ]
     }
   }
 }

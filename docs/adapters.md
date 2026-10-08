@@ -14,9 +14,9 @@ unsupported.
 | Name | Priority | Reads |
 |------|----------|-------|
 | `profile` | 0 | an installed [profile](profiles.md) whose fingerprint matches |
-| `tiled` | 10 | `.tsx`/`.tsj` tile sets and `.tmx`/`.tmj` maps: collision, custom data, wang terrains, animated tiles |
+| `tiled` | 10 | `.tsx`/`.tsj` tile sets and `.tmx`/`.tmj` maps: collision, custom data, wang terrains, animated tiles; the tile layers and the spawn, door and sign objects of the maps (T12.49) |
 | `aseprite` | 20 | Aseprite JSON (hash and array formats), frame tags, durations |
-| `ldtk` | 30 | LDtk tile set definitions |
+| `ldtk` | 30 | LDtk tile set definitions; the tile, auto and IntGrid layers and the spawn, door and sign entities of every level (T12.49) |
 | `rpgmaker` | 40 | RPG Maker MV/MZ tilesets (A1-A5, B-E), character sheets, faces |
 | `lpc` | 50 | Liberated Pixel Cup / Universal LPC character sheets |
 | `strips` | 60 | horizontal animation strips (incl. GIF) |
@@ -42,7 +42,10 @@ class Adapter(Protocol):
 * `AdapterResult.assets` holds `AssetFragment(path, facets, confidence, claim)`. `facets` is a
   partial *Facets* object (`02_SCHEMAS.md` §4.4): `usage`, `grid`, `animations`, `collision`, ...
   Use `claim="full"` only when the classifier must not change usage, grid or animations.
-* Also available: `objects` (sheet objects), `tilesets` (tile set definitions), `pack_warnings`,
+* Also available: `maps` (raw maps, see `adapters/maps.py`: tile layers list their cells as
+  `[x, y, image, column, row, transform]`, so no tile set is needed; the catalog resolves them to
+  tile sets and source ids, `02_SCHEMAS.md` §4.9), `objects` (sheet objects), `tilesets` (tile set
+  definitions), `pack_warnings`,
   `issues`, `consumed` (files merged into another asset), `generated` (files you wrote to the work
   dir, e.g. GIF strips).
 * `ctx.analyze(path)` returns the cached image analysis; `ctx.claimed` is what earlier adapters

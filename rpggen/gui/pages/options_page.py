@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QRadioButton,
@@ -66,6 +67,10 @@ STARTER_COUNTS = (
 STARTER_SIZE_NAMES = {(32, 20): "Small", (40, 24): "Medium", (64, 40): "Large"}
 EXISTING_MAP_TEXT = (
     "The starter map already exists and is yours; these options apply to new projects."
+)
+IMPORTED_STARTER_TEXT = (
+    "The starter map is an imported map, so the layout options are not used. "
+    "Set the starter map under Imported maps back to the layout options to use them."
 )
 
 # kept for tests and callers that name the labels
@@ -199,6 +204,47 @@ class ManagePresetsDialog(QDialog):
         if row < 0:
             return
         self.deleted.append(self.list.takeItem(row).text())
+
+
+class SolidValuesDialog(QDialog):
+    """Which values of the IntGrid layers of the imported maps block the player."""
+
+    def __init__(self, rows: list[dict[str, Any]], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("solidValues")
+        self.setWindowTitle(self.tr("Solid values"))
+        self.resize(520, 340)
+        layout = QVBoxLayout(self)
+        text = QLabel(
+            self.tr(
+                "A checked value of an LDtk IntGrid layer is solid: it becomes collision on the "
+                "imported map."
+            )
+        )
+        text.setWordWrap(True)
+        layout.addWidget(text)
+        self.list = QListWidget()
+        self.list.setObjectName("solidList")
+        for row in rows:
+            item = QListWidgetItem(row["label"])
+            item.setData(Qt.ItemDataRole.UserRole, (row["map"], row["layer"], int(row["value"])))
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if row["solid"] else Qt.CheckState.Unchecked)
+            self.list.addItem(item)
+        layout.addWidget(self.list)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def choices(self) -> dict[tuple[str, str, int], bool]:
+        out: dict[tuple[str, str, int], bool] = {}
+        for i in range(self.list.count()):
+            item = self.list.item(i)
+            out[item.data(Qt.ItemDataRole.UserRole)] = item.checkState() == Qt.CheckState.Checked
+        return out
 
 
 class OptionsPage(WizardPage):
@@ -355,7 +401,53 @@ class OptionsPage(WizardPage):
         starter.addWidget(self.preview)
         self.preview.rerollRequested.connect(self.reroll)
         left.addWidget(self.starter_box)
+
+        # ---------------------------------------------------------------- imported maps (T12.49)
+        self.imported_box = QGroupBox(self.tr("Imported maps"))
+        self.imported_box.setObjectName("importedMaps")
+        imported = QVBoxLayout(self.imported_box)
+        imported_text = QLabel(
+            self.tr(
+                "Maps found in your packs (Tiled and LDtk files). A checked map is built into "
+                "game/maps/imported."
+            )
+        )
+        imported_text.setWordWrap(True)
+        imported_text.setProperty("muted", True)
+        imported.addWidget(imported_text)
+        self.imported_list = QListWidget()
+        self.imported_list.setObjectName("importedList")
+        self.imported_list.setMinimumHeight(90)
+        self.imported_list.setToolTip(self.tr("Check the maps to build into your project"))
+        imported.addWidget(self.imported_list)
+        starter_row = QHBoxLayout()
+        starter_row.addWidget(QLabel(self.tr("Starter map")))
+        self.imported_starter = QComboBox()
+        self.imported_starter.setObjectName("importedStarter")
+        self.imported_starter.setToolTip(
+            self.tr(
+                "Use an imported map as the starter map; the layout options above are then skipped"
+            )
+        )
+        starter_row.addWidget(self.imported_starter, 1)
+        imported.addLayout(starter_row)
+        self.solid_button = QPushButton(self.tr("Solid values…"))
+        self.solid_button.setObjectName("solidValuesButton")
+        self.solid_button.setToolTip(
+            self.tr("Choose which values of the LDtk IntGrid layers block the player")
+        )
+        self.solid_button.clicked.connect(self.edit_solid_values)
+        imported.addWidget(self.solid_button, 0, Qt.AlignmentFlag.AlignLeft)
+        self.imported_note = QLabel()
+        self.imported_note.setObjectName("importedNote")
+        self.imported_note.setWordWrap(True)
+        self.imported_note.setProperty("muted", True)
+        imported.addWidget(self.imported_note)
+        self.imported_box.setVisible(False)
+        left.addWidget(self.imported_box)
         left.addStretch(1)
+        self.imported_list.itemChanged.connect(self._on_imported_edited)
+        self.imported_starter.currentIndexChanged.connect(self._on_imported_edited)
         self.starter_size.width_box.valueChanged.connect(self._on_starter_edited)
         self.starter_size.height_box.valueChanged.connect(self._on_starter_edited)
         self.starter_size.combo.currentIndexChanged.connect(self._on_starter_edited)
@@ -552,6 +644,7 @@ class OptionsPage(WizardPage):
             self.draft.starter_map_options(),
             self.draft.base_tile_size,
             self.resolution.value(),
+            self.draft.imported_maps,
         )
         settings = app_settings.get()
         assets = len(self.state.catalog.assets) if self.state and self.state.catalog else 0
@@ -621,9 +714,11 @@ class OptionsPage(WizardPage):
             input=copy.deepcopy(cfg.input),
             validation=dict(cfg.validation),
             starter_map=copy.deepcopy(cfg.starter_map),
+            imported_maps=copy.deepcopy(cfg.imported_maps),
             git=dict(cfg.git),
         )
         self._fill_ground_choices()
+        self._fill_imported_maps()
         self._lock_starter_if_it_exists()
         self._load_draft()
         self.changed.emit()
@@ -643,6 +738,8 @@ class OptionsPage(WizardPage):
             self.input_map = copy.deepcopy(self.draft.input)
             self._fill_input_table()
             self._load_starter(self.draft.starter_map_options())
+            self._load_imported(self.draft.imported_maps)
+            self._update_starter_state()
             self.pack_art_radios[self.draft.pack_art].setChecked(True)
         finally:
             self._loading = False
@@ -666,6 +763,7 @@ class OptionsPage(WizardPage):
         cfg.git = dict(self.draft.git)
         if not self._starter_locked:
             cfg.starter_map = copy.deepcopy(self.draft.starter_map)
+        cfg.imported_maps = copy.deepcopy(self.draft.imported_maps)
         return None
 
     # ------------------------------------------------------------------ features
@@ -764,19 +862,145 @@ class OptionsPage(WizardPage):
 
     def _lock_starter_if_it_exists(self) -> None:
         """An existing starter map is the user's: its options are shown but cannot change."""
-        locked = self._starter_exists()
-        self._starter_locked = locked
+        self._starter_locked = self._starter_exists()
+        self._update_starter_state()
+
+    def _imported_starter(self) -> str:
+        return str((self.draft.imported_maps if self.draft else {}).get("starter", ""))
+
+    def _update_starter_state(self) -> None:
+        """The layout options apply to a planned starter map: not to one that already exists and
+        not to an imported one."""
+        locked = self._starter_locked
+        imported = bool(self._imported_starter()) and not locked
         for widget in (
             self.starter_size,
             self.ground_combo,
             self.starter_reset,
             *self.starter_counts.values(),
         ):
-            widget.setEnabled(not locked)
-        self.starter_note.setText(self.tr(EXISTING_MAP_TEXT))
-        self.starter_note.setVisible(locked)
+            widget.setEnabled(not locked and not imported)
+        self.imported_starter.setEnabled(not locked)  # the starter map of a project is its own
+        text = EXISTING_MAP_TEXT if locked else IMPORTED_STARTER_TEXT
+        self.starter_note.setText(self.tr(text))
+        self.starter_note.setVisible(locked or imported)
         if locked:
             self.preview.set_disabled(self.tr(EXISTING_MAP_TEXT))
+        elif imported:
+            self.preview.set_disabled(self.tr(IMPORTED_STARTER_TEXT))
+
+    # ------------------------------------------------------------------ imported maps
+
+    def imported_map_ids(self) -> list[str]:
+        """The ids of the maps the catalog read from the packs."""
+        catalog = self.state.catalog if self.state else None
+        return [m["id"] for m in catalog.maps] if catalog is not None else []
+
+    def _fill_imported_maps(self) -> None:
+        """Lists the catalog's imported maps; the box is hidden when the packs have none."""
+        catalog = self.state.catalog if self.state else None
+        maps = list(catalog.maps) if catalog is not None else []
+        self.imported_list.blockSignals(True)
+        self.imported_starter.blockSignals(True)
+        self.imported_list.clear()
+        self.imported_starter.clear()
+        self.imported_starter.addItem(self.tr("Generated by the layout options"), "")
+        for m in maps:
+            label = options.imported_map_label(m)
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, m["id"])
+            item.setToolTip(m["source"])
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.imported_list.addItem(item)
+            self.imported_starter.addItem(self.tr("Use {0}").format(label), m["id"])
+        self.imported_list.blockSignals(False)
+        self.imported_starter.blockSignals(False)
+        self.imported_box.setVisible(bool(maps))
+        self.solid_button.setVisible(bool(options.intgrid_rows(maps)))
+
+    def _load_imported(self, selection: dict[str, Any]) -> None:
+        known = self.imported_map_ids()
+        if not known:
+            return  # no catalog: the selection of the config stays as it is
+        chosen = options.normalize_imported_maps(selection, known)
+        self.imported_list.blockSignals(True)
+        self.imported_starter.blockSignals(True)
+        for row in range(self.imported_list.count()):
+            item = self.imported_list.item(row)
+            on = item.data(Qt.ItemDataRole.UserRole) in chosen.get("include", [])
+            item.setCheckState(Qt.CheckState.Checked if on else Qt.CheckState.Unchecked)
+        index = self.imported_starter.findData(chosen.get("starter", ""))
+        self.imported_starter.setCurrentIndex(max(0, index))
+        self.imported_list.blockSignals(False)
+        self.imported_starter.blockSignals(False)
+        self._sync_imported_starter_item()
+        if self.draft is not None:
+            self.draft.imported_maps = chosen
+
+    def _sync_imported_starter_item(self) -> None:
+        """The starter map is always built, so its box is checked and cannot be cleared."""
+        starter = self.imported_starter.currentData() or ""
+        self.imported_list.blockSignals(True)
+        for row in range(self.imported_list.count()):
+            item = self.imported_list.item(row)
+            is_starter = item.data(Qt.ItemDataRole.UserRole) == starter
+            flags = item.flags()
+            if is_starter:
+                item.setCheckState(Qt.CheckState.Checked)
+                item.setFlags(flags & ~Qt.ItemFlag.ItemIsUserCheckable)
+                item.setToolTip(self.tr("The starter map is always built"))
+            else:
+                item.setFlags(flags | Qt.ItemFlag.ItemIsUserCheckable)
+        self.imported_list.blockSignals(False)
+        self.imported_note.setText(
+            self.tr(
+                "The starter map is built from the chosen map; it has no villager, chest or enemy."
+            )
+            if starter
+            else ""
+        )
+
+    def edit_solid_values(self) -> bool:
+        """Opens the list of IntGrid values; returns True when a value changed."""
+        catalog = self.state.catalog if self.state else None
+        rows = options.intgrid_rows(catalog.maps) if catalog is not None else []
+        if catalog is None or not rows:
+            return False
+        dialog = SolidValuesDialog(rows, self)
+        if not self.run_dialog(dialog):
+            return False
+        changed = options.set_solid(catalog.maps, dialog.choices())
+        if changed:
+            self.changed.emit()
+        return changed > 0
+
+    def imported_values(self) -> dict[str, Any]:
+        """The imported maps selection as the widgets show it (empty when nothing is chosen)."""
+        include = [
+            self.imported_list.item(row).data(Qt.ItemDataRole.UserRole)
+            for row in range(self.imported_list.count())
+            if self.imported_list.item(row).checkState() == Qt.CheckState.Checked
+        ]
+        return options.normalize_imported_maps(
+            {"include": include, "starter": self.imported_starter.currentData() or ""},
+            self.imported_map_ids(),
+        )
+
+    def _collect_imported(self) -> None:
+        if self.draft is None or self.imported_list.count() == 0:
+            return
+        self.draft.imported_maps = self.imported_values()
+
+    def _on_imported_edited(self, *_args: object) -> None:
+        if self._loading or self.draft is None:
+            return
+        self._sync_imported_starter_item()
+        self._collect_imported()
+        self._update_starter_state()
+        self._schedule_preview()
+        self.refresh_summary()
+        self.changed.emit()
 
     def _load_starter(self, values: dict[str, Any]) -> None:
         self.starter_size.set_value((int(values["size"][0]), int(values["size"][1])))
@@ -825,6 +1049,8 @@ class OptionsPage(WizardPage):
 
     def _schedule_preview(self) -> None:
         if self._starter_locked or self.draft is None or self.state is None:
+            return
+        if self._imported_starter():
             return
         catalog = self.state.catalog
         if catalog is None:
@@ -1046,6 +1272,7 @@ class OptionsPage(WizardPage):
         self.draft.map_layers = self.layers()
         self.draft.seed = self.seed_box.value()
         self._collect_starter()
+        self._collect_imported()
         self._collect_input()
         if not self._input_errors:
             self.draft.input = self._collected_input

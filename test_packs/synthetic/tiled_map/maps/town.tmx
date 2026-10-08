@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="6" height="4" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="4">
+ <tileset firstgid="1" source="../terrain.tsx"/>
+ <layer id="1" name="Ground" width="6" height="4">
+  <data encoding="csv">
+1,1,1,1,1,1,
+1,1,18,18,1,1,
+1,1,1,1,1,1,
+1,1,1,1,1,1
+</data>
+ </layer>
+ <layer id="2" name="Walls" width="6" height="4">
+  <data encoding="base64" compression="zlib">eAEBYACf/wkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAIAAAAAAAAAAAAAAAAAAAAAACQAAQAkAAAAAAAAAAAAAAAAAAAAAAAAACQAAIAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAE5gAXE=</data>
+ </layer>
+ <objectgroup id="3" name="spawn">
+  <object id="1" name="start" x="24" y="40"/>
+ </objectgroup>
+ <objectgroup id="4" name="door">
+  <object id="2" name="to_cave" x="64" y="16" width="16" height="16">
+   <properties>
+    <property name="target_map" value="cave"/>
+    <property name="target_spawn" value="default"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup id="5" name="Notices">
+  <object id="3" name="notice" type="sign" x="40" y="24" width="16" height="16">
+   <properties>
+    <property name="text" value="Welcome to town"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

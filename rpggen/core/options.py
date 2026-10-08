@@ -140,20 +140,84 @@ def summarize(
     starter_map: dict[str, Any],
     tile_size: int,
     resolution: tuple[int, int],
+    imported_maps: dict[str, Any] | None = None,
 ) -> Summary:
     """The summary of the current (unsaved) options. The demo feature makes the starter map and
-    its second area; each building of the starter map has an interior."""
+    its second area; each building of the starter map has an interior. An imported map chosen as
+    the starter map replaces the starter map and its second area (T12.49)."""
     maps: list[str] = []
-    if features.get("demo", False):
+    imported = imported_maps or {}
+    extra = [m for m in imported.get("include", []) if m != imported.get("starter", "")]
+    if imported.get("starter"):
+        maps.append("Starter map (imported)")
+    elif features.get("demo", False):
         maps.append("Starter map")
         maps.append("Second area")
         buildings = int(starter_map.get("buildings", 0) or 0)
         if buildings:
             maps.append(f"{buildings} interior" + ("s" if buildings != 1 else ""))
+    if extra:
+        maps.append(f"{len(extra)} imported map" + ("s" if len(extra) != 1 else ""))
     systems = [
         FEATURE_INFO[key][1] for key in FEATURE_INFO if effective_features(features).get(key)
     ]
     return Summary(archetype, maps, systems, tile_size, tiles_hint(resolution, tile_size))
+
+
+def imported_map_label(imported_map: dict[str, Any]) -> str:
+    """How the Options page names an imported map: ``maps/town · tiled_map · 40 × 24 tiles``."""
+    stem = (
+        str(imported_map["id"]).removeprefix(str(imported_map["pack_id"]) + ".").replace(".", "/")
+    )
+    width, height = imported_map["size"]
+    return f"{stem} · {imported_map['pack_id']} · {width} × {height} tiles"
+
+
+def intgrid_rows(maps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Every IntGrid value of the imported maps, for the "Solid values" list: ``map`` (id),
+    ``layer``, ``value``, ``name``, ``solid`` and a ``label``."""
+    rows: list[dict[str, Any]] = []
+    for imported_map in maps:
+        for layer in imported_map["layers"]:
+            for v in layer.get("values", []) if layer["kind"] == "intgrid" else []:
+                shown = f"{v['value']} ({v['name']})" if v["name"] else str(v["value"])
+                rows.append(
+                    {
+                        "map": imported_map["id"],
+                        "layer": layer["name"],
+                        "value": v["value"],
+                        "name": v["name"],
+                        "solid": v["solid"],
+                        "label": f"{imported_map_label(imported_map)} · {layer['name']} · {shown}",
+                    }
+                )
+    return rows
+
+
+def set_solid(maps: list[dict[str, Any]], choices: dict[tuple[str, str, int], bool]) -> int:
+    """Applies ``(map id, layer, value) -> solid`` to the catalog's maps; returns how many
+    values changed. The choice is kept when the catalog is built again."""
+    changed = 0
+    for imported_map in maps:
+        for layer in imported_map["layers"]:
+            for v in layer.get("values", []) if layer["kind"] == "intgrid" else []:
+                key = (imported_map["id"], layer["name"], int(v["value"]))
+                if key in choices and bool(v["solid"]) != choices[key]:
+                    v["solid"] = choices[key]
+                    changed += 1
+    return changed
+
+
+def normalize_imported_maps(selection: dict[str, Any], known: list[str]) -> dict[str, Any]:
+    """``selection`` without maps the catalog no longer has, the starter among the included maps,
+    and without the keys that hold their default (an empty selection is ``{}``)."""
+    starter = str(selection.get("starter", ""))
+    starter = starter if starter in known else ""
+    include = sorted(
+        ({str(i) for i in selection.get("include", [])} | ({starter} if starter else set()))
+        & set(known)
+    )
+    return {k: v for k, v in (("include", include), ("starter", starter)) if v}
 
 
 def estimate_generation_seconds(

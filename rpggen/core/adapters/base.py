@@ -27,6 +27,8 @@ class AdapterResult:
     tilesets: list[dict[str, Any]] = field(default_factory=list)  # TileSetDef dicts, no source_id
     pack_warnings: list[str] = field(default_factory=list)
     issues: list[Issue] = field(default_factory=list)
+    # Raw maps of the pack (adapters.maps): the catalog resolves their tiles to tile sets.
+    maps: list[dict[str, Any]] = field(default_factory=list)
     # Pack paths merged into another asset (no asset of their own); they count as claimed.
     consumed: list[str] = field(default_factory=list)
     # Files the adapter generated: project-relative target path -> absolute source file.

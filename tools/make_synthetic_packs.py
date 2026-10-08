@@ -521,6 +521,225 @@ def make_tiled_meta(out: Path) -> None:
     )
 
 
+# Tiled and LDtk maps (T12.49). The compressed layers use stored blocks (level 0), which every zlib
+# build writes alike, so the pack stays byte-identical across machines.
+FLIP_H_GID, FLIP_V_GID, FLIP_D_GID = 0x80000000, 0x40000000, 0x20000000
+
+
+def _gids_base64(gids: list[int], compression: str) -> str:
+    import base64
+    import gzip
+    import struct
+    import zlib
+
+    raw = struct.pack(f"<{len(gids)}I", *gids)
+    if compression == "gzip":
+        raw = gzip.compress(raw, compresslevel=0, mtime=0)
+    elif compression == "zlib":
+        raw = zlib.compress(raw, 0)
+    return base64.b64encode(raw).decode("ascii")
+
+
+def _csv(gids: list[int], width: int) -> str:
+    rows = [",".join(str(g) for g in gids[i : i + width]) for i in range(0, len(gids), width)]
+    return "\n" + ",\n".join(rows) + "\n"
+
+
+TERRAIN_TSX = """<?xml version="1.0" encoding="UTF-8"?>
+<tileset version="1.10" tiledversion="1.10.2" name="terrain" tilewidth="16" tileheight="16" tilecount="32" columns="8">
+ <image source="terrain.png" width="128" height="64"/>
+</tileset>
+"""
+
+
+def make_tiled_map(out: Path) -> None:
+    pack = out / "tiled_map"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_terrain(), pack / "terrain.png")
+    _write_text(pack / "terrain.tsx", TERRAIN_TSX)
+    # town: 6 x 4, ground in CSV, walls in base64 + zlib (some of them flipped), three marker layers
+    ground = [1] * 24
+    ground[8], ground[9] = 18, 18  # sand
+    walls = [9, 9, 9, 9, 9, 9]
+    walls += [9 | FLIP_H_GID, 0, 0, 0, 0, 9 | FLIP_V_GID]
+    walls += [9, 0, 0, 0, 0, 9 | FLIP_D_GID]
+    walls += [9, 9, 9, 9, 9, 9]
+    town = f"""<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="6" height="4" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="4">
+ <tileset firstgid="1" source="../terrain.tsx"/>
+ <layer id="1" name="Ground" width="6" height="4">
+  <data encoding="csv">{_csv(ground, 6)}</data>
+ </layer>
+ <layer id="2" name="Walls" width="6" height="4">
+  <data encoding="base64" compression="zlib">{_gids_base64(walls, "zlib")}</data>
+ </layer>
+ <objectgroup id="3" name="spawn">
+  <object id="1" name="start" x="24" y="40"/>
+ </objectgroup>
+ <objectgroup id="4" name="door">
+  <object id="2" name="to_cave" x="64" y="16" width="16" height="16">
+   <properties>
+    <property name="target_map" value="cave"/>
+    <property name="target_spawn" value="default"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup id="5" name="Notices">
+  <object id="3" name="notice" type="sign" x="40" y="24" width="16" height="16">
+   <properties>
+    <property name="text" value="Welcome to town"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>
+"""
+    _write_text(pack / "maps" / "town.tmx", town)
+    # a JSON map with gzip data and a plain list
+    cave = {
+        "type": "map", "version": "1.10", "orientation": "orthogonal", "width": 3, "height": 2,
+        "tilewidth": 16, "tileheight": 16, "infinite": False,
+        "tilesets": [{"firstgid": 1, "source": "../terrain.tsx"}],
+        "layers": [
+            {
+                "type": "tilelayer", "name": "Floor", "width": 3, "height": 2,
+                "encoding": "base64", "compression": "gzip",
+                "data": _gids_base64([1, 1, 1, 18, 1, 1], "gzip"),
+            },
+            {
+                "type": "tilelayer", "name": "Plain", "width": 3, "height": 2,
+                "data": [0, 9, 0, 0, 0, 0],
+            },
+        ],
+    }  # fmt: skip
+    _write_json_ordered(pack / "maps" / "cave.tmj", cave)
+    # a layer saved with zstd cannot be read: it is skipped, the other layer is imported
+    zstd = """<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" orientation="orthogonal" width="3" height="2" tilewidth="16" tileheight="16" infinite="0">
+ <tileset firstgid="1" source="../terrain.tsx"/>
+ <layer id="1" name="Ground" width="3" height="2">
+  <data encoding="csv">1,1,1,
+1,1,1</data>
+ </layer>
+ <layer id="2" name="Detail" width="3" height="2">
+  <data encoding="base64" compression="zstd">KLUv/QBYAQAA</data>
+ </layer>
+</map>
+"""
+    _write_text(pack / "maps" / "zstd_layer.tmx", zstd)
+    # an infinite map: chunks at negative coordinates, flattened to the bounds of the tiles
+    chunk_a = [0, 0, 1, 1, 0, 0, 0, 0]
+    chunk_b = [1, 9, 0, 0, 0, 0, 0, 1]
+    infinite = f"""<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" orientation="orthogonal" tilewidth="16" tileheight="16" infinite="1">
+ <tileset firstgid="1" source="../terrain.tsx"/>
+ <layer id="1" name="Ground" width="0" height="0">
+  <data encoding="csv">
+   <chunk x="-4" y="-2" width="4" height="2">{_csv(chunk_a, 4)}</chunk>
+   <chunk x="0" y="0" width="4" height="2">{_csv(chunk_b, 4)}</chunk>
+  </data>
+ </layer>
+</map>
+"""
+    _write_text(pack / "maps" / "infinite.tmx", infinite)
+    _expected(
+        out,
+        "tiled_map",
+        {
+            "terrain.png": {
+                "usage": "tiles",
+                "cell": [16, 16],
+                "margin": [0, 0],
+                "separation": [0, 0],
+            }
+        },
+    )
+
+
+def make_ldtk_level(out: Path) -> None:
+    pack = out / "ldtk_level"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_terrain(), pack / "terrain.png")
+    walls = [1] * 6 + [1, 0, 0, 2, 2, 1] + [1, 0, 0, 0, 0, 1] + [1] * 6
+    ground = []
+    for y in range(4):
+        for x in range(6):
+            tile = {"px": [x * 16, y * 16], "src": [0, 0], "f": 0, "t": 0}
+            if (x, y) == (2, 1):
+                tile = {"px": [32, 16], "src": [0, 16], "f": 1, "t": 8}  # flipped in x
+            if (x, y) == (3, 2):
+                tile = {"px": [48, 32], "src": [16, 16], "f": 3, "t": 9}  # flipped in x and y
+            ground.append(tile)
+
+    def layer(identifier: str, kind: str, uid: int, **extra: object) -> dict:
+        return {
+            "__identifier": identifier, "__type": kind, "__cWid": 6, "__cHei": 4,
+            "__gridSize": 16, "layerDefUid": uid, **extra,
+        }  # fmt: skip
+
+    def entity(identifier: str, iid: str, x: int, y: int, **fields: object) -> dict:
+        return {
+            "__identifier": identifier, "iid": iid, "px": [x, y], "width": 16, "height": 16,
+            "fieldInstances": [{"__identifier": k, "__value": v} for k, v in fields.items()],
+        }  # fmt: skip
+
+    project = {
+        "jsonVersion": "1.5.3",
+        "defaultGridSize": 16,
+        "defs": {
+            "layers": [
+                {"uid": 1, "identifier": "Entities", "type": "Entities"},
+                {
+                    "uid": 2, "identifier": "Collisions", "type": "IntGrid",
+                    "intGridValues": [
+                        {"value": 1, "identifier": "wall"},
+                        {"value": 2, "identifier": "water"},
+                    ],
+                },
+                {"uid": 3, "identifier": "Ground", "type": "Tiles"},
+            ],
+            "tilesets": [
+                {
+                    "uid": 10, "identifier": "Terrain", "relPath": "terrain.png",
+                    "tileGridSize": 16, "spacing": 0, "padding": 0,
+                }
+            ],
+        },
+        "levels": [
+            {
+                "identifier": "Level_0", "uid": 100, "pxWid": 96, "pxHei": 64,
+                "layerInstances": [
+                    layer(
+                        "Entities", "Entities", 1,
+                        entityInstances=[
+                            entity("Spawn", "0a1b2c3d", 24, 40),
+                            entity("Sign", "1a2b3c4d", 56, 24, text="Hello"),
+                            entity("Chest", "2a3b4c5d", 16, 16),
+                        ],
+                    ),
+                    layer("Collisions", "IntGrid", 2, intGridCsv=walls, gridTiles=[], autoLayerTiles=[]),
+                    layer(
+                        "Ground", "Tiles", 3, __tilesetDefUid=10, __tilesetRelPath="terrain.png",
+                        gridTiles=ground, autoLayerTiles=[],
+                    ),
+                ],
+            }
+        ],
+    }  # fmt: skip
+    _write_json_ordered(pack / "world.ldtk", project)
+    _expected(
+        out,
+        "ldtk_level",
+        {
+            "terrain.png": {
+                "usage": "tiles",
+                "cell": [16, 16],
+                "margin": [0, 0],
+                "separation": [0, 0],
+            }
+        },
+    )
+
+
 ASE_FRAMES = [
     # (tag, trimmed w, trimmed h, duration ms)
     ("idle_down", 20, 30, 200),
@@ -725,6 +944,8 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "rpgmaker_like": make_rpgmaker_like,
     "lpc_like": make_lpc_like,
     "tiled_meta": make_tiled_meta,
+    "tiled_map": make_tiled_map,
+    "ldtk_level": make_ldtk_level,
     "aseprite_meta": make_aseprite_meta,
     "objects_in_sheet": make_objects_in_sheet,
     "weird_names": make_weird_names,

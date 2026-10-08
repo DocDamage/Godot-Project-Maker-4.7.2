@@ -4,8 +4,10 @@ extends RefCounted
 ## The layout comes from MapBuild.plan (builder/lib/map_build.gd) and the `starter_map` options of
 ## the config: size, buildings, NPCs, enemies, chests, decorations, ground patches and the ground
 ## set. With the default options the plan is the map of every project made before M11.
+## When the config picks an imported Tiled or LDtk map as the starter map (`imported_maps.starter`,
+## T12.49) the planner is skipped and that map is built instead (imported_maps_recipe.gd).
 
-const RECIPE_VERSION := 7
+const RECIPE_VERSION := 8
 
 const Paths := preload("../lib/paths.gd")
 const JsonUtil := preload("../lib/json_util.gd")
@@ -17,6 +19,7 @@ const ObjectIndex := preload("../lib/object_index.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
 const ActorRecipes := preload("actor_recipes.gd")
 const BuildContext := preload("../lib/build_context.gd")
+const ImportedMaps := preload("imported_maps_recipe.gd")
 
 const OUT_PATH := "res://game/maps/starter_map.tscn"
 ## The entities of the demo placed in the starter map (T8.08 removes exactly these).
@@ -51,6 +54,7 @@ func input_hash(ctx: BuildContext) -> String:
 		"seed": ctx.config.get("seed", 0),
 		"starter": ctx.config.get("starter", {}),
 		"starter_map": ctx.config.get("starter_map", {}),
+		"imported": ImportedMaps.starter_map(ctx),
 		"music": JsonUtil.to_str(ctx.section("sounds").get("music_map", "")),
 		"entries": ObjectEntries.entries(ctx),
 		"npc": _npc_scene(ctx),
@@ -63,6 +67,12 @@ func input_hash(ctx: BuildContext) -> String:
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	if FileAccess.file_exists(OUT_PATH):
+		return issues
+	var imported := ImportedMaps.starter_map(ctx)
+	if not imported.is_empty():
+		issues.append_array(ImportedMaps.build_map(ctx, imported, OUT_PATH, "StarterMap", "starter_map"))
+		var no_entities: Array = []
+		_write_demo_entities(no_entities, issues, ctx, false)  # an imported map has no demo content
 		return issues
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
 	if def.is_empty():

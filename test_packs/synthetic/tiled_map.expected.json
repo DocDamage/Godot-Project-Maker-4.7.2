@@ -1,0 +1,17 @@
+{
+  "terrain.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "separation": [
+      0,
+      0
+    ],
+    "usage": "tiles"
+  }
+}

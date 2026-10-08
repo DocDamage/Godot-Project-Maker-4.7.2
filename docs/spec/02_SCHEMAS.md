@@ -33,6 +33,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `input` | object | see §1.1 | Action → bindings. |
 | `sounds` | object | `{}` | Optional (T11.20). Sound slot → audio asset id. Slots: `music_map`, `music_battle`, `music_title`, `sfx_ui_move`, `sfx_ui_confirm`, `sfx_ui_cancel`, `sfx_hit`, `sfx_attack`, `sfx_pickup`, `sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`. A slot that is absent is silent. Omitted from the JSON when empty. |
 | `starter_map` | object | defaults | Optional (T11.25). `size` [w, h] tiles (24..96 each), `buildings` 0..4, `npcs` 0..6, `enemies` 0..8, `chests` 0..4, `decorations` 0..40, `ground_patches` 0..20, `ground` asset id or "". Omitted from the JSON when equal to the defaults. |
+| `imported_maps` | object | `{}` | Optional (T12.49). `include`: ids of the catalog's `maps` to build into `game/maps/imported/<pack>/`; `starter`: the id of the map that becomes `game/maps/starter_map.tscn` (the layout planner is then skipped, and the map has none of the demo's villager, chest or enemy). The starter is built even when it is not in `include`. Omitted when empty. |
 | `git` | object | `{}` | Optional (T12.12). `pack_art`: `"commit"` (default), `"lfs"` (the pack art goes through Git LFS; falls back to `commit` with ENV-013 when git-lfs is missing) or `"ignore"` (`assets/packs/` is added to the generated `.gitignore`). Omitted when it holds the default. |
 | `starter` | object | `{}` | Optional (T3.11). Starter selections of the demo recipes: `player`, `npc`, `enemy`, `ground`, `building`, `chest`, `portrait` → an asset id or an object id. Omitted when empty. |
 
@@ -136,6 +137,7 @@ Location: `<project>/rpggen/asset_catalog.json`.
 | `tilesets` | array of TileSetDef | §4.6, sorted by `name`. |
 | `id_allocations` | object | §4.7 |
 | `folder_rules` | array of FolderRule | §4.8, kept in insertion order (order matters). |
+| `maps` | array of Map | Optional (T12.49), §4.9, sorted by `id`. Omitted when the packs have no Tiled or LDtk maps. |
 
 ### 4.2 CatalogPack
 
@@ -274,6 +276,43 @@ Standard animation names: `idle_down, idle_up, idle_left, idle_right, walk_*, at
 
 Rules are applied in order after detection and before overrides. They write into a separate `rule` layer, so effective = detected ← rule ← overrides. A matching rule's facet keys replace detected keys. Matching uses `PurePosixPath.full_match` semantics (Python 3.13), or an equivalent helper `paths.glob_match` implemented for 3.12. ⚠ VERIFY your Python version and implement the helper with tests.
 
+### 4.9 Map (T12.49)
+
+Python reads `.tmx`/`.tmj` (Tiled) and `.ldtk` (LDtk, one map per level); Godot builds them
+(`builder/recipes/imported_maps_recipe.gd`).
+
+```json
+{ "id": "tiled_map.maps.town", "pack_id": "tiled_map", "source": "assets/packs/tiled_map/maps/town.tmx",
+  "format": "tiled", "tile_size": [16, 16], "size": [6, 4],
+  "layers": [
+    { "name": "Ground", "kind": "tiles", "tileset": "overworld", "cells": [[8, 0, 0, 0, 0], [2, 0, 1, 2, 0]] },
+    { "name": "Collisions", "kind": "intgrid", "cells": [[7, 1], [2, 0]],
+      "values": [{ "value": 1, "name": "wall", "solid": true }] },
+    { "name": "spawn", "kind": "objects",
+      "objects": [{ "name": "start", "type": "spawn", "x": 24, "y": 40, "w": 0, "h": 0, "props": {} }] } ] }
+```
+
+* `id` is the pack id and the dotted path of the file (`<pack>.maps.town`); an LDtk level adds its
+  identifier (`<pack>.world.level_0`). `size` is in cells. Layers are listed bottom first.
+* `tiles` layers: `cells` is run-length encoded over the cells row by row (`width * height` in
+  all), each run `[count, source_id, column, row, transform]`. `source_id` -1 is an empty cell.
+  `transform` holds the flips: 1 = flip x, 2 = flip y, 4 = transpose (Tiled's diagonal flip). Godot
+  keeps them in the alternative-tile bits of the cell, so the TileSet needs no extra tiles.
+  `tileset` names the generated TileSet (`generated/tilesets/<tileset>.tres`); a layer with tiles of
+  several tile sets becomes one layer per tile set, named `Layer (tileset)`.
+* `intgrid` layers (LDtk): runs `[count, value]`. `values` lists the values the layer uses; the
+  `solid` ones become collision. `solid` starts as true for a value named wall, solid or collision
+  (or for every value of a layer with such a name when no value is named) and is kept across
+  regenerations, so a change in the catalog stays.
+* `objects` layers: only the objects that are markers. `type` is `spawn`, `door` or `sign`, taken
+  from the layer name (Tiled), the object's type or class, or the entity identifier (LDtk).
+  `x`/`y`/`w`/`h` are pixels from the top left of the map. `props` are the Tiled properties or LDtk
+  fields (`target_map`, `target_spawn` for a door, `text` for a sign).
+* Tiled tile data may be CSV, base64, base64 + zlib or base64 + gzip. Zstandard cannot be read: the
+  layer is skipped with TILE-009. An infinite map is flattened to the bounds of its tiles. Only
+  orthogonal maps are read. A layer whose tile sheet is not part of a tile set is skipped with
+  TILE-009 too.
+
 ---
 
 ## 5. `ownership_ledger.json` (ledger_version 1)
@@ -392,6 +431,8 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `anim`, `terrain.peering` | `tile_overrides` entries | T2.09, T8.06 |
 | `terrain_proposal` | Facets | T8.06 |
 | `terrain: {set, terrain, peering}` replaces `terrain.wangid` | `tile_overrides` entries | T8.06 |
+| `maps` | asset_catalog | T12.49 |
+| `imported_maps` | generator_config | T12.49 |
 
 ---
 

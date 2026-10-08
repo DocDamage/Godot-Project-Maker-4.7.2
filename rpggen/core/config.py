@@ -114,6 +114,8 @@ class GeneratorConfig:
     starter: dict[str, str] = field(default_factory=dict)  # role key -> asset or object id
     sounds: dict[str, str] = field(default_factory=dict)  # sound slot -> audio asset id
     starter_map: dict[str, Any] = field(default_factory=dict)  # overrides of starter_map_defaults
+    # Tiled and LDtk maps to build (T12.49): {"include": [map id, ...], "starter": map id}
+    imported_maps: dict[str, Any] = field(default_factory=dict)
     git: dict[str, str] = field(default_factory=dict)  # {"pack_art": "commit" | "lfs" | "ignore"}
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
@@ -135,7 +137,19 @@ class GeneratorConfig:
         git = {k: v for k, v in sorted(self.git.items()) if v != GIT_DEFAULTS.get(k)}
         if git:
             out["git"] = git
+        imported = self.imported_map_selection()
+        if imported["include"] or imported["starter"]:
+            out["imported_maps"] = {
+                k: v for k, v in imported.items() if v
+            }  # a key that holds its default is left out
         return out
+
+    def imported_map_selection(self) -> dict[str, Any]:
+        """``{"include": [...], "starter": id}``: the maps to build and the one that becomes the
+        starter map (it is built even when it is not listed in ``include``)."""
+        starter = str(self.imported_maps.get("starter", ""))
+        include = sorted({str(i) for i in self.imported_maps.get("include", [])} | {starter} - {""})
+        return {"include": include, "starter": starter}
 
     @property
     def pack_art(self) -> str:
@@ -181,6 +195,7 @@ class GeneratorConfig:
             starter=dict(data.get("starter", {})),
             sounds=dict(data.get("sounds", {})),
             starter_map=copy.deepcopy(data.get("starter_map", {})),
+            imported_maps=copy.deepcopy(data.get("imported_maps", {})),
             git=dict(data.get("git", {})),
             config_version=data["config_version"],
             generator_version=data["generator_version"],

@@ -1,0 +1,441 @@
+{
+  "assets": [
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          128,
+          64
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "tiled",
+      "id": "tiled_map.terrain",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "tiled_map",
+      "path": "assets/packs/tiled_map/terrain.png",
+      "sha256": "b0722cbbe8365b85a6b955ea53425f8253fe97bca34ff795ab2097ada5b8f817",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.0.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "maps": [
+    {
+      "format": "tiled",
+      "id": "tiled_map.maps.cave",
+      "layers": [
+        {
+          "cells": [
+            [
+              3,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              1,
+              2,
+              0
+            ],
+            [
+              2,
+              0,
+              0,
+              0,
+              0
+            ]
+          ],
+          "kind": "tiles",
+          "name": "Floor",
+          "tileset": "overworld"
+        },
+        {
+          "cells": [
+            [
+              1,
+              -1,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              4,
+              -1,
+              0,
+              0,
+              0
+            ]
+          ],
+          "kind": "tiles",
+          "name": "Plain",
+          "tileset": "overworld"
+        }
+      ],
+      "pack_id": "tiled_map",
+      "size": [
+        3,
+        2
+      ],
+      "source": "assets/packs/tiled_map/maps/cave.tmj",
+      "tile_size": [
+        16,
+        16
+      ]
+    },
+    {
+      "format": "tiled",
+      "id": "tiled_map.maps.infinite",
+      "layers": [
+        {
+          "cells": [
+            [
+              2,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              12,
+              -1,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              7,
+              -1,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          ],
+          "kind": "tiles",
+          "name": "Ground",
+          "tileset": "overworld"
+        }
+      ],
+      "pack_id": "tiled_map",
+      "size": [
+        6,
+        4
+      ],
+      "source": "assets/packs/tiled_map/maps/infinite.tmx",
+      "tile_size": [
+        16,
+        16
+      ]
+    },
+    {
+      "format": "tiled",
+      "id": "tiled_map.maps.town",
+      "layers": [
+        {
+          "cells": [
+            [
+              8,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              1,
+              2,
+              0
+            ],
+            [
+              14,
+              0,
+              0,
+              0,
+              0
+            ]
+          ],
+          "kind": "tiles",
+          "name": "Ground",
+          "tileset": "overworld"
+        },
+        {
+          "cells": [
+            [
+              6,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              1,
+              1
+            ],
+            [
+              4,
+              -1,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              1,
+              2
+            ],
+            [
+              1,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              4,
+              -1,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              1,
+              4
+            ],
+            [
+              6,
+              0,
+              0,
+              1,
+              0
+            ]
+          ],
+          "kind": "tiles",
+          "name": "Walls",
+          "tileset": "overworld"
+        },
+        {
+          "kind": "objects",
+          "name": "spawn",
+          "objects": [
+            {
+              "h": 0,
+              "name": "start",
+              "props": {},
+              "type": "spawn",
+              "w": 0,
+              "x": 24,
+              "y": 40
+            }
+          ]
+        },
+        {
+          "kind": "objects",
+          "name": "door",
+          "objects": [
+            {
+              "h": 16,
+              "name": "to_cave",
+              "props": {
+                "target_map": "cave",
+                "target_spawn": "default"
+              },
+              "type": "door",
+              "w": 16,
+              "x": 64,
+              "y": 16
+            }
+          ]
+        },
+        {
+          "kind": "objects",
+          "name": "Notices",
+          "objects": [
+            {
+              "h": 16,
+              "name": "notice",
+              "props": {
+                "text": "Welcome to town"
+              },
+              "type": "sign",
+              "w": 16,
+              "x": 40,
+              "y": 24
+            }
+          ]
+        }
+      ],
+      "pack_id": "tiled_map",
+      "size": [
+        6,
+        4
+      ],
+      "source": "assets/packs/tiled_map/maps/town.tmx",
+      "tile_size": [
+        16,
+        16
+      ]
+    },
+    {
+      "format": "tiled",
+      "id": "tiled_map.maps.zstd_layer",
+      "layers": [
+        {
+          "cells": [
+            [
+              6,
+              0,
+              0,
+              0,
+              0
+            ]
+          ],
+          "kind": "tiles",
+          "name": "Ground",
+          "tileset": "overworld"
+        }
+      ],
+      "pack_id": "tiled_map",
+      "size": [
+        3,
+        2
+      ],
+      "source": "assets/packs/tiled_map/maps/zstd_layer.tmx",
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ],
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "tiled"
+      ],
+      "license_files": [
+        "assets/packs/tiled_map/LICENSE.txt"
+      ],
+      "pack_id": "tiled_map",
+      "profile_id": null,
+      "root": "assets/packs/tiled_map",
+      "source_sha256": "6af6de12315b1b611110f3c27c6535e402c487cd98d97a8080160c7886625729",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "tiled_map.terrain",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}
