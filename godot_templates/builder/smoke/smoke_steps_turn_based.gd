@@ -1,7 +1,8 @@
 extends RefCounted
 ## Turn-based smoke steps, appended after the M6 sequence (which ends in the starter map):
 ## walk into the starter enemy -> win the battle -> rewards -> back on the map -> the enemy stays
-## defeated (also across a map change and a save) -> the defeat policy.
+## defeated (also across a map change and a save) -> random encounters -> a skill and a status ->
+## the defeat policy.
 ##
 ## The battle is driven by `combat.auto_choose` (always attack the first enemy), and the player's
 ## stats are set to a smoke profile first (attack 99), so the outcome does not depend on luck.
@@ -32,6 +33,7 @@ func steps() -> Array[Dictionary]:
 		{"name": "returned_to_map", "fn": _returned_to_map, "timeout_s": 20.0},
 		{"name": "enemy_stays_defeated", "fn": _enemy_stays_defeated, "timeout_s": 60.0},
 		{"name": "random_encounter", "fn": _random_encounter, "timeout_s": 90.0},
+		{"name": "skills_and_status", "fn": _skills_and_status, "timeout_s": 60.0},
 		{"name": "defeat_policy", "fn": _defeat_policy, "timeout_s": 90.0},
 		{"name": "game_over_screen", "fn": _game_over_screen, "timeout_s": 40.0},
 	]
@@ -73,6 +75,11 @@ func _random_encounter() -> String:
 		print("[rpggen] INFO random_encounter: no enemy definitions, step passes")
 		return ""
 	enemy_ids.sort()
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
+	for i in 300:  # steps are not counted while the router is busy (a fade from the last step)
+		if not router.is_busy():
+			break
+		await tree.physics_frame
 	var map_name := tree.current_scene.name
 	var player := _player()
 	var home := player.global_position
@@ -81,9 +88,9 @@ func _random_encounter() -> String:
 	combat.steps.grace_steps = 0
 	_before["result"] = null
 	var battle := false
-	for i in 4:
+	for i in 8:
 		await _walk_tiles(1, tile)
-		if tree.current_scene != null and tree.current_scene.name == "Battle":
+		if combat.is_in_combat() or (tree.current_scene != null and tree.current_scene.name == "Battle"):
 			battle = true
 			break
 	if not battle:
@@ -144,14 +151,15 @@ func _add_smoke_zone(enemy_id: String, tile: float) -> void:
 	zone.global_position = _player().global_position
 
 ## Moves the player `n` tiles, one tile right, the next left, 2 px a physics frame, and stops early
-## when a battle opens.
+## when a battle starts (the battle scene comes after a fade).
 func _walk_tiles(n: int, tile: float) -> void:
 	var tree := _tree()
+	var combat := _combat()
 	for k in n:
 		var dir := 1.0 if k % 2 == 0 else -1.0
 		for i in int(tile / 2.0):
 			var p := _player()
-			if p == null or tree.current_scene == null or tree.current_scene.name == "Battle":
+			if p == null or tree.current_scene == null or tree.current_scene.name == "Battle" or (combat != null and combat.is_in_combat()):
 				return
 			p.global_position += Vector2(2.0 * dir, 0.0)
 			await tree.physics_frame
@@ -330,6 +338,84 @@ func _enemy_stays_defeated() -> String:
 	if _find_entity(tree.current_scene, ENEMY_ID) != null:
 		return "the enemy came back after loading the save"
 	save.delete(SAVE_SLOT)
+	return ""
+
+# ---------------------------------------------------------------- skills and statuses (T12.71)
+
+## A battle against a copy of the starter enemy that is weak to fire and poisons with every hit (it
+## moves first and never misses, attack 1; negative evade: never missed either). Round 1: the hero
+## casts the seeded fire skill (members defend); round 2: everyone attacks and wins. The log of round 1 must show the spell, the weak spot, the poison
+## taking hold and its damage at the end of the round, and the hero must have paid 3 MP.
+func _skills_and_status() -> String:
+	var tree := _tree()
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var combat := _combat()
+	var fire := load("res://game/data/skills/fire.tres") as RpgSkillDefinition
+	if fire == null:
+		return "the fire skill was not seeded (game/data/skills/fire.tres)"
+	var hero := state.actor_definition(state.player_actor_id)
+	if hero == null or not hero.skills_at(1).has(&"fire"):
+		return "the hero does not know fire"
+	var stats: RpgStats = state.get("player_stats")
+	if stats.max_mp < fire.mp_cost:
+		return "the hero has %d MP, fire costs %d" % [stats.max_mp, fire.mp_cost]
+	stats.mp = stats.max_mp
+	stats.hp = stats.max_hp
+	var mp_before := stats.mp
+	var base_def: RpgEnemyDefinition = _before["def"]
+	var def := base_def.duplicate(true) as RpgEnemyDefinition
+	def.base_stats.max_hp = 150
+	def.base_stats.hp = 150
+	def.base_stats.attack = 1
+	def.base_stats.speed = 99
+	def.base_stats.extra = {"evade": -5.0}
+	def.element_rates = {"fire": 2.0}
+	def.attack_status = &"poison"
+	def.attack_status_chance = 1.0
+	def.behavior = {"turn_based": {"attack": 1.0}}
+	var data := RpgEncounterData.new()
+	data.entity_id = "smoke_skills"
+	data.enemies = [def]
+	var seen := {"round1": [], "mp": -1}
+	combat.set("auto_choose", func(actor: RpgBattleActor, battle: RpgBattleController) -> Dictionary:
+		if battle.round_number == 1:
+			if actor.id == state.player_actor_id:
+				return {"command_id": &"skill", "skill_id": &"fire", "target_index": 0}
+			return {"command_id": &"defend"}
+		if JsonUtil.to_int(seen["mp"]) < 0:  # the first choice of round 2: round 1 is in the log
+			var texts: Array = []
+			for e: Dictionary in battle.history:
+				texts.append(str(e.get("text", "")))
+			seen["round1"] = texts
+			seen["mp"] = stats.mp
+		return {"command_id": &"attack", "target_index": 0})
+	var map_name := tree.current_scene.name
+	var box := {"result": null}
+	combat.encounter_finished.connect(func(result: RpgEncounterResult) -> void: box["result"] = result, CONNECT_ONE_SHOT)
+	combat.start_encounter(data)
+	var finished := await _wait_for_result(box, 40.0)
+	combat.set("auto_choose", Callable(self, "_attack_first"))
+	if not finished:
+		return "the skill battle did not finish within 40 s"
+	if not await _wait_for_map(map_name, 900):
+		return "the map did not come back after the skill battle"
+	var result: RpgEncounterResult = box["result"]
+	if result.outcome != VICTORY:
+		return "the skill battle ended with outcome %d" % result.outcome
+	var texts: Array = seen["round1"]
+	var spell_line := RpgBattleText.t("BATTLE_SKILL_USE", ["", fire.label()]).strip_edges()
+	var wanted := {
+		"the spell": func(line: String) -> bool: return line.ends_with(spell_line),
+		"the weak spot": func(line: String) -> bool: return line == RpgBattleText.t("BATTLE_WEAK"),
+		"the poison": func(line: String) -> bool: return line.ends_with(RpgBattleText.t("BATTLE_POISONED", [""]).strip_edges()),
+		"the poison damage": func(line: String) -> bool: return line.ends_with(RpgBattleStatus.label(&"poison") + "."),
+	}
+	for what: String in wanted:
+		var test: Callable = wanted[what]
+		if not texts.any(test):
+			return "round 1 of the log has no line for %s: %s" % [what, texts]
+	if JsonUtil.to_int(seen["mp"]) != mp_before - fire.mp_cost:
+		return "the hero had %d MP after casting, expected %d" % [seen["mp"], mp_before - fire.mp_cost]
 	return ""
 
 ## Starts a fight the player cannot win (an enemy with attack 99 that moves first) and waits for it.

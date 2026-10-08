@@ -120,17 +120,29 @@ spawn with full health when there is none.
 The battle is `RpgBattleController`, a state machine
 (`INIT > ROUND_START > PLAYER_CHOOSE > ENEMY_CHOOSE > EXECUTE > CHECK > VICTORY | DEFEAT | ESCAPED > END`)
 that knows no nodes. Commands are `RpgBattleCommand` resources (`game/data/battle_commands/`):
-`attack`, `defend` (priority 10, halves damage until the next round), `item`, `skill` (disabled
-placeholder) and `run`. Damage, crit and escape formulas are pure functions in `RpgBattleMath`;
-the order of a round is `RpgTurnManager.order` (priority, speed, player side, id; never random).
-All randomness comes from `GameState.rng`, so a seeded battle is repeatable.
+`attack`, `defend` (priority 10, halves damage until the next round), `item`, `skill` and `run`.
+Damage, hit, crit, magic, heal, element and escape formulas are pure functions in `RpgBattleMath`;
+what an attack or a skill does to a battler (log entries) is `RpgBattleEffects`; the order of a
+round is `RpgTurnManager.order` (priority, speed with haste and slow, player side, id; never
+random). All randomness comes from `GameState.rng`, so a seeded battle is repeatable.
 
-Enemy AI: heal with an item from `behavior.items` below 25% HP, else roll `behavior.turn_based`
-(`{"attack": 1.0, "defend": 0.0}`) and attack a random living player-side battler.
+Skills are `RpgSkillDefinition` resources (`game/data/skills/<id>.tres`, loaded by the controller
+into `skills`). The player side knows what its `RpgActorDefinition.skills` lists for its level and
+pays `mp_cost` from `RpgStats.mp`; an enemy with `max_mp` 0 casts for free. Elements scale damage
+by the target's rate (`RpgBattleActor.element_rate`: the definition and the worn items, the lowest
+listed rate; 0 immune, negative absorbs). Statuses (`RpgBattleStatus.TABLE`) live in
+`RpgBattleActor.statuses` (status -> rounds left, 0 = the whole battle) and end with the battle;
+poison and regen tick and every status counts down after each round.
+
+Enemy AI: the rules of `behavior.turn_based_rules` first (`RpgBattleAi`: the first rule whose
+`when` holds and whose `chance` is rolled is used; `once` rules run once a battle), then a heal
+item from `behavior.items` below 25% HP, else a roll of `behavior.turn_based`
+(`{"attack": 1.0, "defend": 0.0}`; a key may be a skill id) at a random living player-side
+battler. What it cannot do (a skill without the MP, nobody to aim at) becomes an attack.
 
 Tests and the smoke run set `controller.auto_choose` (or `SceneRouter.combat.auto_choose` for the
 next battle): it is called as `auto_choose.call(actor, battle)` and returns
-`{command_id, target_index}`; no UI is needed then.
+`{command_id, target_index}` (plus `item_id` or `skill_id`); no UI is needed then.
 
 Random encounters: an `RpgEncounterZone` (an `Area2D` whose `CollisionPolygon2D` /
 `CollisionShape2D` children are its shape, or the painted cells of a TileMapLayer: `cells_layer`,

@@ -142,6 +142,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T12.68 | Enemy kinds: shooter, turret, charger (added 2026-10-08) | M | T12.67 |
 | T12.69 | Party followers on the map (added 2026-10-08) | M | T12.47 |
 | T12.70 | Keys, switches and gates (added 2026-10-08) | M | — |
+| T12.71 | Battle depth: skills, MP, elements, statuses, hit and evade, enemy AI rules (added 2026-10-08) | L | — |
 | T12.65 | Documentation, screenshots and changelogs | M | Parts A–D |
 | T12.66 | Gate (1.0.0) | M | T12.65, T10.10 |
 
@@ -2275,6 +2276,66 @@ The map has doors that change maps and chests; nothing on it opens or closes.
 **Tests**
 * The key, the condition both ways, plates and levers, locked doors, the dock's plan, VAL-025.
 * Smoke step `keys_and_switches` (in the M6 list).
+
+---
+
+## T12.71 — Battle depth: skills, MP, elements, statuses, hit and evade, enemy AI rules
+
+*Added 2026-10-08 at the maintainer's request.*
+
+**Depends on:** nothing
+**Files:** `godot_templates/addons/rpg_runtime/archetypes/turn_based/skill_definition.gd` (new;
+not `data/`, see the implementation notes), `battle_status.gd` (new), `battle_effects.gd` (new), `battle_ai.gd` (new),
+`battle_math.gd`, `battle_actor.gd`, `battle_command.gd`, `battle_controller.gd`, `turn_manager.gd`,
+`battle_strings.gd`, `commands/attack_command.gd`, `commands/skill_command.gd`,
+`commands/item_command.gd`, `ui/battle_ui.gd`, `battle_scene.gd`, `data/stats.gd`,
+`data/actor_definition.gd`, `data/item_definition.gd`, `data/inventory.gd`, `core/game_state.gd`,
+`core/util.gd`, `builder/recipes/turn_based/battle_commands_recipe.gd`,
+`builder/recipes/turn_based/enemy_recipes.gd`, `builder/recipes/data_recipe.gd`,
+`addons/rpg_project_tools/tools/content_checks.gd`, `builder/smoke/smoke_steps_turn_based.gd`,
+GDScript tests
+
+The turn-based battle has Attack, Defend, Item and Run; Skill is a disabled placeholder, every
+attack hits, and enemies roll fixed weights.
+
+**Spec**
+* `RpgStats` gains `mp` and `max_mp` (saved; old saves read 0). A level adds 2 max MP to anyone who
+  has some, and refills it; inns, joining the party and a new game refill it too.
+* `RpgSkillDefinition` (`game/data/skills/<id>.tres`): kind (physical, magic, heal, status),
+  targets (self, one or all enemies, one or all allies), MP cost, power, element, a status it
+  inflicts with a chance, and the statuses it cures. Physical: `attack + power` against defense,
+  with the hit roll and crits. Magic: `power + magic × 2 − resistance`, always hits. Heal:
+  `power + magic × 2`.
+* Actors list their skills with the level they learn them (`skills = {"fire": 1}`). The Skill
+  command lists the skills the actor knows and can pay for; silence blocks it.
+* Elements are free names. `element_rates` on an actor (enemies included) and on equipment:
+  2 = weak, 0.5 = resists, 0 = immune, negative = absorbs (heals). Worn items take the lowest rate
+  they list. The attack's element is the weapon's or the actor's `attack_element`.
+* Statuses (built in, `RpgBattleStatus`): poison and regen (an eighth / a tenth of max HP at the end
+  of each round), sleep (skips turns, a hit wakes), silence (no skills), blind (half the hit
+  chance), haste and slow (speed × 1.5 / × 0.5). They last a few rounds or (poison) the whole
+  battle, and end with the battle. `status_immune` on actors and equipment; `attack_status` with
+  `attack_status_chance` makes an attack poison or blind.
+* Hit and evade: `0.95 + (speed − target speed) × 0.02 − evade`, clamped to 0.3–1, halved by
+  blind; `evade` is an extra stat (equipment modifiers can raise it). No roll when the chance is 1.
+* Items: `use_effect` `cure` (removes `cures`, in battle) and `mp` (restores MP).
+* Enemy AI rules in `behavior.turn_based_rules`: `[{when, use, target, chance, once}]`, the first
+  rule that holds is used; else the weights, whose keys may now also be skill ids. Conditions:
+  `hp<50` (own HP percent), `foe_hp<30`, `round>=3`, `every:3`, `alone`, `ally_down`, `has:poison`,
+  `foe_lacks:poison`, joined with `and`; anything else goes to the dialogue conditions. Targets:
+  `random`, `weakest`, `strongest`, `self`, `ally_weakest`. An enemy with no MP casts freely.
+* The battle shows MP and statuses in the party panel, the skill list in the item submenu, and
+  "Miss" over a target that dodged.
+* Seeded (turn-based): skills fire, cure, sleep and venom; the hero knows fire, the companion fire,
+  cure and sleep; items antidote and ether in the shop; enemies with a weakness, a resistance or a
+  rule each.
+* VAL-026: skills with an unknown status or target, actors that list unknown skills, enemy rules
+  that use an unknown command or skill.
+
+**Tests**
+* Hit chance, elements, MP, each status, skills (damage, heal and cure, all targets, silence), the
+  rules, cure and MP items, VAL-026.
+* Smoke step `skills_and_status` (in the M7 list).
 
 ---
 

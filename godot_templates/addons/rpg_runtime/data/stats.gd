@@ -4,8 +4,10 @@ extends Resource
 
 const STAT_NAMES: Array[StringName] = [
 	&"level", &"experience", &"max_hp", &"hp", &"attack", &"defense", &"speed", &"magic",
-	&"resistance", &"move_speed",
+	&"resistance", &"move_speed", &"max_mp", &"mp",
 ]
+
+const MP_PER_LEVEL := 2
 
 @export var level: int = 1
 @export var experience: int = 0
@@ -17,6 +19,9 @@ const STAT_NAMES: Array[StringName] = [
 @export var magic: int = 0  # turn-based uses
 @export var resistance: int = 0
 @export var move_speed: float = 80.0  # ARPG uses (px/s)
+## Magic points for skills (turn-based). 0 = the actor has none.
+@export var max_mp: int = 0
+@export var mp: int = 0
 @export var extra: Dictionary = {}  # archetype extensions: {"crit_chance": 0.05, ...}
 
 ## Base value of the stat plus modifiers (Array of {stat, add, mul}): all `add` values are summed
@@ -40,7 +45,7 @@ func xp_to_next() -> int:
 	return RpgUtil.to_int(round(10.0 * pow(level, 1.5)))
 
 ## Adds experience and returns the number of levels gained. Each level: max_hp +3, attack +1,
-## defense +1, speed +1 on every 2nd level, and hp is refilled.
+## defense +1, speed +1 on every 2nd level, max_mp +2 for anyone who has MP; hp and mp are refilled.
 func add_experience(amount: int) -> int:
 	if amount <= 0:
 		return 0
@@ -55,14 +60,17 @@ func add_experience(amount: int) -> int:
 		defense += 1
 		if level % 2 == 0:
 			speed += 1
+		if max_mp > 0:
+			max_mp += MP_PER_LEVEL
 		hp = max_hp
+		mp = max_mp
 	return gained
 
 func to_dict() -> Dictionary:
 	return {
 		"level": level, "experience": experience, "max_hp": max_hp, "hp": hp, "attack": attack,
 		"defense": defense, "speed": speed, "magic": magic, "resistance": resistance,
-		"move_speed": move_speed, "extra": extra.duplicate(true),
+		"move_speed": move_speed, "max_mp": max_mp, "mp": mp, "extra": extra.duplicate(true),
 	}
 
 static func from_dict(d: Dictionary) -> RpgStats:
@@ -77,6 +85,8 @@ static func from_dict(d: Dictionary) -> RpgStats:
 	s.magic = RpgUtil.to_int(d.get("magic", s.magic))
 	s.resistance = RpgUtil.to_int(d.get("resistance", s.resistance))
 	s.move_speed = RpgUtil.to_float(d.get("move_speed", s.move_speed))
+	s.max_mp = RpgUtil.to_int(d.get("max_mp", s.max_mp))  # saves from before T12.71 have none
+	s.mp = RpgUtil.to_int(d.get("mp", s.max_mp))
 	var e: Variant = d.get("extra", {})
 	s.extra = {}
 	if e is Dictionary:

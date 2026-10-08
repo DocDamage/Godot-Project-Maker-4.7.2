@@ -19,6 +19,9 @@ const DIALOGUE_DIR := "res://game/data/dialogue"
 const ITEMS_DIR := "res://game/data/items"
 const SEQUENCES_DIR := "res://game/data/sequences"
 const ENEMIES_DIR := "res://game/data/enemies"
+const SKILLS_DIR := "res://game/data/skills"
+const ACTORS_DIR := "res://game/data/actors"
+const TURN_BASED_DIR := "res://addons/rpg_runtime/archetypes/turn_based/"
 const PLACEHOLDER_DIR := "res://generated/debug_placeholders/"
 const RESOURCE_ROOTS: Array[String] = ["res://generated", "res://game"]
 const DOOR_SUFFIX := "/world/door.gd"
@@ -29,7 +32,7 @@ const GATE_SUFFIX := "/world/gate.gd"
 const SWITCH_SUFFIX := "/world/switch.gd"
 
 ## `dirs` overrides the folders that are checked (tests): maps, dialogue, items, sequences, enemies,
-## placeholders and resources (an Array of roots).
+## skills, actors, placeholders and resources (an Array of roots).
 static func run(dirs: Dictionary = {}) -> Array:
 	var findings: Array = []
 	var cache := {}  # map path -> instantiated scene (or null), freed at the end
@@ -42,6 +45,7 @@ static func run(dirs: Dictionary = {}) -> Array:
 	_check_triggers(maps, cache, sequences_dir, findings)
 	_check_zones(maps, cache, findings)
 	_check_locks(maps, cache, JsonIo.to_str(dirs.get("items", ITEMS_DIR)), findings)
+	_check_battle_data(dirs, findings)
 	var roots: Array = dirs.get("resources", RESOURCE_ROOTS)
 	_check_placeholders(roots, JsonIo.to_str(dirs.get("placeholders", PLACEHOLDER_DIR)), findings)
 	for key: Variant in cache.keys():
@@ -361,6 +365,83 @@ static func _check_locks(maps: Array[String], cache: Dictionary, items_dir: Stri
 				problems.append("it has no entity_id, so its state is not saved")
 			for problem in problems:
 				findings.append(finding("VAL-025", {"node": node_path, "problem": problem}, path, node_path))
+
+# ---------------------------------------------------------------- battle data (VAL-026)
+
+## Skills that are not well formed; actors, enemies and items that name an unknown skill or status;
+## enemy rules and weights that use something that is neither a command nor a skill. Only where the
+## turn-based runtime is installed: its scripts are loaded by path, because an action RPG's copy of
+## the runtime does not have them.
+static func _check_battle_data(dirs: Dictionary, findings: Array) -> void:
+	if not ResourceLoader.exists(TURN_BASED_DIR + "battle_status.gd"):
+		return
+	var status_script: Script = load(TURN_BASED_DIR + "battle_status.gd")
+	var skill_script: Script = load(TURN_BASED_DIR + "skill_definition.gd")
+	var ai_script: Script = load(TURN_BASED_DIR + "battle_ai.gd")
+	var controller_script: Script = load(TURN_BASED_DIR + "battle_controller.gd")
+	var statuses: Array = status_script.call("names")
+	var skills_dir := JsonIo.to_str(dirs.get("skills", SKILLS_DIR))
+	var skills: Dictionary = skill_script.call("load_dir", skills_dir)
+	for path in list_files(skills_dir, ["tres"]):
+		var skill := load(path) as Resource
+		if skill == null or not skill.has_method("problems"):
+			continue
+		var problems: PackedStringArray = skill.call("problems")
+		for problem in problems:
+			findings.append(finding("VAL-026", {"problem": "skill: " + problem}, path))
+	var uses: Array = skills.keys()
+	var commands: Array = controller_script.call("load_commands")
+	for command: Resource in commands:
+		uses.append(command.get("id"))
+	for dir_key: String in ["actors", "enemies"]:
+		var fallback := ACTORS_DIR if dir_key == "actors" else ENEMIES_DIR
+		for path in list_files(JsonIo.to_str(dirs.get(dir_key, fallback)), ["tres"]):
+			var actor := load(path) as RpgActorDefinition
+			if actor == null:
+				continue
+			var problems := traits_problems(actor.status_immune, actor.attack_status, statuses)
+			for skill_id: Variant in actor.skills.keys():
+				if not skills.has(StringName(str(skill_id))):
+					problems.append("it knows the unknown skill '%s'" % skill_id)
+			var enemy := actor as RpgEnemyDefinition
+			if enemy != null:
+				problems.append_array(behavior_problems(enemy.behavior, uses))
+				var rule_problems: PackedStringArray = ai_script.call("problems_of", enemy.behavior.get("turn_based_rules"), uses)
+				for problem in rule_problems:
+					problems.append(problem)
+			for problem in problems:
+				findings.append(finding("VAL-026", {"problem": problem}, path))
+	for path in list_files(JsonIo.to_str(dirs.get("items", ITEMS_DIR)), ["tres"]):
+		var item := load(path) as RpgItemDefinition
+		if item == null:
+			continue
+		var problems := traits_problems(item.status_immune, item.attack_status, statuses)
+		for cured in item.cures:
+			if not statuses.has(cured):
+				problems.append("it cures the unknown status '%s'" % cured)
+		for problem in problems:
+			findings.append(finding("VAL-026", {"problem": problem}, path))
+
+## Unknown statuses (not in `statuses`) in an immunity list or an attack's status.
+static func traits_problems(immune: Array[StringName], attack_status: StringName, statuses: Array) -> Array[String]:
+	var out: Array[String] = []
+	for status in immune:
+		if not statuses.has(status):
+			out.append("it is immune to the unknown status '%s'" % status)
+	if attack_status != &"" and not statuses.has(attack_status):
+		out.append("its attack inflicts the unknown status '%s'" % attack_status)
+	return out
+
+## The turn-based weights of an enemy's behavior: every key must be a command or a skill (`uses`).
+static func behavior_problems(behavior: Dictionary, uses: Array) -> Array[String]:
+	var out: Array[String] = []
+	var weights: Variant = behavior.get("turn_based", {})
+	if weights is Dictionary:
+		var weight_dict: Dictionary = weights
+		for key: Variant in weight_dict.keys():
+			if not uses.has(StringName(str(key))):
+				out.append("its turn_based weights name '%s', which is neither a command nor a skill" % key)
+	return out
 
 # ---------------------------------------------------------------- placeholders (VAL-012)
 

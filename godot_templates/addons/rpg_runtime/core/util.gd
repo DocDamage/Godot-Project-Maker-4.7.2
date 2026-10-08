@@ -24,6 +24,11 @@ static func max_hp(stats: RpgStats) -> int:
 	var game := state()
 	return roundi(game.effective_stat(stats, &"max_hp")) if game != null else stats.max_hp
 
+## The most magic points `stats` can have: max_mp with the owner's equipment applied.
+static func max_mp(stats: RpgStats) -> int:
+	var game := state()
+	return roundi(game.effective_stat(stats, &"max_mp")) if game != null else stats.max_mp
+
 static func router() -> RpgSceneRouter:
 	return autoload(&"SceneRouter") as RpgSceneRouter
 

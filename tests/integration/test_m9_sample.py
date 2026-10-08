@@ -108,6 +108,8 @@ def test_the_generated_project_has_only_the_arpg_archetype(sample: Path) -> None
         "smoke_steps_m6.gd",
     ]
     assert not (sample / "game/data/battle_commands").exists()
+    assert not (sample / "game/data/skills").exists()
+    assert not (sample / "game/data/items/antidote.tres").exists()
 
 
 def test_scenes_and_data_exist(sample: Path) -> None:

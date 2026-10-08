@@ -2,7 +2,7 @@ extends RefCounted
 ## Seeds the data files of the demo under game/data/ (user_seed: written once, never again):
 ## hero actor, new-game data, the potion item and the starter NPC's dialogue.
 
-const RECIPE_VERSION := 6
+const RECIPE_VERSION := 7
 
 const Paths := preload("../lib/paths.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
@@ -17,6 +17,8 @@ const COMPANION_ID := "companion"
 const COMPANION_PATH := "res://game/data/actors/companion.tres"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
 const POTION_PATH := "res://game/data/items/potion.tres"
+const ANTIDOTE_PATH := "res://game/data/items/antidote.tres"
+const ETHER_PATH := "res://game/data/items/ether.tres"
 const GREETING_PATH := "res://game/data/dialogue/npc_greeting.tres"
 const QUEST_ID := "errand"
 const QUEST_PATH := "res://game/data/quests/errand.tres"
@@ -37,6 +39,10 @@ const QUEST_DEF := "res://addons/rpg_runtime/data/quest_definition.gd"
 const SEED_STRINGS := {
 	"ITEM_POTION_NAME": "Potion",
 	"ITEM_POTION_DESC": "Restores 10 HP.",
+	"ITEM_ANTIDOTE_NAME": "Antidote",
+	"ITEM_ANTIDOTE_DESC": "Cures poison in battle.",
+	"ITEM_ETHER_NAME": "Ether",
+	"ITEM_ETHER_DESC": "Restores 10 MP.",
 	"QUEST_ERRAND_TITLE": "The villager's errand",
 	"QUEST_ERRAND_TALK": "Talk to the villager",
 	"QUEST_ERRAND_CHEST": "Open the chest",
@@ -73,10 +79,13 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 		wanted.append(QUEST_PATH)
 		if _has_party_demo(ctx):
 			wanted.append(COMPANION_PATH)
+		if _turn_based(ctx):
+			wanted.append(ANTIDOTE_PATH)
+			wanted.append(ETHER_PATH)
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)})
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -126,7 +135,7 @@ func build(ctx: BuildContext) -> Array:
 		if not FileAccess.file_exists(_gear_path(word)):
 			_save(ctx, _gear_item(ctx, word, asset), _gear_path(word), issues)
 	if not FileAccess.file_exists(HERO_PATH):
-		_save(ctx, _hero(ctx), HERO_PATH, issues)
+		_save(ctx, _hero(ctx, _turn_based(ctx)), HERO_PATH, issues)
 	if not FileAccess.file_exists(NEW_GAME_PATH):
 		_save(ctx, _new_game(ctx.demo_removed, gear.keys()), NEW_GAME_PATH, issues)
 	if not FileAccess.file_exists(POTION_PATH):
@@ -138,7 +147,11 @@ func build(ctx: BuildContext) -> Array:
 	if not ctx.demo_removed and not FileAccess.file_exists(QUEST_PATH):
 		_save(ctx, _quest(_has_chest(ctx)), QUEST_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(SHOP_PATH):
-		_save(ctx, _shop(gear.keys()), SHOP_PATH, issues)
+		_save(ctx, _shop(gear.keys(), _turn_based(ctx)), SHOP_PATH, issues)
+	if not ctx.demo_removed and _turn_based(ctx):
+		for path: String in [ANTIDOTE_PATH, ETHER_PATH]:
+			if not FileAccess.file_exists(path):
+				_save(ctx, _battle_item(path == ANTIDOTE_PATH), path, issues)
 	return issues
 
 func _save(ctx: BuildContext, res: Resource, path: String, issues: Array) -> void:
@@ -146,11 +159,17 @@ func _save(ctx: BuildContext, res: Resource, path: String, issues: Array) -> voi
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
 
-func _hero(ctx: BuildContext) -> Resource:
+## With `skills` (turn-based) the hero has 6 MP, magic 1 and knows fire.
+func _hero(ctx: BuildContext, skills: bool = false) -> Resource:
 	var def := SeedUtil.make(ACTOR_DEF)
 	def.set("id", &"hero")
 	def.set("display_name", "Hero")
 	var stats := SeedUtil.make(STATS)
+	if skills:
+		stats.set("magic", 1)
+		stats.set("max_mp", 6)
+		stats.set("mp", 6)
+		def.set("skills", {"fire": 1})
 	def.set("base_stats", stats)
 	var pid := _player_id(ctx)
 	if pid != "":
@@ -172,7 +191,10 @@ func _companion(ctx: BuildContext) -> Resource:
 	stats.set("defense", 2)
 	stats.set("speed", 6)
 	stats.set("magic", 3)
+	stats.set("max_mp", 12)
+	stats.set("mp", 12)
 	def.set("base_stats", stats)
+	def.set("skills", {"cure": 1, "sleep": 1, "fire": 3})
 	return def
 
 func _new_game(demo_removed: bool = false, gear_words: Array = []) -> Resource:
@@ -202,6 +224,28 @@ func _potion(ctx: BuildContext) -> Resource:
 		item.set("icon", TextureUtil.region_texture("res://" + JsonUtil.to_str(icon["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))))
 	return item
 
+## Skills, MP and the battle items are for the turn-based archetype.
+func _turn_based(ctx: BuildContext) -> bool:
+	return JsonUtil.to_str(ctx.config.get("archetype", "turn_based")) == "turn_based"
+
+## The antidote (cures poison) or the ether (10 MP), sold in the village shop.
+func _battle_item(antidote: bool) -> Resource:
+	var item := SeedUtil.make(ITEM_DEF)
+	var word := "antidote" if antidote else "ether"
+	item.set("id", StringName(word))
+	item.set("display_name", "ITEM_%s_NAME" % word.to_upper())
+	item.set("description", "ITEM_%s_DESC" % word.to_upper())
+	item.set("max_stack", 99)
+	item.set("value", 8 if antidote else 20)
+	if antidote:
+		item.set("use_effect", &"cure")
+		var cures: Array[StringName] = [&"poison"]
+		item.set("cures", cures)
+	else:
+		item.set("use_effect", &"mp")
+		item.set("effect_amount", 10)
+	return item
+
 ## The party demo (a companion the villager can bring along) is for the turn-based archetype
 ## only: the action RPG has no followers.
 func _has_party_demo(ctx: BuildContext) -> bool:
@@ -227,12 +271,16 @@ func _quest(has_chest: bool = true) -> Resource:
 	quest.set("rewards", {"gold": 25, "experience": 5})
 	return quest
 
-## The village shop: potions and the starter gear, at their item values.
-func _shop(gear_words: Array) -> Resource:
+## The village shop: potions (antidotes and ethers in a turn-based game) and the starter gear, at
+## their item values.
+func _shop(gear_words: Array, battle_items: bool = false) -> Resource:
 	var shop := SeedUtil.make(SHOP_DEF)
 	shop.set("id", StringName(SHOP_ID))
 	shop.set("title", "UI_SHOP")
 	var stock: Array = [{"item_id": "potion", "price": -1}]
+	if battle_items:
+		stock.append({"item_id": "antidote", "price": -1})
+		stock.append({"item_id": "ether", "price": -1})
 	for word: String in gear_words:
 		stock.append({"item_id": word, "price": -1})
 	shop.set("stock", SeedUtil.dict_array(stock))

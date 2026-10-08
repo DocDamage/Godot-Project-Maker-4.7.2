@@ -93,6 +93,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | VAL-023 | W | Sequence problem in {file}: {problem}. | Fix the command in the sequence resource (the command list is in the runtime README, "Sequences"). |
 | VAL-024 | W | Encounter zone {node} in {file}: {problem}. | Set a table on the zone, or fix the enemy ids in the table. |
 | VAL-025 | W | {node} in {file}: {problem}. | Fix the gate, switch or door in the Inspector (key item, condition, entity id). |
+| VAL-026 | W | Battle data problem in {file}: {problem}. | Fix the skill, actor, enemy or item resource (README.md, section 11, explains skills, statuses and enemy rules). |
 | SMOKE-001 | E | Smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. |
 | SMOKE-002 | E | Smoke test timed out at step {step}. | See smoke log. |
 | REGEN-001 | W | User-modified generated file {file} not overwritten; new version at {file}.rpggen-new. | Merge changes manually. |

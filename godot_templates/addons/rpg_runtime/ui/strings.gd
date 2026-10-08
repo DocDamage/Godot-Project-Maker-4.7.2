@@ -36,6 +36,7 @@ const KEYS := {
 	"UI_SPEED_INSTANT": "Instant",
 	"UI_LEVEL": "Level",
 	"UI_HP": "HP",
+	"UI_MP": "MP",
 	"UI_XP": "Experience",
 	"UI_ATTACK": "Attack",
 	"UI_DEFENSE": "Defense",

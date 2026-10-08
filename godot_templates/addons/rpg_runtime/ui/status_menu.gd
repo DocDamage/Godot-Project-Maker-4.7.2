@@ -58,6 +58,8 @@ func _build(focus_slot: StringName = &"") -> void:
 			["UI_RESISTANCE", str(roundi(state.stat_of(id, &"resistance")))],
 			["UI_GOLD", str(state.gold)],
 		]
+		if RpgUtil.max_mp(s) > 0:
+			rows.insert(2, ["UI_MP", "%d / %d" % [s.mp, RpgUtil.max_mp(s)]])
 		for row: Array in rows:
 			var label := Label.new()
 			var row_key: String = row[0]

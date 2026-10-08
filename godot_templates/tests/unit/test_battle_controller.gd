@@ -201,6 +201,8 @@ func test_a_failed_escape_loses_the_round(t) -> void:
 	var asked := [0]
 	c.auto_choose = func(_actor: RpgBattleActor, _battle_ref: Variant) -> Dictionary:
 		asked[0] += 1
+		if asked[0] == 2:
+			rng.roll = 0.5  # 0.99 would also miss every attack (the hit chance is 0.99)
 		return {"command_id": &"run"} if asked[0] == 1 else {"command_id": &"attack", "target_index": 0}
 	var result := await c.run()
 	t.eq(result.outcome, RpgEncounterResult.Outcome.VICTORY)
@@ -221,11 +223,11 @@ func test_running_is_refused_when_escape_is_not_allowed(t) -> void:
 	t.eq(result.outcome, RpgEncounterResult.Outcome.VICTORY)
 	_done(b)
 
-func test_skill_is_disabled(t) -> void:
+func test_skill_is_disabled_without_known_skills(t) -> void:
 	var b := _battle()
 	var c: RpgBattleController = b["controller"]
-	t.ok(not c.command_by_id(&"skill").can_use(c.party[0], c))
-	t.eq(c.command_by_id(&"skill").label, "BATTLE_SKILLS_NONE")
+	t.ok(not c.command_by_id(&"skill").can_use(c.party[0], c), "the hero has no definition, so no skills")
+	t.eq(c.command_by_id(&"skill").label, "BATTLE_SKILL")
 	_done(b)
 
 func test_item_heals_and_is_consumed(t) -> void:

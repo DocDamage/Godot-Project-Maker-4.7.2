@@ -1,5 +1,6 @@
 class_name RpgAttackCommand
 extends RpgBattleCommand
+## A plain attack: the hit roll, the damage (with the weapon's element) and the status it carries.
 
 func _init() -> void:
 	id = &"attack"
@@ -9,15 +10,6 @@ func _init() -> void:
 func execute(user: RpgBattleActor, targets_list: Array[RpgBattleActor], battle: RpgBattleController) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for target in targets_list:
-		if not target.alive:
-			continue
-		var roll := RpgBattleMath.roll_damage(user.stat(&"attack"), target.stat(&"defense"), target.defending, battle.rng)
-		var amount: int = mini(RpgUtil.to_int(roll["amount"]), target.stats.hp)
-		target.stats.hp -= amount
-		var key := "BATTLE_ATTACK_CRIT" if roll["crit"] else "BATTLE_ATTACK_HIT"
-		out.append(RpgBattleCommand.entry("damage", RpgBattleText.t(key, [user.display_name, target.display_name, amount]), target, amount, RpgUtil.to_bool(roll["crit"])))
-		if not target.alive:
-			out.append(RpgBattleCommand.entry("status", RpgBattleText.t("BATTLE_DEFEATED_NAME", [target.display_name]), target))
-		if target.is_player_side:
-			RpgUtil.emit(&"player_damaged", [amount])
+		if target.alive:
+			out.append_array(RpgBattleEffects.attack(user, target, battle))
 	return out

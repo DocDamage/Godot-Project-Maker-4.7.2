@@ -90,6 +90,7 @@ const CODES := {
 	"VAL-023": {"severity": "warning", "message": "Sequence problem in {file}: {problem}.", "fix": "Fix the command in the sequence resource (the command list is in the runtime README, \"Sequences\")."},
 	"VAL-024": {"severity": "warning", "message": "Encounter zone {node} in {file}: {problem}.", "fix": "Set a table on the zone, or fix the enemy ids in the table."},
 	"VAL-025": {"severity": "warning", "message": "{node} in {file}: {problem}.", "fix": "Fix the gate, switch or door in the Inspector (key item, condition, entity id)."},
+	"VAL-026": {"severity": "warning", "message": "Battle data problem in {file}: {problem}.", "fix": "Fix the skill, actor, enemy or item resource (README.md, section 11, explains skills, statuses and enemy rules)."},
 	"SMOKE-001": {"severity": "error", "message": "Smoke step {step} \"{name}\" failed: {detail}.", "fix": "See smoke log and smoke_results.json."},
 	"SMOKE-002": {"severity": "error", "message": "Smoke test timed out at step {step}.", "fix": "See smoke log."},
 	"REGEN-001": {"severity": "warning", "message": "User-modified generated file {file} not overwritten; new version at {file}.rpggen-new.", "fix": "Merge changes manually."},

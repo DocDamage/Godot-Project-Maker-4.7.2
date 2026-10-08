@@ -613,7 +613,8 @@ func _followers_trail() -> String:
 				failure = "the follower plays %s while the player walks" % visual.animation
 			else:
 				await _frames(12)
-				if String(visual.animation).begins_with("walk"):
+				# Without an idle animation "idle" is the walk paused on frame 0, so it must not play.
+				if String(visual.animation).begins_with("walk") and visual.is_playing():
 					failure = "the follower still walks after the player stopped"
 	state.leave_party(ally)
 	await _frames(3)

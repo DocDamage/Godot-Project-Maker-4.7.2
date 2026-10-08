@@ -38,6 +38,8 @@ func _ready() -> void:
 			var b := Button.new()
 			b.name = "Member_%s" % actor_id
 			b.text = "%s  %s %d/%d" % [state.actor_name(actor_id), tr("UI_HP"), member_stats.hp, RpgUtil.max_hp(member_stats)]
+			if RpgUtil.max_mp(member_stats) > 0:
+				b.text += "  %s %d/%d" % [tr("UI_MP"), member_stats.mp, RpgUtil.max_mp(member_stats)]
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			b.pressed.connect(_choose.bind(actor_id))
 			box.add_child(b)

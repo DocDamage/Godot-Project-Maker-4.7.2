@@ -8,6 +8,7 @@ const TARGET_SELF := 0
 const TARGET_ONE_ENEMY := 1
 const TARGET_ONE_ALLY := 2
 const TARGET_ALL_ENEMIES := 3
+const TARGET_ALL_ALLIES := 4
 
 @export var id: StringName
 @export var label: String  # a tr() key
@@ -17,7 +18,7 @@ const TARGET_ALL_ENEMIES := 3
 func can_use(_user: RpgBattleActor, _battle: RpgBattleController) -> bool:
 	return true
 
-## Returns log entries: [{type: "damage"|"heal"|"text"|"status", target, amount, text}].
+## Returns log entries: [{type: "damage"|"heal"|"miss"|"text"|"status", target, amount, text}].
 func execute(_user: RpgBattleActor, _targets: Array[RpgBattleActor], _battle: RpgBattleController) -> Array[Dictionary]:
 	return []
 

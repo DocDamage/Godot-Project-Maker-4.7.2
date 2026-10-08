@@ -232,6 +232,7 @@ func new_game() -> void:
 			if hero.base_stats != null:
 				player_stats = hero.base_stats.duplicate(true) as RpgStats
 	player_stats.hp = player_stats.max_hp
+	player_stats.mp = player_stats.max_mp
 	party.clear()
 	inventory.slots.clear()
 	flags.clear()
@@ -416,6 +417,7 @@ func _set_worn(actor_id: StringName, slot: StringName, item_id: StringName) -> v
 	var worn_stats := stats_of(actor_id)
 	if worn_stats != null:
 		worn_stats.hp = mini(worn_stats.hp, RpgUtil.max_hp(worn_stats))
+		worn_stats.mp = mini(worn_stats.mp, RpgUtil.max_mp(worn_stats))
 		if worn_stats.hp <= 0 and old_hp > 0:
 			worn_stats.hp = 1
 	RpgUtil.emit(&"equipment_changed", [actor_id, slot])
@@ -466,6 +468,7 @@ func join_party(actor_id: StringName) -> bool:
 		member_stats = def.base_stats.duplicate(true) as RpgStats
 	party.append({"actor_id": actor_id, "stats": member_stats})
 	member_stats.hp = RpgUtil.max_hp(member_stats)  # what they wear (kept from an earlier stay) counts
+	member_stats.mp = RpgUtil.max_mp(member_stats)
 	RpgUtil.notify(String(TranslationServer.translate("UI_PARTY_JOINED")) % actor_name(actor_id))
 	RpgUtil.emit(&"party_changed")
 	return true
@@ -491,12 +494,14 @@ func revive_party() -> void:
 		var member_stats: RpgStats = member["stats"]
 		member_stats.hp = maxi(1, member_stats.hp)
 
-## Full hit points (equipment counted) for the player and every member.
+## Full hit and magic points (equipment counted) for the player and every member.
 func heal_party_full() -> void:
 	player_stats.hp = RpgUtil.max_hp(player_stats)
+	player_stats.mp = RpgUtil.max_mp(player_stats)
 	for member in party:
 		var member_stats: RpgStats = member["stats"]
 		member_stats.hp = RpgUtil.max_hp(member_stats)
+		member_stats.mp = RpgUtil.max_mp(member_stats)
 
 func flag_count() -> int:
 	var n := 0
@@ -513,7 +518,7 @@ func give_experience(amount: int) -> int:
 		give_experience_to(member_id, amount)
 	return gained
 
-## Grants experience to one actor; a level-up refills their hit points (equipment counted). Returns
+## Grants experience to one actor; a level-up refills their hit and magic points (equipment counted). Returns
 ## the levels gained (0 for an unknown actor).
 func give_experience_to(actor_id: StringName, amount: int) -> int:
 	var actor_stats := stats_of(actor_id)
@@ -522,6 +527,7 @@ func give_experience_to(actor_id: StringName, amount: int) -> int:
 	var gained := actor_stats.add_experience(amount)
 	if gained > 0:
 		actor_stats.hp = RpgUtil.max_hp(actor_stats)  # the level-up refill counts the equipment
+		actor_stats.mp = RpgUtil.max_mp(actor_stats)
 	RpgUtil.emit(&"experience_gained", [actor_id, amount])
 	for i in gained:
 		RpgUtil.emit(&"level_up", [actor_id, actor_stats.level - gained + i + 1])

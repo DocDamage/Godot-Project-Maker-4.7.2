@@ -173,6 +173,11 @@ func _on_entries_resolved(entries: Array) -> void:
 				_float_number(node, target, str(RpgUtil.to_int(entry.get("amount", 0))), Color.WHITE)
 			"heal":
 				_float_number(node, target, "+%d" % RpgUtil.to_int(entry.get("amount", 0)), Color(0.5, 1.0, 0.5))
+			"miss":
+				_float_number(node, target, RpgBattleText.t("BATTLE_MISS_POPUP"), Color(0.8, 0.8, 0.8))
+			"status":
+				if entry.has("status"):
+					_float_number(node, target, RpgBattleStatus.label(StringName(str(entry["status"]))), Color(0.85, 0.6, 1.0))
 	ui.refresh()
 
 ## A 0.1 s white flash, a short shake on a crit and a fade when the battler falls.

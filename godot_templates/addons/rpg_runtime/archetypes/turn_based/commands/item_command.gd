@@ -1,6 +1,7 @@
 class_name RpgItemCommand
 extends RpgBattleCommand
-## Uses a consumable (`user.chosen_item`) on one ally through RpgInventory.use().
+## Uses a consumable (`user.chosen_item`) on one ally: heal and mp through RpgInventory.use(), cure
+## here (statuses live in the battle).
 
 func _init() -> void:
 	id = &"item"
@@ -30,9 +31,21 @@ func execute(user: RpgBattleActor, targets_list: Array[RpgBattleActor], battle: 
 	var target: RpgBattleActor = targets_list[0] if not targets_list.is_empty() else user
 	if inv == null or item_id == &"":
 		return [RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_NO_EFFECT"), user)]
-	var item_label := RpgBattleText.item_name(inv.definition(item_id), item_id)
-	var before := target.stats.hp
+	var def := inv.definition(item_id)
+	var item_label := RpgBattleText.item_name(def, item_id)
+	if def != null and def.use_effect == &"cure":
+		var cured := RpgBattleEffects.cure(target, def.cures)
+		if cured.is_empty() or not inv.remove(item_id, 1):
+			return [RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_NO_EFFECT"), target)]
+		var out: Array[Dictionary] = [RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_ITEM_USE", [user.display_name, item_label, target.display_name]), target)]
+		out.append_array(cured)
+		return out
+	var before_hp := target.stats.hp
+	var before_mp := target.stats.mp
 	if not inv.use(item_id, target.stats):
 		return [RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_NO_EFFECT"), target)]
-	var healed := target.stats.hp - before
+	if def != null and def.use_effect == &"mp":
+		var restored := target.stats.mp - before_mp
+		return [RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_ITEM_MP", [user.display_name, item_label, target.display_name, restored]), target, restored)]
+	var healed := target.stats.hp - before_hp
 	return [RpgBattleCommand.entry("heal", RpgBattleText.t("BATTLE_ITEM_HEAL", [user.display_name, item_label, target.display_name, healed]), target, healed)]

@@ -1,15 +1,16 @@
 class_name RpgBattleStrings
 extends RefCounted
-## Translation keys of the turn-based battle with their English text. The translations recipe adds
-## them to game/i18n/strings.tsv when the project's archetype is turn_based. Sentences take their
-## values through %s / %d.
+## Translation keys of the turn-based battle and of the seeded skills, with their English text. The
+## translations recipe adds them to game/i18n/strings.tsv when the project's archetype is
+## turn_based. Sentences take their values through %s / %d.
 
 const KEYS := {
 	"BATTLE_ATTACK": "Attack",
 	"BATTLE_DEFEND": "Defend",
 	"BATTLE_ITEM": "Item",
 	"BATTLE_RUN": "Run",
-	"BATTLE_SKILLS_NONE": "Skills (none)",
+	"BATTLE_SKILL": "Skill",
+	"BATTLE_SKILLS_NONE": "Skill",  # the label of skill commands seeded before T12.71
 	"BATTLE_ATTACK_HIT": "%s attacks %s for %d damage.",
 	"BATTLE_ATTACK_CRIT": "Critical hit! %s hits %s for %d damage.",
 	"BATTLE_DEFEATED_NAME": "%s is defeated.",
@@ -27,4 +28,45 @@ const KEYS := {
 	"BATTLE_LEVEL_UP": "%s reached level %d!",
 	"BATTLE_CHOOSE_TARGET": "Choose a target",
 	"BATTLE_NO_ITEMS": "No items to use",
+	"BATTLE_MISS": "%s attacks %s, but misses.",
+	"BATTLE_SKILL_USE": "%s uses %s!",
+	"BATTLE_SKILL_HIT": "%s takes %d damage.",
+	"BATTLE_HEALED": "%s recovers %d HP.",
+	"BATTLE_IMMUNE": "%s is unaffected.",
+	"BATTLE_ABSORBS": "%s absorbs it: %d HP restored.",
+	"BATTLE_WEAK": "A weak spot!",
+	"BATTLE_RESISTED": "%s resists.",
+	"BATTLE_NO_MP": "%s does not have enough MP.",
+	"BATTLE_CANNOT_CAST": "%s cannot use skills!",
+	"BATTLE_NO_SKILLS": "No skills to use",
+	"BATTLE_ITEM_USE": "%s uses %s on %s.",
+	"BATTLE_ITEM_MP": "%s uses %s on %s: %d MP restored.",
+	"BATTLE_ASLEEP": "%s is asleep.",
+	"BATTLE_WAKES": "%s wakes up.",
+	"BATTLE_CURED": "%s recovers from %s.",
+	"BATTLE_STATUS_ENDS": "%s: %s wore off.",
+	"BATTLE_TICK_DAMAGE": "%s takes %d damage from %s.",
+	"BATTLE_POISONED": "%s is poisoned.",
+	"BATTLE_REGEN_ON": "%s begins to regenerate.",
+	"BATTLE_ASLEEP_ON": "%s falls asleep.",
+	"BATTLE_SILENCED": "%s is silenced.",
+	"BATTLE_BLINDED": "%s is blinded.",
+	"BATTLE_HASTED": "%s speeds up.",
+	"BATTLE_SLOWED": "%s slows down.",
+	"BATTLE_STATUS_POISON": "Poison",
+	"BATTLE_STATUS_REGEN": "Regen",
+	"BATTLE_STATUS_SLEEP": "Sleep",
+	"BATTLE_STATUS_SILENCE": "Silence",
+	"BATTLE_STATUS_BLIND": "Blind",
+	"BATTLE_STATUS_HASTE": "Haste",
+	"BATTLE_STATUS_SLOW": "Slow",
+	"BATTLE_MISS_POPUP": "Miss",
+	"SKILL_FIRE_NAME": "Fire",
+	"SKILL_FIRE_DESC": "Burns one enemy with fire.",
+	"SKILL_CURE_NAME": "Cure",
+	"SKILL_CURE_DESC": "Restores HP to one ally and cures poison.",
+	"SKILL_SLEEP_NAME": "Sleep",
+	"SKILL_SLEEP_DESC": "Puts one enemy to sleep.",
+	"SKILL_VENOM_NAME": "Venom",
+	"SKILL_VENOM_DESC": "A poisonous strike.",
 }

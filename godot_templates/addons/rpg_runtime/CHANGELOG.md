@@ -151,6 +151,23 @@
   has a "Visual" child), `RpgSwitch` (a plate, latching or `hold`, or a lever, `once`; flag
   `<entity_id>.on`) and locked map doors (`RpgDoor.key_item`, `consume_key`, `entity_id`). New keys
   `UI_LOCKED`, `UI_LOCKED_NEED`, `UI_UNLOCKED`; new events `switch_toggled`, `gate_changed`.
+* Battle depth (M12, turn-based): `RpgStats.mp` / `max_mp` (saved under optional keys; +2 max MP a
+  level for anyone who has some; refilled by a level up, `heal_party_full`, joining and a new game;
+  `RpgUtil.max_mp`; the "mp" item effect). `RpgSkillDefinition` (`game/data/skills/<id>.tres`:
+  kind physical / magic / heal / status, targets, MP cost, power, element, status and chance,
+  cures) and a working `skill` command (the skill list in the item submenu; blocked by silence).
+  `RpgActorDefinition` gains `skills` (skill -> level learned), `element_rates`, `status_immune`,
+  `attack_element`, `attack_status` and `attack_status_chance`; `RpgItemDefinition` gains the same
+  for worn equipment plus `element` and `cures` (the "cure" effect, in battle). `RpgBattleStatus`:
+  poison, regen, sleep, silence, blind, haste, slow; they live on the `RpgBattleActor` and end with
+  the battle. `RpgBattleMath.hit_chance` (speed, `evade`, blind), `roll_magic`, `roll_heal`,
+  `apply_rate`; `RpgBattleEffects` resolves attacks, skills and the end of a round;
+  `RpgBattleAi` runs `behavior.turn_based_rules` ({when, use, target, chance, once}) before the
+  weights, whose keys may now be skill ids. New targets `TARGET_ALL_ALLIES`; new log entry type
+  `miss`; the party panel shows MP and statuses. New turn-based projects get the skills fire, cure,
+  sleep and venom, a hero who knows fire, a companion with cure and sleep, an antidote and an
+  ether in the shop, and enemies with a weakness, a resistance or a rule. The skill command's label
+  key is now `BATTLE_SKILL` (`BATTLE_SKILLS_NONE` stays, as "Skill", for older seeded files).
 
 ## 0.3.0
 

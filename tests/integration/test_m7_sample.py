@@ -35,10 +35,12 @@ M7_STEPS = [
     "returned_to_map",
     "enemy_stays_defeated",
     "random_encounter",
+    "skills_and_status",
     "defeat_policy",
     "game_over_screen",
 ]
 BATTLE_COMMANDS = ["attack", "defend", "item", "run", "skill"]
+SKILLS = ["cure", "fire", "sleep", "venom"]
 
 
 def _generate(godot_exe: Path, target: Path, source: Path, pack_id: str):
@@ -112,6 +114,10 @@ def test_battle_data_and_scenes_exist(sample: Path) -> None:
         assert (sample / rel).is_file(), rel
     commands = sorted(p.stem for p in (sample / "game/data/battle_commands").glob("*.tres"))
     assert commands == BATTLE_COMMANDS
+    skills = sorted(p.stem for p in (sample / "game/data/skills").glob("*.tres"))
+    assert skills == SKILLS
+    for item in ("antidote", "ether"):
+        assert (sample / f"game/data/items/{item}.tres").is_file(), item
     boot = (sample / "generated/scenes/bootstrap/boot.tscn").read_text(encoding="utf-8")
     assert 'combat_scene = "res://generated/scenes/combat/combat_mode.tscn"' in boot
 

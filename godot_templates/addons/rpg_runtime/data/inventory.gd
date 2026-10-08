@@ -81,8 +81,8 @@ func count(item_id: StringName) -> int:
 func has(item_id: StringName, qty: int = 1) -> bool:
 	return count(item_id) >= qty
 
-## Applies the item's use_effect to `target_stats` and removes one on success. A heal at full
-## health is refused (the item is kept).
+## Applies the item's use_effect ("heal" or "mp") to `target_stats` and removes one on success. A
+## heal at full health (or MP at full MP) is refused (the item is kept).
 func use(item_id: StringName, target_stats: RpgStats) -> bool:
 	var def := definition(item_id)
 	if def == null or target_stats == null or not has(item_id):
@@ -97,8 +97,13 @@ func use(item_id: StringName, target_stats: RpgStats) -> bool:
 			var state := RpgUtil.state()
 			if state != null and state.get("player_stats") == target_stats:
 				RpgUtil.emit(&"player_healed", [target_stats.hp - before])
+		"mp":
+			var max_mp := RpgUtil.max_mp(target_stats)
+			if max_mp <= 0 or target_stats.mp >= max_mp:
+				return false
+			target_stats.mp = mini(max_mp, target_stats.mp + def.effect_amount)
 		_:
-			return false
+			return false  # "cure" works in battle only (statuses end with the battle)
 	return remove(item_id, 1)
 
 func to_array() -> Array:

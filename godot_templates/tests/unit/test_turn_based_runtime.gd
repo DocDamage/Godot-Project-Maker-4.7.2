@@ -28,7 +28,7 @@ func test_battle_text_falls_back_to_english_and_formats(t) -> void:
 	t.eq(RpgBattleText.t("BATTLE_ATTACK_HIT", ["Hero", "Slime", 7]), "Hero attacks Slime for 7 damage.")
 	t.eq(RpgBattleText.t("NOT_A_KEY"), "NOT_A_KEY")
 	for key in RpgBattleStrings.KEYS.keys():
-		t.ok(String(key).begins_with("BATTLE_"), key)
+		t.ok(String(key).begins_with("BATTLE_") or String(key).begins_with("SKILL_"), key)
 		t.ok(String(RpgBattleStrings.KEYS[key]) != "", key)
 
 func test_item_names(t) -> void:

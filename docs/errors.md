@@ -133,6 +133,7 @@
 | VAL-023 | warning | Sequence problem in {file}: {problem}. | Fix the command in the sequence resource (the command list is in the runtime README, "Sequences"). |
 | VAL-024 | warning | Encounter zone {node} in {file}: {problem}. | Set a table on the zone, or fix the enemy ids in the table. |
 | VAL-025 | warning | {node} in {file}: {problem}. | Fix the gate, switch or door in the Inspector (key item, condition, entity id). |
+| VAL-026 | warning | Battle data problem in {file}: {problem}. | Fix the skill, actor, enemy or item resource (README.md, section 11, explains skills, statuses and enemy rules). |
 
 ## Smoke test (SMOKE)
 

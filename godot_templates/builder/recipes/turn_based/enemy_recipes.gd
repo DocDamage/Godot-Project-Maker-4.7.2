@@ -3,7 +3,7 @@ extends RefCounted
 ## overworld scene (generated/scenes/enemies/<slug>.tscn) per ENEMY asset. Without an ENEMY asset
 ## the player's sprite stands in (ASSET-025), tinted red.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const Paths := preload("../../lib/paths.gd")
 const SceneUtil := preload("../../lib/scene_util.gd")
@@ -33,6 +33,30 @@ static func scaled(index: int) -> Dictionary:
 	return {
 		"hp": 12 + 4 * index, "attack": 4 + index, "defense": 1 + floori(index / 2.0),
 		"xp": 5 + 2 * index, "gold": 3 + index,
+	}
+
+## The battle traits of the enemy with this index, in a cycle of three (T12.71): weak to fire; resists
+## fire and sometimes poisons with venom; casts fire every third round (6 MP) and cannot be put to
+## sleep. Keys of RpgEnemyDefinition.
+static func battle_traits(index: int) -> Dictionary:
+	match index % 3:
+		0:
+			return {"element_rates": {"fire": 2.0}, "behavior": {"turn_based": {"attack": 1.0, "defend": 0.0}}}
+		1:
+			return {
+				"element_rates": {"fire": 0.5},
+				"behavior": {
+					"turn_based": {"attack": 1.0, "defend": 0.0},
+					"turn_based_rules": [{"when": "foe_lacks:poison", "use": "venom", "chance": 0.4}],
+				},
+			}
+	return {
+		"status_immune": [&"sleep"],
+		"max_mp": 6,
+		"behavior": {
+			"turn_based": {"attack": 1.0, "defend": 0.0},
+			"turn_based_rules": [{"when": "every:3", "use": "fire", "target": "weakest"}],
+		},
 	}
 
 ## "slime_idle" -> "Slime": the usual animation / sheet words at the end of a file name are dropped.
@@ -169,7 +193,16 @@ func _save_definition(ctx: BuildContext, e: Dictionary, frames: SpriteFrames, is
 	def.set("xp_reward", s["xp"])
 	def.set("gold_reward", s["gold"])
 	def.set("loot", loot)
-	def.set("behavior", {"turn_based": {"attack": 1.0, "defend": 0.0}})
+	var traits := battle_traits(JsonUtil.to_int(e["index"]))
+	def.set("behavior", traits["behavior"])
+	def.set("element_rates", traits.get("element_rates", {}))
+	var immune: Array[StringName] = []
+	for status: Variant in traits.get("status_immune", []):
+		immune.append(StringName(str(status)))
+	def.set("status_immune", immune)
+	var mp := JsonUtil.to_int(traits.get("max_mp", 0))
+	stats.set("max_mp", mp)
+	stats.set("mp", mp)
 	var slug: String = e["slug"]
 	var path := definition_path(slug)
 	var err := SeedUtil.save(def, path)

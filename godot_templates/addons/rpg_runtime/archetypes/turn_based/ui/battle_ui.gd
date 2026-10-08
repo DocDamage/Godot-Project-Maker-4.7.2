@@ -5,10 +5,10 @@ extends CanvasLayer
 ## panels. It answers the controller's questions with `request_command` and the log calls.
 ##
 ##   %CommandPanel > %Commands   buttons, one per command (attack / defend / item / skill / run)
-##   %ItemSubmenu  > %ItemList   consumables
+##   %ItemSubmenu  > %ItemList   consumables, or the skills of the Skill command
 ##   %TargetCursor               blinking arrow over the selected battler
 ##   %BattleLog    > %LogLabel   one entry at a time; `confirm` or LOG_SECONDS moves on
-##   %PartyStatus, %EnemyStatus  name + HP bar per battler
+##   %PartyStatus, %EnemyStatus  name (+ statuses) + HP bar per battler, HP and MP numbers
 
 signal choice_made(choice: Dictionary)
 
@@ -23,8 +23,9 @@ var controller: RpgBattleController = null
 
 var _anchor_of: Callable = Callable()  # actor -> Vector2, the tip of the target arrow
 var _actor: RpgBattleActor = null
+var _active: RpgBattleActor = null  # marked in the party panel while choosing
 var _buttons: Dictionary = {}  # command id -> Button
-var _mode: StringName = &"none"  # none, commands, items, target, log
+var _mode: StringName = &"none"  # none, commands, items (items or skills), target, log
 var _candidates: Array[RpgBattleActor] = []
 var _target_index := 0
 var _pending: Dictionary = {}  # {command, extra} while a target is being chosen
@@ -118,9 +119,26 @@ func refresh() -> void:
 		bar.value = maxi(0, actor.stats.hp)
 		var numbers: Label = row["text"]
 		if numbers != null:
-			numbers.text = "%s %d/%d" % [tr("UI_HP"), maxi(0, actor.stats.hp), actor.max_hp()]
+			numbers.text = numbers_text(actor)
 		var name_label: Label = row["name"]
 		name_label.modulate = Color.WHITE if actor.alive else Color(1, 1, 1, 0.45)
+		name_label.text = _name_text(actor)
+
+## "> Name [Poison, Sleep]": the arrow for whose turn it is, then the statuses.
+func _name_text(actor: RpgBattleActor) -> String:
+	var text := ("> " if actor == _active else "") + actor.display_name
+	var shown := PackedStringArray()
+	for status in actor.status_list():
+		shown.append(RpgBattleStatus.label(status))
+	if not shown.is_empty():
+		text += " [%s]" % ", ".join(shown)
+	return text
+
+static func numbers_text(actor: RpgBattleActor) -> String:
+	var text := "%s %d/%d" % [TranslationServer.translate("UI_HP"), maxi(0, actor.stats.hp), actor.max_hp()]
+	if actor.max_mp() > 0:
+		text += "  %s %d/%d" % [TranslationServer.translate("UI_MP"), actor.stats.mp, actor.max_mp()]
+	return text
 
 # ---------------------------------------------------------------- asking for a command
 
@@ -135,9 +153,10 @@ func request_command(actor: RpgBattleActor, _battle: RpgBattleController = null)
 
 ## Marks whose turn it is in the party panel (nobody for null): "> Name".
 func _mark_active(active: RpgBattleActor) -> void:
+	_active = active
 	for actor: RpgBattleActor in _rows.keys():
 		var name_label: Label = _rows[actor]["name"]
-		name_label.text = ("> " if actor == active else "") + actor.display_name
+		name_label.text = _name_text(actor)
 
 func _show_commands() -> void:
 	_mode = &"commands"
@@ -163,6 +182,8 @@ func _on_command_pressed(command: RpgBattleCommand) -> void:
 	match command.id:
 		&"item":
 			_show_items(command)
+		&"skill":
+			_show_skills(command)
 		_:
 			match command.targets:
 				RpgBattleCommand.TARGET_SELF, RpgBattleCommand.TARGET_ALL_ENEMIES:
@@ -201,12 +222,47 @@ func _on_item_pressed(command: RpgBattleCommand, item_id: StringName) -> void:
 	_hide(_node("ItemSubmenu"))
 	_begin_target(command, {"item_id": item_id}, true)
 
+## The skill list (in the item submenu): "Fire  3 MP" for each skill the actor can use now.
+func _show_skills(command: RpgBattleCommand) -> void:
+	var list := _node("ItemList") as VBoxContainer
+	var submenu := _node("ItemSubmenu") as Control
+	_clear(list)
+	var buttons: Array[Button] = []
+	for skill in (command as RpgSkillCommand).usable_skills(_actor, controller):
+		var b := Button.new()
+		b.name = "Skill_" + String(skill.id)
+		b.text = skill.label() if skill.mp_cost <= 0 else "%s  %d %s" % [skill.label(), skill.mp_cost, tr("UI_MP")]
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.pressed.connect(_on_skill_pressed.bind(command, skill.id))
+		list.add_child(b)
+		buttons.append(b)
+	if buttons.is_empty():
+		var none := Label.new()
+		none.text = RpgBattleText.t("BATTLE_NO_SKILLS")
+		list.add_child(none)
+		return
+	RpgMenuUtil.wire_vertical(buttons)
+	_mode = &"items"
+	submenu.visible = true
+	buttons[0].grab_focus()
+
+func _on_skill_pressed(command: RpgBattleCommand, skill_id: StringName) -> void:
+	if _mode != &"items":
+		return
+	_hide(_node("ItemSubmenu"))
+	var kind := controller.targets_of(command, skill_id)
+	if kind == RpgBattleCommand.TARGET_SELF or RpgBattleController.aims_at_all(kind):
+		_decide(command, 0, {"skill_id": skill_id})
+		return
+	_begin_target(command, {"skill_id": skill_id}, true)
+
 func _begin_target(command: RpgBattleCommand, extra: Dictionary, from_items: bool) -> void:
-	_candidates = controller.candidates(_actor, command)
+	var skill_id := StringName(str(extra.get("skill_id", "")))
+	_candidates = controller.candidates(_actor, command, skill_id)
 	if _candidates.is_empty():
 		_show_commands()
 		return
-	if command.targets == RpgBattleCommand.TARGET_ONE_ALLY and _candidates.size() == 1:
+	if controller.targets_of(command, skill_id) == RpgBattleCommand.TARGET_ONE_ALLY and _candidates.size() == 1:
 		_decide(command, 0, extra)
 		return
 	_pending = {"command": command, "extra": extra}
@@ -289,7 +345,10 @@ func _target_input(event: InputEvent) -> void:
 		if _from_items:
 			_show_commands()
 			var back_command: RpgBattleCommand = _pending["command"]
-			_show_items(back_command)
+			if back_command.id == &"skill":
+				_show_skills(back_command)
+			else:
+				_show_items(back_command)
 		else:
 			_show_commands()
 	else:

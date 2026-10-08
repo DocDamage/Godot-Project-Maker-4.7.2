@@ -16,6 +16,7 @@ signal entries_resolved(entries: Array)
 signal finished(result: RpgEncounterResult)
 
 const COMMANDS_DIR := "res://game/data/battle_commands"
+const SKILLS_DIR := "res://game/data/skills"
 const HERO_PATH := "res://game/data/actors/hero.tres"
 const COMMAND_ORDER: Array[StringName] = [&"attack", &"defend", &"item", &"skill", &"run"]
 const MAX_ROUNDS := 500  # a runaway guard: a battle that goes on this long is a bug
@@ -40,6 +41,8 @@ var auto_choose: Callable = Callable()
 var party: Array[RpgBattleActor] = []
 var enemies: Array[RpgBattleActor] = []
 var commands: Array[RpgBattleCommand] = []
+## {id: RpgSkillDefinition} from game/data/skills (tests hand theirs over).
+var skills: Dictionary = {}
 var can_escape := true
 var escaped := false
 var state: State = State.INIT
@@ -48,8 +51,9 @@ var history: Array[Dictionary] = []  # every log entry of the battle
 var level_ups: Array[Dictionary] = []  # [{actor, level}] after a victory
 var result: RpgEncounterResult = null
 
-var _choices: Dictionary = {}  # actor -> {command, targets, item_id}
+var _choices: Dictionary = {}  # actor -> {command, targets, item_id, skill_id}
 var _state_node: Node = null
+var _idle: RpgBattleCommand = null  # the "turn" of a battler that cannot act (asleep)
 
 ## Builds the battlers from the encounter data and GameState.
 func setup(p_data: RpgEncounterData, p_rng: RpgRng = null) -> void:
@@ -63,6 +67,8 @@ func setup(p_data: RpgEncounterData, p_rng: RpgRng = null) -> void:
 	can_escape = data.can_escape if data != null else true
 	if commands.is_empty():
 		commands = load_commands()
+	if skills.is_empty():
+		skills = RpgSkillDefinition.load_dir(SKILLS_DIR)
 	party = _build_party()
 	enemies = _build_enemies(data.enemies if data != null else [])
 
@@ -72,6 +78,8 @@ func set_actors(p_party: Array[RpgBattleActor], p_enemies: Array[RpgBattleActor]
 	enemies = p_enemies
 	if commands.is_empty():
 		commands = load_commands()
+	if skills.is_empty():
+		skills = RpgSkillDefinition.load_dir(SKILLS_DIR)
 	if _state_node == null:
 		_state_node = RpgUtil.state()
 	if rng == null:
@@ -123,6 +131,44 @@ func command_by_id(command_id: StringName) -> RpgBattleCommand:
 			return c
 	return null
 
+func skill(skill_id: StringName) -> RpgSkillDefinition:
+	if skill_id == &"" or not skills.has(skill_id):
+		return null
+	var found: RpgSkillDefinition = skills[skill_id]
+	return found
+
+## The skills an actor can choose from: what its definition lists for its level (the player side),
+## or the skills its behavior names (enemies). Unknown ids are left out.
+func skills_of(actor: RpgBattleActor) -> Array[RpgSkillDefinition]:
+	var out: Array[RpgSkillDefinition] = []
+	var ids: Array[StringName] = []
+	if actor.is_player_side:
+		var def := actor.actor_definition()
+		if def != null:
+			ids = def.skills_at(actor.stats.level)
+	else:
+		var weights: Dictionary = actor.behavior.get("turn_based", {})
+		for key: Variant in weights.keys():
+			ids.append(StringName(str(key)))
+		var rules: Array = actor.behavior.get("turn_based_rules", [])
+		for rule: Variant in rules:
+			if rule is Dictionary:
+				var rule_dict: Dictionary = rule
+				ids.append(StringName(str(rule_dict.get("use", ""))))
+	for skill_id in ids:
+		var found := skill(skill_id)
+		if found != null and not out.has(found):
+			out.append(found)
+	return out
+
+## Whom a command aims at: a skill's own `targets`, else the command's.
+func targets_of(command: RpgBattleCommand, skill_id: StringName = &"") -> int:
+	if command != null and command.id == &"skill":
+		var chosen := skill(skill_id)
+		if chosen != null:
+			return chosen.targets
+	return command.targets if command != null else RpgBattleCommand.TARGET_ONE_ENEMY
+
 # ---------------------------------------------------------------- queries used by commands
 
 func opponents_of(actor: RpgBattleActor) -> Array[RpgBattleActor]:
@@ -149,15 +195,18 @@ func inventory_of(actor: RpgBattleActor) -> RpgInventory:
 		return inventory
 	return actor.inventory
 
-## Who a command can be aimed at, for `actor`.
-func candidates(actor: RpgBattleActor, command: RpgBattleCommand) -> Array[RpgBattleActor]:
-	match command.targets:
+## Who a command (with the skill for the skill command) can be aimed at, for `actor`.
+func candidates(actor: RpgBattleActor, command: RpgBattleCommand, skill_id: StringName = &"") -> Array[RpgBattleActor]:
+	match targets_of(command, skill_id):
 		RpgBattleCommand.TARGET_SELF:
 			return _one(actor)
-		RpgBattleCommand.TARGET_ONE_ALLY:
+		RpgBattleCommand.TARGET_ONE_ALLY, RpgBattleCommand.TARGET_ALL_ALLIES:
 			return living(allies_of(actor))
 		_:
 			return living(opponents_of(actor))
+
+static func aims_at_all(kind: int) -> bool:
+	return kind == RpgBattleCommand.TARGET_ALL_ENEMIES or kind == RpgBattleCommand.TARGET_ALL_ALLIES
 
 # ---------------------------------------------------------------- the machine
 
@@ -183,12 +232,17 @@ func run() -> RpgEncounterResult:
 		_choices.clear()
 		_set_state(State.PLAYER_CHOOSE)
 		for a in living(party):
-			_choices[a] = await _choose_player(a)
+			if a.can_act():
+				_choices[a] = await _choose_player(a)
+			else:
+				_choices[a] = _idle_choice(a)
 		_set_state(State.ENEMY_CHOOSE)
 		for a in living(enemies):
-			_choices[a] = _choose_enemy(a)
+			_choices[a] = _choose_enemy(a) if a.can_act() else _idle_choice(a)
 		_set_state(State.EXECUTE)
 		await _execute_round()
+		if not _decided():
+			await _end_round()
 		_set_state(State.CHECK)
 		if living(enemies).is_empty():
 			outcome = RpgEncounterResult.Outcome.VICTORY
@@ -240,40 +294,60 @@ func _choose_player(actor: RpgBattleActor) -> Dictionary:
 		chosen = raw
 	return _sanitize(actor, chosen)
 
-## Turns {command_id, target_index, item_id} into a usable choice. Anything unknown or not
-## allowed becomes a plain attack on the first enemy.
+## Turns {command_id, target_index, item_id, skill_id} into a usable choice. Anything unknown or
+## not allowed (a skill the actor does not know or cannot pay for) becomes a plain attack on the
+## first enemy.
 func _sanitize(actor: RpgBattleActor, raw: Dictionary) -> Dictionary:
 	var command := command_by_id(StringName(str(raw.get("command_id", "attack"))))
+	var skill_id := StringName(str(raw.get("skill_id", "")))
+	if command != null and command.id == &"skill" and not _may_use_skill(actor, command, skill_id):
+		command = null
 	if command == null or not command.can_use(actor, self):
 		command = command_by_id(&"attack")
 		raw = {}
-	var list := candidates(actor, command)
+		skill_id = &""
+	var list := candidates(actor, command, skill_id)
 	var index := clampi(RpgUtil.to_int(raw.get("target_index", 0)), 0, maxi(0, list.size() - 1))
 	var picked: Array[RpgBattleActor] = []
-	if command.targets == RpgBattleCommand.TARGET_ALL_ENEMIES:
+	if aims_at_all(targets_of(command, skill_id)):
 		picked = list
 	elif not list.is_empty():
 		picked = _one(list[index])
-	return {"command": command, "targets": picked, "item_id": StringName(str(raw.get("item_id", "")))}
+	return {"command": command, "targets": picked, "item_id": StringName(str(raw.get("item_id", ""))), "skill_id": skill_id}
 
-## Default enemy AI: heal when below 25% HP and holding a healing item; otherwise roll the weights
-## in behavior.turn_based ({"attack": 1.0, "defend": 0.0}) and aim at a random living player-side actor.
+func _may_use_skill(actor: RpgBattleActor, command: RpgBattleCommand, skill_id: StringName) -> bool:
+	var chosen := skill(skill_id)
+	if chosen == null or not command.has_method("usable_skills"):
+		return false
+	var usable: Array = command.call("usable_skills", actor, self)
+	return usable.has(chosen)
+
+## The turn of a battler that cannot act: it is skipped (and the log says why).
+func _idle_choice(actor: RpgBattleActor) -> Dictionary:
+	if _idle == null:
+		_idle = RpgBattleCommand.new()
+		_idle.id = &"idle"
+	return {"command": _idle, "targets": _one(actor), "item_id": &"", "skill_id": &""}
+
+## Enemy AI: the rules of behavior.turn_based_rules first (RpgBattleAi); then heal when below 25%
+## HP and holding a healing item; otherwise roll the weights in behavior.turn_based
+## ({"attack": 1.0, "defend": 0.0}; a key may be a skill id) and aim at a random living
+## player-side actor. What the actor cannot do (a skill without the MP) becomes an attack.
 func _choose_enemy(actor: RpgBattleActor) -> Dictionary:
+	var scripted := RpgBattleAi.from_rules(actor, self)
+	if not scripted.is_empty():
+		return scripted
 	var item_id := _heal_item(actor)
 	if item_id != &"" and float(actor.stats.hp) < float(actor.stats.max_hp) * HEAL_BELOW:
-		return {"command": command_by_id(&"item"), "targets": _one(actor), "item_id": item_id}
+		return {"command": command_by_id(&"item"), "targets": _one(actor), "item_id": item_id, "skill_id": &""}
 	var weights: Dictionary = actor.behavior.get("turn_based", {"attack": 1.0, "defend": 0.0})
-	var command := command_by_id(_roll_weighted(weights))
-	if command == null or command.id == &"item" or command.id == &"run" or not command.can_use(actor, self):
-		command = command_by_id(&"attack")
-	var picked: Array[RpgBattleActor] = []
-	if command.targets == RpgBattleCommand.TARGET_SELF:
-		picked = _one(actor)
-	else:
-		var target: RpgBattleActor = rng.pick(candidates(actor, command))
-		if target != null:
-			picked = _one(target)
-	return {"command": command, "targets": picked, "item_id": &""}
+	var choice := RpgBattleAi.plan(actor, self, _roll_weighted(weights), "random")
+	if choice.is_empty():
+		choice = RpgBattleAi.plan(actor, self, &"attack", "random")
+	if choice.is_empty():
+		var nobody: Array[RpgBattleActor] = []
+		choice = {"command": command_by_id(&"attack"), "targets": nobody, "item_id": &"", "skill_id": &""}
+	return choice
 
 func _roll_weighted(weights: Dictionary) -> StringName:
 	var keys: Array = weights.keys()
@@ -311,25 +385,48 @@ func _execute_round() -> void:
 		if not actor.alive:
 			continue
 		var choice: Dictionary = _choices[actor]
-		var command: RpgBattleCommand = choice["command"]
-		var chosen: Array[RpgBattleActor] = choice["targets"]
-		var targets := _live_targets(actor, command, chosen)
-		actor.chosen_item = choice["item_id"]
-		var log_entries := command.execute(actor, targets, self)
-		actor.chosen_item = &""
-		history.append_array(log_entries)
-		entries_resolved.emit(log_entries)
-		if ui != null and not _auto_active():
-			await ui.show_log(log_entries)
+		var log_entries: Array[Dictionary] = []
+		if not actor.can_act():
+			log_entries.append(RpgBattleCommand.entry("text", RpgBattleText.t("BATTLE_ASLEEP", [actor.display_name]), actor))
+		else:
+			var command: RpgBattleCommand = choice["command"]
+			var chosen: Array[RpgBattleActor] = choice["targets"]
+			var skill_id: StringName = choice.get("skill_id", &"")
+			var targets := _live_targets(actor, command, chosen, skill_id)
+			actor.chosen_item = choice["item_id"]
+			actor.chosen_skill = skill_id
+			log_entries = command.execute(actor, targets, self)
+			actor.chosen_item = &""
+			actor.chosen_skill = &""
+		await _log(log_entries)
 		if _decided():
 			break
 
-## The chosen targets that still stand; when none does, the first living candidate takes over.
-func _live_targets(actor: RpgBattleActor, command: RpgBattleCommand, chosen: Array[RpgBattleActor]) -> Array[RpgBattleActor]:
+## Poison and regen, and the statuses count a round down, for everyone still standing.
+func _end_round() -> void:
+	for actor: RpgBattleActor in living(party) + living(enemies):
+		var log_entries := RpgBattleEffects.end_of_round(actor)
+		if not log_entries.is_empty():
+			await _log(log_entries)
+		if _decided():
+			return
+
+func _log(log_entries: Array[Dictionary]) -> void:
+	history.append_array(log_entries)
+	entries_resolved.emit(log_entries)
+	if ui != null and not _auto_active():
+		await ui.show_log(log_entries)
+
+## The chosen targets that still stand; when none does, the first living candidate takes over (all
+## of them for a command that aims at a whole side).
+func _live_targets(actor: RpgBattleActor, command: RpgBattleCommand, chosen: Array[RpgBattleActor], skill_id: StringName = &"") -> Array[RpgBattleActor]:
 	var out := living(chosen)
-	if out.is_empty() and command.targets != RpgBattleCommand.TARGET_SELF:
-		var fallback := candidates(actor, command)
-		if not fallback.is_empty():
+	var kind := targets_of(command, skill_id)
+	if out.is_empty() and kind != RpgBattleCommand.TARGET_SELF:
+		var fallback := candidates(actor, command, skill_id)
+		if aims_at_all(kind):
+			out = fallback
+		elif not fallback.is_empty():
 			out = _one(fallback[0])
 	return out
 
@@ -394,6 +491,7 @@ func _build_party() -> Array[RpgBattleActor]:
 	var game := RpgUtil.state()
 	var player := RpgBattleActor.make(player_id, hero_name, player_stats, true)
 	if hero != null:
+		player.definition = hero
 		player.sprite_frames = hero.sprite_frames
 		player.portrait = hero.portrait
 	out.append(player)
@@ -406,6 +504,7 @@ func _build_party() -> Array[RpgBattleActor]:
 		var member_actor := RpgBattleActor.make(member_id, game.actor_name(member_id) if game != null else String(member_id).capitalize(), member_stats, true)
 		var member_def: RpgActorDefinition = game.actor_definition(member_id) if game != null else null
 		if member_def != null:
+			member_actor.definition = member_def
 			member_actor.sprite_frames = member_def.sprite_frames
 			member_actor.portrait = member_def.portrait
 		out.append(member_actor)
