@@ -1028,6 +1028,14 @@ class ProjectPage(WizardPage):
             self._loading = False
         self._start_check()
         self._refresh_cheap()
+        self._take_focus_request(state)
+
+    def _take_focus_request(self, state: WizardState) -> None:
+        """A one-click fix on Results points at a button of this page: focus it."""
+        name, state.project_focus = state.project_focus, ""
+        widget = self.findChild(QPushButton, name) if name else None
+        if widget is not None and widget.isEnabled():
+            widget.setFocus()
 
     def ask_resume(self) -> bool:
         """Ask whether to continue the saved session of this output folder."""

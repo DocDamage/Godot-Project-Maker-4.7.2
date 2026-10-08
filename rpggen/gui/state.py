@@ -36,6 +36,8 @@ class WizardState:
     pack_updates: dict[str, str] = field(default_factory=dict)  # new source -> pack_id it updates
     git_commit: bool | None = None  # init a repository / commit; None = the default
     force_while_open: bool = False  # regenerate although a Godot editor seems to be open
+    accept_runtime_upgrade: bool = False  # the next run may move to a new major runtime
+    project_focus: str = ""  # a fix points the Project page at this widget (object name)
 
 
 def draft_path(target: Path) -> Path:

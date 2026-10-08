@@ -151,7 +151,18 @@ def test_generate_runs_the_worker_and_shows_progress(qtbot, tmp_path, monkeypatc
     state = _state(tmp_path)
     seen: dict = {}
 
-    def fake(cfg, cat, target, godot, placeholders, git_message=None, force=False, *, callbacks):
+    def fake(
+        cfg,
+        cat,
+        target,
+        godot,
+        placeholders,
+        git_message=None,
+        force=False,
+        accept=False,
+        *,
+        callbacks,
+    ):
         seen["args"] = (cfg, cat, target, godot, placeholders)
         seen["extra"] = (git_message, force)
         for i, name in enumerate(PHASES, start=1):
@@ -210,7 +221,18 @@ def test_a_crashing_worker_becomes_a_gui_error(qtbot, tmp_path, monkeypatch) -> 
 def test_cancel_stops_without_a_result(qtbot, tmp_path, monkeypatch) -> None:
     state = _state(tmp_path)
 
-    def slow(cfg, cat, target, godot, placeholders, git_message=None, force=False, *, callbacks):
+    def slow(
+        cfg,
+        cat,
+        target,
+        godot,
+        placeholders,
+        git_message=None,
+        force=False,
+        accept=False,
+        *,
+        callbacks,
+    ):
         callbacks.on_phase(PHASES[0], 1, len(PHASES))
         deadline = time.time() + 5
         while not callbacks.is_cancelled() and time.time() < deadline:
@@ -351,7 +373,18 @@ def test_the_generate_page_shows_what_the_running_phase_is_doing(
 ) -> None:
     state = _state(tmp_path)
 
-    def fake(cfg, cat, target, godot, placeholders, git_message=None, force=False, *, callbacks):
+    def fake(
+        cfg,
+        cat,
+        target,
+        godot,
+        placeholders,
+        git_message=None,
+        force=False,
+        accept=False,
+        *,
+        callbacks,
+    ):
         callbacks.on_phase("build", 6, len(PHASES))
         callbacks.on_step("build", 7, 31, "tileset")
         callbacks.on_log("[godot] one\n[godot] two")

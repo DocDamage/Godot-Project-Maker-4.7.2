@@ -138,6 +138,8 @@ class MainWindow(WindowMenus, QMainWindow):
                 page.changeOptions.connect(self.change_options)  # type: ignore[attr-defined]
                 page.goToProject.connect(lambda: self.show_page(0))  # type: ignore[attr-defined]
                 page.showAssets.connect(self.show_assets_in_audit)  # type: ignore[attr-defined]
+                page.generateAgain.connect(self.generate_again)  # type: ignore[attr-defined]
+                page.showHelp.connect(self.show_user_guide)  # type: ignore[attr-defined]
             focus_signal = getattr(page, "focus_next", None)
             if focus_signal is not None:  # a page that is finished points at the Next button
                 focus_signal.connect(lambda: self.next_button.setFocus())  # type: ignore[has-type]
@@ -225,6 +227,10 @@ class MainWindow(WindowMenus, QMainWindow):
         audit = self.pages[AUDIT_INDEX]
         if hasattr(audit, "show_assets"):
             audit.show_assets(set(asset_ids))
+
+    def generate_again(self) -> None:
+        """A one-click fix changed the state: generate again (the page starts on entry)."""
+        self.show_page(OPTIONS_INDEX + 1)
 
     def change_options(self) -> None:
         """Results > Change options and regenerate: back to Options on the project that exists

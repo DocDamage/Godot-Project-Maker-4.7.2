@@ -304,6 +304,7 @@ class GeneratePage(WizardPage):
             sorted(state.placeholders),
             self.git_message(),
             state.force_while_open,
+            state.accept_runtime_upgrade,
         )
         worker.signals.progress.connect(self._on_progress)
         worker.signals.log.connect(self.log_view.append_line)  # a batch may hold many lines
@@ -418,6 +419,8 @@ class GeneratePage(WizardPage):
         self.worker = None
 
     def _on_finished(self, result: orchestrator.RunResult) -> None:
+        if self.state is not None:
+            self.state.accept_runtime_upgrade = False  # one run only
         self._stop_running()
         if self.cancelled:
             self._show_cancelled()

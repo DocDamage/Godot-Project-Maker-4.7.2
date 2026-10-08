@@ -342,6 +342,7 @@ def generate(
     placeholders: list[str],
     git_message: str | None = None,
     force_while_open: bool = False,
+    accept_runtime_upgrade: bool = False,
     *,
     callbacks: Callbacks,
 ) -> orchestrator.RunResult:
@@ -355,4 +356,5 @@ def generate(
         placeholders=placeholders,
         force_while_open=force_while_open,
         git_message=git_message,
+        accept_runtime_upgrade=accept_runtime_upgrade,
     )

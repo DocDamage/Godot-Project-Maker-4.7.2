@@ -87,7 +87,18 @@ def test_every_phase_has_a_plain_label_and_the_page_shows_durations(
     assert set(PHASE_LABELS) == set(PHASES)
     state = _state(tmp_path)
 
-    def quick(cfg, cat, target, godot, placeholders, git_message=None, force=False, *, callbacks):
+    def quick(
+        cfg,
+        cat,
+        target,
+        godot,
+        placeholders,
+        git_message=None,
+        force=False,
+        accept=False,
+        *,
+        callbacks,
+    ):
         for i, name in enumerate(PHASES, start=1):
             callbacks.on_phase(name, i, len(PHASES))
             time.sleep(0.002)
@@ -289,3 +300,137 @@ def test_show_these_assets_switches_to_audit_filtered(qtbot, tmp_path: Path) -> 
     assert grid.proxy.rowCount() == 2
     grid.chips["chipAll"].click()  # any other chip puts the usual filters back
     assert grid.proxy.only_ids is None
+
+
+# ------------------------------------------------------------------------ T12.41
+
+
+class _Nav:
+    def __init__(self) -> None:
+        self.calls: list[object] = []
+
+    def go_to_project(self) -> None:
+        self.calls.append("project")
+
+    def generate_again(self) -> None:
+        self.calls.append("generate")
+
+    def show_help(self, anchor: str) -> None:
+        self.calls.append(("help", anchor))
+
+    def open_folder(self) -> None:
+        self.calls.append("folder")
+
+
+def _issue(code: str, severity: Severity = Severity.ERROR, **detail) -> Issue:  # type: ignore[no-untyped-def]
+    return Issue(code, severity, f"{code} happened.", "Fix it.", detail=detail)
+
+
+def test_only_registered_codes_get_buttons() -> None:
+    from rpggen.gui import fixes
+
+    assert set(fixes.FIXES) == {
+        "ENV-001",
+        "ENV-002",
+        "ENV-009",
+        "ENV-010",
+        "ASSET-010",
+        "REGEN-006",
+        "REGEN-001",
+    }
+    assert [f.label for f in fixes.fixes_for("ENV-001")] == [
+        "Download Godot 4.7.2",
+        "Choose Godot…",
+    ]
+    assert fixes.fixes_for("BUILD-002") == () and fixes.fixes_for("") == ()
+
+
+def test_each_action_leaves_the_expected_state(tmp_path: Path) -> None:
+    from rpggen.gui import fixes
+
+    state = _state(tmp_path)
+    nav = _Nav()
+    download, choose = fixes.fixes_for("ENV-002")
+    assert fixes.apply(download, _issue("ENV-002"), state, nav)
+    assert state.project_focus == "downloadGodotButton" and nav.calls == ["project"]
+    assert fixes.apply(choose, _issue("ENV-001"), state, nav)
+    assert state.project_focus == "browseGodotButton"
+    (output,) = fixes.fixes_for("ENV-009")
+    fixes.apply(output, _issue("ENV-009"), state, nav)
+    assert state.project_focus == "browseTargetButton"
+    (templates,) = fixes.fixes_for("ENV-010")
+    fixes.apply(templates, _issue("ENV-010"), state, nav)
+    assert nav.calls[-1] == ("help", fixes.EXPORT_HELP_ANCHOR)
+    ok = _ok_result(tmp_path)
+    state.run_result = ok
+    (placeholder,) = fixes.fixes_for("ASSET-010")
+    assert not fixes.apply(placeholder, _issue("ASSET-010"), state, nav)  # no role: no action
+    assert state.run_result is not None
+    assert fixes.apply(placeholder, _issue("ASSET-010", role="PLAYER"), state, nav)
+    assert state.placeholders == {"PLAYER"} and state.run_result is None
+    assert nav.calls[-1] == "generate"
+    state.run_result = ok
+    (upgrade,) = fixes.fixes_for("REGEN-006")
+    fixes.apply(upgrade, _issue("REGEN-006"), state, nav)
+    assert state.accept_runtime_upgrade is True and state.run_result is None
+    (conflicts,) = fixes.fixes_for("REGEN-001")
+    fixes.apply(conflicts, _issue("REGEN-001"), state, nav)
+    assert nav.calls[-1] == "folder"
+
+
+def test_the_results_row_shows_buttons_only_for_registered_codes(qtbot, tmp_path: Path) -> None:
+    state = _state(tmp_path)
+    state.run_result = _fail_result(tmp_path)
+    state.run_result.issues = [
+        _issue("ASSET-010", role="PLAYER"),
+        _issue("BUILD-002"),
+    ]
+    page = _results(qtbot, state)
+    page.issue_list.setCurrentRow(0)
+    assert [b.objectName() for b in page.fix_buttons] == ["fix_use_placeholder"]
+    assert not page.fix_box.isHidden()
+    page.issue_list.setCurrentRow(1)
+    assert page.fix_buttons == [] and page.fix_box.isHidden()
+    page.issue_list.setCurrentRow(0)
+    again: list[bool] = []
+    page.generateAgain.connect(lambda: again.append(True))
+    page.fix_buttons[0].click()
+    assert state.placeholders == {"PLAYER"} and again == [True]
+
+
+def test_a_note_offers_its_fix_too_and_regen_001_opens_the_folder(qtbot, tmp_path: Path) -> None:
+    note = _issue("ENV-010", Severity.INFO)
+    conflict = _issue("REGEN-001", Severity.WARNING, file="generated/x.tres")
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path, [note, conflict])
+    page = _results(qtbot, state)
+    helps: list[str] = []
+    page.showHelp.connect(helps.append)
+    page.notes_list.setCurrentRow(0)
+    assert [b.objectName() for b in page.fix_buttons] == ["fix_export_help"]
+    page.fix_buttons[0].click()
+    assert helps == ["1. Install"]
+    page.issue_list.setCurrentRow(0)
+    opened: list[Path] = []
+    page.open_path = opened.append  # type: ignore[method-assign]
+    page.fix_buttons[0].click()
+    assert opened == [state.run_result.target]
+
+
+def test_the_wizard_runs_the_generation_again_after_a_fix(qtbot, tmp_path: Path) -> None:
+    from rpggen.gui.wizard import OPTIONS_INDEX, MainWindow, default_pages
+
+    state = _state(tmp_path)
+    state.run_result = _fail_result(tmp_path)
+    state.run_result.issues = [_issue("REGEN-006")]
+    window = MainWindow(state, default_pages())
+    qtbot.addWidget(window)
+    window.show()
+    started: list[bool] = []
+    window.pages[OPTIONS_INDEX + 1].start = lambda: started.append(True)  # type: ignore[method-assign]
+    window.show_page(6)
+    results = window.current_page
+    results.issue_list.setCurrentRow(0)
+    results.fix_buttons[0].click()
+    assert window.current_index == OPTIONS_INDEX + 1 and started == [True]
+    assert state.accept_runtime_upgrade is True

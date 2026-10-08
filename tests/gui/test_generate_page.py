@@ -45,7 +45,18 @@ def _skipping_run(tmp_path, monkeypatch, code="ENV-010", phase="export"):
     state = _state(tmp_path)
     info = CODES[code]
 
-    def fake(cfg, cat, target, godot, placeholders, git_message=None, force=False, *, callbacks):
+    def fake(
+        cfg,
+        cat,
+        target,
+        godot,
+        placeholders,
+        git_message=None,
+        force=False,
+        accept=False,
+        *,
+        callbacks,
+    ):
         for i, name in enumerate(PHASES, start=1):
             callbacks.on_phase(name, i, len(PHASES))
             if name == phase:

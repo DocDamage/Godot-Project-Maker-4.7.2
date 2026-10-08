@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import godot, orchestrator, promote, report
 from rpggen.errors import Issue, RpgGenError, Severity
+from rpggen.gui import fixes
 from rpggen.gui.dialogs import diagnostic_export, error_lookup
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
@@ -110,6 +111,8 @@ class ResultsPage(WizardPage):
     generateAnother = Signal()  # noqa: N815
     changeOptions = Signal()  # noqa: N815
     goToProject = Signal()  # noqa: N815
+    generateAgain = Signal()  # noqa: N815 - a one-click fix: run the generation again
+    showHelp = Signal(str)  # noqa: N815 - a help anchor
     showAssets = Signal(list)  # noqa: N815 - asset ids: switch to Audit, filtered to them
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -215,6 +218,14 @@ class ResultsPage(WizardPage):
         group_row.addWidget(self.show_assets_button)
         group_row.addStretch(1)
         layout.addLayout(group_row)
+        self.fix_box = QWidget()  # the one-click fixes of the selected issue
+        self.fix_box.setObjectName("fixButtons")
+        self.fix_row = QHBoxLayout(self.fix_box)
+        self.fix_row.setContentsMargins(0, 0, 0, 0)
+        self.fix_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.fix_box.setVisible(False)
+        self.fix_buttons: list[QPushButton] = []
+        layout.addWidget(self.fix_box)
         self.fix_label = QLabel()
         self.fix_label.setObjectName("fixText")
         self.fix_label.setWordWrap(True)
@@ -231,6 +242,7 @@ class ResultsPage(WizardPage):
         self.notes_list.setToolTip(self.tr("Things that were left out or only worth knowing"))
         self.notes_list.setMaximumHeight(130)
         notes_layout.addWidget(self.notes_list)
+        self.notes_list.currentRowChanged.connect(self._on_note_selected)
         layout.addWidget(self.notes)
 
         buttons = QHBoxLayout()
@@ -517,7 +529,59 @@ class ResultsPage(WizardPage):
         self.logs_button.setVisible(True)
         self.logs_button.setEnabled(has_folder)
 
+    # ------------------------------------------------------------------ one-click fixes
+
+    def show_fixes(self, issue: Issue | None) -> None:
+        """The buttons of ``issue``'s code (none for a code that is not registered)."""
+        for button in self.fix_buttons:
+            self.fix_row.removeWidget(button)
+            button.deleteLater()
+        self.fix_buttons = []
+        self.shown_fix_issue = issue
+        if issue is not None:
+            for fix in fixes.fixes_for(issue.code):
+                button = QPushButton(self.tr(fix.label))
+                button.setObjectName(f"fix_{fix.action}")
+                button.clicked.connect(lambda _=False, f=fix, i=issue: self.apply_fix(f, i))
+                self.fix_row.addWidget(button)
+                self.fix_buttons.append(button)
+        self.fix_box.setVisible(bool(self.fix_buttons))
+
+    def apply_fix(self, fix: fixes.Fix, issue: Issue) -> bool:
+        assert self.state is not None
+        return fixes.apply(fix, issue, self.state, self._navigation())
+
+    def _navigation(self) -> fixes.Navigation:
+        page = self
+
+        class Nav:
+            def go_to_project(self) -> None:
+                page.goToProject.emit()
+
+            def generate_again(self) -> None:
+                page.generateAgain.emit()
+
+            def show_help(self, anchor: str) -> None:
+                page.showHelp.emit(anchor)
+
+            def open_folder(self) -> None:
+                if page.result is not None:
+                    page.open_path(page.result.target)
+
+        return Nav()
+
+    shown_fix_issue: Issue | None = None
+
+    def _on_note_selected(self, row: int) -> None:
+        notes = [
+            i for i in (self.result.issues if self.result else []) if i.severity is Severity.INFO
+        ]
+        skipped = set(self.result.skipped.values()) if self.result else set()
+        notes.sort(key=lambda i: i.code not in skipped)
+        self.show_fixes(notes[row] if 0 <= row < len(notes) else None)
+
     def _on_issue_selected(self, row: int) -> None:
+        self.show_fixes(self.shown_issues[row] if 0 <= row < len(self.shown_issues) else None)
         self.group_detail.clear()
         self.group_detail.setVisible(False)
         self.show_assets_button.setVisible(False)
