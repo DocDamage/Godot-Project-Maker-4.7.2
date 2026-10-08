@@ -5,6 +5,7 @@ extends Node
 # World
 signal map_entered(map_id: StringName)
 signal entity_state_changed(entity_id: String, key: String, value: Variant)
+signal variable_changed(var_name: StringName, value: int)
 # Interaction
 signal interaction_started(target: Node)
 signal interaction_finished(target: Node)
@@ -12,6 +13,10 @@ signal interaction_finished(target: Node)
 signal dialogue_started(resource: Resource)
 signal dialogue_finished(resource: Resource)
 signal dialogue_event(name: String, arg: String)
+# Sequences (cutscenes)
+signal sequence_requested(sequence_id: StringName)
+signal sequence_started(sequence_id: StringName)
+signal sequence_finished(sequence_id: StringName)
 # Items / economy
 signal item_added(item_id: StringName, qty: int)
 signal item_removed(item_id: StringName, qty: int)
@@ -35,6 +40,8 @@ signal game_paused(paused: bool)
 # Feedback (sound and effects listen to these; nothing in the game state depends on them)
 signal chest_opened(entity_id: String)
 signal door_used(entity_id: String)
+signal switch_toggled(entity_id: String, on: bool)
+signal gate_changed(entity_id: String, open: bool)
 signal attack_started(actor: Node)
 # Save
 signal game_saved(slot: int)

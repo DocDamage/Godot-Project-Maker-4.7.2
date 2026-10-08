@@ -130,6 +130,9 @@
 | VAL-020 | error | Sound slot {slot} points at {path}, which does not load. | Assign another sound in Mapping, or restore the file. |
 | VAL-021 | info | The smoke test is turned off in the config; the game was not played. | Set validation.smoke_test to true. |
 | VAL-022 | info | The export check is turned off in the config; the project was not test-exported. | Set validation.export_check to true. |
+| VAL-023 | warning | Sequence problem in {file}: {problem}. | Fix the command in the sequence resource (the command list is in the runtime README, "Sequences"). |
+| VAL-024 | warning | Encounter zone {node} in {file}: {problem}. | Set a table on the zone, or fix the enemy ids in the table. |
+| VAL-025 | warning | {node} in {file}: {problem}. | Fix the gate, switch or door in the Inspector (key item, condition, entity id). |
 
 ## Smoke test (SMOKE)
 

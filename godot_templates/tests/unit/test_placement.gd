@@ -121,3 +121,72 @@ func test_a_detached_instance_is_planned_at_the_world_position(t) -> void:
 	t.eq(plan["position"], Vector2(40, 56), "52 / 8 = 6.5 rounds up")
 	inst.free()
 	root.free()
+
+# ---------------------------------------------------------------- trigger areas (T12.54)
+
+func test_a_trigger_plan_numbers_the_id_and_names_the_sequence_file(t) -> void:
+	var root := Maps.map("town")
+	var triggers := Node2D.new()
+	triggers.name = "Triggers"
+	root.add_child(triggers)
+	var old := RpgTriggerArea.new()
+	old.entity_id = "town_trigger_002"
+	triggers.add_child(old)
+	var plan := Placement.plan_trigger(root, Vector2(37, 21), 16, 16, true, "user://seq_test")
+	t.eq(plan["parent"], triggers, "triggers go under the map's Triggers node")
+	t.eq(plan["entity_id"], "town_trigger_003")
+	t.eq(plan["sequence_path"], "user://seq_test/town_trigger_003.tres")
+	t.eq(plan["position"], Vector2(32, 16), "snapped to the tile grid")
+	var area := Placement.build_trigger(plan)
+	t.ok(area is RpgTriggerArea)
+	t.eq(area.get("sequence_id"), &"town_trigger_003")
+	t.ok(area.get("on_interact"))
+	t.eq(((area.get_node("Shape") as CollisionShape2D).shape as RectangleShape2D).size, Vector2(16, 16))
+	t.eq(Placement.make_sequence_file("user://seq_test/town_trigger_003.tres", "town_trigger_003"), OK)
+	var made := load("user://seq_test/town_trigger_003.tres") as RpgSequence
+	t.ok(made != null and made.id == &"town_trigger_003" and made.problems().is_empty(), "an empty but valid sequence")
+	DirAccess.remove_absolute("user://seq_test/town_trigger_003.tres")
+	area.free()
+	root.free()
+
+# ---------------------------------------------------------------- encounter zones (T12.53)
+
+func test_a_zone_plan_covers_the_selection_and_lists_the_enemies(t) -> void:
+	var root := Maps.map("field")
+	DirAccess.make_dir_recursive_absolute("user://zone_test/enemies")
+	for id: String in ["slime", "bat"]:
+		var def := RpgEnemyDefinition.new()
+		def.id = StringName(id)
+		ResourceSaver.save(def, "user://zone_test/enemies/%s.tres" % id)
+	var a := Node2D.new()
+	a.position = Vector2(100, 100)
+	var b := Node2D.new()
+	b.position = Vector2(110, 104)
+	root.add_child(a)
+	root.add_child(b)
+	var plan := Placement.plan_zone(root, [a, b], Vector2.ZERO, 16, "user://zone_test/enemies", "user://zone_test/encounters")
+	var poly: PackedVector2Array = plan["polygon"]
+	t.eq(poly.size(), 4)
+	t.eq(poly[0], Vector2(81, 78), "at least 3 tiles wide and high, centred on the selection")
+	t.eq(poly[2], Vector2(129, 126))
+	t.eq(plan["table_id"], "field_zone_1")
+	t.eq(plan["enemies"], ["bat", "slime"] as Array[String], "every enemy, sorted")
+	var table := Placement.make_table_file(plan)
+	t.ok(table is RpgEncounterTable)
+	t.eq((table as RpgEncounterTable).groups.size(), 2)
+	var zone := Placement.build_zone(plan, table)
+	t.ok(zone is RpgEncounterZone)
+	t.ok((zone as RpgEncounterZone).contains(Vector2(105, 102)))
+	zone.free()
+	var nothing := Placement.plan_zone(root, [], Vector2(160, 160), 16, "user://zone_test/enemies", "user://zone_test/encounters")
+	var square: PackedVector2Array = nothing["polygon"]
+	t.eq(square[0], Vector2(112, 112), "6x6 tiles around the view centre")
+	t.eq(nothing["table_id"], "field_zone_2", "the first table file exists, so the next number")
+	var layer := TileMapLayer.new()
+	layer.name = "Encounters"
+	root.add_child(layer)
+	var cells := Placement.plan_zone(root, [layer], Vector2.ZERO, 16, "user://zone_test/enemies", "user://zone_test/encounters")
+	t.eq(cells["cells_layer"], NodePath("../Encounters"))
+	t.eq((cells["polygon"] as PackedVector2Array).size(), 0)
+	Maps.remove_tree("user://zone_test")
+	root.free()

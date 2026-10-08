@@ -39,6 +39,9 @@ M6_STEPS = [
     "shop_buy_sell",
     "quest_journal",
     "party_members",
+    "followers_trail",
+    "sequence_plays",
+    "keys_and_switches",
     "mutate_then_load",
     "pause_menu",
 ]

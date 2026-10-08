@@ -1,7 +1,8 @@
 class_name RpgTurnBasedMode
 extends RpgCombatMode
 ## The turn-based archetype's combat mode: pushes the battle scene, takes the result back to the
-## overworld and applies what it means (defeated enemy, escape grace, defeat policy).
+## overworld and applies what it means (defeated enemy, escape grace, defeat policy). It also
+## counts the player's steps in encounter zones and starts the random battles (RpgEncounterSteps).
 
 const BATTLE_SCENE := "res://generated/scenes/battle/battle.tscn"
 const ESCAPE_GRACE_S := 1.5
@@ -11,6 +12,9 @@ var battle_scene_path: String = BATTLE_SCENE
 ## auto_choose.call(actor, battle) and returns {command_id, target_index}.
 var auto_choose: Callable = Callable()
 
+## The step counter of the random encounters.
+var steps := RpgEncounterSteps.new()
+
 var _in_combat := false
 var _active: RpgEncounterData = null
 
@@ -18,6 +22,44 @@ func _ready() -> void:
 	var bus := RpgUtil.events()
 	if bus != null:
 		bus.encounter_finished.connect(_on_pop_finished)
+		bus.map_entered.connect(_on_map_entered)
+
+func _on_map_entered(_map_id: StringName) -> void:
+	steps.reset()
+
+func _physics_process(_delta: float) -> void:
+	count_steps()
+
+## Counts the tiles the player walked since the last frame; a step in an encounter zone may start a
+## random battle. Nothing is counted during a battle, a map change or a sequence.
+func count_steps() -> void:
+	var router := RpgUtil.router()
+	var state := RpgUtil.state()
+	if _in_combat or router == null or state == null or router.is_busy() or router.current_map == null or RpgSequenceRunner.running():
+		steps.reset()
+		return
+	var player := _player_of(router)
+	if player == null:
+		return
+	steps.tile_px = RpgEncounterSteps.tile_of(router.current_map)
+	var at := RpgUtil.world_position(player)
+	for i in steps.walk(at):
+		var zone := steps.step(router.current_map, at, state.rng)
+		if zone != null:
+			start_random_encounter(zone)
+			return
+
+## Starts a battle with a group drawn from the zone's table. False when none could start.
+func start_random_encounter(zone: RpgEncounterZone) -> bool:
+	var state := RpgUtil.state()
+	if zone == null or zone.table == null or state == null:
+		return false
+	var index := zone.table.pick(state.rng)
+	var data := zone.table.encounter_for(index)
+	if data.enemies.is_empty():
+		return false
+	start_encounter(data)
+	return _in_combat
 
 func is_in_combat() -> bool:
 	return _in_combat
@@ -83,6 +125,8 @@ func _on_pop_finished(result: Resource) -> void:
 			await _apply_defeat()
 	_active = null
 	_in_combat = false
+	steps.grace_steps = RpgEncounterSteps.GRACE_STEPS
+	steps.reset()
 	encounter_finished.emit(res)
 
 func _enemy_defeated(entity_id: String) -> void:

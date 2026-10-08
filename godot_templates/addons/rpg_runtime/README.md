@@ -21,20 +21,56 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 | `quest_active:<id>` / `quest_done:<id>` | the quest is under way / finished |
 | `quest_stage:<id>:<stage>` | the quest is at that stage |
 | `party:<actor id>` | the character is in the party (the player always is) |
+| `var:<name><op><N>` | the variable compares so with N; `op` is `>=`, `<=`, `==`, `!=`, `>` or `<` (a variable never set is 0) |
 
 ## Dialogue events
 
 `set_flag:<entity>.<key>=<value>`, `give_item:<id>[:qty]`, `take_item:<id>[:qty]`, `give_gold:N`,
 `set_quest:<id>=<state>`, `quest_start:<id>`, `quest_stage:<id>:<stage>`, `quest_complete:<id>`,
 `join_party:<actor id>` / `leave_party:<actor id>` (turn-based; see below), `heal_full` (the whole party), `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
-dialogue closes) and `emit:<name>[:arg]` (sent as `Events.dialogue_event`).
+dialogue closes), `set_var:<name>=<N>`, `add_var:<name>:<N>` (N may be negative),
+`run_sequence:<id>` (plays `game/data/sequences/<id>.tres` once the dialogue has closed) and
+`emit:<name>[:arg]` (sent as `Events.dialogue_event`).
+
+## Sequences
+
+A sequence is a cutscene: an `RpgSequence` resource (`game/data/sequences/<id>.tres`) whose
+`commands` are Dictionaries such as `{"cmd": "move_actor", "entity": "town_npc_001", "tiles": [2, 0]}`.
+`entity` is an `entity_id` of the current map, or `player`; distances are in tiles of the map.
+The full command list with every argument is at the top of `events/sequence.gd`; in short:
+
+| Commands | What they do |
+| --- | --- |
+| `move_actor`, `face`, `animate` | walk a character (x first, then y; walls do not stop it), turn it, hold an animation |
+| `wait`, `fade_out`, `fade_in`, `shake` | timing and the screen (the shake follows Settings > Screen shake) |
+| `camera_pan`, `camera_lock`, `camera_unlock` | move the camera away from the player and back; keep it still |
+| `show_dialogue`, `play_sound` | a dialogue file or lines written into the command; a sound slot |
+| `give_item`, `take_item`, `set_flag`, `set_var`, `add_var`, `event` | change the game (`event` takes any dialogue event) |
+| `start_battle`, `change_map` | a battle with enemies from `game/data/enemies/` (a defeat ends the sequence); another map |
+| `label`, `goto`, `if` / `else`, `call`, `end` | flow: jump on a condition, run another sequence and come back |
+| `wait_for` | wait for a character (or everything) started with `"wait": false` |
+
+Characters, fades, pans and shakes started with `"wait": false` run in the background while the
+next commands go on, so two characters can walk at once. While a sequence plays, the player
+cannot move or open the pause menu, autosave waits and enemies hold still. When it ends,
+the screen, the camera and every held animation are put back. A sequence marked `skippable` is
+skipped with cancel. The same sequence always plays the same way (it advances with the physics
+frames).
+
+Start one with an `RpgTriggerArea` (dock: Project > *Add trigger area*): a walk-in or interact
+area that runs `sequence_id` (or a sequence kept in the map in its `sequence` property), with
+`once` remembered by the flag `<entity_id>.triggered` and an optional `condition`. The dialogue
+event `run_sequence:<id>` and `RpgSequenceRunner.instance().run(sequence)` start one too; a second
+one waits until the first has finished. The project validator reports unknown commands, missing
+arguments and labels, and sequences, dialogues, enemies or maps that do not exist (VAL-023).
 
 ## Party members (turn-based)
 
 `join_party:<id>` adds the character defined in `game/data/actors/<id>.tres` (an
 `RpgActorDefinition`: name, sprite frames, portrait, starting stats); `leave_party:<id>` takes them
 out again and returns what they wore to the inventory. The party holds at most 4 characters, the
-player included. In battle every member picks a command in party order, ally-targeted commands
+player included. On the map the members walk behind the player, one tile apart along the player's
+path (`RpgFollowers`, pictures without a body; boot's `followers` export turns them off). In battle every member picks a command in party order, ally-targeted commands
 (items) can be aimed at any standing member, and experience is shared: each member who is standing
 at the end gets the full amount. A member who fell is back on their feet with 1 HP when the battle
 is over. The status menu pages through the members (left / right, or its first button), and each
@@ -96,9 +132,19 @@ Tests and the smoke run set `controller.auto_choose` (or `SceneRouter.combat.aut
 next battle): it is called as `auto_choose.call(actor, battle)` and returns
 `{command_id, target_index}`; no UI is needed then.
 
-Not done yet (a documented extension point): random encounters in areas. The planned class is
-`RpgEncounterZone`, an `Area2D` with a step counter that builds an `RpgEncounterData` and calls
-the same `start_encounter`.
+Random encounters: an `RpgEncounterZone` (an `Area2D` whose `CollisionPolygon2D` /
+`CollisionShape2D` children are its shape, or the painted cells of a TileMapLayer: `cells_layer`,
+else a layer named `Encounters`, which is hidden in the game) points at an `RpgEncounterTable`
+(`game/data/encounters/<id>.tres`: `groups` = [{enemies: [<enemy ids>], weight}], `can_escape`).
+The mode counts the tiles the player walks (`RpgEncounterSteps`; a jump of more than two tiles is
+a door, not walking) and at every step inside an enabled zone draws from `GameState.rng`: one in
+`steps_per_encounter` steps brings a battle with a group drawn by weight. Every battle (random or
+not) is followed by 6 grace steps without one, and nothing is counted during a map change, a
+battle or a sequence. A zone is off while its `disabled_flag` (`<entity>.<key>`) is true. A random
+battle defeats nothing on the map. The dock's Project tab has *Add encounter zone (over the
+selection)*; the validator reports zones without a table, with unknown enemies or without a shape
+(VAL-024). The action RPG has no random encounters: its enemies stand on the map (spawners are not
+part of 1.0).
 
 ### arpg
 
@@ -123,8 +169,16 @@ The hitbox is live on the active frames of `attack_<facing>` (SpriteFrames meta
 the generated arc and the hitbox is live 0.08 to 0.2 s after the press.
 
 `RpgEnemyAi` is only the state machine of an enemy (`IDLE`, `WANDER`, `ALERT`, `CHASE`, `ATTACK`,
-`HURT`, `STUNNED`, `DEAD`); `Detection`, `Chase`, `Wander`, `EnemyAttack` and `LootDrop` are
-components under `Components`. Their numbers are the keys of `definition.behavior` (see
-`RpgEnemyAi.DEFAULT_BEHAVIOR`). A dead enemy sets the flag `<entity_id>.defeated` (an
+`HURT`, `STUNNED`, `DEAD`); `Detection`, `Chase`, `Wander`, `EnemyAttack`, `EnemyShoot`,
+`EnemyCharge` and `LootDrop` are components under `Components` (the shooting and charging ones are
+made in `_ready` when the kind needs them). Their numbers are the keys of `definition.behavior`
+(see `RpgEnemyAi.DEFAULT_BEHAVIOR`); `behavior.kind` is `melee`, `shooter` (keeps `keep_away_px`,
+fires from `shoot_range_px`), `turret` (never moves) or `charger` (dashes with its hitbox live,
+then recovers).
+
+`RpgProjectile` is a shot made in code (`create(shooter, from, direction, team, speed, range)`): the
+layers of its team's hitbox plus the world, the melee damage formula with the shooter's attack when
+it was fired, gone after one hit, a wall or its range. A worn weapon with `RpgItemDefinition.ranged`
+makes the player's attack fire one arrow (`RpgPlayerCombat.fire_arrow`) instead of the swing. A dead enemy sets the flag `<entity_id>.defeated` (an
 `RpgPersistent` child frees it on every map load), emits `entity_defeated`, gives experience and gold
 and drops `RpgPickup`s. `RpgArpgHud` is the HUD scene `hud_arpg.tscn`.

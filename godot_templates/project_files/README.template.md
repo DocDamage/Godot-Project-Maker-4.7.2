@@ -181,3 +181,35 @@ removes `field_1.tscn` when you did not change it and clears the door that led t
   autosave included; hidden when there is none), **Try again** (the start of the current map
   with full health) and **Quit to title**. The scene is `generated/scenes/ui/game_over.tscn`;
   the choices are carried out by `RpgDefeatPolicy` in `addons/rpg_runtime/combat/`.
+
+## 14. Cutscenes
+
+A **sequence** is a list of commands played one after another: walk a character a few tiles, turn
+it, fade the screen, shake or pan the camera, show a dialogue, give an item, set a flag or a
+variable, start a battle, go to another map, and branch with `if` on the same conditions the
+dialogues use. While one plays, the player cannot move or open the menu.
+
+1. Open a map and press **Add trigger area (walk in)** or **(interact)** in the Assets dock
+   (Project tab). It adds an area at the centre of the view and an empty sequence file in
+   `game/data/sequences/` named after it.
+2. Open that file and edit **Commands**: each entry is a dictionary such as
+   `{{"cmd": "move_actor", "entity": "starter_map_npc_001", "tiles": [2, 0]}}`. The full list is in
+   `addons/rpg_runtime/README.md` ("Sequences") and at the top of
+   `addons/rpg_runtime/events/sequence.gd`.
+3. Play the map and walk in. A trigger fires once per game (untick **Once** to repeat it); a
+   dialogue line can start a sequence too with the event `run_sequence:<id>`. Tick **Skippable**
+   on the sequence to let the player skip it with cancel.
+
+## 15. Keys, switches and gates
+
+* **Gate**: Assets dock (Project tab) → **Add gate**. Set its **Key Item** (an item of the KEY
+  category in `game/data/items/`) and the player opens it for good by pressing interact with the
+  key in the bag. Or give it an **Open When** condition, written like the dialogue conditions
+  (`flag:<entity>.<key>`, `var:<name>>=N`, `quest_done:<id>` ...): it is open while that holds.
+* **Switch**: select a gate and press **Add floor switch** or **Add lever**: the switch opens that
+  gate (its Open When becomes `flag:<switch id>.on`). A plate stays down once stepped on unless
+  **Hold** is ticked; a lever flips each time unless **Once** is ticked.
+* **Locked door**: any door between maps can have a **Key Item** and an **Entity Id** too.
+
+Gates and switches remember their state in the save. A cutscene can open a gate by setting the
+flag its condition names.

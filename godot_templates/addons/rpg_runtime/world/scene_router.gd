@@ -150,6 +150,14 @@ func _remember_map(map_path: String, spawn_id: StringName) -> void:
 		state.current_map = map_path
 		state.current_spawn = spawn_id
 
+## How black the screen is (0 clear, 1 black). Sequences fade through these two.
+func fade_alpha() -> float:
+	return _fade_rect.modulate.a if _fade_rect != null else 0.0
+
+func set_fade_alpha(alpha: float) -> void:
+	if _fade_rect != null:
+		_fade_rect.modulate.a = clampf(alpha, 0.0, 1.0)
+
 func _fade(alpha: float) -> void:
 	if _fade_rect == null:
 		return

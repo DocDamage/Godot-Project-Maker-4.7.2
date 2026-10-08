@@ -192,7 +192,83 @@ func _build_project_tab() -> Control:
 	_demo_dialog.dialog_text = "This deletes game/demo/ (if present), removes the demo NPC, chest and enemy from the starter map (and saves it), removes the demo house interior if you did not change it and starts new games without items. Regeneration will not bring them back."
 	_demo_dialog.confirmed.connect(_remove_demo)
 	page.add_child(_demo_dialog)
+	var world := Label.new()
+	world.text = "World tools (in the open map, at the centre of the view)"
+	world.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	page.add_child(world)
+	var walk_in := Button.new()
+	walk_in.text = "Add trigger area (walk in)"
+	walk_in.tooltip_text = "Adds an area that runs a sequence when the player walks in, and an empty sequence file under game/data/sequences/ to write it in."
+	walk_in.pressed.connect(_add_trigger.bind(false))
+	page.add_child(walk_in)
+	var on_interact := Button.new()
+	on_interact.text = "Add trigger area (interact)"
+	on_interact.tooltip_text = "Adds an area that runs a sequence when the player presses interact in front of it."
+	on_interact.pressed.connect(_add_trigger.bind(true))
+	page.add_child(on_interact)
+	var zone := Button.new()
+	zone.text = "Add encounter zone (over the selection)"
+	zone.tooltip_text = "Turn-based games: random battles while the player walks inside it. Select a TileMapLayer to use its painted cells, or some nodes to cover them; with nothing selected it is 6x6 tiles in the middle of the view. Its encounter table under game/data/encounters/ lists every enemy."
+	zone.pressed.connect(_add_zone)
+	page.add_child(zone)
+	for spec: Array in [["gate", "Add gate", "A barrier that a key or a switch opens. Set its Key Item, or select it and add a switch."], ["plate", "Add floor switch", "A plate the player steps on. With a gate selected, the plate opens that gate."], ["lever", "Add lever", "A lever the player pulls. With a gate selected, the lever opens that gate."]]:
+		var button := Button.new()
+		button.text = spec[1]
+		button.tooltip_text = spec[2]
+		button.pressed.connect(_add_lock.bind(spec[0]))
+		page.add_child(button)
 	return page
+
+func _add_lock(kind: String) -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null or plugin == null:
+		_set_status("Open a map scene to add a %s." % kind)
+		return
+	var selected_nodes := EditorInterface.get_selection().get_selected_nodes()
+	var selected: Node = selected_nodes[0] if selected_nodes.size() == 1 else null
+	var plan := Placement.plan_lock(root, _view_centre(), _tile_size(), kind, selected)
+	var node := Placement.add_lock(plan, root, plugin.get_undo_redo())
+	EditorInterface.get_selection().clear()
+	EditorInterface.get_selection().add_node(node)
+	var gate: Node = plan["gate"]
+	if gate != null:
+		_set_status("Added %s; it opens %s." % [plan["entity_id"], gate.name])
+	else:
+		_set_status("Added %s." % plan["entity_id"])
+
+func _add_zone() -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null or plugin == null:
+		_set_status("Open a map scene to add an encounter zone.")
+		return
+	if not DirAccess.dir_exists_absolute("res://addons/rpg_runtime/archetypes/turn_based"):
+		_set_status("Random encounters are for turn-based games; in an action RPG, enemies are placed on the map.")
+		return
+	var selected: Array = EditorInterface.get_selection().get_selected_nodes()
+	var plan := Placement.plan_zone(root, selected, _view_centre(), _tile_size())
+	var area := Placement.add_zone(plan, root, plugin.get_undo_redo())
+	EditorInterface.get_resource_filesystem().scan()
+	EditorInterface.get_selection().clear()
+	EditorInterface.get_selection().add_node(area)
+	var enemies: Array = plan["enemies"]
+	_set_status("Added %s with %d enemy group(s) in %s." % [plan["name"], enemies.size(), plan["table_path"]])
+
+func _view_centre() -> Vector2:
+	var viewport := EditorInterface.get_editor_viewport_2d()
+	return viewport.get_canvas_transform().affine_inverse() * (Vector2(viewport.size) / 2.0)
+
+func _add_trigger(on_interact: bool) -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null or plugin == null:
+		_set_status("Open a map scene to add a trigger area.")
+		return
+	var tile := _tile_size()
+	var plan := Placement.plan_trigger(root, _view_centre(), tile, tile, on_interact)
+	var area := Placement.add_trigger(plan, root, plugin.get_undo_redo())
+	EditorInterface.get_resource_filesystem().scan()
+	EditorInterface.get_selection().clear()
+	EditorInterface.get_selection().add_node(area)
+	_set_status("Added %s; write its commands in %s." % [plan["entity_id"], plan["sequence_path"]])
 
 func _set_status(text: String) -> void:
 	if _status != null:

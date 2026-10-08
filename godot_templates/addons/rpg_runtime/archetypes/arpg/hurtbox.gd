@@ -32,7 +32,7 @@ func defense() -> int:
 
 ## Returns true when the hit landed.
 func receive(info: RpgDamageInfo) -> bool:
-	if info == null or is_invulnerable():
+	if info == null or is_invulnerable() or RpgSequenceRunner.running():
 		return false
 	var h := health()
 	if h == null or h.is_dead():

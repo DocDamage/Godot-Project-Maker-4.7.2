@@ -32,6 +32,14 @@ func open(res: RpgDialogueResource, actor: Node = null) -> void:
 	RpgUtil.emit(&"dialogue_started", [res])
 	_show_current()
 
+## Runs the rest of the open dialogue without showing it (its events, the first choice at every
+## choice) and closes the box. A skipped sequence uses this.
+func fast_forward() -> void:
+	if not _open:
+		return
+	runner.fast_forward()
+	_close()
+
 func _body() -> RichTextLabel:
 	return get_node("%Body") as RichTextLabel
 

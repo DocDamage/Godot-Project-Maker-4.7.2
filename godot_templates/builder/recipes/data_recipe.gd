@@ -2,7 +2,7 @@ extends RefCounted
 ## Seeds the data files of the demo under game/data/ (user_seed: written once, never again):
 ## hero actor, new-game data, the potion item and the starter NPC's dialogue.
 
-const RECIPE_VERSION := 5
+const RECIPE_VERSION := 6
 
 const Paths := preload("../lib/paths.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
@@ -46,7 +46,7 @@ const SEED_STRINGS := {
 	"ITEM_AXE_NAME": "Axe",
 	"ITEM_AXE_DESC": "A woodsman's axe. Attack +2.",
 	"ITEM_BOW_NAME": "Bow",
-	"ITEM_BOW_DESC": "A short bow. Attack +2.",
+	"ITEM_BOW_DESC": "A short bow. Attack +2. In an action RPG it shoots arrows.",
 	"ITEM_ARMOR_NAME": "Armor",
 	"ITEM_ARMOR_DESC": "Sturdy armor. Defense +2.",
 	"ITEM_SHIELD_NAME": "Shield",
@@ -251,6 +251,7 @@ func _gear_item(ctx: BuildContext, word: String, asset: Dictionary) -> Resource:
 	var mods: Array[Dictionary] = []
 	mods.append({"stat": "attack" if is_weapon else "defense", "add": GEAR_BONUS, "mul": 1.0})
 	item.set("modifiers", mods)
+	item.set("ranged", word == "bow")
 	var eff: Dictionary = ctx.catalog.effective(asset)
 	var size: Array = eff.get("frame", eff.get("size", [16, 16]))
 	item.set("icon", TextureUtil.region_texture("res://" + JsonUtil.to_str(asset["path"]), Rect2i(0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))))

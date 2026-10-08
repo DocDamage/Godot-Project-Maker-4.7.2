@@ -4,7 +4,7 @@ extends RefCounted
 ## sprite stands in (ASSET-025), tinted red. The scene holds the combat parts of arpg_build.gd and
 ## the enemy_ai.gd state machine; the numbers live in the definition's `behavior`.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const Paths := preload("../../lib/paths.gd")
 const SceneUtil := preload("../../lib/scene_util.gd")
@@ -26,12 +26,25 @@ const NAME_NOISE := ["idle", "walk", "run", "sheet", "strip", "sprite", "sprites
 
 ## Defaults of the behavior keys for 16 px tiles; pixel values scale with the tile size.
 const BEHAVIOR := {
+	"kind": "melee",
 	"vision_px": 96, "lose_px": 160, "attack_range_px": 18, "attack_cooldown_s": 1.2,
 	"windup_s": 0.35, "active_s": 0.15, "move_speed": 45, "chase_speed": 60,
 	"wander_radius_px": 32, "wander_pause_s": [1.0, 2.5], "knockback_resist": 0.0,
 	"nav_mode": "direct",
+	"shoot_range_px": 80, "keep_away_px": 40, "projectile_speed": 120, "projectile_range_px": 160,
+	"shoot_windup_s": 0.45, "shoot_cooldown_s": 1.6,
+	"charge_range_px": 72, "charge_speed": 180, "charge_windup_s": 0.5, "charge_s": 0.45,
+	"charge_recover_s": 0.6, "charge_cooldown_s": 1.5,
 }
-const PIXEL_KEYS: Array[String] = ["vision_px", "lose_px", "attack_range_px", "move_speed", "chase_speed", "wander_radius_px"]
+const PIXEL_KEYS: Array[String] = ["vision_px", "lose_px", "attack_range_px", "move_speed", "chase_speed", "wander_radius_px", "shoot_range_px", "keep_away_px", "projectile_speed", "projectile_range_px", "charge_range_px", "charge_speed"]
+## How an enemy fights, from words in its asset's name (anything else fights in melee).
+const KIND_WORDS := {
+	"shooter": ["archer", "mage", "wizard", "witch", "caster", "shaman", "sorcerer", "gunner"],
+	"turret": ["turret", "cannon", "totem", "tower", "eye", "plant"],
+	"charger": ["boar", "bull", "rhino", "charger", "ram", "beetle"],
+}
+## Kinds of the extra definitions made from the first enemy for the demo field: <slug>_<kind>.tres.
+const DEMO_VARIANTS: Array[String] = ["charger", "shooter"]
 
 static func definition_path(slug: String) -> String:
 	return DEFINITIONS_DIR + slug + ".tres"
@@ -47,12 +60,27 @@ static func scaled(index: int) -> Dictionary:
 	}
 
 ## The behavior dictionary written into a new definition.
-static func behavior_for(tile: int, nav_mode: String) -> Dictionary:
+static func behavior_for(tile: int, nav_mode: String, kind: String = "melee") -> Dictionary:
 	var out: Dictionary = BEHAVIOR.duplicate(true)
 	for key in PIXEL_KEYS:
 		out[key] = JsonUtil.to_int(round(JsonUtil.to_float(out[key]) * JsonUtil.to_float(tile) / 16.0))
 	out["nav_mode"] = nav_mode
+	out["kind"] = kind
 	return out
+
+## The kind an enemy named `slug` fights as: a word of KIND_WORDS in its name, else melee.
+static func kind_for(slug: String) -> String:
+	var words := slug.to_lower().replace("-", "_").split("_", false)
+	for kind: String in KIND_WORDS:
+		var kind_words: Array = KIND_WORDS[kind]
+		for word in words:
+			if kind_words.has(word):
+				return kind
+	return "melee"
+
+## The demo variant of an enemy: <slug>_<kind>.tres.
+static func variant_path(slug: String, kind: String) -> String:
+	return definition_path("%s_%s" % [slug, kind])
 
 ## "slime_idle" -> "Slime": the usual animation / sheet words at the end of a file name are dropped.
 static func display_name(slug: String) -> String:
@@ -140,14 +168,33 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 		var slug: String = e["slug"]
 		if not FileAccess.file_exists(definition_path(slug)):
 			out.append(definition_path(slug))
+	var first := _demo_slug(ctx)
+	if first != "":
+		for kind in DEMO_VARIANTS:
+			if not FileAccess.file_exists(variant_path(first, kind)):
+				out.append(variant_path(first, kind))
 	return out
+
+## The slug of the starter enemy when the demo is on (its variants are made), else "". Chosen from
+## the catalog alone, never from which scenes exist yet, so that the input hash is the same before
+## and after the first build.
+func _demo_slug(ctx: BuildContext) -> String:
+	var list := entries(ctx)
+	if not JsonUtil.to_bool(ctx.section("features").get("demo", true)) or ctx.demo_removed or list.is_empty():
+		return ""
+	var wanted := JsonUtil.to_str(ctx.section("starter").get("enemy", ""))
+	for e in list:
+		var asset: Dictionary = e["asset"]
+		if wanted != "" and asset["id"] == wanted:
+			return JsonUtil.to_str(e["slug"])
+	return JsonUtil.to_str(list[0]["slug"])
 
 func input_hash(ctx: BuildContext) -> String:
 	var parts: Array = []
 	for e in entries(ctx):
 		var a: Dictionary = e["asset"]
 		parts.append({"id": a["id"], "slug": e["slug"], "fallback": e["fallback"], "sha256": a.get("sha256", ""), "eff": ctx.catalog.effective(a)})
-	return ctx.stable_hash({"v": RECIPE_VERSION, "enemies": parts, "tile": _tile(ctx), "nav": Navigation.nav_mode(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "enemies": parts, "tile": _tile(ctx), "nav": Navigation.nav_mode(ctx), "demo": _demo_slug(ctx)})
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -177,6 +224,9 @@ func build(ctx: BuildContext) -> Array:
 		var err := SceneUtil.save_scene(node, scene_path(slug))
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": scene_path(slug), "err": err}, scene_path(slug)))
+	var first := _demo_slug(ctx)
+	if first != "":
+		_save_variants(ctx, first, tile, issues)
 	return issues
 
 func _save_definition(ctx: BuildContext, e: Dictionary, frames: SpriteFrames, tile: int, issues: Array) -> void:
@@ -196,12 +246,30 @@ func _save_definition(ctx: BuildContext, e: Dictionary, frames: SpriteFrames, ti
 	def.set("xp_reward", s["xp"])
 	def.set("gold_reward", s["gold"])
 	def.set("loot", loot)
-	def.set("behavior", behavior_for(tile, Navigation.nav_mode(ctx)))
 	var slug: String = e["slug"]
+	def.set("behavior", behavior_for(tile, Navigation.nav_mode(ctx), kind_for(slug)))
 	var path := definition_path(slug)
 	var err := SeedUtil.save(def, path)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
+
+## The demo field's charger and shooter: copies of the first enemy's definition that fight that way
+## (written once, beside it; a project without the demo gets none).
+func _save_variants(ctx: BuildContext, slug: String, tile: int, issues: Array) -> void:
+	var base := load(definition_path(slug)) as Resource
+	if base == null:
+		return
+	for kind in DEMO_VARIANTS:
+		var path := variant_path(slug, kind)
+		if FileAccess.file_exists(path):
+			continue
+		var variant := base.duplicate(true)
+		variant.set("id", StringName("%s_%s" % [slug, kind]))
+		variant.set("display_name", "%s (%s)" % [JsonUtil.to_str(base.get("display_name")), kind])
+		variant.set("behavior", behavior_for(tile, Navigation.nav_mode(ctx), kind))
+		var err := SeedUtil.save(variant, path)
+		if err != OK:
+			issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
 
 ## The enemy actor: base actor + enemy_ai.gd + the combat parts. (Inherited scenes cannot be saved
 ## headless, so it is built by the same function as every other actor.)

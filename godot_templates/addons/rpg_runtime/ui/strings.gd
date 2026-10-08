@@ -117,6 +117,9 @@ const KEYS := {
 	"UI_USE_ON": "Use on",
 	"UI_PARTY_JOINED": "%s joined the party",
 	"UI_PARTY_LEFT": "%s left the party",
+	"UI_LOCKED": "It will not open.",
+	"UI_LOCKED_NEED": "Locked. It needs: %s",
+	"UI_UNLOCKED": "Unlocked with: %s",
 }
 
 ## English text of a key (the key itself when unknown).

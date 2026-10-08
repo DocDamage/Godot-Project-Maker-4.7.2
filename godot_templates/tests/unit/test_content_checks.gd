@@ -182,3 +182,95 @@ func test_event_and_condition_item_parsing(t) -> void:
 	t.eq(ContentChecks.event_items("give_item:potion:3"), ["potion"])
 	t.eq(ContentChecks.event_items("take_item:potion"), ["potion"])
 	t.eq(ContentChecks.event_items("give_gold:5"), [])
+
+# ---------------------------------------------------------------- sequences and triggers (VAL-023)
+
+func _sequence_dirs() -> Dictionary:
+	var dirs := _dirs()
+	dirs["sequences"] = DIR + "/sequences"
+	dirs["enemies"] = DIR + "/enemies"
+	return dirs
+
+func test_sequence_problems_and_missing_references_val_023(t) -> void:
+	_setup()
+	DirAccess.make_dir_recursive_absolute(DIR + "/sequences")
+	var good := RpgSequence.new()
+	good.id = &"good"
+	good.commands.assign([{"cmd": "wait", "seconds": 1}])
+	ResourceSaver.save(good, DIR + "/sequences/good.tres")
+	var bad := RpgSequence.new()
+	bad.id = &"bad"
+	bad.commands.assign([
+		{"cmd": "fly"},
+		{"cmd": "call", "sequence": "good"},
+		{"cmd": "call", "sequence": "nope"},
+		{"cmd": "show_dialogue", "dialogue": "missing_talk"},
+		{"cmd": "start_battle", "enemies": ["ghost"]},
+		{"cmd": "change_map", "map": "res://game/maps/nowhere.tscn"},
+	])
+	ResourceSaver.save(bad, DIR + "/sequences/bad.tres")
+	var findings := ContentChecks.run(_sequence_dirs())
+	t.eq(_codes(findings), ["VAL-023", "VAL-023", "VAL-023", "VAL-023", "VAL-023"], str(findings))
+	var problems: Array = []
+	for f in findings:
+		t.eq(f["file"], DIR + "/sequences/bad.tres")
+		problems.append(f["detail"]["problem"])
+	var text := " | ".join(PackedStringArray(problems))
+	for part in ["'fly'", "'nope'", "'missing_talk'", "'ghost'", "nowhere.tscn"]:
+		t.ok(text.contains(part) or text.contains(part.trim_prefix("'").trim_suffix("'")), "%s in %s" % [part, text])
+	_finish()
+
+func test_triggers_need_a_sequence_and_an_id_when_once_val_023(t) -> void:
+	_setup()
+	DirAccess.make_dir_recursive_absolute(DIR + "/sequences")
+	var intro := RpgSequence.new()
+	intro.id = &"intro"
+	ResourceSaver.save(intro, DIR + "/sequences/intro.tres")
+	var a := Maps.map("a")
+	for spec: Array in [["Fine", "intro", "a_trigger_001"], ["NoSequence", "", "a_trigger_002"], ["Missing", "outro", "a_trigger_003"], ["NoId", "intro", ""]]:
+		var trigger := RpgTriggerArea.new()
+		trigger.name = spec[0]
+		trigger.sequence_id = StringName(spec[1])
+		trigger.entity_id = spec[2]
+		a.add_child(trigger)
+	Maps.save(a, DIR + "/maps/a.tscn")
+	var findings := ContentChecks.run(_sequence_dirs())
+	var nodes: Array = []
+	for f in findings:
+		if f["code"] == "VAL-023":
+			nodes.append(f["node"])
+	nodes.sort()
+	t.eq(nodes, ["Missing", "NoId", "NoSequence"])
+	_finish()
+
+# ---------------------------------------------------------------- encounter zones (VAL-024)
+
+func test_zones_need_a_table_with_known_enemies_and_a_shape_val_024(t) -> void:
+	_setup()
+	DirAccess.make_dir_recursive_absolute(DIR + "/enemies")
+	var bat := RpgEnemyDefinition.new()
+	bat.id = &"bat"
+	ResourceSaver.save(bat, DIR + "/enemies/bat.tres")
+	var good_table := RpgEncounterTable.new()
+	good_table.groups.assign([{"enemies": [DIR + "/enemies/bat.tres"], "weight": 1}])
+	var bad_table := RpgEncounterTable.new()
+	bad_table.groups.assign([{"enemies": ["ghost"], "weight": 1}])
+	var a := Maps.map("a")
+	for spec: Array in [["Fine", good_table, true], ["NoTable", null, true], ["Ghost", bad_table, true], ["NoShape", good_table, false]]:
+		var zone := RpgEncounterZone.new()
+		zone.name = spec[0]
+		zone.table = spec[1]
+		if spec[2]:
+			var poly := CollisionPolygon2D.new()
+			poly.name = "Shape"
+			poly.polygon = PackedVector2Array([Vector2(0, 0), Vector2(32, 0), Vector2(32, 32)])
+			zone.add_child(poly)
+		a.add_child(zone)
+	Maps.save(a, DIR + "/maps/a.tscn")
+	var nodes: Array = []
+	for f in ContentChecks.run(_dirs()):
+		if f["code"] == "VAL-024":
+			nodes.append(f["node"])
+	nodes.sort()
+	t.eq(nodes, ["Ghost", "NoShape", "NoTable"])
+	_finish()

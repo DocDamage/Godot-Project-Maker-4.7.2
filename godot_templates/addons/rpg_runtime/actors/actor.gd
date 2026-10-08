@@ -15,6 +15,9 @@ var move_locked := false
 var facing_locked := false
 ## While true the actor does not pick walk/idle animations itself (a combat state is playing one).
 var animation_locked := false
+## Set by a running sequence that walks this actor by moving its position: the walk animation
+## plays although the body has no velocity.
+var scripted_walk := false
 
 var _components: Dictionary = {}
 var _driver := RpgAnimationDriver.new()
@@ -62,10 +65,24 @@ func _set_facing_property(f: String) -> void:
 func _physics_process(_delta: float) -> void:
 	if animation_locked:
 		return
-	if velocity.length() > 1.0:
+	if velocity.length() > 1.0 or scripted_walk:
 		_driver.play("walk", facing)
 	else:
 		_play_idle()
+
+## Plays "<base>_<facing>" and holds it (a sequence's `animate`) until release_animation().
+## False when the actor has no such animation.
+func hold_animation(base: String) -> bool:
+	if not _driver.has_animation(base, facing):
+		return false
+	_driver.play_exact(base, facing)
+	animation_locked = true
+	return true
+
+## Back to the walk / idle animations.
+func release_animation() -> void:
+	animation_locked = false
+	_play_idle()
 
 func _play_idle() -> void:
 	_driver.play("idle", facing)

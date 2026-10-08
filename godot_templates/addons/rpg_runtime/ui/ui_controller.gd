@@ -28,7 +28,7 @@ func _in_gameplay() -> bool:
 	var combat := router.combat
 	if combat != null and combat.is_in_combat():
 		return false
-	return true
+	return not RpgSequenceRunner.running()
 
 func _input(event: InputEvent) -> void:
 	# Backing out of a menu ticks (the pause menu and its submenus live under this node).

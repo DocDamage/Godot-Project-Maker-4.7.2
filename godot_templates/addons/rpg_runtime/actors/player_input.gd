@@ -18,7 +18,7 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	if actor == null:
 		return
-	if not actor.input_enabled:
+	if not actor.input_enabled or RpgSequenceRunner.running():
 		actor.move_dir(Vector2.ZERO)
 		return
 	if actor.move_locked:

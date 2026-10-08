@@ -11,5 +11,7 @@ enum Category { CONSUMABLE, WEAPON, ARMOR, ACCESSORY, QUEST, KEY, MATERIAL }
 @export var max_stack: int = 99
 @export var value: int = 10
 @export var modifiers: Array[Dictionary] = []  # [{stat, add, mul}] for equipment
+## A weapon that shoots (action RPG): the attack fires an arrow instead of a swing.
+@export var ranged: bool = false
 @export var use_effect: StringName = &""  # "heal", "", future: "cure", ...
 @export var effect_amount: int = 0

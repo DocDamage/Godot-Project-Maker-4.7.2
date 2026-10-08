@@ -2,8 +2,13 @@ class_name RpgEnemyAi
 extends RpgActor
 ## A real-time enemy. This script only holds the state machine (IDLE, WANDER, ALERT, CHASE, ATTACK,
 ## HURT, STUNNED, DEAD); what an enemy can do lives in the components under "Components":
-## Detection (can_see_player), Chase (step), Wander, EnemyAttack (try_start) and LootDrop (drop).
-## The numbers come from `definition.behavior`; keys that are missing use DEFAULT_BEHAVIOR.
+## Detection (can_see_player), Chase (step), Wander, EnemyAttack (try_start), EnemyShoot,
+## EnemyCharge and LootDrop (drop). The numbers come from `definition.behavior`; keys that are
+## missing use DEFAULT_BEHAVIOR. `kind` picks how it fights:
+##   melee    walks up to the player and swings (the default);
+##   shooter  keeps its distance (`keep_away_px`) and fires projectiles from `shoot_range_px`;
+##   turret   never moves and fires when it sees the player;
+##   charger  winds up and dashes at the player from `charge_range_px`, then stands to recover.
 ## Layers: enemies (3); the hurtbox is on 10, the attack hitbox on 8.
 
 signal state_changed(from: StringName, to: StringName)
@@ -22,22 +27,32 @@ const HURT_S := 0.2
 const DEAD_FREE_S := 0.6
 ## Pixel values of the defaults are written for 16 px tiles and scale with `tile_size`.
 const DEFAULT_BEHAVIOR := {
+	"kind": "melee",
 	"vision_px": 96, "lose_px": 160, "attack_range_px": 18, "attack_cooldown_s": 1.2,
 	"windup_s": 0.35, "active_s": 0.15, "move_speed": 45, "chase_speed": 60,
 	"wander_radius_px": 32, "wander_pause_s": [1.0, 2.5], "knockback_resist": 0.0,
 	"nav_mode": "direct",
+	"shoot_range_px": 80, "keep_away_px": 40, "projectile_speed": 120, "projectile_range_px": 160,
+	"shoot_windup_s": 0.45, "shoot_cooldown_s": 1.6,
+	"charge_range_px": 72, "charge_speed": 180, "charge_windup_s": 0.5, "charge_s": 0.45,
+	"charge_recover_s": 0.6, "charge_cooldown_s": 1.5,
 }
-const PIXEL_KEYS: Array[String] = ["vision_px", "lose_px", "attack_range_px", "move_speed", "chase_speed", "wander_radius_px"]
+const PIXEL_KEYS: Array[String] = ["vision_px", "lose_px", "attack_range_px", "move_speed", "chase_speed", "wander_radius_px", "shoot_range_px", "keep_away_px", "projectile_speed", "projectile_range_px", "charge_range_px", "charge_speed"]
+const KINDS: Array[String] = ["melee", "shooter", "turret", "charger"]
 
 @export var entity_id: String = ""
 @export var tile_size: float = 16.0
 
 var behavior: Dictionary = {}
+## "melee", "shooter", "turret" or "charger" (from the behavior; unknown kinds fight as melee).
+var kind := "melee"
 var machine: RpgStateMachine  # created in _ready: a scene that is never entered into the tree must not leak a node
 var detection: RpgDetection
 var chase: RpgChase
 var wander: RpgWander
 var attack: RpgEnemyAttack
+var shoot: RpgEnemyShoot
+var charge: RpgEnemyCharge
 var loot: RpgLootDrop
 var health: RpgHealth
 var hurtbox: RpgHurtbox
@@ -68,6 +83,11 @@ func _ready() -> void:
 	chase = component("Chase") as RpgChase
 	wander = component("Wander") as RpgWander
 	attack = component("EnemyAttack") as RpgEnemyAttack
+	kind = str(behavior.get("kind", "melee"))
+	if not KINDS.has(kind):
+		kind = "melee"
+	shoot = _ensure_component("EnemyShoot", RpgEnemyShoot) as RpgEnemyShoot if kind in ["shooter", "turret"] else null
+	charge = _ensure_component("EnemyCharge", RpgEnemyCharge) as RpgEnemyCharge if kind == "charger" else null
 	loot = component("LootDrop") as RpgLootDrop
 	health = get_node_or_null("Health") as RpgHealth
 	hurtbox = get_node_or_null("Hurtbox") as RpgHurtbox
@@ -97,6 +117,23 @@ func _ready() -> void:
 		hitbox.aim(facing)
 	machine.go(IDLE)
 
+## The component of that name under "Components"; made (in _ready, never at load time) when an
+## older enemy scene does not have it.
+func _ensure_component(component_name: String, script: GDScript) -> Node:
+	var found := component(component_name)
+	if found != null:
+		return found
+	var holder := get_node_or_null("Components")
+	if holder == null:
+		return null
+	var made: Node = script.new()
+	made.name = component_name
+	holder.add_child(made)
+	if not made.is_node_ready() and not made.is_inside_tree():
+		made.call("_ready")
+	_cache_components()
+	return made
+
 ## Hands the behavior numbers to the components.
 func configure() -> void:
 	if detection != null:
@@ -117,6 +154,17 @@ func configure() -> void:
 		attack.windup_s = RpgUtil.to_float(behavior["windup_s"])
 		attack.active_s = RpgUtil.to_float(behavior["active_s"])
 		attack.cooldown_s = RpgUtil.to_float(behavior["attack_cooldown_s"])
+	if shoot != null:
+		shoot.windup_s = RpgUtil.to_float(behavior["shoot_windup_s"])
+		shoot.cooldown_s = RpgUtil.to_float(behavior["shoot_cooldown_s"])
+		shoot.speed = RpgUtil.to_float(behavior["projectile_speed"])
+		shoot.range_px = RpgUtil.to_float(behavior["projectile_range_px"])
+	if charge != null:
+		charge.windup_s = RpgUtil.to_float(behavior["charge_windup_s"])
+		charge.dash_s = RpgUtil.to_float(behavior["charge_s"])
+		charge.speed = RpgUtil.to_float(behavior["charge_speed"])
+		charge.recover_s = RpgUtil.to_float(behavior["charge_recover_s"])
+		charge.cooldown_s = RpgUtil.to_float(behavior["charge_cooldown_s"])
 
 func state() -> StringName:
 	return machine.state
@@ -150,7 +198,7 @@ func _update_idle(delta: float) -> void:
 	if _detects():
 		return
 	_idle_wait -= delta
-	if _idle_wait <= 0.0 and wander != null:
+	if _idle_wait <= 0.0 and wander != null and kind != "turret":
 		machine.go(WANDER)
 
 func _enter_wander() -> void:
@@ -194,6 +242,18 @@ func _update_chase(delta: float) -> void:
 	if chase == null or detection == null or not detection.player_alive():
 		machine.go(IDLE)
 		return
+	match kind:
+		"shooter", "turret":
+			_update_chase_ranged(delta)
+			return
+		"charger":
+			chase.step(delta)
+			if chase.gave_up():
+				_returning_home = true
+				machine.go(WANDER)
+			elif charge != null and chase.distance() <= RpgUtil.to_float(behavior["charge_range_px"]) and charge.can_start() and detection.can_see_player():
+				machine.go(ATTACK)
+			return
 	chase.step(delta)
 	if chase.gave_up():
 		_returning_home = true
@@ -201,22 +261,68 @@ func _update_chase(delta: float) -> void:
 	elif attack != null and chase.in_attack_range() and attack.can_start():
 		machine.go(ATTACK)
 
+## Shooters back off when the player is closer than `keep_away_px`, close in when farther than the
+## shooting range and otherwise stand and face; turrets only turn. Both fire when they see the
+## player within range.
+func _update_chase_ranged(delta: float) -> void:
+	var d := chase.distance()
+	var shoot_range := RpgUtil.to_float(behavior["shoot_range_px"])
+	if d > chase.lose_px:
+		chase.step(delta)  # counts the time out of reach
+		if kind == "turret":
+			_stop()
+		if chase.gave_up():
+			_returning_home = kind != "turret"
+			machine.go(WANDER if kind != "turret" else IDLE)
+		return
+	chase.reset()
+	if kind == "shooter" and d < RpgUtil.to_float(behavior["keep_away_px"]):
+		move_dir(-(detection.player_position() - detection.actor_position()).normalized())
+	elif kind == "shooter" and d > shoot_range * 0.9:
+		chase.step(delta)
+	else:
+		_stop()
+		_face_player()
+	if shoot != null and d <= shoot_range and shoot.can_start() and detection.can_see_player():
+		machine.go(ATTACK)
+
 # ---------------------------------------------------------------- ATTACK
 
 func _enter_attack() -> void:
 	_stop()
 	_face_player()
-	if attack != null:
-		attack.try_start()
+	match kind:
+		"shooter", "turret":
+			if shoot != null:
+				shoot.try_start(detection.player_position() if detection != null else global_position)
+		"charger":
+			if charge != null:
+				charge.try_start(detection.player_position() if detection != null else global_position)
+		_:
+			if attack != null:
+				attack.try_start()
 
 func _update_attack(delta: float) -> void:
-	_stop()
-	if attack == null or attack.update(delta):
+	var finished := true
+	match kind:
+		"shooter", "turret":
+			_stop()
+			finished = shoot == null or shoot.update(delta)
+		"charger":
+			finished = charge == null or charge.update(delta)  # the dash moves the enemy itself
+		_:
+			_stop()
+			finished = attack == null or attack.update(delta)
+	if finished:
 		machine.go(CHASE)
 
 func _exit_attack() -> void:
 	if attack != null:
 		attack.cancel()
+	if shoot != null:
+		shoot.cancel()
+	if charge != null:
+		charge.cancel()
 
 # ---------------------------------------------------------------- HURT / STUNNED
 

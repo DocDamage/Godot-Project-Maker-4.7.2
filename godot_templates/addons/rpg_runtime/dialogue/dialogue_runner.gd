@@ -4,7 +4,9 @@ extends RefCounted
 ##
 ## Events (strings, never eval'd): set_flag:<entity>.<key>=<value>, give_item:<id>[:qty],
 ## take_item:<id>[:qty], give_gold:N, open_shop:<id> (the shop opens when the dialogue closes), quest_start:<id>,
-## quest_stage:<id>:<stage>, quest_complete:<id>, join_party:<actor>, leave_party:<actor>, set_quest:<id>=<state>, heal_full, emit:<name>[:arg].
+## quest_stage:<id>:<stage>, quest_complete:<id>, join_party:<actor>, leave_party:<actor>, set_quest:<id>=<state>, heal_full,
+## set_var:<name>=<N>, add_var:<name>:<N> (N may be negative), run_sequence:<id> (the sequence starts
+## when the dialogue closes), emit:<name>[:arg].
 
 const MAX_JUMPS := 1000
 
@@ -94,6 +96,17 @@ func _end() -> void:
 	_current = null
 	_finished = true
 
+## Runs the rest without showing it (a skipped cutscene): every line's events, and the first
+## visible choice wherever there is one.
+func fast_forward() -> void:
+	var guard := 0
+	while not _finished and guard < MAX_JUMPS:
+		guard += 1
+		if visible_choices().is_empty():
+			advance()
+		else:
+			choose(0)
+
 ## Runs one event string. Returns false for an unknown or malformed event.
 static func execute_event(event: String) -> bool:
 	var state := RpgUtil.state()
@@ -156,6 +169,22 @@ static func execute_event(event: String) -> bool:
 			if arg == "":
 				return _bad(event)
 			RpgUtil.emit(&"shop_requested", [StringName(arg)])
+		"set_var":
+			var var_name := arg.get_slice("=", 0)
+			var value_text := arg.substr(var_name.length() + 1)
+			if var_name == "" or not arg.contains("=") or not value_text.is_valid_int():
+				return _bad(event)
+			state.set_var(var_name, value_text.to_int())
+		"add_var":
+			var var_name := arg.get_slice(":", 0)
+			var amount_text := arg.substr(var_name.length() + 1)
+			if var_name == "" or not arg.contains(":") or not amount_text.is_valid_int():
+				return _bad(event)
+			state.add_var(var_name, amount_text.to_int())
+		"run_sequence":
+			if arg == "":
+				return _bad(event)
+			RpgUtil.emit(&"sequence_requested", [StringName(arg)])
 		"emit":
 			var ev_name := arg.get_slice(":", 0)
 			var ev_arg := arg.substr(ev_name.length() + 1) if arg.contains(":") else ""

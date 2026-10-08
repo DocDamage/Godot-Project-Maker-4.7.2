@@ -31,6 +31,9 @@ func steps() -> Array[Dictionary]:
 		{"name": "enemy_dies", "fn": _enemy_dies, "timeout_s": 25.0},
 		{"name": "player_hurt_invuln", "fn": _player_hurt_invuln, "timeout_s": 30.0},
 		{"name": "dodge", "fn": _dodge, "timeout_s": 15.0},
+		{"name": "ranged_enemy_shoots", "fn": _ranged_enemy_shoots, "timeout_s": 25.0},
+		{"name": "charger_charges", "fn": _charger_charges, "timeout_s": 25.0},
+		{"name": "player_bow_shoots", "fn": _player_bow_shoots, "timeout_s": 20.0},
 		{"name": "persist", "fn": _persist, "timeout_s": 40.0},
 		{"name": "death_policy", "fn": _death_policy, "timeout_s": 40.0},
 		{"name": "game_over_screen", "fn": _game_over_screen, "timeout_s": 40.0},
@@ -402,6 +405,148 @@ func _dodge() -> String:
 	if absf(moved - DODGE_DISTANCE) > DODGE_TOLERANCE:
 		return "the dodge moved the player %.1f px, expected %.0f +- %.0f" % [moved, DODGE_DISTANCE, DODGE_TOLERANCE]
 	return ""
+
+# ---------------------------------------------------------------- ranged combat and enemy kinds
+
+## An enemy of enemy 2's scene that fights as `kind`, `tiles` tiles right of the player (enemy 2
+## stays frozen). Its entity id is empty, so nothing about it is saved.
+func _spawn_kind(kind: String, tiles: float) -> RpgEnemyAi:
+	var e2 := _find_enemy(ENEMY_2)
+	var p := _player()
+	if e2 == null or p == null or e2.scene_file_path == "" or e2.definition == null:
+		return null
+	var def := e2.definition.duplicate(true) as RpgEnemyDefinition
+	var behavior := def.behavior.duplicate(true)
+	behavior["kind"] = kind
+	def.behavior = behavior
+	var enemy := (load(e2.scene_file_path) as PackedScene).instantiate() as RpgEnemyAi
+	enemy.name = "Smoke_%s" % kind
+	enemy.definition = def
+	enemy.entity_id = ""
+	e2.get_parent().add_child(enemy)
+	enemy.global_position = p.global_position + Vector2(tiles * e2.tile_size, 0.0)
+	return enemy
+
+func _projectiles() -> Array[Node]:
+	return _tree().get_nodes_in_group(RpgProjectile.GROUP)
+
+## A shooter 4 tiles away sees the player, winds up and fires; the shot hurts the player once and
+## is gone.
+func _ranged_enemy_shoots() -> String:
+	var tree := _tree()
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var bus: RpgEvents = _autoload("Events") as RpgEvents
+	var p := _player()
+	await _wait_idle(_combat_of(p), 120)
+	var stats: RpgStats = state.get("player_stats")
+	stats.hp = stats.max_hp
+	await _seconds(0.7)  # past the last invulnerability window
+	var hits: Array[int] = []
+	bus.player_damaged.connect(func(amount: int) -> void: hits.append(amount))
+	var shooter := _spawn_kind("shooter", 4.0)
+	if shooter == null:
+		return "could not make a shooter from enemy 2's scene"
+	var saw_shot := false
+	var start := Time.get_ticks_msec()
+	while hits.is_empty() and Time.get_ticks_msec() - start < 10000:
+		await tree.physics_frame
+		saw_shot = saw_shot or not _projectiles().is_empty()
+	var failure := ""
+	if shooter.kind != "shooter" or shooter.shoot == null:
+		failure = "the enemy did not become a shooter (kind %s)" % shooter.kind
+	elif not saw_shot:
+		failure = "the shooter fired nothing within 10 s (state %s)" % shooter.state()
+	elif hits.is_empty():
+		failure = "the shot did not hurt the player"
+	else:
+		await _frames(3)
+		for shot: Node in _projectiles():
+			if (shot as RpgProjectile).team == &"enemy" and not (shot as RpgProjectile).done:
+				failure = "a shot that hit is still flying"
+	shooter.queue_free()
+	await _frames(2)
+	for shot: Node in _projectiles():
+		shot.queue_free()
+	stats.hp = stats.max_hp
+	return failure
+
+## A charger 4 tiles away winds up, dashes into the player with its hitbox live and recovers.
+func _charger_charges() -> String:
+	var tree := _tree()
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var bus: RpgEvents = _autoload("Events") as RpgEvents
+	var p := _player()
+	await _wait_idle(_combat_of(p), 120)
+	var stats: RpgStats = state.get("player_stats")
+	stats.hp = stats.max_hp
+	await _seconds(0.7)
+	var hits: Array[int] = []
+	bus.player_damaged.connect(func(amount: int) -> void: hits.append(amount))
+	var charger := _spawn_kind("charger", 4.0)
+	if charger == null:
+		return "could not make a charger from enemy 2's scene"
+	var dashed := false
+	var start := Time.get_ticks_msec()
+	while hits.is_empty() and Time.get_ticks_msec() - start < 10000:
+		await tree.physics_frame
+		dashed = dashed or (charger.charge != null and charger.charge.phase == RpgEnemyCharge.Phase.DASH)
+	var failure := ""
+	if charger.kind != "charger" or charger.charge == null:
+		failure = "the enemy did not become a charger (kind %s)" % charger.kind
+	elif not dashed:
+		failure = "the charger never dashed within 10 s (state %s)" % charger.state()
+	elif hits.is_empty():
+		failure = "the dash did not hurt the player"
+	charger.queue_free()
+	await _frames(2)
+	stats.hp = stats.max_hp
+	return failure
+
+## With a bow (a weapon marked ranged) the attack fires an arrow that hurts an enemy 4 tiles away.
+func _player_bow_shoots() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var p := _player()
+	var combat := _combat_of(p)
+	await _wait_idle(combat, 120)
+	var bow := RpgItemDefinition.new()
+	bow.id = &"smoke_bow"
+	bow.category = RpgItemDefinition.Category.WEAPON
+	bow.max_stack = 1
+	bow.ranged = true
+	state.items[bow.id] = bow
+	var worn := state.equipped_in(state.player_actor_id, &"weapon")
+	state.inventory.add(bow.id)
+	if not state.equip(state.player_actor_id, bow.id):
+		return "the test bow could not be equipped"
+	var target := _spawn_kind("melee", 4.0)
+	var failure := ""
+	if target == null:
+		failure = "could not make a target from enemy 2's scene"
+	else:
+		await _frames(3)
+		_freeze(target)
+		var hp_before := target.health.hp()
+		p.call("set_facing", "right")
+		await _frames(2)
+		await _tap("attack")
+		var start := Time.get_ticks_msec()
+		while target.health.hp() == hp_before and Time.get_ticks_msec() - start < 3000:
+			await _tree().physics_frame
+		if combat.last_shot == null or combat.last_shot.style != "arrow":
+			failure = "the attack with a bow fired no arrow"
+		elif target.health.hp() == hp_before:
+			failure = "the arrow did not hurt the enemy 4 tiles away"
+		elif (p.get_node("AttackHitbox") as RpgHitbox).active:
+			failure = "the bow swung the melee hitbox"
+		target.queue_free()
+	await _wait_idle(combat, 120)
+	state.unequip(state.player_actor_id, &"weapon")
+	state.inventory.remove(bow.id, 1)
+	if worn != &"":
+		state.equip(state.player_actor_id, worn)
+	state.items.erase(bow.id)
+	await _frames(2)
+	return failure
 
 func _persist() -> String:
 	var tree := _tree()

@@ -12,6 +12,8 @@ const ImportedStarter := preload("imported_starter.gd")
 const ENEMY_ID := "starter_map_enemy_001"
 const STARTER_MAP := "res://game/maps/starter_map.tscn"
 const INTERIOR_MAP := "res://game/maps/interior_1.tscn"
+const FIELD_MAP := "res://game/maps/field_1.tscn"
+const ENEMIES_DIR := "res://game/data/enemies"
 const SAVE_DIR := "user://smoke_saves"
 const SAVE_SLOT := 2
 const VICTORY := 0  # RpgEncounterResult.Outcome
@@ -29,6 +31,7 @@ func steps() -> Array[Dictionary]:
 		{"name": "rewards_granted", "fn": _rewards_granted, "timeout_s": 10.0},
 		{"name": "returned_to_map", "fn": _returned_to_map, "timeout_s": 20.0},
 		{"name": "enemy_stays_defeated", "fn": _enemy_stays_defeated, "timeout_s": 60.0},
+		{"name": "random_encounter", "fn": _random_encounter, "timeout_s": 90.0},
 		{"name": "defeat_policy", "fn": _defeat_policy, "timeout_s": 90.0},
 		{"name": "game_over_screen", "fn": _game_over_screen, "timeout_s": 40.0},
 	]
@@ -38,6 +41,121 @@ func steps() -> Array[Dictionary]:
 			if step_name != "game_over_screen":
 				step["fn"] = func() -> String: return ImportedStarter.note(step_name)
 	return list
+
+# ---------------------------------------------------------------- random encounters (T12.53)
+
+## The demo field has a zone with a usable table. Then a zone around the player where every step
+## brings a battle: one tile walked starts one (won by the smoke profile), the battle grants the
+## grace steps (no battle while they last), and the zone's flag switches it off.
+func _random_encounter() -> String:
+	var tree := _tree()
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var combat := _combat() as RpgTurnBasedMode
+	if combat == null:
+		return "the combat mode is not the turn-based one"
+	if ResourceLoader.exists(FIELD_MAP):
+		var field := (load(FIELD_MAP) as PackedScene).instantiate()
+		var zones := field.find_children("*", "Area2D", true, false).filter(func(n: Node) -> bool: return n is RpgEncounterZone)
+		var usable := false
+		for found: Node in zones:
+			var zone_table := (found as RpgEncounterZone).table
+			usable = usable or (zone_table != null and RpgEncounterTable.problems_of(zone_table.groups).is_empty())
+		field.free()
+		if not usable:
+			return "the demo field has no encounter zone with a usable table"
+	var enemy_ids: Array[String] = []
+	var dir := DirAccess.open(ENEMIES_DIR)
+	if dir != null:
+		for file_name in dir.get_files():
+			if file_name.trim_suffix(".remap").ends_with(".tres"):
+				enemy_ids.append(file_name.trim_suffix(".remap").get_basename())
+	if enemy_ids.is_empty():
+		print("[rpggen] INFO random_encounter: no enemy definitions, step passes")
+		return ""
+	enemy_ids.sort()
+	var map_name := tree.current_scene.name
+	var player := _player()
+	var home := player.global_position
+	var tile := RpgEncounterSteps.tile_of(tree.current_scene)
+	_add_smoke_zone(enemy_ids[0], tile)
+	combat.steps.grace_steps = 0
+	_before["result"] = null
+	var battle := false
+	for i in 4:
+		await _walk_tiles(1, tile)
+		if tree.current_scene != null and tree.current_scene.name == "Battle":
+			battle = true
+			break
+	if not battle:
+		return "walking in an every-step zone did not start a battle"
+	if not await _wait_for_result(_before, 25.0):
+		return "the random battle did not finish within 25 s"
+	var result: RpgEncounterResult = _before["result"]
+	if result.outcome != VICTORY:
+		return "the random battle ended with outcome %d" % result.outcome
+	if not await _wait_for_map(map_name, 900):
+		return "the map did not come back after the random battle"
+	await _frames(3)
+	if combat.steps.grace_steps != RpgEncounterSteps.GRACE_STEPS:
+		return "the battle left %d grace steps, expected %d" % [combat.steps.grace_steps, RpgEncounterSteps.GRACE_STEPS]
+	_add_smoke_zone(enemy_ids[0], tile)  # the map was loaded again behind the battle
+	await _walk_tiles(RpgEncounterSteps.GRACE_STEPS, tile)
+	var failure := ""
+	if tree.current_scene.name == "Battle" or combat.is_in_combat():
+		failure = "a battle started during the grace steps"
+	else:
+		state.set_flag("smoke_zone", "off", true)
+		await _walk_tiles(4, tile)
+		if tree.current_scene.name == "Battle" or combat.is_in_combat():
+			failure = "a zone switched off by its flag started a battle"
+	# The zone goes first (out of the tree at once), then the flag; the walk home must not count.
+	var leftover := tree.current_scene.get_node_or_null("SmokeZone")
+	if leftover != null:
+		leftover.get_parent().remove_child(leftover)
+		leftover.queue_free()
+	var smoke_flags: Dictionary = state.flags
+	smoke_flags.erase("smoke_zone")
+	player = _player()
+	if player != null:
+		player.global_position = home
+	combat.steps.reset()
+	await _frames(3)
+	if combat.is_in_combat():
+		return "a battle started while the smoke zone was taken away"
+	return failure
+
+## A 12x12-tile zone centred on the player in which every step brings a battle with `enemy_id`;
+## the flag smoke_zone.off switches it off.
+func _add_smoke_zone(enemy_id: String, tile: float) -> void:
+	var table := RpgEncounterTable.new()
+	table.id = &"smoke"
+	table.groups.assign([{"enemies": [enemy_id], "weight": 1}])
+	var zone := RpgEncounterZone.new()
+	zone.name = "SmokeZone"
+	zone.table = table
+	zone.steps_per_encounter = 1.0
+	zone.disabled_flag = "smoke_zone.off"
+	var holder := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(tile, tile) * 12.0
+	holder.shape = rect
+	zone.add_child(holder)
+	_tree().current_scene.add_child(zone)
+	zone.global_position = _player().global_position
+
+## Moves the player `n` tiles, one tile right, the next left, 2 px a physics frame, and stops early
+## when a battle opens.
+func _walk_tiles(n: int, tile: float) -> void:
+	var tree := _tree()
+	for k in n:
+		var dir := 1.0 if k % 2 == 0 else -1.0
+		for i in int(tile / 2.0):
+			var p := _player()
+			if p == null or tree.current_scene == null or tree.current_scene.name == "Battle":
+				return
+			p.global_position += Vector2(2.0 * dir, 0.0)
+			await tree.physics_frame
+	await _frames(2)
 
 func _game_over_screen() -> String:
 	return await preload("game_over_check.gd").new().run()

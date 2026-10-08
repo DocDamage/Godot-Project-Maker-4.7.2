@@ -34,6 +34,7 @@ M7_STEPS = [
     "rewards_granted",
     "returned_to_map",
     "enemy_stays_defeated",
+    "random_encounter",
     "defeat_policy",
     "game_over_screen",
 ]

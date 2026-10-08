@@ -7,7 +7,11 @@ extends RefCounted
 ## Evaluated left to right with NO operator precedence. Atoms:
 ##   flag:<entity>.<key>    item:<id>[>=N]    gold>=N    level>=N    quest:<id>=<state>
 ##   quest_active:<id>    quest_done:<id>    quest_stage:<id>:<stage>    party:<actor id>
+##   var:<name><op><N>    (op is one of >= <= == != > <; a variable never set is 0)
 ## Unknown atoms are false and log "[RPG-DLG] unknown condition atom".
+
+## The comparison operators of var:, longest first so that ">=" is not read as ">".
+const VAR_OPS: Array[String] = [">=", "<=", "==", "!=", ">", "<"]
 
 static func evaluate(expr: String) -> bool:
 	var tokens := _tokens(expr)
@@ -79,6 +83,8 @@ static func _atom(atom: String) -> bool:
 		return RpgUtil.to_int(state.player_stats.level) >= RpgUtil.to_int(atom.trim_prefix("level>="))
 	if atom.begins_with("party:"):
 		return state.in_party(StringName(atom.trim_prefix("party:")))
+	if atom.begins_with("var:"):
+		return _compare_var(state, atom)
 	if atom.begins_with("quest_active:"):
 		return state.quest_is_active(StringName(atom.trim_prefix("quest_active:")))
 	if atom.begins_with("quest_done:"):
@@ -93,6 +99,33 @@ static func _atom(atom: String) -> bool:
 		if not body.contains("="):
 			return _unknown(atom)
 		return str(state.quests.get(body.get_slice("=", 0), "")) == body.get_slice("=", 1)
+	return _unknown(atom)
+
+## var:<name><op><N>, e.g. var:bridge_planks>=3.
+static func _compare_var(state: RpgGameState, atom: String) -> bool:
+	var body := atom.trim_prefix("var:")
+	for op in VAR_OPS:
+		var at := body.find(op)
+		if at <= 0:
+			continue
+		var right := body.substr(at + op.length())
+		if not right.is_valid_int():
+			return _unknown(atom)
+		var value := state.get_var(body.substr(0, at))
+		var wanted := right.to_int()
+		match op:
+			">=":
+				return value >= wanted
+			"<=":
+				return value <= wanted
+			"==":
+				return value == wanted
+			"!=":
+				return value != wanted
+			">":
+				return value > wanted
+			_:
+				return value < wanted
 	return _unknown(atom)
 
 static func _unknown(atom: String) -> bool:

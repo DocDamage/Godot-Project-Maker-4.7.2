@@ -42,10 +42,26 @@ stats have `crit_chance` under **Extra**). All random numbers come from the game
    loot. **Behavior** holds the tuning (pixel values are for the tile size of the project):
    `vision_px`, `lose_px`, `attack_range_px`, `attack_cooldown_s`, `windup_s`, `active_s`,
    `move_speed`, `chase_speed`, `wander_radius_px`, `wander_pause_s`, `knockback_resist` and
-   `nav_mode` (`"direct"` or `"agent"`).
+   `nav_mode` (`"direct"` or `"agent"`). `kind` decides how it fights:
+   * `"melee"` walks up and swings (the default);
+   * `"shooter"` keeps `keep_away_px` away and shoots from `shoot_range_px`
+     (`projectile_speed`, `projectile_range_px`, `shoot_windup_s`, `shoot_cooldown_s`);
+   * `"turret"` never moves and shoots when it sees you;
+   * `"charger"` winds up, dashes at you from `charge_range_px` (`charge_speed`, `charge_s`) and
+     then stands still for `charge_recover_s`: that is the moment to hit it.
+
+   An enemy whose picture is called archer, mage or similar starts as a shooter, a boar or bull as
+   a charger. The field map behind the east exit has a charger and a shooter
+   (`game/data/enemies/<enemy>_charger.tres` and `_shooter.tres`).
 2. Open `game/maps/starter_map.tscn` and drag an enemy scene from `generated/scenes/enemies/` under
    `YSorted/Entities`. Give it its own **Entity Id** (for example `starter_map_enemy_003`) and your
    enemy data as its **Definition**.
+
+### Bows
+
+A weapon with **Ranged** ticked (in its item data) fires an arrow at every attack instead of a
+swing; the heavy attack's arrow hits harder. The starter bow is ranged. Arrows and enemy shots stop
+at walls and at the first character of the other side they meet.
 
 ### Attack animations and the swing
 

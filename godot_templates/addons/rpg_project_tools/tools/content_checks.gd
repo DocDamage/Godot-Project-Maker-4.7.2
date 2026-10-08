@@ -10,18 +10,26 @@ extends RefCounted
 
 const EntityIds := preload("entity_ids.gd")
 const Condition := preload("res://addons/rpg_runtime/dialogue/condition.gd")
+const Sequence := preload("res://addons/rpg_runtime/events/sequence.gd")
+const EncounterTable := preload("res://addons/rpg_runtime/data/encounter_table.gd")
 const JsonIo := preload("json_io.gd")
 
 const MAPS_DIR := "res://game/maps"
 const DIALOGUE_DIR := "res://game/data/dialogue"
 const ITEMS_DIR := "res://game/data/items"
+const SEQUENCES_DIR := "res://game/data/sequences"
+const ENEMIES_DIR := "res://game/data/enemies"
 const PLACEHOLDER_DIR := "res://generated/debug_placeholders/"
 const RESOURCE_ROOTS: Array[String] = ["res://generated", "res://game"]
 const DOOR_SUFFIX := "/world/door.gd"
 const SPAWN_SUFFIX := "/world/spawn_point.gd"
+const TRIGGER_SUFFIX := "/world/trigger_area.gd"
+const ZONE_SUFFIX := "/world/encounter_zone.gd"
+const GATE_SUFFIX := "/world/gate.gd"
+const SWITCH_SUFFIX := "/world/switch.gd"
 
-## `dirs` overrides the folders that are checked (tests): maps, dialogue, items, placeholders and
-## resources (an Array of roots).
+## `dirs` overrides the folders that are checked (tests): maps, dialogue, items, sequences, enemies,
+## placeholders and resources (an Array of roots).
 static func run(dirs: Dictionary = {}) -> Array:
 	var findings: Array = []
 	var cache := {}  # map path -> instantiated scene (or null), freed at the end
@@ -29,6 +37,11 @@ static func run(dirs: Dictionary = {}) -> Array:
 	_check_entity_ids(maps, cache, findings)
 	_check_doors(maps, cache, findings)
 	_check_dialogue(JsonIo.to_str(dirs.get("dialogue", DIALOGUE_DIR)), JsonIo.to_str(dirs.get("items", ITEMS_DIR)), findings)
+	var sequences_dir := JsonIo.to_str(dirs.get("sequences", SEQUENCES_DIR))
+	_check_sequences(sequences_dir, dirs, findings)
+	_check_triggers(maps, cache, sequences_dir, findings)
+	_check_zones(maps, cache, findings)
+	_check_locks(maps, cache, JsonIo.to_str(dirs.get("items", ITEMS_DIR)), findings)
 	var roots: Array = dirs.get("resources", RESOURCE_ROOTS)
 	_check_placeholders(roots, JsonIo.to_str(dirs.get("placeholders", PLACEHOLDER_DIR)), findings)
 	for key: Variant in cache.keys():
@@ -213,6 +226,141 @@ static func _check_dialogue(dialogue_dir: String, items_dir: String, findings: A
 				if not known.has(item) and not reported.has(item):
 					reported[item] = true
 					findings.append(finding("VAL-019", {"item": item}, path))
+
+# ---------------------------------------------------------------- sequences (VAL-023)
+
+## A file an id names: <dir>/<id>.tres, or the id itself when it is a path.
+static func _file_of(ref: String, dir_path: String) -> String:
+	return ref if ref.contains("://") else "%s/%s.tres" % [dir_path, ref]
+
+## The problems of one sequence's commands: Sequence.problems_of plus what they refer to (called
+## sequences, dialogue files, enemies, maps) that does not exist.
+static func sequence_problems(commands: Array, dirs: Dictionary = {}) -> Array[String]:
+	var out := Sequence.problems_of(commands)
+	var sequences_dir := JsonIo.to_str(dirs.get("sequences", SEQUENCES_DIR))
+	var dialogue_dir := JsonIo.to_str(dirs.get("dialogue", DIALOGUE_DIR))
+	var enemies_dir := JsonIo.to_str(dirs.get("enemies", ENEMIES_DIR))
+	for i in commands.size():
+		var command := JsonIo.to_dict(commands[i])
+		var name := JsonIo.to_str(command.get("cmd", ""))
+		var where := "command %d (%s)" % [i + 1, name]
+		match name:
+			"call":
+				var called := JsonIo.to_str(command.get("sequence", ""))
+				if called != "" and not ResourceLoader.exists(_file_of(called, sequences_dir)):
+					out.append("%s calls the unknown sequence '%s'" % [where, called])
+			"show_dialogue":
+				var dialogue := JsonIo.to_str(command.get("dialogue", ""))
+				if dialogue != "" and not ResourceLoader.exists(_file_of(dialogue, dialogue_dir)):
+					out.append("%s shows the missing dialogue '%s'" % [where, dialogue])
+			"start_battle":
+				for enemy: Variant in JsonIo.to_array(command.get("enemies", [])):
+					if not ResourceLoader.exists(_file_of(JsonIo.to_str(enemy), enemies_dir)):
+						out.append("%s fights the unknown enemy '%s'" % [where, JsonIo.to_str(enemy)])
+			"change_map":
+				var map := JsonIo.to_str(command.get("map", ""))
+				if map != "" and not ResourceLoader.exists(map):
+					out.append("%s goes to the missing map '%s'" % [where, map])
+	return out
+
+static func _check_sequences(sequences_dir: String, dirs: Dictionary, findings: Array) -> void:
+	for path in list_files(sequences_dir, ["tres"]):
+		var res := load(path)
+		if res == null or res.get("commands") == null:
+			continue
+		var commands: Array = res.get("commands")
+		for problem in sequence_problems(commands, dirs):
+			findings.append(finding("VAL-023", {"problem": problem}, path))
+
+## Trigger areas that run no sequence, a missing one, or fire once without an entity id to remember it by.
+static func _check_triggers(maps: Array[String], cache: Dictionary, sequences_dir: String, findings: Array) -> void:
+	for path in maps:
+		var root := _instance(path, cache)
+		if root == null:
+			continue
+		var nodes: Array[Node] = []
+		_walk(root, nodes)
+		for node in nodes:
+			if not _script_ends_with(node, TRIGGER_SUFFIX):
+				continue
+			var node_path := String(root.get_path_to(node))
+			var sequence := JsonIo.to_str(node.get("sequence_id"))
+			var embedded: Variant = node.get("sequence")
+			var problems: Array[String] = []
+			if embedded is Resource:
+				var inner: Resource = embedded
+				var commands: Array = inner.get("commands") if inner.get("commands") != null else []
+				for found in sequence_problems(commands):
+					problems.append("the trigger %s: %s" % [node_path, found])
+			elif sequence == "":
+				problems.append("the trigger %s runs no sequence" % node_path)
+			elif not ResourceLoader.exists(_file_of(sequence, sequences_dir)):
+				problems.append("the trigger %s runs the missing sequence '%s'" % [node_path, sequence])
+			if JsonIo.to_bool(node.get("once")) and JsonIo.to_str(node.get("entity_id")) == "":
+				problems.append("the trigger %s fires once but has no entity_id to remember it by" % node_path)
+			for problem in problems:
+				findings.append(finding("VAL-023", {"problem": problem}, path, node_path))
+
+# ---------------------------------------------------------------- encounter zones (VAL-024)
+
+## Zones without a table, with a table whose groups are broken, or with no shape and no cells layer.
+static func _check_zones(maps: Array[String], cache: Dictionary, findings: Array) -> void:
+	for path in maps:
+		var root := _instance(path, cache)
+		if root == null:
+			continue
+		var nodes: Array[Node] = []
+		_walk(root, nodes)
+		for node in nodes:
+			if not _script_ends_with(node, ZONE_SUFFIX):
+				continue
+			var node_path := String(root.get_path_to(node))
+			var problems: Array[String] = []
+			var table: Variant = node.get("table")
+			if table is Resource:
+				var table_res: Resource = table
+				problems.append_array(EncounterTable.problems_of(JsonIo.to_array(table_res.get("groups"))))
+			else:
+				problems.append("it has no encounter table")
+			var shaped := false
+			for child in node.get_children():
+				if child is CollisionPolygon2D or child is CollisionShape2D:
+					shaped = true
+			var layer_path := JsonIo.to_str(node.get("cells_layer")) if node.get("cells_layer") != null else ""
+			if not shaped and layer_path == "" and root.find_child("Encounters", true, false) == null:
+				problems.append("it has no shape, no cells layer and the map has no Encounters layer")
+			for problem in problems:
+				findings.append(finding("VAL-024", {"node": node_path, "problem": problem}, path, node_path))
+
+# ---------------------------------------------------------------- gates, switches, locked doors (VAL-025)
+
+## Gates and locked doors whose key item does not exist, gates that can never open, and gates,
+## switches and locked doors without the entity id their state is saved under.
+static func _check_locks(maps: Array[String], cache: Dictionary, items_dir: String, findings: Array) -> void:
+	var known := _item_ids(items_dir)
+	for path in maps:
+		var root := _instance(path, cache)
+		if root == null:
+			continue
+		var nodes: Array[Node] = []
+		_walk(root, nodes)
+		for node in nodes:
+			var is_gate := _script_ends_with(node, GATE_SUFFIX)
+			var is_switch := _script_ends_with(node, SWITCH_SUFFIX)
+			var is_door := _script_ends_with(node, DOOR_SUFFIX)
+			if not (is_gate or is_switch or is_door):
+				continue
+			var node_path := String(root.get_path_to(node))
+			var key := JsonIo.to_str(node.get("key_item")) if node.get("key_item") != null else ""
+			var problems: Array[String] = []
+			if key != "" and not known.has(key):
+				problems.append("it needs the unknown item '%s'" % key)
+			if is_gate and key == "" and JsonIo.to_str(node.get("open_when")) == "":
+				problems.append("it has neither a key item nor an open_when condition, so it never opens")
+			if (is_gate or is_switch or (is_door and key != "")) and JsonIo.to_str(node.get("entity_id")) == "":
+				problems.append("it has no entity_id, so its state is not saved")
+			for problem in problems:
+				findings.append(finding("VAL-025", {"node": node_path, "problem": problem}, path, node_path))
 
 # ---------------------------------------------------------------- placeholders (VAL-012)
 

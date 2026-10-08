@@ -55,7 +55,7 @@ func _physics_process(delta: float) -> void:
 		_try_encounter()
 
 func _wander(delta: float) -> void:
-	if not wander_enabled or not input_enabled:
+	if not wander_enabled or not input_enabled or RpgSequenceRunner.running():
 		move_dir(Vector2.ZERO)
 		return
 	if _moving:
@@ -98,7 +98,7 @@ func _try_encounter() -> void:
 	if router == null or router.combat == null:
 		return
 	var combat := router.combat
-	if combat.is_in_combat() or router.is_busy():
+	if combat.is_in_combat() or router.is_busy() or RpgSequenceRunner.running():
 		return  # tried again on the next physics frame
 	if _group_definitions().is_empty():
 		push_error("[RPG-COMBAT] enemy %s has no definition" % entity_id)

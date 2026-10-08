@@ -103,7 +103,7 @@ func _on_map_entered(_map_id: StringName) -> void:
 	autosave()
 
 ## True when an automatic save may happen now: the setting is on, a map is shown and settled (no
-## fade, no battle, no dialogue), the player is alive and the last one was 10 or more seconds ago.
+## fade, no battle, no dialogue, no sequence), the player is alive and the last one was 10 or more seconds ago.
 func can_autosave() -> bool:
 	var settings := RpgUtil.settings()
 	if settings != null and not RpgUtil.to_bool(settings.get("autosave")):
@@ -117,6 +117,8 @@ func can_autosave() -> bool:
 		return false
 	var box := RpgUtil.service(&"rpg_dialogue_box")
 	if box != null and box.call("is_open"):
+		return false
+	if RpgSequenceRunner.running():
 		return false
 	if state.player_stats.hp <= 0:
 		return false

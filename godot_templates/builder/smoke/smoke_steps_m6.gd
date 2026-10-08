@@ -34,6 +34,9 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "shop_buy_sell", "fn": _shop_buy_sell, "timeout_s": 20.0})
 	list.append({"name": "quest_journal", "fn": _quest_journal, "timeout_s": 20.0})
 	list.append({"name": "party_members", "fn": _party_members, "timeout_s": 20.0})
+	list.append({"name": "followers_trail", "fn": _followers_trail, "timeout_s": 20.0})
+	list.append({"name": "sequence_plays", "fn": _sequence_plays, "timeout_s": 40.0})
+	list.append({"name": "keys_and_switches", "fn": _keys_and_switches, "timeout_s": 30.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
 	return list
@@ -561,6 +564,306 @@ func _party_members() -> String:
 	state.party.assign(party_before)
 	state.actor_defs.erase(&"smoke_ally")
 	return failure
+
+## A party member appears behind the player on the map, follows the path one tile back, walks while
+## the player walks and stands when the player stands, and is gone when they leave the party.
+func _followers_trail() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
+	var trail := router.get_node_or_null(RpgFollowers.NODE_NAME) as RpgFollowers
+	var p := _player()
+	if trail == null:
+		return "boot did not create the followers"
+	if p == null:
+		return "no player"
+	var ally: StringName = &"companion"
+	if state.actor_definition(ally) == null:
+		ally = &"smoke_follower"
+		var def := RpgActorDefinition.new()
+		def.id = ally
+		def.display_name = "Follower"
+		def.base_stats = RpgStats.new()
+		state.actor_defs[ally] = def
+	var party_before: Array[Dictionary] = state.party.duplicate()
+	state.party.clear()
+	var home := p.global_position
+	var failure := ""
+	state.join_party(ally)
+	await _frames(3)
+	if trail.shown().size() != 1:
+		failure = "%d followers on the map, expected 1" % trail.shown().size()
+	else:
+		var follower := trail.shown()[0]
+		if follower.get_parent() != p.get_parent():
+			failure = "the follower is not beside the player under %s" % p.get_parent().name
+		else:
+			var tile := float(RpgUtil.map_tile_px(router.current_map))
+			var mask := p.collision_mask
+			p.collision_mask = 0  # walls on the right must not push the player back
+			for i in 40:  # 80 px to the right, 2 px a frame
+				p.global_position += Vector2(2, 0)
+				await _tree().physics_frame
+			p.collision_mask = mask
+			var visual := follower.get_node("Visual") as AnimatedSprite2D
+			var walking := String(visual.animation).begins_with("walk")
+			var gap := p.global_position - follower.global_position
+			if absf(gap.x - tile) > 3.0 or absf(gap.y) > 1.0:
+				failure = "the follower is %s from the player, expected one tile (%d px) behind" % [gap, tile]
+			elif not walking and visual.sprite_frames != null and visual.sprite_frames.has_animation("walk_right"):
+				failure = "the follower plays %s while the player walks" % visual.animation
+			else:
+				await _frames(12)
+				if String(visual.animation).begins_with("walk"):
+					failure = "the follower still walks after the player stopped"
+	state.leave_party(ally)
+	await _frames(3)
+	if failure == "" and not trail.shown().is_empty():
+		failure = "the follower stayed after leaving the party"
+	state.party.assign(party_before)
+	state.actor_defs.erase(&"smoke_follower")
+	p.global_position = home
+	await _frames(3)
+	return failure
+
+## A locked gate refuses the player without its key and opens for good with it (pressing interact
+## in front of it); a lever opens and closes a second gate; stepping on a plate opens a third. A
+## physics query checks that a closed gate blocks and an open one does not. Everything is removed
+## afterwards.
+func _keys_and_switches() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var p := _player()
+	if p == null or state == null:
+		return "no player"
+	var holder := p.get_parent()
+	var home := p.global_position
+	var tile := float(RpgUtil.map_tile_px(_tree().current_scene))
+	var key := RpgItemDefinition.new()
+	key.id = &"smoke_key"
+	key.category = RpgItemDefinition.Category.KEY
+	key.max_stack = 1
+	state.items[key.id] = key
+	var made: Array[Node] = []
+	var locked := _smoke_gate("smoke_gate_001", &"smoke_key", "", home + Vector2(0, -3.0 * tile), holder, made)
+	var by_lever := _smoke_gate("smoke_gate_002", &"", "flag:smoke_switch_001.on", home + Vector2(3.0 * tile, -3.0 * tile), holder, made)
+	var by_plate := _smoke_gate("smoke_gate_003", &"", "flag:smoke_switch_002.on", home + Vector2(-3.0 * tile, -3.0 * tile), holder, made)
+	var lever := _smoke_switch("smoke_switch_001", RpgSwitch.Kind.LEVER, home + Vector2(3.0 * tile, 0.0), holder, made)
+	var plate := _smoke_switch("smoke_switch_002", RpgSwitch.Kind.PLATE, home + Vector2(-3.0 * tile, 2.0 * tile), holder, made)
+	await _frames(3)
+	var failure := ""
+	if not await _blocks(locked):
+		failure = "a closed gate does not block"
+	if failure == "":
+		await _stand_below(locked)
+		await _interact_until(func() -> bool: return false, 10)
+		if locked.open:
+			failure = "the locked gate opened without its key"
+	if failure == "":
+		state.inventory.add(key.id)
+		await _stand_below(locked)
+		if not await _interact_until(func() -> bool: return locked.open, 30):
+			failure = "interacting with the key in the bag did not open the gate"
+		elif state.inventory.count(key.id) != 0 or state.get_flag("smoke_gate_001", "unlocked", false) != true:
+			failure = "unlocking did not use the key or remember the gate"
+		elif await _blocks(locked):
+			failure = "the open gate still blocks"
+	if failure == "":
+		await _stand_below(lever)
+		if not await _interact_until(func() -> bool: return by_lever.open, 30):
+			failure = "pulling the lever did not open its gate"
+		else:
+			await _frames(20)
+			await _stand_below(lever)
+			if not await _interact_until(func() -> bool: return not by_lever.open, 30):
+				failure = "pulling the lever again did not close its gate"
+			elif not await _blocks(by_lever):
+				failure = "the gate closed by the lever does not block"
+	if failure == "":
+		p.global_position = plate.global_position
+		for i in 30:
+			await _tree().physics_frame
+			if by_plate.open:
+				break
+		if not by_plate.open:
+			failure = "stepping on the plate did not open its gate"
+	for node in made:
+		node.queue_free()
+	var smoke_flags: Dictionary = state.flags
+	for id: String in ["smoke_gate_001", "smoke_gate_002", "smoke_gate_003", "smoke_switch_001", "smoke_switch_002"]:
+		smoke_flags.erase(id)
+	state.inventory.remove(key.id, state.inventory.count(key.id))
+	state.items.erase(key.id)
+	p.global_position = home
+	await _frames(6)  # the input is free again after the last interaction
+	return failure
+
+func _smoke_gate(id: String, key: StringName, open_when: String, at: Vector2, holder: Node, made: Array[Node]) -> RpgGate:
+	var gate := RpgGate.new()
+	gate.name = id
+	gate.entity_id = id
+	gate.key_item = key
+	gate.open_when = open_when
+	holder.add_child(gate)
+	gate.global_position = at
+	made.append(gate)
+	return gate
+
+func _smoke_switch(id: String, kind: RpgSwitch.Kind, at: Vector2, holder: Node, made: Array[Node]) -> RpgSwitch:
+	var sw := RpgSwitch.new()
+	sw.name = id
+	sw.entity_id = id
+	sw.kind = kind
+	holder.add_child(sw)
+	sw.global_position = at
+	made.append(sw)
+	return sw
+
+## True when a world-layer body is in the middle of the gate (after a physics frame).
+func _blocks(gate: RpgGate) -> bool:
+	await _frames(2)
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = gate.global_position + Vector2(0, -gate.size.y / 2.0)
+	query.collision_mask = 1
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	for hit: Dictionary in gate.get_world_2d().direct_space_state.intersect_point(query):
+		if hit.get("collider") == gate:
+			return true
+	return false
+
+## A cutscene walks the villager out and back, fades, shows a line, gives a potion, pans and shakes
+## the camera; while it runs the player cannot move, the pause menu stays shut and autosave waits.
+## Then a walk-in trigger starts one (once), and cancel skips a skippable one. Everything it changed
+## is put back.
+func _sequence_plays() -> String:
+	var tree := _tree()
+	var scene := tree.current_scene
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
+	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
+	var runner := RpgSequenceRunner.instance()
+	var player := _player()
+	if runner == null:
+		return "boot did not create the sequence runner"
+	if scene == null or player == null or state == null or router == null:
+		return "not on a map with a player"
+	var npc := _find_entity(scene, NPC_ID)
+	var npc_home := npc.global_position if npc != null else Vector2.ZERO
+	var potions_before := state.inventory.count(&"potion")
+	var commands: Array[Dictionary] = []
+	if npc != null:
+		commands.append({"cmd": "move_actor", "entity": NPC_ID, "tiles": [1, 0], "speed": 8})
+		commands.append({"cmd": "face", "entity": NPC_ID, "toward": "player"})
+	commands.append_array([
+		{"cmd": "fade_out", "seconds": 0.15},
+		{"cmd": "fade_in", "seconds": 0.15},
+		{"cmd": "show_dialogue", "lines": ["UI_YES"]},
+		{"cmd": "give_item", "item": "potion"},
+		{"cmd": "set_var", "name": "smoke_sequence", "value": 1},
+		{"cmd": "camera_pan", "tiles": [2, 0], "seconds": 0.2},
+		{"cmd": "shake", "seconds": 0.2},
+	])
+	if npc != null:
+		commands.append({"cmd": "move_actor", "entity": NPC_ID, "tiles": [-1, 0], "speed": 8})
+	var cutscene := RpgSequence.new()
+	cutscene.id = &"smoke_cutscene"
+	cutscene.commands = commands
+	if not cutscene.problems().is_empty():
+		return "the smoke cutscene has problems: %s" % str(cutscene.problems())
+	var player_at := player.global_position
+	runner.run(cutscene)
+	await _frames(2)
+	if not RpgSequenceRunner.running():
+		return "the sequence did not start"
+	Input.action_press("move_right")
+	await _frames(10)
+	Input.action_release("move_right")
+	if player.global_position.distance_to(player_at) > 1.0:
+		return "the player moved %.1f px while a sequence ran" % player.global_position.distance_to(player_at)
+	await _press("menu")
+	var controller := router.get_node_or_null("UiController") as RpgUiController
+	if controller != null and controller.is_pause_open():
+		return "the pause menu opened during a sequence"
+	if save != null:
+		save.reset_autosave_cooldown()
+		if save.can_autosave():
+			return "autosave was allowed during a sequence"
+	var box := RpgUtil.service(&"rpg_dialogue_box")
+	for i in 600:
+		if not runner.is_running():
+			break
+		if box != null and box.call("is_open"):
+			await _press("confirm")
+		await tree.physics_frame
+	if runner.is_running():
+		return "the sequence did not finish (stuck at %s)" % runner.current_id()
+	var failure := ""
+	if npc != null and is_instance_valid(npc) and npc.global_position.distance_to(npc_home) > 0.5:
+		failure = "the villager did not walk back (%.1f px away)" % npc.global_position.distance_to(npc_home)
+	elif state.inventory.count(&"potion") != potions_before + 1:
+		failure = "give_item did not give the potion"
+	elif state.get_var("smoke_sequence") != 1:
+		failure = "set_var did not set the variable"
+	elif router.fade_alpha() > 0.01:
+		failure = "the screen is still faded after the sequence"
+	else:
+		var camera := player.get_node_or_null("Camera") as Camera2D
+		if camera != null and camera.offset != Vector2.ZERO:
+			failure = "the camera was not put back (offset %s)" % camera.offset
+	if failure == "":
+		failure = await _trigger_and_skip(scene, player, state, runner)
+	state.inventory.remove(&"potion", 1)
+	state.variables.erase("smoke_sequence")
+	state.variables.erase("smoke_trigger")
+	state.variables.erase("smoke_skip")
+	var smoke_flags: Dictionary = state.flags
+	smoke_flags.erase("smoke_trigger_001")
+	player.global_position = player_at
+	await _frames(4)
+	return failure
+
+func _trigger_and_skip(scene: Node, player: RpgActor, state: RpgGameState, runner: RpgSequenceRunner) -> String:
+	var inside := RpgSequence.new()
+	inside.id = &"smoke_trigger"
+	inside.commands.assign([{"cmd": "add_var", "name": "smoke_trigger", "amount": 1}])
+	var trigger := RpgTriggerArea.new()
+	trigger.name = "SmokeTrigger"
+	trigger.entity_id = "smoke_trigger_001"
+	trigger.sequence = inside
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(12, 12)
+	shape.shape = rect
+	trigger.add_child(shape)
+	trigger.position = player.global_position + Vector2(0, -64)
+	scene.add_child(trigger)
+	await _frames(3)
+	var failure := ""
+	for visit in 2:
+		player.global_position = trigger.global_position
+		for i in 30:
+			await _tree().physics_frame
+			if not runner.is_running() and state.get_var("smoke_trigger") > visit:
+				break
+		player.global_position = trigger.global_position + Vector2(0, 64)
+		await _frames(4)
+	if state.get_var("smoke_trigger") != 1:
+		failure = "walking into the trigger twice ran its sequence %d times, expected once" % state.get_var("smoke_trigger")
+	trigger.queue_free()
+	if failure != "":
+		return failure
+	var long_one := RpgSequence.new()
+	long_one.id = &"smoke_skip"
+	long_one.skippable = true
+	long_one.commands.assign([{"cmd": "wait", "seconds": 30}, {"cmd": "set_var", "name": "smoke_skip", "value": 1}])
+	runner.run(long_one)
+	await _frames(3)
+	await _press("cancel")
+	await _frames(3)
+	if runner.is_running():
+		return "cancel did not skip a skippable sequence"
+	if state.get_var("smoke_skip") != 1:
+		return "the skipped sequence did not run its last command"
+	return ""
 
 func _mutate_then_load() -> String:
 	var tree := _tree()

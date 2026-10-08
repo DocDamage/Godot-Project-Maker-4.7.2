@@ -9,6 +9,10 @@ const ACTORS_DIR := "res://game/data/actors"
 const MAX_PARTY := 4
 const SHOPS_DIR := "res://game/data/shops"
 const QUESTS_DIR := "res://game/data/quests"
+const SEQUENCES_DIR := "res://game/data/sequences"
+const DIALOGUE_DIR := "res://game/data/dialogue"
+const ENEMIES_DIR := "res://game/data/enemies"
+const ENCOUNTERS_DIR := "res://game/data/encounters"
 ## The value of GameState.quests[id] once a quest is finished.
 const QUEST_DONE := "done"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
@@ -30,6 +34,9 @@ var current_spawn: StringName = &"default"
 var player_position := Vector2.ZERO
 var player_facing := "down"
 var flags: Dictionary = {}  # entity_id -> {key: value}
+## Numbers a script counts with (sequence and dialogue events set_var / add_var, the condition
+## var:<name><op><N>): name -> int. Saved under the optional key `variables`.
+var variables: Dictionary = {}
 var quests: Dictionary = {}  # quest id -> the id of its current stage, or QUEST_DONE
 var quest_defs: Dictionary = {}  # quest id -> RpgQuestDefinition (game/data/quests)
 ## actor id (String) -> {slot: item id (String)}. Keyed by actor from the start so party members
@@ -48,7 +55,7 @@ func _ready() -> void:
 	load_quests()
 	var bus := RpgUtil.events()
 	if bus != null:
-		for signal_name: StringName in [&"entity_state_changed", &"item_added", &"item_removed", &"gold_changed", &"level_up", &"dialogue_finished", &"game_loaded"]:
+		for signal_name: StringName in [&"entity_state_changed", &"variable_changed", &"item_added", &"item_removed", &"gold_changed", &"level_up", &"dialogue_finished", &"game_loaded"]:
 			if bus.has_signal(signal_name) and not bus.is_connected(signal_name, _on_quest_event):
 				bus.connect(signal_name, _on_quest_event)
 
@@ -228,6 +235,7 @@ func new_game() -> void:
 	party.clear()
 	inventory.slots.clear()
 	flags.clear()
+	variables.clear()
 	quests.clear()
 	equipment.clear()
 	playtime_s = 0.0
@@ -253,6 +261,21 @@ func set_flag(entity_id: String, key: String, value: Variant) -> void:
 		flags[entity_id] = {}
 	flags[entity_id][key] = value
 	RpgUtil.emit(&"entity_state_changed", [entity_id, key, value])
+
+## A variable's value (0 when it was never set).
+func get_var(var_name: String) -> int:
+	return RpgUtil.to_int(variables.get(var_name, 0))
+
+func set_var(var_name: String, value: int) -> void:
+	if var_name == "":
+		return
+	variables[var_name] = value
+	RpgUtil.emit(&"variable_changed", [StringName(var_name), value])
+
+## Adds `amount` (negative to subtract) and returns the new value.
+func add_var(var_name: String, amount: int) -> int:
+	set_var(var_name, get_var(var_name) + amount)
+	return get_var(var_name)
 
 # ------------------------------------------------------------------ equipment (T12.45)
 
@@ -516,6 +539,7 @@ func to_dict() -> Dictionary:
 		"player_position": [player_position.x, player_position.y],
 		"player_facing": player_facing,
 		"flags": flags.duplicate(true),
+		"variables": variables.duplicate(true),
 		"quests": quests.duplicate(true),
 		"equipment": equipment.duplicate(true),
 		"playtime_s": playtime_s,
@@ -544,12 +568,24 @@ func from_dict(d: Dictionary) -> void:
 	player_facing = str(data.get("player_facing", "down"))
 	var flags_data: Dictionary = data.get("flags", {})
 	flags = flags_data.duplicate(true)
+	variables = _variables_from(data.get("variables", {}))
 	var quests_data: Dictionary = data.get("quests", {})
 	quests = quests_data.duplicate(true)
 	equipment = _equipment_from(data.get("equipment", {}))
 	playtime_s = RpgUtil.to_float(data.get("playtime_s", 0.0))
 	var rng_data: Dictionary = data.get("rng", {})
 	rng.set_state(rng_data)
+
+## The optional `variables` key of a save: whole numbers by name; anything else is dropped.
+static func _variables_from(raw: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if not (raw is Dictionary):
+		return out
+	var table: Dictionary = raw
+	for key: Variant in table:
+		if typeof(table[key]) in [TYPE_INT, TYPE_FLOAT]:
+			out[str(key)] = RpgUtil.to_int(table[key])
+	return out
 
 ## The optional `equipment` key of a save: anything that is not {actor: {slot: item}} is dropped,
 ## so an old save (no key) loads with empty slots.

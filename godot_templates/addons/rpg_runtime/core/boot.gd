@@ -1,6 +1,6 @@
 extends Node
 ## Entry point of a generated game: creates the persistent services under SceneRouter (audio, UI
-## layers, combat mode, debug overlay) once, then sends the router to the first scene (the title).
+## layers, sequence runner, combat mode, debug overlay) once, then sends the router to the first scene (the title).
 
 const UI_DIR := "res://generated/scenes/ui/"
 
@@ -10,6 +10,8 @@ const UI_DIR := "res://generated/scenes/ui/"
 @export var debug_tools: bool = false
 ## The HUD scene under ui/ (an archetype may bring its own).
 @export var hud_scene: String = "hud_basic"
+## Party members walk behind the player on the map (RpgFollowers).
+@export var followers: bool = true
 
 func _ready() -> void:
 	RpgStrings.register_translations()
@@ -36,6 +38,13 @@ func _create_services(router: RpgSceneRouter) -> void:
 	var controller := RpgUiController.new()
 	controller.name = "UiController"
 	router.add_child(controller)
+	var sequences := RpgSequenceRunner.new()
+	sequences.name = RpgSequenceRunner.NODE_NAME
+	router.add_child(sequences)
+	var trail := RpgFollowers.new()
+	trail.name = RpgFollowers.NODE_NAME
+	trail.enabled = followers
+	router.add_child(trail)
 	if combat_scene != "" and ResourceLoader.exists(combat_scene):
 		var combat := (load(combat_scene) as PackedScene).instantiate()
 		combat.name = "Combat"

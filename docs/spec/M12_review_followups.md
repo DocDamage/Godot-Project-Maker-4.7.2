@@ -138,6 +138,10 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T12.62 | Lighting and day/night | M | — |
 | T12.63 | Linux and macOS app packages | L | T12.10, T12.21 |
 | T12.64 | Minimap and world map | L | — |
+| T12.67 | Projectiles and ranged weapons (added 2026-10-08) | M | — |
+| T12.68 | Enemy kinds: shooter, turret, charger (added 2026-10-08) | M | T12.67 |
+| T12.69 | Party followers on the map (added 2026-10-08) | M | T12.47 |
+| T12.70 | Keys, switches and gates (added 2026-10-08) | M | — |
 | T12.65 | Documentation, screenshots and changelogs | M | Parts A–D |
 | T12.66 | Gate (1.0.0) | M | T12.65, T10.10 |
 
@@ -1866,6 +1870,20 @@ Today the turn-based archetype only has visible overworld enemies.
 **Done when**
 * The tests pass.
 
+**Amended 2026-10-08** (asked for by the maintainer after comparing the command set with the FF6
+event script, which has flow control, variables and object scripts that run side by side):
+* More commands: `animate` (hold an animation), `shake`, `camera_lock` / `camera_unlock`,
+  `set_var` / `add_var`, `event` (any dialogue event), and the flow commands `label`, `goto`,
+  `if` (a dialogue condition, with an optional `else`), `call` (another sequence, nested at most
+  8 deep), `end` and `wait_for`.
+* `"wait": false` on a move, fade, pan or shake runs it in the background; `wait_for` waits for
+  one character or for everything.
+* Variables: `GameState.variables` (saved under an optional key), the dialogue events `set_var` /
+  `add_var` and the condition `var:<name><op><N>`.
+* A trigger may keep its sequence inside the map (`RpgTriggerArea.sequence`).
+* VAL-023 reports broken sequences and triggers; a smoke step `sequence_plays` plays one in the
+  generated game (in the M6 list).
+
 ---
 
 ## T12.55 — Input glyphs
@@ -2138,6 +2156,125 @@ are packaged.
 
 **Done when**
 * The tests pass.
+
+---
+
+## T12.67 — Projectiles and ranged weapons
+
+*Added 2026-10-08 at the maintainer's request (Part D additions after the review).*
+
+**Depends on:** nothing
+**Files:** `godot_templates/addons/rpg_runtime/archetypes/arpg/projectile.gd` (new),
+`archetypes/arpg/player_combat.gd`, `data/item_definition.gd`, `godot_templates/builder/recipes/data_recipe.gd`,
+`builder/smoke/smoke_steps_arpg.gd`, GDScript tests
+
+The action RPG has only melee hits: the swing's hitbox and the enemy's.
+
+**Spec**
+* `RpgProjectile`, an Area2D made in code (`create(shooter, from, direction, team, speed, range)`),
+  never saved, drawn in code (an orb or an arrow along its flight):
+  * the layers of its team's hitbox (player 7 looking at 10, enemy 8 looking at 9) and the world (1);
+  * the damage of a melee hit (`RpgArpgMath.roll_damage`) with the shooter's attack when it was
+    fired, equipment counted; knockback along the flight;
+  * gone after its first hurtbox of the other team (an invulnerable one stops it too), at a wall, or
+    after its range; held while a sequence runs.
+* `RpgItemDefinition.ranged`: a worn weapon with it fires one arrow per attack (14 tiles/s, 12 tiles)
+  at the moment a swing would land, instead of the swing. A heavy attack's arrow uses the heavy
+  damage and knockback.
+* The seeded starter bow (`data_recipe`) is ranged.
+
+**Tests**
+* Layers, attack and flight of a shot; its range; one hit, the team rule, invulnerable targets.
+* A ranged weapon fires one arrow and never the melee hitbox.
+* Smoke step `player_bow_shoots`.
+
+---
+
+## T12.68 — Enemy kinds: shooter, turret, charger
+
+*Added 2026-10-08 at the maintainer's request.*
+
+**Depends on:** T12.67
+**Files:** `archetypes/arpg/enemy_ai.gd`, `archetypes/arpg/components/enemy_shoot.gd` (new),
+`archetypes/arpg/components/enemy_charge.gd` (new), `builder/recipes/arpg/enemy_recipes.gd`,
+`builder/recipes/second_map_recipe.gd`, `builder/smoke/smoke_steps_arpg.gd`, GDScript tests
+
+Every enemy walks up and swings.
+
+**Spec**
+* `behavior.kind`: `melee` (as before), `shooter` (keeps `keep_away_px`, fires from
+  `shoot_range_px`), `turret` (never moves, fires when it sees the player), `charger` (winds up,
+  dashes toward the player from `charge_range_px` with its hitbox live, then stands to recover).
+  New behavior keys with defaults; pixel keys scale with the tile size; unknown kinds fight as melee.
+* The shooting and charging parts are components (`EnemyShoot`, `EnemyCharge`) with a telegraph
+  tint during the windup; an older enemy scene gets them when its kind needs them.
+* New definitions take their kind from words in the asset's name (archer, mage ... shooter;
+  turret, totem, eye ... turret; boar, bull, ram ... charger).
+* Demo (new action-RPG projects): `<first enemy>_charger.tres` and `<first enemy>_shooter.tres`, and
+  the field map's two enemies use them.
+
+**Tests**
+* The kind from the behavior and from names; the shooter's windup, shot and cooldown; the charger's
+  windup, dash (hitbox, speed, direction), recovery and cancel.
+* Smoke steps `ranged_enemy_shoots` and `charger_charges`.
+
+---
+
+## T12.69 — Party followers on the map
+
+*Added 2026-10-08 at the maintainer's request.*
+
+**Depends on:** T12.47
+**Files:** `godot_templates/addons/rpg_runtime/world/followers.gd` (new), `core/boot.gd`,
+`builder/smoke/smoke_steps_m6.gd`, GDScript tests
+
+Party members exist only in menus and battles; on the map the player walks alone.
+
+**Spec**
+* `RpgFollowers`, created by boot under SceneRouter ("Followers"; boot's `followers` export turns it
+  off): every party member is drawn behind the player, in joining order, one tile apart on the path
+  the player walked (a trail of positions), facing the way the path goes, walking while the player
+  walks.
+* A follower is a picture only (an AnimatedSprite2D with the member's sprite frames, else the
+  player's): no body, nothing saved; rebuilt after a map change or a change of the party.
+* Both archetypes. Scripted moves of a sequence are followed too.
+
+**Tests**
+* The trail, the point along it, facing and animation, the picture's offset.
+* Smoke step `followers_trail` (in the M6 list).
+
+---
+
+## T12.70 — Keys, switches and gates
+
+*Added 2026-10-08 at the maintainer's request.*
+
+**Depends on:** nothing
+**Files:** `godot_templates/addons/rpg_runtime/world/gate.gd` (new), `world/switch.gd` (new),
+`world/door.gd`, `core/events.gd`, `ui/strings.gd`, `godot_templates/addons/rpg_project_tools/dock/placement.gd`,
+`dock/asset_dock.gd`, `tools/content_checks.gd`, `builder/smoke/smoke_steps_m6.gd`, GDScript tests
+
+The map has doors that change maps and chests; nothing on it opens or closes.
+
+**Spec**
+* `RpgGate`, a StaticBody2D on the world layer: opens for good when the player interacts holding
+  `key_item` (used up unless `consume_key` is off; the flag `<entity_id>.unlocked`), and is open
+  while `open_when` (a dialogue condition) holds, closing again when it stops holding. An open gate
+  has no collision and is hidden. Drawn in code unless it has a child "Visual".
+* `RpgSwitch`: a floor plate (on once stepped on, or only while held with `hold`) or a lever
+  (interact flips it; `once` keeps it on). Its state is the flag `<entity_id>.on`.
+* `RpgDoor` gains `key_item`, `consume_key` and `entity_id`: locked until the player comes with the
+  key.
+* Messages `UI_LOCKED`, `UI_LOCKED_NEED`, `UI_UNLOCKED`; events `switch_toggled`, `gate_changed`; an
+  opening gate plays the door sound.
+* Dock: *Add gate*, *Add floor switch*, *Add lever*; a switch added while a gate is selected sets
+  the gate's `open_when` to its flag (one undo step).
+* VAL-025: an unknown key item, a gate with neither key nor condition, and a gate, switch or locked
+  door without an entity id.
+
+**Tests**
+* The key, the condition both ways, plates and levers, locked doors, the dock's plan, VAL-025.
+* Smoke step `keys_and_switches` (in the M6 list).
 
 ---
 

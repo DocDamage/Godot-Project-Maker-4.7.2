@@ -23,6 +23,9 @@ const HURT_S := 0.25
 const GENERIC_ACTIVE_FROM := 0.08
 const GENERIC_ACTIVE_TO := 0.2
 const GENERIC_ATTACK_S := 0.35
+## A ranged weapon's arrow, in tiles per second and tiles.
+const ARROW_SPEED_TILES := 14.0
+const ARROW_RANGE_TILES := 12.0
 const DEAD_DELAY_S := 1.5
 ## An attack pressed during the last part of an attack queues the next one.
 const BUFFER_FRACTION := 0.3
@@ -43,6 +46,10 @@ var _attack_anim := ""
 var _active_frames: Array[int] = []
 var _buffered := false
 var _heavy := false
+var _ranged := false  # this attack fires an arrow (a ranged weapon is worn)
+var _fired := false
+## The last arrow fired (tests look at it).
+var last_shot: RpgProjectile = null
 var _dodge_ready_at_ms := 0
 var _saved_speed := 80.0
 var _hurt_knockback := Vector2.ZERO
@@ -128,9 +135,19 @@ func _update_free(_delta: float) -> void:
 
 # ---------------------------------------------------------------- ATTACK
 
+## True when the player wears a weapon marked `ranged`.
+static func weapon_is_ranged() -> bool:
+	var state := RpgUtil.state()
+	if state == null:
+		return false
+	var def: RpgItemDefinition = state.items.get(state.equipped_in(state.player_actor_id, &"weapon"))
+	return def != null and def.ranged
+
 func _enter_attack() -> void:
 	_attack_time = 0.0
 	_buffered = false
+	_ranged = weapon_is_ranged()
+	_fired = false
 	actor.move_locked = true
 	actor.facing_locked = true
 	if movement != null:
@@ -151,7 +168,7 @@ func _enter_attack() -> void:
 		actor.animation_locked = true
 	else:
 		_attack_seconds = GENERIC_ATTACK_S * slow
-		if swing != null and hitbox != null:
+		if swing != null and hitbox != null and not _ranged:
 			swing.play_at(hitbox.position, RpgArpgMath.facing_vector(actor.facing), GENERIC_ACTIVE_TO * slow)
 	if _attack_seconds <= 0.0:
 		_attack_seconds = GENERIC_ATTACK_S * slow
@@ -180,7 +197,31 @@ func _update_hitbox_active() -> void:
 	else:
 		var slow := RpgArpgMath.HEAVY_DURATION_MULT if _heavy else 1.0
 		on = _attack_time >= GENERIC_ACTIVE_FROM * slow and _attack_time < GENERIC_ACTIVE_TO * slow
+	if _ranged:
+		hitbox.active = false
+		if on and not _fired:
+			_fired = true
+			fire_arrow()
+		return
 	hitbox.active = on
+
+## A ranged weapon's shot: one arrow from the middle of the body along the facing, added beside the
+## player. A heavy attack's arrow hits harder and pushes further.
+func fire_arrow() -> RpgProjectile:
+	var router := RpgUtil.router()
+	var tile := float(RpgUtil.map_tile_px(router.current_map if router != null else null))
+	var from := RpgUtil.world_position(hurtbox) if hurtbox != null else RpgUtil.world_position(actor)
+	var shot := RpgProjectile.create(actor, from, RpgArpgMath.facing_vector(actor.facing), &"player", ARROW_SPEED_TILES * tile, ARROW_RANGE_TILES * tile, "arrow")
+	shot.heavy = _heavy
+	if _heavy:
+		shot.knockback_strength *= RpgArpgMath.HEAVY_KNOCKBACK_MULT
+	var holder := actor.get_parent()
+	if holder != null:
+		holder.add_child(shot)
+		if shot.is_inside_tree():
+			shot.global_position = from
+	last_shot = shot
+	return shot
 
 func _exit_attack() -> void:
 	if hitbox != null:

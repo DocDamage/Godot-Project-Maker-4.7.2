@@ -33,7 +33,7 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	if actor == null:
 		return
-	var target: Node = find_target() if actor.input_enabled else null
+	var target: Node = find_target() if actor.input_enabled and not RpgSequenceRunner.running() else null
 	if target == null or not target is Node2D:
 		if _prompt != null:
 			_prompt.visible = false

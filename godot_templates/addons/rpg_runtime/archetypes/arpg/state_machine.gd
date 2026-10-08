@@ -33,8 +33,8 @@ func go(to: StringName) -> void:
 	changed.emit(from, to)
 
 func _physics_process(delta: float) -> void:
-	if not enabled or not states.has(state):
-		return
+	if not enabled or not states.has(state) or RpgSequenceRunner.running():
+		return  # a cutscene holds every fighter where it is
 	time_in_state += delta
 	var update_fn: Callable = states[state]["update"]
 	if update_fn.is_valid():

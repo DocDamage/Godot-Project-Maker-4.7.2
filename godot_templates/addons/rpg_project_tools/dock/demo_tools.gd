@@ -13,6 +13,7 @@ const DEMO_DIR := "res://game/demo"
 const MAP_PATH := "res://game/maps/starter_map.tscn"
 const INTERIOR_PATH := "res://game/maps/interior_1.tscn"
 const FIELD_PATH := "res://game/maps/field_1.tscn"
+const FIELD_TABLE_PATH := "res://game/data/encounters/field_1.tres"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
 const DEMO_ENTITIES_PATH := "res://rpggen/demo_entities.json"
 const LEDGER_PATH := "res://rpggen/ownership_ledger.json"
@@ -135,6 +136,10 @@ func remove(plugin: EditorPlugin) -> Dictionary:
 			files_deleted.append(FIELD_PATH)
 			removed_rels.append(FIELD_PATH.trim_prefix("res://"))
 			messages.append("Removed field_1.tscn.")
+			if FileAccess.file_exists(FIELD_TABLE_PATH) and untouched(ledger, FIELD_TABLE_PATH):
+				DirAccess.remove_absolute(FIELD_TABLE_PATH)
+				files_deleted.append(FIELD_TABLE_PATH)
+				removed_rels.append(FIELD_TABLE_PATH.trim_prefix("res://"))
 		else:
 			messages.append("Kept field_1.tscn: it was changed.")
 	var nodes_removed := _remove_map_nodes(plugin, cleared)

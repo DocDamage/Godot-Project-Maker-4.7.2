@@ -1,11 +1,17 @@
 class_name RpgDoor
 extends Area2D
 ## A trigger that moves the player to another map. Walk-in by default; with `require_interact`
-## the player has to stand in the area and press the interact action.
+## the player has to stand in the area and press the interact action. With `key_item` it is locked
+## until the player comes holding that item (the flag `<entity_id>.unlocked` remembers it).
 
 @export_file("*.tscn") var target_map: String = ""
 @export var target_spawn: StringName = &"default"
 @export var require_interact: bool = false  # false: walk-in; true: press interact
+## Locked until the player has this item; empty = never locked.
+@export var key_item: StringName = &""
+@export var consume_key: bool = true
+## Needed for a lock that stays open (the flag is stored under it).
+@export var entity_id: String = ""
 
 signal used
 
@@ -31,10 +37,36 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		use()
 
-## Sends the player to `target_map`. Returns false when the door has no target.
+func is_locked() -> bool:
+	if key_item == &"":
+		return false
+	var state := RpgUtil.state()
+	return state == null or entity_id == "" or not RpgUtil.to_bool(state.get_flag(entity_id, "unlocked", false))
+
+## Unlocks it with the key when the player holds it; a message either way. False while locked.
+func try_unlock() -> bool:
+	if not is_locked():
+		return true
+	var state := RpgUtil.state()
+	if state == null:
+		return false
+	var key_name := RpgGate.item_name(state, key_item)
+	if not state.inventory.has(key_item):
+		RpgUtil.notify(String(TranslationServer.translate("UI_LOCKED_NEED")) % key_name)
+		return false
+	if consume_key:
+		state.inventory.remove(key_item, 1)
+	if entity_id != "":
+		state.set_flag(entity_id, "unlocked", true)
+	RpgUtil.notify(String(TranslationServer.translate("UI_UNLOCKED")) % key_name)
+	return true
+
+## Sends the player to `target_map`. Returns false when the door has no target or stays locked.
 func use() -> bool:
 	if target_map == "":
 		push_warning("[RPG-WORLD] door %s has no target_map" % name)
+		return false
+	if not try_unlock():
 		return false
 	used.emit()
 	RpgUtil.emit(&"door_used", [str(name)])

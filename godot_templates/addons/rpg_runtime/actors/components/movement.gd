@@ -84,7 +84,9 @@ func walk_speed() -> float:
 func _physics_process(_delta: float) -> void:
 	if actor == null:
 		return
-	actor.velocity = desired * walk_speed() + external_velocity
+	# A cutscene walks characters itself and holds everyone else (RpgSequenceRunner).
+	var wanted := Vector2.ZERO if RpgSequenceRunner.running() else desired
+	actor.velocity = wanted * walk_speed() + external_velocity
 	actor.move_and_slide()
 	_footsteps(_delta)
 	external_velocity *= 0.85

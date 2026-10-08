@@ -48,6 +48,27 @@ static func emit(signal_name: StringName, args: Array = []) -> void:
 		_:
 			bus.emit_signal(signal_name, args[0], args[1], args[2])
 
+## Where a node is in the world: its global position, or, for a node outside the tree (unit
+## tests), the position its 2D ancestors' transforms give it.
+static func world_position(node: Node2D) -> Vector2:
+	if node.is_inside_tree():
+		return node.global_position
+	var xf := Transform2D.IDENTITY
+	var at: Node = node
+	while at is Node2D:
+		xf = (at as Node2D).transform * xf
+		at = at.get_parent()
+	return xf.origin
+
+## The tile size of a map in pixels (its first TileMapLayer with a tile set), 16 when it has none.
+static func map_tile_px(map: Node) -> int:
+	if map != null:
+		for layer in map.find_children("*", "TileMapLayer", true, false):
+			var tiles := layer as TileMapLayer
+			if tiles.tile_set != null:
+				return tiles.tile_set.tile_size.x
+	return 16
+
 ## Shows a toast through Events.notify.
 static func notify(text: String) -> void:
 	emit(&"notify", [text])

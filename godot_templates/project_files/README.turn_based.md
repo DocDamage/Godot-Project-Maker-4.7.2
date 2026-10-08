@@ -24,5 +24,17 @@ left and right, then confirm. **Cancel** steps back. **Skills** stays grey until
 3. To fight several enemies at once, fill the **Group** list. Turn on **Encounter On Interact**
    to start the battle with the interact key instead of by touching.
 
+### Random encounters
+
+Battles can also start while you walk through tall grass or a dark forest: an **encounter zone**.
+The field map behind the east exit has one over its east half. To make your own, open a map and
+press **Add encounter zone (over the selection)** in the Assets dock (Project tab): select some
+nodes and the zone covers them, select a TileMapLayer and its painted cells become the zone (paint
+a layer called `Encounters` and it is hidden in the game), or select nothing for a 6x6-tile square.
+The zone's **Table** (`game/data/encounters/`) lists the enemy groups and how often each comes
+(**Weight**); **Steps Per Encounter** is the average number of tiles between two battles; set
+**Disabled Flag** (for example `bridge.repaired`) to stop the battles once that flag is true. After
+every battle you can walk six tiles in peace.
+
 The battle commands (`game/data/battle_commands/`) can be retuned too, for example the order in
 which they act (`Priority`). The battle scene itself is `generated/scenes/battle/battle.tscn`.

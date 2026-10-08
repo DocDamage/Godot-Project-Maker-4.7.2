@@ -101,6 +101,56 @@
   modifier scales the player's walk (`RpgMovement.walk_speed()`; it is a factor on the base
   `move_speed`, so the dodge is scaled too). New event `equipment_changed(actor_id, slot)`, which
   the action-RPG HUD listens to; it was emitted before the signal existed, so nobody saw it.
+* Sequences (M12): `RpgSequence` (`game/data/sequences/<id>.tres`, or kept inside a map by a
+  trigger) holds commands that `RpgSequenceRunner` (created by boot under SceneRouter as
+  `SequenceRunner`) plays in fixed physics steps: `move_actor`, `face`, `animate`, `wait`,
+  `fade_out` / `fade_in`, `shake`, `camera_pan`, `camera_lock` / `camera_unlock`, `play_sound`,
+  `show_dialogue` (a file or lines written into the command), `give_item` / `take_item`,
+  `set_flag`, `set_var` / `add_var`, `event` (any dialogue event), `start_battle`, `change_map`,
+  and the flow commands `label`, `goto`, `if` / `else`, `call`, `end` and `wait_for` (with
+  `wait: false` a move, fade, pan or shake runs in the background while the next commands go on).
+  While one runs the player's input, the interact prompt, the pause menu, autosave, overworld
+  enemies and action-RPG fighters (no damage either) are held; `RpgSequenceRunner.running()` is
+  what they ask. A sequence marked `skippable` is skipped with cancel: the rest plays at once
+  (dialogues run their events with the first choice; a battle is still fought). Starting one:
+  `RpgTriggerArea` (walk in, or interact; once per game through the flag `<entity_id>.triggered`;
+  an optional condition), the dialogue event `run_sequence:<id>` (after the dialogue closes) or
+  `RpgSequenceRunner.instance().run(...)`. New events `sequence_requested`, `sequence_started`,
+  `sequence_finished`. `RpgActor.scripted_walk`, `hold_animation` and `release_animation`;
+  `RpgSceneRouter.fade_alpha` / `set_fade_alpha`; `RpgDialogueBox.fast_forward` and
+  `RpgDialogueRunner.fast_forward`.
+* Variables (M12): `GameState.variables` (name -> int, `get_var` / `set_var` / `add_var`, saved
+  under the optional key `variables`, so `save_version` stays 1), the dialogue events
+  `set_var:<name>=<N>` and `add_var:<name>:<N>`, the condition `var:<name><op><N>` (`>=`, `<=`,
+  `==`, `!=`, `>`, `<`) and the event `variable_changed`.
+* Random encounters (M12, turn-based): `RpgEncounterZone` (a polygon, a shape, or the cells of an
+  `Encounters` TileMapLayer; `steps_per_encounter`, default 24; `disabled_flag`),
+  `RpgEncounterTable` (`game/data/encounters/<id>.tres`: weighted enemy groups, `can_escape`) and
+  `RpgEncounterSteps` (tiles walked, teleports ignored, 6 grace steps after every battle). The
+  turn-based mode counts the steps and starts the battles with `GameState.rng`, so a seeded game
+  meets the same enemies at the same step. New turn-based projects get a zone over the east half
+  of the field map (`game/data/encounters/field_1.tres`).
+* Ranged combat (M12, action RPG): `RpgProjectile` (made in code, drawn as an orb or an arrow; the
+  team's hitbox layers plus walls; the melee formula with the shooter's attack; spent on its first
+  hit, at a wall or at its range; held during a sequence). `RpgItemDefinition.ranged`: a worn
+  ranged weapon fires an arrow per attack instead of the swing (the heavy attack's arrow uses the
+  heavy damage and knockback); the seeded bow is ranged.
+* Enemy kinds (M12, action RPG): `behavior.kind` `melee`, `shooter`, `turret` or `charger`, with the
+  components `RpgEnemyShoot` and `RpgEnemyCharge` (a telegraph tint during the windup) and new
+  behavior keys (`shoot_range_px`, `keep_away_px`, `projectile_speed`, `projectile_range_px`,
+  `shoot_windup_s`, `shoot_cooldown_s`, `charge_range_px`, `charge_speed`, `charge_windup_s`,
+  `charge_s`, `charge_recover_s`, `charge_cooldown_s`). New definitions take the kind from words in
+  the asset's name; new projects get a charger and a shooter made from the first enemy, used by the
+  field map.
+* Followers (M12): `RpgFollowers` (boot, under SceneRouter as `Followers`; boot's `followers`
+  export) draws the party members behind the player on the map, one tile apart along the path the
+  player walked, facing and walking with it. Pictures only: no body, nothing saved. Both archetypes.
+  `RpgUtil.world_position` and `RpgUtil.map_tile_px` are new helpers.
+* Keys, switches and gates (M12): `RpgGate` (opens for good with `key_item`, flag
+  `<entity_id>.unlocked`; open while the dialogue condition `open_when` holds; drawn bars unless it
+  has a "Visual" child), `RpgSwitch` (a plate, latching or `hold`, or a lever, `once`; flag
+  `<entity_id>.on`) and locked map doors (`RpgDoor.key_item`, `consume_key`, `entity_id`). New keys
+  `UI_LOCKED`, `UI_LOCKED_NEED`, `UI_UNLOCKED`; new events `switch_toggled`, `gate_changed`.
 
 ## 0.3.0
 
