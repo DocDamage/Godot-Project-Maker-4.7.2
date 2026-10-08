@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QTransform
 
 from rpggen.core import anim_edit, catalog
 from rpggen.core.orchestrator import Callbacks
@@ -156,7 +156,8 @@ def test_flip_mirrors_the_pixmap(qtbot, audit) -> None:
     normal = dialog.preview.pixmap.toImage()
     dialog.flip_check.setChecked(True)
     flipped = dialog.preview.pixmap.toImage()
-    assert flipped == normal.flipped(Qt.Orientation.Horizontal)
+    # QImage.flipped is Qt 6.9+; a mirroring transform works on every version CI tests (6.7 up)
+    assert flipped == normal.transformed(QTransform().scale(-1, 1))
 
 
 def test_clicking_cells_edits_the_frame_list_in_click_order(qtbot, audit) -> None:

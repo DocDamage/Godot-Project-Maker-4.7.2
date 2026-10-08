@@ -341,6 +341,9 @@ def _no_godot_no_staging(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(godot, "detect_version", forbidden)
     monkeypatch.setattr(godot, "run_godot", forbidden)
     monkeypatch.setattr(staging, "create_staging", forbidden)
+    # no Godot on this machine, whatever its PATH holds (the summary reports "godot": None)
+    monkeypatch.setattr(godot, "auto_find_godot", lambda platform=None: [])
+    monkeypatch.delenv("RPGGEN_GODOT", raising=False)
 
 
 def test_a_dry_run_makes_nothing_and_starts_no_godot(

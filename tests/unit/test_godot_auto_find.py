@@ -53,6 +53,14 @@ def test_windows_looks_in_local_programs(isolated: Path, monkeypatch) -> None:
     assert godot.auto_find_godot("windows") == [exe]
 
 
+def test_rpggen_godot_needs_no_executable_bit(isolated: Path, monkeypatch) -> None:
+    chosen = isolated / "my_godot"
+    chosen.write_bytes(b"x")
+    chosen.chmod(0o644)
+    monkeypatch.setenv("RPGGEN_GODOT", str(chosen))
+    assert godot.auto_find_godot("linux") == [chosen]
+
+
 def test_the_managed_copy_of_this_platform_comes_first(isolated: Path) -> None:
     managed = _touch(isolated / "managed" / godot_fetch.console_name("4.7.2", "macos"))
     other = _touch(isolated / "Applications/Godot.app/Contents/MacOS/Godot")

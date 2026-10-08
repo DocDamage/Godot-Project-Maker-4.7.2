@@ -76,6 +76,8 @@ def _text_clipped(widget: QWidget) -> str | None:
     """A sentence when the shown text of a combo or a button needs more room than it has."""
     style = widget.style()
     if isinstance(widget, QComboBox):
+        if widget.isEditable():
+            return None  # its text scrolls, as in a line edit (a long path is fine)
         option = QStyleOptionComboBox()
         widget.initStyleOption(option)
         field = style.subControlRect(
@@ -146,6 +148,8 @@ def test_no_page_squeezes_or_clips_a_widget(
 ) -> None:
     theme.apply_theme(theme_name, remember=False)
     state = dev.layout_state(archetype, tmp_path)
+    # a long Godot path, as CI's temporary folders give: it must not widen the window
+    state.godot_exe = tmp_path / ("very_long_folder_name_" * 6) / "Godot_v4.7.2-stable_win64.exe"
     window = MainWindow(state, default_pages())
     qtbot.addWidget(window)
     width, height = SIZES[size]

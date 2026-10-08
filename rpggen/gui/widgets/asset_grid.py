@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import contextlib
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 from PySide6.QtCore import (
@@ -249,30 +250,41 @@ class AssetFilterProxy(QSortFilterProxyModel):
         self.setDynamicSortFilter(True)
         self.sort(0)
 
+    @contextlib.contextmanager
+    def _filter_change(self) -> Iterator[None]:
+        """Change what the filter accepts: ``beginFilterChange`` / ``endFilterChange`` where Qt
+        has them (6.10 deprecates ``invalidateFilter``), else ``invalidateFilter`` (PySide6 6.7
+        and 6.8, which the project supports)."""
+        begin = getattr(self, "beginFilterChange", None)
+        if begin is None:
+            yield
+            self.invalidateFilter()
+            return
+        begin()
+        try:
+            yield
+        finally:
+            self.endFilterChange()
+
     def set_statuses(self, statuses: set[str] | None) -> None:
-        self.beginFilterChange()
-        self.statuses = None if statuses is None else set(statuses)
-        self.endFilterChange()
+        with self._filter_change():
+            self.statuses = None if statuses is None else set(statuses)
 
     def set_roles(self, roles: set[str] | None) -> None:
-        self.beginFilterChange()
-        self.roles = None if roles is None else set(roles)
-        self.endFilterChange()
+        with self._filter_change():
+            self.roles = None if roles is None else set(roles)
 
     def set_pack(self, pack: str | None) -> None:
-        self.beginFilterChange()
-        self.pack = pack or None
-        self.endFilterChange()
+        with self._filter_change():
+            self.pack = pack or None
 
     def set_text(self, text: str) -> None:
-        self.beginFilterChange()
-        self.text = text.strip().casefold()
-        self.endFilterChange()
+        with self._filter_change():
+            self.text = text.strip().casefold()
 
     def set_only_ids(self, ids: set[str] | None) -> None:
-        self.beginFilterChange()
-        self.only_ids = None if ids is None else set(ids)
-        self.endFilterChange()
+        with self._filter_change():
+            self.only_ids = None if ids is None else set(ids)
 
     def filterAcceptsRow(self, row: int, parent: QModelIndex | QPersistentModelIndex) -> bool:
         model = self.sourceModel()

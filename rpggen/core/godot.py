@@ -321,8 +321,9 @@ def detect_version(exe: Path) -> tuple[int, int, int, str]:
 MAC_APP_DIRS: tuple[Path, ...] = (Path("/Applications"), Path.home() / "Applications")
 
 
-def _runnable(p: Path) -> bool:
-    return p.is_file() and (sys.platform == "win32" or os.access(p, os.X_OK))
+def _runnable(p: Path, platform: str) -> bool:
+    """A file; outside Windows also executable (PATH and ~/.local/bin hold other programs)."""
+    return p.is_file() and (platform == "windows" or os.access(p, os.X_OK))
 
 
 def _usual_places(platform: str) -> list[Path]:
@@ -352,16 +353,16 @@ def auto_find_godot(platform: str | None = None) -> list[Path]:
     platform = platform or godot_fetch.current_platform()
     found: dict[str, Path] = {}
 
-    def add(p: Path) -> None:
+    def add(p: Path, chosen: bool = False) -> None:
         try:
-            if _runnable(p):
+            if p.is_file() if chosen else _runnable(p, platform):
                 found[str(p.resolve()).casefold()] = p
         except OSError:
             pass
 
     env_exe = os.environ.get("RPGGEN_GODOT")
     if env_exe:
-        add(Path(env_exe))
+        add(Path(env_exe), chosen=True)  # named on purpose: the version check judges it
     pattern = "[Gg]odot*.exe" if platform == "windows" else "[Gg]odot*"
     for entry in os.environ.get("PATH", "").split(os.pathsep):
         if not entry:

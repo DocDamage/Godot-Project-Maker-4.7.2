@@ -19,9 +19,18 @@ from rpggen.gui.models.forms import FieldStatus
 from rpggen.gui.models.project_model import NAME_MAX
 from rpggen.gui.widgets.pack_list import PackList
 
+ZERO_WIDTH_SPACE = chr(0x200B)  # a line-break chance that shows nothing
+
+
+def breakable(text: str) -> str:
+    """``text`` with a line-break chance after each path separator: a word-wrapped label only
+    breaks at spaces, so a long path would otherwise set the width of the window."""
+    return text.replace("\\", "\\" + ZERO_WIDTH_SPACE).replace("/", "/" + ZERO_WIDTH_SPACE)
+
 
 def show_status(label: QLabel, status: FieldStatus) -> None:
-    label.setText(status.text)
+    label.setText(breakable(status.text))
+    label.setToolTip(status.text if len(status.text) > 80 else "")
     label.setProperty("state", status.state)
     label.style().unpolish(label)
     label.style().polish(label)
@@ -31,6 +40,9 @@ def _status_label(name: str) -> QLabel:
     label = QLabel()
     label.setObjectName(name)
     label.setWordWrap(True)
+    # a wrapped label's own minimum is a guess at a pleasant shape, wide for a long message: let
+    # the form decide the width, and the label wraps to it
+    label.setMinimumWidth(1)
     return label
 
 
@@ -114,6 +126,11 @@ class ProjectForm(QWidget):
         self.godot_combo.setObjectName("godotCombo")
         self.godot_combo.setToolTip(self.tr("The Godot program rpggen uses to build the project"))
         self.godot_combo.setEditable(True)
+        # a long path scrolls in the field; it must not set the width of the window
+        self.godot_combo.setSizeAdjustPolicy(
+            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
+        self.godot_combo.setMinimumContentsLength(24)
         self.browse_godot_button = _button(self.tr("Browse…"), "browseGodotButton")
         self.godot_status = _status_label("godotStatus")
         self.download_godot_button = _button(

@@ -80,7 +80,7 @@ jobs:
 
   ubuntu:
     # The same checks as the Windows job, on Linux (case-sensitive paths, POSIX separators),
-    # plus mypy. Packaging stays Windows-only for 1.0. Two legs: the newest PySide6 (the whole
+    # plus mypy (the Linux packages are built by release.yml). Two legs: the newest PySide6 (the whole
     # job) and the oldest one the package allows, 6.7, which only runs the GUI tests: Qt's minor
     # releases change styles and layout rules, and the layout test is what notices.
     name: ubuntu (PySide6 ${{ matrix.pyside }})
@@ -222,9 +222,21 @@ jobs:
         run: python -m pytest -q -m slow tests/perf
         env:
           RPGGEN_PERF_JSON: perf.json
+      # The trend lives on the gh-pages branch; the first run on main creates it (empty).
+      - name: Create the gh-pages branch for the trend
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages > /dev/null; then
+            git switch --orphan gh-pages
+            git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com               commit --allow-empty -m "Performance trend"
+            git push origin gh-pages
+            git checkout -
+          fi
       # The hard ceilings stay in the tests. This keeps the numbers of every run on main and
       # comments when one is more than 30% above the previous run; it never fails the build.
       - name: Publish the performance trend
+        continue-on-error: true
         uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
         with:
           name: rpggen performance

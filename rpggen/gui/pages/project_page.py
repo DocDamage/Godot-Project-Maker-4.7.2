@@ -9,9 +9,11 @@ from pathlib import Path
 from PySide6.QtCore import QStandardPaths, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
+    QFrame,
     QInputDialog,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -59,7 +61,14 @@ class ProjectPage(WizardPage):
 
         layout = QVBoxLayout(self)
         self.form = form = ProjectForm()
-        layout.addWidget(form)
+        # the form scrolls when a long message wraps on a small window (as Mapping and Options do)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setObjectName("projectScroll")
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setWidget(form)
+        layout.addWidget(self.scroll_area)
         self.pack_list, self.packs_status = form.pack_list, form.packs_status
         self.add_zip_button, self.add_folder_button = form.add_zip_button, form.add_folder_button
         self.remove_button, self.update_pack_button = form.remove_button, form.update_pack_button

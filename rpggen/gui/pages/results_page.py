@@ -262,11 +262,16 @@ class ResultsPage(WizardPage):
         self.bundle_button = self._button("Export diagnostic bundle", "exportBundle", buttons)
         self.project_button = self._button("Back to the Project page", "backToProject", buttons)
         buttons.addStretch(1)
-        self.another_button = self._button("Generate another", "generateAnotherButton", buttons)
-        self.options_button = self._button(
-            "Change options and regenerate", "changeOptionsButton", buttons
-        )
         layout.addLayout(buttons)
+        # what to do next, on a row of its own: one row does not fit the smallest window with the
+        # wider fonts of Linux
+        next_row = QHBoxLayout()
+        next_row.addStretch(1)
+        self.another_button = self._button("Generate another", "generateAnotherButton", next_row)
+        self.options_button = self._button(
+            "Change options and regenerate", "changeOptionsButton", next_row
+        )
+        layout.addLayout(next_row)
         self.another_button.setToolTip(self.tr("Start again from the welcome screen"))
         self.options_button.setToolTip(self.tr("Go back to the options of this project"))
         self.project_button.setToolTip(self.tr("Fix the Godot or folder choice on the first page"))

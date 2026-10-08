@@ -64,7 +64,7 @@ def test_auto_find_godot_uses_env_and_sorts(
     monkeypatch.setenv("RPGGEN_GODOT", str(a))
     monkeypatch.setenv("PATH", f"{a.parent}{os.pathsep}{b.parent}")
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "none"))
-    result = godot.auto_find_godot()
+    result = godot.auto_find_godot("windows")
     assert result == [b, a]
 
 

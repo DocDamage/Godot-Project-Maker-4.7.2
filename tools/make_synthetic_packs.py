@@ -598,7 +598,11 @@ def _gids_base64(gids: list[int], compression: str) -> str:
 
     raw = struct.pack(f"<{len(gids)}I", *gids)
     if compression == "gzip":
-        raw = gzip.compress(raw, compresslevel=0, mtime=0)
+        # byte 9 of the header names the OS that wrote it (Windows 10, Unix 3): 255, "unknown",
+        # keeps the pack byte-identical on every platform
+        packed = bytearray(gzip.compress(raw, compresslevel=0, mtime=0))
+        packed[9] = 255
+        raw = bytes(packed)
     elif compression == "zlib":
         raw = zlib.compress(raw, 0)
     return base64.b64encode(raw).decode("ascii")

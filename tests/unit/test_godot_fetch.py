@@ -129,7 +129,7 @@ def test_managed_copy_is_found_first(tmp_path: Path, monkeypatch) -> None:
     other.write_bytes(b"x")
     monkeypatch.setattr(godot_fetch, "managed_dir", lambda version=VERSION: managed)
     monkeypatch.setenv("RPGGEN_GODOT", str(other))
-    found = godot.auto_find_godot()
+    found = godot.auto_find_godot("windows")
     assert found[0] == exe
     assert other in found
 
