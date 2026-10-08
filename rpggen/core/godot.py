@@ -78,6 +78,20 @@ def find_console_exe(exe: Path) -> Path:
     return exe
 
 
+def find_gui_exe(exe: Path) -> Path:
+    """The non-console sibling of a ``*_console.exe`` (the inverse of ``find_console_exe``): what a
+    person opens, so that no console window sits behind the editor or the game. Any other
+    executable is returned as it is."""
+    exe = Path(exe)
+    name = exe.name
+    lowered = name.lower()
+    if lowered.endswith("_console.exe"):
+        sibling = exe.with_name(name[: -len("_console.exe")] + ".exe")
+        if sibling.exists():
+            return sibling
+    return exe
+
+
 def _kill_tree(proc: subprocess.Popen[str]) -> None:
     if sys.platform == "win32":
         subprocess.run(

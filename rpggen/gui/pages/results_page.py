@@ -22,9 +22,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rpggen.core import orchestrator, promote, report
+from rpggen.core import godot, orchestrator, promote, report
 from rpggen.errors import Issue, RpgGenError, Severity
-from rpggen.gui.dialogs import diagnostic_export
+from rpggen.gui.dialogs import diagnostic_export, error_lookup
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
 from rpggen.gui.widgets.collapsible import CollapsibleSection
@@ -37,6 +37,8 @@ COUNT_LABELS = (
     ("warnings", "Warnings"),
     ("errors", "Errors"),
 )
+STARTER_MAP = "res://game/maps/starter_map.tscn"
+ASSET_KEYS = ("asset", "file", "path", "source")  # detail keys that can name an asset
 RESTORE_TOOLTIP = "Put the project back the way it was before the last regeneration"
 NO_BACKUP_TOOLTIP = "There is no earlier version to restore"
 
@@ -108,12 +110,14 @@ class ResultsPage(WizardPage):
     generateAnother = Signal()  # noqa: N815
     changeOptions = Signal()  # noqa: N815
     goToProject = Signal()  # noqa: N815
+    showAssets = Signal(list)  # noqa: N815 - asset ids: switch to Audit, filtered to them
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.state: WizardState | None = None
         self.result: orchestrator.RunResult | None = None
         self.shown_issues: list[Issue] = []
+        self.shown_groups: list[list[Issue]] = []
         layout = QVBoxLayout(self)
         self.header = QLabel()
         self.header.setObjectName("resultsHeader")
@@ -168,6 +172,16 @@ class ResultsPage(WizardPage):
         self.godot_button.setStyleSheet("font-weight: bold; font-size: 14px;")
         self.godot_button.setToolTip(self.tr("Open the new project in the Godot editor"))
         right.addWidget(self.godot_button)
+        self.play_button = QPushButton(self.tr("Play"))
+        self.play_button.setObjectName("playGame")
+        self.play_button.setToolTip(self.tr("Run the game, without opening the editor"))
+        self.starter_button = QPushButton(self.tr("Open starter map"))
+        self.starter_button.setObjectName("openStarterMap")
+        self.starter_button.setToolTip(self.tr("Open the editor with the starter map shown"))
+        play_row = QHBoxLayout()
+        play_row.addWidget(self.play_button)
+        play_row.addWidget(self.starter_button)
+        right.addLayout(play_row)
         self.what_next_label = QLabel()
         self.what_next_label.setObjectName("whatNext")
         self.what_next_label.setWordWrap(True)
@@ -184,11 +198,29 @@ class ResultsPage(WizardPage):
         self.issue_list.setObjectName("issueList")
         self.issue_list.setToolTip(self.tr("Select a line to read how to fix it"))
         layout.addWidget(self.issue_list, 1)
+        # a group of many issues of one code: its members, and what can be done with them
+        self.group_detail = QListWidget()
+        self.group_detail.setObjectName("groupDetail")
+        self.group_detail.setToolTip(self.tr("Every issue of the selected code"))
+        self.group_detail.setAccessibleName(self.tr("Issues of this code"))
+        self.group_detail.setMaximumHeight(110)
+        self.group_detail.setVisible(False)
+        layout.addWidget(self.group_detail)
+        group_row = QHBoxLayout()
+        self.show_assets_button = QPushButton(self.tr("Show these assets"))
+        self.show_assets_button.setObjectName("showAssets")
+        self.show_assets_button.setToolTip(self.tr("Open the Audit page on the assets named here"))
+        self.show_assets_button.setVisible(False)
+        self.show_assets_button.clicked.connect(self.show_selected_assets)
+        group_row.addWidget(self.show_assets_button)
+        group_row.addStretch(1)
+        layout.addLayout(group_row)
         self.fix_label = QLabel()
         self.fix_label.setObjectName("fixText")
         self.fix_label.setWordWrap(True)
         layout.addWidget(self.fix_label)
         self.issue_list.currentRowChanged.connect(self._on_issue_selected)
+        self.issue_list.itemDoubleClicked.connect(self._on_issue_double_clicked)
         # notes (the INFO issues; the checks that did not run come first)
         self.notes = CollapsibleSection(self.tr("Notes"))
         self.notes.setObjectName("notesSection")
@@ -225,6 +257,8 @@ class ResultsPage(WizardPage):
         self.restore_button.setToolTip(self.tr(NO_BACKUP_TOOLTIP))
         self.restore_button.clicked.connect(self.restore_previous)
         self.godot_button.clicked.connect(self.open_in_godot)
+        self.play_button.clicked.connect(self.play)
+        self.starter_button.clicked.connect(self.open_starter_map)
         self.folder_button.clicked.connect(lambda: self.open_path(self._target()))
         self.report_button.clicked.connect(self.view_report)
         self.failed_button.clicked.connect(self.open_failed_folder)
@@ -306,16 +340,69 @@ class ResultsPage(WizardPage):
         self.notes.setVisible(bool(notes))
 
     def _fill_issues(self, issues: list[Issue]) -> None:
-        """Errors first, then warnings; each row shows its fix under the message."""
-        self.shown_issues = issues
-        self.issue_list.clear()
-        self.fix_label.clear()
+        """Errors first, then warnings, grouped by code: "ASSET-001 x 37" with the shared fix
+        shown once; a group of several opens its members when selected."""
+        groups: dict[str, list[Issue]] = {}
         for issue in issues:
+            groups.setdefault(issue.code, []).append(issue)
+        self.shown_groups = list(groups.values())
+        self.shown_issues = [group[0] for group in self.shown_groups]  # one per row
+        self.issue_list.clear()
+        self.group_detail.clear()
+        self.group_detail.setVisible(False)
+        self.show_assets_button.setVisible(False)
+        self.fix_label.clear()
+        for group in self.shown_groups:
+            issue = group[0]
             mark = "✖" if issue.severity is Severity.ERROR else "⚠"
-            text = f"{mark} {issue.code}: {issue.message}"
+            if len(group) > 1:
+                text = f"{mark} {issue.code} × {len(group)}: {issue.message}"
+            else:
+                text = f"{mark} {issue.code}: {issue.message}"
             if issue.fix:
                 text += f"\n      {self.tr('Fix')}: {issue.fix}"
             self.issue_list.addItem(QListWidgetItem(text))
+
+    def issue_group_counts(self) -> dict[str, int]:
+        """The rows as shown: code -> how many issues it stands for."""
+        return {group[0].code: len(group) for group in self.shown_groups}
+
+    def assets_named_by(self, issues: list[Issue]) -> list[str]:
+        """Ids of the catalog's assets that these issues name (by id, or by file path)."""
+        if self.state is None or self.state.catalog is None:
+            return []
+        catalog = self.state.catalog
+        wanted: set[str] = set()
+        for issue in issues:
+            for text in (issue.file, *(issue.detail.get(k) for k in ASSET_KEYS)):
+                if isinstance(text, str) and text:
+                    wanted.add(text.replace("\\", "/"))
+        found = []
+        for asset in catalog.assets:
+            if asset.id in wanted or any(
+                asset.path == w or asset.path.endswith("/" + w) for w in wanted
+            ):
+                found.append(asset.id)
+        return found
+
+    def show_selected_assets(self) -> None:
+        """ "Show these assets": the Audit page, filtered to what the selected group names."""
+        row = self.issue_list.currentRow()
+        if not 0 <= row < len(self.shown_groups):
+            return
+        ids = self.assets_named_by(self.shown_groups[row])
+        if ids:
+            self.showAssets.emit(ids)
+
+    def lookup_code(self, code: str) -> None:
+        """Double-click on a row: the error-code list, at this code."""
+        dialog = error_lookup.ErrorLookupDialog(self, code)
+        self.run_viewer(dialog)  # type: ignore[arg-type]
+
+    def _on_issue_double_clicked(self, item: QListWidgetItem) -> None:
+        row = self.issue_list.row(item)
+        if 0 <= row < len(self.shown_issues):
+            self.lookup_code(self.shown_issues[row].code)
 
     # ------------------------------------------------------------------ the picture, what next
 
@@ -431,8 +518,17 @@ class ResultsPage(WizardPage):
         self.logs_button.setEnabled(has_folder)
 
     def _on_issue_selected(self, row: int) -> None:
+        self.group_detail.clear()
+        self.group_detail.setVisible(False)
+        self.show_assets_button.setVisible(False)
         if 0 <= row < len(self.shown_issues):
             self.fix_label.setText(self.shown_issues[row].fix or self.tr("No fix is needed."))
+            group = self.shown_groups[row]
+            if len(group) > 1:
+                for issue in group:
+                    self.group_detail.addItem(issue.message)
+                self.group_detail.setVisible(True)
+            self.show_assets_button.setVisible(bool(self.assets_named_by(group)))
         else:
             self.fix_label.clear()
 
@@ -443,7 +539,25 @@ class ResultsPage(WizardPage):
         exe = self.state.godot_exe
         if exe is None:
             return
-        self.launch([str(exe), "--path", str(self.result.target), "--editor"])
+        self.launch([str(godot.find_gui_exe(exe)), "--path", str(self.result.target), "--editor"])
+
+    def play(self) -> None:
+        """Run the generated game (no editor)."""
+        assert self.state is not None and self.result is not None
+        exe = self.state.godot_exe
+        if exe is not None:
+            self.launch([str(godot.find_gui_exe(exe)), "--path", str(self.result.target)])
+
+    def open_starter_map(self) -> None:
+        """The editor with the starter map open; just the editor when the scene is not there."""
+        assert self.state is not None and self.result is not None
+        exe = self.state.godot_exe
+        if exe is None:
+            return
+        args = [str(godot.find_gui_exe(exe)), "--editor", "--path", str(self.result.target)]
+        if (self.result.target / STARTER_MAP.removeprefix("res://")).is_file():
+            args.append(STARTER_MAP)
+        self.launch(args)
 
     def restore_previous(self) -> bool:
         """Restore the newest backup after asking; True when the project was restored."""

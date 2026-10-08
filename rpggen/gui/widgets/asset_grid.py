@@ -457,6 +457,7 @@ CHIPS: list[tuple[str, str, set[str] | None]] = [
     ("chipAll", "All", None),
 ]
 COMBO_MAX_WIDTH = 240
+LISTED_CHIP = "chipListed"  # shown while a list of assets is shown (from the results page)
 CHANGED_CHIP = "chipChanged"  # shown only after a pack update
 
 
@@ -499,6 +500,16 @@ class AssetGrid(QWidget):
         changed.clicked.connect(self._show_changed)
         bar.addWidget(changed)
         self.chips[CHANGED_CHIP] = changed
+        listed = QPushButton(self.tr("From the results"))
+        listed.setObjectName(LISTED_CHIP)
+        listed.setCheckable(True)
+        listed.setAutoExclusive(True)
+        listed.setVisible(False)
+        listed.setToolTip(self.tr("The assets the generation report named"))
+        listed.clicked.connect(lambda: self.proxy.set_only_ids(self.listed_ids))
+        bar.addWidget(listed)
+        self.chips[LISTED_CHIP] = listed
+        self.listed_ids: set[str] = set()
         self.changed_ids: set[str] = set()
         self.confirm_auto_button = QPushButton(self.tr("Confirm all auto-detected"))
         self.confirm_auto_button.setObjectName("confirmAutoButton")
@@ -635,6 +646,16 @@ class AssetGrid(QWidget):
     def _show_changed(self) -> None:
         self.proxy.set_statuses(None)
         self.proxy.set_only_ids(self.changed_ids)
+
+    def show_ids(self, asset_ids: set[str]) -> None:
+        """Show only these assets, whatever their status ("Show these assets" on Results); any
+        other chip puts the usual filters back."""
+        self.listed_ids = set(asset_ids)
+        chip = self.chips[LISTED_CHIP]
+        chip.setVisible(True)
+        chip.setChecked(True)
+        self.proxy.set_statuses(None)
+        self.proxy.set_only_ids(self.listed_ids)
 
     def set_changed(self, asset_ids: set[str]) -> None:
         """Offer the "Changed in update" filter (added, resized, missing assets) and open on it."""

@@ -30,6 +30,7 @@ from rpggen.gui.window_menus import WindowMenus
 log = logging.getLogger(__name__)
 
 PAGE_NAMES = ["Project", "Archetype", "Audit", "Mapping", "Options", "Generate", "Results"]
+AUDIT_INDEX = 2
 OPTIONS_INDEX = 4  # the last page before generation: its Next button reads "Generate"
 DEFAULT_WINDOW = (1100, 720)
 NARROW_BELOW = 1000  # narrower than this the sidebar shows the numbers only
@@ -136,6 +137,7 @@ class MainWindow(WindowMenus, QMainWindow):
                 page.generateAnother.connect(self.new_project)  # type: ignore[attr-defined]
                 page.changeOptions.connect(self.change_options)  # type: ignore[attr-defined]
                 page.goToProject.connect(lambda: self.show_page(0))  # type: ignore[attr-defined]
+                page.showAssets.connect(self.show_assets_in_audit)  # type: ignore[attr-defined]
             focus_signal = getattr(page, "focus_next", None)
             if focus_signal is not None:  # a page that is finished points at the Next button
                 focus_signal.connect(lambda: self.next_button.setFocus())  # type: ignore[has-type]
@@ -214,6 +216,15 @@ class MainWindow(WindowMenus, QMainWindow):
             self.go_next()
             if self.current_index == before:
                 break
+
+    def show_assets_in_audit(self, asset_ids: list[str]) -> None:
+        """Results > Show these assets: the Audit page with only those assets in its grid."""
+        if not self._leave_current():
+            return
+        self.show_page(AUDIT_INDEX)
+        audit = self.pages[AUDIT_INDEX]
+        if hasattr(audit, "show_assets"):
+            audit.show_assets(set(asset_ids))
 
     def change_options(self) -> None:
         """Results > Change options and regenerate: back to Options on the project that exists

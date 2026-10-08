@@ -185,3 +185,107 @@ def test_the_results_page_shows_the_run_number(qtbot, tmp_path: Path) -> None:
     state.run_result = _fail_result(tmp_path)
     state.run_result.run_id = "0badf00d"
     assert _results(qtbot, state).run_label.text() == "Run 0badf00d"
+
+
+# ------------------------------------------------------------------------ T12.39
+
+
+def _with_exes(tmp_path: Path, state) -> Path:
+    (tmp_path / "godot.exe").write_text("x")
+    console = tmp_path / "godot_console.exe"
+    console.write_text("x")
+    state.godot_exe = console
+    return tmp_path / "godot.exe"
+
+
+def test_the_gui_exe_is_the_non_console_sibling(tmp_path: Path) -> None:
+    from rpggen.core import godot
+
+    gui = tmp_path / "Godot_v4.7.2-stable_win64.exe"
+    console = tmp_path / "Godot_v4.7.2-stable_win64_console.exe"
+    console.write_text("x")
+    assert godot.find_gui_exe(console) == console  # the sibling does not exist yet
+    gui.write_text("x")
+    assert godot.find_gui_exe(console) == gui
+    assert godot.find_gui_exe(gui) == gui
+    assert godot.find_console_exe(gui) == console  # the inverse
+
+
+def test_play_and_open_starter_map_launch_the_gui_exe(qtbot, tmp_path: Path) -> None:
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path)
+    gui = _with_exes(tmp_path, state)
+    page = _results(qtbot, state)
+    launched: list[list[str]] = []
+    page.launch = launched.append  # type: ignore[method-assign]
+    target = str(state.run_result.target)
+    page.godot_button.click()
+    page.play_button.click()
+    page.starter_button.click()  # no starter map file: just the editor
+    scene = state.run_result.target / "game" / "maps" / "starter_map.tscn"
+    scene.parent.mkdir(parents=True)
+    scene.write_text("")
+    page.starter_button.click()
+    assert launched == [
+        [str(gui), "--path", target, "--editor"],
+        [str(gui), "--path", target],
+        [str(gui), "--editor", "--path", target],
+        [str(gui), "--editor", "--path", target, "res://game/maps/starter_map.tscn"],
+    ]
+
+
+def test_warnings_are_grouped_by_code_with_one_fix(qtbot, tmp_path: Path) -> None:
+    many = [
+        Issue("ASSET-001", Severity.WARNING, f"Tile size {i}.", "Confirm it.") for i in range(37)
+    ]
+    one = Issue("ASSET-014", Severity.WARNING, "No NPC.", "Add an NPC sprite.")
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path, [*many, one])
+    page = _results(qtbot, state)
+    assert page.issue_group_counts() == {"ASSET-001": 37, "ASSET-014": 1}
+    assert page.issue_list.count() == 2
+    text = page.issue_list.item(0).text()
+    assert "ASSET-001 × 37" in text and text.count("Confirm it.") == 1
+    page.issue_list.setCurrentRow(0)
+    assert page.group_detail.count() == 37 and not page.group_detail.isHidden()
+    page.issue_list.setCurrentRow(1)
+    assert page.group_detail.isHidden()
+
+
+def test_double_clicking_a_code_opens_the_lookup_at_that_code(qtbot, tmp_path: Path) -> None:
+    state = _state(tmp_path)
+    state.run_result = _ok_result(
+        tmp_path, [Issue("ASSET-014", Severity.WARNING, "No NPC.", "Add an NPC sprite.")]
+    )
+    page = _results(qtbot, state)
+    opened: list[str] = []
+    page.run_viewer = lambda dialog: opened.append(dialog.search.text())  # type: ignore[method-assign]
+    page.issue_list.itemDoubleClicked.emit(page.issue_list.item(0))
+    assert opened == ["ASSET-014"]
+
+
+def test_show_these_assets_switches_to_audit_filtered(qtbot, tmp_path: Path) -> None:
+    from rpggen.gui.wizard import AUDIT_INDEX, MainWindow, default_pages
+
+    state = _state(tmp_path)
+    names = [a for a in state.catalog.assets if a.kind == "image"][:2]
+    issues = [
+        Issue("ASSET-002", Severity.WARNING, f"Cannot decode {a.path}.", "Replace it.", file=a.path)
+        for a in names
+    ]
+    state.run_result = _ok_result(tmp_path, issues)
+    window = MainWindow(state, default_pages())
+    qtbot.addWidget(window)
+    window.show()
+    window.show_page(6)
+    results = window.current_page
+    assert isinstance(results, ResultsPage)
+    results.issue_list.setCurrentRow(0)
+    assert not results.show_assets_button.isHidden()
+    results.show_assets_button.click()
+    assert window.current_index == AUDIT_INDEX
+    grid = window.current_page.grid
+    assert grid.proxy.only_ids == {a.id for a in names}
+    assert grid.proxy.rowCount() == 2
+    grid.chips["chipAll"].click()  # any other chip puts the usual filters back
+    assert grid.proxy.only_ids is None

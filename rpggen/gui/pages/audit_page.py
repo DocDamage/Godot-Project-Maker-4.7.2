@@ -272,6 +272,10 @@ class AuditPage(WizardPage):
         scroll.setWidget(panel)
         return scroll
 
+    def show_assets(self, asset_ids: set[str]) -> None:
+        """Filter the grid to these assets (the ones the results named)."""
+        self.grid.show_ids(asset_ids)
+
     def status(self, state: WizardState) -> tuple[str, int]:
         """How many assets still need attention (a warning, never a block)."""
         if state.catalog is None:
