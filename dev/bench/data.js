@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791518535294,
+  "lastUpdate": 1791526357908,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -511,6 +511,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 5.11,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "446b9f6c4420c26499b6211e915f41e8f6aef32e",
+          "message": "Smoke: sequence_plays puts its test trigger where nothing else is\n\nOn a planned map the start is below the first house's door; the trigger\nlanded on the door and the generation failed its smoke test.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-09T02:00:35-04:00",
+          "tree_id": "05a0bd142f508e8d9491d03b088882c8abe1d8f5",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/446b9f6c4420c26499b6211e915f41e8f6aef32e"
+        },
+        "date": 1791526354489,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 7.84,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 0.63,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 96.82,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 67.29,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 8.42,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 7.71,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 3.55,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 2.53,
             "unit": "s"
           }
         ]
