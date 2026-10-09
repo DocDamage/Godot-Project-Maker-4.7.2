@@ -184,6 +184,9 @@ class WindowMenus:
         self.shortcuts_action = self._action(
             help_menu, self.tr("Keyboard shortcuts"), "shortcutsAction", self.show_shortcuts
         )
+        self.tour_action = self._action(
+            help_menu, self.tr("Show the tour again"), "tourAction", self.show_tour_again
+        )
         help_menu.addSeparator()
         self.report_action = self._action(
             help_menu, self.tr("Report a problem…"), "reportAction", self.report_problem
@@ -431,6 +434,25 @@ class WindowMenus:
 
     def show_error_codes(self) -> None:
         ErrorLookupDialog(self).exec()  # type: ignore[arg-type]
+
+    def show_tour_again(self) -> bool:
+        """Help > Show the tour again: the Audit page's tour starts now when that page is shown,
+        else the next time it is. True when it started now."""
+
+        def forget(settings: app_settings.AppSettings) -> None:
+            settings.tours_seen = [t for t in settings.tours_seen if t != "audit"]
+
+        app_settings.store().update(forget)
+        audit = self._audit_page()
+        on_audit = audit is not None and self.current_page is audit  # type: ignore[attr-defined]
+        if on_audit and not self.welcome_visible and audit.session is not None:
+            return bool(audit.start_tour())
+        QMessageBox.information(
+            self,  # type: ignore[arg-type]
+            self.tr("Tour"),
+            self.tr("The tour starts the next time the Audit page is shown."),
+        )
+        return False
 
     def show_shortcuts(self) -> None:
         QMessageBox.information(self, self.tr("Keyboard shortcuts"), shortcuts_text())  # type: ignore[arg-type]

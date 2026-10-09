@@ -6,7 +6,7 @@ import dataclasses
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QDialog,
@@ -66,8 +66,12 @@ from rpggen.gui.widgets.pack_info import PackInfoPanel
 from rpggen.gui.widgets.review_mode import ReviewMode
 from rpggen.gui.widgets.task_progress import error_text, run_task
 from rpggen.gui.widgets.terrain_tab import TerrainTab
+from rpggen.gui.widgets.tour import Tour, TourStep
 
 log = logging.getLogger(__name__)
+
+TOUR_NAME = "audit"
+TOUR_DELAY_MS = 400  # the page must still be shown then: walking through it starts no tour
 
 QUICK_ROLES = ["GROUND", "WALL", "DECORATION", "BUILDING", "PLAYER", "NPC", "ENEMY", "ITEM", "UI"]
 
@@ -111,6 +115,7 @@ class AuditPage(WizardPage):
         super().__init__(parent)
         self._done_announced = False
         self.session: EditSession | None = None
+        self.tour: Tour | None = None
         self.resolver: PathResolver = lambda asset: None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -551,8 +556,99 @@ class AuditPage(WizardPage):
         changed = {a.id for a in session.catalog.assets if a.path in state.changed_paths}
         self.grid.set_changed(changed)
         self.update_progress()
+        if TOUR_NAME not in app_settings.get().tours_seen:
+            # not at once: "Try the sample" passes through this page on its way to the options
+            QTimer.singleShot(TOUR_DELAY_MS, self.maybe_start_tour)
+
+    # ------------------------------------------------------------------ the tour (T13.09)
+
+    def tour_steps(self) -> list[TourStep]:
+        """What the tour points at, in order: the cards, the queue, the panel, the keys, the
+        profile menu."""
+        return [
+            TourStep(
+                self.grid.view,
+                self.tr("What rpggen detected"),
+                self.tr(
+                    "Every file of your packs is a card. The coloured edge and the glyph in the "
+                    "corner say how sure rpggen is: ✔ green is confirmed, · blue was detected "
+                    "with confidence, ? orange and ! red want a look from you, – grey is unused."
+                ),
+            ),
+            TourStep(
+                self.progress_label,
+                self.tr("The queue"),
+                self.tr(
+                    "This line counts what is left. You only need to look at the assets that "
+                    "need attention; the chips below filter the grid, and Review mode shows them "
+                    "one at a time."
+                ),
+            ),
+            TourStep(
+                self.side,
+                self.tr("The detail panel"),
+                self.tr(
+                    "Select a card to see why rpggen chose its role, and to correct the usage, "
+                    "the role, the grid or the animations. Every change can be undone."
+                ),
+            ),
+            TourStep(
+                self.grid.help_button,
+                self.tr("The keys"),
+                self.tr(
+                    "C confirms, X excludes, 1 to 9 give a role and N goes to the next asset "
+                    "that needs attention. This button lists them all."
+                ),
+            ),
+            TourStep(
+                self.profile_button,
+                self.tr("Profiles"),
+                self.tr(
+                    "When the audit is done you can save it as a profile: the next release of "
+                    "the pack, or a friend with the same pack, starts from your decisions."
+                ),
+            ),
+        ]
+
+    def maybe_start_tour(self) -> bool:
+        """The first time the page is really shown (with packs of your own or the sample's
+        audit): start the tour. Never again once it was finished or skipped."""
+        if TOUR_NAME in app_settings.get().tours_seen or not self.isVisible():
+            return False
+        if self.session is None or (self.tour is not None and self.tour.running):
+            return False
+        return self.start_tour()
+
+    def start_tour(self) -> bool:
+        """Start the tour now (Help > Show the tour again does, on this page)."""
+        self.end_tour()
+        self.set_review_mode(False)
+        self.tabs.setCurrentWidget(self.grid)
+        self.tour = Tour(self, self.tour_steps(), TOUR_NAME)
+        self.tour.finished.connect(self._on_tour_finished)
+        return self.tour.start()
+
+    def end_tour(self) -> None:
+        """Take a running tour away without calling it seen (the page was left)."""
+        if self.tour is not None:
+            self.tour.finished.disconnect(self._on_tour_finished)
+            self.tour.hide()
+            self.tour.deleteLater()
+            self.tour = None
+
+    def hideEvent(self, event) -> None:  # noqa: ANN001, N802
+        self.end_tour()  # however the page was left: the tour belongs to the page being shown
+        super().hideEvent(event)
+
+    def _on_tour_finished(self, _skipped: bool) -> None:
+        def seen(settings: app_settings.AppSettings) -> None:
+            settings.tours_seen = sorted({*settings.tours_seen, TOUR_NAME})
+
+        app_settings.store().update(seen)
+        self.grid.view.setFocus()
 
     def leave(self, state: WizardState) -> bool | None:
+        self.end_tour()
         self.set_review_mode(False)
         if self.detail is not None:
             self.detail.stop_animation()

@@ -134,6 +134,10 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
         os.environ["RPGGEN_CACHE_DIR"] = str(tmp_path / "cache")
         qapp = gui_app.create_app([])
         assert isinstance(qapp, QApplication)
+        # a fresh settings folder would start the Audit page's first-run tour over the picture
+        from rpggen.core import app_settings
+
+        app_settings.update(tours_seen=["audit"])
         (tmp_path / "Documents").mkdir()
         ProjectPage.documents_dir = lambda self: tmp_path / "Documents"  # type: ignore[method-assign]
         if godot is not None:

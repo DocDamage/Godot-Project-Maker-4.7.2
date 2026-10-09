@@ -45,6 +45,10 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   game, the date of the last generation and the packs. A pack that changed since gives the card
   a line and **Regenerate**; a folder that is gone offers *Remove from the list*.
 
+* **A tour of the Audit page** the first time you open it: five short callouts (the cards, the
+  queue, the detail panel, the keys, profiles). *Skip* or `Esc` closes it for good;
+  *Help → Show the tour again* brings it back.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with
