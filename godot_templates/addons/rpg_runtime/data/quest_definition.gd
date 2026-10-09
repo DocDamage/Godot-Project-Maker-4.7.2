@@ -1,5 +1,8 @@
+@tool
 class_name RpgQuestDefinition
 extends Resource
+## (A tool script, like the dialogue resources: the dock's Quests tab calls its methods on a
+## quest loaded in the editor.)
 ## A quest: stages in order, each finished by a condition, and what completing it gives. Files live
 ## in game/data/quests/<id>.tres. GameState.quests[id] holds the id of the current stage while the
 ## quest is active and "done" afterwards; the dialogue events quest_start, quest_stage and

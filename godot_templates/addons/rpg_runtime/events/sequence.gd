@@ -1,5 +1,8 @@
+@tool
 class_name RpgSequence
 extends Resource
+## (A tool script, like the dialogue resources: the dock's Cutscenes tab works on sequences
+## loaded in the editor.)
 ## A scripted scene: a list of commands that run in order (RpgSequenceRunner). Files live in
 ## game/data/sequences/<id>.tres. A trigger area, an interaction or the dialogue event
 ## `run_sequence:<id>` starts one.

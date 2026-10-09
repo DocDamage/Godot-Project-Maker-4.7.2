@@ -109,7 +109,8 @@ def test_a_three_area_world_generates_validates_and_plays(
     bigger.starter_map = {
         "areas": [*AREAS, {"name": "Old mine", "biome": "cave", "size": [24, 18], "join": "Woods"}]
     }
-    again = orchestrator.run_in_memory(bigger, None, target, godot_exe)
+    # (the repair of T13.24 is switched off here: this test is about what the build itself does)
+    again = orchestrator.run_in_memory(bigger, None, target, godot_exe, repair_world=False)
     assert again.ok, [f"{i.code}: {i.message}" for i in again.issues]
     after = _maps(target)
     assert sorted(set(after) - set(before)) == ["old_mine.tscn"]
@@ -137,7 +138,7 @@ def test_a_three_area_world_generates_validates_and_plays(
         encoding="utf-8",
         newline="\n",
     )
-    broken = orchestrator.run_in_memory(bigger, None, target, godot_exe)
+    broken = orchestrator.run_in_memory(bigger, None, target, godot_exe, repair_world=False)
     codes = sorted(i.code for i in broken.issues if i.code.startswith("VAL-02"))
     # the step that walks back through that door would now end somewhere else, so only the
     # validation is asked here
