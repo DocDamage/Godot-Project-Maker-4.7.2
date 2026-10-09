@@ -91,7 +91,12 @@ class GeneratePage(WizardPage):
         self._phase_started = 0.0
         self._durations: dict[str, float] = {}
         self._skipped: dict[str, str] = {}  # phase -> code: a check that did not run
-        self._timings: dict[str, float] = {}  # the last run's phase times, read once per run
+        # this computer's phase times (T13.07), read once per run; the estimates of the running
+        # phase and of everything still to do are worked out when a phase starts
+        self._history: dict[str, list[list[float]]] = {}
+        self._assets = 0
+        self._phase_estimate: float | None = None
+        self._rest_estimate: float | None = None
         self.progress = QProgressBar()
         self.progress.setObjectName("generateProgress")
         self.progress.setRange(0, len(PHASES))
@@ -150,6 +155,10 @@ class GeneratePage(WizardPage):
             text = f"{icons.get(name, ICON_PENDING)}  {label}"
             if name in self._durations and icons.get(name) in (ICON_DONE, ICON_FAILED):
                 text += f"  ·  {self._durations[name]:.0f} s"
+            elif icons.get(name) == ICON_RUNNING and name == self.current_phase:
+                note = self.phase_note(time.monotonic() - self._phase_started)
+                if note:
+                    text += f"  ·  {note}"
             item.setText(text)
             item.setToolTip(name)
 
@@ -165,29 +174,58 @@ class GeneratePage(WizardPage):
         seconds = max(0, int(seconds))
         return f"{seconds // 60}:{seconds % 60:02d}"
 
-    def estimate_left(
-        self, timings: dict[str, float], current: str, in_phase: float
-    ) -> float | None:
-        """Seconds left from the last run's timings; None without a full history (no guess)."""
-        if not current or current not in PHASES or any(p not in timings for p in PHASES):
-            return None
-        position = PHASES.index(current)
-        rest = sum(timings[p] for p in PHASES[position + 1 :])
-        return rest + max(0.0, timings[current] - in_phase)
+    @staticmethod
+    def round_seconds(seconds: float) -> int:
+        """An estimate is said in steps of five seconds, and never as less than five."""
+        return max(5, round(seconds / 5) * 5)
+
+    def estimates_for(self, phase: str) -> tuple[float | None, float | None]:
+        """``(the phase, the phase and every phase after it)`` in seconds, from this computer's
+        history; None without one (a first run shows no estimate)."""
+        if phase not in PHASES:
+            return None, None
+        rest = PHASES[PHASES.index(phase) :]
+        return (
+            app_settings.estimate(self._history, phase, self._assets),
+            app_settings.estimate_rest(self._history, rest, self._assets),
+        )
+
+    def phase_note(self, in_phase: float) -> str:
+        """Beside the running phase: "about 40 s left", or that it is taking longer than usual
+        once the estimate is used up. The number is set when the phase starts and does not
+        count down."""
+        if self._phase_estimate is None:
+            return ""
+        if in_phase > self._phase_estimate:
+            return self.tr("taking longer than usual")
+        return self.tr("about {0} s left").format(self.round_seconds(self._phase_estimate))
+
+    def total_note(self, in_phase: float) -> str:
+        """At the top: what is left of the whole run, as of the start of the running phase."""
+        if self._rest_estimate is None or self._phase_estimate is None:
+            return ""
+        if in_phase > self._phase_estimate:
+            return self.tr("taking longer than usual")
+        return self.tr("about {0} s left").format(self.round_seconds(self._rest_estimate))
 
     def _tick(self) -> None:
         if not self.running:
             return
-        elapsed = time.monotonic() - self._run_started
-        text = self.tr("Elapsed {0}").format(self.format_seconds(elapsed))
-        left = self.estimate_left(
-            self._timings,
-            self.current_phase,
-            time.monotonic() - self._phase_started,
-        )
-        if left is not None:
-            text += "  ·  " + self.tr("about {0} s left").format(max(5, round(left / 5) * 5))
+        now = time.monotonic()
+        text = self.tr("Elapsed {0}").format(self.format_seconds(now - self._run_started))
+        note = self.total_note(now - self._phase_started)
+        if note:
+            text += "  ·  " + note
         self.elapsed_label.setText(text)
+        self._show_running_row()
+
+    def _show_running_row(self) -> None:
+        """The running phase's row again: its note changes once the estimate is used up."""
+        if self.current_phase in PHASES:
+            position = PHASES.index(self.current_phase)
+            icons = {p: ICON_DONE for p in PHASES[:position]}
+            icons[self.current_phase] = ICON_RUNNING
+            self._set_icons(icons)
 
     def _phase_icon(self, name: str) -> str:
         item = self.phase_list.item(PHASES.index(name))
@@ -275,7 +313,12 @@ class GeneratePage(WizardPage):
         self.log_view.clear()
         self.log_note.setVisible(False)
         self.step_label.clear()
-        self._timings = dict(app_settings.get().phase_timings)  # once per run, not every second
+        self._history = {  # once per run, not every second
+            phase: [list(pair) for pair in pairs]
+            for phase, pairs in app_settings.get().phase_history.items()
+        }
+        self._assets = len(state.catalog.assets) if state.catalog is not None else 0
+        self._phase_estimate = self._rest_estimate = None
         self._durations = {}
         self._skipped = {}
         self._run_started = self._phase_started = time.monotonic()
@@ -362,6 +405,7 @@ class GeneratePage(WizardPage):
             self._phase_started = now
         if self.current_phase != name:
             self.step_label.clear()
+            self._phase_estimate, self._rest_estimate = self.estimates_for(name)
         self.current_phase = name
         icons = {p: ICON_DONE for p in PHASES[: index - 1]}
         icons[name] = ICON_RUNNING

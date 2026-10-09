@@ -69,7 +69,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T13.04 | Select similar assets | M | — | done |
 | T13.05 | Mapping: picker gallery and jump to the audit | S | — | done |
 | T13.06 | Factory presets and option dependencies | S | — | done |
-| T13.07 | Remaining time on the Generate page | S | — | open |
+| T13.07 | Remaining time on the Generate page | S | — | done |
 | T13.08 | Project dashboard on the welcome view | M | — | open |
 | T13.09 | First-run tour | S | — | open |
 | T13.10 | Accessibility and display scaling | M | — | open |

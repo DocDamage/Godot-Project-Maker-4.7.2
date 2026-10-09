@@ -127,11 +127,11 @@ def test_the_estimate_needs_a_full_history_and_a_failure_opens_the_log(
 ) -> None:
     page = GeneratePage()
     qtbot.addWidget(page)
-    timings = {name: 10.0 for name in PHASES}
-    assert page.estimate_left({}, "build", 0.0) is None  # no history: no guess
-    assert page.estimate_left(timings, "", 0.0) is None
-    left = page.estimate_left(timings, "build", 4.0)
-    assert left == 10.0 * len(PHASES[PHASES.index("build") + 1 :]) + 6.0
+    assert page.estimates_for("build") == (None, None)  # no history: no guess
+    page._history = {name: [[0, 10.0]] for name in PHASES}
+    assert page.estimates_for("") == (None, None)
+    this, rest = page.estimates_for("build")
+    assert this == 10.0 and rest == 10.0 * len(PHASES[PHASES.index("build") :])
     assert page.format_seconds(75) == "1:15"
     state = _state(tmp_path)
     monkeypatch.setattr(workers, "generate", lambda *a, callbacks: _fail_result(tmp_path))

@@ -67,6 +67,8 @@ class AppSettings:
     confirm_regeneration: bool = True  # show the changes before a regeneration writes them
     language: str = ""  # the wizard's language ("fr"); "" follows the system (T12.56)
     group_by_folder: bool = False  # the audit grid shows a header per folder (T13.02)
+    # how long each phase took on this computer: phase -> the last ten [assets, seconds] (T13.07)
+    phase_history: dict[str, list[list[float]]] = field(default_factory=dict)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -87,7 +89,73 @@ class AppSettings:
             "confirm_regeneration": self.confirm_regeneration,
             "language": self.language,
             "group_by_folder": self.group_by_folder,
+            "phase_history": {k: [list(p) for p in v] for k, v in self.phase_history.items()},
         }
+
+
+HISTORY_LENGTH = 10
+# phases whose time does not grow with the pack: their estimate is the median time itself
+FIXED_PHASES = frozenset({"preflight", "promote", "report"})
+
+
+def _number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0
+
+
+def _history(raw: Any) -> dict[str, list[list[float]]]:
+    """``phase_history`` as read from the file: well-formed pairs only, the last ten a phase."""
+    out: dict[str, list[list[float]]] = {}
+    if not isinstance(raw, dict):
+        return out
+    for phase, pairs in raw.items():
+        if not isinstance(phase, str) or not isinstance(pairs, list):
+            continue
+        good = [
+            [float(p[0]), float(p[1])]
+            for p in pairs
+            if isinstance(p, list) and len(p) == 2 and _number(p[0]) and _number(p[1])
+        ]
+        if good:
+            out[phase] = good[-HISTORY_LENGTH:]
+    return out
+
+
+def add_phase_times(settings: AppSettings, timings: dict[str, float], assets: int) -> None:
+    """Append one run's ``phase -> seconds`` (the phases that finished) to the history, each
+    with the number of assets the run had; a phase keeps its last ten."""
+    for phase, seconds in timings.items():
+        if not _number(seconds):
+            continue
+        pairs = settings.phase_history.setdefault(phase, [])
+        pairs.append([float(max(0, assets)), float(seconds)])
+        del pairs[:-HISTORY_LENGTH]
+
+
+def _median(values: list[float]) -> float:
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    return ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+
+
+def estimate(history: dict[str, list[list[float]]], phase: str, assets: int) -> float | None:
+    """How long ``phase`` will take for ``assets`` assets, from the history: the median seconds
+    per asset times the count, or the median seconds for a phase that does not scale with the
+    assets (and when no run of the history counted its assets). None without history."""
+    pairs = history.get(phase) or []
+    if not pairs:
+        return None
+    counted = [p for p in pairs if p[0] > 0]
+    if phase in FIXED_PHASES or not counted or assets <= 0:
+        return _median([p[1] for p in pairs])
+    return _median([p[1] / p[0] for p in counted]) * assets
+
+
+def estimate_rest(
+    history: dict[str, list[list[float]]], phases: list[str], assets: int
+) -> float | None:
+    """The estimate of several phases together; None when one of them has no history."""
+    parts = [estimate(history, phase, assets) for phase in phases]
+    return None if any(p is None for p in parts) else float(sum(p for p in parts if p is not None))
 
 
 def settings_path() -> Path:
@@ -164,6 +232,7 @@ def from_json(data: Any) -> AppSettings:
     confirm = data.get("confirm_regeneration")
     if isinstance(confirm, bool):
         s.confirm_regeneration = confirm
+    s.phase_history = _history(data.get("phase_history"))
     grouped = data.get("group_by_folder")
     if isinstance(grouped, bool):
         s.group_by_folder = grouped

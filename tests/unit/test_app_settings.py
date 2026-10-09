@@ -231,3 +231,92 @@ def test_available_marks_a_slow_folder_without_waiting_for_it() -> None:
     result = app_settings.available(["here", "gone", "slow"], timeout_s=0.3, is_dir=is_dir)
     assert time.monotonic() - started < 1.5  # the slow one did not hold the others up
     assert result == {"here": True, "gone": False, "slow": False}
+
+
+# ------------------------------------------------------------------------ phase times (T13.07)
+
+
+def test_the_estimate_from_a_known_history_and_none_without_one() -> None:
+    history = {
+        "build": [[100, 20.0], [200, 50.0], [50, 5.0]],  # 0.2, 0.25 and 0.1 s an asset
+        "preflight": [[100, 2.0], [900, 4.0], [10, 3.0]],
+        "import": [[0, 12.0], [0, 8.0]],  # runs that never counted their assets
+    }
+    assert app_settings.estimate(history, "build", 400) == pytest.approx(0.2 * 400)
+    assert app_settings.estimate(history, "build", 0) == 20.0, "no count: the median time"
+    assert app_settings.estimate(history, "preflight", 5000) == 3.0, "it does not scale"
+    assert app_settings.estimate(history, "import", 300) == 10.0, "no counted run: the median"
+    assert app_settings.estimate(history, "smoke", 300) is None
+    assert app_settings.estimate({}, "build", 300) is None
+    assert app_settings.estimate_rest(history, ["preflight", "build"], 400) == pytest.approx(83.0)
+    assert app_settings.estimate_rest(history, ["build", "smoke"], 400) is None
+    assert app_settings.estimate_rest(history, [], 400) == 0.0
+
+
+def test_the_history_keeps_ten_runs_and_survives_a_round_trip(_cache: Path) -> None:
+    settings = app_settings.AppSettings()
+    for run in range(14):
+        app_settings.add_phase_times(settings, {"build": 10.0 + run, "report": 1.0}, 100 + run)
+    assert len(settings.phase_history["build"]) == app_settings.HISTORY_LENGTH == 10
+    assert settings.phase_history["build"][0] == [104.0, 14.0], "the oldest four are gone"
+    assert settings.phase_history["build"][-1] == [113.0, 23.0]
+    app_settings.add_phase_times(settings, {"smoke": float("nan")}, 5)  # not a time: no entry
+    app_settings.save(settings)
+    back = app_settings.load()
+    assert back.phase_history["build"] == settings.phase_history["build"]
+    assert back.phase_history["report"] == [[113.0, 1.0]] * 0 + settings.phase_history["report"]
+    assert back.to_json() == settings.to_json()
+
+
+def test_a_settings_file_from_1_0_and_a_damaged_history_load(_cache: Path) -> None:
+    path = app_settings.settings_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"theme": "light", "phase_timings": {"build": 9.5}}), "utf-8")
+    old = app_settings.load()
+    assert old.phase_history == {} and old.theme == "light" and old.phase_timings == {"build": 9.5}
+    damaged = {
+        "phase_history": {
+            "build": [[10, 2.0], "x", [1, 2, 3], [5, -1], [True, 3.0], [7, 3.5]],
+            "report": "soon",
+            "import": [],
+        }
+    }
+    path.write_text(json.dumps(damaged), "utf-8")
+    assert app_settings.load().phase_history == {"build": [[10.0, 2.0], [7.0, 3.5]]}
+    path.write_text(json.dumps({"phase_history": []}), "utf-8")
+    assert app_settings.load().phase_history == {}
+    long = {"phase_history": {"build": [[i, 1.0] for i in range(40)]}}
+    path.write_text(json.dumps(long), "utf-8")
+    assert len(app_settings.load().phase_history["build"]) == 10
+
+
+def test_the_orchestrator_remembers_the_phases_that_finished(_cache: Path) -> None:
+    from types import SimpleNamespace
+
+    from rpggen.core import orchestrator
+
+    state = SimpleNamespace(
+        timings={"preflight": 1.5, "stage": 0.5, "import": 30.0},  # import was running: no entry
+        phases_done=["preflight", "stage"],
+        catalog=SimpleNamespace(assets=[object()] * 40),
+    )
+    orchestrator._remember_times(state)  # a failed run records what it finished
+    assert app_settings.load().phase_history == {"preflight": [[40.0, 1.5]], "stage": [[40.0, 0.5]]}
+    orchestrator._remember_times(SimpleNamespace(timings={}, phases_done=[], catalog=None))
+    state.catalog = None  # stopped before the catalog phase: the count is unknown
+    orchestrator._remember_times(state)
+    assert app_settings.load().phase_history["stage"] == [[40.0, 0.5], [0.0, 0.5]]
+
+
+def test_the_cli_says_how_long_a_phase_usually_takes() -> None:
+    from rpggen import cli
+    from rpggen.core.orchestrator import PHASES_M1
+
+    history = {name: [[10, 4.0], [10, 6.0]] for name in PHASES_M1}
+    line = cli.phase_estimate_line(history, f"phase 10/11: {PHASES_M1[9]}")
+    assert line.strip() == "usually about 5 s (about 10 s left)"
+    assert cli.phase_estimate_line({}, "phase 1/11: preflight") == "", "no history: no line"
+    assert cli.phase_estimate_line(history, "[godot] phase 1/11: preflight") == ""
+    assert cli.phase_estimate_line(history, "phase 1/11: nonsense") == ""
+    del history["report"]
+    assert cli.phase_estimate_line(history, "phase 10/11: promote").strip() == "usually about 5 s"

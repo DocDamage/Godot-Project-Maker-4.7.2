@@ -37,6 +37,10 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   the preset list; *Navigation* needs *Combat* and the demo scene needs *Tilesets*, and a box
   whose requirement is off says what it needs.
 
+* **Generate**: from the second run on, the running phase and the top line say about how long
+  is left, from how long the last ten runs took on this computer (and `taking longer than
+  usual` instead of counting below zero). The CLI prints the usual time after each phase line.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

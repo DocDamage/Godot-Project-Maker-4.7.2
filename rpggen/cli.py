@@ -10,6 +10,7 @@ from typing import Any
 
 from rpggen import __version__, cli_support
 from rpggen.cli_support import Output
+from rpggen.core import app_settings
 from rpggen.errors import Issue, IssueList, RpgGenError
 
 
@@ -195,6 +196,24 @@ def _not_found(message: str, **detail: Any) -> IssueList:
     return issues
 
 
+def phase_estimate_line(history: dict[str, list[list[float]]], text: str) -> str:
+    """For the log line that starts a phase ("phase 5/11: import"): how long this computer
+    usually takes for it and for the rest of the run ("" without history, T13.07). The number
+    of assets is not known before the catalog phase, so the times are the usual ones, not
+    scaled."""
+    from rpggen.core.orchestrator import PHASES_M1
+
+    name = text.partition(": ")[2] if text.startswith("phase ") else ""
+    if name not in PHASES_M1:
+        return ""
+    this = app_settings.estimate(history, name, 0)
+    rest = app_settings.estimate_rest(history, PHASES_M1[PHASES_M1.index(name) :], 0)
+    if this is None:
+        return ""
+    line = f"        usually about {max(1, round(this))} s"
+    return line + (f" (about {max(1, round(rest))} s left)" if rest is not None else "")
+
+
 def _generate(args: argparse.Namespace) -> int:
     from rpggen import logging_setup, paths
     from rpggen.core import config as config_mod
@@ -278,10 +297,15 @@ def _run(
 
     assert exe is not None  # only a dry run goes on without Godot
 
+    history = app_settings.get().phase_history
+
     def show(text: str) -> None:
         # Godot's own lines (a screenful per second) only with --verbose
         if args.verbose or not text.startswith("[godot] "):
             out.say(text)
+        note = phase_estimate_line(history, text)
+        if note:
+            print(note, file=sys.stderr, flush=True)
 
     with cli_support.interruptible() as is_cancelled:
         result = orchestrator.run(

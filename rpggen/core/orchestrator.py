@@ -12,6 +12,7 @@ from typing import Any
 
 from rpggen import __version__, ids, jsonio, logging_setup, paths
 from rpggen.core import (
+    app_settings,
     archive,
     export_check,
     godot,
@@ -706,8 +707,19 @@ def _execute(state: _State) -> RunResult:
         log.info("generation %s started for %s", state.run_id, state.target)
         result = _run_phases(state)
         log.info("generation %s finished: ok=%s", state.run_id, result.ok)
+        _remember_times(state)
     result.run_id = state.run_id
     return result
+
+
+def _remember_times(state: _State) -> None:
+    """The times of the phases that finished go into this computer's history (T13.07), after a
+    failed or cancelled run too: the next run's estimate comes from it."""
+    done = {name: state.timings[name] for name in state.phases_done if name in state.timings}
+    if not done:
+        return
+    assets = len(state.catalog.assets) if state.catalog is not None else 0
+    app_settings.store().update(lambda s: app_settings.add_phase_times(s, done, assets))
 
 
 def _run_phases(state: _State) -> RunResult:
