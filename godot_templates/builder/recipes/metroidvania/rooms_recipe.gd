@@ -26,10 +26,14 @@ const MvBuild := preload("metroidvania_build.gd")
 const SideKit := preload("side_kit.gd")
 const Parallax := preload("parallax_recipe.gd")
 const Objects := preload("objects_recipe.gd")
+const EnemyRecipes := preload("enemy_recipes.gd")
 
 const ROOM_SCRIPT := MvBuild.DIR + "room.gd"
 const EXIT_SCRIPT := MvBuild.DIR + "room_exit.gd"
 const GATE_MARK_SCRIPT := MvBuild.DIR + "ability_gate.gd"
+const GATE_SCRIPT := "res://addons/rpg_runtime/world/gate.gd"
+## A flyer is put this many tiles above the floor its cell stands on.
+const FLYER_LIFT_TILES := 3
 const PLAYER_SCENE := "res://generated/scenes/actors/player.tscn"
 const SIGN_PATH := "res://game/data/dialogue/room_sign.tres"
 const END_PATH := "res://game/data/dialogue/end_npc.tres"
@@ -93,6 +97,7 @@ func input_hash(ctx: BuildContext) -> String:
 		"music": JsonUtil.to_str(ctx.section("sounds").get("music_map", "")),
 		"backgrounds": Parallax.layers(ctx),
 		"entries": ObjectEntries.entries(ctx),
+		"enemies": EnemyRecipes.new().input_hash(ctx),
 	})
 
 static func _tileset_def(ctx: BuildContext) -> Dictionary:
@@ -326,6 +331,7 @@ func _place_things(ctx: BuildContext, room: Dictionary, id: String, tile: int, e
 		var item := MapUtil.place(Objects.item_scene(i), entities, root, feet(_cell(items[i]), tile), "Item%d" % (i + 1))
 		if item != null:
 			item.set("entity_id", "%s_item_%03d" % [id, i + 1])
+	_place_enemies(ctx, room, id, tile, entities, root)
 	if room.has("chest"):
 		var entry := ObjectEntries.chest_entry(ctx)
 		if not entry.is_empty() and not JsonUtil.to_bool(entry.get("fallback", false)):
@@ -335,6 +341,56 @@ func _place_things(ctx: BuildContext, room: Dictionary, id: String, tile: int, e
 				chest.set("entity_id", "%s_chest_001" % id)
 				chest.set("loot", SeedUtil.dict_array([{"item_id": "potion", "qty": 1}]))
 				chest.set("gold", 20)
+
+## The enemies of the plan (the kinds the packs have take turns), and in the guardian's room the
+## guardian with a gate in each side exit that opens when it is defeated. A project without any
+## enemy art gets the guardian's ability as a pickup where the guardian would stand.
+func _place_enemies(ctx: BuildContext, room: Dictionary, id: String, tile: int, entities: Node2D, root: Node2D) -> void:
+	var recipe := EnemyRecipes.new()
+	var kinds := recipe.entries(ctx)
+	var cells := JsonUtil.to_array(room.get("enemies", []))
+	var offset := absi(hash(id)) % maxi(1, kinds.size())
+	for i in cells.size():
+		var scene := recipe.scene_for(ctx, offset + i)
+		if scene == "" or not ResourceLoader.exists(scene):
+			break
+		var at := feet(_cell(cells[i]), tile)
+		var kind := JsonUtil.to_str(kinds[(offset + i) % kinds.size()]["kind"])
+		if kind == "flyer":
+			at.y -= FLYER_LIFT_TILES * tile
+		var enemy := MapUtil.place(scene, entities, root, at, "Enemy%d" % (i + 1))
+		if enemy != null:
+			enemy.set("entity_id", "%s_enemy_%03d" % [id, i + 1])
+	if not room.has("guardian"):
+		return
+	var spec := JsonUtil.to_dict(room["guardian"])
+	var grants := JsonUtil.to_str(spec.get("grants", ""))
+	var where := feet(_cell(spec["cell"]), tile)
+	var guardian_scene := recipe.guardian_scene(ctx)
+	if guardian_scene == "" or not ResourceLoader.exists(guardian_scene):
+		if grants != "":
+			var pickup := MapUtil.place(Objects.ability_scene(grants), entities, root, where, "Ability_%s" % grants)
+			if pickup != null:
+				pickup.set("entity_id", "%s_ability_001" % id)
+		return
+	var guardian_id := "%s_guardian" % id
+	var guardian := MapUtil.place(guardian_scene, entities, root, where, "Guardian")
+	if guardian != null:
+		guardian.set("entity_id", guardian_id)
+		guardian.set("grants", StringName(grants))
+	var size := _cell(room["size"])
+	for exit_spec in WorldPlan.list_of(room, "exits"):
+		var edge := JsonUtil.to_str(exit_spec["edge"])
+		if edge != "E" and edge != "W":
+			continue
+		var cell := _cell(exit_spec["cell"])
+		var gate := StaticBody2D.new()
+		SceneUtil.attach_script(gate, GATE_SCRIPT)
+		gate.set("entity_id", "%s_gate_%s" % [id, edge.to_lower()])
+		gate.set("open_when", "flag:%s.defeated" % guardian_id)
+		gate.set("size", Vector2(tile, tile * 3))
+		gate.position = Vector2((size.x - 0.5 if edge == "E" else 0.5) * tile, (cell.y + 1.0) * tile)
+		SceneUtil.add(entities, gate, root, "Gate_%s" % edge)
 
 ## The scene of the first object tagged `tag` (a sign), or "".
 static func _scene_tagged(ctx: BuildContext, tag: String) -> String:

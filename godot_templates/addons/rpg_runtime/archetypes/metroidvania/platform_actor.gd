@@ -42,6 +42,8 @@ var animation_locked := false
 var move_x := 0.0
 var move_y := 0.0
 var jump_held := false
+## Multiplies the run speed for the moment (an enemy's lunge, a slow walk).
+var speed_scale := 1.0
 ## Abilities of an actor that is not the player (and of tests): ids such as "double_jump".
 var abilities_override: Array = []
 ## The tile layers looked at for ladders, hazards and one-way platforms; found in the map when empty.
@@ -184,7 +186,7 @@ func step(delta: float) -> void:
 		return
 
 	if _wall_lock <= 0.0:
-		velocity.x = want_x * px(run_speed)
+		velocity.x = want_x * px(run_speed) * speed_scale
 	if want_x != 0.0 and not facing_locked and _wall_lock <= 0.0:
 		set_facing(1 if want_x > 0.0 else -1)
 
