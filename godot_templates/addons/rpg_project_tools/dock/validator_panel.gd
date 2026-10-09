@@ -196,6 +196,7 @@ static func do_fix(action: Dictionary, root: Node, undo_redo: Object) -> void:
 		plain.add_do_method(holder.add_child.bind(node))
 		for part in owned:
 			plain.add_do_method(part.set_owner.bind(root))
+			plain.add_undo_method(part.set_owner.bind(null))  # a node out of the tree owns nothing
 		plain.add_undo_method(holder.remove_child.bind(node))
 		plain.add_do_reference(node)
 		plain.commit_action()
@@ -204,6 +205,7 @@ static func do_fix(action: Dictionary, root: Node, undo_redo: Object) -> void:
 		undo_redo.call("add_do_method", holder, "add_child", node)
 		for part in owned:
 			undo_redo.call("add_do_method", part, "set_owner", root)
+			undo_redo.call("add_undo_method", part, "set_owner", null)
 		undo_redo.call("add_undo_method", holder, "remove_child", node)
 		undo_redo.call("add_do_reference", node)
 		undo_redo.call("commit_action")

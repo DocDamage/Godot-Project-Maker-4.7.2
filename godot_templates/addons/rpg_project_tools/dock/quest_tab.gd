@@ -8,7 +8,9 @@ extends "data_tab.gd"
 
 const QUESTS_DIR := "res://game/data/quests"
 const DialogueTab := preload("dialogue_tab.gd")
-const NODE_SPACING := Vector2(200, 0)
+const NODE_SPACING := Vector2(170, 0)
+const NODE_WIDTH := 120.0
+const GRAPH_MARGIN := 14.0
 const DONE_NODE := "done"
 
 var quest: RpgQuestDefinition = null
@@ -93,13 +95,15 @@ func _init() -> void:
 	_stage_rewards = _rewards_edit(form, "Stage rewards", func(text: String) -> void: edit_stage(selected_stage(), "rewards", parse_rewards(text)))
 	_problems = note(form)
 	var lower := HSplitContainer.new()
-	lower.custom_minimum_size = Vector2(0, 140)
+	lower.custom_minimum_size = Vector2(0, 170)
 	right.add_child(lower)
 	_graph = GraphEdit.new()
 	_graph.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_graph.custom_minimum_size = Vector2(240, 120)
 	_graph.minimap_enabled = false
 	_graph.right_disconnects = false
+	_graph.show_menu = false  # a picture of the stages: nothing to zoom, snap or arrange
+	_graph.resized.connect(_frame_graph)
 	lower.add_child(_graph)
 	var test_box := VBoxContainer.new()
 	test_box.custom_minimum_size = Vector2(170, 0)
@@ -420,12 +424,23 @@ func _rebuild_graph() -> void:
 		var to_name := "stage_%d" % to if to >= 0 else DONE_NODE
 		if following == &"" or to >= 0:
 			_graph.connect_node("stage_%d" % i, 0, to_name, 0)
+	_frame_graph.call_deferred()
+
+## Shows the first stage in the corner of the graph (a GraphEdit keeps whatever scroll position
+## its first layout gave it, which can leave every node out of view).
+func _frame_graph() -> void:
+	if is_inside_tree():  # after the graph has laid its nodes out
+		await get_tree().process_frame
+		await get_tree().process_frame
+	if is_instance_valid(_graph):
+		_graph.scroll_offset = Vector2(-GRAPH_MARGIN, -GRAPH_MARGIN)
 
 func _graph_node(node_name: String, title: String, column: int, has_output: bool) -> GraphNode:
 	var node := GraphNode.new()
 	node.name = node_name
 	node.title = title
 	node.draggable = false
+	node.custom_minimum_size = Vector2(NODE_WIDTH, 0)
 	node.position_offset = NODE_SPACING * column
 	var label := Label.new()
 	label.text = " "
