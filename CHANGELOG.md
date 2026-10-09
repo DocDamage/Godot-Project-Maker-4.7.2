@@ -54,6 +54,11 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   card of the audit grid. **View → Reduce motion**. On Windows the taskbar button shows the
   progress of a generation (the dock icon on macOS counts the steps left).
 
+* **One interior per house**: every house of the starter map leads to its own `interior_<n>`,
+  as wide as the house, and leaving it returns to that house's door. A project from 1.0 gets
+  the interiors its map is missing; its map is not changed (the project's README says how to
+  point a house at its interior).
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

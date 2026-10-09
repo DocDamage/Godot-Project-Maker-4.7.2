@@ -30,14 +30,15 @@ def render_png(
     scale: int,
     *,
     callbacks: Callbacks,
-) -> tuple[bytes, list[str]]:
-    """Worker function: (PNG bytes of the preview, the planner's warnings)."""
+) -> tuple[bytes, list[str], int]:
+    """Worker function: (PNG bytes of the preview, the planner's warnings, how many interiors
+    the houses of the plan get)."""
     art = map_preview.load_art(catalog, resolver, ground_id, building_id)
     plan = map_preview.plan(options, seed, map_preview.building_info(art), archetype)
     image = map_preview.render(plan, art, scale)
     out = io.BytesIO()
     image.save(out, format="PNG")
-    return out.getvalue(), list(plan["warnings"])
+    return out.getvalue(), list(plan["warnings"]), len(plan.get("interiors", []))
 
 
 class MapPreviewWidget(QWidget):
@@ -92,6 +93,12 @@ class MapPreviewWidget(QWidget):
             legend.addWidget(item)
             self.legend_dots[kind] = dot
             self.legend_labels[kind] = label
+        # not a marker: how many houses have an interior of their own (T13.12)
+        self.interiors_label = QLabel()
+        self.interiors_label.setObjectName("legend_interiors")
+        self.interiors_label.setVisible(False)
+        legend.addWidget(self.interiors_label)
+        self.interiors = 0
         layout.addWidget(self.legend_box)
         self.note_label = QLabel()
         self.note_label.setObjectName("mapPreviewNote")
@@ -156,16 +163,23 @@ class MapPreviewWidget(QWidget):
             2,
         )
 
-        def done(result: tuple[bytes, list[str]]) -> None:
+        def done(result: tuple[bytes, list[str], int]) -> None:
             if generation != self._generation:
                 return  # an older render finished after a newer one was asked for
-            png, warnings = result
+            png, warnings, interiors = result
             try:
                 self.image_label.objectName()  # the widget may be gone (the page was closed)
             except RuntimeError:
                 return
             self.last_png = png
             self.warnings = warnings
+            self.interiors = interiors
+            self.interiors_label.setVisible(interiors > 0)
+            self.interiors_label.setText(
+                self.tr("1 interior")
+                if interiors == 1
+                else self.tr("{0} interiors").format(interiors)
+            )
             self._pixmap = thumbnails.pixmap_from_bytes(png)
             self._fit()
             self.note_label.setText(

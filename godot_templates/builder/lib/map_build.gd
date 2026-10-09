@@ -149,12 +149,29 @@ static func _default_plan(opts: Dictionary, building: Dictionary) -> Dictionary:
 	var no_warnings: Array[String] = []
 	return {
 		"size": size, "exit_gap": route.gap, "exit_path": route.cells,
-		"buildings": buildings, "doors": doors, "spawn": DEFAULT_SPAWN,
+		"buildings": buildings, "interiors": interiors_for(buildings.size(), building),
+		"doors": doors, "spawn": DEFAULT_SPAWN,
 		"npcs": npcs, "chests": chests, "enemies": enemies,
 		"decorations": DEFAULT_DECOR.duplicate(), "path": path,
 		"patches": no_patches, "legacy_patches": true, "patch_count": JsonUtil.to_int(opts["ground_patches"]),
 		"warnings": no_warnings, "is_default": true,
 	}
+
+const INTERIOR_MIN_WIDTH := 10
+const INTERIOR_DEPTH := 8
+
+## The interior of each house (T13.12), in the order of the houses: {id: "interior_<n>",
+## size: [w, 8] tiles (as wide as the house, at least 10), door: the column of its exit (the
+## house's door column, kept off the corners)}. The same as map_preview.interiors_for.
+static func interiors_for(count: int, building: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if building.is_empty() or count <= 0:
+		return out
+	var width := maxi(INTERIOR_MIN_WIDTH, JsonUtil.to_int(building["size"][0]))
+	var door := clampi(JsonUtil.to_int(building["door"][0]), 1, width - 2)
+	for n in range(1, count + 1):
+		out.append({"id": "interior_%d" % n, "size": [width, INTERIOR_DEPTH], "door": door})
+	return out
 
 ## State of one planning run.
 class Grid extends RefCounted:
@@ -391,7 +408,8 @@ static func plan(options: Dictionary, map_seed: int, building: Dictionary = {}, 
 		buildings.append(r.position)
 	return {
 		"size": Vector2i(w, h), "exit_gap": route.gap, "exit_path": route.cells,
-		"buildings": buildings, "doors": doors, "spawn": spawn,
+		"buildings": buildings, "interiors": interiors_for(buildings.size(), building),
+		"doors": doors, "spawn": spawn,
 		"npcs": npcs, "chests": chests, "enemies": enemies, "decorations": decorations,
 		"path": path, "patches": patches, "legacy_patches": false,
 		"patch_count": JsonUtil.to_int(opts["ground_patches"]), "warnings": warnings, "is_default": false,
@@ -424,6 +442,8 @@ static func to_json(p: Dictionary) -> Dictionary:
 				var r: Rect2i = item["rect"]
 				list.append({"rect": [r.position.x, r.position.y, r.size.x, r.size.y], "index": item["index"]})
 			out[key] = list
+		elif key == "interiors":
+			out[key] = v  # plain data already
 		elif v is Vector2i:
 			out[key] = [v.x, v.y]
 		elif v is Array and key != "warnings":

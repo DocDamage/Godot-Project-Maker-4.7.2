@@ -24,7 +24,8 @@ const ImportedMaps := preload("imported_maps_recipe.gd")
 const OUT_PATH := "res://game/maps/starter_map.tscn"
 ## The entities of the demo placed in the starter map (T8.08 removes exactly these).
 const DEMO_ENTITIES_PATH := "res://rpggen/demo_entities.json"
-const INTERIOR_PATH := "res://game/maps/interior_1.tscn"
+const INTERIOR_PATH := "res://game/maps/interior_1.tscn"  # the first house's
+const InteriorRecipe := preload("interior_recipe.gd")
 const PLAYER_SCENE := "res://generated/scenes/actors/player.tscn"
 const GREETING_PATH := "res://game/data/dialogue/npc_greeting.tres"
 const NPC_ID := "starter_map_npc_001"
@@ -230,10 +231,14 @@ func _place_building(building: Dictionary, root: Node2D, entities: Node2D, tile_
 		return
 	# Properties of nodes inside an instanced scene are saved only when it is editable.
 	root.set_editable_instance(inst, true)
+	# each house has an interior of its own, and its own spawn to come back to (T13.12)
 	var entrance := inst.get_node_or_null("Entrance")
 	if entrance != null:
-		entrance.set("target_map", INTERIOR_PATH)
+		entrance.set("target_map", InteriorRecipe.interior_path(index + 1))
 		entrance.set("target_spawn", &"default")
+	var exit_spawn := inst.get_node_or_null("ExitSpawn")
+	if exit_spawn != null and index > 0:
+		exit_spawn.set("spawn_id", InteriorRecipe.exit_spawn_for(building_id, index + 1))
 
 func _place_decorations(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px: int, tiles: Array[Vector2i]) -> void:
 	var decor: Array[Dictionary] = []

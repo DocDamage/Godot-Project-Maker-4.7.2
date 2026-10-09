@@ -175,8 +175,15 @@ A new project has three maps: `starter_map.tscn`, the house `interior_1.tscn` an
 outdoor map, `field_1.tscn`. They are joined by two kinds of door (both are the `RpgDoor` script
 on an `Area2D`):
 
-* **The house door** (the `Entrance` node inside the house object) leads to `interior_1`; the
-  `Exit` door of the interior leads back to the starter map.
+* **The house door** (the `Entrance` node inside the house object) leads to that house's own
+  interior: `interior_1` for the first house, `interior_2` for the second, and so on; the `Exit`
+  door of an interior leads back to the door of its house.
+* **A project made with rpggen 1.0** has a starter map whose houses all lead to `interior_1`.
+  Regenerating adds `interior_2`, `interior_3`, … for the houses the map has, but never changes
+  your map. To give a house its interior: select the house in `starter_map.tscn`, tick
+  **Editable Children**, set **Target Map** of its `Entrance` to `interior_<n>.tscn`, and give
+  its `ExitSpawn` a **Spawn Id** of its own; then set **Target Spawn** of the `Exit` door in
+  that interior to the same id.
 * **The east exit** (`starter_map_east_exit`, under `Triggers` in the starter map) sits in a gap
   in the east wall and leads to the `west_entry` spawn of `field_1`; its `field_1_west_exit`
   door leads back to the `east_entry` spawn of the starter map.

@@ -60,3 +60,41 @@ func test_random_option_sets_stay_valid(t) -> void:
 				t.ok(not used.has(tile), "one entity per tile (case %d)" % i)
 				used[tile] = true
 		t.ok(plan["buildings"].size() <= int(options["buildings"]), "no more buildings than asked (case %d)" % i)
+
+# ------------------------------------------------------------------ one interior per house (T13.12)
+
+const InteriorRecipe := preload("res://builder/recipes/interior_recipe.gd")
+const ObjectIndex := preload("../../builder/lib/object_index.gd")
+
+func test_the_plan_gives_each_building_its_interior_and_door_column(t) -> void:
+	var house := {"size": [5, 4], "door": [2, 4]}
+	var plan := MapBuild.plan({}, 12345, house, "turn_based")
+	t.eq(plan["interiors"], [{"id": "interior_1", "size": [10, 8], "door": 2}])
+	var several := MapBuild.plan({"size": [64, 40], "buildings": 4}, 7, house, "turn_based")
+	var count: int = several["buildings"].size()
+	t.ok(count >= 2, "several houses")
+	t.eq(several["interiors"].size(), count)
+	t.eq(several["interiors"][count - 1]["id"], "interior_%d" % count)
+	var wide := MapBuild.interiors_for(2, {"size": [14, 6], "door": [9, 6]})
+	t.eq(wide[1], {"id": "interior_2", "size": [14, 8], "door": 9})
+	t.eq(MapBuild.interiors_for(1, {"size": [3, 3], "door": [0, 3]})[0]["door"], 1, "never in a corner")
+	t.eq(MapBuild.interiors_for(1, {"size": [12, 3], "door": [11, 3]})[0]["door"], 10)
+	t.eq(MapBuild.interiors_for(3, {}).size(), 0)
+
+func test_each_house_has_its_own_map_and_spawn_to_return_to(t) -> void:
+	t.eq(InteriorRecipe.interior_path(1), "res://game/maps/interior_1.tscn")
+	t.eq(InteriorRecipe.interior_path(3), "res://game/maps/interior_3.tscn")
+	t.eq(InteriorRecipe.interior_id(2), "interior_2")
+	# the first house keeps the spawn id every project has had; the others get their number
+	var first := InteriorRecipe.exit_spawn_for("pack.objects.town.house", 1)
+	t.eq(first, ObjectIndex.exit_spawn_id("pack.objects.town.house"))
+	t.eq(InteriorRecipe.exit_spawn_for("pack.objects.town.house", 2), StringName(String(first) + "_2"))
+	var entries := [
+		{"id": "p.house", "name": "house", "role": "BUILDING", "tags": []},
+		{"id": "p.bedroll", "name": "Bedroll", "role": "DECORATION", "tags": []},
+		{"id": "p.desk", "name": "desk", "role": "DECORATION", "tags": ["table"]},
+	]
+	t.eq(InteriorRecipe.furniture_entry(entries, "bed")["id"], "p.bedroll")
+	t.eq(InteriorRecipe.furniture_entry(entries, "table")["id"], "p.desk")
+	t.eq(InteriorRecipe.furniture_entry(entries, "throne"), {})
+

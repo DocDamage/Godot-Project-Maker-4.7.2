@@ -128,3 +128,30 @@ def test_the_fixture_matches_the_python_planner() -> None:
     fixture = json.loads(tool.OUT.read_text(encoding="utf-8"))
     assert fixture == json.loads(json.dumps(tool.cases()))
     assert len(fixture) == 20
+
+
+# ------------------------------------------------------------------------ one interior per house (T13.12)
+
+
+def test_the_plan_gives_each_building_its_interior_and_door_column() -> None:
+    house = {"size": [5, 4], "door": [2, 4]}
+    default = map_preview.plan({}, 12345, house, "turn_based")
+    assert default["interiors"] == [{"id": "interior_1", "size": [10, 8], "door": 2}]
+    several = map_preview.plan({"size": [64, 40], "buildings": 4}, 7, house, "turn_based")
+    count = len(several["buildings"])
+    assert count >= 2 and [i["id"] for i in several["interiors"]] == [
+        f"interior_{n}" for n in range(1, count + 1)
+    ]
+    assert all(i["size"] == [10, 8] and i["door"] == 2 for i in several["interiors"])
+    # a wide house has an interior as wide as itself, with the exit under its door
+    wide = map_preview.interiors_for(2, {"size": [14, 6], "door": [9, 6]})
+    assert wide == [
+        {"id": "interior_1", "size": [14, 8], "door": 9},
+        {"id": "interior_2", "size": [14, 8], "door": 9},
+    ]
+    # the exit is never in a corner, and no house means no interior
+    assert map_preview.interiors_for(1, {"size": [3, 3], "door": [0, 3]})[0]["door"] == 1
+    assert map_preview.interiors_for(1, {"size": [12, 3], "door": [11, 3]})[0]["door"] == 10
+    assert map_preview.interiors_for(3, {}) == [] and map_preview.interiors_for(0, house) == []
+    assert map_preview.plan({"buildings": 0}, 5, house, "turn_based")["interiors"] == []
+    assert map_preview.plan({}, 12345, {}, "turn_based")["interiors"] == []

@@ -864,6 +864,32 @@ func _sequence_plays() -> String:
 	await _frames(4)
 	return failure
 
+## A place 64 px from `home` where no body and no area is (no wall, house, door or zone), tried
+## up, right, left and down, then further out; `home` shifted up when nothing is free.
+func _free_spot(player: RpgActor, home: Vector2) -> Vector2:
+	var space := player.get_world_2d().direct_space_state
+	for distance: float in [64.0, 96.0, 128.0]:
+		for direction: Vector2 in [Vector2.UP, Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN]:
+			var spot := home + direction * distance
+			var clear := true
+			for probe: Vector2 in [Vector2.ZERO, Vector2(10, 0), Vector2(-10, 0), Vector2(0, 10), Vector2(0, -10)]:
+				var query := PhysicsPointQueryParameters2D.new()
+				query.position = spot + probe
+				query.collision_mask = 0xFFFFFFFF
+				query.collide_with_areas = true
+				query.collide_with_bodies = true
+				for hit: Dictionary in space.intersect_point(query):
+					var collider: Variant = hit.get("collider")
+					if collider is Node:
+						var found: Node = collider
+						if found != player and not player.is_ancestor_of(found):
+							clear = false
+				if not clear:
+					break
+			if clear:
+				return spot
+	return home + Vector2(0, -64)
+
 func _trigger_and_skip(scene: Node, player: RpgActor, state: RpgGameState, runner: RpgSequenceRunner) -> String:
 	var inside := RpgSequence.new()
 	inside.id = &"smoke_trigger"
@@ -877,7 +903,10 @@ func _trigger_and_skip(scene: Node, player: RpgActor, state: RpgGameState, runne
 	rect.size = Vector2(12, 12)
 	shape.shape = rect
 	trigger.add_child(shape)
-	trigger.position = player.global_position + Vector2(0, -64)
+	# somewhere near the player with nothing else there: on a map whose start is right below a
+	# house, four tiles up is that house's door, and the player would leave the map instead
+	var home := player.global_position
+	trigger.position = _free_spot(player, home)
 	scene.add_child(trigger)
 	await _frames(3)
 	var failure := ""
@@ -887,7 +916,7 @@ func _trigger_and_skip(scene: Node, player: RpgActor, state: RpgGameState, runne
 			await _tree().physics_frame
 			if not runner.is_running() and state.get_var("smoke_trigger") > visit:
 				break
-		player.global_position = trigger.global_position + Vector2(0, 64)
+		player.global_position = home
 		await _frames(4)
 	if state.get_var("smoke_trigger") != 1:
 		failure = "walking into the trigger twice ran its sequence %d times, expected once" % state.get_var("smoke_trigger")

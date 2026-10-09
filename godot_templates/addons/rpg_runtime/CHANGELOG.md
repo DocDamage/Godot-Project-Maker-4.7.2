@@ -9,6 +9,7 @@
   `RpgShopDefinition.buys` (categories, empty = all), `buys_category`, `sell_all_items`,
   `sell_all_value`, `sell_all`. New text keys: `UI_SHOP_QUANTITY_HINT`, `UI_SELL_ALL`,
   `UI_SELL_ALL_CONFIRM`, `UI_SOLD_ALL`. A shop resource and a shop scene made by 1.0 keep working.
+* Builder: `interior_recipe` version 3 seeds one interior per house of the starter map.
 
 ## 1.0.0
 

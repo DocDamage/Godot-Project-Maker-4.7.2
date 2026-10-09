@@ -107,6 +107,24 @@ def _intersects(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> b
     return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
 
 
+INTERIOR_MIN_WIDTH = 10
+INTERIOR_DEPTH = 8
+
+
+def interiors_for(count: int, building: dict[str, Any]) -> list[dict[str, Any]]:
+    """The interior of each house (T13.12), in the order of the houses: its map id
+    (``interior_<n>``), its size in tiles (as wide as the house, at least 10, by 8) and the
+    column of its exit on the bottom wall (the house's door column, kept off the corners)."""
+    if not building or count <= 0:
+        return []
+    width = max(INTERIOR_MIN_WIDTH, int(building["size"][0]))
+    door = min(max(int(building["door"][0]), 1), width - 2)
+    return [
+        {"id": f"interior_{n}", "size": [width, INTERIOR_DEPTH], "door": door}
+        for n in range(1, count + 1)
+    ]
+
+
 def _default_plan(options: dict[str, Any], building: dict[str, Any]) -> dict[str, Any]:
     size = (int(options["size"][0]), int(options["size"][1]))
     has_building = bool(building) and options["buildings"] > 0
@@ -127,6 +145,7 @@ def _default_plan(options: dict[str, Any], building: dict[str, Any]) -> dict[str
         "exit_gap": list(gap),
         "exit_path": [list(c) for c in exit_path],
         "buildings": [list(b) for b in buildings],
+        "interiors": interiors_for(len(buildings), building),
         "doors": [list(d) for d in doors],
         "spawn": list(DEFAULT_SPAWN),
         "npcs": [list(DEFAULT_NPC)][: options["npcs"]],
@@ -344,6 +363,7 @@ def plan(
         "exit_gap": list(gap),
         "exit_path": [list(c) for c in exit_path],
         "buildings": [[r[0], r[1]] for r in rects],
+        "interiors": interiors_for(len(rects), building),
         "doors": [list(d) for d in doors],
         "spawn": list(spawn),
         "npcs": [list(t) for t in npcs],

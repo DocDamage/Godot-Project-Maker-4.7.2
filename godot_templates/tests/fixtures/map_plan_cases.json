@@ -209,6 +209,16 @@
      15
     ]
    ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
+   ],
    "is_default": true,
    "legacy_patches": true,
    "npcs": [
@@ -471,6 +481,16 @@
      15
     ]
    ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
+   ],
    "is_default": true,
    "legacy_patches": true,
    "npcs": [
@@ -710,6 +730,7 @@
      15
     ]
    ],
+   "interiors": [],
    "is_default": true,
    "legacy_patches": true,
    "npcs": [
@@ -894,6 +915,16 @@
      30,
      12
     ]
+   ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
@@ -1259,6 +1290,40 @@
      62,
      12
     ]
+   ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 2,
+     "id": "interior_2",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 2,
+     "id": "interior_3",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 2,
+     "id": "interior_4",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
@@ -1644,6 +1709,32 @@
      62,
      37
     ]
+   ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 2,
+     "id": "interior_2",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 2,
+     "id": "interior_3",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
@@ -2186,6 +2277,7 @@
      15
     ]
    ],
+   "interiors": [],
    "is_default": false,
    "legacy_patches": false,
    "npcs": [
@@ -2421,6 +2513,24 @@
      38,
      12
     ]
+   ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 2,
+     "id": "interior_2",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
@@ -2742,6 +2852,24 @@
      38,
      21
     ]
+   ],
+   "interiors": [
+    {
+     "door": 4,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 4,
+     "id": "interior_2",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
@@ -3075,6 +3203,16 @@
      38,
      21
     ]
+   ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
@@ -3444,6 +3582,16 @@
      12
     ]
    ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
+   ],
    "is_default": false,
    "legacy_patches": false,
    "npcs": [
@@ -3782,6 +3930,16 @@
      12
     ]
    ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
+   ],
    "is_default": false,
    "legacy_patches": false,
    "npcs": [
@@ -3961,6 +4119,7 @@
      15
     ]
    ],
+   "interiors": [],
    "is_default": false,
    "legacy_patches": false,
    "npcs": [
@@ -4244,6 +4403,16 @@
      38,
      12
     ]
+   ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
@@ -4922,6 +5091,32 @@
      52
     ]
    ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 2,
+     "id": "interior_2",
+     "size": [
+      10,
+      8
+     ]
+    },
+    {
+     "door": 2,
+     "id": "interior_3",
+     "size": [
+      10,
+      8
+     ]
+    }
+   ],
    "is_default": false,
    "legacy_patches": false,
    "npcs": [
@@ -5397,6 +5592,16 @@
      21
     ]
    ],
+   "interiors": [
+    {
+     "door": 4,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
+   ],
    "is_default": false,
    "legacy_patches": false,
    "npcs": [
@@ -5728,6 +5933,16 @@
      21
     ]
    ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
+   ],
    "is_default": false,
    "legacy_patches": false,
    "npcs": [
@@ -5972,6 +6187,16 @@
      38,
      12
     ]
+   ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
@@ -6279,6 +6504,16 @@
      21
     ]
    ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
+   ],
    "is_default": false,
    "legacy_patches": false,
    "npcs": [
@@ -6567,6 +6802,16 @@
      38,
      12
     ]
+   ],
+   "interiors": [
+    {
+     "door": 2,
+     "id": "interior_1",
+     "size": [
+      10,
+      8
+     ]
+    }
    ],
    "is_default": false,
    "legacy_patches": false,
