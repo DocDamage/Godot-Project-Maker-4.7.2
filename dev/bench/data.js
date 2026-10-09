@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791526357908,
+  "lastUpdate": 1791587017147,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -575,6 +575,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 2.53,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "DocDamage",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "DocDamage",
+            "username": "DocDamage"
+          },
+          "distinct": false,
+          "id": "433c96e2406b708dce2412f9c5ce1ab0afd62039",
+          "message": "Merge main into m14\n\nmain's two commits (the screenshot test's four pictures, the smoke step's free\nspot) were already on m14 in a later form; only the note about the smoke fix is new.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-09T18:39:26-04:00",
+          "tree_id": "0eda9a6cedd9db5e4c3acd7124c640ee53211921",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/433c96e2406b708dce2412f9c5ce1ab0afd62039"
+        },
+        "date": 1791587014576,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 6.97,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 0.6,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 69.6,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 58.89,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 7.19,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 5.8,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 2.75,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 2.53,
+            "unit": "s"
+          },
+          {
+            "name": "metroidvania from the side-view sample",
+            "value": 32.06,
             "unit": "s"
           }
         ]
