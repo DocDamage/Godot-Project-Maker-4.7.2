@@ -146,7 +146,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T12.70 | Keys, switches and gates (added 2026-10-08) | M | — | done |
 | T12.71 | Battle depth: skills, MP, elements, statuses, hit and evade, enemy AI rules (added 2026-10-08) | L | — | done |
 | T12.65 | Documentation, screenshots and changelogs | M | Parts A–D | text done, screenshots open |
-| T12.66 | Gate (1.0.0) | M | T12.65, T10.10, T13.31 | open |
+| T12.66 | Gate (1.0.0) | M | T12.65, T10.10 | open |
 
 ---
 
@@ -2376,8 +2376,7 @@ attack hits, and enemies roll fixed weights.
 
 ## T12.66 — Gate (1.0.0)
 
-**Depends on:** T12.65, T10.10, T13.31 (added 2026-10-08: M13 lands before the tag, see
-`M13_polish_and_metroidvania.md`)
+**Depends on:** T12.65, T10.10 (M13 and M14, planned 2026-10-08, start after this tag)
 
 * Every suite is green on Windows and Ubuntu, on both PySide6 legs. Perf is within its ceilings.
 * The frozen smoke test passes on Windows, Linux and macOS (T12.63).

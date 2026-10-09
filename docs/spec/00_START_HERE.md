@@ -8,7 +8,9 @@ Read these files in order before writing any code:
 2. `01_CONVENTIONS.md` — repository layout, code style, naming, logging, and Godot rules.
 3. `02_SCHEMAS.md` — every JSON file format, field by field.
 4. `03_ERROR_CODES.md` — every error code the program may emit.
-5. `M01_walking_skeleton.md` … `M13_polish_and_metroidvania.md` — task cards, done strictly in order.
+5. `M01_walking_skeleton.md` … `M12_review_followups.md` — task cards, done strictly in order,
+   up to the `v1.0.0` tag. `M13_polish.md` (release 1.1.0) and `M14_metroidvania.md` (release
+   1.2.0) follow the tag, in that order.
    What is finished and what is left is summed up in `docs/status.md`.
 
 ---
@@ -114,7 +116,8 @@ If an API in a card does not exist in 4.7.2, find the closest equivalent. Record
 | `M10_release.md` | M10 | Packaging, signing, diagnostics, docs, profile registry, export test. |
 | `M11_pre_release.md` | M11 | Pre-release fixes, wizard UX, sound, autosave, game over, a second map, docs. |
 | `M12_review_followups.md` | M12 | Review follow-ups: fixes, engineering, UX and 25 features; the 1.0 gate. |
-| `M13_polish_and_metroidvania.md` | M13 | Ten wizard UX cards, seven feature improvements, three additions, and the Metroidvania archetype. Lands before the 1.0 tag; T12.66 depends on its gate. |
+| `M13_polish.md` | M13 | Release 1.1.0, after the 1.0 tag: ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner; the first milestone under the post-release compatibility contract. |
+| `M14_metroidvania.md` | M14 | Release 1.2.0: the Metroidvania archetype (platform actor, abilities, rooms, guardian, save stations, a side-view sample pack). |
 
 Each milestone ends with a **Milestone Gate** card. All its checks must pass before the next milestone starts.
 
@@ -139,4 +142,4 @@ Each milestone ends with a **Milestone Gate** card. All its checks must pass bef
 | **Generated-owned** | Files under `generated/`, `addons/rpg_runtime/` and `addons/rpg_project_tools/`. The generator may rewrite them, subject to the ledger. |
 | **User-owned** | Files under `game/`. They are created once and never rewritten. |
 | **Smoke test** | Headless run of the generated game through a scripted scenario. |
-| **Archetype** | `turn_based`, `arpg` or `metroidvania` (M13). |
+| **Archetype** | `turn_based` or `arpg`; `metroidvania` from M14 (release 1.2.0). |

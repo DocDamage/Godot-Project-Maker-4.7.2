@@ -68,7 +68,7 @@ agree).
 
 ## How the project is organized
 
-The project was built from task cards (`docs/spec/M01_...M13`), one milestone at
+The project was built from task cards (`docs/spec/M01_...M14`), one milestone at
 a time, and the habits carried over:
 
 * **A task card** has *Depends on*, *Files*, *Spec*, *Tests* and *Done when*. Change only the files
