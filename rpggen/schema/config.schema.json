@@ -136,6 +136,9 @@
         "sfx_save": {"type": "string"},
         "sfx_levelup": {"type": "string"}
       },
+      "patternProperties": {
+        "^(music|sfx)_[a-z][a-z0-9_]{1,30}$": {"type": "string"}
+      },
       "additionalProperties": false
     },
     "starter_map": {

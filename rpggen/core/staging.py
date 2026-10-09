@@ -372,6 +372,10 @@ def render_readme(
     so braces in a project name are safe). ``archetype_notes`` (the archetype's own section,
     ``README.<archetype>.md``) is appended as it is."""
     packs = "\n".join(f"- {p.pack_id}" for p in cfg.packs) or "- (none)"
+    from rpggen.core import sound_slots
+
+    custom = sound_slots.custom_slots(cfg.sounds)
+    custom_list = "\n".join(f"  - `{key}`" for key in custom) or "  - (none yet)"
     text = template.format(
         project_name=cfg.project_name,
         archetype=cfg.archetype,
@@ -379,6 +383,7 @@ def render_readme(
         godot_version=cfg.godot_version,
         packs_list=packs,
         version_control_note=version_control_note(effective_pack_art(cfg)[0]),
+        custom_sound_slots=custom_list,
     )
     return text + archetype_notes
 

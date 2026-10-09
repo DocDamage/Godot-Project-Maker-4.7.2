@@ -52,6 +52,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | CAT-003 | E | Catalog version {found} is newer than this generator supports. | Update rpggen. |
 | CAT-004 | W | Asset {asset} references missing file {file}. | Re-add the file or remove the asset. |
 | CAT-005 | E | Duplicate source_id {source_id} in tileset {tileset}. | Report a bug; do not edit source ids by hand. |
+| CAT-006 | E | "{slot}" is not a sound slot name. | Name the slot music_<name> or sfx_<name>: lower-case letters, digits and underscores, starting with a letter, at most 31 characters after the prefix. |
 | TILE-001 | E | TileSet {tileset} has no sources. | Assign at least one tile sheet to it. |
 | TILE-002 | W | Tile region outside texture in {asset} at {coords}. | Fix grid margin/separation. |
 | TILE-003 | W | Collision profile for {asset} could not be inferred. | Set a collision profile in the audit. |

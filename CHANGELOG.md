@@ -65,6 +65,13 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   "down" for five seconds at 0 HP. The HUD shows their HP bars, and the demo villager offers
   the companion in both archetypes.
 
+* **Custom sound slots**: **Add slot…** in Mapping → Sound makes a slot of your own
+  (`sfx_<name>` or `music_<name>`), played by `play_sound:<slot>` in a dialogue, the
+  `play_sound` step of a cutscene or `SceneRouter.audio.play`. `sfx_step_<surface>` is the
+  footstep on ground tagged `surface:<name>` (read from folder and file names: grass, stone,
+  wood, sand, water, snow), filled from files like `step_grass.wav`. A bad slot name in a
+  config file is `CAT-006`.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

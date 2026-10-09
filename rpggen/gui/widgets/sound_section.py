@@ -1,4 +1,9 @@
-"""The Sound group of the Mapping page: one row per sound slot, collapsed by default (T11.20)."""
+"""The Sound group of the Mapping page: one row per sound slot, collapsed by default (T11.20).
+
+Custom slots (T13.16): **Add slot…** makes a row for a slot of the user's own, and such a row has
+a remove button. ``aboutToChange`` is emitted before every change, so the page can remember the
+state for its Undo.
+"""
 
 from __future__ import annotations
 
@@ -12,6 +17,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -101,6 +107,7 @@ class SoundSection(QFrame):
     """Collapsed to "3 music tracks, 14 sound effects assigned" with an Edit… expander."""
 
     changed = Signal()
+    aboutToChange = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -127,30 +134,77 @@ class SoundSection(QFrame):
         self.grid = QGridLayout(self.body)
         self.grid.setColumnStretch(1, 1)
         self.rows: dict[str, tuple[QLabel, QPushButton, QPushButton, QPushButton]] = {}
-        for i, slot in enumerate(sound_slots.SLOTS):
+        self.remove_buttons: dict[str, QPushButton] = {}
+        self._row_widgets: list[QWidget] = []
+        self._build_rows()
+        self.body.setVisible(False)
+        layout.addWidget(self.body)
+        foot = QHBoxLayout()
+        self.add_button = QPushButton(self.tr("Add slot…"))
+        self.add_button.setObjectName("soundAddSlot")
+        self.add_button.setToolTip(
+            self.tr(
+                "A slot of your own, played by its name: sfx_<name> or music_<name>. "
+                "sfx_step_<surface> is the footstep on ground tagged surface:<surface>."
+            )
+        )
+        self.add_button.setVisible(False)
+        self.add_error = QLabel()
+        self.add_error.setObjectName("soundAddError")
+        self.add_error.setProperty("role", "error")
+        self.add_error.setWordWrap(True)
+        self.add_error.setVisible(False)
+        foot.addWidget(self.add_button)
+        foot.addWidget(self.add_error, 1)
+        layout.addLayout(foot)
+        self.edit_button.toggled.connect(self.body.setVisible)
+        self.edit_button.toggled.connect(self.add_button.setVisible)
+        self.add_button.clicked.connect(self.ask_new_slot)
+
+    def slot_keys(self) -> list[str]:
+        """The rows, top to bottom: the fixed slots, then the custom ones by name."""
+        return list(sound_slots.SLOT_KEYS) + sound_slots.custom_slots(self.sounds)
+
+    def _build_rows(self) -> None:
+        for widget in self._row_widgets:
+            self.grid.removeWidget(widget)
+            widget.setParent(None)
+            widget.deleteLater()
+        self._row_widgets = []
+        self.rows = {}
+        self.remove_buttons = {}
+        for i, key in enumerate(self.slot_keys()):
+            slot = sound_slots.slot(key)
             name = QLabel(slot.label)
             name.setToolTip(slot.help)
             asset_label = QLabel()
-            asset_label.setObjectName(f"sound_{slot.key}")
+            asset_label.setObjectName(f"sound_{key}")
             choose = QPushButton(self.tr("Choose…"))
-            choose.setObjectName(f"soundChoose_{slot.key}")
+            choose.setObjectName(f"soundChoose_{key}")
             choose.setToolTip(self.tr("Pick another sound for this slot"))
             play = QPushButton("▶")
-            play.setObjectName(f"soundPlay_{slot.key}")
+            play.setObjectName(f"soundPlay_{key}")
             play.setToolTip(self.tr("Listen to the current sound"))
             play.setVisible(audio_preview.available())
             clear = QPushButton(self.tr("Clear"))
-            clear.setObjectName(f"soundClear_{slot.key}")
+            clear.setObjectName(f"soundClear_{key}")
             clear.setToolTip(self.tr("Leave this slot silent"))
-            for col, widget in enumerate((name, asset_label, choose, play, clear)):
+            widgets: list[QWidget] = [name, asset_label, choose, play, clear]
+            if sound_slots.is_custom(key):
+                remove = QPushButton("✕")
+                remove.setObjectName(f"soundRemove_{key}")
+                remove.setToolTip(self.tr("Remove this slot"))
+                remove.setAccessibleName(self.tr("Remove the slot {0}").format(key))
+                remove.clicked.connect(lambda _=False, k=key: self.remove_slot(k))
+                self.remove_buttons[key] = remove
+                widgets.append(remove)
+            for col, widget in enumerate(widgets):
                 self.grid.addWidget(widget, i, col)
-            self.rows[slot.key] = (asset_label, choose, play, clear)
-            choose.clicked.connect(lambda _=False, k=slot.key: self.choose(k))
-            play.clicked.connect(lambda _=False, k=slot.key: self.play(k))
-            clear.clicked.connect(lambda _=False, k=slot.key: self.clear(k))
-        self.body.setVisible(False)
-        layout.addWidget(self.body)
-        self.edit_button.toggled.connect(self.body.setVisible)
+            self._row_widgets.extend(widgets)
+            self.rows[key] = (asset_label, choose, play, clear)
+            choose.clicked.connect(lambda _=False, k=key: self.choose(k))
+            play.clicked.connect(lambda _=False, k=key: self.play(k))
+            clear.clicked.connect(lambda _=False, k=key: self.clear(k))
 
     # ------------------------------------------------------------------ data
 
@@ -171,8 +225,11 @@ class SoundSection(QFrame):
     def _refresh(self) -> None:
         assert self.catalog is not None
         self.summary_label.setText(sound_slots.summary(self.sounds))
-        for slot in sound_slots.SLOTS:
-            label, choose, play, clear = self.rows[slot.key]
+        if list(self.rows) != self.slot_keys():
+            self._build_rows()
+        for key in self.slot_keys():
+            slot = sound_slots.slot(key)
+            label, choose, play, clear = self.rows[key]
             ident = self.sounds.get(slot.key, "")
             asset = self.catalog.asset(ident) if ident else None
             label.setText(describe(asset, self.resolver) if asset else self.tr("(silent)"))
@@ -191,15 +248,74 @@ class SoundSection(QFrame):
         dialog = SoundPickerDialog(self.catalog, sound_slots.slot(key), self.resolver, self)
         if not self.run_picker(dialog) or dialog.picked is None:
             return False
+        self.aboutToChange.emit()
         self.sounds[key] = dialog.picked
         self._refresh()
         self.changed.emit()
         return True
 
     def clear(self, key: str) -> None:
+        self.aboutToChange.emit()
         self.sounds[key] = sound_slots.CLEARED
         self._refresh()
         self.changed.emit()
+
+    # ------------------------------------------------------------------ custom slots (T13.16)
+
+    def slot_problem(self, key: str) -> str:
+        """Why ``key`` cannot be added, or "" when it can."""
+        if not sound_slots.is_valid_name(key):
+            return self.tr(
+                "Name the slot sfx_<name> or music_<name>: lower-case letters, digits and "
+                "underscores, starting with a letter."
+            )
+        if key in self.slot_keys():
+            return self.tr("There is a slot named {0} already.").format(key)
+        return ""
+
+    def add_slot(self, key: str) -> bool:
+        """A new, silent custom slot. False (with the reason under the rows) when the name is
+        not a slot name or is taken."""
+        key = key.strip()
+        problem = self.slot_problem(key)
+        self.add_error.setText(problem)
+        self.add_error.setVisible(bool(problem))
+        if problem:
+            return False
+        self.aboutToChange.emit()
+        self.sounds[key] = sound_slots.CLEARED
+        self._refresh()
+        self.changed.emit()
+        return True
+
+    def remove_slot(self, key: str) -> bool:
+        if not sound_slots.is_custom(key) or key not in self.sounds:
+            return False
+        self.aboutToChange.emit()
+        del self.sounds[key]
+        self._refresh()
+        self.changed.emit()
+        return True
+
+    def ask_name(self) -> str | None:  # overridden by tests
+        text, ok = QInputDialog.getText(
+            self,
+            self.tr("Add a sound slot"),
+            self.tr("The slot's name (sfx_<name> or music_<name>):"),
+            text="sfx_",
+        )
+        return text if ok else None
+
+    def ask_new_slot(self) -> bool:
+        name = self.ask_name()
+        return name is not None and self.add_slot(name)
+
+    def restore(self, sounds: dict[str, str]) -> None:
+        """Put back an earlier state (the page's Undo)."""
+        self.sounds = dict(sounds)
+        self.add_error.setVisible(False)
+        if self.catalog is not None:
+            self._refresh()
 
     def play(self, key: str) -> bool:
         assert self.catalog is not None

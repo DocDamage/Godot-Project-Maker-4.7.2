@@ -44,33 +44,40 @@ func _footsteps(delta: float) -> void:
 	var slot := _surface_slot(audio)
 	audio.call("play", slot, step_volume_db, _step_rng.randf_range(0.95, 1.05))
 
-## `sfx_step_<surface>` when the tile under the player has `footstep` custom data and the sound
-## bank has that slot; else `sfx_step`.
+## `sfx_step_<surface>` when the bank has that slot and the ground under the player is of that
+## surface; else `sfx_step`. The surface of a tile is its `footstep` custom data (a Tiled map can
+## set it), else the surface of its asset (the tag `surface:<name>`, through the bank's table).
 func _surface_slot(audio: Node) -> StringName:
 	var router := RpgUtil.router()
 	var map: Node = router.get("current_map") if router != null else null
 	if map == null or not audio.get("bank") is RpgSoundBank:
-		return &"sfx_step"
+		return RpgSoundBank.STEP_SLOT
 	var bank: RpgSoundBank = audio.get("bank")
-	var has_surfaces := false
-	for slot_name in bank.slots():
-		if str(slot_name).begins_with("sfx_step_"):
-			has_surfaces = true
-			break
-	if not has_surfaces:
-		return &"sfx_step"
+	if not bank.has_step_surfaces():
+		return RpgSoundBank.STEP_SLOT
+	var layers: Array[TileMapLayer] = []
 	for layer in map.find_children("*", "TileMapLayer", true, false):
-		var tile_layer := layer as TileMapLayer
-		if tile_layer.tile_set == null or tile_layer.tile_set.get_custom_data_layer_by_name("footstep") == -1:
+		layers.append(layer as TileMapLayer)
+	return bank.step_slot(surface_at(layers, actor.global_position, bank))
+
+## The surface of the ground at `at` (global): the topmost layer that has a tile with a surface.
+static func surface_at(layers: Array[TileMapLayer], at: Vector2, bank: RpgSoundBank) -> String:
+	for i in range(layers.size() - 1, -1, -1):
+		var tile_layer := layers[i]
+		if tile_layer == null or tile_layer.tile_set == null:
 			continue
-		var cell := tile_layer.local_to_map(tile_layer.to_local(actor.global_position))
-		var data := tile_layer.get_cell_tile_data(cell)
+		var local := tile_layer.to_local(at) if tile_layer.is_inside_tree() else at - tile_layer.position
+		var data := tile_layer.get_cell_tile_data(tile_layer.local_to_map(local))
 		if data == null:
 			continue
-		var surface := str(data.get_custom_data("footstep"))
-		if surface != "" and bank.has_slot(StringName("sfx_step_" + surface)):
-			return StringName("sfx_step_" + surface)
-	return &"sfx_step"
+		var surface := ""
+		if tile_layer.tile_set.get_custom_data_layer_by_name("footstep") != -1:
+			surface = str(data.get_custom_data("footstep"))
+		if surface == "" and tile_layer.tile_set.get_custom_data_layer_by_name("asset_id") != -1:
+			surface = bank.surface_of(str(data.get_custom_data("asset_id")))
+		if surface != "":
+			return surface
+	return ""
 
 ## `speed` scaled by what the player wears (a move_speed modifier of equipment); everyone else
 ## walks at `speed`.

@@ -287,3 +287,68 @@ func test_screen_feedback_respects_the_setting(t) -> void:
 	settings.screen_shake = true
 	t.ok(RpgScreenFeedback.enabled())
 	Fixtures.uninstall("RpgSettings")
+
+# ---------------------------------------------------------------- custom slots and surfaces (T13.16)
+
+## A layer with one tile at (2, 1) whose custom data name its asset and, maybe, its footstep.
+func _ground_layer(asset_id: String, footstep: String = "") -> TileMapLayer:
+	var ts := TileSet.new()
+	ts.tile_size = Vector2i(16, 16)
+	for layer_name: String in ["asset_id", "footstep"]:
+		ts.add_custom_data_layer()
+		var index := ts.get_custom_data_layers_count() - 1
+		ts.set_custom_data_layer_name(index, layer_name)
+		ts.set_custom_data_layer_type(index, TYPE_STRING)
+	var source := TileSetAtlasSource.new()
+	source.texture = ImageTexture.create_from_image(Image.create(16, 16, false, Image.FORMAT_RGBA8))
+	source.texture_region_size = Vector2i(16, 16)
+	ts.add_source(source, 0)
+	source.create_tile(Vector2i.ZERO)
+	var data := source.get_tile_data(Vector2i.ZERO, 0)
+	data.set_custom_data("asset_id", asset_id)
+	data.set_custom_data("footstep", footstep)
+	var layer := TileMapLayer.new()
+	layer.tile_set = ts
+	layer.set_cell(Vector2i(2, 1), 0, Vector2i.ZERO)
+	return layer
+
+func test_the_step_on_stone_ground_is_the_stone_step(t) -> void:
+	var bank := _bank_with({"sfx_step": "res://step.wav", "sfx_step_stone": "res://stone.wav", "sfx_magic": "res://magic.wav"})
+	bank.set_surfaces({"pack.tiles.floor": "stone", "pack.tiles.lawn": "grass"})
+	t.ok(bank.has_slot(&"sfx_magic"), "a custom slot is a slot like the others")
+	t.ok(bank.has_step_surfaces())
+	t.eq(bank.surface_of("pack.tiles.floor"), "stone")
+	t.eq(bank.surface_of("pack.tiles.unknown"), "")
+	t.eq(bank.step_slot("stone"), &"sfx_step_stone")
+	t.eq(bank.step_slot("grass"), &"sfx_step", "no grass step in the bank: the plain one")
+	t.eq(bank.step_slot(""), &"sfx_step")
+	t.ok(not _bank_with({"sfx_step": "res://step.wav"}).has_step_surfaces())
+	# the actor's cell: the asset under its feet says what the ground is
+	var floor_layer := _ground_layer("pack.tiles.floor")
+	var layers: Array[TileMapLayer] = [floor_layer]
+	var on_tile := Vector2(2 * 16 + 8, 1 * 16 + 8)
+	t.eq(RpgMovement.surface_at(layers, on_tile, bank), "stone")
+	t.eq(bank.step_slot(RpgMovement.surface_at(layers, on_tile, bank)), &"sfx_step_stone")
+	t.eq(RpgMovement.surface_at(layers, Vector2(200, 200), bank), "", "no tile there")
+	# a layer above wins, and a tile's own `footstep` wins over its asset's surface
+	var lawn := _ground_layer("pack.tiles.lawn")
+	layers.append(lawn)
+	t.eq(RpgMovement.surface_at(layers, on_tile, bank), "grass")
+	var planks := _ground_layer("pack.tiles.floor", "wood")
+	layers.append(planks)
+	t.eq(RpgMovement.surface_at(layers, on_tile, bank), "wood")
+	# an asset without a surface lets the layer below speak
+	var plain := _ground_layer("pack.tiles.unknown")
+	var under: Array[TileMapLayer] = [floor_layer, plain]
+	t.eq(RpgMovement.surface_at(under, on_tile, bank), "stone")
+	for layer: TileMapLayer in [floor_layer, lawn, planks, plain]:
+		layer.free()
+
+func test_the_dialogue_event_play_sound_names_a_slot(t) -> void:
+	Fixtures.install_state()
+	t.ok(RpgDialogueRunner.EVENTS.has("play_sound"))
+	t.eq(RpgDialogueRunner.event_problem("play_sound:sfx_magic"), "")
+	t.ok(RpgDialogueRunner.event_problem("play_sound") != "", "it needs a slot")
+	t.ok(RpgDialogueRunner.execute_event("play_sound:sfx_magic"), "without an audio service it is silent, not an error")
+	t.ok(not RpgDialogueRunner.execute_event("play_sound"))
+	Fixtures.uninstall_state()

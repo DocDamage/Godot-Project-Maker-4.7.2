@@ -486,3 +486,54 @@ def test_a_row_without_an_asset_has_no_audit_button(qtbot) -> None:
     empty = next(r for r in page.rows if page.selection_for(r) is None)
     assert not page.rows[empty].audit_button.isVisibleTo(page)
     assert page.audit_asset(empty) is None and not page.show_in_audit(empty)
+
+
+def test_a_custom_slot_is_added_and_removed_as_one_undo_step_each(qtbot) -> None:
+    """T13.16: Add slot… and the row's remove button, both taken back by the page's Undo."""
+    page, state = _page(qtbot, "audio_basic")
+    section = page.sound_section
+    section.edit_button.setChecked(True)
+    assert not section.add_button.isHidden()
+    fixed = len(section.rows)
+    assert not section.remove_buttons, "the fixed slots cannot be removed"
+    # a bad name and a duplicate are refused, with the reason under the rows
+    assert not section.add_slot("Magic Sound")
+    assert not section.add_error.isHidden() and "sfx_<name>" in section.add_error.text()
+    assert not section.add_slot("sfx_hit")
+    assert "already" in section.add_error.text()
+    assert len(section.rows) == fixed and not page.undo_button.isEnabled()
+    # the dialog's answer goes through the same check
+    section.ask_name = lambda: "sfx_magic"  # type: ignore[method-assign]
+    assert section.ask_new_slot()
+    assert section.add_error.isHidden()
+    assert list(section.rows)[-1] == "sfx_magic" and "sfx_magic" in section.remove_buttons
+    assert section.findChild(type(section.add_button), "soundRemove_sfx_magic") is not None
+    assert section.sounds["sfx_magic"] == ""
+    assert not section.add_slot("sfx_magic"), "a duplicate"
+    section.ask_name = lambda: None  # type: ignore[method-assign]
+    assert not section.ask_new_slot(), "cancelled"
+    # a sound for it
+    hit = "audio_basic.sfx.hit"
+    section.run_picker = lambda dialog: setattr(dialog, "picked", hit) or True  # type: ignore[method-assign]
+    assert section.choose("sfx_magic")
+    assert section.summary_label.text() == "3 music tracks, 5 sound effects assigned"
+    page.leave(state)
+    assert state.config.sounds["sfx_magic"] == hit
+    assert state.config.to_json()["sounds"]["sfx_magic"] == hit
+    # one Undo takes back the sound, the next one the slot
+    assert page.undo()
+    assert section.sounds["sfx_magic"] == ""
+    assert page.undo()
+    assert "sfx_magic" not in section.sounds and len(section.rows) == fixed
+    assert not page.undo_button.isEnabled()
+    # removing is one step too
+    assert section.add_slot("music_cave")
+    section.remove_buttons["music_cave"].click()
+    assert "music_cave" not in section.sounds and "music_cave" not in section.rows
+    assert not section.remove_slot("sfx_hit"), "a fixed slot stays"
+    assert page.undo()
+    assert "music_cave" in section.rows and section.sounds["music_cave"] == ""
+    # the slot survives leaving and coming back
+    page.leave(state)
+    page.enter(state)
+    assert "music_cave" in page.sound_section.rows

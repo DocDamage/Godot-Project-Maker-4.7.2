@@ -617,6 +617,10 @@ def _suggest_tags(facets: dict[str, Any], path: str) -> None:
     from rpggen.core import classifier
 
     suggested = classifier.suggested_tags(path)
+    if facets.get("role") == "GROUND":  # what the player walks on (T13.16)
+        surface = classifier.suggested_surface(path)
+        if surface is not None:
+            suggested = [*suggested, f"surface:{surface}"]
     if suggested:
         facets["tags"] = sorted(set(facets.get("tags") or []) | set(suggested))
 

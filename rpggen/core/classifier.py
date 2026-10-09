@@ -75,12 +75,27 @@ LIGHT_WORDS = frozenset(
 )  # fmt: skip
 
 
+# What the ground is made of (T13.16): the footstep the player makes on it. The file's words win
+# over its folders', and the nearest folder over the ones above it.
+SURFACE_WORDS = ("grass", "stone", "wood", "sand", "water", "snow")
+
+
 def suggested_tags(name: str) -> list[str]:
     """Tags the name of a file or object suggests: "light" for a torch, lamp, lantern, candle or
     campfire. ``name`` is a path or a plain name."""
     folders, file_tokens = tokens(name if "." in name.rsplit("/", 1)[-1] else name + ".png")
     words = set(file_tokens) | set(folders[-1:])
     return ["light"] if words & LIGHT_WORDS else []
+
+
+def suggested_surface(path: str) -> str | None:
+    """The surface the folder and file words of a ground asset name, or None."""
+    folders, file_tokens = tokens(path)
+    for words in (file_tokens, *([f] for f in reversed(folders))):
+        for word in words:
+            if word in SURFACE_WORDS:
+                return word
+    return None
 
 
 def tokens(posix_path: str) -> tuple[list[str], list[str]]:

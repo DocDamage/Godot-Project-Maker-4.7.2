@@ -4,10 +4,17 @@ A fixed list of slots, each filled by one audio asset or left empty. ``default_s
 asset per slot from file-name tokens, ``resolve_sounds`` keeps the user's choices, drops stale
 ones and fills the gaps (the same shape as ``mapping.default_starter`` / ``resolve_starter``).
 Audio is never required and there are no audio placeholders: an empty slot is silent.
+
+Beyond the fixed list a project can have **custom slots** (T13.16): any key that matches
+``SLOT_PATTERN``. ``sfx_step_<surface>`` is the footstep on ground whose asset has the tag
+``surface:<name>``; any other custom slot is played by name (``play_sound:<slot>`` in a dialogue,
+``RpgAudio.play`` in a script).
 """
 
 from __future__ import annotations
 
+import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from rpggen.core import catalog as catalog_mod
@@ -15,6 +22,13 @@ from rpggen.core import classifier
 
 MUSIC = "music"
 SFX = "sfx"
+SLOT_PATTERN = re.compile(r"^(music|sfx)_[a-z][a-z0-9_]{1,30}$")
+# The surfaces rpggen fills a footstep slot for by itself. A ground asset's tag may name any
+# surface (snow is detected too); its slot is then a custom one like every other.
+SURFACES = ["grass", "stone", "wood", "water", "sand"]
+SURFACE_TAG = "surface:"
+STEP_PREFIX = "sfx_step_"
+_STEP_TOKENS = {"step", "steps", "footstep", "footsteps", "walk"}
 _INACTIVE = {"UNUSED", "MISSING"}
 ROLE_OF_KIND = {MUSIC: "AUDIO_MUSIC", SFX: "AUDIO_SFX"}
 
@@ -62,8 +76,53 @@ SLOT_KEYS = tuple(s.key for s in SLOTS)
 _BY_KEY = {s.key: s for s in SLOTS}
 
 
+def is_valid_name(key: object) -> bool:
+    """A slot key the config accepts: a fixed slot or a custom one."""
+    return isinstance(key, str) and SLOT_PATTERN.fullmatch(key) is not None
+
+
+def invalid_names(sounds: object) -> list[str]:
+    """The keys of a ``sounds`` table that are not slot names, sorted."""
+    if not isinstance(sounds, dict):
+        return []
+    return sorted(str(k) for k in sounds if not is_valid_name(k))
+
+
+def is_custom(key: str) -> bool:
+    return key not in _BY_KEY
+
+
+def kind_of(key: str) -> str:
+    return MUSIC if key.startswith("music_") else SFX
+
+
+def custom_slots(sounds: Iterable[str]) -> list[str]:
+    """The custom slots among ``sounds`` (its keys), sorted."""
+    return sorted(k for k in sounds if is_custom(k) and is_valid_name(k))
+
+
 def slot(key: str) -> Slot:
-    return _BY_KEY[key]
+    """The slot of a key; a custom key gets a slot made from its name."""
+    if key in _BY_KEY:
+        return _BY_KEY[key]
+    if key.startswith(STEP_PREFIX):
+        surface = key[len(STEP_PREFIX) :]
+        return Slot(
+            key,
+            SFX,
+            f"Footstep ({surface.replace('_', ' ')})",
+            f"The player walks on ground tagged surface:{surface}.",
+            (),
+        )
+    return Slot(key, kind_of(key), key, "A custom slot: played by its name.", ())
+
+
+def surface_of(asset: catalog_mod.Asset) -> str | None:
+    """The surface a ground asset is tagged with (``surface:<name>``), or None."""
+    for tag in catalog_mod.effective(asset).get("tags") or []:
+        if isinstance(tag, str) and tag.startswith(SURFACE_TAG) and tag != SURFACE_TAG:
+            return tag[len(SURFACE_TAG) :]
+    return None
 
 
 def audio_assets(catalog: catalog_mod.Catalog, kind: str) -> list[catalog_mod.Asset]:
@@ -119,16 +178,20 @@ def default_sounds(catalog: catalog_mod.Catalog) -> dict[str, str]:
             found = out.get("music_map")
         if found is not None:
             out[s.key] = found
+    named = [(a, _name_tokens(a)) for a in sfx]
+    for surface in SURFACES:  # step_grass.wav, footstep-stone.ogg
+        for asset, tokens in named:
+            if surface in tokens and tokens & _STEP_TOKENS:
+                out[STEP_PREFIX + surface] = asset.id
+                break
     return out
 
 
 def valid_choice(catalog: catalog_mod.Catalog, key: str, asset_id: str | None) -> bool:
-    if not asset_id or key not in _BY_KEY:
+    if not asset_id or not is_valid_name(key):
         return False
     asset = catalog.asset(asset_id)
-    return asset is not None and any(
-        a.id == asset_id for a in audio_assets(catalog, _BY_KEY[key].kind)
-    )
+    return asset is not None and any(a.id == asset_id for a in audio_assets(catalog, kind_of(key)))
 
 
 CLEARED = ""  # a slot the user emptied on purpose: it stays silent instead of getting a default
@@ -136,24 +199,30 @@ CLEARED = ""  # a slot the user emptied on purpose: it stays silent instead of g
 
 def resolve_sounds(catalog: catalog_mod.Catalog, current: dict[str, str]) -> dict[str, str]:
     """``current`` with stale entries dropped and gaps filled with the default choice. A slot
-    that is ``CLEARED`` stays cleared."""
+    that is ``CLEARED`` stays cleared. A custom slot stays as long as its name is valid: without
+    a sound it is ``CLEARED``, so the row the user added does not vanish."""
     defaults = default_sounds(catalog)
     out: dict[str, str] = {}
-    for s in SLOTS:
-        chosen = current.get(s.key)
-        if chosen == CLEARED and s.key in current:
-            out[s.key] = CLEARED
-        elif valid_choice(catalog, s.key, chosen):
-            out[s.key] = chosen  # type: ignore[assignment]
-        elif s.key in defaults:
-            out[s.key] = defaults[s.key]
+    keys = list(SLOT_KEYS) + sorted(
+        k for k in set(defaults) | set(current) if is_custom(k) and is_valid_name(k)
+    )
+    for key in keys:
+        chosen = current.get(key)
+        if chosen == CLEARED and key in current:
+            out[key] = CLEARED
+        elif valid_choice(catalog, key, chosen):
+            out[key] = chosen  # type: ignore[assignment]
+        elif key in defaults:
+            out[key] = defaults[key]
+        elif key in current and is_custom(key):
+            out[key] = CLEARED
     return out
 
 
 def summary(sounds: dict[str, str]) -> str:
     """ "3 music tracks, 14 sound effects assigned" for the collapsed Mapping group."""
-    music = sum(1 for k, v in sounds.items() if v and k in _BY_KEY and _BY_KEY[k].kind == MUSIC)
-    sfx = sum(1 for k, v in sounds.items() if v and k in _BY_KEY and _BY_KEY[k].kind == SFX)
+    music = sum(1 for k, v in sounds.items() if v and is_valid_name(k) and kind_of(k) == MUSIC)
+    sfx = sum(1 for k, v in sounds.items() if v and is_valid_name(k) and kind_of(k) == SFX)
     tracks = f"{music} music track{'s' if music != 1 else ''}"
     effects = f"{sfx} sound effect{'s' if sfx != 1 else ''}"
     return f"{tracks}, {effects} assigned"

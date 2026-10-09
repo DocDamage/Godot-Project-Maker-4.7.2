@@ -164,6 +164,15 @@ to the log.
 
 * **Change a slot:** run rpggen again on this folder, open **Mapping → Sound → Edit…**, choose
   another file (▶ plays it) and generate. Nothing you edited is overwritten.
+* **Custom slots:** **Add slot…** in the same place makes a slot of your own (`sfx_<name>` or
+  `music_<name>`). Play it from a dialogue with the event `play_sound:<slot>`, from a cutscene
+  with the `play_sound` step, or from a script with
+  `SceneRouter.audio.play(&"sfx_<name>")`. This project's custom slots:
+{custom_sound_slots}
+* **Footsteps by ground:** a slot named `sfx_step_<surface>` (grass, stone, wood, water, sand,
+  or any name) plays instead of `sfx_step` while the player walks on ground whose asset has the
+  tag `surface:<surface>` (rpggen reads it from the folder and file names; the Audit page's
+  tags change it).
 * **Map music** is the **Music Asset Id** property of the map's root node (`StarterMap`). The map
   you already have keeps what is in it; for a new map, set the property to an audio asset id
   (see `rpggen/audio_index.json`). A map without one keeps the music that is playing.

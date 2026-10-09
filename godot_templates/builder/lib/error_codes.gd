@@ -49,6 +49,7 @@ const CODES := {
 	"CAT-003": {"severity": "error", "message": "Catalog version {found} is newer than this generator supports.", "fix": "Update rpggen."},
 	"CAT-004": {"severity": "warning", "message": "Asset {asset} references missing file {file}.", "fix": "Re-add the file or remove the asset."},
 	"CAT-005": {"severity": "error", "message": "Duplicate source_id {source_id} in tileset {tileset}.", "fix": "Report a bug; do not edit source ids by hand."},
+	"CAT-006": {"severity": "error", "message": "\"{slot}\" is not a sound slot name.", "fix": "Name the slot music_<name> or sfx_<name>: lower-case letters, digits and underscores, starting with a letter, at most 31 characters after the prefix."},
 	"TILE-001": {"severity": "error", "message": "TileSet {tileset} has no sources.", "fix": "Assign at least one tile sheet to it."},
 	"TILE-002": {"severity": "warning", "message": "Tile region outside texture in {asset} at {coords}.", "fix": "Fix grid margin/separation."},
 	"TILE-003": {"severity": "warning", "message": "Collision profile for {asset} could not be inferred.", "fix": "Set a collision profile in the audit."},

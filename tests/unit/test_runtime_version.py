@@ -172,6 +172,7 @@ def test_template_only_has_known_placeholders() -> None:
     template = paths.templates_root() / "project_files" / "README.template.md"
     text = template.read_text(encoding="utf-8")
     assert set(re.findall(r"\{(\w*)\}", text)) == {
+        "custom_sound_slots",
         "project_name",
         "archetype",
         "runtime_version",

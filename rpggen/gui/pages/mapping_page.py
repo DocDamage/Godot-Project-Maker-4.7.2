@@ -220,6 +220,7 @@ class MappingPage(WizardPage):
         body_layout.addLayout(self.rows_box)
         self.sound_section = SoundSection()
         self.sound_section.changed.connect(self.changed.emit)
+        self.sound_section.aboutToChange.connect(self._push_history)
         body_layout.addWidget(self.sound_section)
         body_layout.addStretch(1)
         self.scroll_area.setWidget(body)
@@ -423,17 +424,26 @@ class MappingPage(WizardPage):
     def _push_history(self) -> None:
         assert self.state is not None
         self._history.append(
-            (dict(self.starter), set(self.placeholders), set(self.without), self.state.catalog)
+            (
+                dict(self.starter),
+                set(self.placeholders),
+                set(self.without),
+                self.state.catalog,
+                dict(self.sound_section.sounds),
+            )
         )
         self.undo_button.setEnabled(True)
 
     def undo(self) -> bool:
-        """Take back the last choice (an asset, None, Clear or a fallback)."""
+        """Take back the last choice (an asset, None, Clear, a fallback, or a change in the
+        Sound group)."""
         if not self._history or self.state is None:
             return False
-        starter, placeholders, without, catalog = self._history.pop()
+        starter, placeholders, without, catalog, sounds = self._history.pop()
         self.starter, self.placeholders, self.without = starter, placeholders, without
         self.state.catalog = catalog
+        if sounds != self.sound_section.sounds:
+            self.sound_section.restore(sounds)
         self.undo_button.setEnabled(bool(self._history))
         self._refresh()
         return True

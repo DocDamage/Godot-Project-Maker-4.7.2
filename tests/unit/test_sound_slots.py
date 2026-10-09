@@ -106,3 +106,158 @@ def test_the_sample_pack_has_music_and_effects() -> None:
     assert sounds["music_map"] == "sample_pack.music.town_theme"
     assert sounds["music_battle"] == "sample_pack.music.battle_theme"
     assert len(sounds) >= 10
+
+
+# ------------------------------------------------------------------------ custom slots (T13.16)
+
+
+def _wav(path: Path, seconds: float = 0.2) -> None:
+    import wave
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(1000)
+        w.writeframes(bytes(2) * int(1000 * seconds))
+
+
+def _step_pack(tmp_path: Path) -> catalog.Catalog:
+    import shutil
+
+    pack = tmp_path / "steps"
+    shutil.copytree(SYNTH / "basic16", pack)
+    (pack / "tiles" / "stone").mkdir()
+    shutil.copy(pack / "tiles" / "terrain.png", pack / "tiles" / "stone" / "floor.png")
+    for name in ("step", "step_grass", "footstep-stone", "walk_wood", "grass_rustle", "magic"):
+        _wav(pack / "sfx" / f"{name}.wav")
+    return _catalog(pack, "steps")
+
+
+@pytest.mark.parametrize(
+    ("key", "ok"),
+    [
+        ("sfx_magic", True),
+        ("music_cave", True),
+        ("sfx_step_grass", True),
+        ("sfx_a1", True),
+        ("sfx_" + "a" * 31, True),
+        ("sfx_" + "a" * 32, False),
+        ("sfx_a", False),  # at least two characters after the prefix
+        ("sfx_1up", False),
+        ("sfx_Magic", False),
+        ("sfx-magic", False),
+        ("sound_magic", False),
+        ("magic", False),
+        ("sfx_", False),
+        ("", False),
+    ],
+)
+def test_the_slot_name_pattern(key: str, ok: bool) -> None:
+    assert sound_slots.is_valid_name(key) is ok
+    assert all(sound_slots.is_valid_name(k) for k in sound_slots.SLOT_KEYS)
+    assert sound_slots.is_valid_name(None) is False
+
+
+def test_custom_slots_are_told_from_the_fixed_ones() -> None:
+    sounds = {"sfx_hit": "a", "sfx_magic": "b", "music_cave": "", "Bad Key": "c"}
+    assert sound_slots.custom_slots(sounds) == ["music_cave", "sfx_magic"]
+    assert sound_slots.invalid_names(sounds) == ["Bad Key"]
+    assert (
+        sound_slots.kind_of("music_cave") == "music" and sound_slots.kind_of("sfx_magic") == "sfx"
+    )
+    assert sound_slots.slot("sfx_step_grass").label == "Footstep (grass)"
+    assert sound_slots.slot("sfx_magic").label == "sfx_magic"
+    assert sound_slots.slot("sfx_hit").label == "Hit"
+    assert sound_slots.summary(sounds) == "0 music tracks, 2 sound effects assigned"
+
+
+def test_default_sounds_fills_the_surface_steps_from_file_names(tmp_path: Path) -> None:
+    cat = _step_pack(tmp_path)
+    sounds = sound_slots.default_sounds(cat)
+    assert sounds["sfx_step_grass"] == "steps.sfx.step_grass"
+    assert sounds["sfx_step_stone"] == "steps.sfx.footstep_stone"
+    assert sounds["sfx_step_wood"] == "steps.sfx.walk_wood"
+    assert "sfx_step_water" not in sounds and "sfx_step_sand" not in sounds
+    assert sounds["sfx_step"].startswith("steps.sfx.")
+    assert sound_slots.SURFACES == ["grass", "stone", "wood", "water", "sand"]
+
+
+def test_a_ground_asset_is_tagged_with_its_surface(tmp_path: Path) -> None:
+    from rpggen.core import classifier
+
+    assert classifier.suggested_surface("tiles/stone/floor.png") == "stone"
+    assert classifier.suggested_surface("tiles/grass/stone_path.png") == "stone", "the file wins"
+    assert classifier.suggested_surface("tiles/Snow Fields/a/ground.png") == "snow"
+    assert classifier.suggested_surface("tiles/terrain.png") is None
+    cat = _step_pack(tmp_path)
+    floor = next(a for a in cat.assets if a.path.endswith("stone/floor.png"))
+    plain = next(a for a in cat.assets if a.path.endswith("tiles/terrain.png"))
+    assert catalog.effective(floor)["role"] == "GROUND"
+    assert "surface:stone" in catalog.effective(floor)["tags"]
+    assert sound_slots.surface_of(floor) == "stone"
+    assert sound_slots.surface_of(plain) is None
+    # only ground: a sound named after grass is not a surface
+    rustle = next(a for a in cat.assets if a.path.endswith("grass_rustle.wav"))
+    assert sound_slots.surface_of(rustle) is None
+
+
+def test_resolve_keeps_custom_slots_and_drops_bad_names(tmp_path: Path) -> None:
+    cat = _step_pack(tmp_path)
+    current = {
+        "sfx_magic": "steps.sfx.magic",  # a custom slot with a sound
+        "sfx_spell": "",  # a custom slot the user has not filled yet
+        "sfx_gone": "steps.sfx.nope",  # its sound left the pack: the slot stays, silent
+        "music_cave": "steps.sfx.magic",  # wrong kind: silent
+        "Bad Key": "steps.sfx.magic",
+        "sfx_step_grass": "",  # cleared on purpose: stays silent
+    }
+    resolved = sound_slots.resolve_sounds(cat, current)
+    assert resolved["sfx_magic"] == "steps.sfx.magic"
+    assert (
+        resolved["sfx_spell"] == "" and resolved["sfx_gone"] == "" and resolved["music_cave"] == ""
+    )
+    assert "Bad Key" not in resolved
+    assert resolved["sfx_step_grass"] == ""
+    assert resolved["sfx_step_stone"] == "steps.sfx.footstep_stone"  # a default surface step
+    assert sound_slots.valid_choice(cat, "sfx_magic", "steps.sfx.magic")
+    assert not sound_slots.valid_choice(cat, "Bad Key", "steps.sfx.magic")
+
+
+def test_a_bad_slot_name_in_a_config_file_is_cat_006(tmp_path: Path) -> None:
+    from rpggen import jsonio
+    from rpggen.errors import RpgGenError
+
+    cfg = config.default_for("Game", [config.pack_ref_from_source(SYNTH / "audio_basic", "a")])
+    cfg.sounds = {"sfx_magic": "a.b", "music_cave": ""}
+    path = tmp_path / "generator_config.json"
+    config.save(cfg, path)
+    assert config.load(path).sounds == {"sfx_magic": "a.b", "music_cave": ""}
+    data = jsonio.read(path)
+    data["sounds"]["Magic Sound"] = "a.b"
+    jsonio.write(path, data)
+    with pytest.raises(RpgGenError) as caught:
+        config.load(path)
+    assert caught.value.code == "CAT-006"
+    assert "Magic Sound" in str(caught.value)
+    cfg.sounds = {"sfx_": "x"}
+    with pytest.raises(RpgGenError) as caught:
+        config.save(cfg, path)
+    assert caught.value.code == "CAT-006"
+
+
+def test_the_readme_lists_the_custom_slots() -> None:
+    from rpggen.core import staging
+
+    template = "Custom:\n{custom_sound_slots}\n"
+    template = (
+        "{project_name}{archetype}{runtime_version}{godot_version}{packs_list}"
+        "{version_control_note}\n" + template
+    )
+    cfg = config.default_for("Game", [])
+    assert "  - (none yet)" in staging.render_readme(template, cfg, "1.1.0")
+    cfg.sounds = {"sfx_hit": "a", "sfx_magic": "b", "sfx_step_grass": ""}
+    text = staging.render_readme(template, cfg, "1.1.0")
+    assert "  - `sfx_magic`\n  - `sfx_step_grass`" in text and "sfx_hit" not in text
+    real = Path(staging.__file__).parents[2] / "godot_templates/project_files/README.template.md"
+    assert "{custom_sound_slots}" in real.read_text(encoding="utf-8")

@@ -126,7 +126,7 @@ func fast_forward() -> void:
 const EVENTS: Array[String] = [
 	"set_flag", "give_item", "take_item", "give_gold", "set_quest", "quest_start", "quest_stage",
 	"quest_complete", "join_party", "leave_party", "heal_full", "open_shop", "set_var", "add_var",
-	"run_sequence", "emit",
+	"run_sequence", "emit", "play_sound",
 ]
 
 ## What an event names that must exist in game/data: [[kind, id]] with the kind "shop", "quest"
@@ -252,6 +252,13 @@ static func execute_event_on(event: String, state: RpgGameState) -> bool:
 			if arg == "":
 				return _bad(event)
 			RpgUtil.emit(&"shop_requested", [StringName(arg)])
+		"play_sound":  # a sound slot, custom ones included (T13.16); an unset slot is silent
+			if arg == "":
+				return _bad(event)
+			var router := RpgUtil.router()
+			var audio: Node = router.audio if router != null else null
+			if audio != null and audio.has_method("play"):
+				audio.call("play", StringName(arg))
 		"set_var":
 			var var_name := arg.get_slice("=", 0)
 			var value_text := arg.substr(var_name.length() + 1)

@@ -232,14 +232,27 @@ def default_for(
     )
 
 
+def check_sound_names(data: Any) -> None:
+    """CAT-006 for a ``sounds`` key that is no slot name (the schema would say CAT-002 with a
+    pattern nobody can read)."""
+    from rpggen.core import sound_slots
+
+    sounds = data.get("sounds") if isinstance(data, dict) else None
+    bad = sound_slots.invalid_names(sounds)
+    if bad:
+        raise RpgGenError("CAT-006", slot=bad[0])
+
+
 def load(path: Path) -> GeneratorConfig:
     data = jsonio.read(path)
+    check_sound_names(data)
     schema.validate("config", data)
     return GeneratorConfig.from_json(data)
 
 
 def save(cfg: GeneratorConfig, path: Path) -> None:
     data = cfg.to_json()
+    check_sound_names(data)
     schema.validate("config", data)
     jsonio.write(path, data)
 

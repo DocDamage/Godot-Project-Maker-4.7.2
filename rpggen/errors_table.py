@@ -60,6 +60,7 @@ CODES: dict[str, CodeInfo] = {
     "CAT-003": CodeInfo("CAT-003", "error", "Catalog version {found} is newer than this generator supports.", "Update rpggen."),
     "CAT-004": CodeInfo("CAT-004", "warning", "Asset {asset} references missing file {file}.", "Re-add the file or remove the asset."),
     "CAT-005": CodeInfo("CAT-005", "error", "Duplicate source_id {source_id} in tileset {tileset}.", "Report a bug; do not edit source ids by hand."),
+    "CAT-006": CodeInfo("CAT-006", "error", "\"{slot}\" is not a sound slot name.", "Name the slot music_<name> or sfx_<name>: lower-case letters, digits and underscores, starting with a letter, at most 31 characters after the prefix."),
     "TILE-001": CodeInfo("TILE-001", "error", "TileSet {tileset} has no sources.", "Assign at least one tile sheet to it."),
     "TILE-002": CodeInfo("TILE-002", "warning", "Tile region outside texture in {asset} at {coords}.", "Fix grid margin/separation."),
     "TILE-003": CodeInfo("TILE-003", "warning", "Collision profile for {asset} could not be inferred.", "Set a collision profile in the audit."),
