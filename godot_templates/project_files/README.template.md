@@ -180,9 +180,10 @@ to the log.
 
 ## 12. How the maps are connected
 
-A new project has three maps: `starter_map.tscn`, the house `interior_1.tscn` and a second
-outdoor map, `field_1.tscn`. They are joined by two kinds of door (both are the `RpgDoor` script
-on an `Area2D`):
+A new project has the starter map `starter_map.tscn`, an interior per house (`interior_1.tscn`,
+...) and a second outdoor map, `field_1.tscn`; a project made with *a world of several areas*
+has one map per area instead of the field (see below). They are joined by doors (all are the
+`RpgDoor` script on an `Area2D`):
 
 * **The house door** (the `Entrance` node inside the house object) leads to that house's own
   interior: `interior_1` for the first house, `interior_2` for the second, and so on; the `Exit`
@@ -196,6 +197,17 @@ on an `Area2D`):
 * **The east exit** (`starter_map_east_exit`, under `Triggers` in the starter map) sits in a gap
   in the east wall and leads to the `west_entry` spawn of `field_1`; its `field_1_west_exit`
   door leads back to the `east_entry` spawn of the starter map.
+
+* **A world of areas.** Each area is `game/maps/<area>.tscn`; a door named
+  `<area>_door_<other>` leads to the spawn point `from_<area>` of its neighbour. The plan is in
+  `rpggen/world_plan.json` and is kept: regenerating never lays the world out again, and an area
+  whose map exists is never rebuilt (delete its `.tscn` to have it built again). The cave is
+  closed by a gate that the key in one of the other areas' chests opens. The pause menu's
+  **Map** shows the whole world first.
+* **Doors that lead nowhere.** *Validate content* in the dock warns about a door whose map or
+  spawn point does not exist and about a map no door leads to, and **Fix** / **Fix all** add
+  what is missing (Ctrl+Z takes it back). rpggen mends the area maps you never changed by
+  itself when you regenerate, after a backup; yours it only mends when you ask.
 
 To connect your own maps, put an `RpgDoor` where the player should leave, set its **Target Map**
 and **Target Spawn**, and add a spawn point with that name in the target map. The map you paint
@@ -215,6 +227,10 @@ removes `field_1.tscn` when you did not change it and clears the door that led t
   the choices are carried out by `RpgDefeatPolicy` in `addons/rpg_runtime/combat/`.
 
 ## 14. Cutscenes
+
+The dock's **Cutscenes** tab edits sequences step by step, checks the characters they name
+against the map that is open, and its **Test** plays the cutscene in the game when you started it
+from the editor.
 
 A **sequence** is a list of commands played one after another: walk a character a few tiles, turn
 it, fade the screen, shake or pan the camera, show a dialogue, give an item, set a flag or a
@@ -275,7 +291,9 @@ with BUILD-002, which names its file.
   **Stock** lists the items with a price (a price below 0 means the item's own **Value**), and
   **Sell Ratio** is what the shop pays for your items (half by default). A dialogue line with the
   event `open_shop:<shop id>` opens it when the conversation ends. The demo villager runs the
-  `village_shop` after the first talk.
+  `village_shop` after the first talk. In the shop, left and right set how many to buy or sell,
+  and **Sell all** sells everything the shop buys (**Buys** lists the item categories it takes;
+  empty means all).
 
 ## 19. Quests
 
@@ -289,6 +307,12 @@ and moves quests with the events `quest_start:<id>`, `quest_stage:<id>:<stage>` 
 `quest_complete:<id>`, and can ask `quest_active:<id>`, `quest_done:<id>` or
 `quest_stage:<id>:<stage>`. The pause menu's **Journal** lists the active and completed quests.
 The demo has one, `errand`: talk to the villager, open the chest, report back.
+
+The dock's **Quests** tab edits these files: the stage list, a form for the selected stage (with
+the condition checked as you type, the stage it leads to, a picker for the target from the map
+that is open, and rewards of its own), a picture of the stages and how they follow each other,
+and **Test**, which says where the quest gets to with the flags, items and gold you set. A stage
+normally leads to the one below it; **Then** names another stage, or `done`.
 
 ## 20. Light and the time of day
 

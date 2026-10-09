@@ -1,15 +1,47 @@
 # Changelog
 
-## 1.1.0 (in progress)
+## 1.1.0
+
+**Compatibility with 1.0.** The save version stays 1 and a 1.0 save loads. Every new key is
+optional: a quest stage's `next`, `title` and `rewards`, the `sfx_step_<surface>` and custom
+sound slots, `rpggen/surfaces.json`, `rpggen/audio_loops.json` and `rpggen/world_plan.json` (a
+project without the file behaves as in 1.0). No script moved or was renamed. A scene made by 1.0
+keeps working as it is: a shop scene without the Sell all button, a HUD scene without the
+members' bars (they are added at run time), a starter map whose houses share one interior, and a
+project with `field_1`. One behaviour changes: **music loops** (in 1.0 a track played once).
 
 * Dialogue: `RpgDialogueRunner.event_refs(event)` and an optional `ids` argument of
-  `event_problem` (unknown shop, quest and actor ids).
+  `event_problem` (unknown shop, quest and actor ids). New event `play_sound:<slot>`.
+* Followers in the action RPG: `RpgFollowers` asks the combat mode to `customize_follower(node,
+  member, index)` and leaves a follower whose meta `held` is true where it is (its place on the
+  trail goes to meta `home`). `RpgAssist` (`archetypes/arpg/components/assist.gd`): the first two
+  followers walk to an enemy within 3 tiles of the player and swing every 1.2 s with the
+  member's attack, stay within 6 tiles, and are down for 5 s at 0 HP. `RpgArpgMode`
+  signal `party_health_changed`; the HUD shows a bar per member.
+* Sound: any slot named `music_<name>` or `sfx_<name>`; `RpgSoundBank.surface_of`,
+  `has_step_surfaces`, `step_slot`; `RpgMovement.surface_at` (a tile's `footstep` custom data,
+  else its asset's `surface:<name>` tag). Loop points: `RpgAudio.apply_loop(stream, {start_ms,
+  end_ms})`, `loop_of(path)`; `play_music` applies the loop of `rpggen/audio_loops.json` (a WAV
+  loops between both points; Ogg Vorbis and MP3 return to the start point from their end).
+* Quests: `RpgQuestDefinition.next_of`, `edges`, `problems`, `reached(state)`, `to_dict`,
+  `from_dict`; a stage may name its `next` stage (or `done`) and have `rewards`, given when its
+  condition finishes it.
+* Sequences: `RpgSequence.STEP_KINDS`, `step_kind`, `new_step`, `entity_problems`;
+  `RpgSequenceRunner.sequence_from(commands)`, and while the editor's debugger is attached the
+  message `rpg_sequence:run` plays the commands the dock's Cutscenes tab sends.
+* World map: with `rpggen/world_plan.json` the first entry is **World** (`RpgWorldMapMenu.
+  overview`: a box per area where the plan put it, lit when visited, a mark per door pair); an
+  area is listed by its name. New text key `UI_WORLD_OVERVIEW`.
+* Enemy definitions of recolour variants (the builder's enemy recipes): the variant's name and
+  its source's stats times the variant's multipliers.
 * Shops: `RpgShopMenu` rows have a quantity (`max_quantity`, `quantity_of`, `set_quantity`,
   `change_quantity`; `transact(item, qty)`), and a **Sell all** button (`sell_all()`).
   `RpgShopDefinition.buys` (categories, empty = all), `buys_category`, `sell_all_items`,
   `sell_all_value`, `sell_all`. New text keys: `UI_SHOP_QUANTITY_HINT`, `UI_SELL_ALL`,
   `UI_SELL_ALL_CONFIRM`, `UI_SOLD_ALL`. A shop resource and a shop scene made by 1.0 keep working.
-* Builder: `interior_recipe` version 3 seeds one interior per house of the starter map.
+* Builder: `interior_recipe` version 3 seeds one interior per house of the starter map;
+  `second_map_recipe` version 3 builds the areas of a world plan (and `field_1` without one);
+  `audio_bus_recipe` version 4 writes the surfaces and loops tables; `ui_recipes` version 13.
 
 ## 1.0.0
 

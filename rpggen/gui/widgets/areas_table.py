@@ -84,6 +84,10 @@ class AreasTable(QWidget):
         layout.addWidget(self.note)
         self.table = QTableWidget(0, len(COLUMNS))
         self.table.setObjectName("areasRows")
+        self.table.setAccessibleName(self.tr("Areas of the world"))
+        self.table.setToolTip(
+            self.tr("One row per area. The village is the starter map; the others get a map each.")
+        )
         self.table.setHorizontalHeaderLabels([self.tr(c) for c in COLUMNS])
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(NAME, QHeaderView.ResizeMode.Stretch)

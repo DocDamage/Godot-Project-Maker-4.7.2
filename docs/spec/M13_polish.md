@@ -84,7 +84,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T13.19 | Quest and cutscene tabs in the dock | L | T13.13 | done |
 | T13.20 | A world of connected maps | L | T13.12, T13.21 | done |
 | T13.21 | Lock-and-key planner | S | — | done |
-| T13.22 | Documentation, screenshots and changelogs | M | Parts A–C | open |
+| T13.22 | Documentation, screenshots and changelogs | M | Parts A–C | done |
 | T13.23 | Gate (1.1.0) | M | T13.22 | open |
 | T13.24 | World repair: unpaired doors and unreachable maps fix themselves (added 2026-10-08) | M | T13.20 | done |
 

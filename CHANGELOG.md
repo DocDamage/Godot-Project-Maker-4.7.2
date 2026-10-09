@@ -3,7 +3,13 @@
 All notable changes to the rpggen application. The generated game's runtime has its own
 changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
-## 1.1.0 (in progress, on the branch `m13`)
+## 1.1.0
+
+Polish for the wizard, seven improvements and three additions to the generated game. A project
+made with 1.0 regenerates with 1.1 without a prompt: the config and save versions are the same,
+every new key is optional, no generated script moved, and maps and everything under `game/` are
+never rewritten. Music now loops (in 1.0 a track played once), and the dependency `soundfile`
+(libsndfile) is new.
 
 * Tiled map layers saved with **Zstandard** compression are imported (TILE-009 is now only for a
   compression rpggen does not know).
@@ -114,6 +120,11 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   preview), `rpggen-cli repair-world --target X [--dry-run]`, and **Fix** / **Fix all** in the
   dock's Validate tab (Ctrl+Z undoes). *Options → Advanced → Repair generated maps after a
   build* and `--no-repair-world` turn the automatic part off.
+
+* Documentation for all of the above: the user guide (with pictures of review mode, the variant
+  dialog, the areas table and the dock's Quests tab), the regeneration guide (the stored world
+  plan and the repair rule), the project's README and the runtime's README and changelog.
+  The version is 1.1.0.
 
 ## 1.0.0
 

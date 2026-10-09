@@ -27,9 +27,10 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 
 `set_flag:<entity>.<key>=<value>`, `give_item:<id>[:qty]`, `take_item:<id>[:qty]`, `give_gold:N`,
 `set_quest:<id>=<state>`, `quest_start:<id>`, `quest_stage:<id>:<stage>`, `quest_complete:<id>`,
-`join_party:<actor id>` / `leave_party:<actor id>` (turn-based; see below), `heal_full` (the whole party), `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
+`join_party:<actor id>` / `leave_party:<actor id>` (see below), `heal_full` (the whole party), `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
 dialogue closes), `set_var:<name>=<N>`, `add_var:<name>:<N>` (N may be negative),
-`run_sequence:<id>` (plays `game/data/sequences/<id>.tres` once the dialogue has closed) and
+`run_sequence:<id>` (plays `game/data/sequences/<id>.tres` once the dialogue has closed),
+`play_sound:<slot>` (a sound slot, your own included; silent when the slot has no sound) and
 `emit:<name>[:arg]` (sent as `Events.dialogue_event`).
 
 ## Sequences
@@ -64,7 +65,7 @@ event `run_sequence:<id>` and `RpgSequenceRunner.instance().run(sequence)` start
 one waits until the first has finished. The project validator reports unknown commands, missing
 arguments and labels, and sequences, dialogues, enemies or maps that do not exist (VAL-023).
 
-## Party members (turn-based)
+## Party members
 
 `join_party:<id>` adds the character defined in `game/data/actors/<id>.tres` (an
 `RpgActorDefinition`: name, sprite frames, portrait, starting stats); `leave_party:<id>` takes them
@@ -74,8 +75,14 @@ path (`RpgFollowers`, pictures without a body; boot's `followers` export turns t
 (items) can be aimed at any standing member, and experience is shared: each member who is standing
 at the end gets the full amount. A member who fell is back on their feet with 1 HP when the battle
 is over. The status menu pages through the members (left / right, or its first button), and each
-has their own equipment. The party is part of the save. **The action RPG has no followers in 1.0**:
-the events work there, but nothing appears in the world.
+has their own equipment. The party is part of the save.
+
+In the **action RPG** the members follow in the same way, and the first two help in a fight
+(`RpgAssist`): when an enemy is within 3 tiles of the player the follower walks beside it and
+swings its own hitbox every 1.2 s with the member's attack. It stays within 6 tiles of the
+player and walks back to its place when the enemy is gone or the player moves on. Enemies can
+hit it, but it cannot die: at 0 HP it is down for 5 s and then back at full health. The HUD
+shows a small HP bar per member under the player's.
 
 ## Equipment and shops
 
@@ -96,7 +103,10 @@ An `RpgQuestDefinition` (`game/data/quests/<id>.tres`) has a `title` key, ordere
 `rewards` (`gold`, `experience`, `items`). A stage is `{id, description, complete_when, target}`:
 `complete_when` is a dialogue condition (when it holds the quest moves on by itself, and the last
 stage completes it and gives the rewards once); `target`, optional, is the entity id the minimap
-marks. `GameState.quests[id]` is the current stage id or `"done"`. Events and conditions are in the
+marks. Also optional: `next` (the stage that follows instead of the one below, or `done` to
+finish the quest there), `rewards` (given when the stage's condition finishes it) and `title`.
+`problems()` lists what is wrong with a quest and `reached(state)` says where it gets to.
+`GameState.quests[id]` is the current stage id or `"done"`. Events and conditions are in the
 tables above; the pause menu's Journal lists active and finished quests.
 
 ## Keys, switches and gates
@@ -124,9 +134,12 @@ and the cells not seen yet darkened. What the player has seen is saved per map (
 `RpgAudio` (a child of `SceneRouter`, its `audio` property) plays the **sound slots** of
 the game. `rpggen/sound_bank.json` maps a slot key (`music_map`, `music_battle`, `music_title`,
 `sfx_ui_move`, `sfx_ui_confirm`, `sfx_ui_cancel`, `sfx_hit`, `sfx_attack`, `sfx_pickup`,
-`sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`) to a resource path. `play(slot)`,
+`sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`, or any slot of your own named
+`sfx_<name>` or `music_<name>`) to a resource path. `play(slot)`,
 `play_ui_slot(slot)` and `play_music_slot(slot)` do nothing, and log nothing, for a slot that is
-not set. Game events (`item_added`, `player_damaged`, `level_up`, `game_saved`, `chest_opened`,
+not set. A slot named `sfx_step_<surface>` plays instead of `sfx_step` on ground of that
+surface (`rpggen/surfaces.json`: asset id → surface). A track that loops does so between the
+points of `rpggen/audio_loops.json` (`RpgAudio.apply_loop`). Game events (`item_added`, `player_damaged`, `level_up`, `game_saved`, `chest_opened`,
 `door_used`, `attack_started`) are wired to their slots; the autosave (slot 0) is silent.
 
 ## Saving and game over

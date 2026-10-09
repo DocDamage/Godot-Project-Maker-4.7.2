@@ -109,6 +109,59 @@ def _pump(app, seconds: float = 0.3) -> None:
         time.sleep(0.01)
 
 
+def _areas_picture(box, out: Path, qapp) -> Path:  # type: ignore[no-untyped-def]
+    """The Areas table with a small world and its preview (T13.20). The table is switched off
+    again afterwards, so the project the script generates is the usual one."""
+    from PySide6.QtCore import QRect
+
+    box.areas.enable_box.setChecked(True)
+    for name, biome in (("Woods", "forest"), ("Old mine", "cave"), ("Bay", "shore")):
+        box.areas.set_value(box.areas.add_row(name), "biome", biome)
+    box.world.choose("woods")
+    _pump(qapp, 0.5)
+    top = box.areas.y()
+    path = out / "areas_table.png"
+    box.grab(QRect(0, top, box.width(), box.height() - top)).save(str(path))
+    box.areas.enable_box.setChecked(False)
+    _pump(qapp, 0.2)
+    return path
+
+
+def _variant_dialog(window):  # type: ignore[no-untyped-def]
+    """Audit → Make variant… for the sample pack's slime, turned to another colour (T13.18)."""
+    from rpggen.gui.dialogs.variant_dialog import VariantDialog
+    from rpggen.gui.pages.audit_page import make_resolver
+
+    catalog = window.state.catalog
+    slime = next(a for a in catalog.assets if a.path.endswith("slime_idle.png"))
+    dialog = VariantDialog(catalog, slime, Path(make_resolver(window.state)(slime)), window)
+    dialog.hue_dial.setValue(120)
+    dialog.name_edit.setText("Fire slime")
+    dialog.stat_spins["hp"].setValue(2.0)
+    dialog.stat_spins["gold"].setValue(3.0)
+    return dialog
+
+
+def _quests_picture(godot: Path, project: Path | None, out: Path) -> Path | None:
+    """The dock's Quests tab of the generated project (T13.19), drawn by Godot itself. Godot has
+    to open a window for it; None when it cannot (a machine without a display)."""
+    import subprocess
+
+    from rpggen.core import godot as godot_mod
+
+    if project is None or not (Path(project) / "project.godot").is_file():
+        return None
+    path = out / "quests_tab.png"
+    path.unlink(missing_ok=True)
+    script = REPO / "tools" / "doc_shots" / "quests_tab.gd"
+    cmd = [str(godot_mod.find_console_exe(godot)), "--path", str(project), "--script", str(script)]
+    try:
+        subprocess.run([*cmd, "--", str(path)], capture_output=True, timeout=120, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return path if path.is_file() and path.stat().st_size > 500 else None
+
+
 def render(out: Path, godot: Path | None = None) -> list[Path]:
     """Write one PNG per wizard page (plus the crash dialog) and return the paths."""
     from PySide6.QtWidgets import QApplication
@@ -187,11 +240,16 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
                 theme.apply_theme("light", remember=False)
                 grab("wizard_audit_light")
                 theme.apply_theme("dark", remember=False)
+                window.current_page.toggle_review_mode()  # one asset at a time (T13.01)
+                _pump(qapp, 0.8)
+                grab("review_mode")
+                window.current_page.toggle_review_mode()
             if name == "options":
                 _pump(qapp, 1.0)  # the starter map preview renders in the background
                 picture = out / "map_preview.png"
                 window.current_page.preview.grab().save(str(picture))
                 written.append(picture)
+                written.append(_areas_picture(window.current_page.starter_box, out, qapp))
         if godot is not None:
             window.show_page(OPTIONS_INDEX)
             window.next_button.click()
@@ -203,6 +261,9 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
             grab("wizard_generate")
             window.next_button.click()
             grab("wizard_results")
+            quests = _quests_picture(godot, window.state.target, out)
+            if quests is not None:  # Godot needs a window for it: not on a machine without one
+                written.append(quests)
 
         def grab_dialog(widget, name: str, seconds: float = 0.3) -> None:  # type: ignore[no-untyped-def]
             widget.show()
@@ -213,6 +274,7 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
             widget.close()
 
         grab_dialog(AboutDialog(window), "about_dialog")
+        grab_dialog(_variant_dialog(window), "variant_dialog")
         grab_dialog(PromotionDialog(promotion_summary(), window), "regeneration_preview")
         resolver = ConflictDialog(conflict_project(tmp_path / "conflict_demo"), None, window)
         grab_dialog(resolver, "conflict_resolver")

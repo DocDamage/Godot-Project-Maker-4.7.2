@@ -3,8 +3,8 @@
 # The four numbers and the strings must match rpggen.__version__ (checked by tests/unit/test_release.py).
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 0, 0, 0),
-    prodvers=(1, 0, 0, 0),
+    filevers=(1, 1, 0, 0),
+    prodvers=(1, 1, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -18,12 +18,12 @@ VSVersionInfo(
         '040904B0',
         [StringStruct('CompanyName', 'rpggen contributors'),
          StringStruct('FileDescription', 'rpggen - RPG asset packs to Godot projects'),
-         StringStruct('FileVersion', '1.0.0'),
+         StringStruct('FileVersion', '1.1.0'),
          StringStruct('InternalName', 'rpggen'),
          StringStruct('LegalCopyright', 'MIT License'),
          StringStruct('OriginalFilename', 'rpggen.exe'),
          StringStruct('ProductName', 'rpggen'),
-         StringStruct('ProductVersion', '1.0.0')])
+         StringStruct('ProductVersion', '1.1.0')])
     ]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]

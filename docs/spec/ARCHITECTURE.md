@@ -1094,7 +1094,11 @@ This was absent from v1 and is the main determinant of quality.
 
 ### Deferred (unchanged from v1)
 
-Procedural terrain/dungeons, quest graph editor, skill trees, advanced equipment UI, multiplayer, complex AI planners, modding, localization editor.
+Procedural dungeons, skill trees, advanced equipment UI, multiplayer, complex AI planners, modding, localization editor.
+
+Done since (M13, release 1.1.0): a planned world of connected areas with a lock and its key
+(`world_plan.py`, `lockkey.py`), and the dock's Quests tab with its stage graph. The graph is a
+picture of the stages, not a free-form graph editor.
 
 ---
 

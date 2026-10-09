@@ -5,7 +5,7 @@ from rpggen import cli
 
 
 def test_import_and_version() -> None:
-    assert rpggen.__version__ == "1.0.0"
+    assert rpggen.__version__ == "1.1.0"
     assert cli.main(["version"]) == 0
 
 

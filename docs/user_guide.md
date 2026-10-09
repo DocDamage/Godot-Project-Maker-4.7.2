@@ -15,7 +15,10 @@ in `_console.exe` if you have it.
 1. Start rpggen. It opens on the **welcome view**: *Try the sample*, *Start with my asset pack*
    and *Open an existing project*, the projects you opened lately, and the Godot rpggen found
    (or a **Download Godot 4.7.2** button when there is none, see
-   [Privacy and the network](#8-privacy-and-the-network)).
+   [Privacy and the network](#8-privacy-and-the-network)). Each recent project is a card with a
+   picture of its starter map, its archetype, its packs and when it was last generated;
+   double-click it to open it, or press **Regenerate** to go straight to the Generate page. A
+   card says which pack **changed** on disk since the project was generated.
 2. Press **Try the sample**. rpggen fills in the bundled sample pack, a project name and an
    output folder in *Documents*, checks them, reads the pack and takes you to the last settings
    page.
@@ -31,8 +34,9 @@ in `_console.exe` if you have it.
 The **Help** menu has the user guide (F1 opens it at the page you are on), the list of error
 codes with their fixes, the keyboard shortcuts, *Report a problem…*, *Check for updates…* and
 *About rpggen* (version, licenses and the third-party notices). The **View** menu switches
-between the dark and the light theme and sets the size of the thumbnails; **File** lists your
-recent projects. **View > Language** picks the wizard's language (*Follow the system*, English, or a
+between the dark and the light theme, sets the size of the thumbnails, opens review mode, and
+has **Reduce motion** (no fades or sliding menus); **File** lists your recent projects. rpggen follows the display scaling of your system (125 %, 150 %, 200 %):
+pictures stay sharp, and everything can be reached and is announced by a screen reader. **View > Language** picks the wizard's language (*Follow the system*, English, or a
 language that has a translation; French is the first); it applies the next time rpggen starts.
 
 ![About rpggen](images/about_dialog.png)
@@ -60,7 +64,8 @@ it yourself and add the folder.
 * **Turn-based**: encounters on the map start a battle screen with attack, defend, item and run.
   Up to four characters can fight together (the demo villager can bring a companion along).
 * **Action RPG**: real-time sword swings with hitboxes, enemies that chase and attack, a HUD.
-  It has no party members or followers in 1.0.
+  Party members follow the player, and the first two help in a fight: they walk to an enemy
+  near you and strike with their own attack; at 0 HP they are only down for a few seconds.
 
 You can generate the other archetype later in a new project; the shared systems (saving,
 dialogue, inventory, equipment, menus) are the same.
@@ -75,14 +80,46 @@ dialogue, inventory, equipment, menus) are the same.
   can be told without colour: ✔ green = confirmed, blue = auto-detected, ? orange = needs
   review, ! red = conflict, ∅ purple = missing from the pack, grey = unused. The chips above
   filter by status; it opens on **Needs attention**. Filters also exist for role, pack and a
-  path search. Audio files show a plain square.
+  path search. A sound's card shows its waveform and its length; a recolour variant has ⧉ in
+  the corner of its picture.
+* **Group by folder** (the button above the grid): a header per pack folder with how many of
+  its assets are shown and the buttons *Confirm all*, *Select all* and *Make rule…*; click a
+  header to fold the folder away.
+* **Review mode** (*View → Review mode*, `F7`): one asset at a time, large, with its details
+  beside it. `C` confirms and `X` excludes and both move on, `N` and `Shift+N` step, `1`-`9`
+  set a role, and `Esc` or `F7` returns to the grid. A counter says how many are left.
+
+  ![Review mode](images/review_mode.png)
+* **The tour.** The first time the page opens, a short tour points at the parts of the page one
+  after the other (*Skip* or `Esc` closes it). *Help → Show the tour again* brings it back.
 * **The queue.** After the first look the page works through what needs attention: `N` and
   `Shift+N` jump to the next and the previous asset that does, and a line under the grid says how
   many are left and when the queue is empty.
 * Select an asset to see its details on the right: usage (tiles, sprite, icon, ...), role (what
   the generator uses it for, e.g. GROUND, WALL, PLAYER, ENEMY), tile grid, collision, tile set,
   tags. Change a value and the thumbnail updates; **Confirm** marks an asset as checked,
-  **Exclude** leaves it out. Everything is undoable (Ctrl+Z, Ctrl+Y).
+  **Exclude** leaves it out. Everything is undoable (Ctrl+Z, Ctrl+Y). A sprite with animations
+  plays in the panel: choose the animation, play or pause it, and see the frame number, with
+  the origin and the collision shape drawn over it.
+* **Sounds.** A sound shows its waveform with a play head while it plays. Music also has a
+  **Loop** row: where the track jumps back to and from, in milliseconds. Drag the two markers on
+  the waveform or type the numbers; **Guess** looks for the longest stretch after which the
+  track goes on as before, and **Whole track** takes the points away. In the game music loops
+  between these points (a WAV between both; an OGG or MP3 plays to its end and comes back to the
+  start point).
+* **Select similar** (`Ctrl+Shift+S`, or right-click → *Select similar*): selects the assets
+  that look like the selected one, so that a set of look-alike sprites gets its role in one go.
+  The same picture shipped twice in different packs is tagged `duplicate_of:<id>`.
+* **Variants.** Right-click a sprite → **Make variant…** to get a second enemy from the one a
+  pack ships: turn the hue (with saturation and brightness), or change single colours in the
+  palette table (click a colour in the source picture to find its row, double-click the row to
+  choose what it becomes), give it a name, and for an enemy set how its HP, attack, XP and gold
+  compare with the original. The variant is an asset of its own, rendered again from its source
+  whenever you generate, and an enemy variant gets its own file in `game/data/enemies/`; it is
+  not placed on the demo maps. *Remove variant* takes it away again. If the source leaves the
+  pack the variant is left out with ASSET-029 until it is back.
+
+  ![Making a variant](images/variant_dialog.png)
 * **Keys:** `C` confirm, `X` exclude, `N` / `Shift+N` next / previous asset that needs
   attention, `1`-`9` quick roles, `Ctrl` + mouse wheel zooms the grid (or use *View → Thumbnail
   size*). *Help → Keyboard shortcuts* lists them all; `Alt+N` and `Alt+B` are Next and Back.
@@ -122,17 +159,24 @@ dialogue, inventory, equipment, menus) are the same.
   filters) or all of them.
 
 **Mapping page.** A checklist of what the starter map and the systems need: ground, wall, player,
-NPC, enemy, chest, building, UI and so on. Each row shows the chosen asset. *Choose…* lists only
-assets that could plausibly fill the role; *Clear* goes back to the automatic choice. If a
-required role has no asset you can continue with a **placeholder** (a labelled debug picture,
-ASSET-010) and fix it later.
+NPC, enemy, chest, building, UI and so on. Each row shows the chosen asset. Its list offers the
+best candidates that could plausibly fill the role; **More…** opens all of them as a gallery of
+thumbnails, grouped by pack with the best candidate first and a search box; *Clear* goes back
+to the automatic choice, and the small button at the end of the row shows the chosen asset on
+the Audit page (*Back* returns). If a required role has no asset you can continue with a
+**placeholder** (a labelled debug picture, ASSET-010) and fix it later.
 
 **Sound.** Under the roles, the *Sound* section lists **sound slots**: the map, battle and title
 music, the menu cursor, confirm and cancel sounds, and the sounds of a hit, an attack, a
 pick-up, a chest, a door, a footstep, saving and a level-up. rpggen fills each slot from the
 audio of your packs by file name; *Edit…* shows a row per slot with **Choose…** (a list of the
 audio files, with ▶ to listen and the length of each), **▶** and **Clear**. A cleared slot is
-silent. A pack without audio simply gives a silent game.
+silent. A pack without audio simply gives a silent game. **Add slot…** makes a slot of your own
+(`sfx_<name>` or `music_<name>`): play it with the dialogue event `play_sound:<slot>`, the
+`play_sound` step of a cutscene or `SceneRouter.audio.play(&"sfx_<name>")`. A slot named
+`sfx_step_<surface>` is the footstep on ground of that kind (grass, stone, wood, water, sand):
+rpggen reads the surface from a ground sheet's folder and file names and fills these slots
+from files such as `step_grass.wav`.
 
 ![Mapping page](images/wizard_mapping.png)
 
@@ -143,12 +187,34 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
 
 * **Presets.** *Save as preset…* keeps the options for your next project; *Manage…* renames or
   deletes them. A preset only fills the options, never the packs or the folder, and *Defaults*
-  returns to the factory values.
+  returns to the factory values. Three presets come with rpggen and cannot be deleted:
+  **Everything**, **Minimal** (tile sets, collision, animations, saving and dialogue) and
+  **Just the tilesets**.
+* **Options that need each other.** A feature that needs another one is greyed out while that
+  one is off, with a line saying what it needs (the demo content needs tile sets, dialogue,
+  combat and saving; enemy pathfinding needs combat). Switching the needed one back on
+  restores what you had chosen.
 * **Starter map.** The *Starter map* box sets the size in tiles (24 to 96, with the names Small,
   Medium and Large), the ground set, how many buildings, villagers, enemies, chests,
   decorations and ground patches. The picture beside it is the real plan, drawn from your assets:
   *Reroll* picks a new seed (under *Advanced*). With the default settings the map is the one earlier versions made. A project that
   already has a starter map keeps it; the box then says so and the preview is switched off.
+  Every house on the map has its own interior (`interior_1`, `interior_2`, ...), and leaving it
+  brings you back to the door of that house.
+* **A world of several areas.** *Make a world of several areas* in the same box turns the
+  project into several connected maps. The table has a row per area: a name, a **biome**
+  (village, field, forest, cave or shore), a size, and how many enemies and chests; *Add*,
+  *Remove*, *Up* and *Down* edit it and *Undo* (Ctrl+Z) takes a change back. The village is the
+  starter map. rpggen lays the areas on a grid around it, joins neighbours with doors, fills a
+  forest with trees and a shore with water, and puts one **key** in a chest somewhere you can
+  reach before the gate that closes the first cave. A biome your packs cannot fill becomes the
+  one before it in that list, and the report says so. The picture under the table shows the
+  world as one tile per area with a dot for every door; click an area to see what stands in it,
+  and *Rearrange this area* gives that area another arrangement. Once the project has been
+  generated the world is fixed: the table says so, and the only change it still takes is a new
+  row, joined to the area you pick. See [regeneration](regeneration.md#the-world-of-areas-and-its-repair).
+
+  ![The areas of a world](images/areas_table.png)
 
 * **Imported maps.** A pack that ships Tiled (`.tmx`, `.tmj`) or LDtk (`.ldtk`) maps lists them in
   the *Imported maps* box, each with a checkbox. A checked map is built into
@@ -158,9 +224,8 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
   map layer of the same name (see *Map layers*) or become a layer of their own; flipped tiles keep
   their flips; the solid values of an LDtk IntGrid layer block the player (*Solid values…* chooses them; a value named wall, solid or collision starts solid); objects on layers named
   `spawn`, `door` or `sign` become spawn points, doors (properties `target_map`, `target_spawn`)
-  and markers with a `text`. A layer saved with Zstandard compression cannot be read (TILE-009):
-  save the map with zlib or gzip. Like the other maps these are yours: regenerating never
-  rewrites them.
+  and markers with a `text`. Layers saved with zlib, gzip or Zstandard compression are read.
+  Like the other maps these are yours: regenerating never rewrites them.
 * **Export targets.** Each checked platform gets an export preset in `export_presets.cfg`, so
   *Project → Export…* in Godot is ready to use: **Windows** (on by default, one `.exe` with the
   game inside), **Web** (`export/web/index.html`; thread support is off, so the build runs on
@@ -189,11 +254,17 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
 
 * The page leads with a picture of the starter map that was generated (click it to open the
   file) and a *What next* list: press F5, paint on the map, drag objects from the dock, edit the
-  items, read the project's `README.md`. While it runs the page shows each phase with its time,
-  and a notification tells you when it is done if the window is in the background.
+  items, read the project's `README.md`. While it runs the page shows each phase with its time
+  and, from the second generation on, how long the rest will take (from how long the phases
+  took before on this computer); the taskbar button shows the progress, and a notification
+  tells you when it is done if the window is in the background.
 * **Open in Godot / Open folder / View report** (`GENERATION_REPORT.md` explains what was
   generated, what to review and the packs' licenses).
 * **Restore previous** undoes the last regeneration.
+* **Repair the world…** appears beside a warning about a door that leads nowhere or a map that
+  cannot be reached. It shows what it would add before it writes, and saves the maps first.
+  The maps rpggen made itself are mended without asking
+  ([regeneration.md](regeneration.md#the-world-of-areas-and-its-repair)).
 * **Notes (n)** lists what is worth knowing but did not stop the run, starting with the **checks
   that did not run** (for example the export check without export templates, or a check you turned
   off), each with the reason. `GENERATION_REPORT.md` has the same list under *Checks not run*.
@@ -221,7 +292,8 @@ minutes of play.
 a dot for the player, marks for doors, chests not yet opened and what the current quest stage
 points at, and darkness over the cells not seen yet. *Settings → Minimap* turns it off. *Pause →
 Map* shows every map visited so far, the unseen parts covered; what has been seen is kept in the
-save. The pictures are made by the build from each map's tiles, so a map you repaint gets a new
+save. A game with a world of several areas lists **World** first: every area where it lies,
+the ones you have been to lit, with the doors between them. The pictures are made by the build from each map's tiles, so a map you repaint gets a new
 one on the next regeneration.
 
 **What the game can do, and where to change it.** The project's `README.md` has a section for
@@ -236,7 +308,8 @@ Key prompts follow the player's device: `[E]` on the keyboard, the pad's own but
 
 The project has a `README.md` with the controls and where things are: the sound slots and how to
 change them, the heavy attack of the action game, autosave and the game-over screen, and how the
-three maps (starter map, house, field) are connected. Your own work goes in
+maps (the starter map, a house interior per house, and the field or the areas of your world) are
+connected. Your own work goes in
 `game/`; rpggen never overwrites it. The **RPG Project Tools** dock lists every object, building and
 character from your packs: drag one into the map (it lands on the right layer, snapped, Y-sorted),
 edit an asset's role or collision in the inspector and *Rebuild*, validate the content (duplicate
@@ -246,7 +319,27 @@ portrait (from your PORTRAIT assets), text with a preview of its formatting, the
 events, the choices and where the line goes next, with undo (Ctrl+Z). A condition or an event
 the game would not understand is marked at once, and **Test** plays the conversation against a
 pretend game state whose flags and items you tick, without touching your saves. Dialogue can be
-exported to and imported from JSON.
+exported to and imported from JSON. An event that names a shop, a quest or a character that does
+not exist is marked too, and the validator reports it (VAL-019).
+
+The **Quests** tab edits the quests in `game/data/quests/`: the list of stages, and for each its
+id, title, description, the condition that finishes it (checked as you type), the stage it leads
+to, the entity the minimap points at (pick it from the map that is open) and its rewards. A
+picture beside the form shows the stages and how they follow each other, and **Test** tells you
+which stage the quest reaches with the flags, items and gold you set. The **Cutscenes** tab edits
+the sequences in `game/data/sequences/` step by step: move, face, say, wait, camera, flag, give,
+play sound and fade each have a form (every other command can be edited as JSON), a step that
+names a character the open map does not have is marked, and **Test** plays the cutscene in the
+game when you have started it from the editor. Both tabs undo with Ctrl+Z and export and import
+JSON.
+
+![The Quests tab](images/quests_tab.png)
+
+On the dock's **Validate** tab, **Fix** and **Fix all** mend doors that lead nowhere and maps that
+cannot be reached (they add the missing spawn point or door; Ctrl+Z takes it back).
+
+**Shops.** In a shop, left and right choose how many to buy or sell (up to what you can pay for,
+carry or own), and **Sell all** sells everything the shop buys after a second press.
 
 Your own build steps go in `game/builder_recipes/`: GDScript files that run after rpggen's
 steps on every build ([custom recipes](recipes.md)).

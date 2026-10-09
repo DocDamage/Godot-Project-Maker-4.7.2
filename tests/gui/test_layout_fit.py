@@ -187,3 +187,57 @@ def test_the_audit_page_fits_with_the_grid_grouped_by_folder(
         QApplication.processEvents()
     assert audit.grid.header_keys()
     assert layout_problems(audit) == []
+
+
+@pytest.mark.parametrize("size", sorted(SIZES))
+@pytest.mark.parametrize("theme_name", dev.LAYOUT_THEMES)
+@pytest.mark.parametrize("archetype", ["turn_based", "arpg"])
+def test_the_audit_page_fits_in_review_mode_with_folder_groups(
+    qtbot, tmp_path: Path, archetype: str, theme_name: str, size: str
+) -> None:
+    """The 1.1 gate: T12.16 with review mode and folder groups on, both themes, both archetypes."""
+    from rpggen.gui.pages.audit_page import AuditPage
+
+    theme.apply_theme(theme_name, remember=False)
+    window = MainWindow(dev.layout_state(archetype, tmp_path), default_pages())
+    qtbot.addWidget(window)
+    window.resize(*SIZES[size])
+    window.show()
+    audit = next(p for p in window.pages if isinstance(p, AuditPage))
+    window.show_page(window.pages.index(audit))
+    audit.grid.set_grouped(True)
+    audit.grid.chips["chipAll"].click()
+    audit.set_review_mode(True)
+    for _ in range(3):
+        QApplication.processEvents()
+    assert audit.in_review_mode
+    assert layout_problems(audit) == []
+    audit.set_review_mode(False)
+    for _ in range(3):
+        QApplication.processEvents()
+    assert layout_problems(audit) == []
+
+
+@pytest.mark.parametrize("size", sorted(SIZES))
+@pytest.mark.parametrize("theme_name", dev.LAYOUT_THEMES)
+def test_the_options_page_fits_with_a_world_of_areas(
+    qtbot, tmp_path: Path, theme_name: str, size: str
+) -> None:
+    """T13.20: the Areas table, the world preview and the button under it."""
+    from rpggen.gui.pages.options_page import OptionsPage
+
+    theme.apply_theme(theme_name, remember=False)
+    window = MainWindow(dev.layout_state("turn_based", tmp_path), default_pages())
+    qtbot.addWidget(window)
+    window.resize(*SIZES[size])
+    window.show()
+    options = next(p for p in window.pages if isinstance(p, OptionsPage))
+    window.show_page(window.pages.index(options))
+    box = options.starter_box
+    box.areas.enable_box.setChecked(True)
+    for name, biome in (("Woods", "forest"), ("Old mine", "cave")):
+        box.areas.set_value(box.areas.add_row(name), "biome", biome)
+    for _ in range(3):
+        QApplication.processEvents()
+    assert not box.world.isHidden() and box.world.plan is not None
+    assert layout_problems(options) == []
