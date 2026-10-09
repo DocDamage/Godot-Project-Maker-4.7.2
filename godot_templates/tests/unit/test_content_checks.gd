@@ -10,7 +10,7 @@ const DLG_LINE := "res://addons/rpg_runtime/dialogue/dialogue_line.gd"
 const ITEM_DEF := "res://addons/rpg_runtime/data/item_definition.gd"
 
 func _dirs() -> Dictionary:
-	return {"maps": DIR + "/maps", "dialogue": DIR + "/dialogue", "items": DIR + "/items", "resources": [DIR + "/res"], "placeholders": DIR + "/res/placeholders/"}
+	return {"maps": DIR + "/maps", "dialogue": DIR + "/dialogue", "items": DIR + "/items", "shops": DIR + "/shops", "quests": DIR + "/quests", "actors": DIR + "/actors", "resources": [DIR + "/res"], "placeholders": DIR + "/res/placeholders/"}
 
 func _codes(findings: Array) -> Array:
 	var out: Array = []
@@ -144,6 +144,46 @@ func test_unknown_items_in_events_and_conditions_val_019(t) -> void:
 	items.sort()
 	t.eq(items, ["elixir", "ghost_key"], "each unknown item once per dialogue")
 	_finish()
+
+func test_unknown_shop_quest_and_actor_ids_val_019(t) -> void:
+	_setup()
+	# a shop and an actor are found by their file name, a quest by its id
+	SeedUtil.save(_item("anything"), DIR + "/shops/village_shop.tres")
+	SeedUtil.save(_item("errand"), DIR + "/quests/first_quest.tres")
+	SeedUtil.save(_item("anyone"), DIR + "/actors/companion.tres")
+	t.eq(ContentChecks.known_ids(_dirs()), {"shop": ["village_shop"], "quest": ["errand"], "actor": ["companion"]})
+	SeedUtil.save(_dialogue([
+		{"events": ["open_shop:village_shop", "quest_start:errand", "quest_stage:errand:talk", "quest_complete:errand", "join_party:companion"]},
+		{"events": ["open_shop:vilage_shop"]},
+		{"events": ["quest_start:erand", "quest_stage:erand:talk", "quest_complete:lost"]},
+		{"events": ["join_party:nobody", "leave_party:nobody", "open_shop:"]},
+	]), DIR + "/dialogue/d.tres")
+	var findings := ContentChecks.run(_dirs())
+	var rows: Array = []
+	for f in findings:
+		t.eq(f["code"], "VAL-019")
+		t.eq(f["file"], DIR + "/dialogue/d.tres")
+		rows.append("%s %s line %d" % [f["detail"]["kind"], f["detail"]["item"], f["detail"]["n"]])
+	rows.sort()
+	t.eq(rows, ["actor nobody line 4", "quest erand line 3", "quest lost line 3", "shop vilage_shop line 2"], "each unknown id once, with its line")
+	_finish()
+
+func test_event_problem_with_the_ids_that_exist(t) -> void:
+	var ids := {"shop": ["village_shop"], "quest": ["errand"], "actor": ["companion"]}
+	for known: String in ["open_shop:village_shop", "quest_start:errand", "quest_stage:errand:talk", "quest_complete:errand", "join_party:companion", "give_gold:5", "leave_party:nobody"]:
+		t.eq(RpgDialogueRunner.event_problem(known, ids), "", known)
+	t.eq(RpgDialogueRunner.event_problem("open_shop:bazaar", ids), "unknown shop 'bazaar'")
+	t.eq(RpgDialogueRunner.event_problem("quest_start:lost", ids), "unknown quest 'lost'")
+	t.eq(RpgDialogueRunner.event_problem("quest_stage:lost:talk", ids), "unknown quest 'lost'")
+	t.eq(RpgDialogueRunner.event_problem("quest_complete:lost", ids), "unknown quest 'lost'")
+	t.eq(RpgDialogueRunner.event_problem("join_party:nobody", ids), "unknown actor 'nobody'")
+	# without the ids (the game itself, an older caller) only the form is checked
+	t.eq(RpgDialogueRunner.event_problem("open_shop:bazaar"), "")
+	t.eq(RpgDialogueRunner.event_problem("open_shop:bazaar", {"quest": ["errand"]}), "", "a kind without a list is not checked")
+	# a malformed event keeps its own message
+	t.eq(RpgDialogueRunner.event_problem("quest_stage:lost", ids), "quest_stage needs <id>:<stage>")
+	t.eq(RpgDialogueRunner.event_refs("give_item:potion:2"), [])
+	t.eq(RpgDialogueRunner.event_refs("quest_stage:errand:talk"), [["quest", "errand"]])
 
 func test_debug_placeholders_val_012(t) -> void:
 	_setup()

@@ -86,7 +86,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | VAL-016 | E | Door {node} in {file} targets missing map {target}. | Fix target_map in the Inspector. |
 | VAL-017 | E | Door {node} in {file} targets unknown spawn {spawn} in {target}. | Add the spawn point or fix target_spawn. |
 | VAL-018 | W | Dialogue {file} line {n} mixes and/or; evaluation is left-to-right. | Split the condition or reorder it. |
-| VAL-019 | W | Dialogue {file} references unknown item {item}. | Create the item or fix the id. |
+| VAL-019 | W | Dialogue {file} line {n} references unknown {kind} {item}. | Create the {kind} (an item, a shop, a quest or an actor under `game/data/`) or fix the id. |
 | VAL-020 | E | Sound slot {slot} points at {path}, which does not load. | Assign another sound in Mapping, or restore the file. |
 | VAL-021 | I | The smoke test is turned off in the config; the game was not played. | Set validation.smoke_test to true. |
 | VAL-022 | I | The export check is turned off in the config; the project was not test-exported. | Set validation.export_check to true. |

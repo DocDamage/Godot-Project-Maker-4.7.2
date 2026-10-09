@@ -83,7 +83,7 @@ const CODES := {
 	"VAL-016": {"severity": "error", "message": "Door {node} in {file} targets missing map {target}.", "fix": "Fix target_map in the Inspector."},
 	"VAL-017": {"severity": "error", "message": "Door {node} in {file} targets unknown spawn {spawn} in {target}.", "fix": "Add the spawn point or fix target_spawn."},
 	"VAL-018": {"severity": "warning", "message": "Dialogue {file} line {n} mixes and/or; evaluation is left-to-right.", "fix": "Split the condition or reorder it."},
-	"VAL-019": {"severity": "warning", "message": "Dialogue {file} references unknown item {item}.", "fix": "Create the item or fix the id."},
+	"VAL-019": {"severity": "warning", "message": "Dialogue {file} line {n} references unknown {kind} {item}.", "fix": "Create the {kind} (an item, a shop, a quest or an actor under `game/data/`) or fix the id."},
 	"VAL-020": {"severity": "error", "message": "Sound slot {slot} points at {path}, which does not load.", "fix": "Assign another sound in Mapping, or restore the file."},
 	"VAL-021": {"severity": "info", "message": "The smoke test is turned off in the config; the game was not played.", "fix": "Set validation.smoke_test to true."},
 	"VAL-022": {"severity": "info", "message": "The export check is turned off in the config; the project was not test-exported.", "fix": "Set validation.export_check to true."},

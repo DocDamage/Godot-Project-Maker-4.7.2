@@ -21,6 +21,9 @@ const SEQUENCES_DIR := "res://game/data/sequences"
 const ENEMIES_DIR := "res://game/data/enemies"
 const SKILLS_DIR := "res://game/data/skills"
 const ACTORS_DIR := "res://game/data/actors"
+const SHOPS_DIR := "res://game/data/shops"
+const QUESTS_DIR := "res://game/data/quests"
+const DialogueRunner := preload("res://addons/rpg_runtime/dialogue/dialogue_runner.gd")
 const TURN_BASED_DIR := "res://addons/rpg_runtime/archetypes/turn_based/"
 const PLACEHOLDER_DIR := "res://generated/debug_placeholders/"
 const RESOURCE_ROOTS: Array[String] = ["res://generated", "res://game"]
@@ -32,14 +35,14 @@ const GATE_SUFFIX := "/world/gate.gd"
 const SWITCH_SUFFIX := "/world/switch.gd"
 
 ## `dirs` overrides the folders that are checked (tests): maps, dialogue, items, sequences, enemies,
-## skills, actors, placeholders and resources (an Array of roots).
+## skills, actors, shops, quests, placeholders and resources (an Array of roots).
 static func run(dirs: Dictionary = {}) -> Array:
 	var findings: Array = []
 	var cache := {}  # map path -> instantiated scene (or null), freed at the end
 	var maps := list_files(JsonIo.to_str(dirs.get("maps", MAPS_DIR)), ["tscn"])
 	_check_entity_ids(maps, cache, findings)
 	_check_doors(maps, cache, findings)
-	_check_dialogue(JsonIo.to_str(dirs.get("dialogue", DIALOGUE_DIR)), JsonIo.to_str(dirs.get("items", ITEMS_DIR)), findings)
+	_check_dialogue(JsonIo.to_str(dirs.get("dialogue", DIALOGUE_DIR)), JsonIo.to_str(dirs.get("items", ITEMS_DIR)), known_ids(dirs), findings)
 	var sequences_dir := JsonIo.to_str(dirs.get("sequences", SEQUENCES_DIR))
 	_check_sequences(sequences_dir, dirs, findings)
 	_check_triggers(maps, cache, sequences_dir, findings)
@@ -173,6 +176,17 @@ static func _check_doors(maps: Array[String], cache: Dictionary, findings: Array
 
 # ---------------------------------------------------------------- dialogue (VAL-018, VAL-019)
 
+## The shop, quest and actor ids that exist, as the dialogue events name them (T13.13): a shop and
+## an actor by their file name (that is how the game finds them), a quest by its `id`.
+static func known_ids(dirs: Dictionary = {}) -> Dictionary:
+	var shops: Array[String] = []
+	for path in list_files(JsonIo.to_str(dirs.get("shops", SHOPS_DIR)), ["tres"]):
+		shops.append(path.get_file().get_basename())
+	var actors: Array[String] = []
+	for path in list_files(JsonIo.to_str(dirs.get("actors", ACTORS_DIR)), ["tres"]):
+		actors.append(path.get_file().get_basename())
+	return {"shop": shops, "quest": _item_ids(JsonIo.to_str(dirs.get("quests", QUESTS_DIR))), "actor": actors}
+
 static func _item_ids(items_dir: String) -> Array[String]:
 	var ids: Array[String] = []
 	for path in list_files(items_dir, ["tres"]):
@@ -196,7 +210,7 @@ static func event_items(event: String) -> Array[String]:
 		return [parts[1]]
 	return []
 
-static func _check_dialogue(dialogue_dir: String, items_dir: String, findings: Array) -> void:
+static func _check_dialogue(dialogue_dir: String, items_dir: String, ids: Dictionary, findings: Array) -> void:
 	var files := list_files(dialogue_dir, ["tres"])
 	if files.is_empty():
 		return
@@ -220,16 +234,23 @@ static func _check_dialogue(dialogue_dir: String, items_dir: String, findings: A
 				if Condition.mixes_operators(expr):
 					findings.append(finding("VAL-018", {"n": i + 1}, path))
 					break
-			var items: Array[String] = []
+			var refs: Array = []  # [kind, id] of everything the line names
 			for expr in conditions:
-				items.append_array(condition_items(expr))
+				for item in condition_items(expr):
+					refs.append(["item", item])
 			var line_events: Variant = line.get("events")
 			for event: Variant in line_events:
-				items.append_array(event_items(str(event)))
-			for item in items:
-				if not known.has(item) and not reported.has(item):
-					reported[item] = true
-					findings.append(finding("VAL-019", {"item": item}, path))
+				for item in event_items(str(event)):
+					refs.append(["item", item])
+				refs.append_array(DialogueRunner.event_refs(str(event).strip_edges()))
+			for ref: Array in refs:
+				var kind := str(ref[0])
+				var id := str(ref[1])
+				var exists: Array = known if kind == "item" else ids.get(kind, [])
+				var key := "%s:%s" % [kind, id]
+				if not exists.has(id) and not reported.has(key):
+					reported[key] = true
+					findings.append(finding("VAL-019", {"item": id, "kind": kind, "n": i + 1}, path))
 
 # ---------------------------------------------------------------- sequences (VAL-023)
 

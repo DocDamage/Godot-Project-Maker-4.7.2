@@ -8,6 +8,7 @@ extends VBoxContainer
 const DIALOGUE_DIR := "res://game/data/dialogue"
 const CATALOG := "res://rpggen/asset_catalog.json"
 const JsonIo := preload("../tools/json_io.gd")
+const ContentChecks := preload("../tools/content_checks.gd")
 const NO_PORTRAIT := "(none)"
 
 var plugin: EditorPlugin = null
@@ -16,6 +17,10 @@ var dialogue_path := ""
 var dirty := false
 var test_state: RpgGameState = RpgGameState.new()
 var portraits: Dictionary = {}  # label -> resource path of a PORTRAIT asset
+## The shop, quest and actor ids of game/data (ContentChecks.known_ids), read on every rescan: an
+## event that names another id is marked while typing (T13.13).
+var data_ids: Dictionary = {}
+var data_dirs: Dictionary = {}  # tests point the tab at their own folders
 
 var _files: OptionButton
 var _lines: ItemList
@@ -169,6 +174,7 @@ static func dialogue_files(folder: String = DIALOGUE_DIR) -> Array[String]:
 
 func rescan() -> void:
 	portraits = portrait_assets(JsonIo.read(CATALOG))
+	data_ids = ContentChecks.known_ids(data_dirs)
 	_portrait.clear()
 	_portrait.add_item(NO_PORTRAIT)
 	var labels := portraits.keys()
@@ -283,7 +289,7 @@ func line_label(index: int) -> String:
 	var head := "%s · " % String(line.id) if line.id != &"" else ""
 	var who := "%s: " % line.speaker if line.speaker != "" else ""
 	var text := line.text.replace("\n", " ")
-	var mark := "⚠ " if not line_problems(line, line_ids(dialogue)).is_empty() else ""
+	var mark := "⚠ " if not line_problems(line, line_ids(dialogue), data_ids).is_empty() else ""
 	return "%s%d. %s%s%s" % [mark, index + 1, head, who, text.left(40)]
 
 func _refresh_lines() -> void:
@@ -321,7 +327,7 @@ func _update_notes(line: RpgDialogueLine) -> void:
 	_condition_note.text = condition_preview(line.condition, test_state)
 	var event_notes: PackedStringArray = []
 	for event in line.events:
-		var why := RpgDialogueRunner.event_problem(event)
+		var why := RpgDialogueRunner.event_problem(event, data_ids)
 		if why != "":
 			event_notes.append("⚠ " + why)
 	_events_note.text = "\n".join(event_notes)
@@ -422,11 +428,12 @@ static func line_ids(res: RpgDialogueResource) -> Array[StringName]:
 				ids.append(line.id)
 	return ids
 
-## Every problem of a line: its condition, events, jump and choices.
-static func line_problems(line: RpgDialogueLine, ids: Array[StringName]) -> PackedStringArray:
+## Every problem of a line: its condition, events (with `data_ids`, also the shop, quest and
+## actor ids they name), jump and choices.
+static func line_problems(line: RpgDialogueLine, ids: Array[StringName], data_ids: Dictionary = {}) -> PackedStringArray:
 	var found := RpgCondition.problems(line.condition)
 	for event in line.events:
-		var why := RpgDialogueRunner.event_problem(event)
+		var why := RpgDialogueRunner.event_problem(event, data_ids)
 		if why != "":
 			found.append(why)
 	if line.next != &"" and not ids.has(line.next):

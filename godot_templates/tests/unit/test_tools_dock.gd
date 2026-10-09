@@ -133,6 +133,29 @@ func test_the_condition_preview_and_inline_problems(t) -> void:
 	t.ok(found[0].contains("unknown event 'explode'") and found[2].contains("nowhere"))
 	state.free()
 
+func test_the_tab_marks_a_line_that_names_an_unknown_id(t) -> void:
+	var folder := "user://test_dialogue_ids_%d" % Time.get_ticks_usec()
+	DirAccess.make_dir_recursive_absolute(folder + "/shops")
+	t.eq(ResourceSaver.save(Resource.new(), folder + "/shops/village_shop.tres"), OK)
+	var path := folder + "/talk.tres"
+	t.eq(ResourceSaver.save(_dialogue(), path), OK)
+	var tab := DialogueTab.new()
+	tab.data_dirs = {"shops": folder + "/shops", "quests": folder + "/quests", "actors": folder + "/actors"}
+	tab.rescan()
+	t.eq(tab.data_ids["shop"], ["village_shop"])
+	t.ok(tab.open(path))
+	tab.edit_line(0, "events", DialogueTab.parse_events("open_shop:village_shop"))
+	t.ok(not tab.line_label(0).begins_with("⚠"), tab.line_label(0))
+	tab.edit_line(0, "events", DialogueTab.parse_events("open_shop:vilage_shop"))
+	t.ok(tab.line_label(0).begins_with("⚠"), "the typo is marked in the list")
+	var found := DialogueTab.line_problems(tab.dialogue.lines[0], DialogueTab.line_ids(tab.dialogue), tab.data_ids)
+	t.ok("unknown shop 'vilage_shop'" in found, str(found))
+	tab.free()
+	DirAccess.remove_absolute(path)
+	DirAccess.remove_absolute(folder + "/shops/village_shop.tres")
+	DirAccess.remove_absolute(folder + "/shops")
+	DirAccess.remove_absolute(folder)
+
 func test_json_export_and_import_round_trip(t) -> void:
 	var res := _dialogue()
 	var text := RpgDialogueJson.to_json(res)

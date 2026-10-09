@@ -8,6 +8,10 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 * Tiled map layers saved with **Zstandard** compression are imported (TILE-009 is now only for a
   compression rpggen does not know).
 
+* The validator and the Dialogue tab check the **shop, quest and party member ids** a dialogue
+  names (`open_shop:`, `quest_start:`, `quest_stage:`, `quest_complete:`, `join_party:`); a typo
+  is marked on its line while you type.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

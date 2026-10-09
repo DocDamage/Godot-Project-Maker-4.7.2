@@ -11,6 +11,7 @@ const JsonUtil := preload("lib/json_util.gd")
 const CHECK_ROOTS: Array[String] = ["res://addons", "res://generated", "res://game"]
 const RESOURCE_ROOTS: Array[String] = ["res://generated", "res://game"]
 const CONTENT_CHECKS := "res://addons/rpg_project_tools/tools/content_checks.gd"
+const DEMO_DIALOGUE: Array[String] = ["res://game/data/dialogue/npc_greeting.tres"]  # data_recipe seeds it
 const ROUND_TRIP_TMP := "user://rt_test.tscn"
 const MENU_SCENES: Array[String] = [
 	"res://generated/scenes/ui/title_screen.tscn",
@@ -316,6 +317,12 @@ func _check_content() -> void:
 	for f: Dictionary in findings:
 		var detail: Dictionary = f["detail"]
 		_fail(JsonUtil.to_str(f["code"]), detail, JsonUtil.to_str(f["file"]))
+		# an unknown shop, quest or actor is a warning in your dialogue, but in the demo dialogue
+		# it means the generator seeded something that does not fit together: that stops the run
+		var kind := JsonUtil.to_str(detail.get("kind", "item"))
+		if JsonUtil.to_str(f["code"]) == "VAL-019" and kind != "item" and DEMO_DIALOGUE.has(JsonUtil.to_str(f["file"])):
+			var reason := "the demo dialogue %s line %s names the unknown %s '%s' (if you edited the file, fix the id)" % [JsonUtil.to_str(f["file"]).trim_prefix("res://"), str(detail.get("n", "?")), kind, JsonUtil.to_str(detail.get("item", ""))]
+			_fail("BUILD-002", {"recipe": "data_recipe", "reason": reason}, JsonUtil.to_str(f["file"]))
 	_item("content_checks", "res://game", findings.is_empty())
 
 # ---------------------------------------------------------------- sound slots (VAL-020)

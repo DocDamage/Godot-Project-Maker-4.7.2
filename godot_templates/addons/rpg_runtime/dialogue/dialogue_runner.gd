@@ -129,8 +129,39 @@ const EVENTS: Array[String] = [
 	"run_sequence", "emit",
 ]
 
-## Why `event` would be refused, or "" (no state needed: for the editor).
-static func event_problem(event: String) -> String:
+## What an event names that must exist in game/data: [[kind, id]] with the kind "shop", "quest"
+## or "actor" (T13.13). Empty for the other events and for one without an id.
+static func event_refs(event: String) -> Array:
+	var name := event.get_slice(":", 0)
+	var id := event.get_slice(":", 1) if event.contains(":") else ""
+	if id == "":
+		return []
+	match name:
+		"open_shop":
+			return [["shop", id]]
+		"quest_start", "quest_stage", "quest_complete":
+			return [["quest", id]]
+		"join_party":
+			return [["actor", id]]
+	return []
+
+## Why `event` would be refused, or "" (no state needed: for the editor). With `ids`
+## ({"shop": [...], "quest": [...], "actor": [...]}, the ids that exist) an id that is not in the
+## list of its kind is a problem too; a kind without a list is not checked.
+static func event_problem(event: String, ids: Dictionary = {}) -> String:
+	var why := _syntax_problem(event)
+	if why != "" or ids.is_empty():
+		return why
+	for ref: Array in event_refs(event):
+		var kind := str(ref[0])
+		if not ids.has(kind):
+			continue
+		var known: Array = ids[kind]
+		if not known.has(str(ref[1])):
+			return "unknown %s '%s'" % [kind, ref[1]]
+	return ""
+
+static func _syntax_problem(event: String) -> String:
 	var name := event.get_slice(":", 0)
 	var arg := event.substr(name.length() + 1) if event.contains(":") else ""
 	if not EVENTS.has(name):
