@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791499100971,
+  "lastUpdate": 1791506806046,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -63,6 +63,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 9.32,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "8d7967af077742857fd23fcae76ba3a1343157fd",
+          "message": "T12.56: languages: in-game picker and wizard translations\n\nGame:\n- Settings > Language lists System and the locales of generated/i18n\n  (RpgStrings.locales()); RpgSettings.language is saved in settings.cfg and\n  applied with TranslationServer.set_locale. The settings menu redoes the\n  texts it sets in code when the language changes; the title and battle\n  hints follow NOTIFICATION_TRANSLATION_CHANGED. Missing keys stay English.\n- The settings scene gets a Language row (ui_recipes RECIPE_VERSION 10); the\n  generated README explains adding a column to game/i18n/strings.tsv.\n\nWizard:\n- rpggen/gui/translations.py installs a QTranslator (and Qt's qtbase one)\n  for the saved language or the system's UI language, before any widget is\n  made; View > Language saves the choice for the next start.\n- tools/update_translations.py: extract (pyside6-lupdate) and release\n  (pyside6-lrelease). Packaging builds and bundles the .qm files; they are\n  not committed.\n- French pilot: step names, navigation, menus and the welcome view (83 of\n  578 texts); CONTRIBUTING documents the process. Error messages stay\n  English.\n- Page names are marked with QT_TRANSLATE_NOOP so lupdate finds them; the\n  GUI test session pins English.\n\nAlso fixes a typed-array assignment in the T12.55 GDScript test.\n\nPython suite 1372 passed; GDScript tests 459 passed; basic16 generation and\nsmoke pass with Godot 4.7.2.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-08T20:32:36-04:00",
+          "tree_id": "722a85679aab182ea681e338f48e9a5f683e207f",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/8d7967af077742857fd23fcae76ba3a1343157fd"
+        },
+        "date": 1791506803106,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 12.96,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 1.26,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 96.05,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 84.68,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 13.75,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 9,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 4.69,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 4.37,
             "unit": "s"
           }
         ]
