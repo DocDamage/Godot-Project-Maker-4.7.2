@@ -198,6 +198,14 @@
   `EVENTS`, and the runner's optional `condition_check` / `event_runner` callables (the editor's test
   player uses a scratch state); `RpgDialogueJson.to_json` / `to_dict` (the import also reads a
   `portrait` path). The game's behaviour is unchanged.
+* Lighting (M12): `RpgMapRoot` adds a `CanvasModulate` named `Ambient` (day outdoors,
+  `RpgDayNight.INTERIOR` inside: `is_interior`, or a map id starting with "interior"; your own
+  colour with `ambient_override`). `RpgLightSource` (`world/light_source.gd`, a `PointLight2D`):
+  objects tagged `light` get one from the builder, with the radial texture of the lighting recipe
+  (`generated/lighting/light_radial.tres`); a flame flickers, a lamp is steady, and it is switched
+  off outside the camera. `RpgDayNight`: the optional time-of-day cycle (`RpgSettings.day_night`,
+  *Settings → Day and night*, off by default) tints outdoor maps from the play time (a day per 24
+  minutes, from 8 o'clock), so a save looks the same when it is loaded.
 
 ## 0.3.0
 

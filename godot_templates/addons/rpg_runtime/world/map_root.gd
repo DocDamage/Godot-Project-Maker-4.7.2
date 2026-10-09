@@ -6,6 +6,45 @@ extends Node2D
 @export var music_asset_id: String = ""
 ## The name shown on a save slot: a translation key. Empty means "MAP_<ID>" from `map_id`.
 @export var display_name: String = ""
+## An inside map (T12.62): a dimmer ambient, and the day/night cycle does not reach it. A map whose
+## id starts with "interior" counts as one too (projects made before the flag).
+@export var is_interior: bool = false
+## A colour of your own for this map's ambient; transparent (the default) uses day or interior.
+@export var ambient_override: Color = Color(0, 0, 0, 0)
+
+const AMBIENT_NODE := "Ambient"
+const CYCLE_STEP_S := 0.5  # how often the day/night colour is updated
+
+var _ambient: CanvasModulate = null
+var _since_update := 0.0
+
+func _ready() -> void:
+	_ambient = get_node_or_null(AMBIENT_NODE) as CanvasModulate
+	if _ambient == null:
+		_ambient = CanvasModulate.new()
+		_ambient.name = AMBIENT_NODE
+		add_child(_ambient)
+	update_ambient()
+
+func _process(delta: float) -> void:
+	_since_update += delta
+	if _since_update >= CYCLE_STEP_S:
+		_since_update = 0.0
+		update_ambient()
+
+func interior() -> bool:
+	return is_interior or str(map_id).begins_with("interior")
+
+## Sets the CanvasModulate colour; only an outdoor map with the cycle on keeps updating.
+func update_ambient() -> void:
+	if _ambient == null:
+		return
+	var settings := RpgUtil.settings()
+	var cycle := settings != null and settings.day_night and not interior()
+	var state := RpgUtil.state()
+	var playtime := state.playtime_s if state != null else 0.0
+	_ambient.color = ambient_override if ambient_override.a > 0.0 else RpgDayNight.map_ambient(interior(), cycle, playtime)
+	set_process(cycle and ambient_override.a <= 0.0)
 
 ## The translation key of this map's name ("MAP_STARTER_MAP" for the map `starter_map`).
 func name_key() -> String:

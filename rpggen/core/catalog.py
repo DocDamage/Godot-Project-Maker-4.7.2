@@ -601,6 +601,15 @@ def _learned_decided(fragments: list[tuple[int, AssetFragment]], facets: dict[st
     )
 
 
+def _suggest_tags(facets: dict[str, Any], path: str) -> None:
+    """Add the tags the file name suggests ("light" for a torch, T12.62) to detected facets."""
+    from rpggen.core import classifier
+
+    suggested = classifier.suggested_tags(path)
+    if suggested:
+        facets["tags"] = sorted(set(facets.get("tags") or []) | set(suggested))
+
+
 def _license_files(inv: Inventory, root: str) -> list[str]:
     return sorted((f"{root}/{f.path}" for f in inv.files if f.kind == "license"), key=_sort_key)
 
@@ -769,6 +778,7 @@ def assemble(
                 f = files[path]
                 if f.image:
                     facets["size"] = [f.image["w"], f.image["h"]]
+                _suggest_tags(facets, path)
                 asset_id = id_for_path[path] + (f"#{variant}" if variant else "")
                 catalog.assets.append(
                     Asset(
@@ -1119,6 +1129,11 @@ def _add_objects(
             source=raw.get("source", "auto"),
             door=list(raw["door"]) if raw.get("door") else None,
         )
+        from rpggen.core import classifier
+
+        for tag in classifier.suggested_tags(obj.name):
+            if tag not in obj.tags:
+                obj.tags.append(tag)
         catalog.objects.append(obj)
     if previous:
         _carry_objects(catalog, previous)

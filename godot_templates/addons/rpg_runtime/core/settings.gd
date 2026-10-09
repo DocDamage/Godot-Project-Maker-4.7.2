@@ -21,6 +21,7 @@ var ui_scale := 1.0
 var autosave := true  # an automatic save when a map is entered (SaveManager.autosave)
 var screen_shake := true  # camera shake and hit-stop of the action RPG
 var language := ""  # a locale of generated/i18n ("fr"), or "" for the system's (T12.56)
+var day_night := false  # the time-of-day cycle of outdoor maps (T12.62), off by default
 
 var _defaults := {}  # action -> Array[InputEvent], captured before user bindings are applied
 ## The kind of device used last: prompts show its glyphs (not saved; a keyboard at start).
@@ -60,6 +61,10 @@ func set_text_speed(speed: String) -> void:
 	if TEXT_SPEEDS.has(speed):
 		text_speed = speed
 		changed.emit()
+
+func set_day_night(on: bool) -> void:
+	day_night = on
+	changed.emit()
 
 func set_screen_shake(on: bool) -> void:
 	screen_shake = on
@@ -127,6 +132,7 @@ func save_settings() -> bool:
 	cfg.set_value("access", "ui_scale", ui_scale)
 	cfg.set_value("game", "autosave", autosave)
 	cfg.set_value("game", "screen_shake", screen_shake)
+	cfg.set_value("game", "day_night", day_night)
 	var bindings := _stored_bindings()
 	for action: String in bindings.keys():
 		cfg.set_value("input", action, bindings[action])
@@ -147,6 +153,7 @@ func load_settings() -> void:
 	ui_scale = scale if UI_SCALES.has(scale) else 1.0
 	autosave = RpgUtil.to_bool(cfg.get_value("game", "autosave", true))
 	screen_shake = RpgUtil.to_bool(cfg.get_value("game", "screen_shake", true))
+	day_night = RpgUtil.to_bool(cfg.get_value("game", "day_night", false))
 	if cfg.has_section("input"):
 		for action in cfg.get_section_keys("input"):
 			if not InputMap.has_action(action):

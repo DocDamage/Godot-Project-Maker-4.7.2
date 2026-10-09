@@ -23,6 +23,7 @@ const RECIPE_ORDER: Array[String] = [
 	"actor_recipes",
 	"data_recipe",
 	"credits_recipe",
+	"lighting_recipe",
 	"object_scenes_recipe",
 	"interior_recipe",
 	"theme_recipe",

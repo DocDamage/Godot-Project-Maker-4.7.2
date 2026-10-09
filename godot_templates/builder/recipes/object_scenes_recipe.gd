@@ -2,7 +2,7 @@ extends RefCounted
 ## Builds one scene per world object under res://generated/scenes/objects/ and the index
 ## res://rpggen/object_index.json (object id -> scene path).
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 4
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
@@ -18,6 +18,11 @@ const DOOR_SCRIPT := "res://addons/rpg_runtime/world/door.gd"
 const SPAWN_SCRIPT := "res://addons/rpg_runtime/world/spawn_point.gd"
 const CHEST_SCRIPT := "res://addons/rpg_runtime/world/chest.gd"
 const SIGN_SCRIPT := "res://addons/rpg_runtime/world/sign.gd"
+const LIGHT_SCRIPT := "res://addons/rpg_runtime/world/light_source.gd"
+const LightingRecipe := preload("lighting_recipe.gd")
+## Names that are lamps (a steady light); every other light is a flame and flickers.
+const STEADY_LIGHT_WORDS: Array[String] = ["lamp", "lantern"]
+const LIGHT_COLOR := Color(1.0, 0.82, 0.55)
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray([ObjectIndex.INDEX_PATH])
@@ -69,6 +74,29 @@ func template_for(e: Dictionary, tile: int, is_chest: bool = false) -> String:
 	if e["role"] == "DECORATION" and ObjectEntries.footprint_area(e) >= 0.5 * tile * tile:
 		return "obstacle"
 	return "prop"
+
+## A light (T12.62) near the top of the picture, as wide as four tiles, with the texture the
+## lighting recipe generated; a flame flickers, a lamp does not.
+static func add_light(root: Node2D, e: Dictionary, tile: int, origin: Vector2) -> void:
+	var region: Array = e["region"]
+	var light := PointLight2D.new()
+	light.name = "Light"
+	SceneUtil.attach_script(light, LIGHT_SCRIPT)
+	# the lighting recipe's texture; an embedded copy when it is not there (tests)
+	if ResourceLoader.exists(LightingRecipe.TEXTURE_PATH):
+		light.texture = load(LightingRecipe.TEXTURE_PATH) as Texture2D
+	else:
+		light.texture = LightingRecipe.make_texture()
+	light.texture_scale = tile * 4.0 / LightingRecipe.SIZE
+	light.color = LIGHT_COLOR
+	light.position = Vector2(JsonUtil.to_float(region[2]) / 2.0, JsonUtil.to_float(region[3]) * 0.3) - origin
+	var name_text := JsonUtil.to_str(e["name"]).to_lower() + " " + JsonUtil.to_str(e["id"]).to_lower()
+	var steady := false
+	for word in STEADY_LIGHT_WORDS:
+		if name_text.contains(word):
+			steady = true
+	light.set("flicker", not steady)
+	root.add_child(light)
 
 func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false, chest_fallback: bool = false) -> int:
 	var template := template_for(e, tile, is_chest)
@@ -130,6 +158,9 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		shape.polygon = shifted
 		root.add_child(shape)
 
+	var light_tags: Array = e["tags"]
+	if light_tags.has("light"):
+		add_light(root, e, tile, origin)
 	if template == "chest":
 		ActorBuild.add_persistent(root)
 	if template == "building":

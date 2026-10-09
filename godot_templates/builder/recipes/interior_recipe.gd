@@ -1,7 +1,7 @@
 extends RefCounted
 ## Seeds game/maps/interior_1.tscn once (user_seed ownership) for the starter building.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
@@ -57,6 +57,7 @@ func build(ctx: BuildContext) -> Array:
 	var tile_px: int = JsonUtil.to_int(def["tile_size"][0])
 
 	var root := MapUtil.new_map_root("Interior1", "interior_1")
+	root.set("is_interior", true)  # a dimmer ambient (T12.62)
 	var layer_names: Array = ctx.config.get("map_layers", MapUtil.DEFAULT_LAYERS)
 	var nodes := MapUtil.build_layers(root, layer_names, tile_set)
 	var ground: TileMapLayer = nodes["Ground"]

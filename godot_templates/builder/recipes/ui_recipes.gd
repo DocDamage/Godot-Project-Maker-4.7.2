@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification, the basic HUD, shop, journal and credits. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 10
+const RECIPE_VERSION := 11
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -301,6 +301,11 @@ func _build_settings_menu() -> Node:
 	autosave.text = "UI_AUTOSAVE"
 	UiUtil.unique(autosave)
 	inner.add_child(autosave)
+	var day_night := CheckButton.new()
+	day_night.name = "DayNight"
+	day_night.text = "UI_DAY_NIGHT"
+	UiUtil.unique(day_night)
+	inner.add_child(day_night)
 	var shake := CheckButton.new()
 	shake.name = "ScreenShake"
 	shake.text = "UI_SCREEN_SHAKE"

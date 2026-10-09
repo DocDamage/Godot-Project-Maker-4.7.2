@@ -68,6 +68,21 @@ def _path_parts(posix_path: str) -> tuple[list[str], str]:
     return parts[:-1], stem
 
 
+# Names of things that give light (T12.62): the "light" tag is suggested for them.
+LIGHT_WORDS = frozenset(
+    {"torch", "torches", "lamp", "lamps", "lantern", "lanterns", "candle", "candles", "campfire",
+     "campfires"}
+)  # fmt: skip
+
+
+def suggested_tags(name: str) -> list[str]:
+    """Tags the name of a file or object suggests: "light" for a torch, lamp, lantern, candle or
+    campfire. ``name`` is a path or a plain name."""
+    folders, file_tokens = tokens(name if "." in name.rsplit("/", 1)[-1] else name + ".png")
+    words = set(file_tokens) | set(folders[-1:])
+    return ["light"] if words & LIGHT_WORDS else []
+
+
 def tokens(posix_path: str) -> tuple[list[str], list[str]]:
     """(folder tokens, file tokens): split on non-alphanumerics and camelCase, lowercased.
 

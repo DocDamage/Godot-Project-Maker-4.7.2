@@ -195,6 +195,12 @@ The game's *Settings* have a **Language** choice: *System* and every language of
 `game/i18n/strings.tsv` (add a column with a locale code to translate the game; the project's
 README explains how).
 
+**Light.** Each map has an ambient light: daylight outdoors, dimmer indoors. Objects whose name
+says they give light (torch, lamp, lantern, candle, campfire) get the `light` tag in the audit,
+and their scenes a light, a flickering one for a flame. You can add or remove the tag on any
+object. *Settings → Day and night* (off by default) lets the outdoor light follow a day of 24
+minutes of play.
+
 Key prompts follow the player's device: `[E]` on the keyboard, the pad's own button name
 (`[A]`, `[Cross]`, `[B]`) once a controller is used, and a remapped key at once.
 

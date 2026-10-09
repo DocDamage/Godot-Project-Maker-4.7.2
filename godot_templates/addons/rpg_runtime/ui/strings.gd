@@ -32,6 +32,7 @@ const KEYS := {
 	"UI_FULLSCREEN": "Fullscreen",
 	"UI_TEXT_SPEED": "Text speed",
 	"UI_LANGUAGE": "Language",
+	"UI_DAY_NIGHT": "Day and night",
 	"UI_LANGUAGE_SYSTEM": "System",
 	"UI_UI_SCALE": "Interface size",
 	"UI_CONTROLS": "Controls",
