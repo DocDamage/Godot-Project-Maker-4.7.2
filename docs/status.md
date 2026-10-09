@@ -30,7 +30,7 @@ after the tag is planned: M13 (release 1.1.0) and M14 (release 1.2.0), below.
 | M10 Release | Packaging, signing, diagnostics, docs, registry, export test | Done except T10.09 (held-out runs, human) and the T10.10 gate |
 | M11 Pre-release | Wizard UX, sound, autosave, game over, second map, docs | Done except T11.29 (manual pass, human); T11.30 gate passed automatically |
 | M12 Review follow-ups | Fixes, engineering, UX and 25 features (below) | 70 of 71 cards done; T12.66 (the gate) open |
-| M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | Started 2026-10-09 on the branch `m13` (not part of 1.0); 19 of 24 cards done |
+| M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | Started 2026-10-09 on the branch `m13` (not part of 1.0); 20 of 24 cards done |
 | M14 Metroidvania (1.2.0) | The third archetype (below) | Planned 2026-10-08, starts after the 1.1 tag; 0 of 13 cards done |
 
 ## M12 in detail

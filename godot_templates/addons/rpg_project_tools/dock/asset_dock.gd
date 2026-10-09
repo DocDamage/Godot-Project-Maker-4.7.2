@@ -10,6 +10,8 @@ const AssetInspector := preload("asset_inspector.gd")
 const ValidatorPanel := preload("validator_panel.gd")
 const DemoTools := preload("demo_tools.gd")
 const DialogueTab := preload("dialogue_tab.gd")
+const QuestTab := preload("quest_tab.gd")
+const SequenceTab := preload("sequence_tab.gd")
 const Rebuild := preload("../tools/rebuild.gd")
 const CatalogEdit := preload("../tools/catalog_edit.gd")
 const JsonIo := preload("../tools/json_io.gd")
@@ -90,6 +92,13 @@ func _build_ui() -> void:
 	var dialogue := DialogueTab.new()
 	dialogue.plugin = plugin
 	tabs.add_child(dialogue)
+	var quests := QuestTab.new()  # T13.19
+	quests.plugin = plugin
+	tabs.add_child(quests)
+	var cutscenes := SequenceTab.new()
+	cutscenes.plugin = plugin
+	cutscenes.debug_link = plugin.get("debug_link") if plugin != null else null
+	tabs.add_child(cutscenes)
 	tabs.add_child(_build_project_tab())
 	_status = Label.new()
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

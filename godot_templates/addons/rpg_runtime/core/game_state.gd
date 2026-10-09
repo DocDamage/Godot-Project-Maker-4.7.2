@@ -266,10 +266,10 @@ func refresh_quests() -> void:
 			if condition == "" or not RpgCondition.evaluate(condition):
 				continue
 			progressed = true
-			if index + 1 >= def.stages.size():
+			_give_quest_rewards(RpgUtil.to_dict(def.stage(index).get("rewards", {})))  # a stage's own
+			var following := def.next_of(index)  # its `next`, else the stage below
+			if following == &"" or not quest_set_stage(quest_id, following):
 				quest_complete(quest_id)
-			else:
-				quest_set_stage(quest_id, StringName(str(def.stage(index + 1).get("id", ""))))
 	_refreshing_quests = false
 
 ## The ids of the defined quests that are active (or finished), in id order.

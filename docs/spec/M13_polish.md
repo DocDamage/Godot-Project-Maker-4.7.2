@@ -81,7 +81,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T13.16 | Custom sound slots | M | — | done |
 | T13.17 | Audio audit: waveforms and loop points | M | — | done |
 | T13.18 | Recolour variants | L | — | done |
-| T13.19 | Quest and cutscene tabs in the dock | L | T13.13 | open |
+| T13.19 | Quest and cutscene tabs in the dock | L | T13.13 | done |
 | T13.20 | A world of connected maps | L | T13.12, T13.21 | open |
 | T13.21 | Lock-and-key planner | S | — | done |
 | T13.22 | Documentation, screenshots and changelogs | M | Parts A–C | open |

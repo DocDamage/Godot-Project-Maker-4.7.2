@@ -233,3 +233,85 @@ func test_the_demo_quest_and_the_villagers_lines(t) -> void:
 	var demo_free := BuildContext.new("")
 	demo_free.demo_removed = true
 	t.ok(not recipe.outputs(demo_free).has(DataRecipe.QUEST_PATH))
+
+# ---------------------------------------------------------------- next, stage rewards, problems (T13.19)
+
+func test_next_names_the_stage_that_follows(t) -> void:
+	var quest := RpgQuestDefinition.new()
+	quest.id = &"fork"
+	quest.stages = [
+		{"id": "a", "complete_when": "flag:q.a", "next": "c"},
+		{"id": "b", "complete_when": "flag:q.b", "next": "done"},
+		{"id": "c", "complete_when": "flag:q.c"},
+		{"id": "d", "complete_when": ""},
+	]
+	t.eq(quest.next_of(0), &"c", "its `next`")
+	t.eq(quest.next_of(1), &"", "done finishes the quest")
+	t.eq(quest.next_of(2), &"d", "without `next`, the stage below")
+	t.eq(quest.next_of(3), &"", "the last stage finishes it")
+	t.eq(quest.next_of(9), &"")
+	t.eq(quest.edges(), [["a", "c"], ["b", "done"], ["c", "d"], ["d", "done"]])
+	t.eq(quest.problems(), [])
+
+func test_the_game_follows_next_and_gives_a_stages_rewards(t) -> void:
+	var state := _state()
+	var quest := RpgQuestDefinition.new()
+	quest.id = &"fork"
+	quest.stages = [
+		{"id": "a", "complete_when": "flag:q.a", "next": "c", "rewards": {"gold": 7}},
+		{"id": "b", "complete_when": ""},
+		{"id": "c", "complete_when": "flag:q.c", "next": "done"},
+		{"id": "d", "complete_when": ""},
+	]
+	quest.rewards = {"gold": 100}
+	state.quest_defs[&"fork"] = quest
+	state.gold = 0
+	state.quest_start(&"fork")
+	t.eq(state.quest_state(&"fork"), "a")
+	state.set_flag("q", "a", true)
+	state.refresh_quests()
+	t.eq(state.quest_state(&"fork"), "c", "stage b is skipped")
+	t.eq(state.gold, 7, "the stage's own reward")
+	state.set_flag("q", "c", true)
+	state.refresh_quests()
+	t.ok(state.quest_is_done(&"fork"), "`next: done` finishes the quest before stage d")
+	t.eq(state.gold, 107)
+	# a `next` that names no stage finishes the quest rather than leaving it stuck
+	var broken := RpgQuestDefinition.new()
+	broken.id = &"broken"
+	broken.stages = [{"id": "a", "complete_when": "flag:q.a", "next": "nowhere"}]
+	state.quest_defs[&"broken"] = broken
+	state.quest_start(&"broken")
+	state.refresh_quests()
+	t.ok(state.quest_is_done(&"broken"))
+	_end()
+
+func test_quest_problems(t) -> void:
+	var quest := RpgQuestDefinition.new()
+	t.eq(quest.problems(), ["the quest has no id", "the quest has no stages"])
+	quest.id = &"q"
+	quest.stages = [
+		{"id": "a", "complete_when": "banana:split"},
+		{"id": "a", "complete_when": "", "next": "nowhere"},
+		{"id": "", "complete_when": ""},
+		{"id": "done", "complete_when": "", "rewards": {"gold": -1, "items": [{"qty": 2}]}},
+	]
+	quest.rewards = {"experience": "lots", "items": "potion"}
+	var found := quest.problems()
+	t.ok(found[0].begins_with("stage 1 (a): ") and found[0].contains("banana:split"), str(found))
+	t.ok(found.has("stage 2 (a) repeats the id of an earlier stage"))
+	t.ok(found.has("stage 3 (no id) needs an id"))
+	t.ok(found.has("stage 4 (done) cannot be called 'done'"))
+	t.ok(found.has("stage 4 (done): 'gold' must be a number, 0 or more"))
+	t.ok(found.has("stage 4 (done): every item needs an 'item_id'"))
+	t.ok(found.has("stage 2 (a) leads to the unknown stage 'nowhere'"))
+	t.ok(found.has("the quest's rewards: 'experience' must be a number, 0 or more"))
+	t.ok(found.has("the quest's rewards: 'items' must be a list"))
+	t.eq(found.size(), 9, str(found))
+
+func test_a_quest_as_plain_data(t) -> void:
+	var data := {"id": "q", "title": "T", "stages": [{"id": "a", "complete_when": "", "target": "npc"}], "rewards": {"gold": 3}}
+	var quest := RpgQuestDefinition.from_dict(data)
+	t.eq(quest.to_dict(), data)
+	t.eq(String(quest.first_stage()), "a")
+	t.eq(RpgQuestDefinition.from_dict({}).stages, [])

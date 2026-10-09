@@ -68,6 +68,76 @@ const REQUIRED := {
 }
 const DIRECTIONS: Array[String] = ["up", "down", "left", "right"]
 
+## The kinds of step an editor offers a form for (the dock's Cutscenes tab), in menu order:
+## {kind, cmd, fields: [[argument, type]]}. The types: entity (an entity_id of the map, or
+## "player"), pair ([dx, dy]), float, int, bool, text, dir, value (a JSON value), lines (one text
+## key per line). Every other command is edited as JSON.
+const STEP_KINDS: Array[Dictionary] = [
+	{"kind": "move", "cmd": "move_actor", "fields": [["entity", "entity"], ["tiles", "pair"], ["speed", "float"], ["wait", "bool"]]},
+	{"kind": "face", "cmd": "face", "fields": [["entity", "entity"], ["dir", "dir"], ["toward", "entity"]]},
+	{"kind": "say", "cmd": "show_dialogue", "fields": [["dialogue", "text"], ["speaker", "text"], ["lines", "lines"]]},
+	{"kind": "wait", "cmd": "wait", "fields": [["seconds", "float"]]},
+	{"kind": "camera", "cmd": "camera_pan", "fields": [["entity", "entity"], ["tiles", "pair"], ["seconds", "float"], ["wait", "bool"]]},
+	{"kind": "flag", "cmd": "set_flag", "fields": [["entity", "text"], ["key", "text"], ["value", "value"]]},
+	{"kind": "give", "cmd": "give_item", "fields": [["item", "text"], ["qty", "int"]]},
+	{"kind": "play sound", "cmd": "play_sound", "fields": [["slot", "text"]]},
+	{"kind": "fade out", "cmd": "fade_out", "fields": [["seconds", "float"], ["wait", "bool"]]},
+	{"kind": "fade in", "cmd": "fade_in", "fields": [["seconds", "float"], ["wait", "bool"]]},
+]
+## The arguments that name an actor of the map.
+const ENTITY_KEYS: Array[String] = ["entity", "toward"]
+## The commands whose `entity` is not an actor (set_flag's is the flag's owner, any name).
+const NOT_ACTORS: Array[String] = ["set_flag"]
+
+## The STEP_KINDS entry of a command name, or {}.
+static func step_kind(cmd: String) -> Dictionary:
+	for entry in STEP_KINDS:
+		if entry["cmd"] == cmd:
+			return entry
+	return {}
+
+## A new step of a STEP_KINDS kind with the arguments it needs.
+static func new_step(kind: String) -> Dictionary:
+	for entry in STEP_KINDS:
+		if entry["kind"] != kind:
+			continue
+		var step := {"cmd": entry["cmd"]}
+		match str(entry["cmd"]):
+			"move_actor":
+				step["entity"] = "player"
+				step["tiles"] = [1, 0]
+			"face":
+				step["entity"] = "player"
+				step["dir"] = "down"
+			"show_dialogue":
+				step["lines"] = ["..."]
+			"wait":
+				step["seconds"] = 1.0
+			"set_flag":
+				step["entity"] = "story"
+				step["key"] = "flag"
+			"give_item":
+				step["item"] = "potion"
+			"play_sound":
+				step["slot"] = "sfx_chest"
+		return step
+	return {}
+
+## The steps that name an actor the map does not have: "command 2 (face) names the unknown
+## entity 'bob'". `entities` are the entity ids of the map; "player" is always known.
+static func entity_problems(command_list: Array, entities: Array) -> Array[String]:
+	var out: Array[String] = []
+	for i in command_list.size():
+		var command := RpgUtil.to_dict(command_list[i])
+		var name := str(command.get("cmd", ""))
+		if NOT_ACTORS.has(name):
+			continue
+		for key in ENTITY_KEYS:
+			var who := str(command.get(key, ""))
+			if who != "" and who != "player" and not entities.has(who):
+				out.append("command %d (%s) names the unknown entity '%s'" % [i + 1, name, who])
+	return out
+
 @export var id: StringName
 ## Cancel skips the rest: timed steps finish at once, characters arrive, dialogues run their
 ## events and take the first choice. A battle is still fought.

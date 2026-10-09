@@ -9,8 +9,22 @@ extends EditorPlugin
 const DOCK_SCRIPT := "res://addons/rpg_project_tools/dock/asset_dock.gd"
 
 var dock: EditorDock = null
+## Messages to the game that runs from the editor (the Cutscenes tab's Test, T13.19).
+var debug_link: DebugLink = null
+
+## The editor's side of the debugger channel: `send` hands a message to every running game.
+class DebugLink extends EditorDebuggerPlugin:
+	func send(message: String, data: Array) -> bool:
+		var sent := false
+		for session: EditorDebuggerSession in get_sessions():
+			if session.is_active():
+				session.send_message(message, data)
+				sent = true
+		return sent
 
 func _enter_tree() -> void:
+	debug_link = DebugLink.new()
+	add_debugger_plugin(debug_link)
 	var script := load(DOCK_SCRIPT) as GDScript
 	if script == null:
 		push_error("[RPG-TOOLS] could not load %s" % DOCK_SCRIPT)
@@ -24,3 +38,6 @@ func _exit_tree() -> void:
 		remove_dock(dock)
 		dock.queue_free()
 		dock = null
+	if debug_link != null:
+		remove_debugger_plugin(debug_link)
+		debug_link = null

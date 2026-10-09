@@ -87,6 +87,15 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   `game/data/enemies/`. Nothing is placed on the demo maps. A variant whose source left the
   pack is `ASSET-029`.
 
+* **Quests and Cutscenes tabs** in the Godot dock. Quests: a stage list with a form (id, title,
+  description, condition with the inline checker, where it leads, the target entity with a
+  picker from the open map, rewards), a read-only graph of the stages, and a test against a
+  pretend game state. Cutscenes: a step list with a form per kind of step (move, face, say,
+  wait, camera, flag, give, play sound, fade), the actors checked against the open map, and
+  **Test**, which plays the cutscene in the game when one runs from the editor. Both export
+  and import JSON, and every change is one undo step. A quest stage may now name its `next`
+  stage and have `rewards` of its own.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

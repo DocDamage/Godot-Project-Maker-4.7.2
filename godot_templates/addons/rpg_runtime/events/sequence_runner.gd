@@ -51,6 +51,35 @@ func _ready() -> void:
 		bus.sequence_requested.connect(_on_requested)
 		bus.dialogue_finished.connect(_on_dialogue_finished)
 
+## The editor's Cutscenes tab plays a sequence in the running game (T13.19): the message
+## "rpg_sequence:run" with [commands, skippable] through the debugger.
+const DEBUG_CAPTURE := "rpg_sequence"
+
+func _enter_tree() -> void:
+	if EngineDebugger.is_active() and not EngineDebugger.has_capture(DEBUG_CAPTURE):
+		EngineDebugger.register_message_capture(DEBUG_CAPTURE, _on_editor_message)
+
+func _exit_tree() -> void:
+	if EngineDebugger.is_active() and EngineDebugger.has_capture(DEBUG_CAPTURE):
+		EngineDebugger.unregister_message_capture(DEBUG_CAPTURE)
+
+func _on_editor_message(message: String, data: Array) -> bool:
+	if message != "run" or data.is_empty() or not (data[0] is Array):
+		return false
+	var sent: Array = data[0]
+	run(sequence_from(sent, data.size() > 1 and RpgUtil.to_bool(data[1])))
+	return true
+
+## A sequence that is not a file: the commands as they are in the editor.
+static func sequence_from(command_list: Array, can_skip: bool = true) -> RpgSequence:
+	var sequence := RpgSequence.new()
+	sequence.id = &"editor_test"
+	sequence.skippable = can_skip
+	for raw: Variant in command_list:
+		if raw is Dictionary:
+			sequence.commands.append(RpgUtil.to_dict(raw).duplicate(true))
+	return sequence
+
 ## The runner of the running game, or null.
 static func instance() -> RpgSequenceRunner:
 	var router := RpgUtil.router()
