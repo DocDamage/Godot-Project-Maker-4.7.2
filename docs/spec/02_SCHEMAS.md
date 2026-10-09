@@ -139,6 +139,7 @@ Location: `<project>/rpggen/asset_catalog.json`.
 | `id_allocations` | object | §4.7 |
 | `folder_rules` | array of FolderRule | §4.8, kept in insertion order (order matters). |
 | `maps` | array of Map | Optional (T12.49), §4.9, sorted by `id`. Omitted when the packs have no Tiled or LDtk maps. |
+| `variants` | array of Variant | Optional (T13.18), in the order they were made. A Variant is `{ "id", "source", "name", "op", "params", "stats"? }`: `id` is the id of the variant's effective asset (`<pack>.variants.<slug>`), `source` the asset it recolours, `op` is `hue` (`params`: `shift` 0–359 degrees, `saturation` and `value` multipliers 0–4) or `palette` (`params.map`: a list of `[[r, g, b], [r, g, b]]` pairs, from → to), and `stats` (enemies and bosses only) holds multipliers 0.1–20 for `hp`, `attack`, `xp`, `gold` (1 is not stored). The effective asset is in `assets` like any other: path `generated/variants/<id with _ for .>.png`, the source's effective facets, and `derived_from`. A variant whose source is gone keeps its definition and has no asset (`ASSET-029`). Omitted when empty. |
 
 ### 4.2 CatalogPack
 
@@ -212,6 +213,7 @@ unknown licence.
 | `nine_slice` | `[left, top, right, bottom]` | usage=ui | Margins in px. |
 | `import` | `{ "filter": "nearest"/"linear", "mipmaps": bool }` | images | Defaults: nearest, false. |
 | `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). |
+| `derived_from` | string | a recolour variant | The id of the asset a variant was recoloured from (T13.18); detected facet only. |
 | `size` | vec2i | every image asset | Pixel size of the image file (T2.14); a change on a tile sheet used by a tileset raises CONFLICT. |
 | `region` | `[x, y, w, h]` | usage=portrait | Pixel rect of one face inside a face sheet (T2.11). |
 | `terrain_proposal` | object | usage=tiles | Blob/corner terrain recognized on a sheet (T8.06c): `{layout, confidence, mode, terrain_set, tile_overrides}`. Not applied until the user accepts it in the audit's Terrain tab, which moves `tile_overrides` into the overrides and sets the override `terrain_proposal` to null. |

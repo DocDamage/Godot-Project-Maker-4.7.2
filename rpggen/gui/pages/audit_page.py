@@ -38,6 +38,7 @@ from rpggen.core import (
     profiles,
 )
 from rpggen.core import catalog as catalog_mod
+from rpggen.core import variants as variants_mod
 from rpggen.core.analyzer import similarity
 from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
@@ -45,6 +46,7 @@ from rpggen.gui import edits as edits_mod
 from rpggen.gui import workers
 from rpggen.gui.dialogs.contact_sheet_dialog import ContactSheetDialog, SheetOptions
 from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog, FindProfileDialog
+from rpggen.gui.dialogs.variant_dialog import VariantDialog
 from rpggen.gui.edits import EditSession
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
@@ -97,6 +99,10 @@ def make_resolver(state: WizardState) -> PathResolver:
         parts = asset.path.split("/", 3)
         if len(parts) == 4 and parts[:2] == ["assets", "packs"] and asset.pack_id in roots:
             return roots[asset.pack_id] / parts[3]
+        if asset.path.startswith(variants_mod.VARIANT_DIR + "/"):  # rendered into the cache
+            cached = variants_mod.cached_file(asset.sha256)
+            if cached.is_file():
+                return cached
         if generated_root is not None:
             candidate = generated_root / asset.path
             return candidate if candidate.exists() else None
@@ -998,7 +1004,64 @@ class AuditPage(WizardPage):
         similar.setShortcut(QKeySequence("Ctrl+Shift+S"))
         similar.setEnabled(self.can_select_similar())
         similar.triggered.connect(self.select_similar)
+        variant = menu.addAction(self.tr("Make variant…"))
+        variant.setObjectName("makeVariantAction")
+        variant.setEnabled(self.can_make_variant())
+        variant.triggered.connect(self.make_variant)
+        if self.selected_variant() is not None:
+            remove = menu.addAction(self.tr("Remove variant"))
+            remove.setObjectName("removeVariantAction")
+            remove.triggered.connect(self.remove_variant)
         menu.exec(self.grid.view.viewport().mapToGlobal(pos))
+
+    # ------------------------------------------------------------------ recolour variants (T13.18)
+
+    def _one_selected(self) -> catalog_mod.Asset | None:
+        ids = self.grid.selected_ids()
+        return self.session.catalog.asset(ids[0]) if self.session and len(ids) == 1 else None
+
+    def can_make_variant(self) -> bool:
+        """One sprite, object or tile picture of a pack is selected (not a variant itself)."""
+        asset = self._one_selected()
+        return (
+            asset is not None
+            and asset.kind == "image"
+            and asset.status != "MISSING"
+            and not variants_mod.is_variant(asset)
+            and self.grid.model.resolver(asset) is not None
+        )
+
+    def selected_variant(self) -> str | None:
+        asset = self._one_selected()
+        return asset.id if asset is not None and variants_mod.is_variant(asset) else None
+
+    def run_variant_dialog(self, dialog: VariantDialog) -> bool:  # overridden by tests
+        return bool(dialog.exec())
+
+    def make_variant(self) -> str | None:
+        """Ask for the recolour, then add the variant as one undo step. Returns its id."""
+        asset = self._one_selected()
+        if asset is None or not self.can_make_variant() or self.state is None:
+            return None
+        file = self.grid.model.resolver(asset)
+        assert file is not None and self.session is not None
+        dialog = VariantDialog(self.session.catalog, asset, Path(file), self)
+        if not self.run_variant_dialog(dialog):
+            return None
+        definition = dialog.definition()
+        roots = {p.pack_id: Path(p.root) for p in self.state.opened_packs}
+        if not self.session.add_variant(definition, roots):
+            return None
+        self.grid.select_ids([definition["id"]])
+        return str(definition["id"])
+
+    def remove_variant(self) -> bool:
+        variant_id = self.selected_variant()
+        return (
+            variant_id is not None
+            and self.session is not None
+            and (self.session.remove_variant(variant_id))
+        )
 
     def can_select_similar(self) -> bool:
         """One image is selected (a sound or a font has no picture to compare)."""

@@ -48,6 +48,12 @@
       "items": {
         "$ref": "#/$defs/Map"
       }
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Variant"
+      }
     }
   },
   "additionalProperties": false,
@@ -505,6 +511,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "derived_from": {
+          "type": "string"
         },
         "region": {
           "type": "array",
@@ -1479,6 +1488,50 @@
           "type": "object"
         }
       },
+      "additionalProperties": false
+    },
+    "Variant": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "source": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "op": {"enum": ["hue", "palette"]},
+        "params": {
+          "type": "object",
+          "properties": {
+            "shift": {"type": "integer", "minimum": 0, "maximum": 359},
+            "saturation": {"type": "number", "minimum": 0, "maximum": 4},
+            "value": {"type": "number", "minimum": 0, "maximum": 4},
+            "map": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {"type": "integer", "minimum": 0, "maximum": 255}
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "hp": {"type": "number", "minimum": 0.1, "maximum": 20},
+            "attack": {"type": "number", "minimum": 0.1, "maximum": 20},
+            "xp": {"type": "number", "minimum": 0.1, "maximum": 20},
+            "gold": {"type": "number", "minimum": 0.1, "maximum": 20}
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["id", "source", "name", "op", "params"],
       "additionalProperties": false
     },
     "Map": {

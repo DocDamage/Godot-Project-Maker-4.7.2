@@ -79,6 +79,14 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   OGG and MP3 play to their end and come back to the start point). New dependency:
   `soundfile`.
 
+* **Recolour variants**: right-click a sprite on the Audit page → **Make variant…** to get a
+  second slime from the one a pack ships: a hue wheel with saturation and brightness, or a
+  palette table with an eyedropper, a name, and for an enemy the HP, attack, XP and gold
+  multipliers. The variant is an asset of its own (⧉ in the grid), rendered again from its
+  source on every generation, and an enemy variant gets its own definition in
+  `game/data/enemies/`. Nothing is placed on the demo maps. A variant whose source left the
+  pack is `ASSET-029`.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

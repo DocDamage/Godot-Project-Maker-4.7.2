@@ -10,6 +10,7 @@ import copy
 import dataclasses
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QObject, Signal
@@ -67,6 +68,33 @@ def set_overrides(catalog: Catalog, asset_ids: list[str], values: dict[str, Any]
         return catalog
     result = _replace_assets(catalog, new)
     return retile(result) if RETILE_KEYS & values.keys() else result
+
+
+def add_variant(
+    catalog: Catalog, definition: dict[str, Any], pack_roots: dict[str, Path]
+) -> Catalog:
+    """A recolour variant (T13.18): its definition and its effective asset. Nothing changes
+    when the definition cannot be rendered (a source that has no file)."""
+    from rpggen.core import variants
+    from rpggen.errors import IssueList
+
+    fresh = dataclasses.replace(catalog, assets=list(catalog.assets))
+    variants.apply(fresh, [*catalog.variants, definition], pack_roots, IssueList(), catalog)
+    if fresh.asset(str(definition.get("id"))) is None:
+        return catalog
+    fresh.assets.sort(key=lambda a: catalog_mod._sort_key(a.id))
+    return fresh
+
+
+def remove_variant(catalog: Catalog, variant_id: str) -> Catalog:
+    """Take a variant away again: its definition and its asset."""
+    if not any(v.get("id") == variant_id for v in catalog.variants):
+        return catalog
+    return dataclasses.replace(
+        catalog,
+        assets=[a for a in catalog.assets if a.id != variant_id],
+        variants=[copy.deepcopy(v) for v in catalog.variants if v.get("id") != variant_id],
+    )
 
 
 def clear_override(catalog: Catalog, asset_id: str, key: str) -> Catalog:
@@ -313,6 +341,13 @@ class EditSession(QObject):
 
     def confirm(self, asset_ids: list[str]) -> bool:
         return self.apply("Confirm", lambda c: confirm(c, asset_ids), list(asset_ids))
+
+    def add_variant(self, definition: dict[str, Any], pack_roots: dict[str, Path]) -> bool:
+        ids = [str(definition.get("id"))]
+        return self.apply("Make variant", lambda c: add_variant(c, definition, pack_roots), ids)
+
+    def remove_variant(self, variant_id: str) -> bool:
+        return self.apply("Remove variant", lambda c: remove_variant(c, variant_id), [variant_id])
 
     def set_overrides(
         self, asset_ids: list[str], values: dict[str, Any], text: str = "Edit"

@@ -83,6 +83,16 @@ func object(id: String) -> Dictionary:
 			return o
 	return {}
 
+## The recolour variant (T13.18) whose effective asset is `asset_id`: {id, source, name, op,
+## params, stats?}, or {} when the asset is not a variant.
+func recolour(asset_id: String) -> Dictionary:
+	var raw: Array = catalog.get("variants", [])
+	for v: Variant in raw:
+		var entry := JsonUtil.to_dict(v)
+		if JsonUtil.to_str(entry.get("id", "")) == asset_id:
+			return entry
+	return {}
+
 ## Maps imported from Tiled and LDtk files (T12.49), sorted by id.
 func map_defs() -> Array[Dictionary]:
 	var list := _list("maps")

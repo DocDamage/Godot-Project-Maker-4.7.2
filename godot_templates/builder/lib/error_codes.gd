@@ -39,6 +39,7 @@ const CODES := {
 	"ASSET-025": {"severity": "info", "message": "No enemy asset; the player's sprite stands in for the starter enemy.", "fix": "Assign an enemy asset in Mapping."},
 	"ASSET-026": {"severity": "info", "message": "No music was found in the packs: the game will be silent.", "fix": "Add a music track to an asset pack, or assign one in Mapping."},
 	"ASSET-027": {"severity": "info", "message": "No sound effects were found in the packs.", "fix": "Add sound effects to an asset pack, or assign them in Mapping."},
+	"ASSET-029": {"severity": "warning", "message": "The variant {variant} was left out: {reason}.", "fix": "Put the source file back into the pack, or remove the variant on the Audit page."},
 	"ASSET-028": {"severity": "warning", "message": "Pack {pack_id} needs attribution, but no author was found in its license files.", "fix": "Enter the author on the Audit page (pack information) so that the credits screen names them."},
 	"ADAPT-001": {"severity": "warning", "message": "Adapter {adapter} failed on {file}: {reason}.", "fix": "Report a bug with a diagnostic bundle."},
 	"ADAPT-002": {"severity": "warning", "message": "Tiled tileset {file} references missing image {image}.", "fix": "Fix the pack or map the image manually."},

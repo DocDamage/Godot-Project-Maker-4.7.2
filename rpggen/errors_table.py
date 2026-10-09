@@ -50,6 +50,7 @@ CODES: dict[str, CodeInfo] = {
     "ASSET-025": CodeInfo("ASSET-025", "info", "No enemy asset; the player's sprite stands in for the starter enemy.", "Assign an enemy asset in Mapping."),
     "ASSET-026": CodeInfo("ASSET-026", "info", "No music was found in the packs: the game will be silent.", "Add a music track to an asset pack, or assign one in Mapping."),
     "ASSET-027": CodeInfo("ASSET-027", "info", "No sound effects were found in the packs.", "Add sound effects to an asset pack, or assign them in Mapping."),
+    "ASSET-029": CodeInfo("ASSET-029", "warning", "The variant {variant} was left out: {reason}.", "Put the source file back into the pack, or remove the variant on the Audit page."),
     "ASSET-028": CodeInfo("ASSET-028", "warning", "Pack {pack_id} needs attribution, but no author was found in its license files.", "Enter the author on the Audit page (pack information) so that the credits screen names them."),
     "ADAPT-001": CodeInfo("ADAPT-001", "warning", "Adapter {adapter} failed on {file}: {reason}.", "Report a bug with a diagnostic bundle."),
     "ADAPT-002": CodeInfo("ADAPT-002", "warning", "Tiled tileset {file} references missing image {image}.", "Fix the pack or map the image manually."),

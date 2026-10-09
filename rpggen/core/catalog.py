@@ -268,6 +268,8 @@ class Catalog:
     catalog_version: int = CATALOG_VERSION
     # Maps read from Tiled and LDtk files (T12.49); see ``resolve_maps`` for the shape.
     maps: list[dict[str, Any]] = field(default_factory=list)
+    # Recolour variants (T13.18): [{id, source, name, op, params, stats?}]; see ``variants``.
+    variants: list[dict[str, Any]] = field(default_factory=list)
 
     def allocate_source_id(self, tileset: str) -> int:
         """Return the next never-reused source id of ``tileset`` and advance the counter."""
@@ -287,6 +289,8 @@ class Catalog:
             out["maps"] = [
                 copy.deepcopy(m) for m in sorted(self.maps, key=lambda m: _sort_key(m["id"]))
             ]
+        if self.variants:  # optional too
+            out["variants"] = copy.deepcopy(self.variants)
         return out
 
     def _to_json(self) -> dict[str, Any]:
@@ -315,6 +319,7 @@ class Catalog:
             generator_version=d["generator_version"],
             catalog_version=d["catalog_version"],
             maps=copy.deepcopy(d.get("maps", [])),
+            variants=copy.deepcopy(d.get("variants", [])),
         )
 
 
@@ -892,6 +897,12 @@ def assemble(
     if previous:
         catalog.folder_rules = copy.deepcopy(previous.folder_rules)
     apply_folder_rules(catalog, extra_rules)
+    if previous is not None and previous.variants:  # after the rules: a variant has its
+        from rpggen.core import variants as variants_mod  # source's effective facets
+
+        generated.update(
+            variants_mod.apply(catalog, previous.variants, pack_roots, issues, previous)
+        )
     _add_objects(catalog, objects_raw, previous)
     assign_tilesets(catalog, previous, adapter_tilesets)
     terrain.attach_terrain_sets(catalog, terrain_result)
@@ -1111,8 +1122,9 @@ def _carry_previous(
             asset.status = "CONFLICT"
             if old.status != "CONFLICT":
                 issues.add("TILE-004", asset=asset.id, file=asset.path)
+    variant_ids = {str(v.get("id")) for v in previous.variants}
     for old in previous.assets:
-        if old.id in present_ids:
+        if old.id in present_ids or old.id in variant_ids:  # variants are rendered again
             continue
         kept = Asset.from_json(old.to_json())
         kept.status = "MISSING"

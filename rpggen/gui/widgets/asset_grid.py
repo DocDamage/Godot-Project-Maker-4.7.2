@@ -49,6 +49,9 @@ PathRole = Qt.ItemDataRole.UserRole + 7
 # None there), and every row has the key of its folder under FolderRole.
 HeaderRole = Qt.ItemDataRole.UserRole + 8
 FolderRole = Qt.ItemDataRole.UserRole + 9
+# A recolour variant (T13.18) has the id of its source here; every other asset None.
+VariantRole = Qt.ItemDataRole.UserRole + 10
+VARIANT_GLYPH = "⧉"
 HEADER_HEIGHT = 26
 HEADER_ACTIONS = ("confirm", "select", "rule")  # the buttons of a header, left to right
 
@@ -146,6 +149,9 @@ class AssetListModel(QAbstractListModel):
         self._assets = list(catalog.assets) if catalog else []
         self._facets = [catalog_mod.effective(a) for a in self._assets]
         self._row_of = {a.id: i for i, a in enumerate(self._assets)}
+        self._variant_names = {
+            str(v.get("id")): str(v.get("name", "")) for v in (catalog.variants if catalog else [])
+        }
         self._keys.clear()
         self._by_key.clear()
         self._index_folders()
@@ -298,12 +304,17 @@ class AssetListModel(QAbstractListModel):
         asset = self._assets[index.row()]
         facets = self._facets[index.row()]
         if role == Qt.ItemDataRole.DisplayRole:
-            return file_label(asset)
+            return self._variant_names.get(asset.id) or file_label(asset)
+        if role == VariantRole:
+            return facets.get("derived_from")
         if role == Qt.ItemDataRole.DecorationRole:
             return self._pixmap_for(asset, facets)
         if role == Qt.ItemDataRole.ToolTipRole:
             sure = f"  {round(asset.confidence * 100)}%" if asset.status != "CONFIRMED" else ""
-            return f"{asset.path}\n{asset.status}  {facets.get('role', '-')}{sure}"
+            tip = f"{asset.path}\n{asset.status}  {facets.get('role', '-')}{sure}"
+            if facets.get("derived_from"):
+                tip += "\n" + f"{VARIANT_GLYPH} variant of {facets['derived_from']}"
+            return tip
         if role == Qt.ItemDataRole.AccessibleTextRole:
             return self.accessible_text(index.row())
         if role == Qt.ItemDataRole.AccessibleDescriptionRole:
@@ -620,6 +631,11 @@ class AssetCardDelegate(QStyledItemDelegate):
                 Qt.AlignmentFlag.AlignCenter,
                 glyph,
             )
+        if index.data(VariantRole):  # a recolour variant: a glyph in the picture's corner
+            corner = QRect(rect.left() + self.STRIP + 4, rect.top() + 4, 14, 14)
+            painter.fillRect(corner, palette.base())
+            painter.setPen(palette.text().color())
+            painter.drawText(corner, Qt.AlignmentFlag.AlignCenter, VARIANT_GLYPH)
         text_rect = QRect(
             rect.left() + self.STRIP + 4, rect.top() + self.thumb + 10, self.thumb, 18
         )

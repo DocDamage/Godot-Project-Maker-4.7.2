@@ -62,6 +62,10 @@ def objects_with_role(catalog: catalog_mod.Catalog, role: str) -> list[catalog_m
     return [o for o in sorted(catalog.objects, key=lambda o: o.id) if o.role == role]
 
 
+def _is_variant(asset: catalog_mod.Asset) -> bool:
+    return "derived_from" in asset.detected
+
+
 def candidates(catalog: catalog_mod.Catalog, role: str) -> list[catalog_mod.Asset]:
     """Assets the picker offers for ``role``: plausible usage, assets that already have the role
     first."""
@@ -72,7 +76,13 @@ def candidates(catalog: catalog_mod.Catalog, role: str) -> list[catalog_mod.Asse
         if _usable(a) and catalog_mod.effective(a).get("usage") in usages
     ]
     return sorted(
-        pool, key=lambda a: (catalog_mod.effective(a).get("role") != role, -a.confidence, a.id)
+        pool,
+        key=lambda a: (
+            catalog_mod.effective(a).get("role") != role,
+            _is_variant(a),
+            -a.confidence,
+            a.id,
+        ),
     )
 
 
@@ -80,7 +90,10 @@ def best_for(catalog: catalog_mod.Catalog, role: str) -> str | None:
     """The asset (or object, for buildings) that fills a role by default."""
     found = assets_with_role(catalog, role)
     if found:
-        ranked = sorted(found, key=lambda a: (a.status != "CONFIRMED", -a.confidence, a.id))
+        # a recolour variant (T13.18) never takes a role from the pack's own asset by itself
+        ranked = sorted(
+            found, key=lambda a: (_is_variant(a), a.status != "CONFIRMED", -a.confidence, a.id)
+        )
         return ranked[0].id
     if role in OBJECT_ROLES:
         objs = [o for o in objects_with_role(catalog, role) if o.status != "UNUSED"]

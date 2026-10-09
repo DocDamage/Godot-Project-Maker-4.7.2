@@ -59,6 +59,18 @@ static func battle_traits(index: int) -> Dictionary:
 		},
 	}
 
+## `stats` ({hp, attack, defense, xp, gold}) with a recolour variant's multipliers applied (its
+## `stats`: hp, attack, xp, gold; each result at least 1). Without a variant, `stats` as it is.
+static func recoloured_stats(stats: Dictionary, recolour: Dictionary) -> Dictionary:
+	var factors := JsonUtil.to_dict(recolour.get("stats", {}))
+	if factors.is_empty():
+		return stats
+	var out := stats.duplicate()
+	for key: String in ["hp", "attack", "xp", "gold"]:
+		if factors.has(key):
+			out[key] = maxi(1, roundi(JsonUtil.to_float(stats[key]) * JsonUtil.to_float(factors[key])))
+	return out
+
 ## "slime_idle" -> "Slime": the usual animation / sheet words at the end of a file name are dropped.
 static func display_name(slug: String) -> String:
 	var words := slug.split("_", false)
@@ -86,11 +98,22 @@ func _usable(ctx: BuildContext, a: Dictionary) -> bool:
 	return eff.get("usage", "") == "sprite" and not animations.is_empty() and not (a.get("status", "") in ["UNUSED", "MISSING"])
 
 ## [{asset, slug, index, fallback}] sorted by asset id; the fallback entry when there is no enemy asset.
+## Recolour variants (T13.18) come after the packs' own enemies, so those keep their index and
+## slug; a variant's entry also has `recolour` (its definition in the catalog) and the index of
+## its source, whose stats it starts from. The demo maps never place a variant by themselves.
 func entries(ctx: BuildContext) -> Array[Dictionary]:
 	var assets: Array[Dictionary] = []
+	var recoloured: Array[Dictionary] = []
 	for a in ctx.catalog.assets_by_role("ENEMY"):
-		if _usable(ctx, a):
+		if not _usable(ctx, a):
+			continue
+		if ctx.catalog.recolour(JsonUtil.to_str(a["id"])).is_empty():
 			assets.append(a)
+		else:
+			recoloured.append(a)
+	if assets.is_empty():  # only variants are left: they are the enemies
+		assets = recoloured
+		recoloured = []
 	var out: Array[Dictionary] = []
 	if not assets.is_empty():
 		var ids: Array = []
@@ -99,6 +122,22 @@ func entries(ctx: BuildContext) -> Array[Dictionary]:
 		var slugs := slugs_for(ids)
 		for i in assets.size():
 			out.append({"asset": assets[i], "slug": slugs[i], "index": i, "fallback": false})
+		var taken := {}
+		for e in out:
+			taken[e["slug"]] = true
+		for a in recoloured:
+			var id := JsonUtil.to_str(a["id"])
+			var recolour: Dictionary = ctx.catalog.recolour(id)
+			var slug := id.substr(id.rfind(".") + 1).replace("#", "_")
+			if taken.has(slug):
+				slug = id.replace(".", "__").replace("#", "__")
+			taken[slug] = true
+			var index := out.size()
+			for e in out:
+				var base: Dictionary = e["asset"]
+				if base["id"] == recolour.get("source", ""):
+					index = JsonUtil.to_int(e["index"])
+			out.append({"asset": a, "slug": slug, "index": index, "fallback": false, "recolour": recolour})
 		return out
 	for a in ctx.catalog.assets_by_role("PLAYER"):
 		if _usable(ctx, a):
@@ -121,7 +160,7 @@ func starter_scene(ctx: BuildContext) -> String:
 		var slug: String = e["slug"]
 		if wanted != "" and asset["id"] == wanted and ResourceLoader.exists(scene_path(slug)):
 			return scene_path(slug)
-	for e in list:
+	for e in list:  # the packs' own enemies come first; a variant only when nothing else exists
 		var slug: String = e["slug"]
 		if ResourceLoader.exists(scene_path(slug)):
 			return scene_path(slug)
@@ -143,7 +182,10 @@ func input_hash(ctx: BuildContext) -> String:
 	var parts: Array = []
 	for e in entries(ctx):
 		var a: Dictionary = e["asset"]
-		parts.append({"id": a["id"], "slug": e["slug"], "fallback": e["fallback"], "sha256": a.get("sha256", ""), "eff": ctx.catalog.effective(a)})
+		var part := {"id": a["id"], "slug": e["slug"], "fallback": e["fallback"], "sha256": a.get("sha256", ""), "eff": ctx.catalog.effective(a)}
+		if e.has("recolour"):
+			part["recolour"] = e["recolour"]
+		parts.append(part)
 	return ctx.stable_hash({"v": RECIPE_VERSION, "enemies": parts, "tile": _tile(ctx)})
 
 func build(ctx: BuildContext) -> Array:
@@ -177,7 +219,8 @@ func build(ctx: BuildContext) -> Array:
 	return issues
 
 func _save_definition(ctx: BuildContext, e: Dictionary, frames: SpriteFrames, issues: Array) -> void:
-	var s := scaled(JsonUtil.to_int(e["index"]))
+	var recolour := JsonUtil.to_dict(e.get("recolour", {}))
+	var s := recoloured_stats(scaled(JsonUtil.to_int(e["index"])), recolour)
 	var stats := SeedUtil.make(STATS)
 	stats.set("max_hp", s["hp"])
 	stats.set("hp", s["hp"])
@@ -188,6 +231,9 @@ func _save_definition(ctx: BuildContext, e: Dictionary, frames: SpriteFrames, is
 	var def := SeedUtil.make(ENEMY_DEF)
 	def.set("id", JsonUtil.to_name(e["slug"]))
 	def.set("display_name", "Enemy" if e["fallback"] else display_name(JsonUtil.to_str(e["slug"])))
+	var recolour_name := JsonUtil.to_str(recolour.get("name", ""))
+	if recolour_name != "":
+		def.set("display_name", recolour_name)
 	def.set("sprite_frames", frames)
 	def.set("base_stats", stats)
 	def.set("xp_reward", s["xp"])
