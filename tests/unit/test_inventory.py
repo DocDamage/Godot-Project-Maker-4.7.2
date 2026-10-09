@@ -42,7 +42,8 @@ def test_mixed_inventory_is_sorted_with_kinds() -> None:
     inv = _inv(SYNTH / "mixed")
     paths = [f.path for f in inv.files]
     assert paths == sorted(paths, key=lambda s: (s.casefold(), s))
-    assert len(paths) == 1 + 2 + 1 + 12  # license, two tile sheets, background, 12 icons
+    # license, two tile sheets, background, 12 icons and the repeated one (T13.04)
+    assert len(paths) == 1 + 2 + 1 + 12 + 1
     by = {f.path: f for f in inv.files}
     assert by["LICENSE.txt"].kind == "license" and by["LICENSE.txt"].image is None
     sky = by["backgrounds/sky.png"]
