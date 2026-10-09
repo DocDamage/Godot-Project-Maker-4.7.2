@@ -16,7 +16,7 @@ import dataclasses
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from rpggen.core import config as config_mod
 
@@ -703,3 +703,161 @@ def render_view(view: dict[str, Any], project_root: Path, scale: int = 2) -> Ima
         colour = next((c for key, c in ENTITY_COLORS.items() if key in scene), (180, 180, 180))
         draw.ellipse([x - 4, y - 10, x + 4, y - 2], fill=colour + (255,), outline=(0, 0, 0, 255))
     return _scaled(canvas, scale)
+
+
+# ------------------------------------------------------------------------------------ side view
+# The world of a metroidvania (T14.06): the rooms of ``room_plan.plan`` on their grid of screens,
+# a pixel (times ``scale``) per tile. Flat colours: the preview shows the shape of the world, the
+# gates and where the abilities lie, not the pack's art.
+
+SIDE_COLORS: dict[str, tuple[int, int, int]] = {
+    "#": (92, 84, 110),  # ground
+    ".": (28, 26, 46),  # air
+    "=": (176, 124, 70),  # a one-way platform
+    "H": (140, 96, 54),  # a ladder
+    "T": (176, 124, 70),
+    "^": (224, 224, 234),  # spikes
+    "B": (160, 150, 172),  # a block that breaks
+}
+SIDE_GAP = 4  # px between two rooms of the grid
+SIDE_BACKGROUND = (14, 13, 24)
+SIDE_EDGE = (58, 54, 80)
+SIDE_MARKERS = {
+    "spawn": (255, 255, 255),
+    "station": (120, 220, 140),
+    "pickup": (255, 193, 7),
+    "guardian": (229, 57, 53),
+    "enemy": (229, 120, 100),
+    "npc": (66, 165, 245),
+    "exit": (171, 71, 188),
+}
+SIDE_MARKER_ORDER = ("spawn", "station", "pickup", "guardian", "enemy", "npc", "exit")
+
+
+def _grid_bounds(rooms: dict[str, Any]) -> tuple[int, int, int, int]:
+    xs = [r["cell"][0] for r in rooms["list"]]
+    ys = [r["cell"][1] for r in rooms["list"]]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def world_rects(rooms: dict[str, Any], scale: int = 3) -> dict[str, tuple[int, int, int, int]]:
+    """Room id -> (left, top, width, height) of its cell in the picture of ``render_world``."""
+    if not rooms.get("list"):
+        return {}
+    w, h = rooms["room_size"]
+    left, top, _right, _bottom = _grid_bounds(rooms)
+    out = {}
+    for room in rooms["list"]:
+        gx, gy = room["cell"][0] - left, room["cell"][1] - top
+        out[room["id"]] = (
+            SIDE_GAP + gx * (w * scale + SIDE_GAP),
+            SIDE_GAP + gy * (h * scale + SIDE_GAP),
+            w * scale,
+            h * scale,
+        )
+    return out
+
+
+def room_at(rooms: dict[str, Any], x: float, y: float, scale: int = 3) -> str | None:
+    """The room whose cell holds the point (x, y) of the world picture, or None."""
+    for ident, (left, top, width, height) in world_rects(rooms, scale).items():
+        if left <= x < left + width and top <= y < top + height:
+            return ident
+    return None
+
+
+def _room_tiles(room: dict[str, Any]) -> Image.Image:
+    rows = room["tiles"]
+    picture = Image.new("RGB", (len(rows[0]), len(rows)), SIDE_COLORS["."])
+    pixels = picture.load()
+    assert pixels is not None
+    for y, row in enumerate(rows):
+        for x, char in enumerate(row):
+            pixels[x, y] = SIDE_COLORS.get(char, SIDE_COLORS["."])
+    return picture
+
+
+def _room_markers(room: dict[str, Any]) -> list[tuple[str, list[int]]]:
+    """(kind, feet cell) of what stands in a room, in drawing order."""
+    out: list[tuple[str, list[int]]] = [("enemy", cell) for cell in room.get("enemies", [])]
+    for key in ("spawn", "station", "npc"):
+        if key in room:
+            out.append((key, room[key]))
+    if "pickup" in room:
+        out.append(("pickup", room["pickup"]["cell"]))
+    if "guardian" in room:
+        out.append(("guardian", room["guardian"]["cell"]))
+    return out
+
+
+def _draw_marker(draw: ImageDraw.ImageDraw, x: float, y: float, kind: str, size: float) -> None:
+    colour = SIDE_MARKERS[kind] + (255,)
+    draw.ellipse([x - size, y - size, x + size, y + size], fill=colour, outline=(0, 0, 0, 255))
+
+
+def _draw_room(room: dict[str, Any], scale: int) -> Image.Image:
+    """One room at ``scale`` px per tile with its markers, exits and gate letters."""
+    from rpggen.core import room_plan
+
+    picture = _scaled(_room_tiles(room).convert("RGBA"), scale)
+    draw = ImageDraw.Draw(picture)
+    w, h = picture.size
+    for exit_ in room["exits"]:  # a notch on the edge the exit is in
+        x, y = exit_["cell"]
+        colour = SIDE_MARKERS["exit"] + (255,)
+        if exit_["edge"] in ("E", "W"):
+            left = w - scale if exit_["edge"] == "E" else 0
+            draw.rectangle(
+                [left, (y - 2) * scale, left + scale - 1, (y + 1) * scale - 1], fill=colour
+            )
+        else:
+            top = 0 if exit_["edge"] == "N" else h - scale
+            draw.rectangle([x * scale, top, (x + 1) * scale - 1, top + scale - 1], fill=colour)
+    dot = max(1.5, scale * 0.75)
+    for kind, (x, y) in _room_markers(room):
+        _draw_marker(draw, (x + 0.5) * scale, (y + 0.5) * scale, kind, dot)
+    for gate in room.get("gates", []):  # the letter of the ability a gate asks for
+        letter = room_plan.GATE_LETTERS.get(gate["ability"], "?")
+        x, y = gate["cell"]
+        at = ((x - 1) * scale, max(0, (y - 7) * scale))
+        # the built-in bitmap font is pixel exact; the default one may be an anti-aliased TTF
+        font = ImageFont.load_default_imagefont()
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            draw.text((at[0] + dx, at[1] + dy), letter, font=font, fill=(0, 0, 0, 255))
+        draw.text(at, letter, font=font, fill=(255, 235, 150, 255))
+    return picture
+
+
+def render_world(rooms: dict[str, Any], scale: int = 3, selected: str | None = None) -> Image.Image:
+    """The world as a grid of screens: one cell per room where the plan put it, each drawn tile
+    by tile in side-view colours, with a notch per exit, a dot for the start, the save station,
+    the pickups, the guardian, the enemies and the hermit, and the letter of every gate
+    (``room_plan.GATE_LETTERS``). ``selected`` gets a bright frame."""
+    rects = world_rects(rooms, scale)
+    if not rects:
+        return Image.new("RGBA", (SIDE_GAP * 2, SIDE_GAP * 2), SIDE_BACKGROUND + (255,))
+    width = max(left + w for left, _top, w, _h in rects.values()) + SIDE_GAP
+    height = max(top + h for _left, top, _w, h in rects.values()) + SIDE_GAP
+    canvas = Image.new("RGBA", (width, height), SIDE_BACKGROUND + (255,))
+    draw = ImageDraw.Draw(canvas)
+    for room in rooms["list"]:
+        left, top, w, h = rects[room["id"]]
+        canvas.paste(_draw_room(room, scale), (left, top))
+        frame = (255, 255, 255, 255) if room["id"] == selected else SIDE_EDGE + (255,)
+        draw.rectangle([left - 1, top - 1, left + w, top + h], outline=frame)
+    return canvas
+
+
+def render_room(room: dict[str, Any], scale: int = 8) -> Image.Image:
+    """One room large enough to see its platforms (the preview shows it for a clicked room)."""
+    return _draw_room(room, scale)
+
+
+def world_markers(rooms: dict[str, Any]) -> dict[str, int]:
+    """How many of each marker kind the world has, for the preview's legend."""
+    counts = {kind: 0 for kind in SIDE_MARKER_ORDER}
+    for room in rooms.get("list", []):
+        counts["exit"] += len(room["exits"])
+        for kind, _cell in _room_markers(room):
+            counts[kind] += 1
+    return counts
