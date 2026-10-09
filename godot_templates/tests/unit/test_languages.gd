@@ -56,9 +56,14 @@ func test_the_language_is_saved_and_system_means_the_os_locale(t) -> void:
 	settings.language = ""
 	settings.load_settings()
 	t.eq(settings.language, "fr")
+	# the server standardizes a locale (a Linux runner's "C" becomes "en"): compare with what it
+	# makes of the system's
+	TranslationServer.set_locale(OS.get_locale())
+	var system_locale := TranslationServer.get_locale()
+	TranslationServer.set_locale("fr")
 	settings.set_language("")
 	t.eq(settings.effective_locale(), OS.get_locale())
-	t.eq(TranslationServer.get_locale(), OS.get_locale())
+	t.eq(TranslationServer.get_locale(), system_locale)
 	DirAccess.remove_absolute(settings.path)
 	TranslationServer.set_locale("en")
 	Fixtures.uninstall("RpgSettings")

@@ -77,9 +77,15 @@ func _exit_building() -> String:
 	var p := _player()
 	if p == null:
 		return "no player in the interior"
+	# let go as soon as the door takes over: a player still walking while the starter map fades
+	# in drifts from the spawn, by more than the tolerance on a slow machine
 	Input.action_press("move_down")
-	var arrived := await _wait_for_map("StarterMap", 240)
+	for i in 240:
+		await tree.physics_frame
+		if tree.current_scene != scene or _router().is_busy():
+			break
 	Input.action_release("move_down")
+	var arrived := await _wait_for_map("StarterMap", 240)
 	if not arrived:
 		return "walking down to the exit did not return to the starter map"
 	p = _player()
