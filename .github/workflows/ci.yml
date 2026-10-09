@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           pip install pip-tools
-          pip-compile --generate-hashes --allow-unsafe --extra dev --quiet --strip-extras \
+          pip-compile --generate-hashes --allow-unsafe --extra dev --extra maps --quiet --strip-extras \
             -o requirements/release.txt pyproject.toml
           git diff --exit-code requirements/release.txt
       - name: Cache Godot

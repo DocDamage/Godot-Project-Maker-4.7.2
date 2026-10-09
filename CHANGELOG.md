@@ -3,6 +3,11 @@
 All notable changes to the rpggen application. The generated game's runtime has its own
 changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
+## 1.1.0 (in progress, on the branch `m13`)
+
+* Tiled map layers saved with **Zstandard** compression are imported (TILE-009 is now only for a
+  compression rpggen does not know).
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

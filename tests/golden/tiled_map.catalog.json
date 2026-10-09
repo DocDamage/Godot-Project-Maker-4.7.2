@@ -369,6 +369,41 @@
           "kind": "tiles",
           "name": "Ground",
           "tileset": "overworld"
+        },
+        {
+          "cells": [
+            [
+              1,
+              -1,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              1,
+              2,
+              0
+            ],
+            [
+              3,
+              -1,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              1,
+              0,
+              0
+            ]
+          ],
+          "kind": "tiles",
+          "name": "Detail",
+          "tileset": "overworld"
         }
       ],
       "pack_id": "tiled_map",
@@ -401,7 +436,7 @@
       "pack_id": "tiled_map",
       "profile_id": null,
       "root": "assets/packs/tiled_map",
-      "source_sha256": "a3533e49faadc1f3917dd5ce7183a360f55a55b16b7cc30202eca7049a88beaa",
+      "source_sha256": "0c7d1771e040dcf9efd22fbbea93a01b263913066f77e8ae63e19d5f1673786b",
       "warnings": []
     }
   ],

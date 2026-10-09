@@ -10,6 +10,7 @@ are also available in the packages' `dist-info` folders inside the bundle.
 | Pillow | reading and writing images | MIT-CMU (HPND) | https://github.com/python-pillow/Pillow/blob/main/LICENSE |
 | NumPy | image analysis | BSD-3-Clause | https://github.com/numpy/numpy/blob/main/LICENSE.txt |
 | py7zr | reading `.7z` packs | LGPL-2.1-or-later | https://github.com/miurahr/py7zr/blob/master/LICENSE |
+| python-zstandard (with the Zstandard library) | reading Tiled map layers saved with Zstandard compression | BSD-3-Clause | https://github.com/indygreg/python-zstandard/blob/main/LICENSE |
 | psutil | finding a Godot editor that has a project open | BSD-3-Clause | https://github.com/giampaolo/psutil/blob/master/LICENSE |
 | jsonschema (with jsonschema-specifications, referencing, rpds-py) | validating catalogs, configs and profiles | MIT | https://github.com/python-jsonschema/jsonschema/blob/main/COPYING |
 | Python | the runtime | PSF-2.0 | https://docs.python.org/3/license.html |

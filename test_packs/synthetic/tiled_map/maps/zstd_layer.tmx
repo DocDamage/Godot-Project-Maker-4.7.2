@@ -6,6 +6,9 @@
 1,1,1</data>
  </layer>
  <layer id="2" name="Detail" width="3" height="2">
-  <data encoding="base64" compression="zstd">KLUv/QBYAQAA</data>
+  <data encoding="base64" compression="zstd">KLUv/SAYwQAAAAAAABIAAAAAAAAAAAAAAAAAAAACAAAA</data>
+ </layer>
+ <layer id="3" name="Lost" width="3" height="2">
+  <data encoding="base64" compression="lz4">AAAAAA==</data>
  </layer>
 </map>

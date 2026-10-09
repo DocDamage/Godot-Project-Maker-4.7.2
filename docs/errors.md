@@ -85,7 +85,7 @@
 | TILE-006 | warning | Terrain layout in {asset} not recognized; terrain skipped. | Paint manually or set terrain in the audit. |
 | TILE-007 | info | Collision on {asset} {coords} was edited in Godot and kept. | — |
 | TILE-008 | info | Tile animation at {coords} in {asset} is not a horizontal run and was skipped. | Rearrange frames in a copy of the sheet if needed. |
-| TILE-009 | warning | Layer {layer} of map {map} was skipped: {reason}. | Save the map with zlib or gzip compression, or assign the layer's tile set in the audit. |
+| TILE-009 | warning | Layer {layer} of map {map} was skipped: {reason}. | Save the map with zlib, gzip or Zstandard compression, or assign the layer's tile set in the audit. |
 
 ## Animation (ANIM)
 

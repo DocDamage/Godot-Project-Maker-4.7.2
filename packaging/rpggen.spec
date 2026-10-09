@@ -66,6 +66,7 @@ datas += [(os.path.join(I18N, f), os.path.join("rpggen", "gui", "i18n"))
 datas += collect_data_files("jsonschema_specifications")  # referenced schemas of jsonschema
 
 hidden = ["psutil"]  # imported inside a function (promote.editor_open)
+hidden += ["zstandard"]  # imported by name (adapters.tiled, T13.14)
 
 
 def analysis(script):

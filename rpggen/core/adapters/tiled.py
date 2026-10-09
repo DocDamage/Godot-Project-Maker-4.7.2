@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import binascii
+import importlib
+import io
 import json
 import posixpath
 import struct
@@ -293,9 +295,38 @@ def _inflate(raw: bytes, wbits: int) -> bytes:
     return out
 
 
+def _zstd_module() -> tuple[str, Any] | None:
+    """The Zstandard reader that can be imported: the ``zstandard`` package (the ``maps`` extra,
+    always in the packages), else the reader py7zr brings along. None in a checkout with neither."""
+    for name in ("zstandard", "compression.zstd", "backports.zstd"):
+        try:
+            return name, importlib.import_module(name)
+        except ImportError:
+            continue
+    return None
+
+
+def _unzstd(raw: bytes) -> bytes:
+    found = _zstd_module()
+    if found is None:
+        raise _Unsupported("it is compressed with Zstandard: install the zstandard package")
+    name, module = found
+    try:
+        if name == "zstandard":
+            with module.ZstdDecompressor().stream_reader(io.BytesIO(raw)) as reader:
+                out = bytes(reader.read(MAX_TILE_BYTES + 1))
+        else:
+            out = bytes(module.ZstdDecompressor().decompress(raw, MAX_TILE_BYTES + 1))
+    except (module.ZstdError, EOFError) as exc:
+        raise _Unsupported("the tile data is damaged") from exc
+    if len(out) > MAX_TILE_BYTES:
+        raise _Unsupported("the tile data is too large")
+    return out
+
+
 def _decode(data: Any, encoding: str | None, compression: str | None) -> list[int]:
-    """The global tile ids of one ``data`` element (CSV, a JSON list, or base64 with
-    zlib or gzip). Zstandard and anything else raise ``_Unsupported``."""
+    """The global tile ids of one ``data`` element (CSV, a JSON list, or base64 with zlib, gzip
+    or Zstandard). Anything else raises ``_Unsupported``."""
     if isinstance(data, list):
         return [int(v) for v in data]
     text = str(data or "").strip()
@@ -312,8 +343,10 @@ def _decode(data: Any, encoding: str | None, compression: str | None) -> list[in
             raw = _inflate(raw, zlib.MAX_WBITS)
         elif compression == "gzip":
             raw = _inflate(raw, 16 + zlib.MAX_WBITS)
+        elif compression == "zstd":
+            raw = _unzstd(raw)
         elif compression:
-            raise _Unsupported(f"{compression} compression is not supported")
+            raise _Unsupported(f"it uses an unsupported compression ({compression})")
     except (binascii.Error, zlib.error, ValueError) as exc:
         raise _Unsupported("the tile data is damaged") from exc
     if len(raw) % 4:

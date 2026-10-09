@@ -60,7 +60,7 @@ Linux lock file, the Linux Godot).
 
   ```bat
   pip install pip-tools
-  pip-compile --generate-hashes --allow-unsafe --extra dev --strip-extras -o requirements/release.txt pyproject.toml
+  pip-compile --generate-hashes --allow-unsafe --extra dev --extra maps --strip-extras -o requirements/release.txt pyproject.toml
   ```
 
   CI regenerates the file and fails when it differs, so a stale lock never reaches a tag.
@@ -72,8 +72,8 @@ Linux lock file, the Linux Godot).
   `release.txt`, with [uv](https://docs.astral.sh/uv/):
 
   ```bat
-  uv pip compile pyproject.toml --extra dev --generate-hashes --python-version 3.12 --python-platform x86_64-manylinux_2_35 --constraint requirements/release.txt -o requirements/release-linux.txt
-  uv pip compile pyproject.toml --extra dev --generate-hashes --python-version 3.12 --python-platform aarch64-apple-darwin --constraint requirements/release.txt -o requirements/release-macos.txt
+  uv pip compile pyproject.toml --extra dev --extra maps --generate-hashes --python-version 3.12 --python-platform x86_64-manylinux_2_35 --constraint requirements/release.txt -o requirements/release-linux.txt
+  uv pip compile pyproject.toml --extra dev --extra maps --generate-hashes --python-version 3.12 --python-platform aarch64-apple-darwin --constraint requirements/release.txt -o requirements/release-macos.txt
   ```
 
   The Linux target is glibc 2.35 (Ubuntu 22.04, the build runner): PySide6 6.11 publishes Linux

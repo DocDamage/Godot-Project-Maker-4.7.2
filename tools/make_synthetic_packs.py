@@ -605,6 +605,13 @@ def _gids_base64(gids: list[int], compression: str) -> str:
         raw = bytes(packed)
     elif compression == "zlib":
         raw = zlib.compress(raw, 0)
+    elif compression == "zstd":
+        # written by hand, so the pack needs no Zstandard library and never changes with one:
+        # the magic number, a single-segment frame header with a one-byte content size, and one
+        # last raw block (3-byte header: size << 3 | last)
+        assert len(raw) < 256
+        header = bytes.fromhex("28b52ffd20") + bytes([len(raw)])
+        raw = header + (len(raw) << 3 | 1).to_bytes(3, "little") + raw
     return base64.b64encode(raw).decode("ascii")
 
 
@@ -680,8 +687,9 @@ def make_tiled_map(out: Path) -> None:
         ],
     }  # fmt: skip
     _write_json_ordered(pack / "maps" / "cave.tmj", cave)
-    # a layer saved with zstd cannot be read: it is skipped, the other layer is imported
-    zstd = """<?xml version="1.0" encoding="UTF-8"?>
+    # a layer saved with zstd (T13.14) is read like the others; one with a compression nobody
+    # knows is skipped, the other layers are imported
+    zstd = f"""<?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" orientation="orthogonal" width="3" height="2" tilewidth="16" tileheight="16" infinite="0">
  <tileset firstgid="1" source="../terrain.tsx"/>
  <layer id="1" name="Ground" width="3" height="2">
@@ -689,7 +697,10 @@ def make_tiled_map(out: Path) -> None:
 1,1,1</data>
  </layer>
  <layer id="2" name="Detail" width="3" height="2">
-  <data encoding="base64" compression="zstd">KLUv/QBYAQAA</data>
+  <data encoding="base64" compression="zstd">{_gids_base64([0, 18, 0, 0, 0, 2], "zstd")}</data>
+ </layer>
+ <layer id="3" name="Lost" width="3" height="2">
+  <data encoding="base64" compression="lz4">AAAAAA==</data>
  </layer>
 </map>
 """

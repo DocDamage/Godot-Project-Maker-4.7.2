@@ -87,12 +87,14 @@ def test_every_tile_encoding_is_read_from_the_synthetic_pack() -> None:
     cave = by_id["tiled_map.maps.cave"]  # base64 + gzip, and a plain JSON list
     assert _cells(_layer(cave, "Floor"))[3] == (0, 1, 2, 0)
     assert _cells(_layer(cave, "Plain"))[1] == (0, 0, 1, 0)
-    # only the zstd layer is lost, with TILE-009; its map keeps the other layer
+    # base64 + zstd (T13.14); only the layer with an unknown compression is lost, with TILE-009
     zstd = by_id["tiled_map.maps.zstd_layer"]
-    assert [layer["name"] for layer in zstd["layers"]] == ["Ground"]
+    assert [layer["name"] for layer in zstd["layers"]] == ["Ground", "Detail"]
+    assert _cells(_layer(zstd, "Detail"))[1] == (0, 1, 2, 0)  # gid 18 again
     skipped = [i for i in issues if i.code == "TILE-009"]
     assert len(skipped) == 1
-    assert skipped[0].detail["layer"] == "Detail" and "zstd" in skipped[0].detail["reason"]
+    assert skipped[0].detail["layer"] == "Lost"
+    assert skipped[0].detail["reason"] == "it uses an unsupported compression (lz4)"
     assert skipped[0].severity.value == "warning"
 
 
