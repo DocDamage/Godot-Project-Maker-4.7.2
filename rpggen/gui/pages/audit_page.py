@@ -8,6 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -26,11 +27,12 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen import ids
-from rpggen.core import app_settings, labels, profile_registry, profiles
+from rpggen.core import app_settings, contact_sheet, labels, profile_registry, profiles
 from rpggen.core import catalog as catalog_mod
 from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
 from rpggen.gui import workers
+from rpggen.gui.dialogs.contact_sheet_dialog import ContactSheetDialog, SheetOptions
 from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog, FindProfileDialog
 from rpggen.gui.edits import EditSession
 from rpggen.gui.pages.base import WizardPage
@@ -119,6 +121,9 @@ class AuditPage(WizardPage):
         self.import_action.setObjectName("importProfileAction")
         self.online_action = profile_menu.addAction(self.tr("Find profile online…"))
         self.online_action.setObjectName("findProfileAction")
+        profile_menu.addSeparator()
+        self.sheet_action = profile_menu.addAction(self.tr("Export contact sheet…"))
+        self.sheet_action.setObjectName("contactSheetAction")
         self.profile_button.setMenu(profile_menu)
         self.profile_button.setToolTip(self.tr("Export, import or look online for a pack profile"))
         # the tab bar's corner gives a widget its minimum width: ask for the whole button
@@ -126,6 +131,7 @@ class AuditPage(WizardPage):
         self.export_action.triggered.connect(lambda: self.export_profile())
         self.import_action.triggered.connect(lambda: self.import_profile())
         self.online_action.triggered.connect(lambda: self.find_profile_online())
+        self.sheet_action.triggered.connect(lambda: self.export_contact_sheet())
         self.quick_roles = list(app_settings.get().quick_roles) or list(QUICK_ROLES)
         self.archetype = "turn_based"
         self.grid = AssetGrid()
@@ -478,6 +484,80 @@ class AuditPage(WizardPage):
 
     def run_analysis(self, state: WizardState) -> bool:  # overridden by tests
         return analysis_progress.run_analysis(self, state)
+
+    # ------------------------------------------------------------------ contact sheet (T12.57)
+
+    def ask_sheet_options(self, shown: int, total: int) -> SheetOptions | None:  # tests override
+        dialog = ContactSheetDialog(shown, total, self)
+        return dialog.options() if dialog.exec() == QDialog.DialogCode.Accepted else None
+
+    def ask_sheet_path(self, fmt: str) -> Path | None:  # tests override
+        state = self.state
+        start = Path(state.target).parent if state and state.target else Path.home()
+        name = "contact_sheet.pdf" if fmt == "pdf" else "contact_sheet.png"
+        pattern = self.tr("PDF (*.pdf)") if fmt == "pdf" else self.tr("PNG images (*.png)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, self.tr("Export contact sheet"), str(start / name), pattern
+        )
+        return Path(path) if path else None
+
+    def export_contact_sheet(self) -> list[Path]:
+        """The assets shown (as filtered) or all of them on A4 or Letter pages, as a PDF or
+        PNGs, drawn in a worker. Returns the files written."""
+        if self.session is None:
+            return []
+        shown_ids = self.grid.visible_ids()
+        total = len(self.session.catalog.assets)
+        options = self.ask_sheet_options(len(shown_ids), total)
+        if options is None:
+            return []
+        out = self.ask_sheet_path(options.fmt)
+        if out is None:
+            return []
+        entries = contact_sheet.entries_for(
+            self.session.catalog, self.resolver, shown_ids if options.filtered else None
+        )
+        title = self.state.config.project_name if self.state and self.state.config else ""
+
+        def job(*, callbacks: workers.Callbacks) -> list[Path]:
+            return contact_sheet.export(
+                entries,
+                out,
+                options.fmt,
+                options.paper,
+                options.grid_overlay,
+                title,
+                is_cancelled=callbacks.is_cancelled,
+                progress=lambda done, n: callbacks.on_phase(
+                    self.tr("Drawing the contact sheet…"), done, n
+                ),
+            )
+
+        outcome = run_task(
+            self,
+            self.tr("Drawing the contact sheet…"),
+            job,
+            object_name="contactSheetProgress",
+            determinate=True,
+        )
+        if not outcome.ok:
+            if outcome.error is not None:
+                QMessageBox.warning(
+                    self, self.tr("Export contact sheet"), error_text(outcome.error)
+                )
+            return []
+        files: list[Path] = list(outcome.value or [])
+        self.say_sheet_written(files)
+        return files
+
+    def say_sheet_written(self, files: list[Path]) -> None:  # tests override
+        if files:
+            QMessageBox.information(
+                self,
+                self.tr("Export contact sheet"),
+                self.tr("Written: {0}").format(", ".join(str(f) for f in files[:3]))
+                + (self.tr(" and {0} more").format(len(files) - 3) if len(files) > 3 else ""),
+            )
 
     def export_profile(self) -> Path | None:
         """Ask for the profile's details and a file, then write the profile of one pack."""

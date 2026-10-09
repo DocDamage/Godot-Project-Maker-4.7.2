@@ -62,6 +62,12 @@ class WindowMenus:
         self.recent_menu.setObjectName("recentMenu")
         file_menu.aboutToShow.connect(self._fill_recent_menu)
         file_menu.addSeparator()
+        self.sheet_action = self._action(
+            file_menu,
+            self.tr("Export contact s&heet…"),
+            "contactSheetMenuAction",
+            self.export_contact_sheet,
+        )
         self.conflicts_action = self._action(
             file_menu, self.tr("Resolve &conflicts…"), "resolveConflictsAction", self.show_conflicts
         )
@@ -377,6 +383,18 @@ class WindowMenus:
 
     def show_about(self) -> None:
         AboutDialog(self).exec()  # type: ignore[arg-type]
+
+    def export_contact_sheet(self) -> None:
+        """The Audit page's contact sheet (T12.57); it needs an analysed pack."""
+        audit = self._audit_page()
+        if audit is None or getattr(audit, "session", None) is None:
+            QMessageBox.information(
+                self,  # type: ignore[arg-type]
+                self.tr("Export contact sheet"),
+                self.tr("Add a pack and open the Audit page first."),
+            )
+            return
+        audit.export_contact_sheet()
 
     def show_conflicts(self) -> None:
         """The resolver (T12.58) for the project the wizard has open."""

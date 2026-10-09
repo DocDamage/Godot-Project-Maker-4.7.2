@@ -104,6 +104,11 @@ dialogue, inventory, equipment, menus) are the same.
   credit but names no author gets ASSET-028 until you enter one.
 * **Profile menu:** export your audit as a profile, import one, or find one online
   ([profiles](profiles.md)).
+* **Contact sheet:** *Profile → Export contact sheet…* (or *File → Export contact sheet…*)
+  prints the assets on A4 or Letter pages, as a PDF or one PNG per page, for review away from
+  the computer: each asset's picture (optionally with its tile or frame grid), file name, role,
+  status, confidence and tile or frame size. It takes the assets the grid shows now (your
+  filters) or all of them.
 
 **Mapping page.** A checklist of what the starter map and the systems need: ground, wall, player,
 NPC, enemy, chest, building, UI and so on. Each row shows the chosen asset. *Choose…* lists only
