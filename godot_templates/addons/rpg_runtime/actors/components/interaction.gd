@@ -28,8 +28,9 @@ func _ready() -> void:
 		actor.facing_changed.connect(_on_facing_changed)
 		_reposition(actor.facing)
 
-## The small key hint above the thing the player can interact with: the first key bound to
-## `interact`, or the gamepad button when a controller is connected.
+## The small key hint above the thing the player can interact with: the glyph of `interact`
+## for the device used last ("[E]", "[A]", "[Cross]"; T12.55). It is read every frame, so a
+## remapped key or a switch to the pad shows at once.
 func _physics_process(_delta: float) -> void:
 	if actor == null:
 		return
@@ -50,34 +51,15 @@ func _physics_process(_delta: float) -> void:
 	_prompt.visible = true
 	_prompt.global_position = (target as Node2D).global_position + Vector2(-_prompt.size.x / 2.0, -tile_size * 1.8 - _prompt.size.y)
 
-## "E" for the keyboard, "A" (or whatever the controller calls it) for a gamepad.
+## "[E]" for the keyboard, "[A]" (or whatever the controller calls it) for a gamepad.
 func prompt_text() -> String:
-	var settings := RpgUtil.settings()
-	var events := InputMap.action_get_events("interact") if InputMap.has_action("interact") else []
-	var pad := not Input.get_connected_joypads().is_empty()
-	return key_text(events, pad, settings)
+	return RpgInputGlyphs.glyph("interact")
 
-## The first event of the wanted device as text; "?" when `interact` has none. `settings` is the
-## RpgSettings node (or null).
-static func key_text(events: Array, gamepad: bool, settings: RpgSettingsStore = null) -> String:
-	var first: InputEvent = null
-	for ev: InputEvent in events:
-		var wanted: bool = ev is InputEventJoypadButton if gamepad else ev is InputEventKey
-		if wanted:
-			first = ev
-			break
-	if first == null and not events.is_empty():
-		first = events[0]
-	if first == null:
-		return "?"
-	if settings != null:
-		return RpgSettingsStore.event_text(first)
-	if first is InputEventKey:
-		var key_ev: InputEventKey = first
-		if key_ev.keycode == KEY_NONE:
-			return key_ev.as_text_physical_keycode()
-		return key_ev.as_text_keycode()
-	return first.as_text()
+## The first event of the wanted device as text, without brackets; "?" when there is none.
+## (`settings` is no longer needed: kept so that older callers still work.)
+static func key_text(events: Array, gamepad: bool, _settings: RpgSettingsStore = null) -> String:
+	var device := RpgInputGlyphs.pad_layout() if gamepad else RpgInputGlyphs.KEYBOARD
+	return RpgInputGlyphs.binding_text(events, device)
 
 func _find_actor() -> RpgActor:
 	var node := get_parent()

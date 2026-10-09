@@ -103,9 +103,9 @@ func _build_controls() -> void:
 
 func _binding_text(action: String) -> String:
 	var parts: PackedStringArray = []
-	var s := _settings()
+	var layout := RpgInputGlyphs.pad_layout()  # pad buttons by the pad's own names (T12.55)
 	for ev in InputMap.action_get_events(action):
-		parts.append(s.event_text(ev) if s != null else ev.as_text())
+		parts.append(RpgInputGlyphs.event_text(ev, layout))
 	return " / ".join(parts) if not parts.is_empty() else "-"
 
 func _wire_focus() -> void:

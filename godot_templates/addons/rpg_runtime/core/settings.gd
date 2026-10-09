@@ -4,6 +4,8 @@ extends Node
 ## stored in user://settings.cfg.
 
 signal changed
+## The kind of device used last changed (RpgInputGlyphs.KEYBOARD or a pad layout, T12.55).
+signal input_device_changed(device: String)
 
 const TEXT_SPEEDS := {"slow": 20.0, "normal": 40.0, "fast": 80.0, "instant": 0.0}
 const UI_SCALES := [1.0, 1.25, 1.5]
@@ -20,10 +22,22 @@ var autosave := true  # an automatic save when a map is entered (SaveManager.aut
 var screen_shake := true  # camera shake and hit-stop of the action RPG
 
 var _defaults := {}  # action -> Array[InputEvent], captured before user bindings are applied
+## The kind of device used last: prompts show its glyphs (not saved; a keyboard at start).
+var input_device: String = RpgInputGlyphs.KEYBOARD
 
 func _ready() -> void:
 	load_settings()
 	apply()
+
+func _input(event: InputEvent) -> void:
+	note_input(event)
+
+## Remembers the device `event` comes from; emits `input_device_changed` when it is a new one.
+func note_input(event: InputEvent) -> void:
+	var device := RpgInputGlyphs.device_of(event)
+	if device != "" and device != input_device:
+		input_device = device
+		input_device_changed.emit(device)
 
 ## Characters per second; 0 means instant.
 func text_cps() -> float:

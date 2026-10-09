@@ -106,6 +106,16 @@ else the start of the map with full health).
 lines by section, the packs and the engine; up and down scroll, Back or `cancel` closes it. The
 title screen and the pause menu open it from their *Credits* button.
 
+## Input glyphs
+
+`RpgInputGlyphs.glyph("interact")` is `"[E]"` while the player uses the keyboard and `"[A]"`,
+`"[Cross]"` or `"[B]"` once they press a button on an Xbox, PlayStation or Nintendo pad (a pad of
+unknown make shows `"[Pad 0]"`). It reads the first binding of that kind of device from the
+InputMap each time, so remapped keys are right. `RpgInputGlyphs.hint([["confirm", "Confirm"],
+["cancel", "Back"]])` makes a line of hints; actions the project does not define are left out.
+Connect to `RpgSettings.input_device_changed` to redraw a prompt when the device changes (the
+battle interface and the title screen do). The glyphs are text, so they use the project font.
+
 ## Debug overlay
 
 In debug builds with the debug tools feature on, **F3** shows FPS, map, position, tile and flag

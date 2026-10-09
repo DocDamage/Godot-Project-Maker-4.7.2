@@ -3,6 +3,7 @@ extends Control
 ## Title: New Game, Continue (disabled without a save), Load, Settings, Credits, Quit.
 
 var _submenu: Control = null
+var _hint: Label = null  # "[Enter] Select" for the device used last (T12.55)
 
 func _ready() -> void:
 	(get_node("%Title") as Label).text = str(ProjectSettings.get_setting("application/config/name", "Game"))
@@ -25,8 +26,29 @@ func _ready() -> void:
 		credits.pressed.connect(_open.bind("credits_menu", {}))
 	(get_node("%Quit") as Button).pressed.connect(_on_quit)
 	RpgMenuUtil.attach_sounds(RpgMenuUtil.focusables(self))
+	_add_hint()
 	_start_music()
 	_focus_initial.call_deferred()
+
+func _add_hint() -> void:
+	_hint = Label.new()
+	_hint.name = "InputHint"
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hint)
+	_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_update_hint()
+	_hint.offset_top = -_hint.get_minimum_size().y - 4.0
+	var settings := RpgUtil.settings()
+	if settings != null:
+		settings.input_device_changed.connect(_on_input_device_changed)
+
+func hint_text() -> String:
+	return RpgInputGlyphs.hint([["ui_accept", tr("UI_HINT_SELECT")]])
+
+func _update_hint() -> void:
+	if _hint != null:
+		_hint.text = hint_text()
 
 ## The title music: the scene's `music_asset_id` meta (set by the builder from the sound slots).
 func _start_music() -> void:
@@ -94,3 +116,6 @@ func _on_submenu_closed() -> void:
 
 func _on_quit() -> void:
 	get_tree().quit()
+
+func _on_input_device_changed(_device: String) -> void:
+	_update_hint()

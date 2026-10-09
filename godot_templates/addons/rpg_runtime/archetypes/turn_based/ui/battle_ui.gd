@@ -25,7 +25,11 @@ var _anchor_of: Callable = Callable()  # actor -> Vector2, the tip of the target
 var _actor: RpgBattleActor = null
 var _active: RpgBattleActor = null  # marked in the party panel while choosing
 var _buttons: Dictionary = {}  # command id -> Button
-var _mode: StringName = &"none"  # none, commands, items (items or skills), target, log
+var _mode: StringName = &"none":  # none, commands, items (items or skills), target, log
+	set(value):
+		_mode = value
+		_update_hint()
+var _hint: Label = null  # the key hints of the current step (T12.55)
 var _candidates: Array[RpgBattleActor] = []
 var _target_index := 0
 var _pending: Dictionary = {}  # {command, extra} while a target is being chosen
@@ -42,6 +46,41 @@ func _ready() -> void:
 		var panel := _node(hidden) as Control
 		if panel != null:
 			panel.visible = false
+	_hint = Label.new()
+	_hint.name = "InputHint"
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hint)
+	_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_hint.offset_top = -_hint.get_minimum_size().y - 2.0
+	var settings := RpgUtil.settings()
+	if settings != null:
+		settings.input_device_changed.connect(_on_input_device_changed)
+	_update_hint()
+
+## The keys of the current step, for the device used last: "[Z] Confirm   [X] Back".
+func hint_text() -> String:
+	var back := ["cancel", tr("UI_BACK")]
+	match _mode:
+		&"commands":
+			return RpgInputGlyphs.hint([["confirm", tr("UI_HINT_CONFIRM")]])
+		&"items":
+			return RpgInputGlyphs.hint([["confirm", tr("UI_HINT_CONFIRM")], back])
+		&"target":
+			return RpgInputGlyphs.hint([
+				[["move_left", "move_right"], tr("UI_HINT_CHOOSE")],
+				["confirm", tr("UI_HINT_CONFIRM")],
+				back,
+			])
+		&"log":
+			return RpgInputGlyphs.hint([["confirm", tr("UI_HINT_NEXT")]])
+	return ""
+
+func _update_hint() -> void:
+	if _hint == null:
+		return
+	_hint.text = hint_text()
+	_hint.visible = _hint.text != ""
 
 ## Builds the command buttons and the status rows for `p_controller`'s battlers.
 ## `anchor_of` maps an actor to the canvas point the target arrow should touch.
@@ -414,3 +453,6 @@ func show_rewards(result: RpgEncounterResult, level_ups: Array) -> void:
 		await _wait_advance(REWARD_SECONDS if line == lines[lines.size() - 1] else LOG_SECONDS * 1.5)
 	_show_log_text("")
 	_mode = &"none"
+
+func _on_input_device_changed(_device: String) -> void:
+	_update_hint()

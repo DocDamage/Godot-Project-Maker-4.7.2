@@ -181,6 +181,13 @@
   animation of its own now shows the direction 45 degrees next to it before it falls back to
   `down`, so a sprite drawn only in the four diagonals works. New: `dir_to_facing8`. `facing`
   stays one of four directions, so hitboxes, interaction and saves are unchanged.
+* Input glyphs (M12): `RpgInputGlyphs` (`ui/input_glyphs.gd`) gives the text glyph of an action
+  for the device used last: `[E]` on a keyboard, `[A]` / `[Cross]` / `[B]` on an Xbox,
+  PlayStation or Nintendo pad (from the pad's name), `[Pad 0]` on a pad of unknown make. It reads
+  the InputMap when asked, so remapped keys show at once. `RpgSettings` tracks the device
+  (`input_device`, signal `input_device_changed`; a release, stick drift or mouse motion does not
+  switch it). The interaction prompt, a key-hint line in the battle interface and on the title
+  screen, and the settings remap list use it. No glyph art is bundled; the glyphs are text.
 
 ## 0.3.0
 

@@ -180,6 +180,9 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
 
 ## 4. In Godot
 
+Key prompts follow the player's device: `[E]` on the keyboard, the pad's own button name
+(`[A]`, `[Cross]`, `[B]`) once a controller is used, and a remapped key at once.
+
 The project has a `README.md` with the controls and where things are: the sound slots and how to
 change them, the heavy attack of the action game, autosave and the game-over screen, and how the
 three maps (starter map, house, field) are connected. Your own work goes in
