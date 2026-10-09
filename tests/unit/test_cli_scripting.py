@@ -550,3 +550,33 @@ def test_confirm_without_a_terminal_is_a_no(
     monkeypatch.setattr("sys.stdin.isatty", lambda: False, raising=False)
     code, answers, err = _confirm_run(monkeypatch, tmp_path, capsys, "--confirm")
     assert code == 4 and answers == [False] and "No terminal" in err
+
+
+def test_a_dry_run_of_a_metroidvania_plans_the_world_of_rooms(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys
+) -> None:
+    """T14.10: the command line takes the archetype, and the dry run says what world it makes."""
+    _no_godot_no_staging(monkeypatch)
+    target = tmp_path / "cave"
+    code, doc, err = _call(
+        capsys,
+        "generate",
+        "--pack",
+        str(SYNTH / "platformer"),
+        "--archetype",
+        "metroidvania",
+        "--target",
+        str(target),
+        "--dry-run",
+    )
+    assert code == 0 and doc["failed_phase"] is None, doc["issues"]
+    summary = doc["summary"]
+    assert summary["archetype"] == "metroidvania"
+    assert summary["roles"]["BOSS"]["need"] == "recommended"
+    assert "BUILDING" not in summary["roles"] or summary["roles"]["BUILDING"]["need"] == "optional"
+    plan = summary["map"]
+    assert plan["world"] == "6 rooms, 2 abilities, a guardian"
+    assert plan["size"] == [40, 23] and len(plan["rooms"]) == 6
+    assert "(metroidvania)" in err
+    assert "world:        6 rooms, 2 abilities, a guardian; rooms of 40 x 23 tiles" in err
+    assert not target.exists()

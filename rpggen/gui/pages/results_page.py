@@ -520,7 +520,11 @@ class ResultsPage(WizardPage):
         pixmap = QPixmap(str(path)) if path is not None else QPixmap()
         if pixmap.isNull():
             self.map_picture.clear()
-            self.map_picture.setText(self.tr("No picture of the starter map was made."))
+            self.map_picture.setText(
+                self.tr("No picture of the world was made.")
+                if self.has_rooms()
+                else self.tr("No picture of the starter map was made.")
+            )
             return
         self.map_picture.setPixmap(
             pixmap.scaled(
@@ -543,10 +547,52 @@ class ResultsPage(WizardPage):
         ("Edit items in <code>game/data/items/</code>.", "game/data/items"),
         ("Read <code>README.md</code> in the project.", "README.md"),
     )
+    # a metroidvania has rooms instead of a starter map (T14.10)
+    NEXT_ITEMS_ROOMS = (
+        ("Press <b>F5</b> in Godot to play.", ""),
+        ("Paint on the rooms in <code>game/maps/rooms/</code>.", "game/maps/rooms"),
+        ("Drag objects from the <b>RPG Project Tools</b> dock into a room.", ""),
+        ("Edit enemies in <code>game/data/enemies/</code>.", "game/data/enemies"),
+        ("Read <code>README.md</code> in the project.", "README.md"),
+    )
+
+    def has_rooms(self) -> bool:
+        """True for the result of a metroidvania: a world of rooms."""
+        cfg = self.result.cfg if self.result is not None else None
+        return cfg is not None and cfg.archetype == "metroidvania"
+
+    def first_map(self) -> str:
+        """The scene the *Open starter map* button shows: the starter map, or the first room
+        of a metroidvania ("" when the project has neither)."""
+        if self.result is None:
+            return ""
+        root = self.result.target
+        if (root / STARTER_MAP.removeprefix("res://")).is_file():
+            return STARTER_MAP
+        from rpggen.core import world_plan
+
+        try:
+            plan = world_plan.load(root) or {}
+        except Exception:  # noqa: BLE001 - a damaged plan only means: open the editor
+            plan = {}
+        rooms = plan.get("rooms") or {}
+        start = next((r for r in rooms.get("list", []) if r["id"] == rooms.get("start")), None)
+        if start is not None and (root / start["map"]).is_file():
+            return "res://" + start["map"]
+        return ""
 
     def _fill_next_steps(self) -> None:
+        rooms = self.has_rooms()
+        self.starter_button.setText(
+            self.tr("Open first room") if rooms else self.tr("Open starter map")
+        )
+        self.starter_button.setToolTip(
+            self.tr("Open the editor with the first room shown")
+            if rooms
+            else self.tr("Open the editor with the starter map shown")
+        )
         rows = []
-        for text, rel in self.NEXT_ITEMS:
+        for text, rel in self.NEXT_ITEMS_ROOMS if rooms else self.NEXT_ITEMS:
             link = f' <a href="show:{rel}">{self.tr("Show")}</a>' if rel else ""
             rows.append(f"<li>{self.tr(text)}{link}</li>")
         self.what_next_label.setText(f"<b>{self.tr('What next')}</b><ul>{''.join(rows)}</ul>")
@@ -718,8 +764,8 @@ class ResultsPage(WizardPage):
         if exe is None:
             return
         args = [str(godot.find_gui_exe(exe)), "--editor", "--path", str(self.result.target)]
-        if (self.result.target / STARTER_MAP.removeprefix("res://")).is_file():
-            args.append(STARTER_MAP)
+        if scene := self.first_map():
+            args.append(scene)
         self.launch(args)
 
     def restore_previous(self) -> bool:

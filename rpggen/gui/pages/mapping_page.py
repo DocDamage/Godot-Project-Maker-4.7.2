@@ -85,7 +85,10 @@ class RoleRowWidget(QFrame):
         )
         self.asset_combo.setMinimumContentsLength(18)
         self.asset_combo.setToolTip(self.tr("The asset for this role: pick another candidate"))
-        self.used_label = QLabel(self.tr("Used for {0}").format(mapping.used_for(row.role)))
+        archetype = page._archetype() if page.state is not None else None
+        self.used_label = QLabel(
+            self.tr("Used for {0}").format(mapping.used_for(row.role, archetype))
+        )
         self.used_label.setObjectName(f"used_{row.role}")
         self.used_label.setProperty("muted", True)
         text_box = QVBoxLayout()
@@ -247,7 +250,7 @@ class MappingPage(WizardPage):
         self.rows = {}
         rows = {row.role: row for row in mapping.rows(archetype)}
         placed: set[str] = set()
-        for group, roles in labels.ROLE_GROUPS:
+        for group, roles in labels.MAPPING_GROUPS:
             members = [rows[r] for r in roles if r in rows]
             if not members:
                 continue
@@ -269,6 +272,7 @@ class MappingPage(WizardPage):
             state.catalog,
             dict(state.config.sounds) if state.config else {},
             make_resolver(state),
+            archetype,
         )
 
     def _archetype(self) -> str:
@@ -611,11 +615,11 @@ class MappingPage(WizardPage):
         if state.catalog is None:
             return []
         missing = mapping.missing_required(state.catalog, self._archetype(), self.placeholders)
-        info = requirements.REQUIRED_BY
+        archetype = self._archetype()
         return [
             form_error(
                 self.tr("{0} is required for {1}: choose an asset or a placeholder.").format(
-                    labels.role_label(role), info.get(role, role.lower())
+                    labels.role_label(role), requirements.required_by(role, archetype)
                 )
             )
             for role in missing

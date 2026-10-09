@@ -26,7 +26,11 @@ def format_bytes(size: int) -> str:
     return f"{megabytes / 1024:.1f} GB"
 
 
-ARCHETYPE_NAMES = {"turn_based": "Turn-based RPG", "arpg": "Action RPG"}
+ARCHETYPE_NAMES = {
+    "turn_based": "Turn-based RPG",
+    "arpg": "Action RPG",
+    "metroidvania": "Metroidvania",
+}
 
 
 class OptionsSummary(QGroupBox):
@@ -67,9 +71,16 @@ class OptionsSummary(QGroupBox):
             "<b>" + self.tr(ARCHETYPE_NAMES.get(summary.archetype, summary.archetype)) + "</b>"
         )
         maps = [self.tr(m) if not m[0].isdigit() else self._interiors(m) for m in summary.maps]
-        self.maps_label.setText(
-            self.tr("Maps: {0}").format(", ".join(maps)) if maps else self.tr("No starter maps")
-        )
+        if summary.archetype == "metroidvania":
+            self.maps_label.setText(
+                self.tr("World: {0}").format(summary.world)
+                if summary.world
+                else self.tr("The world options do not fit together")
+            )
+        else:
+            self.maps_label.setText(
+                self.tr("Maps: {0}").format(", ".join(maps)) if maps else self.tr("No starter maps")
+            )
         self.tiles_label.setText(
             self.tr("{0} px tiles, {1}").format(summary.tile_size, summary.tiles.lstrip("≈ "))
         )

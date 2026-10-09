@@ -163,7 +163,9 @@ class SoundSection(QFrame):
 
     def slot_keys(self) -> list[str]:
         """The rows, top to bottom: the fixed slots, then the custom ones by name."""
-        return list(sound_slots.SLOT_KEYS) + sound_slots.custom_slots(self.sounds)
+        return list(sound_slots.slot_keys(self.archetype)) + sound_slots.custom_slots(
+            self.sounds, self.archetype
+        )
 
     def _build_rows(self) -> None:
         for widget in self._row_widgets:
@@ -190,7 +192,7 @@ class SoundSection(QFrame):
             clear.setObjectName(f"soundClear_{key}")
             clear.setToolTip(self.tr("Leave this slot silent"))
             widgets: list[QWidget] = [name, asset_label, choose, play, clear]
-            if sound_slots.is_custom(key):
+            if sound_slots.is_custom(key, self.archetype):
                 remove = QPushButton("✕")
                 remove.setObjectName(f"soundRemove_{key}")
                 remove.setToolTip(self.tr("Remove this slot"))
@@ -208,11 +210,18 @@ class SoundSection(QFrame):
 
     # ------------------------------------------------------------------ data
 
+    archetype = "turn_based"  # which fixed slots are shown (a metroidvania has four more)
+
     def set_data(
-        self, catalog: catalog_mod.Catalog, sounds: dict[str, str], resolver: Resolver | None
+        self,
+        catalog: catalog_mod.Catalog,
+        sounds: dict[str, str],
+        resolver: Resolver | None,
+        archetype: str = "turn_based",
     ) -> None:
         self.catalog = catalog
-        self.sounds = sound_slots.resolve_sounds(catalog, sounds)
+        self.archetype = archetype
+        self.sounds = sound_slots.resolve_sounds(catalog, sounds, archetype)
         self.resolver = resolver
         self.setVisible(
             bool(
@@ -289,7 +298,7 @@ class SoundSection(QFrame):
         return True
 
     def remove_slot(self, key: str) -> bool:
-        if not sound_slots.is_custom(key) or key not in self.sounds:
+        if not sound_slots.is_custom(key, self.archetype) or key not in self.sounds:
             return False
         self.aboutToChange.emit()
         del self.sounds[key]

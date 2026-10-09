@@ -51,6 +51,13 @@ ROLE_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Things", ("ITEM",)),
     ("Interface", ("UI",)),
 )
+# The Mapping page's groups: the same, with the roles only a metroidvania has rows for (T14.10).
+MAPPING_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("World", ("GROUND", "WALL", "BUILDING", "BACKGROUND", "DECORATION")),
+    ("Characters", ("PLAYER", "NPC", "ENEMY", "BOSS", "PORTRAIT")),
+    ("Things", ("ITEM",)),
+    ("Interface", ("UI",)),
+)
 
 
 def role_label(role: str) -> str:

@@ -74,9 +74,27 @@ def test_main_ci_runs_the_full_ubuntu_job() -> None:
     text = _read(".github/workflows/ci.yml")
     ubuntu = text[text.index("ubuntu:") :]
     assert "Becomes a full job" not in ubuntu
-    for needle in ("fetch_godot", "godot-test", "-m integration", "QT_QPA_PLATFORM"):
+    for needle in ("fetch_godot", "godot-test", '-m "integration', "QT_QPA_PLATFORM"):
         assert needle in text
-    assert "pytest -q -m integration" in ubuntu
+    # the integration suites are split per archetype (T14.11): the main jobs run the shared
+    # ones, and a job per archetype and system runs the rest, so nothing is left out
+    shared = 'pytest -q -m "integration and not arpg and not metroidvania"'
+    assert shared in ubuntu and text.count(shared) == 2
+    job = text[text.index("archetype-integration:") :]
+    assert "archetype: [arpg, metroidvania]" in job
+    assert "os: [windows-latest, ubuntu-latest]" in job
+    assert 'pytest -q -m "integration and ${{ matrix.archetype }}"' in job
+
+
+def test_every_archetype_marker_of_ci_is_a_registered_marker_with_tests() -> None:
+    """A marker the CI selects by must exist, or its job would run nothing and pass."""
+    pyproject = _read("pyproject.toml")
+    for marker, file in (
+        ("arpg", "tests/integration/test_m9_sample.py"),
+        ("metroidvania", "tests/integration/test_m14_side_sample.py"),
+    ):
+        assert f'"{marker}: ' in pyproject, marker
+        assert f"pytest.mark.{marker}" in _read(file), file
 
 
 def test_architecture_doc_is_the_current_spec() -> None:

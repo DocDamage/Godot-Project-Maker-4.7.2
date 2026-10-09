@@ -319,7 +319,7 @@ def phase_catalog(state: _State) -> None:
     state.catalog = catalog
     if not state.cfg.sounds:
         # nothing was chosen (the command line, an older project): the packs' audio is used
-        state.cfg.sounds = sound_slots.default_sounds(catalog)
+        state.cfg.sounds = sound_slots.default_sounds(catalog, state.cfg.archetype)
     state.generated = generated
     _plan_world(state, catalog)
     if state.staging.regenerate:
@@ -478,6 +478,24 @@ STARTER_VIEW = "rpggen/results/starter_map_cells.json"
 STARTER_PICTURE = "rpggen/results/starter_map.png"
 
 
+def _world_picture(state: _State, root: Path) -> None:
+    """The picture of a metroidvania (T14.10): its world of rooms seen from the side, drawn from
+    the stored plan (the rooms are painted from that plan, cell by cell). It has the name of the
+    starter map's picture, so the Results page and the welcome view show it the same way."""
+    try:
+        plan = world_plan.load(root)
+        rooms = (plan or {}).get("rooms")
+        if not rooms:
+            return
+        from rpggen.core import map_preview
+
+        (root / STARTER_PICTURE).parent.mkdir(parents=True, exist_ok=True)
+        map_preview.render_world(rooms, scale=4).save(root / STARTER_PICTURE, format="PNG")
+        state.cb.on_log(f"world picture written to {STARTER_PICTURE}")
+    except Exception as exc:  # noqa: BLE001 - the picture is a nicety
+        state.cb.on_log(f"world picture skipped: {exc}")
+
+
 def _starter_picture(state: _State) -> None:
     """A picture of the starter map as it was really built (T11.27), for the Results page.
 
@@ -486,6 +504,7 @@ def _starter_picture(state: _State) -> None:
     assert state.staging is not None and state.log_dir is not None
     root = state.staging.staging
     if not (root / "game" / "maps" / "starter_map.tscn").is_file():
+        _world_picture(state, root)
         return
     view_path = root / STARTER_VIEW
     try:

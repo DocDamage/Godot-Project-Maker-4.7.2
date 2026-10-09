@@ -24,6 +24,7 @@ from rpggen.errors import Issue
 from rpggen.gui.dialogs.options_dialogs import ManagePresetsDialog, SolidValuesDialog
 from rpggen.gui.models.options_model import (  # noqa: F401 - tests import DEFAULTS_ITEM
     DEFAULTS_ITEM,
+    ROOM_LAYERS,
     SEED_MAX,
     OptionsModel,
     OptionValues,
@@ -88,13 +89,20 @@ class OptionsPage(WizardPage):
 
         self.features = sections.FeatureGroups()
         self.starter_box = sections.StarterMapBox()
+        self.world_box = sections.StarterWorldBox()  # a metroidvania's, instead of the map's
+        self.world_box.setVisible(False)
         self.imported_box = sections.ImportedMapsBox()
         self.screen_box = sections.ScreenBox()
         self.layers_box = sections.LayersBox()
         self.version_control = sections.VersionControlBox()
         self.export_targets = sections.ExportTargetsBox()
         self.advanced = sections.AdvancedOptions()
-        column: tuple[QWidget, ...] = (self.features, self.starter_box, self.imported_box)
+        column: tuple[QWidget, ...] = (
+            self.features,
+            self.starter_box,
+            self.world_box,
+            self.imported_box,
+        )
         for widget in column:
             left.addWidget(widget)
         left.addStretch(1)
@@ -140,6 +148,8 @@ class OptionsPage(WizardPage):
         self.preview.rerollRequested.connect(self.reroll)
         self.starter_box.edited.connect(self._on_starter_edited)
         self.starter_reset.clicked.connect(self._reset_starter)
+        self.world_box.edited.connect(self._on_starter_edited)
+        self.world_box.reset.clicked.connect(self._reset_starter)
         self.imported_box.edited.connect(self._on_imported_edited)
         self.solid_button.clicked.connect(self.edit_solid_values)
         for editor in (self.resolution, self.window_editor):
@@ -226,9 +236,21 @@ class OptionsPage(WizardPage):
             return
         self.starter_box.fill_ground(self.model.ground_choices())
         self.imported_box.fill(self.model.imported_rows(), self.model.has_intgrid())
+        self._show_archetype()
         self._update_starter_state()
         self._load_draft()
         self.changed.emit()
+
+    def _show_archetype(self) -> None:
+        """A metroidvania has a starter world instead of a starter map, no imported maps, no
+        pathfinding and the layers of a room (T14.10)."""
+        side = self.model.is_side
+        self.starter_box.setVisible(not side)
+        self.world_box.setVisible(side)
+        if side:
+            self.imported_box.setVisible(False)
+        self.features.set_hidden({"navigation"} if side else set())
+        self.layers_box.set_fixed(side)
 
     def _load_draft(self) -> None:
         """Shows the draft in the widgets."""
@@ -242,11 +264,17 @@ class OptionsPage(WizardPage):
             self.window_editor.set_value(draft.window_size)
             self.seed_box.setValue(min(draft.seed, SEED_MAX))
             self.repair_box.setChecked(draft.repair_world)
-            self.layers_box.fill(draft.map_layers)
             self.advanced.fill_input(self.model.input_rows())
-            self.starter_box.load(
-                draft.starter_map_options(), self.model.starter_locked, self.model.world_names()
-            )
+            if self.model.is_side:
+                self.layers_box.fill(list(ROOM_LAYERS))
+                self.world_box.load(draft.starter_map_options(), self.model.built_added_rooms())
+            else:
+                self.layers_box.fill(draft.map_layers)
+                self.starter_box.load(
+                    draft.starter_map_options(),
+                    self.model.starter_locked,
+                    self.model.world_names(),
+                )
             chosen = self.model.chosen_imported()
             if chosen is not None:
                 self.imported_box.load(chosen)
@@ -325,11 +353,17 @@ class OptionsPage(WizardPage):
 
     def _update_starter_state(self) -> None:
         state = self.model.starter_state()
+        if self.model.is_side:
+            self.world_box.show_state(state)
+            return
         self.starter_box.show_state(state)
         self.imported_starter.setEnabled(state.imported_enabled)
 
     def starter_values(self) -> dict[str, Any]:
-        """The starter map options as the widgets show them."""
+        """The starter map options as the widgets show them (the starter world's for a
+        metroidvania)."""
+        if self.model.is_side:
+            return self.world_box.values()
         return self.starter_box.values()
 
     def _on_starter_edited(self, *_args: object) -> None:
@@ -342,7 +376,11 @@ class OptionsPage(WizardPage):
         self.changed.emit()
 
     def _show_world(self) -> None:
-        """The world of the areas table, drawn under it (planned at once: it is cheap)."""
+        """The world of the areas table, drawn under it (planned at once: it is cheap); for a
+        metroidvania the rooms, seen from the side."""
+        if self.model.is_side:
+            self.world_box.show_plan(*self.model.rooms_preview(self.starter_values()))
+            return
         self.starter_box.show_world(self.model.world_preview(self.starter_values()))
 
     def _reset_starter(self) -> None:
@@ -350,9 +388,14 @@ class OptionsPage(WizardPage):
             return
         self._loading = True
         try:
-            self.starter_box.load(
-                self.model.starter_defaults(), self.model.starter_locked, self.model.world_names()
-            )
+            if self.model.is_side:
+                self.world_box.load(self.model.starter_defaults())
+            else:
+                self.starter_box.load(
+                    self.model.starter_defaults(),
+                    self.model.starter_locked,
+                    self.model.world_names(),
+                )
         finally:
             self._loading = False
         self._on_starter_edited()

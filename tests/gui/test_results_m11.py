@@ -548,3 +548,40 @@ def test_the_confirmation_lists_every_line(qtbot, tmp_path: Path, monkeypatch) -
     assert page.confirm_world_repair(world_repair.RepairResult(repairs=_repair_lines()))
     assert "game/maps/woods.tscn: added the spawn point from_old_mine" in texts[0]
     assert "Restore previous" in texts[0]
+
+
+def test_the_results_of_a_metroidvania_speak_of_rooms(qtbot, tmp_path: Path) -> None:
+    """T14.10: a world of rooms has no starter map: the button opens the first room, the list
+    points at the rooms folder and the picture is the world seen from the side."""
+    from rpggen.core import config, room_plan, world_plan
+
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path)
+    ref = config.PackRef("x", "C:/x", "0" * 64, "folder")
+    state.run_result.cfg = config.default_for("Cave", [ref], archetype="metroidvania")
+    gui = _with_exes(tmp_path, state)
+    target = state.run_result.target
+    page = _results(qtbot, state)
+    assert page.has_rooms()
+    assert page.starter_button.text() == "Open first room"
+    text = page.what_next_label.text()
+    assert "game/maps/rooms/" in text and "starter_map" not in text
+    assert "No picture of the world" in page.map_picture.text()
+    launched: list[list[str]] = []
+    page.launch = launched.append  # type: ignore[method-assign]
+    page.starter_button.click()  # no plan yet: just the editor
+    rooms = room_plan.plan(room_plan.defaults(), 12345)
+    (target / "rpggen").mkdir(parents=True, exist_ok=True)
+    world_plan.save(target, room_plan.world(rooms, 12345))
+    first = target / rooms["list"][0]["map"]
+    first.parent.mkdir(parents=True)
+    first.write_text("")
+    assert page.first_map() == "res://game/maps/rooms/room_01.tscn"
+    page.starter_button.click()
+    editor = [str(gui), "--editor", "--path", str(target)]
+    assert launched == [editor, [*editor, "res://game/maps/rooms/room_01.tscn"]]
+    # another archetype's result on the same page reads as before
+    state.run_result.cfg = config.default_for("Town", [ref])
+    page.enter(state)
+    assert page.starter_button.text() == "Open starter map"
+    assert "game/maps/starter_map.tscn" in page.what_next_label.text()

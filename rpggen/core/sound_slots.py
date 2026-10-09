@@ -73,7 +73,31 @@ SLOTS: tuple[Slot, ...] = (
          ("levelup", "level", "fanfare", "victory")),
 )  # fmt: skip
 SLOT_KEYS = tuple(s.key for s in SLOTS)
+# The fixed slots only one archetype plays (T14.10). They come after the shared ones; for every
+# other archetype such a name is a custom slot like any other, so their projects are unchanged.
+ARCHETYPE_SLOTS: dict[str, tuple[Slot, ...]] = {
+    "metroidvania": (
+        Slot("sfx_jump", SFX, "Jump", "The player jumps.",
+             ("jump", "hop", "leap")),
+        Slot("sfx_land", SFX, "Land", "The player lands after a fall.",
+             ("land", "landing", "thud")),
+        Slot("sfx_dash", SFX, "Dash", "The player dashes.",
+             ("dash", "dodge", "roll")),
+        Slot("sfx_ability", SFX, "Ability", "An ability is found.",
+             ("powerup", "ability", "upgrade", "power")),
+    ),
+}  # fmt: skip
 _BY_KEY = {s.key: s for s in SLOTS}
+_ARCHETYPE_BY_KEY = {s.key: s for group in ARCHETYPE_SLOTS.values() for s in group}
+
+
+def slots_for(archetype: str = "turn_based") -> tuple[Slot, ...]:
+    """The fixed slots of an archetype: the shared ones, then its own."""
+    return SLOTS + ARCHETYPE_SLOTS.get(archetype, ())
+
+
+def slot_keys(archetype: str = "turn_based") -> tuple[str, ...]:
+    return tuple(s.key for s in slots_for(archetype))
 
 
 def is_valid_name(key: object) -> bool:
@@ -88,23 +112,25 @@ def invalid_names(sounds: object) -> list[str]:
     return sorted(str(k) for k in sounds if not is_valid_name(k))
 
 
-def is_custom(key: str) -> bool:
-    return key not in _BY_KEY
+def is_custom(key: str, archetype: str = "turn_based") -> bool:
+    return key not in _BY_KEY and key not in {s.key for s in ARCHETYPE_SLOTS.get(archetype, ())}
 
 
 def kind_of(key: str) -> str:
     return MUSIC if key.startswith("music_") else SFX
 
 
-def custom_slots(sounds: Iterable[str]) -> list[str]:
+def custom_slots(sounds: Iterable[str], archetype: str = "turn_based") -> list[str]:
     """The custom slots among ``sounds`` (its keys), sorted."""
-    return sorted(k for k in sounds if is_custom(k) and is_valid_name(k))
+    return sorted(k for k in sounds if is_custom(k, archetype) and is_valid_name(k))
 
 
 def slot(key: str) -> Slot:
     """The slot of a key; a custom key gets a slot made from its name."""
     if key in _BY_KEY:
         return _BY_KEY[key]
+    if key in _ARCHETYPE_BY_KEY:
+        return _ARCHETYPE_BY_KEY[key]
     if key.startswith(STEP_PREFIX):
         surface = key[len(STEP_PREFIX) :]
         return Slot(
@@ -164,13 +190,13 @@ def _longest(pool: list[catalog_mod.Asset]) -> str | None:
     return ranked[0].id
 
 
-def default_sounds(catalog: catalog_mod.Catalog) -> dict[str, str]:
+def default_sounds(catalog: catalog_mod.Catalog, archetype: str = "turn_based") -> dict[str, str]:
     """An asset per slot where the packs have a plausible one (file-name tokens; the map music
     falls back to the longest music track and the title music to the map music)."""
     music = audio_assets(catalog, MUSIC)
     sfx = audio_assets(catalog, SFX)
     out: dict[str, str] = {}
-    for s in SLOTS:
+    for s in slots_for(archetype):
         found = _by_tokens(s, music if s.kind == MUSIC else sfx)
         if found is None and s.key == "music_map":
             found = _longest(music)
@@ -197,14 +223,16 @@ def valid_choice(catalog: catalog_mod.Catalog, key: str, asset_id: str | None) -
 CLEARED = ""  # a slot the user emptied on purpose: it stays silent instead of getting a default
 
 
-def resolve_sounds(catalog: catalog_mod.Catalog, current: dict[str, str]) -> dict[str, str]:
+def resolve_sounds(
+    catalog: catalog_mod.Catalog, current: dict[str, str], archetype: str = "turn_based"
+) -> dict[str, str]:
     """``current`` with stale entries dropped and gaps filled with the default choice. A slot
     that is ``CLEARED`` stays cleared. A custom slot stays as long as its name is valid: without
     a sound it is ``CLEARED``, so the row the user added does not vanish."""
-    defaults = default_sounds(catalog)
+    defaults = default_sounds(catalog, archetype)
     out: dict[str, str] = {}
-    keys = list(SLOT_KEYS) + sorted(
-        k for k in set(defaults) | set(current) if is_custom(k) and is_valid_name(k)
+    keys = list(slot_keys(archetype)) + sorted(
+        k for k in set(defaults) | set(current) if is_custom(k, archetype) and is_valid_name(k)
     )
     for key in keys:
         chosen = current.get(key)
@@ -214,7 +242,7 @@ def resolve_sounds(catalog: catalog_mod.Catalog, current: dict[str, str]) -> dic
             out[key] = chosen  # type: ignore[assignment]
         elif key in defaults:
             out[key] = defaults[key]
-        elif key in current and is_custom(key):
+        elif key in current and is_custom(key, archetype):
             out[key] = CLEARED
     return out
 

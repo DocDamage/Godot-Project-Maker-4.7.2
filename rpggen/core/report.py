@@ -262,6 +262,26 @@ def _world_lines(project: Path | None) -> list[str]:
     plan = world_plan.load(Path(project)) if project else None
     if plan is None:
         return []
+    rooms = plan.get("rooms")
+    if rooms:  # a metroidvania (T14.06): rooms instead of areas
+        from rpggen.core import room_plan
+
+        lines = ["", "## World", "", f"- {room_plan.summary(rooms)}"]
+        names = {r["id"]: r["name"] for r in rooms["list"]}
+        if rooms.get("guardian"):
+            first = (rooms.get("abilities") or [""])[0].replace("_", " ")
+            lines.append(
+                f"- The guardian waits in {names[rooms['guardian']]} and guards the {first}."
+            )
+        for room in rooms["list"]:
+            pickup = (room.get("pickup") or {}).get("ability")
+            if pickup:
+                lines.append(f"- The {pickup.replace('_', ' ')} lies in {room['name']}.")
+        lines.append(
+            f"- The game starts in {names[rooms['start']]} and ends in {names[rooms['end']]}."
+        )
+        lines += [f"- {note}" for note in plan.get("notes", [])]
+        return lines
     lines = ["", "## World", "", f"- {world_plan.summary(plan)}"]
     key = plan.get("key")
     if key:

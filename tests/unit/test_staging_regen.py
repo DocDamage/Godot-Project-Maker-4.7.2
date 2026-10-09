@@ -371,3 +371,38 @@ def test_the_default_is_a_lean_failed_run(tmp_path: Path) -> None:
     assert app_settings.get().keep_full_failed_runs is False
     kept = staging.discard(_failed_run(tmp_path))
     assert not (kept / "assets" / "packs").exists()
+
+
+def test_the_metroidvania_readme_and_the_upgrade_note_of_the_action_rpg(tmp_path: Path) -> None:
+    """T14.10: the third archetype's own section; T14.01: where the combat scripts went."""
+    from rpggen.core import catalog, config
+
+    pack = config.PackRef("pack_a", "x", "0" * 64, "folder")
+    side = config.default_for("Cave", [pack], archetype="metroidvania")
+    side.sounds = {"sfx_jump": "pack_a.sfx.jump", "sfx_magic": "pack_a.sfx.magic"}
+    stg = staging.create_staging(tmp_path / "mv")
+    staging.write_project_files(stg, side, catalog.Catalog())
+    text = (stg.staging / "README.md").read_text(encoding="utf-8")
+    assert "## 22. Rooms, abilities and enemies (metroidvania)" in text
+    for words in (
+        "game/maps/rooms/",
+        "Added rooms",
+        "| Double jump | `double_jump` |",
+        "Required Ability",
+        "ability:dash",
+        "only at a save station",
+        "ASSET-030",
+        "Target Room",
+    ):
+        assert words in text, words
+    assert "Battles and enemies" not in text and "(action RPG)" not in text
+    assert "sfx_magic" in text, "a custom slot is listed"
+    assert "`sfx_jump`" not in text, "a fixed slot of the archetype is not a custom one"
+    arpg = config.default_for("Game", [pack], archetype="arpg")
+    stg = staging.create_staging(tmp_path / "arpg")
+    staging.write_project_files(stg, arpg, catalog.Catalog())
+    text = (stg.staging / "README.md").read_text(encoding="utf-8")
+    assert "### Upgrading a project made by rpggen 1.0 or 1.1" in text
+    assert "addons/rpg_runtime/combat/realtime/" in text
+    assert "Reload Current Project" in text
+    assert "(metroidvania)" not in text

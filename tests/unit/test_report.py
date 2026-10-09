@@ -302,3 +302,20 @@ def test_without_a_commit_message_git_is_not_touched(tmp_path: Path, monkeypatch
     )
     orchestrator.phase_report(state)
     assert not [i for i in state.issues if i.code.startswith("REGEN-00")]
+
+
+def test_the_world_section_of_a_metroidvania_names_its_rooms(tmp_path: Path) -> None:
+    """T14.10: the report says what the world of rooms is made of (it has no areas)."""
+    from rpggen.core import report, room_plan, world_plan
+
+    rooms = room_plan.plan(room_plan.defaults(), 12345)
+    (tmp_path / "rpggen").mkdir()
+    world_plan.save(tmp_path, room_plan.world(rooms, 12345, ["The world kept its plan."]))
+    lines = report._world_lines(tmp_path)
+    assert lines[:4] == ["", "## World", "", "- 6 rooms, 2 abilities, a guardian"]
+    text = "\n".join(lines)
+    assert "0 areas" not in text
+    assert "- The guardian waits in Room 2 and guards the double jump." in text
+    assert "- The dash lies in Room 5." in text
+    assert "- The game starts in Room 1 and ends in Room 6." in text
+    assert lines[-1] == "- The world kept its plan."

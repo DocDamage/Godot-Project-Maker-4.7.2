@@ -242,17 +242,33 @@ def _cell_box(grid: dict[str, Any], col: int, row: int) -> tuple[int, int, int, 
     return x, y, x + cw, y + ch
 
 
-def first_frame_image(path: Path, facets: dict[str, Any]) -> Image.Image | None:
+def first_frame_image(
+    path: Path, facets: dict[str, Any], prefer: tuple[str, ...] = (), only: bool = False
+) -> Image.Image | None:
     """The first frame of a character or an enemy: the first cell of ``idle_down``, else of
     ``walk_down`` or of any animation, else the first cell (or frame) of the sheet. None when the
-    file cannot be read."""
+    file cannot be read. ``prefer`` names actions to look for first (``("jump", "run")``: the
+    animation ``jump`` or ``jump_right``); with ``only`` the result is None without one."""
     grid = facets.get("grid")
     animations = facets.get("animations") or {}
     cell = (0, 0)
-    for name in ("idle_down", "walk_down", *animations):
+    wanted = [
+        name
+        for action in prefer
+        for name in animations
+        if name == action or str(name).startswith(action + "_")
+    ]
+    if only and not any((animations.get(name) or {}).get("frames") for name in wanted):
+        return None
+    for name in (*wanted, "idle_down", "walk_down", *animations):
         frames = (animations.get(name) or {}).get("frames")
         if frames:
             cell = (int(frames[0][0]), int(frames[0][1]))
+            # a character made of one strip per action: the frame is in that action's file
+            source = str((animations.get(name) or {}).get("source", ""))
+            strip = path.with_name(source.rsplit("/", 1)[-1]) if source else path
+            if strip != path and strip.is_file():
+                path = strip
             break
     try:
         with Image.open(path) as opened:

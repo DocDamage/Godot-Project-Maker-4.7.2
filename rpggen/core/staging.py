@@ -374,7 +374,7 @@ def render_readme(
     packs = "\n".join(f"- {p.pack_id}" for p in cfg.packs) or "- (none)"
     from rpggen.core import sound_slots
 
-    custom = sound_slots.custom_slots(cfg.sounds)
+    custom = sound_slots.custom_slots(cfg.sounds, cfg.archetype)
     custom_list = "\n".join(f"  - `{key}`" for key in custom) or "  - (none yet)"
     text = template.format(
         project_name=cfg.project_name,

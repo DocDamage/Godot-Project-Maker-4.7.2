@@ -101,7 +101,7 @@ def update_goldens() -> int:
     return 0
 
 
-LAYOUT_ARCHETYPES = ("turn_based", "arpg")
+LAYOUT_ARCHETYPES = ("turn_based", "arpg", "metroidvania")
 LAYOUT_THEMES = ("dark", "light")
 
 
@@ -158,10 +158,12 @@ def layout_state(archetype: str, scratch: Path):  # noqa: ANN201 - WizardState, 
     from rpggen.gui import workers
     from rpggen.gui.state import WizardState
 
-    sample = paths.sample_pack_root()
+    # a metroidvania is laid out with the pack it is made for: the side-view sample
+    side = archetype == "metroidvania"
+    sample = paths.sample_pack_side_root() if side else paths.sample_pack_root()
     state = WizardState(project_name="Layout check", pack_sources=[sample], archetype=archetype)
     workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
-    ref = config.PackRef("sample_pack", str(sample), "0" * 64, "folder")
+    ref = config.PackRef(sample.name, str(sample), "0" * 64, "folder")
     state.config = config.default_for("Layout check", [ref], archetype=archetype)
     state.target = scratch / "layout_project"
     state.godot_exe = scratch / "godot.exe"

@@ -53,9 +53,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     gen.add_argument(
         "--archetype",
-        choices=("turn_based", "arpg"),
+        choices=("turn_based", "arpg", "metroidvania"),
         default="turn_based",
-        help="combat archetype for --pack (a --config carries its own)",
+        help="the kind of game for --pack (a --config carries its own)",
     )
     gen.add_argument(
         "--preset",

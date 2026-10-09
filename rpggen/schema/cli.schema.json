@@ -80,7 +80,8 @@
         "archetype": {
           "enum": [
             "turn_based",
-            "arpg"
+            "arpg",
+            "metroidvania"
           ]
         },
         "regeneration": {
@@ -191,6 +192,15 @@
               }
             },
             "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "world": {
+              "type": "string"
+            },
+            "rooms": {
               "type": "array",
               "items": {
                 "type": "string"
@@ -674,7 +684,7 @@
             "required": ["kind", "map", "node", "what"],
             "additionalProperties": false,
             "properties": {
-              "kind": {"enum": ["retarget", "spawn", "door", "unfixable"]},
+              "kind": {"enum": ["retarget", "spawn", "door", "exit", "unfixable"]},
               "map": {"type": "string"},
               "node": {"type": "string"},
               "what": {"type": "string"}
@@ -688,7 +698,7 @@
             "required": ["kind", "map", "node", "what"],
             "additionalProperties": false,
             "properties": {
-              "kind": {"enum": ["retarget", "spawn", "door", "unfixable"]},
+              "kind": {"enum": ["retarget", "spawn", "door", "exit", "unfixable"]},
               "map": {"type": "string"},
               "node": {"type": "string"},
               "what": {"type": "string"}
@@ -702,7 +712,7 @@
             "required": ["kind", "map", "node", "what"],
             "additionalProperties": false,
             "properties": {
-              "kind": {"enum": ["retarget", "spawn", "door", "unfixable"]},
+              "kind": {"enum": ["retarget", "spawn", "door", "exit", "unfixable"]},
               "map": {"type": "string"},
               "node": {"type": "string"},
               "what": {"type": "string"}

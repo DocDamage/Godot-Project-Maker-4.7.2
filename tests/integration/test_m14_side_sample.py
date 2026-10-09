@@ -146,6 +146,14 @@ def test_the_world_is_six_rooms_and_no_starter_map(sample: Path) -> None:
     for node in ('name="Player"', 'name="SaveStation"', 'name="Sign"', 'name="room_01_exit_e"'):
         assert node in start, node
     assert "uid://" not in (sample / "game/data/new_game.tres").read_text(encoding="utf-8")
+    # the picture the Results page and the welcome view show: the world seen from the side
+    from PIL import Image
+
+    with Image.open(sample / "rpggen/results/starter_map.png") as picture:
+        assert picture.width > picture.height > 40
+    report = (sample / "GENERATION_REPORT.md").read_text(encoding="utf-8")
+    assert "- 6 rooms, 2 abilities, a guardian" in report and "0 areas" not in report
+    assert "Archetype metroidvania" in report
     assert "rooms/room_01.tscn" in (sample / "game/data/new_game.tres").read_text(encoding="utf-8")
 
 

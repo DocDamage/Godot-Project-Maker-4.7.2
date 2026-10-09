@@ -77,3 +77,17 @@ Enemies walk straight at you and slide along walls. Turn on the **navigation** f
 wizard and the TileSet gets a navigation layer (every ground tile without collision is walkable) and
 the enemies follow `NavigationAgent2D` paths around obstacles. For large maps bake a
 `NavigationRegion2D` instead and keep `nav_mode` on `"agent"`.
+
+### Upgrading a project made by rpggen 1.0 or 1.1
+
+In 1.2 the scripts of real-time combat that every action archetype uses moved from
+`addons/rpg_runtime/archetypes/arpg/` to `addons/rpg_runtime/combat/realtime/`: `damage_info.gd`,
+`hitbox.gd`, `hurtbox.gd`, `health.gd`, `projectile.gd`, `state_machine.gd`, `pickup.gd` and
+`screen_feedback.gd`. Their class names (`RpgHitbox`, `RpgHealth`, …) and what they do are
+unchanged, and scenes that use them keep working.
+
+- A script of yours that loads one by its old path
+  (`preload("res://addons/rpg_runtime/archetypes/arpg/hitbox.gd")`) still works: a small script
+  stays at each old path until 2.0. Use the new path when you next touch the line.
+- If the project was open in the Godot editor before you regenerated it, choose
+  **Project → Reload Current Project** once, so the editor reads the class names again.

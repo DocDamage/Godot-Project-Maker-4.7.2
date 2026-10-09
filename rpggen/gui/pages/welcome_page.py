@@ -32,7 +32,7 @@ from rpggen.gui import workers
 
 PICTURE = "rpggen/results/starter_map.png"  # the starter map as it was built (T11.27)
 PICTURE_SIZE = QSize(112, 70)
-ARCHETYPE_WORDS = {"turn_based": "turn-based", "arpg": "action"}
+ARCHETYPE_WORDS = {"turn_based": "turn-based", "arpg": "action", "metroidvania": "metroidvania"}
 
 
 def pack_changes(project: app_settings.RecentProject) -> list[tuple[str, datetime]]:

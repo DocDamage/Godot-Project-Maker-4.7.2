@@ -37,6 +37,19 @@ STARTER_SIZE_NAMES = {(32, 20): "Small", (40, 24): "Medium", (64, 40): "Large"}
 EXISTING_MAP_TEXT = (
     "The starter map already exists and is yours; these options apply to new projects."
 )
+EXISTING_WORLD_TEXT = (
+    "This project has its world: the rooms that exist are kept as they are. "
+    "You can still add a room below; it is joined to the room you name."
+)
+ABILITY_LABELS = {
+    "double_jump": "Double jump",
+    "dash": "Dash",
+    "wall_jump": "Wall jump",
+    "high_jump": "High jump",
+    "break_blocks": "Break blocks",
+}
+# what a room is made of (T14.06); a metroidvania's layer list shows these and cannot be edited
+ROOM_LAYERS = ("Background", "Ground", "Platforms", "Hazards", "Decoration", "Foreground")
 IMPORTED_STARTER_TEXT = (
     "The starter map is an imported map, so the layout options are not used. "
     "Set the starter map under Imported maps back to the layout options to use them."
@@ -147,10 +160,11 @@ class OptionsModel:
         cfg.repair_world = self.draft.repair_world
         if not self.starter_locked:
             cfg.starter_map = copy.deepcopy(self.draft.starter_map)
-        else:  # the map is the user's, but a world may still get a new area
-            kept = {k: v for k, v in cfg.starter_map.items() if k != "areas"}
-            if self.draft.starter_map.get("areas"):
-                kept["areas"] = copy.deepcopy(self.draft.starter_map["areas"])
+        else:  # the map is the user's, but a world may still get a new area (or a new room)
+            key = self.kept_key
+            kept = {k: v for k, v in cfg.starter_map.items() if k != key}
+            if self.draft.starter_map.get(key):
+                kept[key] = copy.deepcopy(self.draft.starter_map[key])
             cfg.starter_map = kept
         cfg.imported_maps = copy.deepcopy(self.draft.imported_maps)
 
@@ -267,10 +281,25 @@ class OptionsModel:
             and catalog_mod.effective(a).get("usage") == "tiles"
         ]
 
+    @property
+    def is_side(self) -> bool:
+        """A metroidvania: a starter world of rooms instead of a starter map."""
+        return self.draft is not None and self.draft.archetype == "metroidvania"
+
+    @property
+    def kept_key(self) -> str:
+        """The one starter option that still counts once the map or the world exists: the
+        table a new area or a new room is added in."""
+        return "added_rooms" if self.is_side else "areas"
+
     def starter_exists(self) -> bool:
         state = self.state
         if state is None or not state.regenerating or state.target is None:
             return False
+        if self.is_side:
+            from rpggen.core import room_plan
+
+            return room_plan.exists(state.target)
         return (state.target / "game" / "maps" / "starter_map.tscn").is_file()
 
     def imported_starter(self) -> str:
@@ -280,6 +309,13 @@ class OptionsModel:
         """The layout options apply to a planned starter map: not to one that already exists and
         not to an imported one."""
         locked = self.starter_locked
+        if self.is_side:
+            return StarterState(
+                layout_enabled=not locked,
+                imported_enabled=False,
+                note=self.tr(EXISTING_WORLD_TEXT),
+                note_visible=locked,
+            )
         imported = bool(self.imported_starter()) and not locked
         text = self.tr(EXISTING_MAP_TEXT if locked else IMPORTED_STARTER_TEXT)
         return StarterState(
@@ -298,16 +334,66 @@ class OptionsModel:
         project that exists keeps its options; only the areas table still counts (a new area)."""
         if self.draft is None:
             return
+        key = self.kept_key
         if self.starter_locked:
-            kept = {k: v for k, v in self.draft.starter_map.items() if k != "areas"}
-            if values.get("areas"):
-                kept["areas"] = copy.deepcopy(values["areas"])
+            kept = {k: v for k, v in self.draft.starter_map.items() if k != key}
+            if values.get(key):
+                kept[key] = copy.deepcopy(values[key])
             self.draft.starter_map = kept
             return
         defaults = self.starter_defaults()
         self.draft.starter_map = {
             k: v for k, v in values.items() if k not in defaults or v != defaults[k]
         }
+
+    def rooms_preview(self, values: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
+        """The rooms the *Starter world* options give now, for the side-view preview: the
+        stored plan (with the rooms added) once the world exists, else a fresh plan from the
+        seed. ``(None, why)`` when the options do not make a world."""
+        from rpggen.core import room_plan
+
+        if self.draft is None:
+            return None, ""
+        state = self.state
+        target = state.target if state is not None and self.starter_locked else None
+        try:
+            world, _notes = room_plan.for_project(target, values, self.draft.seed, self.catalog)
+        except room_plan.RoomPlanError as error:
+            return None, str(error)
+        return world["rooms"], ""
+
+    def built_added_rooms(self) -> int:
+        """How many rows of the draft's ``added_rooms`` are rooms the project already has (they
+        can no longer be renamed or removed)."""
+        from rpggen.core import room_plan, world_plan
+
+        state = self.state
+        if self.draft is None or state is None or not self.starter_locked or state.target is None:
+            return 0
+        stored = world_plan.load(state.target) or {}
+        names = {
+            room_plan._slug(str(r.get("name", "")))
+            for r in (stored.get("rooms") or {}).get("list", [])
+        }
+        rows = self.draft.starter_map.get("added_rooms", [])
+        built = 0
+        for row in rows:
+            if room_plan._slug(str(row.get("name", ""))) not in names:
+                break
+            built += 1
+        return built
+
+    def world_error(self) -> str:
+        """Why the draft's world options make no world ("" when they do)."""
+        from rpggen.core import room_plan
+
+        if not self.is_side or self.draft is None:
+            return ""
+        try:
+            room_plan.normalized(self.draft.starter_map_options())
+        except room_plan.RoomPlanError as error:
+            return str(error)
+        return ""
 
     def world_names(self) -> set[str]:
         """The names of the areas the project's world was built from (empty: no world yet, so
@@ -346,7 +432,7 @@ class OptionsModel:
         """The options the starter map preview draws, or None when there is nothing to draw."""
         if self.starter_locked or self.draft is None or self.catalog is None:
             return None
-        if self.imported_starter():
+        if self.imported_starter() or self.is_side:
             return None
         return {**self.starter_defaults(), **values}
 
@@ -426,7 +512,10 @@ class OptionsModel:
         self.draft.features = options.effective_features(values.features)
         self.draft.resolution = values.resolution
         self.draft.window_size = values.window_size
-        self.draft.map_layers = values.layers
+        if self.is_side:
+            self.draft.features["navigation"] = False  # rooms have no pathfinding
+        else:
+            self.draft.map_layers = values.layers
         self.draft.seed = values.seed
         self.store_starter(values.starter)
         if values.imported is not None:
@@ -441,6 +530,10 @@ class OptionsModel:
         layer_problems = [
             self.tr(LAYER_MESSAGES[m]) for m in options.layer_issues(self.draft.map_layers)
         ]
+        if self.is_side:
+            layer_problems = []  # the layers of a room are fixed
+            if why := self.world_error():
+                return [self.tr("Starter world: {0}.").format(why), *self.input_errors]
         return [*layer_problems, *self.input_errors, *options.config_errors(self.draft)]
 
     # ------------------------------------------------------------------ summary

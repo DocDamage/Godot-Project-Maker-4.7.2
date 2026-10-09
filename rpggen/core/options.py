@@ -137,6 +137,7 @@ class Summary:
     systems: list[str]  # the labels of the features that are on
     tile_size: int
     tiles: str  # "≈ 40 × 22.5 tiles on screen"
+    world: str = ""  # a metroidvania's starter world: "6 rooms, 2 abilities, a guardian"
 
 
 def summarize(
@@ -150,6 +151,17 @@ def summarize(
     """The summary of the current (unsaved) options. The demo feature makes the starter map and
     its second area; each building of the starter map has an interior. An imported map chosen as
     the starter map replaces the starter map and its second area (T12.49)."""
+    if archetype == "metroidvania":
+        # a world of rooms (T14.06): no starter map, no imported maps, no pathfinding
+        from rpggen.core import room_plan
+
+        try:
+            world = room_plan.describe(starter_map)
+        except room_plan.RoomPlanError:
+            world = ""
+        on = effective_features({**features, "navigation": False})
+        systems = [FEATURE_INFO[key][1] for key in FEATURE_INFO if on.get(key)]
+        return Summary(archetype, [], systems, tile_size, tiles_hint(resolution, tile_size), world)
     maps: list[str] = []
     imported = imported_maps or {}
     extra = [m for m in imported.get("include", []) if m != imported.get("starter", "")]
@@ -403,6 +415,11 @@ def apply_preset(
         changes["starter_map"] = {
             k: copy.deepcopy(v) for k, v in preset["starter_map"].items() if k in known
         }
+    if cfg.archetype == "metroidvania":
+        # rooms have no pathfinding and their layers are fixed: a preset does not change that
+        changes.pop("map_layers", None)
+        if "features" in changes:
+            changes["features"] = {**changes["features"], "navigation": False}
     result = dataclasses.replace(cfg, **changes)
     problems = [message for message in config_errors(result) if not message.startswith("/packs")]
     if problems:

@@ -261,3 +261,45 @@ def test_the_readme_lists_the_custom_slots() -> None:
     assert "  - `sfx_magic`\n  - `sfx_step_grass`" in text and "sfx_hit" not in text
     real = Path(staging.__file__).parents[2] / "godot_templates/project_files/README.template.md"
     assert "{custom_sound_slots}" in real.read_text(encoding="utf-8")
+
+
+def test_a_metroidvania_has_four_more_fixed_slots_and_the_others_are_unchanged() -> None:
+    """T14.10: jump, land, dash and ability are fixed slots of the metroidvania only; for the
+    other archetypes such a name is a custom slot, so their projects are what they were."""
+    shared = sound_slots.slot_keys()
+    assert shared == sound_slots.SLOT_KEYS == sound_slots.slot_keys("arpg")
+    own = sound_slots.slot_keys("metroidvania")
+    assert own[: len(shared)] == shared
+    assert own[len(shared) :] == ("sfx_jump", "sfx_land", "sfx_dash", "sfx_ability")
+    assert all(sound_slots.is_valid_name(k) for k in own)
+    assert sound_slots.slot("sfx_jump").label == "Jump"
+    assert sound_slots.slot("sfx_ability").help == "An ability is found."
+    assert sound_slots.is_custom("sfx_jump") and not sound_slots.is_custom(
+        "sfx_jump", "metroidvania"
+    )
+    assert not sound_slots.is_custom("sfx_hit", "metroidvania")
+    assert sound_slots.custom_slots(["sfx_jump", "sfx_magic"]) == ["sfx_jump", "sfx_magic"]
+    assert sound_slots.custom_slots(["sfx_jump", "sfx_magic"], "metroidvania") == ["sfx_magic"]
+
+    cat = _catalog(SAMPLE.parent / "sample_pack_side", "sample_pack_side")
+    plain = sound_slots.default_sounds(cat)
+    side = sound_slots.default_sounds(cat, "metroidvania")
+    assert not {"sfx_jump", "sfx_land", "sfx_dash", "sfx_ability"} & set(plain)
+    assert {k: v for k, v in side.items() if k in plain} == plain
+    names = {key: side[key].rsplit(".", 1)[-1] for key in own[len(shared) :]}
+    assert names == {
+        "sfx_jump": "jump",
+        "sfx_land": "land",
+        "sfx_dash": "dash",
+        "sfx_ability": "powerup",
+    }
+    # a choice is kept, a stale one falls back to the default, a cleared one stays silent
+    current = {"sfx_jump": side["sfx_land"], "sfx_dash": "gone.sfx.x", "sfx_land": ""}
+    resolved = sound_slots.resolve_sounds(cat, current, "metroidvania")
+    assert resolved["sfx_jump"] == side["sfx_land"]
+    assert resolved["sfx_dash"] == side["sfx_dash"]
+    assert resolved["sfx_land"] == sound_slots.CLEARED
+    assert list(resolved)[: len(own)] == [k for k in own if k in resolved]
+    # for a top-down game the same table keeps `sfx_jump` only as the custom slot it then is
+    top = sound_slots.resolve_sounds(cat, {"sfx_jump": side["sfx_jump"]})
+    assert top["sfx_jump"] == side["sfx_jump"] and "sfx_dash" not in top

@@ -205,7 +205,34 @@ def _summary(
 
 def _plan(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict[str, Any]:
     """The starter map a real run would build: its size, what stands on it and the planner's
-    warnings (for instance a building that does not fit)."""
+    warnings (for instance a building that does not fit). For a metroidvania, the world of
+    rooms: how many, how large, and what the options make of it."""
+    if cfg.archetype == "metroidvania":
+        from rpggen.core import room_plan
+
+        try:
+            rooms = room_plan.plan(cfg.starter_map_options(), cfg.seed, catalog)
+            added = cfg.starter_map_options().get("added_rooms", [])
+            if added:
+                rooms, _ids = room_plan.extend(rooms, added, cfg.seed)
+        except room_plan.RoomPlanError as error:
+            nothing = dict.fromkeys(PLAN_COUNTS, 0)
+            return {"size": [0, 0], "world": "", "counts": nothing, "warnings": [str(error)]}
+        every = rooms["list"]
+        return {
+            "size": list(rooms["room_size"]),
+            "world": room_plan.summary(rooms),
+            "rooms": [r["id"] for r in every],
+            # what stands in the rooms, under the names the starter map's plan uses
+            "counts": {
+                "buildings": 0,
+                "npcs": sum(1 for r in every if r.get("npc")),
+                "enemies": sum(len(r.get("enemies", [])) for r in every),
+                "chests": sum(1 for r in every if r.get("chest")),
+                "decorations": sum(len(r.get("decorations", [])) for r in every),
+            },
+            "warnings": [],
+        }
     imported = next(
         (m for m in catalog.maps if m["id"] == cfg.imported_map_selection()["starter"]), None
     )
@@ -260,6 +287,11 @@ def format_summary(summary: dict[str, Any]) -> list[str]:
         lines.append(row("placeholders", ", ".join(summary["placeholders"])))
     if "map" in summary:
         plan = summary["map"]
+        if "world" in plan:
+            size = plan["size"]
+            lines.append(row("world", f"{plan['world']}; rooms of {size[0]} x {size[1]} tiles"))
+            lines.extend(row("", f"note: {w}") for w in plan["warnings"])
+            return lines
         if "imported" in plan:
             size = plan["size"]
             lines.append(

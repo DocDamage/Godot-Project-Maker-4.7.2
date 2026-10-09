@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Any
 
 from PySide6.QtCore import QCoreApplication, Qt, Signal
+from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -20,14 +21,16 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QSpinBox,
+    QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
 from rpggen.core import config as config_mod
-from rpggen.core import options, world_plan
+from rpggen.core import map_preview, options, room_plan, world_plan
 from rpggen.gui.models.options_model import (
+    ABILITY_LABELS,
     EXPORT_TARGET_LABELS,
     INPUT_COLUMNS,
     PACK_ART_LABELS,
@@ -118,6 +121,8 @@ class FeatureGroups(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.boxes: dict[str, QCheckBox] = {}
         self.needs: dict[str, QLabel] = {}
+        self.descriptions: dict[str, QLabel] = {}
+        self.hidden: set[str] = set()  # features this kind of game does not have
         self.reset = reset_button("resetFeatures")
         for group in options.FEATURE_GROUPS:
             box = QGroupBox(self.tr(group))
@@ -138,12 +143,24 @@ class FeatureGroups(QWidget):
                 needs.setVisible(False)
                 self.boxes[key] = check
                 self.needs[key] = needs
+                self.descriptions[key] = description
                 vbox.addWidget(check)
                 vbox.addWidget(needs)
                 vbox.addWidget(description)
             if group == options.FEATURE_GROUPS[0]:
                 vbox.addWidget(self.reset, 0, Qt.AlignmentFlag.AlignRight)
             layout.addWidget(box)
+
+    def set_hidden(self, keys: set[str]) -> None:
+        """Features the chosen kind of game does not have (a metroidvania has no pathfinding):
+        their check box, sentence and note are not shown."""
+        self.hidden = set(keys)
+        for key, box in self.boxes.items():
+            shown = key not in self.hidden
+            box.setVisible(shown)
+            self.descriptions[key].setVisible(shown)
+            if not shown:
+                self.needs[key].setVisible(False)
 
     def values(self) -> dict[str, bool]:
         return {k: b.isChecked() for k, b in self.boxes.items()}
@@ -162,7 +179,7 @@ class FeatureGroups(QWidget):
             if state.enabled:
                 box.setChecked(state.checked)
             needs.setText(state.needs)
-            needs.setVisible(bool(state.needs))
+            needs.setVisible(bool(state.needs) and key not in self.hidden)
 
 
 class StarterMapBox(QGroupBox):
@@ -312,6 +329,286 @@ class StarterMapBox(QGroupBox):
         self.note.setVisible(state.note_visible)
         if state.note_visible:
             self.preview.set_disabled(state.note)
+
+
+class StarterWorldBox(QGroupBox):
+    """The starter world of a metroidvania (T14.10): how many rooms, how large, which abilities,
+    how many enemies and pickups, the side-view preview of the plan, and the rooms added to a
+    world that exists. The number of rooms can never be below what the abilities need."""
+
+    edited = Signal()
+    PREVIEW_HEIGHT = 150
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setTitle(self.tr("Starter world"))
+        self.setObjectName("starterWorld")
+        self._loading = False
+        self.plan: dict[str, Any] | None = None
+        layout = QVBoxLayout(self)
+        self.note = QLabel()
+        self.note.setObjectName("worldNote")
+        self.note.setWordWrap(True)
+        self.note.setProperty("state", "warning")
+        self.note.setVisible(False)
+        layout.addWidget(self.note)
+
+        numbers = QHBoxLayout()
+        self.rooms = spin(room_plan.MIN_ROOMS, room_plan.MAX_ROOMS)
+        self.rooms.setObjectName("world_rooms")
+        (low_w, high_w), (low_h, high_h) = room_plan.SIZE_RANGE
+        self.room_width = spin(low_w, high_w)
+        self.room_width.setObjectName("world_room_width")
+        self.room_width.setToolTip(
+            self.tr("Width of a room in tiles ({0} to {1})").format(low_w, high_w)
+        )
+        self.room_height = spin(low_h, high_h)
+        self.room_height.setObjectName("world_room_height")
+        self.room_height.setToolTip(
+            self.tr("Height of a room in tiles ({0} to {1})").format(low_h, high_h)
+        )
+        self.enemies = spin(*room_plan.ENEMY_RANGE)
+        self.enemies.setObjectName("world_enemies")
+        self.enemies.setToolTip(self.tr("Enemies in a room that has enemies"))
+        self.pickups = spin(*room_plan.PICKUP_RANGE)
+        self.pickups.setObjectName("world_pickups")
+        self.pickups.setToolTip(self.tr("Potions and coins in the whole world"))
+        for label, box in (
+            ("Rooms", self.rooms),
+            ("Room width", self.room_width),
+            ("Room height", self.room_height),
+            ("Enemies", self.enemies),
+            ("Pickups", self.pickups),
+        ):
+            column = QVBoxLayout()
+            column.addWidget(QLabel(self.tr(label)))
+            column.addWidget(box)
+            numbers.addLayout(column)
+        layout.addLayout(numbers)
+
+        layout.addWidget(QLabel(self.tr("Abilities (found in this order)")))
+        from rpggen.gui.widgets.flow_layout import FlowLayout
+
+        ability_box = QWidget()
+        ability_flow = FlowLayout(ability_box)
+        ability_flow.setContentsMargins(0, 0, 0, 0)
+        self.abilities: dict[str, QCheckBox] = {}
+        for key in room_plan.ABILITIES:
+            check = QCheckBox(self.tr(ABILITY_LABELS[key]))
+            check.setObjectName(f"world_ability_{key}")
+            self.abilities[key] = check
+            ability_flow.addWidget(check)
+        layout.addWidget(ability_box)
+        self.bound = _muted("", "worldBound")
+        layout.addWidget(self.bound)
+        self.reset = reset_button("resetWorld")
+        layout.addWidget(self.reset, 0, Qt.AlignmentFlag.AlignRight)
+
+        self.preview = QLabel()
+        self.preview.setObjectName("worldPreview")
+        self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.preview.setMinimumHeight(self.PREVIEW_HEIGHT)
+        self.preview.setAccessibleName(self.tr("The planned rooms, seen from the side"))
+        layout.addWidget(self.preview)
+        self.summary = _muted("", "worldSummary")
+        layout.addWidget(self.summary)
+
+        layout.addWidget(QLabel(self.tr("Added rooms")))
+        self.added = QTableWidget(0, 2)
+        self.added.setObjectName("addedRooms")
+        self.added.setHorizontalHeaderLabels([self.tr("Name"), self.tr("Beside the room")])
+        self.added.horizontalHeader().setStretchLastSection(True)
+        self.added.verticalHeader().setVisible(False)
+        self.added.setMinimumHeight(84)
+        self.added.setMaximumHeight(140)
+        self.added.setToolTip(
+            self.tr('A room with this name is built beside the room you name ("Room 6")')
+        )
+        layout.addWidget(self.added)
+        buttons = QHBoxLayout()
+        self.add_room = QPushButton(self.tr("Add a room"))
+        self.add_room.setObjectName("addRoom")
+        self.remove_room = QPushButton(self.tr("Remove"))
+        self.remove_room.setObjectName("removeRoom")
+        buttons.addWidget(self.add_room)
+        buttons.addWidget(self.remove_room)
+        buttons.addStretch(1)
+        layout.addLayout(buttons)
+
+        for box in (self.rooms, self.room_width, self.room_height, self.enemies, self.pickups):
+            box.valueChanged.connect(self._changed)
+        for check in self.abilities.values():
+            check.toggled.connect(self._on_ability)
+        self.added.itemChanged.connect(self._changed)
+        self.added.itemSelectionChanged.connect(self._update_buttons)
+        self.add_room.clicked.connect(self.add_row)
+        self.remove_room.clicked.connect(self.remove_row)
+        self._locked_rows = 0
+        self._update_bound()
+        self._update_buttons()
+
+    # ------------------------------------------------------------------ values
+
+    def chosen_abilities(self) -> list[str]:
+        return [key for key, check in self.abilities.items() if check.isChecked()]
+
+    def values(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "rooms": self.rooms.value(),
+            "room_size": [self.room_width.value(), self.room_height.value()],
+            "abilities": self.chosen_abilities(),
+            "enemies": self.enemies.value(),
+            "pickups": self.pickups.value(),
+        }
+        rows = self.added_rows()
+        if rows:
+            out["added_rooms"] = rows
+        return out
+
+    def added_rows(self) -> list[dict[str, str]]:
+        rows = []
+        for row in range(self.added.rowCount()):
+            name = self.added.item(row, 0)
+            join = self.added.item(row, 1)
+            text = name.text().strip() if name else ""
+            if text:
+                rows.append({"name": text, "join": join.text().strip() if join else ""})
+        return rows
+
+    def load(self, values: dict[str, Any], locked_rows: int = 0) -> None:
+        """``locked_rows``: how many of the added rooms are built already (their rows stay)."""
+        self._loading = True
+        try:
+            chosen = list(values.get("abilities", []))
+            for key, check in self.abilities.items():
+                check.setChecked(key in chosen)
+            self._update_bound()
+            self.rooms.setValue(int(values["rooms"]))
+            self.room_width.setValue(int(values["room_size"][0]))
+            self.room_height.setValue(int(values["room_size"][1]))
+            self.enemies.setValue(int(values["enemies"]))
+            self.pickups.setValue(int(values["pickups"]))
+            self.added.setRowCount(0)
+            for row in values.get("added_rooms", []) or []:
+                self._append(str(row.get("name", "")), str(row.get("join", "")))
+            self._locked_rows = min(locked_rows, self.added.rowCount())
+            for row in range(self._locked_rows):
+                for col in range(2):
+                    item = self.added.item(row, col)
+                    if item is not None:
+                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        finally:
+            self._loading = False
+        self._update_buttons()
+
+    # ------------------------------------------------------------------ the bound
+
+    def _update_bound(self) -> None:
+        """rooms >= abilities + 3, live: the spin box cannot go below it."""
+        need = room_plan.min_rooms(self.chosen_abilities())
+        self.rooms.setMinimum(need)
+        count = len(self.chosen_abilities())
+        self.rooms.setToolTip(
+            self.tr("Rooms of the world ({0} to {1})").format(need, room_plan.MAX_ROOMS)
+        )
+        self.bound.setText(
+            self.tr("{0} abilities need at least {1} rooms.").format(count, need)
+            if count != 1
+            else self.tr("1 ability needs at least {0} rooms.").format(need)
+        )
+
+    def _on_ability(self, *_args: object) -> None:
+        self._update_bound()
+        self._changed()
+
+    def _changed(self, *_args: object) -> None:
+        if not self._loading:
+            self.edited.emit()
+
+    # ------------------------------------------------------------------ added rooms
+
+    def _append(self, name: str, join: str) -> None:
+        row = self.added.rowCount()
+        self.added.blockSignals(True)
+        self.added.insertRow(row)
+        self.added.setItem(row, 0, QTableWidgetItem(name))
+        self.added.setItem(row, 1, QTableWidgetItem(join))
+        self.added.blockSignals(False)
+
+    def add_row(self, name: str = "", join: str = "") -> bool:
+        """A new row (named "Room N" beside the last room when nothing is given)."""
+        if self.added.rowCount() >= room_plan.MAX_ADDED:
+            return False
+        if not isinstance(name, str) or not name:
+            taken = {row["name"] for row in self.added_rows()}
+            number = self.rooms.value() + self.added.rowCount() + 1
+            while f"Room {number}" in taken:
+                number += 1
+            name = f"Room {number}"
+        if not join:
+            last = (self.plan or {}).get("list") or []
+            join = str(last[-1]["name"]) if last else f"Room {self.rooms.value()}"
+        self._append(name, join)
+        self._update_buttons()
+        self._changed()
+        return True
+
+    def remove_row(self) -> bool:
+        """Removes the chosen row (the last one when none is chosen); a built room stays."""
+        row = self.added.currentRow()
+        if row < 0:
+            row = self.added.rowCount() - 1
+        if row < self._locked_rows or row < 0:
+            return False
+        self.added.removeRow(row)
+        self._update_buttons()
+        self._changed()
+        return True
+
+    def _update_buttons(self) -> None:
+        self.add_room.setEnabled(self.added.rowCount() < room_plan.MAX_ADDED)
+        self.remove_room.setEnabled(self.added.rowCount() > self._locked_rows)
+
+    # ------------------------------------------------------------------ preview and state
+
+    def show_plan(self, rooms: dict[str, Any] | None, error: str = "") -> None:
+        """The plan as the side-view picture (one cell per room), or why there is none."""
+        self.plan = rooms
+        if rooms is None:
+            self.preview.setPixmap(QPixmap())
+            self.preview.setText(error or self.tr("No preview"))
+            self.summary.setText("")
+            return
+        picture = map_preview.render_world(rooms, scale=2).convert("RGBA")
+        image = QImage(
+            picture.tobytes(), picture.width, picture.height, QImage.Format.Format_RGBA8888
+        ).copy()
+        pixmap = QPixmap.fromImage(image)
+        room = max(40, self.preview.width() - 8)
+        if pixmap.width() > room or pixmap.height() > self.PREVIEW_HEIGHT:
+            pixmap = pixmap.scaled(
+                room,
+                self.PREVIEW_HEIGHT,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.FastTransformation,
+            )
+        self.preview.setText("")
+        self.preview.setPixmap(pixmap)
+        self.summary.setText(room_plan.summary(rooms))
+
+    def show_state(self, state: StarterState) -> None:
+        for widget in (
+            self.rooms,
+            self.room_width,
+            self.room_height,
+            self.enemies,
+            self.pickups,
+            self.reset,
+            *self.abilities.values(),
+        ):
+            widget.setEnabled(state.layout_enabled)
+        self.note.setText(state.note)
+        self.note.setVisible(state.note_visible)
 
 
 class ImportedMapsBox(QGroupBox):
@@ -519,12 +816,33 @@ class LayersBox(QGroupBox):
         items = (self.list.item(i) for i in range(self.list.count()))
         return [item.text() for item in items if item is not None]
 
+    fixed = False
+
+    def set_fixed(self, fixed: bool) -> None:
+        """The layers of a metroidvania's rooms are what the rooms are built from: they are
+        shown, back to front, and cannot be changed."""
+        self.fixed = fixed
+        self.list.setDragDropMode(
+            QAbstractItemView.DragDropMode.NoDragDrop
+            if fixed
+            else QAbstractItemView.DragDropMode.InternalMove
+        )
+        self.list.setToolTip(
+            self.tr("The layers of every room, back to front.")
+            if fixed
+            else self.tr("Map layers, back to front. Drag to reorder.")
+        )
+        for widget in (self.name, self.add_button, self.reset):
+            widget.setEnabled(not fixed)
+        self.update_buttons()
+
     def update_buttons(self) -> None:
         item = self.list.currentItem()
         row = self.list.currentRow()
-        self.remove_button.setEnabled(item is not None and item.text() != "Ground")
-        self.up_button.setEnabled(row > 0)
-        self.down_button.setEnabled(0 <= row < self.list.count() - 1)
+        free = not self.fixed
+        self.remove_button.setEnabled(free and item is not None and item.text() != "Ground")
+        self.up_button.setEnabled(free and row > 0)
+        self.down_button.setEnabled(free and 0 <= row < self.list.count() - 1)
 
     def add(self) -> None:
         old = self.layers()
