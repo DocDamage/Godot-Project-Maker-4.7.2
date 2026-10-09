@@ -153,6 +153,8 @@ class OptionsPage(WizardPage):
         for key, check in self.export_target_boxes.items():
             check.toggled.connect(lambda on, k=key: self._on_export_target(k, on))
         self.seed_box.valueChanged.connect(self._on_seed_edited)
+        self.repair_box = self.advanced.repair_box
+        self.repair_box.toggled.connect(self._on_repair_toggled)
         self.input_table.itemChanged.connect(lambda _item: self._on_edited())
         self.preset_combo.activated.connect(self._on_preset_chosen)
         self.save_preset_button.clicked.connect(self.save_preset)
@@ -239,6 +241,7 @@ class OptionsPage(WizardPage):
             self.resolution.set_value(draft.resolution)
             self.window_editor.set_value(draft.window_size)
             self.seed_box.setValue(min(draft.seed, SEED_MAX))
+            self.repair_box.setChecked(draft.repair_world)
             self.layers_box.fill(draft.map_layers)
             self.advanced.fill_input(self.model.input_rows())
             self.starter_box.load(
@@ -374,6 +377,12 @@ class OptionsPage(WizardPage):
     def reroll(self) -> None:
         """A new seed (shown under Advanced) gives another arrangement."""
         self.seed_box.setValue(random.randint(0, SEED_MAX))
+
+    def _on_repair_toggled(self, on: bool) -> None:
+        if self._loading or self.draft is None:
+            return
+        self.draft.repair_world = on
+        self._on_edited()
 
     def _on_seed_edited(self, *_args: object) -> None:
         if self._loading or self.draft is None:

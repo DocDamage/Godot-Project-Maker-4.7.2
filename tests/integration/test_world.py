@@ -172,3 +172,89 @@ def test_an_action_rpg_world_with_a_locked_cave(
         text = (target / area["map"]).read_text(encoding="utf-8")
         assert f'entity_id = "{gate["id"]}"' in text and 'key_item = &"cave_key"' in text
     assert not [i for i in result.issues if i.code in ("VAL-025", "VAL-027", "VAL-028")]
+
+
+# ------------------------------------------------------------------------ world repair (T13.24)
+
+
+def test_rpggen_mends_the_maps_it_made_and_yours_when_you_ask(
+    godot_exe: Path, tmp_path: Path, monkeypatch
+) -> None:
+    from rpggen.core import promote, world_repair
+
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    cfg = _config()
+    target = tmp_path / "out"
+    first = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert first.ok, [f"{i.code}: {i.message}" for i in first.issues]
+    assert first.world_repair is None, "a whole world: Godot is not started for a repair"
+    woods = target / "game/maps/woods.tscn"
+    built = woods.read_bytes()
+
+    # a fourth area joined to the woods: its door arrives at a spawn point the woods do not have
+    bigger = _config()
+    bigger.starter_map = {
+        "areas": [*AREAS, {"name": "Old mine", "biome": "cave", "size": [24, 18], "join": "Woods"}]
+    }
+    # ... switched off, the warning stays and nothing is mended
+    off = orchestrator.run_in_memory(bigger, None, target, godot_exe, repair_world=False)
+    assert off.ok and off.world_repair is None
+    assert [i.code for i in off.issues if i.code == "VAL-028"] == ["VAL-028"]
+    assert woods.read_bytes() == built
+
+    # ... by default rpggen mends the map it made: the spawn point and a door back
+    mended = orchestrator.run_in_memory(bigger, None, target, godot_exe)
+    assert mended.ok, [f"{i.code}: {i.message}" for i in mended.issues]
+    repair = mended.world_repair
+    assert repair is not None and repair.backup is not None
+    assert [(line["kind"], line["map"]) for line in repair.repairs] == [
+        ("spawn", "game/maps/woods.tscn"),
+        ("door", "game/maps/woods.tscn"),
+    ]
+    assert repair.offered == [] and repair.unfixable == []
+    assert not [i for i in mended.issues if i.code in ("VAL-027", "VAL-028")], "mended: no warning"
+    text = woods.read_text(encoding="utf-8")
+    assert 'spawn_id = &"from_old_mine"' in text
+    assert '[node name="woods_door_old_mine" type="Area2D"' in text
+    assert 'target_map = "res://game/maps/old_mine.tscn"' in text
+    assert 'target_spawn = &"from_woods"' in text
+    # what the map had is still there
+    for kept in (
+        '[node name="woods_door_starter_map"',
+        'spawn_id = &"from_starter_map"',
+        "Decor28",
+    ):
+        assert kept in text, kept
+    report = (target / "GENERATION_REPORT.md").read_text(encoding="utf-8")
+    assert "## World repairs" in report
+    assert "game/maps/woods.tscn: added the spawn point from_old_mine" in report
+    assert "Restore previous" in report
+    stored = jsonio.read(target / world_repair.RESULT_FILE)
+    assert [line["kind"] for line in stored["repairs"]] == ["spawn", "door"]
+    # the mended map is still rpggen's, and a second look finds nothing to do
+    assert "game/maps/woods.tscn" in world_repair.unedited_maps(target)
+    again = world_repair.run(target, godot_exe, dry_run=True)
+    assert again.repairs == [] and again.unfixable == []
+
+    # Restore previous takes the repair back
+    promote.restore(target)
+    assert woods.read_bytes() == built
+    assert world_repair.run(target, godot_exe, dry_run=True).repairs, "broken again"
+
+    # a map its owner changed is not touched by itself: the repair is offered
+    woods.write_bytes(built + b"\n; a note of mine\n")
+    mine = woods.read_bytes()
+    offered = orchestrator.run_in_memory(bigger, None, target, godot_exe)
+    assert offered.ok
+    assert offered.world_repair is not None and offered.world_repair.repairs == []
+    assert [line["map"] for line in offered.world_repair.offered] == ["game/maps/woods.tscn"] * 2
+    assert woods.read_bytes() == mine
+    assert [i.code for i in offered.issues if i.code == "VAL-028"] == ["VAL-028"]
+    report = (target / "GENERATION_REPORT.md").read_text(encoding="utf-8")
+    assert "Not done (game/maps/woods.tscn was changed by you)" in report
+    # ... until you ask
+    asked = world_repair.run(target, godot_exe)
+    assert len(asked.repairs) == 2 and asked.backup is not None
+    assert 'spawn_id = &"from_old_mine"' in woods.read_text(encoding="utf-8")
+    assert world_repair.run(target, godot_exe, dry_run=True).repairs == []
+    assert "game/maps/woods.tscn" not in world_repair.unedited_maps(target), "it is still yours"

@@ -3,11 +3,16 @@ extends VBoxContainer
 ## "Validate content" (T8.04): runs the content checks of tools/content_checks.gd, lists the
 ## findings in a tree and opens the scene of a finding on double-click. "Fix entity IDs" assigns
 ## ids to the edited scene's persistent entities that have none and renames later duplicates.
+## "Fix" and "Fix all" (T13.24) mend the doors that lead nowhere and the maps that cannot be
+## reached (tools/world_repair.gd): each in the scene it belongs to, through the editor's undo
+## history, so Ctrl+Z takes it back; the scene is left modified, not saved. Nothing is fixed
+## unless you press the button.
 
 const ContentChecks := preload("../tools/content_checks.gd")
 const EntityIds := preload("../tools/entity_ids.gd")
 const Placement := preload("placement.gd")
 const JsonIo := preload("../tools/json_io.gd")
+const Repair := preload("../tools/world_repair.gd")
 
 const ERROR_CODES_PATHS: Array[String] = ["res://generated/builder/lib/error_codes.gd", "res://builder/lib/error_codes.gd"]
 
@@ -28,6 +33,16 @@ func _init() -> void:
 	fix.tooltip_text = "Assigns ids to entities without one and renames duplicates in the scene being edited (undoable)."
 	fix.pressed.connect(fix_entity_ids)
 	buttons.add_child(fix)
+	var fix_row := Button.new()
+	fix_row.text = "Fix"
+	fix_row.tooltip_text = "Mends the selected door or unreachable map: adds the missing spawn point or door (undoable; the scene is left modified, not saved)."
+	fix_row.pressed.connect(fix_selected)
+	buttons.add_child(fix_row)
+	var fix_everything := Button.new()
+	fix_everything.text = "Fix all"
+	fix_everything.tooltip_text = "Mends every door that leads nowhere and every map that cannot be reached (undoable, scene by scene)."
+	fix_everything.pressed.connect(fix_all)
+	buttons.add_child(fix_everything)
 	add_child(buttons)
 	_summary = Label.new()
 	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -114,6 +129,135 @@ static func open_finding(f: Dictionary) -> void:
 			var selection := EditorInterface.get_selection()
 			selection.clear()
 			selection.add_node(node)
+
+# ---------------------------------------------------------------- world repair (T13.24)
+
+## The codes Fix can do something about.
+static func fixable_codes() -> Array[String]:
+	return ["VAL-016", "VAL-017", "VAL-027", "VAL-028"]
+
+## What a repair would do to the project's maps now (nothing is changed).
+static func plan_world_fixes() -> Array[Dictionary]:
+	var roots := {}
+	var instance_of := func(path: String) -> Node:
+		if not roots.has(path):
+			var packed := ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
+			roots[path] = packed.instantiate() if packed != null else null
+		return roots[path]
+	var actions := Repair.plan_repairs(ContentChecks.list_files(ContentChecks.MAPS_DIR, ["tscn"]), Repair.read_plan(), instance_of)
+	for path: String in roots.keys():
+		var root: Node = roots[path]
+		if root != null:
+			root.free()
+	return actions
+
+## One action in `root` (the scene of action.map) as one undo step: through `undo_redo` (the
+## editor's history, or a plain UndoRedo in tests), or directly without one.
+static func do_fix(action: Dictionary, root: Node, undo_redo: Object) -> void:
+	var kind := str(action["kind"])
+	var title := "Repair: %s" % str(action["what"])
+	if kind == "retarget":
+		var door := root.get_node_or_null(str(action["node"]))
+		if door == null:
+			return
+		var old_map: Variant = door.get("target_map")
+		var old_spawn: Variant = door.get("target_spawn")
+		var new_spawn := StringName(str(action["target_spawn"]))
+		if undo_redo is UndoRedo:
+			var plain := undo_redo as UndoRedo
+			plain.create_action(title)
+			plain.add_do_property(door, "target_map", str(action["target_map"]))
+			plain.add_do_property(door, "target_spawn", new_spawn)
+			plain.add_undo_property(door, "target_map", old_map)
+			plain.add_undo_property(door, "target_spawn", old_spawn)
+			plain.commit_action()
+		elif undo_redo != null:
+			undo_redo.call("create_action", title, UndoRedo.MERGE_DISABLE, root)
+			undo_redo.call("add_do_property", door, "target_map", str(action["target_map"]))
+			undo_redo.call("add_do_property", door, "target_spawn", new_spawn)
+			undo_redo.call("add_undo_property", door, "target_map", old_map)
+			undo_redo.call("add_undo_property", door, "target_spawn", old_spawn)
+			undo_redo.call("commit_action")
+		else:
+			Repair.apply(action, root)
+		return
+	if kind != "spawn" and kind != "door":
+		return  # an unfixable finding: nothing safe to do
+	if undo_redo == null:
+		Repair.apply(action, root)
+		return
+	var holder := Repair._holder(root, "SpawnPoints" if kind == "spawn" else "Triggers")
+	var node := Repair.build(action)
+	var owned: Array[Node] = [node]
+	owned.append_array(node.get_children())
+	if undo_redo is UndoRedo:
+		var plain := undo_redo as UndoRedo
+		plain.create_action(title)
+		plain.add_do_method(holder.add_child.bind(node))
+		for part in owned:
+			plain.add_do_method(part.set_owner.bind(root))
+		plain.add_undo_method(holder.remove_child.bind(node))
+		plain.add_do_reference(node)
+		plain.commit_action()
+	else:
+		undo_redo.call("create_action", title, UndoRedo.MERGE_DISABLE, root)
+		undo_redo.call("add_do_method", holder, "add_child", node)
+		for part in owned:
+			undo_redo.call("add_do_method", part, "set_owner", root)
+		undo_redo.call("add_undo_method", holder, "remove_child", node)
+		undo_redo.call("add_do_reference", node)
+		undo_redo.call("commit_action")
+
+## Applies `actions` in the editor: each map is opened, changed through the undo history and left
+## modified. Returns how many were applied.
+func apply_fixes(actions: Array[Dictionary]) -> int:
+	if plugin == null:
+		return 0
+	var done := 0
+	for action in actions:
+		if str(action["kind"]) == "unfixable":
+			continue
+		var map := str(action["map"])
+		var edited := EditorInterface.get_edited_scene_root()
+		if edited == null or edited.scene_file_path != map:
+			EditorInterface.open_scene_from_path(map)
+			edited = EditorInterface.get_edited_scene_root()
+		if edited == null or edited.scene_file_path != map:
+			continue
+		do_fix(action, edited, plugin.get_undo_redo())
+		done += 1
+	return done
+
+## Fix: the selected finding (a door that leads nowhere, or a map that cannot be reached).
+func fix_selected() -> int:
+	var item := _tree.get_selected()
+	if item == null:
+		_summary.text = "Select a finding first."
+		return 0
+	var f: Dictionary = item.get_metadata(0)
+	if not fixable_codes().has(str(f["code"])):
+		_summary.text = "There is no automatic fix for %s." % str(f["code"])
+		return 0
+	var wanted := Repair.actions_for(plan_world_fixes(), JsonIo.to_str(f["file"]), JsonIo.to_str(f["node"]))
+	return _report_fixes(wanted)
+
+## Fix all: every repair the project needs.
+func fix_all() -> int:
+	return _report_fixes(plan_world_fixes())
+
+func _report_fixes(actions: Array[Dictionary]) -> int:
+	var done := apply_fixes(actions)
+	var unfixable: PackedStringArray = []
+	for action in actions:
+		if str(action["kind"]) == "unfixable":
+			unfixable.append(str(action["what"]))
+	if done == 0 and unfixable.is_empty():
+		_summary.text = "Nothing to fix."
+	else:
+		_summary.text = "%d fix(es) made; Ctrl+Z takes one back. Save the scenes to keep them." % done
+		if not unfixable.is_empty():
+			_summary.text += " Cannot be mended: " + "; ".join(unfixable)
+	return done
 
 ## Assigns ids in the scene being edited, as one undo action. Returns the number of changes.
 func fix_entity_ids() -> int:

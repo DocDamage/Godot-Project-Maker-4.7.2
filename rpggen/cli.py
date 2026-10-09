@@ -82,6 +82,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="allow regeneration to move the project to a new major runtime version",
     )
     gen.add_argument(
+        "--no-repair-world",
+        action="store_true",
+        help="do not mend doors that lead nowhere and unreachable maps after the build "
+        "(the config's repair_world, for this run)",
+    )
+    gen.add_argument(
         "--confirm",
         action="store_true",
         help="before a regeneration writes anything, print what it will change and ask y/N "
@@ -145,6 +151,23 @@ def _build_parser() -> argparse.ArgumentParser:
     diagnose.add_argument("--out", type=Path, help="zip to write (default: next to the folder)")
     diagnose.add_argument("--godot", type=Path, help="Godot executable (its version is recorded)")
     _add_json(diagnose)
+    repair = sub.add_parser(
+        "repair-world",
+        help="mend doors that lead nowhere and maps that cannot be reached, in every map of a "
+        "project (the maps go to .rpggen_backups first)",
+        allow_abbrev=False,
+    )
+    repair.add_argument("--target", type=Path, required=True, help="the project folder")
+    repair.add_argument("--godot", type=Path, help="Godot 4.7.2 executable")
+    repair.add_argument(
+        "--dry-run", action="store_true", help="say what would be done; write nothing"
+    )
+    repair.add_argument(
+        "--force-while-open",
+        action="store_true",
+        help="repair even if a Godot editor seems to have the project open",
+    )
+    _add_json(repair)
     audio = sub.add_parser(
         "audio-check",
         help="decode a sound file (without a file: write and read back a short Ogg Vorbis)",
@@ -357,6 +380,7 @@ def _run(
             accept_runtime_upgrade=args.accept_runtime_upgrade,
             git_message="rpggen: generate project" if args.git else None,
             derive_tile_size=derive,
+            repair_world=False if args.no_repair_world else None,
         )
     document = _document(
         result.target,
@@ -438,6 +462,39 @@ def _restore(args: argparse.Namespace) -> int:
         )
     out.say(f"OK: restored; the replaced state was saved to {safety}")
     return out.done(cli_support.OK, **{**fields, "saved_state": str(safety)}, issues=[])
+
+
+def _repair_world(args: argparse.Namespace) -> int:
+    """``repair-world``: every map of the project may be written (you asked)."""
+    from rpggen.core import world_repair
+
+    out = Output("repair-world", args.json)
+    target: Path = args.target
+    fields: dict[str, object] = {"target": str(target)}
+    nothing = world_repair.RepairResult(dry_run=bool(args.dry_run), ran=False).to_json()
+    exe = _resolve_godot(args.godot)
+    try:
+        if exe is None:
+            raise RpgGenError("ENV-001")
+        result = world_repair.run(
+            target, exe, dry_run=args.dry_run, force_while_open=args.force_while_open
+        )
+    except RpgGenError as exc:
+        out.issues([exc.issue])
+        return out.done(
+            cli_support.exit_code_for([exc.issue]),
+            **fields,
+            **nothing,
+            issues=[cli_support.issue_json(exc.issue)],
+        )
+    for line in result.repairs:
+        out.say(f"{'would do' if args.dry_run else 'done'}: {line['map']}: {line['what']}")
+    for line in result.unfixable:
+        out.say(f"cannot be mended: {line['what']}")
+    if result.backup is not None:
+        out.say(f"the maps as they were: {result.backup}")
+    out.say(world_repair.summary(result))
+    return out.done(cli_support.OK, **fields, **result.to_json(), issues=[])
 
 
 def _conflicts(args: argparse.Namespace) -> int:
@@ -523,6 +580,8 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _restore(args)
     if args.command == "audio-check":
         return _audio_check(args.file)
+    if args.command == "repair-world":
+        return _repair_world(args)
     if args.command == "diagnose":
         return _diagnose(args)
     if args.command == "conflicts":

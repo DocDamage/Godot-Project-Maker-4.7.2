@@ -144,6 +144,7 @@ class OptionsModel:
         cfg.validation = dict(self.draft.validation)
         cfg.git = dict(self.draft.git)
         cfg.export_targets = self.draft.selected_export_targets()
+        cfg.repair_world = self.draft.repair_world
         if not self.starter_locked:
             cfg.starter_map = copy.deepcopy(self.draft.starter_map)
         else:  # the map is the user's, but a world may still get a new area

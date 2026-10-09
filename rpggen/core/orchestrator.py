@@ -27,6 +27,7 @@ from rpggen.core import (
     staging,
     vcs,
     world_plan,
+    world_repair,
 )
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
@@ -93,6 +94,7 @@ class RunResult:
     timings: dict[str, float] = field(default_factory=dict)  # seconds per phase (never in a file)
     skipped: dict[str, str] = field(default_factory=dict)  # a phase that did not run -> issue code
     run_id: str = ""  # eight hex characters: the lines of this run in the application log
+    world_repair: world_repair.RepairResult | None = None  # T13.24: what was mended, or offered
 
 
 class _Stop(Exception):
@@ -126,6 +128,9 @@ class _State:
     git_message: str | None = None  # commit the result with this message (git init if needed)
     pack_files: set[str] = field(default_factory=set)  # every pack file installed this run
     accept_runtime_upgrade: bool = False  # confirm a major runtime version increase
+    # None: the config's ``repair_world`` decides; False: the command line's --no-repair-world
+    repair_world: bool | None = None
+    world_repair: world_repair.RepairResult | None = None  # what the repair after promotion did
     runtime: runtime_version.UpgradeInfo | None = None  # templates' runtime vs. the target's
     timings: dict[str, float] = field(default_factory=dict)
     skipped: dict[str, str] = field(default_factory=dict)
@@ -568,7 +573,37 @@ def _commit_files(state: _State) -> list[str]:
     return sorted(found)
 
 
+def _repair_world(state: _State) -> None:
+    """After a successful promotion (T13.24): when the validator found a door that leads nowhere
+    or a map that cannot be reached, mend the maps rpggen made and nobody changed. What a map of
+    the user's would need is only listed. A failure here never fails the generation."""
+    assert state.cfg is not None
+    wanted = state.cfg.repair_world if state.repair_world is None else state.repair_world
+    if not wanted or state.issues.has_errors():
+        return
+    if not world_repair.needed([i.code for i in state.issues]):
+        return
+    try:
+        result = world_repair.auto(
+            Path(state.target), state.godot_exe, force_while_open=state.force_while_open
+        )
+    except RpgGenError as exc:
+        state.cb.on_log(f"world repair: not done ({exc.issue.message})")
+        return
+    if not result.ran:
+        return
+    state.world_repair = result
+    state.cb.on_log(world_repair.summary(result))
+    for line in result.repairs:
+        state.cb.on_log(f"world repair: {line['map']}: {line['what']}")
+    if result.repairs and not result.offered and not result.unfixable:
+        # everything the validator warned about is mended: the warnings are history
+        kept = [i for i in state.issues if i.code not in world_repair.CODES]
+        state.issues[:] = kept
+
+
 def phase_report(state: _State) -> None:
+    _repair_world(state)
     ok = not state.issues.has_errors()
     target = Path(state.target)
     path = target / "rpggen" / REPORT_NAME
@@ -582,7 +617,8 @@ def phase_report(state: _State) -> None:
     if files is not None and vcs.foreign_changes(target, files):
         state.issues.add("REGEN-008")  # the user's own uncommitted work stays out of the commit
     # A regeneration that changed nothing leaves the report as it was: the project is identical.
-    write_report = not (unchanged and path.is_file())
+    repaired = state.world_repair is not None and bool(state.world_repair.repairs)
+    write_report = repaired or not (unchanged and path.is_file())
     if write_report:
         jsonio.write(path, _report_data(state, ok))
         _write_markdown(state, target / report_mod.REPORT_MD, ok, plan)
@@ -609,6 +645,7 @@ def _write_markdown(
         plan=plan,
         runtime_version=state.runtime.new if state.runtime else "",
         skipped=state.skipped,
+        world_repair=state.world_repair,
     )
     path.write_text(text, encoding="utf-8", newline="\n")
 
@@ -682,6 +719,7 @@ def run(
     git_message: str | None = None,
     accept_runtime_upgrade: bool = False,
     derive_tile_size: bool = False,
+    repair_world: bool | None = None,
 ) -> RunResult:
     """Generate a project from ``cfg_path`` into ``target`` through staging.
 
@@ -697,6 +735,7 @@ def run(
     state.git_message = git_message
     state.accept_runtime_upgrade = accept_runtime_upgrade
     state.derive_tile_size = derive_tile_size
+    state.repair_world = repair_world
     return _execute(state)
 
 
@@ -710,6 +749,7 @@ def run_in_memory(
     force_while_open: bool = False,
     git_message: str | None = None,
     accept_runtime_upgrade: bool = False,
+    repair_world: bool | None = None,
 ) -> RunResult:
     """``run`` for a config and catalog that only exist in memory (the wizard's).
 
@@ -723,6 +763,7 @@ def run_in_memory(
     state.force_while_open = force_while_open
     state.git_message = git_message
     state.accept_runtime_upgrade = accept_runtime_upgrade
+    state.repair_world = repair_world
     return _execute(state)
 
 
@@ -804,6 +845,7 @@ def _run_phases(state: _State) -> RunResult:
         cfg=state.cfg,
         timings=dict(state.timings),
         skipped=dict(state.skipped),
+        world_repair=state.world_repair,
     )
 
 

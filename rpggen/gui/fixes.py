@@ -35,6 +35,8 @@ class Navigation(Protocol):
 
     def resolve_conflicts(self, file: str | None) -> None: ...
 
+    def repair_world(self) -> None: ...
+
 
 _GODOT = (
     Fix("download_godot", "Download Godot 4.7.2"),
@@ -49,6 +51,9 @@ FIXES: dict[str, tuple[Fix, ...]] = {
     "ASSET-010": (Fix("use_placeholder", "Use a placeholder and generate again"),),
     "REGEN-006": (Fix("accept_upgrade", "Accept the runtime upgrade and generate again"),),
     "REGEN-001": (Fix("resolve_conflicts", "Resolve conflicts"),),
+    # T13.24: a map that cannot be reached, a door that leads nowhere
+    "VAL-027": (Fix("repair_world", "Repair the world…"),),
+    "VAL-028": (Fix("repair_world", "Repair the world…"),),
 }
 
 # the widget of the Project page that the action points at
@@ -87,6 +92,8 @@ def apply(fix: Fix, issue: Issue, state: WizardState, nav: Navigation) -> bool:
     elif action == "resolve_conflicts":  # T12.58: the resolver, showing the issue's file
         file = issue.file or issue.detail.get("file")  # REGEN-001 names the file in ``file``
         nav.resolve_conflicts(file if isinstance(file, str) and file else None)
+    elif action == "repair_world":  # T13.24: shows what it would do before it writes
+        nav.repair_world()
     else:
         return False
     return True

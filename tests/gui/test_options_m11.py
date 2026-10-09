@@ -445,3 +445,19 @@ def test_a_project_with_its_world_shows_the_table_fixed_but_takes_a_new_area(
         "join": "Woods",
     }
     assert "size" not in state.config.starter_map, "the starter map's own options stay as they were"
+
+
+def test_advanced_has_the_repair_generated_maps_box(qtbot) -> None:
+    """T13.24: on by default; off is stored as repair_world: false."""
+    page, state = _page(qtbot)
+    box = page.repair_box
+    assert box.objectName() == "repairWorld" and box.isChecked()
+    assert box.text() == "Repair generated maps after a build"
+    page.leave(state)
+    assert state.config.repair_world is True and "repair_world" not in state.config.to_json()
+    box.setChecked(False)
+    page.leave(state)
+    assert state.config.repair_world is False
+    assert state.config.to_json()["repair_world"] is False
+    page.enter(state)
+    assert not page.repair_box.isChecked()

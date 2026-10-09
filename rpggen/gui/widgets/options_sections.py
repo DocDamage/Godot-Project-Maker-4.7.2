@@ -647,6 +647,16 @@ class AdvancedOptions(CollapsibleSection):
         seed_row.addWidget(self.seed_box)
         seed_row.addStretch(1)
         body.addLayout(seed_row)
+        self.repair_box = QCheckBox(self.tr("Repair generated maps after a build"))
+        self.repair_box.setObjectName("repairWorld")
+        self.repair_box.setToolTip(
+            self.tr(
+                "When a door leads nowhere or a map cannot be reached, rpggen mends the maps it "
+                "made and nobody changed (they are backed up first). A map you changed is only "
+                "mended when you ask on the Results page."
+            )
+        )
+        body.addWidget(self.repair_box)
         body.addWidget(
             QLabel(self.tr("Input: double-click a Keys or Mouse cell and press the key"))
         )

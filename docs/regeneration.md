@@ -110,6 +110,28 @@ rpggen conflicts --target <project> --keep-mine <file>      # or --take-new, --m
 `--json` the list or the result is a JSON document; `REGEN-009` means the file has no
 `.rpggen-new`, `REGEN-010` that a binary file cannot be merged.
 
+## The world of areas and its repair
+
+A project made with *Make a world of several areas* keeps its world plan in
+`rpggen/world_plan.json`. The plan is **stored and reused**: once the map of an area exists, a new
+seed or a changed row of the Areas table changes nothing; a new row adds an area, joined to the
+one you pick. To have an area built again, delete its `game/maps/<area>.tscn`.
+
+The validator warns when a map cannot be reached from the starter map through doors (`VAL-027`)
+and when a door of the world leads to a map or a spawn point that does not exist (`VAL-028`). Both
+are warnings: you may want an island. **rpggen mends the maps it made; yours it mends when you
+ask.** After a generation it adds the missing spawn point or door to the area maps that are still
+exactly as it built them (it knows them by the hash it recorded), after saving them to
+`.rpggen_backups`, so **Restore previous** takes a repair back; the report lists every change
+under *World repairs*, and `rpggen/world_repair.json` has the same list. A map you changed is
+never touched by itself: its warning has **Repair the world…** on the Results page, which shows
+what it would do before it writes (`rpggen-cli repair-world --target <project> [--dry-run]` does
+the same from a script), and the dock's *Validate* tab has **Fix** and **Fix all**, which you can
+undo with Ctrl+Z. A repair only adds: it never moves or deletes what you placed, never changes a
+door that has its partner, and does nothing while the Godot editor has the project open. Turn the
+automatic part off with *Options → Advanced → Repair generated maps after a build*, or
+`--no-repair-world` for one run.
+
 ## Git
 
 New projects get a `.gitignore` (the `.godot/` cache, logs and results, `.rpggen_*` working

@@ -106,6 +106,15 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   reach (`VAL-027`) and a door of the world that leads nowhere (`VAL-028`). The game's world
   map starts with an overview of the areas.
 
+* **World repair**: rpggen mends the maps it made; yours it mends when you ask. After a
+  generation a door that leads nowhere or a map that cannot be reached is mended in the area
+  maps nobody changed (a missing spawn point, a door back, a door pair), after a backup, so
+  **Restore previous** takes it back; the report lists it under *World repairs*. A map you
+  changed is only offered the repair: **Repair the world…** on the Results page (with a
+  preview), `rpggen-cli repair-world --target X [--dry-run]`, and **Fix** / **Fix all** in the
+  dock's Validate tab (Ctrl+Z undoes). *Options → Advanced → Repair generated maps after a
+  build* and `--no-repair-world` turn the automatic part off.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

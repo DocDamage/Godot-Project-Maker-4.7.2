@@ -192,6 +192,7 @@
       },
       "additionalProperties": false
     },
+    "repair_world": {"type": "boolean"},
     "export_targets": {
       "type": "array",
       "items": {"enum": ["windows", "web", "linux", "macos"]},

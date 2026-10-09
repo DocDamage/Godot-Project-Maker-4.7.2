@@ -26,6 +26,9 @@
       "$ref": "#/$defs/diagnose"
     },
     {
+      "$ref": "#/$defs/repair_world"
+    },
+    {
       "$ref": "#/$defs/failed"
     }
   ],
@@ -612,6 +615,101 @@
           ]
         },
         "saved_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/issue"
+          }
+        }
+      }
+    },
+    "repair_world": {
+      "type": "object",
+      "required": [
+        "json_version",
+        "command",
+        "ok",
+        "exit_code",
+        "target",
+        "dry_run",
+        "repairs",
+        "offered",
+        "unfixable",
+        "backup",
+        "issues"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "json_version": {
+          "const": 1
+        },
+        "command": {
+          "const": "repair-world"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1,
+            3
+          ]
+        },
+        "target": {
+          "type": "string"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "repairs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "map", "node", "what"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {"enum": ["retarget", "spawn", "door", "unfixable"]},
+              "map": {"type": "string"},
+              "node": {"type": "string"},
+              "what": {"type": "string"}
+            }
+          }
+        },
+        "offered": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "map", "node", "what"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {"enum": ["retarget", "spawn", "door", "unfixable"]},
+              "map": {"type": "string"},
+              "node": {"type": "string"},
+              "what": {"type": "string"}
+            }
+          }
+        },
+        "unfixable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "map", "node", "what"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {"enum": ["retarget", "spawn", "door", "unfixable"]},
+              "map": {"type": "string"},
+              "node": {"type": "string"},
+              "what": {"type": "string"}
+            }
+          }
+        },
+        "backup": {
           "type": [
             "string",
             "null"

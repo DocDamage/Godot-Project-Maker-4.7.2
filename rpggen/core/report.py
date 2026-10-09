@@ -79,6 +79,7 @@ def build_markdown(
     plan: PromotionPlan | None = None,
     runtime_version: str = "",
     skipped: dict[str, str] | None = None,
+    world_repair: Any = None,
 ) -> str:
     """The report. ``project`` is the folder holding the generated files and result files;
     ``plan`` is the promotion plan of a regeneration; ``skipped`` maps a phase that did not run
@@ -140,6 +141,10 @@ def build_markdown(
 
     lines += _tileset_lines(catalog)
     lines += _world_lines(project)
+    if world_repair is not None:  # T13.24: what the repair after the build did or offers
+        from rpggen.core import world_repair as world_repair_mod
+
+        lines += world_repair_mod.report_lines(world_repair)
     lines += _scene_lines(project)
     lines += _animation_lines(catalog)
     if plan is not None:

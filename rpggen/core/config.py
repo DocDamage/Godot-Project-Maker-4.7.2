@@ -122,6 +122,8 @@ class GeneratorConfig:
     git: dict[str, str] = field(default_factory=dict)  # {"pack_art": "commit" | "lfs" | "ignore"}
     # platforms that get an export preset and the export check (T12.52)
     export_targets: list[str] = field(default_factory=lambda: list(EXPORT_TARGET_DEFAULT))
+    # after a build, mend the doors and unreachable maps of the maps rpggen made (T13.24)
+    repair_world: bool = True
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
     godot_version: str = GODOT_VERSION
@@ -145,6 +147,8 @@ class GeneratorConfig:
         targets = self.selected_export_targets()
         if targets != list(EXPORT_TARGET_DEFAULT):
             out["export_targets"] = targets
+        if not self.repair_world:
+            out["repair_world"] = False
         imported = self.imported_map_selection()
         if imported["include"] or imported["starter"]:
             out["imported_maps"] = {
@@ -211,6 +215,7 @@ class GeneratorConfig:
             imported_maps=copy.deepcopy(data.get("imported_maps", {})),
             git=dict(data.get("git", {})),
             export_targets=list(data.get("export_targets", EXPORT_TARGET_DEFAULT)),
+            repair_world=bool(data.get("repair_world", True)),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],

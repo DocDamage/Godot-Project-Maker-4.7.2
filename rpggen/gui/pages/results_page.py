@@ -9,6 +9,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -23,7 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen import procenv
-from rpggen.core import conflicts, godot, orchestrator, promote, report
+from rpggen.core import conflicts, godot, orchestrator, promote, report, world_repair
 from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui import fixes
 from rpggen.gui.dialogs import diagnostic_export, error_lookup
@@ -324,6 +325,66 @@ class ResultsPage(WizardPage):
         self.conflicts_button.setVisible(bool(count))
         self.conflicts_button.setText(self.tr("Resolve conflicts ({0})…").format(count))
 
+    # ------------------------------------------------------------------ world repair (T13.24)
+
+    def run_world_repair(self, dry_run: bool) -> world_repair.RepairResult:  # tests replace it
+        """Run the project's repair tool in Godot (a few seconds; the cursor shows it)."""
+        assert self.result is not None and self.state is not None
+        exe = self.state.godot_exe
+        if exe is None:
+            raise RpgGenError("ENV-001")
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            return world_repair.run(self.result.target, exe, dry_run=dry_run)
+        finally:
+            QApplication.restoreOverrideCursor()
+
+    def confirm_world_repair(self, preview: world_repair.RepairResult) -> bool:
+        lines = "\n".join(f"• {line['map']}: {line['what']}" for line in preview.repairs)
+        answer = QMessageBox.question(
+            self,
+            self.tr("Repair the world"),
+            self.tr(
+                "This will be done to your maps (they are saved to the backups first, so "
+                "Restore previous undoes it):\n\n{0}"
+            ).format(lines),
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def repair_world(self) -> bool:
+        """The one-click fix of VAL-027 and VAL-028: show what the repair would do, and do it
+        after a yes. Every map may be written here, edited ones too: the user asked."""
+        if self.result is None:
+            return False
+        try:
+            preview = self.run_world_repair(True)
+            if not preview.repairs:
+                why = "\n".join(f"• {line['what']}" for line in preview.unfixable)
+                self.show_message(
+                    self.tr("Repair the world"),
+                    self.tr("Nothing can be mended automatically.")
+                    + (("\n\n" + why) if why else ""),
+                )
+                return False
+            if not self.confirm_world_repair(preview):
+                return False
+            done = self.run_world_repair(False)
+        except RpgGenError as exc:
+            self.show_message(self.tr("Repair failed"), exc.issue.message)
+            return False
+        text = self.tr("{0} repair(s) made. Open the maps in Godot to see them.").format(
+            len(done.repairs)
+        )
+        if done.unfixable:
+            text += "\n\n" + self.tr("Not mended:") + "\n"
+            text += "\n".join(f"• {line['what']}" for line in done.unfixable)
+        self.show_message(self.tr("World repaired"), text)
+        self.restore_button.setEnabled(bool(promote.list_backups(self.result.target)))
+        self.last_world_repair = done
+        return True
+
+    last_world_repair: world_repair.RepairResult | None = None
+
     def confirm_restore(self) -> bool:
         answer = QMessageBox.question(
             self,
@@ -602,6 +663,9 @@ class ResultsPage(WizardPage):
 
             def resolve_conflicts(self, file: str | None) -> None:
                 page.resolve_conflicts(file)
+
+            def repair_world(self) -> None:
+                page.repair_world()
 
         return Nav()
 

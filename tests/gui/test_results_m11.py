@@ -340,6 +340,8 @@ def test_only_registered_codes_get_buttons() -> None:
         "ASSET-010",
         "REGEN-006",
         "REGEN-001",
+        "VAL-027",  # T13.24: Repair the world…
+        "VAL-028",
     }
     assert [f.label for f in fixes.fixes_for("ENV-001")] == [
         "Download Godot 4.7.2",
@@ -440,3 +442,109 @@ def test_the_wizard_runs_the_generation_again_after_a_fix(qtbot, tmp_path: Path)
     results.fix_buttons[0].click()
     assert window.current_index == OPTIONS_INDEX + 1 and started == [True]
     assert state.accept_runtime_upgrade is True
+
+
+# ------------------------------------------------------------------------ Repair the world… (T13.24)
+
+
+def _repair_lines(count: int = 2) -> list[dict[str, str]]:
+    lines = [
+        {
+            "kind": "spawn",
+            "map": "game/maps/woods.tscn",
+            "node": "SpawnPoints/from_old_mine",
+            "what": "added the spawn point from_old_mine",
+        },
+        {
+            "kind": "door",
+            "map": "game/maps/woods.tscn",
+            "node": "Triggers/woods_door_old_mine",
+            "what": "added the door woods_door_old_mine back to old_mine.tscn",
+        },
+    ]
+    return lines[:count]
+
+
+def test_a_broken_world_offers_repair_the_world_with_a_preview(qtbot, tmp_path: Path) -> None:
+    from rpggen.core import world_repair
+
+    nowhere = _issue("VAL-028", Severity.WARNING, file="game/maps/old_mine.tscn")
+    island = _issue("VAL-027", Severity.WARNING, file="game/maps/isle.tscn")
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path, [nowhere, island])
+    page = _results(qtbot, state)
+    for row in range(page.issue_list.count()):
+        page.issue_list.setCurrentRow(row)
+        assert [b.objectName() for b in page.fix_buttons] == ["fix_repair_world"]
+        assert page.fix_buttons[0].text() == "Repair the world…"
+    runs: list[bool] = []
+    asked: list[world_repair.RepairResult] = []
+    shown: list[tuple[str, str]] = []
+
+    def run(dry_run: bool) -> world_repair.RepairResult:
+        runs.append(dry_run)
+        return world_repair.RepairResult(repairs=_repair_lines(), dry_run=dry_run)
+
+    page.run_world_repair = run  # type: ignore[method-assign]
+    page.show_message = lambda title, text: shown.append((title, text))  # type: ignore[method-assign]
+    # the preview is shown first, and a no writes nothing
+    page.confirm_world_repair = lambda preview: asked.append(preview) or False  # type: ignore[method-assign]
+    page.fix_buttons[0].click()
+    assert runs == [True] and len(asked) == 1 and shown == []
+    assert [line["what"] for line in asked[0].repairs] == [
+        "added the spawn point from_old_mine",
+        "added the door woods_door_old_mine back to old_mine.tscn",
+    ]
+    assert page.last_world_repair is None
+    # a yes runs the repair
+    page.confirm_world_repair = lambda preview: True  # type: ignore[method-assign]
+    assert page.repair_world()
+    assert runs == [True, True, False]
+    assert shown[-1][0] == "World repaired" and "2 repair(s) made" in shown[-1][1]
+    assert page.last_world_repair is not None and not page.last_world_repair.dry_run
+
+
+def test_repair_the_world_says_when_nothing_can_be_mended(qtbot, tmp_path: Path) -> None:
+    from rpggen.core import world_repair
+    from rpggen.errors import RpgGenError
+
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path, [_issue("VAL-027", Severity.WARNING)])
+    page = _results(qtbot, state)
+    shown: list[tuple[str, str]] = []
+    page.show_message = lambda title, text: shown.append((title, text))  # type: ignore[method-assign]
+    unfixable = [
+        {"kind": "unfixable", "map": "game/maps/isle.tscn", "node": "", "what": "no floor"}
+    ]
+    page.run_world_repair = lambda dry_run: world_repair.RepairResult(  # type: ignore[method-assign]
+        unfixable=unfixable, dry_run=dry_run
+    )
+    assert not page.repair_world()
+    assert shown[-1][0] == "Repair the world" and "no floor" in shown[-1][1]
+
+    def editor_open(dry_run: bool) -> world_repair.RepairResult:
+        raise RpgGenError("REGEN-005", path="x")
+
+    page.run_world_repair = editor_open  # type: ignore[method-assign]
+    assert not page.repair_world()
+    assert shown[-1][0] == "Repair failed" and "Godot editor" in shown[-1][1]
+
+
+def test_the_confirmation_lists_every_line(qtbot, tmp_path: Path, monkeypatch) -> None:
+    from PySide6.QtWidgets import QMessageBox
+
+    from rpggen.core import world_repair
+
+    state = _state(tmp_path)
+    state.run_result = _ok_result(tmp_path)
+    page = _results(qtbot, state)
+    texts: list[str] = []
+
+    def question(parent, title, text, *args):  # noqa: ANN001, ANN202
+        texts.append(text)
+        return QMessageBox.StandardButton.Yes
+
+    monkeypatch.setattr(QMessageBox, "question", question)
+    assert page.confirm_world_repair(world_repair.RepairResult(repairs=_repair_lines()))
+    assert "game/maps/woods.tscn: added the spawn point from_old_mine" in texts[0]
+    assert "Restore previous" in texts[0]

@@ -33,6 +33,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `input` | object | see §1.1 | Action → bindings. |
 | `sounds` | object | `{}` | Optional (T11.20). Sound slot → audio asset id. Slots: `music_map`, `music_battle`, `music_title`, `sfx_ui_move`, `sfx_ui_confirm`, `sfx_ui_cancel`, `sfx_hit`, `sfx_attack`, `sfx_pickup`, `sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`. A slot that is absent is silent. Omitted from the JSON when empty. Beyond the fixed list any key matching `^(music|sfx)_[a-z][a-z0-9_]{1,30}$` is a **custom slot** (T13.16): `sfx_step_<surface>` is the footstep on ground tagged `surface:<surface>`, any other is played by name. A key that does not match is `CAT-006`. |
 | `starter_map` | object | defaults | Optional (T11.25). `size` [w, h] tiles (24..96 each), `buildings` 0..4, `npcs` 0..6, `enemies` 0..8, `chests` 0..4, `decorations` 0..40, `ground_patches` 0..20, `ground` asset id or "". Omitted from the JSON when equal to the defaults. `areas` (T13.20, optional): a list of 1 to 12 `{ "name", "biome", "size"?, "enemies"?, "chests"?, "join"?, "reroll"? }` rows that make a **world of connected maps** (§12): `biome` is `village`, `field`, `forest`, `cave` or `shore`; `size` [w, h] is 16..96 tiles (default [32, 20]); `enemies` and `chests` are 0..12 (default 2 and 1); `join` names the area a row added to an existing world hangs on; `reroll` (0 or more) gives another arrangement of that area only. The first `village` row (else the first row) is the starter map, whose size and counts are the options above. Without `areas` the project gets the starter map and the field of 1.0. |
+| `repair_world` | bool | `true` | Optional (T13.24). After a build, mend the doors that lead nowhere and the unreachable maps among the maps rpggen made and nobody changed (`rpggen/world_repair.json` lists what was done). Omitted from the JSON when true. |
 | `imported_maps` | object | `{}` | Optional (T12.49). `include`: ids of the catalog's `maps` to build into `game/maps/imported/<pack>/`; `starter`: the id of the map that becomes `game/maps/starter_map.tscn` (the layout planner is then skipped, and the map has none of the demo's villager, chest or enemy). The starter is built even when it is not in `include`. Omitted when empty. |
 | `git` | object | `{}` | Optional (T12.12). `pack_art`: `"commit"` (default), `"lfs"` (the pack art goes through Git LFS; falls back to `commit` with ENV-013 when git-lfs is missing) or `"ignore"` (`assets/packs/` is added to the generated `.gitignore`). Omitted when it holds the default. |
 | `export_targets` | array of strings | `["windows"]` | Optional (T12.52). The platforms that get a preset in `export_presets.cfg` and a test export: `windows`, `web`, `linux`, `macos` (at least one, no repeats; written in that order). Omitted when it is `["windows"]`. |
@@ -457,7 +458,7 @@ Several task cards extend these schemas. Each card that adds a field must update
 
 ## 11. Command-line documents (`--json`, json_version 1)
 
-`rpggen generate|analyze|restore|diagnose --json` prints **one** JSON document on stdout; every
+`rpggen generate|analyze|restore|diagnose|repair-world --json` prints **one** JSON document on stdout; every
 human line goes to stderr. The schema is `rpggen/schema/cli.schema.json`. The document is not a
 file in a project: it is the answer to one command, so it is written with `json.dumps(indent=2)`
 and its keys are in the order below, not sorted. Every document starts with the envelope:
@@ -547,8 +548,14 @@ and its keys are in the order below, not sorted. Every document starts with the 
 
 An error (`ARCH-*` and so on) is `{ envelope…, "issues": [ … ] }` with exit code 3 (or 1).
 
-### 11.3 `restore` and `diagnose`
+### 11.3 `restore`, `diagnose` and `repair-world`
 
+* `repair-world` (T13.24): `target`, `dry_run`, `repairs`, `offered` and `unfixable` (lists of
+  `{ "kind": "retarget"/"spawn"/"door"/"unfixable", "map", "node", "what" }`: what was written
+  or, with `--dry-run`, would be; what a map the run may not write would need; and what cannot be
+  mended) and `backup` (the folder name under `.rpggen_backups` the maps went to, or `null`).
+  `rpggen/world_repair.json` in the project holds the last run's `repairs`, `skipped` and
+  `unfixable`.
 * `restore`: `target`, `backup` (the `--backup` name or `null`), `saved_state` (the folder the replaced state
   was saved to; `null` on failure) and `issues` (the error that stopped it, or `[]`).
 * `diagnose`: `target` and `bundle` (the zip written).
