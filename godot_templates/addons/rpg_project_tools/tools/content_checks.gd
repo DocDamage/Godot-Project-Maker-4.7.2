@@ -13,8 +13,12 @@ const Condition := preload("res://addons/rpg_runtime/dialogue/condition.gd")
 const Sequence := preload("res://addons/rpg_runtime/events/sequence.gd")
 const EncounterTable := preload("res://addons/rpg_runtime/data/encounter_table.gd")
 const JsonIo := preload("json_io.gd")
+const MapGraph := preload("map_graph.gd")
 
 const MAPS_DIR := "res://game/maps"
+## The stored world plan (T13.20): its maps are the ones rpggen can mend, so a door of theirs
+## that leads nowhere is a warning (VAL-028), not an error.
+const WORLD_PLAN := "res://rpggen/world_plan.json"
 const DIALOGUE_DIR := "res://game/data/dialogue"
 const ITEMS_DIR := "res://game/data/items"
 const SEQUENCES_DIR := "res://game/data/sequences"
@@ -41,7 +45,9 @@ static func run(dirs: Dictionary = {}) -> Array:
 	var cache := {}  # map path -> instantiated scene (or null), freed at the end
 	var maps := list_files(JsonIo.to_str(dirs.get("maps", MAPS_DIR)), ["tscn"])
 	_check_entity_ids(maps, cache, findings)
-	_check_doors(maps, cache, findings)
+	var world := world_maps(JsonIo.to_str(dirs.get("world_plan", WORLD_PLAN)))
+	_check_doors(maps, cache, findings, world)
+	_check_world(maps, cache, JsonIo.to_str(dirs.get("start", MapGraph.START)), findings)
 	_check_dialogue(JsonIo.to_str(dirs.get("dialogue", DIALOGUE_DIR)), JsonIo.to_str(dirs.get("items", ITEMS_DIR)), known_ids(dirs), findings)
 	var sequences_dir := JsonIo.to_str(dirs.get("sequences", SEQUENCES_DIR))
 	_check_sequences(sequences_dir, dirs, findings)
@@ -152,7 +158,30 @@ static func _spawn_ids(root: Node) -> Array[String]:
 			out.append(str(n.get("spawn_id")))
 	return out
 
-static func _check_doors(maps: Array[String], cache: Dictionary, findings: Array) -> void:
+## The map paths (res://) of the stored world plan; empty without one.
+static func world_maps(plan_path: String) -> Array[String]:
+	var out: Array[String] = []
+	var plan: Variant = JsonIo.read(plan_path) if FileAccess.file_exists(plan_path) else null
+	if not (plan is Dictionary):
+		return out
+	var table: Dictionary = plan
+	var areas: Variant = table.get("areas", [])
+	if areas is Array:
+		var list: Array = areas
+		for raw: Variant in list:
+			if raw is Dictionary:
+				var area: Dictionary = raw
+				var map := JsonIo.to_str(area.get("map", ""))
+				out.append(map if map.contains("://") else "res://" + map)
+	return out
+
+## VAL-027: a map the starter map cannot reach through doors (a warning: an island may be meant).
+static func _check_world(maps: Array[String], cache: Dictionary, start: String, findings: Array) -> void:
+	var graph := MapGraph.read(maps, func(path: String) -> Node: return _instance(path, cache))
+	for path in MapGraph.unreachable(graph, start):
+		findings.append(finding("VAL-027", {"map": path.get_file().get_basename()}, path))
+
+static func _check_doors(maps: Array[String], cache: Dictionary, findings: Array, world: Array[String] = []) -> void:
 	for path in maps:
 		var root := _instance(path, cache)
 		if root == null:
@@ -166,13 +195,20 @@ static func _check_doors(maps: Array[String], cache: Dictionary, findings: Array
 			if target == "":
 				continue  # a door that is not wired up yet (the runtime warns when it is used)
 			var node_path := String(root.get_path_to(node))
+			var mendable := world.has(path) or world.has(target)  # rpggen can repair its world
 			if not ResourceLoader.exists(target):
-				findings.append(finding("VAL-016", {"node": node_path, "target": target}, path, node_path))
+				if mendable:
+					findings.append(finding("VAL-028", {"node": node_path, "what": "the map %s" % target.get_file()}, path, node_path))
+				else:
+					findings.append(finding("VAL-016", {"node": node_path, "target": target}, path, node_path))
 				continue
 			var spawn := str(node.get("target_spawn"))
 			var target_root := _instance(target, cache)
 			if target_root != null and not _spawn_ids(target_root).has(spawn):
-				findings.append(finding("VAL-017", {"node": node_path, "spawn": spawn, "target": target}, path, node_path))
+				if mendable:
+					findings.append(finding("VAL-028", {"node": node_path, "what": "the spawn point '%s' in %s" % [spawn, target.get_file()]}, path, node_path))
+				else:
+					findings.append(finding("VAL-017", {"node": node_path, "spawn": spawn, "target": target}, path, node_path))
 
 # ---------------------------------------------------------------- dialogue (VAL-018, VAL-019)
 

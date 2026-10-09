@@ -146,6 +146,11 @@ class OptionsModel:
         cfg.export_targets = self.draft.selected_export_targets()
         if not self.starter_locked:
             cfg.starter_map = copy.deepcopy(self.draft.starter_map)
+        else:  # the map is the user's, but a world may still get a new area
+            kept = {k: v for k, v in cfg.starter_map.items() if k != "areas"}
+            if self.draft.starter_map.get("areas"):
+                kept["areas"] = copy.deepcopy(self.draft.starter_map["areas"])
+            cfg.starter_map = kept
         cfg.imported_maps = copy.deepcopy(self.draft.imported_maps)
 
     @property
@@ -288,11 +293,53 @@ class OptionsModel:
         return config_mod.starter_map_defaults(self.draft.archetype)
 
     def store_starter(self, values: dict[str, Any]) -> None:
-        """Stores only what differs from the defaults of the archetype."""
-        if self.draft is None or self.starter_locked:
+        """Stores only what differs from the defaults of the archetype. The starter map of a
+        project that exists keeps its options; only the areas table still counts (a new area)."""
+        if self.draft is None:
+            return
+        if self.starter_locked:
+            kept = {k: v for k, v in self.draft.starter_map.items() if k != "areas"}
+            if values.get("areas"):
+                kept["areas"] = copy.deepcopy(values["areas"])
+            self.draft.starter_map = kept
             return
         defaults = self.starter_defaults()
-        self.draft.starter_map = {k: v for k, v in values.items() if v != defaults[k]}
+        self.draft.starter_map = {
+            k: v for k, v in values.items() if k not in defaults or v != defaults[k]
+        }
+
+    def world_names(self) -> set[str]:
+        """The names of the areas the project's world was built from (empty: no world yet, so
+        the whole table can still change)."""
+        from rpggen.core import world_plan
+
+        state = self.state
+        if state is None or not state.regenerating or state.target is None:
+            return set()
+        if not world_plan.exists(state.target):
+            return set()
+        stored = world_plan.load(state.target)
+        return {str(a["name"]) for a in stored["areas"]} if stored else set()
+
+    def world_preview(self, values: dict[str, Any]) -> dict[str, Any] | None:
+        """The world plan the areas table gives now (the stored one with the new rows for a
+        project that has its world), or None without a usable table."""
+        from rpggen.core import world_plan
+
+        areas = values.get("areas")
+        if not areas or self.draft is None:
+            return None
+        size = tuple(values.get("size", (40, 30)))
+        try:
+            if self.world_names() and self.state is not None and self.state.target is not None:
+                return world_plan.for_project(
+                    self.state.target, areas, self.draft.seed, self.catalog, size
+                )[0]
+            return world_plan.plan(
+                areas, self.draft.seed, self.catalog, (int(size[0]), int(size[1]))
+            )
+        except world_plan.WorldPlanError:
+            return None
 
     def preview_options(self, values: dict[str, Any]) -> dict[str, Any] | None:
         """The options the starter map preview draws, or None when there is nothing to draw."""

@@ -314,3 +314,138 @@ func test_zones_need_a_table_with_known_enemies_and_a_shape_val_024(t) -> void:
 	nodes.sort()
 	t.eq(nodes, ["Ghost", "NoShape", "NoTable"])
 	_finish()
+
+# ---------------------------------------------------------------- the world of maps (T13.20)
+
+const MapGraph := preload("res://addons/rpg_project_tools/tools/map_graph.gd")
+const WorldPlan := preload("res://builder/lib/world_plan.gd")
+
+## Three maps: a <-> b joined by a door pair, c on its own. Returns the three paths.
+func _three_maps() -> Array[String]:
+	var a := Maps.map("a")
+	Maps.door(a, "ToB", DIR + "/maps/b.tscn", "from_a")
+	Maps.spawn(a, "FromB", "from_b")
+	Maps.save(a, DIR + "/maps/a.tscn")
+	var b := Maps.map("b")
+	Maps.door(b, "ToA", DIR + "/maps/a.tscn", "from_b")
+	Maps.spawn(b, "FromA", "from_a")
+	Maps.save(b, DIR + "/maps/b.tscn")
+	var c := Maps.map("c")
+	Maps.save(c, DIR + "/maps/c.tscn")
+	return [DIR + "/maps/a.tscn", DIR + "/maps/b.tscn", DIR + "/maps/c.tscn"]
+
+func _world_dirs(plan_maps: Array = []) -> Dictionary:
+	var dirs := _dirs()
+	dirs["start"] = DIR + "/maps/a.tscn"
+	dirs["world_plan"] = DIR + "/world_plan.json"
+	if not plan_maps.is_empty():
+		var areas: Array = []
+		for path: String in plan_maps:
+			areas.append({"map": path})
+		var f := FileAccess.open(DIR + "/world_plan.json", FileAccess.WRITE)
+		f.store_string(JSON.stringify({"areas": areas}))
+		f.close()
+	return dirs
+
+func test_the_map_graph_reads_doors_and_spawns(t) -> void:
+	_setup()
+	var paths := _three_maps()
+	var roots: Array[Node] = []
+	var graph := MapGraph.read(paths, func(path: String) -> Node:
+		var root := (load(path) as PackedScene).instantiate()
+		roots.append(root)
+		return root)
+	t.eq(graph[paths[0]]["doors"], [{"node": "ToB", "target": paths[1], "spawn": "from_a"}])
+	t.eq(graph[paths[0]]["spawns"], ["from_b"])
+	t.eq(MapGraph.reachable(graph, paths[0]), [paths[0], paths[1]])
+	t.eq(MapGraph.unreachable(graph, paths[0]), [paths[2]])
+	t.eq(MapGraph.unreachable(graph, DIR + "/maps/none.tscn"), [], "without a start map nothing is said")
+	t.ok(MapGraph.has_door(graph, paths[0], paths[1]) and not MapGraph.has_door(graph, paths[2], paths[0]))
+	t.eq(MapGraph.dangling(graph, func(path: String) -> bool: return FileAccess.file_exists(path)), [])
+	for root in roots:
+		root.free()
+	_finish()
+
+func test_a_map_that_cannot_be_reached_is_val_027(t) -> void:
+	_setup()
+	_three_maps()
+	var findings := ContentChecks.run(_world_dirs())
+	t.eq(_codes(findings), ["VAL-027"])
+	t.eq(findings[0]["detail"]["map"], "c")
+	t.eq(findings[0]["file"], DIR + "/maps/c.tscn")
+	# a door to it from a reachable map is enough (the way back is the player's business)
+	var b := (load(DIR + "/maps/b.tscn") as PackedScene).instantiate()
+	Maps.door(b, "ToC", DIR + "/maps/c.tscn", "default").owner = b
+	Maps.save(b, DIR + "/maps/b.tscn")
+	var c := Maps.map("c")
+	Maps.spawn(c, "Default", "default")
+	Maps.save(c, DIR + "/maps/c.tscn")
+	t.eq(ContentChecks.run(_world_dirs()), [])
+	_finish()
+
+func test_the_library_of_imported_maps_is_not_an_island(t) -> void:
+	_setup()
+	_three_maps()
+	DirAccess.make_dir_recursive_absolute(DIR + "/maps/imported/pack")
+	DirAccess.rename_absolute(DIR + "/maps/c.tscn", DIR + "/maps/imported/pack/c.tscn")
+	t.eq(ContentChecks.run(_world_dirs()), [])
+	_finish()
+
+func test_a_broken_door_of_the_world_is_the_warning_val_028(t) -> void:
+	_setup()
+	var a := Maps.map("a")
+	Maps.door(a, "ToB", DIR + "/maps/b.tscn", "nowhere")
+	Maps.door(a, "ToGone", DIR + "/maps/gone.tscn", "default")
+	Maps.save(a, DIR + "/maps/a.tscn")
+	var b := Maps.map("b")
+	Maps.door(b, "ToA", DIR + "/maps/a.tscn", "from_b")
+	Maps.save(b, DIR + "/maps/b.tscn")
+	# without a world plan these are the errors they always were
+	t.eq(_codes(ContentChecks.run(_world_dirs())), ["VAL-017", "VAL-016", "VAL-017"])
+	# the plan names a and b: rpggen can mend its world, so the same doors only warn
+	var findings := ContentChecks.run(_world_dirs([DIR + "/maps/a.tscn", DIR + "/maps/b.tscn"]))
+	t.eq(_codes(findings), ["VAL-028", "VAL-028", "VAL-028"])
+	t.eq(findings[0]["detail"]["what"], "the spawn point 'nowhere' in b.tscn")
+	t.eq(findings[1]["detail"]["what"], "the map gone.tscn")
+	t.eq(findings[2]["detail"]["what"], "the spawn point 'from_b' in a.tscn")
+	t.eq(ContentChecks.world_maps(DIR + "/no_plan.json"), [])
+	_finish()
+
+func test_dangling_doors_are_listed_for_the_repair(t) -> void:
+	_setup()
+	var a := Maps.map("a")
+	Maps.door(a, "ToB", DIR + "/maps/b.tscn", "nowhere")
+	Maps.door(a, "ToGone", DIR + "/maps/gone.tscn", "default")
+	Maps.save(a, DIR + "/maps/a.tscn")
+	Maps.save(Maps.map("b"), DIR + "/maps/b.tscn")
+	var roots: Array[Node] = []
+	var paths: Array[String] = [DIR + "/maps/a.tscn", DIR + "/maps/b.tscn"]
+	var graph := MapGraph.read(paths, func(path: String) -> Node:
+		var root := (load(path) as PackedScene).instantiate()
+		roots.append(root)
+		return root)
+	var found := MapGraph.dangling(graph, func(path: String) -> bool: return FileAccess.file_exists(path))
+	t.eq(found.size(), 2)
+	t.eq([found[0]["node"], found[0]["missing"]], ["ToB", "spawn"])
+	t.eq([found[1]["node"], found[1]["missing"]], ["ToGone", "map"])
+	for root in roots:
+		root.free()
+	_finish()
+
+func test_a_village_door_moves_along_the_wall_to_free_floor(t) -> void:
+	var size := Vector2i(40, 30)
+	t.eq(WorldPlan.inside("N", Vector2i(20, 0)), Vector2i(20, 1))
+	t.eq(WorldPlan.inside("E", Vector2i(39, 15)), Vector2i(38, 15))
+	t.eq(WorldPlan.free_edge_cell(Vector2i(20, 0), "N", size, {}), Vector2i(20, 0), "free: where the plan wants it")
+	var blocked := {Vector2i(20, 1): true, Vector2i(21, 2): true}
+	t.eq(WorldPlan.free_edge_cell(Vector2i(20, 0), "N", size, blocked), Vector2i(19, 0), "the nearest cell with two free cells in front")
+	var west := {Vector2i(1, 15): true, Vector2i(1, 16): true, Vector2i(1, 14): true}
+	t.eq(WorldPlan.free_edge_cell(Vector2i(0, 15), "W", size, west), Vector2i(0, 17))
+	t.eq(WorldPlan.cell([3, 4]), Vector2i(3, 4))
+	t.eq(WorldPlan.cell("x"), Vector2i.ZERO)
+	var plan := {"areas": [{"id": "starter_map", "map": "game/maps/starter_map.tscn", "doors": [{"id": "d1"}], "gates": [{"id": "g", "door": "d1"}]}]}
+	t.eq(WorldPlan.areas(plan).size(), 1)
+	t.eq(WorldPlan.map_path(WorldPlan.area(plan, "starter_map")), "res://game/maps/starter_map.tscn")
+	t.eq(WorldPlan.gate_of(WorldPlan.area(plan, "starter_map"), "d1")["id"], "g")
+	t.eq(WorldPlan.gate_of(WorldPlan.area(plan, "starter_map"), "d2"), {})
+	t.eq(WorldPlan.area(plan, "nowhere"), {})

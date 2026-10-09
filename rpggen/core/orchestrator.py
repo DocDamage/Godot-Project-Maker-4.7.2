@@ -26,6 +26,7 @@ from rpggen.core import (
     sound_slots,
     staging,
     vcs,
+    world_plan,
 )
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
@@ -299,6 +300,7 @@ def phase_catalog(state: _State) -> None:
         # nothing was chosen (the command line, an older project): the packs' audio is used
         state.cfg.sounds = sound_slots.default_sounds(catalog)
     state.generated = generated
+    _plan_world(state, catalog)
     if state.staging.regenerate:
         # Files of assets that vanished from their pack stay: tile set sources, scenes and
         # animations built from them keep loading until the user confirms the removal.
@@ -308,6 +310,43 @@ def phase_catalog(state: _State) -> None:
     # A required role without any asset stops generation before Godot runs.
     state.issues.extend(requirements.check(catalog, state.cfg))
     state.issues.extend(staging.write_project_files(state.staging, state.cfg, catalog))
+
+
+def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
+    """``starter_map.areas`` (T13.20): the world plan goes into the staging copy, where the
+    recipes read it. A project whose world exists keeps its stored plan; new rows are added."""
+    assert state.staging is not None and state.cfg is not None
+    areas = state.cfg.starter_map.get("areas")
+    if not areas:
+        return
+    root = state.staging.staging
+    try:
+        plan, notes = world_plan.for_project(
+            root,
+            areas,
+            state.cfg.seed,
+            catalog,
+            tuple(state.cfg.starter_map.get("size", (40, 30))),
+        )
+    except world_plan.WorldPlanError as exc:
+        state.issues.add("CAT-002", file="config", reason=f"/starter_map/areas: {exc}")
+        raise _Stop from None
+    world_plan.save(root, plan)
+    state.cb.on_log("world: " + world_plan.summary(plan))
+    for note in [*plan["notes"], *notes]:
+        state.cb.on_log("world: " + note)
+
+
+def _record_world_hashes(state: _State) -> None:
+    """After the build: the hash of every area map rpggen has just made, so that a later run
+    can tell a map nobody edited from one a person changed (T13.24)."""
+    assert state.staging is not None
+    root = state.staging.staging
+    plan = world_plan.load(root)
+    if plan is None:
+        return
+    if world_plan.record_hashes(root, plan, state.target if state.staging.regenerate else None):
+        world_plan.save(root, plan)
 
 
 def phase_import(state: _State) -> None:
@@ -355,6 +394,7 @@ def phase_build(state: _State) -> None:
         if not state.issues.has_errors():
             state.issues.add("BUILD-002", recipe="build.gd", reason=f"exit code {run.returncode}")
         raise _Stop
+    _record_world_hashes(state)
 
 
 def _sabotage(state: _State) -> None:

@@ -204,3 +204,49 @@ func test_the_minimap_setting_is_on_by_default_and_saved(t) -> void:
 	t.eq(settings.minimap, false, "saved")
 	Fixtures.uninstall("RpgSettings")
 	DirAccess.remove_absolute(path)
+
+# ---------------------------------------------------------------- the world overview (T13.20)
+
+func _world() -> Dictionary:
+	return {
+		"grid": {"starter_map": [0, 0], "meadow": [1, 0], "woods": [0, 1]},
+		"areas": [
+			{"id": "starter_map", "name": "Village", "map": "game/maps/starter_map.tscn", "doors": [{"to": "meadow"}, {"to": "woods"}]},
+			{"id": "meadow", "name": "Meadow", "map": "game/maps/meadow.tscn", "doors": [{"to": "starter_map"}]},
+			{"id": "woods", "name": "Dark woods", "map": "game/maps/woods.tscn", "doors": [{"to": "starter_map"}]},
+		],
+	}
+
+## An RGBA8 picture keeps a colour to 1/255.
+func _same(a: Color, b: Color) -> bool:
+	return Vector4(a.r, a.g, a.b, a.a).distance_to(Vector4(b.r, b.g, b.b, b.a)) < 0.01
+
+func test_the_world_overview_draws_a_box_per_area_and_lights_the_visited(t) -> void:
+	var visited: Array[String] = ["game__maps__starter_map"]
+	var image := RpgWorldMapMenu.overview(_world(), visited)
+	var box := RpgWorldMapMenu.AREA_BOX
+	var gap := RpgWorldMapMenu.AREA_GAP
+	t.eq(image.get_size(), Vector2i(2 * (box.x + gap) + gap, 2 * (box.y + gap) + gap), "a 2 x 2 grid")
+	var village := Vector2i(gap + box.x / 2, gap + box.y / 2)
+	var meadow := village + Vector2i(box.x + gap, 0)
+	var woods := village + Vector2i(0, box.y + gap)
+	var empty := village + Vector2i(box.x + gap, box.y + gap)
+	t.ok(_same(image.get_pixelv(village), RpgWorldMapMenu.AREA_SEEN), "the village was visited")
+	t.ok(_same(image.get_pixelv(meadow), RpgWorldMapMenu.AREA_UNSEEN), "the meadow is there before it is seen")
+	t.ok(_same(image.get_pixelv(woods), RpgWorldMapMenu.AREA_UNSEEN))
+	t.ok(_same(image.get_pixelv(empty), RpgWorldMapMenu.FOG), "no area there")
+	# a mark on the shared edge of two joined areas, none between the two that are not joined
+	var between := Vector2i(gap + box.x + gap / 2, gap + box.y / 2)
+	t.ok(_same(image.get_pixelv(between), RpgWorldMapMenu.AREA_DOOR), "village - meadow")
+	t.ok(_same(image.get_pixelv(Vector2i(gap + box.x / 2, gap + box.y + gap / 2)), RpgWorldMapMenu.AREA_DOOR), "village - woods")
+	t.ok(_same(image.get_pixelv(Vector2i(gap + box.x + gap / 2, gap + box.y + gap + box.y / 2)), RpgWorldMapMenu.FOG))
+	visited.append("game__maps__woods")
+	t.ok(_same(RpgWorldMapMenu.overview(_world(), visited).get_pixelv(woods), RpgWorldMapMenu.AREA_SEEN))
+	t.eq(RpgWorldMapMenu.world_plan("user://no_world_plan.json"), {})
+
+func test_the_world_map_names_areas_by_the_plan(t) -> void:
+	var menu := RpgWorldMapMenu.new()
+	t.eq(menu.area_name(_world(), "game__maps__woods"), "Dark woods")
+	t.eq(menu.area_name(_world(), "game__maps__starter_map"), "MAP_STARTER_MAP", "the starter map keeps its text key")
+	t.eq(menu.area_name({}, "game__maps__imported__pack__cave"), "MAP_CAVE")
+	menu.free()

@@ -241,11 +241,14 @@ class OptionsPage(WizardPage):
             self.seed_box.setValue(min(draft.seed, SEED_MAX))
             self.layers_box.fill(draft.map_layers)
             self.advanced.fill_input(self.model.input_rows())
-            self.starter_box.load(draft.starter_map_options(), self.model.starter_locked)
+            self.starter_box.load(
+                draft.starter_map_options(), self.model.starter_locked, self.model.world_names()
+            )
             chosen = self.model.chosen_imported()
             if chosen is not None:
                 self.imported_box.load(chosen)
             self._update_starter_state()
+            self._show_world()
             self.pack_art_radios[draft.pack_art].setChecked(True)
             self.export_targets.set_values(draft.selected_export_targets())
         finally:
@@ -331,15 +334,22 @@ class OptionsPage(WizardPage):
             return
         self.model.store_starter(self.starter_values())
         self._schedule_preview()
+        self._show_world()
         self.refresh_summary()
         self.changed.emit()
+
+    def _show_world(self) -> None:
+        """The world of the areas table, drawn under it (planned at once: it is cheap)."""
+        self.starter_box.show_world(self.model.world_preview(self.starter_values()))
 
     def _reset_starter(self) -> None:
         if self.draft is None:
             return
         self._loading = True
         try:
-            self.starter_box.load(self.model.starter_defaults(), self.model.starter_locked)
+            self.starter_box.load(
+                self.model.starter_defaults(), self.model.starter_locked, self.model.world_names()
+            )
         finally:
             self._loading = False
         self._on_starter_edited()
@@ -370,6 +380,7 @@ class OptionsPage(WizardPage):
             return
         self.draft.seed = self.seed_box.value()
         self._schedule_preview()
+        self._show_world()
         self._on_edited()
 
     # ------------------------------------------------------------------ imported maps

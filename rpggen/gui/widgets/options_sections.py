@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import config as config_mod
-from rpggen.core import options
+from rpggen.core import options, world_plan
 from rpggen.gui.models.options_model import (
     EXPORT_TARGET_LABELS,
     INPUT_COLUMNS,
@@ -37,6 +37,7 @@ from rpggen.gui.models.options_model import (
     FeatureState,
     StarterState,
 )
+from rpggen.gui.widgets.areas_table import AreasTable, WorldPreview
 from rpggen.gui.widgets.binding_table import BindingTable
 from rpggen.gui.widgets.collapsible import CollapsibleSection
 from rpggen.gui.widgets.map_preview import MapPreviewWidget
@@ -213,6 +214,22 @@ class StarterMapBox(QGroupBox):
         layout.addWidget(self.reset, 0, Qt.AlignmentFlag.AlignRight)
         self.preview = MapPreviewWidget()
         layout.addWidget(self.preview)
+        # a world of several areas (T13.20): the table, and the world as one tile per area
+        self.areas = AreasTable()
+        layout.addWidget(self.areas)
+        self.world = WorldPreview()
+        self.world.setVisible(False)
+        layout.addWidget(self.world)
+        self.reroll_area = QPushButton(self.tr("Rearrange this area"))
+        self.reroll_area.setObjectName("rerollArea")
+        self.reroll_area.setToolTip(
+            self.tr("Another arrangement of the chosen area (before the first generation only)")
+        )
+        self.reroll_area.setVisible(False)
+        layout.addWidget(self.reroll_area, 0, Qt.AlignmentFlag.AlignLeft)
+        self.areas.edited.connect(self.edited)
+        self.reroll_area.clicked.connect(self.reroll_chosen_area)
+        self.world.areaChosen.connect(lambda _id: self._update_reroll())
         self.size_editor.width_box.valueChanged.connect(self.edited)
         self.size_editor.height_box.valueChanged.connect(self.edited)
         self.size_editor.combo.currentIndexChanged.connect(self.edited)
@@ -232,7 +249,11 @@ class StarterMapBox(QGroupBox):
         self.ground_combo.setVisible(many)
         self.ground_label.setVisible(many)
 
-    def load(self, values: dict[str, Any], locked: bool) -> None:
+    def load(
+        self, values: dict[str, Any], locked: bool, world_names: set[str] | None = None
+    ) -> None:
+        """``world_names``: the names of the areas the project's world was built from (their
+        rows are then fixed; None or empty while the project has no world yet)."""
         self.size_editor.set_value((int(values["size"][0]), int(values["size"][1])))
         for key, box in self.counts.items():
             box.setValue(int(values[key]))
@@ -240,16 +261,49 @@ class StarterMapBox(QGroupBox):
         self.ground_combo.setCurrentIndex(max(0, index))
         if locked:
             self.size_editor.setEnabled(False)
+        self.areas.load(values.get("areas"), world_names)
 
     def values(self) -> dict[str, Any]:
-        """The starter map options as the widgets show them."""
+        """The starter map options as the widgets show them (``areas`` only for a world)."""
         out: dict[str, Any] = {
             "size": list(self.size_editor.value()),
             "ground": self.ground_combo.currentData() or "",
         }
         for key, box in self.counts.items():
             out[key] = box.value()
+        areas = self.areas.areas()
+        if areas:
+            out["areas"] = areas
         return out
+
+    def show_world(self, plan: dict[str, Any] | None) -> None:
+        """The planned world under the table (None hides it: no world, or a table with a
+        problem)."""
+        self.world.set_plan(plan)
+        self.world.setVisible(plan is not None)
+        self._update_reroll()
+
+    def _update_reroll(self) -> None:
+        chosen = self.world.chosen
+        can = (
+            self.world.plan is not None
+            and not self.areas.locked_names
+            and chosen not in ("", world_plan.VILLAGE_ID)
+        )
+        self.reroll_area.setVisible(self.world.plan is not None)
+        self.reroll_area.setEnabled(can)
+
+    def reroll_chosen_area(self) -> bool:
+        """Another arrangement of the area chosen in the world preview (one undo step of the
+        table). False for the village, and once the world exists."""
+        plan = self.world.plan
+        area = world_plan.area_of(plan, self.world.chosen) if plan else None
+        if area is None or area["id"] == world_plan.VILLAGE_ID or self.areas.locked_names:
+            return False
+        for row, values in enumerate(self.areas.rows()):
+            if world_plan.slug(values["name"]) == world_plan.slug(area["name"]):
+                return self.areas.set_value(row, "reroll", int(values.get("reroll", 0)) + 1)
+        return False
 
     def show_state(self, state: StarterState) -> None:
         for widget in (self.size_editor, self.ground_combo, self.reset, *self.counts.values()):

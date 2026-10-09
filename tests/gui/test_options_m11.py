@@ -235,3 +235,213 @@ def test_the_legend_is_five_translated_labels_and_the_image_is_just_the_map(qtbo
         page.preview.flush()
     image = Image.open(io.BytesIO(page.preview.last_png))
     assert image.height * 40 == image.width * 24  # the 40 x 24 map and nothing underneath
+
+
+# ------------------------------------------------------------------------ the areas of a world (T13.20)
+
+
+def _starter_box(page: OptionsPage):
+    return page.starter_box
+
+
+def test_the_areas_table_is_off_until_asked_for_and_stores_the_rows(qtbot) -> None:
+    page, state = _page(qtbot)
+    box = _starter_box(page)
+    table = box.areas
+    assert not table.enabled() and table.areas() is None
+    assert box.world.isHidden(), "no world: no world preview"
+    page.leave(state)
+    assert "areas" not in state.config.starter_map, "off: today's starter map and field"
+    # switching it on starts with the village and a field
+    table.enable_box.setChecked(True)
+    assert [r["name"] for r in table.rows()] == ["Village", "Field"]
+    assert table.table.rowCount() == 2
+    assert not box.world.isHidden() and box.world.plan is not None
+    row = table.add_row("Woods")
+    table.set_value(row, "biome", "forest")
+    table.set_value(row, "width", 28)
+    table.set_value(row, "enemies", 3)
+    page.leave(state)
+    assert state.config.starter_map["areas"] == [
+        {"name": "Village", "biome": "village", "size": [32, 20], "enemies": 2, "chests": 1},
+        {"name": "Field", "biome": "field", "size": [32, 20], "enemies": 2, "chests": 1},
+        {"name": "Woods", "biome": "forest", "size": [28, 20], "enemies": 3, "chests": 1},
+    ]
+    assert page.validate(state) == []
+    from rpggen import schema
+
+    schema.validate("config", state.config.to_json())
+    # coming back shows the same table
+    page.enter(state)
+    assert _starter_box(page).areas.enabled()
+    assert [r["name"] for r in _starter_box(page).areas.rows()] == ["Village", "Field", "Woods"]
+
+
+def test_every_change_to_the_areas_table_is_undoable(qtbot) -> None:
+    page, _state = _page(qtbot)
+    table = _starter_box(page).areas
+    assert not table.undo_button.isEnabled()
+    table.enable_box.setChecked(True)
+    row = table.add_row("Cave")
+    table.set_value(row, "biome", "cave")
+    table.set_value(row, "chests", 4)
+    assert table.move_row(row, -1)
+    assert [r["name"] for r in table.rows()] == ["Village", "Cave", "Field"]
+    assert table.remove_row(2)
+    assert [r["name"] for r in table.rows()] == ["Village", "Cave"]
+    # the cell widgets write through the same path
+    table.table.cellWidget(1, 5).setValue(7)
+    assert table.rows()[1]["chests"] == 7
+    table.table.item(1, 0).setText("Old mine")
+    assert table.rows()[1]["name"] == "Old mine"
+    # ... and every step comes back, one at a time
+    expected = [
+        (["Village", "Cave"], 7),
+        (["Village", "Cave"], 4),
+        (["Village", "Cave", "Field"], 4),
+        (["Village", "Field", "Cave"], 4),
+        (["Village", "Field", "Cave"], 1),
+    ]
+    for names, chests in expected:
+        assert table.undo()
+        rows = table.rows()
+        assert [r["name"] for r in rows] == names
+        assert next(r for r in rows if r["name"] == "Cave")["chests"] == chests
+    assert table.undo() and table.rows()[2]["biome"] == "field"
+    assert table.undo() and [r["name"] for r in table.rows()] == ["Village", "Field"]
+    assert table.undo() and not table.enabled(), "the box itself is the first step"
+    assert not table.undo() and not table.undo_button.isEnabled()
+
+
+def test_a_table_with_a_problem_says_why_and_is_not_stored(qtbot) -> None:
+    page, state = _page(qtbot)
+    table = _starter_box(page).areas
+    table.enable_box.setChecked(True)
+    table.table.item(1, 0).setText("Village")
+    assert "two areas are called" in table.error.text() and not table.error.isHidden()
+    assert table.areas() is None
+    assert _starter_box(page).world.isHidden(), "nothing to draw for a table that is not valid"
+    page.leave(state)
+    assert "areas" not in state.config.starter_map
+    assert table.undo() and table.error.isHidden()
+    for _ in range(20):
+        table.add_row()
+    assert len(table.rows()) == 12 or not table.add_button.isEnabled()
+
+
+def test_the_world_preview_draws_one_tile_per_area(qtbot) -> None:
+    page, _state = _page(qtbot)
+    box = _starter_box(page)
+    box.areas.enable_box.setChecked(True)
+    box.areas.add_row("Woods")
+    box.areas.add_row("Mine")
+    world = box.world
+    plan = world.plan
+    assert plan is not None and [a["name"] for a in plan["areas"]] == [
+        "Village",
+        "Field",
+        "Woods",
+        "Mine",
+    ]
+    tiles = world.tiles()
+    assert sorted(tiles) == ["field", "mine", "starter_map", "woods"], "one tile per area"
+    rects = list(tiles.values())
+    assert not any(a.intersects(b) for i, a in enumerate(rects) for b in rects[i + 1 :])
+    # the field lies east of the village, and every door pair has its mark
+    assert tiles["field"].left() > tiles["starter_map"].right()
+    pairs = {tuple(sorted((a["id"], d["to"]))) for a in plan["areas"] for d in a["doors"]}
+    assert len(world.door_marks()) == len(pairs)
+    # a click chooses an area, which is then the one drawn cell by cell
+    assert world.chosen == "field"
+    chosen: list[str] = []
+    world.areaChosen.connect(chosen.append)
+    world.resize(520, 420)
+    QTest.mouseClick(world, Qt.MouseButton.LeftButton, pos=tiles["woods"].center())
+    assert world.chosen == "woods" and chosen == ["woods"]
+    assert world.area_at(tiles["mine"].center()) == "mine"
+    world.grab()  # painting it does not raise
+
+
+def test_rearranging_one_area_leaves_the_others_as_they_are(qtbot) -> None:
+    page, state = _page(qtbot)
+    box = _starter_box(page)
+    box.areas.enable_box.setChecked(True)
+    box.areas.add_row("Woods")
+    before = box.world.plan
+    box.world.choose("starter_map")
+    assert not box.reroll_area.isEnabled() and not box.reroll_chosen_area(), "not the village"
+    box.world.choose("woods")
+    assert box.reroll_area.isEnabled()
+    box.reroll_area.click()
+    after = box.world.plan
+    from rpggen.core import world_plan
+
+    assert world_plan.area_of(after, "field") == world_plan.area_of(before, "field")
+    assert (
+        world_plan.area_of(after, "woods")["decorations"]
+        != (world_plan.area_of(before, "woods")["decorations"])
+    )
+    assert (
+        world_plan.area_of(after, "woods")["doors"] == world_plan.area_of(before, "woods")["doors"]
+    )
+    page.leave(state)
+    assert state.config.starter_map["areas"][2]["reroll"] == 1
+    assert box.areas.undo() and "reroll" not in box.areas.rows()[2]
+
+
+def test_a_project_with_its_world_shows_the_table_fixed_but_takes_a_new_area(
+    qtbot, tmp_path
+) -> None:
+    from rpggen.core import world_plan
+
+    areas = [
+        {"name": "Village", "biome": "village"},
+        {"name": "Meadow", "biome": "field"},
+        {"name": "Woods", "biome": "forest"},
+    ]
+    project = tmp_path / "game"
+    (project / "game" / "maps").mkdir(parents=True)
+    for name in ("starter_map", "meadow", "woods"):
+        (project / "game" / "maps" / f"{name}.tscn").write_text("x")
+    stored = world_plan.plan(areas, 7)
+    world_plan.save(project, stored)
+    cfg = config.default_for("T", [REF])
+    cfg.starter_map = {"areas": world_plan.normalized(areas)}
+    state = WizardState(config=cfg, target=project, regenerating=True)
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.show()
+    page.enter(state)
+    box = _starter_box(page)
+    table = box.areas
+    assert not table.note.isHidden()
+    assert "This project has its world already" in table.note.text()
+    assert "game/maps/<area>.tscn" in table.note.text()
+    # the rows of the world cannot be changed, removed or moved
+    assert all(table.is_locked(r) for r in range(3))
+    assert not table.set_value(1, "biome", "cave") and not table.remove_row(1)
+    assert not table.move_row(2, -1)
+    assert not table.table.cellWidget(1, 1).isEnabled()
+    assert not box.reroll_area.isEnabled(), "rearranging is for before the first generation"
+    # the preview is the stored world, whatever the seed is now
+    assert box.world.plan["grid"] == stored["grid"]
+    # a new row is allowed, joined to the area it names
+    row = table.add_row("Old mine")
+    assert not table.is_locked(row) and table.rows()[row]["join"] == "Village"
+    assert table.table.cellWidget(row, 6).isEnabled()
+    assert table.set_value(row, "biome", "cave") and table.set_value(row, "join", "Woods")
+    plan = box.world.plan
+    assert [a["id"] for a in plan["areas"]] == ["starter_map", "meadow", "woods", "old_mine"]
+    assert [d["to"] for d in world_plan.area_of(plan, "old_mine")["doors"]] == ["woods"]
+    for area in stored["areas"]:
+        assert plan["grid"][area["id"]] == stored["grid"][area["id"]]
+    page.leave(state)
+    assert state.config.starter_map["areas"][3] == {
+        "name": "Old mine",
+        "biome": "cave",
+        "size": [32, 20],
+        "enemies": 2,
+        "chests": 1,
+        "join": "Woods",
+    }
+    assert "size" not in state.config.starter_map, "the starter map's own options stay as they were"

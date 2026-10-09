@@ -5,8 +5,14 @@ extends RefCounted
 ## new content forced into its map. Behind features.demo. A turn-based project also gets a random
 ## encounter zone over the east half of the field and its table game/data/encounters/field_1.tres
 ## (T12.53), both written once.
+##
+## With a world plan (rpggen/world_plan.json, from `starter_map.areas`, T13.20) this is the **area
+## recipe** instead: every area of the plan other than the village gets game/maps/<id>.tscn, once,
+## as the plan says cell by cell (ground by biome, walls with a gap per door, the doors and where a
+## player arrives, chests, enemies, decorations, water on a shore, the gate of a locked door).
+## An area whose map exists is never rebuilt, whatever the plan says now.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const Paths := preload("../lib/paths.gd")
 const JsonUtil := preload("../lib/json_util.gd")
@@ -18,6 +24,7 @@ const ObjectIndex := preload("../lib/object_index.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
 const StarterMap := preload("starter_map_recipe.gd")
 const BuildContext := preload("../lib/build_context.gd")
+const WorldPlan := preload("../lib/world_plan.gd")
 
 const OUT_PATH := "res://game/maps/field_1.tscn"
 const TILESET_PATH := "res://generated/tilesets/overworld.tres"
@@ -49,6 +56,9 @@ func _wanted(ctx: BuildContext) -> bool:
 	return str(table.get("east_exit", "")) != ""
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
+	var plan := WorldPlan.read()
+	if not plan.is_empty():
+		return _area_outputs(plan)
 	if FileAccess.file_exists(OUT_PATH) or not _wanted(ctx):
 		return PackedStringArray()
 	var out := PackedStringArray([OUT_PATH])
@@ -64,6 +74,7 @@ func input_hash(ctx: BuildContext) -> String:
 	return ctx.stable_hash({
 		"v": RECIPE_VERSION,
 		"wanted": _wanted(ctx),
+		"world": WorldPlan.areas(WorldPlan.read()),
 		"overworld": ctx.catalog.tileset_def("overworld"),
 		"layers": ctx.config.get("map_layers", []),
 		"seed": ctx.config.get("seed", 0),
@@ -74,6 +85,10 @@ func input_hash(ctx: BuildContext) -> String:
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
+	var world := WorldPlan.read()
+	if not world.is_empty():
+		_build_areas(ctx, world, issues)
+		return issues
 	if FileAccess.file_exists(OUT_PATH) or not _wanted(ctx):
 		return issues
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
@@ -270,3 +285,183 @@ func _record_demo_entities(placed: Array, issues: Array, ctx: BuildContext) -> v
 	var err := JsonUtil.write(StarterMap.DEMO_ENTITIES_PATH, table)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": StarterMap.DEMO_ENTITIES_PATH, "err": err}, StarterMap.DEMO_ENTITIES_PATH))
+
+# ---------------------------------------------------------------- the areas of a world (T13.20)
+
+const KEY_ITEM_DIR := "res://game/data/items/"
+const ITEM_DEF := "res://addons/rpg_runtime/data/item_definition.gd"
+const KEY_CATEGORY := 5  # RpgItemDefinition.Category.KEY
+
+## The maps (and the key item) that do not exist yet.
+func _area_outputs(plan: Dictionary) -> PackedStringArray:
+	var out := PackedStringArray()
+	for area in WorldPlan.areas(plan):
+		if area["id"] != WorldPlan.VILLAGE_ID and not FileAccess.file_exists(WorldPlan.map_path(area)):
+			out.append(WorldPlan.map_path(area))
+	var key := _key_item(plan)
+	if key != "" and not FileAccess.file_exists(KEY_ITEM_DIR + key + ".tres"):
+		out.append(KEY_ITEM_DIR + key + ".tres")
+	return out
+
+static func _key_item(plan: Dictionary) -> String:
+	return JsonUtil.to_str(JsonUtil.to_dict(plan.get("key", {})).get("item", ""))
+
+func _build_areas(ctx: BuildContext, plan: Dictionary, issues: Array) -> void:
+	var def: Dictionary = ctx.catalog.tileset_def("overworld")
+	var tile_set := load(TILESET_PATH) as TileSet
+	if def.is_empty() or tile_set == null or not ResourceLoader.exists(PLAYER_SCENE):
+		return  # the starter map reports what is missing
+	var key := _key_item(plan)
+	if key != "" and not FileAccess.file_exists(KEY_ITEM_DIR + key + ".tres"):
+		_save_key_item(ctx, plan, key, issues)
+	for area in WorldPlan.areas(plan):
+		var path := WorldPlan.map_path(area)
+		if area["id"] == WorldPlan.VILLAGE_ID or FileAccess.file_exists(path):
+			continue
+		var root := _build_area(ctx, area, def, tile_set)
+		var err := SceneUtil.save_scene(root, path)
+		if err != OK:
+			issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
+
+## The key that opens the locked area: a KEY item named after it, written once.
+func _save_key_item(ctx: BuildContext, plan: Dictionary, key: String, issues: Array) -> void:
+	var opened := WorldPlan.area(plan, JsonUtil.to_str(JsonUtil.to_dict(plan.get("key", {})).get("opens", "")))
+	var item := SeedUtil.make(ITEM_DEF)
+	item.set("id", StringName(key))
+	item.set("display_name", "%s key" % JsonUtil.to_str(opened.get("name", "Gate")))
+	item.set("description", "Opens the way to %s." % JsonUtil.to_str(opened.get("name", "the next area")))
+	item.set("category", KEY_CATEGORY)
+	item.set("max_stack", 1)
+	item.set("value", 0)
+	var path := KEY_ITEM_DIR + key + ".tres"
+	var err := SeedUtil.save(item, path)
+	if err != OK:
+		issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
+
+## "old_mine" -> "OldMine" (the root node's name).
+static func _root_name(area_id: String) -> String:
+	return area_id.to_pascal_case()
+
+func _build_area(ctx: BuildContext, area: Dictionary, def: Dictionary, tile_set: TileSet) -> Node2D:
+	var area_id := JsonUtil.to_str(area["id"])
+	var size := WorldPlan.cell(area["size"])
+	var tile_px: int = JsonUtil.to_int(def["tile_size"][0])
+	var rng := MapBuild.Lcg.new(MapBuild.stream_seed(JsonUtil.to_int(ctx.config.get("seed", 12345)), area_id))
+	var root := MapUtil.new_map_root(_root_name(area_id), area_id)
+	root.set("music_asset_id", JsonUtil.to_str(ctx.section("sounds").get("music_map", "")))
+	var layer_names: Array = ctx.config.get("map_layers", MapUtil.DEFAULT_LAYERS)
+	var nodes := MapUtil.build_layers(root, layer_names, tile_set)
+	var entities: Node2D = nodes["Entities"]
+	var spawns: Node2D = nodes["SpawnPoints"]
+	var ground: TileMapLayer = nodes["Ground"]
+	_paint_area_ground(ctx, area, def, tile_set, ground, size, rng)
+	var doors := WorldPlan.list_of(area, "doors")
+	var gaps: Array[Vector2i] = []
+	for door in doors:
+		gaps.append(WorldPlan.cell(door["cell"]))
+	MapBuild.paint_walls(root, nodes, size, MapUtil.wall_tile(ctx, def, tile_set), tile_px, gaps)
+	_place_area_decorations(ctx, area, root, entities, tile_px)
+	_place_area_chests(ctx, area, root, entities, tile_px)
+	_place_area_enemies(ctx, area, root, entities, tile_px)
+	var arrive := Vector2i(size.x >> 1, size.y >> 1)
+	var facing := "down"
+	if not doors.is_empty():
+		arrive = WorldPlan.cell(doors[0]["spawn"])
+		facing = JsonUtil.to_str(doors[0].get("facing", "down"))
+	MapUtil.add_marker(spawns, root, "default", MapUtil.tile_center(arrive, tile_px), true, facing)
+	MapUtil.place(PLAYER_SCENE, entities, root, MapUtil.tile_center(arrive, tile_px))
+	for door in doors:
+		var door_cell := WorldPlan.cell(door["cell"])
+		WorldPlan.add_door(door, door_cell, WorldPlan.cell(door["spawn"]), root, nodes, tile_px)
+		var gate := WorldPlan.gate_of(area, JsonUtil.to_str(door.get("id", "")))
+		if not gate.is_empty():
+			WorldPlan.add_gate(gate, door_cell, root, entities, tile_px)
+	return root
+
+## The ground of an area: the plan's ground asset when the tile set has it, else the second ground
+## variant for a field and the first one for the rest; a few patches of other tiles; and the water
+## of a shore.
+func _paint_area_ground(ctx: BuildContext, area: Dictionary, def: Dictionary, tile_set: TileSet, ground: TileMapLayer, size: Vector2i, rng: MapBuild.Lcg) -> void:
+	var base := {}
+	var wanted := JsonUtil.to_str(area.get("ground", ""))
+	if wanted != "":
+		base = MapUtil.tile_of_asset(ctx, def, tile_set, wanted)
+	if base.is_empty() and JsonUtil.to_str(area.get("biome", "")) == "field":
+		base = MapBuild.nth_tile_with_role(ctx, def, tile_set, "GROUND", 1)
+	if base.is_empty():
+		base = MapBuild.nth_tile_with_role(ctx, def, tile_set, "GROUND", 0)
+	if base.is_empty():
+		return
+	MapBuild.fill_ground(ground, size, base)
+	var others := MapUtil.other_tiles(tile_set, base, 3)
+	if not others.is_empty():
+		var patches: Array = []
+		for i in PATCHES:
+			var patch := Vector2i(rng.range_inclusive(2, 4), rng.range_inclusive(2, 4))
+			var pos := Vector2i(rng.range_inclusive(2, size.x - patch.x - 2), rng.range_inclusive(2, size.y - patch.y - 2))
+			patches.append({"rect": Rect2i(pos, patch), "index": i})
+		MapBuild.paint_planned_patches(ground, patches, others)
+	var water := JsonUtil.to_array(area.get("water", []))
+	var water_tile := MapUtil.find_tile(ctx, def, tile_set, "WATER")
+	if water.size() == 4 and not water_tile.is_empty():
+		MapUtil.fill(ground, Rect2i(JsonUtil.to_int(water[0]), JsonUtil.to_int(water[1]), JsonUtil.to_int(water[2]), JsonUtil.to_int(water[3])), water_tile)
+
+## The decoration objects an area uses: those whose name has one of the biome's words (trees in a
+## forest), else every decoration.
+func _area_decor(ctx: BuildContext, area: Dictionary) -> Array[Dictionary]:
+	var all: Array[Dictionary] = []
+	var fitting: Array[Dictionary] = []
+	var words := JsonUtil.to_array(area.get("decor_words", []))
+	for e in ObjectEntries.entries(ctx):
+		var decor_id: String = e["id"]
+		if e["role"] != "DECORATION" or not ResourceLoader.exists(ObjectIndex.scene_path(decor_id)):
+			continue
+		all.append(e)
+		var label := (JsonUtil.to_str(e.get("name", "")) + " " + decor_id).to_lower()
+		for word: Variant in words:
+			if label.contains(JsonUtil.to_str(word)):
+				fitting.append(e)
+				break
+	return fitting if not fitting.is_empty() else all
+
+func _place_area_decorations(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, tile_px: int) -> void:
+	var decor := _area_decor(ctx, area)
+	if decor.is_empty():
+		return
+	var cells := JsonUtil.to_array(area.get("decorations", []))
+	for i in cells.size():
+		var tile := WorldPlan.cell(cells[i])
+		var e: Dictionary = decor[i % decor.size()]
+		var scene_id: String = e["id"]
+		var pos := Vector2(tile) * tile_px + Vector2(tile_px / 2.0, tile_px - 1)
+		MapUtil.place(ObjectIndex.scene_path(scene_id), entities, root, pos, "Decor%d" % (i + 1))
+
+func _place_area_chests(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, tile_px: int) -> void:
+	var entry := ObjectEntries.chest_entry(ctx)
+	if entry.is_empty():
+		return
+	var chest_scene_id: String = entry["id"]
+	var chests := WorldPlan.list_of(area, "chests")
+	for i in chests.size():
+		var tile := WorldPlan.cell(chests[i]["cell"])
+		var chest := MapUtil.place(ObjectIndex.scene_path(chest_scene_id), entities, root, MapUtil.tile_center(tile, tile_px), "Chest%d" % (i + 1))
+		if chest == null:
+			continue
+		chest.set("entity_id", JsonUtil.to_str(chests[i]["id"]))
+		chest.set("loot", SeedUtil.dict_array(JsonUtil.to_array(chests[i].get("items", []))))
+		chest.set("gold", JsonUtil.to_int(chests[i].get("gold", 0)))
+
+func _place_area_enemies(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, tile_px: int) -> void:
+	var recipe := StarterMap.new()
+	var enemies := WorldPlan.list_of(area, "enemies")
+	for i in enemies.size():
+		var scene := recipe._enemy_scene(ctx, i)
+		if scene == "":
+			scene = recipe._enemy_scene(ctx)
+		if scene == "":
+			return
+		var tile := WorldPlan.cell(enemies[i]["cell"])
+		var enemy := MapUtil.place(scene, entities, root, MapUtil.tile_center(tile, tile_px), "Enemy%d" % (i + 1))
+		if enemy != null:
+			enemy.set("entity_id", JsonUtil.to_str(enemies[i]["id"]))
+			enemy.set("facing", "down")

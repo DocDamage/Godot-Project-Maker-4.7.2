@@ -20,6 +20,7 @@ const SeedUtil := preload("../lib/seed_util.gd")
 const ActorRecipes := preload("actor_recipes.gd")
 const BuildContext := preload("../lib/build_context.gd")
 const ImportedMaps := preload("imported_maps_recipe.gd")
+const WorldPlan := preload("../lib/world_plan.gd")
 
 const OUT_PATH := "res://game/maps/starter_map.tscn"
 ## The entities of the demo placed in the starter map (T8.08 removes exactly these).
@@ -63,6 +64,7 @@ func input_hash(ctx: BuildContext) -> String:
 		"enemy": _enemy_scene(ctx),
 		"demo_removed": ctx.demo_removed,
 		"demo": ctx.section("features").get("demo", true),
+		"world": WorldPlan.area(WorldPlan.read(), WorldPlan.VILLAGE_ID),
 	})
 
 func build(ctx: BuildContext) -> Array:
@@ -96,7 +98,11 @@ func build(ctx: BuildContext) -> Array:
 	for note: Variant in notes:
 		print("[rpggen] INFO starter_map: ", note)
 	var size: Vector2i = layout["size"]
-	var east_exit := east_exit_wanted(ctx)
+	# a world of areas (T13.20): the village's doors come from the stored plan, and the demo's
+	# east exit to field_1 is not made
+	var village := WorldPlan.area(WorldPlan.read(), WorldPlan.VILLAGE_ID)
+	var world_doors := _world_doors(village, layout, _building_info(building, tile_px))
+	var east_exit := east_exit_wanted(ctx) and village.is_empty()
 
 	var root := MapUtil.new_map_root("StarterMap", "starter_map")
 	root.set("music_asset_id", JsonUtil.to_str(ctx.section("sounds").get("music_map", "")))
@@ -110,6 +116,9 @@ func build(ctx: BuildContext) -> Array:
 	var skip: Array[Vector2i] = []
 	if east_exit:
 		skip.append(exit_gap)
+	for world_door in world_doors:
+		var gap_cell: Vector2i = world_door["cell"]
+		skip.append(gap_cell)
 	MapBuild.paint_walls(root, nodes, size, MapUtil.wall_tile(ctx, def, tile_set), tile_px, skip)
 	var building_tiles: Array[Vector2i] = layout["buildings"]
 	if not building.is_empty():
@@ -150,12 +159,66 @@ func build(ctx: BuildContext) -> Array:
 		MapUtil.add_marker(spawns, root, EAST_ENTRY, MapUtil.tile_center(last, tile_px), true, "left")
 		var triggers: Node2D = nodes["Triggers"]
 		MapBuild.add_exit_door(triggers, root, EAST_EXIT_NAME, exit_gap, tile_px, FIELD_PATH, &"west_entry")
+	for world_door in world_doors:
+		var door: Dictionary = world_door["door"]
+		var door_cell: Vector2i = world_door["cell"]
+		var arrive: Vector2i = world_door["spawn"]
+		if world_door["road"] and nodes.has("GroundDetails"):
+			var road_layer: TileMapLayer = nodes["GroundDetails"]
+			var road_tiles: Array[Vector2i] = layout["exit_path"]
+			MapBuild.paint_path(road_layer, road_tiles, road)
+		WorldPlan.add_door(door, door_cell, arrive, root, nodes, tile_px)
+		var gate := WorldPlan.gate_of(village, JsonUtil.to_str(door.get("id", "")))
+		if not gate.is_empty():
+			WorldPlan.add_gate(gate, door_cell, root, entities, tile_px)
 
 	var err := SceneUtil.save_scene(root, OUT_PATH)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": OUT_PATH, "err": err}, OUT_PATH))
 	_write_demo_entities(placed, issues, ctx, east_exit)
 	return issues
+
+## The village's doors of the world plan as [{door, cell, spawn, road}]. The east door uses the
+## planner's own exit (the gap its road leads to); every other door takes the plan's cell, moved
+## along the wall until the floor in front of it is free of what the planner placed.
+func _world_doors(village: Dictionary, layout: Dictionary, building_info: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if village.is_empty():
+		return out
+	var size: Vector2i = layout["size"]
+	var blocked := {}
+	var houses: Array[Vector2i] = layout["buildings"]
+	var house_size := Vector2i(1, 1)
+	if not building_info.is_empty():
+		house_size = Vector2i(JsonUtil.to_int(building_info["size"][0]), JsonUtil.to_int(building_info["size"][1]))
+	for house in houses:
+		for dx in range(-1, house_size.x + 1):
+			for dy in range(-1, house_size.y + 2):
+				blocked[house + Vector2i(dx, dy)] = true
+	for key: String in ["decorations", "npcs", "chests", "enemies"]:
+		var tiles: Array[Vector2i] = layout[key]
+		for tile in tiles:
+			blocked[tile] = true
+	var east_used := false
+	for door in WorldPlan.list_of(village, "doors"):
+		var edge := JsonUtil.to_str(door.get("edge", ""))
+		if edge == "E" and not east_used:
+			east_used = true
+			var exit_tiles: Array[Vector2i] = layout["exit_path"]
+			var gap: Vector2i = layout["exit_gap"]
+			out.append({"door": door, "cell": gap, "spawn": exit_tiles[exit_tiles.size() - 1], "road": true})
+			continue
+		var wanted := WorldPlan.cell(door.get("cell"))
+		match edge:  # the plan was made for the planned size; the map may differ
+			"E":
+				wanted.x = size.x - 1
+			"S":
+				wanted.y = size.y - 1
+		wanted = Vector2i(clampi(wanted.x, 0, size.x - 1), clampi(wanted.y, 0, size.y - 1))
+		var cell := WorldPlan.free_edge_cell(wanted, edge, size, blocked)
+		blocked[WorldPlan.inside(edge, cell)] = true
+		out.append({"door": door, "cell": cell, "spawn": WorldPlan.inside(edge, cell), "road": false})
+	return out
 
 ## The east exit and the field behind it belong to the demo: they exist when the demo is on.
 static func east_exit_wanted(ctx: BuildContext) -> bool:

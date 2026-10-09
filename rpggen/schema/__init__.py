@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator
 
 from rpggen.errors import RpgGenError
 
-KINDS = ("config", "inventory", "catalog", "ledger", "profile", "results", "cli")
+KINDS = ("config", "inventory", "catalog", "ledger", "profile", "results", "cli", "world_plan")
 
 
 @cache

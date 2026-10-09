@@ -156,7 +156,31 @@
         "chests": {"type": "integer", "minimum": 0, "maximum": 4},
         "decorations": {"type": "integer", "minimum": 0, "maximum": 40},
         "ground_patches": {"type": "integer", "minimum": 0, "maximum": 20},
-        "ground": {"type": "string"}
+        "ground": {"type": "string"},
+        "areas": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "biome": {"enum": ["village", "field", "forest", "cave", "shore"]},
+              "size": {
+                "type": "array",
+                "items": {"type": "integer", "minimum": 16, "maximum": 96},
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "enemies": {"type": "integer", "minimum": 0, "maximum": 12},
+              "chests": {"type": "integer", "minimum": 0, "maximum": 12},
+              "join": {"type": "string"},
+              "reroll": {"type": "integer", "minimum": 0}
+            },
+            "required": ["name", "biome"],
+            "additionalProperties": false
+          }
+        }
       },
       "additionalProperties": false
     },

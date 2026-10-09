@@ -2,10 +2,20 @@ class_name RpgWorldMapMenu
 extends Control
 ## The world map (T12.64), opened from the pause menu: the maps the player has been to, each its
 ## minimap with the cells not seen yet covered (the fog of GameState.map_fog). Up/down choose a
-## map; Back or cancel closes it.
+## map; Back or cancel closes it. A game with a world of areas (rpggen/world_plan.json, T13.20)
+## has "World" as its first entry: every area as a box where the plan placed it, the ones the
+## player has been to lit, with the doors between them, so the layout shows before it is explored.
 
 const CELL_PX := 4.0
 const FOG := Color(0.05, 0.05, 0.08, 1.0)
+const WORLD_PLAN := "res://rpggen/world_plan.json"
+const WORLD_KEY := "@world"
+const AREA_BOX := Vector2i(40, 26)
+const AREA_GAP := 10
+const AREA_SEEN := Color(0.45, 0.62, 0.42)
+const AREA_UNSEEN := Color(0.2, 0.22, 0.28)
+const AREA_EDGE := Color(0.85, 0.87, 0.9)
+const AREA_DOOR := Color(0.9, 0.78, 0.4)
 
 var _list: ItemList = null
 var _picture: TextureRect = null
@@ -30,15 +40,83 @@ func _ready() -> void:
 func refresh() -> void:
 	var state := RpgUtil.state()
 	_keys = state.visited_maps() if state != null else [] as Array[String]
+	var plan := world_plan()
+	if not plan.is_empty():
+		_keys.push_front(WORLD_KEY)
 	if _list == null:
 		return
 	_list.clear()
 	for key in _keys:
-		_list.add_item(tr("MAP_" + key.get_slice("__", key.get_slice_count("__") - 1).to_upper()))
+		if key == WORLD_KEY:
+			_list.add_item(tr("UI_WORLD_OVERVIEW"))
+			continue
+		_list.add_item(area_name(plan, key))
+
+## The stored world plan, or {} (a game without areas, or a file that is not a plan).
+static func world_plan(path: String = WORLD_PLAN) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return RpgUtil.to_dict(parsed)
+
+## The name of the map with this key: the area's name in the plan, else its MAP_<ID> text key.
+func area_name(plan: Dictionary, map_key: String) -> String:
+	for raw: Variant in RpgUtil.to_array(plan.get("areas", [])):
+		var area := RpgUtil.to_dict(raw)
+		if RpgMinimapData.key_for("res://" + str(area.get("map", ""))) == map_key and str(area.get("id", "")) != "starter_map":
+			return str(area.get("name", map_key))
+	return tr("MAP_" + map_key.get_slice("__", map_key.get_slice_count("__") - 1).to_upper())
+
+## The world as a picture: a box per area at its place on the plan's grid (lit when `visited` has
+## the area's map key), and a mark on the shared edge of two areas that a door joins.
+static func overview(plan: Dictionary, visited: Array[String]) -> Image:
+	var grid := RpgUtil.to_dict(plan.get("grid", {}))
+	var low := Vector2i(0, 0)
+	var high := Vector2i(0, 0)
+	for raw: Variant in grid.values():
+		var at := _cell(raw)
+		low = Vector2i(mini(low.x, at.x), mini(low.y, at.y))
+		high = Vector2i(maxi(high.x, at.x), maxi(high.y, at.y))
+	var pitch := AREA_BOX + Vector2i(AREA_GAP, AREA_GAP)
+	var size := (high - low + Vector2i.ONE) * pitch + Vector2i(AREA_GAP, AREA_GAP)
+	var image := Image.create(size.x, size.y, false, Image.FORMAT_RGBA8)
+	image.fill(FOG)
+	var corners := {}
+	for raw: Variant in RpgUtil.to_array(plan.get("areas", [])):
+		var area := RpgUtil.to_dict(raw)
+		var id := str(area.get("id", ""))
+		if not grid.has(id):
+			continue
+		var corner := (_cell(grid[id]) - low) * pitch + Vector2i(AREA_GAP, AREA_GAP)
+		corners[id] = corner
+		var seen := visited.has(RpgMinimapData.key_for("res://" + str(area.get("map", ""))))
+		image.fill_rect(Rect2i(corner, AREA_BOX), AREA_EDGE)
+		image.fill_rect(Rect2i(corner + Vector2i.ONE, AREA_BOX - Vector2i(2, 2)), AREA_SEEN if seen else AREA_UNSEEN)
+	for raw: Variant in RpgUtil.to_array(plan.get("areas", [])):
+		var area := RpgUtil.to_dict(raw)
+		var from := str(area.get("id", ""))
+		for raw_door: Variant in RpgUtil.to_array(area.get("doors", [])):
+			var to := str(RpgUtil.to_dict(raw_door).get("to", ""))
+			if corners.has(from) and corners.has(to):
+				var a: Vector2i = corners[from]
+				var b: Vector2i = corners[to]
+				var middle := (a + b + AREA_BOX) / 2
+				image.fill_rect(Rect2i(middle - Vector2i(2, 2), Vector2i(4, 4)), AREA_DOOR)
+	return image
+
+static func _cell(value: Variant) -> Vector2i:
+	var pair := RpgUtil.to_array(value)
+	return Vector2i(RpgUtil.to_int(pair[0]), RpgUtil.to_int(pair[1])) if pair.size() == 2 else Vector2i.ZERO
 
 ## The picture of map `index`: its minimap, the unseen cells covered.
 func show_map(index: int) -> void:
 	if _picture == null or index < 0 or index >= _keys.size():
+		return
+	if _keys[index] == WORLD_KEY:
+		var state := RpgUtil.state()
+		var picture := overview(world_plan(), state.visited_maps() if state != null else [] as Array[String])
+		picture.resize(picture.get_width() * 2, picture.get_height() * 2, Image.INTERPOLATE_NEAREST)
+		_picture.texture = ImageTexture.create_from_image(picture)
 		return
 	_picture.texture = fogged(_keys[index], RpgUtil.state())
 

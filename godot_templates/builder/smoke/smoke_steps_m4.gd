@@ -14,6 +14,7 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "decor_blocks", "fn": _decor_blocks, "timeout_s": 20.0})
 	list.append({"name": "walk_to_field", "fn": _walk_to_field, "timeout_s": 30.0})
 	list.append({"name": "return_from_field", "fn": _return_from_field, "timeout_s": 30.0})
+	list.append({"name": "world_doors", "fn": _world_doors, "timeout_s": 60.0})
 	return list
 
 func _router() -> RpgSceneRouter:
@@ -143,6 +144,78 @@ func _walk_to_field() -> String:
 	if spawn == null or p == null or p.global_position.distance_to(spawn.global_position) > 48.0:
 		return "the player did not arrive at the west entry of the field"
 	return ""
+
+## A world of areas (T13.20): the village's first door leads to its area, the player arrives at
+## that area's spawn point, and the door back leads to the village again.
+func _world_doors() -> String:
+	var tree := _tree()
+	var plan := JsonUtil.to_dict(JsonUtil.read("res://rpggen/world_plan.json")) if FileAccess.file_exists("res://rpggen/world_plan.json") else {}
+	var village := {}
+	for raw: Variant in JsonUtil.to_array(plan.get("areas", [])):
+		if JsonUtil.to_str(JsonUtil.to_dict(raw).get("id", "")) == "starter_map":
+			village = JsonUtil.to_dict(raw)
+	var doors := JsonUtil.to_array(village.get("doors", []))
+	if doors.is_empty():
+		print("[rpggen] INFO world_doors: this project has no world of areas, step passes")
+		return ""
+	var scene := tree.current_scene
+	if scene == null or scene.name != "StarterMap":
+		return "not in the starter map"
+	var out := JsonUtil.to_dict(doors[0])
+	var area_id := JsonUtil.to_str(out.get("to", ""))
+	var door := _door_named(scene, JsonUtil.to_str(out.get("id", "")))
+	if door == null:
+		print("[rpggen] INFO world_doors: the starter map was made before the world (no door %s), step passes" % JsonUtil.to_str(out.get("id", "")))
+		return ""
+	var steps := {"E": [-1, "move_right"], "W": [1, "move_left"], "N": [0, "move_up"], "S": [0, "move_down"]}
+	var going: Array = steps[JsonUtil.to_str(out.get("edge", "E"))]
+	await _walk_into(door, JsonUtil.to_str(out.get("edge", "E")), JsonUtil.to_str(going[1]))
+	if not await _wait_for_map(area_id.to_pascal_case(), 600):
+		return "walking into %s did not open the area %s" % [door.name, area_id]
+	var p := _player()
+	var arrive := tree.current_scene.get_node_or_null("SpawnPoints/" + JsonUtil.to_str(out.get("to_spawn", ""))) as Node2D
+	if arrive == null or p == null or p.global_position.distance_to(arrive.global_position) > 48.0:
+		return "the player did not arrive at %s of the area %s" % [JsonUtil.to_str(out.get("to_spawn", "")), area_id]
+	var back: Area2D = null
+	var back_edge := "W"
+	for raw: Variant in JsonUtil.to_array(plan.get("areas", [])):
+		var area := JsonUtil.to_dict(raw)
+		if JsonUtil.to_str(area.get("id", "")) != area_id:
+			continue
+		for raw_door: Variant in JsonUtil.to_array(area.get("doors", [])):
+			var way := JsonUtil.to_dict(raw_door)
+			if JsonUtil.to_str(way.get("to", "")) == "starter_map":
+				back = _door_named(tree.current_scene, JsonUtil.to_str(way.get("id", "")))
+				back_edge = JsonUtil.to_str(way.get("edge", "W"))
+	if back == null:
+		return "the area %s has no door back to the village" % area_id
+	var coming: Array = steps[back_edge]
+	await _walk_into(back, back_edge, JsonUtil.to_str(coming[1]))
+	if not await _wait_for_map("StarterMap", 600):
+		return "the door of %s did not bring the player back to the village" % area_id
+	var home := tree.current_scene.get_node_or_null("SpawnPoints/from_" + area_id) as Node2D
+	p = _player()
+	if home == null or p == null or p.global_position.distance_to(home.global_position) > 48.0:
+		return "the player did not arrive at from_%s of the village" % area_id
+	print("[rpggen] INFO world_doors: went to %s and back" % area_id)
+	return ""
+
+## Stands the player on the floor in front of a door in the wall on `edge` and walks into it.
+func _walk_into(door: Area2D, edge: String, action: String) -> void:
+	var tree := _tree()
+	var p := _player()
+	var tile := _tile_px(tree.current_scene)
+	var inward := {"E": Vector2(-1, 0), "W": Vector2(1, 0), "N": Vector2(0, 1), "S": Vector2(0, -1)}
+	var step: Vector2 = inward[edge]
+	p.global_position = door.global_position + step * 1.5 * tile
+	await tree.physics_frame
+	var scene_before := tree.current_scene
+	Input.action_press(action)
+	for i in 180:
+		await tree.physics_frame
+		if tree.current_scene != scene_before or _router().is_busy():
+			break
+	Input.action_release(action)
 
 func _return_from_field() -> String:
 	var tree := _tree()

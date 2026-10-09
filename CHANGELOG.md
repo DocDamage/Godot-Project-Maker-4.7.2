@@ -96,6 +96,16 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   and import JSON, and every change is one undo step. A quest stage may now name its `next`
   stage and have `rewards` of its own.
 
+* **A world of connected maps**: *Options → Starter map → Make a world of several areas* is a
+  table of areas (name, biome, size, enemies, chests; village, field, forest, cave, shore).
+  rpggen lays them on a grid around the village, joins neighbours with door pairs, places
+  chests, enemies and decorations, and puts one key in an area before the gate that closes the
+  first cave. The preview shows the world as one tile per area. The plan is stored in
+  `rpggen/world_plan.json` and reused: once an area's map exists, a new seed or table changes
+  nothing; a new row adds an area. The validator warns about a map the starter map cannot
+  reach (`VAL-027`) and a door of the world that leads nowhere (`VAL-028`). The game's world
+  map starts with an overview of the areas.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

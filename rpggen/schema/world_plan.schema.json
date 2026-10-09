@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "rpggen world plan",
+  "type": "object",
+  "properties": {
+    "world_plan_version": {"const": 1},
+    "seed": {"type": "integer"},
+    "areas": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/Area"}
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/Cell"}
+    },
+    "notes": {"type": "array", "items": {"type": "string"}},
+    "key": {
+      "type": "object",
+      "properties": {
+        "item": {"type": "string"},
+        "area": {"type": "string"},
+        "opens": {"type": "string"},
+        "chest": {"type": "string"}
+      },
+      "required": ["item", "area", "opens"],
+      "additionalProperties": false
+    },
+    "maps": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {"map_hash": {"type": "string"}},
+        "required": ["map_hash"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["world_plan_version", "seed", "areas", "grid", "notes", "maps"],
+  "additionalProperties": false,
+  "$defs": {
+    "Cell": {
+      "type": "array",
+      "items": {"type": "integer"},
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "Door": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "edge": {"enum": ["N", "E", "S", "W"]},
+        "cell": {"$ref": "#/$defs/Cell"},
+        "spawn": {"$ref": "#/$defs/Cell"},
+        "spawn_id": {"type": "string"},
+        "facing": {"enum": ["up", "down", "left", "right"]},
+        "to": {"type": "string"},
+        "to_map": {"type": "string"},
+        "to_spawn": {"type": "string"},
+        "key": {"type": "string"}
+      },
+      "required": ["id", "edge", "cell", "spawn", "spawn_id", "facing", "to", "to_map", "to_spawn"],
+      "additionalProperties": false
+    },
+    "Area": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string"},
+        "biome": {"enum": ["village", "field", "forest", "cave", "shore"]},
+        "wanted_biome": {"enum": ["village", "field", "forest", "cave", "shore"]},
+        "size": {"$ref": "#/$defs/Cell"},
+        "map": {"type": "string"},
+        "ground": {"type": "string"},
+        "doors": {"type": "array", "items": {"$ref": "#/$defs/Door"}},
+        "chests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "cell": {"$ref": "#/$defs/Cell"},
+              "gold": {"type": "integer", "minimum": 0},
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "item_id": {"type": "string"},
+                    "qty": {"type": "integer", "minimum": 1}
+                  },
+                  "required": ["item_id", "qty"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["id", "cell", "gold", "items"],
+            "additionalProperties": false
+          }
+        },
+        "enemies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {"id": {"type": "string"}, "cell": {"$ref": "#/$defs/Cell"}},
+            "required": ["id", "cell"],
+            "additionalProperties": false
+          }
+        },
+        "decorations": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "decor_words": {"type": "array", "items": {"type": "string"}},
+        "water": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "cell": {"$ref": "#/$defs/Cell"},
+              "key_item": {"type": "string"},
+              "door": {"type": "string"}
+            },
+            "required": ["id", "cell", "key_item", "door"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["id", "name", "biome", "size", "map", "ground", "doors"],
+      "additionalProperties": false
+    }
+  }
+}

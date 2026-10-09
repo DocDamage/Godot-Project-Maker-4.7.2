@@ -139,6 +139,7 @@ def build_markdown(
         ]
 
     lines += _tileset_lines(catalog)
+    lines += _world_lines(project)
     lines += _scene_lines(project)
     lines += _animation_lines(catalog)
     if plan is not None:
@@ -246,6 +247,24 @@ def _tileset_lines(catalog: catalog_mod.Catalog | None) -> list[str]:
             lines.append(f"  - source {src['source_id']}: `{src['asset']}`")
         terrains = ", ".join(t["name"] for t in tdef.terrain_sets) or "none"
         lines.append(f"  - terrains: {terrains}")
+    return lines
+
+
+def _world_lines(project: Path | None) -> list[str]:
+    """The world of areas (T13.20): what it is made of, and what the planner had to change."""
+    from rpggen.core import world_plan
+
+    plan = world_plan.load(Path(project)) if project else None
+    if plan is None:
+        return []
+    lines = ["", "## World", "", f"- {world_plan.summary(plan)}"]
+    key = plan.get("key")
+    if key:
+        holder = world_plan.area_of(plan, key["area"])
+        opens = world_plan.area_of(plan, key["opens"])
+        if holder and opens:
+            lines.append(f"- The key to {opens['name']} lies in a chest in {holder['name']}.")
+    lines += [f"- {note}" for note in plan.get("notes", [])]
     return lines
 
 

@@ -32,7 +32,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `seed` | int | 12345 | Used for every RNG in generation and smoke tests. |
 | `input` | object | see §1.1 | Action → bindings. |
 | `sounds` | object | `{}` | Optional (T11.20). Sound slot → audio asset id. Slots: `music_map`, `music_battle`, `music_title`, `sfx_ui_move`, `sfx_ui_confirm`, `sfx_ui_cancel`, `sfx_hit`, `sfx_attack`, `sfx_pickup`, `sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`. A slot that is absent is silent. Omitted from the JSON when empty. Beyond the fixed list any key matching `^(music|sfx)_[a-z][a-z0-9_]{1,30}$` is a **custom slot** (T13.16): `sfx_step_<surface>` is the footstep on ground tagged `surface:<surface>`, any other is played by name. A key that does not match is `CAT-006`. |
-| `starter_map` | object | defaults | Optional (T11.25). `size` [w, h] tiles (24..96 each), `buildings` 0..4, `npcs` 0..6, `enemies` 0..8, `chests` 0..4, `decorations` 0..40, `ground_patches` 0..20, `ground` asset id or "". Omitted from the JSON when equal to the defaults. |
+| `starter_map` | object | defaults | Optional (T11.25). `size` [w, h] tiles (24..96 each), `buildings` 0..4, `npcs` 0..6, `enemies` 0..8, `chests` 0..4, `decorations` 0..40, `ground_patches` 0..20, `ground` asset id or "". Omitted from the JSON when equal to the defaults. `areas` (T13.20, optional): a list of 1 to 12 `{ "name", "biome", "size"?, "enemies"?, "chests"?, "join"?, "reroll"? }` rows that make a **world of connected maps** (§12): `biome` is `village`, `field`, `forest`, `cave` or `shore`; `size` [w, h] is 16..96 tiles (default [32, 20]); `enemies` and `chests` are 0..12 (default 2 and 1); `join` names the area a row added to an existing world hangs on; `reroll` (0 or more) gives another arrangement of that area only. The first `village` row (else the first row) is the starter map, whose size and counts are the options above. Without `areas` the project gets the starter map and the field of 1.0. |
 | `imported_maps` | object | `{}` | Optional (T12.49). `include`: ids of the catalog's `maps` to build into `game/maps/imported/<pack>/`; `starter`: the id of the map that becomes `game/maps/starter_map.tscn` (the layout planner is then skipped, and the map has none of the demo's villager, chest or enemy). The starter is built even when it is not in `include`. Omitted when empty. |
 | `git` | object | `{}` | Optional (T12.12). `pack_art`: `"commit"` (default), `"lfs"` (the pack art goes through Git LFS; falls back to `commit` with ENV-013 when git-lfs is missing) or `"ignore"` (`assets/packs/` is added to the generated `.gitignore`). Omitted when it holds the default. |
 | `export_targets` | array of strings | `["windows"]` | Optional (T12.52). The platforms that get a preset in `export_presets.cfg` and a test export: `windows`, `web`, `linux`, `macos` (at least one, no repeats; written in that order). Omitted when it is `["windows"]`. |
@@ -552,3 +552,33 @@ An error (`ARCH-*` and so on) is `{ envelope…, "issues": [ … ] }` with exit 
 * `restore`: `target`, `backup` (the `--backup` name or `null`), `saved_state` (the folder the replaced state
   was saved to; `null` on failure) and `issues` (the error that stopped it, or `[]`).
 * `diagnose`: `target` and `bundle` (the zip written).
+
+## 12. `rpggen/world_plan.json` (world_plan_version 1, T13.20)
+
+Written by rpggen (generated-owned) for a config with `starter_map.areas`, and read by the recipes.
+It is **stored and reused**: once a map of an area other than the starter map exists, the seed and
+the rows of the table no longer change it; a new row is appended and gets a door pair with the
+area it joins.
+
+| Key | Type | Notes |
+|-----|------|-------|
+| `world_plan_version` | int | 1 |
+| `seed` | int | The seed the world was planned with. |
+| `areas` | array of Area | The village first, then the rows in table order, then the rows added later. |
+| `grid` | object | Area id → `[x, y]` on the world's grid. The village is `[0, 0]`, the first area `[1, 0]`. |
+| `notes` | array of string | What the planner changed (a biome the packs cannot fill, a cave that is not locked). They are in the report under *World*. |
+| `key` | object, optional | `{ "item", "area", "opens", "chest" }`: the key item, the area whose chest holds it, the area it opens. Only when a cave is locked. |
+| `maps` | object | Area id → `{ "map_hash" }`: the ledger hash of the map rpggen built, recorded once. A map that was there before the run that would have built it has no entry: a person may have made or changed it (T13.24). |
+
+**Area:** `id` (the slug of the name, unique; the village is `starter_map`), `name`, `biome` (what
+it got), `wanted_biome` (only when it differs), `size`, `map` (`game/maps/<id>.tscn`), `ground`
+(the ground asset the biome prefers, or ""), `doors`, and for every area but the village
+`chests` (`{ id, cell, gold, items: [{item_id, qty}] }`), `enemies` (`{ id, cell }`),
+`decorations` (cells), `decor_words`, `water` (`[x, y, w, h]`, a shore), and `gates`
+(`{ id, cell, key_item, door }`). The village's inside is laid out by the starter-map planner.
+
+**Door:** `id` (the node name, `<area>_door_<other>`), `edge` (`N`/`E`/`S`/`W`), `cell` (in the
+wall), `spawn` (the floor cell in front of it, where a player arrives), `spawn_id`
+(`from_<other>`), `facing`, `to` (area id), `to_map`, `to_spawn`, and `key` when it is locked. The
+village's east door uses the starter map's own exit; its other doors are moved along the wall to
+free floor, so their `cell` is where the plan wanted them.

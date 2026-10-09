@@ -135,6 +135,7 @@ const KEYS := {
 	"UI_CREDITS_BY": "%s by %s",
 	"UI_USE_ON": "Use on",
 	"UI_PARTY_JOINED": "%s joined the party",
+	"UI_WORLD_OVERVIEW": "World",
 	"UI_PARTY_LEFT": "%s left the party",
 	"UI_LOCKED": "It will not open.",
 	"UI_LOCKED_NEED": "Locked. It needs: %s",
