@@ -2,7 +2,8 @@
 
 Where rpggen stands against its build plan (`docs/spec/`), and what is left before `v1.0.0` is
 tagged. Updated 2026-10-09: `main` is the 1.0 candidate (commit `446b9f6`), and the branch `m13`
-holds release 1.1.0, whose cards are all implemented. The detail of every finished card is in
+holds release 1.1.0, whose cards are all implemented; the branch `m14` (on top of `m13`) holds
+release 1.2.0, the metroidvania, whose cards are all implemented too. The detail of every finished card is in
 [docs/dev/implementation_notes.md](dev/implementation_notes.md); this page is the summary.
 
 ## In one paragraph
@@ -14,7 +15,8 @@ exists.** What remains is the 1.0 gate
 (T12.66), and the work that only a person can do: the held-out pack runs (T10.09), the manual test
 pass (T11.29, extended for M12), and the manual checks the earlier gates left open. The work
 after the tag: M13 (release 1.1.0) is implemented on the branch `m13` and waits for its gate
-(T13.23); M14 (release 1.2.0) is planned, below.
+(T13.23); M14 (release 1.2.0) is implemented on the branch `m14` and waits for its gate's manual
+rows (T14.13), below.
 
 ## Milestones
 
@@ -33,7 +35,7 @@ after the tag: M13 (release 1.1.0) is implemented on the branch `m13` and waits 
 | M11 Pre-release | Wizard UX, sound, autosave, game over, second map, docs | Done except T11.29 (manual pass, human); T11.30 gate passed automatically |
 | M12 Review follow-ups | Fixes, engineering, UX and 25 features (below) | 70 of 71 cards done; T12.66 (the gate) open |
 | M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | On the branch `m13` (not part of 1.0): every card is implemented; T13.23 (the gate) is open. 23 of 24 cards done |
-| M14 Metroidvania (1.2.0) | The third archetype (below) | Planned 2026-10-08, starts after the 1.1 tag; 0 of 13 cards done |
+| M14 Metroidvania (1.2.0) | The third archetype (below) | On the branch `m14` (not part of 1.0 or 1.1): every card is implemented; the manual rows of the gate (T14.13) are open. It was built before the 1.1 tag existed, on top of `m13` |
 
 ## M12 in detail
 
@@ -114,6 +116,21 @@ guardian; T14.08 the HUD, room map and save stations; T14.09 a second, side-view
 so the top-down sample and its goldens do not change; T14.10 the wizard; T14.11 the smoke test
 with a perf ceiling and CI split per archetype; T14.12 the docs; T14.13 the 1.2.0 gate.
 
+All thirteen cards are done (2026-10-09). What the plan did not foresee, and what was decided:
+
+* The smoke test of a metroidvania is a whole sequence of its own (sixteen steps from the title
+  screen to the last room): the shared sequence walks a top-down village and cannot run in a
+  room.
+* The four new sound slots are fixed slots of the metroidvania only, so the sound table of a
+  top-down project is unchanged.
+* A pack without side-view tiles still makes a game: plain one-way platforms, ladders, spikes
+  and breakable blocks are generated in its tile size (`side_kit.py`).
+* A defeated player returns to the last save station with everything it had; a room change
+  saves into the autosave slot.
+* Godot writes a `Translation` resource in the order of its names in memory, which differs
+  between runs now and then. The determinism test compares such a file as a set of lines; the
+  generated table is the same.
+
 ## What is left before 1.0.0
 
 ### 1. Work a program can do
@@ -146,6 +163,23 @@ M13 (release 1.1.0), so the list is empty on the branch `m13`; `main` (1.0) stil
 sell one item at a time, every house leads to the same interior, the validator does not check the
 ids a dialogue names, Zstandard map layers are not read, the action RPG has no followers, and the
 sound slots are a fixed list.
+
+## What is left before 1.2.0
+
+The cards T14.01 to T14.12 are done, and the part of the gate (T14.13) a program can do:
+`METROIDVANIA_AVAILABLE` is on, the wizard's metroidvania path has a GUI integration test, and
+the suites pass locally on Windows (2026-10-09): unit and GUI 1,713 tests plus the 5 slow GUI
+ones (the wizard paths and the screenshots), GDScript 599, integration 128 (89 shared, 11
+action RPG, 28 metroidvania), perf 5 (the side-view sample as a metroidvania takes about half
+a minute against a ceiling of 180 s); ruff and mypy are clean. Open:
+
+| Item | What to do |
+|------|------------|
+| The 1.1 tag | M14 was built on `m13` before `v1.1.0` existed. Tag 1.1 first (its gate, above), then rebase or merge `m14` and run the suites again. |
+| CI on `m14` | Every suite green on Windows and Ubuntu, on both PySide6 legs, with the new per-archetype integration jobs; perf within its ceilings, including the metroidvania's. Nothing has been pushed. |
+| Upgrade test | Done with the templates of `m13` standing in for the 1.1 build: a turn-based and an action-RPG project regenerate without a prompt, with everything under `game/`, their TileSets and their sprite frames byte for byte what they were; a scene that instanced an enemy still loads and a script that preloads an old combat path still runs. To repeat with the real `v1.1.0` build. |
+| Corpus | The private corpus (T12.26) must be unchanged on all four measures after the side-view detection (T14.02). It is not on the development machine. |
+| Manual rows | Play the side-view sample to the last room with a gamepad (the feel of the jump, coyote time, the wall slide, the guardian's telegraphs); talk to the hermit and open a chest from both sides; drop an object from the dock into a room; add a room in the wizard and regenerate; break a block, save at a station, die, and check that the block stays broken; generate a metroidvania from a real side-view pack you own. |
 
 ## What is left before 1.1.0
 

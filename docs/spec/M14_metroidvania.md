@@ -69,7 +69,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T14.10 | Wizard: the Metroidvania card, roles, options and preview | M | T14.08, T14.09 | done |
 | T14.11 | Metroidvania smoke steps and integration test | M | T14.10 | done |
 | T14.12 | Documentation, screenshots and changelogs | M | T14.11 | done |
-| T14.13 | Gate (1.2.0) | M | T14.12 | open |
+| T14.13 | Gate (1.2.0) | M | T14.12 | open: the automated part is done; CI, the corpus and the manual rows remain (docs/status.md) |
 
 ---
 

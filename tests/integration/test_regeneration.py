@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 from PIL import Image
 
+from rpggen import __version__ as rpggen_version
 from rpggen import jsonio, paths
 from rpggen.core import (
     archive,
@@ -526,3 +527,53 @@ def test_an_action_rpg_made_by_1_1_regenerates_and_old_combat_paths_still_load(
     probe.write_text(OLD_PATH_SCRIPT, encoding="utf-8", newline="\n")
     run = _godot(godot_exe, target, ["--script", "res://game/old_path_probe.gd"], "old_paths")
     assert "old paths true" in run.stdout, run.stdout
+
+
+@pytest.mark.parametrize("archetype", ["turn_based", "arpg"])
+def test_a_project_made_by_1_1_regenerates_with_its_maps_and_tilesets_untouched(
+    godot_exe: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, archetype: str
+) -> None:
+    """The gate of 1.2 (T14.13): the third archetype changed shared recipes (the TileSet's
+    side-view layers, the archetype HUD, the room checks of the validator). A top-down project
+    whose runtime came from the 1.1 templates regenerates without a prompt, everything under
+    `game/` is byte for byte what it was, and its TileSets are what 1.1 built."""
+    old_templates = _templates_of_1_1(tmp_path)
+    if old_templates is None:
+        pytest.skip("this checkout has no v1.1.0 tag and no m13 branch")
+    pack, target = _make_pack(tmp_path), tmp_path / "out"
+    opened = archive.open_pack(pack, set(), pack_id="sample_pack")
+    inv = inventory.build_inventory(opened)
+    cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [])
+    cfg = config.default_for(
+        "Sample RPG", [config.pack_ref_from_source(pack, "sample_pack")], archetype=archetype
+    )
+    cfg.starter = mapping.default_starter(cat, archetype)
+    with monkeypatch.context() as patch:
+        patch.setattr(paths, "templates_root", lambda: old_templates)
+        first = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert first.ok, [f"{i.code}: {i.message}" for i in first.issues]
+    assert not (target / "addons/rpg_runtime/archetypes/metroidvania").exists()
+
+    def kept(snapshot: dict[str, str]) -> dict[str, str]:
+        return {
+            k: v
+            for k, v in snapshot.items()
+            if k.startswith(("game/", "generated/tilesets/", "generated/sprite_frames/"))
+        }
+
+    before = kept(_stable(target))
+    assert any(k.startswith("generated/tilesets/") for k in before)
+    assert any(k.startswith("game/maps/") for k in before)
+
+    result = _regenerate(godot_exe, target)
+
+    assert result.ok, [f"{i.code}: {i.message}" for i in result.issues]
+    assert [c for c in _codes(result) if c.startswith("REGEN-")] == [], "no prompt, no conflict"
+    assert _diff(before, kept(_stable(target))) == []
+    # the project is still of its own kind only, with this build's runtime
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == [archetype]
+    version = (target / "addons/rpg_runtime/VERSION").read_text(encoding="utf-8").strip()
+    assert version == rpggen_version
+    # the real-time combat set is shared code now: every project has it
+    assert (target / "addons/rpg_runtime/combat/realtime/hitbox.gd").is_file()

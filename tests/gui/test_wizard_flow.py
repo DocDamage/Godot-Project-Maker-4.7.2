@@ -102,3 +102,86 @@ def test_the_arpg_path_generates_a_project_that_passes_its_smoke_test(
     assert (target / "addons/rpg_runtime/archetypes/arpg").is_dir()
     assert not (target / "addons/rpg_runtime/archetypes/turn_based").exists()
     assert "Combat and enemies (action RPG)" in (target / "README.md").read_text(encoding="utf-8")
+
+
+def test_the_metroidvania_path_generates_a_project_that_passes_its_smoke_test(
+    qtbot, godot_exe: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The gate of 1.2 (T14.13): the welcome view's side-view sample leads to the Options page
+    with the Metroidvania card chosen, the card can be left and chosen again, and the project
+    that is generated has the metroidvania's runtime, rooms and README and passed its own smoke
+    sequence."""
+    from rpggen import features, jsonio
+    from rpggen.gui.pages.archetype_page import ArchetypePage
+    from rpggen.gui.pages.options_page import OptionsPage
+
+    assert features.METROIDVANIA_AVAILABLE is True
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(godot, "auto_find_godot", lambda: [godot_exe])
+    monkeypatch.setattr(ProjectPage, "documents_dir", lambda self: tmp_path / "Documents")
+    (tmp_path / "Documents").mkdir()
+    window = MainWindow(state_mod.WizardState(), default_pages())
+    qtbot.addWidget(window)
+    window.show()
+
+    # the welcome view's second sample
+    window.show_welcome_view()
+    side = window.welcome.sample_side_action
+    assert side is not None and side.text() == "Side-view cave"
+    side.trigger()
+    qtbot.waitUntil(lambda: window.current_index == OPTIONS_INDEX, timeout=120_000)
+    assert window.state.archetype == "metroidvania"
+    cfg = window.state.config
+    assert cfg is not None and cfg.archetype == "metroidvania"
+    assert {"jump", "dash", "attack", "down"} <= set(cfg.input)
+    options = window.current_page
+    assert isinstance(options, OptionsPage)
+    assert not options.world_box.isHidden() and options.starter_box.isHidden()
+    assert options.world_box.summary.text() == "6 rooms, 2 abilities, a guardian"
+
+    # back to the Archetype page: the third card is the chosen one, and stays the choice
+    archetype_index = next(i for i, p in enumerate(window.pages) if isinstance(p, ArchetypePage))
+    while window.current_index > archetype_index:
+        window.back_button.click()
+    page = window.current_page
+    assert isinstance(page, ArchetypePage)
+    assert page.metroidvania_card.isEnabled() and page.selected() == "metroidvania"
+    assert not page.view_hint.isHidden() and "side-view" in page.view_hint.text()
+    assert page.air_warning.isHidden(), "the sample hero has jump and fall animations"
+    page.turn_card.click()
+    page.metroidvania_card.click()
+    window.continue_to(OPTIONS_INDEX)
+    assert window.current_index == OPTIONS_INDEX
+    assert window.state.config is not None and window.state.config.archetype == "metroidvania"
+    assert window.state.config.starter.get("boss"), "the guardian's sprite is mapped"
+    assert window.state.config.sounds.get("sfx_jump"), "and the jump sound"
+
+    window.next_button.click()  # Generate
+    generate = window.current_page
+    assert isinstance(generate, GeneratePage) and generate.running
+    qtbot.waitUntil(lambda: not generate.running, timeout=300_000)
+    result = window.state.run_result
+    assert result is not None
+    assert result.ok, [(i.code, i.message) for i in result.issues]
+
+    target = window.state.target
+    smoke = jsonio.read(target / "rpggen/results/smoke_results.json")
+    names = [item["name"] for item in smoke["items"]]
+    assert smoke["ok"] is True
+    assert names[0] == "title_new_game" and names[-1] == "end_room"
+    assert "guardian_dies" in names and "encounter_start" not in names
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == ["metroidvania"]
+    assert (target / "game/maps/rooms/room_01.tscn").is_file()
+    assert not (target / "game/maps/starter_map.tscn").exists()
+    readme = (target / "README.md").read_text(encoding="utf-8")
+    assert "Rooms, abilities and enemies (metroidvania)" in readme
+
+    window.next_button.click()  # Show results
+    results = window.current_page
+    assert isinstance(results, ResultsPage)
+    assert "generated" in results.header.text()
+    assert results.count_labels["errors"].text() == "0"
+    assert results.starter_button.text() == "Open first room"
+    assert results.first_map() == "res://game/maps/rooms/room_01.tscn"
+    assert results.picture_path() is not None, "the world, seen from the side"

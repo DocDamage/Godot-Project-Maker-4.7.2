@@ -49,6 +49,10 @@ static func _tags(eff: Dictionary) -> Array:
 ## The collision of a sheet that names none: by its tags, else solid for ground and walls.
 static func sheet_collision(eff: Dictionary) -> Dictionary:
 	var given: Variant = eff.get("collision")
+	# the stand-in for a pack without ground tiles is made for a top-down map (no collision);
+	# in a room it is the floor
+	if _tags(eff).has("debug_placeholder") and SOLID_ROLES.has(JsonUtil.to_str(eff.get("role", ""))):
+		return {"profile": "FULL"}
 	if given is Dictionary:
 		var spec: Dictionary = given
 		return spec
