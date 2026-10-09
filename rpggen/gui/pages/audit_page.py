@@ -257,6 +257,20 @@ class AuditPage(WizardPage):
         sizes = self.splitter.sizes()
         app_settings.schedule(splitters={**app_settings.get().splitters, "audit": sizes})
 
+    def _fit_side(self) -> None:
+        """Until the user places the splitter, the detail panel gets the width its content needs
+        (no sideways scrolling), up to 55% of the page (a long path must not take the grid's
+        room) and as far as the grid's own minimum allows."""
+        if self.detail is None or app_settings.get().splitters.get("audit"):
+            return
+        grid_width, side_width = self.splitter.sizes()
+        total = grid_width + side_width
+        bar = self.detail_scroll.verticalScrollBar().sizeHint().width()
+        wanted = self.detail.minimumSizeHint().width() + bar
+        wanted = min(wanted, total * 55 // 100, total - self.tabs.minimumSizeHint().width())
+        if wanted > side_width:
+            self.splitter.setSizes([total - wanted, wanted])
+
     def _on_quick_key(self, key: str) -> None:
         if key == "C":
             self._confirm_selection()
@@ -405,6 +419,7 @@ class AuditPage(WizardPage):
         if len(ids) == 1:
             self.detail.set_asset(ids[0])
             self.side.setCurrentWidget(self.detail_scroll)
+            self._fit_side()
         elif len(ids) > 1 and self.bulk is not None:
             self.detail.set_asset(None)
             self.bulk.set_assets(ids)

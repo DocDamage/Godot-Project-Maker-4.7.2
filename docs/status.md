@@ -6,10 +6,10 @@ tagged. Updated 2026-10-08, at commit `84f239b` on `main`. The detail of every f
 
 ## In one paragraph
 
-Every feature card of milestones M1 to M12 is implemented and tested: 69 of the 71 cards of M12,
+Every feature card of milestones M1 to M12 is implemented and tested: 70 of the 71 cards of M12,
 and every card of M1 to M11 that a program can do. Locally on Windows the unit and GUI suites
 (1395 tests), the GDScript suite (479 tests) and the integration suite pass. **Nothing has been released and no tag
-exists.** What remains is the M12 documentation card's screenshots (T12.65), the 1.0 gate
+exists.** What remains is the 1.0 gate
 (T12.66), and the work that only a person can do: the held-out pack runs (T10.09), the manual test
 pass (T11.29, extended for M12), and the manual checks the earlier gates left open. The work
 after the tag is planned: M13 (release 1.1.0) and M14 (release 1.2.0), below.
@@ -29,7 +29,7 @@ after the tag is planned: M13 (release 1.1.0) and M14 (release 1.2.0), below.
 | M9 Action RPG | Player combat, enemies, hitboxes, HUD, smoke test | Done; feel and controller check open |
 | M10 Release | Packaging, signing, diagnostics, docs, registry, export test | Done except T10.09 (held-out runs, human) and the T10.10 gate |
 | M11 Pre-release | Wizard UX, sound, autosave, game over, second map, docs | Done except T11.29 (manual pass, human); T11.30 gate passed automatically |
-| M12 Review follow-ups | Fixes, engineering, UX and 25 features (below) | 69 of 71 cards done; T12.65 partly, T12.66 open |
+| M12 Review follow-ups | Fixes, engineering, UX and 25 features (below) | 70 of 71 cards done; T12.66 (the gate) open |
 | M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | Planned 2026-10-08, starts after the 1.0 tag; 0 of 24 cards done |
 | M14 Metroidvania (1.2.0) | The third archetype (below) | Planned 2026-10-08, starts after the 1.1 tag; 0 of 13 cards done |
 
@@ -70,9 +70,10 @@ the game's save and load screens.
 | T12.56 | Languages (game and wizard) | T12.70 | Keys, switches and gates |
 | | | T12.71 | Battle depth: skills, MP, elements, statuses, AI |
 
-**Part E.** T12.65 (documentation) is done for the text: the user guide, both READMEs, the
-generated READMEs, both changelogs, `00_START_HERE.md` and this page. Its screenshots are not
-regenerated yet. T12.66 (the gate) is open; see below.
+**Part E.** T12.65 (documentation) is done: the user guide, both READMEs, the generated READMEs,
+both changelogs, `00_START_HERE.md`, this page and the 16 screenshots (regenerated 2026-10-09,
+with the pack cards, the regeneration preview, the conflict resolver and the Storage dialog).
+T12.66 (the gate) is open; see below.
 
 ## After 1.0: M13 and M14
 
@@ -117,7 +118,6 @@ with a perf ceiling and CI split per archetype; T14.12 the docs; T14.13 the 1.2.
 
 | Item | Card | What to do |
 |------|------|------------|
-| Screenshots | T12.65 | Run `python tools/make_doc_screenshots.py --godot <exe>`. Mapping must show full rows and Audit no empty band; add pictures of the pack cards, the regeneration preview, the conflict resolver and the Storage dialog, and reference them in the user guide (`test_the_screenshots_match_the_files_the_guide_uses` must pass). |
 | CI on `main` | T12.66 | The last push (`84f239b`, the T12.57–T12.64 batch) has not been checked. Every job must be green: Windows and Ubuntu, both PySide6 legs, GDScript, integration and perf. |
 | Frozen smoke test on three systems | T12.66 | `release.yml` (or `python tools/package.py --smoke`) on Windows, Linux and macOS. The macOS build has never run on a Mac. |
 | Workflow dry run | T12.15 / T12.66 | The release workflow has not run on GitHub yet; run it on a branch or a test tag and fix what it finds. |

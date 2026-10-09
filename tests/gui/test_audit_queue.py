@@ -191,6 +191,37 @@ def test_the_grid_gets_the_spare_height_not_the_done_label(qtbot) -> None:
     assert page.done_label.height() <= page.done_label.sizeHint().height() + 8
 
 
+def test_the_detail_panel_gets_the_width_its_content_needs(qtbot) -> None:
+    """Found while rendering the 1.0 screenshots: the side panel was narrower than the detail
+    form, which then scrolled sideways and cut its buttons off."""
+    from PySide6.QtWidgets import QApplication
+
+    from rpggen.core import app_settings
+
+    page, _state = _page(qtbot, width=1000)
+    QApplication.processEvents()
+    page.grid.chips["chipAll"].click()
+    page.grid.view.setCurrentIndex(page.grid.view.model().index(0, 0))
+    QApplication.processEvents()
+    assert page.detail is not None
+    total = sum(page.splitter.sizes())
+    needed = page.detail.minimumSizeHint().width()
+    grid_needs = page.tabs.minimumSizeHint().width()
+    # all it needs, or (a long path) the most the grid can spare, and never more than 55%
+    spare = min(needed, total * 55 // 100, total - grid_needs)
+    assert page.detail_scroll.viewport().width() >= spare - 24  # a scroll bar's width
+    assert page.splitter.sizes()[1] > 260  # wider than the splitter's own 3:2 start
+    assert page.tabs.width() >= max(grid_needs, total * 45 // 100 - 8)
+    assert not app_settings.get().splitters.get("audit")  # fitting is not the user's choice
+    # a position the user chose is kept
+    app_settings.update(splitters={"audit": [700, 200]})
+    page.splitter.setSizes([700, 200])
+    before = page.splitter.sizes()
+    page.grid.view.setCurrentIndex(page.grid.view.model().index(1, 0))
+    QApplication.processEvents()
+    assert page.splitter.sizes() == before
+
+
 def test_filter_bar_labels_and_widths_fit(qtbot) -> None:
     page, _state = _page(qtbot, width=1000)
     grid = page.grid

@@ -145,7 +145,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T12.69 | Party followers on the map (added 2026-10-08) | M | T12.47 | done |
 | T12.70 | Keys, switches and gates (added 2026-10-08) | M | — | done |
 | T12.71 | Battle depth: skills, MP, elements, statuses, hit and evade, enemy AI rules (added 2026-10-08) | L | — | done |
-| T12.65 | Documentation, screenshots and changelogs | M | Parts A–D | text done, screenshots open |
+| T12.65 | Documentation, screenshots and changelogs | M | Parts A–D | done |
 | T12.66 | Gate (1.0.0) | M | T12.65, T10.10 | open |
 
 ---

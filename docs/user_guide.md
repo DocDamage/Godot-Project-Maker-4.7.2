@@ -46,6 +46,12 @@ executable** and a **project name**. Red text under a field says what is wrong; 
 stays disabled until everything is green. Avoid cloud-sync folders (OneDrive, Dropbox): they can
 lock files during generation (ENV-006).
 
+Each pack is a card: its name, whether it is a folder or an archive, how many files and how big,
+the format rpggen recognised (RPG Maker, LPC, Aseprite, Tiled, LDtk) and whether it found a
+licence file. A pack that cannot be read shows the reason on its card; the cross removes it.
+
+![A pack's card on the Project page](images/pack_cards.png)
+
 Rarely, a pack has a password or contains something unsafe (ARCH-002, ARCH-003, ARCH-004); extract
 it yourself and add the folder.
 
@@ -194,6 +200,8 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
 * **Resolve conflicts…** appears when generated files you changed have a new version beside them
   (`.rpggen-new`): keep yours, take the new one or merge the two, file by file
   ([regeneration.md](regeneration.md#resolving-conflicts)).
+
+  ![The conflict resolver](images/conflict_resolver.png)
 * On failure: the failing phase, the problems with a fix text, **Open failed folder**, **View
   logs** and **Export diagnostic bundle**.
 
@@ -247,6 +255,14 @@ steps on every build ([custom recipes](recipes.md)).
 
 Change options, fix the audit, or add a new release of a pack, then run rpggen on the same output
 folder. Your maps, scenes and everything under `game/` are kept. Read [regeneration](regeneration.md).
+
+Before anything is written, rpggen lists what the run will change: the files it updates, the
+generated files you changed (their new version is written beside them as `.rpggen-new`), the
+files it no longer makes, the files you deleted (they stay deleted) and where the backup goes.
+**Cancel** leaves the project exactly as it was. *Edit → Show changes before regenerating* turns
+the list off.
+
+![The changes a regeneration will make](images/regeneration_preview.png)
 
 ## 6. Troubleshooting
 
@@ -337,6 +353,8 @@ them or makes them folder rules of the open project; deleting the file forgets e
 rpggen keeps what it needs in three folders, so that a disk-cleanup tool (which empties folders
 called "cache") cannot take your work with it. **Edit → Storage…** shows how big each part is and
 clears it.
+
+![The Storage dialog](images/storage_dialog.png)
 
 | Folder | What is in it | Windows | Linux | macOS |
 |--------|---------------|---------|-------|-------|

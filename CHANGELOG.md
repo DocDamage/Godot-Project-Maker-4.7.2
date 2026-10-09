@@ -40,7 +40,8 @@ loading and playing it headless, and regenerates it later without touching your 
   your pack's own art; a **sidebar** with each step's status and jumps forward to any step that
   is ready; the Mapping page's candidates inline; an Options **summary panel**; the map preview's
   legend.
-* **Audit**: audio and font cards with playback, role badges, a filter bar that fits, a **change
+* **Audit**: the detail panel opens as wide as its form needs (it no longer scrolls sideways at
+  the default window size), audio and font cards with playback, role badges, a filter bar that fits, a **change
   history**, frame sequences (one numbered image per frame) read as animations, eight-direction
   characters, **learned rules** (rpggen remembers your fixes and proposes them for the next pack;
   *Edit → Learned rules…*), and a printable **contact sheet** (PDF or PNG).
