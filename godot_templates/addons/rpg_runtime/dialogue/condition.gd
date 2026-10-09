@@ -8,6 +8,7 @@ extends RefCounted
 ##   flag:<entity>.<key>    item:<id>[>=N]    gold>=N    level>=N    quest:<id>=<state>
 ##   quest_active:<id>    quest_done:<id>    quest_stage:<id>:<stage>    party:<actor id>
 ##   var:<name><op><N>    (op is one of >= <= == != > <; a variable never set is 0)
+##   ability:<id>         (the player has the ability; the metroidvania, T14.05)
 ## Unknown atoms are false and log "[RPG-DLG] unknown condition atom".
 
 ## The comparison operators of var:, longest first so that ">=" is not read as ">".
@@ -66,7 +67,7 @@ static func _tokens(expr: String) -> PackedStringArray:
 ## The atom prefixes the language knows (for the editor's checks and completion).
 const ATOMS: Array[String] = [
 	"flag:", "item:", "gold>=", "level>=", "party:", "var:", "quest_active:", "quest_done:",
-	"quest_stage:", "quest:",
+	"quest_stage:", "quest:", "ability:",
 ]
 
 ## What is wrong with `expr` without evaluating it: unknown or malformed atoms, a dangling
@@ -106,7 +107,7 @@ static func atom_problem(atom: String) -> String:
 	for prefix: String in ["gold>=", "level>="]:
 		if atom.begins_with(prefix):
 			return "" if atom.trim_prefix(prefix).is_valid_int() else "'%s' needs a number" % atom
-	if atom.begins_with("party:") or atom.begins_with("quest_active:") or atom.begins_with("quest_done:"):
+	if atom.begins_with("party:") or atom.begins_with("quest_active:") or atom.begins_with("quest_done:") or atom.begins_with("ability:"):
 		return "" if atom.get_slice(":", 1) != "" else "'%s' needs an id" % atom
 	if atom.begins_with("var:"):
 		var body := atom.trim_prefix("var:")
@@ -144,6 +145,8 @@ static func _atom(atom: String, state: RpgGameState) -> bool:
 		return RpgUtil.to_int(state.player_stats.level) >= RpgUtil.to_int(atom.trim_prefix("level>="))
 	if atom.begins_with("party:"):
 		return state.in_party(StringName(atom.trim_prefix("party:")))
+	if atom.begins_with("ability:"):
+		return state.has_ability(StringName(atom.trim_prefix("ability:")))
 	if atom.begins_with("var:"):
 		return _compare_var(state, atom)
 	if atom.begins_with("quest_active:"):

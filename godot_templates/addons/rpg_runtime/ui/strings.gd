@@ -140,6 +140,7 @@ const KEYS := {
 	"UI_LOCKED": "It will not open.",
 	"UI_LOCKED_NEED": "Locked. It needs: %s",
 	"UI_UNLOCKED": "Unlocked with: %s",
+	"UI_NEEDS_ABILITY": "You cannot get past this yet.",
 }
 
 ## English text of a key (the key itself when unknown).

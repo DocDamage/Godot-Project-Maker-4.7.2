@@ -31,6 +31,7 @@ signal player_healed(amount: int)
 signal experience_gained(actor_id: StringName, amount: int)
 signal level_up(actor_id: StringName, new_level: int)
 signal entity_defeated(entity_id: String)
+signal ability_granted(ability_id: StringName)  # the metroidvania (T14.05)
 # Encounters
 signal encounter_requested(data: Resource)
 signal encounter_finished(result: Resource)

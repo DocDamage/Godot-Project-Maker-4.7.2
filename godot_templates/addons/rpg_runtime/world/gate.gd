@@ -18,6 +18,8 @@ signal changed(open: bool)
 @export var consume_key: bool = true
 ## Open while this dialogue condition holds; empty = only the key opens it.
 @export var open_when: String = ""
+## Open once the player has this ability (T14.05, the metroidvania); empty = no ability needed.
+@export var required_ability: StringName = &""
 @export var size: Vector2 = Vector2(16, 16)
 
 var open := false
@@ -26,7 +28,7 @@ var _applied := false
 func _ready() -> void:
 	collision_layer = 0
 	set_collision_layer_value(1, true)
-	if key_item != &"":
+	if key_item != &"" or required_ability != &"":
 		set_collision_layer_value(5, true)
 	if _shape_count() == 0:
 		var shape := CollisionShape2D.new()
@@ -40,6 +42,7 @@ func _ready() -> void:
 	if bus != null and not bus.entity_state_changed.is_connected(_on_state_changed):
 		bus.entity_state_changed.connect(_on_state_changed)
 		bus.variable_changed.connect(_on_variable_changed)
+		bus.ability_granted.connect(_on_ability_granted)
 	refresh()
 
 func _shape_count() -> int:
@@ -55,7 +58,12 @@ func is_unlocked() -> bool:
 
 ## True when it should be open now: unlocked, or its condition holds.
 func should_open() -> bool:
-	return is_unlocked() or (open_when != "" and RpgCondition.evaluate(open_when))
+	return is_unlocked() or has_required_ability() or (open_when != "" and RpgCondition.evaluate(open_when))
+
+## True when the gate asks for an ability and the player has it.
+func has_required_ability() -> bool:
+	var state := RpgUtil.state()
+	return required_ability != &"" and state != null and state.has_ability(required_ability)
 
 ## Opens or closes it to match should_open().
 func refresh() -> void:
@@ -91,7 +99,9 @@ func try_unlock() -> bool:
 	if state == null:
 		return false
 	if key_item == &"":
-		RpgUtil.notify(String(TranslationServer.translate("UI_LOCKED")))
+		var key := "UI_NEEDS_ABILITY" if required_ability != &"" else "UI_LOCKED"
+		var text := String(TranslationServer.translate(key))
+		RpgUtil.notify(text if text != key else RpgStrings.english(key))
 		return false
 	var key_name := item_name(state, key_item)
 	if not state.inventory.has(key_item):
@@ -116,6 +126,9 @@ func _on_state_changed(_entity: String, _key: String, _value: Variant) -> void:
 	refresh()
 
 func _on_variable_changed(_name: StringName, _value: int) -> void:
+	refresh()
+
+func _on_ability_granted(_ability: StringName) -> void:
 	refresh()
 
 func _draw() -> void:

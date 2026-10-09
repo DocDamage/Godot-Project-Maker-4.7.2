@@ -45,6 +45,11 @@ var map_fog: Dictionary = {}
 ## actor id (String) -> {slot: item id (String)}. Keyed by actor from the start so party members
 ## (T12.47) get their own; a missing actor or slot means nothing is worn.
 var equipment: Dictionary = {}
+## The abilities the player has (T14.05, the metroidvania): ids such as "double_jump". An optional
+## key of a save: one written by 1.0 or 1.1 has none and loads with an empty list.
+var abilities: Array[String] = []
+## The breakable tiles the player broke, by room: {room_id: [[x, y], ...]}. Optional like `abilities`.
+var broken_cells: Dictionary = {}
 var playtime_s: float = 0.0
 var pending_encounter: RpgEncounterData = null
 var rng: RpgRng = RpgRng.new()
@@ -320,6 +325,8 @@ func new_game() -> void:
 	variables.clear()
 	quests.clear()
 	equipment.clear()
+	abilities.clear()
+	broken_cells.clear()
 	playtime_s = 0.0
 	map_fog.clear()
 	pending_encounter = null
@@ -331,6 +338,66 @@ func new_game() -> void:
 	player_position = Vector2.ZERO
 	player_facing = "down"
 	rng.seed_from_config()
+
+# ---------------------------------------------------------------- abilities (T14.05)
+
+func has_ability(id: StringName) -> bool:
+	return abilities.has(String(id))
+
+## Gives the player an ability. False when it was there already. Emits Events.ability_granted.
+func grant(id: StringName) -> bool:
+	var text := String(id)
+	if text == "" or abilities.has(text):
+		return false
+	abilities.append(text)
+	RpgUtil.emit(&"ability_granted", [id])
+	return true
+
+## Remembers that the breakable tile at `cell` of `room_id` is gone.
+func remember_broken_cell(room_id: String, cell: Vector2i) -> void:
+	var list: Array = broken_cells.get(room_id, [])
+	var entry := [cell.x, cell.y]
+	if not list.has(entry):
+		list.append(entry)
+	broken_cells[room_id] = list
+
+## The cells broken in a room.
+func broken_cells_of(room_id: String) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var list: Array = broken_cells.get(room_id, [])
+	for entry: Array in list:
+		out.append(Vector2i(RpgUtil.to_int(entry[0]), RpgUtil.to_int(entry[1])))
+	return out
+
+## The optional `abilities` key of a save: a list of texts, each once; anything else is dropped.
+static func _abilities_from(raw: Variant) -> Array[String]:
+	var out: Array[String] = []
+	if raw is Array:
+		var list: Array = raw
+		for value: Variant in list:
+			if (value is String or value is StringName) and str(value) != "" and not out.has(str(value)):
+				out.append(str(value))
+	return out
+
+## The optional `broken_cells` key of a save: {room: [[x, y], ...]} of whole numbers.
+static func _broken_cells_from(raw: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if not (raw is Dictionary):
+		return out
+	var table: Dictionary = raw
+	for room: Variant in table:
+		if not (table[room] is Array):
+			continue
+		var cells: Array = table[room]
+		var kept: Array = []
+		for cell: Variant in cells:
+			if cell is Array:
+				var pair: Array = cell
+				if pair.size() == 2:
+					kept.append([RpgUtil.to_int(pair[0]), RpgUtil.to_int(pair[1])])
+		if not kept.is_empty():
+			out[str(room)] = kept
+	return out
 
 func get_flag(entity_id: String, key: String, default: Variant = null) -> Variant:
 	var entry: Variant = flags.get(entity_id)
@@ -632,7 +699,17 @@ func to_dict() -> Dictionary:
 		"equipment": equipment.duplicate(true),
 		"playtime_s": playtime_s,
 		"rng": rng.get_state(),
-	}.merged({"map_fog": _fog_to_dict()} if not map_fog.is_empty() else {})
+	}.merged({"map_fog": _fog_to_dict()} if not map_fog.is_empty() else {}).merged(_side_view_keys())
+
+## The save keys of the metroidvania, written only when there is something to write, so a
+## top-down save has exactly the keys it had in 1.1.
+func _side_view_keys() -> Dictionary:
+	var out: Dictionary = {}
+	if not abilities.is_empty():
+		out["abilities"] = abilities.duplicate()
+	if not broken_cells.is_empty():
+		out["broken_cells"] = broken_cells.duplicate(true)
+	return out
 
 func from_dict(d: Dictionary) -> void:
 	var data: Dictionary = RpgUtil.restore_numbers(d)
@@ -664,6 +741,8 @@ func from_dict(d: Dictionary) -> void:
 	var rng_data: Dictionary = data.get("rng", {})
 	rng.set_state(rng_data)
 	map_fog = _fog_from(d.get("map_fog", {}))
+	abilities = _abilities_from(data.get("abilities"))
+	broken_cells = _broken_cells_from(data.get("broken_cells"))
 
 ## The optional `variables` key of a save: whole numbers by name; anything else is dropped.
 static func _variables_from(raw: Variant) -> Dictionary:
