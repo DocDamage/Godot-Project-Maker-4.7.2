@@ -13,6 +13,19 @@ from rpggen.gui import theme
 
 MARGIN_TINT = QColor(255, 160, 0, 70)
 GUTTER_TINT = QColor(0, 200, 255, 70)
+# Marks over the picture (T13.03), as ``(kind, x, y, w, h)`` in image pixels: the footprint of
+# an object, its origin (a cross at x, y), the frames of an animation where the attack hits,
+# and the frame the transport is on.
+MARK_FOOTPRINT = "footprint"
+MARK_ORIGIN = "origin"
+MARK_ACTIVE = "active"
+MARK_CURRENT = "current"
+Mark = tuple[str, float, float, float, float]
+FOOTPRINT_TINT = QColor(0, 200, 255, 60)
+FOOTPRINT_LINE = QColor(0, 200, 255)
+ORIGIN_LINE = QColor(255, 64, 160)
+ACTIVE_TINT = QColor(255, 48, 48, 80)
+CURRENT_LINE = QColor(255, 220, 0)
 
 
 class ImageView(QGraphicsView):
@@ -35,18 +48,28 @@ class ImageView(QGraphicsView):
         self.pixmap_item: QGraphicsPixmapItem | None = None
         self.image_size = (0, 0)
         self.grid_items: list = []
+        self.mark_items: list = []
+        self.marks: list[Mark] = []
 
     def set_image(self, path: Path | None, grid: dict | None = None, fit: bool = True) -> None:
+        if path is None or not Path(path).exists():
+            self.set_pixmap(None)
+            return
+        self.set_pixmap(QPixmap(str(path)), grid, fit)
+
+    def set_pixmap(
+        self, pixmap: QPixmap | None, grid: dict | None = None, fit: bool = True
+    ) -> None:
+        """Show a picture that is already loaded (one frame of an animation, say)."""
         scene = self.scene()
         scene.clear()
         self.grid_items = []
+        self.mark_items = []
+        self.marks = []
         self._grid = None
         self.pixmap_item = None
         self.image_size = (0, 0)
-        if path is None or not Path(path).exists():
-            return
-        pixmap = QPixmap(str(path))
-        if pixmap.isNull():
+        if pixmap is None or pixmap.isNull():
             return
         item = scene.addPixmap(pixmap)  # smooth transformation stays off
         self.pixmap_item = item
@@ -63,6 +86,33 @@ class ImageView(QGraphicsView):
             self.setBackgroundBrush(theme.token("canvas_bg"))
             if self._grid is not None:
                 self.draw_grid(self._grid)
+
+    def draw_marks(self, marks: list[Mark]) -> None:
+        """Replace the marks over the picture (see ``Mark``)."""
+        scene = self.scene()
+        for item in self.mark_items:
+            scene.removeItem(item)
+        self.mark_items = []
+        self.marks = list(marks)
+        if self.pixmap_item is None:
+            return
+        none = QPen(Qt.PenStyle.NoPen)
+        for kind, x, y, w, h in marks:
+            if kind == MARK_ORIGIN:
+                pen = QPen(ORIGIN_LINE)
+                pen.setCosmetic(True)
+                pen.setWidth(2)
+                arm = max(2.0, min(self.image_size) / 16)
+                self.mark_items.append(scene.addLine(x - arm, y, x + arm, y, pen))
+                self.mark_items.append(scene.addLine(x, y - arm, x, y + arm, pen))
+            elif kind == MARK_ACTIVE:
+                self.mark_items.append(scene.addRect(x, y, w, h, none, QBrush(ACTIVE_TINT)))
+            else:
+                pen = QPen(FOOTPRINT_LINE if kind == MARK_FOOTPRINT else CURRENT_LINE)
+                pen.setCosmetic(True)
+                pen.setWidth(2)
+                brush = QBrush(FOOTPRINT_TINT) if kind == MARK_FOOTPRINT else QBrush()
+                self.mark_items.append(scene.addRect(x, y, w, h, pen, brush))
 
     def clear_grid(self) -> None:
         for item in self.grid_items:

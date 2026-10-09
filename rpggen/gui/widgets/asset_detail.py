@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
+from typing import Any
 
 from PySide6.QtCore import Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
+from PySide6.QtGui import QDesktopServices, QKeySequence, QPixmap, QShortcut, QTransform
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -19,10 +21,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rpggen.core import audio_info, explain, labels
+from rpggen.core import anim_edit, audio_info, explain, labels
 from rpggen.core import catalog as catalog_mod
 from rpggen.gui.edits import EditSession
-from rpggen.gui.widgets import audio_preview
+from rpggen.gui.widgets import audio_preview, image_view
+from rpggen.gui.widgets.anim_preview import AnimPlayer
 from rpggen.gui.widgets.asset_grid import STATUS_COLORS, PathResolver
 from rpggen.gui.widgets.flow_layout import FlowLayout
 from rpggen.gui.widgets.image_view import ImageView
@@ -71,6 +74,46 @@ NEW_TILESET = "New…"
 UNCHANGED = "— detected —"
 
 
+def frame_size_of(eff: dict[str, Any]) -> tuple[int, int] | None:
+    """The size of one animation frame: the ``frame`` facet, else the grid's cell."""
+    frame = eff.get("frame") or (eff.get("grid") or {}).get("cell")
+    return (int(frame[0]), int(frame[1])) if frame else None
+
+
+def overlay_marks(
+    eff: dict[str, Any], size: tuple[int, int], anim_name: str | None = None, frame: int = -1
+) -> list[image_view.Mark]:
+    """What is drawn over an asset's picture besides its grid, by usage (T13.03): the footprint
+    and origin of an object; for a sprite, the frames of the chosen animation in which the
+    attack hits (``active_frames``) and the frame the transport is on."""
+    usage = eff.get("usage")
+    width, height = size
+    marks: list[image_view.Mark] = []
+    if usage == "object" and width and height:
+        footprint = eff.get("footprint")
+        if not footprint:  # the default: the bottom 30% at full width (02_SCHEMAS)
+            top = round(height * 0.7)
+            footprint = [0, top, width, height - top]
+        x, y, w, h = footprint
+        marks.append((image_view.MARK_FOOTPRINT, x, y, w, h))
+        origin = eff.get("origin")
+        if origin:
+            marks.append((image_view.MARK_ORIGIN, origin[0], origin[1], 0, 0))
+    elif usage == "sprite" and anim_name:
+        anim = (eff.get("animations") or {}).get(anim_name)
+        frame_size = frame_size_of(eff)
+        if anim and anim.get("frames") and frame_size:
+            count = len(anim["frames"])
+            for index in anim.get("active_frames") or []:
+                if 0 <= index < count:
+                    rect = anim_edit.frame_rect(anim, index, frame_size, eff.get("grid"))
+                    marks.append((image_view.MARK_ACTIVE, *rect))
+            if 0 <= frame < count and not anim.get("source"):
+                rect = anim_edit.frame_rect(anim, frame, frame_size, eff.get("grid"))
+                marks.append((image_view.MARK_CURRENT, *rect))
+    return marks
+
+
 def add_labeled(combo: QComboBox, value: str | None, kind: str, text: str | None = None) -> None:
     """Adds an item that shows the friendly name of a role or usage (``kind``) and keeps the raw
     value as its data; the description is the item's tooltip."""
@@ -98,6 +141,12 @@ class AssetDetail(QWidget):
         self._loading = False
         # review mode (T13.01) shows the picture large beside the panel and turns this one off
         self.show_preview = True
+        # ... and lends its own view, which then gets the picture, the marks and the playback
+        self.extra_view: ImageView | None = None
+        self._sheets: dict[Path, QPixmap] = {}
+        self.player = AnimPlayer(self.current_animation, self)
+        self.player.frameChanged.connect(lambda _index: self._on_frame())
+        self.player.finished.connect(self.stop_animation)
 
         layout = QVBoxLayout(self)
         self.preview = ImageView("assetPreview")
@@ -118,6 +167,28 @@ class AssetDetail(QWidget):
         layout.addWidget(self.audio_box)
         self.audio_box.setVisible(False)
         self.play_button.clicked.connect(self.toggle_playback)
+        # a sprite with animations: which one, play / pause and the frame (T13.03)
+        self.anim_box = QWidget()
+        self.anim_box.setObjectName("animBox")
+        anim_row = QHBoxLayout(self.anim_box)
+        anim_row.setContentsMargins(0, 0, 0, 0)
+        self.anim_combo = QComboBox()
+        self.anim_combo.setObjectName("animCombo")
+        self.anim_combo.setToolTip(self.tr("The animation shown over the sheet and played"))
+        self.anim_combo.setAccessibleName(self.tr("Animation"))
+        self.anim_play_button = QPushButton(self.tr("Play"))
+        self.anim_play_button.setObjectName("animPlayButton")
+        self.anim_play_button.setCheckable(True)
+        self.anim_play_button.setToolTip(self.tr("Play the animation in the preview"))
+        self.anim_frame_label = QLabel()
+        self.anim_frame_label.setObjectName("animFrameLabel")
+        anim_row.addWidget(self.anim_combo, 1)
+        anim_row.addWidget(self.anim_play_button)
+        anim_row.addWidget(self.anim_frame_label)
+        layout.addWidget(self.anim_box)
+        self.anim_box.setVisible(False)
+        self.anim_combo.activated.connect(self._on_anim_chosen)
+        self.anim_play_button.toggled.connect(self._on_anim_play)
         self._space = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         self._space.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self._space.activated.connect(self.toggle_playback)
@@ -252,6 +323,8 @@ class AssetDetail(QWidget):
         if previous != asset_id:
             audio_preview.stop()
             self.play_button.setText(self.tr("Play"))
+            self.stop_animation()
+            self.player.index = 0
         self.setEnabled(asset_id is not None)
         self.reload(reload_image=previous != asset_id)
 
@@ -270,7 +343,9 @@ class AssetDetail(QWidget):
                 self.pack_label.setText("")
                 self.status_badge.setText("")
                 self.confidence_bar.setValue(0)
-                self.preview.set_image(None)
+                self.anim_box.setVisible(False)
+                for view in self.views():
+                    view.set_image(None)
                 return
             eff = catalog_mod.effective(asset)
             self.path_label.setText(asset.path)
@@ -296,19 +371,137 @@ class AssetDetail(QWidget):
             self.grid_button.setEnabled(usage in GRID_USAGES)
             self.anim_button.setEnabled(usage == "sprite")
             self.cut_button.setEnabled(usage in ("tiles", "object", "sprite", "ui"))
-            if reload_image:
-                if asset.kind == "image":
-                    grid = eff.get("grid") if usage in GRID_USAGES else None
-                    self.preview.set_image(self.resolver(asset), grid)
-                else:
-                    self.preview.set_image(None)
+            self._fill_animations(eff)
+            if reload_image and not self.player.playing:
+                self.render_picture()
         finally:
             self._loading = False
+
+    # ------------------------------------------------------------------ the picture (T13.03)
+
+    def views(self) -> list[ImageView]:
+        """Where the picture goes: the panel's own view, and the large one in review mode."""
+        own = [self.preview] if self.show_preview else []
+        return own + ([self.extra_view] if self.extra_view is not None else [])
+
+    def render_picture(self) -> None:
+        """The whole picture with what its usage draws over it: the tile grid, the frame boxes,
+        the footprint and origin, the frames where the attack hits. Read from the effective
+        facets, so it follows every edit."""
+        asset = self.asset()
+        if asset is None or asset.kind != "image":
+            for view in self.views():
+                view.set_image(None)
+            return
+        eff = catalog_mod.effective(asset)
+        grid = eff.get("grid") if eff.get("usage") in GRID_USAGES else None
+        path = self.resolver(asset)
+        for view in self.views():
+            view.set_image(path, grid)
+            marks = overlay_marks(eff, view.image_size, self.animation_name(), self.player.index)
+            view.draw_marks(marks)
+
+    def animation_name(self) -> str | None:
+        name = self.anim_combo.currentData() if self.anim_box.isVisibleTo(self) else None
+        return str(name) if name else None
+
+    def current_animation(self) -> dict[str, Any] | None:
+        asset = self.asset()
+        name = self.anim_combo.currentData()
+        if asset is None or not name:
+            return None
+        animations = catalog_mod.effective(asset).get("animations") or {}
+        found = animations.get(name)
+        return found if isinstance(found, dict) else None
+
+    def _fill_animations(self, eff: dict[str, Any]) -> None:
+        """The transport shows for a sprite that has animations; the combo lists them grouped
+        by action with the directions in order, as the dialog's tree does."""
+        animations = eff.get("animations") or {}
+        names = [n for n in animations if (animations[n] or {}).get("frames")]
+        show = eff.get("usage") == "sprite" and bool(names)
+        self.anim_box.setVisible(show)
+        if not show:
+            self.stop_animation()
+            self.anim_combo.clear()
+            return
+        ordered = [name for _action, group in anim_edit.groups(names) for name in group]
+        current = [self.anim_combo.itemData(i) for i in range(self.anim_combo.count())]
+        if current != ordered:
+            keep = self.anim_combo.currentData()
+            self.anim_combo.blockSignals(True)
+            self.anim_combo.clear()
+            for name in ordered:
+                self.anim_combo.addItem(name, name)
+            self.anim_combo.setCurrentIndex(max(0, self.anim_combo.findData(keep)))
+            self.anim_combo.blockSignals(False)
+        self._show_frame_number()
+
+    def _show_frame_number(self) -> None:
+        count = self.player.count()
+        self.player.index = self.player.index % count if count else 0
+        self.anim_frame_label.setText(
+            self.tr("Frame {0} of {1}").format(self.player.index + 1, count) if count else ""
+        )
+
+    def _on_anim_chosen(self) -> None:
+        self.player.restart()
+        self._on_frame()
+
+    def _on_anim_play(self, checked: bool) -> None:
+        self.anim_play_button.setText(self.tr("Pause") if checked else self.tr("Play"))
+        self.player.set_playing(checked)
+        self._on_frame()
+
+    def stop_animation(self) -> None:
+        """Playback ends when the asset changes, the panel is hidden or the page is left."""
+        if self.player.playing or self.anim_play_button.isChecked():
+            self.anim_play_button.setChecked(False)
+        self.player.set_playing(False)
+
+    def hideEvent(self, event) -> None:  # noqa: ANN001, N802
+        self.stop_animation()
+        super().hideEvent(event)
+
+    def frame_pixmap(self, index: int) -> QPixmap | None:
+        """Frame ``index`` of the chosen animation, cut from its sheet (mirrored if it says so)."""
+        asset = self.asset()
+        anim = self.current_animation()
+        if asset is None or not anim or not anim.get("frames"):
+            return None
+        eff = catalog_mod.effective(asset)
+        frame_size = frame_size_of(eff)
+        source = anim.get("source")
+        path = self.resolver(dataclasses.replace(asset, path=source) if source else asset)
+        if frame_size is None or path is None:
+            return None
+        path = Path(path)
+        if path not in self._sheets:
+            self._sheets = {path: QPixmap(str(path))}  # one sheet at a time is enough
+        sheet = self._sheets[path]
+        if sheet.isNull():
+            return None
+        x, y, w, h = anim_edit.frame_rect(anim, index, frame_size, eff.get("grid"))
+        cut = sheet.copy(x, y, w, h)
+        return cut.transformed(QTransform().scale(-1, 1)) if anim.get("flip_h") else cut
+
+    def _on_frame(self) -> None:
+        """While playing the views show the frame alone; paused, the sheet with the frame
+        marked on it."""
+        self._show_frame_number()
+        if not self.player.playing:
+            self.render_picture()
+            return
+        pixmap = self.frame_pixmap(self.player.index)
+        for view in self.views():
+            view.set_pixmap(pixmap)
 
     def _show_media_kind(self, asset: catalog_mod.Asset, eff: dict) -> None:
         """Audio and fonts hide the (empty) picture; audio gets Play, its length and its type."""
         is_image = asset.kind == "image"
         self.preview.setVisible(is_image and self.show_preview)
+        if not is_image:
+            self.anim_box.setVisible(False)
         is_audio = asset.kind == "audio"
         self.audio_box.setVisible(is_audio)
         if not is_audio:

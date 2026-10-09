@@ -7,8 +7,6 @@ and leaving the mode changes no state.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
@@ -56,14 +54,14 @@ class ReviewMode(QWidget):
         self.side.setContentsMargins(0, 0, 0, 0)
         row.addLayout(self.side, 1)
 
-    def show_picture(self, path: Path | None, grid: dict | None, note: str = "") -> None:
-        """The asset's image with its tile or frame grid, or ``note`` when it has none (a sound,
-        a font, a file that is gone)."""
-        has_picture = path is not None
+    def show_note(self, has_picture: bool, note: str = "") -> None:
+        """The large view (the detail panel draws the picture into it), or ``note`` for an asset
+        without a picture: a sound, a font, a file that is gone."""
         self.preview.setVisible(has_picture)
         self.no_picture_label.setVisible(not has_picture)
         self.no_picture_label.setText(note)
-        self.preview.set_image(path, grid)
+        if not has_picture:
+            self.preview.set_image(None)
 
     def set_counter(self, text: str) -> None:
         self.counter_label.setText(text)

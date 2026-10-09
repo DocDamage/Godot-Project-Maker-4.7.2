@@ -49,7 +49,7 @@ from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
 from rpggen.gui.widgets import analysis_progress
 from rpggen.gui.widgets.anim_preview import AnimEditorDialog
-from rpggen.gui.widgets.asset_detail import GRID_USAGES, AssetDetail
+from rpggen.gui.widgets.asset_detail import AssetDetail
 from rpggen.gui.widgets.asset_grid import AssetGrid, PathResolver, split_folder_key
 from rpggen.gui.widgets.bulk_panel import (
     BulkPanel,
@@ -367,7 +367,9 @@ class AuditPage(WizardPage):
                 self.grid.select_ids([queue[0]])
             elif not queue and len(selected) != 1:
                 self.grid.select_ids(self.grid.visible_ids()[:1])
+            self.detail.stop_animation()
             self.detail.show_preview = False
+            self.detail.extra_view = self.review.preview  # the picture and the playback go there
             self.review.side.addWidget(self.detail_scroll)  # the same panel, moved
             # a third of the page, or what the form needs when that is more (at most half)
             bar = self.detail_scroll.verticalScrollBar().sizeHint().width()
@@ -378,7 +380,9 @@ class AuditPage(WizardPage):
             self._show_in_review()
             self.review.setFocus()
         else:
+            self.detail.stop_animation()
             self.detail.show_preview = True
+            self.detail.extra_view = None
             self.detail_scroll.setMinimumWidth(0)
             self.side.addWidget(self.detail_scroll)
             self.body.setCurrentWidget(self.splitter)
@@ -414,14 +418,15 @@ class AuditPage(WizardPage):
         self.review.set_counter(self.review_counter())
         asset = self.detail.asset()
         if asset is None:
-            self.review.show_picture(None, None, self.tr("Nothing to review with this filter."))
+            self.review.show_note(False, self.tr("Nothing to review with this filter."))
             return
-        self.detail.reload(reload_image=False)  # its own picture stays off in this mode
         path = self.resolver(asset) if asset.kind == "image" else None
         eff = catalog_mod.effective(asset)
-        grid = eff.get("grid") if eff.get("usage") in GRID_USAGES else None
         note = labels.role_label(str(eff.get("role", ""))) or asset.kind
-        self.review.show_picture(path, grid, f"{asset.path.rsplit('/', 1)[-1]}\n{note}")
+        self.review.show_note(path is not None, f"{asset.path.rsplit('/', 1)[-1]}\n{note}")
+        self.detail.reload(reload_image=False)  # its own picture is off in this mode
+        if not self.detail.player.playing:
+            self.detail.render_picture()  # into the large view: the panel's own picture is off here
 
     def _advance(self, order_before: list[str], edited: list[str]) -> None:
         """Review flow: after a single asset was confirmed or excluded, select the next one that
@@ -540,6 +545,8 @@ class AuditPage(WizardPage):
 
     def leave(self, state: WizardState) -> bool | None:
         self.set_review_mode(False)
+        if self.detail is not None:
+            self.detail.stop_animation()
         if self.session is not None:
             state.catalog = self.session.catalog
         return None

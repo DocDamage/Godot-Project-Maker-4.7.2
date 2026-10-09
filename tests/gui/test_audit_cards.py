@@ -173,3 +173,68 @@ def test_toggle_plays_and_stops(qtbot, monkeypatch, pack: str) -> None:
     assert len(played) == 1 and detail.play_button.text() == "Stop"
     detail.toggle_playback()
     assert not state["playing"] and detail.play_button.text() == "Play"
+
+
+# ------------------------------------------------------------------------ the preview's overlay (T13.03)
+
+
+def test_overlay_marks_by_usage() -> None:
+    from rpggen.gui.widgets.asset_detail import overlay_marks
+
+    # an object: its footprint (the default is the bottom 30%) and its origin
+    marks = overlay_marks({"usage": "object", "origin": [8, 30]}, (16, 40))
+    assert marks == [("footprint", 0, 28, 16, 12), ("origin", 8, 30, 0, 0)]
+    marks = overlay_marks({"usage": "object", "footprint": [2, 20, 12, 10]}, (16, 40))
+    assert marks == [("footprint", 2, 20, 12, 10)]
+    # a sprite: the frames where the attack hits, and the frame the transport is on
+    eff = {
+        "usage": "sprite",
+        "frame": [16, 16],
+        "grid": {"cell": [16, 16], "margin": [0, 0], "separation": [0, 0]},
+        "animations": {
+            "attack": {"frames": [[0, 2], [1, 2], [2, 2]], "fps": 8, "active_frames": [1, 9]}
+        },
+    }
+    assert overlay_marks(eff, (64, 64), "attack", 2) == [
+        ("active", 16, 32, 16, 16),
+        ("current", 32, 32, 16, 16),
+    ]
+    assert overlay_marks(eff, (64, 64)) == [], "no animation chosen: only the grid"
+    # the other usages have no marks (tiles get their grid from the view itself)
+    for usage in ("tiles", "ui", "portrait", "background"):
+        assert overlay_marks({"usage": usage, "origin": [1, 1]}, (16, 16)) == []
+
+
+def test_the_overlay_follows_a_grid_edit_and_a_usage_change_without_reopening(qtbot) -> None:
+    from PySide6.QtWidgets import QApplication
+
+    from rpggen.core import catalog
+    from rpggen.core.orchestrator import Callbacks
+    from rpggen.gui import workers
+    from rpggen.gui.pages.audit_page import AuditPage
+    from rpggen.gui.state import WizardState
+
+    synth = Path(__file__).resolve().parents[2] / "test_packs" / "synthetic"
+    state = WizardState(pack_sources=[synth / "basic16"])
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    page = AuditPage()
+    qtbot.addWidget(page)
+    page.resize(1100, 700)
+    page.show()
+    page.enter(state)
+    page.grid.chips["chipAll"].click()
+    QApplication.processEvents()
+    tiles = next(a for a in state.catalog.assets if catalog.effective(a).get("usage") == "tiles")
+    page.grid.select_ids([tiles.id])
+    detail = page.detail
+    assert detail is not None and not detail.anim_box.isVisibleTo(detail)
+    lines_before = len(detail.preview.grid_items)
+    grid = dict(catalog.effective(tiles)["grid"])
+    grid["cell"] = [grid["cell"][0] * 2, grid["cell"][1] * 2]
+    assert page.session is not None and page.session.set_override(tiles.id, "grid", grid)
+    assert detail.asset_id == tiles.id
+    assert 0 < len(detail.preview.grid_items) < lines_before, "fewer, larger cells are drawn"
+    # as an object it has a footprint and no grid
+    assert page.session.set_override(tiles.id, "usage", "object")
+    assert detail.preview.grid_items == []
+    assert [m[0] for m in detail.preview.marks][:1] == ["footprint"]

@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import contextlib
 import copy
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QRect, Qt, QTimer, Signal
+from PySide6.QtCore import QObject, QRect, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QPixmap, QTransform
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -37,6 +38,72 @@ from rpggen.gui.widgets.image_view import ImageView
 Anim = dict[str, Any]
 PREVIEW_SCALE = 4
 SPEED_MIN, SPEED_MAX = 25, 400  # percent
+
+
+class AnimPlayer(QObject):
+    """Steps through the frames of one animation at its own speed (fps or per-frame durations).
+    Shared by the animation dialog and the audit page's detail panel (T13.03). ``source`` gives
+    the animation to play each time it is asked, so an edit shows at the next frame."""
+
+    frameChanged = Signal(int)  # noqa: N815 - the index of the frame now shown
+    finished = Signal()  # a non-looping animation reached its last frame; playback stopped
+
+    def __init__(self, source: Callable[[], Anim | None], parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self.source = source
+        self.index = 0
+        self.playing = False
+        self.speed_percent = 100
+        self.timer = QTimer(self)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.tick)
+
+    def count(self) -> int:
+        anim = self.source()
+        return len(anim["frames"]) if anim and anim.get("frames") else 0
+
+    def interval_ms(self) -> int:
+        anim = self.source()
+        if not anim or not anim.get("frames"):
+            return 100
+        base = anim_edit.frame_duration_ms(anim, self.index % len(anim["frames"]))
+        return max(1, round(base * 100 / max(1, self.speed_percent)))
+
+    def set_playing(self, on: bool) -> None:
+        self.playing = on
+        if on:
+            self.timer.start(self.interval_ms())
+        else:
+            self.timer.stop()
+
+    def restart(self) -> None:
+        """Another animation: back to its first frame, still playing if it was."""
+        self.index = 0
+        if self.playing:
+            self.timer.start(self.interval_ms())
+
+    def step(self) -> None:
+        """One frame forward, wrapping around (the Step button)."""
+        count = self.count()
+        if count:
+            self.index = (self.index + 1) % count
+            self.frameChanged.emit(self.index)
+
+    def tick(self) -> None:
+        """What the timer does when a frame's time is up (tests call it as their clock)."""
+        anim = self.source()
+        count = self.count()
+        if not anim or not count:
+            return
+        last = count - 1
+        if self.index >= last and not anim.get("loop", True):
+            self.set_playing(False)  # a non-looping animation stops on its last frame
+            self.finished.emit()
+            return
+        self.index = 0 if self.index >= last else self.index + 1
+        self.frameChanged.emit(self.index)
+        if self.playing:
+            self.timer.start(self.interval_ms())
 
 
 class FramePreview(QWidget):
@@ -135,8 +202,8 @@ class AnimEditorDialog(QDialog):
         self.arpg = arpg
         self.sheet_resolver = sheet_resolver or (lambda source: None)
         self.current: str | None = None
-        self.index = 0
-        self.playing = False
+        self.player = AnimPlayer(self.anim, self)
+        self.timer = self.player.timer
         self._pixmaps: dict[Path, QPixmap] = {}
 
         outer = QVBoxLayout(self)
@@ -234,9 +301,9 @@ class AnimEditorDialog(QDialog):
         )
         outer.addWidget(buttons)
 
-        self.timer = QTimer(self)
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self._tick)
+        self.player.frameChanged.connect(lambda _index: self._show_frame())
+        self.player.finished.connect(lambda: self.play_button.setChecked(False))
+        self.speed.valueChanged.connect(self._on_speed)
 
         self.tree.currentItemChanged.connect(self._on_item)
         self.play_button.toggled.connect(self._on_play)
@@ -307,11 +374,9 @@ class AnimEditorDialog(QDialog):
     def _on_item(self, item: QTreeWidgetItem | None) -> None:
         name = item.data(0, Qt.ItemDataRole.UserRole) if item else None
         self.current = name
-        self.index = 0
+        self.player.restart()
         self._load_fields()
         self._show_frame()
-        if self.playing:
-            self._schedule()
 
     # ------------------------------------------------------------------ editing
 
@@ -443,44 +508,32 @@ class AnimEditorDialog(QDialog):
         self.preview.set_origin(self.origin)
         self.frame_label.setText(self.tr("Frame {0} of {1}").format(self.index + 1, count))
 
+    # the player keeps the frame and whether it plays; the dialog's own names stay as they were
+    @property
+    def index(self) -> int:
+        return self.player.index
+
+    @index.setter
+    def index(self, value: int) -> None:
+        self.player.index = value
+
+    @property
+    def playing(self) -> bool:
+        return self.player.playing
+
     def step(self) -> None:
-        anim = self.anim()
-        if not anim or not anim["frames"]:
-            return
-        count = len(anim["frames"])
-        self.index = (self.index + 1) % count
-        self._show_frame()
+        self.player.step()
 
     def _on_play(self, checked: bool) -> None:
-        self.playing = checked
         self.play_button.setText(self.tr("Pause") if checked else self.tr("Play"))
-        if checked:
-            self._schedule()
-        else:
-            self.timer.stop()
+        self.player.set_playing(checked)
+
+    def _on_speed(self, percent: int) -> None:
+        self.player.speed_percent = percent
 
     def interval_ms(self) -> int:
-        anim = self.anim()
-        if not anim or not anim["frames"]:
-            return 100
-        base = anim_edit.frame_duration_ms(anim, self.index % len(anim["frames"]))
-        return max(1, round(base * 100 / self.speed.value()))
-
-    def _schedule(self) -> None:
-        self.timer.start(self.interval_ms())
-
-    def _tick(self) -> None:
-        anim = self.anim()
-        if not anim or not anim["frames"]:
-            return
-        last = len(anim["frames"]) - 1
-        if self.index >= last and not anim.get("loop", True):
-            self.play_button.setChecked(False)  # a non-looping animation stops on its last frame
-            return
-        self.index = 0 if self.index >= last else self.index + 1
-        self._show_frame()
-        if self.playing:
-            self._schedule()
+        self.player.speed_percent = self.speed.value()
+        return self.player.interval_ms()
 
     # ------------------------------------------------------------------ result
 

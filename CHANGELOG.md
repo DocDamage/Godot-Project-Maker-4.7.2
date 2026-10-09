@@ -21,6 +21,10 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 * **Audit: Group by folder** (on the filter bar, remembered): a header per folder with its counts
   and **Confirm all**, **Select all** and **Make rule…**; click a header to fold its folder.
 
+* **Audit: live preview**: the picture shows an object's footprint and origin and the frames
+  where an attack hits; a sprite with animations has a small transport (animation, Play, frame)
+  that plays it in the preview, in the panel or large in review mode.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

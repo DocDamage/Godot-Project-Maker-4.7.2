@@ -241,3 +241,132 @@ def test_cancel_stops_the_timer(qtbot, audit) -> None:
     dialog.play_button.setChecked(True)
     dialog.reject()
     assert not dialog.timer.isActive()
+
+
+# ------------------------------------------------------------------------ the shared player (T13.03)
+
+
+def test_the_player_follows_fps_durations_speed_and_loop() -> None:
+    from rpggen.gui.widgets.anim_preview import AnimPlayer
+
+    anim = {"frames": [[0, 0], [1, 0], [2, 0]], "fps": 10, "loop": True}
+    player = AnimPlayer(lambda: anim)
+    seen: list[int] = []
+    player.frameChanged.connect(seen.append)
+    assert player.count() == 3 and player.interval_ms() == 100
+    player.speed_percent = 200
+    assert player.interval_ms() == 50
+    for _ in range(4):  # the test is the clock
+        player.tick()
+    assert seen == [1, 2, 0, 1] and not player.timer.isActive(), "ticking alone starts no timer"
+    anim["durations"] = [0.3, 0.1, 0.1]
+    player.index = 0
+    player.speed_percent = 100
+    assert player.interval_ms() == anim_edit.frame_duration_ms(anim, 0)
+    # a non-looping animation stops on its last frame and says so
+    anim["loop"] = False
+    ended: list[bool] = []
+    player.finished.connect(lambda: ended.append(True))
+    player.index = 1
+    player.set_playing(True)
+    assert player.timer.isActive()
+    player.tick()
+    assert player.index == 2 and player.playing
+    player.tick()
+    assert player.index == 2 and not player.playing and not player.timer.isActive()
+    assert ended == [True]
+    # nothing to play: no crash, no frame
+    empty = AnimPlayer(lambda: None)
+    empty.tick()
+    empty.step()
+    assert empty.count() == 0 and empty.index == 0
+
+
+def test_the_detail_panel_has_a_transport_for_a_sprite_with_animations(qtbot, audit) -> None:
+    page, state = audit
+    hero = _hero(state)
+    page.grid.select_ids([hero.id])
+    detail = page.detail
+    assert detail.anim_box.isVisibleTo(detail)
+    names = [detail.anim_combo.itemData(i) for i in range(detail.anim_combo.count())]
+    animations = catalog.effective(hero)["animations"]
+    assert sorted(names) == sorted(animations)
+    grouped = [n for _action, group in anim_edit.groups(list(animations)) for n in group]
+    assert names == grouped, "grouped by action, directions in order, as in the dialog"
+    walk = names.index("walk_down")
+    detail.anim_combo.setCurrentIndex(walk)
+    detail.anim_combo.activated.emit(walk)
+    count = len(animations["walk_down"]["frames"])
+    assert count > 1 and detail.anim_frame_label.text() == f"Frame 1 of {count}"
+    # paused: the whole sheet with the frame marked on it
+    sheet = detail.preview.image_size
+    kinds = [m[0] for m in detail.preview.marks]
+    assert kinds == ["current"] and detail.preview.grid_items
+    # playing: the frame alone, advanced by the clock
+    detail.anim_play_button.setChecked(True)
+    assert detail.player.playing and detail.anim_play_button.text() == "Pause"
+    frame = tuple(catalog.effective(hero)["frame"])
+    assert detail.preview.image_size == frame and detail.preview.image_size != sheet
+    detail.player.tick()
+    assert detail.anim_frame_label.text() == f"Frame 2 of {count}"
+    assert detail.preview.image_size == frame
+    detail.anim_play_button.setChecked(False)
+    assert not detail.player.timer.isActive() and detail.preview.image_size == sheet
+    assert [m[0] for m in detail.preview.marks] == ["current"]
+    # another animation starts at its first frame
+    detail.player.step()
+    assert detail.player.index == 2  # one tick above, one step here
+    detail.anim_combo.setCurrentIndex(0)
+    detail.anim_combo.activated.emit(0)
+    assert detail.player.index == 0 and detail.animation_name() == names[0]
+
+
+def test_playback_stops_with_the_asset_the_page_and_review_mode(qtbot, audit) -> None:
+    page, state = audit
+    hero = _hero(state)
+    other = next(a for a in state.catalog.assets if a.id != hero.id)
+    detail = page.detail
+
+    def play() -> None:
+        page.grid.select_ids([hero.id])
+        detail.anim_play_button.setChecked(True)
+        assert detail.player.timer.isActive()
+
+    play()
+    page.grid.select_ids([other.id])  # another asset
+    assert not detail.player.timer.isActive() and not detail.anim_play_button.isChecked()
+    play()
+    page.leave(state)  # the page is left
+    assert not detail.player.timer.isActive() and not detail.anim_play_button.isChecked()
+    play()
+    page.set_review_mode(True)  # into review mode: one playback, in the large view
+    assert not detail.player.timer.isActive()
+    assert detail.extra_view is page.review.preview and detail.views() == [page.review.preview]
+    page.grid.select_ids([hero.id])
+    detail.anim_play_button.setChecked(True)
+    frame = tuple(catalog.effective(hero)["frame"])
+    assert page.review.preview.image_size == frame, "the large view plays the frame"
+    page.set_review_mode(False)
+    assert not detail.player.timer.isActive() and detail.views() == [detail.preview]
+    assert detail.preview.image_size != frame, "back to the whole sheet in the panel"
+
+
+def test_active_frames_are_tinted_and_follow_the_edit(qtbot, audit) -> None:
+    page, state = audit
+    hero = _hero(state)
+    page.grid.select_ids([hero.id])
+    detail = page.detail
+    name = "walk_down"
+    walk = detail.anim_combo.findData(name)
+    detail.anim_combo.setCurrentIndex(walk)
+    detail.anim_combo.activated.emit(walk)
+    assert detail.animation_name() == name
+    assert "active" not in [m[0] for m in detail.preview.marks]
+    eff = catalog.effective(hero)
+    anim = dict(eff["animations"][name])
+    anim["active_frames"] = [1]
+    assert page.session.set_override(hero.id, "animations", {name: anim})
+    marks = detail.preview.marks
+    assert [m[0] for m in marks] == ["active", "current"], "no reopening: the edit is drawn"
+    rect = anim_edit.frame_rect(anim, 1, tuple(eff["frame"]), eff.get("grid"))
+    assert tuple(marks[0][1:]) == tuple(rect)
