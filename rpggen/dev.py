@@ -68,6 +68,9 @@ def synthetic_packs() -> list[Path]:
     return sorted(p for p in root.iterdir() if p.is_dir() or p.suffix == ".zip")
 
 
+SIDE_SAMPLE = "sample_pack_side"
+
+
 def update_goldens() -> int:
     """Rewrite tests/golden/<pack>.catalog.json from the current assemble() output."""
     from rpggen import jsonio
@@ -85,6 +88,16 @@ def update_goldens() -> int:
             with open(target, "w", encoding="utf-8", newline="\n") as fh:
                 fh.write(jsonio.dumps(cat.to_json()))
             print(f"wrote {pack_path.stem}.catalog.json")
+        # the side-view sample pack has its own golden (T14.09); the top-down one never had
+        side = REPO_ROOT / SIDE_SAMPLE
+        opened = archive.open_pack(side, set(), pack_id=SIDE_SAMPLE)
+        inv = inventory.build_inventory(opened)
+        cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [], use_cache=False)
+        with open(
+            golden / f"{SIDE_SAMPLE}.catalog.json", "w", encoding="utf-8", newline="\n"
+        ) as fh:
+            fh.write(jsonio.dumps(cat.to_json()))
+        print(f"wrote {SIDE_SAMPLE}.catalog.json")
     return 0
 
 

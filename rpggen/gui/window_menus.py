@@ -215,6 +215,7 @@ class WindowMenus:
     def _wire_welcome(self) -> None:
         w = self.welcome  # type: ignore[attr-defined]
         w.trySampleRequested.connect(self.try_sample)
+        w.trySideSampleRequested.connect(self.try_side_sample)
         w.ownPackRequested.connect(self.start_own_pack)
         w.openProjectRequested.connect(self.open_project_dialog)
         w.recentChosen.connect(lambda folder: self.open_project(Path(folder)))
@@ -251,6 +252,19 @@ class WindowMenus:
         page = self._project_page()
         if page is not None:
             page.try_sample()
+
+    def try_side_sample(self) -> None:
+        """The welcome card's second entry (T14.09): the side-view pack as a metroidvania, by
+        the same walk to the Options page."""
+        from rpggen.gui.models import project_model
+
+        self.leave_welcome()
+        self.show_page(0)  # type: ignore[attr-defined]
+        page = self._project_page()
+        if page is not None:
+            # the Archetype page starts on the state's archetype when the walk reaches it
+            self.state.archetype = project_model.SIDE_SAMPLE_ARCHETYPE  # type: ignore[attr-defined]
+            page.try_sample(side=True)
 
     def start_own_pack(self) -> None:
         self.leave_welcome()

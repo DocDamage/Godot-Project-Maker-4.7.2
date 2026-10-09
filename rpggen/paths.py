@@ -170,6 +170,11 @@ def sample_pack_root() -> Path:
     return templates_root().parent / "sample_pack"
 
 
+def sample_pack_side_root() -> Path:
+    """The bundled side-view CC0 sample pack, for the metroidvania (T14.09)."""
+    return templates_root().parent / "sample_pack_side"
+
+
 def templates_root() -> Path:
     """Folder holding the Godot template project (inside the bundle when frozen)."""
     if getattr(sys, "frozen", False):

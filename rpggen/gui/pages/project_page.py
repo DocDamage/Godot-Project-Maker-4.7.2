@@ -113,10 +113,11 @@ class ProjectPage(WizardPage):
     def sample_target(self) -> Path:
         return model_mod.sample_target(self.documents_dir())
 
-    def try_sample(self) -> bool:
+    def try_sample(self, side: bool = False) -> bool:
         """Fill the page with the bundled sample pack; emits ``sampleReady`` when every input
-        is valid so the window can continue to the Options page."""
-        sample = paths.sample_pack_root()
+        is valid so the window can continue to the Options page. ``side`` takes the side-view
+        pack (T14.09) instead of the top-down village."""
+        sample = paths.sample_pack_side_root() if side else paths.sample_pack_root()
         if not sample.is_dir():
             QMessageBox.warning(
                 self,
@@ -124,7 +125,7 @@ class ProjectPage(WizardPage):
                 self.tr("The sample pack was not found: {0}").format(sample),
             )
             return False
-        profile = sample / SAMPLE_PROFILE
+        profile = sample / (model_mod.SIDE_SAMPLE_PROFILE if side else SAMPLE_PROFILE)
         if profile.is_file():
             try:
                 profiles.install_profile(profile)  # the audit of the sample is all CONFIRMED
@@ -135,7 +136,7 @@ class ProjectPage(WizardPage):
             self.pack_list.clear()
             self.pack_list.add_path(sample)
             self.target_edit.setText(str(self.sample_target()))
-            self.name_edit.setText(SAMPLE_NAME)
+            self.name_edit.setText(model_mod.SIDE_SAMPLE_NAME if side else SAMPLE_NAME)
             self.model.name_touched = True
             self.model.touch_all()
         finally:

@@ -642,7 +642,8 @@ def _side_view_usage(assets: list[Asset]) -> None:
     paint, and its parallax layers are small or have holes, so neither looks like a tile sheet
     or a background by its pixels.
 
-    * A ``parallax:<n>`` picture with the role BACKGROUND becomes a ``background``.
+    * A ``parallax:<n>`` picture with the role BACKGROUND becomes a ``background``, also when
+      its texture looked like a grid of tiles.
     * A picture tagged ``platform``, ``one_way``, ``ladder`` or ``hazard`` under a tiles folder,
       as large as a whole number of the pack's tiles, becomes a ``tiles`` sheet on that grid:
       ``one_way`` with the collision ``ONE_WAY``, ``ladder`` with ``LADDER``. Its role is
@@ -663,14 +664,18 @@ def _side_view_usage(assets: list[Asset]) -> None:
         facets = asset.detected
         if asset.kind != "image" or asset.detected_by != "generic_grid":
             continue
-        if facets.get("usage") != "sprite" or facets.get("animations"):
+        if facets.get("animations"):
             continue
         tags = set(facets.get("tags") or [])
         size = facets.get("size") or [0, 0]
         if facets.get("role") == "BACKGROUND" and any(t.startswith("parallax:") for t in tags):
-            facets["usage"] = "background"
-            facets.pop("frame", None)
-            facets.pop("origin", None)
+            # also an opaque layer whose texture happened to look like a grid of tiles
+            if facets.get("usage") in ("sprite", "tiles"):
+                facets["usage"] = "background"
+                for key in ("frame", "origin", "grid"):
+                    facets.pop(key, None)
+            continue
+        if facets.get("usage") != "sprite":
             continue
         folders, _stem = classifier.tokens(asset.path)
         if tile is None or not tags & SIDE_TILE_TAGS or not set(folders) & TILE_FOLDER_WORDS:

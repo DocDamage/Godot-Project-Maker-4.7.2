@@ -158,6 +158,28 @@ def step() -> bytes:
     return to_wav(_shaped(noise(n, 3), 30, 10, 1) // 3)
 
 
+def jump() -> bytes:
+    n = RATE * 12 // 100
+    sweep = np.concatenate([square(330 + 60 * k, n // 6, k * 7000) for k in range(6)])
+    return to_wav(_shaped(sweep, 28, RATE // 100, 1))
+
+
+def land() -> bytes:
+    n = RATE * 7 // 100
+    return to_wav(_shaped(noise(n, 5), 34, 10, 1) // 2 + _shaped(square(82, n), 30, 10, 1) // 3)
+
+
+def dash() -> bytes:
+    n = RATE * 16 // 100
+    sweep = np.concatenate([triangle(620 - 70 * k, n // 4, k * 9000) for k in range(4)])
+    return to_wav(_shaped(sweep // 3 + noise(len(sweep), 13) // 4, 46, RATE // 60, 1))
+
+
+def powerup() -> bytes:
+    steps = [392, 523, 659, 784, 1047]
+    return to_wav(np.concatenate([note("tri", f, 8, 52) for f in steps]))
+
+
 MUSIC = {"music/town_theme.wav": town_theme, "music/battle_theme.wav": battle_theme}
 EFFECTS = {
     "sfx/cursor_blip.wav": blip,
@@ -170,3 +192,11 @@ EFFECTS = {
     "sfx/step.wav": step,
 }
 FILES = {**MUSIC, **EFFECTS}
+# The side-view sample pack (T14.09): the same set, and the sounds of a platformer.
+SIDE_EFFECTS = {
+    "sfx/jump.wav": jump,
+    "sfx/land.wav": land,
+    "sfx/dash.wav": dash,
+    "sfx/powerup.wav": powerup,
+}
+SIDE_FILES = {**FILES, **SIDE_EFFECTS}

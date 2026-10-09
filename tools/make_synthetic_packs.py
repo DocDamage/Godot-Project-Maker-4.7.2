@@ -1183,14 +1183,17 @@ def make_platformer(out: Path) -> None:
         out,
         "platformer",
         {
-            "tiles/ground.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16]},
-            "tiles/platforms/oneway_planks.png": {
+            "tiles/ground.png": {
                 "usage": "tiles",
-                "role": "DECORATION",
+                "role": "GROUND",
                 "cell": [16, 16],
+                "margin": [0, 0],
+                "separation": [0, 0],
             },
-            "tiles/ladders/ladder.png": {"usage": "tiles", "role": "DECORATION", "cell": [16, 16]},
-            "tiles/hazards/spikes.png": {"usage": "tiles", "role": "DECORATION", "cell": [16, 16]},
+            # the three sparse sheets are tiles by their tags, on the pack's grid (not by pixels)
+            "tiles/platforms/oneway_planks.png": {"usage": "tiles", "role": "DECORATION"},
+            "tiles/ladders/ladder.png": {"usage": "tiles", "role": "DECORATION"},
+            "tiles/hazards/spikes.png": {"usage": "tiles", "role": "DECORATION"},
             "characters/hero_attack.png": {
                 "usage": "sprite",
                 "role": "PLAYER",

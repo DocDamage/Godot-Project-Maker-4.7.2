@@ -66,15 +66,25 @@ class StripsAdapter:
         result = AdapterResult(self.name)
         issues = IssueList()
         groups: dict[tuple[str, str], list[tuple[InventoryFile, re.Match[str]]]] = {}
+        taken: set[tuple[str, str]] = set()
         for f in inv.files:
-            if not _is_still_png(f) or f.path in ctx.claimed:
+            if not _is_still_png(f):
                 continue
             stem = posixpath.splitext(posixpath.basename(f.path))[0]
             m = STRIP_NAME.match(stem)
             if m:
                 key = (posixpath.dirname(f.path), m.group("name").casefold())
-                groups.setdefault(key, []).append((f, m))
+                if f.path in ctx.claimed:
+                    taken.add(key)
+                else:
+                    groups.setdefault(key, []).append((f, m))
         for key in sorted(groups):
+            if key in taken:
+                # An earlier adapter (a pack profile) has this character as one asset under
+                # its first strip, with the other strips as animation sources: they are parts
+                # of that asset, not a second character (T14.09).
+                result.consumed.extend(f.path for f, _m in groups[key])
+                continue
             self._group(root, ctx.pack_id, key, groups[key], result, issues)
         for f in inv.files:
             animated = f.kind == "image" and f.ext == ".gif" and f.image and f.image["frames"] > 1

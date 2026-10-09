@@ -4,6 +4,7 @@ Usage:
     python tools/build_sample_pack.py            # write the pack next to this repo's root
     python tools/build_sample_pack.py --out DIR  # write somewhere else (used by the tests)
     python tools/build_sample_pack.py --no-profile
+    python tools/build_sample_pack.py --side     # the side-view pack, sample_pack_side/ (T14.09)
 
 Every pixel is drawn from integer arithmetic (no randomness, no antialiasing), so the images are
 the same on every machine. The pack is original work released under CC0-1.0: nothing is copied
@@ -522,16 +523,415 @@ def build_profile(pack: Path, profile_path: Path) -> dict:
     return data
 
 
+# ------------------------------------------------------------------------------ the side-view pack
+# A second pack (T14.09): a cave seen from the side, for the metroidvania. Drawn the same way as
+# the first, by this script only, so it needs no new licence.
+
+SIDE_PACK_NAME = "sample_pack_side"
+SIDE_PROFILE_NAME = "sample_side.rpgprofile.json"
+SIDE_PROFILE_TITLE = "rpggen side-view sample pack"
+
+CAVE: Px = (96, 88, 118)
+CAVE_MOSS: Px = (96, 160, 104)
+PLANK: Px = (156, 108, 62)
+STEEL: Px = (206, 210, 222)
+# cells of tiles/cave.png (column, row)
+SIDE_ONE_WAY = ((4, 0), (5, 0), (6, 0))
+SIDE_LADDER = ((7, 0), (7, 1))
+SIDE_SPIKES = ((4, 1),)
+SIDE_BREAKABLE = ((5, 1),)
+
+
+def _rock(img: Image.Image, x0: int, y0: int, base: Px, seed: int, moss: bool) -> None:
+    for y in range(16):
+        for x in range(16):
+            n = noise(x, y, seed)
+            tone = shade(base, (n % 25) - 12 if n % 4 == 0 else 0)
+            if (x + y * 3 + seed) % 11 == 0:
+                tone = shade(base, -30)
+            img.putpixel((x0 + x, y0 + y), rgba(tone))
+    if moss:
+        for x in range(16):
+            depth = 3 + noise(x, 0, seed + 5) % 3
+            for y in range(depth):
+                img.putpixel((x0 + x, y0 + y), rgba(shade(CAVE_MOSS, 18 - y * 9)))
+
+
+def cave_sheet() -> Image.Image:
+    """8 x 2 tiles of 16 px. Columns 0 to 3: mossy ground (top row) and rock (bottom row).
+    Top row, columns 4 to 6: a plank to jump through (left end, middle, right end); column 7: a
+    ladder. Bottom row: spikes, a cracked block that breaks, a dark rock, the ladder's lower end."""
+    img, d = canvas(128, 32)
+    for col in range(4):
+        _rock(img, col * 16, 0, shade(CAVE, col % 2 * 8), col + 1, True)
+        _rock(img, col * 16, 16, shade(CAVE, -10 - col % 2 * 8), col + 9, False)
+    # planks: the top 5 px of the cell
+    d.rectangle([64, 0, 111, 4], fill=rgba(PLANK))
+    d.line([(64, 4), (111, 4)], fill=rgba(shade(PLANK, -50)))
+    d.line([(64, 0), (111, 0)], fill=rgba(shade(PLANK, 34)))
+    for x in (64, 111):
+        d.line([(x, 0), (x, 4)], fill=rgba(shade(PLANK, -50)))
+    for x in (72, 88, 104):
+        d.point([(x, 2)], fill=rgba(shade(PLANK, -60)))
+    d.rectangle([66, 5, 67, 8], fill=rgba(shade(PLANK, -40)))  # brackets under both ends
+    d.rectangle([108, 5, 109, 8], fill=rgba(shade(PLANK, -40)))
+    # the ladder: two cells that join
+    for y0 in (0, 16):
+        d.rectangle([115, y0, 116, y0 + 15], fill=rgba(shade(PLANK, -46)))
+        d.rectangle([123, y0, 124, y0 + 15], fill=rgba(shade(PLANK, -46)))
+        for y in (2, 7, 12):
+            d.rectangle([115, y0 + y, 124, y0 + y + 1], fill=rgba(PLANK))
+    # spikes: four teeth on a base
+    d.rectangle([64, 29, 79, 31], fill=rgba(shade(CAVE, -40)))
+    for t in range(4):
+        x = 64 + t * 4
+        d.polygon([(x, 28), (x + 1, 20), (x + 2, 20), (x + 3, 28)], fill=rgba(STEEL))
+        d.point([(x + 1, 20)], fill=rgba(WHITE))
+    # the breakable block: lighter rock with cracks
+    _rock(img, 80, 16, shade(CAVE, 34), 23, False)
+    d.rectangle([80, 16, 95, 31], outline=rgba(shade(CAVE, -34)))
+    d.line([(84, 17), (87, 22), (85, 26), (89, 30)], fill=rgba(BLACK))
+    d.line([(87, 22), (92, 20)], fill=rgba(BLACK))
+    _rock(img, 96, 16, shade(CAVE, -34), 31, False)
+    return img
+
+
+def _figure(
+    d: ImageDraw.ImageDraw, ox: int, size: int, body: Px, hair: Px, pose: str, i: int
+) -> None:
+    """One frame of a person facing right, feet on the bottom row of a ``size`` px frame."""
+    skin: Px = (240, 200, 160)
+    lift = {"jump": 4, "fall": 2, "climb": 1 + i % 2}.get(pose, 0)
+    lean = {"run": 1, "dash": 4, "attack": 1}.get(pose, 0)
+    bob = i % 2 if pose in ("idle", "run") else 0
+    cx = ox + size // 2 + lean
+    feet = size - 1 - lift
+    top = feet - 17 + bob
+    d.rectangle(
+        [cx - 4, top + 7, cx + 3, feet - 4], fill=rgba(body), outline=rgba(shade(body, -70))
+    )
+    d.rectangle([cx - 4, top, cx + 3, top + 6], fill=rgba(skin), outline=rgba(shade(skin, -90)))
+    d.rectangle([cx - 4, top, cx + 3, top + 2], fill=rgba(hair))
+    d.rectangle([cx - 4, top, cx - 3, top + 4], fill=rgba(hair))
+    d.point([(cx + 1, top + 4)], fill=rgba(BLACK))  # one eye: the figure looks right
+    stride = {"run": (i % 4 - 1) * 2 if i % 2 else 0, "jump": -1, "fall": 2, "dash": 3}.get(pose, 0)
+    d.rectangle([cx - 3 - stride, feet - 3, cx - 2 - stride, feet], fill=rgba(shade(body, -60)))
+    d.rectangle([cx + 1 + stride, feet - 3, cx + 2 + stride, feet], fill=rgba(shade(body, -60)))
+    if pose == "attack":  # the blade swings out to the right
+        reach = (2, 5, 4)[i % 3]
+        d.line(
+            [(cx + 4, top + 9), (cx + 4 + reach, top + 9 - (1 if i == 0 else 0))],
+            fill=rgba(STEEL),
+            width=2,
+        )
+    elif pose == "climb":
+        d.point([(cx - 5, top + 8 + i % 2 * 3), (cx + 4, top + 11 - i % 2 * 3)], fill=rgba(skin))
+    elif pose == "dash":
+        d.line([(cx - 9, top + 9), (cx - 6, top + 9)], fill=rgba(WHITE))
+        d.line([(cx - 10, top + 13), (cx - 6, top + 13)], fill=rgba(WHITE))
+    elif pose == "hurt":
+        d.rectangle([cx - 4, top + 7, cx + 3, feet - 4], fill=rgba((236, 232, 240)))
+
+
+def side_strip(pose: str, frames: int, body: Px, hair: Px, size: int = 24) -> Image.Image:
+    img, d = canvas(frames * size, size)
+    for i in range(frames):
+        _figure(d, i * size, size, body, hair, pose, i)
+    return img
+
+
+def crawler_strip() -> Image.Image:
+    """A 4-frame beetle that walks to the right."""
+    img, d = canvas(64, 16)
+    shell: Px = (104, 168, 96)
+    for i in range(4):
+        ox = i * 16
+        d.ellipse([ox + 2, 6, ox + 13, 14], fill=rgba(shell), outline=rgba(shade(shell, -70)))
+        d.line([(ox + 5, 7), (ox + 5, 13)], fill=rgba(shade(shell, -40)))
+        d.point([(ox + 11, 9)], fill=rgba(BLACK))
+        step = i % 2
+        d.point([(ox + 4 + step, 15), (ox + 8 - step, 15), (ox + 11 + step, 15)], fill=rgba(BLACK))
+    return img
+
+
+def bat_strip() -> Image.Image:
+    """A 4-frame bat: the wings go up and down."""
+    img, d = canvas(64, 16)
+    fur: Px = (150, 96, 176)
+    for i in range(4):
+        ox = i * 16
+        wing = (2, 5, 8, 5)[i]
+        d.polygon([(ox + 7, 8), (ox + 1, wing), (ox + 3, 10)], fill=rgba(shade(fur, -30)))
+        d.polygon([(ox + 8, 8), (ox + 14, wing), (ox + 12, 10)], fill=rgba(shade(fur, -30)))
+        d.ellipse([ox + 5, 5, ox + 10, 11], fill=rgba(fur), outline=rgba(shade(fur, -70)))
+        d.point([(ox + 6, 7), (ox + 9, 7)], fill=rgba(WHITE))
+    return img
+
+
+def guardian_strip(pose: str, frames: int) -> Image.Image:
+    """The guardian, 32 x 32 per frame: a stone golem with one eye, facing right."""
+    img, d = canvas(frames * 32, 32)
+    stone: Px = (124, 112, 140)
+    for i in range(frames):
+        ox = i * 32
+        bob = i % 2 if pose != "attack" else 0
+        lean = 3 if pose == "attack" and i >= 1 else 0
+        white = pose == "hurt"
+        body = (236, 232, 240) if white else stone
+        d.rounded_rectangle(
+            [ox + 6 + lean, 6 + bob, ox + 25 + lean, 27],
+            4,
+            fill=rgba(body),
+            outline=rgba(shade(stone, -70)),
+        )
+        d.rectangle([ox + 4 + lean, 12 + bob, ox + 7 + lean, 22], fill=rgba(shade(body, -24)))
+        arm = 6 if pose == "attack" and i >= 1 else 0
+        d.rectangle(
+            [ox + 24 + lean, 12 + bob - arm // 2, ox + 28 + lean + arm // 2, 22 - arm],
+            fill=rgba(shade(body, -24)),
+        )
+        d.rectangle([ox + 17 + lean, 11 + bob, ox + 22 + lean, 15 + bob], fill=rgba((250, 210, 90)))
+        d.point([(ox + 20 + lean, 13 + bob)], fill=rgba(BLACK))
+        step = (i % 2) * 2 if pose == "walk" else 0
+        d.rectangle([ox + 8 + step, 28, ox + 13 + step, 31], fill=rgba(shade(stone, -50)))
+        d.rectangle([ox + 18 - step, 28, ox + 23 - step, 31], fill=rgba(shade(stone, -50)))
+    return img
+
+
+def save_bench() -> Image.Image:
+    """A 32 x 16 bench with a small light above it: a place to save."""
+    img, d = canvas(32, 16)
+    d.rectangle([2, 8, 29, 10], fill=rgba(PLANK), outline=rgba(shade(PLANK, -70)))
+    d.rectangle([4, 11, 6, 15], fill=rgba(shade(PLANK, -50)))
+    d.rectangle([25, 11, 27, 15], fill=rgba(shade(PLANK, -50)))
+    d.rectangle([14, 2, 17, 5], fill=rgba((255, 236, 140)), outline=rgba((200, 150, 40)))
+    d.point([(15, 6), (16, 7)], fill=rgba((255, 236, 140)))
+    return img
+
+
+def ability_orb(color: Px, mark: str) -> Image.Image:
+    """A 16 x 16 orb; ``mark`` draws what it gives (two arrows up, or an arrow to the right)."""
+    img, d = canvas(16, 16)
+    d.ellipse([2, 2, 13, 13], fill=rgba(color), outline=rgba(shade(color, -90)))
+    d.ellipse([4, 4, 6, 6], fill=rgba(shade(color, 70)))
+    if mark == "up":
+        d.line([(8, 5), (8, 11)], fill=rgba(WHITE))
+        d.point([(7, 6), (9, 6), (7, 9), (9, 9)], fill=rgba(WHITE))
+    else:
+        d.line([(5, 8), (11, 8)], fill=rgba(WHITE))
+        d.point([(10, 7), (10, 9)], fill=rgba(WHITE))
+    return img
+
+
+def side_sign() -> Image.Image:
+    img, d = canvas(16, 16)
+    d.rectangle([2, 2, 13, 9], fill=rgba(PLANK), outline=rgba(BLACK))
+    d.line([(4, 5), (11, 5)], fill=rgba(shade(PLANK, -60)))
+    d.rectangle([7, 10, 8, 15], fill=rgba(shade(PLANK, -50)))
+    return img
+
+
+def cave_background(depth: int) -> Image.Image:
+    """A 320 x 180 parallax layer that repeats sideways. 1: the far wall, opaque. 2: columns of
+    rock with gaps. 3: stalactites at the top and rubble at the bottom."""
+    img, d = canvas(320, 180)
+    if depth == 1:
+        for y in range(180):
+            for x in range(320):
+                n = noise(x // 4, y // 4, 3)
+                tone = shade((26, 24, 44), y // 14 + (6 if n % 5 == 0 else 0))
+                img.putpixel((x, y), rgba(tone))
+        return img
+    if depth == 2:
+        color: Px = (44, 40, 68)
+        for k in range(5):
+            x = k * 64 + 8
+            width = 18 + noise(k, 1, 7) % 14
+            d.rectangle([x, 0, x + width, 179], fill=rgba(shade(color, k % 2 * 6)))
+            d.rectangle([x + width // 3, 0, x + width // 3 + 2, 179], fill=rgba(shade(color, -10)))
+        return img
+    color = (30, 26, 48)
+    for k in range(16):
+        x = k * 20
+        length = 14 + noise(k, 2, 11) % 34
+        d.polygon([(x, 0), (x + 19, 0), (x + 10, length)], fill=rgba(color))
+        height = 4 + noise(k, 3, 11) % 12
+        d.rectangle([x, 179 - height, x + 19, 179], fill=rgba(color))
+    return img
+
+
+def hermit_portrait() -> Image.Image:
+    """A 48 x 48 face: the hermit of the last room."""
+    img, d = canvas(48, 48)
+    d.rectangle([0, 0, 47, 47], fill=rgba((52, 46, 78)))
+    d.rounded_rectangle([12, 10, 35, 42], 8, fill=rgba((226, 190, 156)))
+    d.rounded_rectangle([10, 6, 37, 18], 6, fill=rgba((206, 206, 216)))
+    d.rectangle([17, 25, 20, 27], fill=rgba(BLACK))
+    d.rectangle([28, 25, 31, 27], fill=rgba(BLACK))
+    d.rounded_rectangle([15, 32, 32, 44], 5, fill=rgba((206, 206, 216)))
+    d.line([(21, 35), (27, 35)], fill=rgba((150, 80, 70)))
+    return img
+
+
+HERO_BODY: Px = (60, 110, 200)
+HERO_HAIR: Px = (90, 52, 30)
+HERMIT_BODY: Px = (120, 96, 70)
+HERMIT_HAIR: Px = (206, 206, 216)
+HERO_STRIPS = (
+    ("idle", 2), ("run", 4), ("jump", 2), ("fall", 2), ("climb", 2), ("attack", 3), ("dash", 2),
+    ("hurt", 2),
+)  # fmt: skip
+
+SIDE_IMAGES = {
+    "tiles/cave.png": cave_sheet,
+    **{
+        f"characters/hero_{pose}.png": (
+            lambda pose=pose, n=n: side_strip(pose, n, HERO_BODY, HERO_HAIR)
+        )
+        for pose, n in HERO_STRIPS
+    },
+    "enemies/crawler_walk.png": crawler_strip,
+    "enemies/bat_idle.png": bat_strip,
+    **{
+        f"boss/guardian_{pose}.png": (lambda pose=pose, n=n: guardian_strip(pose, n))
+        for pose, n in (("idle", 2), ("walk", 2), ("attack", 3), ("hurt", 2))
+    },
+    "npc/hermit_idle.png": lambda: side_strip("idle", 2, HERMIT_BODY, HERMIT_HAIR),
+    "portraits/hermit.png": hermit_portrait,
+    "objects/save_bench.png": save_bench,
+    "objects/sign.png": side_sign,
+    "items/orb_double_jump.png": lambda: ability_orb((90, 190, 230), "up"),
+    "items/orb_dash.png": lambda: ability_orb((240, 150, 70), "right"),
+    "items/potion.png": potion,
+    "items/coin.png": coin,
+    "items/chest.png": chest,
+    "backgrounds/bg_far.png": lambda: cave_background(1),
+    "backgrounds/bg_mid.png": lambda: cave_background(2),
+    "backgrounds/bg_near.png": lambda: cave_background(3),
+    "ui/panel.png": panel,
+}
+
+SIDE_LICENSE_TEXT = LICENSE_TEXT.replace("rpggen sample pack", "rpggen side-view sample pack", 1)
+
+SIDE_SOURCE_TEXT = """\
+rpggen side-view sample pack: sources
+
+This pack has no outside sources. Every file is generated by `tools/build_sample_pack.py --side`
+(deterministic integer drawing with Pillow; the sounds by `tools/sample_audio.py`) and released
+under CC0-1.0.
+
+tiles/cave.png             8 x 2 tiles of 16 px: mossy ground and rock, a plank to jump through
+                           (three cells), a ladder (two cells), spikes, a block that breaks
+characters/hero_*.png      The hero facing right, 24 x 24 per frame: idle, run, jump, fall, climb,
+                           attack, dash, hurt (one strip each)
+enemies/crawler_walk.png   A beetle that walks its platform (4 frames)
+enemies/bat_idle.png       A bat that flies (4 frames)
+boss/guardian_*.png        The guardian, 32 x 32 per frame: idle, walk, attack, hurt
+npc/hermit_idle.png        The hermit of the last room
+portraits/hermit.png       His face
+objects/save_bench.png     A bench to save at
+objects/sign.png           A sign
+items/orb_*.png            The orbs of two abilities: double jump and dash
+items/*.png                Potion, coin (16 x 16 each) and a chest (32 x 16: closed, open)
+backgrounds/bg_*.png       Three parallax layers of 320 x 180: far, mid, near
+ui/panel.png               A window panel with a nine-slice border
+music/*.wav, sfx/*.wav     The sounds of the first sample pack, and jump, land, dash, powerup
+
+`sample_side.rpgprofile.json` is the audit of this pack (made with the normal audit pipeline), so
+the sample opens with every asset confirmed.
+"""
+
+
+def build_side_pack(out: Path) -> Path:
+    """Write the side-view pack into ``out``; returns ``out``."""
+    out.mkdir(parents=True, exist_ok=True)
+    for rel, make in SIDE_IMAGES.items():
+        save_png(make(), out / rel)
+    for rel, make_audio in sample_audio.SIDE_FILES.items():
+        target = out / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(make_audio())
+    (out / "LICENSE.txt").write_text(SIDE_LICENSE_TEXT, encoding="utf-8", newline="\n")
+    (out / "SOURCE.txt").write_text(SIDE_SOURCE_TEXT, encoding="utf-8", newline="\n")
+    return out
+
+
+def side_tile_overrides() -> dict[str, dict]:
+    """What each special cell of tiles/cave.png is: the audit of the sheet, tile by tile."""
+    out: dict[str, dict] = {}
+    for col, row in SIDE_ONE_WAY:
+        out[f"{col},{row}"] = {"collision": {"profile": "ONE_WAY"}}
+    for col, row in SIDE_LADDER:
+        out[f"{col},{row}"] = {"collision": {"profile": "LADDER"}}
+    for col, row in SIDE_SPIKES:
+        out[f"{col},{row}"] = {"collision": {"profile": "NONE"}, "custom": {"hazard": True}}
+    for col, row in SIDE_BREAKABLE:
+        out[f"{col},{row}"] = {"custom": {"breakable": True}}
+    return dict(sorted(out.items()))
+
+
+def build_side_profile(pack: Path, profile_path: Path) -> dict:
+    """Audit the side-view pack with the normal pipeline, confirm everything, export the profile."""
+    import os
+
+    from rpggen.core import archive, catalog, inventory, profiles
+    from rpggen.gui import edits
+
+    with tempfile.TemporaryDirectory() as cache:
+        old = os.environ.get("RPGGEN_CACHE_DIR")
+        os.environ["RPGGEN_CACHE_DIR"] = cache  # no installed profile may influence the audit
+        try:
+            opened = archive.open_pack(pack, set(), pack_id=SIDE_PACK_NAME)
+            inv = inventory.build_inventory(opened)
+            cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [])
+        finally:
+            if old is None:
+                del os.environ["RPGGEN_CACHE_DIR"]
+            else:
+                os.environ["RPGGEN_CACHE_DIR"] = old
+    name = SIDE_PACK_NAME
+    cat = edits.set_override(cat, f"{name}.tiles.cave", "tile_overrides", side_tile_overrides())
+    cat = edits.set_override(cat, f"{name}.items.chest", "tags", ["chest"])
+    cat = edits.set_override(cat, f"{name}.objects.save_bench", "role", "DECORATION")
+    cat = edits.set_override(cat, f"{name}.objects.sign", "tags", ["sign"])
+    cat = edits.confirm(cat, [a.id for a in cat.assets if a.status != "UNUSED"])
+    data = profiles.export_profile(
+        cat,
+        name,
+        inv,
+        {
+            "profile_id": "rpggen_sample_pack_side",
+            "title": SIDE_PROFILE_TITLE,
+            "author": "rpggen",
+            "license": "CC0-1.0",
+        },
+    )
+    profiles.write_profile(data, profile_path)
+    return data
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out", type=Path, default=REPO_ROOT / PACK_NAME)
+    parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--no-profile", action="store_true")
+    parser.add_argument(
+        "--side", action="store_true", help="build the side-view pack (sample_pack_side/)"
+    )
     args = parser.parse_args(argv)
-    build_pack(args.out)
-    print(f"wrote {len(FILES)} images and {len(sample_audio.FILES)} sounds to {args.out}")
+    if args.side:
+        out = args.out or REPO_ROOT / SIDE_PACK_NAME
+        build_side_pack(out)
+        print(f"wrote {len(SIDE_IMAGES)} images and {len(sample_audio.SIDE_FILES)} sounds to {out}")
+        if not args.no_profile:
+            build_side_profile(out, out / SIDE_PROFILE_NAME)
+            print(f"wrote {out / SIDE_PROFILE_NAME}")
+        return 0
+    out = args.out or REPO_ROOT / PACK_NAME
+    build_pack(out)
+    print(f"wrote {len(FILES)} images and {len(sample_audio.FILES)} sounds to {out}")
     if not args.no_profile:
-        build_profile(args.out, args.out / PROFILE_NAME)
-        print(f"wrote {args.out / PROFILE_NAME}")
+        build_profile(out, out / PROFILE_NAME)
+        print(f"wrote {out / PROFILE_NAME}")
     return 0
 
 

@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, Signal, SignalInstance
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QAction, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QPushButton,
     QSizePolicy,
     QToolButton,
@@ -25,7 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rpggen import godot_target
+from rpggen import features, godot_target
 from rpggen.core import app_settings, pack_sniff
 from rpggen.gui import workers
 
@@ -180,6 +181,7 @@ class WelcomePage(QWidget):
     AVAILABLE_TIMEOUT_S = 2.0  # how long one folder may take to answer
 
     trySampleRequested = Signal()
+    trySideSampleRequested = Signal()  # the side-view sample, as a metroidvania (T14.09)
     ownPackRequested = Signal()
     openProjectRequested = Signal()  # ask for a folder
     recentChosen = Signal(str)  # a recent project's folder
@@ -216,6 +218,7 @@ class WelcomePage(QWidget):
             self.trySampleRequested,
             self.tr("Fills in the bundled sample pack and goes straight to the options"),
         )
+        self._add_sample_choices()
         self.own_card = self._card(
             "ownPackCard",
             self.tr("Start with my asset pack"),
@@ -278,6 +281,36 @@ class WelcomePage(QWidget):
         status.addWidget(self.download_button)
         layout.addLayout(status)
         self.refresh()
+
+    def _add_sample_choices(self) -> None:
+        """Make *Try the sample* a split button (T14.09): a click is the top-down village, as
+        before, and the arrow lists both samples. While the metroidvania is not available the
+        card stays the plain button of 1.1."""
+        self.sample_menu: QMenu | None = None
+        self.sample_top_action: QAction | None = None
+        self.sample_side_action: QAction | None = None
+        if not features.METROIDVANIA_AVAILABLE:
+            return
+        menu = QMenu(self.sample_card)
+        menu.setObjectName("sampleMenu")
+        self.sample_top_action = menu.addAction(self.tr("Top-down village"))
+        self.sample_top_action.setObjectName("sampleTopDown")
+        self.sample_top_action.setToolTip(self.tr("A turn-based RPG from the village pack"))
+        self.sample_top_action.triggered.connect(self.trySampleRequested)
+        self.sample_side_action = menu.addAction(self.tr("Side-view cave"))
+        self.sample_side_action.setObjectName("sampleSideView")
+        self.sample_side_action.setToolTip(self.tr("A metroidvania from the cave pack"))
+        self.sample_side_action.triggered.connect(self.trySideSampleRequested)
+        menu.setToolTipsVisible(True)
+        self.sample_menu = menu
+        self.sample_card.setMenu(menu)
+        self.sample_card.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.sample_card.setToolTip(
+            self.tr(
+                "Fills in the bundled sample pack and goes straight to the options. "
+                "The arrow offers the side-view sample too"
+            )
+        )
 
     def _card(
         self, name: str, title: str, text: str, signal: SignalInstance, tip: str

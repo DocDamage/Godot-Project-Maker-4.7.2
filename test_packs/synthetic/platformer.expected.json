@@ -57,30 +57,26 @@
       16,
       16
     ],
+    "margin": [
+      0,
+      0
+    ],
     "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ],
     "usage": "tiles"
   },
   "tiles/hazards/spikes.png": {
-    "cell": [
-      16,
-      16
-    ],
     "role": "DECORATION",
     "usage": "tiles"
   },
   "tiles/ladders/ladder.png": {
-    "cell": [
-      16,
-      16
-    ],
     "role": "DECORATION",
     "usage": "tiles"
   },
   "tiles/platforms/oneway_planks.png": {
-    "cell": [
-      16,
-      16
-    ],
     "role": "DECORATION",
     "usage": "tiles"
   }

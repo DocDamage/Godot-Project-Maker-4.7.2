@@ -28,6 +28,10 @@ from rpggen.gui.state import WizardState
 
 SAMPLE_NAME = "Sample RPG"
 SAMPLE_PROFILE = "sample.rpgprofile.json"
+# the side-view sample (T14.09): its own pack, profile and name; it is a metroidvania
+SIDE_SAMPLE_NAME = "Sample Cave"
+SIDE_SAMPLE_PROFILE = "sample_side.rpgprofile.json"
+SIDE_SAMPLE_ARCHETYPE = "metroidvania"
 NAME_MAX = 64
 ARCHIVE_SUFFIXES = (".zip", ".7z", ".rar")
 FORMAT_NAMES = {
