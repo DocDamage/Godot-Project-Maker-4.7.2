@@ -201,6 +201,13 @@ and their scenes a light, a flickering one for a flame. You can add or remove th
 object. *Settings → Day and night* (off by default) lets the outdoor light follow a day of 24
 minutes of play.
 
+**Minimap and world map.** A small map in the top-right corner shows the area around the player:
+a dot for the player, marks for doors, chests not yet opened and what the current quest stage
+points at, and darkness over the cells not seen yet. *Settings → Minimap* turns it off. *Pause →
+Map* shows every map visited so far, the unseen parts covered; what has been seen is kept in the
+save. The pictures are made by the build from each map's tiles, so a map you repaint gets a new
+one on the next regeneration.
+
 Key prompts follow the player's device: `[E]` on the keyboard, the pad's own button name
 (`[A]`, `[Cross]`, `[B]`) once a controller is used, and a remapped key at once.
 

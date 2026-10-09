@@ -39,6 +39,9 @@ var flags: Dictionary = {}  # entity_id -> {key: value}
 var variables: Dictionary = {}
 var quests: Dictionary = {}  # quest id -> the id of its current stage, or QUEST_DONE
 var quest_defs: Dictionary = {}  # quest id -> RpgQuestDefinition (game/data/quests)
+## The cells of each map the player has seen (T12.64): minimap key -> {w, h, bits (one bit per
+## cell, row by row)}. Saved under the optional "map_fog" key.
+var map_fog: Dictionary = {}
 ## actor id (String) -> {slot: item id (String)}. Keyed by actor from the start so party members
 ## (T12.47) get their own; a missing actor or slot means nothing is worn.
 var equipment: Dictionary = {}
@@ -87,6 +90,84 @@ func load_quests(dir_path: String = QUESTS_DIR) -> void:
 		var def := load(path) as RpgQuestDefinition
 		if def != null and def.id != &"" and not quest_defs.has(def.id):
 			quest_defs[def.id] = def
+
+# ------------------------------------------------------------------ the map fog (T12.64)
+
+## Marks the cells within `radius` of `cell` as seen on a map of `size` cells.
+func fog_mark(map_key: String, size: Vector2i, cell: Vector2i, radius: int = 4) -> void:
+	if size.x <= 0 or size.y <= 0:
+		return
+	var entry: Dictionary = map_fog.get(map_key, {})
+	if RpgUtil.to_int(entry.get("w", 0)) != size.x or RpgUtil.to_int(entry.get("h", 0)) != size.y:
+		var empty := PackedByteArray()
+		empty.resize((size.x * size.y + 7) / 8)
+		entry = {"w": size.x, "h": size.y, "bits": empty}
+	var bits: PackedByteArray = entry["bits"]
+	for y in range(maxi(0, cell.y - radius), mini(size.y, cell.y + radius + 1)):
+		for x in range(maxi(0, cell.x - radius), mini(size.x, cell.x + radius + 1)):
+			if Vector2i(x, y).distance_squared_to(cell) <= radius * radius:
+				var i := y * size.x + x
+				bits[i >> 3] |= 1 << (i & 7)
+	entry["bits"] = bits
+	map_fog[map_key] = entry
+
+## True when the player has seen `cell` of the map.
+func fog_seen(map_key: String, cell: Vector2i) -> bool:
+	var entry: Dictionary = map_fog.get(map_key, {})
+	var w := RpgUtil.to_int(entry.get("w", 0))
+	var h := RpgUtil.to_int(entry.get("h", 0))
+	if cell.x < 0 or cell.y < 0 or cell.x >= w or cell.y >= h:
+		return false
+	var bits: PackedByteArray = entry["bits"]
+	var i := cell.y * w + cell.x
+	return (bits[i >> 3] & (1 << (i & 7))) != 0
+
+## The maps the player has been to (minimap keys), sorted.
+func visited_maps() -> Array[String]:
+	var out: Array[String] = []
+	for key: Variant in map_fog:
+		out.append(str(key))
+	out.sort()
+	return out
+
+func _fog_to_dict() -> Dictionary:
+	var out := {}
+	for key: Variant in map_fog:
+		var entry: Dictionary = map_fog[key]
+		var bits: PackedByteArray = entry["bits"]
+		out[str(key)] = {"w": entry["w"], "h": entry["h"], "bits": Marshalls.raw_to_base64(bits)}
+	return out
+
+## The optional `map_fog` key of a save; anything malformed is dropped.
+static func _fog_from(raw: Variant) -> Dictionary:
+	var out := {}
+	if not (raw is Dictionary):
+		return out
+	var table: Dictionary = raw
+	for key: Variant in table:
+		if not (table[key] is Dictionary):
+			continue
+		var entry: Dictionary = table[key]
+		var w := RpgUtil.to_int(entry.get("w", 0))
+		var h := RpgUtil.to_int(entry.get("h", 0))
+		var bits := Marshalls.base64_to_raw(str(entry.get("bits", "")))
+		if w > 0 and h > 0 and bits.size() == (w * h + 7) / 8:
+			out[str(key)] = {"w": w, "h": h, "bits": bits}
+	return out
+
+## The entity ids the current stages of active quests point at (a stage's optional "target").
+func quest_targets() -> Array[String]:
+	var out: Array[String] = []
+	for quest_id: Variant in quest_defs:
+		var id := StringName(str(quest_id))
+		if not quest_is_active(id):
+			continue
+		var def: RpgQuestDefinition = quest_defs[quest_id]
+		var stage := def.stage(def.stage_index(StringName(quest_state(id))))
+		var target := str(stage.get("target", ""))
+		if target != "" and not out.has(target):
+			out.append(target)
+	return out
 
 # ------------------------------------------------------------------ quests (T12.48)
 
@@ -240,6 +321,7 @@ func new_game() -> void:
 	quests.clear()
 	equipment.clear()
 	playtime_s = 0.0
+	map_fog.clear()
 	pending_encounter = null
 	gold = data.gold
 	for entry in data.items:
@@ -550,7 +632,7 @@ func to_dict() -> Dictionary:
 		"equipment": equipment.duplicate(true),
 		"playtime_s": playtime_s,
 		"rng": rng.get_state(),
-	}
+	}.merged({"map_fog": _fog_to_dict()} if not map_fog.is_empty() else {})
 
 func from_dict(d: Dictionary) -> void:
 	var data: Dictionary = RpgUtil.restore_numbers(d)
@@ -581,6 +663,7 @@ func from_dict(d: Dictionary) -> void:
 	playtime_s = RpgUtil.to_float(data.get("playtime_s", 0.0))
 	var rng_data: Dictionary = data.get("rng", {})
 	rng.set_state(rng_data)
+	map_fog = _fog_from(d.get("map_fog", {}))
 
 ## The optional `variables` key of a save: whole numbers by name; anything else is dropped.
 static func _variables_from(raw: Variant) -> Dictionary:

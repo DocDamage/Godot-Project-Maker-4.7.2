@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification, the basic HUD, shop, journal and credits. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 11
+const RECIPE_VERSION := 12
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -16,7 +16,7 @@ const SCRIPTS := "res://addons/rpg_runtime/ui/"
 const SCENES: Array[String] = [
 	"dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",
 	"save_load_menu", "settings_menu", "notification", "hud_basic", "game_over", "shop_menu", "journal_menu",
-	"credits_menu",
+	"credits_menu", "world_map_menu",
 ]
 
 static func scene_path(scene_name: String) -> String:
@@ -96,6 +96,7 @@ func _build_pause_menu() -> Node:
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu_buttons(box, [
 		["Resume", "UI_RESUME"], ["Inventory", "UI_INVENTORY"], ["Status", "UI_STATUS"], ["Journal", "UI_JOURNAL"],
+		["WorldMap", "UI_WORLD_MAP"],
 		["Save", "UI_SAVE"], ["Load", "UI_LOAD"], ["Settings", "UI_SETTINGS"], ["Credits", "UI_CREDITS"],
 		["Title", "UI_TITLE"],
 	])
@@ -192,6 +193,34 @@ func _build_credits_menu() -> Node:
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiUtil.unique(list)
 	scroll.add_child(list)
+	var back := UiUtil.button(box, "Back", "UI_BACK")
+	UiUtil.wire_vertical([back])
+	return root
+
+## The world map (T12.64): the visited maps on the left, the chosen one's minimap with its fog.
+func _build_world_map_menu() -> Node:
+	var root := UiUtil.control_root("WorldMapMenu", SCRIPTS + "world_map_menu.gd")
+	root.process_mode = Node.PROCESS_MODE_ALWAYS
+	UiUtil.dim_background(root, 0.9)
+	var box := UiUtil.center_panel(root, Vector2(420, 0))
+	var heading := UiUtil.label(box, "Heading", "UI_WORLD_MAP", true)
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var row := HBoxContainer.new()
+	row.name = "Row"
+	box.add_child(row)
+	var maps := ItemList.new()
+	maps.name = "Maps"
+	maps.custom_minimum_size = Vector2(130, 180)
+	UiUtil.unique(maps)
+	row.add_child(maps)
+	var picture := TextureRect.new()
+	picture.name = "Picture"
+	picture.custom_minimum_size = Vector2(270, 180)
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	UiUtil.unique(picture)
+	row.add_child(picture)
 	var back := UiUtil.button(box, "Back", "UI_BACK")
 	UiUtil.wire_vertical([back])
 	return root
@@ -301,6 +330,11 @@ func _build_settings_menu() -> Node:
 	autosave.text = "UI_AUTOSAVE"
 	UiUtil.unique(autosave)
 	inner.add_child(autosave)
+	var minimap := CheckButton.new()
+	minimap.name = "Minimap"
+	minimap.text = "UI_MINIMAP"
+	UiUtil.unique(minimap)
+	inner.add_child(minimap)
 	var day_night := CheckButton.new()
 	day_night.name = "DayNight"
 	day_night.text = "UI_DAY_NIGHT"

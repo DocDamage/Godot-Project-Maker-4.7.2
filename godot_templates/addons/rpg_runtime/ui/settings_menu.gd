@@ -32,6 +32,12 @@ func _ready() -> void:
 	var autosave := get_node("%Autosave") as CheckButton
 	autosave.button_pressed = s == null or s.autosave
 	autosave.toggled.connect(_on_autosave)
+	var minimap := get_node_or_null("%Minimap") as CheckButton  # older scenes have none
+	if minimap != null:
+		minimap.button_pressed = s == null or s.minimap
+		minimap.toggled.connect(func(on: bool) -> void:
+			if _settings() != null:
+				_settings().set_minimap(on))
 	var day_night := get_node_or_null("%DayNight") as CheckButton  # older scenes have none
 	if day_night != null:
 		day_night.button_pressed = s != null and s.day_night

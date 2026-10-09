@@ -239,3 +239,12 @@ file-name order: make scenes or resources from the catalog of your packs, under 
 `generated/custom/` (rebuilt each time). `example_recipe.gd` shows the shape; the rpggen
 documentation (`docs/recipes.md`) lists what a recipe can use. A recipe that fails stops the build
 with BUILD-002, which names its file.
+
+## 18. Minimap and world map
+
+Each map in `game/maps/` gets a minimap, made by the build (`generated/minimaps/`, a pixel per
+cell, the average colour of its tile), so repaint a map and regenerate (or use **Regenerate
+affected resources**) to update it. In the game it shows in the top-right corner (*Settings >
+Minimap* hides it) with the player, doors, unopened chests and quest targets, and the pause menu's
+**Map** shows the maps visited, unseen cells covered. A quest stage marks an entity on the
+minimap when it has a `target`: the entity id of an NPC, chest or other object.

@@ -33,6 +33,7 @@ const RECIPE_ORDER: Array[String] = [
 	"starter_map_recipe",
 	"second_map_recipe",
 	"imported_maps_recipe",
+	"minimap_recipe",
 	"translations_recipe",
 ]
 

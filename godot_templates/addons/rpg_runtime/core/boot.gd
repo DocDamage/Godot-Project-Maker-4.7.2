@@ -35,6 +35,11 @@ func _create_services(router: RpgSceneRouter) -> void:
 	_add_scene(router, "dialogue_box")
 	_add_scene(router, hud_scene)
 	_add_scene(router, "notification", 70)
+	var minimap_layer := CanvasLayer.new()  # T12.64: drawn in code, so every project gets it
+	minimap_layer.name = "MinimapLayer"
+	minimap_layer.layer = 9
+	minimap_layer.add_child(RpgMinimap.new())
+	router.add_child(minimap_layer)
 	var controller := RpgUiController.new()
 	controller.name = "UiController"
 	router.add_child(controller)

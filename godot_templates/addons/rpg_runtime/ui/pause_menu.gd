@@ -15,6 +15,9 @@ func _ready() -> void:
 	(get_node("%Resume") as Button).pressed.connect(close)
 	(get_node("%Inventory") as Button).pressed.connect(_open.bind("inventory_menu", {}))
 	(get_node("%Status") as Button).pressed.connect(_open.bind("status_menu", {}))
+	var world_map := get_node_or_null("%WorldMap") as Button  # projects built before the map have none
+	if world_map != null:
+		world_map.pressed.connect(_open.bind("world_map_menu", {}))
 	var journal := get_node_or_null("%Journal") as Button  # projects built before the journal have none
 	if journal != null:
 		journal.pressed.connect(_open.bind("journal_menu", {}))

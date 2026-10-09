@@ -2,7 +2,7 @@ extends RefCounted
 ## Seeds the data files of the demo under game/data/ (user_seed: written once, never again):
 ## hero actor, new-game data, the potion item and the starter NPC's dialogue.
 
-const RECIPE_VERSION := 7
+const RECIPE_VERSION := 8
 
 const Paths := preload("../lib/paths.gd")
 const SeedUtil := preload("../lib/seed_util.gd")
@@ -258,15 +258,16 @@ func _has_chest(ctx: BuildContext) -> bool:
 
 ## Talk to the villager -> open the chest -> tell the villager (the chest stage only when the
 ## starter map has a chest). Each stage finishes by itself when
-## its condition holds; the dialogue starts the quest and sets the last flag.
+## its condition holds; the dialogue starts the quest and sets the last flag. A stage's "target"
+## is the entity the minimap marks (T12.64).
 func _quest(has_chest: bool = true) -> Resource:
 	var quest := SeedUtil.make(QUEST_DEF)
 	quest.set("id", StringName(QUEST_ID))
 	quest.set("title", "QUEST_ERRAND_TITLE")
-	var stages: Array = [{"id": "talk", "description": "QUEST_ERRAND_TALK", "complete_when": "flag:starter_npc.talked"}]
+	var stages: Array = [{"id": "talk", "description": "QUEST_ERRAND_TALK", "complete_when": "flag:starter_npc.talked", "target": "starter_npc"}]
 	if has_chest:  # a map without a chest would leave the quest stuck here
-		stages.append({"id": "chest", "description": "QUEST_ERRAND_CHEST", "complete_when": "flag:starter_map_chest_001.opened"})
-	stages.append({"id": "return", "description": "QUEST_ERRAND_RETURN", "complete_when": "flag:starter_npc.reported"})
+		stages.append({"id": "chest", "description": "QUEST_ERRAND_CHEST", "complete_when": "flag:starter_map_chest_001.opened", "target": "starter_map_chest_001"})
+	stages.append({"id": "return", "description": "QUEST_ERRAND_RETURN", "complete_when": "flag:starter_npc.reported", "target": "starter_npc"})
 	quest.set("stages", SeedUtil.dict_array(stages))
 	quest.set("rewards", {"gold": 25, "experience": 5})
 	return quest
