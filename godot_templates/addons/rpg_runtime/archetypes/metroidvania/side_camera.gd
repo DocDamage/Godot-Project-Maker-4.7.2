@@ -13,6 +13,7 @@ extends Camera2D
 
 var target: Node2D = null
 var _slide: Tween = null
+var _gliding := false  # slide_from is moving the camera itself: the follow waits
 
 func _ready() -> void:
 	enabled = true
@@ -58,6 +59,7 @@ func wanted() -> Vector2:
 func snap_to_target() -> void:
 	if _slide != null and _slide.is_valid():
 		_slide.kill()
+	_gliding = false
 	global_position = wanted()
 	reset_smoothing()
 
@@ -72,7 +74,9 @@ func slide_from(from: Vector2, seconds: float = 0.25) -> void:
 		return
 	_slide = create_tween()
 	_slide.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	_gliding = true
 	_slide.tween_method(_slide_step.bind(from), 0.0, 1.0, seconds)
+	_slide.tween_callback(set.bind(&"_gliding", false))
 
 func _slide_step(amount: float, from: Vector2) -> void:
 	global_position = from.lerp(wanted(), amount)
@@ -80,7 +84,26 @@ func _slide_step(amount: float, from: Vector2) -> void:
 func sliding() -> bool:
 	return _slide != null and _slide.is_valid() and _slide.is_running()
 
+## The view glides in from `from` (a direction: the side the player came from) over `seconds`,
+## after a room change. For that time the camera may show past the room's edge on that side:
+## what was the last room slides out of view.
+func slide_in(from: Vector2, seconds: float = 0.25, tiles: float = 6.0) -> void:
+	if _slide != null and _slide.is_valid():
+		_slide.kill()
+	_gliding = false
+	offset = Vector2.ZERO
+	if not is_inside_tree() or seconds <= 0.0 or from == Vector2.ZERO:
+		return
+	var kept := limits()
+	var push := from.normalized() * tiles * tile_size
+	set_limits(kept.merge(Rect2(kept.position + push, kept.size)))
+	offset = push
+	_slide = create_tween()
+	_slide.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	_slide.tween_property(self, "offset", Vector2.ZERO, seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_slide.tween_callback(set_limits.bind(kept))
+
 func _physics_process(delta: float) -> void:
-	if sliding() or find_target() == null:
+	if find_target() == null or (_gliding and sliding()):
 		return
 	global_position = global_position.lerp(wanted(), clampf(follow_speed * delta, 0.0, 1.0))

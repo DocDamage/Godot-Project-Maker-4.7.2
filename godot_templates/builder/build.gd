@@ -68,6 +68,14 @@ const ARCHETYPE_RECIPES := {
 	"arpg": ["arpg/swing_recipe", "arpg/enemy_recipes", "arpg/hud_recipe", "arpg/mode_recipe"],
 	"metroidvania": ["metroidvania/objects_recipe", "metroidvania/mode_recipe"],
 }
+## The shared recipes an archetype does without, and what it runs in the place of the first of
+## them: a metroidvania has rooms (T14.06), not a starter map with houses and a field.
+const ARCHETYPE_SKIPS := {
+	"metroidvania": ["interior_recipe", "starter_map_recipe", "second_map_recipe"],
+}
+const ARCHETYPE_MAPS := {
+	"metroidvania": ["metroidvania/rooms_recipe"],
+}
 
 func _initialize() -> void:
 	var code := _run()
@@ -105,11 +113,18 @@ static func _step_label(recipe_name: String) -> String:
 
 ## RECIPE_ORDER with the archetype's recipes inserted before "boot_recipe".
 static func _recipe_list(ctx: BuildContext) -> Array:
-	var extra: Array = ARCHETYPE_RECIPES.get(JsonUtil.to_str(ctx.config.get("archetype", "")), [])
+	var archetype := JsonUtil.to_str(ctx.config.get("archetype", ""))
+	var extra: Array = ARCHETYPE_RECIPES.get(archetype, [])
+	var skips: Array = ARCHETYPE_SKIPS.get(archetype, [])
+	var maps: Array = ARCHETYPE_MAPS.get(archetype, [])
 	var out: Array = []
 	for recipe_name in RECIPE_ORDER:
 		if recipe_name == "boot_recipe":
 			out.append_array(extra)
+		if skips.has(recipe_name):
+			if recipe_name == "starter_map_recipe":
+				out.append_array(maps)  # the archetype's own maps, where the starter map would be
+			continue
 		out.append(recipe_name)
 	return out
 

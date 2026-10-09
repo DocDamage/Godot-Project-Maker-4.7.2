@@ -3,6 +3,8 @@ extends SceneTree
 # Static checks run in _initialize; scene instantiation is a small state machine in _process
 # because scenes need a frame in the tree.
 
+const STARTER_MAP := "res://game/maps/starter_map.tscn"
+const NEW_GAME_PATH := "res://game/data/new_game.tres"
 const Paths := preload("lib/paths.gd")
 const BuildContext := preload("lib/build_context.gd")
 const Log := preload("lib/log.gd")
@@ -67,7 +69,7 @@ func _initialize() -> void:
 		if JsonUtil.to_str(path).ends_with(".tscn"):
 			_scenes.append(path)
 	_announce("starter map")
-	_check_map_round_trip("res://game/maps/starter_map.tscn")
+	_check_map_round_trip(_first_map())
 	for imported_path in _list_files("res://game/maps/imported", ["tscn"]):
 		_check_map_round_trip(imported_path)  # the maps imported from Tiled and LDtk (T12.49)
 	_announce("y-sort origins")
@@ -79,6 +81,14 @@ func _initialize() -> void:
 	_announce("sound bank")
 	_check_sound_bank()
 	_announce("scenes and menus")
+
+## The map a new game starts in: the starter map, or the start room of a metroidvania.
+func _first_map() -> String:
+	if FileAccess.file_exists(STARTER_MAP) or not ResourceLoader.exists(NEW_GAME_PATH):
+		return STARTER_MAP
+	var new_game := load(NEW_GAME_PATH)
+	var start := JsonUtil.to_str(new_game.get("start_map")) if new_game != null else ""
+	return start if start != "" else STARTER_MAP
 
 func _process(_delta: float) -> bool:
 	if _finished or _ctx == null:
@@ -417,6 +427,10 @@ func _check_ysort_parents() -> void:
 		if packed == null:
 			continue
 		var inst := packed.instantiate()
+		if JsonUtil.to_bool(inst.get("side_view")):
+			inst.free()  # a side-view room (T14.06) has no depth to sort: things stand on the floor
+			_item("ysort_parent", path, true)
+			continue
 		var entities: Array[Node] = []
 		_collect_entities(inst, entities)
 		var ok := true

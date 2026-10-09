@@ -13,6 +13,8 @@ const MapBuild := preload("../lib/map_build.gd")
 const ObjectEntries := preload("../lib/object_entries.gd")
 
 const HERO_PATH := "res://game/data/actors/hero.tres"
+const STARTER_MAP_PATH := "res://game/maps/starter_map.tscn"
+const WORLD_PLAN_PATH := "res://rpggen/world_plan.json"
 const COMPANION_ID := "companion"
 const COMPANION_PATH := "res://game/data/actors/companion.tres"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
@@ -73,7 +75,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	var wanted: Array = [HERO_PATH, NEW_GAME_PATH, POTION_PATH]
 	for word: String in _gear(ctx):
 		wanted.append(_gear_path(word))
-	if not ctx.demo_removed:
+	if not ctx.demo_removed and not _metroidvania(ctx):
 		wanted.append(GREETING_PATH)
 		wanted.append(SHOP_PATH)
 		wanted.append(QUEST_PATH)
@@ -85,7 +87,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _metroidvania(ctx) else {}))
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -137,9 +139,11 @@ func build(ctx: BuildContext) -> Array:
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx, _turn_based(ctx)), HERO_PATH, issues)
 	if not FileAccess.file_exists(NEW_GAME_PATH):
-		_save(ctx, _new_game(ctx.demo_removed, gear.keys()), NEW_GAME_PATH, issues)
+		_save(ctx, _new_game(ctx.demo_removed, gear.keys(), _start_map(ctx)), NEW_GAME_PATH, issues)
 	if not FileAccess.file_exists(POTION_PATH):
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
+	if _metroidvania(ctx):
+		return issues  # no village: the rooms recipe seeds the sign and the hermit of the last room
 	if not ctx.demo_removed and not FileAccess.file_exists(GREETING_PATH):
 		_save(ctx, _greeting(_has_party_demo(ctx)), GREETING_PATH, issues)
 	if _has_party_demo(ctx) and not FileAccess.file_exists(COMPANION_PATH):
@@ -197,9 +201,24 @@ func _companion(ctx: BuildContext) -> Resource:
 	def.set("skills", {"cure": 1, "sleep": 1, "fire": 3})
 	return def
 
-func _new_game(demo_removed: bool = false, gear_words: Array = []) -> Resource:
+## A metroidvania (T14.06) has rooms instead of the village: none of the village's demo data
+## (the villager's greeting, the shop, the errand, the companion) is seeded for it.
+func _metroidvania(ctx: BuildContext) -> bool:
+	return JsonUtil.to_str(ctx.config.get("archetype", "turn_based")) == "metroidvania"
+
+## Where a new game starts: the starter map, or the start room of a metroidvania's stored plan.
+func _start_map(ctx: BuildContext) -> String:
+	if _metroidvania(ctx):
+		var plan := JsonUtil.to_dict(JsonUtil.to_dict(JsonUtil.read(WORLD_PLAN_PATH) if FileAccess.file_exists(WORLD_PLAN_PATH) else {}).get("rooms", {}))
+		for raw: Variant in JsonUtil.to_array(plan.get("list", [])):
+			var room := JsonUtil.to_dict(raw)
+			if JsonUtil.to_str(room.get("id", "")) == JsonUtil.to_str(plan.get("start", "")):
+				return "res://" + JsonUtil.to_str(room.get("map", ""))
+	return STARTER_MAP_PATH
+
+func _new_game(demo_removed: bool = false, gear_words: Array = [], start_map: String = STARTER_MAP_PATH) -> Resource:
 	var ng := SeedUtil.make(NEW_GAME)
-	ng.set("start_map", "res://game/maps/starter_map.tscn")
+	ng.set("start_map", start_map)
 	ng.set("start_spawn", &"default")
 	ng.set("gold", 50)
 	var starting: Array = [] if demo_removed else [{"item_id": "potion", "qty": 2}]

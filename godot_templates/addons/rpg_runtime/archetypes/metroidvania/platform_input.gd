@@ -38,10 +38,10 @@ func poll(actor: RpgPlatformActor) -> void:
 	actor.jump_held = _held(&"jump")
 	if _pressed(&"dash"):
 		actor.press_dash()
-	var player := actor as RpgPlatformPlayer
-	if player == null:
-		return
-	if _pressed(&"attack"):
-		player.press_attack()
-	if _pressed(&"interact"):
-		player.try_interact()
+	# The player's own actions, by name. This script does not name the player's class, which
+	# names this one: with that pair of references Godot reported the scripts as still in use
+	# when a validation run quit (VAL-013).
+	if _pressed(&"attack") and actor.has_method(&"press_attack"):
+		actor.call(&"press_attack")
+	if _pressed(&"interact") and actor.has_method(&"try_interact"):
+		actor.call(&"try_interact")

@@ -10,7 +10,8 @@ extends RefCounted
 ##   apply(action, root) -> nodes      does one action in that map's scene tree
 ##
 ## An action is {kind, map, node, what, cause_map, cause_node, ...}: `kind` is "retarget" (a door
-## gets a target that exists), "spawn" (a spawn point is added), "door" (a door is added) or
+## gets a target that exists), "spawn" (a spawn point is added), "door" (a door is added), "exit"
+## (the exit of a side-view room is added, T14.06) or
 ## "unfixable" (nothing safe can be done; `what` says why). `map` is the scene the action changes
 ## and `node` the node it is about; `what` is the sentence the report shows. `cause_map` and
 ## `cause_node` name the finding the action answers (the door that led nowhere, or the map that
@@ -24,6 +25,9 @@ const JsonIo := preload("json_io.gd")
 
 const DOOR_SCRIPT := "res://addons/rpg_runtime/world/door.gd"
 const SPAWN_SCRIPT := "res://addons/rpg_runtime/world/spawn_point.gd"
+## The exit of a side-view room (T14.06). A project of another archetype has no such script and
+## no such maps, so nothing here ever loads it there.
+const ROOM_EXIT_SCRIPT := "res://addons/rpg_runtime/archetypes/metroidvania/room_exit.gd"
 const WORLD_PLAN := "res://rpggen/world_plan.json"
 const START := "res://game/maps/starter_map.tscn"
 const SEARCH_TILES := 3
@@ -55,7 +59,23 @@ static func survey(root: Node) -> Dictionary:
 			var data := layer.get_cell_tile_data(cell)
 			if data != null and layer.tile_set.get_physics_layers_count() > 0 and data.get_collision_polygons_count(0) > 0:
 				solid[cell] = true
-	return {"tile": tile, "rect": rect, "solid": solid, "painted": painted}
+	var info := {"tile": tile, "rect": rect, "solid": solid, "painted": painted, "side": JsonIo.to_bool(root.get("side_view"))}
+	if info["side"]:
+		# a room is as large as it says, not as large as what is painted (most of it is air)
+		var size: Variant = root.get("room_size")
+		if size is Vector2i:
+			var cells: Vector2i = size
+			info["rect"] = Rect2i(Vector2i.ZERO, cells)
+		# and solid is what a body stands on: the world layer or a one-way platform
+		for found in root.find_children("*", "TileMapLayer", true, false):
+			var layer := found as TileMapLayer
+			if layer.tile_set == null or layer.tile_set.get_physics_layers_count() < 2:
+				continue
+			for cell in layer.get_used_cells():
+				var data := layer.get_cell_tile_data(cell)
+				if data != null and data.get_collision_polygons_count(1) > 0:
+					solid[cell] = true
+	return info
 
 static func walkable(info: Dictionary, cell: Vector2i) -> bool:
 	var painted: Dictionary = info["painted"]
@@ -131,6 +151,8 @@ static func read_plan(path: String = WORLD_PLAN) -> Dictionary:
 		return plan
 	return {}
 
+## The maps of the plan: the areas of a top-down world, and the rooms of a metroidvania (T14.06).
+## A room is given the `doors` an area has, made from its exits, so the same lookups read both.
 static func _areas(plan: Dictionary) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var raw: Variant = plan.get("areas", [])
@@ -140,6 +162,28 @@ static func _areas(plan: Dictionary) -> Array[Dictionary]:
 			if entry is Dictionary:
 				var area: Dictionary = entry
 				out.append(area)
+	var rooms_raw: Variant = JsonIo.to_dict(plan.get("rooms", {})).get("list", [])
+	if rooms_raw is Array:
+		var rooms: Array = rooms_raw
+		var map_of := {}
+		for entry: Variant in rooms:
+			var listed := JsonIo.to_dict(entry)
+			map_of[JsonIo.to_str(listed.get("id", ""))] = JsonIo.to_str(listed.get("map", ""))
+		for entry: Variant in rooms:
+			var room := JsonIo.to_dict(entry).duplicate()
+			var doors: Array = []
+			var exits: Variant = room.get("exits", [])
+			if exits is Array:
+				var exit_list: Array = exits
+				for exit_raw: Variant in exit_list:
+					var exit_spec := JsonIo.to_dict(exit_raw)
+					doors.append({
+						"id": exit_spec.get("id", ""), "edge": exit_spec.get("edge", ""), "spawn_id": exit_spec.get("id", ""),
+						"to": exit_spec.get("to", ""), "to_map": map_of.get(JsonIo.to_str(exit_spec.get("to", "")), ""),
+						"to_spawn": exit_spec.get("to_exit", ""),
+					})
+			room["doors"] = doors
+			out.append(room)
 	return out
 
 static func _area_path(area: Dictionary) -> String:
@@ -204,12 +248,18 @@ static func plan_repairs(maps: Array[String], plan: Dictionary, instance_of: Cal
 	for found in MapGraph.dangling(graph, exists):
 		if found["missing"] == "spawn":
 			var before := actions.size()
-			_add_arrival(found, graph, surveys, plan, instance_of, actions)
+			if _is_room(surveys, str(found["target"])):
+				_add_room_arrival(found, graph, surveys, actions)
+			else:
+				_add_arrival(found, graph, surveys, plan, instance_of, actions)
 			_caused_by(actions, before, str(found["map"]), str(found["node"]))
 	# 3. maps the start cannot reach
 	for path in MapGraph.unreachable(graph, start):
 		var before := actions.size()
-		_join(path, graph, surveys, plan, start, actions)
+		if _is_room(surveys, path):
+			_join_rooms(path, graph, surveys, plan, start, actions)
+		else:
+			_join(path, graph, surveys, plan, start, actions)
 		_caused_by(actions, before, path, "")
 	for action in actions:
 		if not action.has("tile") and surveys.has(action["map"]):
@@ -458,6 +508,139 @@ static func _join(path: String, graph: Dictionary, surveys: Dictionary, plan: Di
 			})
 			_note(graph, map, {"node": "Triggers/" + door_name, "target": other_map, "spawn": "from_" + own})
 
+# ---------------------------------------------------------------- side-view rooms (T14.06)
+# A room's exit is mended the way a door is: nothing of the room is dug away. The new exit stands
+# on the floor beside the wall of the matching edge (walking into it leaves the room), and the
+# players of its partner arrive two and a half tiles further in.
+
+static func _is_room(surveys: Dictionary, path: String) -> bool:
+	return surveys.has(path) and JsonIo.to_bool(JsonIo.to_dict(surveys[path]).get("side", false))
+
+## True when a body can stand in `cell`: solid below it and three free cells from it upwards.
+static func _stands(info: Dictionary, cell: Vector2i) -> bool:
+	var solid: Dictionary = info["solid"]
+	if not solid.has(cell + Vector2i(0, 1)):
+		return false
+	for up in 3:
+		if solid.has(cell - Vector2i(0, up)):
+			return false
+	return true
+
+## A place for an exit on the side edge `edge` ("E" or "W") of a room: {position, area, spawn,
+## facing} in map px, or {} when nobody can stand beside that wall. The lowest floor is taken,
+## or the one nearest to the row `wanted_row` when one is given (-1: none).
+static func room_exit_place(info: Dictionary, edge: String, wanted_row: int = -1) -> Dictionary:
+	if edge != "E" and edge != "W":
+		return {}
+	var rect: Rect2i = info["rect"]
+	var tile := JsonIo.to_float(info["tile"])
+	var column := rect.end.x - 2 if edge == "E" else rect.position.x + 1
+	var inward := -1 if edge == "E" else 1
+	var best := -1
+	for row in range(rect.position.y, rect.end.y):
+		var feet := Vector2i(column, row)
+		if not _stands(info, feet) or not _stands(info, feet + Vector2i(inward * 2, 0)):
+			continue
+		if best < 0 or (wanted_row >= 0 and absi(row - wanted_row) < absi(best - wanted_row)) or (wanted_row < 0 and row > best):
+			best = row
+	if best < 0:
+		return {}
+	var floor_y := (best + 1) * tile
+	var wall_x := (column + (1 if edge == "E" else 0)) * tile  # the side of the cell toward the wall
+	var area := Rect2(-tile if edge == "E" else 0.0, -3.0 * tile, tile, 3.0 * tile)
+	return {
+		"position": Vector2(wall_x, floor_y), "area": area,
+		"spawn": Vector2((column + inward * 2 + 0.5) * tile, floor_y), "facing": "left" if edge == "E" else "right",
+	}
+
+static func _exit_action(map: String, exit_id: String, edge: String, place: Dictionary, target: String, target_exit: String, why: String) -> Dictionary:
+	return {
+		"kind": "exit", "map": map, "node": "Triggers/" + exit_id, "name": exit_id, "edge": edge,
+		"position": place["position"], "area": place["area"], "target_map": target, "target_spawn": target_exit,
+		"what": "added the exit %s to %s (%s)" % [exit_id, target.get_file(), why],
+	}
+
+static func _room_spawn_action(map: String, spawn_id: String, place: Dictionary, why: String) -> Dictionary:
+	return {
+		"kind": "spawn", "map": map, "node": "SpawnPoints/" + spawn_id, "spawn_id": spawn_id,
+		"position": place["spawn"], "facing": place["facing"], "side_view": true,
+		"what": "added the spawn point %s (%s)" % [spawn_id, why],
+	}
+
+static func _door_entry(graph: Dictionary, map: String, node: String) -> Dictionary:
+	var entry: Dictionary = graph[map]
+	var doors: Array = entry["doors"]
+	for door: Dictionary in doors:
+		if str(door["node"]) == node:
+			return door
+	return {}
+
+## Repair 2 for rooms: the exit `found` leads to a room that has no arrival for it. The target room
+## gets the spawn point on the edge facing the source, and an exit back when it has none.
+static func _add_room_arrival(found: Dictionary, graph: Dictionary, surveys: Dictionary, actions: Array[Dictionary]) -> void:
+	var source := str(found["map"])
+	var target := str(found["target"])
+	var spawn_id := str(found["spawn"])
+	var door := _door_entry(graph, source, str(found["node"]))
+	var source_edge := str(door.get("edge", "E"))
+	var target_info: Dictionary = surveys[target]
+	var place := room_exit_place(target_info, str(OPPOSITE.get(source_edge, "W")))
+	if place.is_empty():
+		actions.append({"kind": "unfixable", "map": target, "node": found["node"], "what": "%s has no floor beside its wall where the exit %s of %s arrives" % [target.get_file(), str(found["node"]).get_file(), source.get_file()]})
+		return
+	actions.append(_room_spawn_action(target, spawn_id, place, "the exit %s of %s arrives there" % [str(found["node"]).get_file(), source.get_file()]))
+	_note(graph, target, {}, spawn_id)
+	if MapGraph.has_door(graph, target, source):
+		return
+	var back_exit := str(door.get("id", ""))
+	actions.append(_exit_action(target, spawn_id, str(OPPOSITE.get(source_edge, "W")), place, source, back_exit, "the way back"))
+	_note(graph, target, {"node": "Triggers/" + spawn_id, "target": source, "spawn": back_exit, "exit": true, "edge": OPPOSITE.get(source_edge, "W"), "id": spawn_id})
+
+## Repair 3 for rooms: an exit pair between an unreachable room and a reachable one beside it on
+## the plan's grid, on the side edge they share.
+static func _join_rooms(path: String, graph: Dictionary, surveys: Dictionary, plan: Dictionary, start: String, actions: Array[Dictionary]) -> void:
+	var reachable := MapGraph.reachable(graph, start)
+	var area := area_of_map(plan, path)
+	var steps := {"E": Vector2i(1, 0), "W": Vector2i(-1, 0)}
+	var tried: Array[String] = []
+	if not area.is_empty():
+		var here := _grid_cell(plan, JsonIo.to_str(area.get("id", "")))
+		for edge: String in ["E", "W"]:
+			var step: Vector2i = steps[edge]
+			for other in _areas(plan):
+				var partner := _area_path(other)
+				if not reachable.has(partner) or _grid_cell(plan, JsonIo.to_str(other.get("id", ""))) != here + step:
+					continue
+				tried.append("%s of %s" % [edge, path.get_file()])
+				var back: String = OPPOSITE[edge]
+				var here_info: Dictionary = surveys[path]
+				var there_info: Dictionary = surveys[partner]
+				var place_here := room_exit_place(here_info, edge)
+				var place_there := room_exit_place(there_info, back)
+				if place_here.is_empty() or place_there.is_empty():
+					continue
+				var here_id := "%s_exit_%s" % [path.get_file().get_basename(), edge.to_lower()]
+				var there_id := "%s_exit_%s" % [partner.get_file().get_basename(), back.to_lower()]
+				var sides := [[path, here_id, edge, place_here, partner, there_id], [partner, there_id, back, place_there, path, here_id]]
+				for side: Array in sides:
+					var map: String = side[0]
+					var own_id: String = side[1]
+					var other_map: String = side[4]
+					var entry: Dictionary = graph[map]
+					var known: Array = entry["spawns"]
+					var place: Dictionary = side[3]
+					if not known.has(own_id):
+						actions.append(_room_spawn_action(map, own_id, place, "players from %s arrive there" % other_map.get_file()))
+						_note(graph, map, {}, own_id)
+					if not MapGraph.has_door(graph, map, other_map):
+						var other_id: String = side[5]
+						var side_edge: String = side[2]
+						actions.append(_exit_action(map, own_id, side_edge, place, other_map, other_id, "the room could not be reached"))
+						_note(graph, map, {"node": "Triggers/" + own_id, "target": other_map, "spawn": other_id, "exit": true, "edge": side_edge, "id": own_id})
+				return
+	var why := "no reachable room lies beside it in the world plan" if tried.is_empty() else "nobody can stand beside the wall on both sides (tried %s)" % ", ".join(PackedStringArray(tried))
+	actions.append({"kind": "unfixable", "map": path, "node": "", "what": "%s cannot be reached, and %s" % [path.get_file(), why]})
+
 # ---------------------------------------------------------------- applying
 
 ## The node of `root` that new nodes of this kind go under: "SpawnPoints" / "Triggers" when the
@@ -475,8 +658,32 @@ static func build(action: Dictionary) -> Node2D:
 		marker.set_script(load(SPAWN_SCRIPT))
 		marker.set("spawn_id", StringName(str(action["spawn_id"])))
 		marker.set("facing", str(action.get("facing", "down")))
+		if JsonIo.to_bool(action.get("side_view", false)):
+			marker.set("side_view", true)
 		marker.position = position
 		return marker
+	if str(action["kind"]) == "exit":  # the exit of a side-view room
+		var room_exit := Area2D.new()
+		room_exit.name = str(action["name"])
+		room_exit.set_script(load(ROOM_EXIT_SCRIPT))
+		room_exit.collision_layer = 0
+		room_exit.collision_mask = 0
+		room_exit.set_collision_layer_value(6, true)  # triggers
+		room_exit.set_collision_mask_value(2, true)  # player
+		room_exit.position = position
+		room_exit.set("exit_id", str(action["name"]))
+		room_exit.set("edge", str(action["edge"]))
+		room_exit.set("target_room", str(action["target_map"]))
+		room_exit.set("target_exit", str(action["target_spawn"]))
+		var exit_shape := CollisionShape2D.new()
+		exit_shape.name = "Shape"
+		var exit_rect := RectangleShape2D.new()
+		var area: Rect2 = action["area"]
+		exit_rect.size = area.size
+		exit_shape.shape = exit_rect
+		exit_shape.position = area.get_center()
+		room_exit.add_child(exit_shape)
+		return room_exit
 	var door := Area2D.new()
 	door.name = str(action["name"])
 	door.set_script(load(DOOR_SCRIPT))
@@ -503,10 +710,13 @@ static func apply(action: Dictionary, root: Node) -> Array[Node]:
 	match str(action["kind"]):
 		"retarget":
 			var door := root.get_node_or_null(str(action["node"]))
-			if door != null:
+			if door != null and MapGraph._is(door, MapGraph.ROOM_EXIT_SUFFIX):
+				door.set("target_room", str(action["target_map"]))
+				door.set("target_exit", str(action["target_spawn"]))
+			elif door != null:
 				door.set("target_map", str(action["target_map"]))
 				door.set("target_spawn", StringName(str(action["target_spawn"])))
-		"spawn", "door":
+		"spawn", "door", "exit":
 			var holder := _holder(root, "SpawnPoints" if str(action["kind"]) == "spawn" else "Triggers")
 			var node := build(action)
 			holder.add_child(node)

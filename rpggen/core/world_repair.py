@@ -79,7 +79,8 @@ def unedited_maps(target: Path) -> list[str]:
     if plan is None:
         return []
     out = []
-    for area in plan["areas"]:
+    # the areas of a top-down world, and the rooms of a metroidvania (T14.06)
+    for area in [*plan["areas"], *(plan.get("rooms") or {}).get("list", [])]:
         entry = plan["maps"].get(area["id"])
         file = Path(target) / area["map"]
         if entry and file.is_file() and ledger.file_hash(file) == entry["map_hash"]:

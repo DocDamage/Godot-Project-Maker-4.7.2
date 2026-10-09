@@ -163,7 +163,7 @@ def _place(src: Path, dst: Path, src_hash: str | None = None) -> bool:
     return True
 
 
-ARCHETYPES = ("turn_based", "arpg")
+ARCHETYPES = ("turn_based", "arpg", "metroidvania")
 
 
 def _other_archetype(rel: str, archetype: str | None) -> bool:

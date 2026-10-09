@@ -8,6 +8,10 @@ extends RefCounted
 ## door's path inside its scene.
 
 const DOOR_SUFFIX := "/world/door.gd"
+## The exit of a side-view room (T14.06) is a door of the graph too: its `target_room` is the map
+## it leads to and its `target_exit` the spawn point a player arrives on. Such an entry also has
+## "exit": true, its "edge" and its own "id".
+const ROOM_EXIT_SUFFIX := "/room_exit.gd"
 const SPAWN_SUFFIX := "/world/spawn_point.gd"
 const START := "res://game/maps/starter_map.tscn"
 ## Maps that are not part of the world on purpose: the library of imported Tiled and LDtk maps.
@@ -28,10 +32,31 @@ static func read(maps: Array[String], instance_of: Callable) -> Dictionary:
 		for node in nodes:
 			if _is(node, DOOR_SUFFIX) and str(node.get("target_map")) != "":
 				doors.append({"node": String(root.get_path_to(node)), "target": str(node.get("target_map")), "spawn": str(node.get("target_spawn"))})
+			elif _is(node, ROOM_EXIT_SUFFIX) and str(node.get("target_room")) != "":
+				doors.append({
+					"node": String(root.get_path_to(node)), "target": str(node.get("target_room")), "spawn": str(node.get("target_exit")),
+					"exit": true, "edge": str(node.get("edge")), "id": str(node.get("exit_id")),
+				})
 			elif _is(node, SPAWN_SUFFIX):
 				spawns.append(str(node.get("spawn_id")))
 		graph[path] = {"doors": doors, "spawns": spawns}
 	return graph
+
+## The map a world starts in: the starter map, or the start room of a metroidvania's stored plan
+## (`plan` is the parsed rpggen/world_plan.json, {} without one).
+static func start_for(plan: Dictionary) -> String:
+	var rooms: Variant = plan.get("rooms")
+	if rooms is Dictionary:
+		var section: Dictionary = rooms
+		var list: Variant = section.get("list", [])
+		if list is Array:
+			var entries: Array = list
+			for raw: Variant in entries:
+				if raw is Dictionary:
+					var room: Dictionary = raw
+					if str(room.get("id", "")) == str(section.get("start", "")):
+						return "res://" + str(room.get("map", ""))
+	return START
 
 static func _is(node: Node, suffix: String) -> bool:
 	var script: Script = node.get_script()

@@ -13,6 +13,7 @@ const EntityIds := preload("../tools/entity_ids.gd")
 const Placement := preload("placement.gd")
 const JsonIo := preload("../tools/json_io.gd")
 const Repair := preload("../tools/world_repair.gd")
+const MapGraph := preload("../tools/map_graph.gd")
 
 const ERROR_CODES_PATHS: Array[String] = ["res://generated/builder/lib/error_codes.gd", "res://builder/lib/error_codes.gd"]
 
@@ -144,7 +145,8 @@ static func plan_world_fixes() -> Array[Dictionary]:
 			var packed := ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
 			roots[path] = packed.instantiate() if packed != null else null
 		return roots[path]
-	var actions := Repair.plan_repairs(ContentChecks.list_files(ContentChecks.MAPS_DIR, ["tscn"]), Repair.read_plan(), instance_of)
+	var plan := Repair.read_plan()
+	var actions := Repair.plan_repairs(ContentChecks.list_files(ContentChecks.MAPS_DIR, ["tscn"]), plan, instance_of, MapGraph.start_for(plan))
 	for path: String in roots.keys():
 		var root: Node = roots[path]
 		if root != null:

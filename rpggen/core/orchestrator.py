@@ -300,6 +300,16 @@ def phase_catalog(state: _State) -> None:
             catalog, state.placeholders, state.cfg.base_tile_size, state.staging.staging
         )
         state.issues.extend(placeholder_issues)
+    if state.cfg.archetype == "metroidvania":
+        from rpggen.core import side_kit
+
+        stand_ins = side_kit.add(catalog, state.cfg.base_tile_size, state.staging.staging)
+        if stand_ins:
+            state.cb.on_log(
+                "side view: the packs have no "
+                + ", ".join(k.replace("_", "-") for k in stand_ins)
+                + " tile; generated ones are used"
+            )
     state.catalog = catalog
     if not state.cfg.sounds:
         # nothing was chosen (the command line, an older project): the packs' audio is used

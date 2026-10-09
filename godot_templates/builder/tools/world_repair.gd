@@ -13,6 +13,7 @@ extends SceneTree
 
 const Repair := preload("res://addons/rpg_project_tools/tools/world_repair.gd")
 const ContentChecks := preload("res://addons/rpg_project_tools/tools/content_checks.gd")
+const MapGraph := preload("res://addons/rpg_project_tools/tools/map_graph.gd")
 
 const RESULT_PATH := "res://rpggen/world_repair.json"
 const MARK := "[rpggen] WORLD_REPAIR "
@@ -28,7 +29,8 @@ func _init() -> void:
 			limited = true
 			for rel in arg.trim_prefix("--only=").split(",", false):
 				only.append("res://" + rel)
-	var result := run(ContentChecks.MAPS_DIR, Repair.read_plan(), dry_run, limited, only)
+	var plan := Repair.read_plan()
+	var result := run(ContentChecks.MAPS_DIR, plan, dry_run, limited, only, MapGraph.start_for(plan))
 	print(MARK + JSON.stringify(result))
 	if not dry_run:
 		var f := FileAccess.open(RESULT_PATH, FileAccess.WRITE)

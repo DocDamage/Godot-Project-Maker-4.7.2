@@ -39,6 +39,35 @@ func stack_depth() -> int:
 func go_to(map_path: String, spawn_id: StringName = &"default") -> void:
 	await _transition(map_path, spawn_id, false, Vector2.ZERO, "")
 
+## A room change of a side-view world (T14.06): no fade. The player arrives through `exit_id` of
+## the room at `map_path` with what `carry` holds (RpgRoom.arrive: its speed, its facing, where
+## it was in the opening). A map that is not a room gets the player on the spawn point `exit_id`.
+func go_to_room(map_path: String, exit_id: String, carry: Dictionary = {}) -> void:
+	if _busy:
+		ignored_calls += 1
+		return
+	_busy = true
+	var tree := get_tree()
+	var err := tree.change_scene_to_file(map_path)
+	if err != OK:
+		push_error("[RPG-WORLD] cannot load room %s (error %d)" % [map_path, err])
+		_busy = false
+		return
+	await tree.scene_changed
+	current_map = tree.current_scene as RpgMapRoot
+	if current_map != null:
+		if current_map.has_method(&"arrive"):
+			current_map.call(&"arrive", exit_id, carry)
+		else:
+			_place_player(current_map, StringName(exit_id))
+		_remember_map(map_path, StringName(exit_id))
+	_busy = false
+	var id: StringName = current_map.map_id if current_map != null else &""
+	map_changed.emit(id)
+	if current_map != null:
+		RpgUtil.emit(&"map_entered", [id])
+		_apply_map_music()
+
 ## After loading a save: goes to GameState.current_map and puts the player at the saved position.
 func reload_from_state() -> void:
 	var state := RpgUtil.state()
@@ -202,6 +231,8 @@ static func _set_facing(player: Node2D, facing: String) -> void:
 		player.set("facing", facing)
 
 func _apply_camera_limits(map: RpgMapRoot, player: Node2D) -> void:
+	if map.has_method(&"player_placed"):
+		map.call(&"player_placed", player)  # a room owns its camera (T14.06)
 	var camera := player.get_node_or_null("Camera") as Camera2D
 	if camera == null:
 		return

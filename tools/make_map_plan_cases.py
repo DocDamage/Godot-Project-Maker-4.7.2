@@ -2,6 +2,10 @@
 rpggen.core.map_preview.plan returns. The GDScript test of MapBuild.plan checks the same file, so
 the two planners cannot drift apart.
 
+It also writes room_plan_cases.json (T14.06): a few worlds of rooms as rpggen.core.room_plan
+plans them. The rooms recipe has no planner of its own (it paints what the plan says), so these
+are not compared against a second implementation: the GDScript tests build real rooms from them.
+
 Usage: python tools/make_map_plan_cases.py [--check]
 """
 
@@ -16,7 +20,7 @@ REPO = Path(__file__).resolve().parent.parent
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from rpggen.core import config, map_preview  # noqa: E402
+from rpggen.core import config, map_preview, room_plan  # noqa: E402
 
 OUT = REPO / "godot_templates" / "tests" / "fixtures" / "map_plan_cases.json"
 BUILDINGS = {
@@ -66,15 +70,36 @@ def cases() -> list[dict]:
     return out
 
 
+ROOMS_OUT = OUT.with_name("room_plan_cases.json")
+ROOM_CASES: dict[str, tuple[dict, int]] = {  # name -> (options, seed)
+    "default": ({}, 12345),
+    "every_ability": ({"rooms": 9, "abilities": list(room_plan.ABILITIES)}, 7),
+    "small": ({"rooms": 5, "abilities": [], "enemies": 0, "pickups": 0}, 3),
+}
+
+
+def room_cases() -> dict:
+    """name -> the world plan file of a metroidvania made from those options."""
+    return {
+        name: room_plan.world(room_plan.plan(options, seed), seed)
+        for name, (options, seed) in ROOM_CASES.items()
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args(argv)
     text = json.dumps(cases(), indent=1, sort_keys=True) + "\n"
+    rooms_text = json.dumps(room_cases(), indent=1, sort_keys=True) + "\n"
     if args.check:
-        return 0 if OUT.is_file() and OUT.read_text(encoding="utf-8") == text else 1
+        same = OUT.is_file() and OUT.read_text(encoding="utf-8") == text
+        rooms_same = ROOMS_OUT.is_file() and ROOMS_OUT.read_text(encoding="utf-8") == rooms_text
+        return 0 if same and rooms_same else 1
     OUT.write_text(text, encoding="utf-8", newline="\n")
+    ROOMS_OUT.write_text(rooms_text, encoding="utf-8", newline="\n")
     print(f"wrote {OUT}")
+    print(f"wrote {ROOMS_OUT}")
     return 0
 
 

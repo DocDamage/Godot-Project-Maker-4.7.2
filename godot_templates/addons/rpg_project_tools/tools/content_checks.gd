@@ -47,7 +47,10 @@ static func run(dirs: Dictionary = {}) -> Array:
 	_check_entity_ids(maps, cache, findings)
 	var world := world_maps(JsonIo.to_str(dirs.get("world_plan", WORLD_PLAN)))
 	_check_doors(maps, cache, findings, world)
-	_check_world(maps, cache, JsonIo.to_str(dirs.get("start", MapGraph.START)), findings)
+	var plan_path := JsonIo.to_str(dirs.get("world_plan", WORLD_PLAN))
+	var plan: Variant = JsonIo.read(plan_path) if FileAccess.file_exists(plan_path) else {}
+	var plan_start := MapGraph.start_for(JsonIo.to_dict(plan))
+	_check_world(maps, cache, JsonIo.to_str(dirs.get("start", plan_start)), findings)
 	_check_dialogue(JsonIo.to_str(dirs.get("dialogue", DIALOGUE_DIR)), JsonIo.to_str(dirs.get("items", ITEMS_DIR)), known_ids(dirs), findings)
 	var sequences_dir := JsonIo.to_str(dirs.get("sequences", SEQUENCES_DIR))
 	_check_sequences(sequences_dir, dirs, findings)
@@ -189,20 +192,23 @@ static func _check_doors(maps: Array[String], cache: Dictionary, findings: Array
 		var nodes: Array[Node] = []
 		_walk(root, nodes)
 		for node in nodes:
-			if not _script_ends_with(node, DOOR_SUFFIX):
+			# the exit of a side-view room (T14.06) is checked like a door, and is always the
+			# world's: a missing partner is a warning rpggen can mend
+			var is_exit := _script_ends_with(node, MapGraph.ROOM_EXIT_SUFFIX)
+			if not is_exit and not _script_ends_with(node, DOOR_SUFFIX):
 				continue
-			var target := str(node.get("target_map"))
+			var target := str(node.get("target_room" if is_exit else "target_map"))
 			if target == "":
 				continue  # a door that is not wired up yet (the runtime warns when it is used)
 			var node_path := String(root.get_path_to(node))
-			var mendable := world.has(path) or world.has(target)  # rpggen can repair its world
+			var mendable := is_exit or world.has(path) or world.has(target)  # rpggen can repair its world
 			if not ResourceLoader.exists(target):
 				if mendable:
 					findings.append(finding("VAL-028", {"node": node_path, "what": "the map %s" % target.get_file()}, path, node_path))
 				else:
 					findings.append(finding("VAL-016", {"node": node_path, "target": target}, path, node_path))
 				continue
-			var spawn := str(node.get("target_spawn"))
+			var spawn := str(node.get("target_exit" if is_exit else "target_spawn"))
 			var target_root := _instance(target, cache)
 			if target_root != null and not _spawn_ids(target_root).has(spawn):
 				if mendable:
