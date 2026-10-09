@@ -321,6 +321,9 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
     """``starter_map.areas`` (T13.20): the world plan goes into the staging copy, where the
     recipes read it. A project whose world exists keeps its stored plan; new rows are added."""
     assert state.staging is not None and state.cfg is not None
+    if state.cfg.archetype == "metroidvania":
+        _plan_rooms(state, catalog)
+        return
     areas = state.cfg.starter_map.get("areas")
     if not areas:
         return
@@ -338,6 +341,26 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
         raise _Stop from None
     world_plan.save(root, plan)
     state.cb.on_log("world: " + world_plan.summary(plan))
+    for note in [*plan["notes"], *notes]:
+        state.cb.on_log("world: " + note)
+
+
+def _plan_rooms(state: _State, catalog: catalog_mod.Catalog) -> None:
+    """A metroidvania's rooms (T14.06): planned once from the *Starter world* options and the
+    seed, stored like the world of areas, and never planned again once a room exists."""
+    from rpggen.core import room_plan
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    try:
+        plan, notes = room_plan.for_project(
+            root, state.cfg.starter_map_options(), state.cfg.seed, catalog
+        )
+    except room_plan.RoomPlanError as exc:
+        state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
+        raise _Stop from None
+    world_plan.save(root, plan)
+    state.cb.on_log("world: " + room_plan.summary(plan["rooms"]))
     for note in [*plan["notes"], *notes]:
         state.cb.on_log("world: " + note)
 

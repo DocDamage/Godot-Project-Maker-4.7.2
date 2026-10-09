@@ -677,7 +677,8 @@ def record_hashes(project: Any, plan_data: dict[str, Any], previous: Any = None)
     from rpggen.core import ledger
 
     changed = False
-    for area in plan_data["areas"]:
+    # the areas of a top-down world and the rooms of a metroidvania (T14.06) are both maps
+    for area in [*plan_data["areas"], *(plan_data.get("rooms") or {}).get("list", [])]:
         file = Path(project) / area["map"]
         if area["id"] in plan_data["maps"] or not file.is_file():
             continue

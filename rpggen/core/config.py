@@ -91,7 +91,12 @@ STARTER_MAP_COUNTS = {  # key -> (minimum, maximum)
 
 
 def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
-    """The starter map of every project before M11 (so the defaults reproduce it exactly)."""
+    """The starter map of every project before M11 (so the defaults reproduce it exactly). A
+    metroidvania has a *starter world* of rooms instead (T14.06), with options of its own."""
+    if archetype == "metroidvania":
+        from rpggen.core import room_plan
+
+        return room_plan.defaults()
     return {
         "size": [40, 24],
         "buildings": 1,
