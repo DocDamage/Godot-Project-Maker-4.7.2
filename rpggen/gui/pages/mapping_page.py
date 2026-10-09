@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, Signal
@@ -10,18 +9,16 @@ from PySide6.QtGui import QColor, QIcon, QKeySequence, QPainter, QPixmap, QShort
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
-    QDialog,
-    QDialogButtonBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QListWidget,
-    QListWidgetItem,
     QPushButton,
     QRadioButton,
     QScrollArea,
     QSizePolicy,
+    QStyle,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -30,82 +27,15 @@ from rpggen.core import catalog as catalog_mod
 from rpggen.core import labels, mapping, requirements
 from rpggen.errors import Issue
 from rpggen.gui import edits, thumbnails
+from rpggen.gui.dialogs.asset_picker import AssetPickerDialog
 from rpggen.gui.pages.audit_page import make_resolver
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
-from rpggen.gui.widgets.asset_grid import AssetGrid
 from rpggen.gui.widgets.sound_section import SoundSection
 
 USE_PLACEHOLDER = "Use placeholder"
 CONTINUE_WITHOUT = "Continue without"
 THUMB = 48
-
-
-class AssetPickerDialog(QDialog):
-    """The asset grid restricted to the assets a role can plausibly use."""
-
-    def __init__(
-        self,
-        catalog: catalog_mod.Catalog,
-        role: str,
-        resolver,  # noqa: ANN001
-        parent: QWidget | None = None,
-    ) -> None:
-        super().__init__(parent)
-        self.setObjectName("assetPicker")
-        self.setWindowTitle(self.tr("Choose an asset for {0}").format(role))
-        self.resize(760, 520)
-        self.picked: str | None = None
-        subset = dataclasses.replace(
-            catalog, assets=mapping.candidates(catalog, role), objects=catalog.objects
-        )
-        layout = QVBoxLayout(self)
-        self.grid = AssetGrid()
-        self.grid.set_catalog(subset, resolver)
-        self.grid.chips["chipAll"].click()
-        layout.addWidget(self.grid, 1)
-        self.object_list = QListWidget()
-        self.object_list.setObjectName("pickerObjects")
-        objs = mapping.objects_with_role(catalog, role) if role in mapping.OBJECT_ROLES else []
-        for obj in objs:
-            item = QListWidgetItem(f"{obj.name}  ({obj.sheet})")
-            item.setData(Qt.ItemDataRole.UserRole, obj.id)
-            self.object_list.addItem(item)
-        self.object_list.setVisible(bool(objs))
-        self.object_list.setMaximumHeight(110)
-        layout.addWidget(self.object_list)
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        self.ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
-        self.ok_button.setObjectName("pickerOk")
-        self.ok_button.setEnabled(False)
-        buttons.accepted.connect(self._accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
-        self.grid.selectionChanged.connect(self._on_asset_selected)
-        self.object_list.currentItemChanged.connect(self._on_object_selected)
-        self.grid.view.doubleClicked.connect(lambda _index: self._accept())
-
-    def _on_asset_selected(self, ids: list[str]) -> None:
-        self.picked = ids[0] if len(ids) == 1 else None
-        self.ok_button.setEnabled(self.picked is not None)
-        if self.picked:
-            self.object_list.blockSignals(True)
-            self.object_list.clearSelection()
-            self.object_list.setCurrentRow(-1)
-            self.object_list.blockSignals(False)
-
-    def _on_object_selected(self, item: QListWidgetItem | None) -> None:
-        if item is None:
-            return
-        self.picked = item.data(Qt.ItemDataRole.UserRole)
-        self.ok_button.setEnabled(True)
-        self.grid.view.clearSelection()
-
-    def _accept(self) -> None:
-        if self.picked:
-            self.accept()
 
 
 NONE_DATA = "__none__"
@@ -170,6 +100,15 @@ class RoleRowWidget(QFrame):
         self.clear_button.setToolTip(
             self.tr("Forget your choice: rpggen picks again (or leaves the role empty)")
         )
+        self.audit_button = QToolButton()
+        self.audit_button.setObjectName(f"audit_{row.role}")
+        self.audit_button.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
+        )
+        self.audit_button.setToolTip(self.tr("Show this asset on the Audit page (Back returns)"))
+        self.audit_button.setAccessibleName(
+            self.tr("Show the asset of {0} in the audit").format(labels.role_label(row.role))
+        )
         # what to do without an asset
         self.fallback_box = QWidget()
         self.fallback_box.setObjectName(f"fallback_{row.role}")
@@ -201,12 +140,14 @@ class RoleRowWidget(QFrame):
         grid.addLayout(text_box, 0, 3)
         grid.addWidget(self.choose_button, 0, 4)
         grid.addWidget(self.clear_button, 0, 5)
-        grid.addWidget(self.fallback_box, 1, 3, 1, 3)
+        grid.addWidget(self.audit_button, 0, 6)
+        grid.addWidget(self.fallback_box, 1, 3, 1, 4)
         grid.setColumnStretch(3, 1)
         self.choose_button.clicked.connect(lambda: page.choose(row.role))
         self.asset_combo.popupOpening.connect(lambda: page.fill_candidates(row.role))
         self.asset_combo.activated.connect(lambda _i: page.on_combo(row.role))
         self.clear_button.clicked.connect(lambda: page.clear(row.role))
+        self.audit_button.clicked.connect(lambda: page.show_in_audit(row.role))
         self.placeholder_radio.clicked.connect(lambda _c: page.on_fallback(row.role, "placeholder"))
         self.without_radio.clicked.connect(lambda _c: page.on_fallback(row.role, "without"))
 
@@ -235,6 +176,8 @@ def checkerboard(size: int) -> QPixmap:
 
 
 class MappingPage(WizardPage):
+    showInAudit = Signal(str, str)  # noqa: N815 - asset id, the role whose row asked
+
     title = "Mapping"
     help_anchor = "3. Using a pack you bought"
 
@@ -369,6 +312,7 @@ class MappingPage(WizardPage):
                 automatic = mapping.best_for(catalog, role)
                 widget.clear_button.setVisible(key is not None)
                 widget.clear_button.setEnabled(key is not None and ident != automatic)
+                widget.audit_button.setVisible(True)
             else:
                 placeholder = role in self.placeholders
                 text = (
@@ -386,6 +330,7 @@ class MappingPage(WizardPage):
                 widget.thumb_label.clear()
                 widget.fallback_box.setVisible(True)
                 widget.clear_button.setVisible(False)
+                widget.audit_button.setVisible(False)
                 choice = (
                     "placeholder"
                     if placeholder
@@ -544,6 +489,33 @@ class MappingPage(WizardPage):
         return canvas
 
     # ------------------------------------------------------------------ actions
+
+    def audit_asset(self, role: str) -> str | None:
+        """The asset the Audit page can show for a role: the chosen asset, or the sheet of a
+        chosen object (a building cut from a sheet)."""
+        if self.state is None or self.state.catalog is None:
+            return None
+        ident = self.selection_for(role)
+        catalog = self.state.catalog
+        if ident is None or catalog.asset(ident) is not None:
+            return ident
+        obj = next((o for o in catalog.objects if o.id == ident), None)
+        return obj.sheet if obj is not None and catalog.asset(obj.sheet) is not None else None
+
+    def show_in_audit(self, role: str) -> bool:
+        """A row's Show in audit: ask the window for the Audit page with that asset selected."""
+        asset_id = self.audit_asset(role)
+        if asset_id is None:
+            return False
+        self.showInAudit.emit(asset_id, role)
+        return True
+
+    def focus_row(self, role: str) -> None:
+        """Back from the audit: the row is in view again and its combo has the focus."""
+        widget = self.rows.get(role)
+        if widget is not None:
+            self.scroll_area.ensureWidgetVisible(widget)
+            widget.asset_combo.setFocus()
 
     def run_picker(self, dialog: AssetPickerDialog) -> bool:
         return bool(dialog.exec())

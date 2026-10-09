@@ -127,6 +127,7 @@ class AssetListModel(QAbstractListModel):
         self._placeholder: QPixmap | None = None
         self.thumb_size = THUMB
         self.grouped = False
+        self.by_pack = False  # the headers are the packs, not their folders (the picker)
         self._folders: list[str] = []  # the folder key of every asset row
         self._headers: list[str] = []  # the folder keys, sorted: the header rows
         self._header_row: dict[str, int] = {}
@@ -152,7 +153,10 @@ class AssetListModel(QAbstractListModel):
     def _index_folders(self) -> None:
         catalog = self.catalog
         self._folders = (
-            [folder_key(a.pack_id, catalog_mod.folder_of(catalog, a)) for a in self._assets]
+            [
+                folder_key(a.pack_id, "" if self.by_pack else catalog_mod.folder_of(catalog, a))
+                for a in self._assets
+            ]
             if catalog is not None
             else []
         )
@@ -163,11 +167,12 @@ class AssetListModel(QAbstractListModel):
         count = len(self._assets)
         self._header_row = {key: count + i for i, key in enumerate(self._headers)}
 
-    def set_grouped(self, on: bool) -> None:
-        if on == self.grouped:
+    def set_grouped(self, on: bool, by_pack: bool = False) -> None:
+        if on == self.grouped and by_pack == self.by_pack:
             return
         self.beginResetModel()
         self.grouped = on
+        self.by_pack = by_pack
         self._index_folders()
         self.endResetModel()
 
@@ -264,7 +269,8 @@ class AssetListModel(QAbstractListModel):
         if role == Qt.ItemDataRole.DecorationRole:
             return self._pixmap_for(asset, facets)
         if role == Qt.ItemDataRole.ToolTipRole:
-            return f"{asset.path}\n{asset.status}  {facets.get('role', '-')}"
+            sure = f"  {round(asset.confidence * 100)}%" if asset.status != "CONFIRMED" else ""
+            return f"{asset.path}\n{asset.status}  {facets.get('role', '-')}{sure}"
         if role == AssetIdRole:
             return asset.id
         if role == StatusRole:
@@ -327,6 +333,7 @@ class AssetFilterProxy(QSortFilterProxyModel):
         self.text = ""
         self.only_ids: set[str] | None = None  # "Changed in update": just these assets
         self.collapsed: set[str] = set()  # folder keys whose assets are folded away
+        self.rank: dict[str, int] | None = None  # asset id -> place: this order, not the status'
         self._counts: dict[str, tuple[int, int, int]] = {}
         self.setDynamicSortFilter(True)
         self.sort(0)
@@ -432,6 +439,12 @@ class AssetFilterProxy(QSortFilterProxyModel):
             left_header = model.data(left, HeaderRole) is not None
             if left_header or model.data(right, HeaderRole) is not None:
                 return left_header
+        if self.rank is not None:
+            last = len(self.rank)
+            left_rank = self.rank.get(str(model.data(left, AssetIdRole)), last)
+            right_rank = self.rank.get(str(model.data(right, AssetIdRole)), last)
+            if left_rank != right_rank:
+                return left_rank < right_rank
         a = STATUS_PRIORITY.get(model.data(left, StatusRole), 99)
         b = STATUS_PRIORITY.get(model.data(right, StatusRole), 99)
         if a != b:
@@ -452,6 +465,7 @@ class AssetCardDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.thumb = THUMB
         self.header_width = 0  # the view sets it to its viewport's width
+        self.header_actions: tuple[str, ...] = HEADER_ACTIONS  # () for headers without buttons
 
     def sizeHint(self, option: QStyleOptionViewItem, index) -> QSize:  # noqa: ANN001
         if index.data(HeaderRole) is not None:
@@ -473,11 +487,11 @@ class AssetCardDelegate(QStyledItemDelegate):
         labels_by_action = self.header_labels()
         out: dict[str, QRect] = {}
         right = rect.right() - 4
-        for action in reversed(HEADER_ACTIONS):
+        for action in reversed(self.header_actions):
             width = metrics.horizontalAdvance(labels_by_action[action]) + 16
             out[action] = QRect(right - width, rect.top() + 3, width, rect.height() - 6)
             right -= width + 4
-        return {action: out[action] for action in HEADER_ACTIONS}
+        return {action: out[action] for action in self.header_actions}
 
     def header_text(self, index) -> str:  # noqa: ANN001
         """ "▾ pack / folder — 4 need attention · 12 confirmed"."""
@@ -496,7 +510,7 @@ class AssetCardDelegate(QStyledItemDelegate):
         painter.fillRect(rect, palette.alternateBase())
         buttons = self.header_buttons(rect, painter.fontMetrics())
         text_rect = QRect(rect.left() + 6, rect.top(), rect.width(), rect.height())
-        text_rect.setRight(min(b.left() for b in buttons.values()) - 8)
+        text_rect.setRight(min((b.left() for b in buttons.values()), default=rect.right()) - 8)
         painter.setPen(palette.text().color())
         text = painter.fontMetrics().elidedText(
             self.header_text(index), Qt.TextElideMode.ElideMiddle, text_rect.width()
@@ -843,13 +857,18 @@ class AssetGrid(QWidget):
 
     # ------------------------------------------------------------------ folders (T13.02)
 
-    def set_grouped(self, on: bool) -> None:
-        """A header row per folder, or the flat grid."""
+    def set_rank(self, asset_ids: list[str] | None) -> None:
+        """Show the assets in this order (inside a group, when grouped) instead of by status."""
+        self.proxy.rank = None if asset_ids is None else {a: i for i, a in enumerate(asset_ids)}
+        self.proxy.invalidate()
+
+    def set_grouped(self, on: bool, by_pack: bool = False) -> None:
+        """A header row per folder (or per pack), or the flat grid."""
         self.group_button.setChecked(on)
-        if on == self.model.grouped:
+        if on == self.model.grouped and by_pack == self.model.by_pack:
             return
         selected = self.selected_ids()
-        self.model.set_grouped(on)
+        self.model.set_grouped(on, by_pack)
         self.view.set_grouped(on)
         self.proxy.invalidate()
         self.select_ids(selected)

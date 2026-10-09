@@ -109,6 +109,7 @@ class MainWindow(WindowMenus, QMainWindow):
         self.state = state or state_mod.WizardState()
         self.pages = pages if pages is not None else default_pages()
         self.visited: set[int] = set()
+        self._return_to: tuple[int, str] | None = None  # where Back goes after a side trip
         self.current_index = -1
         self.issues: list[Issue] = []
 
@@ -153,6 +154,8 @@ class MainWindow(WindowMenus, QMainWindow):
                 page.showAssets.connect(self.show_assets_in_audit)  # type: ignore[attr-defined]
                 page.generateAgain.connect(self.generate_again)  # type: ignore[attr-defined]
                 page.showHelp.connect(self.show_user_guide)  # type: ignore[attr-defined]
+            if hasattr(page, "showInAudit"):
+                page.showInAudit.connect(self.show_asset_in_audit)  # type: ignore[attr-defined]
             focus_signal = getattr(page, "focus_next", None)
             if focus_signal is not None:  # a page that is finished points at the Next button
                 focus_signal.connect(lambda: self.next_button.setFocus())  # type: ignore[has-type]
@@ -208,6 +211,7 @@ class MainWindow(WindowMenus, QMainWindow):
         return self.pages[self.current_index]
 
     def show_page(self, index: int) -> None:
+        self._return_to = None  # only a jump to the audit sets it, right after this
         self.current_index = index
         self.visited.add(index)
         self.stack.setCurrentIndex(index)
@@ -232,6 +236,18 @@ class MainWindow(WindowMenus, QMainWindow):
             if self.current_index == before:
                 break
 
+    def show_asset_in_audit(self, asset_id: str, role: str = "") -> None:
+        """Mapping > Show in audit: the Audit page with that asset selected and in view. Back
+        then returns to the Mapping page, to the row that asked (T13.05)."""
+        origin = self.current_index
+        if not self._leave_current():
+            return
+        self.show_page(AUDIT_INDEX)
+        audit = self.pages[AUDIT_INDEX]
+        if hasattr(audit, "show_asset"):
+            audit.show_asset(asset_id)
+        self._return_to = (origin, role)
+
     def show_assets_in_audit(self, asset_ids: list[str]) -> None:
         """Results > Show these assets: the Audit page with only those assets in its grid."""
         if not self._leave_current():
@@ -255,8 +271,17 @@ class MainWindow(WindowMenus, QMainWindow):
     def go_back(self) -> None:
         if self.current_index <= 0:
             return
-        if self._leave_current():
+        if not self._leave_current():
+            return
+        came_from = self._return_to if self.current_index == AUDIT_INDEX else None
+        if came_from is None:
             self.show_page(self.current_index - 1)
+            return
+        index, role = came_from  # the audit was a side trip from another page's row
+        self.show_page(index)
+        focus_row = getattr(self.pages[index], "focus_row", None)
+        if callable(focus_row) and role:
+            focus_row(role)
 
     def _leave_current(self) -> bool:
         """Let the page write its values; False when the page vetoed leaving."""

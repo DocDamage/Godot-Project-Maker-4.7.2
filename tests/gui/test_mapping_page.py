@@ -4,11 +4,13 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication
 
 from rpggen.core import archive, catalog, config, inventory, mapping
 from rpggen.core.orchestrator import Callbacks
 from rpggen.gui import workers
-from rpggen.gui.pages.mapping_page import MORE_DATA, NONE_DATA, AssetPickerDialog, MappingPage
+from rpggen.gui.dialogs.asset_picker import AssetPickerDialog
+from rpggen.gui.pages.mapping_page import MORE_DATA, NONE_DATA, MappingPage
 from rpggen.gui.state import WizardState
 
 SYNTH = Path(__file__).resolve().parents[2] / "test_packs" / "synthetic"
@@ -142,11 +144,10 @@ def test_picker_lists_plausible_assets_only(qtbot) -> None:
     page, state = _page(qtbot, "mixed")
     dialog = AssetPickerDialog(state.catalog, "GROUND", page_resolver(state))
     qtbot.addWidget(dialog)
-    shown = dialog.grid.model.rowCount()
-    assert shown == len(mapping.candidates(state.catalog, "GROUND")) > 0
-    first = dialog.grid.proxy.index(0, 0)
-    dialog.grid.select_ids([first.data(0x0100 + 1)])
-    assert dialog.picked and dialog.ok_button.isEnabled()
+    shown = dialog.grid.visible_ids()
+    assert len(shown) == len(mapping.candidates(state.catalog, "GROUND")) > 0
+    dialog.grid.select_ids([shown[0]])
+    assert dialog.picked == shown[0] and dialog.ok_button.isEnabled()
 
 
 def page_resolver(state):
@@ -380,3 +381,108 @@ def test_the_combo_is_reachable_by_keyboard(qtbot) -> None:
     combo = page.rows["PLAYER"].asset_combo
     assert combo.focusPolicy() != Qt.FocusPolicy.NoFocus
     assert page.rows["PLAYER"].choose_button.isEnabled()  # More… and Choose… both open the picker
+
+
+# ------------------------------------------------------------------------ the gallery and the audit (T13.05)
+
+
+def _two_packs_state() -> WizardState:
+    state = WizardState(
+        pack_sources=[SYNTH / "mixed", SYNTH / "basic16"], target=None, archetype="turn_based"
+    )
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    return state
+
+
+def test_the_gallery_groups_by_pack_and_keeps_the_rank_order(qtbot) -> None:
+    state = _two_packs_state()
+    dialog = AssetPickerDialog(state.catalog, "GROUND", page_resolver(state))
+    qtbot.addWidget(dialog)
+    dialog.resize(760, 520)
+    dialog.show()
+    ranked = [a.id for a in mapping.candidates(state.catalog, "GROUND")]
+    groups = dialog.groups()
+    assert [pack for pack, _ids in groups] == sorted({i.split(".")[0] for i in ranked})
+    assert len(groups) == 2, "one header per pack"
+    for pack, ids in groups:
+        assert ids == [i for i in ranked if i.split(".")[0] == pack], "rank order inside a pack"
+    assert sorted(i for _p, ids in groups for i in ids) == sorted(ranked), "only the candidates"
+    # headers without buttons, thumbnails at the grid's size, the confidence in the tooltip
+    assert dialog.grid.view.card_delegate.header_actions == ()
+    assert dialog.grid.model.thumb_size == dialog.grid.view.card_delegate.thumb
+    auto = next(a for a in mapping.candidates(state.catalog, "GROUND") if a.status != "CONFIRMED")
+    row = dialog.grid.model.row_of(auto.id)
+    tip = dialog.grid.model.index(row, 0).data(Qt.ItemDataRole.ToolTipRole)
+    assert f"{round(auto.confidence * 100)}%" in tip
+    # the search of the filter bar narrows it; a pack without a match loses its header
+    dialog.grid.search.setText("ground32")
+    assert [pack for pack, _ids in dialog.groups()] == ["mixed"]
+    assert dialog.grid.visible_ids() == ["mixed.tiles.ground32"]
+    # a double-click chooses
+    index = dialog.grid.proxy.index(1, 0)  # row 0 is the header
+    dialog.grid.select_ids(["mixed.tiles.ground32"])
+    dialog.grid.view.doubleClicked.emit(index)
+    assert dialog.picked == "mixed.tiles.ground32" and dialog.result() == 1
+
+
+def test_choosing_in_the_gallery_is_the_same_undoable_edit_as_the_combo(qtbot) -> None:
+    page, state = _page(qtbot, "mixed")
+    sprite = next(a for a in state.catalog.assets if catalog.effective(a).get("usage") == "sprite")
+    original = state.catalog
+    seen = []
+
+    def pick(dialog) -> bool:
+        seen.append(dialog)
+        dialog.grid.select_ids([sprite.id])
+        return dialog.picked == sprite.id
+
+    page.run_picker = pick  # type: ignore[method-assign]
+    page.fill_candidates("PLAYER")
+    combo = page.rows["PLAYER"].asset_combo
+    combo.setCurrentIndex(combo.findData(MORE_DATA))
+    page.on_combo("PLAYER")  # More…
+    assert len(seen) == 1 and isinstance(seen[0], AssetPickerDialog)
+    assert page.starter["player"] == sprite.id
+    assert catalog.effective(state.catalog.asset(sprite.id))["role"] == "PLAYER"
+    assert page.undo() and "player" not in page.starter and state.catalog is original
+
+
+def test_show_in_audit_selects_the_asset_and_back_returns_to_the_row(qtbot, tmp_path) -> None:
+    from rpggen import dev
+    from rpggen.gui.pages.audit_page import AuditPage
+    from rpggen.gui.wizard import MainWindow, default_pages
+
+    window = MainWindow(dev.layout_state("turn_based", tmp_path), default_pages())
+    qtbot.addWidget(window)
+    window.resize(1100, 720)
+    window.show()
+    mapping_page = next(p for p in window.pages if isinstance(p, MappingPage))
+    audit = next(p for p in window.pages if isinstance(p, AuditPage))
+    mapping_index = window.pages.index(mapping_page)
+    window.show_page(window.pages.index(audit))  # visited, as in a real walk
+    window.show_page(mapping_index)
+    QApplication.processEvents()  # the rows made on entry are shown by the event loop
+    role = next(r for r in mapping_page.rows if mapping_page.selection_for(r) is not None)
+    asset_id = mapping_page.audit_asset(role)
+    assert asset_id is not None
+    row = mapping_page.rows[role]
+    assert row.audit_button.isVisibleTo(mapping_page) and row.audit_button.toolTip()
+    row.audit_button.click()
+    assert window.current_page is audit
+    assert audit.grid.selected_ids() == [asset_id]
+    assert audit.detail is not None and audit.detail.asset_id == asset_id
+    window.back_button.click()
+    assert window.current_page is mapping_page, "not the page before the audit"
+    again = mapping_page.rows[role].asset_combo  # the rows are made anew on entry
+    assert window.focusWidget() is again
+    # an ordinary Back from the audit still goes one page back
+    window.show_page(window.pages.index(audit))
+    window.back_button.click()
+    assert window.current_index == window.pages.index(audit) - 1
+
+
+def test_a_row_without_an_asset_has_no_audit_button(qtbot) -> None:
+    page, state = _page(qtbot, "mixed")
+    empty = next(r for r in page.rows if page.selection_for(r) is None)
+    assert not page.rows[empty].audit_button.isVisibleTo(page)
+    assert page.audit_asset(empty) is None and not page.show_in_audit(empty)

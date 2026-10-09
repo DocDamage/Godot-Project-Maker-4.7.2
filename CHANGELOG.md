@@ -29,6 +29,10 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   selected one, so one bulk edit covers them. A file that repeats another one says so in its
   *Why* line.
 
+* **Mapping**: *More…* opens a gallery of the candidates (thumbnails grouped by pack, best first,
+  with search), and each row has **Show in audit**, which opens the Audit page on that asset;
+  *Back* returns to the row.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with
