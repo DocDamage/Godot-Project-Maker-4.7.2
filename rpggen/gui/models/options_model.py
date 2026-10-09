@@ -23,7 +23,8 @@ LAYER_MESSAGES = {
     options.LAYER_EMPTY: "Layer names cannot be empty.",
     options.LAYER_DUPLICATE: "Layer names must be unique.",
 }
-DEFAULTS_ITEM = "__defaults__"
+BUILTIN_PREFIX = "__builtin__:"  # the combo's data of a built-in preset: the prefix and its key
+DEFAULTS_ITEM = BUILTIN_PREFIX + "everything"  # the defaults: the built-in preset "Everything"
 STARTER_COUNTS = (
     ("buildings", "Buildings"),
     ("npcs", "Villagers"),
@@ -96,7 +97,7 @@ class OptionsModel:
         self.draft: config_mod.GeneratorConfig | None = None
         self.input_map: dict[str, dict[str, Any]] = {}
         self.input_errors: list[str] = []
-        self.demo_wish = True
+        self.wishes: dict[str, bool] = {}  # what the user wants of each dependent feature
         self.starter_locked = False
         self._pack_bytes_key: tuple | None = None
         self._pack_bytes = 0
@@ -126,7 +127,9 @@ class OptionsModel:
     def loaded(self) -> None:
         """The draft is about to be shown: the wishes start from it."""
         assert self.draft is not None
-        self.demo_wish = self.draft.features.get("demo", True)
+        self.wishes = {
+            key: bool(self.draft.features.get(key, False)) for key in options.DEPENDENCIES
+        }
         self.input_map = copy.deepcopy(self.draft.input)
 
     def apply_to(self, cfg: config_mod.GeneratorConfig) -> None:
@@ -193,14 +196,18 @@ class OptionsModel:
     # ------------------------------------------------------------------ features
 
     def feature_wish(self, key: str, checked: bool) -> None:
-        if key == "demo":
-            self.demo_wish = checked
+        if key in options.DEPENDENCIES:
+            self.wishes[key] = checked
+
+    @property
+    def demo_wish(self) -> bool:  # the name before 1.1, when the demo was the only one
+        return self.wishes.get("demo", True)
 
     def dependent_features(self, current: dict[str, bool]) -> dict[str, FeatureState]:
         """A feature whose dependencies are off is unchecked and disabled and says what it needs;
         it returns to the user's choice once they are on again."""
         out = {}
-        for key in options.FEATURE_DEPS:
+        for key in options.DEPENDENCIES:
             missing = options.missing_deps(current, key)
             if missing:
                 names = ", ".join(self.tr(options.feature_label(m)) for m in missing)
@@ -212,13 +219,13 @@ class OptionsModel:
                 )
             else:
                 out[key] = FeatureState(
-                    True, self.demo_wish, self.tr(options.FEATURE_INFO[key][2]), ""
+                    True, self.wishes.get(key, False), self.tr(options.FEATURE_INFO[key][2]), ""
                 )
         return out
 
     def default_features(self) -> dict[str, bool]:
         defaults = config_mod.default_features()
-        self.demo_wish = defaults.get("demo", True)
+        self.wishes = {key: bool(defaults.get(key, False)) for key in options.DEPENDENCIES}
         return defaults
 
     # ------------------------------------------------------------------ screen
@@ -424,16 +431,34 @@ class OptionsModel:
 
     @staticmethod
     def preset_names() -> list[str]:
+        """The user's presets (the built-in ones are ``builtin_items``)."""
         return sorted(app_settings.get().option_presets)
 
+    def builtin_items(self) -> list[tuple[str, str]]:
+        """``(label, combo data)`` of the built-in presets, in their order."""
+        return [
+            (self.tr(label), BUILTIN_PREFIX + key)
+            for key, (label, _on) in options.BUILTIN_PRESETS.items()
+        ]
+
+    def user_items(self) -> list[tuple[str, str]]:
+        """``(label, name)`` of the user's presets; one that has a built-in's name (a settings
+        file from 1.0 may) is kept and marked as the user's."""
+        taken = {label for label, _data in self.builtin_items()} | set(options.builtin_labels())
+        return [
+            (self.tr("{0} (yours)").format(name) if name in taken else name, name)
+            for name in self.preset_names()
+        ]
+
     def apply_preset(self, name: str) -> bool:
-        """Applies a saved preset (or the defaults, ``DEFAULTS_ITEM``) to the draft; False when
-        there is no such preset. Raises ``ValueError`` when it does not fit."""
+        """Applies a preset to the draft: a built-in one (``BUILTIN_PREFIX`` and its key;
+        ``DEFAULTS_ITEM`` is "Everything") or a saved one by its name. False when there is no
+        such preset. Raises ``ValueError`` when it does not fit."""
         if self.draft is None:
             return False
         preset = (
-            options.default_preset(self.draft.archetype)
-            if name == DEFAULTS_ITEM
+            options.builtin_preset(name.removeprefix(BUILTIN_PREFIX), self.draft.archetype)
+            if name.startswith(BUILTIN_PREFIX)
             else app_settings.get().option_presets.get(name)
         )
         if preset is None:
@@ -445,7 +470,11 @@ class OptionsModel:
         return True
 
     def save_preset(self, name: str) -> bool:
-        if self.draft is None or not name or name == self.tr("Defaults"):
+        """Saves the draft as a user preset. A built-in's label is not a name of your own (pick
+        the built-in instead); from a built-in, any other name makes your copy of it."""
+        reserved = {self.tr("Defaults"), "Defaults", *options.builtin_labels()}
+        reserved |= {label for label, _data in self.builtin_items()}
+        if self.draft is None or not name or name in reserved or name.startswith(BUILTIN_PREFIX):
             return False
         preset = options.to_preset(self.draft)
         app_settings.store().update(lambda settings: settings.option_presets.update({name: preset}))
@@ -455,7 +484,7 @@ class OptionsModel:
     def edit_presets(renames: dict[str, str], deleted: list[str]) -> None:
         def apply(settings: app_settings.AppSettings) -> None:
             for old, new in renames.items():
-                if old in settings.option_presets:
+                if old in settings.option_presets and not new.startswith(BUILTIN_PREFIX):
                     settings.option_presets[new] = settings.option_presets.pop(old)
             for name in deleted:
                 settings.option_presets.pop(name, None)

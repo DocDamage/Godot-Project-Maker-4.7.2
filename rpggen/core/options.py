@@ -10,8 +10,13 @@ from typing import Any
 from rpggen import schema
 from rpggen.core import config as config_mod
 
-# feature -> the features it needs
-FEATURE_DEPS: dict[str, tuple[str, ...]] = {"demo": ("dialogue", "combat", "save")}
+# feature -> the features it needs. The demo map is painted with the tile set and its villager,
+# enemy and save point need their systems; the navigation layer is only read by enemies.
+DEPENDENCIES: dict[str, tuple[str, ...]] = {
+    "demo": ("tilesets", "dialogue", "combat", "save"),
+    "navigation": ("combat",),
+}
+FEATURE_DEPS = DEPENDENCIES  # the name before 1.1
 RESOLUTION_PRESETS = [(320, 180), (384, 216), (480, 270), (640, 360)]
 WINDOW_PRESETS = [(960, 540), (1280, 720), (1600, 900), (1920, 1080)]
 # editable binding fields of the input table and the type of their entries
@@ -103,7 +108,7 @@ def missing_deps(features: dict[str, bool], key: str) -> list[str]:
 def effective_features(wanted: dict[str, bool]) -> dict[str, bool]:
     """``wanted`` with every feature whose dependencies are off forced off."""
     out = dict(wanted)
-    for key in FEATURE_DEPS:
+    for key in DEPENDENCIES:
         if missing_deps(out, key):
             out[key] = False
     return out
@@ -327,6 +332,36 @@ def default_preset(archetype: str = "turn_based") -> dict[str, Any]:
     return to_preset(config_mod.default_for("x", [], archetype=archetype))
 
 
+# The presets every installation has (T13.06): key -> (label, the features that are on; None for
+# the defaults). They cannot be renamed or deleted; saving one under a name makes a copy.
+BUILTIN_PRESETS: dict[str, tuple[str, tuple[str, ...] | None]] = {
+    "everything": ("Everything", None),
+    "minimal": ("Minimal", ("tilesets", "collision", "animations", "save", "dialogue")),
+    "tilesets": ("Just the tilesets", ("tilesets", "collision", "terrain")),
+}
+
+
+def builtin_label(key: str) -> str:
+    return BUILTIN_PRESETS[key][0]
+
+
+def builtin_labels() -> list[str]:
+    return [label for label, _on in BUILTIN_PRESETS.values()]
+
+
+def builtin_preset(key: str, archetype: str = "turn_based") -> dict[str, Any] | None:
+    """The options of a built-in preset: the defaults, with only the preset's features on and,
+    for the two small ones, only the Windows export. None for an unknown key."""
+    if key not in BUILTIN_PRESETS:
+        return None
+    preset = default_preset(archetype)
+    wanted = BUILTIN_PRESETS[key][1]
+    if wanted is not None:
+        preset["features"] = {name: name in wanted for name in preset["features"]}
+        preset["export_targets"] = list(config_mod.EXPORT_TARGET_DEFAULT)
+    return preset
+
+
 def input_fits(archetype: str, bindings: dict[str, Any]) -> bool:
     """True when ``bindings`` are the actions of ``archetype`` (the other archetype's differ)."""
     return set(bindings) == set(config_mod.default_input(archetype))
@@ -360,6 +395,9 @@ def apply_preset(
             }
         )
         changes["validation"] = merged_validation
+    if isinstance(preset.get("export_targets"), list):  # only the built-in presets carry it
+        chosen = [t for t in config_mod.EXPORT_TARGETS if t in preset["export_targets"]]
+        changes["export_targets"] = chosen or list(config_mod.EXPORT_TARGET_DEFAULT)
     if isinstance(preset.get("starter_map"), dict):
         known = config_mod.starter_map_defaults(cfg.archetype)
         changes["starter_map"] = {

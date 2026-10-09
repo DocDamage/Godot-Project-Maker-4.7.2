@@ -315,3 +315,64 @@ def test_the_summary_moves_to_a_right_hand_column_when_very_wide(qtbot) -> None:
     assert page.summary.parentWidget() is page.side
     page.resize(900, 700)
     assert not page.summary_on_side and page.summary.isVisible()
+
+
+# ------------------------------------------------------------------------ built-in presets and dependencies (T13.06)
+
+
+def test_the_built_in_presets_head_the_combo_before_the_users(qtbot) -> None:
+    from rpggen.gui.models import options_model as om
+
+    page, state = _page(qtbot)
+    page.ask_preset_name = lambda: "Mine"  # type: ignore[method-assign]
+    assert page.save_preset() == "Mine"
+    combo = page.preset_combo
+    texts = [combo.itemText(i) for i in range(combo.count())]
+    assert texts[:4] == ["Choose a preset…", "Everything", "Minimal", "Just the tilesets"]
+    assert texts[-1] == "Mine" and combo.itemData(combo.count() - 1) == "Mine"
+    assert combo.itemData(1) == om.DEFAULTS_ITEM
+    # choosing a built-in applies it and the combo goes back to its prompt
+    minimal = combo.findData(om.BUILTIN_PREFIX + "minimal")
+    combo.setCurrentIndex(minimal)
+    combo.activated.emit(minimal)
+    assert combo.currentIndex() == 0
+    assert not page.feature_boxes["combat"].isChecked()
+    assert not page.feature_boxes["demo"].isChecked() and not page.feature_boxes["demo"].isEnabled()
+    assert page.feature_boxes["dialogue"].isChecked()
+    page.leave(state)
+    assert state.config.features["combat"] is False and state.config.features["save"] is True
+    # a built-in's name is not free for a preset of your own; the page says so
+    said = []
+    page.show_message = lambda title, text: said.append(text)  # type: ignore[method-assign]
+    page.ask_preset_name = lambda: "Minimal"  # type: ignore[method-assign]
+    assert page.save_preset() is None
+    assert said and "built-in" in said[0]
+    # Manage… lists only the user's presets, so a built-in cannot be renamed or deleted there
+    seen = []
+
+    def run(dialog) -> None:
+        seen.append([dialog.list.item(i).text() for i in range(dialog.list.count())])
+        dialog.list.setCurrentRow(0)
+        dialog.delete_current()
+
+    page.run_dialog = run  # type: ignore[method-assign]
+    page.manage_presets()
+    assert seen == [["Mine"]]
+    texts = [combo.itemText(i) for i in range(combo.count())]
+    assert texts == ["Choose a preset…", "Everything", "Minimal", "Just the tilesets"]
+
+
+def test_turning_off_combat_disables_and_clears_navigation(qtbot) -> None:
+    page, state = _page(qtbot)
+    navigation = page.feature_boxes["navigation"]
+    navigation.setChecked(True)
+    assert navigation.isEnabled() and navigation.isChecked()
+    page.feature_boxes["combat"].setChecked(False)
+    assert not navigation.isChecked() and not navigation.isEnabled()
+    needs = page.feature_needs["navigation"]
+    assert not needs.isHidden() and needs.text() == "Needs: Combat"
+    page.leave(state)
+    assert state.config.features["navigation"] is False
+    page.feature_boxes["combat"].setChecked(True)
+    assert navigation.isEnabled() and navigation.isChecked(), "the wish comes back"
+    assert needs.isHidden()

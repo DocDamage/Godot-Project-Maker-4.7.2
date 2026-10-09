@@ -33,6 +33,10 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   with search), and each row has **Show in audit**, which opens the Audit page on that asset;
   *Back* returns to the row.
 
+* **Options**: three built-in presets (**Everything**, **Minimal**, **Just the tilesets**) head
+  the preset list; *Navigation* needs *Combat* and the demo scene needs *Tilesets*, and a box
+  whose requirement is off says what it needs.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

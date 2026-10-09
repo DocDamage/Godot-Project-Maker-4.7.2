@@ -417,7 +417,7 @@ class OptionsPage(WizardPage):
     # ------------------------------------------------------------------ presets
 
     def _fill_presets(self) -> None:
-        self.presets.fill(self.model.preset_names())
+        self.presets.fill(self.model.builtin_items(), self.model.user_items())
 
     def apply_preset_named(self, name: str) -> bool:
         """Applies a saved preset (or the defaults) to the page; False when it does not fit."""
@@ -455,10 +455,17 @@ class OptionsPage(WizardPage):
         if self.draft is None:
             return None
         name = self.ask_preset_name()
-        if name is None or name == self.tr("Defaults"):
+        if name is None:
             return None
         self._collect()
-        self.model.save_preset(name)
+        if not self.model.save_preset(name):
+            self.show_message(
+                self.tr("Preset"),
+                self.tr("{0} is a built-in preset. Choose another name for your copy.").format(
+                    name
+                ),
+            )
+            return None
         self._fill_presets()
         return name
 

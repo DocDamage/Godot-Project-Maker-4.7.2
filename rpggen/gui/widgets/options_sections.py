@@ -28,7 +28,6 @@ from PySide6.QtWidgets import (
 from rpggen.core import config as config_mod
 from rpggen.core import options
 from rpggen.gui.models.options_model import (
-    DEFAULTS_ITEM,
     EXPORT_TARGET_LABELS,
     INPUT_COLUMNS,
     PACK_ART_LABELS,
@@ -91,13 +90,20 @@ class PresetBar(QWidget):
         header.addWidget(self.manage_button)
         header.addStretch(1)
 
-    def fill(self, names: list[str]) -> None:
+    def fill(
+        self, builtin: list[tuple[str, str]], user: list[tuple[str, str]] | None = None
+    ) -> None:
+        """The built-in presets first, then (after a separator) the user's: each ``(label,
+        data)``, the data being what ``OptionsModel.apply_preset`` takes."""
         self.combo.blockSignals(True)
         self.combo.clear()
         self.combo.addItem(self.tr("Choose a preset…"), None)
-        self.combo.addItem(self.tr("Defaults"), DEFAULTS_ITEM)
-        for name in names:
-            self.combo.addItem(name, name)
+        for label, data in builtin:
+            self.combo.addItem(label, data)
+        if user:
+            self.combo.insertSeparator(self.combo.count())
+            for label, data in user:
+                self.combo.addItem(label, data)
         self.combo.blockSignals(False)
 
 

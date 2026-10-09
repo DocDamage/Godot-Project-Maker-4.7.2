@@ -223,3 +223,107 @@ def test_screen_hint_suggests_a_preset_for_the_tile_size() -> None:
         config_mod.GeneratorConfig("x", []).resolution,
         config_mod.GeneratorConfig("x", []).window_size,
     )
+
+
+# ------------------------------------------------------------------------ built-in presets and dependencies (T13.06)
+
+
+def test_the_built_in_presets_apply_the_documented_values() -> None:
+    model = _model()
+    assert model.draft is not None
+    defaults = config_mod.default_features()
+    model.draft.features["demo"] = False
+    model.draft.export_targets = ["windows", "web"]
+    assert model.apply_preset(om.BUILTIN_PREFIX + "everything")
+    assert model.draft.features == defaults
+    assert model.draft.export_targets == ["windows", "web"], "Everything leaves the targets"
+    assert model.apply_preset(om.BUILTIN_PREFIX + "minimal")
+    on = {k for k, v in model.draft.features.items() if v}
+    assert on == {"tilesets", "collision", "animations", "save", "dialogue"}
+    assert model.draft.selected_export_targets() == ["windows"]
+    assert model.draft.to_json().get("export_targets", ["windows"]) == ["windows"]
+    model.draft.export_targets = ["windows", "linux"]
+    assert model.apply_preset(om.BUILTIN_PREFIX + "tilesets")
+    on = {k for k, v in model.draft.features.items() if v}
+    assert on == {"tilesets", "collision", "terrain"}
+    assert model.draft.selected_export_targets() == ["windows"]
+    assert not model.apply_preset(om.BUILTIN_PREFIX + "no such preset")
+    assert options.builtin_preset("minimal", "arpg")["input"] == config_mod.default_input("arpg")
+    assert model.validate() == [], "each built-in is a valid set of options"
+
+
+def test_built_ins_head_the_list_and_cannot_be_renamed_deleted_or_overwritten() -> None:
+    model = _model()
+    assert [label for label, _d in model.builtin_items()] == [
+        "Everything",
+        "Minimal",
+        "Just the tilesets",
+    ]
+    assert model.builtin_items()[0][1] == om.DEFAULTS_ITEM
+    assert model.preset_names() == [], "the built-ins are not the user's presets"
+    for taken in ("Minimal", "Everything", "Just the tilesets", "Defaults"):
+        assert not model.save_preset(taken), taken
+    # from a built-in, another name makes a copy the user owns
+    assert model.apply_preset(om.BUILTIN_PREFIX + "minimal")
+    assert model.save_preset("My minimal")
+    assert model.preset_names() == ["My minimal"]
+    saved = app_settings.load().option_presets["My minimal"]
+    assert {k for k, v in saved["features"].items() if v} == {
+        "tilesets",
+        "collision",
+        "animations",
+        "save",
+        "dialogue",
+    }
+    # managing: only the user's presets can be touched, and nothing takes a built-in's data
+    model.edit_presets({"Minimal": "x"}, ["Everything", om.BUILTIN_PREFIX + "minimal"])
+    model.edit_presets({"My minimal": om.BUILTIN_PREFIX + "minimal"}, [])
+    assert model.preset_names() == ["My minimal"]
+    assert [label for label, _d in model.builtin_items()][1] == "Minimal"
+    assert model.apply_preset(om.BUILTIN_PREFIX + "minimal")
+
+
+def test_a_user_preset_with_a_built_in_name_survives_and_is_marked() -> None:
+    preset = options.default_preset()
+    preset["resolution"] = [384, 216]
+    app_settings.store().update(
+        lambda s: s.option_presets.update({"Minimal": preset})
+    )  # as 1.0 could
+    model = _model()
+    assert model.preset_names() == ["Minimal"]
+    assert model.user_items() == [("Minimal (yours)", "Minimal")]
+    assert model.apply_preset("Minimal")  # the user's, by its name
+    assert model.draft is not None and model.draft.resolution == (384, 216)
+    assert model.draft.features["combat"] is True
+    assert model.apply_preset(om.BUILTIN_PREFIX + "minimal")  # the built-in, by its key
+    assert model.draft.features["combat"] is False
+    model.edit_presets({}, ["Minimal"])
+    assert model.preset_names() == [] and model.user_items() == []
+
+
+def test_navigation_needs_combat_and_the_summary_agrees() -> None:
+    assert options.DEPENDENCIES["navigation"] == ("combat",)
+    assert "tilesets" in options.DEPENDENCIES["demo"]
+    assert options.FEATURE_DEPS is options.DEPENDENCIES
+    model = _model()
+    current = dict(config_mod.default_features())
+    current["navigation"] = True
+    model.feature_wish("navigation", True)
+    assert model.dependent_features(current)["navigation"].checked
+    current["combat"] = False
+    state = model.dependent_features(current)["navigation"]
+    assert not state.enabled and not state.checked and state.needs == "Needs: Combat"
+    assert options.effective_features(current)["navigation"] is False
+    summary, _seconds, _size = model.summary(current, (640, 360))
+    assert "Navigation" not in summary.systems and "Combat" not in summary.systems
+    model.collect(_values(model, features=current))
+    assert model.draft is not None
+    assert model.draft.features["navigation"] is False and model.draft.features["demo"] is False
+    # back on: the wish returns
+    current["combat"] = True
+    assert model.dependent_features(current)["navigation"].checked
+    summary, _seconds, _size = model.summary({**current, "navigation": True}, (640, 360))
+    assert "Navigation" in summary.systems
+    # the demo also needs the tile set it is painted with
+    current["tilesets"] = False
+    assert model.dependent_features(current)["demo"].needs == "Needs: Tilesets"
