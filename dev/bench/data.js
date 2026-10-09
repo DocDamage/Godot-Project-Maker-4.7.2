@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791507165067,
+  "lastUpdate": 1791515328704,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -191,6 +191,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 2.2,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "84f239bc9ec9280dea96101829954dea82fe41cc",
+          "message": "Fix the batch's integration failures\n\n- The dialogue data scripts are @tool: the dialogue dock read placeholder\n  instances and crashed the editor of any project with dialogue; the dock\n  frees its scratch state.\n- RpgStrings.format: toasts fall back to English when untranslated.\n- Minimap: hidden between scenes (a script error during map changes); the\n  recipe hashes maps without Godot's per-save ids (deterministic builds,\n  no-op regenerations); the key is the project path, so the runtime holds\n  no res://game/ path.\n- The example custom recipe gets a fixed .uid, and custom-recipe build\n  steps continue the standard count.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-08T23:02:12-04:00",
+          "tree_id": "e20d434401ae2c176681beb6a20e7b34843e8401",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/84f239bc9ec9280dea96101829954dea82fe41cc"
+        },
+        "date": 1791515325207,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 10.94,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 1.25,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 107.14,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 77.93,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 8.85,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 7.54,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 4.73,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 4.44,
             "unit": "s"
           }
         ]
