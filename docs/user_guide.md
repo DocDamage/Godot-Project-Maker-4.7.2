@@ -206,6 +206,9 @@ character from your packs: drag one into the map (it lands on the right layer, s
 edit an asset's role or collision in the inspector and *Rebuild*, validate the content (duplicate
 entity ids, broken doors, missing sprites) and remove the demo content when you start your game.
 
+Your own build steps go in `game/builder_recipes/`: GDScript files that run after rpggen's
+steps on every build ([custom recipes](recipes.md)).
+
 ## 5. Regenerating
 
 Change options, fix the audit, or add a new release of a pack, then run rpggen on the same output

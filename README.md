@@ -74,6 +74,7 @@ you bought.
 | [docs/user_guide.md](docs/user_guide.md) | Installing, the wizard page by page, troubleshooting, diagnostic bundles |
 | [docs/regeneration.md](docs/regeneration.md) | Updating packs and regenerating safely |
 | [docs/profiles.md](docs/profiles.md) | Sharing your audit work as a profile; the community registry |
+| [docs/recipes.md](docs/recipes.md) | Your own build steps (custom recipes) in a generated project |
 | [docs/adapters.md](docs/adapters.md) | Adding support for a new pack format |
 | [docs/errors.md](docs/errors.md) | Every error code, with its fix |
 | [docs/architecture.md](docs/architecture.md) | How it works |

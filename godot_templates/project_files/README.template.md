@@ -231,3 +231,11 @@ it in; regenerate, and each column becomes a translation in `generated/i18n/`. *
 Language* then lists *System* (the player's own language when there is a column for it, else the
 fallback, English) and every language of the table; the choice is saved with the other settings.
 A key a column leaves empty shows its English text.
+
+## 17. Your own build steps
+
+Every `.gd` file in `game/builder_recipes/` runs after rpggen's own build steps, on every build, in
+file-name order: make scenes or resources from the catalog of your packs, under `game/` (yours) or
+`generated/custom/` (rebuilt each time). `example_recipe.gd` shows the shape; the rpggen
+documentation (`docs/recipes.md`) lists what a recipe can use. A recipe that fails stops the build
+with BUILD-002, which names its file.

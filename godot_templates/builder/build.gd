@@ -9,6 +9,7 @@ const Paths := preload("lib/paths.gd")
 const BuildContext := preload("lib/build_context.gd")
 const Log := preload("lib/log.gd")
 const JsonUtil := preload("lib/json_util.gd")
+const RecipeContext := preload("lib/recipe_context.gd")
 
 const UPDATE_LEDGER_FLAG := "--update-ledger"
 const FILE_HASH := "res://addons/rpg_project_tools/tools/file_hash.gd"
@@ -34,6 +35,29 @@ const RECIPE_ORDER: Array[String] = [
 	"translations_recipe",
 ]
 
+## The user's own recipes (T12.60): every *.gd here runs after rpggen's recipes, in name order.
+const CUSTOM_RECIPES_DIR := "res://game/builder_recipes"
+const EXAMPLE_RECIPE := "res://game/builder_recipes/example_recipe.gd"
+
+## Counts the script errors Godot logs while a custom recipe runs: an error inside build() only
+## ends that function, so the count is how a failed recipe is noticed.
+class ScriptErrors extends Logger:
+	var count := 0
+	var last := ""
+	var _mutex := Mutex.new()
+
+	func _log_error(_function: String, _file: String, _line: int, code: String, rationale: String,
+			_editor_notify: bool, error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		if error_type != ERROR_TYPE_SCRIPT:
+			return
+		_mutex.lock()
+		count += 1
+		last = rationale if rationale != "" else code
+		_mutex.unlock()
+
+	func _log_message(_message: String, _error: bool) -> void:
+		pass
+
 ## Recipes of the archetype's folder (builder/recipes/<archetype>/), run before the boot scene is
 ## built because boot adds the archetype's combat mode.
 const ARCHETYPE_RECIPES := {
@@ -58,6 +82,8 @@ func _run() -> int:
 		var recipe_name: String = recipes[i]
 		Log.step("build", i + 1, recipes.size(), _step_label(recipe_name))
 		_run_recipe(ctx, builder_dir, recipe_name)
+	_seed_example_recipe(ctx)
+	_run_custom_recipes(ctx)
 	var save_err := ctx.save_build_state()
 	if save_err != OK:
 		ctx.results.add_issue("BUILD-004", {"file": Paths.BUILD_STATE, "err": save_err}, Paths.BUILD_STATE)
@@ -119,6 +145,98 @@ func _run_recipe(ctx: BuildContext, builder_dir: String, recipe_name: String) ->
 		else:
 			ctx.record_output(out, in_hash)
 			ctx.results.add_item({"recipe": recipe_name, "output": _rel(out), "action": "written"})
+
+## A new project gets a sample recipe that does nothing until its lines are uncommented (yours:
+## a project whose folder exists is left alone, and a deleted sample is not brought back).
+func _seed_example_recipe(ctx: BuildContext) -> void:
+	if DirAccess.dir_exists_absolute(CUSTOM_RECIPES_DIR):
+		return
+	DirAccess.make_dir_recursive_absolute(CUSTOM_RECIPES_DIR)
+	var f := FileAccess.open(EXAMPLE_RECIPE, FileAccess.WRITE)
+	if f == null:
+		ctx.results.add_issue("BUILD-004", {"file": EXAMPLE_RECIPE, "err": FileAccess.get_open_error()}, EXAMPLE_RECIPE)
+		return
+	f.store_string(EXAMPLE_TEXT)
+	f.close()
+	ctx.results.add_item({"recipe": "custom_recipes", "output": _rel(EXAMPLE_RECIPE), "action": "written"})
+
+## The .gd files of `dir_path`, sorted by name (not its sub folders).
+static func custom_recipe_paths(dir_path: String) -> Array[String]:
+	var found: Array[String] = []
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return found
+	for file_name in dir.get_files():
+		if file_name.ends_with(".gd"):
+			found.append(dir_path.path_join(file_name))
+	found.sort()
+	return found
+
+func _run_custom_recipes(ctx: BuildContext) -> void:
+	var recipes := custom_recipe_paths(CUSTOM_RECIPES_DIR)
+	if recipes.is_empty():
+		return
+	var errors := ScriptErrors.new()
+	OS.add_logger(errors)
+	for i in recipes.size():
+		Log.step("build", i + 1, recipes.size(), "your recipe " + recipes[i].get_file().get_basename())
+		run_custom_recipe(ctx, recipes[i], errors)
+	OS.remove_logger(errors)
+
+## Runs one custom recipe; a recipe that does not load, has no build(ctx), logs a script error or
+## calls ctx.fail() gives BUILD-002 naming it, and fails the build.
+static func run_custom_recipe(ctx: BuildContext, path: String, errors: ScriptErrors) -> void:
+	var recipe_name := path.get_file().get_basename()
+	var label := _rel(path)  # "game/builder_recipes/my_npcs.gd": the message names the file
+	var script := load(path) as GDScript
+	if script == null or not script.can_instantiate():
+		ctx.results.add_issue("BUILD-002", {"recipe": label, "reason": "the script does not load (see the log)"}, _rel(path))
+		return
+	var instance: Variant = script.new()
+	var shape_error := "it must extend RefCounted and have func build(ctx) -> void"
+	if not (instance is RefCounted):
+		if instance is Node:
+			var node: Node = instance
+			node.free()
+		ctx.results.add_issue("BUILD-002", {"recipe": label, "reason": shape_error}, _rel(path))
+		return
+	var recipe: RefCounted = instance
+	if not recipe.has_method("build"):
+		ctx.results.add_issue("BUILD-002", {"recipe": label, "reason": shape_error}, _rel(path))
+		return
+	Log.info("running %s" % label)
+	var recipe_ctx := RecipeContext.new(ctx, recipe_name)
+	var before := errors.count
+	recipe.call("build", recipe_ctx)
+	var problems: PackedStringArray = recipe_ctx.problems()
+	if errors.count > before:
+		problems.append("script error: %s" % errors.last)
+	for out in recipe_ctx.written():
+		ctx.results.add_item({"recipe": label, "output": _rel(out), "action": "failed" if not problems.is_empty() else "written"})
+	if not problems.is_empty():
+		ctx.results.add_issue("BUILD-002", {"recipe": label, "reason": "; ".join(problems)}, _rel(path))
+
+const EXAMPLE_TEXT := """extends RefCounted
+## Your own build step (rpggen custom recipe). rpggen runs every .gd file of this folder after its
+## own recipes, on every build, in file-name order. Each must extend RefCounted and have
+## func build(ctx) -> void. Write under res://game/ (yours, never rewritten) or
+## res://generated/custom/ (rewritten on every build). docs/recipes.md lists what ctx offers.
+##
+## Uncomment the lines in build() to try it: the next build saves a small scene in
+## res://generated/custom/.
+
+const RecipeContext := preload("res://generated/builder/lib/recipe_context.gd")
+
+func build(ctx: RecipeContext) -> void:
+	# ctx.say("hello from %s" % ctx.recipe_name)
+	# var sign := Node2D.new()
+	# sign.name = "HelloSign"
+	# var label := Label.new()
+	# label.text = "Made by a custom recipe for " + ctx.project_name()
+	# sign.add_child(label)
+	# ctx.save_scene(sign, "res://generated/custom/hello_sign.tscn")
+	pass
+"""
 
 ## Records the hashes of the files this run wrote. Entries of user-owned files (game/) are never
 ## touched, and a file the run did not write keeps its entry: a change the user made to it must
