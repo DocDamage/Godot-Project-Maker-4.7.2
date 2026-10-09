@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import posixpath
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -616,6 +617,14 @@ def _license_files(inv: Inventory, root: str) -> list[str]:
 
 REVIEWED_STATUSES = frozenset({"CONFIRMED", "UNUSED"})
 ATTENTION_STATUSES = frozenset({"CONFLICT", "NEEDS_REVIEW", "MISSING"})
+
+
+def folder_of(catalog: Catalog, asset: Asset) -> str:
+    """The asset's folder relative to its pack ("" for the pack's top folder): what a folder
+    rule's glob starts with and what the audit grid groups by (T13.02)."""
+    root = next((p.root for p in catalog.packs if p.pack_id == asset.pack_id), "")
+    rel = asset.path[len(root) + 1 :] if root and asset.path.startswith(root + "/") else asset.path
+    return posixpath.dirname(rel)
 
 
 def review_progress(catalog: Catalog) -> tuple[int, int, int]:

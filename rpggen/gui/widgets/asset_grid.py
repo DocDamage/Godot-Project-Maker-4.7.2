@@ -7,7 +7,9 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 
 from PySide6.QtCore import (
+    QAbstractItemModel,
     QAbstractListModel,
+    QEvent,
     QModelIndex,
     QPersistentModelIndex,
     QRect,
@@ -16,7 +18,7 @@ from PySide6.QtCore import (
     Qt,
     Signal,
 )
-from PySide6.QtGui import QColor, QPainter, QPixmap
+from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -43,6 +45,22 @@ UsageRole = Qt.ItemDataRole.UserRole + 4
 ConfidenceRole = Qt.ItemDataRole.UserRole + 5
 PackRole = Qt.ItemDataRole.UserRole + 6
 PathRole = Qt.ItemDataRole.UserRole + 7
+# Grouping by folder (T13.02): a header row has its folder key under HeaderRole (an asset row has
+# None there), and every row has the key of its folder under FolderRole.
+HeaderRole = Qt.ItemDataRole.UserRole + 8
+FolderRole = Qt.ItemDataRole.UserRole + 9
+HEADER_HEIGHT = 26
+HEADER_ACTIONS = ("confirm", "select", "rule")  # the buttons of a header, left to right
+
+
+def folder_key(pack_id: str, folder: str) -> str:
+    return f"{pack_id}\n{folder}"
+
+
+def split_folder_key(key: str) -> tuple[str, str]:
+    pack_id, _, folder = key.partition("\n")
+    return pack_id, folder
+
 
 STATUS_ORDER = ["CONFLICT", "NEEDS_REVIEW", "MISSING", "AUTO_DETECTED", "CONFIRMED", "UNUSED"]
 STATUS_PRIORITY = {s: i for i, s in enumerate(STATUS_ORDER)}
@@ -90,7 +108,9 @@ def file_label(asset: catalog_mod.Asset) -> str:
 
 
 class AssetListModel(QAbstractListModel):
-    """One row per asset of the catalog (objects are not rows)."""
+    """One row per asset of the catalog (objects are not rows). With ``grouped`` on, one header
+    row per folder follows the asset rows (so an asset keeps its row); the proxy sorts each
+    header in front of its folder."""
 
     def __init__(self, parent=None) -> None:  # noqa: ANN001
         super().__init__(parent)
@@ -106,6 +126,11 @@ class AssetListModel(QAbstractListModel):
         self.resolver: PathResolver = lambda asset: None
         self._placeholder: QPixmap | None = None
         self.thumb_size = THUMB
+        self.grouped = False
+        self._folders: list[str] = []  # the folder key of every asset row
+        self._headers: list[str] = []  # the folder keys, sorted: the header rows
+        self._header_row: dict[str, int] = {}
+        self._folder_rows: dict[str, list[int]] = {}
 
     # ------------------------------------------------------------------ data
 
@@ -121,7 +146,41 @@ class AssetListModel(QAbstractListModel):
         self._row_of = {a.id: i for i, a in enumerate(self._assets)}
         self._keys.clear()
         self._by_key.clear()
+        self._index_folders()
         self.endResetModel()
+
+    def _index_folders(self) -> None:
+        catalog = self.catalog
+        self._folders = (
+            [folder_key(a.pack_id, catalog_mod.folder_of(catalog, a)) for a in self._assets]
+            if catalog is not None
+            else []
+        )
+        self._folder_rows = {}
+        for row, key in enumerate(self._folders):
+            self._folder_rows.setdefault(key, []).append(row)
+        self._headers = sorted(self._folder_rows, key=split_folder_key) if self.grouped else []
+        count = len(self._assets)
+        self._header_row = {key: count + i for i, key in enumerate(self._headers)}
+
+    def set_grouped(self, on: bool) -> None:
+        if on == self.grouped:
+            return
+        self.beginResetModel()
+        self.grouped = on
+        self._index_folders()
+        self.endResetModel()
+
+    def folder_rows(self, key: str) -> list[int]:
+        """The asset rows of a folder."""
+        return self._folder_rows.get(key, [])
+
+    def folder_keys(self) -> list[str]:
+        """The folders that have a header, in the order of the headers."""
+        return list(self._headers)
+
+    def is_header(self, row: int) -> bool:
+        return row >= len(self._assets)
 
     def refresh(self, asset_ids: list[str] | None = None) -> None:
         """Re-read the facets of changed assets (all when ``asset_ids`` is None)."""
@@ -139,9 +198,17 @@ class AssetListModel(QAbstractListModel):
             self._facets[row] = catalog_mod.effective(by_id[asset_id])
             self._keys.pop(asset_id, None)
             self.dataChanged.emit(self.index(row), self.index(row))
+            header = self._header_row.get(self._folders[row])
+            if header is not None:  # its counts changed, and whether the filter shows it
+                self.dataChanged.emit(self.index(header), self.index(header))
 
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: B008
-        return 0 if parent.isValid() else len(self._assets)
+        return 0 if parent.isValid() else len(self._assets) + len(self._headers)
+
+    def flags(self, index: QModelIndex | QPersistentModelIndex) -> Qt.ItemFlag:
+        if index.isValid() and self.is_header(index.row()):
+            return Qt.ItemFlag.ItemIsEnabled  # a header is clicked, never selected
+        return super().flags(index)
 
     def asset_at(self, row: int) -> catalog_mod.Asset:
         return self._assets[row]
@@ -176,8 +243,20 @@ class AssetListModel(QAbstractListModel):
     def data(
         self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole
     ):
-        if not index.isValid() or not 0 <= index.row() < len(self._assets):
+        if not index.isValid() or not 0 <= index.row() < self.rowCount():
             return None
+        if self.is_header(index.row()):
+            key = self._headers[index.row() - len(self._assets)]
+            pack_id, folder = split_folder_key(key)
+            if role in (HeaderRole, FolderRole):
+                return key
+            if role == PackRole:
+                return pack_id
+            if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
+                return f"{pack_id} / {folder}" if folder else pack_id
+            return None
+        if role == FolderRole:
+            return self._folders[index.row()]
         asset = self._assets[index.row()]
         facets = self._facets[index.row()]
         if role == Qt.ItemDataRole.DisplayRole:
@@ -247,14 +326,26 @@ class AssetFilterProxy(QSortFilterProxyModel):
         self.pack: str | None = None
         self.text = ""
         self.only_ids: set[str] | None = None  # "Changed in update": just these assets
+        self.collapsed: set[str] = set()  # folder keys whose assets are folded away
+        self._counts: dict[str, tuple[int, int, int]] = {}
         self.setDynamicSortFilter(True)
         self.sort(0)
+
+    def setSourceModel(self, model: QAbstractItemModel) -> None:  # noqa: N802
+        super().setSourceModel(model)
+        model.dataChanged.connect(lambda *_: self._counts.clear())
+        model.modelReset.connect(self._on_source_reset)
+
+    def _on_source_reset(self) -> None:
+        self._counts.clear()
+        self.collapsed &= set(self.sourceModel().folder_keys())  # type: ignore[attr-defined]
 
     @contextlib.contextmanager
     def _filter_change(self) -> Iterator[None]:
         """Change what the filter accepts: ``beginFilterChange`` / ``endFilterChange`` where Qt
         has them (6.10 deprecates ``invalidateFilter``), else ``invalidateFilter`` (PySide6 6.7
         and 6.8, which the project supports)."""
+        self._counts.clear()
         begin = getattr(self, "beginFilterChange", None)
         if begin is None:
             yield
@@ -286,7 +377,37 @@ class AssetFilterProxy(QSortFilterProxyModel):
         with self._filter_change():
             self.only_ids = None if ids is None else set(ids)
 
+    def set_collapsed(self, key: str, collapsed: bool) -> None:
+        with self._filter_change():
+            (self.collapsed.add if collapsed else self.collapsed.discard)(key)
+
+    def passing_rows(self, key: str) -> list[int]:
+        """The source rows of a folder's assets that pass the filter (folded away or not)."""
+        model = self.sourceModel()
+        return [r for r in model.folder_rows(key) if self._accepts_asset(r, QModelIndex())]  # type: ignore[attr-defined]
+
+    def folder_counts(self, key: str) -> tuple[int, int, int]:
+        """``(need attention, confirmed, all)`` of the folder's assets that pass the filter."""
+        if key not in self._counts:
+            model = self.sourceModel()
+            statuses = [model.data(model.index(r, 0), StatusRole) for r in self.passing_rows(key)]
+            self._counts[key] = (
+                sum(1 for s in statuses if s in NEEDS_ATTENTION),
+                sum(1 for s in statuses if s == "CONFIRMED"),
+                len(statuses),
+            )
+        return self._counts[key]
+
     def filterAcceptsRow(self, row: int, parent: QModelIndex | QPersistentModelIndex) -> bool:
+        model = self.sourceModel()
+        key = model.data(model.index(row, 0, parent), HeaderRole)
+        if key is not None:  # a header shows while one of its assets passes the filter
+            return any(self._accepts_asset(r, parent) for r in model.folder_rows(key))  # type: ignore[attr-defined]
+        if self.collapsed and model.data(model.index(row, 0, parent), FolderRole) in self.collapsed:
+            return False
+        return self._accepts_asset(row, parent)
+
+    def _accepts_asset(self, row: int, parent: QModelIndex | QPersistentModelIndex) -> bool:
         model = self.sourceModel()
         index = model.index(row, 0, parent)
         if self.only_ids is not None and model.data(index, AssetIdRole) not in self.only_ids:
@@ -303,6 +424,14 @@ class AssetFilterProxy(QSortFilterProxyModel):
         self, left: QModelIndex | QPersistentModelIndex, right: QModelIndex | QPersistentModelIndex
     ) -> bool:
         model = self.sourceModel()
+        if getattr(model, "grouped", False):  # folder by folder, each header first
+            left_folder = split_folder_key(str(model.data(left, FolderRole)))
+            right_folder = split_folder_key(str(model.data(right, FolderRole)))
+            if left_folder != right_folder:
+                return left_folder < right_folder
+            left_header = model.data(left, HeaderRole) is not None
+            if left_header or model.data(right, HeaderRole) is not None:
+                return left_header
         a = STATUS_PRIORITY.get(model.data(left, StatusRole), 99)
         b = STATUS_PRIORITY.get(model.data(right, StatusRole), 99)
         if a != b:
@@ -311,19 +440,101 @@ class AssetFilterProxy(QSortFilterProxyModel):
 
 
 class AssetCardDelegate(QStyledItemDelegate):
-    """Paints a status strip, the nearest-neighbor thumbnail and the elided file name."""
+    """Paints a status strip, the nearest-neighbor thumbnail and the elided file name; and, when
+    the grid is grouped by folder, the header rows with their three buttons."""
 
     STRIP = 5
+
+    headerAction = Signal(str, str)  # noqa: N815 - folder key, one of HEADER_ACTIONS
+    headerToggled = Signal(str)  # noqa: N815 - a click on the header itself: fold or unfold
 
     def __init__(self, parent=None) -> None:  # noqa: ANN001
         super().__init__(parent)
         self.thumb = THUMB
+        self.header_width = 0  # the view sets it to its viewport's width
 
     def sizeHint(self, option: QStyleOptionViewItem, index) -> QSize:  # noqa: ANN001
+        if index.data(HeaderRole) is not None:
+            # a little less than the row, so the header starts a line and nothing fits beside it
+            return QSize(max(120, self.header_width - 4), HEADER_HEIGHT)
         return grid_size_for(self.thumb)
+
+    # ------------------------------------------------------------------ folder headers
+
+    def header_labels(self) -> dict[str, str]:
+        return {
+            "confirm": self.tr("Confirm all"),
+            "select": self.tr("Select all"),
+            "rule": self.tr("Make rule…"),
+        }
+
+    def header_buttons(self, rect: QRect, metrics) -> dict[str, QRect]:  # noqa: ANN001
+        """Where the three buttons of a header are, right-aligned in its row."""
+        labels_by_action = self.header_labels()
+        out: dict[str, QRect] = {}
+        right = rect.right() - 4
+        for action in reversed(HEADER_ACTIONS):
+            width = metrics.horizontalAdvance(labels_by_action[action]) + 16
+            out[action] = QRect(right - width, rect.top() + 3, width, rect.height() - 6)
+            right -= width + 4
+        return {action: out[action] for action in HEADER_ACTIONS}
+
+    def header_text(self, index) -> str:  # noqa: ANN001
+        """ "▾ pack / folder — 4 need attention · 12 confirmed"."""
+        key = str(index.data(HeaderRole))
+        proxy = index.model()
+        attention, confirmed, total = proxy.folder_counts(key)
+        mark = "▸" if key in proxy.collapsed else "▾"
+        counts = self.tr("{0} need attention · {1} confirmed · {2} shown").format(
+            attention, confirmed, total
+        )
+        return f"{mark} {index.data(Qt.ItemDataRole.DisplayRole)} — {counts}"
+
+    def _paint_header(self, painter: QPainter, option: QStyleOptionViewItem, index) -> None:  # noqa: ANN001
+        rect = option.rect.adjusted(2, 2, -2, -2)
+        palette = option.palette
+        painter.fillRect(rect, palette.alternateBase())
+        buttons = self.header_buttons(rect, painter.fontMetrics())
+        text_rect = QRect(rect.left() + 6, rect.top(), rect.width(), rect.height())
+        text_rect.setRight(min(b.left() for b in buttons.values()) - 8)
+        painter.setPen(palette.text().color())
+        text = painter.fontMetrics().elidedText(
+            self.header_text(index), Qt.TextElideMode.ElideMiddle, text_rect.width()
+        )
+        painter.drawText(
+            text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, text
+        )
+        labels_by_action = self.header_labels()
+        for action, button in buttons.items():
+            painter.setPen(palette.mid().color())
+            painter.setBrush(palette.button())
+            painter.drawRoundedRect(button, 3, 3)
+            painter.setPen(palette.buttonText().color())
+            painter.drawText(button, Qt.AlignmentFlag.AlignCenter, labels_by_action[action])
+
+    def editorEvent(self, event, model, option, index) -> bool:  # noqa: ANN001, N802
+        key = index.data(HeaderRole)
+        if key is None:
+            return super().editorEvent(event, model, option, index)
+        if event.type() != QEvent.Type.MouseButtonRelease or not isinstance(event, QMouseEvent):
+            return False
+        if event.button() != Qt.MouseButton.LeftButton:
+            return False
+        rect = option.rect.adjusted(2, 2, -2, -2)
+        metrics = option.fontMetrics
+        for action, button in self.header_buttons(rect, metrics).items():
+            if button.contains(event.position().toPoint()):
+                self.headerAction.emit(str(key), action)
+                return True
+        self.headerToggled.emit(str(key))
+        return True
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index) -> None:  # noqa: ANN001
         painter.save()
+        if index.data(HeaderRole) is not None:
+            self._paint_header(painter, option, index)
+            painter.restore()
+            return
         rect = option.rect.adjusted(2, 2, -2, -2)
         selected = bool(option.state & QStyle.StateFlag.State_Selected)
         palette = option.palette
@@ -440,11 +651,29 @@ class AssetGridView(QListView):
         self.setWrapping(True)
         self.card_delegate = AssetCardDelegate(self)
         self.setItemDelegate(self.card_delegate)
+        self.grouped = False
 
     def set_thumb_size(self, size: int) -> None:
         self.card_delegate.thumb = size
-        self.setGridSize(grid_size_for(size))
+        self._apply_layout()
+
+    def set_grouped(self, on: bool) -> None:
+        """With folder headers the rows have two sizes (a header is as wide as the view), so
+        the fixed grid is given up for the delegate's size hints while grouping is on."""
+        self.grouped = on
+        self._apply_layout()
+
+    def _apply_layout(self) -> None:
+        self.card_delegate.header_width = self.viewport().width()
+        self.setUniformItemSizes(not self.grouped)
+        self.setGridSize(QSize() if self.grouped else grid_size_for(self.card_delegate.thumb))
         self.doItemsLayout()
+
+    def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
+        if self.grouped and self.card_delegate.header_width != self.viewport().width():
+            self.card_delegate.header_width = self.viewport().width()
+            self.scheduleDelayedItemsLayout()
+        super().resizeEvent(event)
 
     def keyPressEvent(self, event) -> None:  # noqa: ANN001
         modifiers = event.modifiers()
@@ -480,6 +709,9 @@ class AssetGrid(QWidget):
     confirmAutoRequested = Signal()  # noqa: N815
     shortcutsRequested = Signal()  # noqa: N815
     thumbSizeChanged = Signal(int)  # noqa: N815
+    groupedChanged = Signal(bool)  # noqa: N815
+    folderConfirmRequested = Signal(str)  # noqa: N815 - folder key: a header's Confirm all
+    folderRuleRequested = Signal(str)  # noqa: N815 - folder key: a header's Make rule…
 
     def __init__(self, parent=None) -> None:  # noqa: ANN001
         super().__init__(parent)
@@ -554,7 +786,17 @@ class AssetGrid(QWidget):
         bar2.addWidget(self.role_combo)
         bar2.addWidget(self.pack_combo)
         bar2.addWidget(self.search, 1)
+        self.group_button = QPushButton(self.tr("Group by folder"))
+        self.group_button.setObjectName("groupByFolder")
+        self.group_button.setCheckable(True)
+        self.group_button.setToolTip(
+            self.tr("A header per folder, with Confirm all, Select all and Make rule…")
+        )
+        self.group_button.clicked.connect(lambda on: self.set_grouped(bool(on)))
+        bar2.addWidget(self.group_button)
         layout.addLayout(bar2)
+        self.view.card_delegate.headerToggled.connect(self.toggle_folder)
+        self.view.card_delegate.headerAction.connect(self._on_header_action)
         layout.addWidget(self.view, 1)
         self.model.modelReset.connect(self._update_counts)
         self.model.dataChanged.connect(self._on_model_data_changed)
@@ -598,6 +840,42 @@ class AssetGrid(QWidget):
         self.model.set_thumb_size(size)
         self.view.set_thumb_size(size)
         self.thumbSizeChanged.emit(size)
+
+    # ------------------------------------------------------------------ folders (T13.02)
+
+    def set_grouped(self, on: bool) -> None:
+        """A header row per folder, or the flat grid."""
+        self.group_button.setChecked(on)
+        if on == self.model.grouped:
+            return
+        selected = self.selected_ids()
+        self.model.set_grouped(on)
+        self.view.set_grouped(on)
+        self.proxy.invalidate()
+        self.select_ids(selected)
+        self.groupedChanged.emit(on)
+
+    def header_keys(self) -> list[str]:
+        """The folder keys of the headers the grid shows, top to bottom."""
+        rows = range(self.proxy.rowCount())
+        keys = [self.proxy.index(r, 0).data(HeaderRole) for r in rows]
+        return [k for k in keys if k is not None]
+
+    def folder_ids(self, key: str) -> list[str]:
+        """The assets of a folder that pass the filter, in the model's order."""
+        return [self.model.asset_at(r).id for r in self.proxy.passing_rows(key)]
+
+    def toggle_folder(self, key: str) -> None:
+        self.proxy.set_collapsed(key, key not in self.proxy.collapsed)
+
+    def _on_header_action(self, key: str, action: str) -> None:
+        if action == "confirm":
+            self.folderConfirmRequested.emit(key)
+        elif action == "rule":
+            self.folderRuleRequested.emit(key)
+        elif action == "select":
+            self.proxy.set_collapsed(key, False)
+            self.select_ids(self.folder_ids(key))
 
     # ------------------------------------------------------------------ the review queue
 
@@ -721,7 +999,9 @@ class AssetGrid(QWidget):
         return [self.proxy.index(r, 0).data(AssetIdRole) for r in rows]
 
     def visible_ids(self) -> list[str]:
-        return [self.proxy.index(r, 0).data(AssetIdRole) for r in range(self.proxy.rowCount())]
+        """The assets the grid shows, in its order (folder headers are not assets)."""
+        ids = (self.proxy.index(r, 0).data(AssetIdRole) for r in range(self.proxy.rowCount()))
+        return [i for i in ids if i is not None]
 
     def select_ids(self, asset_ids: list[str]) -> None:
         selection = self.view.selectionModel()

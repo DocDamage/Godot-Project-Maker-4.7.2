@@ -50,7 +50,7 @@ from rpggen.gui.state import WizardState
 from rpggen.gui.widgets import analysis_progress
 from rpggen.gui.widgets.anim_preview import AnimEditorDialog
 from rpggen.gui.widgets.asset_detail import GRID_USAGES, AssetDetail
-from rpggen.gui.widgets.asset_grid import AssetGrid, PathResolver
+from rpggen.gui.widgets.asset_grid import AssetGrid, PathResolver, split_folder_key
 from rpggen.gui.widgets.bulk_panel import (
     BulkPanel,
     FolderRuleDialog,
@@ -215,6 +215,10 @@ class AuditPage(WizardPage):
         self.grid.shortcutsRequested.connect(self.show_shortcuts)
         self.grid.thumbSizeChanged.connect(self._remember_thumb_size)
         self.grid.set_thumb_size(app_settings.get().thumb_size)
+        self.grid.set_grouped(app_settings.get().group_by_folder)
+        self.grid.groupedChanged.connect(lambda on: app_settings.schedule(group_by_folder=on))
+        self.grid.folderConfirmRequested.connect(self.confirm_folder)
+        self.grid.folderRuleRequested.connect(self.make_folder_rule)
 
     def set_thumb_size(self, size: int) -> None:
         """Called by the View menu."""
@@ -254,6 +258,29 @@ class AuditPage(WizardPage):
             return False
         ids = [a.id for a in self.session.catalog.assets if a.status == "AUTO_DETECTED"]
         return bool(ids) and self.session.confirm(ids)
+
+    def confirm_folder(self, key: str) -> bool:
+        """A folder header's Confirm all: the folder's assets that pass the filter and are not
+        confirmed yet, as one undo step."""
+        if self.session is None:
+            return False
+        wanted = set(self.grid.folder_ids(key))
+        ids = [
+            a.id for a in self.session.catalog.assets if a.id in wanted and a.status != "CONFIRMED"
+        ]
+        return bool(ids) and self.session.confirm(ids)
+
+    def make_folder_rule(self, key: str) -> bool:
+        """A folder header's Make rule…: the rule dialog with the folder's glob filled in."""
+        if self.session is None:
+            return False
+        pack_id, folder = split_folder_key(key)
+        dialog = FolderRuleDialog(
+            [p.pack_id for p in self.session.catalog.packs], pack_id, default_glob(folder), {}, self
+        )
+        if not self.run_rule_dialog(dialog):
+            return False
+        return self.session.add_rule(dialog.rule())
 
     def shortcut_sheet(self) -> str:
         roles = "\n".join(

@@ -164,3 +164,26 @@ def test_no_page_squeezes_or_clips_a_widget(
 
     dev.show_each_page(window, check)
     assert not found, f"{archetype}/{theme_name}/{size}:\n" + "\n".join(found)
+
+
+@pytest.mark.parametrize("size", sorted(SIZES))
+@pytest.mark.parametrize("theme_name", dev.LAYOUT_THEMES)
+def test_the_audit_page_fits_with_the_grid_grouped_by_folder(
+    qtbot, tmp_path: Path, theme_name: str, size: str
+) -> None:
+    """T13.02: the Group by folder toggle on the filter bar, and the grid with header rows."""
+    from rpggen.gui.pages.audit_page import AuditPage
+
+    theme.apply_theme(theme_name, remember=False)
+    window = MainWindow(dev.layout_state("turn_based", tmp_path), default_pages())
+    qtbot.addWidget(window)
+    window.resize(*SIZES[size])
+    window.show()
+    audit = next(p for p in window.pages if isinstance(p, AuditPage))
+    window.show_page(window.pages.index(audit))
+    audit.grid.set_grouped(True)
+    audit.grid.chips["chipAll"].click()
+    for _ in range(3):
+        QApplication.processEvents()
+    assert audit.grid.header_keys()
+    assert layout_problems(audit) == []

@@ -66,6 +66,7 @@ class AppSettings:
     keep_full_failed_runs: bool = False  # a failed run keeps its pack art and import cache
     confirm_regeneration: bool = True  # show the changes before a regeneration writes them
     language: str = ""  # the wizard's language ("fr"); "" follows the system (T12.56)
+    group_by_folder: bool = False  # the audit grid shows a header per folder (T13.02)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -85,6 +86,7 @@ class AppSettings:
             "keep_full_failed_runs": self.keep_full_failed_runs,
             "confirm_regeneration": self.confirm_regeneration,
             "language": self.language,
+            "group_by_folder": self.group_by_folder,
         }
 
 
@@ -162,6 +164,9 @@ def from_json(data: Any) -> AppSettings:
     confirm = data.get("confirm_regeneration")
     if isinstance(confirm, bool):
         s.confirm_regeneration = confirm
+    grouped = data.get("group_by_folder")
+    if isinstance(grouped, bool):
+        s.group_by_folder = grouped
     keep = data.get("keep_full_failed_runs")
     if isinstance(keep, bool):
         s.keep_full_failed_runs = keep

@@ -18,6 +18,9 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 * **Audit review mode** (View → Review mode, `F7`, or the button beside the progress line): one
   asset at a time with a large preview and the same panel and keys; `Esc` returns to the grid.
 
+* **Audit: Group by folder** (on the filter bar, remembered): a header per folder with its counts
+  and **Confirm all**, **Select all** and **Make rule…**; click a header to fold its folder.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

@@ -322,3 +322,63 @@ def test_folder_rules_have_a_revert_too(qtbot) -> None:
     assert page.changes_panel.count() == 1
     page.changes_panel.table.cellWidget(0, 4).click()
     assert page.changes_panel.count() == 0 and page.session.catalog.folder_rules == []
+
+
+# ------------------------------------------------------------------------ folder headers (T13.02)
+
+
+def test_confirm_all_of_a_folder_is_one_undo_step_for_its_visible_assets(qtbot) -> None:
+    from rpggen.gui.widgets import asset_grid as ag
+
+    page, state = _page(qtbot, "mixed")
+    page.grid.set_grouped(True)
+    page.grid.chips["chipAttention"].click()  # only what needs attention passes the filter
+    key = page.grid.header_keys()[0]
+    folder = ag.split_folder_key(key)[1]
+    visible = set(page.grid.folder_ids(key))
+    in_folder = {
+        a.id for a in state.catalog.assets if catalog.folder_of(state.catalog, a) == folder
+    }
+    assert visible and visible <= in_folder
+    before = {a.id: a.status for a in page.session.catalog.assets}
+    steps = page.session.undo_stack.count()
+    page.grid.view.card_delegate.headerAction.emit(key, "confirm")
+    after = {a.id: a.status for a in page.session.catalog.assets}
+    changed = {i for i in after if after[i] != before[i]}
+    assert changed == visible and all(after[i] == "CONFIRMED" for i in visible)
+    assert page.session.undo_stack.count() == steps + 1
+    page.session.undo_stack.undo()
+    assert {a.id: a.status for a in page.session.catalog.assets} == before
+    assert not page.confirm_folder(ag.folder_key("mixed", "no_such_folder"))
+
+
+def test_make_rule_on_a_header_opens_with_the_folder_glob(qtbot) -> None:
+    from rpggen.gui.widgets import asset_grid as ag
+
+    page, _state = _page(qtbot, "mixed")
+    page.grid.set_grouped(True)
+    key = next(k for k in page.grid.header_keys() if ag.split_folder_key(k)[1] == "items")
+    opened = []
+
+    def run(dialog) -> bool:
+        opened.append((dialog.pack_combo.currentText(), dialog.glob_edit.text()))
+        return False  # cancelled: no rule
+
+    page.run_rule_dialog = run  # type: ignore[method-assign]
+    rules = len(page.session.catalog.folder_rules)
+    page.grid.view.card_delegate.headerAction.emit(key, "rule")
+    assert opened == [("mixed", "items/**")]
+    assert len(page.session.catalog.folder_rules) == rules
+
+
+def test_the_grouping_choice_is_remembered(qtbot) -> None:
+    from rpggen.core import app_settings
+
+    page, _state = _page(qtbot, "mixed")
+    assert not page.grid.model.grouped
+    page.grid.group_button.click()
+    assert app_settings.get().group_by_folder is True
+    again, _state = _page(qtbot, "mixed")
+    assert again.grid.model.grouped and again.grid.header_keys()
+    again.grid.group_button.click()
+    assert app_settings.get().group_by_folder is False

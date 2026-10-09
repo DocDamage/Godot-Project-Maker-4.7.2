@@ -199,3 +199,109 @@ def test_loader_delivers_pixmaps_to_the_model(qtbot, basic_catalog) -> None:
     qtbot.waitUntil(lambda: len(grid.model.cache) > 0, timeout=10000)
     again = grid.model.index(0, 0).data(Qt.ItemDataRole.DecorationRole)
     assert again.size() != QSize(96, 96) or again.cacheKey() != first.cacheKey()
+
+
+# ------------------------------------------------------------------------ grouped by folder (T13.02)
+
+
+@pytest.fixture(scope="module")
+def mixed_catalog():
+    opened = archive.open_pack(SYNTH / "mixed", set())
+    cat = catalog.assemble([(opened, inventory.build_inventory(opened))], None, [])[0]
+    return cat, opened.root
+
+
+def _rows(grid: ag.AssetGrid) -> list[tuple[str, str]]:
+    """("header", key) or ("asset", id) for every row the grid shows, top to bottom."""
+    out = []
+    for r in range(grid.proxy.rowCount()):
+        index = grid.proxy.index(r, 0)
+        key = index.data(ag.HeaderRole)
+        out.append(("header", key) if key is not None else ("asset", index.data(ag.AssetIdRole)))
+    return out
+
+
+def test_headers_appear_once_per_folder_in_path_order_with_counts(qtbot, mixed_catalog) -> None:
+    cat, root = mixed_catalog
+    grid = _grid(qtbot, cat, root, statuses=False)
+    assert not grid.model.grouped and grid.header_keys() == []
+    flat = grid.visible_ids()
+    grid.set_grouped(True)
+    assert grid.group_button.isChecked()
+    folders = sorted({catalog.folder_of(cat, a) for a in cat.assets})
+    assert grid.header_keys() == [ag.folder_key("mixed", f) for f in folders]
+    assert sorted(grid.visible_ids()) == sorted(flat), "the same assets, regrouped"
+    # every header is followed by exactly the assets of its folder
+    current = None
+    seen: dict[str, list[str]] = {}
+    for kind, value in _rows(grid):
+        if kind == "header":
+            current = value
+            seen[current] = []
+        else:
+            assert current is not None, "an asset before the first header"
+            seen[current].append(value)
+    for key, ids in seen.items():
+        _pack, folder = ag.split_folder_key(key)
+        expected = [a for a in cat.assets if catalog.folder_of(cat, a) == folder]
+        assert sorted(ids) == sorted(a.id for a in expected)
+        attention = sum(1 for a in expected if a.status in ag.NEEDS_ATTENTION)
+        confirmed = sum(1 for a in expected if a.status == "CONFIRMED")
+        assert grid.proxy.folder_counts(key) == (attention, confirmed, len(expected))
+    # the model keeps one row per asset, then the headers; a header cannot be selected
+    assert grid.model.rowCount() == len(cat.assets) + len(folders)
+    header = grid.model.index(len(cat.assets), 0)
+    assert not header.flags() & Qt.ItemFlag.ItemIsSelectable
+    assert header.data(Qt.ItemDataRole.DisplayRole) == f"mixed / {folders[0]}"
+    grid.set_grouped(False)
+    assert grid.header_keys() == [] and grid.visible_ids() == flat
+
+
+def test_a_filter_hides_the_headers_without_assets_and_the_queue_ignores_headers(
+    qtbot, mixed_catalog
+) -> None:
+    cat, root = mixed_catalog
+    grid = _grid(qtbot, cat, root, statuses=False)
+    grid.set_grouped(True)
+    grid.chips["chipAttention"].click()
+    with_attention = sorted(
+        {catalog.folder_of(cat, a) for a in cat.assets if a.status in ag.NEEDS_ATTENTION}
+    )
+    assert grid.header_keys() == [ag.folder_key("mixed", f) for f in with_attention]
+    assert len(with_attention) < len({catalog.folder_of(cat, a) for a in cat.assets})
+    queue = grid.attention_ids()
+    assert queue and all(isinstance(i, str) for i in queue)
+    assert grid.select_next_attention() == queue[0]
+    assert grid.select_next_attention() == queue[1]
+    grid.search.setText("no such file anywhere")
+    assert grid.header_keys() == [] and grid.proxy.rowCount() == 0
+
+
+def test_a_header_folds_its_folder_and_select_all_selects_it(qtbot, mixed_catalog) -> None:
+    cat, root = mixed_catalog
+    grid = _grid(qtbot, cat, root, statuses=False)
+    grid.set_grouped(True)
+    key = grid.header_keys()[-1]
+    inside = grid.folder_ids(key)
+    assert inside
+    grid.toggle_folder(key)
+    assert key in grid.header_keys(), "the header stays"
+    assert not set(inside) & set(grid.visible_ids())
+    assert grid.proxy.folder_counts(key)[2] == len(inside), "the counts are of the whole folder"
+    grid.view.card_delegate.headerAction.emit(key, "select")  # unfolds, then selects
+    assert sorted(grid.selected_ids()) == sorted(inside)
+    # the delegate: a header is a wide, low row, and its three buttons do not overlap
+    delegate = grid.view.card_delegate
+    index = next(
+        grid.proxy.index(r, 0)
+        for r in range(grid.proxy.rowCount())
+        if grid.proxy.index(r, 0).data(ag.HeaderRole) == key
+    )
+    size = delegate.sizeHint(QStyleOptionViewItem(), index)
+    assert size.height() == ag.HEADER_HEIGHT and size.width() > 3 * ag.GRID_SIZE.width()
+    buttons = delegate.header_buttons(QRect(0, 0, size.width(), size.height()), grid.fontMetrics())
+    assert list(buttons) == list(ag.HEADER_ACTIONS)
+    rects = list(buttons.values())
+    assert rects[0].right() < rects[1].left() and rects[1].right() < rects[2].left()
+    text = delegate.header_text(index)
+    assert "need attention" in text and "mixed / " in text

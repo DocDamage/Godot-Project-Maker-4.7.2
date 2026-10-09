@@ -64,7 +64,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | Card | Title | Size | Depends on | Status |
 |------|-------|:----:|------------|--------|
 | T13.01 | Audit review mode | M | — | done |
-| T13.02 | Audit grid grouped by folder | M | — | open |
+| T13.02 | Audit grid grouped by folder | M | — | done |
 | T13.03 | Live preview in the detail panel | M | — | open |
 | T13.04 | Select similar assets | M | — | open |
 | T13.05 | Mapping: picker gallery and jump to the audit | S | — | open |
