@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791518200713,
+  "lastUpdate": 1791518535294,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -447,6 +447,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 4.52,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "558df8ac88b218e22c8a2425155e57d6f19afee8",
+          "message": "Plan T13.24: world repair, generated maps mend their doors and reachability\n\nAdds a card to M13: a map graph shared by the validator and the repair\ntool, three additive repairs (retarget a dangling door, create a missing\nspawn and return door, join an unreachable map to its nearest neighbour),\nrun by itself after a build on maps whose stored hash is unchanged, with a\nbackup that Restore previous undoes, offered as a one-click fix for edited\nmaps and as an undoable Fix in the dock. M14 reuses it for room exits.\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>",
+          "timestamp": "2026-10-08T23:55:08-04:00",
+          "tree_id": "5a84c0f18e1b5010aeed04cf1bb4c756006d1474",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/558df8ac88b218e22c8a2425155e57d6f19afee8"
+        },
+        "date": 1791518529062,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 11.07,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 1.28,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 103.45,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 89.85,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 22.07,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 13.32,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 5.7,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 5.11,
             "unit": "s"
           }
         ]
