@@ -90,6 +90,7 @@ def register_defaults() -> None:
     from rpggen.core.adapters.aseprite import AsepriteAdapter
     from rpggen.core.adapters.generic_grid import GenericGridAdapter
     from rpggen.core.adapters.ldtk import LdtkAdapter
+    from rpggen.core.adapters.learned import LearnedAdapter
     from rpggen.core.adapters.lpc import LpcAdapter
     from rpggen.core.adapters.profile import ProfileAdapter
     from rpggen.core.adapters.rpgmaker import RpgMakerAdapter
@@ -99,6 +100,7 @@ def register_defaults() -> None:
 
     for adapter in (
         ProfileAdapter(),
+        LearnedAdapter(),
         TiledAdapter(),
         AsepriteAdapter(),
         LdtkAdapter(),

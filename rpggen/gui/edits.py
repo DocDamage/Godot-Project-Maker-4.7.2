@@ -16,7 +16,7 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QUndoCommand, QUndoStack
 
 from rpggen.core import catalog as catalog_mod
-from rpggen.core import licenses
+from rpggen.core import learned_rules, licenses
 from rpggen.core.catalog import Asset, Catalog
 
 RETILE_KEYS = frozenset({"grid", "usage", "tileset", "role"})  # facets that change tile sets
@@ -237,18 +237,39 @@ def set_sheet_objects(
 # --------------------------------------------------------------------------- undoable session
 
 
+def learnable_edits(before: Catalog, after: Catalog, ids: list[str]) -> list[learned_rules.Edit]:
+    """The role, usage or collision values the user set on ``ids`` in this step (T12.59)."""
+    old = {a.id: a for a in before.assets}
+    new = {a.id: a for a in after.assets}
+    found: list[learned_rules.Edit] = []
+    for asset_id in ids:
+        a, b = old.get(asset_id), new.get(asset_id)
+        if a is None or b is None:
+            continue
+        for facet in learned_rules.LEARNABLE:
+            value = b.overrides.get(facet)
+            if value is not None and value != a.overrides.get(facet):
+                found.append(learned_rules.Edit(learned_rules.pack_relative(b.path), facet, value))
+    return found
+
+
 class _CatalogCommand(QUndoCommand):
     def __init__(
         self, session: EditSession, text: str, before: Catalog, after: Catalog, ids: list[str]
     ) -> None:
         super().__init__(text)
         self.session, self.before, self.after, self.ids = session, before, after, ids
+        self.taught = learnable_edits(before, after, ids) if session.learner else []
 
     def redo(self) -> None:
         self.session._set(self.after, self.ids)
+        if self.taught and self.session.learner is not None:
+            self.session.learner(self.taught, 1)
 
     def undo(self) -> None:
         self.session._set(self.before, self.ids)
+        if self.taught and self.session.learner is not None:
+            self.session.learner(self.taught, -1)  # an undone fix teaches nothing
 
 
 class EditSession(QObject):
@@ -260,6 +281,8 @@ class EditSession(QObject):
         super().__init__(parent)
         self.catalog = catalog
         self.undo_stack = QUndoStack(self)
+        # learns from role, usage and collision fixes (T12.59): (edits, +1, or -1 on undo)
+        self.learner: Callable[[list[learned_rules.Edit], int], None] | None = None
 
     def _set(self, catalog: Catalog, ids: list[str]) -> None:
         self.catalog = catalog

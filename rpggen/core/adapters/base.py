@@ -17,6 +17,9 @@ class AssetFragment:
     claim: Literal["full", "partial"]  # full: classifier must not change usage/grid/anims
     # Non-empty for fragments that become their own asset ("c3", "f0"): id suffix "#c3".
     variant: str = ""
+    # A value the user taught (learned rules, T12.59): it wins over other partial fragments,
+    # though not over a full claim, and caps the asset's confidence.
+    preferred: bool = False
 
 
 @dataclass
@@ -51,6 +54,8 @@ class AdapterContext:
     results: list[AdapterResult] = field(default_factory=list)
     # Where generated helper images (GIF strips) are written; None disables them.
     work_dir: Path | None = None
+    # Rules learned from the user's corrections (learned_rules.LearnedRule); empty: none apply.
+    learned: list[Any] = field(default_factory=list)
 
 
 class Adapter(Protocol):

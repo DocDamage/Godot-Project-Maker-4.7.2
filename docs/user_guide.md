@@ -104,6 +104,11 @@ dialogue, inventory, equipment, menus) are the same.
   credit but names no author gets ASSET-028 until you enter one.
 * **Profile menu:** export your audit as a profile, import one, or find one online
   ([profiles](profiles.md)).
+* **Learning from your fixes.** When you change the role, usage or collision of a few files that
+  share a folder or name word, rpggen remembers it and proposes the same for new packs. Such an
+  asset stays *Auto-detected* (to be reviewed) and its *Why* line says *learned from your earlier
+  fixes (n times)*. A rule is used after two fixes and when you do not keep correcting it; **Edit
+  → Learned rules…** manages them.
 * **Contact sheet:** *Profile → Export contact sheet…* (or *File → Export contact sheet…*)
   prints the assets on A4 or Letter pages, as a PDF or one PNG per page, for review away from
   the computer: each asset's picture (optionally with its tile or frame grid), file name, role,
@@ -278,6 +283,13 @@ rpggen does not phone home. It goes online in exactly three cases, and only afte
 
 There is no start-up check, no background timer and no setting that enables one.
 
+**Learned rules stay on your computer.** When you fix the role, usage or collision of assets in
+the audit, rpggen keeps what it learned (*"files in a folder named `trees` are decorations"*) in
+`learned_rules.json` in its data folder (see below), to suggest the same for your next packs. The
+file holds folder and file-name words, the values you chose and how often; it is never uploaded
+and never put in a project. **Edit → Learned rules…** lists the rules, turns them off, deletes
+them or makes them folder rules of the open project; deleting the file forgets everything.
+
 ## 9. Where rpggen keeps its files
 
 rpggen keeps what it needs in three folders, so that a disk-cleanup tool (which empties folders
@@ -287,7 +299,7 @@ clears it.
 | Folder | What is in it | Windows | Linux | macOS |
 |--------|---------------|---------|-------|-------|
 | Settings | `settings.json`: window, theme, recent projects, option presets | `%LOCALAPPDATA%\rpggen\config` | `~/.config/rpggen` | `~/Library/Application Support/rpggen` |
-| Your data | drafts of audits you have not generated yet, installed pack profiles, the Godot rpggen downloaded, the logs | `%LOCALAPPDATA%\rpggen\data` | `~/.local/share/rpggen` | `~/Library/Application Support/rpggen` |
+| Your data | drafts of audits you have not generated yet, installed pack profiles, the rules learned from your fixes (`learned_rules.json`), the Godot rpggen downloaded, the logs | `%LOCALAPPDATA%\rpggen\data` | `~/.local/share/rpggen` | `~/Library/Application Support/rpggen` |
 | Cache | extracted archives, analysis results, file lists, thumbnails, GIF and frame strips, terrain sheets | `%LOCALAPPDATA%\rpggen\cache` | `~/.cache/rpggen` | `~/Library/Caches/rpggen` |
 
 (On Linux the `XDG_CONFIG_HOME`, `XDG_DATA_HOME` and `XDG_CACHE_HOME` variables are honoured.)

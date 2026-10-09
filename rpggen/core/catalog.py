@@ -568,17 +568,37 @@ def assign_tilesets(
 def _merge_fragments(
     fragments: list[tuple[int, AssetFragment]],
 ) -> tuple[dict[str, Any], float, int]:
-    """Merge fragments for one asset: full claims first, then confidence; first value wins."""
+    """Merge fragments for one asset: full claims first, then the user's learned values
+    (T12.59), then confidence; first value wins."""
     ordered = sorted(
         fragments,
-        key=lambda item: (item[1].claim != "full", -item[1].confidence, item[0]),
+        key=lambda item: (
+            item[1].claim != "full",
+            not item[1].preferred,
+            -item[1].confidence,
+            item[0],
+        ),
     )
     facets: dict[str, Any] = {}
     for _, frag in ordered:
         for key, value in frag.facets.items():
             facets.setdefault(key, copy.deepcopy(value))
     first = min(index for index, _ in fragments)
-    return facets, max(f.confidence for _, f in fragments), first
+    confidence = max(f.confidence for _, f in fragments)
+    for _, frag in fragments:
+        # a learned value that was taken keeps the asset under review (confidence capped)
+        if frag.preferred and any(facets.get(k) == v for k, v in frag.facets.items()):
+            confidence = min(confidence, frag.confidence)
+    return facets, confidence, first
+
+
+def _learned_decided(fragments: list[tuple[int, AssetFragment]], facets: dict[str, Any]) -> bool:
+    """True when a learned value decided the asset's role or usage (the audit says so)."""
+    return any(
+        frag.preferred
+        and any(k in ("role", "usage") and facets.get(k) == v for k, v in frag.facets.items())
+        for _, frag in fragments
+    )
 
 
 def _license_files(inv: Inventory, root: str) -> list[str]:
@@ -648,8 +668,12 @@ def assemble(
     use_cache: bool = True,
     is_cancelled: Callable[[], bool] | None = None,
     progress: Progress | None = None,
+    learned: list[Any] | None = None,
 ) -> tuple[Catalog, IssueList, dict[str, str]]:
     """Run adapters, classify and merge everything into a Catalog.
+
+    ``learned`` are the rules learned from the user's fixes (T12.59; only the wizard passes
+    them): the learned adapter proposes their values.
 
     ``progress`` receives ``("Analyzing images", done, total)`` per pack and ``is_cancelled`` is
     polled before every image, so a cancel raises ``AssemblyCancelled`` within one image.
@@ -699,6 +723,7 @@ def assemble(
                     prewarmed=warm,
                 ),
                 work_dir=work_dir,
+                learned=list(learned or []),
             )
             results = adapters.run_adapters(inv, opened.root, ctx)
         except Cancelled as exc:
@@ -731,6 +756,8 @@ def assemble(
             for variant in variants:
                 facets, confidence, first = _merge_fragments(by_key[(path, variant)])
                 detected_by = results[first].adapter
+                if _learned_decided(by_key[(path, variant)], facets):
+                    detected_by = "learned"
                 role_conf = None
                 if "role" not in facets:
                     role, role_conf, alt = classifier.classify(facets, path, None)
@@ -782,6 +809,8 @@ def assemble(
                 if measured is not None and isinstance(facets.get("audio"), dict):
                     facets["audio"].setdefault("duration_s", round(measured, 3))
                 detected_by = results[first].adapter
+                if _learned_decided(by_key[(f.path, "")], facets):
+                    detected_by = "learned"
             asset_id = ids.asset_id(pack_id, f.path)
             catalog.assets.append(
                 Asset(asset_id, pack_id, f"{root}/{f.path}", f.sha256, f.kind, "AUTO_DETECTED",

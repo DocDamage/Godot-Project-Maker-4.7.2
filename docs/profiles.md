@@ -41,6 +41,20 @@ See `rpggen/schema/profile.schema.json` (mirrors `docs/spec/02_SCHEMAS.md`). In 
 Profiles are **data only**. rpggen validates every profile against the schema before using it and
 never executes anything from one; a file that does not validate is rejected whole.
 
+## Learned rules, profiles and folder rules
+
+Three ways to tell rpggen what a pack's files are, from the most general to the most exact:
+
+* **Learned rules** (T12.59) are rpggen's memory of your fixes across all packs: a folder or file
+  name word and the role, usage or collision you gave such files. They only *propose* (the asset
+  stays *Auto-detected*, at most 85% sure) and they are yours alone: `learned_rules.json` in the
+  data folder, never in a profile, a project or the registry.
+* **Folder rules** belong to one project: a glob on one pack and the facets it sets. *Edit →
+  Learned rules… → Add to folder rules* turns learned rules into folder rules of the open
+  project (a word becomes `**/*word*/**` or `**/*word*`, which can also match a longer word).
+* **Profiles** describe one pack exactly and can be shared; a profile's decisions win over learned
+  rules.
+
 ## The community registry
 
 The registry is the `registry/` folder of the project repository: `profiles/<profile_id>.rpgprofile.json`

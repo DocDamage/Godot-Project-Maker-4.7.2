@@ -12,7 +12,7 @@ from typing import Any
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 
-from rpggen.core import archive, inventory, orchestrator
+from rpggen.core import archive, inventory, learned_rules, orchestrator
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
 from rpggen.core.orchestrator import Callbacks
@@ -214,6 +214,7 @@ def analyze_packs(state: WizardState, *, callbacks: Callbacks) -> AnalysisResult
             [],
             is_cancelled=callbacks.is_cancelled,
             progress=sink.count,
+            learned=learned_rules.load().rules,  # the user's earlier fixes (T12.59)
         )
     except archive.Cancelled as exc:  # also catalog.AssemblyCancelled
         raise Cancelled from exc

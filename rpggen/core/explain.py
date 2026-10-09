@@ -54,7 +54,18 @@ def why(asset: catalog_mod.Asset) -> str:
     shape = _shape(eff)
     if shape:
         parts.append(shape)
-    if asset.detected_by and asset.detected_by not in ("inventory", "generic_grid"):
+    if asset.detected_by == "learned":
+        from rpggen.core import learned_rules
+
+        rules = learned_rules.cached().rules
+        times = learned_rules.times_learned(rules, learned_rules.pack_relative(asset.path))
+        parts.insert(
+            0,
+            f"learned from your earlier fixes ({times} times)"
+            if times
+            else "learned from your earlier fixes",
+        )
+    elif asset.detected_by and asset.detected_by not in ("inventory", "generic_grid"):
         parts.append(f"read by the {asset.detected_by} reader")
     text = "; ".join(parts) if parts else "no strong hint in the name or the picture"
     alts = [(r, c) for r, c in (eff.get("roles_alt") or []) if r != role][:MAX_ALTERNATIVES]

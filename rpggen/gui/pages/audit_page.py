@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt, Signal
@@ -27,10 +28,18 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen import ids
-from rpggen.core import app_settings, contact_sheet, labels, profile_registry, profiles
+from rpggen.core import (
+    app_settings,
+    contact_sheet,
+    labels,
+    learned_rules,
+    profile_registry,
+    profiles,
+)
 from rpggen.core import catalog as catalog_mod
 from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
+from rpggen.gui import edits as edits_mod
 from rpggen.gui import workers
 from rpggen.gui.dialogs.contact_sheet_dialog import ContactSheetDialog, SheetOptions
 from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog, FindProfileDialog
@@ -55,7 +64,20 @@ from rpggen.gui.widgets.pack_info import PackInfoPanel
 from rpggen.gui.widgets.task_progress import error_text, run_task
 from rpggen.gui.widgets.terrain_tab import TerrainTab
 
+log = logging.getLogger(__name__)
+
 QUICK_ROLES = ["GROUND", "WALL", "DECORATION", "BUILDING", "PLAYER", "NPC", "ENEMY", "ITEM", "UI"]
+
+
+def learn_from_fixes(edits: list[learned_rules.Edit], weight: int) -> None:
+    """Record role, usage and collision fixes as evidence for learned rules (T12.59); an undo
+    takes it back. The file stays on this computer."""
+    try:
+        book = learned_rules.load()
+        learned_rules.learn(book, edits, weight=weight)
+        learned_rules.save(book)
+    except OSError:
+        log.warning("learned rules could not be saved", exc_info=True)
 
 
 def make_resolver(state: WizardState) -> PathResolver:
@@ -310,6 +332,7 @@ class AuditPage(WizardPage):
         assert state.catalog is not None
         if self.session is None:
             self.session = EditSession(state.catalog, self)
+            self.session.learner = learn_from_fixes
             self.detail = AssetDetail(self.session)
             self.detail_scroll = self._scrolled(self.detail)
             self.side.addWidget(self.detail_scroll)
@@ -484,6 +507,19 @@ class AuditPage(WizardPage):
 
     def run_analysis(self, state: WizardState) -> bool:  # overridden by tests
         return analysis_progress.run_analysis(self, state)
+
+    def add_folder_rules(self, rules: list[dict]) -> int:
+        """Add folder rules (``{pack_id, glob, set}``, e.g. learned rules) as one undo step;
+        returns how many were added."""
+        if self.session is None or not rules:
+            return 0
+
+        def change(catalog: catalog_mod.Catalog) -> catalog_mod.Catalog:
+            for rule in rules:
+                catalog = edits_mod.add_folder_rule(catalog, catalog_mod.FolderRule.from_json(rule))
+            return catalog
+
+        return len(rules) if self.session.apply(self.tr("Add folder rules"), change) else 0
 
     # ------------------------------------------------------------------ contact sheet (T12.57)
 

@@ -92,6 +92,9 @@ class WindowMenus:
         self.storage_action = self._action(
             edit_menu, self.tr("&Storage…"), "storageAction", self.show_storage
         )
+        self.learned_action = self._action(
+            edit_menu, self.tr("&Learned rules…"), "learnedRulesAction", self.show_learned_rules
+        )
         self.confirm_regen_action = self._action(
             edit_menu,
             self.tr("Show changes before regenerating"),
@@ -412,6 +415,17 @@ class WindowMenus:
             )
             return
         ConflictDialog(target, None, self).exec()
+
+    def show_learned_rules(self) -> None:
+        """The rules learned from the audit fixes (T12.59); with an audit open they can become
+        that project's folder rules."""
+        from rpggen.gui.dialogs.learned_rules_dialog import LearnedRulesDialog
+
+        audit = self._audit_page()
+        session = getattr(audit, "session", None)
+        pack_ids = [p.pack_id for p in session.catalog.packs] if session is not None else []
+        add = audit.add_folder_rules if session is not None else None
+        LearnedRulesDialog(None, pack_ids, add, self).exec()  # type: ignore[arg-type]
 
     def show_storage(self) -> None:
         StorageDialog(self).exec()  # type: ignore[arg-type]
