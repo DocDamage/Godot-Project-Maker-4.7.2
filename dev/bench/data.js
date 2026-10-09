@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791516195068,
+  "lastUpdate": 1791517196153,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -319,6 +319,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 4.49,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "9726d0ed771caf6d9dfff5d78f230c4836c52b67",
+          "message": "Plan M13: twenty improvements and the Metroidvania archetype before 1.0\n\nAdds docs/spec/M13_polish_and_metroidvania.md with 31 task cards: ten wizard\nUX cards, seven feature improvements, three feature additions, nine cards for\na side-view Metroidvania archetype, the documentation card and the M13 gate.\nT12.66 (the 1.0 gate) now depends on T13.31. The start page, status page and\nCONTRIBUTING reference the new milestone; each known 1.0 limit names the\nM13 card that removes it.\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>",
+          "timestamp": "2026-10-08T23:34:19-04:00",
+          "tree_id": "6478683aa00bf369f7af160db2de0541691945a9",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/9726d0ed771caf6d9dfff5d78f230c4836c52b67"
+        },
+        "date": 1791517193222,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 8.79,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 0.79,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 106.12,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 80.09,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 9.98,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 10.59,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 3.59,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 3.34,
             "unit": "s"
           }
         ]
