@@ -414,3 +414,115 @@ def test_the_ignore_choice_keeps_the_pack_art_out_of_the_first_commit(
     assert tracked and not [name for name in tracked if name.startswith("assets/packs/")]
     assert (target / "assets" / "packs" / "sample_pack").is_dir()  # the art is there, untracked
     assert vcs.is_clean(target)
+
+
+# --------------------------------------------------------------------------- T14.01: 1.1 -> 1.2
+
+OLD_REFS = ("v1.1.0", "m13", "origin/m13")
+OLD_COMBAT = "addons/rpg_runtime/archetypes/arpg"
+NEW_COMBAT = "addons/rpg_runtime/combat/realtime"
+MOVED_SCRIPTS = (
+    "damage_info",
+    "hitbox",
+    "hurtbox",
+    "health",
+    "projectile",
+    "state_machine",
+    "pickup",
+    "screen_feedback",
+)
+
+OLD_PATH_SCRIPT = """extends SceneTree
+# A user's script written against 1.1: it names the combat scripts by their old paths.
+const OldHitbox := preload("res://addons/rpg_runtime/archetypes/arpg/hitbox.gd")
+const OldHealth := preload("res://addons/rpg_runtime/archetypes/arpg/health.gd")
+const OldInfo := preload("res://addons/rpg_runtime/archetypes/arpg/damage_info.gd")
+
+func _initialize() -> void:
+	var hitbox: Area2D = OldHitbox.new()
+	var health: Node = OldHealth.new()
+	var info: RefCounted = OldInfo.new()
+	var good := hitbox is RpgHitbox and health is RpgHealth and info is RpgDamageInfo
+	var enemies := DirAccess.get_files_at("res://generated/scenes/enemies")
+	var loaded := 0
+	for f in enemies:
+		if f.ends_with(".tscn"):
+			var scene := load("res://generated/scenes/enemies/" + f) as PackedScene
+			var node := scene.instantiate() if scene != null else null
+			if node != null and node.get_node_or_null("Hurtbox") is RpgHurtbox:
+				loaded += 1
+			if node != null:
+				node.free()
+	hitbox.free()
+	health.free()
+	print("old paths %s, enemy scenes %d" % [good, loaded])
+	quit(0 if good and loaded > 0 else 1)
+"""
+
+
+def _templates_of_1_1(tmp_path: Path) -> Path | None:
+    """The template project of release 1.1 from this repository's history, or None."""
+    import io
+    import subprocess
+    import tarfile
+
+    repo = SAMPLE.parent
+    for ref in OLD_REFS:
+        found = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", ref + "^{commit}"],
+            capture_output=True,
+            check=False,
+        )
+        if found.returncode != 0:
+            continue
+        packed = subprocess.run(
+            ["git", "-C", str(repo), "archive", "--format=tar", ref, "godot_templates"],
+            capture_output=True,
+            check=True,
+        )
+        with tarfile.open(fileobj=io.BytesIO(packed.stdout)) as tar:
+            tar.extractall(tmp_path / "release_1_1", filter="data")
+        return tmp_path / "release_1_1" / "godot_templates"
+    return None
+
+
+def test_an_action_rpg_made_by_1_1_regenerates_and_old_combat_paths_still_load(
+    godot_exe: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """T14.01: the real-time combat scripts moved to combat/realtime/. A project whose runtime
+    came from the 1.1 templates regenerates cleanly, nothing of the user's is touched, and a
+    script that preloads an old path gets the same classes."""
+    old_templates = _templates_of_1_1(tmp_path)
+    if old_templates is None:
+        pytest.skip("this checkout has no v1.1.0 tag and no m13 branch")
+    pack, target = _make_pack(tmp_path), tmp_path / "out"
+    opened = archive.open_pack(pack, set(), pack_id="sample_pack")
+    inv = inventory.build_inventory(opened)
+    cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [])
+    cfg = config.default_for(
+        "Sample RPG", [config.pack_ref_from_source(pack, "sample_pack")], archetype="arpg"
+    )
+    cfg.starter = mapping.default_starter(cat, "arpg")
+    with monkeypatch.context() as patch:
+        patch.setattr(paths, "templates_root", lambda: old_templates)
+        first = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert first.ok, [f"{i.code}: {i.message}" for i in first.issues]
+    assert not (target / NEW_COMBAT).exists(), "the fixture must be a 1.1 project"
+    assert "class_name RpgHitbox" in (target / OLD_COMBAT / "hitbox.gd").read_text("utf-8")
+    game_before = {k: v for k, v in _stable(target).items() if k.startswith("game/")}
+
+    result = _regenerate(godot_exe, target)
+
+    assert result.ok, [f"{i.code}: {i.message}" for i in result.issues]
+    assert [c for c in _codes(result) if c.startswith("REGEN-")] == []
+    after = _stable(target)
+    assert {k: v for k, v in after.items() if k.startswith("game/")} == game_before
+    for stem in MOVED_SCRIPTS:
+        assert f"{NEW_COMBAT}/{stem}.gd" in after
+        shim = (target / OLD_COMBAT / f"{stem}.gd").read_text(encoding="utf-8")
+        assert f'extends "res://{NEW_COMBAT}/{stem}.gd"' in shim
+        assert "class_name" not in shim
+    probe = target / "game" / "old_path_probe.gd"
+    probe.write_text(OLD_PATH_SCRIPT, encoding="utf-8", newline="\n")
+    run = _godot(godot_exe, target, ["--script", "res://game/old_path_probe.gd"], "old_paths")
+    assert "old paths true" in run.stdout, run.stdout

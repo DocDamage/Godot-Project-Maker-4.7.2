@@ -25,6 +25,41 @@ func test_every_archetype_script_parses(t) -> void:
 		var script := load(path) as GDScript
 		t.ok(script != null and script.can_instantiate(), path)
 
+## T14.01: the damage primitives live in combat/realtime/ (the metroidvania shares them); a script
+## at each old path extends the moved one, so a user's preload of the old path gives the same class.
+const REALTIME_DIR := "res://addons/rpg_runtime/combat/realtime"
+const MOVED := ["damage_info", "hitbox", "hurtbox", "health", "projectile", "state_machine", "pickup", "screen_feedback"]
+
+func test_the_realtime_set_moved_and_the_old_paths_still_work(t) -> void:
+	for moved: String in MOVED:
+		var real := load("%s/%s.gd" % [REALTIME_DIR, moved]) as GDScript
+		var shim := load("%s/%s.gd" % [ARCH_DIR, moved]) as GDScript
+		t.ok(real != null and real.get_global_name() != &"", "%s is a class in combat/realtime" % moved)
+		t.ok(shim != null and shim.can_instantiate(), "%s: the old path loads" % moved)
+		if real == null or shim == null:
+			continue
+		t.ok(shim.get_base_script() == real, "%s: the old path extends the moved script" % moved)
+		t.eq(shim.get_global_name(), &"", "%s: the shim defines no class of its own" % moved)
+	var old_hitbox: Variant = (load(ARCH_DIR + "/hitbox.gd") as GDScript).new()
+	t.ok(old_hitbox is RpgHitbox, "a hitbox made from the old path is an RpgHitbox")
+	(old_hitbox as Node).free()
+	var old_info: Variant = (load(ARCH_DIR + "/damage_info.gd") as GDScript).new()
+	t.ok(old_info is RpgDamageInfo)
+	t.eq(RpgArpgMath.base_damage(10, 4), RpgRealtimeMath.base_damage(10, 4), "the formulas keep their action-RPG name")
+	t.near(RpgArpgMath.CRIT_MULTIPLIER, RpgRealtimeMath.CRIT_MULTIPLIER)
+
+## A hitbox finds its owner by its components, so the owner need not be a top-down actor.
+func test_a_hitbox_reads_the_stats_of_any_owner_with_components(t) -> void:
+	var fighter := _fighter("player", 9, 0, 10)
+	var hitbox := fighter.get_node("AttackHitbox") as RpgHitbox
+	t.ok(hitbox.owner_actor() == fighter)
+	t.eq(RpgRealtimeMath.stats_of(fighter).attack, 9)
+	t.eq(RpgRealtimeMath.stats_of(Node2D.new()), null, "no components, no stats")
+	t.eq(RpgRealtimeMath.facing_of(fighter), Vector2.DOWN)
+	fighter.facing = "left"
+	t.eq(RpgRealtimeMath.facing_of(fighter), Vector2.LEFT)
+	fighter.free()
+
 # ---------------------------------------------------------------- fixtures
 
 ## A fighter: actor + Components/Stats + Health + Hurtbox + AttackHitbox, not in the tree. The

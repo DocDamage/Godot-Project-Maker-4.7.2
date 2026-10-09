@@ -9,9 +9,11 @@ const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 
 const DIR := "res://addons/rpg_runtime/archetypes/arpg/"
-const HEALTH := DIR + "health.gd"
-const HURTBOX := DIR + "hurtbox.gd"
-const HITBOX := DIR + "hitbox.gd"
+## The damage primitives are shared with the metroidvania (T14.01).
+const REALTIME_DIR := "res://addons/rpg_runtime/combat/realtime/"
+const HEALTH := REALTIME_DIR + "health.gd"
+const HURTBOX := REALTIME_DIR + "hurtbox.gd"
+const HITBOX := REALTIME_DIR + "hitbox.gd"
 const PLAYER_COMBAT := DIR + "player_combat.gd"
 const SWING_EFFECT := DIR + "swing_effect.gd"
 const ENEMY_AI := DIR + "enemy_ai.gd"
