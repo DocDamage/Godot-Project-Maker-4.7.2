@@ -213,7 +213,7 @@ unknown licence.
 | `audio` | `{ "type": "music"/"sfx", "loop": bool, "duration_s"?: number, "loop_start_ms"?: int, "loop_end_ms"?: int }` | usage=audio | `duration_s` is read from the file (WAV, OGG, MP3, FLAC) when it can be; optional. `loop_start_ms` and `loop_end_ms` (T13.17, optional, set on the Audit page) are where a looping track jumps back to and from; without them it loops as a whole. An override may set a part of `audio` (it merges) and `null` takes a loop point away. |
 | `nine_slice` | `[left, top, right, bottom]` | usage=ui | Margins in px. |
 | `import` | `{ "filter": "nearest"/"linear", "mipmaps": bool }` | images | Defaults: nearest, false. |
-| `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). |
+| `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). Side-view tags detected from folder and file words (T14.02), read by the `metroidvania` archetype only: `platform`, `one_way`, `ladder`, `hazard`, `save_point`, `ability`, and `parallax:<n>` on a background (1 is the farthest layer). |
 | `derived_from` | string | a recolour variant | The id of the asset a variant was recoloured from (T13.18); detected facet only. |
 | `size` | vec2i | every image asset | Pixel size of the image file (T2.14); a change on a tile sheet used by a tileset raises CONFLICT. |
 | `region` | `[x, y, w, h]` | usage=portrait | Pixel rect of one face inside a face sheet (T2.11). |
@@ -224,7 +224,8 @@ unknown licence.
 **Grid:** `{ "cell": vec2i, "margin": vec2i, "separation": vec2i }`. Columns are `floor((w - 2*margin.x + separation.x) / (cell.x + separation.x))`; rows are computed the same way with y. The margin applies to the left and top. A right/bottom remainder is allowed and ignored.
 
 **CollisionSpec:** `{ "profile": Profile, "polygon": [[x,y],…]? }`.
-* Profile is one of `NONE, FULL, BOTTOM_HALF, BOTTOM_EDGE, TOP_EDGE, LEFT_EDGE, RIGHT_EDGE, ALPHA_POLYGON, CUSTOM`.
+* Profile is one of `NONE, FULL, BOTTOM_HALF, BOTTOM_EDGE, TOP_EDGE, LEFT_EDGE, RIGHT_EDGE, ALPHA_POLYGON, CUSTOM, ONE_WAY, LADDER`.
+* `ONE_WAY` and `LADDER` (T14.02, release 1.2) are side-view values for `tiles` assets: a platform the player jumps through from below and drops through with down + jump, and a tile to climb that blocks nothing. Only the `metroidvania` archetype reads them (its TileSet gets a one-way physics layer and the custom data `ladder`); `turn_based` and `arpg` treat both as `NONE`, so a top-down project's TileSet is the same with either.
 * `polygon` is required for `CUSTOM`. Its coordinates are pixels relative to the **top-left** of the cell or object. The builder converts them to Godot's tile-centered space (T1.07).
 
 **AnimSpec:**

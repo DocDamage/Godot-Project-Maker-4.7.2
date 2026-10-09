@@ -80,6 +80,133 @@ LIGHT_WORDS = frozenset(
 SURFACE_WORDS = ("grass", "stone", "wood", "sand", "water", "snow")
 
 
+# Side-view words (T14.02): what a platformer's folders and files call their parts. The tags are
+# read by the metroidvania's recipes only; the other archetypes ignore them.
+SIDE_TAG_WORDS: tuple[tuple[str, frozenset[str]], ...] = (
+    ("platform", frozenset({"platform", "platforms", "ledge", "ledges"})),
+    ("one_way", frozenset({"oneway", "semi", "semisolid", "jumpthrough"})),
+    ("ladder", frozenset({"ladder", "ladders", "rope", "ropes", "vine", "vines"})),
+    ("hazard", frozenset({"spike", "spikes", "lava", "thorn", "thorns", "saw", "saws"})),
+    ("save_point", frozenset({"save", "savepoint", "checkpoint", "checkpoints", "bench"})),
+    ("ability", frozenset({"powerup", "powerups", "upgrade", "upgrades", "ability", "abilities", "orb", "orbs"})),
+)  # fmt: skip
+# two words that make a tag only together: "one_way", "thin platform", "power_up"
+SIDE_TAG_PAIRS: tuple[tuple[str, tuple[str, str]], ...] = (
+    ("one_way", ("one", "way")),
+    ("one_way", ("thin", "platform")),
+    ("one_way", ("thin", "platforms")),
+    ("ability", ("power", "up")),
+)
+PARALLAX_DEPTHS = {"far": 1, "mid": 2, "middle": 2, "near": 3}
+PARALLAX_WORDS = frozenset({"bg", "background", "backgrounds", "layer", "parallax"})
+_PARALLAX_NUMBER = re.compile(
+    r"(?:^|[^a-z])(?:bg|backgrounds?|layer|parallax)[_\- ]?(\d{1,2})(?!\d)", re.IGNORECASE
+)
+PARALLAX_MAX = 9
+
+SIDE_VIEW_WORDS = frozenset(
+    {"platformer", "platformers", "sidescroller", "sidescrolling", "metroidvania", "jump"}
+)
+TOP_VIEW_WORDS = frozenset({"rpg", "jrpg", "topdown", "overworld"})
+SIDE_VIEW_PAIRS = (("side", "scroller"), ("side", "view"), ("side", "scrolling"))
+TOP_VIEW_PAIRS = (("top", "down"),)
+
+
+def _all_words(text: str) -> list[str]:
+    """Like _tokenize, but one-letter words and numbers stay out and nothing else is dropped."""
+    return [w for w in _tokenize(text) if len(w) > 1]
+
+
+def _has_pair(words: list[str], pair: tuple[str, str]) -> bool:
+    return any(a == pair[0] and b == pair[1] for a, b in zip(words, words[1:], strict=False))
+
+
+def parallax_depth(path: str) -> int | None:
+    """The depth a background's name gives it; 1 is the farthest layer. ``bg_far`` and
+    ``background_1`` are 1, ``layer2`` and ``bg_mid`` are 2, ``bg_near`` is 3. None for a name
+    that says nothing about depth (a title picture, ``sky.png``)."""
+    folders, stem = _path_parts(path)
+    words = [w.rstrip("0123456789") for w in _all_words(stem)]  # "layer2" is the word "layer"
+    folder_words = set(_all_words(folders[-1])) if folders else set()
+    if not (set(words) | folder_words) & PARALLAX_WORDS:
+        return None
+    for word in words:
+        if word in PARALLAX_DEPTHS:
+            return PARALLAX_DEPTHS[word]
+    numbered = _PARALLAX_NUMBER.search(stem)
+    if numbered and 1 <= int(numbered.group(1)) <= PARALLAX_MAX:
+        return int(numbered.group(1))
+    return None
+
+
+def side_view_tags(name: str) -> list[str]:
+    """The side-view tags the words of a file or an object suggest (T14.02), sorted:
+    ``platform``, ``one_way``, ``ladder``, ``hazard``, ``save_point``, ``ability`` and
+    ``parallax:<n>``. The name's own words and those of its nearest folder count."""
+    path = name if "." in name.rsplit("/", 1)[-1] else name + ".png"
+    folders, stem = _path_parts(path)
+    found: set[str] = set()
+    for words in (_all_words(stem), _all_words(folders[-1]) if folders else []):
+        have = set(words)
+        for tag, tag_words in SIDE_TAG_WORDS:
+            if have & tag_words:
+                found.add(tag)
+        for tag, pair in SIDE_TAG_PAIRS:
+            if _has_pair(words, pair):
+                found.add(tag)
+    if "one_way" in found:
+        found.discard("platform")  # a thin platform is the one-way kind
+    depth = parallax_depth(path)
+    if depth is not None:
+        found.add(f"parallax:{depth}")
+    return sorted(found)
+
+
+def _is_side_sheet(animations: Any) -> bool:
+    """A character that jumps or falls and never walks up the screen."""
+    if not isinstance(animations, dict) or not animations:
+        return False
+    actions = {str(name).split("_", 1)[0] for name in animations}
+    return bool(actions & {"jump", "fall"}) and not _is_top_sheet(animations)
+
+
+def _is_top_sheet(animations: Any) -> bool:
+    return isinstance(animations, dict) and any(
+        str(name) in ("walk_up", "idle_up") for name in animations
+    )
+
+
+def pack_view(inventory: Any, sheets: Any = ()) -> str:
+    """``"side"`` or ``"top"``: how a pack looks at its world (T14.02). The words of its folders
+    and files count (platformer, sidescroller, metroidvania, jump against rpg, topdown,
+    overworld; a name is counted once), and so does every character sheet in ``sheets``
+    (detected facets): one with a jump or a fall and no walk up the screen is a side-view
+    character, one that walks up the screen a top-down one. A pack that says nothing is
+    top-down."""
+    side = 0
+    top = 0
+    seen: set[str] = set()
+    for f in getattr(inventory, "files", ()):
+        folders, stem = _path_parts(f.path)
+        for part in (*folders, stem):
+            if part.casefold() in seen:
+                continue
+            seen.add(part.casefold())
+            words = _all_words(part)
+            have = set(words)
+            if have & SIDE_VIEW_WORDS or any(_has_pair(words, p) for p in SIDE_VIEW_PAIRS):
+                side += 1
+            if have & TOP_VIEW_WORDS or any(_has_pair(words, p) for p in TOP_VIEW_PAIRS):
+                top += 1
+    for facets in sheets:
+        animations = facets.get("animations") if isinstance(facets, dict) else None
+        if _is_side_sheet(animations):
+            side += 2
+        elif _is_top_sheet(animations):
+            top += 2
+    return "side" if side > top else "top"
+
+
 def suggested_tags(name: str) -> list[str]:
     """Tags the name of a file or object suggests: "light" for a torch, lamp, lantern, candle or
     campfire. ``name`` is a path or a plain name."""

@@ -6,8 +6,19 @@ from rpggen.core import catalog as catalog_mod
 from rpggen.core.config import GeneratorConfig
 from rpggen.errors import IssueList, Severity
 
-REQUIRED: dict[str, list[str]] = {"turn_based": ["PLAYER", "GROUND"], "arpg": ["PLAYER", "GROUND"]}
+REQUIRED: dict[str, list[str]] = {
+    "turn_based": ["PLAYER", "GROUND"],
+    "arpg": ["PLAYER", "GROUND"],
+    "metroidvania": ["PLAYER", "GROUND"],
+}
 RECOMMENDED = ["NPC", "ENEMY", "BUILDING", "WALL", "ITEM", "UI", "PORTRAIT"]
+# The roles an archetype uses beside the required ones (T14.02). The two top-down archetypes
+# share RECOMMENDED; a metroidvania has no houses or map border and adds backgrounds and a boss.
+OPTIONAL: dict[str, list[str]] = {
+    "turn_based": RECOMMENDED,
+    "arpg": RECOMMENDED,
+    "metroidvania": ["BACKGROUND", "DECORATION", "ENEMY", "BOSS", "ITEM", "NPC", "UI", "PORTRAIT"],
+}
 
 # What needs each role (used in the ASSET-010 message).
 REQUIRED_BY = {
@@ -21,6 +32,32 @@ REQUIRED_BY = {
     "UI": "menus",
     "PORTRAIT": "dialogue portraits",
 }
+# The same for a metroidvania, where a role is used for something else.
+REQUIRED_BY_ARCHETYPE: dict[str, dict[str, str]] = {
+    "metroidvania": {
+        "PLAYER": "the player, seen from the side",
+        "GROUND": "the floors and walls of every room",
+        "BACKGROUND": "the parallax layers behind a room",
+        "DECORATION": "scenery in the rooms",
+        "ENEMY": "the creatures in the rooms",
+        "BOSS": "the guardian",
+        "ITEM": "pickups and chests",
+        "NPC": "the characters you talk to",
+    }
+}
+
+
+def recommended(archetype: str) -> list[str]:
+    """The roles ``archetype`` uses when the pack has them, in the Mapping page's order."""
+    return OPTIONAL.get(archetype, RECOMMENDED)
+
+
+def required_by(role: str, archetype: str | None = None) -> str:
+    """What in the game needs ``role`` ("the starter map"); the role's name when nothing does."""
+    own = REQUIRED_BY_ARCHETYPE.get(archetype or "", {})
+    return own.get(role) or REQUIRED_BY.get(role, role.lower())
+
+
 OBJECT_ROLES = {"BUILDING"}  # roles a sheet object (a house cut from a tile sheet) can fill
 _INACTIVE = {"UNUSED", "MISSING"}
 
@@ -63,11 +100,11 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     issues = IssueList()
     for role in REQUIRED.get(cfg.archetype, REQUIRED["turn_based"]):
         if not _filled(catalog, role):
-            issue = issues.add("ASSET-010", role=role, feature=REQUIRED_BY.get(role, role.lower()))
+            issue = issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
             issues[-1] = dataclasses.replace(issue, severity=Severity.ERROR)
-    for role in RECOMMENDED:
+    for role in recommended(cfg.archetype):
         if not _filled(catalog, role):
-            issues.add("ASSET-010", role=role, feature=REQUIRED_BY.get(role, role.lower()))
+            issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
     if not _assets_with_role(catalog, "AUDIO_MUSIC"):
         issues.add("ASSET-026")
     if not _assets_with_role(catalog, "AUDIO_SFX"):

@@ -35,7 +35,8 @@ static func profile_polygon(profile: String, cell: Vector2i, custom: Array = [])
 				pts.append(Vector2(JsonUtil.to_float(p[0]), JsonUtil.to_float(p[1])))
 			return pts
 		_:
-			# NONE, and ALPHA_POLYGON (traced from pixels by the tileset recipe).
+			# NONE, and ALPHA_POLYGON (traced from pixels by the tileset recipe). ONE_WAY and LADDER
+			# (T14.02) have no shape here: only the metroidvania's TileSet gives them one.
 			return PackedVector2Array()
 
 ## Converts top-left pixel space to Godot's tile-centered space.

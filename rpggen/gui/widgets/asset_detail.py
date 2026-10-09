@@ -68,6 +68,10 @@ COLLISION_PROFILES = [
     "LEFT_EDGE",
     "RIGHT_EDGE",
     "ALPHA_POLYGON",
+    # side view (T14.02): a platform to jump through from below, and a tile to climb. Only a
+    # metroidvania reads them; a top-down map has no gravity and treats both as NONE.
+    "ONE_WAY",
+    "LADDER",
 ]
 COLLISION_USAGES = {"tiles", "object"}
 GRID_USAGES = {"tiles", "sprite"}

@@ -9,7 +9,7 @@ const JsonIo := preload("../tools/json_io.gd")
 signal saved(entry_id: String)
 
 const ROLES: Array[String] = ["GROUND", "WALL", "CLIFF", "WATER", "ROAD", "AUTOTILE", "DECORATION", "BUILDING", "INTERIOR", "PLAYER", "NPC", "ENEMY", "BOSS", "WEAPON", "ITEM", "EFFECT", "PROJECTILE", "UI", "PORTRAIT", "BACKGROUND", "NONE"]
-const PROFILES: Array[String] = ["NONE", "FULL", "BOTTOM_HALF", "BOTTOM_EDGE", "TOP_EDGE", "LEFT_EDGE", "RIGHT_EDGE", "ALPHA_POLYGON", "CUSTOM"]
+const PROFILES: Array[String] = ["NONE", "FULL", "BOTTOM_HALF", "BOTTOM_EDGE", "TOP_EDGE", "LEFT_EDGE", "RIGHT_EDGE", "ALPHA_POLYGON", "CUSTOM", "ONE_WAY", "LADDER"]
 
 var entry: Dictionary = {}
 var _catalog: Dictionary = {}

@@ -170,7 +170,9 @@
             "LEFT_EDGE",
             "RIGHT_EDGE",
             "ALPHA_POLYGON",
-            "CUSTOM"
+            "CUSTOM",
+            "ONE_WAY",
+            "LADDER"
           ]
         },
         "polygon": {

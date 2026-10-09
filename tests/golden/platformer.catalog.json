@@ -1,0 +1,925 @@
+{
+  "assets": [
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          320,
+          180
+        ],
+        "tags": [
+          "parallax:1"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.backgrounds.bg_far",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/backgrounds/bg_far.png",
+      "sha256": "5c2d6125dc5d9e40367f67dd8df6cf83aaac2ecf0d1c091ed3699ccd4bb64ffb",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          320,
+          180
+        ],
+        "tags": [
+          "parallax:2"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.backgrounds.bg_mid",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/backgrounds/bg_mid.png",
+      "sha256": "444a5a5af06058c0c5f5e7fd9821e3cd44d6fb840cdefcfab86c6cff019c5491",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          320,
+          180
+        ],
+        "tags": [
+          "parallax:3"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.backgrounds.bg_near",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/backgrounds/bg_near.png",
+      "sha256": "89a5eed45bce7a79ad3bacadc2587a1eb5bddb877b68f6763448cf06772b13cd",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/platformer/boss/guardian_attack.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/boss/guardian_idle.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/boss/guardian_walk.png"
+          }
+        },
+        "frame": [
+          32,
+          32
+        ],
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          16,
+          31
+        ],
+        "role": "BOSS",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "platformer.boss.guardian_attack",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/boss/guardian_attack.png",
+      "sha256": "fdec5beac994b36c4127e0141e980afb5355ac3118b8e1665f2a3e7428558025",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.4,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/platformer/characters/hero_attack.png"
+          },
+          "climb_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/characters/hero_climb.png"
+          },
+          "dash_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/platformer/characters/hero_dash.png"
+          },
+          "fall_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/characters/hero_fall.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/characters/hero_idle.png"
+          },
+          "jump_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/platformer/characters/hero_jump.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/characters/hero_run.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.4
+          ]
+        ],
+        "size": [
+          72,
+          24
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "platformer.characters.hero_attack",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/characters/hero_attack.png",
+      "sha256": "d88fb06704efce31e5a67b3a1b85213a01231f3996a458a90438d5dd399fab3f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.655172,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/enemies/bat_idle.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.172414
+          ],
+          [
+            "PLAYER",
+            0.034483
+          ]
+        ],
+        "size": [
+          32,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "platformer.enemies.bat_idle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/enemies/bat_idle.png",
+      "sha256": "dda8eb658bd19122e2e9958e75bc0bfcf7530fd4b6aa7a48a9e7508f2ad90bf3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/enemies/crawler_walk.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          32,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "platformer.enemies.crawler_walk",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/enemies/crawler_walk.png",
+      "sha256": "bb1b643755c433f24449728dfb9171ec990a41de8f09d22836d7199d5eb4d69f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "ability"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.items.powerup_orb_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/items/powerup_orb_1.png",
+      "sha256": "275a97a1a514673ce578d85ca4045f58063d0157d92a7a77fca712dbb0001e70",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "ability"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.items.powerup_orb_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/items/powerup_orb_2.png",
+      "sha256": "6f64f2bc06d6f7f2fab0f57a25026ae85c0bb6fc69c2fa1c5c7ccdaa040e8d87",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/platformer/npc/villager_idle.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.033333
+          ]
+        ],
+        "size": [
+          48,
+          24
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "platformer.npc.villager_idle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/npc/villager_idle.png",
+      "sha256": "46d2d2ab0b42e4a2cda8f29f8950345bad3e38b1f79bca2d9d7b92d2bc074563",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "save_point"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.objects.save_bench",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/objects/save_bench.png",
+      "sha256": "6f627d2218731fb954a56ae1864c3d2147006de3cf05f1720e522c18eece99a5",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.objects.sign",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/objects/sign.png",
+      "sha256": "3b2ea3d41b3a2cc5391965013eb3df62d33ea619966772c5358ed5f4d4deb780",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.4554,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.0625
+          ],
+          [
+            "WALL",
+            0.03125
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.tiles.ground",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/tiles/ground.png",
+      "sha256": "bf1830562bb1ff7f1acf60b30cd5b93815085cf45a9545c6c9b3f31e989cc38e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "DECORATION",
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "hazard"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.tiles.hazards.spikes",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/tiles/hazards/spikes.png",
+      "sha256": "7ee9b52083e706dfa62518326b16211e52a29456f42642668fcc57aa5f7f18a5",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "collision": {
+          "profile": "LADDER"
+        },
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "DECORATION",
+        "size": [
+          16,
+          48
+        ],
+        "tags": [
+          "ladder"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.tiles.ladders.ladder",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/tiles/ladders/ladder.png",
+      "sha256": "7648fb3580e40b98bae9fe694fe2a23c0dcc1586438762b870285f18cb7e01c0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "collision": {
+          "profile": "ONE_WAY"
+        },
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "DECORATION",
+        "size": [
+          48,
+          16
+        ],
+        "tags": [
+          "one_way"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "platformer.tiles.platforms.oneway_planks",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "platformer",
+      "path": "assets/packs/platformer/tiles/platforms/oneway_planks.png",
+      "sha256": "d5b63043a577f65a79fa2ecf3768924f2a92f93325392b28a16788d228dc0228",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.1.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 4,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/platformer/LICENSE.txt"
+      ],
+      "pack_id": "platformer",
+      "profile_id": null,
+      "root": "assets/packs/platformer",
+      "source_sha256": "e73890d7693b79cf2334e8180c6e5fb47739ba5d459ad2094d0b01abe5636662",
+      "warnings": [
+        "strips_direction_assumed:boss/guardian_attack.png",
+        "strips_direction_assumed:boss/guardian_idle.png",
+        "strips_direction_assumed:boss/guardian_walk.png",
+        "strips_direction_assumed:characters/hero_attack.png",
+        "strips_direction_assumed:characters/hero_climb.png",
+        "strips_direction_assumed:characters/hero_dash.png",
+        "strips_direction_assumed:characters/hero_fall.png",
+        "strips_direction_assumed:characters/hero_idle.png",
+        "strips_direction_assumed:characters/hero_jump.png",
+        "strips_direction_assumed:characters/hero_run.png",
+        "strips_direction_assumed:enemies/bat_idle.png",
+        "strips_direction_assumed:enemies/crawler_walk.png",
+        "strips_direction_assumed:npc/villager_idle.png",
+        "view:side"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "platformer.tiles.ground",
+          "source_id": 0
+        },
+        {
+          "asset": "platformer.tiles.hazards.spikes",
+          "source_id": 1
+        },
+        {
+          "asset": "platformer.tiles.ladders.ladder",
+          "source_id": 2
+        },
+        {
+          "asset": "platformer.tiles.platforms.oneway_planks",
+          "source_id": 3
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

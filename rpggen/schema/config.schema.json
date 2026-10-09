@@ -215,7 +215,8 @@
         "ground": {"type": "string"},
         "building": {"type": "string"},
         "chest": {"type": "string"},
-        "portrait": {"type": "string"}
+        "portrait": {"type": "string"},
+        "boss": {"type": "string"}
       },
       "additionalProperties": false
     },

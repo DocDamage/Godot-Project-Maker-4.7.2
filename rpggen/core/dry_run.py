@@ -45,13 +45,15 @@ class _Cancelled(Exception):
 def _need(role: str, archetype: str) -> str:
     if role in requirements.REQUIRED.get(archetype, requirements.REQUIRED["turn_based"]):
         return "required"
-    return "recommended" if role in requirements.RECOMMENDED else "optional"
+    return "recommended" if role in requirements.recommended(archetype) else "optional"
 
 
 def _roles(catalog: catalog_mod.Catalog, archetype: str) -> dict[str, dict[str, Any]]:
     counts = requirements.role_counts(catalog)
     names = (
-        set(counts) | set(requirements.REQUIRED.get(archetype, [])) | set(requirements.RECOMMENDED)
+        set(counts)
+        | set(requirements.REQUIRED.get(archetype, []))
+        | set(requirements.recommended(archetype))
     )
     return {
         name: {"count": counts.get(name, 0), "need": _need(name, archetype)}

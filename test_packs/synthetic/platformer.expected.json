@@ -1,0 +1,87 @@
+{
+  "backgrounds/bg_far.png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "backgrounds/bg_mid.png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "backgrounds/bg_near.png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "boss/guardian_attack.png": {
+    "role": "BOSS",
+    "usage": "sprite"
+  },
+  "characters/hero_attack.png": {
+    "anims": [
+      "attack_down",
+      "climb_down",
+      "dash_down",
+      "fall_down",
+      "idle_down",
+      "jump_down",
+      "walk_down"
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "enemies/bat_idle.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "enemies/crawler_walk.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "items/powerup_orb_1.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "items/powerup_orb_2.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "npc/villager_idle.png": {
+    "role": "NPC",
+    "usage": "sprite"
+  },
+  "objects/save_bench.png": {
+    "role": "DECORATION",
+    "usage": "sprite"
+  },
+  "tiles/ground.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "tiles/hazards/spikes.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "role": "DECORATION",
+    "usage": "tiles"
+  },
+  "tiles/ladders/ladder.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "role": "DECORATION",
+    "usage": "tiles"
+  },
+  "tiles/platforms/oneway_planks.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "role": "DECORATION",
+    "usage": "tiles"
+  }
+}

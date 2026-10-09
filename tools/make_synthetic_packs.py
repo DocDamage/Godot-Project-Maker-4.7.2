@@ -1017,6 +1017,207 @@ def make_zipped(out: Path) -> None:
     _expected(out, "zipped", expected)
 
 
+# ------------------------------------------------------------------------------------------
+# M14: a side-view pack (T14.02)
+# ------------------------------------------------------------------------------------------
+
+ROCK: Color = (92, 84, 110, 255)
+ROCK_LIGHT: Color = (132, 122, 150, 255)
+ROCK_DARK: Color = (58, 52, 74, 255)
+MOSS: Color = (88, 150, 96, 255)
+WOOD: Color = (150, 104, 58, 255)
+WOOD_DARK: Color = (98, 64, 34, 255)
+SPIKE: Color = (214, 214, 224, 255)
+
+
+def _side_ground() -> Image.Image:
+    """4 x 2 solid tiles: a mossy top row and a plain rock row."""
+    img = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for col in range(4):
+        x = col * 16
+        d.rectangle([x, 0, x + 15, 15], fill=ROCK)
+        d.rectangle([x, 0, x + 15, 3], fill=MOSS)
+        d.point([(x + 3 + col, 7), (x + 10 - col, 11)], fill=ROCK_LIGHT)
+        d.rectangle([x, 16, x + 15, 31], fill=ROCK_DARK if col % 2 else ROCK)
+        d.point([(x + 4, 20 + col), (x + 11, 27 - col)], fill=ROCK_LIGHT)
+    return img
+
+
+def _side_platform() -> Image.Image:
+    """Three thin planks (left end, middle, right end): the top 5 px of each cell."""
+    img = Image.new("RGBA", (48, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, 47, 4], fill=WOOD)
+    d.line([(0, 4), (47, 4)], fill=WOOD_DARK)
+    d.line([(0, 0), (0, 4)], fill=WOOD_DARK)
+    d.line([(47, 0), (47, 4)], fill=WOOD_DARK)
+    for x in (15, 31):
+        d.point([(x, 1), (x, 2)], fill=WOOD_DARK)
+    return img
+
+
+def _side_ladder() -> Image.Image:
+    """Three ladder cells, one above the other."""
+    img = Image.new("RGBA", (16, 48), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([3, 0, 4, 47], fill=WOOD_DARK)
+    d.rectangle([11, 0, 12, 47], fill=WOOD_DARK)
+    for y in range(3, 48, 6):
+        d.rectangle([3, y, 12, y + 1], fill=WOOD)
+    return img
+
+
+def _side_spikes() -> Image.Image:
+    """Two spike cells: four teeth each, on a dark base."""
+    img = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for col in range(2):
+        x = col * 16
+        d.rectangle([x, 13, x + 15, 15], fill=ROCK_DARK)
+        for t in range(4):
+            tx = x + t * 4
+            d.polygon([(tx, 12), (tx + 1, 5 + col), (tx + 2, 5 + col), (tx + 3, 12)], fill=SPIKE)
+    return img
+
+
+def _side_strip(frames: int, color: Color, fw: int, fh: int, pose: str) -> Image.Image:
+    """A strip of a figure facing right: a body, an eye on its right side, feet on the baseline.
+    ``pose`` moves the body so that every animation has its own pixels."""
+    img = Image.new("RGBA", (frames * fw, fh), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for i in range(frames):
+        ox = i * fw
+        lift = {"jump": 3, "fall": 1, "climb": i % 2, "dash": 0}.get(pose, 0)
+        lean = {"run": i % 2, "dash": 2, "attack": 1}.get(pose, 0)
+        bw = max(6, fw * 5 // 8)
+        x0 = ox + (fw - bw) // 2 + lean
+        top = max(1, fh // 4 - lift)
+        bottom = fh - 2 - lift
+        d.rounded_rectangle([x0, top, x0 + bw - 1, bottom], radius=2, fill=color)
+        d.rectangle([x0 + bw - 3, top + 3, x0 + bw - 2, top + 4], fill=EYE)
+        d.line([x0 + 1, bottom + 1, x0 + bw - 2, bottom + 1], fill=BLACK)
+        if pose == "attack" and i >= 1:
+            d.line([x0 + bw, top + 5, min(ox + fw - 1, x0 + bw + 2 + i), top + 5], fill=EYE)
+        if pose == "hurt":
+            d.point([(x0 + 1, top + 1)], fill=(255, 80, 80, 255))
+    return img
+
+
+def _side_bench() -> Image.Image:
+    img = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([2, 7, 29, 9], fill=WOOD, outline=WOOD_DARK)
+    d.rectangle([4, 10, 6, 15], fill=WOOD_DARK)
+    d.rectangle([25, 10, 27, 15], fill=WOOD_DARK)
+    d.point([(15, 4), (16, 3), (16, 5), (17, 4)], fill=(255, 236, 140, 255))
+    return img
+
+
+def _side_orb(i: int) -> Image.Image:
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    color = pal(31 + i * 7)
+    d.ellipse([3, 3, 12, 12], fill=color, outline=BLACK)
+    d.point([(6, 6), (7, 5)], fill=EYE)
+    d.point([(8 + i, 9)], fill=BLACK)
+    return img
+
+
+def _side_background(depth: int) -> Image.Image:
+    """A 320 x 180 layer: the farthest is an opaque sky, the nearer ones are hills with holes."""
+    img = Image.new("RGBA", (320, 180), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    if depth == 1:
+        for y in range(180):
+            d.line([(0, y), (319, y)], fill=(24 + y // 6, 22 + y // 8, 52 + y // 4, 255))
+        return img
+    base = 96 if depth == 2 else 132
+    color = (52, 46, 78, 255) if depth == 2 else (34, 30, 52, 255)
+    for x in range(320):
+        wave = ((x * (5 - depth)) % 64) - 32
+        height = base + abs(wave) // (4 - depth + 1)
+        d.line([(x, height), (x, 179)], fill=color)
+    return img
+
+
+def make_platformer(out: Path) -> None:
+    """A side-view pack: every part a metroidvania uses, named the way platformer packs name
+    them, so that detection gives the tags, the roles and the pack's point of view."""
+    pack = out / "platformer"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_side_ground(), pack / "tiles" / "ground.png")
+    _save_png(_side_platform(), pack / "tiles" / "platforms" / "oneway_planks.png")
+    _save_png(_side_ladder(), pack / "tiles" / "ladders" / "ladder.png")
+    _save_png(_side_spikes(), pack / "tiles" / "hazards" / "spikes.png")
+    hero = (214, 96, 64, 255)
+    for action, frames in (
+        ("idle", 2), ("run", 4), ("jump", 2), ("fall", 2), ("climb", 2), ("attack", 3), ("dash", 2),
+    ):  # fmt: skip
+        _save_png(
+            _side_strip(frames, hero, 24, 24, action), pack / "characters" / f"hero_{action}.png"
+        )
+    _save_png(
+        _side_strip(2, (96, 170, 90, 255), 16, 16, "run"), pack / "enemies" / "crawler_walk.png"
+    )
+    _save_png(
+        _side_strip(2, (150, 90, 170, 255), 16, 16, "idle"), pack / "enemies" / "bat_idle.png"
+    )
+    for action, frames in (("idle", 2), ("walk", 2), ("attack", 2)):
+        _save_png(
+            _side_strip(
+                frames, (190, 60, 80, 255), 32, 32, "attack" if action == "attack" else "idle"
+            ),
+            pack / "boss" / f"guardian_{action}.png",
+        )
+    _save_png(
+        _side_strip(2, (90, 140, 210, 255), 24, 24, "idle"), pack / "npc" / "villager_idle.png"
+    )
+    _save_png(_side_bench(), pack / "objects" / "save_bench.png")
+    _save_png(_sign(), pack / "objects" / "sign.png")
+    for i in range(2):
+        _save_png(_side_orb(i), pack / "items" / f"powerup_orb_{i + 1}.png")
+    for depth, name in ((1, "far"), (2, "mid"), (3, "near")):
+        _save_png(_side_background(depth), pack / "backgrounds" / f"bg_{name}.png")
+    _expected(
+        out,
+        "platformer",
+        {
+            "tiles/ground.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16]},
+            "tiles/platforms/oneway_planks.png": {
+                "usage": "tiles",
+                "role": "DECORATION",
+                "cell": [16, 16],
+            },
+            "tiles/ladders/ladder.png": {"usage": "tiles", "role": "DECORATION", "cell": [16, 16]},
+            "tiles/hazards/spikes.png": {"usage": "tiles", "role": "DECORATION", "cell": [16, 16]},
+            "characters/hero_attack.png": {
+                "usage": "sprite",
+                "role": "PLAYER",
+                "anims": [
+                    "attack_down",
+                    "climb_down",
+                    "dash_down",
+                    "fall_down",
+                    "idle_down",
+                    "jump_down",
+                    "walk_down",
+                ],
+            },  # fmt: skip
+            "enemies/crawler_walk.png": {"usage": "sprite", "role": "ENEMY"},
+            "enemies/bat_idle.png": {"usage": "sprite", "role": "ENEMY"},
+            "boss/guardian_attack.png": {"usage": "sprite", "role": "BOSS"},
+            "npc/villager_idle.png": {"usage": "sprite", "role": "NPC"},
+            "objects/save_bench.png": {"usage": "sprite", "role": "DECORATION"},
+            "items/powerup_orb_1.png": {"usage": "sprite", "role": "ITEM"},
+            "items/powerup_orb_2.png": {"usage": "sprite", "role": "ITEM"},
+            "backgrounds/bg_far.png": {"usage": "background", "role": "BACKGROUND"},
+            "backgrounds/bg_mid.png": {"usage": "background", "role": "BACKGROUND"},
+            "backgrounds/bg_near.png": {"usage": "background", "role": "BACKGROUND"},
+        },
+    )
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -1031,6 +1232,7 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "ldtk_level": make_ldtk_level,
     "aseprite_meta": make_aseprite_meta,
     "objects_in_sheet": make_objects_in_sheet,
+    "platformer": make_platformer,
     "weird_names": make_weird_names,
     "zipped": make_zipped,
     "audio_basic": lambda out: make_audio_basic(out),

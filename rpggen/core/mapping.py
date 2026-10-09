@@ -16,6 +16,7 @@ ROLE_KEYS = {
     "BUILDING": "building",
     "ITEM": "chest",
     "PORTRAIT": "portrait",
+    "BOSS": "boss",  # the guardian of a metroidvania (T14.02)
 }
 # Asset usages a role can plausibly come from (the picker is restricted to these).
 PLAUSIBLE_USAGE: dict[str, set[str]] = {
@@ -28,6 +29,9 @@ PLAUSIBLE_USAGE: dict[str, set[str]] = {
     "ITEM": {"object", "sprite"},
     "PORTRAIT": {"portrait", "sprite"},
     "UI": {"ui"},
+    "BOSS": {"sprite"},
+    "BACKGROUND": {"background"},
+    "DECORATION": {"object", "sprite", "tiles"},
 }
 OBJECT_ROLES = requirements.OBJECT_ROLES  # roles that can also be filled with a SheetObject
 _INACTIVE = {"UNUSED", "MISSING"}
@@ -42,7 +46,7 @@ class RoleRow:
 
 def rows(archetype: str) -> list[RoleRow]:
     required = requirements.REQUIRED.get(archetype, requirements.REQUIRED["turn_based"])
-    ordered = [*required, *(r for r in requirements.RECOMMENDED if r not in required)]
+    ordered = [*required, *(r for r in requirements.recommended(archetype) if r not in required)]
     return [RoleRow(r, r in required, ROLE_KEYS.get(r)) for r in ordered]
 
 
@@ -140,9 +144,9 @@ def resolve_starter(
     return out
 
 
-def used_for(role: str) -> str:
-    """ "Used for the player actor": what in the game needs this role."""
-    return requirements.REQUIRED_BY.get(role, role.lower())
+def used_for(role: str, archetype: str | None = None) -> str:
+    """ "Used for the player actor": what in the game needs this role (in ``archetype``)."""
+    return requirements.required_by(role, archetype)
 
 
 def missing_required(

@@ -626,8 +626,75 @@ def _suggest_tags(facets: dict[str, Any], path: str) -> None:
         surface = classifier.suggested_surface(path)
         if surface is not None:
             suggested = [*suggested, f"surface:{surface}"]
+    suggested = [*suggested, *classifier.side_view_tags(path)]
     if suggested:
         facets["tags"] = sorted(set(facets.get("tags") or []) | set(suggested))
+
+
+SIDE_TILE_TAGS = frozenset({"platform", "one_way", "ladder", "hazard"})
+SIDE_TILE_COLLISION = {"one_way": "ONE_WAY", "ladder": "LADDER"}
+TILE_FOLDER_WORDS = frozenset({"tile", "tiles", "tileset", "tilesets"})
+
+
+def _side_view_usage(assets: list[Asset]) -> None:
+    """What the side-view tags say about a picture the generic rules took for a single sprite
+    (T14.02). A platformer's platforms, ladders and spikes are sheets with more holes than
+    paint, and its parallax layers are small or have holes, so neither looks like a tile sheet
+    or a background by its pixels.
+
+    * A ``parallax:<n>`` picture with the role BACKGROUND becomes a ``background``.
+    * A picture tagged ``platform``, ``one_way``, ``ladder`` or ``hazard`` under a tiles folder,
+      as large as a whole number of the pack's tiles, becomes a ``tiles`` sheet on that grid:
+      ``one_way`` with the collision ``ONE_WAY``, ``ladder`` with ``LADDER``. Its role is
+      DECORATION, so that it is never taken for the ground of a map.
+
+    Only assets with one of these tags are touched; a top-down pack has none.
+    """
+    from rpggen.core import classifier
+
+    cells: dict[tuple[int, int], int] = {}
+    for asset in assets:
+        grid = asset.detected.get("grid")
+        if asset.detected.get("usage") == "tiles" and isinstance(grid, dict):
+            cell = (int(grid["cell"][0]), int(grid["cell"][1]))
+            cells[cell] = cells.get(cell, 0) + 1
+    tile = min(cells, key=lambda c: (-cells[c], c)) if cells else None
+    for asset in assets:
+        facets = asset.detected
+        if asset.kind != "image" or asset.detected_by != "generic_grid":
+            continue
+        if facets.get("usage") != "sprite" or facets.get("animations"):
+            continue
+        tags = set(facets.get("tags") or [])
+        size = facets.get("size") or [0, 0]
+        if facets.get("role") == "BACKGROUND" and any(t.startswith("parallax:") for t in tags):
+            facets["usage"] = "background"
+            facets.pop("frame", None)
+            facets.pop("origin", None)
+            continue
+        folders, _stem = classifier.tokens(asset.path)
+        if tile is None or not tags & SIDE_TILE_TAGS or not set(folders) & TILE_FOLDER_WORDS:
+            continue
+        if size[0] < tile[0] or size[1] < tile[1] or size[0] % tile[0] or size[1] % tile[1]:
+            continue
+        facets["usage"] = "tiles"
+        facets["grid"] = {"cell": list(tile), "margin": [0, 0], "separation": [0, 0]}
+        facets["role"] = "DECORATION"
+        for key in ("frame", "origin", "roles_alt"):
+            facets.pop(key, None)
+        for tag in sorted(tags):
+            if tag in SIDE_TILE_COLLISION:
+                facets["collision"] = {"profile": SIDE_TILE_COLLISION[tag]}
+                break
+
+
+# A pack warning: the pack looks like a side-view (platformer) pack (T14.02).
+VIEW_SIDE = "view:side"
+
+
+def pack_view(pack: CatalogPack) -> str:
+    """``"side"`` or ``"top"``: what detection said about a pack's point of view."""
+    return "side" if VIEW_SIDE in pack.warnings else "top"
 
 
 def _license_files(inv: Inventory, root: str) -> list[str]:
@@ -863,6 +930,10 @@ def assemble(
         license_files = _license_files(inv, root)
         if not license_files:
             issues.add("ASSET-021", pack_id=pack_id, file=root)
+        _side_view_usage([a for a in catalog.assets if a.pack_id == pack_id])
+        sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
+        if classifier.pack_view(inv, sheets) == "side":
+            warnings.append(VIEW_SIDE)  # a top-down pack, the usual kind, gets no line
         catalog.packs.append(
             CatalogPack(
                 pack_id,
@@ -1175,7 +1246,7 @@ def _add_objects(
         )
         from rpggen.core import classifier
 
-        for tag in classifier.suggested_tags(obj.name):
+        for tag in (*classifier.suggested_tags(obj.name), *classifier.side_view_tags(obj.name)):
             if tag not in obj.tags:
                 obj.tags.append(tag)
         catalog.objects.append(obj)
