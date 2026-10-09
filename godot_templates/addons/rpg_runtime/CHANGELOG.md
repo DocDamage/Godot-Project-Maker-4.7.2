@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0 (in progress)
+
+* Dialogue: `RpgDialogueRunner.event_refs(event)` and an optional `ids` argument of
+  `event_problem` (unknown shop, quest and actor ids).
+* Shops: `RpgShopMenu` rows have a quantity (`max_quantity`, `quantity_of`, `set_quantity`,
+  `change_quantity`; `transact(item, qty)`), and a **Sell all** button (`sell_all()`).
+  `RpgShopDefinition.buys` (categories, empty = all), `buys_category`, `sell_all_items`,
+  `sell_all_value`, `sell_all`. New text keys: `UI_SHOP_QUANTITY_HINT`, `UI_SELL_ALL`,
+  `UI_SELL_ALL_CONFIRM`, `UI_SOLD_ALL`. A shop resource and a shop scene made by 1.0 keep working.
+
 ## 1.0.0
 
 * First stable release. The runtime is unchanged in behavior from 0.3.0; the version number now

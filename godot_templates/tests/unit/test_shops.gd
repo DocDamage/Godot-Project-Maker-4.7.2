@@ -207,6 +207,158 @@ func test_the_menu_buys_and_sells_with_the_tab_and_the_gold_label(t) -> void:
 	Fixtures.uninstall_state()
 	Fixtures.uninstall_english(english)
 
+# ------------------------------------------------------------------ quantities and sell all (T13.11)
+
+func test_buying_three_takes_three_times_the_price_and_respects_the_stack_limit(t) -> void:
+	var english := Fixtures.install_english()
+	var state := _state()
+	var menu := _menu(_shop())
+	var potion := menu.rows()[0]
+	t.eq(menu.max_quantity(&"potion"), 5, "50 gold, 10 each")
+	menu.change_quantity(&"potion", 1)
+	menu.change_quantity(&"potion", 1)
+	t.eq(menu.quantity_of(&"potion"), 3)
+	t.eq(potion.text, "Potion (3) — 30 G", "the total before you press")
+	potion.pressed.emit()
+	t.eq(state.gold, 20)
+	t.eq(state.inventory.count(&"potion"), 3)
+	t.eq(menu.rows()[0].text, "Potion — 10 G", "back to one after the purchase")
+	t.eq(menu.max_quantity(&"potion"), 2)
+	# down from one wraps to the most, up from the most wraps to one
+	menu.change_quantity(&"potion", -1)
+	t.eq(menu.quantity_of(&"potion"), 2)
+	menu.change_quantity(&"potion", 1)
+	t.eq(menu.quantity_of(&"potion"), 1)
+	# the stack limit: a sword stacks to 1 and the bag has one free slot
+	state.gold = 1000
+	state.inventory.capacity = state.inventory.slots.size() + 1
+	t.eq(menu.max_quantity(&"sword"), 1)
+	menu.set_quantity(&"sword", 9)
+	t.eq(menu.quantity_of(&"sword"), 1)
+	t.eq(menu.max_quantity(&"potion"), 100, "what the gold allows")
+	state.gold = 100000
+	t.eq(menu.max_quantity(&"potion"), 96 + 99, "the rest of the stack and the free slot")
+	state.gold = 1000
+	t.eq(menu.transact(&"sword", 2), RpgShopDefinition.NO_ROOM)
+	t.eq(state.gold, 1000)
+	# with no gold the row still offers one, and pressing it is refused
+	state.gold = 0
+	t.eq(menu.max_quantity(&"potion"), 1)
+	menu.free()
+	Fixtures.uninstall_state()
+	Fixtures.uninstall_english(english)
+
+func test_left_and_right_on_a_row_change_the_quantity(t) -> void:
+	var english := Fixtures.install_english()
+	var state := _state()
+	state.inventory.add(&"potion", 4)
+	var menu := _menu(_shop())
+	menu.set_mode(RpgShopMenu.SELL)
+	var row := menu.rows()[0]
+	var right := InputEventAction.new()
+	right.action = &"ui_right"
+	right.pressed = true
+	row.gui_input.emit(right)
+	row.gui_input.emit(right)
+	t.eq(menu.quantity_of(&"potion"), 3)
+	t.eq(row.text, "Potion x4 (3) — 15 G")
+	var left := InputEventAction.new()
+	left.action = &"ui_left"
+	left.pressed = true
+	row.gui_input.emit(left)
+	t.eq(menu.quantity_of(&"potion"), 2)
+	row.pressed.emit()
+	t.eq(state.gold, 60)
+	t.eq(state.inventory.count(&"potion"), 2)
+	t.eq(menu.rows()[0].text, "Potion x2 — 5 G")
+	menu.free()
+	Fixtures.uninstall_state()
+	Fixtures.uninstall_english(english)
+
+func test_sell_all_skips_equipped_gear_and_quest_items(t) -> void:
+	var english := Fixtures.install_english()
+	var state := _state()
+	state.items[&"letter"] = _item(&"letter", 30, RpgItemDefinition.Category.QUEST, 1)
+	state.items[&"blade"] = _item(&"blade", 60, RpgItemDefinition.Category.WEAPON, 1)
+	for id: StringName in [&"potion", &"potion", &"potion", &"elixir", &"sword", &"blade", &"key", &"letter", &"junk"]:
+		state.inventory.add(id)
+	t.ok(state.equip(state.player_actor_id, &"blade"), "worn: no longer in the bag")
+	var shop := _shop()
+	t.eq(shop.sell_all_items(state), {&"potion": 3, &"elixir": 1, &"sword": 1})
+	t.eq(shop.sell_all_value(state), 15 + 20 + 12)
+	var menu := _menu(shop)
+	var button := menu.sell_all_button()
+	t.ok(button != null and not button.visible, "not on the Buy tab")
+	menu.set_mode(RpgShopMenu.SELL)
+	t.ok(button.visible)
+	var walk := _walk_down(menu)
+	t.eq(walk["reached"].size(), walk["all"].size(), "Sell all is in the ring")
+	t.ok(walk["all"].has(button))
+	# the first press asks and names the gold, the second one sells
+	button.pressed.emit()
+	t.eq(button.text, "Sell everything for 47 G? Press again")
+	t.eq(state.gold, 50)
+	button.focus_exited.emit()
+	t.eq(button.text, "Sell all", "moving away takes the question back")
+	button.pressed.emit()
+	button.pressed.emit()
+	t.eq(state.gold, 97)
+	t.eq(state.inventory.count(&"potion") + state.inventory.count(&"elixir") + state.inventory.count(&"sword"), 0)
+	t.eq(state.inventory.count(&"key"), 1)
+	t.eq(state.inventory.count(&"letter"), 1)
+	t.eq(state.inventory.count(&"junk"), 1)
+	t.eq(state.equipped_in(state.player_actor_id, &"weapon"), &"blade")
+	t.ok(not button.visible, "nothing left to sell")
+	menu.free()
+	Fixtures.uninstall_state()
+	Fixtures.uninstall_english(english)
+
+func test_a_shop_buys_only_the_categories_it_lists(t) -> void:
+	var state := _state()
+	var shop := _shop()
+	state.inventory.add(&"potion", 2)
+	state.inventory.add(&"sword")
+	t.eq(shop.buys, [] as Array[String], "a 1.0 shop has no list and buys everything")
+	t.eq(shop.sell_price(&"sword", state.items), 12)
+	var only: Array[String] = ["consumable"]
+	shop.buys = only
+	t.eq(shop.sell_price(&"sword", state.items), 0)
+	t.eq(shop.sell(state, &"sword"), RpgShopDefinition.WORTHLESS)
+	t.eq(shop.sell_all_items(state), {&"potion": 2})
+	t.eq(shop.sell_all(state), 10)
+	t.eq(state.inventory.count(&"sword"), 1)
+	var with_keys: Array[String] = ["KEY", "QUEST"]
+	shop.buys = with_keys
+	state.inventory.add(&"key")
+	t.eq(shop.sell_price(&"key", state.items), 0, "never, whatever the list says")
+	Fixtures.uninstall_state()
+
+func test_a_scene_from_1_0_without_the_sell_all_button_still_works(t) -> void:
+	var english := Fixtures.install_english()
+	var state := _state()
+	state.inventory.add(&"potion", 2)
+	var recipe := UiRecipes.new()
+	var root: Node = recipe.call("_build_shop_menu")
+	var old_button := root.find_child("SellAll", true, false)
+	old_button.get_parent().remove_child(old_button)
+	old_button.free()
+	SceneUtil.save_scene(root, MENU_TMP)
+	var menu := (load(MENU_TMP) as PackedScene).instantiate() as RpgShopMenu
+	menu.shop = _shop()
+	Fixtures.tree().root.add_child(menu)
+	if not menu.is_node_ready():
+		menu._ready()
+	t.ok(menu.sell_all_button() == null)
+	menu.set_mode(RpgShopMenu.SELL)
+	menu.set_quantity(&"potion", 2)
+	menu.rows()[0].pressed.emit()
+	t.eq(state.gold, 60)
+	var walk := _walk_down(menu)
+	t.eq(walk["reached"].size(), walk["all"].size())
+	menu.free()
+	Fixtures.uninstall_state()
+	Fixtures.uninstall_english(english)
+
 func test_a_bare_menu_still_has_a_working_focus_chain(t) -> void:
 	var english := Fixtures.install_english()
 	var state := _state()

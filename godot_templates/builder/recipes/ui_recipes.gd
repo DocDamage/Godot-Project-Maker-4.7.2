@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification, the basic HUD, shop, journal and credits. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 12
+const RECIPE_VERSION := 13
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -253,6 +253,9 @@ func _build_shop_menu() -> Node:
 	var desc := UiUtil.label(box, "Description", "", true)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.custom_minimum_size = Vector2(280, 40)
+	# shown by the script on the Sell tab when there is something to sell (T13.11)
+	var sell_all := UiUtil.button(box, "SellAll", "UI_SELL_ALL")
+	sell_all.visible = false
 	var back := UiUtil.button(box, "Back", "UI_BACK")
 	UiUtil.unique(back)
 	UiUtil.wire_vertical([buy_tab, sell_tab, back])

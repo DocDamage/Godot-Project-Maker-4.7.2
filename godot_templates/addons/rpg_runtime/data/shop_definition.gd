@@ -19,6 +19,10 @@ const WORTHLESS := "worthless"
 @export var stock: Array[Dictionary] = []
 ## What the shop pays when it buys: value * sell_ratio (rounded down, at least 1).
 @export var sell_ratio: float = 0.5
+## The item categories the shop buys, by name ("CONSUMABLE", "WEAPON", "ARMOR", "ACCESSORY",
+## "MATERIAL"); empty (the default, and a shop made by 1.0) buys them all. Key and quest items are
+## never bought, whatever this says.
+@export var buys: Array[String] = []
 
 static func path_of(shop_id: StringName) -> String:
 	return "%s/%s.tres" % [SHOPS_DIR, shop_id]
@@ -48,10 +52,22 @@ func buy_price(item_id: StringName, items: Dictionary) -> int:
 	var def: RpgItemDefinition = items.get(item_id)
 	return maxi(0, def.value) if def != null else 0
 
+## Whether the shop takes items of this category at all (`buys`; never key or quest items).
+func buys_category(category: RpgItemDefinition.Category) -> bool:
+	if category == RpgItemDefinition.Category.KEY or category == RpgItemDefinition.Category.QUEST:
+		return false
+	if buys.is_empty():
+		return true
+	var wanted: String = RpgItemDefinition.Category.find_key(category)
+	for entry in buys:
+		if entry.to_upper() == wanted:
+			return true
+	return false
+
 ## What the shop pays for one (0: it will not buy it). Key and quest items are never bought.
 func sell_price(item_id: StringName, items: Dictionary) -> int:
 	var def: RpgItemDefinition = items.get(item_id)
-	if def == null or def.category == RpgItemDefinition.Category.KEY or def.category == RpgItemDefinition.Category.QUEST:
+	if def == null or not buys_category(def.category):
 		return 0
 	if def.value <= 0:
 		return 0
@@ -77,6 +93,32 @@ func buy(game: RpgGameState, item_id: StringName, qty: int = 1) -> String:
 	game.inventory.add(item_id, qty)
 	game.gold -= cost
 	return OK
+
+## {item id: how many} of everything in the bag that the shop buys: what Sell all sells. What
+## someone wears is not in the bag, so equipped gear stays.
+func sell_all_items(game: RpgGameState) -> Dictionary:
+	var out: Dictionary = {}
+	for slot in game.inventory.slots:
+		var item_id: StringName = slot["item_id"]
+		if not out.has(item_id) and sell_price(item_id, game.items) > 0:
+			out[item_id] = game.inventory.count(item_id)
+	return out
+
+## The gold Sell all would pay.
+func sell_all_value(game: RpgGameState) -> int:
+	var total := 0
+	var held := sell_all_items(game)
+	for item_id: StringName in held:
+		total += sell_price(item_id, game.items) * RpgUtil.to_int(held[item_id])
+	return total
+
+## Sells everything sell_all_items() lists. Returns the gold paid.
+func sell_all(game: RpgGameState) -> int:
+	var before := game.gold
+	var held := sell_all_items(game)
+	for item_id: StringName in held:
+		sell(game, item_id, RpgUtil.to_int(held[item_id]))
+	return game.gold - before
 
 func sell(game: RpgGameState, item_id: StringName, qty: int = 1) -> String:
 	if qty <= 0 or not game.inventory.has(item_id, qty):

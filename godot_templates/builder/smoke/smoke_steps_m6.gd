@@ -406,8 +406,8 @@ func _equip_raises_attack() -> String:
 	return failure
 
 ## The village shop through the event bus (what `open_shop:village_shop` does): it opens paused,
-## pressing the potion buys one for its price, pressing it with no gold buys nothing, and the Sell
-## tab pays back half. Everything is put back afterwards.
+## the potion row set to two buys two for twice the price, pressing it with no gold buys nothing,
+## and the Sell tab pays back half for both. Everything is put back afterwards.
 func _shop_buy_sell() -> String:
 	var tree := _tree()
 	var state: RpgGameState = _autoload("GameState") as RpgGameState
@@ -437,15 +437,16 @@ func _shop_buy_sell() -> String:
 		if potion == null:
 			failure = "the potion is not on sale"
 		else:
+			menu.set_quantity(&"potion", 2)
 			potion.pressed.emit()
 			await _frames(2)
-			if state.gold != 90 or state.inventory.count(&"potion") != potions + 1:
-				failure = "buying a potion left gold %d and %d potions" % [state.gold, state.inventory.count(&"potion")]
+			if state.gold != 80 or state.inventory.count(&"potion") != potions + 2:
+				failure = "buying two potions left gold %d and %d potions" % [state.gold, state.inventory.count(&"potion")]
 	if failure == "":
 		state.gold = 0
 		_shop_row(menu, &"potion").pressed.emit()
 		await _frames(2)
-		if state.inventory.count(&"potion") != potions + 1:
+		if state.inventory.count(&"potion") != potions + 2:
 			failure = "a potion was bought without gold"
 	if failure == "":
 		menu.set_mode(RpgShopMenu.SELL)
@@ -454,9 +455,10 @@ func _shop_buy_sell() -> String:
 		if sell_row == null:
 			failure = "the potion cannot be sold"
 		else:
+			menu.set_quantity(&"potion", 2)
 			sell_row.pressed.emit()
 			await _frames(2)
-			if state.gold != 5 or state.inventory.count(&"potion") != potions:
+			if state.gold != 10 or state.inventory.count(&"potion") != potions:
 				failure = "selling left gold %d and %d potions" % [state.gold, state.inventory.count(&"potion")]
 	if menu != null and is_instance_valid(menu):
 		menu.close()

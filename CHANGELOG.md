@@ -12,6 +12,9 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   names (`open_shop:`, `quest_start:`, `quest_stage:`, `quest_complete:`, `join_party:`); a typo
   is marked on its line while you type.
 
+* **Shops**: left / right on a row sets how many to buy or sell (the row shows the total), and
+  the Sell tab has **Sell all**. A shop can list the item categories it buys.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with
