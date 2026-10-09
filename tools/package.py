@@ -268,6 +268,12 @@ def smoke(godot: str | None) -> None:
             raise SystemExit(f"frozen smoke test failed (exit code {code})")
         if not (target / "project.godot").is_file():
             raise SystemExit("frozen smoke test: no project was written")
+    # libsndfile is in the build and decodes Ogg Vorbis (T13.17)
+    cmd = [str(executable("rpggen-cli")), "audio-check"]
+    print("frozen smoke test:", " ".join(cmd))
+    code = subprocess.run(cmd, check=False).returncode
+    if code != 0:
+        raise SystemExit(f"frozen smoke test: the audio decode failed (exit code {code})")
     print("frozen smoke test passed")
 
 

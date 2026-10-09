@@ -1,4 +1,5 @@
-"""Audio durations without third-party code (T11.03).
+"""Audio facts: durations without third-party code (T11.03), and peaks and a loop guess from
+the decoded samples through soundfile (libsndfile, T13.17).
 
 Reads just enough of WAV, Ogg (Vorbis, Opus), MP3 and FLAC to tell how long a file is. The
 classifier only needs "is this longer than about 20 s", so MP3 without a Xing header is estimated
@@ -11,6 +12,7 @@ import contextlib
 import struct
 import wave
 from pathlib import Path
+from typing import Any
 
 READ_CAP = 256 * 1024
 OGG_TAIL = 64 * 1024
@@ -220,3 +222,127 @@ def _frame_length(frame: tuple[str, int, int, int, int, bool], head: bytes, at: 
     if layer == 1:
         return (12 * bitrate // rate + padding) * 4
     return samples // 8 * bitrate // rate + padding
+
+
+# ------------------------------------------------------------- decoded audio (T13.17)
+
+PEAK_BLOCK_FRAMES = 65536
+LOOP_WINDOW_MS = 50
+LOOP_MIN_START_S = 1.0
+LOOP_MIN_LENGTH_S = 2.0
+LOOP_CONTEXT_S = 0.4
+LOOP_MAX_WINDOWS = 6000
+
+
+def soundfile_module() -> Any | None:
+    """The ``soundfile`` module (libsndfile), or None when it cannot be loaded."""
+    try:
+        import soundfile  # type: ignore[import-untyped]
+    except (ImportError, OSError):  # OSError: the libsndfile library itself is missing
+        return None
+    return soundfile
+
+
+def peaks(path: Path, columns: int = 96) -> list[tuple[float, float]] | None:
+    """(lowest, highest) sample of ``columns`` equal slices of the file, each from -1 to 1, over
+    the decoded samples (the channels averaged). WAV, OGG Vorbis, FLAC and MP3 through libsndfile;
+    the file is read in blocks, so a long track never sits in memory at once. ``None`` when the
+    file cannot be decoded: the caller draws a flat bar. Never raises."""
+    sf = soundfile_module()
+    if sf is None or columns <= 0:
+        return None
+    try:
+        with sf.SoundFile(str(path)) as handle:
+            frames = int(handle.frames)
+            if frames <= 0:
+                return None
+            low = [0.0] * columns
+            high = [0.0] * columns
+            at = 0
+            for block in handle.blocks(
+                blocksize=PEAK_BLOCK_FRAMES, dtype="float32", always_2d=True
+            ):
+                mono = block.mean(axis=1)
+                count = len(mono)
+                if count == 0 or at >= frames:
+                    break
+                first = at * columns // frames
+                last = min(columns - 1, (at + count - 1) * columns // frames)
+                for column in range(first, last + 1):
+                    start = max(0, -(-column * frames // columns) - at)
+                    stop = min(count, -(-(column + 1) * frames // columns) - at)
+                    if stop > start:
+                        part = mono[start:stop]
+                        low[column] = min(low[column], float(part.min()))
+                        high[column] = max(high[column], float(part.max()))
+                at += count
+    except Exception:  # noqa: BLE001 - whatever libsndfile says, the card shows a flat bar
+        return None
+    return [(max(-1.0, lo), min(1.0, hi)) for lo, hi in zip(low, high, strict=True)]
+
+
+def _envelope(path: Path, window_ms: int) -> tuple[Any, float] | None:
+    """(RMS of every window as a numpy array, the window's length in seconds)."""
+    import numpy
+
+    sf = soundfile_module()
+    if sf is None:
+        return None
+    try:
+        with sf.SoundFile(str(path)) as handle:
+            rate, frames = int(handle.samplerate), int(handle.frames)
+            if rate <= 0 or frames <= 0:
+                return None
+            window = max(1, rate * window_ms // 1000)
+            while frames // window > LOOP_MAX_WINDOWS:  # a very long track: coarser windows
+                window *= 2
+            values: list[float] = []
+            for block in handle.blocks(blocksize=window * 256, dtype="float32", always_2d=True):
+                mono = block.mean(axis=1)
+                whole = len(mono) // window
+                if whole:
+                    cut = mono[: whole * window].reshape(whole, window)
+                    values.extend(numpy.sqrt((cut * cut).mean(axis=1)).tolist())
+    except Exception:  # noqa: BLE001
+        return None
+    return numpy.asarray(values, dtype="float64"), window / rate
+
+
+def guess_loop(path: Path) -> tuple[int, int] | None:
+    """A loop for a music track as (start ms, end ms), or None when the file cannot be decoded or
+    is too short. Of all pairs of 50 ms windows at least two seconds apart, the first one after
+    the first second, it takes the pairs whose surroundings sound most alike (the smallest
+    difference of the RMS level over the 0.4 s after each window, or before it when the track
+    ends there) and of those the pair furthest apart: jumping from the end to the start then
+    continues the way the track itself went on."""
+    import numpy
+
+    found = _envelope(path, LOOP_WINDOW_MS)
+    if found is None:
+        return None
+    env, seconds = found
+    count = len(env)
+    first = int(-(-LOOP_MIN_START_S // seconds))
+    shortest = max(1, int(-(-LOOP_MIN_LENGTH_S // seconds)))
+    context = max(2, round(LOOP_CONTEXT_S / seconds))
+    if count < first + shortest or first < context:
+        return None
+    best: list[tuple[float, int, int]] = []  # (difference, start, lag) of every lag's best start
+    for lag in range(shortest, count - first + 1):
+        starts = numpy.arange(first, count - lag + 1)
+        ends = starts + lag
+        diff = numpy.abs(env[: count - lag] - env[lag:])  # diff[i] compares windows i and i + lag
+        total = numpy.concatenate(([0.0], numpy.cumsum(diff)))
+        ahead = numpy.minimum(starts + context, count - lag)  # the windows after both ends
+        forward = (total[ahead] - total[starts]) / numpy.maximum(1, ahead - starts)
+        backward = (total[starts] - total[starts - context]) / context
+        value = numpy.where(ends + context <= count, forward, backward)
+        index = int(numpy.argmin(value))
+        best.append((float(value[index]), int(starts[index]), lag))
+    if not best:
+        return None
+    smallest = min(item[0] for item in best)
+    level = float(env.max()) if count else 0.0
+    close = smallest + 0.02 * level + 1e-9
+    _value, start, lag = max((item for item in best if item[0] <= close), key=lambda i: i[2])
+    return round(start * seconds * 1000), round((start + lag) * seconds * 1000)

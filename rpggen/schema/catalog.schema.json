@@ -462,6 +462,14 @@
             },
             "duration_s": {
               "type": "number"
+            },
+            "loop_start_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "loop_end_ms": {
+              "type": "integer",
+              "minimum": 0
             }
           },
           "additionalProperties": false,
@@ -769,12 +777,15 @@
                 },
                 "loop": {
                   "type": "boolean"
+                },
+                "loop_start_ms": {
+                  "anyOf": [{"type": "null"}, {"type": "integer", "minimum": 0}]
+                },
+                "loop_end_ms": {
+                  "anyOf": [{"type": "null"}, {"type": "integer", "minimum": 0}]
                 }
               },
-              "additionalProperties": false,
-              "required": [
-                "type"
-              ]
+              "additionalProperties": false
             }
           ]
         },

@@ -352,3 +352,50 @@ func test_the_dialogue_event_play_sound_names_a_slot(t) -> void:
 	t.ok(RpgDialogueRunner.execute_event("play_sound:sfx_magic"), "without an audio service it is silent, not an error")
 	t.ok(not RpgDialogueRunner.execute_event("play_sound"))
 	Fixtures.uninstall_state()
+
+# ---------------------------------------------------------------- loop points (T13.17)
+
+func _wav_of(seconds: float, rate: int = 8000) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = rate
+	var data := PackedByteArray()
+	data.resize(roundi(seconds * rate))
+	wav.data = data
+	return wav
+
+func test_a_wav_loops_between_its_loop_points(t) -> void:
+	var wav := _wav_of(4.0)
+	t.eq(wav.loop_mode, AudioStreamWAV.LOOP_DISABLED)
+	RpgAudio.apply_loop(wav, {"start_ms": 1500, "end_ms": 3500})
+	t.eq(wav.loop_mode, AudioStreamWAV.LOOP_FORWARD)
+	t.eq(wav.loop_begin, 12000)
+	t.eq(wav.loop_end, 28000)
+	# without an end, or with one that is not after the start, it loops to the end of the track
+	RpgAudio.apply_loop(wav, {"start_ms": 500, "end_ms": 0})
+	t.eq([wav.loop_begin, wav.loop_end], [4000, 32000])
+	RpgAudio.apply_loop(wav, {"start_ms": 2000, "end_ms": 1000})
+	t.eq([wav.loop_begin, wav.loop_end], [16000, 32000])
+	# points past the end are pulled in
+	RpgAudio.apply_loop(wav, {"start_ms": 1000, "end_ms": 99000})
+	t.eq([wav.loop_begin, wav.loop_end], [8000, 32000])
+	RpgAudio.apply_loop(wav, {})
+	t.eq([wav.loop_begin, wav.loop_end], [0, 32000], "a track that only loops")
+
+func test_ogg_and_mp3_come_back_to_the_start_point(t) -> void:
+	var ogg := AudioStreamOggVorbis.new()
+	RpgAudio.apply_loop(ogg, {"start_ms": 2500, "end_ms": 9000})
+	t.ok(ogg.loop)
+	t.eq(ogg.loop_offset, 2.5)
+	var mp3 := AudioStreamMP3.new()
+	RpgAudio.apply_loop(mp3, {"start_ms": 750})
+	t.ok(mp3.loop)
+	t.eq(mp3.loop_offset, 0.75)
+
+func test_the_loops_table_is_read_by_file(t) -> void:
+	var audio := RpgAudio.new()
+	audio.set_loops({"res://music/town.wav": {"start_ms": 1000, "end_ms": 2000}, "res://bad": 3})
+	t.eq(audio.loop_of("res://music/town.wav"), {"start_ms": 1000, "end_ms": 2000})
+	t.eq(audio.loop_of("res://music/other.wav"), {})
+	t.eq(audio.loop_of("res://bad"), {}, "a malformed entry is no loop")
+	audio.free()

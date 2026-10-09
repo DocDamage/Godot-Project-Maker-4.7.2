@@ -11,6 +11,8 @@ are also available in the packages' `dist-info` folders inside the bundle.
 | NumPy | image analysis | BSD-3-Clause | https://github.com/numpy/numpy/blob/main/LICENSE.txt |
 | py7zr | reading `.7z` packs | LGPL-2.1-or-later | https://github.com/miurahr/py7zr/blob/master/LICENSE |
 | python-zstandard (with the Zstandard library) | reading Tiled map layers saved with Zstandard compression | BSD-3-Clause | https://github.com/indygreg/python-zstandard/blob/main/LICENSE |
+| python-soundfile (with CFFI and pycparser) | decoding audio for the waveforms and the loop guess | BSD-3-Clause (CFFI: MIT; pycparser: BSD-3-Clause) | https://github.com/bastibe/python-soundfile/blob/master/LICENSE |
+| libsndfile (with libogg, libvorbis, libFLAC, libopus, mpg123 and LAME, as shipped in the soundfile wheels) | the library python-soundfile calls; it is a separate shared library that you may replace | LGPL-2.1-or-later (libogg, libvorbis, libFLAC, libopus: BSD-3-Clause; mpg123, LAME: LGPL-2.1) | https://github.com/libsndfile/libsndfile/blob/master/COPYING |
 | psutil | finding a Godot editor that has a project open | BSD-3-Clause | https://github.com/giampaolo/psutil/blob/master/LICENSE |
 | jsonschema (with jsonschema-specifications, referencing, rpds-py) | validating catalogs, configs and profiles | MIT | https://github.com/python-jsonschema/jsonschema/blob/main/COPYING |
 | Python | the runtime | PSF-2.0 | https://docs.python.org/3/license.html |

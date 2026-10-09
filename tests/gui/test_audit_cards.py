@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
-from PySide6.QtCore import QRect, Qt
+from PySide6.QtCore import QPoint, QRect, Qt
 from PySide6.QtGui import QImage, QPainter, QPixmap
 from PySide6.QtWidgets import QStyleOptionViewItem
 
@@ -238,3 +238,144 @@ def test_the_overlay_follows_a_grid_edit_and_a_usage_change_without_reopening(qt
     assert page.session.set_override(tiles.id, "usage", "object")
     assert detail.preview.grid_items == []
     assert [m[0] for m in detail.preview.marks][:1] == ["footprint"]
+
+
+# ------------------------------------------------------------------------ waveforms and loops (T13.17)
+
+
+def test_an_audio_card_draws_the_decoded_waveform_of_an_ogg(tmp_path: Path) -> None:
+    import numpy
+    import soundfile
+
+    t = numpy.arange(8000) / 8000
+    tone = (0.8 * numpy.sin(2 * numpy.pi * 220 * t)).astype("float32")
+    loud = tmp_path / "loud.ogg"
+    soundfile.write(str(loud), tone, 8000)
+    quiet = tmp_path / "quiet.ogg"
+    soundfile.write(str(quiet), tone * 0.05, 8000)
+    broken = tmp_path / "broken.ogg"
+    broken.write_bytes(b"OggS" + bytes(64))
+    cards = {p.name: thumbnails.render_audio_card(p, 1.0) for p in (loud, quiet, broken)}
+    assert cards["loud.ogg"] != cards["quiet.ogg"], "the waveform is drawn from the samples"
+    assert cards["loud.ogg"] != cards["broken.ogg"]
+    # a file that cannot be decoded: the flat bar, and never an error
+    from PIL import Image as PilImage
+
+    image = PilImage.open(io.BytesIO(cards["broken.ogg"]))
+    row = [image.getpixel((x, round(62 * image.width / 96))) for x in range(image.width)]
+    assert sum(1 for px in row if px[:3] == (104, 168, 240)) > image.width // 2, "a flat bar"
+    assert thumbnails.CARD_VERSION == 2, "cards cached before the waveforms are drawn again"
+
+
+def _music(cat):
+    return next(a for a in cat.assets if a.path.endswith("overworld_theme.wav"))
+
+
+def test_the_detail_panel_shows_the_waveform_and_the_loop_row_for_music(qtbot) -> None:
+    cat, root = _build("audio_basic")
+    detail = _detail(qtbot, cat, root)
+    music = _music(cat)
+    detail.set_asset(music.id)
+    assert detail.waveform.isVisibleTo(detail)
+    assert detail.waveform.peaks is not None and len(detail.waveform.peaks) == detail.PEAK_COLUMNS
+    assert detail.waveform.duration_ms == 30000
+    assert detail.loop_box.isVisibleTo(detail)
+    assert detail.waveform.markers
+    # no loop points yet: the whole track
+    assert (detail.loop_start_spin.value(), detail.loop_end_spin.value()) == (0, 30000)
+    assert not detail.loop_clear_button.isEnabled()
+    # a sound effect has the waveform but no loop row
+    sfx = next(a for a in cat.assets if a.path.endswith("hit.wav"))
+    detail.set_asset(sfx.id)
+    assert detail.waveform.isVisibleTo(detail) and not detail.loop_box.isVisibleTo(detail)
+    assert not detail.waveform.markers
+    # a picture has neither
+    picture = next(a for a in cat.assets if a.kind == "image")
+    detail.set_asset(picture.id)
+    assert not detail.waveform.isVisibleTo(detail) and not detail.loop_box.isVisibleTo(detail)
+
+
+def test_loop_points_are_facets_and_every_change_is_one_undo_step(qtbot) -> None:
+    cat, root = _build("audio_basic")
+    detail = _detail(qtbot, cat, root)
+    session = detail.session
+    music = _music(cat)
+    detail.set_asset(music.id)
+
+    def audio() -> dict:
+        return catalog.effective(session.catalog.asset(music.id))["audio"]
+
+    # typing the numbers
+    detail.loop_end_spin.setValue(20000)
+    assert (audio()["loop_start_ms"], audio()["loop_end_ms"]) == (0, 20000)
+    detail.loop_start_spin.setValue(1500)
+    assert (audio()["loop_start_ms"], audio()["loop_end_ms"]) == (1500, 20000)
+    assert audio()["type"] == "music" and audio()["loop"] is True, "the other facts stay"
+    assert detail.waveform.loop() == (1500, 20000)
+    assert detail.loop_clear_button.isEnabled()
+    # an end before the start is refused with a note
+    detail.loop_end_spin.setValue(1000)
+    assert "after the start" in detail.loop_note.text()
+    assert audio()["loop_end_ms"] == 20000
+    # the catalog with loop points is valid, and they survive a round trip
+    from rpggen import schema
+
+    data = session.catalog.to_json()
+    schema.validate("catalog", data)
+    again = catalog.Catalog.from_json(data)
+    assert catalog.effective(again.asset(music.id))["audio"]["loop_start_ms"] == 1500
+    # undo, one step per change
+    session.undo_stack.undo()
+    assert (audio()["loop_start_ms"], audio()["loop_end_ms"]) == (0, 20000)
+    assert detail.loop_start_spin.value() == 0
+    session.undo_stack.undo()
+    assert "loop_start_ms" not in audio() and "loop_end_ms" not in audio()
+    assert detail.loop_end_spin.value() == 30000
+    # Whole track takes both points away again
+    assert detail.set_loop(2000, 9000)
+    detail.loop_clear_button.click()
+    assert "loop_start_ms" not in audio() and "loop_end_ms" not in audio()
+    assert not detail.clear_loop(), "nothing left to clear"
+    schema.validate("catalog", session.catalog.to_json())
+
+
+def test_dragging_a_marker_moves_one_loop_point(qtbot) -> None:
+    cat, root = _build("audio_basic")
+    detail = _detail(qtbot, cat, root)
+    music = _music(cat)
+    detail.set_asset(music.id)
+    view = detail.waveform
+    view.resize(408, 80)  # 400 px of track: 75 ms a pixel
+    assert view.ms_at(view.x_of(15000)) == 15000
+    assert view.marker_at(view.x_of(0)) == "start" and view.marker_at(view.x_of(30000)) == "end"
+    assert view.marker_at(view.x_of(15000)) is None
+    y = view.height() // 2
+    qtbot.mousePress(view, Qt.MouseButton.LeftButton, pos=QPoint(view.x_of(30000), y))
+    qtbot.mouseMove(view, QPoint(view.x_of(24000), y))
+    assert view.loop() == (0, 24000), "the marker follows the mouse"
+    before = detail.session.undo_stack.count()
+    qtbot.mouseRelease(view, Qt.MouseButton.LeftButton, pos=QPoint(view.x_of(24000), y))
+    audio = catalog.effective(detail.session.catalog.asset(music.id))["audio"]
+    assert (audio["loop_start_ms"], audio["loop_end_ms"]) == (0, 24000)
+    assert detail.session.undo_stack.count() == before + 1, "one step for the whole drag"
+    assert detail.loop_end_spin.value() == 24000
+    # the markers never cross
+    view.drag_to("start", 99999)
+    assert view.loop() == (23999, 24000)
+    view.drag_to("end", 0)
+    assert view.loop() == (23999, 24000)
+
+
+def test_guess_fills_the_loop_points(qtbot, tmp_path: Path, monkeypatch) -> None:
+    cat, root = _build("audio_basic")
+    detail = _detail(qtbot, cat, root)
+    music = _music(cat)
+    detail.set_asset(music.id)
+    monkeypatch.setattr(audio_info, "guess_loop", lambda path: (4000, 12000))
+    detail.loop_guess_button.click()
+    assert detail.loop_points() == (4000, 12000)
+    assert (detail.loop_start_spin.value(), detail.loop_end_spin.value()) == (4000, 12000)
+    monkeypatch.setattr(audio_info, "guess_loop", lambda path: None)
+    assert not detail.guess_loop()
+    assert detail.loop_note.text() == "No loop found"
+    assert detail.loop_points() == (4000, 12000)

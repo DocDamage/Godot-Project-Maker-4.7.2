@@ -6,7 +6,7 @@ import dataclasses
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QKeySequence, QPixmap, QShortcut, QTransform
 from PySide6.QtWidgets import (
     QComboBox,
@@ -17,12 +17,14 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from rpggen.core import anim_edit, audio_info, explain, labels
 from rpggen.core import catalog as catalog_mod
+from rpggen.gui import workers
 from rpggen.gui.edits import EditSession
 from rpggen.gui.widgets import audio_preview, image_view
 from rpggen.gui.widgets.anim_preview import AnimPlayer
@@ -72,6 +74,11 @@ GRID_USAGES = {"tiles", "sprite"}
 ALT_BUTTONS = 3
 NEW_TILESET = "New…"
 UNCHANGED = "— detected —"
+
+
+def _peaks_job(path: Path, columns: int, *, callbacks: object) -> object:
+    """Worker function: the peaks of a long track (``callbacks`` is not used)."""
+    return audio_info.peaks(path, columns)
 
 
 def frame_size_of(eff: dict[str, Any]) -> tuple[int, int] | None:
@@ -167,6 +174,64 @@ class AssetDetail(QWidget):
         layout.addWidget(self.audio_box)
         self.audio_box.setVisible(False)
         self.play_button.clicked.connect(self.toggle_playback)
+        # ... and its waveform with the play head; music also gets the loop row (T13.17)
+        self.waveform = audio_preview.WaveformView()
+        self.waveform.setVisible(False)
+        layout.addWidget(self.waveform)
+        self.loop_box = QWidget()
+        self.loop_box.setObjectName("loopBox")
+        loop_row = QHBoxLayout(self.loop_box)
+        loop_row.setContentsMargins(0, 0, 0, 0)
+        loop_label = QLabel(self.tr("Loop"))
+        loop_label.setToolTip(
+            self.tr(
+                "Where the track jumps back to and from when it repeats, in milliseconds. "
+                "Drag the markers on the waveform or type the numbers. "
+                "Only WAV files use the end point: OGG and MP3 play to their end."
+            )
+        )
+        self.loop_start_spin = QSpinBox()
+        self.loop_start_spin.setObjectName("loopStart")
+        self.loop_start_spin.setAccessibleName(self.tr("Loop start in milliseconds"))
+        self.loop_end_spin = QSpinBox()
+        self.loop_end_spin.setObjectName("loopEnd")
+        self.loop_end_spin.setAccessibleName(self.tr("Loop end in milliseconds"))
+        for spin in (self.loop_start_spin, self.loop_end_spin):
+            spin.setSuffix(" ms")
+            spin.setSingleStep(50)
+            spin.setKeyboardTracking(False)
+            spin.setToolTip(loop_label.toolTip())
+        self.loop_guess_button = QPushButton(self.tr("Guess"))
+        self.loop_guess_button.setObjectName("loopGuess")
+        self.loop_guess_button.setToolTip(
+            self.tr("Look for the longest stretch after which the track goes on as before")
+        )
+        self.loop_clear_button = QPushButton(self.tr("Whole track"))
+        self.loop_clear_button.setObjectName("loopClear")
+        self.loop_clear_button.setToolTip(self.tr("Loop the whole track again"))
+        self.loop_note = QLabel()
+        self.loop_note.setObjectName("loopNote")
+        for widget in (
+            loop_label,
+            self.loop_start_spin,
+            self.loop_end_spin,
+            self.loop_guess_button,
+            self.loop_clear_button,
+        ):
+            loop_row.addWidget(widget)
+        loop_row.addWidget(self.loop_note, 1)
+        layout.addWidget(self.loop_box)
+        self.loop_box.setVisible(False)
+        self.loop_start_spin.valueChanged.connect(lambda _v: self._on_loop_spins())
+        self.loop_end_spin.valueChanged.connect(lambda _v: self._on_loop_spins())
+        self.loop_guess_button.clicked.connect(self.guess_loop)
+        self.loop_clear_button.clicked.connect(self.clear_loop)
+        self.waveform.loopChanged.connect(self.set_loop)
+        self._peaks: dict[str, list[tuple[float, float]] | None] = {}
+        self._peak_worker: workers.Worker | None = None
+        self._head_timer = QTimer(self)
+        self._head_timer.setInterval(40)
+        self._head_timer.timeout.connect(self._move_head)
         # a sprite with animations: which one, play / pause and the frame (T13.03)
         self.anim_box = QWidget()
         self.anim_box.setObjectName("animBox")
@@ -504,8 +569,11 @@ class AssetDetail(QWidget):
             self.anim_box.setVisible(False)
         is_audio = asset.kind == "audio"
         self.audio_box.setVisible(is_audio)
+        self.waveform.setVisible(is_audio)
         if not is_audio:
+            self.loop_box.setVisible(False)
             return
+        self._show_waveform(asset, eff)
         audio = eff.get("audio") or {}
         seconds = audio.get("duration_s")
         kind = {"music": self.tr("music"), "sfx": self.tr("sound effect")}.get(
@@ -524,10 +592,132 @@ class AssetDetail(QWidget):
         if audio_preview.is_playing():
             audio_preview.stop()
             self.play_button.setText(self.tr("Play"))
+            self._head_timer.stop()
+            self.waveform.set_head(None)
             return
         path = self.resolver(asset)
         if path is not None and audio_preview.play(Path(path)):
             self.play_button.setText(self.tr("Stop"))
+            self._head_timer.start()
+
+    def _move_head(self) -> None:
+        if not audio_preview.is_playing():
+            self._head_timer.stop()
+            self.waveform.set_head(None)
+            self.play_button.setText(self.tr("Play"))
+            return
+        self.waveform.set_head(audio_preview.position_ms())
+
+    # ------------------------------------------------------------------ waveform and loop (T13.17)
+
+    SYNC_PEAK_BYTES = 4 * 1024 * 1024  # larger files are decoded off the UI thread
+    PEAK_COLUMNS = 480
+
+    def _show_waveform(self, asset: catalog_mod.Asset, eff: dict) -> None:
+        audio = eff.get("audio") or {}
+        seconds = audio.get("duration_s")
+        duration_ms = round(float(seconds) * 1000) if isinstance(seconds, (int, float)) else 0
+        path = self.resolver(asset)
+        key = str(path) if path is not None else ""
+        if key and key not in self._peaks:
+            self._load_peaks(Path(key), asset.id)
+        self.waveform.set_sound(self._peaks.get(key), duration_ms)
+        is_music = audio.get("type") == "music"
+        self.loop_box.setVisible(is_music)
+        start, end = audio.get("loop_start_ms"), audio.get("loop_end_ms")
+        self.waveform.set_loop(
+            start if isinstance(start, int) else None,
+            end if isinstance(end, int) else None,
+            markers=is_music and duration_ms > 0,
+        )
+        shown_start, shown_end = self.waveform.loop()
+        was_loading, self._loading = self._loading, True
+        for spin, value in ((self.loop_start_spin, shown_start), (self.loop_end_spin, shown_end)):
+            spin.setRange(0, max(0, duration_ms))
+            spin.setValue(value)
+            spin.setEnabled(duration_ms > 0)
+        self._loading = was_loading
+        self.loop_guess_button.setEnabled(duration_ms > 0)
+        self.loop_clear_button.setEnabled(isinstance(start, int) or isinstance(end, int))
+        self.loop_note.setText("")
+
+    def _load_peaks(self, path: Path, asset_id: str) -> None:
+        key = str(path)
+        try:
+            small = path.stat().st_size <= self.SYNC_PEAK_BYTES
+        except OSError:
+            self._peaks[key] = None
+            return
+        if small:
+            self._peaks[key] = audio_info.peaks(path, self.PEAK_COLUMNS)
+            return
+        self._peaks[key] = None  # a flat bar until the worker is back
+        worker = workers.Worker(_peaks_job, path, self.PEAK_COLUMNS)
+
+        def done(found: object) -> None:
+            self._peaks[key] = found if isinstance(found, list) else None
+            try:
+                if self.asset_id == asset_id:
+                    self.waveform.set_sound(self._peaks[key], self.waveform.duration_ms)
+            except RuntimeError:  # the panel is gone
+                pass
+
+        worker.signals.finished.connect(done)
+        self._peak_worker = worker
+        worker.start()
+
+    def loop_points(self) -> tuple[int | None, int | None]:
+        """The asset's loop points as the catalog has them (None: not set)."""
+        asset = self.asset()
+        audio = (catalog_mod.effective(asset).get("audio") or {}) if asset is not None else {}
+        start, end = audio.get("loop_start_ms"), audio.get("loop_end_ms")
+        return (start if isinstance(start, int) else None, end if isinstance(end, int) else None)
+
+    def set_loop(self, start_ms: int, end_ms: int) -> bool:
+        """Store both loop points (one undo step). False when they are no loop."""
+        asset = self.asset()
+        if asset is None or asset.kind != "audio" or end_ms <= start_ms or start_ms < 0:
+            self.reload(reload_image=False)
+            return False
+        if (start_ms, end_ms) == self.loop_points():
+            return True
+        audio = dict(asset.overrides.get("audio") or {})
+        audio.update({"loop_start_ms": int(start_ms), "loop_end_ms": int(end_ms)})
+        return self.session.set_overrides([asset.id], {"audio": audio}, "Set the loop points")
+
+    def clear_loop(self) -> bool:
+        """Back to looping the whole track (one undo step)."""
+        asset = self.asset()
+        if asset is None or self.loop_points() == (None, None):
+            return False
+        audio = dict(asset.overrides.get("audio") or {})
+        audio.pop("loop_start_ms", None)
+        audio.pop("loop_end_ms", None)
+        detected = asset.detected.get("audio") or {}
+        for point in ("loop_start_ms", "loop_end_ms"):  # a profile may have set one
+            if point in detected:
+                audio[point] = None
+        if not audio:  # nothing else was overridden: the detected facts apply again
+            return self.session.clear_override(asset.id, "audio")
+        return self.session.set_overrides([asset.id], {"audio": audio}, "Loop the whole track")
+
+    def guess_loop(self) -> bool:
+        asset = self.asset()
+        path = self.resolver(asset) if asset is not None else None
+        found = audio_info.guess_loop(Path(path)) if path is not None else None
+        if found is None:
+            self.loop_note.setText(self.tr("No loop found"))
+            return False
+        return self.set_loop(*found)
+
+    def _on_loop_spins(self) -> None:
+        if self._loading:
+            return
+        start, end = self.loop_start_spin.value(), self.loop_end_spin.value()
+        if end <= start:
+            self.loop_note.setText(self.tr("The end must be after the start"))
+            return
+        self.set_loop(start, end)
 
     @staticmethod
     def _select(combo: QComboBox, value: object) -> None:

@@ -27,7 +27,7 @@ THUMB_SIZE = 96
 CACHE_SIZE = 2000
 TILE_PREVIEW_CELLS = 4
 BATCH_SIZE = 24
-CARD_VERSION = 1  # bump when the audio or font card drawing changes
+CARD_VERSION = 2  # bump when the audio or font card drawing changes (2: decoded waveforms)
 
 
 @dataclass(frozen=True)
@@ -147,7 +147,8 @@ def _small_font(size: int) -> Any:
 
 
 def render_audio_card(path: Path, duration: float | None, size: int = THUMB_SIZE) -> bytes:
-    """A speaker glyph, a waveform strip (WAV only) and the duration, on a fixed dark card."""
+    """A speaker glyph, the waveform (the decoded samples of a WAV, OGG, FLAC or MP3; a flat
+    bar for a file that cannot be decoded) and the duration, on a fixed dark card."""
     k = size / 96
 
     def px(v: float) -> int:
@@ -177,14 +178,17 @@ def render_audio_card(path: Path, duration: float | None, size: int = THUMB_SIZE
             width=max(1, px(2)),
         )
     mid, height, margin = px(62), px(22), px(8)
-    peaks = audio_info.waveform(path, bins=max(16, size // 3))
+    peaks = audio_info.peaks(path, columns=max(16, size - 2 * margin))
     if peaks:
         step = (size - 2 * margin) / len(peaks)
-        for i, peak in enumerate(peaks):
+        for i, (low, high) in enumerate(peaks):
             x = round(margin + i * step)
-            half = max(1, round(peak * height / 2))
+            top = mid - max(0, round(high * height))
+            bottom = mid + max(0, round(-low * height))
             draw.line(
-                [(x, mid - half), (x, mid + half)], fill=wave_ink, width=max(1, round(step) - 1)
+                [(x, min(top, mid)), (x, max(bottom, mid))],
+                fill=wave_ink,
+                width=max(1, round(step)),
             )
     else:
         draw.line([(margin, mid), (size - margin, mid)], fill=wave_ink, width=1)

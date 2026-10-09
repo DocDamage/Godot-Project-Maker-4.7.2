@@ -7,7 +7,7 @@
 import os
 import sys
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
 ROOT = os.path.abspath(os.path.join(SPECPATH, os.pardir))
 IS_WINDOWS = sys.platform == "win32"
@@ -67,13 +67,18 @@ datas += collect_data_files("jsonschema_specifications")  # referenced schemas o
 
 hidden = ["psutil"]  # imported inside a function (promote.editor_open)
 hidden += ["zstandard"]  # imported by name (adapters.tiled, T13.14)
+# soundfile is imported inside functions (audio_info, T13.17); libsndfile ships in the wheel as
+# the package _soundfile_data, which nothing imports by name
+hidden += ["soundfile", "_soundfile_data", "_cffi_backend"]
+datas += collect_data_files("_soundfile_data")
+binaries = collect_dynamic_libs("_soundfile_data")
 
 
 def analysis(script):
     return Analysis(
         [os.path.join(SPECPATH, script)],
         pathex=[ROOT],
-        binaries=[],
+        binaries=binaries,
         datas=datas,
         hiddenimports=hidden,
         excludes=EXCLUDED_QT,

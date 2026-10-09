@@ -208,7 +208,7 @@ unknown licence.
 | `directions` | int 1/4/8 | usage=sprite | |
 | `character_index` | int | RPG Maker multi-character sheets | Which 3×4 block (0–7). |
 | `ysort` | bool | object/sprite | Default true. |
-| `audio` | `{ "type": "music"/"sfx", "loop": bool, "duration_s"?: number }` | usage=audio | `duration_s` is read from the file (WAV, OGG, MP3, FLAC) when it can be; optional. |
+| `audio` | `{ "type": "music"/"sfx", "loop": bool, "duration_s"?: number, "loop_start_ms"?: int, "loop_end_ms"?: int }` | usage=audio | `duration_s` is read from the file (WAV, OGG, MP3, FLAC) when it can be; optional. `loop_start_ms` and `loop_end_ms` (T13.17, optional, set on the Audit page) are where a looping track jumps back to and from; without them it loops as a whole. An override may set a part of `audio` (it merges) and `null` takes a loop point away. |
 | `nine_slice` | `[left, top, right, bottom]` | usage=ui | Margins in px. |
 | `import` | `{ "filter": "nearest"/"linear", "mipmaps": bool }` | images | Defaults: nearest, false. |
 | `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). |

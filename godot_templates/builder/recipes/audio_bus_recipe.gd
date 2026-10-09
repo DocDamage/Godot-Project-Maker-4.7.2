@@ -2,9 +2,11 @@ extends RefCounted
 ## Builds the audio bus layout (Master, Music, SFX, UI -> Master), the audio index that maps
 ## catalog audio asset ids to their files (res://rpggen/audio_index.json), the sound bank (slot ->
 ## file, custom slots included) and the surfaces table (ground asset id -> surface, from the tag
-## `surface:<name>`; the footstep slot `sfx_step_<name>` plays on that ground, T13.16).
+## `surface:<name>`; the footstep slot `sfx_step_<name>` plays on that ground, T13.16) and the
+## loops table (file -> {start_ms, end_ms} of every looping track, T13.17; RpgAudio sets the loop
+## on the stream when it plays, so no file is imported again for a loop point).
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 4
 
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
@@ -13,11 +15,26 @@ const LAYOUT_PATH := "res://generated/audio/default_bus_layout.tres"
 const INDEX_PATH := "res://rpggen/audio_index.json"
 const BANK_PATH := "res://rpggen/sound_bank.json"
 const SURFACES_PATH := "res://rpggen/surfaces.json"
+const LOOPS_PATH := "res://rpggen/audio_loops.json"
 const SURFACE_TAG := "surface:"
 const BUSES: Array[String] = ["Music", "SFX", "UI"]
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
-	return PackedStringArray([LAYOUT_PATH, INDEX_PATH, BANK_PATH, SURFACES_PATH])
+	return PackedStringArray([LAYOUT_PATH, INDEX_PATH, BANK_PATH, SURFACES_PATH, LOOPS_PATH])
+
+## {res:// path: {start_ms, end_ms}} of the audio assets that loop (`audio.loop`). 0 for the end
+## means the end of the track.
+func loops(ctx: BuildContext) -> Dictionary:
+	var out := {}
+	for a in _audio_assets(ctx):
+		var eff: Dictionary = ctx.catalog.effective(a)
+		var audio: Dictionary = eff.get("audio", {}) if eff.get("audio") is Dictionary else {}
+		if not JsonUtil.to_bool(audio.get("loop", false)):
+			continue
+		var start := maxi(0, JsonUtil.to_int(audio.get("loop_start_ms", 0)))
+		var end := maxi(0, JsonUtil.to_int(audio.get("loop_end_ms", 0)))
+		out["res://" + JsonUtil.to_str(a["path"])] = {"start_ms": start, "end_ms": end if end > start else 0}
+	return out
 
 ## {asset id: surface} of the active assets tagged `surface:<name>`.
 func surfaces(ctx: BuildContext) -> Dictionary:
@@ -46,7 +63,7 @@ func input_hash(ctx: BuildContext) -> String:
 	var parts: Array = []
 	for a in _audio_assets(ctx):
 		parts.append([a["id"], a["path"], a.get("sha256", "")])
-	return ctx.stable_hash({"v": RECIPE_VERSION, "audio": parts, "sounds": ctx.config.get("sounds", {}), "surfaces": surfaces(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "audio": parts, "sounds": ctx.config.get("sounds", {}), "surfaces": surfaces(ctx), "loops": loops(ctx)})
 
 ## {slot: res:// path} of the configured sound slots whose asset is still active ("" = cleared).
 func sound_bank(ctx: BuildContext) -> Dictionary:
@@ -89,4 +106,7 @@ func build(ctx: BuildContext) -> Array:
 	var surfaces_err := JsonUtil.write(SURFACES_PATH, surfaces(ctx))
 	if surfaces_err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": SURFACES_PATH, "err": surfaces_err}, SURFACES_PATH))
+	var loops_err := JsonUtil.write(LOOPS_PATH, loops(ctx))
+	if loops_err != OK:
+		issues.append(ctx.make_issue("BUILD-004", {"file": LOOPS_PATH, "err": loops_err}, LOOPS_PATH))
 	return issues

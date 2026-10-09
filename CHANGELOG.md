@@ -72,6 +72,13 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   wood, sand, water, snow), filled from files like `step_grass.wav`. A bad slot name in a
   config file is `CAT-006`.
 
+* **Waveforms and loop points**: an audio card shows the waveform of the decoded file (WAV, OGG
+  Vorbis, FLAC, MP3, through libsndfile) and the detail panel shows it large with a play head.
+  Music gets a **Loop** row: start and end in milliseconds, draggable markers, **Guess** and
+  **Whole track**. Music now loops in the game, between the chosen points (a WAV between both;
+  OGG and MP3 play to their end and come back to the start point). New dependency:
+  `soundfile`.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

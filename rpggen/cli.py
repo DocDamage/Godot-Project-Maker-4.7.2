@@ -145,12 +145,47 @@ def _build_parser() -> argparse.ArgumentParser:
     diagnose.add_argument("--out", type=Path, help="zip to write (default: next to the folder)")
     diagnose.add_argument("--godot", type=Path, help="Godot executable (its version is recorded)")
     _add_json(diagnose)
+    audio = sub.add_parser(
+        "audio-check",
+        help="decode a sound file (without a file: write and read back a short Ogg Vorbis)",
+        allow_abbrev=False,
+    )
+    audio.add_argument("file", nargs="?", type=Path, help="a WAV, OGG, FLAC or MP3 file")
     from rpggen import analyze_cmd
 
     analyze = sub.add_parser("analyze", help="analyze an asset pack", allow_abbrev=False)
     analyze_cmd.add_arguments(analyze)
     _add_json(analyze)
     return parser
+
+
+def _audio_check(file: Path | None) -> int:
+    """Decode ``file`` through libsndfile and say how loud it is; without a file, write half a
+    second of a tone as Ogg Vorbis and read it back (the packaging smoke test, T13.17)."""
+    import math
+    import tempfile
+
+    from rpggen.core import audio_info
+
+    sf = audio_info.soundfile_module()
+    if sf is None:
+        print("audio-check: the soundfile module (libsndfile) cannot be loaded", file=sys.stderr)
+        return 1
+    with tempfile.TemporaryDirectory(prefix="rpggen_audio_") as tmp:
+        if file is None:
+            import numpy
+
+            file = Path(tmp) / "tone.ogg"
+            tone = [0.5 * math.sin(2 * math.pi * 440 * i / 22050) for i in range(11025)]
+            sf.write(str(file), numpy.asarray(tone, dtype="float32"), 22050)
+        found = audio_info.peaks(file, 16)
+    if not found or max(high - low for low, high in found) <= 0.01:
+        print(f"audio-check: {file.name} is silent or could not be decoded", file=sys.stderr)
+        return 1
+    loudest = max(max(-low, high) for low, high in found)
+    library = sf.__libsndfile_version__
+    print(f"audio-check: {file.name} decoded, peak {loudest:.2f} (libsndfile {library})")
+    return 0
 
 
 def _resolve_godot(arg: Path | None) -> Path | None:
@@ -486,6 +521,8 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _generate(args)
     if args.command == "restore":
         return _restore(args)
+    if args.command == "audio-check":
+        return _audio_check(args.file)
     if args.command == "diagnose":
         return _diagnose(args)
     if args.command == "conflicts":

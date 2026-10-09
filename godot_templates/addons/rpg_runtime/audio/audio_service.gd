@@ -4,6 +4,9 @@ extends Node
 ## boot creates it as a child of SceneRouter so it survives scene changes.
 
 const INDEX_PATH := "res://rpggen/audio_index.json"
+## File -> {start_ms, end_ms} of the tracks that loop (written by the builder from the catalog's
+## `audio.loop`, `loop_start_ms` and `loop_end_ms`). A project made before 1.1 has no such file.
+const LOOPS_PATH := "res://rpggen/audio_loops.json"
 const SFX_POOL := 8
 const SILENT_DB := -60.0
 
@@ -13,6 +16,8 @@ var _sfx: Array[AudioStreamPlayer] = []
 var _ui: AudioStreamPlayer
 var _index: Dictionary = {}
 var _index_loaded := false
+var _loops: Dictionary = {}
+var _loops_loaded := false
 var _tween: Tween = null
 var current_music_id := ""
 ## The sound slots of the game (res://rpggen/sound_bank.json). Unset slots are silent.
@@ -103,6 +108,46 @@ func stream_for(asset_id: String) -> AudioStream:
 		return null
 	return load(path) as AudioStream
 
+## Makes `stream` loop: from `end_ms` back to `start_ms` (0 for the end is the end of the track).
+## A WAV stream loops between both points; an Ogg Vorbis or MP3 stream always plays to its end
+## and comes back to the start point (their `loop_offset`).
+static func apply_loop(stream: AudioStream, info: Dictionary) -> void:
+	var start_s := maxf(0.0, RpgUtil.to_float(info.get("start_ms", 0)) / 1000.0)
+	var end_s := RpgUtil.to_float(info.get("end_ms", 0)) / 1000.0
+	if stream is AudioStreamWAV:
+		var wav := stream as AudioStreamWAV
+		var frames := roundi(wav.get_length() * wav.mix_rate)
+		if frames <= 0:
+			return
+		var begin := clampi(roundi(start_s * wav.mix_rate), 0, frames - 1)
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = begin
+		wav.loop_end = frames if end_s <= start_s else clampi(roundi(end_s * wav.mix_rate), begin + 1, frames)
+	elif stream is AudioStreamOggVorbis:
+		var ogg := stream as AudioStreamOggVorbis
+		ogg.loop = true
+		ogg.loop_offset = start_s
+	elif stream is AudioStreamMP3:
+		var mp3 := stream as AudioStreamMP3
+		mp3.loop = true
+		mp3.loop_offset = start_s
+
+## The loop of the file at `path`, or {} when it does not loop.
+func loop_of(path: String) -> Dictionary:
+	if not _loops_loaded:
+		_loops_loaded = true
+		if FileAccess.file_exists(LOOPS_PATH):
+			var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(LOOPS_PATH))
+			if parsed is Dictionary:
+				_loops = parsed
+	var found: Variant = _loops.get(path, {})
+	return found if found is Dictionary else {}
+
+## Replaces the loops table (file -> {start_ms, end_ms}); used by tests.
+func set_loops(table: Dictionary) -> void:
+	_loops_loaded = true
+	_loops = table.duplicate(true)
+
 func _resolve(what: Variant) -> AudioStream:
 	if what is AudioStream:
 		return what
@@ -126,6 +171,9 @@ func play_music(what: Variant, fade: float = 0.5) -> void:
 	_tween = create_tween().set_parallel(true)
 	_tween.tween_property(old, "volume_db", SILENT_DB, fade)
 	if stream != null:
+		var loop := loop_of(stream.resource_path)
+		if not loop.is_empty():
+			apply_loop(stream, loop)
 		fresh.stream = stream
 		fresh.volume_db = SILENT_DB
 		fresh.play()
