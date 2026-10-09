@@ -246,8 +246,20 @@ def test_the_card_of_a_variant_has_the_glyph(qtbot) -> None:
 
     base = option.palette.base().color().rgb()
     ink = option.palette.text().color().rgb()
+
+    def channels(rgb: int) -> tuple[int, int, int]:
+        return (rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255
+
+    def distance(a: int, b: int) -> int:
+        return sum(abs(x - y) for x, y in zip(channels(a), channels(b), strict=True))
+
+    def inked(found: set[int]) -> bool:
+        """A stroke of the glyph: a pixel in the text colour. A small glyph may have no pixel of
+        the pure colour (the font and Qt version decide how much of it is anti-aliased, as on
+        PySide6 6.7 with DejaVu), so a pixel nearer to the ink than to the patch counts."""
+        return any(distance(p, ink) <= distance(p, base) for p in found)
+
     pixels = corner_of(variant_id)
-    assert base in pixels and ink in pixels, "the glyph is drawn on its own patch"
-    assert ink not in corner_of(_slime(page.session.catalog).id) or base not in corner_of(
-        _slime(page.session.catalog).id
-    ), "the source has no glyph"
+    assert base in pixels and inked(pixels), "the glyph is drawn on its own patch"
+    source = corner_of(_slime(page.session.catalog).id)
+    assert not inked(source) or base not in source, "the source has no glyph"
