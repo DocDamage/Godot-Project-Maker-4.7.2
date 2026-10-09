@@ -123,6 +123,29 @@ or I), a message template with `{placeholders}` and a recommended fix.
    or the shared helper in GDScript. Never invent a message string outside the table.
 4. Test the situation that raises it, and mention a user-facing code in `docs/user_guide.md`.
 
+## Translating the wizard
+
+The wizard's texts go through `tr()`; Qt's tools turn them into translations (T12.56).
+
+1. Start a language, or bring an existing one up to date with new texts:
+   `python tools/update_translations.py extract --lang fr` (`--lang` only for a new language;
+   without it every `rpggen/gui/i18n/rpggen_<lang>.ts` is updated). Commit the `.ts` file.
+2. Translate with Qt Linguist (`pyside6-linguist rpggen/gui/i18n/rpggen_fr.ts`) or any editor
+   that knows the format. Keep `{0}`-style placeholders, `&` mnemonics and `\t` shortcuts.
+   A text left unfinished is shown in English.
+3. `python tools/update_translations.py release` builds the `.qm` files (not committed; the
+   release build runs this step). Pick the language under *View > Language* and restart.
+
+Texts are only found when `tr()` is given a string literal: write `self.tr("A") if x else
+self.tr("B")`, not `self.tr("A" if x else "B")`, and mark lists of texts with
+`QT_TRANSLATE_NOOP("Context", "Text")` (see `PAGE_NAMES` in `rpggen/gui/wizard.py`). Error messages
+stay English: they are documented by code in `docs/errors.md`. French (`rpggen_fr.ts`) is the
+pilot: the step names, the menus, the navigation and the welcome view are translated; a native
+speaker's review and the remaining texts are welcome.
+
+The generated game is translated separately, by adding columns to its `game/i18n/strings.tsv`
+(see the project's README).
+
 ## Documentation
 
 `docs/architecture.md` is a copy of `docs/spec/ARCHITECTURE.md`; a test fails when they differ.

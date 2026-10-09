@@ -106,6 +106,15 @@ else the start of the map with full health).
 lines by section, the packs and the engine; up and down scroll, Back or `cancel` closes it. The
 title screen and the pause menu open it from their *Credits* button.
 
+## Languages
+
+Each column of `game/i18n/strings.tsv` becomes a Translation in `generated/i18n/`, registered at
+boot by `RpgStrings.register_translations()`. `RpgSettings.set_language("fr")` switches the game
+(`""` follows the system); `RpgStrings.locales()` lists what can be chosen. A label whose text is a
+key follows a new language by itself; text set in code with `tr()` has to be set again: listen to
+`NOTIFICATION_TRANSLATION_CHANGED` (or `RpgSettings.changed`), as the settings menu, the title
+screen and the battle interface do.
+
 ## Input glyphs
 
 `RpgInputGlyphs.glyph("interact")` is `"[E]"` while the player uses the keyboard and `"[A]"`,

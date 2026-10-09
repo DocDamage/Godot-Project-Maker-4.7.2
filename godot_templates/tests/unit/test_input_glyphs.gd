@@ -96,7 +96,9 @@ func test_a_device_without_a_binding_falls_back_and_nothing_bound_is_a_question_
 func test_the_interaction_prompt_and_hints_use_the_glyphs(t) -> void:
 	var settings := Fixtures.install("RpgSettings", Fixtures.SETTINGS) as RpgSettingsStore
 	var had_interact := InputMap.has_action("interact")
-	var old: Array[InputEvent] = InputMap.action_get_events("interact") if had_interact else []
+	var old: Array[InputEvent] = []
+	if had_interact:
+		old = InputMap.action_get_events("interact")
 	if not had_interact:
 		InputMap.add_action("interact")
 	InputMap.action_erase_events("interact")

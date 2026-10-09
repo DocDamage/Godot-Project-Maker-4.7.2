@@ -68,7 +68,17 @@ def executable(name: str) -> Path:
     return exe_dir() / f"{name}{EXE_SUFFIX}"
 
 
+def build_translations() -> None:
+    """The wizard's .qm files from the committed .ts files (T12.56)."""
+    subprocess.run(
+        [sys.executable, str(REPO / "tools" / "update_translations.py"), "release"],
+        cwd=REPO,
+        check=True,
+    )
+
+
 def build_bundle() -> None:
+    build_translations()
     shutil.rmtree(REPO / "build", ignore_errors=True)
     shutil.rmtree(DIST / "rpggen", ignore_errors=True)
     shutil.rmtree(DIST / "rpggen.app", ignore_errors=True)

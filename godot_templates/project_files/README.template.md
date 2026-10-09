@@ -221,3 +221,13 @@ dialogues use. While one plays, the player cannot move or open the menu.
 
 Gates and switches remember their state in the save. A cutscene can open a gate by setting the
 flag its condition names.
+
+## 16. Languages
+
+Every text of the menus is a key (`UI_NEW_GAME`) with its English text in
+`game/i18n/strings.tsv` (yours, never overwritten): a tab-separated table whose first row is
+`keys<TAB>en`. To translate the game, add a column headed by a locale code (`fr`, `pt_BR`) and fill
+it in; regenerate, and each column becomes a translation in `generated/i18n/`. *Settings >
+Language* then lists *System* (the player's own language when there is a column for it, else the
+fallback, English) and every language of the table; the choice is saved with the other settings.
+A key a column leaves empty shows its English text.

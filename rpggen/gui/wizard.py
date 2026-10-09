@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import cast
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt
 from PySide6.QtGui import QCloseEvent, QGuiApplication, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -29,7 +30,19 @@ from rpggen.gui.window_menus import WindowMenus
 
 log = logging.getLogger(__name__)
 
-PAGE_NAMES = ["Project", "Archetype", "Audit", "Mapping", "Options", "Generate", "Results"]
+# marked for lupdate (T12.56); translated where the sidebar shows them
+PAGE_NAMES: list[str] = cast(
+    list[str],
+    [
+        QT_TRANSLATE_NOOP("MainWindow", "Project"),
+        QT_TRANSLATE_NOOP("MainWindow", "Archetype"),
+        QT_TRANSLATE_NOOP("MainWindow", "Audit"),
+        QT_TRANSLATE_NOOP("MainWindow", "Mapping"),
+        QT_TRANSLATE_NOOP("MainWindow", "Options"),
+        QT_TRANSLATE_NOOP("MainWindow", "Generate"),
+        QT_TRANSLATE_NOOP("MainWindow", "Results"),
+    ],
+)
 AUDIT_INDEX = 2
 OPTIONS_INDEX = 4  # the last page before generation: its Next button reads "Generate"
 DEFAULT_WINDOW = (1100, 720)

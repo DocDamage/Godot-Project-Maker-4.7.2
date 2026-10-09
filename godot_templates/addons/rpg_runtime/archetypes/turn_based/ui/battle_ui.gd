@@ -456,3 +456,7 @@ func show_rewards(result: RpgEncounterResult, level_ups: Array) -> void:
 
 func _on_input_device_changed(_device: String) -> void:
 	_update_hint()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_update_hint()  # the hint is set in code, so it does not follow the locale by itself

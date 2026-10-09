@@ -31,6 +31,8 @@ const KEYS := {
 	"UI_VOLUME_UI": "Interface volume",
 	"UI_FULLSCREEN": "Fullscreen",
 	"UI_TEXT_SPEED": "Text speed",
+	"UI_LANGUAGE": "Language",
+	"UI_LANGUAGE_SYSTEM": "System",
 	"UI_UI_SCALE": "Interface size",
 	"UI_CONTROLS": "Controls",
 	"UI_PRESS_KEY": "Press a key…",
@@ -162,6 +164,23 @@ static func register_translations() -> int:
 			added += 1
 	_add_missing_defaults()
 	return added
+
+## The locales the project has a translation for (the columns of game/i18n/strings.tsv),
+## sorted. The settings menu offers them, plus "System".
+static func locales(folder: String = TRANSLATIONS_DIR) -> PackedStringArray:
+	var found: PackedStringArray = []
+	var dir := DirAccess.open(folder)
+	if dir == null:
+		return found
+	for f in dir.get_files():
+		var file_name := f.trim_suffix(".remap")
+		if not file_name.ends_with(".tres"):
+			continue
+		var t := load(folder + "/" + file_name) as Translation
+		if t != null and t.locale != "" and not found.has(t.locale):
+			found.append(t.locale)
+	found.sort()
+	return found
 
 ## A project made before a key existed has no row for it in game/i18n/strings.tsv (the file is the
 ## user's and is never rewritten). Keys that no registered translation knows get their English

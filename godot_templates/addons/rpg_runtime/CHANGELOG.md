@@ -188,6 +188,11 @@
   (`input_device`, signal `input_device_changed`; a release, stick drift or mouse motion does not
   switch it). The interaction prompt, a key-hint line in the battle interface and on the title
   screen, and the settings remap list use it. No glyph art is bundled; the glyphs are text.
+* Languages (M12): *Settings > Language* lists *System* and the locales of
+  `generated/i18n` (`RpgStrings.locales()`); `RpgSettings.language` ("" follows the system) is saved
+  in `settings.cfg` under `[text]` and applied with `TranslationServer.set_locale`. The settings
+  menu redoes the texts it sets in code when the language changes; the title screen and battle
+  hints follow `NOTIFICATION_TRANSLATION_CHANGED`. A key a language lacks shows its English text.
 
 ## 0.3.0
 

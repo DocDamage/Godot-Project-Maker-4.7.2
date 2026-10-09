@@ -32,7 +32,8 @@ The **Help** menu has the user guide (F1 opens it at the page you are on), the l
 codes with their fixes, the keyboard shortcuts, *Report a problem…*, *Check for updates…* and
 *About rpggen* (version, licenses and the third-party notices). The **View** menu switches
 between the dark and the light theme and sets the size of the thumbnails; **File** lists your
-recent projects.
+recent projects. **View > Language** picks the wizard's language (*Follow the system*, English, or a
+language that has a translation; French is the first); it applies the next time rpggen starts.
 
 ![About rpggen](images/about_dialog.png)
 
@@ -179,6 +180,10 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
   logs** and **Export diagnostic bundle**.
 
 ## 4. In Godot
+
+The game's *Settings* have a **Language** choice: *System* and every language of the project's
+`game/i18n/strings.tsv` (add a column with a locale code to translate the game; the project's
+README explains how).
 
 Key prompts follow the player's device: `[E]` on the keyboard, the pad's own button name
 (`[A]`, `[Cross]`, `[B]`) once a controller is used, and a remapped key at once.

@@ -20,6 +20,7 @@ var text_speed := "normal"
 var ui_scale := 1.0
 var autosave := true  # an automatic save when a map is entered (SaveManager.autosave)
 var screen_shake := true  # camera shake and hit-stop of the action RPG
+var language := ""  # a locale of generated/i18n ("fr"), or "" for the system's (T12.56)
 
 var _defaults := {}  # action -> Array[InputEvent], captured before user bindings are applied
 ## The kind of device used last: prompts show its glyphs (not saved; a keyboard at start).
@@ -68,6 +69,17 @@ func set_autosave(on: bool) -> void:
 	autosave = on
 	changed.emit()
 
+## Switches the game's language; "" follows the system. Labels whose text is a key change at
+## once; screens that set their text in code refresh on NOTIFICATION_TRANSLATION_CHANGED.
+func set_language(locale: String) -> void:
+	language = locale
+	_apply_language()
+	changed.emit()
+
+## The locale in effect for `language`.
+func effective_locale() -> String:
+	return language if language != "" else OS.get_locale()
+
 func set_ui_scale(scale: float) -> void:
 	ui_scale = scale if UI_SCALES.has(scale) else 1.0
 	_apply_ui_scale()
@@ -78,6 +90,11 @@ func apply() -> void:
 		_apply_volume(bus)
 	_apply_fullscreen()
 	_apply_ui_scale()
+	_apply_language()
+
+func _apply_language() -> void:
+	if TranslationServer.get_locale() != effective_locale():
+		TranslationServer.set_locale(effective_locale())
 
 func _apply_volume(bus: String) -> void:
 	var bus_name: String = BUS_NAMES[bus]
@@ -106,6 +123,7 @@ func save_settings() -> bool:
 		cfg.set_value("audio", bus, volumes[bus])
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("text", "speed", text_speed)
+	cfg.set_value("text", "language", language)
 	cfg.set_value("access", "ui_scale", ui_scale)
 	cfg.set_value("game", "autosave", autosave)
 	cfg.set_value("game", "screen_shake", screen_shake)
@@ -124,6 +142,7 @@ func load_settings() -> void:
 	fullscreen = RpgUtil.to_bool(cfg.get_value("video", "fullscreen", false))
 	var speed := str(cfg.get_value("text", "speed", "normal"))
 	text_speed = speed if TEXT_SPEEDS.has(speed) else "normal"
+	language = str(cfg.get_value("text", "language", ""))
 	var scale := RpgUtil.to_float(cfg.get_value("access", "ui_scale", 1.0))
 	ui_scale = scale if UI_SCALES.has(scale) else 1.0
 	autosave = RpgUtil.to_bool(cfg.get_value("game", "autosave", true))

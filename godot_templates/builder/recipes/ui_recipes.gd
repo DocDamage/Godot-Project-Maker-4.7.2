@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification, the basic HUD, shop, journal and credits. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 9
+const RECIPE_VERSION := 10
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -308,6 +308,7 @@ func _build_settings_menu() -> Node:
 	inner.add_child(shake)
 	_option_row(inner, "TextSpeed", "UI_TEXT_SPEED")
 	_option_row(inner, "UiScale", "UI_UI_SCALE")
+	_option_row(inner, "Language", "UI_LANGUAGE")
 	UiUtil.label(inner, "ControlsHeading", "UI_CONTROLS")
 	var controls := VBoxContainer.new()
 	controls.name = "Controls"

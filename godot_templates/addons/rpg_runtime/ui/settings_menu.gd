@@ -9,6 +9,7 @@ const SLIDERS := {"MasterSlider": "master", "MusicSlider": "music", "SfxSlider":
 var _capturing_action := ""
 var _capturing_button: Button = null
 var _capturing_old: InputEvent = null
+var _shown_locale := ""  # the locale the texts set in code were made for
 
 func _settings() -> RpgSettingsStore:
 	return RpgUtil.settings()
@@ -32,11 +33,12 @@ func _ready() -> void:
 	autosave.button_pressed = s == null or s.autosave
 	autosave.toggled.connect(_on_autosave)
 	var speed := get_node("%TextSpeed") as OptionButton
-	speed.clear()
-	for sp in SPEEDS:
-		speed.add_item(tr("UI_SPEED_" + sp.to_upper()))
-	speed.select(SPEEDS.find(s.text_speed) if s != null else 1)
+	_fill_speeds()
 	speed.item_selected.connect(_on_speed)
+	var language := get_node_or_null("%Language") as OptionButton  # older scenes have none
+	if language != null:
+		_fill_languages()
+		language.item_selected.connect(_on_language)
 	var scale := get_node("%UiScale") as OptionButton
 	scale.clear()
 	for sc in SCALES:
@@ -44,9 +46,62 @@ func _ready() -> void:
 	scale.select(maxi(0, SCALES.find(s.ui_scale)) if s != null else 0)
 	scale.item_selected.connect(_on_scale)
 	(get_node("%Back") as Button).pressed.connect(close)
+	if s != null:
+		s.changed.connect(_on_settings_changed)
+	_shown_locale = TranslationServer.get_locale()
 	_build_controls()
 	_wire_focus()
 	_focus_first.call_deferred()
+
+func _fill_speeds() -> void:
+	var s := _settings()
+	var speed := get_node("%TextSpeed") as OptionButton
+	speed.clear()
+	for sp in SPEEDS:
+		speed.add_item(tr("UI_SPEED_" + sp.to_upper()))
+	speed.select(SPEEDS.find(s.text_speed) if s != null else 1)
+
+## "System" and every locale the project has a translation for (T12.56).
+func _fill_languages() -> void:
+	var language := get_node_or_null("%Language") as OptionButton
+	if language == null:
+		return
+	var s := _settings()
+	language.clear()
+	language.add_item(tr("UI_LANGUAGE_SYSTEM"))
+	language.set_item_metadata(0, "")
+	for locale in RpgStrings.locales():
+		language.add_item("%s (%s)" % [TranslationServer.get_locale_name(locale), locale])
+		language.set_item_metadata(language.item_count - 1, locale)
+	var current := s.language if s != null else ""
+	var index := 0
+	for i in language.item_count:
+		if str(language.get_item_metadata(i)) == current:
+			index = i
+	language.select(index)
+
+func _on_language(index: int) -> void:
+	var s := _settings()
+	var language := get_node("%Language") as OptionButton
+	if s != null:
+		s.set_language(str(language.get_item_metadata(index)))
+
+## Labels holding a key follow a new locale by themselves; the texts set here are redone when the
+## settings change the language (at once) or Godot says the translations changed (a frame later).
+func _on_settings_changed() -> void:
+	_refresh_texts()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_refresh_texts()
+
+func _refresh_texts() -> void:
+	if TranslationServer.get_locale() == _shown_locale:
+		return
+	_shown_locale = TranslationServer.get_locale()
+	_fill_speeds()
+	_fill_languages()
+	_build_controls()
 
 func _on_volume(value: float, bus: String) -> void:
 	var s := _settings()

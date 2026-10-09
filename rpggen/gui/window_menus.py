@@ -13,7 +13,7 @@ import rpggen
 from rpggen.core import app_settings, preflight, profile_registry, update_check
 from rpggen.errors import format_message
 from rpggen.gui import state as state_mod
-from rpggen.gui import theme, workers
+from rpggen.gui import theme, translations, workers
 from rpggen.gui.dialogs import diagnostic_export, help_viewer
 from rpggen.gui.dialogs.about_dialog import AboutDialog
 from rpggen.gui.dialogs.error_lookup import ErrorLookupDialog
@@ -136,6 +136,26 @@ class WindowMenus:
             size_menu, self.tr("Smaller"), "thumbSmaller", lambda: self.step_thumb_size(-1)
         )
         self.smaller_action.setShortcut(QKeySequence("Ctrl+-"))
+        # the wizard's language (T12.56): the system's, or one that has a translation
+        language_menu = view_menu.addMenu(self.tr("Language"))
+        language_menu.setObjectName("languageMenu")
+        language_group = QActionGroup(self)
+        self.language_actions: dict[str, QAction] = {}
+        choices = [(translations.SYSTEM, self.tr("Follow the system"))]
+        choices += [(lang, translations.display_name(lang)) for lang in translations.available()]
+        choices.append(("en", "English"))
+        for key, label in choices:
+            action = self._action(
+                language_menu,
+                label,
+                f"language_{key or 'system'}",
+                lambda _=False, k=key: self.set_language(k),
+            )
+            action.setCheckable(True)
+            language_group.addAction(action)
+            self.language_actions[key] = action
+        saved = app_settings.get().language
+        self.language_actions[saved if saved in self.language_actions else ""].setChecked(True)
 
         help_menu = bar.addMenu(self.tr("&Help"))
         self.guide_action = self._action(
@@ -305,6 +325,24 @@ class WindowMenus:
         if action is not None:
             action.setChecked(True)
 
+    def set_language(self, language: str) -> None:
+        """Remember the wizard's language; it applies at the next start (the texts of the open
+        window were set when it was made)."""
+        if language == app_settings.get().language:
+            return
+        app_settings.update(language=language)
+        action = self.language_actions.get(language)
+        if action is not None:
+            action.setChecked(True)
+        self.tell_language_restart()
+
+    def tell_language_restart(self) -> None:  # overridden by tests
+        QMessageBox.information(
+            self,  # type: ignore[arg-type]
+            self.tr("Language"),
+            self.tr("rpggen will use the new language the next time it starts."),
+        )
+
     def set_thumb_size(self, size: int) -> None:
         app_settings.schedule(thumb_size=size)
         if size in self.thumb_actions:
@@ -350,11 +388,9 @@ class WindowMenus:
             QMessageBox.information(
                 self,  # type: ignore[arg-type]
                 self.tr("Resolve conflicts"),
-                self.tr(
-                    "The open project has no files with a .rpggen-new version."
-                    if target is not None
-                    else "Open a generated project first."
-                ),
+                self.tr("The open project has no files with a .rpggen-new version.")
+                if target is not None
+                else self.tr("Open a generated project first."),
             )
             return
         ConflictDialog(target, None, self).exec()

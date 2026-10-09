@@ -65,6 +65,7 @@ class AppSettings:
     cache_limit_gb: float = 10.0  # extracted archives: least recently used go beyond this
     keep_full_failed_runs: bool = False  # a failed run keeps its pack art and import cache
     confirm_regeneration: bool = True  # show the changes before a regeneration writes them
+    language: str = ""  # the wizard's language ("fr"); "" follows the system (T12.56)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -83,6 +84,7 @@ class AppSettings:
             "cache_limit_gb": self.cache_limit_gb,
             "keep_full_failed_runs": self.keep_full_failed_runs,
             "confirm_regeneration": self.confirm_regeneration,
+            "language": self.language,
         }
 
 
@@ -136,6 +138,9 @@ def from_json(data: Any) -> AppSettings:
         }
     theme = data.get("theme")
     s.theme = theme if theme in THEMES else s.theme
+    language = data.get("language")
+    if isinstance(language, str) and language.replace("_", "").isalpha() and len(language) <= 8:
+        s.language = language
     size = data.get("thumb_size")
     s.thumb_size = size if size in THUMB_SIZES else s.thumb_size
     presets = data.get("option_presets")

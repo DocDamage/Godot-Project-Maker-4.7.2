@@ -21,3 +21,6 @@ Godot_v*.exe
 perf.json
 private_corpus_report.json
 private_corpus_report.md
+
+# compiled wizard translations: built by tools/update_translations.py release (T12.56)
+rpggen/gui/i18n/*.qm
