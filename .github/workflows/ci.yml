@@ -203,7 +203,8 @@ jobs:
       - name: Fetch Godot
         shell: bash
         run: |
-          platform=${{ runner.os == 'Linux' && '--platform linux' || '' }}
+          # unquoted on purpose below: two words on Linux, nothing on Windows
+          platform="${{ runner.os == 'Linux' && '--platform linux' || '' }}"
           exe=$(python tools/fetch_godot.py --version "$GODOT_VERSION" --out .cache/godot $platform | tail -n 1)
           echo "RPGGEN_GODOT=$exe" >> "$GITHUB_ENV"
       - name: Integration tests of the archetype

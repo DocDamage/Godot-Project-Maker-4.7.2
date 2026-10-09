@@ -38,6 +38,11 @@ def _guid(text: str) -> _Guid:
     return out
 
 
+# ``ctypes.HRESULT`` exists on Windows only (and only there in the type stubs); this class is
+# never made anywhere else.
+_HRESULT: Any = getattr(ctypes, "HRESULT", ctypes.c_long)
+
+
 class _WindowsTaskbar:
     """One ``ITaskbarList3`` for the process, made on first use."""
 
@@ -55,7 +60,7 @@ class _WindowsTaskbar:
         )
         if result != 0 or not self._pointer:
             raise OSError(f"CoCreateInstance(TaskbarList) failed: {result:#x}")
-        self._call(_HR_INIT, ctypes.HRESULT)
+        self._call(_HR_INIT, _HRESULT)
 
     def _call(self, slot: int, restype: Any, *args: Any, argtypes: tuple[Any, ...] = ()) -> Any:
         vtable = ctypes.cast(self._pointer, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p)))
@@ -65,7 +70,7 @@ class _WindowsTaskbar:
     def set_value(self, hwnd: int, done: int, total: int) -> None:
         self._call(
             _SET_VALUE,
-            ctypes.HRESULT,
+            _HRESULT,
             ctypes.c_void_p(hwnd),
             ctypes.c_ulonglong(done),
             ctypes.c_ulonglong(total),
@@ -75,7 +80,7 @@ class _WindowsTaskbar:
     def set_state(self, hwnd: int, state: int) -> None:
         self._call(
             _SET_STATE,
-            ctypes.HRESULT,
+            _HRESULT,
             ctypes.c_void_p(hwnd),
             ctypes.c_int(state),
             argtypes=(ctypes.c_void_p, ctypes.c_int),
