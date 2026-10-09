@@ -59,6 +59,39 @@ func exit_named(id: String) -> RpgRoomExit:
 			return found
 	return null
 
+## Puts back the enemies of this room that are gone and may be here again (their `defeated` flag
+## is clear: a rest at a save station did that). Returns how many came back.
+func respawn_enemies() -> int:
+	if scene_file_path == "" or not ResourceLoader.exists(scene_file_path):
+		return 0
+	var here := {}
+	_enemy_ids(self, here)
+	var fresh := (load(scene_file_path) as PackedScene).instantiate()
+	var found := {}
+	_enemy_ids(fresh, found)
+	var state := RpgUtil.state()
+	var count := 0
+	for id: String in found:
+		if here.has(id) or (state != null and RpgUtil.to_bool(state.get_flag(id, "defeated", false))):
+			continue
+		var enemy: Node = found[id]
+		var holder := get_node_or_null(String(fresh.get_path_to(enemy.get_parent())))
+		if holder == null:
+			continue
+		enemy.get_parent().remove_child(enemy)
+		enemy.owner = null
+		holder.add_child(enemy)
+		count += 1
+	fresh.free()
+	return count
+
+## The enemies below `node` by entity id: characters with an id that marks an ordinary enemy.
+static func _enemy_ids(node: Node, out: Dictionary) -> void:
+	for child in node.get_children():
+		if child is CharacterBody2D and str(child.get("entity_id")).contains(RpgSaveStation.ENEMY_MARK):
+			out[str(child.get("entity_id"))] = child
+		_enemy_ids(child, out)
+
 ## True for a moment after the player arrived: exits do not fire then.
 func just_arrived() -> bool:
 	return Time.get_ticks_msec() - arrived_at_ms < ARRIVAL_GRACE_MS

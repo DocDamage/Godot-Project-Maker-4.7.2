@@ -8,6 +8,7 @@ const KEYS := {
 	"MV_GOLD_GAINED": "+%d gold",
 	"MV_LEVEL_UP": "Level %d!",
 	"MV_ABILITY_GAINED": "You found %s!",
+	"MV_RESTED": "You rest for a while.",
 	"MV_ABILITY_DOUBLE_JUMP_NAME": "Double Jump",
 	"MV_ABILITY_DOUBLE_JUMP_DESC": "Jump a second time in the air.",
 	"MV_ABILITY_DOUBLE_JUMP_HINT": "Press %s twice",

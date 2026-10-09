@@ -141,6 +141,7 @@ const KEYS := {
 	"UI_LOCKED_NEED": "Locked. It needs: %s",
 	"UI_UNLOCKED": "Unlocked with: %s",
 	"UI_NEEDS_ABILITY": "You cannot get past this yet.",
+	"UI_SAVE_AT_STATION": "Save at a station",
 }
 
 ## English text of a key (the key itself when unknown).

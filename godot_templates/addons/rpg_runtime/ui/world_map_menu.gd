@@ -41,6 +41,8 @@ func refresh() -> void:
 	var state := RpgUtil.state()
 	_keys = state.visited_maps() if state != null else [] as Array[String]
 	var plan := world_plan()
+	if not RpgMinimapData.room_list(plan).is_empty():
+		_keys = []  # a world of rooms (T14.08) has one map: the room map
 	if not plan.is_empty():
 		_keys.push_front(WORLD_KEY)
 	if _list == null:
@@ -104,6 +106,16 @@ static func overview(plan: Dictionary, visited: Array[String]) -> Image:
 				image.fill_rect(Rect2i(middle - Vector2i(2, 2), Vector2i(4, 4)), AREA_DOOR)
 	return image
 
+## The room map of a world of rooms, four times as large as the HUD's: the rooms `state` has
+## been in, the current one outlined, exits, save stations and the abilities still to be found.
+static func room_overview(plan: Dictionary, state: RpgGameState) -> Image:
+	var visited: Dictionary = state.room_fog if state != null else {}
+	var held: Array = state.abilities if state != null else []
+	var current := str(state.current_map).get_file().get_basename() if state != null else ""
+	var picture := RpgMinimapData.room_map(plan, visited, current, held)
+	picture.resize(picture.get_width() * 4, picture.get_height() * 4, Image.INTERPOLATE_NEAREST)
+	return picture
+
 static func _cell(value: Variant) -> Vector2i:
 	var pair := RpgUtil.to_array(value)
 	return Vector2i(RpgUtil.to_int(pair[0]), RpgUtil.to_int(pair[1])) if pair.size() == 2 else Vector2i.ZERO
@@ -114,6 +126,10 @@ func show_map(index: int) -> void:
 		return
 	if _keys[index] == WORLD_KEY:
 		var state := RpgUtil.state()
+		var plan := world_plan()
+		if not RpgMinimapData.room_list(plan).is_empty():
+			_picture.texture = ImageTexture.create_from_image(room_overview(plan, state))
+			return
 		var picture := overview(world_plan(), state.visited_maps() if state != null else [] as Array[String])
 		picture.resize(picture.get_width() * 2, picture.get_height() * 2, Image.INTERPOLATE_NEAREST)
 		_picture.texture = ImageTexture.create_from_image(picture)

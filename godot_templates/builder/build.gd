@@ -66,7 +66,7 @@ class ScriptErrors extends Logger:
 const ARCHETYPE_RECIPES := {
 	"turn_based": ["turn_based/battle_commands_recipe", "turn_based/enemy_recipes", "turn_based/battle_scene_recipe"],
 	"arpg": ["arpg/swing_recipe", "arpg/enemy_recipes", "arpg/hud_recipe", "arpg/mode_recipe"],
-	"metroidvania": ["metroidvania/enemy_recipes", "metroidvania/objects_recipe", "metroidvania/mode_recipe"],
+	"metroidvania": ["metroidvania/enemy_recipes", "metroidvania/objects_recipe", "metroidvania/hud_recipe", "metroidvania/mode_recipe"],
 }
 ## The shared recipes an archetype does without, and what it runs in the place of the first of
 ## them: a metroidvania has rooms (T14.06), not a starter map with houses and a field.

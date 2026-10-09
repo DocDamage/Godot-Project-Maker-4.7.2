@@ -21,7 +21,14 @@ func _ready() -> void:
 	var journal := get_node_or_null("%Journal") as Button  # projects built before the journal have none
 	if journal != null:
 		journal.pressed.connect(_open.bind("journal_menu", {}))
-	(get_node("%Save") as Button).pressed.connect(_open.bind("save_load_menu", {"mode": "save"}))
+	var save_button := get_node("%Save") as Button
+	save_button.pressed.connect(_open.bind("save_load_menu", {"mode": "save"}))
+	var router := RpgUtil.router()
+	var mode: Node = router.combat if router != null else null
+	if mode != null and RpgUtil.to_bool(mode.get("save_at_stations")):
+		# an archetype that saves at stations only (the metroidvania, T14.08)
+		save_button.text = tr("UI_SAVE_AT_STATION")
+		save_button.disabled = true
 	(get_node("%Load") as Button).pressed.connect(_open.bind("save_load_menu", {"mode": "load"}))
 	(get_node("%Settings") as Button).pressed.connect(_open.bind("settings_menu", {}))
 	var credits := get_node_or_null("%Credits") as Button  # projects built before the credits have none

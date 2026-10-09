@@ -122,7 +122,14 @@ func can_autosave() -> bool:
 		return false
 	if state.player_stats.hp <= 0:
 		return false
-	return Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_COOLDOWN_MS
+	return _eager_autosave() or Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_COOLDOWN_MS
+
+## An archetype may save on every map change (the metroidvania's rooms, T14.08): its combat mode
+## says so with `autosave_on_every_map`. Then there is no wait between two autosaves and no toast.
+func _eager_autosave() -> bool:
+	var router := RpgUtil.router()
+	var combat: Node = router.combat if router != null else null
+	return combat != null and RpgUtil.to_bool(combat.get("autosave_on_every_map"))
 
 ## Saves into the autosave slot (the normal save path: temp file, verify, backup, rename) and
 ## shows a small toast. False when it may not happen now or the save failed.
@@ -132,7 +139,8 @@ func autosave() -> bool:
 	if not save(AUTOSAVE_SLOT):
 		return false
 	_last_autosave_ms = Time.get_ticks_msec()
-	RpgUtil.notify(tr("UI_AUTOSAVED"))
+	if not _eager_autosave():
+		RpgUtil.notify(tr("UI_AUTOSAVED"))
 	return true
 
 ## Lets the next autosave happen at once (tests).

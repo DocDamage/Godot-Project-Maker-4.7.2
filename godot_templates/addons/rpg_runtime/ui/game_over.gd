@@ -10,7 +10,7 @@ var _done := false
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var continue_button := get_node("%Continue") as Button
-	var has_save := RpgDefeatPolicy.latest_save_slot() >= 0
+	var has_save := RpgDefeatPolicy.can_continue()
 	continue_button.visible = has_save
 	continue_button.pressed.connect(_choose.bind(RpgDefeatPolicy.Choice.CONTINUE))
 	(get_node("%Retry") as Button).pressed.connect(_choose.bind(RpgDefeatPolicy.Choice.RETRY))

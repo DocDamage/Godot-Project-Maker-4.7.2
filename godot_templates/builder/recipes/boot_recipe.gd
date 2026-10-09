@@ -15,6 +15,8 @@ const COMBAT_SCENE := "res://generated/scenes/combat/combat_mode.tscn"
 ## The archetype's own HUD (builder/recipes/<archetype>/hud_recipe.gd); hud_basic otherwise.
 const ARCHETYPE_HUD := "res://generated/scenes/ui/hud_arpg.tscn"
 const ARCHETYPE_HUD_NAME := "hud_arpg"
+## The HUD scenes an archetype's recipe may have built, by name; the first that exists is used.
+const ARCHETYPE_HUDS: Array[String] = ["hud_arpg", "hud_metroidvania"]
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([OUT_PATH])
@@ -26,7 +28,10 @@ func _combat_scene() -> String:
 	return COMBAT_SCENE if FileAccess.file_exists(COMBAT_SCENE) else ""
 
 func _hud_scene() -> String:
-	return ARCHETYPE_HUD_NAME if FileAccess.file_exists(ARCHETYPE_HUD) else "hud_basic"
+	for hud_name in ARCHETYPE_HUDS:
+		if FileAccess.file_exists("res://generated/scenes/ui/%s.tscn" % hud_name):
+			return hud_name
+	return "hud_basic"
 
 func _debug_tools(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(ctx.section("features").get("debug_tools", false))

@@ -29,6 +29,17 @@ static func latest_save_slot() -> int:
 			best_time = saved_at
 	return best
 
+## The combat mode's own way to go on after a defeat (the metroidvania returns to the last save
+## station, T14.08), or null.
+static func _respawner() -> Node:
+	var router := RpgUtil.router()
+	var combat: Node = router.combat if router != null else null
+	return combat if combat != null and combat.has_method(&"respawn_after_defeat") else null
+
+## True when Continue can do something: there is a save, or the archetype respawns without one.
+static func can_continue() -> bool:
+	return latest_save_slot() >= 0 or _respawner() != null
+
 ## True when nobody can press a button: a smoke run, or a combat mode with an auto_choose hook.
 static func is_automatic() -> bool:
 	if force_screen:
@@ -52,7 +63,7 @@ static func show_game_over() -> void:
 		return
 	var path := RpgMenuUtil.scene_path(GAME_OVER_SCENE)
 	if is_automatic() or not ResourceLoader.exists(path):
-		await apply(Choice.CONTINUE if latest_save_slot() >= 0 else Choice.RETRY)
+		await apply(Choice.CONTINUE if can_continue() else Choice.RETRY)
 		return
 	var screen := (load(path) as PackedScene).instantiate() as RpgGameOver
 	var layer := CanvasLayer.new()
@@ -76,6 +87,9 @@ static func apply(choice: int) -> void:
 	state.revive_party()
 	if choice == Choice.QUIT:
 		await router.go_to(RpgMenuUtil.TITLE_SCENE)
+		return
+	if choice == Choice.CONTINUE and _respawner() != null:
+		await _respawner().call(&"respawn_after_defeat")
 		return
 	if choice == Choice.CONTINUE:
 		var slot := latest_save_slot()

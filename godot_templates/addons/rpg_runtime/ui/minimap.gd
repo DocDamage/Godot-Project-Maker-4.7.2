@@ -19,6 +19,14 @@ var _key := ""
 var _player_cell := Vector2i.ZERO
 var _marks: Array[Dictionary] = []
 var _since := 0.0
+## Room mode (T14.08): the picture of the world's rooms, what it was made from, and where the
+## current room's box is in it.
+var _room_texture: ImageTexture = null
+var _room_stamp := ""
+var _room_box := Rect2i()
+var _plan: Dictionary = {}
+var _plan_read := false
+const ROOM_ZOOM := 2.0
 
 func _ready() -> void:
 	name = "Minimap"
@@ -45,6 +53,10 @@ func refresh() -> void:
 	if (settings != null and not settings.minimap) or map == null or not is_instance_valid(map) or not map.is_inside_tree():
 		visible = false
 		return
+	if RpgUtil.to_bool(map.get("side_view")):
+		_refresh_rooms(map)
+		return
+	_room_texture = null
 	var key := RpgMinimapData.key_for(map.scene_file_path)
 	if key != _key:
 		_key = key
@@ -61,12 +73,47 @@ func refresh() -> void:
 	_marks = RpgMinimapData.markers(map, state.quest_targets() if state != null else [] as Array[String])
 	queue_redraw()
 
+## Room mode: a side-view room shows the room map (the rooms visited on the world's grid),
+## centred on the room the player is in. The picture is made again only when something it shows
+## changed.
+func _refresh_rooms(map: RpgMapRoot) -> void:
+	if not _plan_read:
+		_plan_read = true
+		_plan = RpgWorldMapMenu.world_plan()
+	var state := RpgUtil.state()
+	var current := String(map.map_id)
+	if state == null or RpgMinimapData.room_list(_plan).is_empty():
+		visible = false
+		return
+	visible = true
+	var stamp := "%s|%d|%d" % [current, state.room_fog.size(), state.abilities.size()]
+	if stamp != _room_stamp or _room_texture == null:
+		_room_stamp = stamp
+		_room_texture = ImageTexture.create_from_image(RpgMinimapData.room_map(_plan, state.room_fog, current, state.abilities))
+		var boxes := RpgMinimapData.room_boxes(_plan)
+		_room_box = boxes.get(current, Rect2i())
+		queue_redraw()
+
+## The room map picture shown now, or null outside a side-view room (tests).
+func room_texture() -> ImageTexture:
+	return _room_texture
+
 ## The texture rect (in minimap pixels) the view shows: centred on the player.
 func view_rect() -> Rect2:
 	var cells := VIEW / CELL_PX
 	return Rect2(Vector2(_player_cell) + Vector2(0.5, 0.5) - cells / 2.0, cells)
 
 func _draw() -> void:
+	if _room_texture != null:
+		draw_rect(Rect2(Vector2.ZERO, VIEW), Color(0, 0, 0, 0.55))
+		var centre := Vector2(_room_box.position) + Vector2(_room_box.size) / 2.0
+		var source := Rect2(centre - VIEW / ROOM_ZOOM / 2.0, VIEW / ROOM_ZOOM)
+		var whole := Rect2(Vector2.ZERO, Vector2(_room_texture.get_size()))
+		var part := source.intersection(whole)
+		if part.has_area():
+			draw_texture_rect_region(_room_texture, Rect2((part.position - source.position) * ROOM_ZOOM, part.size * ROOM_ZOOM), part)
+		draw_rect(Rect2(Vector2.ZERO, VIEW), BORDER, false, 1.0)
+		return
 	if _texture == null:
 		return
 	draw_rect(Rect2(Vector2.ZERO, VIEW), Color(0, 0, 0, 0.55))

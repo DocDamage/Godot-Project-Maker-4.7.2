@@ -17,6 +17,8 @@ const CAMERA_PATH := OUT_DIR + "side_camera.tscn"
 const CAMERA_SCRIPT := MvBuild.DIR + "side_camera.gd"
 const ABILITY_SCRIPT := MvBuild.DIR + "ability_pickup.gd"
 const ITEM_SCRIPT := MvBuild.DIR + "item_pickup.gd"
+const STATION_PATH := OUT_DIR + "save_station.tscn"
+const STATION_SCRIPT := MvBuild.DIR + "save_station.gd"
 ## The abilities, as in RpgAbilities.ORDER (the builder cannot name a class of the runtime folder
 ## of one archetype from a shared place, but this recipe is the metroidvania's own).
 const ABILITIES: Array[String] = ["double_jump", "dash", "wall_jump", "high_jump", "break_blocks"]
@@ -33,7 +35,7 @@ static func item_scene(index: int) -> String:
 	return OUT_DIR + "%s.tscn" % JsonUtil.to_str(ITEMS[index % ITEMS.size()][0])
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
-	var out := PackedStringArray([CAMERA_PATH])
+	var out := PackedStringArray([CAMERA_PATH, STATION_PATH])
 	for ability in ABILITIES:
 		out.append(ability_scene(ability))
 	for i in ITEMS.size():
@@ -47,7 +49,47 @@ func input_hash(ctx: BuildContext) -> String:
 	for entry: Array in ITEMS:
 		var words: Array = entry[4]
 		art.append(_art(ctx, [], words).get("id", ""))
-	return ctx.stable_hash({"v": RECIPE_VERSION, "tile": tile_size(ctx), "art": art})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "tile": tile_size(ctx), "art": art, "station": _station_art(ctx).get("id", "")})
+
+## The art of the save station: a sprite tagged `save_point` (a bench, a checkpoint), of any role.
+static func _station_art(ctx: BuildContext) -> Dictionary:
+	for a in ctx.catalog.assets():
+		var eff: Dictionary = ctx.catalog.effective(a)
+		if a.get("status", "") in ["UNUSED", "MISSING"] or eff.get("usage", "") != "sprite":
+			continue
+		if JsonUtil.to_array(eff.get("tags", [])).has("save_point"):
+			return a
+	return {}
+
+## The save station (RpgSaveStation): the pack's bench, or a drawn one without art. The area is
+## two tiles wide, so the player finds it from either side.
+static func build_station(ctx: BuildContext, tile: int) -> Area2D:
+	var area := Area2D.new()
+	area.name = "SaveStation"
+	SceneUtil.attach_script(area, STATION_SCRIPT)
+	area.set("tile_size", float(tile))
+	MvBuild.set_layers(area, [5], [])
+	area.monitoring = false
+	var shape := MvBuild.rect_shape(Vector2(tile * 2.0, tile))
+	shape.position = Vector2(0.0, -tile * 0.5)
+	area.add_child(shape)
+	var art := _station_art(ctx)
+	var texture := _texture(ctx, art)
+	if texture != null:
+		var sprite := Sprite2D.new()
+		sprite.name = "Sprite"
+		sprite.texture = texture
+		sprite.centered = false
+		sprite.position = Vector2(-texture.get_width() * 0.5, -texture.get_height())
+		area.add_child(sprite)
+	else:
+		var bench := Polygon2D.new()
+		bench.name = "Sprite"
+		bench.color = Color(0.61, 0.42, 0.24)
+		var w := tile * 0.9
+		bench.polygon = PackedVector2Array([Vector2(-w, -tile * 0.5), Vector2(w, -tile * 0.5), Vector2(w, -tile * 0.3), Vector2(w * 0.8, -tile * 0.3), Vector2(w * 0.8, 0), Vector2(w * 0.6, 0), Vector2(w * 0.6, -tile * 0.3), Vector2(-w * 0.6, -tile * 0.3), Vector2(-w * 0.6, 0), Vector2(-w * 0.8, 0), Vector2(-w * 0.8, -tile * 0.3), Vector2(-w, -tile * 0.3)])
+		area.add_child(bench)
+	return area
 
 static func tile_size(ctx: BuildContext) -> int:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
@@ -136,6 +178,7 @@ func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var tile := tile_size(ctx)
 	_save(ctx, build_camera(tile), CAMERA_PATH, issues)
+	_save(ctx, build_station(ctx, tile), STATION_PATH, issues)
 	for ability in ABILITIES:
 		_save(ctx, build_ability(ctx, ability, tile), ability_scene(ability), issues)
 	for i in ITEMS.size():

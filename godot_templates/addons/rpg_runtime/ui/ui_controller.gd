@@ -79,6 +79,23 @@ func open_shop(shop_id: StringName) -> Control:
 		return null
 	return _open_menu("shop_menu", {"shop": shop})
 
+## Pauses the tree and shows a menu of its own (the save menu at a save station, the credits
+## after the last dialogue); the game goes on when it closes. Null when another menu is open or
+## the scene is missing.
+func open_menu(menu_name: String, args: Dictionary = {}) -> Control:
+	if is_pause_open():
+		return null
+	var menu := _open_menu(menu_name, args)
+	if menu != null:
+		menu.tree_exited.connect(_resume)
+	return menu
+
+func _resume() -> void:
+	if not is_inside_tree():
+		return
+	get_tree().paused = false
+	RpgUtil.emit(&"game_paused", [false])
+
 ## Pauses the tree and shows the pause menu. Returns the menu (null when the scene is missing).
 func open_pause() -> Control:
 	return _open_menu("pause_menu", {})

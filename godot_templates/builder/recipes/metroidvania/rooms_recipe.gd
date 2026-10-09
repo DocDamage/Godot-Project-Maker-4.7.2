@@ -311,6 +311,11 @@ func _place_things(ctx: BuildContext, room: Dictionary, id: String, tile: int, e
 			var sign_node := MapUtil.place(sign_scene, entities, root, feet(_cell(room["sign"]), tile), "Sign")
 			if sign_node != null and ResourceLoader.exists(SIGN_PATH):
 				sign_node.set("dialogue", load(SIGN_PATH))
+	if room.has("station") and ResourceLoader.exists(Objects.STATION_PATH):
+		# the feet cell is the left one of the two a bench covers
+		var station := MapUtil.place(Objects.STATION_PATH, entities, root, feet(_cell(room["station"]), tile) + Vector2(tile * 0.5, 0.0), "SaveStation")
+		if station != null:
+			station.set("entity_id", "%s_station_001" % id)
 	if room.has("npc"):
 		var npc_scene := _npc_scene(ctx)
 		if npc_scene != "":

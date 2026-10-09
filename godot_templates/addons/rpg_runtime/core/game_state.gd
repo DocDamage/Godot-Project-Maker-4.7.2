@@ -50,6 +50,9 @@ var equipment: Dictionary = {}
 var abilities: Array[String] = []
 ## The breakable tiles the player broke, by room: {room_id: [[x, y], ...]}. Optional like `abilities`.
 var broken_cells: Dictionary = {}
+## The rooms the player has been in: {room_id: true} (T14.08, the room map). Optional like
+## `abilities`; `map_fog`, the top-down maps' fog, keeps its meaning.
+var room_fog: Dictionary = {}
 var playtime_s: float = 0.0
 var pending_encounter: RpgEncounterData = null
 var rng: RpgRng = RpgRng.new()
@@ -327,6 +330,7 @@ func new_game() -> void:
 	equipment.clear()
 	abilities.clear()
 	broken_cells.clear()
+	room_fog.clear()
 	playtime_s = 0.0
 	map_fog.clear()
 	pending_encounter = null
@@ -352,6 +356,26 @@ func grant(id: StringName) -> bool:
 	abilities.append(text)
 	RpgUtil.emit(&"ability_granted", [id])
 	return true
+
+## Marks a room as visited. True when it was new.
+func visit_room(room_id: String) -> bool:
+	if room_id == "" or room_fog.has(room_id):
+		return false
+	room_fog[room_id] = true
+	return true
+
+func room_visited(room_id: String) -> bool:
+	return room_fog.has(room_id)
+
+## The optional `room_fog` key of a save: {room: true}; anything else is dropped.
+static func _room_fog_from(raw: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if raw is Dictionary:
+		var table: Dictionary = raw
+		for room: Variant in table:
+			if RpgUtil.to_bool(table[room]) and str(room) != "":
+				out[str(room)] = true
+	return out
 
 ## Remembers that the breakable tile at `cell` of `room_id` is gone.
 func remember_broken_cell(room_id: String, cell: Vector2i) -> void:
@@ -709,6 +733,8 @@ func _side_view_keys() -> Dictionary:
 		out["abilities"] = abilities.duplicate()
 	if not broken_cells.is_empty():
 		out["broken_cells"] = broken_cells.duplicate(true)
+	if not room_fog.is_empty():
+		out["room_fog"] = room_fog.duplicate()
 	return out
 
 func from_dict(d: Dictionary) -> void:
@@ -743,6 +769,7 @@ func from_dict(d: Dictionary) -> void:
 	map_fog = _fog_from(d.get("map_fog", {}))
 	abilities = _abilities_from(data.get("abilities"))
 	broken_cells = _broken_cells_from(data.get("broken_cells"))
+	room_fog = _room_fog_from(data.get("room_fog"))
 
 ## The optional `variables` key of a save: whole numbers by name; anything else is dropped.
 static func _variables_from(raw: Variant) -> Dictionary:
