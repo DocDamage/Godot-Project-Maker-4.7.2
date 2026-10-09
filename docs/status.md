@@ -30,7 +30,7 @@ after the tag is planned: M13 (release 1.1.0) and M14 (release 1.2.0), below.
 | M10 Release | Packaging, signing, diagnostics, docs, registry, export test | Done except T10.09 (held-out runs, human) and the T10.10 gate |
 | M11 Pre-release | Wizard UX, sound, autosave, game over, second map, docs | Done except T11.29 (manual pass, human); T11.30 gate passed automatically |
 | M12 Review follow-ups | Fixes, engineering, UX and 25 features (below) | 69 of 71 cards done; T12.65 partly, T12.66 open |
-| M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner (below) | Planned 2026-10-08, starts after the 1.0 tag; 0 of 23 cards done |
+| M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | Planned 2026-10-08, starts after the 1.0 tag; 0 of 24 cards done |
 | M14 Metroidvania (1.2.0) | The third archetype (below) | Planned 2026-10-08, starts after the 1.1 tag; 0 of 13 cards done |
 
 ## M12 in detail
@@ -96,9 +96,11 @@ slots, audio waveforms and loop points.
 **Part C, feature additions (T13.18–T13.20).** Recolour variants, quest and cutscene tabs in the
 dock, a world of connected maps.
 
-**T13.21** is the lock-and-key planner (pure Python, shared with M14); **T13.22** the
-documentation and **T13.23** the 1.1.0 gate, which includes an upgrade test over a project the
-1.0 build generated.
+**T13.21** is the lock-and-key planner (pure Python, shared with M14); **T13.24** the world
+repair (a generated map that nobody edited mends its own doors and reachability after a build,
+with a backup; an edited map gets a one-click fix in the wizard and an undoable Fix in the dock);
+**T13.22** the documentation and **T13.23** the 1.1.0 gate, which includes an upgrade test over a
+project the 1.0 build generated.
 
 **M14 in detail.** T14.01 moves the real-time combat scripts to a shared folder with shims at the
 old paths; T14.02 side-view detection; T14.03 the platform actor (the side-view TileSet layers

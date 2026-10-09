@@ -52,7 +52,7 @@ that carries it.
 | 1 | T13.14, T13.13, T13.11, T13.21 | Small and independent; the planner first so T13.20 can use it |
 | 2 | T13.01 – T13.10 | Wizard UX |
 | 3 | T13.12, T13.15, T13.16, T13.17 | Feature improvements |
-| 4 | T13.18, T13.19, T13.20 | Feature additions; T13.20 after T13.12 and T13.21 |
+| 4 | T13.18, T13.19, T13.20, T13.24 | Feature additions; T13.20 after T13.12 and T13.21, T13.24 after T13.20 |
 | 5 | T13.22 – T13.23 | Docs, screenshots and the gate, then tag `v1.1.0` |
 
 Tasks inside a step are independent unless **Depends on** says otherwise.
@@ -86,6 +86,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T13.21 | Lock-and-key planner | S | — | open |
 | T13.22 | Documentation, screenshots and changelogs | M | Parts A–C | open |
 | T13.23 | Gate (1.1.0) | M | T13.22 | open |
+| T13.24 | World repair: unpaired doors and unreachable maps fix themselves (added 2026-10-08) | M | T13.20 | open |
 
 ---
 
@@ -727,6 +728,8 @@ The planner makes one starter map, a house and a field.
   map's name), `VAL-028` when a door's `target_map` or `target_spawn` has no partner. Both are
   **warnings**, listed under *Notes* on the Results page and in the report: a person may want
   an island. The planner never emits either on its own output (a test proves it over 200 seeds).
+  T13.24 repairs both. The stored plan records a `map_hash` per map rpggen built, so T13.24 can
+  tell a map nobody edited from one a person changed.
 * The Options page: the *Starter map* box gains an *Areas* table (add, remove, reorder; name,
   biome, size, enemies, chests) and the preview shows the world as tiles of areas with their
   doors; clicking an area previews it. Reroll works per area, before the first generation only.
@@ -776,13 +779,88 @@ gates in a side-view room graph).
 
 ---
 
+## T13.24 — World repair: unpaired doors and unreachable maps fix themselves
+
+**Depends on:** T13.20
+**Files:** `godot_templates/builder/tools/world_repair.gd` (new; the builder's `tools/` folder),
+`godot_templates/builder/lib/map_graph.gd` (new: doors, spawns and reachability over the maps
+under `game/maps`, shared with `validate.gd`), `godot_templates/builder/validate.gd`,
+`godot_templates/addons/rpg_project_tools/dock/validator_panel.gd` (Fix buttons),
+`godot_templates/addons/rpg_project_tools/tools/content_checks.gd`, `rpggen/core/world_repair.py`
+(new: runs the tool headless, backs up, reads its result), `rpggen/core/orchestrator.py` (after
+promotion), `rpggen/core/report.py` (*World repairs*), `rpggen/core/config.py` and
+`rpggen/schema/config.schema.json` (`repair_world`, optional, default true), `rpggen/schema/world_plan.schema.json`
+(`map_hash` per map), `rpggen/gui/fixes.py` (the one-click fix), `rpggen/gui/pages/results_page.py`,
+`rpggen/gui/widgets/options_sections.py` (*Advanced*), `rpggen/cli.py` (`repair-world`, and
+`--no-repair-world` on `generate`), `godot_templates/tests/unit/test_world_repair.gd` (new),
+`tests/unit/test_world_repair.py` (new), `tests/integration/test_regeneration.py`
+
+Added 2026-10-08. T13.20 makes a broken world a warning. This card makes it mend itself where
+that is safe, and offers the mend where it is not.
+
+**Spec**
+* **The graph.** `map_graph.gd` reads every map under `game/maps/` (and `game/maps/rooms/`
+  in M14): its doors (`target_map`, `target_spawn`), its spawn points, its size and the solid
+  cells of its layers. It gives the unreachable maps from the starter map and the doors without
+  a partner. `validate.gd` and `content_checks.gd` use it instead of their own walk, so the
+  warning and the repair agree on what is broken.
+* **Repairs**, in this order, each deterministic and additive (nothing the user placed is
+  moved or deleted):
+  1. A door whose `target_map` does not exist: retarget it to the map the stored plan paired it
+     with, if that map exists; else to the nearest map on the plan's grid; else leave it and
+     report it as unfixable.
+  2. A door whose `target_spawn` does not exist on an existing target: add a spawn point on the
+     target map at the matching position (the opposite edge, the same offset, moved to the
+     nearest walkable cell within 3 tiles), named after the source door, and a door back beside
+     it when the target has no door to the source. From the stored plan when the pair is
+     planned; by geometry otherwise.
+  3. An unreachable map: pick the nearest reachable map that shares an edge on the plan's grid
+     (the starter map when the map is not in the plan); add a door pair on the shared edge at a
+     cell that is walkable on both sides (scanned from the middle outwards); when no such cell
+     exists, report it as unfixable with the edge it tried.
+  Every repair is a line `{kind, map, node, what}`; the tool writes them to
+  `rpggen/world_repair.json` in the project and prints them.
+* **By itself, where safe.** The stored plan (T13.20) records `map_hash` for every map rpggen
+  built. After a successful promotion the orchestrator runs the tool on the maps whose hash is
+  unchanged (rpggen made them, nobody edited them), with `config.repair_world` on (the default;
+  *Options → Advanced → Repair generated maps after a build*; `--no-repair-world`). The maps
+  are backed up to `.rpggen_backups` first, as the conflict resolver does, so **Restore
+  previous** undoes a repair, and the report lists each line under *World repairs*. A map
+  whose hash changed is never touched by itself.
+* **Offered, where not.** For an edited map, the Results page's *Notes* show the VAL-027 and
+  VAL-028 warnings with a one-click fix (T12.41) **Repair the world…** that previews the lines
+  before writing (the same backup and report). `rpggen-cli repair-world --target X [--dry-run]
+  [--json]` does the same for scripts.
+* **In the editor.** The dock's validator panel lists the same warnings with **Fix** per row
+  and **Fix all**, each through `EditorUndoRedoManager` so `Ctrl+Z` takes it back, and marks
+  the map scene modified rather than saving it. The panel never runs a fix by itself.
+* **Never.** The repair never writes a map it reports as unfixable, never changes a door that
+  already has a partner, never removes a spawn or a door, and does nothing while the editor has
+  the project open (`REGEN-005` applies).
+
+**Tests**
+* `test_world_repair.gd`: each of the three repairs on a fixture world; a door with a partner
+  is untouched; an unreachable map with no walkable shared edge is reported, not written; the
+  result file; the dock's Fix is undoable.
+* `test_world_repair.py`: the hash rule (an edited map is skipped), the backup and *Restore
+  previous*, the report section, the config default and the CLI flags, `--dry-run` writes
+  nothing.
+* Integration: delete a generated spawn point from an area's map, regenerate; the spawn is
+  back, the report says so, and Restore previous removes it again.
+
+**Done when**
+* The tests pass and the user guide's regeneration page explains the rule in one paragraph:
+  rpggen mends the maps it made; yours it mends when you ask.
+
+---
+
 # Part D — Documentation and the gate
 
 ## T13.22 — Documentation, screenshots and changelogs
 
-**Depends on:** Parts A–C
+**Depends on:** Parts A–C (T13.24 included)
 **Files:** `README.md`, `docs/user_guide.md`, `docs/status.md`, `docs/regeneration.md` (the stored
-world plan), `docs/errors.md` (generated), `docs/spec/02_SCHEMAS.md`, `docs/spec/03_ERROR_CODES.md`,
+world plan and the repair rule), `docs/errors.md` (generated), `docs/spec/02_SCHEMAS.md`, `docs/spec/03_ERROR_CODES.md`,
 `docs/architecture.md` (§48 deferred list: remove what this milestone did), `CHANGELOG.md`,
 `godot_templates/addons/rpg_runtime/CHANGELOG.md` and `README.md`,
 `godot_templates/project_files/README.template.md`, `tools/make_doc_screenshots.py`,
@@ -819,8 +897,10 @@ world plan), `docs/errors.md` (generated), `docs/spec/02_SCHEMAS.md`, `docs/spec
 * Manual rows: buy three of an item and sell all; enter two houses; use review mode and folder
   groups on a 300-asset pack at 150 % scaling; make a variant enemy and meet it in the game;
   edit a quest in the graph and a cutscene step; generate a three-area world and regenerate it
-  with a changed seed; set a loop point and hear it in the game; add a custom slot; check a
-  Tiled map with a zstd layer; a follower assists in the ARPG.
+  with a changed seed; delete a door from a generated area and regenerate, then from an edited
+  one and use the one-click fix, then undo a Fix in the dock; set a loop point and hear it in
+  the game; add a custom slot; check a Tiled map with a zstd layer; a follower assists in the
+  ARPG.
 * `docs/status.md` lists nothing from this milestone as open.
 
 **Done when** all of the above is true; then tag `v1.1.0`.
@@ -854,4 +934,4 @@ Every item maps to exactly one card. The Metroidvania archetype asked for with t
 | Improvement 7: audio waveforms and loop points | T13.17 |
 | Addition 1: recolour variants | T13.18 |
 | Addition 2: quest and cutscene tabs | T13.19 |
-| Addition 3: a world of connected maps | T13.20 (planner in T13.21) |
+| Addition 3: a world of connected maps | T13.20 (planner in T13.21, repair in T13.24) |

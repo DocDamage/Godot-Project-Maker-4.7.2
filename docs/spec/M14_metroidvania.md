@@ -9,8 +9,8 @@ This file follows the format of M01–M13. It was written against commit `9726d0
 same day. **Files live in** `godot_templates/addons/rpg_runtime/archetypes/metroidvania/`,
 `godot_templates/builder/recipes/metroidvania/` and `builder/smoke/smoke_steps_metroidvania.gd`.
 The archetype shares the title screen, settings, saving, inventory, equipment, dialogue, shops,
-quests, credits, input glyphs, languages, the pause menu and the lock-and-key planner (T13.21)
-with the other two. It does **not** use the top-down `RpgActor` for the player, the party on the
+quests, credits, input glyphs, languages, the pause menu, the lock-and-key planner (T13.21) and
+the world repair (T13.24) with the other two. It does **not** use the top-down `RpgActor` for the player, the party on the
 map, encounter zones, followers, Y-sort or the interior recipe.
 
 ## Ground rules for this milestone
@@ -331,7 +331,7 @@ may require an ability), `dialogue/condition.gd` (`ability:<id>` atom), `godot_t
 `godot_templates/builder/recipes/metroidvania/rooms_recipe.gd` (new), `builder/recipes/metroidvania/metroidvania_build.gd`,
 `builder/recipes/metroidvania/parallax_recipe.gd`, `archetypes/metroidvania/room.gd`,
 `room_exit.gd`, `godot_templates/addons/rpg_runtime/world/scene_router.gd` (a transition without a
-fade for room exits), `godot_templates/builder/validate.gd` (VAL-027 and VAL-028 over room exits),
+fade for room exits), `godot_templates/builder/lib/map_graph.gd` and `builder/tools/world_repair.gd` (room exits),
 `godot_templates/tests/unit/test_rooms.gd` (new), `tests/unit/test_room_plan.py` (new),
 `tests/integration/test_regeneration.py`
 
@@ -359,10 +359,13 @@ fade for room exits), `godot_templates/builder/validate.gd` (VAL-027 and VAL-028
   re-plans once any room exists; the *Starter world* options are disabled with the same text
   once a room exists; adding a room appends it to the stored plan, joined to the room the user
   picks, with no abilities involved.
-* **Validation.** `validate.gd` walks every room's exits: an exit without a partner is
-  `VAL-028`, a room unreachable from the start room is `VAL-027`; both **warnings** (M13),
-  listed under *Notes*. Ability gating is not validated on user rooms (a person may add a
-  shortcut).
+* **Validation and repair.** `map_graph.gd` (T13.24) learns room exits: an exit without a
+  partner is `VAL-028`, a room unreachable from the start room is `VAL-027`; both **warnings**
+  (M13), listed under *Notes*. The world repair of T13.24 mends them with the same rules (an
+  exit's partner is created on the matching edge of the target room; an unreachable room gets an
+  exit pair on the edge it shares with the nearest reachable room), by itself for rooms whose
+  `map_hash` is unchanged, on request otherwise. Ability gating is not validated or repaired on
+  user rooms (a person may add a shortcut).
 * **Preview.** The Options page's preview draws the world as a grid of screens with the exits,
   the pickup icons and the gates' letters, in side-view colours; clicking a room shows its
   platforms. `tools/make_map_plan_cases.py` gets side-view cases.
@@ -375,8 +378,8 @@ fade for room exits), `godot_templates/builder/validate.gd` (VAL-027 and VAL-028
   critical path order; no VAL-027/028 over 200 seeds; the option bounds (the schema refuses
   `rooms` below `len(abilities) + 3`).
 * The stored plan: a regeneration with a different seed builds nothing new and changes no room;
-  an appended room is built and joined; a hand-removed exit gives VAL-028 as a warning and the
-  build succeeds.
+  an appended room is built and joined; a hand-removed exit on an edited room gives VAL-028 as
+  a warning and the build succeeds; the same on an unedited room is repaired and reported.
 * `test_rooms.gd`: an exit changes the room and keeps velocity; the camera clamps; the parallax
   layers scroll at their factors.
 * The preview draws one cell per room.
