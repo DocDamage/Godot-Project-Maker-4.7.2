@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791506806046,
+  "lastUpdate": 1791507165067,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -127,6 +127,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 4.37,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "a0539eaece7c8a86710cdfd6fbead342911f8d39",
+          "message": "GDScript tests: a script error fails its test; fix the tests that hid one\n\n- run_tests.gd installs a Logger: a SCRIPT ERROR logged while a test runs\n  fails that test (it used to abort the function and count as passed). A\n  test that awaits is waited for (20 s), and deferred calls it queued run\n  before it is judged. A \"godot:\" summary of the errors Godot logged is\n  printed on every run; rpggen.dev godot-test shows it.\n- Tests fixed so they run to the end with their checks: the lock, party and\n  quest tests load the English strings their notes format; t.near takes a\n  message; the party battle helper uses a typed enemy list; the inventory\n  test builds the real menu scene; tests that call _ready by hand no longer\n  ready a node twice; the interaction-prompt test types its event list.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-08T20:47:52-04:00",
+          "tree_id": "e3d9e8f7e94759801d24a6ce4ab7bef355ca959d",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/a0539eaece7c8a86710cdfd6fbead342911f8d39"
+        },
+        "date": 1791507162706,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 9.86,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 0.64,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 72.97,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 57.72,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 9.15,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 7.31,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 2.51,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 2.2,
             "unit": "s"
           }
         ]
