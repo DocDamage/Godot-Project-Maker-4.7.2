@@ -9,6 +9,7 @@ const Placement := preload("placement.gd")
 const AssetInspector := preload("asset_inspector.gd")
 const ValidatorPanel := preload("validator_panel.gd")
 const DemoTools := preload("demo_tools.gd")
+const DialogueTab := preload("dialogue_tab.gd")
 const Rebuild := preload("../tools/rebuild.gd")
 const CatalogEdit := preload("../tools/catalog_edit.gd")
 const JsonIo := preload("../tools/json_io.gd")
@@ -86,6 +87,9 @@ func _build_ui() -> void:
 	_validator.plugin = plugin
 	_validator.name = "Validate"
 	tabs.add_child(_validator)
+	var dialogue := DialogueTab.new()
+	dialogue.plugin = plugin
+	tabs.add_child(dialogue)
 	tabs.add_child(_build_project_tab())
 	_status = Label.new()
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

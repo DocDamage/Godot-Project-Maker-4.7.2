@@ -1,6 +1,6 @@
 class_name RpgDialogueJson
 extends RefCounted
-## Editor convenience: builds a dialogue resource from JSON text.
+## Editor convenience: builds a dialogue resource from JSON text, and back (to_json, T12.61).
 ##
 ## {"lines": [{"id": "a", "speaker": "Ana", "text": "Hi", "condition": "gold>=1",
 ##             "events": ["give_gold:5"], "next": "b",
@@ -31,6 +31,9 @@ static func from_json(text: String) -> RpgDialogueResource:
 		line.text = str(raw.get("text", ""))
 		line.condition = str(raw.get("condition", ""))
 		line.next = StringName(str(raw.get("next", "")))
+		var portrait := str(raw.get("portrait", ""))
+		if portrait != "" and ResourceLoader.exists(portrait):
+			line.portrait = load(portrait) as Texture2D
 		var events := PackedStringArray()
 		var raw_events: Array = raw.get("events", [])
 		for e: Variant in raw_events:
@@ -48,3 +51,36 @@ static func from_json(text: String) -> RpgDialogueResource:
 			line.choices.append(choice)
 		res.lines.append(line)
 	return res
+
+## The resource as JSON (T12.61), the format from_json() reads: one object per line with the keys
+## that hold something; a portrait is its resource path.
+static func to_json(res: RpgDialogueResource) -> String:
+	return JSON.stringify(to_dict(res), "  ", false) + "\n"
+
+static func to_dict(res: RpgDialogueResource) -> Dictionary:
+	var lines: Array = []
+	for line in res.lines:
+		var raw := {"text": line.text}
+		if line.id != &"":
+			raw["id"] = String(line.id)
+		if line.speaker != "":
+			raw["speaker"] = line.speaker
+		if line.portrait != null and line.portrait.resource_path != "":
+			raw["portrait"] = line.portrait.resource_path
+		if line.condition != "":
+			raw["condition"] = line.condition
+		if not line.events.is_empty():
+			raw["events"] = Array(line.events)
+		if line.next != &"":
+			raw["next"] = String(line.next)
+		if not line.choices.is_empty():
+			var choices: Array = []
+			for choice in line.choices:
+				var c := {"text": choice.text, "next": String(choice.next)}
+				if choice.condition != "":
+					c["condition"] = choice.condition
+				choices.append(c)
+			raw["choices"] = choices
+		lines.append(raw)
+	return {"lines": lines}
+

@@ -14,6 +14,10 @@ extends RefCounted
 const VAR_OPS: Array[String] = [">=", "<=", "==", "!=", ">", "<"]
 
 static func evaluate(expr: String) -> bool:
+	return evaluate_on(expr, RpgUtil.state())
+
+## evaluate() against `state` (the dialogue tab's test state, T12.61, or the game's).
+static func evaluate_on(expr: String, state: RpgGameState) -> bool:
 	var tokens := _tokens(expr)
 	if tokens.is_empty():
 		return true
@@ -29,7 +33,7 @@ static func evaluate(expr: String) -> bool:
 		if i >= tokens.size():
 			push_error("[RPG-DLG] condition ends after 'not': %s" % expr)
 			return false
-		var value := _atom(tokens[i])
+		var value := _atom(tokens[i], state)
 		i += 1
 		if negate:
 			value = not value
@@ -59,8 +63,65 @@ static func mixes_operators(expr: String) -> bool:
 static func _tokens(expr: String) -> PackedStringArray:
 	return expr.strip_edges().split(" ", false)
 
-static func _atom(atom: String) -> bool:
-	var state := RpgUtil.state()
+## The atom prefixes the language knows (for the editor's checks and completion).
+const ATOMS: Array[String] = [
+	"flag:", "item:", "gold>=", "level>=", "party:", "var:", "quest_active:", "quest_done:",
+	"quest_stage:", "quest:",
+]
+
+## What is wrong with `expr` without evaluating it: unknown or malformed atoms, a dangling
+## operator. Empty when the condition is well formed (T12.61: flagged inline in the dock).
+static func problems(expr: String) -> PackedStringArray:
+	var found: PackedStringArray = []
+	var tokens := _tokens(expr)
+	var expect_atom := true
+	for token in tokens:
+		if expect_atom:
+			if token == "not":
+				continue
+			var why := atom_problem(token)
+			if why != "":
+				found.append(why)
+			expect_atom = false
+		elif token == "and" or token == "or":
+			expect_atom = true
+		else:
+			found.append("expected 'and' or 'or' before '%s'" % token)
+	if not tokens.is_empty() and expect_atom:
+		found.append("the condition ends after '%s'" % tokens[tokens.size() - 1])
+	if mixes_operators(expr):
+		found.append("mixes 'and' and 'or' (read left to right, no precedence)")
+	return found
+
+## Why one atom is not understood, or "".
+static func atom_problem(atom: String) -> String:
+	if atom.begins_with("flag:"):
+		var dot := atom.trim_prefix("flag:").rfind(".")
+		return "" if dot > 0 else "flag needs <entity>.<key>: '%s'" % atom
+	if atom.begins_with("item:"):
+		var body := atom.trim_prefix("item:")
+		if body.get_slice(">=", 0) == "" or (body.contains(">=") and not body.get_slice(">=", 1).is_valid_int()):
+			return "item needs <id>[>=N]: '%s'" % atom
+		return ""
+	for prefix: String in ["gold>=", "level>="]:
+		if atom.begins_with(prefix):
+			return "" if atom.trim_prefix(prefix).is_valid_int() else "'%s' needs a number" % atom
+	if atom.begins_with("party:") or atom.begins_with("quest_active:") or atom.begins_with("quest_done:"):
+		return "" if atom.get_slice(":", 1) != "" else "'%s' needs an id" % atom
+	if atom.begins_with("var:"):
+		var body := atom.trim_prefix("var:")
+		for op in VAR_OPS:
+			var at := body.find(op)
+			if at > 0:
+				return "" if body.substr(at + op.length()).is_valid_int() else "'%s' needs a number" % atom
+		return "var needs <name><op><N>: '%s'" % atom
+	if atom.begins_with("quest_stage:"):
+		return "" if atom.trim_prefix("quest_stage:").split(":").size() == 2 else "quest_stage needs <id>:<stage>: '%s'" % atom
+	if atom.begins_with("quest:"):
+		return "" if atom.contains("=") else "quest needs <id>=<state>: '%s'" % atom
+	return "unknown condition '%s'" % atom
+
+static func _atom(atom: String, state: RpgGameState) -> bool:
 	if state == null:
 		push_error("[RPG-DLG] GameState is not available to evaluate '%s'" % atom)
 		return false

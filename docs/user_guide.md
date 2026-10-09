@@ -205,6 +205,12 @@ three maps (starter map, house, field) are connected. Your own work goes in
 character from your packs: drag one into the map (it lands on the right layer, snapped, Y-sorted),
 edit an asset's role or collision in the inspector and *Rebuild*, validate the content (duplicate
 entity ids, broken doors, missing sprites) and remove the demo content when you start your game.
+Its **Dialogue** tab edits the conversations in `game/data/dialogue/` line by line: speaker,
+portrait (from your PORTRAIT assets), text with a preview of its formatting, the condition, the
+events, the choices and where the line goes next, with undo (Ctrl+Z). A condition or an event
+the game would not understand is marked at once, and **Test** plays the conversation against a
+pretend game state whose flags and items you tick, without touching your saves. Dialogue can be
+exported to and imported from JSON.
 
 Your own build steps go in `game/builder_recipes/`: GDScript files that run after rpggen's
 steps on every build ([custom recipes](recipes.md)).

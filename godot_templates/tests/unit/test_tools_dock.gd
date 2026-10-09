@@ -87,3 +87,77 @@ func test_untouched_compares_with_the_ledger_hash(t) -> void:
 	t.ok(not DemoTools.untouched(ledger, path), "a changed file is the user's")
 	t.ok(not DemoTools.untouched({}, path), "unknown to the ledger")
 	DirAccess.remove_absolute(path)
+
+# ---------------------------------------------------------------- the Dialogue tab (T12.61)
+
+const DialogueTab := preload("res://addons/rpg_project_tools/dock/dialogue_tab.gd")
+
+static func _dialogue() -> RpgDialogueResource:
+	return RpgDialogueJson.from_json(JSON.stringify({"lines": [
+		{"id": "hi", "speaker": "Ana", "text": "Hello [b]traveller[/b]."},
+		{"text": "You have the key!", "condition": "item:key", "next": "end"},
+		{"text": "Come back with the key.", "choices": [{"text": "Bye", "next": "end"}]},
+		{"id": "end", "text": "Farewell.", "events": ["set_flag:ana.met=true"]},
+	]}))
+
+func test_an_edit_round_trip_saves_the_resource(t) -> void:
+	var path := "user://test_dialogue_tab_%d.tres" % Time.get_ticks_usec()
+	t.eq(ResourceSaver.save(_dialogue(), path), OK)
+	var tab := DialogueTab.new()  # no editor: edits apply directly, as without undo
+	t.ok(tab.open(path))
+	tab.edit_line(0, "speaker", "Bo")
+	tab.edit_line(2, "choices", DialogueTab.parse_choices("Wait | hi\nBye | end | flag:ana.met"))
+	tab.edit_line(1, "events", DialogueTab.parse_events("give_gold:5\n\n"))
+	t.ok(tab.dirty)
+	t.ok(tab.save())
+	var again := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as RpgDialogueResource
+	t.eq(again.lines[0].speaker, "Bo")
+	t.eq(DialogueTab.choices_text(again.lines[2].choices), "Wait | hi\nBye | end | flag:ana.met")
+	t.eq(again.lines[1].events, PackedStringArray(["give_gold:5"]))
+	tab.free()
+	DirAccess.remove_absolute(path)
+
+func test_the_condition_preview_and_inline_problems(t) -> void:
+	var state := RpgGameState.new()
+	t.eq(DialogueTab.condition_preview("", state), "")
+	t.eq(DialogueTab.condition_preview("flag:ana.met", state), "with the test state: skipped")
+	DialogueTab.set_test_atom(state, "flag:ana.met", true)
+	t.eq(DialogueTab.condition_preview("flag:ana.met", state), "with the test state: shown")
+	t.ok(DialogueTab.condition_preview("banana:split", state).contains("unknown condition 'banana:split'"))
+	t.ok(DialogueTab.condition_preview("gold>=x and", state).begins_with("⚠"))
+	var line := RpgDialogueLine.new()
+	line.events = PackedStringArray(["explode", "give_gold:many", "give_item:potion:2"])
+	line.next = &"nowhere"
+	var found := DialogueTab.line_problems(line, [&"hi"])
+	t.eq(found.size(), 3, str(found))
+	t.ok(found[0].contains("unknown event 'explode'") and found[2].contains("nowhere"))
+	state.free()
+
+func test_json_export_and_import_round_trip(t) -> void:
+	var res := _dialogue()
+	var text := RpgDialogueJson.to_json(res)
+	var back := RpgDialogueJson.from_json(text)
+	t.eq(RpgDialogueJson.to_dict(back), RpgDialogueJson.to_dict(res))
+	t.eq(back.lines[3].events, PackedStringArray(["set_flag:ana.met=true"]))
+	t.eq(String(back.lines[2].choices[0].next), "end")
+
+func test_the_test_player_follows_the_toggled_state(t) -> void:
+	var path := "user://test_dialogue_play_%d.tres" % Time.get_ticks_usec()
+	ResourceSaver.save(_dialogue(), path)
+	var tab := DialogueTab.new()
+	tab.open(path)
+	t.eq(DialogueTab.test_atoms(tab.dialogue), ["item:key"])
+	t.ok(tab.test_text().contains("Hello"))
+	tab._player.advance()
+	tab._show_player()
+	t.ok(tab.test_text().contains("Come back"), "no key: the key line is skipped")
+	DialogueTab.set_test_atom(tab.test_state, "item:key", true)
+	tab.play_from_start()
+	tab._player.advance()
+	tab._show_player()
+	t.ok(tab.test_text().contains("You have the key"), tab.test_text())
+	tab._player.advance()  # jumps to "end", whose event sets the flag on the test state only
+	t.eq(tab.test_state.get_flag("ana", "met", false), true)
+	tab.test_state.free()
+	tab.free()
+	DirAccess.remove_absolute(path)

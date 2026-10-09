@@ -11,6 +11,10 @@ extends RefCounted
 const MAX_JUMPS := 1000
 
 var resource: RpgDialogueResource
+## Optional stand-ins for the game state (the editor's test player, T12.61): expr -> bool and
+## event -> bool. Unset, conditions and events use the game's GameState.
+var condition_check: Callable = Callable()
+var event_runner: Callable = Callable()
 var _index := -1
 var _current: RpgDialogueLine = null
 var _finished := true
@@ -37,7 +41,7 @@ func visible_choices() -> Array[RpgDialogueChoice]:
 	if _current == null:
 		return out
 	for c in _current.choices:
-		if c.condition == "" or RpgCondition.evaluate(c.condition):
+		if c.condition == "" or _holds(c.condition):
 			out.append(c)
 	return out
 
@@ -78,11 +82,11 @@ func _goto(idx: int) -> void:
 	var i := idx
 	while i < resource.lines.size():
 		var line := resource.lines[i]
-		if line.condition == "" or RpgCondition.evaluate(line.condition):
+		if line.condition == "" or _holds(line.condition):
 			_index = i
 			_current = line
 			for event in line.events:
-				execute_event(event)
+				_run(event)
 			return
 		# A skipped line is passed over, never jumped from.
 		i += 1
@@ -91,6 +95,17 @@ func _goto(idx: int) -> void:
 			push_error("[RPG-DLG] more than %d lines skipped without one being shown" % MAX_JUMPS)
 			break
 	_end()
+
+func _holds(expr: String) -> bool:
+	if condition_check.is_valid():
+		return condition_check.call(expr) == true
+	return RpgCondition.evaluate(expr)
+
+func _run(event: String) -> void:
+	if event_runner.is_valid():
+		event_runner.call(event)
+	else:
+		execute_event(event)
 
 func _end() -> void:
 	_current = null
@@ -107,9 +122,46 @@ func fast_forward() -> void:
 		else:
 			choose(0)
 
+## The event names the dialogue knows (T12.61: the dock's checks).
+const EVENTS: Array[String] = [
+	"set_flag", "give_item", "take_item", "give_gold", "set_quest", "quest_start", "quest_stage",
+	"quest_complete", "join_party", "leave_party", "heal_full", "open_shop", "set_var", "add_var",
+	"run_sequence", "emit",
+]
+
+## Why `event` would be refused, or "" (no state needed: for the editor).
+static func event_problem(event: String) -> String:
+	var name := event.get_slice(":", 0)
+	var arg := event.substr(name.length() + 1) if event.contains(":") else ""
+	if not EVENTS.has(name):
+		return "unknown event '%s'" % name
+	match name:
+		"set_flag":
+			return "" if arg.get_slice("=", 0).rfind(".") > 0 else "set_flag needs <entity>.<key>[=value]"
+		"give_item", "take_item":
+			return "" if arg.get_slice(":", 0) != "" else "%s needs an item id" % name
+		"give_gold":
+			return "" if arg.is_valid_int() else "give_gold needs a number"
+		"set_quest":
+			return "" if arg.contains("=") else "set_quest needs <id>=<state>"
+		"quest_stage":
+			return "" if arg.contains(":") and arg.get_slice(":", 0) != "" else "quest_stage needs <id>:<stage>"
+		"set_var":
+			var var_name := arg.get_slice("=", 0)
+			return "" if var_name != "" and arg.contains("=") and arg.substr(var_name.length() + 1).is_valid_int() else "set_var needs <name>=<N>"
+		"add_var":
+			var var_name := arg.get_slice(":", 0)
+			return "" if var_name != "" and arg.contains(":") and arg.substr(var_name.length() + 1).is_valid_int() else "add_var needs <name>:<N>"
+		"heal_full", "emit":
+			return ""
+	return "" if arg != "" else "%s needs an argument" % name
+
 ## Runs one event string. Returns false for an unknown or malformed event.
 static func execute_event(event: String) -> bool:
-	var state := RpgUtil.state()
+	return execute_event_on(event, RpgUtil.state())
+
+## execute_event() against `state` (the dialogue tab's test state, or the game's).
+static func execute_event_on(event: String, state: RpgGameState) -> bool:
 	if state == null:
 		push_error("[RPG-DLG] GameState is not available for event '%s'" % event)
 		return false

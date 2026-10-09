@@ -193,6 +193,11 @@
   in `settings.cfg` under `[text]` and applied with `TranslationServer.set_locale`. The settings
   menu redoes the texts it sets in code when the language changes; the title screen and battle
   hints follow `NOTIFICATION_TRANSLATION_CHANGED`. A key a language lacks shows its English text.
+* Dialogue tools (M12): `RpgCondition.evaluate_on(expr, state)`, `problems(expr)` and
+  `atom_problem(atom)`; `RpgDialogueRunner.execute_event_on(event, state)`, `event_problem(event)`,
+  `EVENTS`, and the runner's optional `condition_check` / `event_runner` callables (the editor's test
+  player uses a scratch state); `RpgDialogueJson.to_json` / `to_dict` (the import also reads a
+  `portrait` path). The game's behaviour is unchanged.
 
 ## 0.3.0
 
