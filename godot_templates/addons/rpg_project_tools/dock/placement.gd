@@ -37,6 +37,39 @@ static func visual_of(node: Node) -> Node:
 			return found
 	return null
 
+## A side-view room (T14.04): its root says so (RpgRoom has `side_view`).
+static func is_side_view(root: Node) -> bool:
+	return root != null and JsonIo.to_bool(root.get("side_view"))
+
+## How many cells below the drop point the floor is looked for.
+const FLOOR_SEARCH_CELLS := 64
+
+## In a side-view room an object stands on the floor: the top of the nearest tile with a collision
+## shape at or below `world`. Without one the point is returned as it is.
+static func floor_below(root: Node, world: Vector2) -> Vector2:
+	var best := INF
+	for node in root.find_children("*", "TileMapLayer", true, false):
+		var layer := node as TileMapLayer
+		if layer.tile_set == null:
+			continue
+		var tile := Vector2(layer.tile_set.tile_size)
+		var origin := layer.global_position if layer.is_inside_tree() else layer.position
+		var local := world - origin
+		var cell := Vector2i(floori(local.x / tile.x), floori(local.y / tile.y))
+		for step in FLOOR_SEARCH_CELLS:
+			var at := Vector2i(cell.x, cell.y + step)
+			var data := layer.get_cell_tile_data(at)
+			if data == null:
+				continue
+			var solid := false
+			for physics in layer.tile_set.get_physics_layers_count():
+				if data.get_collision_polygons_count(physics) > 0:
+					solid = true
+			if solid:
+				best = minf(best, origin.y + at.y * tile.y)
+				break
+	return Vector2(world.x, best) if best != INF else world
+
 ## The parent an instance goes under. `selected` is the node selected before the drop.
 func target_parent(root: Node, current_parent: Node, selected: Node = null) -> Node:
 	if ysort_mode == "selected" and selected != null and (selected == root or root.is_ancestor_of(selected)):
@@ -67,6 +100,8 @@ func plan(instance: Node2D, root: Node, entry: Dictionary, selected: Node = null
 	var parent := target_parent(root, current_parent if current_parent != null else root, selected)
 	var world: Vector2 = world_position if world_position is Vector2 else instance.global_position
 	world = snap_position(world, snap)
+	if is_side_view(root):
+		world = floor_below(root, world)  # no Y-sort in a room: things stand on the floor
 	var local := world
 	if parent is Node2D:
 		local = (parent as Node2D).to_local(world)

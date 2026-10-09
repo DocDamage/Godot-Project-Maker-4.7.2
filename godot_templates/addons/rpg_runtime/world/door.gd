@@ -13,11 +13,16 @@ extends Area2D
 ## Needed for a lock that stays open (the flag is stored under it).
 @export var entity_id: String = ""
 
+## In a side-view room (T14.04) a door is entered with up (or interact), never by walking past it.
+@export var side_view: bool = false
+
 signal used
 
 var _player_inside := false
 
 func _ready() -> void:
+	if side_view:
+		require_interact = true
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 
@@ -33,7 +38,8 @@ func _on_body_exited(body: Node) -> void:
 		_player_inside = false
 
 func _unhandled_input(event: InputEvent) -> void:
-	if require_interact and _player_inside and event.is_action_pressed("interact"):
+	var pressed := event.is_action_pressed("interact") or (side_view and event.is_action_pressed("move_up"))
+	if require_interact and _player_inside and pressed:
 		get_viewport().set_input_as_handled()
 		use()
 

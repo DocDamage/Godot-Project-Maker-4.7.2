@@ -180,8 +180,8 @@ func _place_player(map: RpgMapRoot, spawn_id: StringName) -> void:
 	if player == null:
 		return
 	player.global_position = target
-	if spawn != null and "facing" in player:
-		player.set("facing", spawn.facing)
+	if spawn != null:
+		_set_facing(player, spawn.facing)
 	_apply_camera_limits(map, player)
 
 func _place_player_at(map: RpgMapRoot, position: Vector2, facing: String) -> void:
@@ -189,9 +189,17 @@ func _place_player_at(map: RpgMapRoot, position: Vector2, facing: String) -> voi
 	if player == null:
 		return
 	player.global_position = position
-	if facing != "" and "facing" in player:
-		player.set("facing", facing)
+	if facing != "":
+		_set_facing(player, facing)
 	_apply_camera_limits(map, player)
+
+## A top-down actor's facing is a direction name; a side-view actor (T14.04) takes it through
+## apply_facing, which reads "left", "right" or a saved "-1" / "1".
+static func _set_facing(player: Node2D, facing: String) -> void:
+	if player.has_method(&"apply_facing"):
+		player.call(&"apply_facing", facing)
+	elif "facing" in player:
+		player.set("facing", facing)
 
 func _apply_camera_limits(map: RpgMapRoot, player: Node2D) -> void:
 	var camera := player.get_node_or_null("Camera") as Camera2D

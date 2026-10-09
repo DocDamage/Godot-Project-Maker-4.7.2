@@ -8,12 +8,21 @@ const MvBuild := preload("metroidvania_build.gd")
 
 const PLAYER_SCRIPT := MvBuild.DIR + "platform_player.gd"
 const INPUT_SCRIPT := MvBuild.DIR + "platform_input.gd"
+const NPC_SCRIPT := MvBuild.DIR + "side_npc.gd"
 
 ## The root of an actor scene, or null for a kind this archetype builds like the top-down one.
 static func build_actor(kind: String, root_name: String, frames: SpriteFrames, frame: Vector2i, origin: Vector2i, tile: int) -> CharacterBody2D:
 	if kind == "player":
 		return build_player(root_name, frames, frame, origin, tile)
+	if kind == "npc":
+		return build_npc(root_name, frames, frame, origin, tile)
 	return null
+
+## A side-view NPC (RpgSideNpc): it stands on the floor and is found by the player's interaction.
+static func build_npc(root_name: String, frames: SpriteFrames, frame: Vector2i, origin: Vector2i, tile: int) -> CharacterBody2D:
+	var root := MvBuild.body(root_name, NPC_SCRIPT, frames, frame, origin, tile)
+	MvBuild.set_layers(root, [4], [1, MvBuild.ONE_WAY_LAYER])  # npcs; world and one-way platforms
+	return root
 
 ## The player: the platform body with its input, health, hurtbox, attack area and the area that
 ## finds what is beside it. It has no camera: the room owns the camera.

@@ -32,7 +32,15 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return out
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "tile": _tile_size(ctx), "entries": ObjectEntries.entries(ctx), "chest": ObjectEntries.chest_entry(ctx).get("id", "")})
+	var hashed := {"v": RECIPE_VERSION, "tile": _tile_size(ctx), "entries": ObjectEntries.entries(ctx), "chest": ObjectEntries.chest_entry(ctx).get("id", "")}
+	if _side_view(ctx):
+		hashed["side_view"] = true  # only a metroidvania's hash has the key
+	return ctx.stable_hash(hashed)
+
+## A metroidvania's rooms are seen from the side (T14.04): nothing blocks the way but the tiles,
+## and chests and signs are used from beside them.
+static func _side_view(ctx: BuildContext) -> bool:
+	return JsonUtil.to_str(ctx.config.get("archetype", "")) == "metroidvania"
 
 func _tile_size(ctx: BuildContext) -> int:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
@@ -49,7 +57,7 @@ func build(ctx: BuildContext) -> Array:
 		var entry_id: String = e["id"]
 		var path: String = ObjectIndex.scene_path(entry_id)
 		var is_chest: bool = chest.get("id", "") == entry_id
-		var err := _build_scene(e, path, tile, is_chest, JsonUtil.to_bool(chest.get("fallback", false)))
+		var err := _build_scene(e, path, tile, is_chest, JsonUtil.to_bool(chest.get("fallback", false)), _side_view(ctx))
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
 		else:
@@ -98,8 +106,10 @@ static func add_light(root: Node2D, e: Dictionary, tile: int, origin: Vector2) -
 	light.set("flicker", not steady)
 	root.add_child(light)
 
-func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false, chest_fallback: bool = false) -> int:
+func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false, chest_fallback: bool = false, side_view: bool = false) -> int:
 	var template := template_for(e, tile, is_chest)
+	if side_view and template == "obstacle":
+		template = "prop"  # scenery of a side-view room stands in front of the wall, not in the way
 	var region: Array = e["region"]
 	var entry_id: String = e["id"]
 	var texture_path: String = e["texture_path"]
@@ -124,6 +134,10 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		SceneUtil.attach_script(root, CHEST_SCRIPT if template == "chest" else SIGN_SCRIPT)
 		if template == "chest":
 			root.name = "Chest"
+		if side_view:
+			solid_body.set_collision_layer_value(1, false)  # found by the player, in nobody's way
+			root.set("side_view", true)
+			root.set("tile_size", float(tile))
 	else:
 		SceneUtil.attach_script(root, WORLD_OBJECT_SCRIPT)
 		root.set("asset_id", entry_id)

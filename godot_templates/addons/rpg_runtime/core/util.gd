@@ -74,6 +74,13 @@ static func map_tile_px(map: Node) -> int:
 				return tiles.tile_set.tile_size.x
 	return 16
 
+## True when `actor` stands beside `thing` in a side-view room: within `tile` px up or down of it
+## (not on a platform above it or in a pit below). Without an actor there is nothing to refuse.
+static func beside(thing: Node2D, actor: Node, tile: float = 16.0) -> bool:
+	if not (actor is Node2D) or thing == null:
+		return true
+	return absf(world_position(actor as Node2D).y - world_position(thing).y) <= tile
+
 ## Shows a toast through Events.notify.
 static func notify(text: String) -> void:
 	emit(&"notify", [text])

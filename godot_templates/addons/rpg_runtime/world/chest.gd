@@ -8,11 +8,19 @@ extends StaticBody2D
 @export var loot: Array[Dictionary] = []  # [{item_id, qty}]
 @export var gold: int = 0
 @export var display_name: String = "Chest"
+## In a side-view room (T14.04): the chest is opened from beside it, from either side, and not
+## from a platform above. The recipe also takes it off the world layer there, so it blocks nobody.
+@export var side_view: bool = false
+@export var tile_size: float = 16.0
 
 var opened := false
 
 func is_opened() -> bool:
 	return opened
+
+## Asked by the side-view player before it interacts.
+func can_interact(actor: Node) -> bool:
+	return not side_view or RpgUtil.beside(self, actor, tile_size)
 
 func interact(_actor: Node = null) -> void:
 	if opened:

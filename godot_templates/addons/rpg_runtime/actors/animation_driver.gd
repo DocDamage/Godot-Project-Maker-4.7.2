@@ -183,6 +183,10 @@ func play(base: String, facing: String, dir: Vector2 = Vector2.ZERO) -> void:
 			found = _nearest(frames, "walk", "down")
 		paused = not found.is_empty()
 	if found.is_empty():
+		# A sheet with only side-view frames ("idle_side", "run") on a top-down actor: shown
+		# mirrored for the left rather than not at all (a fallback, T14.04).
+		found = resolve_side(frames, base, -1 if facing.ends_with("left") else 1)
+	if found.is_empty():
 		return
 	var anim: String = found["anim"]
 	sprite.flip_h = found["flip"]
