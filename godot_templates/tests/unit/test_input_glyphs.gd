@@ -99,7 +99,7 @@ func test_the_interaction_prompt_and_hints_use_the_glyphs(t) -> void:
 	var old: Array[InputEvent] = []
 	if had_interact:
 		old = InputMap.action_get_events("interact")
-	if not had_interact:
+	else:
 		InputMap.add_action("interact")
 	InputMap.action_erase_events("interact")
 	InputMap.action_add_event("interact", _key(KEY_E))

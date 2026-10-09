@@ -48,7 +48,8 @@ func test_combat_mode_contract(t) -> void:
 func test_audio_pool_and_index(t) -> void:
 	var audio := RpgAudio.new()
 	Fixtures.tree().root.add_child(audio)
-	audio._ready()
+	if not audio.is_node_ready():
+		audio._ready()
 	t.eq(audio.get_child_count(), 2 + RpgAudio.SFX_POOL + 1)
 	t.ok(audio.stream_for("no.such.asset") == null)
 	t.eq(audio.sfx_busy_count(), 0)

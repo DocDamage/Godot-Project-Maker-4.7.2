@@ -23,13 +23,25 @@ func _quest() -> RpgQuestDefinition:
 	def.rewards = {"gold": 25, "experience": 4, "items": [{"item_id": "potion", "qty": 2}]}
 	return def
 
+var _english: Translation = null
+
+## The game state with the errand quest, and the English strings (the quest toasts format their
+## text). Pair it with _end().
 func _state() -> Node:
+	if _english == null:
+		_english = Fixtures.install_english()
 	var state := Fixtures.install_state({&"potion": Fixtures.item(&"potion")})
 	state.new_game()
 	state.inventory.slots.clear()
 	state.gold = 0
 	state.quest_defs[&"errand"] = _quest()
 	return state
+
+func _end() -> void:
+	Fixtures.uninstall_state()
+	if _english != null:
+		Fixtures.uninstall_english(_english)
+		_english = null
 
 func _toasts() -> Array:
 	var seen := []
@@ -49,7 +61,7 @@ func test_conditions_read_the_stage(t) -> void:
 	t.ok(RpgCondition.evaluate("quest_done:errand"))
 	t.ok(not RpgCondition.evaluate("quest_active:errand"), "a finished quest is not active")
 	t.ok(RpgCondition.evaluate("quest:errand=done"), "the older quest: atom sees the same state")
-	Fixtures.uninstall_state()
+	_end()
 
 func test_the_events_start_move_and_finish_a_quest(t) -> void:
 	var state := _state()
@@ -62,7 +74,7 @@ func test_the_events_start_move_and_finish_a_quest(t) -> void:
 	t.ok(not RpgDialogueRunner.execute_event("quest_start:"))
 	t.ok(not RpgDialogueRunner.execute_event("quest_stage:errand"))
 	t.ok(not RpgDialogueRunner.execute_event("quest_complete:"))
-	Fixtures.uninstall_state()
+	_end()
 
 func test_a_stage_that_does_not_exist_or_a_quest_not_started_is_refused(t) -> void:
 	var state := _state()
@@ -72,7 +84,7 @@ func test_a_stage_that_does_not_exist_or_a_quest_not_started_is_refused(t) -> vo
 	t.ok(not state.quest_set_stage(&"errand", &"done"))
 	t.ok(not state.quest_start(&"errand"), "starting twice does nothing")
 	t.eq(state.quest_state(&"errand"), "talk")
-	Fixtures.uninstall_state()
+	_end()
 
 func test_stages_move_on_by_themselves_and_the_last_one_completes(t) -> void:
 	var state := _state()
@@ -84,7 +96,7 @@ func test_stages_move_on_by_themselves_and_the_last_one_completes(t) -> void:
 	t.eq(state.quest_state(&"errand"), "return", "the last stage has no condition: an event finishes it")
 	state.quest_complete(&"errand")
 	t.ok(state.quest_is_done(&"errand"))
-	Fixtures.uninstall_state()
+	_end()
 
 func test_conditions_that_already_hold_skip_ahead_at_the_start(t) -> void:
 	var state := _state()
@@ -92,7 +104,7 @@ func test_conditions_that_already_hold_skip_ahead_at_the_start(t) -> void:
 	state.set_flag("chest", "opened", true)
 	state.quest_start(&"errand")
 	t.eq(state.quest_state(&"errand"), "return")
-	Fixtures.uninstall_state()
+	_end()
 
 func test_rewards_are_given_once_on_completion(t) -> void:
 	var state := _state()
@@ -106,10 +118,9 @@ func test_rewards_are_given_once_on_completion(t) -> void:
 	t.ok(not state.quest_complete(&"errand"), "a second completion gives nothing")
 	t.eq(state.gold, 25)
 	t.eq(state.inventory.count(&"potion"), 2)
-	Fixtures.uninstall_state()
+	_end()
 
 func test_every_change_shows_a_toast(t) -> void:
-	var english := Fixtures.install_english()
 	var state := _state()
 	var toasts := _toasts()
 	state.quest_start(&"errand")
@@ -119,8 +130,7 @@ func test_every_change_shows_a_toast(t) -> void:
 	t.eq(toasts, [
 		"New quest: Errand", "Quest updated: Errand", "Quest updated: Errand", "Quest complete: Errand",
 	])
-	Fixtures.uninstall_state()
-	Fixtures.uninstall_english(english)
+	_end()
 
 func test_quests_survive_a_save_round_trip(t) -> void:
 	var state := _state()
@@ -135,7 +145,7 @@ func test_quests_survive_a_save_round_trip(t) -> void:
 	t.ok(state.quest_is_done(&"other"))
 	state.set_flag("chest", "opened", true)
 	t.eq(state.quest_state(&"errand"), "return", "the loaded quest keeps progressing")
-	Fixtures.uninstall_state()
+	_end()
 
 # ------------------------------------------------------------------ the journal
 
@@ -149,7 +159,6 @@ func _menu() -> RpgJournalMenu:
 	return menu
 
 func test_the_journal_lists_active_and_completed_quests(t) -> void:
-	var english := Fixtures.install_english()
 	var state := _state()
 	var other := _quest()
 	other.id = &"side"
@@ -175,11 +184,9 @@ func test_the_journal_lists_active_and_completed_quests(t) -> void:
 	t.eq(menu.quest_of(menu.rows()[0]), &"side")
 	t.eq(RpgJournalMenu.detail_text(state, &"side"), "Side job\n[x] Talk to the villager\n[x] Open the chest\n[x] Go back")
 	menu.free()
-	Fixtures.uninstall_state()
-	Fixtures.uninstall_english(english)
+	_end()
 
 func test_the_journal_focus_chain_covers_both_tabs(t) -> void:
-	var english := Fixtures.install_english()
 	var state := _state()
 	state.quest_start(&"errand")
 	var menu := _menu()
@@ -193,8 +200,7 @@ func test_the_journal_focus_chain_covers_both_tabs(t) -> void:
 			current = current.get_node_or_null(current.focus_neighbor_bottom) as Control
 		t.eq(reached.size(), all.size(), "tab %s" % tab)
 	menu.free()
-	Fixtures.uninstall_state()
-	Fixtures.uninstall_english(english)
+	_end()
 
 # ------------------------------------------------------------------ the demo
 

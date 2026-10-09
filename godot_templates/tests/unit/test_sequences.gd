@@ -63,7 +63,8 @@ func _world() -> Dictionary:
 	var router := FakeRouter.new()
 	router.name = "SceneRouter"
 	root.add_child(router)
-	router._ready()
+	if not router.is_node_ready():  # add_child readies it once the tree runs
+		router._ready()
 	var audio := FakeAudio.new()
 	router.add_child(audio)
 	router.audio = audio
@@ -546,7 +547,8 @@ func test_running_holds_autosave_and_reports_itself(t) -> void:
 func test_the_dialogue_event_requests_a_sequence(t) -> void:
 	var w := _world()
 	var runner: RpgSequenceRunner = w["runner"]
-	runner._ready()
+	if not runner.is_node_ready():  # add_child readies it once the tree runs
+		runner._ready()
 	var path := _save_tmp(_seq([{"cmd": "set_var", "name": "asked", "value": 1}], false, &"asked"), "asked.tres")
 	t.ok(RpgDialogueRunner.execute_event("run_sequence:" + path))
 	t.eq(runner.current_id(), &"asked")

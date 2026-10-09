@@ -125,7 +125,8 @@ func test_the_shooter_aims_waits_fires_and_cools_down(t) -> void:
 	var shoot := RpgEnemyShoot.new()
 	shoot.name = "EnemyShoot"
 	(actor.get_node("Components") as Node).add_child(shoot)
-	shoot._ready()
+	if not shoot.is_node_ready():  # add_child readies it once the tree runs
+		shoot._ready()
 	shoot.windup_s = 0.3
 	shoot.cooldown_s = 1.0
 	t.ok(shoot.try_start(Vector2(0, 40)))
@@ -151,7 +152,8 @@ func test_the_charger_winds_up_dashes_with_its_hitbox_and_recovers(t) -> void:
 	var charge := RpgEnemyCharge.new()
 	charge.name = "EnemyCharge"
 	(actor.get_node("Components") as Node).add_child(charge)
-	charge._ready()
+	if not charge.is_node_ready():  # add_child readies it once the tree runs
+		charge._ready()
 	charge.windup_s = 0.2
 	charge.dash_s = 0.3
 	charge.recover_s = 0.25
@@ -210,7 +212,8 @@ func test_a_ranged_weapon_fires_arrows(t) -> void:
 	var combat := RpgPlayerCombat.new()
 	combat.name = "PlayerCombat"
 	player.add_child(combat)
-	combat._ready()
+	if not combat.is_node_ready():  # add_child readies it once the tree runs
+		combat._ready()
 	player.facing = "left"
 	combat.machine.go(RpgPlayerCombat.ATTACK)
 	for i in 30:

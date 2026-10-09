@@ -125,7 +125,8 @@ func test_a_zone_can_be_the_cells_painted_on_an_encounters_layer(t) -> void:
 	t.eq(zone.cells(), layer, "a zone without a shape uses the map's Encounters layer")
 	t.ok(zone.contains(Vector2(40, 20)), "inside the painted cell (2, 1)")
 	t.ok(not zone.contains(Vector2(8, 8)))
-	zone._ready()
+	if not zone.is_node_ready():  # add_child readies it once the tree runs
+		zone._ready()
 	t.ok(not layer.visible, "the cells layer is hidden in the game")
 	map.free()
 

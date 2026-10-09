@@ -112,7 +112,8 @@ func test_persistent_frees_a_defeated_entity(t) -> void:
 	var p := RpgPersistent.new()
 	entity.add_child(p)
 	Fixtures.tree().root.add_child(entity)
-	p._ready()  # the root is not in the tree yet while --script runs _initialize
+	if not p.is_node_ready():  # add_child readies it once the tree runs
+		p._ready()
 	t.ok(entity.is_queued_for_deletion())
 	Fixtures.tree().root.remove_child(entity)
 	entity.free()
@@ -125,7 +126,8 @@ func test_persistent_applies_the_opened_state(t) -> void:
 	var p := RpgPersistent.new()
 	entity.add_child(p)
 	Fixtures.tree().root.add_child(entity)
-	p._ready()
+	if not p.is_node_ready():  # add_child readies it once the tree runs
+		p._ready()
 	t.ok(entity.opened_applied)
 	t.ok(not entity.is_queued_for_deletion())
 	Fixtures.tree().root.remove_child(entity)

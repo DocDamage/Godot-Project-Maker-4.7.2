@@ -7,6 +7,7 @@ const UiRecipes := preload("res://builder/recipes/ui_recipes.gd")
 const SceneUtil := preload("res://builder/lib/scene_util.gd")
 
 const MENU_TMP := "user://test_status_menu.tscn"
+const INVENTORY_TMP := "user://test_inventory_menu.tscn"
 const S := RpgBattleController.State
 
 class FixedRng extends RpgRng:
@@ -39,7 +40,13 @@ func _gear(id: StringName, category: RpgItemDefinition.Category, stat: StringNam
 	def.modifiers = mods
 	return def
 
+var _english: Translation = null
+
+## The game state with four actors to recruit, and the English strings (the join and leave notes
+## format their text). Pair it with _end().
 func _state() -> Node:
+	if _english == null:
+		_english = Fixtures.install_english()
 	var state := Fixtures.install_state({
 		&"potion": Fixtures.item(&"potion", 99, &"heal", 10),
 		&"sword": _gear(&"sword", RpgItemDefinition.Category.WEAPON, &"attack", 3.0),
@@ -52,6 +59,12 @@ func _state() -> Node:
 	for id in [&"mira", &"bo", &"cass", &"dre"]:
 		state.actor_defs[id] = _actor(id)
 	return state
+
+func _end() -> void:
+	Fixtures.uninstall_state()
+	if _english != null:
+		Fixtures.uninstall_english(_english)
+		_english = null
 
 func _enemy(enemy_hp: int = 30, xp: int = 20) -> RpgEnemyDefinition:
 	var def := RpgEnemyDefinition.new()
@@ -82,7 +95,7 @@ func test_a_character_joins_and_leaves(t) -> void:
 	t.ok(state.leave_party(&"mira"))
 	t.ok(not state.in_party(&"mira"))
 	t.eq(changes, [1, 0])
-	Fixtures.uninstall_state()
+	_end()
 
 func test_joining_is_refused_when_it_cannot_work(t) -> void:
 	var state := _state()
@@ -96,13 +109,13 @@ func test_joining_is_refused_when_it_cannot_work(t) -> void:
 	t.ok(not state.join_party(&"dre"), "the party is full")
 	t.ok(not state.leave_party(&"hero"), "the player cannot leave")
 	t.ok(not state.leave_party(&"dre"), "dre never joined")
-	Fixtures.uninstall_state()
+	_end()
 
 func test_a_character_without_a_definition_cannot_join(t) -> void:
 	var state := _state()
 	t.ok(not state.join_party(&"ghost"))
 	t.eq(state.party.size(), 0)
-	Fixtures.uninstall_state()
+	_end()
 
 func test_the_dialogue_events_and_the_condition(t) -> void:
 	var state := _state()
@@ -114,7 +127,7 @@ func test_the_dialogue_events_and_the_condition(t) -> void:
 	t.ok(not RpgCondition.evaluate("party:mira"))
 	t.ok(not RpgDialogueRunner.execute_event("join_party"), "an id is needed")
 	t.ok(not RpgDialogueRunner.execute_event("leave_party:"), "an id is needed")
-	Fixtures.uninstall_state()
+	_end()
 
 func test_leaving_takes_the_gear_back_to_the_inventory(t) -> void:
 	var state := _state()
@@ -125,7 +138,7 @@ func test_leaving_takes_the_gear_back_to_the_inventory(t) -> void:
 	state.leave_party(&"mira")
 	t.eq(state.inventory.count(&"sword"), 1)
 	t.eq(state.equipped_in(&"mira", &"weapon"), &"")
-	Fixtures.uninstall_state()
+	_end()
 
 func test_each_member_has_their_own_equipment(t) -> void:
 	var state := _state()
@@ -133,11 +146,11 @@ func test_each_member_has_their_own_equipment(t) -> void:
 	state.inventory.add(&"sword")
 	t.ok(state.equip(&"mira", &"sword"))
 	t.near(state.stat_of(&"mira", &"attack"), 11.0)
-	t.near(state.stat_of(&"hero", &"attack"), 10.0, "the player is not wearing it")
+	t.near(state.stat_of(&"hero", &"attack"), 10.0, 0.001, "the player is not wearing it")
 	t.eq(state.equipped_in(&"hero", &"weapon"), &"")
 	var battler := RpgBattleActor.make(&"mira", "Mira", state.stats_of(&"mira"), true)
 	t.eq(battler.stat(&"attack"), 11, "combat reads the member's equipment")
-	Fixtures.uninstall_state()
+	_end()
 
 # ------------------------------------------------------------------ battle
 
@@ -146,7 +159,7 @@ func _battle(members: Array, enemy_count: int = 1, enemy_hp: int = 30, xp: int =
 	for id: StringName in members:
 		state.join_party(id)
 	var data := RpgEncounterData.new()
-	var defs: Array = []
+	var defs: Array[RpgEnemyDefinition] = []
 	for i in enemy_count:
 		defs.append(_enemy(enemy_hp, xp))
 	data.enemies = defs
@@ -156,7 +169,7 @@ func _battle(members: Array, enemy_count: int = 1, enemy_hp: int = 30, xp: int =
 
 func _done(b: Dictionary) -> void:
 	(b["c"] as Node).free()
-	Fixtures.uninstall_state()
+	_end()
 
 func test_the_battle_party_is_the_player_and_the_members(t) -> void:
 	var b := _battle([&"mira", &"bo"])
@@ -250,7 +263,7 @@ func test_experience_from_a_quest_reward_is_shared_too(t) -> void:
 	t.eq(state.player_stats.level, 2)
 	t.eq(state.stats_of(&"mira").level, 2)
 	t.eq(state.give_experience_to(&"nobody", 5), 0)
-	Fixtures.uninstall_state()
+	_end()
 
 # ------------------------------------------------------------------ save
 
@@ -271,7 +284,7 @@ func test_the_party_and_its_equipment_survive_a_save_round_trip(t) -> void:
 	t.eq(state.stats_of(&"mira").level, 3)
 	t.eq(state.equipped_in(&"bo", &"weapon"), &"sword")
 	t.near(state.stat_of(&"bo", &"attack"), 11.0)
-	Fixtures.uninstall_state()
+	_end()
 
 func test_a_save_without_a_party_loads_with_none(t) -> void:
 	var state := _state()
@@ -280,7 +293,7 @@ func test_a_save_without_a_party_loads_with_none(t) -> void:
 	old.erase("party")
 	state.from_dict(old)
 	t.eq(state.party.size(), 0)
-	Fixtures.uninstall_state()
+	_end()
 
 # ------------------------------------------------------------------ the status menu
 
@@ -294,7 +307,6 @@ func _menu() -> RpgStatusMenu:
 	return menu
 
 func test_the_status_menu_pages_through_the_members(t) -> void:
-	var english := Fixtures.install_english()
 	var state := _state()
 	var alone := _menu()
 	t.ok(alone.get_node_or_null("%Stats/Member") == null, "no pager for one character")
@@ -317,8 +329,7 @@ func test_the_status_menu_pages_through_the_members(t) -> void:
 	await Fixtures.tree().process_frame
 	t.eq(menu.shown_actor(), &"hero", "wraps around")
 	menu.free()
-	Fixtures.uninstall_state()
-	Fixtures.uninstall_english(english)
+	_end()
 
 func test_the_picker_of_the_status_menu_equips_the_member_on_show(t) -> void:
 	var state := _state()
@@ -336,7 +347,7 @@ func test_the_picker_of_the_status_menu_equips_the_member_on_show(t) -> void:
 	t.eq(picker.actor_id, &"mira")
 	picker.free()
 	menu.free()
-	Fixtures.uninstall_state()
+	_end()
 
 # ------------------------------------------------------------------ the demo
 
@@ -372,16 +383,25 @@ func test_the_demo_villager_offers_the_companion_only_when_asked_to(t) -> void:
 	t.ok(wanted >= 0, "the join choice is offered before the companion has joined")
 	runner.choose(wanted)
 	t.ok(state.in_party(&"companion"))
-	Fixtures.uninstall_state()
+	_end()
 
 # ------------------------------------------------------------------ items on members
+
+func _inventory_menu() -> RpgInventoryMenu:
+	var root: Node = UiRecipes.new().call("_build_inventory_menu")
+	SceneUtil.save_scene(root, INVENTORY_TMP)
+	var menu := (load(INVENTORY_TMP) as PackedScene).instantiate() as RpgInventoryMenu
+	Fixtures.tree().root.add_child(menu)
+	if not menu.is_node_ready():
+		menu._ready()
+	return menu
 
 func test_an_item_from_the_inventory_menu_can_heal_a_member(t) -> void:
 	var state := _state()
 	state.join_party(&"mira")
 	state.stats_of(&"mira").hp = 5
 	state.inventory.add(&"potion", 2)
-	var menu := RpgInventoryMenu.new()
+	var menu := _inventory_menu()
 	menu._selected = &"potion"
 	menu.use_on(&"mira")
 	t.eq(state.stats_of(&"mira").hp, 15)
@@ -389,7 +409,7 @@ func test_an_item_from_the_inventory_menu_can_heal_a_member(t) -> void:
 	menu.use_on(&"hero")  # the hero is at full health: refused, the potion is kept
 	t.eq(state.inventory.count(&"potion"), 1)
 	menu.free()
-	Fixtures.uninstall_state()
+	_end()
 
 func test_the_member_picker_lists_everyone_and_reports_the_choice(t) -> void:
 	var state := _state()
@@ -405,4 +425,5 @@ func test_the_member_picker_lists_everyone_and_reports_the_choice(t) -> void:
 	t.ok(mira != null)
 	mira.pressed.emit()
 	t.eq(picked, [&"mira"])
-	Fixtures.uninstall_state()
+	picker.free()
+	_end()

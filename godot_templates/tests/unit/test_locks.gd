@@ -14,11 +14,23 @@ func _key() -> RpgItemDefinition:
 	key.display_name = "Cellar key"
 	return key
 
+var _english: Translation = null
+
+## The game state with the key, and the English strings (the lock notes format their text).
+## Pair it with _end().
 func _state() -> Node:
+	if _english == null:
+		_english = Fixtures.install_english()
 	var state := Fixtures.install_state({&"cellar_key": _key()})
 	state.new_game()
 	state.inventory.slots.clear()
 	return state
+
+func _end() -> void:
+	Fixtures.uninstall_state()
+	if _english != null:
+		Fixtures.uninstall_english(_english)
+		_english = null
 
 func _gate(id: String, key: StringName = &"", open_when: String = "") -> RpgGate:
 	var gate := RpgGate.new()
@@ -41,7 +53,7 @@ func test_a_gate_opens_for_good_with_its_key(t) -> void:
 	t.ok(gate.get_collision_layer_value(1) and gate.get_collision_layer_value(5), "it blocks, and the interaction finds it")
 	gate.interact()
 	t.ok(not gate.open, "no key, no entry")
-	t.eq(notes.size(), 1)
+	t.eq(notes, ["Locked. It needs: Cellar key"], "the note names the key")
 	state.inventory.add(&"cellar_key")
 	gate.interact()
 	t.ok(gate.open)
@@ -52,7 +64,7 @@ func test_a_gate_opens_for_good_with_its_key(t) -> void:
 	t.ok(again.open, "a gate built again (a map load) remembers it was unlocked")
 	gate.free()
 	again.free()
-	Fixtures.uninstall_state()
+	_end()
 
 func test_a_gate_follows_its_condition_both_ways(t) -> void:
 	var state := _state()
@@ -70,7 +82,7 @@ func test_a_gate_follows_its_condition_both_ways(t) -> void:
 	gate.interact()
 	t.ok(not gate.open, "a gate without a key does not open by hand")
 	gate.free()
-	Fixtures.uninstall_state()
+	_end()
 
 func test_plates_and_levers_set_their_flag(t) -> void:
 	var state := _state()
@@ -102,7 +114,7 @@ func test_plates_and_levers_set_their_flag(t) -> void:
 	t.ok(lever.is_on(), "a once-lever stays on")
 	for node: Node in [plate, lever, player]:
 		node.free()
-	Fixtures.uninstall_state()
+	_end()
 
 func test_a_locked_door_needs_its_key_once(t) -> void:
 	var state := _state()
@@ -121,7 +133,7 @@ func test_a_locked_door_needs_its_key_once(t) -> void:
 	t.ok(not plain.is_locked() and plain.try_unlock(), "a door without a key item is never locked")
 	door.free()
 	plain.free()
-	Fixtures.uninstall_state()
+	_end()
 
 func test_the_dock_plans_gates_and_switches_that_open_them(t) -> void:
 	var root := Maps.map("crypt")

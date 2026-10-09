@@ -17,9 +17,9 @@ func eq(a: Variant, b: Variant, msg: String = "") -> void:
 	if a != b:
 		fail("expected %s == %s%s" % [var_to_str(a), var_to_str(b), (": " + msg) if msg != "" else ""])
 
-func near(a: float, b: float, eps: float = 0.001) -> void:
+func near(a: float, b: float, eps: float = 0.001, msg: String = "") -> void:
 	if absf(a - b) > eps:
-		fail("expected %s ~= %s (eps %s)" % [a, b, eps])
+		fail("expected %s ~= %s (eps %s)%s" % [a, b, eps, (": " + msg) if msg != "" else ""])
 
 static func _is_number(v: Variant) -> bool:
 	return typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT

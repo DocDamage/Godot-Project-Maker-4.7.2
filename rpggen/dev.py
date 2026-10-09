@@ -50,7 +50,7 @@ def godot_test(exe: Path | None = None) -> int:
             log_dir=log_dir,
         )
         for line in run.stdout.splitlines():
-            if line.startswith(("PASS ", "FAIL ", "tests:")):
+            if line.startswith(("PASS ", "FAIL ", "tests:", "godot:")):
                 print(line)
         if run.returncode != 0:
             print(run.stderr, file=sys.stderr)
