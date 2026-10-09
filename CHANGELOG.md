@@ -41,6 +41,10 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   is left, from how long the last ten runs took on this computer (and `taking longer than
   usual` instead of counting below zero). The CLI prints the usual time after each phase line.
 
+* **Welcome view**: recent projects are cards with the picture of the starter map, the kind of
+  game, the date of the last generation and the packs. A pack that changed since gives the card
+  a line and **Regenerate**; a folder that is gone offers *Remove from the list*.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

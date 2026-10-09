@@ -269,6 +269,7 @@ class MainWindow(WindowMenus, QMainWindow):
         self.show_page(OPTIONS_INDEX)
 
     def go_back(self) -> None:
+        self._walk_to_generate = False  # the user took over
         if self.current_index <= 0:
             return
         if not self._leave_current():
@@ -420,3 +421,4 @@ class MainWindow(WindowMenus, QMainWindow):
         self.problem_label.setText("\n".join(i.message for i in shown))
         self.problem_label.setVisible(bool(shown))
         self._update_title()
+        self.continue_walk()  # a project card's Regenerate is on its way to the Generate page

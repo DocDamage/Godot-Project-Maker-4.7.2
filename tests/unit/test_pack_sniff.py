@@ -80,3 +80,51 @@ def test_a_password_protected_zip_is_arch_002(tmp_path: Path) -> None:
         data[i + at] |= 1
     out.write_bytes(bytes(data))
     assert [i.code for i in pack_sniff.sniff(out).issues] == ["ARCH-002"]
+
+
+# ------------------------------------------------------------------------ changed since (T13.08)
+
+
+def test_a_stamp_changes_with_the_pack_and_only_then(tmp_path: Path) -> None:
+    import os
+    import time
+
+    folder = tmp_path / "town"
+    (folder / "tiles").mkdir(parents=True)
+    (folder / "tiles" / "a.png").write_bytes(b"1234")
+    (folder / "readme.txt").write_bytes(b"hello")
+    recorded = pack_sniff.stamp(folder)
+    assert recorded is not None and recorded.startswith("dir:2:9:")
+    assert pack_sniff.stamp(folder) == recorded
+    assert pack_sniff.changed_since(folder, recorded) is None
+    # a file touched later (same bytes): changed, on that day
+    later = time.time() + 5 * 24 * 3600
+    os.utime(folder / "tiles" / "a.png", (later, later))
+    when = pack_sniff.changed_since(folder, recorded)
+    assert when is not None and abs(when.timestamp() - later) < 2
+    # a file added, a file removed
+    recorded = pack_sniff.stamp(folder)
+    (folder / "new.png").write_bytes(b"x")
+    assert pack_sniff.changed_since(folder, recorded) is not None
+    recorded = pack_sniff.stamp(folder)
+    (folder / "new.png").unlink()
+    assert pack_sniff.changed_since(folder, recorded) is not None
+    # an archive: its size and time
+    archive = tmp_path / "forest.zip"
+    archive.write_bytes(b"PK" + b"\x00" * 30)
+    recorded = pack_sniff.stamp(archive)
+    assert recorded is not None and recorded.startswith("file:32:")
+    assert pack_sniff.changed_since(archive, recorded) is None
+    archive.write_bytes(b"PK" + b"\x00" * 31)
+    assert pack_sniff.changed_since(archive, recorded) is not None
+
+
+def test_nothing_recorded_or_a_pack_that_is_away_is_not_a_change(tmp_path: Path) -> None:
+    folder = tmp_path / "town"
+    folder.mkdir()
+    assert pack_sniff.changed_since(folder, "") is None, "a project from 1.0 recorded nothing"
+    recorded = pack_sniff.stamp(folder)
+    assert recorded == "dir:0:0:0"
+    missing = tmp_path / "unplugged"
+    assert pack_sniff.stamp(missing) is None
+    assert pack_sniff.changed_since(missing, "dir:3:10:5") is None

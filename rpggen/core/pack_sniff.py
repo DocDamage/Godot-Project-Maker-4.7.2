@@ -9,11 +9,13 @@ read for at most ``BUDGET_S`` seconds.
 from __future__ import annotations
 
 import json
+import os
 import re
 import struct
 import time
 import zipfile
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 from rpggen.core import inventory
@@ -99,6 +101,47 @@ class _Names(_Source):
 
     def names(self) -> list[str]:
         return self._names[:MAX_NAMES]
+
+
+def stamp(path: Path | str) -> str | None:
+    """A cheap fingerprint of a pack as it is on disk now (T13.08), without reading a file: an
+    archive's size and modification time, or a folder's file count, total size and newest
+    modification time. None when the pack is not there."""
+    source = Path(path)
+    try:
+        if source.is_file():
+            info = source.stat()
+            return f"file:{info.st_size}:{info.st_mtime_ns}"
+        if not source.is_dir():
+            return None
+        count = size = newest = 0
+        stack = [source]
+        while stack:
+            with os.scandir(stack.pop()) as entries:
+                for entry in entries:
+                    if entry.is_dir(follow_symlinks=False):
+                        stack.append(Path(entry.path))
+                    elif entry.is_file(follow_symlinks=False):
+                        info = entry.stat(follow_symlinks=False)
+                        count += 1
+                        size += info.st_size
+                        newest = max(newest, info.st_mtime_ns)
+        return f"dir:{count}:{size}:{newest}"
+    except OSError:
+        return None
+
+
+def changed_since(pack_path: Path | str, recorded: str) -> datetime | None:
+    """When the pack last changed, if it is not as ``recorded`` (a ``stamp`` taken when the
+    project was generated); None when it is the same, when nothing was recorded and when the
+    pack cannot be reached now (that is not a change)."""
+    current = stamp(pack_path)
+    if not recorded or current is None or current == recorded:
+        return None
+    try:
+        return datetime.fromtimestamp(int(current.rsplit(":", 1)[1]) / 1e9)
+    except (ValueError, OSError, OverflowError):
+        return datetime.now()
 
 
 def _png_size(head: bytes) -> tuple[int, int] | None:

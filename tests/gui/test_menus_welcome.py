@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 import rpggen
 from rpggen import godot_target
@@ -343,3 +343,164 @@ def test_ctrl_equals_and_ctrl_minus_step_the_thumbnail_size(qtbot) -> None:
     win.activateWindow()
     QTest.keyClick(win, Qt.Key.Key_Minus, Qt.KeyboardModifier.ControlModifier)
     assert app_settings.get().thumb_size in (96, 128)  # the key reaches the action when focused
+
+
+# ------------------------------------------------------------------------ the project dashboard (T13.08)
+
+
+def _recent_with_packs(tmp_path: Path, count: int = 1) -> list[Path]:
+    """``count`` recent projects, each generated from one zip pack and one folder pack."""
+    from rpggen.core import pack_sniff
+
+    settings = app_settings.AppSettings()
+    projects = []
+    for i in range(count):
+        project = tmp_path / f"game_{i}"
+        project.mkdir()
+        archive_pack = tmp_path / f"forest_{i}.zip"
+        archive_pack.write_bytes(b"PK\x05\x06" + b"\x00" * 18)
+        folder_pack = tmp_path / f"town_{i}"
+        folder_pack.mkdir()
+        (folder_pack / "tiles.png").write_bytes(b"x" * 10)
+        packs = [
+            {"path": str(p), "stamp": pack_sniff.stamp(p) or ""}
+            for p in (archive_pack, folder_pack)
+        ]
+        app_settings.add_recent(
+            settings, project, f"Game {i}", "arpg" if i % 2 else "turn_based", packs
+        )
+        projects.append(project)
+    app_settings.save(settings)
+    return projects
+
+
+def _wait_for_cards(qtbot, win) -> None:
+    qtbot.waitUntil(lambda: win.welcome.cards_checked, timeout=10000)
+
+
+def test_a_card_shows_what_was_recorded_and_the_drawing_without_a_picture(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: None)  # not a real project
+    (project,) = _recent_with_packs(tmp_path)
+    win = _window(qtbot, welcome=True)
+    _wait_for_cards(qtbot, win)
+    card = win.welcome.cards[str(project)]
+    assert "Game 0" in card.title_label.text() and "turn-based" in card.title_label.text()
+    assert "Last generated" in card.details_label.text()
+    assert "packs: forest_0.zip, town_0" in card.details_label.text()
+    assert card.folder_label.text() == str(project)
+    # a project without a picture of its map (one made by 1.0, say): the drawing of its kind
+    assert not card.has_map_picture and not card.picture.pixmap().isNull()
+    assert card.note_label.isHidden() and card.regenerate_button.isHidden()
+    assert card.remove_button.isHidden()
+    # with the picture the generation leaves in the project, the card shows that
+    from PySide6.QtGui import QColor, QPixmap
+
+    picture = project / "rpggen" / "results" / "starter_map.png"
+    picture.parent.mkdir(parents=True)
+    drawn = QPixmap(64, 40)
+    drawn.fill(QColor("#3c8f4a"))
+    assert drawn.save(str(picture))
+    win.welcome.refresh()
+    _wait_for_cards(qtbot, win)
+    card = win.welcome.cards[str(project)]
+    assert card.has_map_picture
+    assert card.picture.pixmap().toImage().pixelColor(5, 5) == QColor("#3c8f4a")
+    # the list still works as a list: the folder is the item's data and Enter opens it
+    assert win.welcome.recent_targets() == [str(project)]
+    chosen: list[str] = []
+    win.welcome.recentChosen.connect(chosen.append)
+    win.welcome.recent_list.itemActivated.emit(win.welcome.recent_list.item(0))
+    assert chosen == [str(project)]
+
+
+def test_a_touched_pack_gives_the_changed_line_and_regenerate(qtbot, tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: None)  # not a real project
+    import os
+    import time
+
+    (project,) = _recent_with_packs(tmp_path)
+    pack = tmp_path / "town_0" / "tiles.png"
+    later = time.time() + 3 * 24 * 3600
+    pack.write_bytes(b"x" * 25)
+    os.utime(pack, (later, later))
+    win = _window(qtbot, welcome=True)
+    _wait_for_cards(qtbot, win)
+    card = win.welcome.cards[str(project)]
+    assert not card.note_label.isHidden()
+    assert card.note_label.text().startswith("town_0 changed on ")
+    assert not card.regenerate_button.isHidden()
+    asked: list[str] = []
+    win.welcome.regenerateRequested.connect(asked.append)
+    card.regenerate_button.click()
+    assert asked == [str(project)]
+
+
+def test_a_card_whose_folder_is_gone_says_so_and_offers_removal(qtbot, tmp_path) -> None:
+    import shutil
+
+    gone, kept = _recent_with_packs(tmp_path, 2)
+    shutil.rmtree(gone)
+    win = _window(qtbot, welcome=True)
+    _wait_for_cards(qtbot, win)
+    card = win.welcome.cards[str(gone)]
+    assert card.missing and "cannot be reached" in card.note_label.text()
+    assert not card.remove_button.isHidden() and card.regenerate_button.isHidden()
+    assert win.welcome.cards[str(kept)].remove_button.isHidden()
+    assert str(gone) in win.welcome.recent_targets(), "nothing is removed by itself"
+    card.remove_button.click()
+    assert win.welcome.recent_targets() == [str(kept)]
+    assert [r.target for r in app_settings.load().recent_projects] == [str(kept)]
+
+
+def test_regenerate_walks_to_the_generate_page_when_the_pages_allow(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    from rpggen.gui.wizard import OPTIONS_INDEX
+
+    win = _window(qtbot, welcome=True)
+    monkeypatch.setattr("rpggen.core.preflight.is_rpggen_project", lambda p: True)
+    monkeypatch.setattr(win, "open_target", lambda t: None)
+    walked: list[int] = []
+    monkeypatch.setattr(win, "continue_to", lambda index: walked.append(index))
+    assert win.regenerate_project(tmp_path)
+    assert not win.welcome_visible and win._walk_to_generate
+    # the project page is not ready (its packs are being read): the walk waits, then goes on
+    win.next_button.setEnabled(False)
+    walked.clear()
+    win.continue_walk()
+    assert walked == []
+    win.next_button.setEnabled(True)
+    win.continue_walk()
+    assert walked == [OPTIONS_INDEX] and win._walk_to_generate, "still on page 1: it will retry"
+    # Back means the user took over
+    win.go_back()
+    assert not win._walk_to_generate
+    walked.clear()
+    win.continue_walk()
+    assert walked == []
+    monkeypatch.setattr("rpggen.core.preflight.is_rpggen_project", lambda p: False)
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: None)
+    assert not win.regenerate_project(tmp_path / "nothing")
+
+
+def test_six_cards_fit_at_the_minimum_window_size(qtbot, tmp_path) -> None:
+    from rpggen import dev
+    from tests.gui.test_layout_fit import layout_problems
+
+    original = QApplication.font()
+    if dev.ensure_real_font() is None:
+        pytest.skip("no real font on this machine")
+    try:
+        _recent_with_packs(tmp_path, 6)
+        win = _window(qtbot, welcome=True)
+        win.resize(*min(dev.layout_sizes().values()))
+        _wait_for_cards(qtbot, win)
+        assert len(win.welcome.cards) == 6
+        assert layout_problems(win.welcome) == []
+        first = win.welcome.recent_list.item(0)
+        card = win.welcome.cards[first.data(0x0100)]
+        assert first.sizeHint().height() >= card.minimumSizeHint().height()
+    finally:
+        QApplication.setFont(original)

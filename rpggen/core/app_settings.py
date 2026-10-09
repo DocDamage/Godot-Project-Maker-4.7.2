@@ -46,6 +46,9 @@ class RecentProject:
     name: str = ""
     archetype: str = ""
     last_opened: str = ""  # ISO 8601, seconds
+    # the packs the project was generated from: [{"path": ..., "stamp": pack_sniff.stamp}], so
+    # the welcome view can say that one changed since (T13.08; a 1.0 entry has none)
+    packs: list[dict[str, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -166,6 +169,16 @@ def _str(value: Any, default: str) -> str:
     return value if isinstance(value, str) else default
 
 
+def _packs(raw: Any) -> list[dict[str, str]]:
+    if not isinstance(raw, list):
+        return []
+    return [
+        {"path": p["path"], "stamp": _str(p.get("stamp"), "")}
+        for p in raw
+        if isinstance(p, dict) and isinstance(p.get("path"), str)
+    ]
+
+
 def _recent(raw: Any) -> list[RecentProject]:
     out: list[RecentProject] = []
     if not isinstance(raw, list):
@@ -180,6 +193,7 @@ def _recent(raw: Any) -> list[RecentProject]:
                 _str(item.get("name"), ""),
                 _str(item.get("archetype"), ""),
                 _str(item.get("last_opened"), ""),
+                _packs(item.get("packs")),
             )
         )
     return out[:RECENT_MAX]
@@ -473,13 +487,26 @@ def available(
     return {target: results.get(target, False) for target in targets}
 
 
-def add_recent(s: AppSettings, target: Path | str, name: str, archetype: str) -> None:
-    """Put a project at the top of the recent list (one entry per folder, max 10)."""
+def add_recent(
+    s: AppSettings,
+    target: Path | str,
+    name: str,
+    archetype: str,
+    packs: list[dict[str, str]] | None = None,
+) -> None:
+    """Put a project at the top of the recent list (one entry per folder, max 10). ``packs``
+    are the packs it was generated from, each with its stamp; without them an entry that is
+    already there keeps the ones it has."""
     key = str(Path(target)).casefold()
+    before = next((r for r in s.recent_projects if str(Path(r.target)).casefold() == key), None)
+    if packs is None:
+        packs = list(before.packs) if before is not None else []
     s.recent_projects = [r for r in s.recent_projects if str(Path(r.target)).casefold() != key]
     s.recent_projects.insert(
         0,
-        RecentProject(str(target), name, archetype, datetime.now().isoformat(timespec="seconds")),
+        RecentProject(
+            str(target), name, archetype, datetime.now().isoformat(timespec="seconds"), packs
+        ),
     )
     del s.recent_projects[RECENT_MAX:]
 

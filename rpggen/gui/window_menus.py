@@ -207,6 +207,7 @@ class WindowMenus:
         w.ownPackRequested.connect(self.start_own_pack)
         w.openProjectRequested.connect(self.open_project_dialog)
         w.recentChosen.connect(lambda folder: self.open_project(Path(folder)))
+        w.regenerateRequested.connect(lambda folder: self.regenerate_project(Path(folder)))
         w.downloadGodotRequested.connect(self.download_godot_from_welcome)
 
     # ------------------------------------------------------------------ welcome view
@@ -278,6 +279,36 @@ class WindowMenus:
         folder = self.choose_project_folder()
         if folder is not None:
             self.open_project(folder)
+
+    def regenerate_project(self, folder: Path) -> bool:
+        """A project card's Regenerate (T13.08): open the project and walk to the Generate page
+        as soon as its pages allow it. The generation then shows the changes before it writes
+        them (Edit > Show changes before regenerating). The walk is given up when a page stops
+        it or the user goes elsewhere."""
+        if not self.open_project(folder):
+            return False
+        self._walk_to_generate = True
+        self.continue_walk()
+        return True
+
+    def continue_walk(self) -> None:
+        """Called whenever the window's state changed: go on towards Generate if a card asked."""
+        if not getattr(self, "_walk_to_generate", False) or getattr(self, "_walking", False):
+            return
+        if self.welcome_visible or not self.next_button.isEnabled():  # type: ignore[attr-defined]
+            return  # the packs are still being read, or a page has something to say
+        from rpggen.gui.wizard import OPTIONS_INDEX
+
+        self._walking = True
+        try:
+            self.continue_to(OPTIONS_INDEX)  # type: ignore[attr-defined]
+            if self.current_index == OPTIONS_INDEX and self.next_button.isEnabled():  # type: ignore[attr-defined]
+                self._walk_to_generate = False
+                self.go_next()  # type: ignore[attr-defined]
+            elif self.current_index > 0:  # type: ignore[attr-defined]
+                self._walk_to_generate = False  # a page in between stopped the walk
+        finally:
+            self._walking = False
 
     def open_project(self, folder: Path) -> bool:
         """Open a generated project for regeneration; False when the folder is not one."""

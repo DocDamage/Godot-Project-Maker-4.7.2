@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rpggen.core import app_settings, orchestrator, vcs
+from rpggen.core import app_settings, orchestrator, pack_sniff, vcs
 from rpggen.errors import CODES, Issue, IssueList
 from rpggen.gui import workers
 from rpggen.gui.dialogs.promotion_dialog import PromotionDialog
@@ -518,9 +518,14 @@ class GeneratePage(WizardPage):
             return
         target, name, archetype = state.target, state.config.project_name, state.config.archetype
         godot_exe = state.godot_exe
+        # the packs as they are now: the welcome view compares them with this later (T13.08)
+        packs = [
+            {"path": str(source), "stamp": pack_sniff.stamp(source) or ""}
+            for source in state.pack_sources
+        ]
 
         def remember(settings: app_settings.AppSettings) -> None:
-            app_settings.add_recent(settings, target, name, archetype)
+            app_settings.add_recent(settings, target, name, archetype, packs)
             settings.last_target_dir = str(Path(target).parent)
             if godot_exe is not None:
                 settings.godot_exe = str(godot_exe)
