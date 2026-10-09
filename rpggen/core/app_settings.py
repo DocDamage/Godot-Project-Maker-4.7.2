@@ -71,6 +71,7 @@ class AppSettings:
     language: str = ""  # the wizard's language ("fr"); "" follows the system (T12.56)
     group_by_folder: bool = False  # the audit grid shows a header per folder (T13.02)
     tours_seen: list[str] = field(default_factory=list)  # tours finished or skipped (T13.09)
+    reduce_motion: str = "system"  # "system", "on" or "off": View > Reduce motion (T13.10)
     # how long each phase took on this computer: phase -> the last ten [assets, seconds] (T13.07)
     phase_history: dict[str, list[list[float]]] = field(default_factory=dict)
 
@@ -94,6 +95,7 @@ class AppSettings:
             "language": self.language,
             "group_by_folder": self.group_by_folder,
             "tours_seen": list(self.tours_seen),
+            "reduce_motion": self.reduce_motion,
             "phase_history": {k: [list(p) for p in v] for k, v in self.phase_history.items()},
         }
 
@@ -249,6 +251,8 @@ def from_json(data: Any) -> AppSettings:
     if isinstance(confirm, bool):
         s.confirm_regeneration = confirm
     s.phase_history = _history(data.get("phase_history"))
+    motion = data.get("reduce_motion")
+    s.reduce_motion = motion if motion in ("system", "on", "off") else s.reduce_motion
     seen = data.get("tours_seen")
     if isinstance(seen, list):
         s.tours_seen = sorted({t for t in seen if isinstance(t, str)})

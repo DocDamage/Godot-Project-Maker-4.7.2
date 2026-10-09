@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+import sys
 from importlib import resources
 
 from PySide6.QtCore import QObject, Qt, Signal
@@ -30,6 +32,63 @@ TOKENS: dict[str, dict[str, QColor]] = {
         "diff_changed": QColor(230, 160, 20, 90),
     },
 }
+
+
+def crisp_scale(scale: float, ratio: float) -> float:
+    """The largest scale not above ``scale`` at which one image pixel covers a whole number of
+    device pixels on a screen with the device pixel ratio ``ratio`` (T13.10): at 150 % a scale
+    of 2 would be 3 device pixels (fine), a scale of 3 would be 4.5 (blurred edges), so 3
+    becomes 2.667 (4 device pixels). A picture shown smaller than its pixels is left alone."""
+    ratio = ratio if ratio > 0 else 1.0
+    device = scale * ratio
+    if device < 1:
+        return scale
+    return math.floor(device + 1e-6) / ratio
+
+
+def device_size(logical: int, ratio: float) -> int:
+    """How many device pixels a length of ``logical`` pixels has on the screen."""
+    return max(1, round(logical * (ratio if ratio > 0 else 1.0)))
+
+
+def system_reduces_motion() -> bool:
+    """Whether the operating system asks for fewer animations (Windows: "Show animations in
+    Windows" turned off). False where it cannot be asked."""
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        enabled = ctypes.c_int(1)
+        spi_getclientareaanimation = 0x1042
+        ok = ctypes.windll.user32.SystemParametersInfoW(  # type: ignore[attr-defined]
+            spi_getclientareaanimation, 0, ctypes.byref(enabled), 0
+        )
+        return bool(ok) and not enabled.value
+    except (OSError, AttributeError):
+        return False
+
+
+def reduce_motion() -> bool:
+    """The setting in effect: the user's choice, else the system's."""
+    choice = app_settings.get().reduce_motion
+    return system_reduces_motion() if choice == "system" else choice == "on"
+
+
+def apply_motion() -> bool:
+    """Turn Qt's own animated effects (menus, combos, tooltips and tool boxes that fade or roll
+    in) off or on for the setting in effect. Returns that setting."""
+    reduced = reduce_motion()
+    for effect in (
+        Qt.UIEffect.UI_AnimateMenu,
+        Qt.UIEffect.UI_FadeMenu,
+        Qt.UIEffect.UI_AnimateCombo,
+        Qt.UIEffect.UI_AnimateTooltip,
+        Qt.UIEffect.UI_FadeTooltip,
+        Qt.UIEffect.UI_AnimateToolBox,
+    ):
+        QApplication.setEffectEnabled(effect, not reduced)
+    return reduced
 
 
 class ThemeSignals(QObject):

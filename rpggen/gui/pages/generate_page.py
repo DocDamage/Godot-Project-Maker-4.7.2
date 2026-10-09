@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import app_settings, orchestrator, pack_sniff, vcs
 from rpggen.errors import CODES, Issue, IssueList
-from rpggen.gui import workers
+from rpggen.gui import taskbar, workers
 from rpggen.gui.dialogs.promotion_dialog import PromotionDialog
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
@@ -412,6 +412,7 @@ class GeneratePage(WizardPage):
         self._set_icons(icons)
         self.progress.setMaximum(total)
         self.progress.setValue(index - 1)
+        taskbar.set_progress(self.window(), index - 1, total)  # the taskbar button, the dock
         self.status_label.setText(
             self.tr("Phase {0} of {1}: {2}").format(
                 index, total, self.tr(PHASE_LABELS.get(name, name))
@@ -533,6 +534,7 @@ class GeneratePage(WizardPage):
         app_settings.store().update(remember)
 
     def _show_finished(self, result: orchestrator.RunResult) -> None:
+        taskbar.clear(self.window(), failed=not result.ok and not result.cancelled)
         if result.timings:
             self._durations.update(result.timings)
         self._skipped.update(result.skipped)

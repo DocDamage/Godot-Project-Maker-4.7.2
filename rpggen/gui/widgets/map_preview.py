@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVB
 
 from rpggen.core import map_preview
 from rpggen.core.orchestrator import Callbacks
-from rpggen.gui import thumbnails, workers
+from rpggen.gui import theme, thumbnails, workers
 from rpggen.gui.widgets.flow_layout import FlowLayout
 
 DEBOUNCE_MS = 200
@@ -189,9 +189,12 @@ class MapPreviewWidget(QWidget):
         if self._pixmap.isNull():
             return
         width = max(240, self.image_label.width())
-        self.image_label.setPixmap(
-            self._pixmap.scaledToWidth(width, Qt.TransformationMode.FastTransformation)
+        ratio = self.devicePixelRatioF()
+        shown = self._pixmap.scaledToWidth(
+            theme.device_size(width, ratio), Qt.TransformationMode.FastTransformation
         )
+        shown.setDevicePixelRatio(ratio)  # as many device pixels as the label has (T13.10)
+        self.image_label.setPixmap(shown)
         self.pixmap_size = self._pixmap.size()
 
     def resizeEvent(self, event) -> None:  # noqa: ANN001, N802

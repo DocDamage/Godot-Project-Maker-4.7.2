@@ -111,19 +111,28 @@ def build_scene_art(state: WizardState, resolver=None) -> SceneArt | None:  # no
     )
 
 
-def scaled_to_height(pixmap: QPixmap, height: float) -> QPixmap:
+def scaled_to_height(pixmap: QPixmap, height: float, ratio: float = 1.0) -> QPixmap:
     """Nearest-neighbour: a whole-number factor when the picture is smaller than ``height`` (the
-    pixels stay square), the nearest size below it when it is larger."""
+    pixels stay square), the nearest size below it when it is larger. ``height`` is in the
+    window's pixels; on a screen with the device pixel ratio ``ratio`` the picture is made for
+    that many device pixels and tagged, so the factor is whole on the screen (T13.10)."""
+    ratio = ratio if ratio > 0 else 1.0
+    height = height * ratio
     h = max(1, pixmap.height())
     if height >= h:
         factor = max(1, int(height // h))
-        return pixmap.scaled(
+        scaled = pixmap.scaled(
             pixmap.width() * factor,
             h * factor,
             Qt.AspectRatioMode.IgnoreAspectRatio,
             Qt.TransformationMode.FastTransformation,
         )
-    return pixmap.scaledToHeight(max(1, int(height)), Qt.TransformationMode.FastTransformation)
+    else:
+        scaled = pixmap.scaledToHeight(
+            max(1, int(height)), Qt.TransformationMode.FastTransformation
+        )
+    scaled.setDevicePixelRatio(ratio)
+    return scaled
 
 
 class MockScreen(QWidget):
@@ -153,11 +162,12 @@ class MockScreen(QWidget):
         painter.setClipRect(rect)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
+        ratio = self.devicePixelRatioF()
         if art.ground is not None:
-            tile = scaled_to_height(art.ground, 24)
+            tile = scaled_to_height(art.ground, 24, ratio)
             painter.drawTiledPixmap(rect, tile)
-        player = scaled_to_height(art.player, h * 0.30)
-        enemy = scaled_to_height(art.enemy, h * 0.30) if art.enemy is not None else None
+        player = scaled_to_height(art.player, h * 0.30, ratio)
+        enemy = scaled_to_height(art.enemy, h * 0.30, ratio) if art.enemy is not None else None
         if self.kind == "turn_based":
             if enemy is not None:
                 for i in range(2):  # the enemies on the left

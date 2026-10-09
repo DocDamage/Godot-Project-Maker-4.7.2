@@ -129,6 +129,14 @@ class WindowMenus:
         self.review_action.setShortcut(QKeySequence("F7"))
         self.review_action.setCheckable(True)
         view_menu.aboutToShow.connect(self._sync_review_action)
+        self.motion_action = self._action(
+            view_menu, self.tr("Reduce motion"), "reduceMotionAction", self.set_reduce_motion
+        )
+        self.motion_action.setCheckable(True)
+        self.motion_action.setToolTip(
+            self.tr("No fading or rolling menus, lists and tooltips. Follows the system until set.")
+        )
+        self.motion_action.setChecked(theme.apply_motion())
         size_menu = view_menu.addMenu(self.tr("Thumbnail size"))
         size_group = QActionGroup(self)
         self.thumb_actions: dict[int, QAction] = {}
@@ -393,6 +401,11 @@ class WindowMenus:
             self.tr("Language"),
             self.tr("rpggen will use the new language the next time it starts."),
         )
+
+    def set_reduce_motion(self, checked: bool = False) -> None:
+        """View > Reduce motion: from now on the user's choice, not the system's."""
+        app_settings.update(reduce_motion="on" if checked else "off")
+        self.motion_action.setChecked(theme.apply_motion())
 
     def toggle_review_mode(self) -> None:
         """F7: the Audit page's review mode (only there)."""

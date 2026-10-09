@@ -4,7 +4,8 @@ import re
 from pathlib import Path
 
 import pytest
-from PySide6.QtGui import QPalette
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QAbstractButton,
     QAbstractSpinBox,
@@ -20,6 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpggen import dev
 from rpggen.core import app_settings, config
 from rpggen.core.orchestrator import Callbacks
 from rpggen.gui import theme, workers
@@ -281,3 +283,286 @@ def test_the_menu_offers_the_system_theme(qtbot) -> None:
     assert app_settings.get().theme == "system"
     win.set_theme("dark")
     assert app_settings.get().theme == "dark"
+
+
+# ------------------------------------------------------------------------ scaling, names, motion, taskbar (T13.10)
+
+
+def _tile_png(tmp_path: Path, size: int = 16) -> Path:
+    from PIL import Image
+
+    path = tmp_path / "tile.png"
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 255))
+    for i in range(size):
+        image.putpixel((i, i), (255, 255, 255, 255))
+    image.save(path)
+    return path
+
+
+def test_at_ratio_2_a_16_px_tile_is_a_32_px_device_image(qtbot, tmp_path, monkeypatch) -> None:
+    from PySide6.QtGui import QPixmap
+
+    from rpggen.gui import thumbnails
+
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    tile = _tile_png(tmp_path)
+    facets = {"usage": "object"}
+    one = thumbnails.request_for("ab" * 32, tile, facets, size=16)
+    two = thumbnails.request_for("ab" * 32, tile, facets, size=16, ratio=2.0)
+    assert one.size == 16 and two.size == 32 and one.key != two.key, "the key has the ratio"
+    assert thumbnails.request_for("ab" * 32, tile, facets, size=16, ratio=1.0).key == one.key
+    data = thumbnails.load_or_render(two)
+    assert data is not None
+    pixmap = thumbnails.pixmap_from_bytes(data, 2.0)
+    assert (pixmap.width(), pixmap.height()) == (32, 32), "device pixels"
+    assert pixmap.devicePixelRatio() == 2.0
+    assert pixmap.deviceIndependentSize().toSize().width() == 16, "16 px in the window"
+    # every image pixel is exactly 2 x 2 device pixels: nothing is blended
+    image = pixmap.toImage()
+    assert image.pixelColor(0, 0) == image.pixelColor(1, 1) == QColor(255, 255, 255)
+    assert image.pixelColor(2, 0) == image.pixelColor(3, 1) == QColor(0, 0, 0)
+    assert isinstance(pixmap, QPixmap)
+    # 150 %: a 96 px box has 144 device pixels, and a 16 px tile fills them 9 times over
+    request = thumbnails.request_for("cd" * 32, tile, facets, size=96, ratio=1.5)
+    assert request.size == 144
+    rendered = thumbnails.pixmap_from_bytes(thumbnails.load_or_render(request), 1.5)
+    assert rendered.width() == 144 and rendered.width() % 16 == 0
+
+
+def test_the_grid_asks_for_pictures_of_its_screen_and_draws_them_at_window_size(qtbot) -> None:
+    from PySide6.QtCore import QSize
+
+    from rpggen.gui.widgets import asset_grid as ag
+
+    model = ag.AssetListModel()
+    assert model.ratio == 1.0
+    model.set_device_ratio(2.0)
+    assert model.ratio == 2.0 and len(model.cache) == 0
+    model.set_device_ratio(0)  # a nonsense ratio is 1
+    assert model.ratio == 1.0
+    # the card fits the picture by its size in the window, not by its device pixels
+    pixmap = QPixmap(192, 192)
+    pixmap.setDevicePixelRatio(2.0)
+    logical = pixmap.deviceIndependentSize().toSize()
+    assert logical == QSize(96, 96)
+    assert ag.AssetCardDelegate.fit(logical, QSize(96, 96)).size() == QSize(96, 96)
+
+
+def test_whole_device_pixels_at_every_scaling() -> None:
+    assert theme.crisp_scale(3.0, 1.0) == 3.0
+    assert theme.crisp_scale(3.0, 2.0) == 3.0
+    for ratio in (1.25, 1.5, 1.75, 2.0, 2.5):
+        for scale in (1.0, 2.0, 3.0, 5.0, 7.0):
+            crisp = theme.crisp_scale(scale, ratio)
+            device = crisp * ratio
+            assert abs(device - round(device)) < 1e-6 and round(device) >= 1, (scale, ratio)
+            assert crisp <= scale + 1e-9 and scale - crisp < 1 / ratio + 1e-9
+    assert theme.crisp_scale(0.25, 1.5) == 0.25, "a picture shown smaller is left alone"
+    assert theme.device_size(96, 1.5) == 144 and theme.device_size(0, 2.0) == 1
+
+
+def test_the_overlay_lines_are_one_device_pixel(qtbot, tmp_path) -> None:
+    from rpggen.gui.widgets.image_view import ImageView
+
+    view = ImageView()
+    qtbot.addWidget(view)
+    view.resize(300, 300)
+    view.show()
+    view.set_image(
+        _tile_png(tmp_path, 32), {"cell": [16, 16], "margin": [0, 0], "separation": [0, 0]}
+    )
+    view.draw_marks([("footprint", 0, 16, 32, 16), ("origin", 16, 30, 0, 0)])
+    lines = [item for item in view.grid_items + view.mark_items if hasattr(item, "pen")]
+    assert lines
+    for item in lines:
+        pen = item.pen()
+        if pen.style() != Qt.PenStyle.NoPen:
+            assert pen.isCosmetic(), "a cosmetic pen keeps its width at any zoom and scaling"
+    grid_lines = [i for i in view.grid_items if hasattr(i, "line")]
+    assert grid_lines and all(i.pen().width() <= 1 for i in grid_lines)
+    assert view.zoom == theme.crisp_scale(view.zoom, view.devicePixelRatioF())
+
+
+def test_every_grid_cell_has_an_accessible_name(qtbot) -> None:
+    from rpggen.core import archive, catalog, inventory
+    from rpggen.gui.widgets import asset_grid as ag
+
+    synth = Path(__file__).resolve().parents[2] / "test_packs" / "synthetic"
+    opened = archive.open_pack(synth / "basic16", set())
+    cat = catalog.assemble([(opened, inventory.build_inventory(opened))], None, [])[0]
+    grid = ag.AssetGrid()
+    qtbot.addWidget(grid)
+    grid.set_catalog(cat, lambda asset: None)
+    grid.chips["chipAll"].click()
+    for row in range(grid.proxy.rowCount()):
+        index = grid.proxy.index(row, 0)
+        name = index.data(Qt.ItemDataRole.AccessibleTextRole)
+        asset = cat.asset(index.data(ag.AssetIdRole))
+        assert name.startswith(asset.path.rsplit("/", 1)[-1]), name
+        assert name.endswith(asset.status.replace("_", " ").lower()), name
+        assert index.data(Qt.ItemDataRole.AccessibleDescriptionRole) == asset.path
+    hero = grid.model.index(grid.model.row_of("basic16.characters.hero"), 0)
+    assert hero.data(Qt.ItemDataRole.AccessibleTextRole) == (
+        "hero.png, Sprite or character, Player, needs review"
+    )
+    # a folder header says which folder it is
+    grid.set_grouped(True)
+    header = next(
+        grid.proxy.index(r, 0)
+        for r in range(grid.proxy.rowCount())
+        if grid.proxy.index(r, 0).data(ag.HeaderRole) is not None
+    )
+    assert header.data(Qt.ItemDataRole.AccessibleTextRole).startswith("basic16 / ")
+
+
+def _tab_stops(root: QWidget) -> list[QWidget]:
+    """The controls of ``root`` a user would expect to reach with Tab."""
+    from PySide6.QtWidgets import QAbstractItemView, QAbstractSlider
+
+    kinds = (QAbstractButton, QComboBox, QLineEdit, QAbstractSpinBox, QAbstractItemView)
+    out = []
+    for widget in root.findChildren(QWidget):
+        if not isinstance(widget, kinds + (QAbstractSlider,)) or not widget.isVisibleTo(root):
+            continue
+        if not widget.isEnabled() or widget.objectName().startswith("qt_"):
+            continue
+        parent = widget.parentWidget()
+        if isinstance(parent, QComboBox | QAbstractSpinBox | QAbstractItemView):
+            continue  # the line edit of a combo, the buttons of a spin box, a combo's list
+        if isinstance(widget, QAbstractSlider) and widget.objectName() == "":
+            continue  # a scroll bar
+        out.append(widget)
+    return out
+
+
+@pytest.mark.parametrize("archetype", dev.LAYOUT_ARCHETYPES)
+def test_tab_reaches_every_control_on_every_page_and_the_welcome_view(
+    qtbot, tmp_path, archetype: str
+) -> None:
+    from PySide6.QtWidgets import QApplication
+
+    from rpggen.gui.wizard import MainWindow, default_pages
+
+    window = MainWindow(dev.layout_state(archetype, tmp_path), default_pages())
+    qtbot.addWidget(window)
+    window.resize(1100, 720)
+    window.show()
+    unreachable: list[str] = []
+
+    def check(page_name: str, win: MainWindow) -> None:
+        current = win.welcome if win.welcome_visible else win.current_page
+        QApplication.processEvents()
+        stops = _tab_stops(current)
+        assert stops, page_name
+        # the focus chain of the window, as Tab walks it
+        chain: set[QWidget] = set()
+        widget = current
+        for _ in range(5000):
+            widget = widget.nextInFocusChain()
+            if widget is current or widget is None:
+                break
+            if widget.focusPolicy() & Qt.FocusPolicy.TabFocus and widget.isEnabled():
+                chain.add(widget)
+        for stop in stops:
+            if stop not in chain:
+                name = (
+                    stop.objectName() or f"{type(stop).__name__}({getattr(stop, 'text', str)()!r})"
+                )
+                unreachable.append(f"{page_name}: {name}")
+
+    dev.show_each_page(window, check)
+    assert not unreachable, "\n".join(unreachable)
+
+
+def test_reduce_motion_follows_the_system_until_it_is_set(qtbot, monkeypatch) -> None:
+    from rpggen.gui.wizard import MainWindow, default_pages
+
+    # what Qt is told: whether an effect really shows also depends on the platform, so the
+    # test reads the calls and not Qt's answer
+    effects: dict[Qt.UIEffect, bool] = {}
+    monkeypatch.setattr(
+        QApplication, "setEffectEnabled", lambda effect, on=True: effects.__setitem__(effect, on)
+    )
+    assert app_settings.get().reduce_motion == "system"
+    monkeypatch.setattr(theme, "system_reduces_motion", lambda: True)
+    assert theme.reduce_motion() and theme.apply_motion()
+    assert effects[Qt.UIEffect.UI_AnimateMenu] is False
+    assert effects[Qt.UIEffect.UI_FadeTooltip] is False and len(effects) == 6
+    monkeypatch.setattr(theme, "system_reduces_motion", lambda: False)
+    assert not theme.apply_motion()
+    assert all(effects.values())
+    win = MainWindow(pages=default_pages())
+    qtbot.addWidget(win)
+    assert win.motion_action.isCheckable() and not win.motion_action.isChecked()
+    win.motion_action.trigger()
+    assert app_settings.load().reduce_motion == "on" and win.motion_action.isChecked()
+    assert not any(effects.values())
+    monkeypatch.setattr(theme, "system_reduces_motion", lambda: True)
+    win.motion_action.trigger()  # off, although the system asks for it: the choice is yours
+    assert app_settings.load().reduce_motion == "off" and not theme.reduce_motion()
+    assert all(effects.values())
+    path = app_settings.settings_path()
+    path.write_text('{"reduce_motion": "sometimes"}', encoding="utf-8")
+    assert app_settings.load().reduce_motion == "system"
+
+
+def test_the_taskbar_is_a_no_op_elsewhere_and_when_the_call_fails(monkeypatch) -> None:
+    from rpggen.gui import taskbar
+
+    class Window:
+        def winId(self) -> int:  # noqa: N802
+            return 1234
+
+    # Linux: nothing to do, nothing raised
+    monkeypatch.setattr(taskbar.sys, "platform", "linux")
+    assert taskbar.set_progress(Window(), 3, 11) is False
+    assert taskbar.clear(Window()) is False
+    # Windows without a working COM object
+    monkeypatch.setattr(taskbar.sys, "platform", "win32")
+    monkeypatch.setattr(taskbar, "_taskbar", None)
+    monkeypatch.setattr(taskbar, "_broken", False)
+
+    def boom() -> None:
+        raise OSError("no COM here")
+
+    monkeypatch.setattr(taskbar, "_WindowsTaskbar", boom)
+    assert taskbar.set_progress(Window(), 3, 11) is False
+    assert taskbar._broken, "it is not tried again in this run"
+    assert taskbar.clear(Window()) is False
+    # a COM object whose calls fail
+    calls: list[tuple] = []
+
+    class Failing:
+        def set_state(self, hwnd: int, state: int) -> None:
+            calls.append(("state", hwnd, state))
+            raise OSError("E_FAIL")
+
+        def set_value(self, hwnd: int, done: int, total: int) -> None:
+            calls.append(("value", hwnd, done, total))
+
+    monkeypatch.setattr(taskbar, "_taskbar", Failing())
+    monkeypatch.setattr(taskbar, "_broken", False)
+    assert taskbar.set_progress(Window(), 3, 11) is False
+    assert calls == [("state", 1234, taskbar.TBPF_NORMAL)]
+    # ... and one that works gets the state and the clamped value
+    calls.clear()
+
+    class Working(Failing):
+        def set_state(self, hwnd: int, state: int) -> None:
+            calls.append(("state", hwnd, state))
+
+    monkeypatch.setattr(taskbar, "_taskbar", Working())
+    monkeypatch.setattr(taskbar, "_broken", False)
+    assert taskbar.set_progress(Window(), 30, 11) is True
+    assert calls == [("state", 1234, taskbar.TBPF_NORMAL), ("value", 1234, 11, 11)]
+    assert taskbar.set_progress(Window(), 1, 0) is False, "no total: nothing to show"
+    assert taskbar.set_progress(None, 1, 5) is False, "no window"
+    calls.clear()
+    assert taskbar.clear(Window(), failed=True) is True
+    assert calls == [("state", 1234, taskbar.TBPF_ERROR)]
+    # macOS: the dock badge, or nothing where Qt has none
+    monkeypatch.setattr(taskbar.sys, "platform", "darwin")
+    badges: list[int] = []
+    monkeypatch.setattr(taskbar, "_badge", badges.append)
+    assert taskbar.set_progress(Window(), 4, 11) and taskbar.clear(Window())
+    assert badges == [7, 0]

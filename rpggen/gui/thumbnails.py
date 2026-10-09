@@ -57,12 +57,15 @@ def variant_tag(
     skip_empty: bool = False,
     kind: str = "image",
     duration: float | None = None,
+    ratio: float = 1.0,
 ) -> str:
     payload: list[Any] = [usage, grid, frame, region]
     if size != THUMB_SIZE or cells != TILE_PREVIEW_CELLS or skip_empty:
         payload.append([size, cells, skip_empty])  # the defaults keep the keys already on disk
     if kind != "image":
         payload.append(["card", CARD_VERSION, kind, duration])
+    if ratio != 1.0:  # a screen scaled to 150 % or 200 % has pictures of its own
+        payload.append(["ratio", round(ratio, 3)])
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
 
@@ -76,14 +79,19 @@ def request_for(
     skip_empty: bool = False,
     kind: str = "image",
     duration: float | None = None,
+    ratio: float = 1.0,
 ) -> ThumbRequest:
+    """``size`` is the box in the window's own pixels; on a screen with the device pixel ratio
+    ``ratio`` the picture is rendered for ``size * ratio`` device pixels (T13.10), so pixel art
+    is scaled by a whole number of device pixels. Give the same ratio to ``pixmap_from_bytes``."""
     usage = str(facets.get("usage", ""))
     grid = facets.get("grid")
     frame = facets.get("frame")
     region = facets.get("region")
-    tag = variant_tag(usage, grid, frame, region, size, cells, skip_empty, kind, duration)
+    tag = variant_tag(usage, grid, frame, region, size, cells, skip_empty, kind, duration, ratio)
+    device = max(1, round(size * ratio))
     return ThumbRequest(
-        f"{sha256}_{tag}", str(path), usage, grid, frame, region, size, cells, skip_empty,
+        f"{sha256}_{tag}", str(path), usage, grid, frame, region, device, cells, skip_empty,
         kind, duration,
     )  # fmt: skip
 
@@ -312,10 +320,13 @@ def load_thumbnails(
     return done
 
 
-def pixmap_from_bytes(data: bytes) -> QPixmap:
-    """Create the QPixmap; call on the UI thread only."""
+def pixmap_from_bytes(data: bytes, ratio: float = 1.0) -> QPixmap:
+    """Create the QPixmap; call on the UI thread only. ``ratio`` is the device pixel ratio the
+    picture was rendered for: the pixmap is tagged with it, so it is drawn pixel for pixel."""
     pixmap = QPixmap()
     pixmap.loadFromData(data, "PNG")  # type: ignore[call-overload]  # the stub wants bytes
+    if ratio != 1.0:
+        pixmap.setDevicePixelRatio(ratio)
     return pixmap
 
 

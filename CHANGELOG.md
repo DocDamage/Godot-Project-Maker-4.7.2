@@ -49,6 +49,11 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   queue, the detail panel, the keys, profiles). *Skip* or `Esc` closes it for good;
   *Help → Show the tour again* brings it back.
 
+* **Display scaling**: thumbnails, previews and the archetype drawings are made for the screen's
+  scaling, so pixel art stays sharp at 150 % and 200 %. **Screen readers** get a name for every
+  card of the audit grid. **View → Reduce motion**. On Windows the taskbar button shows the
+  progress of a generation (the dock icon on macOS counts the steps left).
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

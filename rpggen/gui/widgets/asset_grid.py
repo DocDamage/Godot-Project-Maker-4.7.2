@@ -126,6 +126,7 @@ class AssetListModel(QAbstractListModel):
         self.resolver: PathResolver = lambda asset: None
         self._placeholder: QPixmap | None = None
         self.thumb_size = THUMB
+        self.ratio = 1.0  # the device pixel ratio of the screen the grid is on (T13.10)
         self.grouped = False
         self.by_pack = False  # the headers are the packs, not their folders (the picker)
         self._folders: list[str] = []  # the folder key of every asset row
@@ -236,6 +237,34 @@ class AssetListModel(QAbstractListModel):
                 self.index(0), self.index(len(self._assets) - 1), [Qt.ItemDataRole.DecorationRole]
             )
 
+    def set_device_ratio(self, ratio: float) -> None:
+        """The grid is on a screen with another scaling: the pictures are asked for again, for
+        that many device pixels."""
+        ratio = round(ratio, 3) if ratio > 0 else 1.0
+        if ratio == self.ratio:
+            return
+        self.ratio = ratio
+        self._keys.clear()
+        self._by_key.clear()
+        self.cache = thumbnails.ThumbnailCache()
+        if self._assets:
+            self.dataChanged.emit(
+                self.index(0), self.index(len(self._assets) - 1), [Qt.ItemDataRole.DecorationRole]
+            )
+
+    def accessible_text(self, row: int) -> str:
+        """What a screen reader says for a card: "hero.png, Sprite or character, Player,
+        confirmed" (the file, its usage, its role, its status in words)."""
+        asset, facets = self._assets[row], self._facets[row]
+        role = str(facets.get("role") or "")
+        parts = [
+            file_label(asset),
+            labels.usage_label(str(facets.get("usage") or "")),
+            "" if role in ("", "NONE") else labels.role_label(role),
+            asset.status.replace("_", " ").lower(),
+        ]
+        return ", ".join(p for p in parts if p)
+
     def row_of(self, asset_id: str) -> int | None:
         return self._row_of.get(asset_id)
 
@@ -257,7 +286,11 @@ class AssetListModel(QAbstractListModel):
                 return key
             if role == PackRole:
                 return pack_id
-            if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
+            if role in (
+                Qt.ItemDataRole.DisplayRole,
+                Qt.ItemDataRole.ToolTipRole,
+                Qt.ItemDataRole.AccessibleTextRole,
+            ):
                 return f"{pack_id} / {folder}" if folder else pack_id
             return None
         if role == FolderRole:
@@ -271,6 +304,10 @@ class AssetListModel(QAbstractListModel):
         if role == Qt.ItemDataRole.ToolTipRole:
             sure = f"  {round(asset.confidence * 100)}%" if asset.status != "CONFIRMED" else ""
             return f"{asset.path}\n{asset.status}  {facets.get('role', '-')}{sure}"
+        if role == Qt.ItemDataRole.AccessibleTextRole:
+            return self.accessible_text(index.row())
+        if role == Qt.ItemDataRole.AccessibleDescriptionRole:
+            return asset.path
         if role == AssetIdRole:
             return asset.id
         if role == StatusRole:
@@ -302,7 +339,13 @@ class AssetListModel(QAbstractListModel):
                 return self._placeholder_pixmap()
             duration = (facets.get("audio") or {}).get("duration_s")
             req = thumbnails.request_for(
-                asset.sha256, path, facets, self.thumb_size, kind=asset.kind, duration=duration
+                asset.sha256,
+                path,
+                facets,
+                self.thumb_size,
+                kind=asset.kind,
+                duration=duration,
+                ratio=self.ratio,
             )
             key = req.key
             self._keys[asset.id] = key
@@ -313,7 +356,7 @@ class AssetListModel(QAbstractListModel):
         return pixmap if pixmap is not None else self._placeholder_pixmap()
 
     def _thumbnail_ready(self, key: str, data: bytes) -> None:
-        self.cache.put(key, thumbnails.pixmap_from_bytes(data))  # UI thread
+        self.cache.put(key, thumbnails.pixmap_from_bytes(data, self.ratio))  # UI thread
         for asset_id in self._by_key.get(key, []):
             row = self._row_of.get(asset_id)
             if row is not None:
@@ -561,7 +604,8 @@ class AssetCardDelegate(QStyledItemDelegate):
         pixmap = index.data(Qt.ItemDataRole.DecorationRole)
         if isinstance(pixmap, QPixmap) and not pixmap.isNull():
             area = QRect(rect.left() + self.STRIP + 4, rect.top() + 4, self.thumb, self.thumb)
-            target = self.fit(pixmap.size(), area.size())
+            # the size in the window's pixels: a picture for a 200 % screen has twice the pixels
+            target = self.fit(pixmap.deviceIndependentSize().toSize(), area.size())
             target.moveCenter(area.center())
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
             painter.drawPixmap(target, pixmap)
@@ -682,6 +726,13 @@ class AssetGridView(QListView):
         self.setUniformItemSizes(not self.grouped)
         self.setGridSize(QSize() if self.grouped else grid_size_for(self.card_delegate.thumb))
         self.doItemsLayout()
+
+    def showEvent(self, event) -> None:  # noqa: ANN001, N802
+        super().showEvent(event)
+        model = self.model()
+        source = model.sourceModel() if isinstance(model, QSortFilterProxyModel) else model
+        if isinstance(source, AssetListModel):
+            source.set_device_ratio(self.devicePixelRatioF())
 
     def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
         if self.grouped and self.card_delegate.header_width != self.viewport().width():

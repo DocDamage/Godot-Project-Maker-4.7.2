@@ -177,6 +177,8 @@ class ImageView(QGraphicsView):
         view = self.viewport().size()
         scale = min(max(view.width(), 64) / rect.width(), max(view.height(), 64) / rect.height())
         scale = max(1.0, float(int(scale))) if scale >= 1 else scale
+        # on a screen scaled to 150 % a whole number here is not one on the screen (T13.10)
+        scale = theme.crisp_scale(scale, self.devicePixelRatioF())
         self.zoom = scale
         self.scale(scale, scale)
 

@@ -72,7 +72,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T13.07 | Remaining time on the Generate page | S | — | done |
 | T13.08 | Project dashboard on the welcome view | M | — | done |
 | T13.09 | First-run tour | S | — | done |
-| T13.10 | Accessibility and display scaling | M | — | open |
+| T13.10 | Accessibility and display scaling | M | — | done |
 | T13.11 | Shops: quantities and sell all | S | — | done |
 | T13.12 | One interior per house | M | — | open |
 | T13.13 | Validator: every id, inline in the dialogue tab | S | — | done |
