@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791515328704,
+  "lastUpdate": 1791516195068,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -255,6 +255,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 4.44,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "99c486afc063630d997854b0e9a03f8e2fff4623",
+          "message": "Docs: what is done and what is left for 1.0\n\n- docs/status.md: every milestone's status, M12 card by card, and what\n  is left before v1.0.0 (by what a program and only a person can do),\n  with the known limits of 1.0; linked from the README and START_HERE.\n- M12 index gets a Status column; 00_START_HERE lists M11 and M12.\n- User guide: version control and pack art, skipped checks,\n  --tile-size, the conflicts command, a map of the game features.\n- Generated README: equipment and shops, quests, light, the dialogue\n  tab, the party; the archetype part is numbered after the sections it\n  follows; the Assets dock is no longer \"a later update\".\n- Runtime README: equipment, shops, quests, gates, light, minimap.\n- Root CHANGELOG: everything M12 added.\n- coverage.md: a form feed had eaten part of a Windows path.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-08T23:16:05-04:00",
+          "tree_id": "0ac33385996aea9159dab4bed11b86dac4cb974d",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/99c486afc063630d997854b0e9a03f8e2fff4623"
+        },
+        "date": 1791516189663,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 9.08,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 1.27,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 107.47,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 94.44,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 11.34,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 9.07,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 4.9,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 4.49,
             "unit": "s"
           }
         ]
