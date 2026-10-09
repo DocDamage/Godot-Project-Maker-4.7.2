@@ -548,3 +548,187 @@ func test_heavy_hitbox_scales_damage_and_knockback(t) -> void:
 	t.ok(heavy.knockback.length() > normal.knockback.length(), "heavy pushes further")
 	light.free()
 	target.free()
+
+# ---------------------------------------------------------------- T13.15: followers help
+
+const STEP := 1.0 / 60.0
+
+## A follower with the assist parts, not in the tree: {node, assist, stats}.
+func _helper(attack: int, hp: int) -> Dictionary:
+	var player := Node2D.new()
+	var node := RpgFollowers.make_follower(null, player)
+	player.free()
+	var stats := RpgStats.new()
+	stats.attack = attack
+	stats.max_hp = hp
+	stats.hp = hp
+	var assist := RpgAssist.attach(node, stats, 16.0)
+	return {"node": node, "assist": assist, "stats": stats}
+
+func _steps(assist: RpgAssist, seconds: float, player_at: Vector2, enemies: Array[Node2D]) -> void:
+	for i in ceili(seconds / STEP):
+		assist.step(STEP, player_at, enemies)
+
+func test_a_follower_walks_to_an_enemy_near_the_player_and_hits_it(t) -> void:
+	var parts := _helper(7, 20)
+	var node: Node2D = parts["node"]
+	var assist: RpgAssist = parts["assist"]
+	var enemy := _fighter("enemy", 3, 0, 100)
+	enemy.position = Vector2(40, 0)  # 2.5 tiles from the player
+	var enemies: Array[Node2D] = [enemy]
+	assist.step(STEP, Vector2.ZERO, enemies)
+	t.ok(assist.is_held(), "it leaves the trail")
+	t.eq(assist.target, enemy)
+	_steps(assist, 0.5, Vector2.ZERO, enemies)
+	t.ok(absf(node.position.distance_to(enemy.position) - 16.0) < 1.0, "it stands one tile beside the enemy: %s" % node.position)
+	t.eq(node.get_meta("facing"), "right")
+	t.eq(assist.hitbox.damage, 7, "the swing uses the member's attack")
+	t.ok(assist.cooldown_left > 0.0, "it has swung")
+	# a swing lasts 0.15 s and comes every 1.2 s
+	assist.cooldown_left = 0.0
+	assist.step(STEP, Vector2.ZERO, enemies)
+	t.ok(assist.hitbox.active)
+	t.ok(assist.hitbox.try_hit(_hurtbox(enemy)), "the swing lands on the enemy")
+	t.ok(_health(enemy).hp() < 100)
+	_steps(assist, RpgAssist.SWING_ACTIVE_S + STEP, Vector2.ZERO, enemies)
+	t.ok(not assist.hitbox.active, "the swing is over")
+	t.ok(absf(assist.cooldown_left - (RpgAssist.SWING_EVERY_S - RpgAssist.SWING_ACTIVE_S)) < 0.05)
+	node.free()
+	enemy.free()
+
+func test_a_follower_ignores_far_enemies_and_returns_when_the_player_walks_away(t) -> void:
+	var parts := _helper(7, 20)
+	var node: Node2D = parts["node"]
+	var assist: RpgAssist = parts["assist"]
+	var enemy := _fighter("enemy", 3, 0, 100)
+	enemy.position = Vector2(64, 0)  # 4 tiles: too far
+	var enemies: Array[Node2D] = [enemy]
+	assist.step(STEP, Vector2.ZERO, enemies)
+	t.ok(not assist.is_held(), "an enemy 4 tiles from the player is left alone")
+	enemy.position = Vector2(32, 0)
+	_steps(assist, 0.5, Vector2.ZERO, enemies)
+	t.ok(assist.is_held())
+	# the player walks away: the follower goes back to its place on the trail, then lets go
+	var far := Vector2(-200, 0)
+	node.set_meta("home", far + Vector2(16, 0))
+	assist.step(STEP, far, enemies)
+	t.eq(assist.target, null)
+	t.ok(assist.is_held(), "it walks back, it does not jump")
+	_steps(assist, 4.0, far, enemies)
+	t.ok(not assist.is_held(), "back on the trail")
+	t.ok(node.position.distance_to(far + Vector2(16, 0)) <= 2.5, str(node.position))
+	# switched off it only follows
+	assist.enabled = false
+	enemy.position = far + Vector2(20, 0)
+	assist.step(STEP, far, enemies)
+	t.ok(not assist.is_held())
+	node.free()
+	enemy.free()
+
+func test_a_follower_stays_within_six_tiles_and_picks_the_nearest_living_enemy(t) -> void:
+	t.eq(RpgAssist.leashed(Vector2(200, 0), Vector2.ZERO, 96.0), Vector2(96, 0))
+	t.eq(RpgAssist.leashed(Vector2(50, 0), Vector2.ZERO, 96.0), Vector2(50, 0))
+	var near := _fighter("enemy", 1, 0, 10)
+	near.position = Vector2(20, 0)
+	var nearer := _fighter("enemy", 1, 0, 10)
+	nearer.position = Vector2(0, 10)
+	var both: Array[Node2D] = [near, nearer]
+	t.eq(RpgAssist.nearest_enemy(Vector2.ZERO, both, 48.0), nearer)
+	t.eq(RpgAssist.nearest_enemy(Vector2(500, 0), both, 48.0), null)
+	near.free()
+	nearer.free()
+
+func test_a_follower_cannot_die_it_is_down_for_five_seconds(t) -> void:
+	var parts := _helper(7, 20)
+	var node: Node2D = parts["node"]
+	var assist: RpgAssist = parts["assist"]
+	var stats: RpgStats = parts["stats"]
+	var enemy := _fighter("enemy", 99, 0, 100)
+	enemy.position = Vector2(24, 0)
+	var enemies: Array[Node2D] = [enemy]
+	_steps(assist, 0.2, Vector2.ZERO, enemies)
+	var box := {"down": 0, "up": 0}
+	assist.downed.connect(func() -> void: box["down"] += 1)
+	assist.recovered.connect(func() -> void: box["up"] += 1)
+	var enemy_hitbox := _hitbox(enemy)
+	enemy_hitbox.active = true
+	t.ok(enemy_hitbox.try_hit(assist.hurtbox), "an enemy can hit the follower")
+	t.eq(stats.hp, 0)
+	t.ok(assist.is_downed())
+	t.eq(box["down"], 1)
+	t.ok(not assist.is_held() and not assist.hitbox.active, "it stops fighting")
+	t.ok(node.modulate.a < 1.0)
+	enemy_hitbox.active = false
+	enemy_hitbox.active = true
+	t.ok(not enemy_hitbox.try_hit(assist.hurtbox), "it cannot be hit while it is down")
+	_steps(assist, RpgAssist.DOWNED_S - 0.5, Vector2.ZERO, enemies)
+	t.ok(assist.is_downed() and not assist.is_held())
+	_steps(assist, 0.6, Vector2.ZERO, enemies)
+	t.ok(not assist.is_downed())
+	t.eq(stats.hp, 20, "back at full health")
+	t.eq(box["up"], 1)
+	t.eq(node.modulate.a, 1.0)
+	assist.step(STEP, Vector2.ZERO, enemies)
+	t.ok(assist.is_held(), "and it fights again")
+	node.free()
+	enemy.free()
+	# a member saved at 0 HP starts down
+	var player := Node2D.new()
+	var again := RpgFollowers.make_follower(null, player)
+	player.free()
+	stats.hp = 0
+	t.ok(RpgAssist.attach(again, stats, 16.0).is_downed())
+	again.free()
+
+func test_the_mode_gives_the_first_two_followers_an_assist_and_the_hud_a_bar_each(t) -> void:
+	var mode := RpgArpgMode.new()
+	var player := Node2D.new()
+	var state := RpgGameState.new()
+	var changes := {"n": 0}
+	mode.party_health_changed.connect(func() -> void: changes["n"] += 1)
+	var nodes: Array[Node2D] = []
+	for i in 3:
+		var stats := RpgStats.new()
+		stats.max_hp = 10 + i
+		stats.hp = 5
+		state.party.append({"actor_id": StringName("ally_%d" % i), "stats": stats})
+		var node := RpgFollowers.make_follower(null, player)
+		mode.customize_follower(node, state.party[i], i)
+		nodes.append(node)
+	t.ok(nodes[0].get_node_or_null("Assist") != null and nodes[1].get_node_or_null("Assist") != null)
+	t.ok(nodes[2].get_node_or_null("Assist") == null, "the third follower only follows")
+	var info := RpgDamageInfo.new()
+	info.amount = 2
+	(nodes[0].get_node("Health") as RpgHealth).take(info)
+	t.eq(changes["n"], 1, "the HUD is told")
+	# the HUD: a bar per member under the player's HP row
+	var hud := RpgArpgHud.new()
+	var column := VBoxContainer.new()
+	var row := HBoxContainer.new()
+	var hp_bar := ProgressBar.new()
+	hp_bar.custom_minimum_size = Vector2(72, 8)
+	row.add_child(hp_bar)
+	column.add_child(row)
+	column.add_child(Label.new())
+	hud.add_child(column)
+	hud._refresh_party(state, hp_bar)
+	var box := column.get_node("Party") as VBoxContainer
+	t.eq(box.get_index(), 1, "right under the HP row")
+	t.eq(box.get_child_count(), 3)
+	var first := box.get_node("Member_ally_0") as ProgressBar
+	t.eq(first.value, 3.0)
+	t.eq(first.max_value, 10.0)
+	t.ok(first.custom_minimum_size.x < 72.0)
+	state.party.remove_at(0)
+	hud._refresh_party(state, hp_bar)
+	t.eq(box.get_child_count(), 2)
+	t.eq(String(box.get_child(0).name), "Member_ally_1")
+	state.party.clear()
+	hud._refresh_party(state, hp_bar)
+	t.ok(not box.visible)
+	hud.free()
+	for node in nodes:
+		node.free()
+	player.free()
+	mode.free()
+	state.free()

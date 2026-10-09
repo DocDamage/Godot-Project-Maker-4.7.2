@@ -4,6 +4,10 @@ extends Node
 ## along the path the player walked. Created by boot under SceneRouter as "Followers". A follower is
 ## only a picture: it has no body, so it never blocks anyone, and nothing about it is saved (the
 ## party is). It walks when the player walks, scripted moves of a sequence included.
+##
+## An archetype can give a follower more to do: the combat mode's customize_follower(node, member,
+## index) is called for every new follower (the action RPG adds RpgAssist). A follower whose meta
+## "held" is true is left where it is; its place on the trail is written to its meta "home".
 
 const NODE_NAME := "Followers"
 ## The distance between two members on the path, in tiles.
@@ -54,7 +58,14 @@ func update() -> void:
 		_still_frames = 0
 	else:
 		_still_frames += 1
+	place_all()
+
+## Every follower onto its place on the trail; a held one (see the first lines) only learns it.
+func place_all() -> void:
 	for i in _nodes.size():
+		if RpgUtil.to_bool(_nodes[i].get_meta("held", false)):
+			_nodes[i].set_meta("home", point_along(_trail, (i + 1) * _spacing))
+			continue
 		place(_nodes[i], _trail, (i + 1) * _spacing, _still_frames < WALK_HOLD_FRAMES)
 
 func _rebuild(map: Node, player: Node2D, wanted: Array[StringName]) -> void:
@@ -69,12 +80,18 @@ func _rebuild(map: Node, player: Node2D, wanted: Array[StringName]) -> void:
 		return
 	_spacing = SPACING_TILES * float(RpgUtil.map_tile_px(map))
 	var state := RpgUtil.state()
+	var router := RpgUtil.router()
+	var mode: Node = router.combat if router != null else null
 	for member_id in wanted:
 		var node := make_follower(state.actor_definition(member_id) if state != null else null, player)
 		node.name = "Follower_%s" % member_id
 		node.set_meta("facing", str(player.get("facing")) if "facing" in player else "down")
 		player.get_parent().add_child(node)
 		node.global_position = player.global_position
+		if mode != null and mode.has_method("customize_follower") and state != null:
+			for member in state.party:
+				if member["actor_id"] == member_id:
+					mode.call("customize_follower", node, member, _nodes.size())
 		_nodes.append(node)
 	_trail.append(RpgUtil.world_position(player))
 

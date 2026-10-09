@@ -636,6 +636,9 @@ func _followers_trail() -> String:
 		failure = "%d followers on the map, expected 1" % trail.shown().size()
 	else:
 		var follower := trail.shown()[0]
+		var assist := follower.get_node_or_null("Assist")
+		if assist != null:  # the action RPG: this step is about following, not about fighting
+			assist.set("enabled", false)
 		if follower.get_parent() != p.get_parent():
 			failure = "the follower is not beside the player under %s" % p.get_parent().name
 		else:

@@ -23,8 +23,8 @@ const PREVIEW_STATS: Array[StringName] = [&"max_hp", &"attack", &"defense", &"sp
 
 var player_actor_id: StringName = &"hero"
 var player_stats: RpgStats = RpgStats.new()
-## The party members besides the player, in joining order: [{actor_id, stats}]. Only the turn-based
-## battle uses them; the action RPG has no followers.
+## The party members besides the player, in joining order: [{actor_id, stats}]. They fight in the
+## turn-based battle; in the action RPG they follow the player and help (RpgAssist).
 var party: Array[Dictionary] = []
 var inventory := RpgInventory.new()
 var gold: int = 0:

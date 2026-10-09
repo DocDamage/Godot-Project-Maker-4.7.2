@@ -67,3 +67,21 @@ func test_a_member_with_frames_of_its_own_stands_on_its_feet(t) -> void:
 	t.eq(shown.offset, Vector2(-12, -31), "bottom centre on the feet")
 	follower.free()
 	player.free()
+
+func test_a_held_follower_is_left_alone_and_told_where_its_place_is(t) -> void:
+	# The action RPG's assist holds a follower while it fights (T13.15).
+	var trails := RpgFollowers.new()
+	var node := Node2D.new()
+	node.position = Vector2(99, 99)
+	node.set_meta("held", true)
+	trails._nodes.append(node)
+	trails._trail = _trail([Vector2(40, 0), Vector2(0, 0)])
+	trails._spacing = 16.0
+	trails.place_all()
+	t.eq(node.position, Vector2(99, 99))
+	t.eq(node.get_meta("home"), Vector2(24, 0))
+	node.set_meta("held", false)
+	trails.place_all()
+	t.eq(node.position, Vector2(24, 0))
+	node.free()
+	trails.free()

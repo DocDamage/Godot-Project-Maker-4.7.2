@@ -246,10 +246,10 @@ func _battle_item(antidote: bool) -> Resource:
 		item.set("effect_amount", 10)
 	return item
 
-## The party demo (a companion the villager can bring along) is for the turn-based archetype
-## only: the action RPG has no followers.
+## The party demo: a companion the villager can bring along. In a turn-based game she fights in
+## the battles; in the action RPG she follows and helps on the map (T13.15).
 func _has_party_demo(ctx: BuildContext) -> bool:
-	return not ctx.demo_removed and JsonUtil.to_str(ctx.config.get("archetype", "turn_based")) == "turn_based"
+	return not ctx.demo_removed
 
 ## Whether the starter map gets a chest: the options allow one and the packs have something to use.
 func _has_chest(ctx: BuildContext) -> bool:

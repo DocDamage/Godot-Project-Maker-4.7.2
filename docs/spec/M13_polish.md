@@ -77,7 +77,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T13.12 | One interior per house | M | — | done |
 | T13.13 | Validator: every id, inline in the dialogue tab | S | — | done |
 | T13.14 | Zstandard for Tiled and LDtk | S | — | done |
-| T13.15 | Followers in the action RPG | M | — | open |
+| T13.15 | Followers in the action RPG | M | — | done |
 | T13.16 | Custom sound slots | M | — | open |
 | T13.17 | Audio audit: waveforms and loop points | M | — | open |
 | T13.18 | Recolour variants | L | — | open |

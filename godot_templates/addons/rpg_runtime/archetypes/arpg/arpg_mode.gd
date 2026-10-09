@@ -9,6 +9,8 @@ const FLAG_ENTITY := "arpg_hud"
 const FLAG_KEY := "quick_item"
 
 signal quick_item_changed(item_id: StringName)
+## A follower was hurt, went down or got up (the HUD's member bars).
+signal party_health_changed
 
 func is_in_combat() -> bool:
 	return false
@@ -26,6 +28,24 @@ static func latest_save_slot() -> int:
 ## screen, or at once the newest save / the start of the map in smoke tests.
 func apply_defeat() -> void:
 	await RpgDefeatPolicy.show_game_over()
+
+# ---------------------------------------------------------------- followers (T13.15)
+
+## Called by RpgFollowers for every follower it makes: the first RpgAssist.MAX_ASSISTS of them help
+## in a fight. `member` is the party entry {actor_id, stats}.
+func customize_follower(node: Node2D, member: Dictionary, index: int) -> void:
+	if index >= RpgAssist.MAX_ASSISTS or node.get_node_or_null(RpgAssist.NODE_NAME) != null:
+		return
+	var router := RpgUtil.router()
+	var tile := float(RpgUtil.map_tile_px(router.current_map)) if router != null and router.current_map != null else 16.0
+	var member_stats: RpgStats = member.get("stats")
+	var assist := RpgAssist.attach(node, member_stats, tile)
+	assist.health.changed.connect(_on_member_health)
+	assist.downed.connect(party_health_changed.emit)
+	assist.recovered.connect(party_health_changed.emit)
+
+func _on_member_health(_hp: int, _max_hp: int) -> void:
+	party_health_changed.emit()
 
 # ---------------------------------------------------------------- quick item
 

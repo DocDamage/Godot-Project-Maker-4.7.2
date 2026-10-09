@@ -28,6 +28,7 @@ func steps() -> Array[Dictionary]:
 		{"name": "player_attack_hits", "fn": _player_attack_hits, "timeout_s": 15.0},
 		{"name": "no_damage_outside_active_frames", "fn": _no_damage_outside_active_frames, "timeout_s": 15.0},
 		{"name": "heavy_attack_hits", "fn": _heavy_attack_hits, "timeout_s": 25.0},
+		{"name": "follower_assists", "fn": _follower_assists, "timeout_s": 40.0},
 		{"name": "enemy_dies", "fn": _enemy_dies, "timeout_s": 25.0},
 		{"name": "player_hurt_invuln", "fn": _player_hurt_invuln, "timeout_s": 30.0},
 		{"name": "dodge", "fn": _dodge, "timeout_s": 15.0},
@@ -272,6 +273,102 @@ func _heavy_attack_hits() -> String:
 	e1.health.heal(999)
 	if JsonUtil.to_int(amounts["secondary_attack"]) <= JsonUtil.to_int(amounts["attack"]):
 		return "the heavy attack dealt %d, not more than the light attack's %d" % [amounts["secondary_attack"], amounts["attack"]]
+	return ""
+
+## A party member follows the player, walks to an enemy near the player and hits it, comes back
+## when the player walks away, and is only "down" at 0 HP (T13.15). The party and the enemy are put
+## back afterwards.
+func _follower_assists() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
+	var trail := router.get_node_or_null(RpgFollowers.NODE_NAME) as RpgFollowers
+	var p := _player()
+	var e1 := _find_enemy(ENEMY_1)
+	if trail == null or p == null or e1 == null:
+		return "the step needs the followers, the player and %s" % ENEMY_1
+	var ally: StringName = &"companion"
+	if state.actor_definition(ally) == null:  # a project without the demo
+		ally = &"smoke_helper"
+		var def := RpgActorDefinition.new()
+		def.id = ally
+		def.display_name = "Helper"
+		def.base_stats = RpgStats.new()
+		def.base_stats.attack = 4
+		state.actor_defs[ally] = def
+	var party_before: Array[Dictionary] = state.party.duplicate()
+	state.party.clear()
+	var home := p.global_position
+	var tile := e1.tile_size
+	_freeze(e1)
+	e1.hurtbox.invulnerable_until_ms = 0
+	# the follower must not kill the enemy the next step needs: lend it a big health pool
+	var enemy_stats := e1.health.stats()
+	var real_max := enemy_stats.max_hp
+	enemy_stats.max_hp = 500
+	enemy_stats.hp = 500
+	var failure := await _follower_checks(state, trail, p, e1, ally, tile)
+	state.leave_party(ally)
+	state.party.assign(party_before)
+	state.actor_defs.erase(&"smoke_helper")
+	enemy_stats.max_hp = real_max
+	enemy_stats.hp = real_max
+	p.global_position = home
+	await _frames(3)
+	return failure
+
+func _follower_checks(state: RpgGameState, trail: RpgFollowers, p: RpgActor, e1: RpgEnemyAi, ally: StringName, tile: float) -> String:
+	# far from every enemy first: the follower only follows
+	state.join_party(ally)
+	await _frames(3)
+	if trail.shown().size() != 1:
+		return "%d followers on the map, expected 1" % trail.shown().size()
+	var follower := trail.shown()[0]
+	var assist := follower.get_node_or_null(RpgAssist.NODE_NAME) as RpgAssist
+	if assist == null:
+		return "the follower has no Assist component"
+	var hud := _tree().root.find_child("HudArpg", true, false)
+	if hud != null and hud.find_child("Member_%s" % ally, true, false) == null:
+		return "the HUD has no HP bar for the follower"
+	# the player stands two tiles from the enemy: the follower goes and hits it
+	var box := {"hits": 0}
+	var on_hit := func(_hp: int, _max: int) -> void: box["hits"] += 1
+	e1.health.changed.connect(on_hit)
+	p.global_position = e1.global_position + Vector2(-2.0 * tile, 0.0)
+	for i in 300:
+		await _tree().physics_frame
+		if box["hits"] > 0:
+			break
+	e1.health.changed.disconnect(on_hit)
+	assist.enabled = false  # one hit is the proof
+	if box["hits"] == 0:
+		return "the follower did not hit the enemy two tiles from the player within 5 s (held %s, %.0f px from the enemy)" % [assist.is_held(), follower.global_position.distance_to(e1.global_position)]
+	if follower.global_position.distance_to(p.global_position) > RpgAssist.LEASH_TILES * tile + 1.0:
+		return "the follower is %.0f px from the player, more than six tiles" % follower.global_position.distance_to(p.global_position)
+	# 0 HP: down, still in the party, and up again
+	var info := RpgDamageInfo.new()
+	info.amount = 9999
+	assist.health.take(info)
+	await _frames(2)
+	if not assist.is_downed() or not state.in_party(ally) or not is_instance_valid(follower):
+		return "at 0 HP the follower is not down (downed %s, in the party %s)" % [assist.is_downed(), state.in_party(ally)]
+	assist.downed_left = 0.1
+	await _frames(12)
+	if assist.is_downed() or assist.health.hp() != assist.health.max_hp():
+		return "the follower did not get up at full health (%d/%d)" % [assist.health.hp(), assist.health.max_hp()]
+	# the player walks away: back behind the player
+	var mask := p.collision_mask
+	p.collision_mask = 0
+	var away := -1.0 if p.global_position.x > 12.0 * tile else 1.0
+	p.global_position += Vector2(away * 8.0 * tile, 0.0)
+	var back := false
+	for i in 360:
+		await _tree().physics_frame
+		if not assist.is_held() and follower.global_position.distance_to(p.global_position) <= 2.0 * tile:
+			back = true
+			break
+	p.collision_mask = mask
+	if not back:
+		return "the follower did not come back to the player (held %s, %.0f px away)" % [assist.is_held(), follower.global_position.distance_to(p.global_position)]
 	return ""
 
 func _enemy_dies() -> String:

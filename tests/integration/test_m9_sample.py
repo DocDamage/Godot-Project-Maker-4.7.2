@@ -34,6 +34,7 @@ M9_STEPS = [
     "player_attack_hits",
     "no_damage_outside_active_frames",
     "heavy_attack_hits",
+    "follower_assists",
     "enemy_dies",
     "player_hurt_invuln",
     "dodge",
@@ -110,6 +111,13 @@ def test_the_generated_project_has_only_the_arpg_archetype(sample: Path) -> None
     assert not (sample / "game/data/battle_commands").exists()
     assert not (sample / "game/data/skills").exists()
     assert not (sample / "game/data/items/antidote.tres").exists()
+
+
+def test_the_villager_offers_the_companion_in_the_action_rpg_too(sample: Path) -> None:
+    """T13.15: the party demo is the same dialogue as in the turn-based game."""
+    assert (sample / "game/data/actors/companion.tres").is_file()
+    greeting = (sample / "game/data/dialogue/npc_greeting.tres").read_text(encoding="utf-8")
+    assert "join_party:companion" in greeting
 
 
 def test_scenes_and_data_exist(sample: Path) -> None:

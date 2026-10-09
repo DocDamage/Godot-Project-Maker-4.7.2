@@ -58,6 +58,11 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   as wide as the house, and leaving it returns to that house's door. A project from 1.0 gets
   the interiors its map is missing; its map is not changed (the project's README says how to
   point a house at its interior).
+* **Followers in the action RPG**: `join_party:` works there too. Party members walk behind the
+  player, and the first two help in a fight: they walk to an enemy within three tiles of the
+  player and swing every 1.2 s with their own attack, stay within six tiles, and are only
+  "down" for five seconds at 0 HP. The HUD shows their HP bars, and the demo villager offers
+  the companion in both archetypes.
 
 ## 1.0.0
 
