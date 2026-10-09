@@ -220,7 +220,7 @@ def test_the_readme_gets_the_archetype_section(tmp_path: Path) -> None:
     staging.write_project_files(stg, config.default_for("Game {x}", [pack]), catalog.Catalog())
     text = (stg.staging / "README.md").read_text(encoding="utf-8")
     assert text.startswith("# Game {x}")
-    assert "## 11. Battles and enemies (turn-based)" in text
+    assert "## 22. Battles and enemies (turn-based)" in text
     other = config.default_for("Game", [pack], archetype="arpg")
     stg = staging.create_staging(tmp_path / "arpg")
     staging.write_project_files(stg, other, catalog.Catalog())

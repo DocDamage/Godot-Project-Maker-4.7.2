@@ -36,17 +36,60 @@ loading and playing it headless, and regenerates it later without touching your 
 * **Resolve conflicts**: generated files you changed and rpggen remade (`.rpggen-new`) side by
   side with the version rpggen last wrote; keep yours, take the new one or merge them line by
   line, each backed up first (also `rpggen conflicts`).
+* **Project page** pack cards (licence, size, what was found); **Archetype cards** drawn with
+  your pack's own art; a **sidebar** with each step's status and jumps forward to any step that
+  is ready; the Mapping page's candidates inline; an Options **summary panel**; the map preview's
+  legend.
+* **Audit**: audio and font cards with playback, role badges, a filter bar that fits, a **change
+  history**, frame sequences (one numbered image per frame) read as animations, eight-direction
+  characters, **learned rules** (rpggen remembers your fixes and proposes them for the next pack;
+  *Edit → Learned rules…*), and a printable **contact sheet** (PDF or PNG).
+* **Options**: **imported Tiled and LDtk maps** (any of them can be the starter map), **export
+  targets** (Windows, Web, Linux, macOS), and what git does with the purchased **pack art**
+  (commit, leave out, Git LFS).
+* **Before a regeneration** the changes are listed for you to confirm; **Results** has *Play*,
+  *Open starter map*, warnings grouped with **one-click fixes**, and the checks that were
+  skipped, with the reason.
+* The wizard **follows the system theme**, fits laptop screens, and can be shown in **French**
+  (*View → Language*; more languages can be added).
+* **Storage** (*Edit → Storage…*): settings, your data and a size-limited cache in the system's
+  usual folders.
 * Tooltips and accessible names on every control, `Alt+N` / `Alt+B`, a tab order, and status
   colours that keep a 3:1 contrast on both themes.
 
 ### The generated game
 
+* **Equipment** (weapon, armor, accessory, with a preview of the stat change), **shops**, a
+  **quest journal**, **party members** who fight together and walk behind you (turn-based), and a
+  **credits** screen built from the packs' licences.
+* **Random-encounter zones** and deeper turn-based battles: **skills, MP, elements, statuses**,
+  hit and evade, and enemy tactics.
+* Action RPG: **bows and projectiles**, and **shooter, turret and charger** enemies.
+* **Cutscenes** (an event sequencer started from trigger areas or dialogue), **keys, switches and
+  gates**, locked doors.
+* **Lighting** (ambient day and interior light, torches and lamps, an optional day/night cycle),
+  a **minimap** and a **world map** with fog of war.
+* **Save and load screens**, safe save rotation, key prompts that follow the device (keyboard,
+  Xbox, PlayStation, Nintendo), and an in-game **language** setting.
+* In the Godot editor: a **Dialogue** tab to write and test conversations, and **your own build
+  steps** (`game/builder_recipes/`), which rpggen runs on every build.
 * Music and sound effects wired to the slots; autosave (slot 0); a game-over screen with
   continue, try again and quit; the action-RPG heavy attack with screen shake and hit-stop; a
   second outdoor map behind the east wall; chests that show their open picture; a key prompt over
   what you can interact with.
 
 ### Under the hood
+
+* A **scriptable CLI**: `--json`, documented exit codes, `--dry-run`, `--confirm`, `--tile-size`,
+  and `conflicts`; unknown arguments are an error.
+* Faster and safer analysis: each pack is hashed once, images are analysed in parallel with real
+  progress and a Cancel that cancels, folder inventories are cached, archives are extracted with
+  one size budget and no links; the base tile size is read from the packs.
+* Generation shows Godot's live output and build progress; a failed run keeps a lean folder;
+  logs live in one place, rotated, with run ids; unexpected errors get a report.
+* A Godot download with a pinned checksum, resume and retry; git commits only the files rpggen
+  wrote; the editor-open check matches exact project paths.
+* The template project's GDScript is strict (typed), and a test that logs a script error fails.
 
 * The targeted Godot version lives in one file (`rpggen/godot_target.py`); `tools/bump_godot.py`
   moves the app, the workflows and the texts to a new release.

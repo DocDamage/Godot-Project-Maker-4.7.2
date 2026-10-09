@@ -25,7 +25,7 @@ file) and the decisions confirmed in the Audit (the exported profile: roles, gri
 objects). It holds no pixels.
 
 ```bat
-python tools/corpus_fingerprint.py --pack "C:\Packsorest" --profile forest.rpgprofile.json --out corpusorest.corpus.json
+python tools/corpus_fingerprint.py --pack "C:\Packs\forest" --profile forest.rpgprofile.json --out corpus\forest.corpus.json
 python -m rpggen analyze --private-corpus corpus --packs "C:\Packs" --report private_report.json
 ```
 

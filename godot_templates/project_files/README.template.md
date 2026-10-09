@@ -35,10 +35,10 @@ block, check that you painted on the `Walls` layer.
 
 ## 3. Placing objects
 
-Houses, trees, chests, signs and other objects are placed from the **Asset Library** dock (it
-arrives with a later rpggen update). Until then you can drag any scene from
-`generated/scenes/objects/` into the map. Place objects under the `YSorted/Entities` node so they
-sort correctly in front of and behind the player.
+Houses, trees, chests, signs and other objects are placed from the **Assets** dock (see
+[10.1](#101-the-assets-dock)): drag one into the map and it lands under `YSorted/Entities`, snapped
+and Y-sorted. You can also drag any scene from `generated/scenes/objects/` into the map yourself;
+put it under the `YSorted/Entities` node so it sorts correctly in front of and behind the player.
 
 ## 4. Adding an NPC with dialogue
 
@@ -52,6 +52,14 @@ sort correctly in front of and behind the player.
    explained in `addons/rpg_runtime/README.md`.
 4. Select your new NPC, and in the Inspector drag the dialogue file into its **Dialogue** slot.
 5. Run the game and talk to it.
+
+The **Dialogue** tab of the Assets dock is an easier way to write the lines: pick a file of
+`game/data/dialogue/`, then edit each line's speaker, portrait, text (with a preview of its
+formatting), condition, events, choices and the line it jumps to, with undo. A condition or event
+the game would not understand is marked as you type. **Test** plays the conversation against a
+pretend game state (tick the flags and items it should have) without touching your saves, and
+**Export JSON** / **Import JSON** move a dialogue to and from a text file. Press **Save** when you
+are done.
 
 ## 5. Items
 
@@ -240,7 +248,42 @@ file-name order: make scenes or resources from the catalog of your packs, under 
 documentation (`docs/recipes.md`) lists what a recipe can use. A recipe that fails stops the build
 with BUILD-002, which names its file.
 
-## 18. Minimap and world map
+## 18. Equipment and shops
+
+* **Equipment.** An item of the category WEAPON, ARMOR or ACCESSORY can be worn: the inventory's
+  **Equip** button (or the status screen) shows the choices with the stat changes in green and
+  red before you confirm, and the old piece goes back to the bag. What an item changes is its
+  **Modifiers** list in `game/data/items/<id>.tres` (for example `attack` +3). The new game's
+  starting gear is in `game/data/new_game.tres`.
+* **Shops.** A shop is a file in `game/data/shops/` (**New Resource… → RpgShopDefinition**): its
+  **Stock** lists the items with a price (a price below 0 means the item's own **Value**), and
+  **Sell Ratio** is what the shop pays for your items (half by default). A dialogue line with the
+  event `open_shop:<shop id>` opens it when the conversation ends. The demo villager runs the
+  `village_shop` after the first talk.
+
+## 19. Quests
+
+A quest is a file in `game/data/quests/` (**New Resource… → RpgQuestDefinition**): a title, the
+**Stages** in order and the **Rewards** (gold, experience, items). Each stage has an `id`, a
+`description` and `complete_when`, a condition written like the dialogue conditions
+(`flag:<entity>.<key>`, `item:<id>`, ...): when it holds, the quest moves to the next stage by
+itself, and after the last one it is complete and the rewards are given. A stage may also name a
+`target`, the entity id of an NPC, chest or other object, which the minimap marks. Dialogue starts
+and moves quests with the events `quest_start:<id>`, `quest_stage:<id>:<stage>` and
+`quest_complete:<id>`, and can ask `quest_active:<id>`, `quest_done:<id>` or
+`quest_stage:<id>:<stage>`. The pause menu's **Journal** lists the active and completed quests.
+The demo has one, `errand`: talk to the villager, open the chest, report back.
+
+## 20. Light and the time of day
+
+Every map has an ambient light: daylight outdoors, dimmer in interiors (a map whose root has
+**Is Interior** ticked, or whose id starts with `interior`). **Ambient Override** on the map's root
+sets a colour of your own. Objects with the `light` tag (rpggen suggests it for torches, lamps,
+lanterns, candles and campfires; change the tags on rpggen's Audit page or in the Assets dock) get
+a light in their scene; a flame flickers, a lamp does not. **Settings → Day and night** (off by
+default) lets the outdoor light follow the play time, a day every 24 minutes.
+
+## 21. Minimap and world map
 
 Each map in `game/maps/` gets a minimap, made by the build (`generated/minimaps/`, a pixel per
 cell, the average colour of its tile), so repaint a map and regenerate (or use **Regenerate

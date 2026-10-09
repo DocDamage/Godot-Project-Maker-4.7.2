@@ -164,6 +164,11 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
   you publish). The export check test-exports each checked platform whose export templates are
   installed and notes the others (ENV-010). Checking a platform later adds its preset when you
   regenerate; presets already in the file, and your changes to them, are never touched.
+* **Version control.** With *initialize a git repository* on, each generation is committed.
+  Most pack licences forbid sharing the art, so a second choice says what happens to
+  `assets/packs/`: *Commit the pack art with the project* (the default, a safe private copy),
+  *Leave the pack art out of git* (it goes in `.gitignore`; use this before you push to a public
+  host) or *Use Git LFS for the pack art*. See [regeneration](regeneration.md#git).
 
 ![Options page](images/wizard_options.png)
 
@@ -183,6 +188,9 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
 * **Open in Godot / Open folder / View report** (`GENERATION_REPORT.md` explains what was
   generated, what to review and the packs' licenses).
 * **Restore previous** undoes the last regeneration.
+* **Notes (n)** lists what is worth knowing but did not stop the run, starting with the **checks
+  that did not run** (for example the export check without export templates, or a check you turned
+  off), each with the reason. `GENERATION_REPORT.md` has the same list under *Checks not run*.
 * **Resolve conflicts…** appears when generated files you changed have a new version beside them
   (`.rpggen-new`): keep yours, take the new one or merge the two, file by file
   ([regeneration.md](regeneration.md#resolving-conflicts)).
@@ -207,6 +215,13 @@ points at, and darkness over the cells not seen yet. *Settings → Minimap* turn
 Map* shows every map visited so far, the unseen parts covered; what has been seen is kept in the
 save. The pictures are made by the build from each map's tiles, so a map you repaint gets a new
 one on the next regeneration.
+
+**What the game can do, and where to change it.** The project's `README.md` has a section for
+each part you are likely to edit: dialogue (and the dock's Dialogue tab), items, **equipment and
+shops**, **quests** and the journal, cutscenes, keys, switches and gates, languages, credits,
+sound, light, the minimap, your own build steps, and the combat of your archetype (turn-based:
+the **party**, **random encounters**, skills, MP, elements and statuses, enemy tactics; action
+RPG: enemy kinds such as shooters, turrets and chargers, bows, and the heavy attack).
 
 Key prompts follow the player's device: `[E]` on the keyboard, the pad's own button name
 (`[A]`, `[Cross]`, `[B]`) once a controller is used, and a remapped key at once.
@@ -285,6 +300,11 @@ Four options are meant for scripts and build servers:
   is shown in a dialog before a regeneration writes anything (Edit > Show changes before
   regenerating, on by default).
 * `--json` prints one JSON document on stdout; the readable lines go to stderr.
+* `--tile-size N` (on `generate --pack`) sets the base tile size, 8 to 256 px. Without it rpggen
+  uses the size most of the pack's tile sheets have; a config file carries its own.
+* `conflicts --target <project>` lists the files that have a `.rpggen-new` version; add a file and
+  `--keep-mine`, `--take-new` or `--merge` to resolve it, as the wizard's *Resolve conflicts…*
+  does.
 * The **exit code** says why a command stopped: 0 OK, 1 generation failed, 2 usage error,
   3 environment or input (Godot or a pack not found, an unusable folder, a required role with no
   asset), 4 cancelled with Ctrl+C (nothing is delivered), 70 internal error (send a diagnostic

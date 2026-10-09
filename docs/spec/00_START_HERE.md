@@ -8,7 +8,8 @@ Read these files in order before writing any code:
 2. `01_CONVENTIONS.md` — repository layout, code style, naming, logging, and Godot rules.
 3. `02_SCHEMAS.md` — every JSON file format, field by field.
 4. `03_ERROR_CODES.md` — every error code the program may emit.
-5. `M01_walking_skeleton.md` … `M10_release.md` — task cards, done strictly in order.
+5. `M01_walking_skeleton.md` … `M12_review_followups.md` — task cards, done strictly in order.
+   What is finished and what is left is summed up in `docs/status.md`.
 
 ---
 
@@ -111,6 +112,8 @@ If an API in a card does not exist in 4.7.2, find the closest equivalent. Record
 | `M08_editor_dock_terrain.md` | M8 | Asset Library dock, catalog overrides in the editor, terrains, content validator, demo removal. |
 | `M09_arpg.md` | M9 | ARPG player, enemies, hitboxes, HUD, ARPG smoke test. |
 | `M10_release.md` | M10 | Packaging, signing, diagnostics, docs, profile registry, export test. |
+| `M11_pre_release.md` | M11 | Pre-release fixes, wizard UX, sound, autosave, game over, a second map, docs. |
+| `M12_review_followups.md` | M12 | Review follow-ups: fixes, engineering, UX and 25 features; the 1.0 gate. |
 
 Each milestone ends with a **Milestone Gate** card. All its checks must pass before the next milestone starts.
 

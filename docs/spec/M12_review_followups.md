@@ -70,81 +70,83 @@ Tasks inside a step are independent unless **Depends on** says otherwise.
 
 ## Index
 
+Status as of 2026-10-08 (`84f239b`); [docs/status.md](../status.md) has the summary and what is left.
+
 Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** more than a week.
 
-| Card | Title | Size | Depends on |
-|------|-------|:----:|------------|
-| T12.01 | Mapping page scrolls | S | — |
-| T12.02 | Hash each pack once, never on the GUI thread | M | — |
-| T12.03 | Derive the base tile size from the packs | M | — |
-| T12.04 | The CLI rejects unknown arguments | S | — |
-| T12.05 | Editor-open detection: exact paths, no PowerShell | S | — |
-| T12.06 | Analysis: real progress and a Cancel that cancels | M | — |
-| T12.07 | Report skipped checks as skipped | M | — |
-| T12.08 | Generated game: safe backup rotation, translated messages | S | — |
-| T12.09 | Archive extraction: links, collisions, one size budget | M | — |
-| T12.10 | Config, data and cache folders; bounded caches | L | — |
-| T12.11 | One settings store; recent projects survive unplugged drives | M | T12.10 |
-| T12.12 | Git: commit only what rpggen wrote; pack-art choice | M | — |
-| T12.13 | No shared mutable network timeouts | S | — |
-| T12.14 | Audit page layout | S | T12.16 |
-| T12.15 | Release hygiene and the 1.0 gate | M | — |
-| T12.16 | Layout regression test | M | — |
-| T12.17 | Parallel image analysis | M | T12.06 |
-| T12.18 | Folder-pack inventory cache | S | T12.10 |
-| T12.19 | Live Godot output and build progress | M | — |
-| T12.20 | Lean failed-run folders | S | — |
-| T12.21 | Godot download: pinned checksum, resume, retry | M | T12.10 |
-| T12.22 | PySide6 version matrix | S | — |
-| T12.23 | A report for unexpected errors | S | — |
-| T12.24 | One log location, rotated, with run ids | S | T12.10 |
-| T12.25 | View-models for the Project and Options pages | L | T12.02, T12.03 |
-| T12.26 | A real-pack accuracy corpus without art | M | — |
-| T12.27 | Performance trends | S | — |
-| T12.28 | Scriptable CLI: `--json`, exit codes, `--dry-run` | M | T12.04, T12.07, T12.23 |
-| T12.29 | Strict GDScript in the template project | M | — |
-| T12.30 | Quit is not Cancel; fit laptop screens | S | T12.16 |
-| T12.31 | Audit cards: audio, fonts, role badges, playback | M | T12.16 |
-| T12.32 | Audit filter bar that fits | S | T12.14 |
-| T12.33 | Project page: pack cards | M | T12.25 |
-| T12.34 | Archetype cards drawn with the pack's art | M | — |
-| T12.35 | Sidebar: step status and forward jumps | M | — |
-| T12.36 | Mapping: inline candidates | S | T12.01 |
-| T12.37 | Options: summary panel | S | T12.25 |
-| T12.38 | Map preview legend as widgets | S | — |
-| T12.39 | Results: Play, Open starter map, grouped warnings | M | T12.07 |
-| T12.40 | Regeneration preview before promotion | M | — |
-| T12.41 | One-click fixes for common failures | M | T12.39 |
-| T12.42 | Follow the system theme; theme-aware canvases | S | — |
-| T12.43 | Audit change history | M | — |
-| T12.44 | Generated game: save and load screens | M | T12.08 |
-| T12.45 | Equipment | L | — |
-| T12.46 | Shops | M | T12.45 |
-| T12.47 | Party members (turn-based) | L | T12.45 |
-| T12.48 | Quest journal | M | — |
-| T12.49 | Import Tiled and LDtk maps | XL | T12.25 |
-| T12.50 | Frame sequences and more actions | L | — |
-| T12.51 | Credits screen from pack licences | M | — |
-| T12.52 | Web, Linux and macOS export presets | M | T12.07, T12.25 |
-| T12.53 | Random-encounter zones | M | — |
-| T12.54 | Event sequencer | L | — |
-| T12.55 | Input glyphs | M | — |
-| T12.56 | Languages: in-game picker, wizard translations | L | — |
-| T12.57 | Contact sheet export | S | — |
-| T12.58 | Conflict resolver for `.rpggen-new` files | L | T12.40 |
-| T12.59 | Learn from my corrections | L | — |
-| T12.60 | Custom recipe hook | M | — |
-| T12.61 | Dialogue authoring dock | L | — |
-| T12.62 | Lighting and day/night | M | — |
-| T12.63 | Linux and macOS app packages | L | T12.10, T12.21 |
-| T12.64 | Minimap and world map | L | — |
-| T12.67 | Projectiles and ranged weapons (added 2026-10-08) | M | — |
-| T12.68 | Enemy kinds: shooter, turret, charger (added 2026-10-08) | M | T12.67 |
-| T12.69 | Party followers on the map (added 2026-10-08) | M | T12.47 |
-| T12.70 | Keys, switches and gates (added 2026-10-08) | M | — |
-| T12.71 | Battle depth: skills, MP, elements, statuses, hit and evade, enemy AI rules (added 2026-10-08) | L | — |
-| T12.65 | Documentation, screenshots and changelogs | M | Parts A–D |
-| T12.66 | Gate (1.0.0) | M | T12.65, T10.10 |
+| Card | Title | Size | Depends on | Status |
+|------|-------|:----:|------------|--------|
+| T12.01 | Mapping page scrolls | S | — | done |
+| T12.02 | Hash each pack once, never on the GUI thread | M | — | done |
+| T12.03 | Derive the base tile size from the packs | M | — | done |
+| T12.04 | The CLI rejects unknown arguments | S | — | done |
+| T12.05 | Editor-open detection: exact paths, no PowerShell | S | — | done |
+| T12.06 | Analysis: real progress and a Cancel that cancels | M | — | done |
+| T12.07 | Report skipped checks as skipped | M | — | done |
+| T12.08 | Generated game: safe backup rotation, translated messages | S | — | done |
+| T12.09 | Archive extraction: links, collisions, one size budget | M | — | done |
+| T12.10 | Config, data and cache folders; bounded caches | L | — | done |
+| T12.11 | One settings store; recent projects survive unplugged drives | M | T12.10 | done |
+| T12.12 | Git: commit only what rpggen wrote; pack-art choice | M | — | done |
+| T12.13 | No shared mutable network timeouts | S | — | done |
+| T12.14 | Audit page layout | S | T12.16 | done |
+| T12.15 | Release hygiene and the 1.0 gate | M | — | done |
+| T12.16 | Layout regression test | M | — | done |
+| T12.17 | Parallel image analysis | M | T12.06 | done |
+| T12.18 | Folder-pack inventory cache | S | T12.10 | done |
+| T12.19 | Live Godot output and build progress | M | — | done |
+| T12.20 | Lean failed-run folders | S | — | done |
+| T12.21 | Godot download: pinned checksum, resume, retry | M | T12.10 | done |
+| T12.22 | PySide6 version matrix | S | — | done |
+| T12.23 | A report for unexpected errors | S | — | done |
+| T12.24 | One log location, rotated, with run ids | S | T12.10 | done |
+| T12.25 | View-models for the Project and Options pages | L | T12.02, T12.03 | done |
+| T12.26 | A real-pack accuracy corpus without art | M | — | done |
+| T12.27 | Performance trends | S | — | done |
+| T12.28 | Scriptable CLI: `--json`, exit codes, `--dry-run` | M | T12.04, T12.07, T12.23 | done |
+| T12.29 | Strict GDScript in the template project | M | — | done |
+| T12.30 | Quit is not Cancel; fit laptop screens | S | T12.16 | done |
+| T12.31 | Audit cards: audio, fonts, role badges, playback | M | T12.16 | done |
+| T12.32 | Audit filter bar that fits | S | T12.14 | done |
+| T12.33 | Project page: pack cards | M | T12.25 | done |
+| T12.34 | Archetype cards drawn with the pack's art | M | — | done |
+| T12.35 | Sidebar: step status and forward jumps | M | — | done |
+| T12.36 | Mapping: inline candidates | S | T12.01 | done |
+| T12.37 | Options: summary panel | S | T12.25 | done |
+| T12.38 | Map preview legend as widgets | S | — | done |
+| T12.39 | Results: Play, Open starter map, grouped warnings | M | T12.07 | done |
+| T12.40 | Regeneration preview before promotion | M | — | done |
+| T12.41 | One-click fixes for common failures | M | T12.39 | done |
+| T12.42 | Follow the system theme; theme-aware canvases | S | — | done |
+| T12.43 | Audit change history | M | — | done |
+| T12.44 | Generated game: save and load screens | M | T12.08 | done |
+| T12.45 | Equipment | L | — | done |
+| T12.46 | Shops | M | T12.45 | done |
+| T12.47 | Party members (turn-based) | L | T12.45 | done |
+| T12.48 | Quest journal | M | — | done |
+| T12.49 | Import Tiled and LDtk maps | XL | T12.25 | done |
+| T12.50 | Frame sequences and more actions | L | — | done |
+| T12.51 | Credits screen from pack licences | M | — | done |
+| T12.52 | Web, Linux and macOS export presets | M | T12.07, T12.25 | done |
+| T12.53 | Random-encounter zones | M | — | done |
+| T12.54 | Event sequencer | L | — | done |
+| T12.55 | Input glyphs | M | — | done |
+| T12.56 | Languages: in-game picker, wizard translations | L | — | done |
+| T12.57 | Contact sheet export | S | — | done |
+| T12.58 | Conflict resolver for `.rpggen-new` files | L | T12.40 | done |
+| T12.59 | Learn from my corrections | L | — | done |
+| T12.60 | Custom recipe hook | M | — | done |
+| T12.61 | Dialogue authoring dock | L | — | done |
+| T12.62 | Lighting and day/night | M | — | done |
+| T12.63 | Linux and macOS app packages | L | T12.10, T12.21 | done |
+| T12.64 | Minimap and world map | L | — | done |
+| T12.67 | Projectiles and ranged weapons (added 2026-10-08) | M | — | done |
+| T12.68 | Enemy kinds: shooter, turret, charger (added 2026-10-08) | M | T12.67 | done |
+| T12.69 | Party followers on the map (added 2026-10-08) | M | T12.47 | done |
+| T12.70 | Keys, switches and gates (added 2026-10-08) | M | — | done |
+| T12.71 | Battle depth: skills, MP, elements, statuses, hit and evade, enemy AI rules (added 2026-10-08) | L | — | done |
+| T12.65 | Documentation, screenshots and changelogs | M | Parts A–D | text done, screenshots open |
+| T12.66 | Gate (1.0.0) | M | T12.65, T10.10 | open |
 
 ---
 

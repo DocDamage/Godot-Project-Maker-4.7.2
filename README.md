@@ -2,8 +2,9 @@
 
 rpggen turns a 2D RPG asset pack (a folder, `.zip`, `.7z` or `.rar` you already own) into a
 ready-to-edit **Godot 4.7.2** project: TileSets with collision and terrain, animated characters,
-a starter map with a building you can walk into, dialogue, inventory, saving, menus and a combat
-system (turn-based or action-RPG). It checks the result by loading and playing it headless before
+a starter map with a building you can walk into (or your own Tiled and LDtk maps), dialogue,
+inventory, equipment, shops, quests, cutscenes, saving, menus, lighting, a minimap and a combat
+system (turn-based with a party, or action-RPG). It checks the result by loading and playing it headless before
 it gives it to you, and it can regenerate the project later without touching your work.
 
 It is a desktop application for **Windows**, **Linux** and **macOS**.
@@ -80,6 +81,8 @@ you bought.
 | [docs/architecture.md](docs/architecture.md) | How it works |
 | [docs/release.md](docs/release.md) | Building, signing and publishing a release |
 | [docs/coverage.md](docs/coverage.md) | How well it handles real packs |
+| [CHANGELOG.md](CHANGELOG.md) | What each release contains |
+| [docs/status.md](docs/status.md) | What is finished, and what is left before 1.0.0 is tagged |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Developing rpggen |
 
 ## Command line
@@ -88,6 +91,7 @@ you bought.
 rpggen-cli generate --pack "C:\Packs\forest" --target "D:\Games\forest" --godot "C:\Godot\Godot_v4.7.2-stable_win64_console.exe"
 rpggen-cli analyze  "C:\Packs\forest"
 rpggen-cli restore  --target "D:\Games\forest"
+rpggen-cli conflicts --target "D:\Games\forest"
 rpggen-cli diagnose --target "D:\Games\forest"
 ```
 

@@ -77,6 +77,48 @@ is over. The status menu pages through the members (left / right, or its first b
 has their own equipment. The party is part of the save. **The action RPG has no followers in 1.0**:
 the events work there, but nothing appears in the world.
 
+## Equipment and shops
+
+Items of the categories WEAPON, ARMOR and ACCESSORY are worn in the slot of that name
+(`GameState.equip` / `unequip`, per actor; the old piece goes back to the inventory). Their
+`modifiers` (`[{"stat": "attack", "add": 3}]`, optionally `"mul"`) change the stats both combat
+systems read through `GameState.effective_stat`; `ranged: true` on a weapon makes the action RPG
+shoot arrows. The save keeps the worn items (optional key `equipment`).
+
+A shop is an `RpgShopDefinition` (`game/data/shops/<id>.tres`): `stock` is `[{item_id, price}]`
+(a price below 0 means the item's `value`) and `sell_ratio` (default 0.5) is what it pays. The
+dialogue event `open_shop:<id>` opens `shop_menu` when the dialogue closes; key and quest items are
+never bought.
+
+## Quests
+
+An `RpgQuestDefinition` (`game/data/quests/<id>.tres`) has a `title` key, ordered `stages` and
+`rewards` (`gold`, `experience`, `items`). A stage is `{id, description, complete_when, target}`:
+`complete_when` is a dialogue condition (when it holds the quest moves on by itself, and the last
+stage completes it and gives the rewards once); `target`, optional, is the entity id the minimap
+marks. `GameState.quests[id]` is the current stage id or `"done"`. Events and conditions are in the
+tables above; the pause menu's Journal lists active and finished quests.
+
+## Keys, switches and gates
+
+`RpgGate` blocks the way until it opens: for good with its `key_item` (flag
+`<entity_id>.unlocked`), or while its `open_when` condition holds. `RpgSwitch` is a floor plate
+(latching, or `hold`) or a lever (`once` optional) that sets `<entity_id>.on`. A map door
+(`RpgDoor`) can need a `key_item` too, and `consume_key` takes it. The dock's Project tab adds
+gates and switches.
+
+## Light, the minimap and the world map
+
+Every `RpgMapRoot` gets a `CanvasModulate` named `Ambient`: daylight outdoors, dimmer when
+`is_interior` (or the map id starts with `interior`), or `ambient_override`. Objects tagged `light`
+get an `RpgLightSource` (a `PointLight2D` that flickers for a flame and switches itself off outside
+the camera). With `RpgSettings.day_night` on, outdoor maps follow the play time (`RpgDayNight`).
+
+Boot adds the HUD minimap (`RpgMinimap`, hidden by `RpgSettings.minimap`): the picture the build
+made of each map in `generated/minimaps/`, the player, doors, unopened chests and quest targets,
+and the cells not seen yet darkened. What the player has seen is saved per map (optional key
+`map_fog`); the pause menu's Map (`RpgWorldMapMenu`) shows every visited map with the rest covered.
+
 ## Sound
 
 `RpgAudio` (a child of `SceneRouter`, its `audio` property) plays the **sound slots** of

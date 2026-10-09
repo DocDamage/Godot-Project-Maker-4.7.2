@@ -1,5 +1,5 @@
 
-## 11. Battles and enemies (turn-based)
+## 22. Battles and enemies (turn-based)
 
 Walk into an enemy on the map and a battle starts. Pick **Attack**, **Defend**, **Item**, **Skill**
 or **Run** with the arrow keys (or a gamepad) and confirm; when you attack, move the arrow over an
@@ -27,6 +27,16 @@ character knows and has the MP for (it is grey when there are none).
    `starter_map_enemy_002`) and, in the Inspector, your enemy data as its **Definition**.
 3. To fight several enemies at once, fill the **Group** list. Turn on **Encounter On Interact**
    to start the battle with the interact key instead of by touching.
+
+### The party
+
+Up to four characters fight together, the player included. A character who can join is a file in
+`game/data/actors/<id>.tres` (name, picture, stats, skills); a dialogue line brings them in with the
+event `join_party:<id>` and sends them away with `leave_party:<id>`, and the condition
+`party:<id>` asks whether they are there. Everyone in the party acts in battle and shares the
+experience; a member who falls stands up again after the battle. On the map the members walk
+behind the player. The demo villager's companion joins when you ask (and leaves when you ask
+again).
 
 ### Random encounters
 
