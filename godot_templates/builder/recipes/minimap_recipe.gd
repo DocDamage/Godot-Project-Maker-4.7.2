@@ -37,13 +37,20 @@ func outputs(_ctx: BuildContext) -> PackedStringArray:
 func input_hash(ctx: BuildContext) -> String:
 	var files := {}
 	for map_path in map_files():
-		files[map_path] = FileAccess.get_md5(map_path)
+		files[map_path] = content_hash(map_path)
 	var sets := DirAccess.open(TILESETS_DIR)
 	if sets != null:
 		for file_name in sets.get_files():
 			if file_name.ends_with(".tres"):
-				files[TILESETS_DIR.path_join(file_name)] = FileAccess.get_md5(TILESETS_DIR.path_join(file_name))
+				files[TILESETS_DIR.path_join(file_name)] = content_hash(TILESETS_DIR.path_join(file_name))
 	return ctx.stable_hash({"v": RECIPE_VERSION, "files": files})
+
+## The md5 of a saved scene or resource without the ids Godot writes anew on every save (each
+## node's unique_id, the uid of its file), so an unchanged map keeps its hash.
+static func content_hash(path: String) -> String:
+	var text := FileAccess.get_file_as_string(path)
+	var ids := RegEx.create_from_string("unique_id=\\d+|uid=\"uid://[a-z0-9]+\"")
+	return ids.sub(text, "", true).md5_text()
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []

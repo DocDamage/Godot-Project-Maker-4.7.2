@@ -193,7 +193,7 @@ func quest_start(quest_id: StringName) -> bool:
 	var def: RpgQuestDefinition = quest_defs.get(quest_id)
 	var first := def.first_stage() if def != null else &""
 	quests[String(quest_id)] = String(first) if first != &"" else "active"
-	RpgUtil.notify(String(TranslationServer.translate("UI_QUEST_NEW")) % _quest_title(quest_id))
+	RpgUtil.notify(RpgStrings.format("UI_QUEST_NEW", _quest_title(quest_id)))
 	RpgUtil.emit(&"quest_changed", [quest_id, quest_state(quest_id)])
 	refresh_quests()
 	return true
@@ -208,7 +208,7 @@ func quest_set_stage(quest_id: StringName, stage_id: StringName) -> bool:
 	if quest_state(quest_id) == String(stage_id):
 		return false
 	quests[String(quest_id)] = String(stage_id)
-	RpgUtil.notify(String(TranslationServer.translate("UI_QUEST_UPDATED")) % _quest_title(quest_id))
+	RpgUtil.notify(RpgStrings.format("UI_QUEST_UPDATED", _quest_title(quest_id)))
 	RpgUtil.emit(&"quest_changed", [quest_id, quest_state(quest_id)])
 	refresh_quests()
 	return true
@@ -222,7 +222,7 @@ func quest_complete(quest_id: StringName) -> bool:
 	var def: RpgQuestDefinition = quest_defs.get(quest_id)
 	if def != null:
 		_give_quest_rewards(def.rewards)
-	RpgUtil.notify(String(TranslationServer.translate("UI_QUEST_DONE")) % _quest_title(quest_id))
+	RpgUtil.notify(RpgStrings.format("UI_QUEST_DONE", _quest_title(quest_id)))
 	RpgUtil.emit(&"quest_changed", [quest_id, QUEST_DONE])
 	return true
 
@@ -551,7 +551,7 @@ func join_party(actor_id: StringName) -> bool:
 	party.append({"actor_id": actor_id, "stats": member_stats})
 	member_stats.hp = RpgUtil.max_hp(member_stats)  # what they wear (kept from an earlier stay) counts
 	member_stats.mp = RpgUtil.max_mp(member_stats)
-	RpgUtil.notify(String(TranslationServer.translate("UI_PARTY_JOINED")) % actor_name(actor_id))
+	RpgUtil.notify(RpgStrings.format("UI_PARTY_JOINED", actor_name(actor_id)))
 	RpgUtil.emit(&"party_changed")
 	return true
 
@@ -564,7 +564,7 @@ func leave_party(actor_id: StringName) -> bool:
 		for slot in EQUIP_SLOTS:
 			unequip(actor_id, slot)
 		party.remove_at(i)
-		RpgUtil.notify(String(TranslationServer.translate("UI_PARTY_LEFT")) % actor_name(actor_id))
+		RpgUtil.notify(RpgStrings.format("UI_PARTY_LEFT", actor_name(actor_id)))
 		RpgUtil.emit(&"party_changed")
 		return true
 	return false

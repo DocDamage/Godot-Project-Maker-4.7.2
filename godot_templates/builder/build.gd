@@ -40,6 +40,7 @@ const RECIPE_ORDER: Array[String] = [
 ## The user's own recipes (T12.60): every *.gd here runs after rpggen's recipes, in name order.
 const CUSTOM_RECIPES_DIR := "res://game/builder_recipes"
 const EXAMPLE_RECIPE := "res://game/builder_recipes/example_recipe.gd"
+const EXAMPLE_UID := 3412840461729335137  # the example recipe's uid (see _seed_example_recipe)
 
 ## Counts the script errors Godot logs while a custom recipe runs: an error inside build() only
 ## ends that function, so the count is how a failed recipe is noticed.
@@ -80,12 +81,14 @@ func _run() -> int:
 		return 1
 	ctx.load_build_state()
 	var recipes := _recipe_list(ctx)
+	_seed_example_recipe(ctx)
+	var custom := custom_recipe_paths(CUSTOM_RECIPES_DIR)
+	var total := recipes.size() + custom.size()  # one count for both, so the steps run 1..total
 	for i in recipes.size():
 		var recipe_name: String = recipes[i]
-		Log.step("build", i + 1, recipes.size(), _step_label(recipe_name))
+		Log.step("build", i + 1, total, _step_label(recipe_name))
 		_run_recipe(ctx, builder_dir, recipe_name)
-	_seed_example_recipe(ctx)
-	_run_custom_recipes(ctx)
+	_run_custom_recipes(ctx, custom, recipes.size(), total)
 	var save_err := ctx.save_build_state()
 	if save_err != OK:
 		ctx.results.add_issue("BUILD-004", {"file": Paths.BUILD_STATE, "err": save_err}, Paths.BUILD_STATE)
@@ -161,6 +164,13 @@ func _seed_example_recipe(ctx: BuildContext) -> void:
 	f.store_string(EXAMPLE_TEXT)
 	f.close()
 	ctx.results.add_item({"recipe": "custom_recipes", "output": _rel(EXAMPLE_RECIPE), "action": "written"})
+	# Its .uid too, with a fixed id: written after the import, the script would otherwise get a
+	# random one at the next import, and a regeneration that changes nothing would change that.
+	var uid_file := FileAccess.open(EXAMPLE_RECIPE + ".uid", FileAccess.WRITE)
+	if uid_file != null:
+		uid_file.store_string(ResourceUID.id_to_text(EXAMPLE_UID) + "\n")
+		uid_file.close()
+		ctx.results.add_item({"recipe": "custom_recipes", "output": _rel(EXAMPLE_RECIPE + ".uid"), "action": "written"})
 
 ## The .gd files of `dir_path`, sorted by name (not its sub folders).
 static func custom_recipe_paths(dir_path: String) -> Array[String]:
@@ -174,14 +184,14 @@ static func custom_recipe_paths(dir_path: String) -> Array[String]:
 	found.sort()
 	return found
 
-func _run_custom_recipes(ctx: BuildContext) -> void:
-	var recipes := custom_recipe_paths(CUSTOM_RECIPES_DIR)
+## Runs `recipes` (the custom ones) as build steps `first + 1` onwards of `total`.
+func _run_custom_recipes(ctx: BuildContext, recipes: Array[String], first: int, total: int) -> void:
 	if recipes.is_empty():
 		return
 	var errors := ScriptErrors.new()
 	OS.add_logger(errors)
 	for i in recipes.size():
-		Log.step("build", i + 1, recipes.size(), "your recipe " + recipes[i].get_file().get_basename())
+		Log.step("build", first + i + 1, total, "your recipe " + recipes[i].get_file().get_basename())
 		run_custom_recipe(ctx, recipes[i], errors)
 	OS.remove_logger(errors)
 

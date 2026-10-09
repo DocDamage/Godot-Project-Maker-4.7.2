@@ -6,12 +6,11 @@ extends RefCounted
 ## "origin_cell" (Vector2i, the map cell of pixel 0,0) and "tile_size" (Vector2i).
 
 const DIR := "res://generated/minimaps/"
-const MAPS_DIR := "res://game/maps/"
 
-## The key of a map scene: its path under game/maps without ".tscn", "/" made "__"
-## ("imported/pack/cave" -> "imported__pack__cave").
+## The key of a map scene: its project path without "res://" and ".tscn", "/" made "__"
+## (".../maps/imported/pack/cave.tscn" -> "game__maps__imported__pack__cave").
 static func key_for(scene_path: String) -> String:
-	return scene_path.trim_prefix(MAPS_DIR).trim_suffix(".tscn").replace("/", "__")
+	return scene_path.trim_prefix("res://").trim_suffix(".tscn").replace("/", "__")
 
 static func path_for(map_key: String) -> String:
 	return DIR + map_key + ".tres"

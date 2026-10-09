@@ -52,13 +52,13 @@ func try_unlock() -> bool:
 		return false
 	var key_name := RpgGate.item_name(state, key_item)
 	if not state.inventory.has(key_item):
-		RpgUtil.notify(String(TranslationServer.translate("UI_LOCKED_NEED")) % key_name)
+		RpgUtil.notify(RpgStrings.format("UI_LOCKED_NEED", key_name))
 		return false
 	if consume_key:
 		state.inventory.remove(key_item, 1)
 	if entity_id != "":
 		state.set_flag(entity_id, "unlocked", true)
-	RpgUtil.notify(String(TranslationServer.translate("UI_UNLOCKED")) % key_name)
+	RpgUtil.notify(RpgStrings.format("UI_UNLOCKED", key_name))
 	return true
 
 ## Sends the player to `target_map`. Returns false when the door has no target or stays locked.

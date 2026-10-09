@@ -118,6 +118,11 @@ func _init() -> void:
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_status)
 
+## The scratch state is a Node outside the tree: it goes with the tab.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and test_state != null and is_instance_valid(test_state):
+		test_state.free()
+
 func _ready() -> void:
 	rescan()
 

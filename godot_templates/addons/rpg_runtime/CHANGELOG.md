@@ -207,8 +207,8 @@
   *Settings → Day and night*, off by default) tints outdoor maps from the play time (a day per 24
   minutes, from 8 o'clock), so a save looks the same when it is loaded.
 * Minimap and world map (M12): the builder's `minimap_recipe` saves one `ImageTexture` per map of
-  `game/maps` to `generated/minimaps/<key>.tres` (`RpgMinimapData.key_for`: the path under
-  `game/maps` with `/` as `__`), a pixel per cell with the metadata `origin_cell` and `tile_size`.
+  `game/maps` to `generated/minimaps/<key>.tres` (`RpgMinimapData.key_for`: the project path
+  without `res://` and `.tscn`, `/` as `__`), a pixel per cell with the metadata `origin_cell` and `tile_size`.
   `RpgMinimap` (`ui/minimap.gd`), added by Boot on a `CanvasLayer` named `MinimapLayer`, shows the
   area around the player with markers (`RpgMinimapData.markers`: doors, unopened chests, quest
   targets) and is hidden by `RpgSettings.minimap` (*Settings > Minimap*, on by default). A quest
@@ -218,6 +218,11 @@
   `RpgWorldMapMenu` (`world_map_menu`, *Pause > Map*) shows the visited maps with unseen cells
   covered. Projects built earlier keep working: the settings and pause menus look up the new
   controls by name and skip them when missing.
+* `RpgDialogueLine`, `RpgDialogueChoice` and `RpgDialogueResource` are `@tool` scripts (pure data):
+  the editor's dialogue tab reads and edits real instances (with placeholder instances it crashed
+  the editor of a project that had dialogue). `RpgStrings.format(key, arg)` formats a translated
+  toast with the English text when no translation has the key; the quest, party, door and gate
+  toasts use it, so they work in the editor and in tests without the game's translations.
 
 ## 0.3.0
 

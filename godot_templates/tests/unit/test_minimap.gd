@@ -69,7 +69,7 @@ func test_a_map_scene_is_found_and_rendered(t) -> void:
 	t.eq(found, [dir.path_join("imported/pack/cave.tscn")] as Array[String])
 	var texture := MinimapRecipe.render(found[0])
 	t.ok(texture != null and texture.get_size() == Vector2(10, 5))
-	t.eq(RpgMinimapData.key_for("res://game/maps/imported/pack/cave.tscn"), "imported__pack__cave")
+	t.eq(RpgMinimapData.key_for("res://game/maps/imported/pack/cave.tscn"), "game__maps__imported__pack__cave")
 	t.eq(RpgMinimapData.path_for("starter_map"), "res://generated/minimaps/starter_map.tres")
 
 func test_positions_become_minimap_cells(t) -> void:
@@ -177,8 +177,8 @@ func test_the_world_map_covers_unseen_cells(t) -> void:
 func test_the_world_map_menu_lists_the_visited_maps(t) -> void:
 	var state := Fixtures.install_state()
 	state.new_game()
-	state.fog_mark("starter_map", Vector2i(2, 2), Vector2i(0, 0), 0)
-	state.fog_mark("imported__pack__cave", Vector2i(2, 2), Vector2i(0, 0), 0)
+	state.fog_mark("game__maps__starter_map", Vector2i(2, 2), Vector2i(0, 0), 0)
+	state.fog_mark("game__maps__imported__pack__cave", Vector2i(2, 2), Vector2i(0, 0), 0)
 	var root: Node = UiRecipes.new().call("_build_world_map_menu")
 	SceneUtil.save_scene(root, MENU_TMP)
 	var menu := (load(MENU_TMP) as PackedScene).instantiate() as RpgWorldMapMenu

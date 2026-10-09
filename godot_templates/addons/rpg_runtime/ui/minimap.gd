@@ -41,7 +41,8 @@ func refresh() -> void:
 	var settings := RpgUtil.settings()
 	var router := RpgUtil.router()
 	var map: RpgMapRoot = router.current_map if router != null else null
-	if (settings != null and not settings.minimap) or map == null or not is_instance_valid(map):
+	# (during a map change the old map has left the tree)
+	if (settings != null and not settings.minimap) or map == null or not is_instance_valid(map) or not map.is_inside_tree():
 		visible = false
 		return
 	var key := RpgMinimapData.key_for(map.scene_file_path)

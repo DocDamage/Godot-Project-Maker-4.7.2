@@ -142,6 +142,14 @@ static func english(key: String) -> String:
 	return KEYS.get(key, key)
 
 ## The translation key of an input action ("UI_ACTION_<NAME>") when it has one, else the action name.
+## The translated text of `key` formatted with `arg`; the English text when no translation has
+## the key (the editor, a test). A translation without "%s" is shown as it is.
+static func format(key: String, arg: Variant) -> String:
+	var text := String(TranslationServer.translate(key))
+	if text == key:
+		text = english(key)
+	return text % [arg] if text.contains("%") else text
+
 static func action_label(action: String) -> String:
 	var key := "UI_ACTION_" + action.to_upper()
 	return key if KEYS.has(key) else action
