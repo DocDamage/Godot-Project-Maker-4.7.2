@@ -693,7 +693,13 @@ func _keys_and_switches() -> String:
 	var by_lever := _smoke_gate("smoke_gate_002", &"", "flag:smoke_switch_001.on", home + Vector2(3.0 * tile, -3.0 * tile), holder, made)
 	var by_plate := _smoke_gate("smoke_gate_003", &"", "flag:smoke_switch_002.on", home + Vector2(-3.0 * tile, -3.0 * tile), holder, made)
 	var lever := _smoke_switch("smoke_switch_001", RpgSwitch.Kind.LEVER, home + Vector2(3.0 * tile, 0.0), holder, made)
-	var plate := _smoke_switch("smoke_switch_002", RpgSwitch.Kind.PLATE, home + Vector2(-3.0 * tile, 2.0 * tile), holder, made)
+	# the plate needs floor: on a map whose start is near a wall the usual place may be in it
+	var plate_at := home + Vector2(-3.0 * tile, 2.0 * tile)
+	for offset: Vector2 in [Vector2(-3, 2), Vector2(-3, 0), Vector2(-3, -1), Vector2(-2, 1), Vector2(2, 2), Vector2(0, 2), Vector2(0, -2)]:
+		if _is_clear(p, home + offset * tile):
+			plate_at = home + offset * tile
+			break
+	var plate := _smoke_switch("smoke_switch_002", RpgSwitch.Kind.PLATE, plate_at, holder, made)
 	await _frames(3)
 	var failure := ""
 	if not await _blocks(locked):
@@ -870,28 +876,29 @@ func _sequence_plays() -> String:
 ## A place 64 px from `home` where no body and no area is (no wall, house, door or zone), tried
 ## up, right, left and down, then further out; `home` shifted up when nothing is free.
 func _free_spot(player: RpgActor, home: Vector2) -> Vector2:
-	var space := player.get_world_2d().direct_space_state
 	for distance: float in [64.0, 96.0, 128.0]:
 		for direction: Vector2 in [Vector2.UP, Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN]:
 			var spot := home + direction * distance
-			var clear := true
-			for probe: Vector2 in [Vector2.ZERO, Vector2(10, 0), Vector2(-10, 0), Vector2(0, 10), Vector2(0, -10)]:
-				var query := PhysicsPointQueryParameters2D.new()
-				query.position = spot + probe
-				query.collision_mask = 0xFFFFFFFF
-				query.collide_with_areas = true
-				query.collide_with_bodies = true
-				for hit: Dictionary in space.intersect_point(query):
-					var collider: Variant = hit.get("collider")
-					if collider is Node:
-						var found: Node = collider
-						if found != player and not player.is_ancestor_of(found):
-							clear = false
-				if not clear:
-					break
-			if clear:
+			if _is_clear(player, spot):
 				return spot
 	return home + Vector2(0, -64)
+
+## True when no body and no area other than the player's own is at `spot` (and 10 px around it).
+func _is_clear(player: RpgActor, spot: Vector2) -> bool:
+	var space := player.get_world_2d().direct_space_state
+	for probe: Vector2 in [Vector2.ZERO, Vector2(10, 0), Vector2(-10, 0), Vector2(0, 10), Vector2(0, -10)]:
+		var query := PhysicsPointQueryParameters2D.new()
+		query.position = spot + probe
+		query.collision_mask = 0xFFFFFFFF
+		query.collide_with_areas = true
+		query.collide_with_bodies = true
+		for hit: Dictionary in space.intersect_point(query):
+			var collider: Variant = hit.get("collider")
+			if collider is Node:
+				var found: Node = collider
+				if found != player and not player.is_ancestor_of(found):
+					return false
+	return true
 
 func _trigger_and_skip(scene: Node, player: RpgActor, state: RpgGameState, runner: RpgSequenceRunner) -> String:
 	var inside := RpgSequence.new()

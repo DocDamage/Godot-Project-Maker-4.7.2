@@ -478,7 +478,7 @@ func _dodge() -> String:
 		return "the player did not return to IDLE (state %s)" % combat.state()
 	await _seconds(0.7)  # the cooldown of a dodge is 0.6 s
 	p.global_position = spawn.global_position
-	p.call("set_facing", "down")
+	p.call("set_facing", _roomy_facing(p, DODGE_DISTANCE + 2.0 * DODGE_TOLERANCE))
 	await _frames(3)
 	var before := p.global_position
 	var hurtbox: RpgHurtbox = p.get_node("Hurtbox")
@@ -502,6 +502,24 @@ func _dodge() -> String:
 	if absf(moved - DODGE_DISTANCE) > DODGE_TOLERANCE:
 		return "the dodge moved the player %.1f px, expected %.0f +- %.0f" % [moved, DODGE_DISTANCE, DODGE_TOLERANCE]
 	return ""
+
+## The facing in which nothing of the world stands within `distance` px of the player (down
+## first, as on the default map; a start point near a wall takes another one).
+func _roomy_facing(p: RpgActor, distance: float) -> String:
+	var space := p.get_world_2d().direct_space_state
+	var directions := {"down": Vector2.DOWN, "up": Vector2.UP, "right": Vector2.RIGHT, "left": Vector2.LEFT}
+	for facing: String in directions:
+		var step: Vector2 = directions[facing]
+		var clear := true
+		for side: float in [-6.0, 0.0, 6.0]:  # the width of the body
+			var from := p.global_position + step.orthogonal() * side
+			var query := PhysicsRayQueryParameters2D.create(from, from + step * distance, 1)
+			query.exclude = [p.get_rid()]
+			if not space.intersect_ray(query).is_empty():
+				clear = false
+		if clear:
+			return facing
+	return "down"
 
 # ---------------------------------------------------------------- ranged combat and enemy kinds
 

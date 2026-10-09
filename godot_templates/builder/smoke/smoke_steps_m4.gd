@@ -14,7 +14,8 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "decor_blocks", "fn": _decor_blocks, "timeout_s": 20.0})
 	list.append({"name": "walk_to_field", "fn": _walk_to_field, "timeout_s": 30.0})
 	list.append({"name": "return_from_field", "fn": _return_from_field, "timeout_s": 30.0})
-	list.append({"name": "world_doors", "fn": _world_doors, "timeout_s": 60.0})
+	if FileAccess.file_exists("res://rpggen/world_plan.json"):  # a world of areas (T13.20)
+		list.append({"name": "world_doors", "fn": _world_doors, "timeout_s": 60.0})
 	return list
 
 func _router() -> RpgSceneRouter:
@@ -156,16 +157,17 @@ func _world_doors() -> String:
 			village = JsonUtil.to_dict(raw)
 	var doors := JsonUtil.to_array(village.get("doors", []))
 	if doors.is_empty():
-		print("[rpggen] INFO world_doors: this project has no world of areas, step passes")
-		return ""
+		return "the world plan gives the village no door"
 	var scene := tree.current_scene
 	if scene == null or scene.name != "StarterMap":
 		return "not in the starter map"
+	var origin := _player().global_position
 	var out := JsonUtil.to_dict(doors[0])
 	var area_id := JsonUtil.to_str(out.get("to", ""))
 	var door := _door_named(scene, JsonUtil.to_str(out.get("id", "")))
 	if door == null:
-		print("[rpggen] INFO world_doors: the starter map was made before the world (no door %s), step passes" % JsonUtil.to_str(out.get("id", "")))
+		# a starter map from before the areas were asked for keeps its doors as they are
+		print("[rpggen] INFO world_doors: the starter map is older than the world (no door %s): nothing to walk through" % JsonUtil.to_str(out.get("id", "")))
 		return ""
 	var steps := {"E": [-1, "move_right"], "W": [1, "move_left"], "N": [0, "move_up"], "S": [0, "move_down"]}
 	var going: Array = steps[JsonUtil.to_str(out.get("edge", "E"))]
@@ -197,6 +199,9 @@ func _world_doors() -> String:
 	p = _player()
 	if home == null or p == null or p.global_position.distance_to(home.global_position) > 48.0:
 		return "the player did not arrive at from_%s of the village" % area_id
+	p.global_position = origin  # the later steps start where the earlier ones left the player
+	await tree.physics_frame
+	await tree.physics_frame
 	print("[rpggen] INFO world_doors: went to %s and back" % area_id)
 	return ""
 
