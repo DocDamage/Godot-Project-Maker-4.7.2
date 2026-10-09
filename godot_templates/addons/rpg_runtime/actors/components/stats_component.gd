@@ -8,18 +8,31 @@ signal died
 
 var stats: RpgStats
 var actor: RpgActor
+## The character these stats belong to: the top-down `actor`, or a side-view actor (T14.03), which
+## has components and a definition in the same way.
+var holder: Node
 
 func _ready() -> void:
 	actor = _find_actor()
-	if actor != null and actor.is_in_group("player"):
+	holder = actor if actor != null else _find_holder()
+	if holder != null and holder.is_in_group("player"):
 		var state := RpgUtil.state()
 		if state != null and state.get("player_stats") != null:
 			stats = state.get("player_stats")
 	if stats == null:
-		if actor != null and actor.definition != null and actor.definition.base_stats != null:
-			stats = actor.definition.base_stats.duplicate(true) as RpgStats
+		var def: RpgActorDefinition = holder.get("definition") if holder != null else null
+		if def != null and def.base_stats != null:
+			stats = def.base_stats.duplicate(true) as RpgStats
 		else:
 			stats = RpgStats.new()
+
+func _find_holder() -> Node:
+	var node := get_parent()
+	while node != null:
+		if node.has_method(&"component"):
+			return node
+		node = node.get_parent()
+	return null
 
 func _find_actor() -> RpgActor:
 	var node := get_parent()
@@ -30,7 +43,8 @@ func _find_actor() -> RpgActor:
 	return null
 
 func is_player() -> bool:
-	return actor != null and actor.is_in_group("player")
+	var who: Node = holder if holder != null else actor
+	return who != null and who.is_in_group("player")
 
 func is_dead() -> bool:
 	return stats != null and stats.hp <= 0

@@ -69,6 +69,13 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
         bindings["secondary_attack"] = {"keys": ["K"], "mouse_buttons": [2], "joy_buttons": [3]}
         bindings["dodge"] = {"keys": ["Shift"], "joy_buttons": [1]}
         bindings["quick_item"] = {"keys": ["Q"], "joy_buttons": [9]}
+    if archetype == "metroidvania":
+        # Space jumps, so it no longer interacts; `down` with jump drops through a platform
+        bindings["interact"] = {"keys": ["E", "Up"], "joy_buttons": [3]}
+        bindings["jump"] = {"keys": ["Space", "Z"], "joy_buttons": [0]}
+        bindings["dash"] = {"keys": ["Shift", "C"], "joy_buttons": [10]}
+        bindings["attack"] = {"keys": ["J", "X"], "mouse_buttons": [1], "joy_buttons": [2]}
+        bindings["down"] = {"keys": ["S", "Down"], "joy_buttons": [12], "joy_axes": [[1, 1.0]]}
     return bindings
 
 

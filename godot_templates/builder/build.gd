@@ -66,6 +66,7 @@ class ScriptErrors extends Logger:
 const ARCHETYPE_RECIPES := {
 	"turn_based": ["turn_based/battle_commands_recipe", "turn_based/enemy_recipes", "turn_based/battle_scene_recipe"],
 	"arpg": ["arpg/swing_recipe", "arpg/enemy_recipes", "arpg/hud_recipe", "arpg/mode_recipe"],
+	"metroidvania": ["metroidvania/mode_recipe"],
 }
 
 func _initialize() -> void:

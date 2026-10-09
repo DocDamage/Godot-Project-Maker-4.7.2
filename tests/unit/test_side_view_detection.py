@@ -318,3 +318,39 @@ def test_the_platformer_fills_the_metroidvania_and_its_starter(platformer: Catal
         "npc": "platformer.npc.villager_idle",
     }
     assert "boss" not in mapping.default_starter(platformer, "turn_based")
+
+
+# --------------------------------------------------------------------------- T14.03
+
+
+def test_a_player_without_jump_or_fall_is_reported_for_a_metroidvania_only(
+    platformer: Catalog, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    opened = archive.open_pack(SYNTH / "basic16", set(), pack_id="basic16")
+    top_down, _issues, _generated = catalog.assemble(
+        [(opened, inventory.build_inventory(opened))], None, []
+    )
+    side = config.default_for("Side", [], archetype="metroidvania")
+    found = [i for i in requirements.check(top_down, side) if i.code == "ASSET-030"]
+    assert len(found) == 1 and found[0].severity.value == "info"
+    assert found[0].detail == {"asset": "basic16.characters.hero", "missing": "jump or fall"}
+    for archetype in ("turn_based", "arpg"):
+        cfg = config.default_for("Top", [], archetype=archetype)
+        assert "ASSET-030" not in [i.code for i in requirements.check(top_down, cfg)]
+    assert "ASSET-030" not in [i.code for i in requirements.check(platformer, side)]
+    hero = platformer.asset("platformer.characters.hero_attack")
+    assert requirements.missing_air_animations(hero) == []
+    assert requirements.missing_air_animations(None) == []
+
+
+def test_the_metroidvania_input_adds_four_actions_and_moves_interact_off_space() -> None:
+    top = config.default_input("turn_based")
+    side = config.default_input("metroidvania")
+    assert set(side) - set(top) == {"jump", "dash", "attack", "down"}
+    assert "Space" in side["jump"]["keys"] and "Space" not in side["interact"]["keys"]
+    assert side["confirm"] == top["confirm"] and side["move_left"] == top["move_left"]
+    assert config.default_input("turn_based") == top, "the top-down bindings are those of 1.1"
+    assert "jump" not in config.default_input("arpg")
+    cfg = config.default_for("Side", [], archetype="metroidvania")
+    assert config.GeneratorConfig.from_json(cfg.to_json()).input == side

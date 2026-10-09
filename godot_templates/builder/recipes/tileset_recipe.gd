@@ -7,6 +7,7 @@ const Paths := preload("../lib/paths.gd")
 const Geometry := preload("../lib/geometry.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
+const SideTileset := preload("../lib/side_tileset.gd")
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray()
@@ -36,7 +37,21 @@ func input_hash(ctx: BuildContext) -> String:
 		if def.get("patterns_from_objects", true):
 			objects = ctx.catalog.objects()
 		parts.append({"def": def, "sources": sources, "objects": objects})
-	return ctx.stable_hash({"v": RECIPE_VERSION, "tilesets": parts, "nav": _wants_navigation(ctx)})
+	var hashed := {"v": RECIPE_VERSION, "tilesets": parts, "nav": _wants_navigation(ctx)}
+	if SideTileset.wanted(ctx.config):
+		# only a metroidvania's hash has the key: a top-down project's hash is the one of 1.1
+		hashed["side"] = _side_inputs(ctx)
+	return ctx.stable_hash(hashed)
+
+## What the side-view parts of the TileSets are built from: every sheet's tags.
+func _side_inputs(ctx: BuildContext) -> Array:
+	var out: Array = []
+	for def in ctx.catalog.tileset_defs():
+		var def_sources: Array = def.get("sources", [])
+		for s: Dictionary in def_sources:
+			var asset_id: String = s["asset"]
+			out.append([asset_id, ctx.catalog.effective(ctx.catalog.asset(asset_id)).get("tags", [])])
+	return out
 
 ## features.navigation: the TileSet gets a navigation layer (T9.06).
 func _wants_navigation(ctx: BuildContext) -> bool:
@@ -46,6 +61,7 @@ func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	_load_apply_state()
 	_nav_enabled = _wants_navigation(ctx)
+	_side = SideTileset.wanted(ctx.config)
 	for def in ctx.catalog.tileset_defs():
 		_build_tileset(ctx, def, issues)
 	_save_apply_state(issues, ctx)
@@ -58,6 +74,9 @@ const APPLY_STATE := "res://rpggen/tileset_apply_state.json"
 var _apply: Dictionary = {}
 var _apply_dirty := false
 var _nav_enabled := false
+## The project is a metroidvania (T14.03): the TileSets get their side-view parts. False for every
+## other archetype, whose TileSets are built exactly as before.
+var _side := false
 
 func _load_apply_state() -> void:
 	_apply = {}
@@ -185,6 +204,9 @@ func _build_tileset(ctx: BuildContext, def: Dictionary, issues: Array) -> void:
 			var layer_type: Variant.Type = custom_types.get(layer.get("type", "string"), TYPE_STRING)
 			ts.set_custom_data_layer_type(idx, layer_type)
 
+	if _side:
+		SideTileset.ensure_layers(ts)
+
 	if _nav_enabled and ts.get_navigation_layers_count() == 0:
 		ts.add_navigation_layer()  # layer 0: walkable ground, see _configure_navigation
 
@@ -279,6 +301,8 @@ func _build_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionar
 	var overrides: Dictionary = eff.get("tile_overrides", {})
 	# A WALL sheet blocks movement unless the catalog says otherwise.
 	var sheet_collision: Dictionary = eff.get("collision", {"profile": "FULL" if eff.get("role", "") == "WALL" else "NONE"})
+	if _side:  # in a side-view room the ground is solid, and a sheet's tags say what it is
+		sheet_collision = SideTileset.sheet_collision(eff)
 	var filled := {}
 	# Animated tiles (T8.07): the cells after the first frame belong to the animation and get no
 	# tile of their own (Godot refuses an animation over existing tiles).
@@ -319,6 +343,8 @@ func _build_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionar
 			var tile_key := "%s/%d/%s" % [ts_name, source_id, key]
 			var tile_collision: Dictionary = ov.get("collision", sheet_collision)
 			_configure_tile(ctx, src.get_tile_data(coords, 0), asset, tile_collision, atlas_cell, cell_img, is_new, tile_key, issues)
+			if _side:
+				SideTileset.configure_tile(src.get_tile_data(coords, 0), eff, ov, tile_collision, atlas_cell)
 			if _nav_enabled:
 				_configure_navigation(src.get_tile_data(coords, 0), JsonUtil.to_str(eff.get("role", "")), tile_collision, atlas_cell)
 			var terrain: Variant = ov.get("terrain")

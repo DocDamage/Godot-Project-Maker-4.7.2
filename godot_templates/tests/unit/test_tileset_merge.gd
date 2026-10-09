@@ -163,3 +163,94 @@ func test_cells_that_became_empty_are_reported_and_kept(t) -> void:
 	t.ok(_codes(issues).has("TILE-005"))
 	t.eq(_tiles(_load(), 0), tiles, "no tile was removed")
 	_cleanup()
+
+# ---------------------------------------------------------------- side view (T14.02, T14.03)
+
+func _build_as(cat: Dictionary, archetype: String) -> Array:
+	var ctx := BuildContext.new("res://builder")
+	ctx.catalog = CatalogReader.new(cat)
+	ctx.config = {"archetype": archetype}
+	return Recipe.new().build(ctx)
+
+func _bytes() -> String:
+	return FileAccess.get_file_as_string(TS_PATH)
+
+## A sheet whose first tile has `profile` and whose second has the custom data `custom`.
+func _side_sheet(profile: String, custom: Dictionary = {}) -> Dictionary:
+	var overrides := {"0,0": {"collision": {"profile": profile}}}
+	if not custom.is_empty():
+		overrides["1,0"] = {"custom": custom}
+	return _asset("t.a", "CONFIRMED", {"tile_overrides": overrides})
+
+func test_a_top_down_tileset_is_the_same_with_one_way_ladder_or_none(t) -> void:
+	var sources := [{"asset": "t.a", "source_id": 0}]
+	var built: Array = []
+	for profile: String in ["NONE", "ONE_WAY", "LADDER"]:
+		for archetype: String in ["turn_based", "arpg"]:
+			_cleanup()
+			t.eq(_build_as(_catalog([_side_sheet(profile, {"hazard": true})], sources), archetype), [])
+			built.append(_bytes())
+	_cleanup()
+	t.eq(_build(_catalog([_side_sheet("NONE", {"hazard": true})], sources)), [], "a build without a config, as before 1.2")
+	built.append(_bytes())
+	for text: String in built:
+		t.ok(text == built[0], "every top-down TileSet has the same bytes")
+	t.ok(not built[0].contains("one_way") and not built[0].contains("ladder") and not built[0].contains("physics_layer_1"), "and no side-view layer")
+	_cleanup()
+
+func test_a_side_view_tileset_has_the_one_way_layer_and_the_custom_data(t) -> void:
+	_cleanup()
+	var sources := [{"asset": "t.a", "source_id": 0}]
+	var sheet := _asset("t.a", "CONFIRMED", {"tile_overrides": {
+		"0,0": {"collision": {"profile": "ONE_WAY"}},
+		"1,0": {"collision": {"profile": "LADDER"}},
+		"2,0": {"collision": {"profile": "NONE"}, "custom": {"hazard": true}},
+		"3,0": {"custom": {"breakable": true}},
+	}})
+	sheet["detected"].erase("collision")  # a GROUND sheet that names no collision: solid in a room
+	t.eq(_build_as(_catalog([sheet], sources), "metroidvania"), [])
+	var ts := _load()
+	t.eq(ts.get_physics_layers_count(), 2)
+	t.eq(ts.get_physics_layer_collision_layer(1), 1 << 10, "one-way platforms are on layer 11")
+	for layer_name: String in ["ladder", "hazard", "breakable"]:
+		t.ok(ts.get_custom_data_layer_by_name(layer_name) >= 0, layer_name)
+	var src := ts.get_source(0) as TileSetAtlasSource
+	var plank := src.get_tile_data(Vector2i(0, 0), 0)
+	t.eq(plank.get_collision_polygons_count(0), 0, "a one-way tile is not solid")
+	t.eq(plank.get_collision_polygons_count(1), 1)
+	t.ok(plank.is_collision_polygon_one_way(1, 0))
+	var points := plank.get_collision_polygon_points(1, 0)
+	t.eq(points[0], Vector2(-16, -16))
+	t.eq(points[2], Vector2(16, -6), "the top 10 px of a 32 px tile")
+	var ladder := src.get_tile_data(Vector2i(1, 0), 0)
+	t.eq(ladder.get_collision_polygons_count(0) + ladder.get_collision_polygons_count(1), 0, "a ladder blocks nothing")
+	t.eq(ladder.get_custom_data("ladder"), true)
+	var spikes := src.get_tile_data(Vector2i(2, 0), 0)
+	t.eq(spikes.get_custom_data("hazard"), true)
+	t.eq(spikes.get_collision_polygons_count(0), 0)
+	var block := src.get_tile_data(Vector2i(3, 0), 0)
+	t.eq(block.get_custom_data("breakable"), true)
+	t.eq(block.get_collision_polygons_count(0), 1, "a breakable block is solid ground")
+	t.eq(block.get_custom_data("hazard"), false)
+	# a second build changes nothing, and never adds a second polygon
+	var first := _bytes()
+	t.eq(_build_as(_catalog([sheet], sources), "metroidvania"), [])
+	t.ok(_bytes() == first, "building again gives the same file")
+	t.eq((_load().get_source(0) as TileSetAtlasSource).get_tile_data(Vector2i(0, 0), 0).get_collision_polygons_count(1), 1)
+	_cleanup()
+
+func test_a_sheets_side_view_tags_decide_its_tiles(t) -> void:
+	_cleanup()
+	var planks := _asset("t.a")
+	planks["detected"] = {"usage": "tiles", "role": "DECORATION", "tags": ["one_way"], "grid": {"cell": [32, 32], "margin": [0, 0], "separation": [0, 0]}}
+	var spikes := _asset("t.b")
+	spikes["detected"] = {"usage": "tiles", "role": "DECORATION", "tags": ["hazard"], "grid": {"cell": [32, 32], "margin": [0, 0], "separation": [0, 0]}}
+	var sources := [{"asset": "t.a", "source_id": 0}, {"asset": "t.b", "source_id": 1}]
+	t.eq(_build_as(_catalog([planks, spikes], sources), "metroidvania"), [])
+	var ts := _load()
+	var plank := (ts.get_source(0) as TileSetAtlasSource).get_tile_data(Vector2i(0, 0), 0)
+	t.ok(plank.get_collision_polygons_count(1) == 1 and plank.is_collision_polygon_one_way(1, 0))
+	var spike := (ts.get_source(1) as TileSetAtlasSource).get_tile_data(Vector2i(0, 0), 0)
+	t.eq(spike.get_custom_data("hazard"), true)
+	t.eq(spike.get_collision_polygons_count(0), 0)
+	_cleanup()

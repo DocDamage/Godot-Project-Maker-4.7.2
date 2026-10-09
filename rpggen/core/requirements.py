@@ -93,10 +93,24 @@ def role_counts(catalog: catalog_mod.Catalog) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+AIR_ACTIONS = ("jump", "fall")
+
+
+def missing_air_animations(player: catalog_mod.Asset | None) -> list[str]:
+    """The actions among jump and fall a side-view player has no animation for (T14.03). The
+    game then shows the idle frame in the air (ASSET-030, informational)."""
+    if player is None:
+        return []
+    animations = catalog_mod.effective(player).get("animations") or {}
+    have = {str(name).split("_", 1)[0] for name in animations}
+    return [action for action in AIR_ACTIONS if action not in have]
+
+
 def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     """ASSET-010 for missing required (error) and recommended (warning) roles; ASSET-014 when
     several PLAYER assets exist and none is CONFIRMED; ASSET-028 for a pack whose licence asks
-    for credit but names no author (after the Audit page's corrections)."""
+    for credit but names no author (after the Audit page's corrections); ASSET-030 for a
+    metroidvania whose player has no jump or fall animation."""
     issues = IssueList()
     for role in REQUIRED.get(cfg.archetype, REQUIRED["turn_based"]):
         if not _filled(catalog, role):
@@ -112,6 +126,12 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     players = _assets_with_role(catalog, "PLAYER")
     if len(players) > 1 and not any(p.status == "CONFIRMED" for p in players):
         issues.add("ASSET-014", role="PLAYER", candidates=", ".join(p.id for p in players))
+    if cfg.archetype == "metroidvania":
+        chosen = (cfg.starter or {}).get("player")
+        player = next((p for p in players if p.id == chosen), players[0] if players else None)
+        missing = missing_air_animations(player)
+        if player is not None and missing:
+            issues.add("ASSET-030", asset=player.id, missing=" or ".join(missing))
     for pack in sorted(catalog.packs, key=lambda p: p.pack_id):
         found = pack.effective_license()
         if found.attribution_required and not found.author.strip():

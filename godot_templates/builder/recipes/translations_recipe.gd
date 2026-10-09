@@ -21,6 +21,7 @@ const ITEMS_DIR := "res://game/data/items"
 const ARCHETYPE_STRINGS := {
 	"turn_based": "res://addons/rpg_runtime/archetypes/turn_based/battle_strings.gd",
 	"arpg": "res://addons/rpg_runtime/archetypes/arpg/arpg_strings.gd",
+	"metroidvania": "res://addons/rpg_runtime/archetypes/metroidvania/metroidvania_strings.gd",
 }
 
 ## [[locale, path]] for the locales in the CSV header (every column after `keys`).

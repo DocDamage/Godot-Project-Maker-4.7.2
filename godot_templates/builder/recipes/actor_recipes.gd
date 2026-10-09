@@ -19,6 +19,10 @@ const FALLBACK_NPC_PATH := CHARACTERS_DIR + "npc_fallback.tscn"
 ## Archetype -> helper that adds the archetype's parts to the player (builder/recipes/<this>); the
 ## archetypes without one leave the player as it is.
 const PLAYER_AUGMENTERS := {"arpg": "arpg/arpg_build.gd"}
+## Archetype -> helper that builds the whole actor instead of ActorBuild (builder/recipes/<this>):
+## a side-view character is another kind of body (T14.03). Its static `build_actor(kind, root_name,
+## frames, frame, origin, tile)` returns the scene's root.
+const ACTOR_BUILDERS := {"metroidvania": "metroidvania/player_recipe.gd"}
 ## Character asset id -> scene path, for the editor's asset library (T8.02).
 const INDEX_PATH := "res://rpggen/character_index.json"
 
@@ -79,8 +83,8 @@ func input_hash(ctx: BuildContext) -> String:
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var tile := _tile(ctx)
-	_save(ctx, ActorBuild.build("base", "ActorBase", null, ActorBuild.DEFAULT_FRAME, Vector2i(8, 23), tile), BASE_PATH, issues)
-	_save(ctx, ActorBuild.build("npc", "Npc", null, ActorBuild.DEFAULT_FRAME, Vector2i(8, 23), tile), NPC_PATH, issues)
+	_save(ctx, _build_actor(ctx, "base", "ActorBase", null, ActorBuild.DEFAULT_FRAME, Vector2i(8, 23), tile), BASE_PATH, issues)
+	_save(ctx, _build_actor(ctx, "npc", "Npc", null, ActorBuild.DEFAULT_FRAME, Vector2i(8, 23), tile), NPC_PATH, issues)
 	var player_asset := _player_asset(ctx)
 	if player_asset.is_empty():
 		issues.append(ctx.make_issue("BUILD-002", {"recipe": "actor_recipes", "reason": "no asset with role PLAYER in the catalog"}))
@@ -99,20 +103,33 @@ func build(ctx: BuildContext) -> Array:
 		var frame: Vector2i = fo["frame"]
 		var origin: Vector2i = fo["origin"]
 		var root_name := "Player" if kind == "player" else "Npc"
-		var node := ActorBuild.build(kind, root_name, frames, frame, origin, tile)
+		var node := _build_actor(ctx, kind, root_name, frames, frame, origin, tile)
 		if kind == "player":
 			_augment_player(ctx, node, fo, tile)
 		_save(ctx, node, char_path, issues)
 		if char_path != FALLBACK_NPC_PATH:
 			index[a["id"]] = char_path
 		if kind == "player" and a["id"] == player_asset["id"]:
-			var main := ActorBuild.build("player", "Player", frames, frame, origin, tile)
+			var main := _build_actor(ctx, "player", "Player", frames, frame, origin, tile)
 			_augment_player(ctx, main, fo, tile)
 			_save(ctx, main, PLAYER_PATH, issues)
 	var write_err := JsonUtil.write(INDEX_PATH, index)
 	if write_err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": INDEX_PATH, "err": write_err}, INDEX_PATH))
 	return issues
+
+## The actor's node tree: the archetype's own builder when it has one, else the top-down actor.
+func _build_actor(ctx: BuildContext, kind: String, root_name: String, frames: SpriteFrames, frame: Vector2i, origin: Vector2i, tile: int) -> CharacterBody2D:
+	var rel: String = ACTOR_BUILDERS.get(JsonUtil.to_str(ctx.config.get("archetype", "")), "")
+	if rel != "":
+		var here: Script = get_script()
+		var script := load(here.resource_path.get_base_dir().path_join(rel)) as GDScript
+		if script != null:
+			var built: Variant = script.call("build_actor", kind, root_name, frames, frame, origin, tile)
+			if built is CharacterBody2D:
+				var body: CharacterBody2D = built
+				return body
+	return ActorBuild.build(kind, root_name, frames, frame, origin, tile)
 
 ## Adds the archetype's combat parts to a player actor (the arpg player gets its hurtbox, hitbox,
 ## health and combat state machine).

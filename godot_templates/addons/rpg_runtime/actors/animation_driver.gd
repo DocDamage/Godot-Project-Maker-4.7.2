@@ -111,6 +111,58 @@ func play_exact(base: String, facing: String) -> String:
 	sprite.frame_progress = 0.0
 	return found["anim"]
 
+# ---------------------------------------------------------------- side view (T14.03)
+
+## Other names a side-view animation goes by: packs call the same thing "run" or "walk".
+const SIDE_ALIASES: Dictionary = {"run": ["run", "walk"], "walk": ["walk", "run"]}
+## The endings looked for, in order, for a character that faces right. A strip without a direction
+## in its name is stored as "<base>_down" by the adapters, so that counts as "no direction".
+const SIDE_SUFFIXES: Array[String] = ["_right", "_side", "", "_down"]
+
+## The animation that shows `base` for a side-view facing (-1 left, 1 right) as {"anim", "flip"},
+## or an empty dictionary. "<base>_left" is used for the left when the sprite has it; otherwise
+## the right-facing animation is mirrored. A sprite with only "<base>_left" is mirrored for the right.
+func resolve_side(frames: SpriteFrames, base: String, side: int) -> Dictionary:
+	var names: Array = SIDE_ALIASES.get(base, [base])
+	for anim_base: String in names:
+		var left := anim_base + "_left"
+		var has_left := frames.has_animation(left)
+		if side < 0 and has_left:
+			return {"anim": left, "flip": RpgUtil.to_bool(frames.get_meta("flip_h_" + left, false))}
+		for suffix in SIDE_SUFFIXES:
+			var anim := anim_base + suffix
+			if frames.has_animation(anim):
+				var stored := RpgUtil.to_bool(frames.get_meta("flip_h_" + anim, false))
+				return {"anim": anim, "flip": stored != (side < 0)}
+		if has_left:
+			return {"anim": left, "flip": not RpgUtil.to_bool(frames.get_meta("flip_h_" + left, false))}
+	return {}
+
+## True when the sprite has an animation for `base` seen from the side.
+func has_side(base: String) -> bool:
+	if sprite == null or sprite.sprite_frames == null:
+		return false
+	return not resolve_side(sprite.sprite_frames, base, 1).is_empty()
+
+## Plays `base` for a side-view facing (see resolve_side). `restart` begins it from its first
+## frame; otherwise an animation that is already playing goes on. Returns the animation's name, or
+## "" when the sprite has none for `base`.
+func play_side(base: String, side: int, restart: bool = false) -> String:
+	if sprite == null or sprite.sprite_frames == null:
+		return ""
+	var found := resolve_side(sprite.sprite_frames, base, side)
+	if found.is_empty():
+		return ""
+	var anim: String = found["anim"]
+	sprite.flip_h = found["flip"]
+	if restart:
+		sprite.play(anim)
+		sprite.frame = 0
+		sprite.frame_progress = 0.0
+	elif sprite.animation != anim or not sprite.is_playing():
+		sprite.play(anim)
+	return anim
+
 ## Plays "<base>_<facing>". Falls back in order:
 ## 1. "<base>_<facing>"  2. mirrored counterpart with flip_h (left<->right)
 ## 3. the direction 45 degrees next to it  4. "<base>_down"
