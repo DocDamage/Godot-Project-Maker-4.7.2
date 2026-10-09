@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791517196153,
+  "lastUpdate": 1791518200713,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -383,6 +383,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "image analysis, parallel",
             "value": 3.34,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "399f9f4b3121b942c0f0609d5001b727faafc139",
+          "message": "Plan: 1.0 ships from M12; M13 (1.1.0) polish and M14 (1.2.0) Metroidvania\n\nSplits the M13 plan in two and moves both after the 1.0 tag, under a\npost-release compatibility contract (no prompt on regeneration, optional\nsave keys, path shims for moved runtime scripts). M13 keeps the twenty\nimprovements plus a shared lock-and-key planner; the connected-maps world\nplan is stored in the project and reused on regeneration, VAL-027/028 are\nwarnings, audio decoding goes through soundfile, taskbar progress is\noptional. M14 holds the Metroidvania: side-view TileSet layers only for\nthat archetype, side-view NPCs, objects and a single camera, a stored room\nplan, a second side-view CC0 sample pack, binding rows, a perf ceiling and\nCI split per archetype. T12.66 no longer depends on M13.\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>",
+          "timestamp": "2026-10-08T23:50:44-04:00",
+          "tree_id": "9c8ed798b13c02047ed159df0ecc6038ae20e551",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/399f9f4b3121b942c0f0609d5001b727faafc139"
+        },
+        "date": 1791518190513,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 10.27,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 1.27,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 99.88,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 92.56,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 10.4,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 8.65,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 4.91,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 4.52,
             "unit": "s"
           }
         ]
