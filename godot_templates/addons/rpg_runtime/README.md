@@ -243,6 +243,46 @@ selection)*; the validator reports zones without a table, with unknown enemies o
 (VAL-024). The action RPG has no random encounters: its enemies stand on the map (spawners are not
 part of 1.0).
 
+### Real-time combat (`combat/realtime/`)
+
+`RpgDamageInfo`, `RpgHitbox`, `RpgHurtbox`, `RpgHealth`, `RpgProjectile`, `RpgStateMachine`,
+`RpgPickup`, `RpgScreenFeedback`, `RpgRealtimeMath` and `RpgRealtimeText` are shared by the
+archetypes that fight on the map (the action RPG and the metroidvania). Until 1.1 they were in
+`archetypes/arpg/`; a script at each old path still extends the new one (removed in 2.0).
+
+### metroidvania
+
+The game is seen from the side. `RpgMetroidvaniaMode` (`SceneRouter.combat`) never has an
+encounter; it owns the rules of saving (`save_at_stations`, `autosave_on_every_map`) and what
+happens after a defeat (`respawn_after_defeat()`: the last save station used, full health,
+nothing lost).
+
+`RpgPlatformActor` is moved by **intents**, not by reading the input itself: `move_x`, `move_y`,
+`jump_held`, `press_jump()`, `release_jump()`, `press_dash()`, then `step(delta)`.
+`RpgPlatformInput.poll(actor)` turns the input actions into intents for the player; an enemy or
+a test sets them directly. Tuning is in tiles and seconds (`jump_height_tiles`, `jump_time_to_peak`,
+`coyote_s`, `jump_buffer_s`, …), so it holds for any tile size. One-way platforms are tiles on
+physics layer 11 (`RpgSideTiles.ONE_WAY_LAYER`); ladders, hazards and breakable blocks are
+custom data of the tiles. Animations have no facing (`idle`, `run`, `jump`, `fall`, `attack`,
+`dash`, `climb`, `hurt`): `RpgAnimationDriver.play_side` mirrors them.
+
+Abilities are ids in `GameState.abilities` (`RpgAbilities.ORDER`, `TABLE`). `RpgAbilityPickup`
+grants one and removes itself for good; `RpgAbilityGate` and `RpgGate.required_ability` ask for
+one; in conditions it is `ability:<id>`.
+
+A room is an `RpgRoom` (`game/maps/rooms/<id>.tscn`): `Background`, the tile layers, `Entities`,
+`Triggers` (an `RpgRoomExit` per way out, with `target_room` and `target_exit`), `SpawnPoints`
+(one per exit, same name) and `Camera` (`RpgSideCamera`, limited to the room).
+`SceneRouter.go_to_room(map, exit_id, carry)` changes the room without a fade; `RpgRoom.arrive`
+places the player at the exit with the speed, facing and height it left with, and the camera
+slides in. The plan of the rooms is `rpggen/world_plan.json` (`rooms`).
+
+Enemies are `RpgSideEnemy` with one behaviour script (`patrol`, `flyer`, `shooter`); the
+`RpgGuardian` has three phases by its health, telegraphs its attacks, grants an ability when it
+dies and opens the gates of its room (`<room>_guardian.defeated`). `RpgSaveStation.rest()` heals,
+clears the `defeated` flag of ordinary enemies and remembers the place to return to.
+`RpgMetroidvaniaHud` is the HUD scene `hud_metroidvania.tscn`.
+
 ### arpg
 
 Combat happens on the map. `RpgArpgMode` (`SceneRouter.combat`) never has an encounter

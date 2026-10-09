@@ -182,7 +182,7 @@ Key point: `godot_templates/` is itself a runnable Godot project. Template scrip
 
 ## 6. Project Generation Modes
 
-### Shared core (both archetypes)
+### Shared core (every archetype)
 
 Actor stats, inventory, item definitions, save data, dialogue, scene transitions, world state, event bus, UI infrastructure, asset catalog access.
 
@@ -206,7 +206,7 @@ func start_encounter(encounter: EncounterData) -> void: pass
 signal encounter_finished(result: EncounterResult)
 ```
 
-Shared code depends on `CombatMode`, `EncounterData` and `EncounterResult` only. Both archetypes ship in the template repo and are tested in CI even though each generated project contains one.
+Shared code depends on `CombatMode`, `EncounterData` and `EncounterResult` only. Every archetype ships in the template repo and is tested in CI even though each generated project contains one.
 
 ---
 
@@ -1044,7 +1044,7 @@ This was absent from v1 and is the main determinant of quality.
 **Test layers:**
 * Unit: analyzer, classifier, catalog migrations, ledger logic, archive safety.
 * Golden: generated catalog and file list compared to committed golden output (determinism check).
-* Integration (CI, Windows): full generation for each fixture with Godot 4.7.2 headless — must pass validation and smoke test, for both archetypes.
+* Integration (CI, Windows): full generation for each fixture with Godot 4.7.2 headless — must pass validation and smoke test, for every archetype.
 * Regeneration: generate → simulate user edits (paint tiles, modify a generated scene, add files to `game/`) → update pack → regenerate → assert painted cells identical, user files untouched, conflicts reported.
 * Template project: `godot_templates/` has its own GDScript tests (e.g., GUT or a minimal in-house runner) for combat math, save migration, inventory.
 
@@ -1099,6 +1099,31 @@ Procedural dungeons, skill trees, advanced equipment UI, multiplayer, complex AI
 Done since (M13, release 1.1.0): a planned world of connected areas with a lock and its key
 (`world_plan.py`, `lockkey.py`), and the dock's Quests tab with its stage graph. The graph is a
 picture of the stages, not a free-form graph editor.
+
+### v1.2 — more archetypes (M14)
+
+A third archetype, the **metroidvania**, shows what a new archetype costs and where it lives:
+
+* its runtime in `addons/rpg_runtime/archetypes/metroidvania/`, its recipes in
+  `builder/recipes/metroidvania/`, its smoke steps in `builder/smoke/`: the install filter
+  (`staging.ARCHETYPES`) keeps each archetype's three folders out of the projects of the others;
+* what two archetypes share moves **out** of an archetype folder into a shared one, with a shim
+  at the old path for all of 1.x: the real-time combat set (hitbox, hurtbox, health, projectile,
+  state machine, pickup, screen feedback) is `combat/realtime/`, used by the action RPG and the
+  metroidvania;
+* a shared recipe changes its output only for the archetype that needs it (the side-view
+  TileSet layers, the room HUD), so a project of another archetype is byte for byte what it was;
+* the world is planned in Python (`room_plan.py`, with the lock-and-key order of `lockkey.py`)
+  and stored in `rpggen/world_plan.json`; the recipe only paints the stored plan, and a stored
+  plan is never planned again (section 12 of the schemas);
+* an archetype whose world is not the top-down starter map brings a whole smoke sequence of its
+  own (`orchestrator.OWN_SMOKE_STEPS`) and its own sample pack, so the samples, goldens and
+  screenshots of the others do not change;
+* saves stay `save_version` 1: what the archetype adds are optional keys, written only when
+  they hold something.
+
+A fourth archetype follows the same list. Its integration suite gets a pytest marker and a CI
+job of its own.
 
 ---
 

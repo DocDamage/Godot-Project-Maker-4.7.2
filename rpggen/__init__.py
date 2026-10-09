@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 REPO_URL = "https://github.com/DocDamage/Godot-Project-Maker-4.7.2"
 RELEASES_URL = f"{REPO_URL}/releases"

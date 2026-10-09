@@ -57,18 +57,18 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 
 | Card | Title | Size | Depends on | Status |
 |------|-------|:----:|------------|--------|
-| T14.01 | Shared real-time combat primitives | M | — | open |
-| T14.02 | Side-view detection: tags, collision values, backgrounds | M | — | open |
-| T14.03 | Platform actor | L | T14.01, T14.02 | open |
-| T14.04 | Side-view NPCs, objects and the camera | M | T14.03 | open |
-| T14.05 | Abilities and gates | M | T14.04 | open |
-| T14.06 | Rooms and the world graph | XL | T14.05 | open |
-| T14.07 | Side-view enemies and the guardian | M | T14.06 | open |
-| T14.08 | HUD, room map and save stations | M | T14.07 | open |
-| T14.09 | Side-view sample pack and *Try the sample* | M | — | open |
-| T14.10 | Wizard: the Metroidvania card, roles, options and preview | M | T14.08, T14.09 | open |
-| T14.11 | Metroidvania smoke steps and integration test | M | T14.10 | open |
-| T14.12 | Documentation, screenshots and changelogs | M | T14.11 | open |
+| T14.01 | Shared real-time combat primitives | M | — | done |
+| T14.02 | Side-view detection: tags, collision values, backgrounds | M | — | done |
+| T14.03 | Platform actor | L | T14.01, T14.02 | done |
+| T14.04 | Side-view NPCs, objects and the camera | M | T14.03 | done |
+| T14.05 | Abilities and gates | M | T14.04 | done |
+| T14.06 | Rooms and the world graph | XL | T14.05 | done |
+| T14.07 | Side-view enemies and the guardian | M | T14.06 | done |
+| T14.08 | HUD, room map and save stations | M | T14.07 | done |
+| T14.09 | Side-view sample pack and *Try the sample* | M | — | done |
+| T14.10 | Wizard: the Metroidvania card, roles, options and preview | M | T14.08, T14.09 | done |
+| T14.11 | Metroidvania smoke steps and integration test | M | T14.10 | done |
+| T14.12 | Documentation, screenshots and changelogs | M | T14.11 | done |
 | T14.13 | Gate (1.2.0) | M | T14.12 | open |
 
 ---

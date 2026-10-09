@@ -21,7 +21,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `generator_version` | string | package version | |
 | `godot_version` | string | `"4.7.2"` | The version validated during preflight. |
 | `project_name` | string | — | 1–64 chars; written to `application/config/name`. |
-| `archetype` | enum `turn_based`/`arpg` | `turn_based` | |
+| `archetype` | enum `turn_based`/`arpg`/`metroidvania` | `turn_based` | `metroidvania` since release 1.2 (M14). |
 | `packs` | array of PackRef | — | At least 1 item. |
 | `base_tile_size` | int | detected | 8 to 256. The wizard and `rpggen generate --pack` set it from the packs (`catalog.dominant_tile_size`); 16 when they have no tile set. |
 | `resolution` | vec2i | `[640, 360]` | Both values between 160 and 3840. |
@@ -40,6 +40,22 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `starter` | object | `{}` | Optional (T3.11). Starter selections of the demo recipes: `player`, `npc`, `enemy`, `ground`, `building`, `chest`, `portrait` → an asset id or an object id. Omitted when empty. |
 
 Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]`.
+
+**A metroidvania (release 1.2, M14)** uses the same file with these differences:
+
+* `starter_map` holds the *starter world* instead (T14.06): `rooms` 5..12 (default 6), `room_size`
+  `[w, h]` tiles (32..80 by 23..45, default `[40, 23]`), `abilities` (a list from `double_jump`,
+  `dash`, `wall_jump`, `high_jump`, `break_blocks`, stored in that order, default the first two),
+  `enemies` 0..4 per room (default 2), `pickups` 0..12 in the world (default 4) and `added_rooms`
+  (at most 12 rows `{ "name", "join" }`, each a room built beside the room `join` names). `rooms`
+  must be at least `len(abilities) + 3`. As for a starter map, only the keys that differ from the
+  defaults are written.
+* `starter` may have `boss` (the guardian's sprite, role `BOSS`); `building` is not used.
+* `sounds` has four more fixed slots: `sfx_jump`, `sfx_land`, `sfx_dash`, `sfx_ability`. In the
+  other archetypes a slot of such a name is a custom slot.
+* `input` has `jump`, `dash`, `attack` and `down`, and `interact` is E / Up (Space jumps).
+* `map_layers` is not used (a room has the layers `Background`, `Ground`, `Platforms`, `Hazards`,
+  `Decoration`, `Foreground`), `imported_maps` is not used, and `features.navigation` is off.
 
 **PackRef:** `{ "pack_id": str, "source": str (absolute path as the user gave it; informational only), "source_sha256": str, "kind": "zip"|"7z"|"rar"|"folder" }`.
 
@@ -432,6 +448,13 @@ All three files share this shape:
 
 * Canonical JSON for the checksum: `JSON.stringify(data_without_checksum, "", true)`, where the third argument sorts keys. ⚠ VERIFY the signature of `JSON.stringify` in 4.7 (`data, indent, sort_keys, full_precision`).
 * Vectors are always stored as `[x, y]` arrays.
+* Three optional keys of a metroidvania (release 1.2), each **written only when it holds
+  something**, so the save of a top-down game is byte for byte what 1.1 wrote and `save_version`
+  stays 1: `abilities` (array of ability ids, T14.05), `broken_cells`
+  (`{ "<room id>": [[x, y], ...] }`: the breakable blocks that were broken, T14.05) and `room_fog`
+  (`{ "<room id>": true }`: the rooms that are on the room map, T14.08). A reader ignores entries
+  it cannot use. The place a defeated player returns to is kept in `flags` (`respawn.map`,
+  `respawn.x`, `respawn.y`), set by resting at a save station.
 
 ---
 
@@ -454,6 +477,11 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `maps` | asset_catalog | T12.49 |
 | `imported_maps` | generator_config | T12.49 |
 | `export_targets` | generator_config | T12.52 |
+| `starter_map.rooms`, `room_size`, `abilities`, `pickups`, `added_rooms` | generator_config (metroidvania) | T14.06 |
+| `starter.boss` | generator_config | T14.02 |
+| `rooms` | world_plan | T14.06 |
+| `abilities`, `broken_cells`, `room_fog` | save game | T14.05, T14.08 |
+| `summary.map.world`, `summary.map.rooms`; repair kind `exit` | command-line documents | T14.10, T14.06 |
 
 ---
 
@@ -552,7 +580,7 @@ An error (`ARCH-*` and so on) is `{ envelope…, "issues": [ … ] }` with exit 
 ### 11.3 `restore`, `diagnose` and `repair-world`
 
 * `repair-world` (T13.24): `target`, `dry_run`, `repairs`, `offered` and `unfixable` (lists of
-  `{ "kind": "retarget"/"spawn"/"door"/"unfixable", "map", "node", "what" }`: what was written
+  `{ "kind": "retarget"/"spawn"/"door"/"exit"/"unfixable", "map", "node", "what" }` (`exit`: the exit of a metroidvania's room): what was written
   or, with `--dry-run`, would be; what a map the run may not write would need; and what cannot be
   mended) and `backup` (the folder name under `.rpggen_backups` the maps went to, or `null`).
   `rpggen/world_repair.json` in the project holds the last run's `repairs`, `skipped` and
@@ -590,3 +618,39 @@ wall), `spawn` (the floor cell in front of it, where a player arrives), `spawn_i
 (`from_<other>`), `facing`, `to` (area id), `to_map`, `to_spawn`, and `key` when it is locked. The
 village's east door uses the starter map's own exit; its other doors are moved along the wall to
 free floor, so their `cell` is where the plan wanted them.
+
+### 12.1 `rooms` (a metroidvania, T14.06)
+
+A metroidvania's plan has no areas (`areas` is `[]`); its world is the `rooms` object. `grid` and
+`maps` are keyed by room id. The plan is stored and reused in the same way: once the scene of one
+room exists, the options and the seed no longer change it, and a row of `starter_map.added_rooms`
+appends a room.
+
+| Key | Type | Notes |
+|-----|------|-------|
+| `version` | int | 1 |
+| `room_size` | `[w, h]` | Tiles; every room of the first plan has this size. |
+| `abilities` | array of string | The abilities of the world, in the order they are found. |
+| `start`, `end` | room id | Where the game starts and where the hermit ends it. |
+| `guardian` | room id or `""` | The room of the guardian, which gives the first ability. |
+| `path` | array of room id | The way from `start` to `end` (the critical path). |
+| `list` | array of Room | The rooms, in plan order; added rooms last. |
+
+**Room:** `id` (`room_01`, or `room_<slug>` for an added room), `name`, `kind` (`start`,
+`corridor`, `shaft`, `guardian`, `pickup`, `end`), `map` (`game/maps/rooms/<id>.tscn`), `cell`
+(`[x, y]` on the world's grid; a room above another has the smaller `y`), `size`, `added` (true
+for a room of `added_rooms`), `tiles`, `exits`, and what stands in it, each a **feet cell** (the
+cell whose floor the thing stands on): `spawn`, `sign`, `station`, `npc`, `chest`, `enemies`,
+`items`, `pickup` (`{ "ability", "cell" }`), `guardian` (`{ "cell", "grants" }`) and `gates`.
+
+* `tiles` is the room as rows of characters, one per cell: `#` ground, `.` air, `=` a one-way
+  platform, `H` a ladder, `T` the top of a ladder (a ladder with a platform on it), `^` a hazard
+  and `B` a breakable block. The recipe paints exactly this; nothing about a room's shape is
+  decided in GDScript.
+* **Exit:** `id` (`<room>_exit_<n|e|s|w>`, also the name of its trigger and its spawn point),
+  `edge`, `cell`, `to` (room id), `to_exit`, and `needs` (an ability) when the way to it is
+  closed by a gate.
+* **Gate:** `{ "ability", "kind", "size", "cell" }`: what the room's shape asks for. `kind` is
+  `ledge` (double jump, high jump), `gap` (dash), `wall` (break blocks) or `shaft` (wall jump);
+  `size` is the height or width in tiles, out of reach without the ability and within reach
+  with it (and with the abilities found before it).

@@ -384,6 +384,8 @@ def test_the_metroidvania_readme_and_the_upgrade_note_of_the_action_rpg(tmp_path
     staging.write_project_files(stg, side, catalog.Catalog())
     text = (stg.staging / "README.md").read_text(encoding="utf-8")
     assert "## 22. Rooms, abilities and enemies (metroidvania)" in text
+    assert "Everything is yours to change.\n\n**This game is a metroidvania**" in text
+    assert "{kind_note}" not in text
     for words in (
         "game/maps/rooms/",
         "Added rooms",
@@ -406,3 +408,4 @@ def test_the_metroidvania_readme_and_the_upgrade_note_of_the_action_rpg(tmp_path
     assert "addons/rpg_runtime/combat/realtime/" in text
     assert "Reload Current Project" in text
     assert "(metroidvania)" not in text
+    assert "Everything is yours to change.\n\n- Godot version" in text, "the first lines of 1.1"

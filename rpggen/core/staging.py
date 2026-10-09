@@ -365,6 +365,18 @@ def version_control_note(pack_art: str) -> str:
     return f"## 9.1 Version control\n\n{body}"
 
 
+# What the README's first paragraph adds for a kind of game the shared sections were not
+# written for. Empty for the top-down archetypes, so their README is what it was.
+KIND_NOTES = {
+    "metroidvania": (
+        "\n\n**This game is a metroidvania**, seen from the side: its world is the rooms in"
+        "\n`game/maps/rooms/`, not one starter map. Where this file says *starter map*, read *a"
+        "\nroom*, and start with section 22: the controls, the rooms, abilities, enemies and save"
+        "\nstations."
+    ),
+}
+
+
 def render_readme(
     template: str, cfg: config_mod.GeneratorConfig, runtime: str, archetype_notes: str = ""
 ) -> str:
@@ -384,6 +396,7 @@ def render_readme(
         packs_list=packs,
         version_control_note=version_control_note(effective_pack_art(cfg)[0]),
         custom_sound_slots=custom_list,
+        kind_note=KIND_NOTES.get(cfg.archetype, ""),
     )
     return text + archetype_notes
 

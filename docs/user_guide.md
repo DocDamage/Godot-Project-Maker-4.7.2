@@ -21,7 +21,8 @@ in `_console.exe` if you have it.
    card says which pack **changed** on disk since the project was generated.
 2. Press **Try the sample**. rpggen fills in the bundled sample pack, a project name and an
    output folder in *Documents*, checks them, reads the pack and takes you to the last settings
-   page.
+   page. (The arrow on the button offers a second sample, a side-view cave: see
+   [Metroidvania](#3a-metroidvania).)
 3. Press **Generate**. The page lists the phases (preflight, stage, install, catalog, import,
    build, validate, smoke, export, promote, report) with a log underneath. It takes about a minute.
 4. On **Results** press **Open in Godot** and then F5. You start on the title screen, begin a new
@@ -59,7 +60,7 @@ licence file. A pack that cannot be read shows the reason on its card; the cross
 Rarely, a pack has a password or contains something unsafe (ARCH-002, ARCH-003, ARCH-004); extract
 it yourself and add the folder.
 
-**Archetype page.** Choose how combat works:
+**Archetype page.** Choose the kind of game:
 
 * **Turn-based**: encounters on the map start a battle screen with attack, defend, item and run.
   Up to four characters can fight together (the demo villager can bring a companion along).
@@ -67,8 +68,12 @@ it yourself and add the folder.
   Party members follow the player, and the first two help in a fight: they walk to an enemy
   near you and strike with their own attack; at 0 HP they are only down for a few seconds.
 
-You can generate the other archetype later in a new project; the shared systems (saving,
-dialogue, inventory, equipment, menus) are the same.
+* **Metroidvania**: seen from the side. You run, jump and climb through joined rooms, fight in
+  real time, and find abilities (a double jump, a dash, …) that open new ways. It has its own
+  section: [Metroidvania](#3a-metroidvania).
+
+You can generate another kind later in a new project; the shared systems (saving, dialogue,
+inventory, equipment, menus) are the same.
 
 ![Archetype page](images/wizard_archetype.png)
 
@@ -275,6 +280,112 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
   ![The conflict resolver](images/conflict_resolver.png)
 * On failure: the failing phase, the problems with a fix text, **Open failed folder**, **View
   logs** and **Export diagnostic bundle**.
+
+## 3a. Metroidvania
+
+The third kind of game is seen **from the side**: you run and jump through rooms that are joined
+into one world, and some ways are closed until you have found the ability that opens them.
+
+**Trying it.** On the welcome view, the arrow on **Try the sample** lists two samples: the
+*Top-down village* (what a click on the button itself gives) and the *Side-view cave*. The cave
+is a small pack made for this kind of game (cave tiles, planks, ladders and spikes, a hero with
+run, jump, fall, climb, dash and attack animations, a crawler and a bat, a guardian, a hermit,
+two ability orbs, three background layers and sounds). Choosing it fills in the pack and takes
+you to the last settings page with **Metroidvania** already chosen; press **Generate**.
+
+![The two samples](images/welcome_samples.png)
+
+**Choosing it for your own pack.** On the Archetype page pick the **Metroidvania** card. Under
+the cards rpggen says what it saw in your pack: *This pack looks side-view* (platform tiles,
+ladders, spikes, backgrounds in layers, a character that faces left and right), or that *your
+characters have walk-down animations*: the card can still be chosen, but a top-down character
+will look odd running sideways. A player without a `jump` or `fall` animation shows its idle
+frame in the air; the page says so, and the report lists it (ASSET-030).
+
+**What the roles are used for.** The Mapping page lists the roles this kind of game uses:
+
+| Role | Used for |
+|------|----------|
+| Player * | the hero, seen from the side |
+| Ground * | the floors and walls of every room |
+| Background | the pictures behind a room; several scroll at different speeds (parallax) |
+| Decoration | scenery in the rooms |
+| Enemy | the creatures in the rooms |
+| Boss | the guardian |
+| Item | pickups and chests |
+| NPC | the characters you talk to |
+| UI, Portrait | menus and dialogue |
+
+Only the two with a star are required. What your pack lacks is drawn by rpggen: a pack without
+one-way platforms, ladders, spikes or breakable blocks gets plain ones in its tile size, and
+without an enemy or a guardian the first ability lies in its room as a pickup instead. On the
+Audit page a tile's **collision** can be *One-way* (a plank you can jump up through) or
+*Ladder*, and the tags `hazard` and `breakable` mark spikes and blocks. The Sound section has
+four more slots: **Jump**, **Land**, **Dash** and **Ability**, filled by file name like the
+others.
+
+**The world options.** On the Options page the *Starter map* box is the **Starter world**:
+
+* **Rooms** (5 to 12) and the **room width** and **height** in tiles. A room is at least one
+  screen large.
+* **Abilities**, in the order they are found: *Double jump*, *Dash*, *Wall jump*, *High jump*
+  and *Break blocks*. The first one is guarded by the guardian; each of the others lies in a
+  room of its own. Every ability needs a room, so the number of rooms can never be lower than
+  the abilities plus three; the box raises it for you.
+* **Enemies** per room and **pickups** (potions and coins) in the whole world.
+* The picture is the plan, seen from the side: one box per room where it lies, the exits
+  between them, a letter where an ability is needed (**J** double jump, **D** dash, **W** wall
+  jump, **H** high jump, **B** break blocks) and marks for the start, the save station, the
+  guardian and the end. *Reroll* under *Advanced* gives another world.
+* **Added rooms.** A row with a name and the room it lies beside makes one more room. This is
+  also how a world that exists grows: once the project has been generated, the other options
+  are fixed (the box says so) and a new row is the one change the world still takes.
+
+There is no pathfinding in rooms, so *Navigation* is not offered, and the layer list shows the
+layers every room has (Background, Ground, Platforms, Hazards, Decoration, Foreground).
+
+![The starter world](images/world_preview.png)
+
+**Playing.**
+
+| Action | Keyboard | Gamepad |
+|--------|----------|---------|
+| Run | A / D, Left / Right | D-pad, left stick |
+| Jump | Space, Z | A (cross) |
+| Drop through a platform | Down, then jump | D-pad down, then A |
+| Climb a ladder | Up / Down | D-pad, left stick |
+| Attack | J, X, left mouse button | X (square) |
+| Dash (once you have it) | Shift, C | right stick button |
+| Talk, read, use | E, Up | Y (triangle) |
+
+* A jump is as high as you hold the button. You can still jump for a moment after walking off
+  an edge.
+* **Abilities** are found as orbs, or given by the guardian. A toast says what the new ability
+  does and which key uses it; the HUD shows the abilities of the world and lights the ones you
+  have. A ledge that was too high, a gap that was too wide or a wall of cracked blocks is then
+  a way on.
+* **Rooms** change as you walk through an exit: no fade, the camera slides over. The exits of
+  the guardian's room are closed while it lives.
+* **Save stations.** You save only at a save station (a bench in the first room): interact with
+  it to rest, which restores your health and brings ordinary enemies back, and to choose a slot.
+  The game also saves by itself on every room change. At 0 HP you return to the last station
+  you used, with everything you had.
+* **The map.** The minimap shows the rooms you have been in, with a mark for a station and for
+  an ability that still lies in a room; *Pause → Map* shows the whole world you have seen.
+* The game ends with the hermit in the last room, who has the last word and the credits.
+
+**Editing rooms in Godot.** Every room is a scene in `game/maps/rooms/`. Paint on its layers
+with the TileMap editor, drag enemies, pickups, chests, signs and save stations from the **RPG
+Project Tools** dock under `Entities` (an object dropped in a room lands on the floor below the
+mouse), and move the exits on its edges. A room that exists is never built again, so what you
+change is kept when you regenerate. The project's `README.md` has the details: the parts of a
+room, abilities and gates, enemies by tag, and the guardian.
+
+**Adding a room.** Either add a row under *Added rooms* in the wizard and generate again (the
+new room is built and the room beside it gets its exit), or duplicate a room scene in Godot,
+give it a new **Map Id** and set the **Target Room** and **Target Exit** of the exits on both
+sides. The validator reports an exit that leads nowhere (VAL-028) and can fix it; see
+[regeneration](regeneration.md#rooms-and-the-stored-plan).
 
 ## 4. In Godot
 

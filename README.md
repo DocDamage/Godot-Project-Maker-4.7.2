@@ -4,10 +4,11 @@ rpggen turns a 2D RPG asset pack (a folder, `.zip`, `.7z` or `.rar` you already 
 ready-to-edit **Godot 4.7.2** project: TileSets with collision and terrain, animated characters,
 a starter map with buildings you can walk into, or a whole world of connected areas with a
 locked cave and its key (or your own Tiled and LDtk maps), dialogue, inventory, equipment, shops,
-quests, cutscenes, saving, menus, lighting, a minimap and a combat system (turn-based with a
-party, or action-RPG with followers who help). It checks the result by loading and playing it
-headless before it gives it to you, and it can regenerate the project later without touching
-your work.
+quests, cutscenes, saving, menus, lighting, a minimap and a combat system. It makes three kinds
+of game: a **turn-based RPG** with a party, an **action RPG** with followers who help, and a
+side-view **metroidvania** of joined rooms, abilities that open new ways, a guardian and save
+stations. It checks the result by loading and playing it headless before it gives it to you,
+and it can regenerate the project later without touching your work.
 
 It is a desktop application for **Windows**, **Linux** and **macOS**.
 
@@ -21,7 +22,7 @@ Download the file for your system from the
 
 | System | File | Check the download |
 |--------|------|--------------------|
-| Windows 10/11 (x64) | `rpggen-<version>-setup.exe`, or the portable `rpggen-<version>-portable.zip` | PowerShell: `Get-FileHash .\rpggen-1.1.0-setup.exe -Algorithm SHA256` |
+| Windows 10/11 (x64) | `rpggen-<version>-setup.exe`, or the portable `rpggen-<version>-portable.zip` | PowerShell: `Get-FileHash .\rpggen-1.2.0-setup.exe -Algorithm SHA256` |
 | Linux (x86_64, glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Fedora 36 and later) | `rpggen-<version>-x86_64.AppImage`, or `rpggen-<version>-linux-x86_64.tar.gz` | `sha256sum -c SHA256SUMS.txt --ignore-missing` |
 | macOS 13 or newer (Apple silicon) | `rpggen-<version>-macos-arm64.zip` | `shasum -a 256 -c SHA256SUMS.txt --ignore-missing` |
 

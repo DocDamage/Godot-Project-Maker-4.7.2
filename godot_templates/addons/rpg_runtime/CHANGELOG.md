@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.2.0
+
+**Compatibility with 1.0 and 1.1.** The save version stays 1 and older saves load. Three keys
+are new and optional, written only when they hold something, so the save of a turn-based or
+action game is what 1.1 wrote: `abilities`, `broken_cells` and `room_fog`. `rpggen/world_plan.json`
+may have a `rooms` section. Top-down TileSets, maps and scenes are unchanged.
+
+**Moved scripts.** The real-time combat set moved from `archetypes/arpg/` to `combat/realtime/`
+with its uids: `damage_info.gd`, `hitbox.gd`, `hurtbox.gd`, `health.gd`, `projectile.gd`,
+`state_machine.gd`, `pickup.gd`, `screen_feedback.gd`. Class names and behaviour are unchanged.
+A script without a class name stays at each old path and extends the new one, so
+`preload("res://addons/rpg_runtime/archetypes/arpg/hitbox.gd")` still works; **these shims go
+away in 2.0**. A project that was open in the editor while it was regenerated needs *Project →
+Reload Current Project* once. `RpgArpgMath` extends the new `RpgRealtimeMath`.
+
+* **The metroidvania archetype** (`archetypes/metroidvania/`):
+  * `RpgPlatformActor` (a `CharacterBody2D` moved by intents: `move_x`, `move_y`, `press_jump`,
+    `release_jump`, `press_dash`; gravity, a variable jump, coyote time and a jump buffer,
+    one-way platforms on layer 11, ladders, the wall slide), `RpgPlatformPlayer` (attack, hurt,
+    hazards and the return to safe ground, interaction), `RpgPlatformInput`, `RpgPlatformMath`,
+    `RpgSideTiles`.
+  * `RpgAbilities` (the table: `double_jump`, `dash`, `wall_jump`, `high_jump`, `break_blocks`),
+    `RpgAbilityPickup`, `RpgAbilityGate`; `GameState.grant`, `has_ability`, the signal
+    `Events.ability_granted`; `RpgGate.required_ability` and the condition `ability:<id>`.
+  * `RpgRoom` (an `RpgMapRoot` with exits, a camera of its own and `arrive(exit_id, carry)`),
+    `RpgRoomExit`, `RpgSideCamera`, `RpgItemPickup`; `SceneRouter.go_to_room(map, exit_id,
+    carry)` changes the room without a fade and keeps the player's speed.
+  * `RpgSideNpc`, `RpgSideInteractable`; chests, signs, doors and spawn points have `side_view`.
+  * `RpgSideEnemy` with `patrol`, `flyer` and `shooter`, and `RpgGuardian` (three phases, grants
+    an ability, opens its room).
+  * `RpgSaveStation` (`rest()`, `save_to(slot)`, `respawn_point(state)`), `RpgMetroidvaniaHud`,
+    `RpgMetroidvaniaMode` (saving only at stations, an autosave on every room change, a defeated
+    player returns to the last station).
+* Shared code, for every archetype: `RpgAnimationDriver.resolve_side`, `has_side`, `play_side`
+  (animations without a facing, mirrored for the other side); `RpgStatsComponent.holder`;
+  `RpgUtil.beside`; `RpgDefeatPolicy.can_continue()`; `RpgUiController.open_menu(name, args)`;
+  `RpgMinimapData.room_list`, `room_boxes`, `room_map` and the room mode of `RpgMinimap` and
+  `RpgWorldMapMenu`; `GameState.visit_room`, `room_visited`, `remember_broken_cell`,
+  `broken_cells_of`. A combat mode may have `save_at_stations`, `autosave_on_every_map` and
+  `respawn_after_defeat()`; modes without them behave as before.
+* New text keys: `UI_NEEDS_ABILITY`, `UI_SAVE_AT_STATION`, `MV_RESTED`, and
+  `MV_ABILITY_<ID>_NAME`, `_DESC`, `_HINT` per ability.
+* Builder: `recipes/metroidvania/` (player, objects, rooms, parallax, enemies, HUD), `lib/
+  side_tileset.gd` and `lib/side_kit.gd`; the TileSet recipe adds the side-view physics layers
+  only for this archetype; `validate.gd`, the map graph and the world repair know rooms and
+  their exits (repair kind `exit`).
+
 ## 1.1.0
 
 **Compatibility with 1.0.** The save version stays 1 and a 1.0 save loads. Every new key is

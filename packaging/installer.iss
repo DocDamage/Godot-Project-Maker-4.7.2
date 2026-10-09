@@ -1,7 +1,7 @@
 ; Inno Setup script for rpggen. Built by tools/package.py (which passes /DAppVersion=... and
-; creates dist\LICENSE_AND_NOTICES.txt first).  iscc /DAppVersion=1.1.0 packaging\installer.iss
+; creates dist\LICENSE_AND_NOTICES.txt first).  iscc /DAppVersion=1.2.0 packaging\installer.iss
 #ifndef AppVersion
-  #define AppVersion "1.1.0"
+  #define AppVersion "1.2.0"
 #endif
 
 [Setup]

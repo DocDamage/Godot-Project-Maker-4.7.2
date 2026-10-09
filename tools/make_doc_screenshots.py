@@ -127,6 +127,57 @@ def _areas_picture(box, out: Path, qapp) -> Path:  # type: ignore[no-untyped-def
     return path
 
 
+def _samples_picture(welcome, out: Path, qapp) -> Path | None:  # type: ignore[no-untyped-def]
+    """The welcome view's *Try the sample* card with its menu of two samples open under it
+    (T14.09). A menu is a window of its own, so the two are drawn into one picture."""
+    from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QColor, QPainter, QPixmap
+
+    menu = welcome.sample_menu
+    if menu is None:  # the metroidvania is switched off: there is one sample and no menu
+        return None
+    card = welcome.sample_card.grab()
+    menu.popup(welcome.sample_card.mapToGlobal(QPoint(0, welcome.sample_card.height())))
+    _pump(qapp)
+    listed = menu.grab()
+    menu.close()
+    _pump(qapp)
+    ratio = card.devicePixelRatio()
+    width = max(card.width(), listed.width())
+    picture = QPixmap(width, card.height() + listed.height())
+    picture.setDevicePixelRatio(ratio)
+    picture.fill(QColor(0, 0, 0, 0))
+    painter = QPainter(picture)
+    painter.drawPixmap(0, 0, card)
+    painter.drawPixmap(0, int(card.height() / ratio), listed)
+    painter.end()
+    path = out / "welcome_samples.png"
+    picture.save(str(path))
+    return path
+
+
+def _world_picture(out: Path, qapp) -> Path:  # type: ignore[no-untyped-def]
+    """The Options page's *Starter world* box of a metroidvania with its side-view preview
+    (T14.10): the default world of six rooms."""
+    from rpggen.core import config
+    from rpggen.gui import state as state_mod
+    from rpggen.gui.pages.options_page import OptionsPage
+
+    ref = config.PackRef("sample_pack_side", "sample_pack_side", "0" * 64, "folder")
+    cfg = config.default_for("Sample Cave", [ref], archetype="metroidvania")
+    page = OptionsPage()
+    page.resize(760, 900)
+    page.show()
+    page.enter(state_mod.WizardState(config=cfg, archetype="metroidvania"))
+    _pump(qapp, 0.5)
+    page._show_world()  # once more at the shown width: the picture fits the box
+    _pump(qapp)
+    path = out / "world_preview.png"
+    page.world_box.grab().save(str(path))
+    page.close()
+    return path
+
+
 def _variant_dialog(window):  # type: ignore[no-untyped-def]
     """Audit → Make variant… for the sample pack's slime, turned to another colour (T13.18)."""
     from rpggen.gui.dialogs.variant_dialog import VariantDialog
@@ -209,6 +260,9 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
         window.show_welcome_view()
         _pump(qapp, 1.0)  # the Godot check runs in the background
         grab("welcome")
+        samples = _samples_picture(window.welcome, out, qapp)
+        if samples is not None:
+            written.append(samples)
         window.leave_welcome()
         window.show_page(0)
         grab("wizard_project")
@@ -250,6 +304,7 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
                 window.current_page.preview.grab().save(str(picture))
                 written.append(picture)
                 written.append(_areas_picture(window.current_page.starter_box, out, qapp))
+                written.append(_world_picture(out, qapp))
         if godot is not None:
             window.show_page(OPTIONS_INDEX)
             window.next_button.click()

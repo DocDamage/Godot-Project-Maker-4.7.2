@@ -10,7 +10,7 @@ is a human step and is marked *pending* until a maintainer fills it in. Nothing 
 | Evidence | Result | Source |
 |----------|--------|--------|
 | Detection accuracy on the synthetic corpus (12 packs: tile grids with gutters and margins, strips, RPG Maker-like, LPC-like, Tiled and Aseprite metadata, objects in sheets, weird names, zips) | grid 1.000, usage 1.000, role 1.000, animations 1.000 (thresholds 0.95 / 0.95 / 0.85 / 0.90) | `python -m rpggen analyze --corpus test_packs/synthetic`, enforced in CI |
-| End-to-end generation of every synthetic pack and the sample pack, both archetypes: validation and smoke test | pass | `tests/integration/test_all_synthetic_packs.py`, `test_m7_sample.py`, `test_m9_sample.py` |
+| End-to-end generation of every synthetic pack and the sample packs, every archetype: validation and smoke test | pass | `tests/integration/test_all_synthetic_packs.py`, `test_m7_sample.py`, `test_m9_sample.py` |
 | 1,000-image generated pack (tile sheets, strips, icons) | analysis 4.4 s cold / 0.9 s warm (targets 60 s / 5 s); full generation 47 s (target under 5 min medium pack) | `pytest -m slow tests/perf` on the author's PC |
 | Frozen Windows build generates the sample pack | pass | `python tools/package.py --smoke` |
 
@@ -59,7 +59,7 @@ mixed sizes, nested folders). For each pack and each archetype run
 python tools/held_out_run.py --pack "C:\Packs\unseen1" --name unseen1 --godot "<Godot 4.7.2 exe>"
 ```
 
-which generates both archetypes headless and appends one row per run to
+which generates the archetypes headless and appends one row per run to
 `validation_runs/results.md` (analysis time, generation time, passed, errors, warnings). Fill in
 the two columns only a person can measure: **time to first paint** (wizard start until painting
 tiles in Godot) and **manual audit edits**. Every bug found is fixed or ticketed.

@@ -132,6 +132,32 @@ door that has its partner, and does nothing while the Godot editor has the proje
 automatic part off with *Options → Advanced → Repair generated maps after a build*, or
 `--no-repair-world` for one run.
 
+## Rooms and the stored plan
+
+A metroidvania keeps the plan of its rooms in the same file, `rpggen/world_plan.json` (the
+`rooms` section: which room lies where, its exits, its tiles and what stands in it). The rule is
+the one of the areas: **the plan is stored and reused.** Once one room of the plan exists,
+
+* a new seed, another number of rooms, another room size or other abilities change nothing: the
+  *Starter world* box says so and shows the stored world;
+* a room that exists is never built again, whatever you painted or placed in it;
+* a row under **Added rooms** adds one room beside the room it names (or beside the nearest room
+  with a free side). The new room is built with its exit; the exit on the other side is added to
+  the neighbour by the repair below, because the neighbour is not rebuilt;
+* to have a room built again from the plan, delete its `game/maps/rooms/<room>.tscn`.
+
+The validator treats an exit like a door: a room no exit leads to is `VAL-027`, and an exit whose
+target room or arrival point does not exist is `VAL-028`, both warnings. The repair is the same
+as for areas, with the same promise. After a generation rpggen adds the missing exit and its
+spawn point to the rooms that are still exactly as it built them (by the recorded hash), after
+a backup, and lists the change in the report; a room you changed is not touched by itself, and
+**Repair the world…** on the Results page, `rpggen-cli repair-world` and the dock's **Fix** do
+it when you ask. A repair only adds an exit on a wall that has floor beside it; it never moves
+or removes anything.
+
+Saved games of a metroidvania have three more keys (`abilities`, `broken_cells`, `room_fog`),
+written only when they hold something, so a save made by a top-down project is unchanged.
+
 ## Git
 
 New projects get a `.gitignore` (the `.godot/` cache, logs and results, `.rpggen_*` working

@@ -3,6 +3,52 @@
 All notable changes to the rpggen application. The generated game's runtime has its own
 changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
+## 1.2.0
+
+A third kind of game: the **metroidvania**. A project made with 1.0 or 1.1 regenerates with 1.2
+without a prompt: the config and save versions are the same, every new key is optional, maps and
+everything under `game/` are never rewritten, and the TileSets of top-down projects are what
+they were. The real-time combat scripts of the action RPG moved to a shared folder; the old
+paths keep working until 2.0 (see the runtime's changelog).
+
+* **Metroidvania** (the third card on the Archetype page): a side-view hero that runs, jumps
+  with a variable height, drops through one-way platforms, climbs ladders and attacks; a world of
+  joined **rooms** that change without a fade; **abilities** (double jump, dash, wall jump, high
+  jump, break blocks) that open ledges, gaps, shafts and walls; a **guardian** that gives the
+  first one; patrolling, flying and shooting enemies; **save stations**, a room map and a HUD of
+  health pips and abilities; a hermit in the last room who ends the game.
+
+* **Side-view detection**: platform, ladder, spike and breakable tiles, parallax background
+  layers and left/right characters are recognised from folder and file words. A pack that looks
+  side-view says so on its card and suggests the Metroidvania card; a top-down pack can still
+  be used, with a note. New collision values for tiles: *One-way* and *Ladder*. A player without
+  a jump or fall animation shows its idle frame in the air (ASSET-030, a note).
+
+* **Starter world** (Options, for a metroidvania): rooms, room size, abilities, enemies and
+  pickups, with a side-view picture of the plan. The plan is planned in advance so that every
+  room can be reached and every ability is found before the way that needs it, stored in the
+  project, and never planned again; *Added rooms* grows a world that exists, and the world
+  repair gives the neighbour its exit. An exit that leads nowhere is VAL-028, as for doors.
+
+* **A second sample**: *Try the sample* is a split button, *Top-down village* (as before) or
+  *Side-view cave*, a small CC0 pack made for the metroidvania.
+
+* What a pack lacks is drawn: plain one-way platforms, ladders, spikes and breakable blocks in
+  the pack's tile size, an orb for an ability, a bench for the save station.
+
+* Mapping: the roles of the archetype (Background, Decoration and Boss among them), and four
+  more sound slots for it (Jump, Land, Dash, Ability).
+
+* The Archetype page fits three cards in the minimum window: the flow of a card wraps, and the
+  controls line is shown when the card is wide enough for it.
+
+* `rpggen generate --archetype metroidvania`; a dry run describes the world ("6 rooms, 2
+  abilities, a guardian"); the report's World section names the rooms.
+
+* The integration tests run as one CI job per archetype.
+
+* Fixed: the JSON result of a run that mended a metroidvania's exit did not fit its schema.
+
 ## 1.1.0
 
 Polish for the wizard, seven improvements and three additions to the generated game. A project

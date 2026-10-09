@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from rpggen import features
 from rpggen.core import godot
 from rpggen.gui.pages.project_page import ProjectPage
 
@@ -29,6 +30,8 @@ def test_every_page_screenshot_is_rendered(
     monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
     written = module.render(tmp_path / "images", godot_exe)  # includes generate and results
     names = {p.name for p in written}
+    if not features.METROIDVANIA_AVAILABLE:  # one sample, so no menu of samples to show
+        names.add("welcome_samples.png")
     # the Quests tab is drawn by Godot in a window: a machine without a display leaves it out
     assert names - {"quests_tab.png"} == {
         "wizard_project.png", "wizard_archetype.png", "wizard_audit.png", "wizard_mapping.png",
@@ -36,5 +39,6 @@ def test_every_page_screenshot_is_rendered(
         "welcome.png", "wizard_audit_light.png", "map_preview.png", "about_dialog.png",
         "pack_cards.png", "regeneration_preview.png", "conflict_resolver.png", "storage_dialog.png",
         "review_mode.png", "areas_table.png", "variant_dialog.png",
+        "welcome_samples.png", "world_preview.png",
     }  # fmt: skip
     assert all(p.stat().st_size > 500 for p in written)
