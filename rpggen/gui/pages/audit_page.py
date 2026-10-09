@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QProgressBar,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QSplitter,
@@ -48,7 +49,7 @@ from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
 from rpggen.gui.widgets import analysis_progress
 from rpggen.gui.widgets.anim_preview import AnimEditorDialog
-from rpggen.gui.widgets.asset_detail import AssetDetail
+from rpggen.gui.widgets.asset_detail import GRID_USAGES, AssetDetail
 from rpggen.gui.widgets.asset_grid import AssetGrid, PathResolver
 from rpggen.gui.widgets.bulk_panel import (
     BulkPanel,
@@ -61,6 +62,7 @@ from rpggen.gui.widgets.changes_panel import ChangesPanel
 from rpggen.gui.widgets.grid_editor import GridEditorDialog
 from rpggen.gui.widgets.object_cutter import ObjectCutterDialog
 from rpggen.gui.widgets.pack_info import PackInfoPanel
+from rpggen.gui.widgets.review_mode import ReviewMode
 from rpggen.gui.widgets.task_progress import error_text, run_task
 from rpggen.gui.widgets.terrain_tab import TerrainTab
 
@@ -124,6 +126,14 @@ class AuditPage(WizardPage):
         self.progress_bar.setToolTip(self.tr("How much of the pack you have looked at"))
         progress_row.addWidget(self.progress_label)
         progress_row.addWidget(self.progress_bar, 1)
+        self.review_button = QPushButton(self.tr("Review mode"))
+        self.review_button.setObjectName("reviewModeButton")
+        self.review_button.setCheckable(True)
+        self.review_button.setToolTip(
+            self.tr("One asset at a time with a large preview (F7). The keys stay the same.")
+        )
+        self.review_button.clicked.connect(lambda on: self.set_review_mode(bool(on)))
+        progress_row.addWidget(self.review_button)
         layout.addLayout(progress_row)
         self.done_label = QLabel()
         self.done_label.setObjectName("reviewDoneLabel")
@@ -182,7 +192,15 @@ class AuditPage(WizardPage):
         self.splitter.addWidget(self.side)
         self.splitter.setStretchFactor(0, 3)
         self.splitter.setStretchFactor(1, 2)
-        layout.addWidget(self.splitter, 1)  # the grid takes the spare height, not the labels
+        # the body: the grid with its side panel, or review mode (T13.01)
+        self.review = ReviewMode()
+        self.review.quickKey.connect(self._on_quick_key)
+        self.review.leaveRequested.connect(lambda: self.set_review_mode(False))
+        self.body = QStackedWidget()
+        self.body.setObjectName("auditBody")
+        self.body.addWidget(self.splitter)
+        self.body.addWidget(self.review)
+        layout.addWidget(self.body, 1)  # the grid takes the spare height, not the labels
         saved_sizes = app_settings.get().splitters.get("audit")
         if saved_sizes and len(saved_sizes) == 2 and all(s > 0 for s in saved_sizes):
             self.splitter.setSizes(saved_sizes)
@@ -245,6 +263,7 @@ class AuditPage(WizardPage):
             "C  confirm the selected assets (then go to the next one that needs attention)\n"
             "X  exclude the selected assets (likewise)\n"
             "N / Shift+N  next / previous asset that needs attention\n"
+            "F7  review mode: one asset at a time with a large preview (Esc leaves it)\n"
             "1-9  give the selected assets a role:\n{0}\n"
             "Ctrl+Z / Ctrl+Y  undo / redo\n"
             "Ctrl + mouse wheel  zoom the preview"
@@ -277,11 +296,105 @@ class AuditPage(WizardPage):
         elif key == "X":
             self._exclude_selection()
         elif key == "N":
-            self.grid.select_next_attention(True)
+            self._step(True)
         elif key == "SHIFT+N":
-            self.grid.select_next_attention(False)
+            self._step(False)
         else:
             self._quick_role(int(key))
+
+    def _step(self, forward: bool) -> None:
+        """N and Shift+N: the next asset that needs attention. In review mode, once nothing
+        needs attention, they walk the assets the filter shows instead."""
+        if self.grid.select_next_attention(forward) is not None or not self.in_review_mode:
+            return
+        order = self.grid.visible_ids()
+        if not order:
+            return
+        current = self.grid.selected_ids()
+        position = order.index(current[0]) if current and current[0] in order else -1
+        target = order[(position + (1 if forward else -1)) % len(order)]
+        self.grid.select_ids([target])
+        self.grid.scroll_to(target)
+
+    # ------------------------------------------------------------------ review mode (T13.01)
+
+    @property
+    def in_review_mode(self) -> bool:
+        return self.body.currentWidget() is self.review
+
+    def toggle_review_mode(self) -> None:
+        """View > Review mode (F7)."""
+        self.set_review_mode(not self.in_review_mode)
+
+    def set_review_mode(self, on: bool) -> bool:
+        """Show one asset at a time, or go back to the grid. The grid's selection is the asset
+        shown in both, so entering and leaving change nothing but the view."""
+        self.review_button.setChecked(on and self.detail is not None)
+        if self.detail is None or on == self.in_review_mode:
+            return self.in_review_mode
+        if on:
+            self.tabs.setCurrentWidget(self.grid)
+            queue = self.grid.attention_ids()
+            selected = self.grid.selected_ids()
+            if queue and (len(selected) != 1 or selected[0] not in queue):
+                self.grid.select_ids([queue[0]])
+            elif not queue and len(selected) != 1:
+                self.grid.select_ids(self.grid.visible_ids()[:1])
+            self.detail.show_preview = False
+            self.review.side.addWidget(self.detail_scroll)  # the same panel, moved
+            # a third of the page, or what the form needs when that is more (at most half)
+            bar = self.detail_scroll.verticalScrollBar().sizeHint().width()
+            needs = self.detail.minimumSizeHint().width() + bar
+            self.detail_scroll.setMinimumWidth(min(needs, self.width() // 2))
+            self.detail_scroll.show()
+            self.body.setCurrentWidget(self.review)
+            self._show_in_review()
+            self.review.setFocus()
+        else:
+            self.detail.show_preview = True
+            self.detail_scroll.setMinimumWidth(0)
+            self.side.addWidget(self.detail_scroll)
+            self.body.setCurrentWidget(self.splitter)
+            selected = self.grid.selected_ids()
+            self._on_selection(selected)
+            self.detail.reload(reload_image=True)
+            if selected:
+                self.grid.scroll_to(selected[0])
+            self.grid.view.setFocus()
+        return self.in_review_mode
+
+    def review_counter(self) -> str:
+        """ "12 of 37 need attention", or the place in the filter once nothing does."""
+        queue = self.grid.attention_ids()
+        selected = self.grid.selected_ids()
+        current = selected[0] if len(selected) == 1 else None
+        if queue:
+            if current in queue:
+                return self.tr("{0} of {1} need attention").format(
+                    queue.index(current) + 1, len(queue)
+                )
+            return self.tr("{0} need attention").format(len(queue))
+        order = self.grid.visible_ids()
+        if current in order:
+            return self.tr("Nothing needs attention · {0} of {1} shown").format(
+                order.index(current) + 1, len(order)
+            )
+        return self.tr("Nothing needs attention")
+
+    def _show_in_review(self) -> None:
+        """The selected asset in the large preview, with the grid its usage has."""
+        assert self.detail is not None
+        self.review.set_counter(self.review_counter())
+        asset = self.detail.asset()
+        if asset is None:
+            self.review.show_picture(None, None, self.tr("Nothing to review with this filter."))
+            return
+        self.detail.reload(reload_image=False)  # its own picture stays off in this mode
+        path = self.resolver(asset) if asset.kind == "image" else None
+        eff = catalog_mod.effective(asset)
+        grid = eff.get("grid") if eff.get("usage") in GRID_USAGES else None
+        note = labels.role_label(str(eff.get("role", ""))) or asset.kind
+        self.review.show_picture(path, grid, f"{asset.path.rsplit('/', 1)[-1]}\n{note}")
 
     def _advance(self, order_before: list[str], edited: list[str]) -> None:
         """Review flow: after a single asset was confirmed or excluded, select the next one that
@@ -399,6 +512,7 @@ class AuditPage(WizardPage):
         self.update_progress()
 
     def leave(self, state: WizardState) -> bool | None:
+        self.set_review_mode(False)
         if self.session is not None:
             state.catalog = self.session.catalog
         return None
@@ -411,10 +525,16 @@ class AuditPage(WizardPage):
         self.grid.model.refresh(ids or None)
         self.grid._update_counts()
         self.update_progress()
+        if self.in_review_mode:
+            self._show_in_review()  # an edit may change the grid drawn over the picture
         self.changed.emit()
 
     def _on_selection(self, ids: list[str]) -> None:
         if self.detail is None:
+            return
+        if self.in_review_mode:  # the panel is in the review widget; one asset at a time
+            self.detail.set_asset(ids[0] if len(ids) == 1 else None)
+            self._show_in_review()
             return
         if len(ids) == 1:
             self.detail.set_asset(ids[0])

@@ -96,6 +96,8 @@ class AssetDetail(QWidget):
         self.resolver: PathResolver = lambda asset: None
         self.asset_id: str | None = None
         self._loading = False
+        # review mode (T13.01) shows the picture large beside the panel and turns this one off
+        self.show_preview = True
 
         layout = QVBoxLayout(self)
         self.preview = ImageView("assetPreview")
@@ -306,7 +308,7 @@ class AssetDetail(QWidget):
     def _show_media_kind(self, asset: catalog_mod.Asset, eff: dict) -> None:
         """Audio and fonts hide the (empty) picture; audio gets Play, its length and its type."""
         is_image = asset.kind == "image"
-        self.preview.setVisible(is_image)
+        self.preview.setVisible(is_image and self.show_preview)
         is_audio = asset.kind == "audio"
         self.audio_box.setVisible(is_audio)
         if not is_audio:

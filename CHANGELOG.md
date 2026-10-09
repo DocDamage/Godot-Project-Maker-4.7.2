@@ -15,6 +15,9 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 * **Shops**: left / right on a row sets how many to buy or sell (the row shows the total), and
   the Sell tab has **Sell all**. A shop can list the item categories it buys.
 
+* **Audit review mode** (View → Review mode, `F7`, or the button beside the progress line): one
+  asset at a time with a large preview and the same panel and keys; `Esc` returns to the grid.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

@@ -32,6 +32,7 @@ SHORTCUTS = (
     ("C", "Confirm the selected assets (Audit page)"),
     ("X", "Exclude the selected assets (Audit page)"),
     ("N / Shift+N", "Next / previous asset that needs attention (Audit page)"),
+    ("F7", "Review mode: one asset at a time with a large preview (Audit page; Esc leaves)"),
     ("1 - 9", "Give the selected assets the role in that slot (Audit page)"),
     ("Ctrl + mouse wheel", "Zoom the asset grid (Audit page)"),
 )
@@ -121,6 +122,12 @@ class WindowMenus:
             theme_group.addAction(action)
             self.theme_actions[key] = action
         self.theme_actions[theme.saved_theme()].setChecked(True)
+        self.review_action = self._action(
+            view_menu, self.tr("Review mode"), "reviewModeAction", self.toggle_review_mode
+        )
+        self.review_action.setShortcut(QKeySequence("F7"))
+        self.review_action.setCheckable(True)
+        view_menu.aboutToShow.connect(self._sync_review_action)
         size_menu = view_menu.addMenu(self.tr("Thumbnail size"))
         size_group = QActionGroup(self)
         self.thumb_actions: dict[int, QAction] = {}
@@ -351,6 +358,18 @@ class WindowMenus:
             self.tr("Language"),
             self.tr("rpggen will use the new language the next time it starts."),
         )
+
+    def toggle_review_mode(self) -> None:
+        """F7: the Audit page's review mode (only there)."""
+        audit = self._audit_page()
+        if audit is not None and self.current_page is audit:  # type: ignore[attr-defined]
+            audit.toggle_review_mode()
+        self._sync_review_action()
+
+    def _sync_review_action(self) -> None:
+        audit = self._audit_page()
+        on_audit = audit is not None and self.current_page is audit  # type: ignore[attr-defined]
+        self.review_action.setChecked(bool(on_audit and audit.in_review_mode))
 
     def set_thumb_size(self, size: int) -> None:
         app_settings.schedule(thumb_size=size)
