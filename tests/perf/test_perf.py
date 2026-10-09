@@ -27,6 +27,7 @@ COLD_S = 60 * TOLERANCE
 WARM_S = 5 * TOLERANCE
 GENERATE_S = 10 * 60
 REGENERATE_S = 60 * TOLERANCE  # section 45: a regeneration without changes, under a minute
+SIDE_SAMPLE_S = 90 * TOLERANCE  # T14.11: the side-view sample as a metroidvania, played through
 
 
 def _analyze(pack: Path) -> tuple[float, WizardState]:
@@ -131,3 +132,32 @@ def test_parallel_analysis_is_faster_than_the_serial_one(
     record("image analysis, parallel", parallel)
     if cpus >= 4:
         assert serial / parallel >= 2.0, f"only {serial / parallel:.1f}x faster on {cpus} cpus"
+
+
+def test_the_side_view_sample_generates_as_a_metroidvania_in_time(
+    godot_exe: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The whole run on the side-view sample pack (T14.11): analysis, the six rooms, validation
+    and the sixteen smoke steps, from a cold cache."""
+    from rpggen.core import archive, catalog, config, inventory, mapping, profiles
+
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    pack = paths.sample_pack_side_root()
+    profiles.install_profile(pack / "sample_side.rpgprofile.json")
+    started = time.perf_counter()
+    opened = archive.open_pack(pack, set(), pack_id="sample_pack_side")
+    cat, _issues, _generated = catalog.assemble(
+        [(opened, inventory.build_inventory(opened))], None, []
+    )
+    cfg = config.default_for(
+        "Sample Cave",
+        [config.pack_ref_from_source(pack, "sample_pack_side")],
+        archetype="metroidvania",
+    )
+    cfg.starter = mapping.default_starter(cat, "metroidvania")
+    result = orchestrator.run_in_memory(cfg, None, tmp_path / "game", godot_exe)
+    elapsed = time.perf_counter() - started
+    print(f"\nmetroidvania from the side-view sample: {elapsed:.1f}s")
+    record("metroidvania from the side-view sample", elapsed)
+    assert result.ok, [(i.code, i.message) for i in result.issues if i.severity.value == "error"]
+    assert elapsed < SIDE_SAMPLE_S, f"took {elapsed:.0f}s (limit {SIDE_SAMPLE_S:.0f}s)"

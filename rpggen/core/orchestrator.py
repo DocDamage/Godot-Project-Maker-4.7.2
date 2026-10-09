@@ -58,12 +58,18 @@ SMOKE_STEPS_M6 = "res://generated/builder/smoke/smoke_steps_m6.gd"
 SMOKE_STEPS = SMOKE_STEPS_M6
 SMOKE_STEPS_TURN_BASED = "res://generated/builder/smoke/smoke_steps_turn_based.gd"
 SMOKE_STEPS_ARPG = "res://generated/builder/smoke/smoke_steps_arpg.gd"
+SMOKE_STEPS_METROIDVANIA = "res://generated/builder/smoke/smoke_steps_metroidvania.gd"
 # The archetype's own steps run after the shared sequence (which ends in the starter map).
 ARCHETYPE_SMOKE_STEPS = {"turn_based": SMOKE_STEPS_TURN_BASED, "arpg": SMOKE_STEPS_ARPG}
+# An archetype whose world is not the top-down starter map has a whole sequence of its own (the
+# shared one walks a village): the title screen and a new game are among its steps.
+OWN_SMOKE_STEPS = {"metroidvania": SMOKE_STEPS_METROIDVANIA}
 
 
 def smoke_steps_for(archetype: str) -> str:
     """Comma-separated steps scripts for the smoke run of a project with this archetype."""
+    if archetype in OWN_SMOKE_STEPS:
+        return OWN_SMOKE_STEPS[archetype]
     extra = ARCHETYPE_SMOKE_STEPS.get(archetype)
     return f"{SMOKE_STEPS},{extra}" if extra else SMOKE_STEPS
 

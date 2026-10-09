@@ -24,7 +24,7 @@ from rpggen.core import (
     requirements,
 )
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.arpg]
 
 REPO = Path(__file__).resolve().parents[2]
 SAMPLE = REPO / "sample_pack"

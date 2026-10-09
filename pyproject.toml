@@ -35,7 +35,12 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 module = "rpggen.gui.window_menus"
 disable_error_code = ["attr-defined", "call-overload", "arg-type"]
 [tool.pytest.ini_options]
-markers = ["integration: needs RPGGEN_GODOT", "slow: long-running"]
+markers = [
+    "integration: needs RPGGEN_GODOT",
+    "slow: long-running",
+    "arpg: integration tests of the action-RPG archetype (a CI job of their own)",
+    "metroidvania: integration tests of the metroidvania archetype (a CI job of their own)",
+]
 testpaths = ["tests"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E501"]

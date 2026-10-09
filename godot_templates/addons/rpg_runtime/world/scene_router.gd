@@ -48,6 +48,10 @@ func go_to_room(map_path: String, exit_id: String, carry: Dictionary = {}) -> vo
 		return
 	_busy = true
 	var tree := get_tree()
+	if Engine.is_in_physics_frame():
+		# an exit calls this from its body_entered: a scene with physics bodies cannot be taken
+		# out of the tree in a physics callback
+		await tree.process_frame
 	var err := tree.change_scene_to_file(map_path)
 	if err != OK:
 		push_error("[RPG-WORLD] cannot load room %s (error %d)" % [map_path, err])

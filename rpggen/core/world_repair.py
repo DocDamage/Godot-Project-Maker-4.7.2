@@ -142,7 +142,7 @@ def _after_writing(target: Path, changed: list[str], unedited: set[str]) -> None
             continue
         digest = ledger.file_hash(Path(target) / rel)
         if plan is not None:
-            for area in plan["areas"]:
+            for area in [*plan["areas"], *(plan.get("rooms") or {}).get("list", [])]:
                 if area["map"] == rel and area["id"] in plan["maps"]:
                     plan["maps"][area["id"]]["map_hash"] = digest
         if rel in current.files:

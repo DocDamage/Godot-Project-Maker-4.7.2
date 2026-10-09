@@ -210,6 +210,9 @@ def test_smoke_steps_follow_the_archetype() -> None:
     arpg = orchestrator.smoke_steps_for("arpg").split(",")
     assert arpg[0].endswith("smoke_steps_m6.gd") and arpg[1].endswith("smoke_steps_arpg.gd")
     assert len(arpg) == 2
+    # a metroidvania has no village to walk: its sequence is its own, title screen included
+    own = orchestrator.smoke_steps_for("metroidvania")
+    assert own.endswith("smoke_steps_metroidvania.gd") and "," not in own
 
 
 def test_the_readme_gets_the_archetype_section(tmp_path: Path) -> None:
