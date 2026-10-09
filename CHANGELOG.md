@@ -25,6 +25,10 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   where an attack hits; a sprite with animations has a small transport (animation, Play, frame)
   that plays it in the preview, in the panel or large in review mode.
 
+* **Audit: Select similar** (right-click, `Ctrl+Shift+S`): selects the assets that look like the
+  selected one, so one bulk edit covers them. A file that repeats another one says so in its
+  *Why* line.
+
 ## 1.0.0
 
 The first release. It turns a 2D RPG asset pack into a Godot 4.7.2 project (tile sets with

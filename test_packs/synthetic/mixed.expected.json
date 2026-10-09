@@ -51,6 +51,10 @@
     "role": "ITEM",
     "usage": "sprite"
   },
+  "items/spare/item_01.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
   "tiles/ground16.png": {
     "cell": [
       16,

@@ -280,6 +280,8 @@ def make_mixed(out: Path) -> None:
     _save_png(bg, pack / "backgrounds" / "sky.png")
     for i in range(12):
         _save_png(_item_icon(i), pack / "items" / f"item_{i + 1:02d}.png")
+    # the same file in a second folder: the catalog tags it as a duplicate of the first (T13.04)
+    _save_png(_item_icon(0), pack / "items" / "spare" / "item_01.png")
     expected: dict[str, dict] = {
         "tiles/ground16.png": {
             "usage": "tiles",
@@ -299,6 +301,7 @@ def make_mixed(out: Path) -> None:
     }
     for i in range(12):
         expected[f"items/item_{i + 1:02d}.png"] = {"usage": "sprite", "role": "ITEM"}
+    expected["items/spare/item_01.png"] = {"usage": "sprite", "role": "ITEM"}
     _expected(out, "mixed", expected)
 
 

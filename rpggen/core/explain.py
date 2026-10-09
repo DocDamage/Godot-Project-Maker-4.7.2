@@ -39,6 +39,12 @@ def _shape(eff: dict[str, Any]) -> str:
     return ""
 
 
+def _named(asset_id: str) -> str:
+    """ "forest/tree from pack_a" for the id ``pack_a.forest.tree`` (T13.04's duplicate tag)."""
+    pack, _, rest = asset_id.partition(".")
+    return f"{rest.replace('.', '/')} from {pack}" if rest else asset_id
+
+
 def why(asset: catalog_mod.Asset) -> str:
     """One or two lines: the keywords, the shape and the other roles that were considered."""
     eff = catalog_mod.effective(asset)
@@ -68,6 +74,9 @@ def why(asset: catalog_mod.Asset) -> str:
     elif asset.detected_by and asset.detected_by not in ("inventory", "generic_grid"):
         parts.append(f"read by the {asset.detected_by} reader")
     text = "; ".join(parts) if parts else "no strong hint in the name or the picture"
+    for tag in eff.get("tags") or []:
+        if isinstance(tag, str) and tag.startswith("duplicate_of:"):
+            text += ". Looks like " + _named(tag.partition(":")[2])
     alts = [(r, c) for r, c in (eff.get("roles_alt") or []) if r != role][:MAX_ALTERNATIVES]
     if alts:
         text += ". Also considered: " + ", ".join(

@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtGui import QKeySequence
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
@@ -38,6 +38,7 @@ from rpggen.core import (
     profiles,
 )
 from rpggen.core import catalog as catalog_mod
+from rpggen.core.analyzer import similarity
 from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
 from rpggen.gui import edits as edits_mod
@@ -126,6 +127,13 @@ class AuditPage(WizardPage):
         self.progress_bar.setToolTip(self.tr("How much of the pack you have looked at"))
         progress_row.addWidget(self.progress_label)
         progress_row.addWidget(self.progress_bar, 1)
+        # what the last command did to the selection: "9 similar assets selected" (T13.04)
+        self.selection_note = QLabel()
+        self.selection_note.setObjectName("selectionNote")
+        progress_row.addWidget(self.selection_note)
+        self.similar_shortcut = QShortcut(QKeySequence("Ctrl+Shift+S"), self)
+        self.similar_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.similar_shortcut.activated.connect(self.select_similar)
         self.review_button = QPushButton(self.tr("Review mode"))
         self.review_button.setObjectName("reviewModeButton")
         self.review_button.setCheckable(True)
@@ -290,6 +298,7 @@ class AuditPage(WizardPage):
             "C  confirm the selected assets (then go to the next one that needs attention)\n"
             "X  exclude the selected assets (likewise)\n"
             "N / Shift+N  next / previous asset that needs attention\n"
+            "Ctrl+Shift+S  select the assets that look like the selected one\n"
             "F7  review mode: one asset at a time with a large preview (Esc leaves it)\n"
             "1-9  give the selected assets a role:\n{0}\n"
             "Ctrl+Z / Ctrl+Y  undo / redo\n"
@@ -888,7 +897,38 @@ class AuditPage(WizardPage):
         action = menu.addAction(self.tr("Make rule for this folder…"))
         action.setObjectName("makeRuleAction")
         action.triggered.connect(self.make_rule)
+        similar = menu.addAction(self.tr("Select similar"))
+        similar.setObjectName("selectSimilarAction")
+        similar.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        similar.setEnabled(self.can_select_similar())
+        similar.triggered.connect(self.select_similar)
         menu.exec(self.grid.view.viewport().mapToGlobal(pos))
+
+    def can_select_similar(self) -> bool:
+        """One image is selected (a sound or a font has no picture to compare)."""
+        ids = self.grid.selected_ids()
+        asset = self.session.catalog.asset(ids[0]) if self.session and len(ids) == 1 else None
+        return asset is not None and asset.kind == "image"
+
+    def select_similar(self) -> list[str]:
+        """Select the assets that look like the selected one (and keep it selected), so the
+        bulk panel applies to all of them. Returns the similar ones, nearest first."""
+        if not self.can_select_similar() or self.session is None:
+            return []
+        origin = self.grid.selected_ids()[0]
+        found = [i for i, _d in similarity.near(self.session.catalog, origin)]
+        if found and not set(found) <= set(self.grid.visible_ids()):
+            self.grid.chips["chipAll"].click()  # the filter hid some of them
+        shown = set(self.grid.visible_ids())
+        found = [i for i in found if i in shown]
+        if found:
+            self.grid.select_ids([origin, *found])
+        self.selection_note.setText(
+            self.tr("{0} similar assets selected").format(len(found))
+            if found
+            else self.tr("No similar assets found")
+        )
+        return found
 
     def make_rule(self) -> bool:
         """Open the rule dialog for the selection; True when a rule was added."""

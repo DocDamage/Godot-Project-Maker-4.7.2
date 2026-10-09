@@ -344,6 +344,36 @@
       "status": "NEEDS_REVIEW"
     },
     {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "duplicate_of:mixed.items.item_01"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "mixed.items.spare.item_01",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed",
+      "path": "assets/packs/mixed/items/spare/item_01.png",
+      "sha256": "be0c2d57a5ab96f2d40cd13271b65861467caeb2f3d1d29720c6b3534adce755",
+      "status": "NEEDS_REVIEW"
+    },
+    {
       "confidence": 0.421266,
       "detected": {
         "grid": {
@@ -466,7 +496,7 @@
       "pack_id": "mixed",
       "profile_id": null,
       "root": "assets/packs/mixed",
-      "source_sha256": "62c749cddfdd7130b4379b18fdd6134ed28771bc7adc8e740030e16fcba498f3",
+      "source_sha256": "a6096a0df6f7ac9900d76d0e918a67e030194e59538a0f3f688de8805c5a455e",
       "warnings": []
     }
   ],

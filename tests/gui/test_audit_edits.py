@@ -382,3 +382,44 @@ def test_the_grouping_choice_is_remembered(qtbot) -> None:
     assert again.grid.model.grouped and again.grid.header_keys()
     again.grid.group_button.click()
     assert app_settings.get().group_by_folder is False
+
+
+# ------------------------------------------------------------------------ select similar (T13.04)
+
+
+def test_select_similar_selects_the_lookalikes_and_the_bulk_panel_applies(qtbot) -> None:
+    from PySide6.QtGui import QKeySequence
+
+    from rpggen.core.analyzer import similarity
+
+    page, state = _page(qtbot, "mixed")
+    first = "mixed.items.item_01"
+    expected = [i for i, _d in similarity.near(state.catalog, first)]
+    assert "mixed.items.spare.item_01" in expected, "the repeated file is at distance 0"
+    _select(page, first)
+    assert page.can_select_similar()
+    assert page.similar_shortcut.key() == QKeySequence("Ctrl+Shift+S")
+    page.similar_shortcut.activated.emit()
+    assert sorted(page.grid.selected_ids()) == sorted([first, *expected])
+    assert page.selection_note.text() == f"{len(expected)} similar assets selected"
+    # more than one asset selected: the bulk panel shows and applies to all of them
+    assert page.side.currentWidget() is page.bulk_scroll
+    steps = page.session.undo_stack.count()
+    assert page.session.set_overrides(page.grid.selected_ids(), {"role": "DECORATION"})
+    assert page.session.undo_stack.count() == steps + 1
+    for asset_id in [first, *expected]:
+        assert catalog.effective(page.session.catalog.asset(asset_id))["role"] == "DECORATION"
+    # nothing looks like the background, and the command says so
+    _select(page, "mixed.backgrounds.sky")
+    assert page.select_similar() == []
+    assert page.selection_note.text() == "No similar assets found"
+    assert page.grid.selected_ids() == ["mixed.backgrounds.sky"]
+
+
+def test_select_similar_is_off_for_a_sound(qtbot) -> None:
+    page, state = _page(qtbot, "audio_basic")
+    sound = next(a for a in state.catalog.assets if a.kind == "audio")
+    _select(page, sound.id)
+    assert not page.can_select_similar() and page.select_similar() == []
+    page.grid.select_ids([])
+    assert not page.can_select_similar()

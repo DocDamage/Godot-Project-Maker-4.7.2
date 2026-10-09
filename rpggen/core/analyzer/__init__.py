@@ -82,6 +82,7 @@ def analyze_array(a, mask) -> dict[str, Any]:  # noqa: ANN001 - numpy arrays
         "baseline_y": baseline,
         "dominant_colors": image_facts.dominant_colors(a),
         "nine_slice": image_facts.detect_nine_slice(a),
+        **image_facts.hashes(a, region_list),
     }
 
 
@@ -92,6 +93,13 @@ def analyze_file(path: Path, sha256: str, *, use_cache: bool = True) -> dict[str
     if use_cache:
         hit = cache.get(sha256, ANALYZER_VERSION)
         if hit is not None:
+            if "dhash" not in hit:
+                # an entry written by 1.0: the hash is added to it, the other facts stay (T13.04)
+                hit.update(image_facts.hashes(image_facts.load_rgba(path), hit.get("regions")))
+                try:
+                    cache.put(sha256, ANALYZER_VERSION, hit)
+                except OSError:
+                    log.debug("could not extend the analysis cache for %s", sha256, exc_info=True)
             return hit
     a = image_facts.load_rgba(path)
     data = analyze_array(a, image_facts.occupancy(a))

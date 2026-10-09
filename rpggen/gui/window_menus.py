@@ -34,6 +34,7 @@ SHORTCUTS = (
     ("N / Shift+N", "Next / previous asset that needs attention (Audit page)"),
     ("F7", "Review mode: one asset at a time with a large preview (Audit page; Esc leaves)"),
     ("1 - 9", "Give the selected assets the role in that slot (Audit page)"),
+    ("Ctrl+Shift+S", "Select the assets that look like the selected one (Audit page)"),
     ("Ctrl + mouse wheel", "Zoom the asset grid (Audit page)"),
 )
 

@@ -19,6 +19,31 @@ def load_rgba(path: Path) -> np.ndarray:
         return np.asarray(rgba, dtype=np.uint8)
 
 
+def dhash(a: np.ndarray) -> str:
+    """A 64-bit difference hash of an RGBA image, as 16 hex digits (T13.04): the picture in
+    grey (transparent pixels count as black) is reduced to 9 x 8, and each bit says whether a
+    pixel is brighter than its left neighbour. Pictures that look alike differ in few bits."""
+    rgb = a[..., :3].astype(np.float32)
+    alpha = a[..., 3].astype(np.float32) / 255.0
+    grey = (rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)) * alpha
+    small = Image.fromarray(np.clip(grey + 0.5, 0, 255).astype(np.uint8), "L").resize(
+        (9, 8), Image.Resampling.BOX
+    )
+    px = np.asarray(small, dtype=np.int16)
+    bits = (px[:, 1:] > px[:, :-1]).flatten()
+    value = 0
+    for bit in bits:
+        value = (value << 1) | int(bit)
+    return f"{value:016x}"
+
+
+def hashes(a: np.ndarray, regions: list[list[int]] | None) -> dict[str, object]:
+    """The hash facts of an image: of the whole picture and of each region of a sheet (the
+    objects found on it), in the order of ``regions``."""
+    cut = [a[y : y + h, x : x + w] for x, y, w, h in regions or []]
+    return {"dhash": dhash(a), "region_dhashes": [dhash(c) for c in cut if c.size]}
+
+
 def is_fully_opaque(a: np.ndarray) -> bool:
     return bool((a[..., 3] == 255).all())
 

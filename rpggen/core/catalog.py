@@ -602,6 +602,16 @@ def _learned_decided(fragments: list[tuple[int, AssetFragment]], facets: dict[st
     )
 
 
+def _picture_hash(analyze: Callable[[str], dict[str, Any]], path: str) -> str | None:
+    """The difference hash of a pack's image, from its (cached) analysis. A file that cannot be
+    read has none: the adapter that needed it has reported that already."""
+    try:
+        value = analyze(path).get("dhash")
+    except (OSError, ValueError):
+        return None
+    return value if isinstance(value, str) else None
+
+
 def _suggest_tags(facets: dict[str, Any], path: str) -> None:
     """Add the tags the file name suggests ("light" for a torch, T12.62) to detected facets."""
     from rpggen.core import classifier
@@ -713,6 +723,7 @@ def assemble(
     all_results: dict[str, list[Any]] = {}
     extra_rules: list[FolderRule] = []
     pack_roots: dict[str, Path] = {}
+    picture_hashes: dict[str, str] = {}  # asset id -> difference hash (T13.04)
 
     for opened, inv in sorted(packs, key=lambda pair: _sort_key(pair[1].pack_id)):
         if is_cancelled is not None and is_cancelled():
@@ -789,6 +800,9 @@ def assemble(
                     facets["size"] = [f.image["w"], f.image["h"]]
                 _suggest_tags(facets, path)
                 asset_id = id_for_path[path] + (f"#{variant}" if variant else "")
+                picture = _picture_hash(ctx.analyze, path) if ctx.analyze else None
+                if picture is not None:
+                    picture_hashes[asset_id] = picture
                 catalog.assets.append(
                     Asset(
                         id=asset_id,
@@ -854,6 +868,11 @@ def assemble(
                 ).to_json(),
             )
         )
+
+    # the same picture twice: the later file says which one it repeats (information only)
+    from rpggen.core.analyzer import similarity
+
+    similarity.mark_duplicates(catalog, picture_hashes)
 
     # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
     terrain.apply_tiled_wang(catalog, adapter_tilesets)

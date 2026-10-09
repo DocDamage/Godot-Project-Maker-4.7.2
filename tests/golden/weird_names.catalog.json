@@ -16,6 +16,9 @@
           32,
           32
         ],
+        "tags": [
+          "duplicate_of:weird_names.tree"
+        ],
         "usage": "sprite"
       },
       "detected_by": "generic_grid",
