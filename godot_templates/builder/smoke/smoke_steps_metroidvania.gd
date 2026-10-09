@@ -141,11 +141,19 @@ func _enter(id: String) -> bool:
 	var router := _router()
 	if room.is_empty() or router == null:
 		return false
-	if not (_in_room(id)):
-		await _wait_for(func() -> bool: return not router.is_busy(), 300)
+	# A call the router gets while it is still busy is ignored, so on a slow machine one try may
+	# not be enough: wait for it, ask, and ask again when the room did not come.
+	for attempt in 3:
+		if _in_room(id):
+			break
+		await _wait_for(func() -> bool: return not router.is_busy(), 600)
 		router.go_to("res://" + JsonUtil.to_str(room["map"]), &"default")
-		if not await _wait_for(func() -> bool: return _in_room(id), 600):
-			return false
+		if await _wait_for(func() -> bool: return _in_room(id), 900):
+			break
+	if not _in_room(id):
+		var shown := _current()
+		print("[rpggen] INFO could not enter %s: the map is %s, the router is %s, calls ignored %d, player %s" % [id, String(shown.map_id) if shown != null else "none", "busy" if router.is_busy() else "idle", router.ignored_calls, "there" if _player() != null else "missing"])
+		return false
 	await _frames(4)
 	_calm()
 	return true

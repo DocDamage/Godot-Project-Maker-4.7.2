@@ -193,11 +193,15 @@ def test_the_audit_page_fits_with_the_grid_grouped_by_folder(
 @pytest.mark.parametrize("theme_name", dev.LAYOUT_THEMES)
 @pytest.mark.parametrize("archetype", ["turn_based", "arpg"])
 def test_the_audit_page_fits_in_review_mode_with_folder_groups(
-    qtbot, tmp_path: Path, archetype: str, theme_name: str, size: str
+    qtbot, tmp_path: Path, monkeypatch, archetype: str, theme_name: str, size: str
 ) -> None:
     """The 1.1 gate: T12.16 with review mode and folder groups on, both themes, both archetypes."""
     from rpggen.gui.pages.audit_page import AuditPage
 
+    # With a fresh settings folder the Audit page starts its first-run tour 0.4 s after it is
+    # shown, and a tour leaves review mode. On a slow machine that timer fired in the middle of
+    # this test (the Windows CI job); the tour is not what is measured here.
+    monkeypatch.setattr(AuditPage, "maybe_start_tour", lambda self: False)
     theme.apply_theme(theme_name, remember=False)
     window = MainWindow(dev.layout_state(archetype, tmp_path), default_pages())
     qtbot.addWidget(window)
