@@ -3,6 +3,49 @@
 All notable changes to the rpggen application. The generated game's runtime has its own
 changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
+## 1.3.0
+
+The look, the feel and the ease of use of the wizard. Nothing was taken away and nothing moved
+out of reach: every control, menu entry and shortcut of 1.2 is there. The generated game is
+unchanged (the runtime's changelog has no entry), and a project made with 1.0, 1.1 or 1.2
+regenerates without a prompt.
+
+* **A designed look, in both themes.** One set of colours, sizes and radii for the whole
+  program; every button, field, list, tab, scroll bar and menu is drawn to it. Buttons say how
+  much they matter (one main action per view, quiet ones beside it, red for what deletes),
+  there are icons, groups are cards, and a keyboard user sees a clear focus ring. Pages fade in
+  (not with *Reduce motion*).
+* **The steps on the left** show what is done, what needs a look and what is not open yet, and
+  shrink to their circles in a narrow window. Every page starts the same way: its name, what it
+  is for, its own controls and help.
+* **Welcome**: three cards of one height, *Choose a sample* on the sample card, how the wizard
+  works while there are no recent projects, and the Godot that was found (or *Download*) in one
+  line at the bottom.
+* **Project**: a small drop zone that holds the Add buttons; hints inside the fields.
+  **Audit**: one filter row with *Profile* at its end (it was three rows, and *Profile* was cut
+  off in the default window), the review count in the header, a footer with the keys.
+  **Mapping**: compact rows with icon buttons. **Options**: two columns in a wide window,
+  *Reset to defaults* beside the presets. **Generate**: a checklist of plain-language steps and
+  the percentage. **Results**: a banner, the counts as tiles.
+* **Try the sample in two clicks**: the welcome card goes all the way to the Generate page and
+  starts; *Back* returns to the options while nothing was written.
+* **Failures that say what to do**: the Results page shows what Godot reported, with the file
+  and line, the end of the failed step's log, and buttons that open the log, show the asset in
+  the audit or open the failed folder.
+* **A regeneration that changed nothing takes seconds**: when the packs, the audit, the options,
+  rpggen and Godot are what they were and no file of the project was touched since the last
+  run (a generated one, or one of your own under `game/`), the import, the build and the
+  checks are not repeated (REGEN-011). `--full` on the command line, or *Run every
+  check again on every regeneration* in the preview of changes, runs them all.
+* The window's title names the project, the page and the progress.
+* Fixed: colour codes of the terminal showed as `[0m` and the like in the Generate log.
+* Fixed: a project that uses a placeholder for a missing role, or the generated side-view tiles
+  of a metroidvania, got a *file is missing* warning (CAT-004) for it on every regeneration,
+  and a second copy of the placeholder in its catalog each time.
+* Fixed: `Alt+N` stopped working once the Next button read *Generate*.
+* For contributors: pictures of every page are compared on each change
+  (`python -m rpggen.dev update-ui-goldens`), and CONTRIBUTING has a *Look and feel* section.
+
 ## 1.2.0
 
 A third kind of game: the **metroidvania**. A project made with 1.0 or 1.1 regenerates with 1.2

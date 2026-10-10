@@ -193,6 +193,48 @@ def _variant_dialog(window):  # type: ignore[no-untyped-def]
     return dialog
 
 
+FAILED_LOG = "godot_build.log"
+FAILED_CAUSE = (
+    "Failed loading resource: res://assets/packs/sample_pack/tilesets/town.png. "
+    "Make sure resources have been imported by opening the project in the editor at least once."
+)
+
+
+def failed_result(root: Path, target: Path | None):  # type: ignore[no-untyped-def]
+    """A run that failed while Godot built the project, for the Results page's picture (T15.21):
+    the problem with what Godot said, the log of the step and the folder that was kept."""
+    from rpggen.core import orchestrator
+    from rpggen.errors import Issue, Severity
+
+    failed = root / ".rpggen_failed" / "20260101-120000"
+    logs = failed / "rpggen" / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "Godot Engine v4.7.2.stable.official - https://godotengine.org",
+        "[rpggen] INFO running tileset_recipe",
+        "[rpggen] INFO tileset rpggen_sample_pack: 3 sources",
+        f"ERROR: {FAILED_CAUSE}",
+        "   at: _load (core/io/resource_loader.cpp:343)",
+        "[rpggen] ERROR BUILD-002 recipe tileset_recipe failed",
+        "[rpggen] INFO build finished ok=false",
+    ]
+    (logs / FAILED_LOG).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    issue = Issue(
+        "BUILD-002",
+        Severity.ERROR,
+        "Recipe tileset_recipe failed.",
+        "Open the log; if the file it names is one of your assets, check it in the audit.",
+    )
+    issue.detail.update(
+        cause=FAILED_CAUSE,
+        log=FAILED_LOG,
+        file="res://assets/packs/sample_pack/tilesets/town.png",
+    )
+    return orchestrator.RunResult(
+        False, target or root / "game", [issue], None, failed, failed_phase="build"
+    )
+
+
 def _quests_picture(godot: Path, project: Path | None, out: Path) -> Path | None:
     """The dock's Quests tab of the generated project (T13.19), drawn by Godot itself. Godot has
     to open a window for it; None when it cannot (a machine without a display)."""
@@ -213,8 +255,15 @@ def _quests_picture(godot: Path, project: Path | None, out: Path) -> Path | None
     return path if path.is_file() and path.stat().st_size > 500 else None
 
 
-def render(out: Path, godot: Path | None = None) -> list[Path]:
-    """Write one PNG per wizard page (plus the crash dialog) and return the paths."""
+def render(
+    out: Path,
+    godot: Path | None = None,
+    size: tuple[int, int] = (1100, 720),
+    font: str | None = None,
+) -> list[Path]:
+    """Write one PNG per wizard page (plus the crash dialog) and return the paths. ``size`` is
+    the window's and ``font`` a family for every text (the machine's own when None)."""
+    from PySide6.QtGui import QFont
     from PySide6.QtWidgets import QApplication
 
     from rpggen.core import godot as godot_mod
@@ -238,6 +287,8 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
         os.environ["RPGGEN_CACHE_DIR"] = str(tmp_path / "cache")
         qapp = gui_app.create_app([])
         assert isinstance(qapp, QApplication)
+        if font:
+            qapp.setFont(QFont(font, 9))
         # a fresh settings folder would start the Audit page's first-run tour over the picture
         from rpggen.core import app_settings
 
@@ -247,7 +298,7 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
         if godot is not None:
             godot_mod.auto_find_godot = lambda: [godot]  # type: ignore[assignment]
         window = MainWindow(state_mod.WizardState(), default_pages())
-        window.resize(1100, 720)
+        window.resize(*size)
         window.show()
         _pump(qapp)
 
@@ -320,6 +371,13 @@ def render(out: Path, godot: Path | None = None) -> list[Path]:
             if quests is not None:  # Godot needs a window for it: not on a machine without one
                 written.append(quests)
 
+        # the Results page after a failed run: the cause, the end of the log and the buttons
+        finished = window.state.run_result
+        window.state.run_result = failed_result(tmp_path / "failed_demo", window.state.target)
+        window.show_page(len(window.pages) - 1)
+        grab("results_failed")
+        window.state.run_result = finished
+
         def grab_dialog(widget, name: str, seconds: float = 0.3) -> None:  # type: ignore[no-untyped-def]
             widget.show()
             _pump(qapp, seconds)
@@ -349,11 +407,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path, default=REPO / "docs" / "images")
     parser.add_argument("--godot", type=Path, default=None)
+    parser.add_argument("--size", default="1100x720", help="the window, as WIDTHxHEIGHT")
+    parser.add_argument("--font", default=None, help="a font family for every text")
     args = parser.parse_args(argv)
+    width, _, height = args.size.partition("x")
     exe = args.godot or (
         Path(os.environ["RPGGEN_GODOT"]) if os.environ.get("RPGGEN_GODOT") else None
     )
-    for path in render(args.out, exe):
+    for path in render(args.out, exe, (int(width), int(height)), args.font):
         print(path)
     return 0
 

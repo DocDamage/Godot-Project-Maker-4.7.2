@@ -637,10 +637,11 @@ class ResultsPage(WizardPage):
                 else self.tr("No picture of the starter map was made.")
             )
             return
+        # 300 high: in the default window the counts under the picture show without scrolling
         self.map_picture.setPixmap(
             pixmap.scaled(
                 560,
-                340,
+                300,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.FastTransformation,
             )

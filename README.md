@@ -10,7 +10,8 @@ side-view **metroidvania** of joined rooms, abilities that open new ways, a guar
 stations. It checks the result by loading and playing it headless before it gives it to you,
 and it can regenerate the project later without touching your work.
 
-It is a desktop application for **Windows**, **Linux** and **macOS**.
+It is a desktop application for **Windows**, **Linux** and **macOS**, with a dark and a light
+theme. *Try the sample* on its first screen makes a playable project in two clicks.
 
 ![The audit page](docs/images/wizard_audit.png)
 

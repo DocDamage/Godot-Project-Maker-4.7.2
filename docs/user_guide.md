@@ -20,13 +20,17 @@ in `_console.exe` if you have it.
    double-click it to open it, or press **Regenerate** to go straight to the Generate page. A
    card says which pack **changed** on disk since the project was generated.
 2. Press **Try the sample**. rpggen fills in the bundled sample pack, a project name and an
-   output folder in *Documents*, checks them, reads the pack and takes you to the last settings
-   page. (The arrow on the button offers a second sample, a side-view cave: see
-   [Metroidvania](#3a-metroidvania).)
-3. Press **Generate**. The page lists the phases (preflight, stage, install, catalog, import,
-   build, validate, smoke, export, promote, report) with a log underneath. It takes about a minute.
+   output folder in *Documents*, reads the pack and starts generating with the default options.
+   A line at the top of the page says so; **Back** stops the run and returns to the options for
+   as long as nothing was written into your folder. (*Choose a sample* on the same card offers a
+   second sample, a side-view cave: see [Metroidvania](#3a-metroidvania).)
+3. Wait about a minute. The page ticks off what it does, from *Checking your setup* to *Writing
+   the report*, with the percentage beside the bar; **Show details** opens the log.
 4. On **Results** press **Open in Godot** and then F5. You start on the title screen, begin a new
    game, walk around, talk to the villager, open the chest and enter the house.
+
+On a first start, when there are no recent projects yet, the welcome view shows in three steps
+how the wizard works instead.
 
 ![The welcome view](images/welcome.png)
 
@@ -36,7 +40,11 @@ The **Help** menu has the user guide (F1 opens it at the page you are on), the l
 codes with their fixes, the keyboard shortcuts, *Report a problem…*, *Check for updates…* and
 *About rpggen* (version, licenses and the third-party notices). The **View** menu switches
 between the dark and the light theme, sets the size of the thumbnails, opens review mode, and
-has **Reduce motion** (no fades or sliding menus); **File** lists your recent projects. rpggen follows the display scaling of your system (125 %, 150 %, 200 %):
+has **Reduce motion** (no fades or sliding menus); **File** lists your recent projects. The
+window's title names the project and the page you are on, with the percentage while a
+generation runs, so the taskbar tells you how far it is. The steps on the left show which pages
+are done (a tick), which need a look (a warning sign, with a count) and which cannot be opened
+yet; in a narrow window they shrink to their circles. rpggen follows the display scaling of your system (125 %, 150 %, 200 %):
 pictures stay sharp, and everything can be reached and is announced by a screen reader. **View > Language** picks the wizard's language (*Follow the system*, English, or a
 language that has a translation; French is the first); it applies the next time rpggen starts.
 
@@ -47,8 +55,9 @@ language that has a translation; French is the first); it applies the next time 
 **Project page.** Add one or more packs (drag a folder or archive onto the list, or use *Add Zip/7z…* or *Add Folder…*).
 Packs stay untouched: rpggen copies what it needs into the project. Pick an **output folder**
 that is empty (or an existing rpggen project, see [regeneration](regeneration.md)), the **Godot
-executable** and a **project name**. Red text under a field says what is wrong; the **Next** button
-stays disabled until everything is green. Avoid cloud-sync folders (OneDrive, Dropbox): they can
+executable** and a **project name**. An empty field says in grey what it is for; red text under
+a field says what is wrong, and the line above the **Next** button repeats it. The Godot's
+version is shown as a chip under its label. Avoid cloud-sync folders (OneDrive, Dropbox): they can
 lock files during generation (ENV-006).
 
 Each pack is a card: its name, whether it is a folder or an archive, how many files and how big,
@@ -87,7 +96,11 @@ inventory, equipment, menus) are the same.
   filter by status; it opens on **Needs attention**. Filters also exist for role, pack and a
   path search. A sound's card shows its waveform and its length; a recolour variant has ⧉ in
   the corner of its picture.
-* **Group by folder** (the button above the grid): a header per pack folder with how many of
+  All of these are one row above the grid: the chips, the two lists, the search box, the
+  folder button and, at its end, **Profile**. The page's header has the count of what you have
+  reviewed with its bar and the **Review mode** button; the line under the grid says how many
+  assets still need attention and names the keys, with **Shortcuts** for the whole list.
+* **Group by folder** (the list-shaped button in that row): a header per pack folder with how many of
   its assets are shown and the buttons *Confirm all*, *Select all* and *Make rule…*; click a
   header to fold the folder away.
 * **Review mode** (*View → Review mode*, `F7`): one asset at a time, large, with its details
@@ -166,9 +179,11 @@ inventory, equipment, menus) are the same.
 **Mapping page.** A checklist of what the starter map and the systems need: ground, wall, player,
 NPC, enemy, chest, building, UI and so on. Each row shows the chosen asset. Its list offers the
 best candidates that could plausibly fill the role; **More…** opens all of them as a gallery of
-thumbnails, grouped by pack with the best candidate first and a search box; *Clear* goes back
-to the automatic choice, and the small button at the end of the row shows the chosen asset on
-the Audit page (*Back* returns). If a required role has no asset you can continue with a
+thumbnails, grouped by pack with the best candidate first and a search box. The three small
+buttons at the end of a row open that gallery, show the chosen asset on the Audit page (*Back*
+returns) and clear the row, which goes back to the automatic choice; each says what it does
+when the mouse rests on it. The header counts the roles that are filled and has **Undo**; a
+required role without an asset has a warning edge. If a required role has no asset you can continue with a
 **placeholder** (a labelled debug picture, ASSET-010) and fix it later.
 
 **Sound.** Under the roles, the *Sound* section lists **sound slots**: the map, battle and title
@@ -191,8 +206,8 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
 **initialize a git repository** and commit.
 
 * **Presets.** *Save as preset…* keeps the options for your next project; *Manage…* renames or
-  deletes them. A preset only fills the options, never the packs or the folder, and *Defaults*
-  returns to the factory values. Three presets come with rpggen and cannot be deleted:
+  deletes them. A preset only fills the options, never the packs or the folder, and *Reset to
+  defaults* (beside the presets, in the page's header) returns to the factory values. Three presets come with rpggen and cannot be deleted:
   **Everything**, **Minimal** (tile sets, collision, animations, saving and dialogue) and
   **Just the tilesets**.
 * **Options that need each other.** A feature that needs another one is greyed out while that
@@ -278,20 +293,30 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
   ([regeneration.md](regeneration.md#resolving-conflicts)).
 
   ![The conflict resolver](images/conflict_resolver.png)
-* On failure: the failing phase, the problems with a fix text, **Open failed folder**, **View
-  logs** and **Export diagnostic bundle**.
+* Under the picture the counts (assets, TileSets, scenes, animation sets, warnings, errors)
+  are tiles; a regeneration that found nothing changed says so here and on the Generate page,
+  where the checks it did not repeat have a dash ([regeneration.md](regeneration.md)).
+* **After a failure** the page says which step failed and shows what to do about it: the
+  problem with its fix, and under it what Godot itself reported (*Godot said: …*, with the file
+  and the line when Godot named them) and the last 30 lines of that step's log (**Show more**
+  for the rest). The buttons under the problem act on it: **Open the log**, **Show this asset
+  in the audit** when the file belongs to one of your assets, and **Open failed folder**;
+  **Export diagnostic bundle** packs everything for a bug report.
+
+  ![The Results page after a failed run](images/results_failed.png)
 
 ## 3a. Metroidvania
 
 The third kind of game is seen **from the side**: you run and jump through rooms that are joined
 into one world, and some ways are closed until you have found the ability that opens them.
 
-**Trying it.** On the welcome view, the arrow on **Try the sample** lists two samples: the
-*Top-down village* (what a click on the button itself gives) and the *Side-view cave*. The cave
+**Trying it.** On the welcome view, **Choose a sample** on the *Try the sample* card lists two
+samples: the *Top-down village* (what a click on the card itself gives) and the *Side-view cave*. The cave
 is a small pack made for this kind of game (cave tiles, planks, ladders and spikes, a hero with
 run, jump, fall, climb, dash and attack animations, a crawler and a bat, a guardian, a hermit,
-two ability orbs, three background layers and sounds). Choosing it fills in the pack and takes
-you to the last settings page with **Metroidvania** already chosen; press **Generate**.
+two ability orbs, three background layers and sounds). Choosing it fills in the pack, chooses
+**Metroidvania** and starts generating; **Back** returns to the options while nothing was
+written yet.
 
 ![The two samples](images/welcome_samples.png)
 

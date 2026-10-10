@@ -39,6 +39,6 @@ def test_every_page_screenshot_is_rendered(
         "welcome.png", "wizard_audit_light.png", "map_preview.png", "about_dialog.png",
         "pack_cards.png", "regeneration_preview.png", "conflict_resolver.png", "storage_dialog.png",
         "review_mode.png", "areas_table.png", "variant_dialog.png",
-        "welcome_samples.png", "world_preview.png",
+        "welcome_samples.png", "world_preview.png", "results_failed.png",
     }  # fmt: skip
     assert all(p.stat().st_size > 500 for p in written)

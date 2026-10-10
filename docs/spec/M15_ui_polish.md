@@ -67,31 +67,31 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days.
 
 | Card | Title | Size | Depends on | Status |
 |------|-------|:----:|------------|--------|
-| T15.01 | Design tokens and one stylesheet template | M | — | open |
-| T15.02 | Every stock widget styled | L | T15.01 | open |
-| T15.03 | Button kinds | S | T15.02 | open |
-| T15.04 | An icon set | M | T15.01 | open |
-| T15.05 | No inline styles | S | T15.01 | open |
-| T15.06 | One page header everywhere | S | T15.02 | open |
-| T15.07 | The stepper sidebar | M | T15.02, T15.04 | open |
-| T15.08 | Cards | M | T15.02 | open |
-| T15.09 | Focus ring and page motion | S | T15.02 | open |
-| T15.10 | Welcome view | M | T15.06, T15.08 | open |
-| T15.11 | Project page | M | T15.06, T15.08 | open |
-| T15.12 | Audit page | L | T15.06, T15.04 | open |
-| T15.13 | Mapping page | M | T15.06, T15.04 | open |
-| T15.14 | Options page | M | T15.06, T15.08 | open |
-| T15.15 | Generate page | S | T15.06, T15.07 | open |
-| T15.16 | Generate log: no colour-escape codes | S | — | open |
-| T15.17 | Results page | M | T15.06, T15.08, T15.21 | open |
-| T15.18 | Window title with the project and the step | S | — | open |
-| T15.19 | Dialogs | S | T15.02, T15.03 | open |
-| T15.20 | Regeneration that skips what did not change | M | — | open |
-| T15.21 | Failures that say what to do | M | — | open |
-| T15.22 | Try the sample in two clicks | S | — | open |
-| T15.23 | Visual regression goldens | M | T15.10 – T15.19 | open |
-| T15.24 | Documentation, screenshots and changelog | S | Parts A–C | open |
-| T15.25 | Gate (1.3.0) | S | T15.23, T15.24 | open |
+| T15.01 | Design tokens and one stylesheet template | M | — | done |
+| T15.02 | Every stock widget styled | L | T15.01 | done |
+| T15.03 | Button kinds | S | T15.02 | done |
+| T15.04 | An icon set | M | T15.01 | done |
+| T15.05 | No inline styles | S | T15.01 | done |
+| T15.06 | One page header everywhere | S | T15.02 | done |
+| T15.07 | The stepper sidebar | M | T15.02, T15.04 | done |
+| T15.08 | Cards | M | T15.02 | done |
+| T15.09 | Focus ring and page motion | S | T15.02 | done |
+| T15.10 | Welcome view | M | T15.06, T15.08 | done |
+| T15.11 | Project page | M | T15.06, T15.08 | done |
+| T15.12 | Audit page | L | T15.06, T15.04 | done |
+| T15.13 | Mapping page | M | T15.06, T15.04 | done |
+| T15.14 | Options page | M | T15.06, T15.08 | done |
+| T15.15 | Generate page | S | T15.06, T15.07 | done |
+| T15.16 | Generate log: no colour-escape codes | S | — | done |
+| T15.17 | Results page | M | T15.06, T15.08, T15.21 | done |
+| T15.18 | Window title with the project and the step | S | — | done |
+| T15.19 | Dialogs | S | T15.02, T15.03 | done |
+| T15.20 | Regeneration that skips what did not change | M | — | done |
+| T15.21 | Failures that say what to do | M | — | done |
+| T15.22 | Try the sample in two clicks | S | — | done |
+| T15.23 | Visual regression goldens | M | T15.10 – T15.19 | done |
+| T15.24 | Documentation, screenshots and changelog | S | Parts A–C | done |
+| T15.25 | Gate (1.3.0) | S | T15.23, T15.24 | open: the automated part is done; CI, the frozen builds and the manual rows remain (docs/status.md) |
 
 ---
 

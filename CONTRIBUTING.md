@@ -146,10 +146,46 @@ speaker's review and the remaining texts are welcome.
 The generated game is translated separately, by adding columns to its `game/i18n/strings.tsv`
 (see the project's README).
 
+## Look and feel
+
+The wizard has one design system (M15). Keep to it, so that a new widget looks like the rest in
+both themes.
+
+* **Tokens.** Every colour, radius and size has a name in `rpggen/gui/theme.py` (`TOKENS`, one
+  table per theme, and `SIZES`). `rpggen/gui/style.qss.in` is the only stylesheet: it is a
+  template, `@token` becomes the value of the theme in use, and a name that is not a token is
+  an error. In code ask `theme.token("accent")` or `theme.px("pad_control")`; never write a
+  colour code. A new token needs a value in both themes and has to pass the contrast tests
+  (`tests/gui/test_theme_a11y.py`, `tests/gui/test_design_system.py`).
+* **No inline styles.** A widget is styled by a rule on its object name or on a property
+  (`widget.setProperty("role", "section")`, then `theme.repolish(widget)`), not by
+  `setStyleSheet`. A test lists the two exceptions, which carry a colour of the data.
+* **Buttons.** `widgets.buttons.set_kind(button, PRIMARY | SECONDARY | QUIET | DANGER)`. A view
+  has **one** primary button: what the user most likely does next.
+* **Icons.** The icons are rpggen's own SVG files in `rpggen/gui/icons` (24 px view box, 2 px
+  stroke, `currentColor`), written by `tools/make_ui_icons.py`. To add one, add its drawing to
+  that tool and run it (a test runs it with `--check`); use it with `icons.set_icon(button,
+  "name")` or `icons.pixmap("name", "accent", 24)`, which follow the theme. No bitmap icons:
+  they blur at 150 %.
+* **Pages** start with `page_layout()` (the margins and the header); cards are
+  `widgets.card.Card`, messages `Banner`.
+* **Pictures of every page.** `tests/gui/test_visual_goldens.py` renders the welcome view and
+  the seven pages, in both themes and at both window sizes, and compares them with the pictures
+  in `tests/gui/goldens`. When a change to the look is meant, run
+  `python -m rpggen.dev update-ui-goldens`, look at what changed (`git diff --stat` names the
+  pages) and commit the new pictures with the change, with a before and after of each page in
+  the pull request. A failure leaves the page as it is now and a picture of the difference in
+  `tests/gui/goldens/_failed`; CI uploads them. The goldens are rendered with Segoe UI
+  (`made_with.json`), so the test runs on Windows and is skipped where that font is missing;
+  make them on Windows.
+
 ## Documentation
 
 `docs/architecture.md` is a copy of `docs/spec/ARCHITECTURE.md`; a test fails when they differ.
-Screenshots in `docs/images/` are generated: `python tools/make_doc_screenshots.py`.
+Screenshots in `docs/images/` are generated: `python tools/make_doc_screenshots.py --godot <exe>`
+(without Godot the Generate and Results pages are left out). They are 1100 x 720 pictures of
+a display at 100 %: on a display that is scaled, set `QT_ENABLE_HIGHDPI_SCALING=0` and
+`QT_FONT_DPI=96` for the run.
 
 ## Releases
 

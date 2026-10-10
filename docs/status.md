@@ -36,7 +36,7 @@ rows (T14.13), below.
 | M12 Review follow-ups | Fixes, engineering, UX and 25 features (below) | 70 of 71 cards done; T12.66 (the gate) open |
 | M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | On the branch `m13` (not part of 1.0): every card is implemented; T13.23 (the gate) is open. 23 of 24 cards done |
 | M14 Metroidvania (1.2.0) | The third archetype (below) | On the branch `m14` (not part of 1.0 or 1.1): every card is implemented; the manual rows of the gate (T14.13) are open. It was built before the 1.1 tag existed, on top of `m13` |
-| M15 Look, feel and ease of use (1.3.0) | A design system (tokens, one stylesheet, button kinds, icons, cards, a stepper sidebar, page headers), every page and dialog restyled, the Generate log without escape codes, actionable failures, a regeneration that skips what did not change, visual goldens (`docs/spec/M15_ui_polish.md`) | Planned 2026-10-09 from the UI review; starts after the 1.2 tag. No card started |
+| M15 Look, feel and ease of use (1.3.0) | A design system (tokens, one stylesheet, button kinds, icons, cards, a stepper sidebar, page headers), every page and dialog restyled, the Generate log without escape codes, actionable failures, a regeneration that skips what did not change, visual goldens (`docs/spec/M15_ui_polish.md`) | On the branch `m15` (on top of `main`, which holds M14): every card is implemented; the gate (T15.25) is open, below |
 | M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; the kinds for M17 sketched (`docs/spec/M16_arcade_archetypes.md`) | Planned 2026-10-09; starts after the 1.3 tag. No card started |
 
 ## M12 in detail
@@ -83,7 +83,7 @@ T12.66 (the gate) is open; see below.
 
 ## After 1.0: M13 and M14
 
-**M15 and M16** (planned 2026-10-09) are specified but not started: `docs/spec/M15_ui_polish.md` (the look, feel and ease of use, release 1.3.0) and `docs/spec/M16_arcade_archetypes.md` (three more kinds of game, release 1.4.0). Each has its order of work, index and gate; neither has a branch yet.
+**M15** (the look, feel and ease of use, release 1.3.0, `docs/spec/M15_ui_polish.md`) is implemented on the branch `m15`; what its gate still needs is under *What is left before 1.3.0*. **M16** (three more kinds of game, release 1.4.0, `docs/spec/M16_arcade_archetypes.md`) is specified with its order of work, index and gate, and not started.
 
 Planned on 2026-10-08 from the second review. Neither blocks the 1.0 tag: 1.0 ships from M12, M13
 is release 1.1.0 (`docs/spec/M13_polish.md`) and M14 is release 1.2.0
@@ -167,6 +167,35 @@ M13 (release 1.1.0), so the list is empty on the branch `m13`; `main` (1.0) stil
 sell one item at a time, every house leads to the same interior, the validator does not check the
 ids a dialogue names, Zstandard map layers are not read, the action RPG has no followers, and the
 sound slots are a fixed list.
+
+## What is left before 1.3.0
+
+The cards T15.01 to T15.24 are done (2026-10-10). The detail, with every deviation from the
+spec, is in [the notes](dev/implementation_notes.md); the ones a reader should know:
+
+* The icons are rpggen's own drawings in the manner of Lucide, not Lucide's files.
+* The audit's filter row is two lines beside the detail panel in the default window (it was
+  three, with *Profile* cut off); one line would mean moving the splitter.
+* The visual goldens are rendered with Segoe UI and compared on Windows; the Ubuntu legs skip
+  the comparison, because no test font is bundled.
+* *Run every check again* in the regeneration preview is the project's standing choice;
+  `--full` is the switch for one run.
+* A regeneration is a repeat only when your own files (`game/`, `project.godot`) are also what
+  they were at the last run, so the validator and the smoke test still run over a map you
+  changed. The spec only names the generated files; three older integration tests showed what
+  that would have taken away.
+* An unchanged regeneration of the 1,000-image pack takes 15 s on the development machine
+  (a full one 90 s); the ceiling is 20 s with the allowance for CI hardware, not a bare 10 s.
+
+The gate (T15.25) is open:
+
+| Item | What to do |
+|------|------------|
+| The 1.2 tag | M15 was built on M14 before `v1.2.0` existed (the repository has no tags). Tag the earlier releases first (their gates, below and above), then run the suites of `m15` again. |
+| CI on `m15` | Every suite green on Windows and Ubuntu, on both PySide6 legs. The visual goldens were made on the development machine: the first Windows run shows whether Segoe UI of the CI image draws the same; if not, take the pictures of that run's `_failed` artifact as the goldens. Perf within its ceilings, with the two regeneration rows. |
+| Frozen smoke test | `python tools/package.py --smoke` on the three systems: the icons and `style.qss.in` must be in the bundle. |
+| Upgrade test | The upgrade test of M13 with the 1.3 build over a 1.0, a 1.1 and a 1.2 project: no prompt, nothing under `game/` changes, and the second regeneration repeats no check (the first one is full: those projects have no fingerprint). |
+| Manual rows | Both themes at 100 %, 150 % and 200 % on every page and dialog; a 300-asset audit with the filter row; the seven pages with NVDA; keyboard only from the welcome view to Results; reduce motion on and off; the French wizard (the longer texts must fit the rows and the stepper). The new wizard texts of M15 are marked unfinished in the French file. |
 
 ## What is left before 1.2.0
 
