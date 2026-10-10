@@ -49,6 +49,16 @@
     },
     "demo_removed": {
       "type": "boolean"
+    },
+    "inputs_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "godot_version": {
+      "type": "string"
+    },
+    "run_every_check": {
+      "type": "boolean"
     }
   },
   "additionalProperties": false,

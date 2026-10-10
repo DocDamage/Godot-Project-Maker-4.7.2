@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import json
 import logging
 import os
 import shutil
@@ -23,6 +25,7 @@ from rpggen.core import (
     preflight,
     promote,
     requirements,
+    run_memory,
     runtime_version,
     sound_slots,
     staging,
@@ -32,6 +35,7 @@ from rpggen.core import (
 )
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
+from rpggen.core import ledger as ledger_mod
 from rpggen.core import report as report_mod
 from rpggen.core.ledger import Ledger
 from rpggen.errors import CODES, Issue, IssueList, RpgGenError, Severity
@@ -138,6 +142,11 @@ class _State:
     # None: the config's ``repair_world`` decides; False: the command line's --no-repair-world
     repair_world: bool | None = None
     world_repair: world_repair.RepairResult | None = None  # what the repair after promotion did
+    # T15.20: a regeneration of the same inputs repeats nothing
+    full_checks: bool = False  # --full: every phase runs whatever the ledger says
+    godot_version: str = ""  # of the Godot that builds, read in preflight
+    inputs_sha: str = ""  # the fingerprint of what this run is made from (after the catalog)
+    repeat: bool | None = None  # None until it is worked out, before the import
     runtime: runtime_version.UpgradeInfo | None = None  # templates' runtime vs. the target's
     timings: dict[str, float] = field(default_factory=dict)
     skipped: dict[str, str] = field(default_factory=dict)
@@ -219,6 +228,7 @@ def phase_preflight(state: _State) -> None:
     if not exe.exists():
         raise RpgGenError("ENV-001", path=str(exe))
     version = godot.detect_version(exe)
+    state.godot_version = ".".join(str(part) for part in version)
     for issue in godot.check_version(version):
         state.issues.append(issue)
     check_target(state)
@@ -302,6 +312,13 @@ def phase_catalog(state: _State) -> None:
         derived = catalog_mod.dominant_tile_size(catalog)
         state.cfg.base_tile_size = derived or 16
         state.cb.on_log(f"base tile size {state.cfg.base_tile_size} (from the packs)")
+    if not state.cfg.sounds:
+        # nothing was chosen (the command line, an older project): the packs' audio is used
+        state.cfg.sounds = sound_slots.default_sounds(catalog, state.cfg.archetype)
+    # T15.20: what this run is made from, taken once the config has its defaults (the saved
+    # config of the project has them too) and before the catalog gets what a run derives from
+    # it (placeholders, stand-ins); the dry run takes it at the same point
+    state.inputs_sha = inputs_fingerprint(state.cfg, catalog, state.placeholders)
     if state.placeholders:
         _written, placeholder_issues = placeholders.add_placeholder_assets(
             catalog, state.placeholders, state.cfg.base_tile_size, state.staging.staging
@@ -318,9 +335,6 @@ def phase_catalog(state: _State) -> None:
                 + " tile; generated ones are used"
             )
     state.catalog = catalog
-    if not state.cfg.sounds:
-        # nothing was chosen (the command line, an older project): the packs' audio is used
-        state.cfg.sounds = sound_slots.default_sounds(catalog, state.cfg.archetype)
     state.generated = generated
     _plan_world(state, catalog)
     if state.staging.regenerate:
@@ -332,6 +346,86 @@ def phase_catalog(state: _State) -> None:
     # A required role without any asset stops generation before Godot runs.
     state.issues.extend(requirements.check(catalog, state.cfg))
     state.issues.extend(staging.write_project_files(state.staging, state.cfg, catalog))
+
+
+# --------------------------------------------------------------------------- repeats (T15.20)
+
+REPEAT_SKIPS = ("import", "build", "validate", "smoke", "export")  # what a repeat leaves out
+REPEAT_CODE = "REGEN-011"
+_templates_digest: dict[str, str] = {}
+
+
+def templates_fingerprint() -> str:
+    """A hash of the template project (the runtime, the builder with its ``RECIPE_VERSION``,
+    the project files): what rpggen itself brings to a run. Worked out once per process."""
+    root = paths.templates_root()
+    key = str(root)
+    if key not in _templates_digest:
+        digest = hashlib.sha256()
+        for path in sorted(root.rglob("*")):
+            rel = path.relative_to(root).as_posix()
+            if not path.is_file() or rel.startswith((".godot/", "tests/")):
+                continue
+            digest.update(rel.encode("utf-8") + b"\0" + ledger_mod.file_hash(path).encode("ascii"))
+        _templates_digest[key] = digest.hexdigest()
+    return _templates_digest[key]
+
+
+def inputs_fingerprint(
+    cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog, placeholders: list[str]
+) -> str:
+    """What a generation is made from, as one hash: the catalog (every pack file's hash, the
+    audit's decisions, the rules and the objects), the config (the mapping, the options, the
+    seed), the roles filled with placeholders, the templates and the generator's version. Two
+    runs with the same fingerprint and the same Godot build the same project."""
+    payload = {
+        "generator": __version__,
+        "templates": templates_fingerprint(),
+        "config": cfg.to_json(),
+        "catalog": catalog.to_json(),
+        "placeholders": sorted(placeholders),
+    }
+    text = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def repeat_reason(state: _State) -> str:
+    """Why this run is **not** a repeat of the last one ("" when it is): every phase runs then.
+    A repeat is a regeneration of the same inputs with the same Godot over a project whose
+    generated files nobody touched, after a run that succeeded."""
+    if state.staging is None or not state.staging.regenerate or state.old_ledger is None:
+        return "a first generation"
+    if state.full_checks:
+        return "every check was asked for"
+    old = state.old_ledger
+    if old.run_every_check:
+        return "the project asks for every check"
+    if not old.inputs_sha256:
+        return "the project was made by a version before 1.3.0"
+    if old.inputs_sha256 != state.inputs_sha:
+        return "the packs, the audit, the options or rpggen changed"
+    if old.godot_version != state.godot_version:
+        return "another Godot"
+    if state.issues.has_errors():
+        return "the run has errors"
+    if run_memory.last_run_failed(Path(state.target)):
+        return "the last run failed or was cancelled"
+    edited = ledger_mod.edited_generated_files(Path(state.target), old)
+    if edited:
+        return f"{edited[0]} was changed or deleted"
+    return ""
+
+
+def is_repeat(state: _State) -> bool:
+    if state.repeat is None:
+        reason = repeat_reason(state)
+        state.repeat = not reason
+        state.cb.on_log(
+            "nothing changed since the last run: the checks are not repeated"
+            if state.repeat
+            else f"a full run: {reason}"
+        )
+    return state.repeat
 
 
 def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
@@ -602,7 +696,13 @@ def phase_export(state: _State) -> None:
 def phase_promote(state: _State) -> None:
     assert state.staging is not None
     try:
-        state.promotion = promote.promote(state.staging, state.cb.confirm_promotion)
+        state.promotion = promote.promote(
+            state.staging,
+            state.cb.confirm_promotion,
+            inputs_sha256=state.inputs_sha,
+            godot_version=state.godot_version,
+            repeat=bool(state.repeat),
+        )
     except promote.PromotionDeclined:
         raise _Cancelled from None  # the work folder goes, the project is as it was
     state.issues.extend(state.promotion.issues)
@@ -812,6 +912,7 @@ def run(
     accept_runtime_upgrade: bool = False,
     derive_tile_size: bool = False,
     repair_world: bool | None = None,
+    full_checks: bool = False,
 ) -> RunResult:
     """Generate a project from ``cfg_path`` into ``target`` through staging.
 
@@ -819,6 +920,7 @@ def run(
     have none. ``force_while_open`` regenerates even if a Godot editor seems to have the
     project open. ``derive_tile_size`` replaces the config's ``base_tile_size`` with the tile
     size of the packs (the command line's ``--pack``, which has no better source).
+    ``full_checks`` runs every phase of a regeneration even when nothing changed (T15.20).
     """
     cb = cb or Callbacks()
     state = _State(Path(cfg_path), Path(target), Path(godot_exe), cb)
@@ -828,6 +930,7 @@ def run(
     state.accept_runtime_upgrade = accept_runtime_upgrade
     state.derive_tile_size = derive_tile_size
     state.repair_world = repair_world
+    state.full_checks = full_checks
     return _execute(state)
 
 
@@ -842,6 +945,7 @@ def run_in_memory(
     git_message: str | None = None,
     accept_runtime_upgrade: bool = False,
     repair_world: bool | None = None,
+    full_checks: bool = False,
 ) -> RunResult:
     """``run`` for a config and catalog that only exist in memory (the wizard's).
 
@@ -856,6 +960,7 @@ def run_in_memory(
     state.git_message = git_message
     state.accept_runtime_upgrade = accept_runtime_upgrade
     state.repair_world = repair_world
+    state.full_checks = full_checks
     return _execute(state)
 
 
@@ -880,6 +985,7 @@ def _execute(state: _State) -> RunResult:
         log.info("generation %s started for %s", state.run_id, state.target)
         result = _run_phases(state)
         log.info("generation %s finished: ok=%s", state.run_id, result.ok)
+        run_memory.remember(Path(state.target), result.ok)  # a failure is followed by a full run
         _remember_times(state)
     result.run_id = state.run_id
     return result
@@ -905,6 +1011,9 @@ def _run_phases(state: _State) -> RunResult:
             state.current_phase = name
             cb.on_phase(name, i, n)
             cb.on_log(f"phase {i}/{n}: {name}")
+            if name in REPEAT_SKIPS and is_repeat(state):
+                _skip(state, name, REPEAT_CODE)  # T15.20: nothing changed, nothing to redo
+                continue
             started = time.monotonic()
             try:
                 PHASE_FUNCS[name](state)

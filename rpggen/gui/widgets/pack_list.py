@@ -15,18 +15,19 @@ CHIP_TOKENS = {"format": "accent", "ok": "success", "warn": "warning", "error": 
 
 
 class PackCardDelegate(QStyledItemDelegate):
-    """Draws a pack as a card: name, kind/files/size, a format chip, a licence chip, an inline
-    error and a remove button (a click on the cross emits ``removeRequested(row)``)."""
+    """Draws a pack as a card: the name with the format and licence chips and a remove button
+    on its line (a click on the cross emits ``removeRequested(row)``), and under it
+    kind/files/size, or the pack's error."""
 
     removeRequested = Signal(int)  # noqa: N815
-    HEIGHT = 68
+    HEIGHT = 50  # two lines: the name with its chips, and the details
 
     def sizeHint(self, option, index) -> QSize:  # noqa: ANN001
         return QSize(220, self.HEIGHT)
 
     @staticmethod
     def remove_rect(rect: QRect) -> QRect:
-        return QRect(rect.right() - 26, rect.top() + 6, 20, 20)
+        return QRect(rect.right() - 26, rect.top() + 5, 20, 20)
 
     def paint(self, painter: QPainter, option, index) -> None:  # noqa: ANN001
         card = index.data(CARD_ROLE) or {}
@@ -43,51 +44,52 @@ class PackCardDelegate(QStyledItemDelegate):
         painter.drawRoundedRect(rect, radius, radius)
         ink = theme.color("text")
         muted = theme.color("text_muted")
-        left, width = rect.left() + 10, rect.width() - 46
-        font = painter.font()
-        bold = painter.font()
-        bold.setBold(True)
-        painter.setFont(bold)
-        painter.setPen(ink)
-        name = card.get("name") or str(index.data(Qt.ItemDataRole.UserRole) or "")
-        painter.drawText(
-            QRect(left, rect.top() + 4, width, 18),
-            Qt.AlignmentFlag.AlignVCenter,
-            painter.fontMetrics().elidedText(name, Qt.TextElideMode.ElideMiddle, width),
-        )
-        painter.setFont(font)
-        painter.setPen(muted)
-        detail = card.get("detail") or str(index.data(Qt.ItemDataRole.UserRole) or "")
-        painter.drawText(
-            QRect(left, rect.top() + 22, width, 16),
-            Qt.AlignmentFlag.AlignVCenter,
-            painter.fontMetrics().elidedText(detail, Qt.TextElideMode.ElideMiddle, width),
-        )
+        left = rect.left() + 12
+        # the first line: the name, and at its right the chips (format, licence) and the cross
         painter.setPen(ink)
         painter.drawText(self.remove_rect(rect), Qt.AlignmentFlag.AlignCenter, "×")
-        x = left
-        for text, kind in card.get("chips", []):
+        x = rect.right() - 32
+        font = painter.font()
+        for text, kind in reversed(card.get("chips", [])):
             chip_w = painter.fontMetrics().horizontalAdvance(text) + 14
-            chip = QRect(x, rect.top() + 42, chip_w, 18)
-            if chip.right() > rect.right() - 6:
-                break
+            chip = QRect(x - chip_w, rect.top() + 6, chip_w, 18)
+            if chip.left() < left + 80:
+                break  # the name keeps some room in a narrow list
             color = theme.color(CHIP_TOKENS.get(kind, CHIP_TOKENS["format"]))
             painter.setPen(QPen(color, 1))
             painter.setBrush(theme.color("surface_hover"))
             painter.drawRoundedRect(chip, 9, 9)
             painter.setPen(color)
             painter.drawText(chip, Qt.AlignmentFlag.AlignCenter, text)
-            x += chip_w + 6
+            x = chip.left() - 6
+        width = max(40, x - left - 4)
+        bold = painter.font()
+        bold.setBold(True)
+        painter.setFont(bold)
+        painter.setPen(ink)
+        name = card.get("name") or str(index.data(Qt.ItemDataRole.UserRole) or "")
+        painter.drawText(
+            QRect(left, rect.top() + 5, width, 18),
+            Qt.AlignmentFlag.AlignVCenter,
+            painter.fontMetrics().elidedText(name, Qt.TextElideMode.ElideMiddle, width),
+        )
+        painter.setFont(font)
+        # the second line: kind, files and size, or what is wrong with the pack
+        below = rect.width() - 24
         error = card.get("error")
         if error:
             painter.setPen(theme.color("danger"))
-            painter.drawText(
-                QRect(left, rect.top() + 42, width + 30, 18),
-                Qt.AlignmentFlag.AlignVCenter,
-                painter.fontMetrics().elidedText(
-                    "⚠ " + error, Qt.TextElideMode.ElideRight, width + 30
-                ),
-            )
+            line = "⚠ " + error
+            mode = Qt.TextElideMode.ElideRight
+        else:
+            painter.setPen(muted)
+            line = card.get("detail") or str(index.data(Qt.ItemDataRole.UserRole) or "")
+            mode = Qt.TextElideMode.ElideMiddle
+        painter.drawText(
+            QRect(left, rect.top() + 24, below, 16),
+            Qt.AlignmentFlag.AlignVCenter,
+            painter.fontMetrics().elidedText(line, mode, below),
+        )
         painter.restore()
 
     def editorEvent(self, event, model, option, index) -> bool:  # noqa: ANN001

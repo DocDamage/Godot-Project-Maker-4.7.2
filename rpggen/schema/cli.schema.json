@@ -87,6 +87,9 @@
         "regeneration": {
           "type": "boolean"
         },
+        "repeat": {
+          "type": "boolean"
+        },
         "godot": {
           "type": [
             "string",

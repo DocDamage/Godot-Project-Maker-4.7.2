@@ -31,6 +31,8 @@ from rpggen.gui.widgets.pack_list import PackCardDelegate, PackList
 
 LABEL_WIDTH = 140  # the label column of the Project card
 DROP_ZONE_HEIGHT = 96
+CARD_SPACING = 6  # between the rows of a card: two packs fit the smallest window
+LIST_FRAME = 4  # the list's own border, above and below its cards
 CARDS_SHOWN = 3  # the pack list grows to this many cards, then it scrolls
 
 ZERO_WIDTH_SPACE = chr(0x200B)  # a line-break chance that shows nothing
@@ -138,11 +140,12 @@ class ProjectForm(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(theme.px("space_12"))
+        layout.setSpacing(theme.px("space_8"))
 
         # ---- Asset packs
-        self.packs_card = Card()
+        self.packs_card = Card(margin=theme.px("space_12"))
         self.packs_card.setObjectName("packsCard")
+        self.packs_card.box.setSpacing(CARD_SPACING)
         self.packs_card.add_heading(self.tr("Asset packs"))
         self.pack_list = PackList()
         self.pack_list.setToolTip(self.tr("The asset packs: drop folders or archives here"))
@@ -176,8 +179,9 @@ class ProjectForm(QWidget):
         layout.addWidget(self.packs_card)
 
         # ---- Project
-        self.project_card = Card()
+        self.project_card = Card(margin=theme.px("space_12"))
         self.project_card.setObjectName("projectFormCard")
+        self.project_card.box.setSpacing(CARD_SPACING)
         self.project_card.add_heading(self.tr("Project"))
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
@@ -330,6 +334,10 @@ class ProjectForm(QWidget):
             ):
                 self.pack_buttons.addWidget(widget)
             self.pack_buttons.addStretch(1)
+        # a button that changes its row is shown again by Qt only on the next turn of the
+        # event loop: say it now
+        self.add_zip_button.setVisible(True)
+        self.add_folder_button.setVisible(True)
         self.drop_zone.setVisible(empty)
         self.pack_list.setVisible(not empty)
         self.or_label.setVisible(empty)
@@ -337,7 +345,7 @@ class ProjectForm(QWidget):
         self.remove_button.setVisible(not empty)
         self.update_pack_button.setVisible(self._update_shown)
         shown = max(1, min(count, CARDS_SHOWN))
-        self.pack_list.setFixedHeight(shown * (PackCardDelegate.HEIGHT + 2) + 6)
+        self.pack_list.setFixedHeight(shown * (PackCardDelegate.HEIGHT + 2) + LIST_FRAME)
 
     def show_update_button(self, on: bool) -> None:
         """*Update pack…* shows for a folder that is a project made with rpggen."""

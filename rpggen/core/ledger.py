@@ -101,6 +101,13 @@ class Ledger:
     generator_version: str = __version__
     # The user removed the demo content in the editor (T8.08): the demo recipes leave it out.
     demo_removed: bool = False
+    # T15.20: a fingerprint of everything the last successful run was made from (the catalog,
+    # the config, the templates, the placeholders) and the Godot that built it. A regeneration
+    # with the same two repeats nothing. Empty in a ledger written before 1.3.0.
+    inputs_sha256: str = ""
+    godot_version: str = ""
+    # ... unless the project's owner asked for every check, every time
+    run_every_check: bool = False
 
     def to_json(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -111,6 +118,12 @@ class Ledger:
         }
         if self.demo_removed:
             out["demo_removed"] = True
+        if self.inputs_sha256:
+            out["inputs_sha256"] = self.inputs_sha256
+        if self.godot_version:
+            out["godot_version"] = self.godot_version
+        if self.run_every_check:
+            out["run_every_check"] = True
         return out
 
     @classmethod
@@ -124,6 +137,9 @@ class Ledger:
             list(data["deleted_by_user"]),
             data["generator_version"],
             bool(data.get("demo_removed", False)),
+            str(data.get("inputs_sha256", "")),
+            str(data.get("godot_version", "")),
+            bool(data.get("run_every_check", False)),
         )
 
     @classmethod
@@ -188,6 +204,23 @@ def recipes_from_results(project: Path) -> dict[str, str]:
     return {i["output"]: i["recipe"] for i in items if i.get("output") and i.get("recipe")}
 
 
+def edited_generated_files(target: Path, ledger: Ledger, limit: int = 1) -> list[str]:
+    """Generated files of the project that are not as the ledger recorded them: changed, or
+    deleted without the ledger knowing (T15.20: a regeneration over them is not a repeat; it
+    has a conflict to find or a deletion to respect). Files a person is meant to edit (the
+    ``game/`` seeds, ``project.godot``, the config and the catalog) do not count. Stops after
+    ``limit`` finds."""
+    found: list[str] = []
+    for rel, entry in ledger.files.items():
+        if entry.owner != "generated" or rel in MERGE_MANAGED:
+            continue
+        if classify(Path(target), rel, ledger) in (FileState.MODIFIED, FileState.DELETED):
+            found.append(rel)
+            if len(found) >= limit:
+                break
+    return found
+
+
 def scan(staging: Path, target: Path | None = None, old: Ledger | None = None) -> Ledger:
     """The ledger a finished staging folder describes.
 
@@ -218,4 +251,9 @@ def scan(staging: Path, target: Path | None = None, old: Ledger | None = None) -
             files[rel] = previous
             continue
         files[rel] = LedgerEntry(digest, _written_by(rel, recipes), owner)
-    return Ledger(files, list(old.deleted_by_user), demo_removed=old.demo_removed)
+    return Ledger(
+        files,
+        list(old.deleted_by_user),
+        demo_removed=old.demo_removed,
+        run_every_check=old.run_every_check,
+    )

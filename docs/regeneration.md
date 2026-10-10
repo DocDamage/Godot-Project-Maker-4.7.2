@@ -17,6 +17,33 @@ your work away. Three rules hold every time, and each one has its own automated 
    to what it was before. Everything is built in `.rpggen_staging/` first and only a validated
    result is copied in.
 
+## A regeneration with nothing changed
+
+Since 1.3.0 a regeneration first asks whether anything it is made from changed since the last
+run that succeeded: the packs (every file's content), the audit, the mapping, the options, the
+seed, rpggen itself (its version, the runtime and the build recipes) and the Godot that builds.
+When nothing did, and nobody changed or deleted a generated file of the project, the run is
+**a repeat**: the import, the build, the validation, the smoke test and the export check are
+not run again, nothing is written and the project is left exactly as it is. The Generate page
+shows those phases with a dash and *skipped: nothing changed since the last run*, the command
+line's `--json` lists them under `skipped` with the note `REGEN-011`, and `--dry-run` says
+*A regeneration would skip the checks: nothing changed.*
+
+A run is **not** a repeat, and does everything, when
+
+* anything in the list above changed, or the project was made by a version before 1.3.0 (its
+  ledger does not say what it was made from; the first regeneration with 1.3 records it);
+* a generated file was edited or deleted (the run has a conflict to find or a deletion to
+  respect; the files you are meant to edit, `game/`, `project.godot`, the config and the
+  catalog, do not count);
+* the last run into the folder failed or was cancelled;
+* you ask for it: `rpggen generate ... --full` for one run, or **Run every check again on
+  every regeneration** in the regeneration preview for a project (the choice is kept in the
+  project's `rpggen/ownership_ledger.json` as `run_every_check`).
+
+Editing a scene under `game/` does not make a regeneration run its checks; use `--full` when
+you want the validator and the smoke test over your own changes.
+
 ## Before you regenerate
 
 **Close the Godot editor.** An open editor can save its own copy of a scene over the regenerated

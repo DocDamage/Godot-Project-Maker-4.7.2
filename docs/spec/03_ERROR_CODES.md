@@ -111,6 +111,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | REGEN-008 | I | Your own uncommitted changes were left out of rpggen's commit. | Commit them yourself when you are ready. |
 | REGEN-009 | E | There is no .rpggen-new file for {file}: nothing to resolve. | Run `rpggen conflicts --target <project>` to list the files that have one. |
 | REGEN-010 | E | {file} is not a text file, so it cannot be merged. | Keep yours or take the new version. |
+| REGEN-011 | I | Nothing changed since the last run; this check was not repeated. | Run `rpggen generate --full`, or tick *Run every check again* in the regeneration preview, to repeat every check. |
 | GUI-001 | E | Unexpected error: {reason}. | Export a diagnostic bundle and report it. |
 
 ## Rules for adding codes

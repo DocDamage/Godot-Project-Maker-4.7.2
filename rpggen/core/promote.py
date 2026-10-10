@@ -56,6 +56,9 @@ class PromotionSummary:
     delete: list[str]  # generated files the run no longer produces
     skipped_deleted: list[str]  # the user deleted these: they are not brought back
     backup: str  # the folder of the backup, relative to the project
+    # T15.20: the project's choice (kept in its ledger) to repeat every check on every
+    # regeneration; whoever is asked may change it, and the answer is stored with the run
+    run_every_check: bool = False
 
     @property
     def changes(self) -> bool:
@@ -142,7 +145,12 @@ def final_ledger(target: Path, old: Ledger, candidate: Ledger, plan_: PromotionP
         files.pop(rel, None)
     deleted = [d for d in old.deleted_by_user if not paths.from_posix_rel(d, target).is_file()]
     deleted += [rel for rel in plan_.skipped_deleted if rel not in deleted]
-    return Ledger(files, sorted(set(deleted)), demo_removed=old.demo_removed)
+    return Ledger(
+        files,
+        sorted(set(deleted)),
+        demo_removed=old.demo_removed,
+        run_every_check=old.run_every_check,
+    )
 
 
 # --------------------------------------------------------------------------- file operations
@@ -348,18 +356,30 @@ def prepare(stg: Staging) -> PreparedPromotion:
 
 
 def promote(
-    stg: Staging, confirm: Callable[[PromotionSummary], bool] | None = None
+    stg: Staging,
+    confirm: Callable[[PromotionSummary], bool] | None = None,
+    *,
+    inputs_sha256: str = "",
+    godot_version: str = "",
+    repeat: bool = False,
 ) -> PromotionResult:
     """Promote a validated staging folder (new or regeneration) and remove it.
 
     ``confirm`` (regenerations only) is asked with the summary when the run would write, replace
     or delete something; a False answer raises ``PromotionDeclined`` with the target untouched.
+    ``inputs_sha256`` and ``godot_version`` say what the run was made from (T15.20) and go
+    into the ledger. ``repeat`` is a run that found nothing changed and built nothing: the
+    work folder goes and the project is not touched at all, not even its ledger.
     """
     if not stg.regenerate:
         candidate = ledger_mod.scan(stg.staging)
+        candidate.inputs_sha256, candidate.godot_version = inputs_sha256, godot_version
         plan_ = PromotionPlan(write=sorted(candidate.files))
         promote_new(stg, candidate)
         return PromotionResult(plan_, None, [], candidate)
+    if repeat:
+        _remove_staging(stg)
+        return PromotionResult(PromotionPlan(), None, [], load_ledger(stg.target))
     prepared = prepare(stg)
     old, candidate, plan_, committed = (
         prepared.old,
@@ -367,17 +387,24 @@ def promote(
         prepared.plan,
         prepared.committed,
     )
+    committed.inputs_sha256, committed.godot_version = inputs_sha256, godot_version
     if confirm is not None:
         summary = summarize(plan_, stg.target)
+        summary.run_every_check = old.run_every_check
         if summary.changes and not confirm(summary):
             raise PromotionDeclined
+        committed.run_every_check = summary.run_every_check  # as the person left it
     backup = execute(plan_, stg.target, stg.staging, stg.target, old=old, new=committed)
+    _remove_staging(stg)
+    return PromotionResult(plan_, backup, plan_.issues(), committed)
+
+
+def _remove_staging(stg: Staging) -> None:
     for _ in range(RETRIES):
         shutil.rmtree(stg.staging, ignore_errors=True)
         if not stg.staging.exists():
             break
         time.sleep(RETRY_SLEEP_S)
-    return PromotionResult(plan_, backup, plan_.issues(), committed)
 
 
 # --------------------------------------------------------------------------- Godot editor

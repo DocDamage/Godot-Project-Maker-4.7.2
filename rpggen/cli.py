@@ -88,6 +88,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "(the config's repair_world, for this run)",
     )
     gen.add_argument(
+        "--full",
+        action="store_true",
+        help="repeat the import, the build and every check of a regeneration even when "
+        "nothing changed since the last run",
+    )
+    gen.add_argument(
         "--confirm",
         action="store_true",
         help="before a regeneration writes anything, print what it will change and ask y/N "
@@ -381,6 +387,7 @@ def _run(
             git_message="rpggen: generate project" if args.git else None,
             derive_tile_size=derive,
             repair_world=False if args.no_repair_world else None,
+            full_checks=args.full,
         )
     document = _document(
         result.target,

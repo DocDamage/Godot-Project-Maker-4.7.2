@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -88,6 +89,19 @@ class PromotionDialog(QDialog):
         self.backup_label = self.backup_banner.text_label
         self.backup_label.setObjectName("promotionBackup")
         layout.addWidget(self.backup_banner)
+        # T15.20: a regeneration with nothing changed repeats no check, unless the project
+        # asks for all of them; the choice is kept in the project's ledger
+        self.full_box = QCheckBox(self.tr("Run every check again on every regeneration"))
+        self.full_box.setObjectName("promotionFullChecks")
+        self.full_box.setToolTip(
+            self.tr(
+                "Off: a regeneration with nothing changed skips the import, the build and the "
+                "checks. On: every regeneration of this project repeats them all."
+            )
+        )
+        self.full_box.setChecked(summary.run_every_check)
+        self.full_box.toggled.connect(self._on_full_toggled)
+        layout.addWidget(self.full_box)
         buttons = QDialogButtonBox()
         self.go_button = buttons.addButton(
             self.tr("Regenerate"), QDialogButtonBox.ButtonRole.AcceptRole
@@ -100,6 +114,9 @@ class PromotionDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _on_full_toggled(self, on: bool) -> None:
+        self.summary.run_every_check = on  # the run stores it with the new ledger
 
     def _section(self, title: str, files: list[str], expanded: bool) -> QTreeWidgetItem:
         item = QTreeWidgetItem([title])

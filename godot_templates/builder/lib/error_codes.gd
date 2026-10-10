@@ -108,5 +108,6 @@ const CODES := {
 	"REGEN-008": {"severity": "info", "message": "Your own uncommitted changes were left out of rpggen's commit.", "fix": "Commit them yourself when you are ready."},
 	"REGEN-009": {"severity": "error", "message": "There is no .rpggen-new file for {file}: nothing to resolve.", "fix": "Run `rpggen conflicts --target <project>` to list the files that have one."},
 	"REGEN-010": {"severity": "error", "message": "{file} is not a text file, so it cannot be merged.", "fix": "Keep yours or take the new version."},
+	"REGEN-011": {"severity": "info", "message": "Nothing changed since the last run; this check was not repeated.", "fix": "Run `rpggen generate --full`, or tick *Run every check again* in the regeneration preview, to repeat every check."},
 	"GUI-001": {"severity": "error", "message": "Unexpected error: {reason}.", "fix": "Export a diagnostic bundle and report it."},
 }

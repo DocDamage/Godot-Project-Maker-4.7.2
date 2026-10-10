@@ -64,6 +64,7 @@ SKIP_REASONS = {
     "ENV-010": "export templates are not installed",
     "VAL-021": "turned off in the config",
     "VAL-022": "turned off in the config",
+    "REGEN-011": "nothing changed since the last run",
 }
 
 

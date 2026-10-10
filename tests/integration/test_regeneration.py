@@ -577,3 +577,106 @@ def test_a_project_made_by_1_1_regenerates_with_its_maps_and_tilesets_untouched(
     assert version == rpggen_version
     # the real-time combat set is shared code now: every project has it
     assert (target / "addons/rpg_runtime/combat/realtime/hitbox.gd").is_file()
+
+
+# --------------------------------------------------------------------------- repeats (T15.20)
+
+REPEAT_SKIPS = {"import", "build", "validate", "smoke", "export"}
+
+
+def _skips(result) -> dict[str, str]:
+    return {phase: code for phase, code in result.skipped.items() if code == "REGEN-011"}
+
+
+def test_8_a_regeneration_with_nothing_changed_repeats_no_check(
+    godot_exe: Path, tmp_path: Path
+) -> None:
+    """Generate, then regenerate with nothing changed: the import, the build and the three
+    checks are skipped with REGEN-011 and the project is byte-identical, reports and logs
+    included. Anything that changes makes the next run a full one."""
+    pack, target = _make_pack(tmp_path), tmp_path / "out"
+    first = _generate(godot_exe, pack, target)
+    assert _skips(first) == {}, "a first generation skips nothing"
+    recorded = promote.load_ledger(target)
+    assert len(recorded.inputs_sha256) == 64 and recorded.godot_version.startswith("4.")
+    before = _snapshot(target)
+
+    skipped: list[tuple[str, str]] = []
+    result = orchestrator.run(
+        target / paths.CONFIG,
+        target,
+        godot_exe,
+        orchestrator.Callbacks(on_skip=lambda phase, code: skipped.append((phase, code))),
+        force_while_open=True,
+    )
+    assert result.ok, [f"{i.code}: {i.message}" for i in result.issues]
+    assert set(_skips(result)) == REPEAT_SKIPS
+    assert {phase for phase, code in skipped if code == "REGEN-011"} == REPEAT_SKIPS
+    assert [i.code for i in result.issues].count("REGEN-011") == 1  # one note, not five
+    assert _diff(before, _snapshot(target)) == [], "a repeat leaves the project byte-identical"
+    assert not (target / ".rpggen_staging").exists()
+    assert not (target / ".rpggen_backups").exists()
+    assert all(result.timings.get(phase, 0.0) == 0.0 for phase in REPEAT_SKIPS)
+
+    # --full: every phase runs, and still nothing changes
+    full = orchestrator.run(
+        target / paths.CONFIG, target, godot_exe, force_while_open=True, full_checks=True
+    )
+    assert full.ok and _skips(full) == {}
+    assert (
+        _diff(_stable(target), {k: v for k, v in before.items() if not k.startswith(VOLATILE)})
+        == []
+    )
+    assert set(_skips(_regenerate(godot_exe, target))) == REPEAT_SKIPS  # and a repeat again
+
+    # one option changed: nothing is skipped
+    data = jsonio.read(target / paths.CONFIG)
+    data["seed"] = int(data.get("seed", 0)) + 1
+    jsonio.write(target / paths.CONFIG, data)
+    changed = _regenerate(godot_exe, target)
+    assert changed.ok and _skips(changed) == {}
+    assert set(_skips(_regenerate(godot_exe, target))) == REPEAT_SKIPS
+
+    # a generated file edited by hand: a full run, and the conflict is found
+    script = target / "generated" / "tilesets" / "overworld.tres"
+    script.write_text(script.read_text(encoding="utf-8") + "\n; my note\n", encoding="utf-8")
+    edited = _regenerate(godot_exe, target)
+    assert _skips(edited) == {}, "an edited generated file is not a repeat"
+
+    # the project's own choice: every check, every time
+    kept = promote.load_ledger(target)
+    kept.run_every_check = True
+    kept.save(target / paths.LEDGER)
+    assert _skips(_regenerate(godot_exe, target)) == {}
+    assert promote.load_ledger(target).run_every_check is True  # and the choice stays
+
+
+def test_9_a_failed_run_is_followed_by_a_full_one_and_the_dry_run_says_what_it_would_do(
+    godot_exe: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from rpggen.core import dry_run, run_memory
+
+    pack, target = _make_pack(tmp_path), tmp_path / "out"
+    _generate(godot_exe, pack, target)
+    said = dry_run.run(target / paths.CONFIG, target, force_while_open=True)
+    assert said.ok and said.summary["repeat"] is True
+    assert "A regeneration would skip the checks: nothing changed." in "\n".join(
+        dry_run.format_summary(said.summary)
+    )
+    # a run that fails (the pack changed and the build is sabotaged) leaves a note ...
+    original = (pack / "tilesets/ground.png").read_bytes()
+    _tweak_png(pack / "tilesets/ground.png")
+    monkeypatch.setenv("RPGGEN_DEV", "1")
+    monkeypatch.setenv("RPGGEN_TEST_SABOTAGE", "broken_player")
+    assert not _regenerate(godot_exe, target).ok
+    assert run_memory.last_run_failed(target)
+    monkeypatch.delenv("RPGGEN_TEST_SABOTAGE")
+    # ... so that the next run checks everything, although the inputs are the old ones again
+    (pack / "tilesets/ground.png").write_bytes(original)
+    assert (
+        dry_run.run(target / paths.CONFIG, target, force_while_open=True).summary["repeat"] is False
+    )
+    again = _regenerate(godot_exe, target)
+    assert again.ok and _skips(again) == {}
+    assert not run_memory.last_run_failed(target)
+    assert set(_skips(_regenerate(godot_exe, target))) == REPEAT_SKIPS

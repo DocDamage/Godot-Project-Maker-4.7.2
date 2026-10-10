@@ -119,5 +119,6 @@ CODES: dict[str, CodeInfo] = {
     "REGEN-008": CodeInfo("REGEN-008", "info", "Your own uncommitted changes were left out of rpggen's commit.", "Commit them yourself when you are ready."),
     "REGEN-009": CodeInfo("REGEN-009", "error", "There is no .rpggen-new file for {file}: nothing to resolve.", "Run `rpggen conflicts --target <project>` to list the files that have one."),
     "REGEN-010": CodeInfo("REGEN-010", "error", "{file} is not a text file, so it cannot be merged.", "Keep yours or take the new version."),
+    "REGEN-011": CodeInfo("REGEN-011", "info", "Nothing changed since the last run; this check was not repeated.", "Run `rpggen generate --full`, or tick *Run every check again* in the regeneration preview, to repeat every check."),
     "GUI-001": CodeInfo("GUI-001", "error", "Unexpected error: {reason}.", "Export a diagnostic bundle and report it."),
 }

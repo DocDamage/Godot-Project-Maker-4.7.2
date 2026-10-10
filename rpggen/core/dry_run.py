@@ -8,6 +8,7 @@ the system's temporary folder until the function returns.
 
 from __future__ import annotations
 
+import copy
 import logging
 import tempfile
 import time
@@ -16,9 +17,19 @@ from pathlib import Path
 from typing import Any
 
 from rpggen import paths
-from rpggen.core import archive, inventory, map_preview, orchestrator, preflight, requirements
+from rpggen.core import (
+    archive,
+    inventory,
+    map_preview,
+    orchestrator,
+    preflight,
+    requirements,
+    run_memory,
+    sound_slots,
+)
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
+from rpggen.core import ledger as ledger_mod
 from rpggen.errors import Issue, IssueList, RpgGenError
 
 log = logging.getLogger(__name__)
@@ -126,6 +137,7 @@ def run(
         state.issues.extend(_placeholder_issues(requirements.check(catalog, cfg), roles_to_fill))
         state.timings[phase] = round(time.monotonic() - started, 2)
         summary = _summary(state, catalog, roles_to_fill, derive_tile_size, godot_exe)
+        summary["repeat"] = _would_repeat(state, catalog, roles_to_fill)
         if state.issues.has_errors():
             return result(phase)
 
@@ -172,6 +184,28 @@ def _analyse(
     if derive_tile_size:
         state.cfg.base_tile_size = catalog_mod.dominant_tile_size(catalog) or 16
     return catalog
+
+
+def _would_repeat(
+    state: orchestrator._State, catalog: catalog_mod.Catalog, placeholders: list[str]
+) -> bool:
+    """T15.20: whether a regeneration now would find nothing changed and skip its checks (with
+    the Godot that built the project: the dry run does not start one to ask its version)."""
+    target = Path(state.target)
+    ledger_path = paths.from_posix_rel(paths.LEDGER, target)
+    if state.cfg is None or not ledger_path.is_file():
+        return False
+    old = ledger_mod.Ledger.load(ledger_path)
+    if not old.inputs_sha256 or old.run_every_check or state.issues.has_errors():
+        return False
+    cfg = copy.deepcopy(state.cfg)
+    if not cfg.sounds:  # as the catalog phase fills them in
+        cfg.sounds = sound_slots.default_sounds(catalog, cfg.archetype)
+    if old.inputs_sha256 != orchestrator.inputs_fingerprint(cfg, catalog, placeholders):
+        return False
+    if run_memory.last_run_failed(target):
+        return False
+    return not ledger_mod.edited_generated_files(target, old)
 
 
 def _summary(
@@ -285,6 +319,8 @@ def format_summary(summary: dict[str, Any]) -> list[str]:
             lines.append(row(need, (", ".join(found) or "none") + missing))
     if summary["placeholders"]:
         lines.append(row("placeholders", ", ".join(summary["placeholders"])))
+    if summary.get("repeat"):
+        lines.append(row("checks", "A regeneration would skip the checks: nothing changed."))
     if "map" in summary:
         plan = summary["map"]
         if "world" in plan:
