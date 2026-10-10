@@ -439,3 +439,36 @@ def test_pictures_a_pack_ships_in_several_colours_are_grouped(tmp_path: Path) ->
     assert len(cat.assets) == 9 and all(a.status != "UNUSED" for a in cat.assets)
     again, _issues, _generated = catalog.assemble([_open(pack)], cat, [])
     assert [a.to_json() for a in again.assets] == [a.to_json() for a in cat.assets], "stable"
+
+
+# ----------------------------------------------------------------------------- RPG Maker names
+
+
+def test_rpg_maker_sheet_names_are_read_in_a_pack_of_another_kind(tmp_path: Path) -> None:
+    pack = tmp_path / "Modern Prison Pixel Art Tileset"
+    _sheet(pack / "prison_MV_A4.png", (768, 720), 48)
+    _sheet(pack / "tile" / "Tile-A2-11.png", (768, 576), 48)
+    _sheet(pack / "tile" / "Tile-B-12.png", (768, 768), 48)
+    _sheet(pack / "tile" / "Tile-C-12.png", (800, 800), 50)  # the name, not the size: not one
+    _sheet(pack / "plan_B.png", (768, 768), 48)  # a letter alone marks nothing
+    cat = _catalog(pack)
+    assert "rpgmaker" in cat.packs[0].adapters_matched
+    walls = _asset(cat, "prison_MV_A4.png")
+    eff = catalog.effective(walls)
+    assert walls.detected_by == "rpgmaker" and eff["role"] == "AUTOTILE"
+    assert eff["grid"]["cell"] == [48, 48] and "A4" in eff["tags"]
+    assert sorted(catalog.effective(_asset(cat, "Tile-A2-11.png"))["tags"]) == [
+        "A2",
+        "rpgmaker_autotile",
+    ]
+    props = _asset(cat, "Tile-B-12.png")
+    assert props.detected_by == "rpgmaker" and catalog.effective(props)["role"] == "DECORATION"
+    assert _asset(cat, "Tile-C-12.png").detected_by != "rpgmaker"
+
+
+def test_a_pack_without_a_marked_sheet_is_not_read_as_rpg_maker(tmp_path: Path) -> None:
+    pack = tmp_path / "town"
+    _sheet(pack / "plan_B.png", (768, 768), 48)
+    _sheet(pack / "tiles_mv.png", (768, 768), 48)
+    cat = _catalog(pack)
+    assert "rpgmaker" not in cat.packs[0].adapters_matched

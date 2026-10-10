@@ -12,6 +12,38 @@ from rpggen.errors import IssueList
 
 SHEET_NAME = re.compile(r"^(.*_)?(A[1-5]|B|C|D|E)\.png$", re.IGNORECASE)
 SHEET_LETTER = re.compile(r"(?:^|_)(A[1-5]|B|C|D|E)$", re.IGNORECASE)
+# RPG Maker's sheet names inside a pack that is not laid out as an RPG Maker project (T16.21):
+# "prison_MV_A4.png", "Tile-A2-11.png", "Tile-B-12.png". The engine or the word "tile" beside
+# the letter says it; the letter alone ("plan_B.png") says nothing outside img/tilesets.
+MARKED_SHEET = re.compile(
+    r"^(?:.*[_\- ])?(?:(?:MV|MZ|VX|VXACE|XP)[_\- ](?P<a>A[1-5]|B|C|D|E)"
+    r"|tiles?[_\- ](?P<b>A[1-5]|B|C|D|E))(?:[_\- ]\d+)?$",
+    re.IGNORECASE,
+)
+# The sizes those sheets have: 32 px (VX, VX Ace) and 48 px (MV, MZ) tiles.
+MARKED_SIZES = {
+    "A1": {(512, 384), (768, 576)},
+    "A2": {(512, 384), (768, 576)},
+    "A3": {(512, 256), (768, 384)},
+    "A4": {(512, 480), (768, 720)},
+    "A5": {(256, 512), (384, 768)},
+    "B": {(512, 512), (768, 768)},
+}
+
+
+def marked_letter(f: InventoryFile) -> str | None:
+    """The sheet letter (A1..A5, B..E) of a file whose name marks it as an RPG Maker sheet and
+    whose size is that sheet's, else None."""
+    if f.image is None or f.ext != ".png":
+        return None
+    m = MARKED_SHEET.match(posixpath.splitext(posixpath.basename(f.path))[0])
+    if m is None:
+        return None
+    letter = (m.group("a") or m.group("b")).upper()
+    sizes = MARKED_SIZES.get(letter, MARKED_SIZES["B"])  # C, D and E are as B
+    return letter if (f.image["w"], f.image["h"]) in sizes else None
+
+
 RTP_NAME = re.compile(
     r"^(?:(?:Actor|People|Monster|Evil|Nature|Damage)\d*"
     r"|(?:Outside|Inside|Dungeon|World)_[A-E][1-5]?)\.png$",
@@ -55,6 +87,8 @@ class RpgMakerAdapter:
             score += 0.5
         if any(SHEET_NAME.match(posixpath.basename(f.path)) for f in images):
             score += 0.3
+        if any(marked_letter(f) for f in images):
+            score += 0.5  # a marked sheet of the right size is read wherever it lies
         for f in images:
             if _parent_dir(f.path) == "characters" and f.image:
                 w, h = f.image["w"], f.image["h"]
@@ -105,6 +139,8 @@ class RpgMakerAdapter:
             return True
         if _parent_dir(f.path) in ("characters", "faces"):
             return False
+        if marked_letter(f):
+            return True
         name = posixpath.basename(f.path)
         return (
             bool(SHEET_NAME.match(name))
@@ -122,7 +158,7 @@ class RpgMakerAdapter:
     def _tileset_fragment(self, f: InventoryFile, tile: int) -> AssetFragment:
         stem = posixpath.splitext(posixpath.basename(f.path))[0]
         letter_match = SHEET_LETTER.search(stem)
-        letter = letter_match.group(1).upper() if letter_match else "B"
+        letter = marked_letter(f) or (letter_match.group(1).upper() if letter_match else "B")
         facets: dict[str, Any] = {
             "usage": "tiles",
             "grid": {"cell": [tile, tile], "margin": [0, 0], "separation": [0, 0]},
