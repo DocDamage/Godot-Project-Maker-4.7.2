@@ -234,6 +234,8 @@ def _blob_proposal(
         if proposal is not None:
             asset.detected["terrain_proposal"] = proposal
             return
+        if recognition is not None and recognition.flat:
+            return  # a plain ground in the shape of an autotile sheet: nothing was skipped
         if recognition is not None and max(size) > TINY_SHEET:
             hinted = hinted or recognition.confidence >= 0.5
     if hinted:

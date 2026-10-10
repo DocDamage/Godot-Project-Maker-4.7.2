@@ -158,7 +158,12 @@ inventory, equipment, menus) are the same.
   (`walk_down_left`, `walk_ne`) use the diagonal pictures while they move diagonally.
 * **Object cutter** (*Cut objects…*): draw rectangles around a house or tree in a sheet, set its
   footprint (where it blocks), door and origin. Detected objects appear blue, yours green.
-* **Terrain tab:** autotile proposals for RPG Maker A2 sheets and 47-tile blob sheets.
+* **Terrain tab:** autotile proposals for RPG Maker A2 sheets and 47-tile blob sheets. A blob
+  sheet is 12 tiles by 4 (192 x 64 for 16 px tiles) in the order of Godot's *3x3 minimal*
+  template, which is how most packs ship one, or with the tiles in the order of their
+  neighbour masks. It is recognised in a folder or under a name that says *tileset*,
+  *autotile* or *terrain*; accept the proposal and the tiles join by themselves when you
+  paint. A fence or wall sheet of the same shape is not a blob terrain and stays plain tiles.
 * **Packs tab:** the licence, author and URL rpggen read from each pack's licence files, and
   whether the licence asks for credit. Correct anything that is wrong: the game's *Credits*
   screen (title screen and pause menu) lists every pack with these values. A pack that needs
