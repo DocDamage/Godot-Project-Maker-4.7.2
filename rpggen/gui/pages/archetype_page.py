@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PySide6.QtCore import QRectF, QSize, Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QPaintEvent, QPalette, QPen, QPixmap
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -425,17 +425,15 @@ class ArchetypeCard(QToolButton):
         # three cards share the minimum window (T14.10): a card is as narrow as its drawing
         self.setMinimumSize(QSize(250, 300))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setStyleSheet(
-            "QToolButton { border: 2px solid #6b7280; border-radius: 8px; padding: 6px; }"
-            "QToolButton:checked { border: 4px solid #3d6fb4; }"
-        )
+        self.setProperty("card", True)  # the stylesheet draws the card and its checked border
         layout = QVBoxLayout(self)
         head = QHBoxLayout()
-        heading = QLabel(f"<b style='font-size:15px'>{title}</b>")
+        heading = QLabel(title)
+        heading.setProperty("role", "section")
         heading.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.check_label = QLabel("✔")
         self.check_label.setObjectName(f"check_{key}")
-        self.check_label.setStyleSheet("color: #3d6fb4; font-size: 20px; font-weight: bold;")
+        self.check_label.setProperty("accentGlyph", True)
         self.check_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.check_label.setVisible(False)
         head.addWidget(heading, 1)
@@ -476,11 +474,17 @@ class ArchetypeCard(QToolButton):
 
 class ArchetypePage(WizardPage):
     title = "Archetype"
+    heading = str(QT_TRANSLATE_NOOP("MainWindow", "Kind of game"))
+    purpose = str(
+        QT_TRANSLATE_NOOP(
+            "WizardPage", "Choose how the game plays. You can make the other kinds later."
+        )
+    )
     help_anchor = "3. Using a pack you bought"
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        layout = QVBoxLayout(self)
+        layout = self.page_layout()
         layout.addWidget(QLabel(self.tr("What kind of game do you want to start with?")))
         row = QHBoxLayout()
         self.turn_card = ArchetypeCard(

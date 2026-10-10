@@ -12,7 +12,7 @@ from __future__ import annotations
 import difflib
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtGui import QFontDatabase, QTextCursor, QTextFormat
 from PySide6.QtWidgets import (
     QDialog,
@@ -30,7 +30,11 @@ from PySide6.QtWidgets import (
 from rpggen.core import conflicts
 from rpggen.errors import RpgGenError
 from rpggen.gui import theme
+from rpggen.gui.widgets import buttons
+from rpggen.gui.widgets.card import Card
 
+PANE_MIN_WIDTH = 300  # each of the three versions
+DIALOG_WIDTH = 1160  # the file list and three panes of 300 px
 SHOW_LIMIT = 400_000  # bytes shown per version; a bigger file is cut (the actions use all of it)
 
 
@@ -56,9 +60,20 @@ class _Pane(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        self.setMinimumWidth(PANE_MIN_WIDTH)
+        head = QHBoxLayout()
+        head.setContentsMargins(0, 0, 0, 0)
         self.title = QLabel(title)
         self.title.setObjectName(f"{name}Title")
-        layout.addWidget(self.title)
+        self.title.setProperty("role", "strong")
+        self.count_chip = QLabel()  # how many of its lines differ from the last generated
+        self.count_chip.setObjectName(f"{name}Count")
+        self.count_chip.setProperty("chip", True)
+        self.count_chip.setVisible(False)
+        head.addWidget(self.title)
+        head.addWidget(self.count_chip)
+        head.addStretch(1)
+        layout.addLayout(head)
         self.view = QPlainTextEdit()
         self.view.setObjectName(name)
         self.view.setReadOnly(True)
@@ -83,6 +98,10 @@ class _Pane(QWidget):
             selections.append(selection)
         self.view.setExtraSelections(selections)
         self.marked = marked
+        self.count_chip.setText(
+            QCoreApplication.translate("ConflictDialog", "{0} lines differ").format(len(marked))
+        )
+        self.count_chip.setVisible(bool(marked))
 
 
 class ConflictDialog(QDialog):
@@ -92,7 +111,8 @@ class ConflictDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("conflictDialog")
         self.setWindowTitle(self.tr("Resolve conflicts"))
-        self.resize(1000, 600)
+        self.resize(DIALOG_WIDTH, 600)
+        self.setMinimumWidth(DIALOG_WIDTH - 80)
         self.target = Path(target)
         self.resolved: list[conflicts.Resolution] = []
         layout = QVBoxLayout(self)
@@ -106,10 +126,14 @@ class ConflictDialog(QDialog):
         intro.setWordWrap(True)
         layout.addWidget(intro)
         split = QSplitter(Qt.Orientation.Horizontal)
+        self.file_card = Card(margin=theme.px("space_8"))  # the files, at the left
+        self.file_card.setObjectName("conflictFiles")
+        self.file_card.add_heading(self.tr("Files"))
         self.file_list = QListWidget()
         self.file_list.setObjectName("conflictList")
         self.file_list.setAccessibleName(self.tr("Files with a new version"))
-        split.addWidget(self.file_list)
+        self.file_card.box.addWidget(self.file_list, 1)
+        split.addWidget(self.file_card)
         self.panes = QSplitter(Qt.Orientation.Horizontal)
         self.base_pane = _Pane(self.tr("Last generated"), "conflictBase")
         self.mine_pane = _Pane(self.tr("Yours"), "conflictMine")
@@ -118,7 +142,7 @@ class ConflictDialog(QDialog):
             self.panes.addWidget(pane)
         split.addWidget(self.panes)
         split.setStretchFactor(1, 1)
-        split.setSizes([220, 780])
+        split.setSizes([220, DIALOG_WIDTH - 220])
         layout.addWidget(split, 1)
         self.note = QLabel()
         self.note.setObjectName("conflictNote")
@@ -143,6 +167,7 @@ class ConflictDialog(QDialog):
         )
         row.addStretch(1)
         self.close_button = self._button(self.tr("Close"), "conflictClose", row)
+        buttons.set_kind(self.close_button, buttons.PRIMARY)
         layout.addLayout(row)
         self.keep_button.clicked.connect(lambda: self.apply(conflicts.Action.KEEP_MINE))
         self.take_button.clicked.connect(lambda: self.apply(conflicts.Action.TAKE_NEW))

@@ -38,6 +38,9 @@ class WizardState:
     force_while_open: bool = False  # regenerate although a Godot editor seems to be open
     accept_runtime_upgrade: bool = False  # the next run may move to a new major runtime
     project_focus: str = ""  # a fix points the Project page at this widget (object name)
+    # the welcome view's Try the sample (T15.22): the run started with the default options,
+    # without the user having seen the pages in between (not drafted)
+    sample_run: bool = False
 
 
 def draft_path(target: Path) -> Path:

@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import classifier, sound_slots
+from rpggen.gui import icons, theme
 from rpggen.gui.widgets import audio_preview
 
 Resolver = Callable[[catalog_mod.Asset], Path | None]
@@ -112,21 +113,31 @@ class SoundSection(QFrame):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("soundSection")
-        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setProperty("card", True)  # the Sound card of the Mapping page (T15.13)
         self.catalog: catalog_mod.Catalog | None = None
         self.resolver: Resolver | None = None
         self.sounds: dict[str, str] = {}
         layout = QVBoxLayout(self)
+        pad = theme.px("space_16")
+        layout.setContentsMargins(pad, pad, pad, pad)
         head = QHBoxLayout()
-        self.title_label = QLabel("<b>" + self.tr("Sound") + "</b>")
+        self.title_label = QLabel(self.tr("Sound"))
+        self.title_label.setProperty("role", "section")
         self.summary_label = QLabel()
         self.summary_label.setObjectName("soundSummary")
+        self.summary_label.setProperty("role", "caption")
         self.edit_button = QPushButton(self.tr("Edit…"))
         self.edit_button.setObjectName("soundEdit")
         self.edit_button.setCheckable(True)
         self.edit_button.setToolTip(self.tr("Show a row for every sound slot"))
+        icons.set_icon(self.edit_button, "sliders")
+        self.add_button = QPushButton(self.tr("Add slot…"))
+        self.add_button.setObjectName("soundAddSlot")
+        icons.set_icon(self.add_button, "plus")
         head.addWidget(self.title_label)
         head.addWidget(self.summary_label, 1)
+        head.addWidget(self.add_button)  # both in the card's heading row
         head.addWidget(self.edit_button)
         layout.addLayout(head)
         self.body = QWidget()
@@ -140,8 +151,6 @@ class SoundSection(QFrame):
         self.body.setVisible(False)
         layout.addWidget(self.body)
         foot = QHBoxLayout()
-        self.add_button = QPushButton(self.tr("Add slot…"))
-        self.add_button.setObjectName("soundAddSlot")
         self.add_button.setToolTip(
             self.tr(
                 "A slot of your own, played by its name: sfx_<name> or music_<name>. "
@@ -154,7 +163,6 @@ class SoundSection(QFrame):
         self.add_error.setProperty("role", "error")
         self.add_error.setWordWrap(True)
         self.add_error.setVisible(False)
-        foot.addWidget(self.add_button)
         foot.addWidget(self.add_error, 1)
         layout.addLayout(foot)
         self.edit_button.toggled.connect(self.body.setVisible)

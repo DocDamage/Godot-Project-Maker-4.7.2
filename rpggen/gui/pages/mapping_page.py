@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QScrollArea,
     QSizePolicy,
-    QStyle,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -26,16 +25,20 @@ from PySide6.QtWidgets import (
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import labels, mapping, requirements
 from rpggen.errors import Issue
-from rpggen.gui import edits, thumbnails
+from rpggen.gui import edits, icons, theme, thumbnails
 from rpggen.gui.dialogs.asset_picker import AssetPickerDialog
 from rpggen.gui.pages.audit_page import make_resolver
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
+from rpggen.gui.widgets import buttons
+from rpggen.gui.widgets.card import Card
 from rpggen.gui.widgets.sound_section import SoundSection
 
 USE_PLACEHOLDER = "Use placeholder"
 CONTINUE_WITHOUT = "Continue without"
-THUMB = 48
+NAME_WIDTH = 170  # the role's name and its hint
+STATUS_WIDTH = 92  # "✔ assigned", "⚠ placeholder"
+THUMB = 32  # the picture of a role's asset in its row (T15.13)
 
 
 NONE_DATA = "__none__"
@@ -65,21 +68,26 @@ class RoleRowWidget(QFrame):
         self.row = row
         self._candidates_filled = False
         self.setObjectName(f"row_{row.role}")
-        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setProperty("mappingRow", True)
         # a row is never squeezed below its size hint: the page scrolls instead
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         grid = QGridLayout(self)
+        grid.setContentsMargins(theme.px("space_8"), 6, 0, 6)
+        grid.setHorizontalSpacing(theme.px("space_8"))
+        grid.setVerticalSpacing(2)
         title = labels.role_label(row.role) + (" *" if row.required else "")
-        self.role_label = QLabel(f"<b>{title}</b>")
+        self.role_label = QLabel(title)
+        self.role_label.setProperty("role", "strong")
         self.role_label.setToolTip(f"{row.role}: {labels.role_help(row.role)}")
-        self.role_label.setMinimumWidth(150)
         self.status_label = QLabel()
         self.status_label.setObjectName(f"status_{row.role}")
+        self.status_label.setMinimumWidth(STATUS_WIDTH)
         self.thumb_label = QLabel()
-        self.thumb_label.setFixedSize(THUMB + 4, THUMB + 4)
+        self.thumb_label.setFixedSize(THUMB, THUMB)
         self.asset_combo = CandidateCombo()
         self.asset_combo.setObjectName(f"asset_{row.role}")
-        self.asset_combo.setIconSize(QSize(32, 32))
+        self.asset_combo.setIconSize(QSize(20, 20))
         self.asset_combo.setSizeAdjustPolicy(
             QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
         )
@@ -90,27 +98,41 @@ class RoleRowWidget(QFrame):
             self.tr("Used for {0}").format(mapping.used_for(row.role, archetype))
         )
         self.used_label.setObjectName(f"used_{row.role}")
-        self.used_label.setProperty("muted", True)
-        text_box = QVBoxLayout()
-        text_box.setSpacing(0)
-        text_box.addWidget(self.asset_combo)
-        text_box.addWidget(self.used_label)
-        self.choose_button = QPushButton(self.tr("Choose…"))
+        self.used_label.setProperty("role", "caption")
+        name_box = QVBoxLayout()  # the role's name, and under it what it is used for
+        name_box.setContentsMargins(0, 0, 0, 0)
+        name_box.setSpacing(0)
+        name_box.addWidget(self.role_label)
+        name_box.addWidget(self.used_label)
+        name_holder = QWidget()
+        name_holder.setLayout(name_box)
+        name_holder.setMinimumWidth(NAME_WIDTH)
+        name_holder.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        # three quiet icon buttons: their words are the tooltip and the accessible name
+        role_name = labels.role_label(row.role)
+        self.choose_button = QPushButton()
         self.choose_button.setObjectName(f"choose_{row.role}")
-        self.choose_button.setToolTip(self.tr("Pick the asset for this role"))
-        self.clear_button = QPushButton(self.tr("Clear"))
+        buttons.icon_only(self.choose_button, "folder-open", self.tr("Choose…"))
+        self.choose_button.setToolTip(self.tr("Choose…: pick the asset for this role"))
+        self.choose_button.setAccessibleName(self.tr("Choose the asset of {0}").format(role_name))
+        self.clear_button = QPushButton()
         self.clear_button.setObjectName(f"clear_{row.role}")
+        buttons.icon_only(self.clear_button, "x", self.tr("Clear"))
         self.clear_button.setToolTip(
-            self.tr("Forget your choice: rpggen picks again (or leaves the role empty)")
+            self.tr("Clear: forget your choice; rpggen picks again (or leaves the role empty)")
         )
+        self.clear_button.setAccessibleName(self.tr("Clear the choice of {0}").format(role_name))
+        keep = self.clear_button.sizePolicy()  # hidden for a role with nothing to clear: the
+        keep.setRetainSizeWhenHidden(True)  # other buttons stay in their columns
+        self.clear_button.setSizePolicy(keep)
         self.audit_button = QToolButton()
         self.audit_button.setObjectName(f"audit_{row.role}")
-        self.audit_button.setIcon(
-            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
+        buttons.icon_only(self.audit_button, "eye", self.tr("Show in audit"))
+        self.audit_button.setToolTip(
+            self.tr("Show in audit: this asset on the Audit page (Back returns)")
         )
-        self.audit_button.setToolTip(self.tr("Show this asset on the Audit page (Back returns)"))
         self.audit_button.setAccessibleName(
-            self.tr("Show the asset of {0} in the audit").format(labels.role_label(row.role))
+            self.tr("Show the asset of {0} in the audit").format(role_name)
         )
         # what to do without an asset
         self.fallback_box = QWidget()
@@ -137,10 +159,10 @@ class RoleRowWidget(QFrame):
         self.fallback_group.addButton(self.placeholder_radio)
         self.fallback_group.addButton(self.without_radio)
         self.fallback_group.setExclusive(False)  # a required row starts with neither chosen
-        grid.addWidget(self.role_label, 0, 0)
-        grid.addWidget(self.status_label, 0, 1)
-        grid.addWidget(self.thumb_label, 0, 2, 2, 1)
-        grid.addLayout(text_box, 0, 3)
+        grid.addWidget(self.thumb_label, 0, 0)
+        grid.addWidget(name_holder, 0, 1)
+        grid.addWidget(self.status_label, 0, 2)
+        grid.addWidget(self.asset_combo, 0, 3)
         grid.addWidget(self.choose_button, 0, 4)
         grid.addWidget(self.clear_button, 0, 5)
         grid.addWidget(self.audit_button, 0, 6)
@@ -153,6 +175,13 @@ class RoleRowWidget(QFrame):
         self.audit_button.clicked.connect(lambda: page.show_in_audit(row.role))
         self.placeholder_radio.clicked.connect(lambda _c: page.on_fallback(row.role, "placeholder"))
         self.without_radio.clicked.connect(lambda _c: page.on_fallback(row.role, "without"))
+
+    def set_missing(self, missing: bool) -> None:
+        """A role without an asset has a warning edge at its left (the status says it in words
+        too)."""
+        if bool(self.property("edge")) != missing:
+            self.setProperty("edge", "warning" if missing else None)
+            theme.repolish(self)
 
     def set_fallback(self, choice: str | None) -> None:
         """Shows the chosen fallback without sending a click."""
@@ -182,6 +211,11 @@ class MappingPage(WizardPage):
     showInAudit = Signal(str, str)  # noqa: N815 - asset id, the role whose row asked
 
     title = "Mapping"
+    purpose = str(
+        QT_TRANSLATE_NOOP(
+            "WizardPage", "Which asset plays each part in the starter map and the systems."
+        )
+    )
     help_anchor = "3. Using a pack you bought"
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -191,22 +225,24 @@ class MappingPage(WizardPage):
         self.placeholders: set[str] = set()
         self.without: set[str] = set()  # optional roles the user left out on purpose
         self.rows: dict[str, RoleRowWidget] = {}
-        self.layout_ = QVBoxLayout(self)
-        self.layout_.addWidget(
-            QLabel(self.tr("Check that every role has an asset. * marks required roles."))
+        self.group_cards: dict[str, Card] = {}
+        self.layout_ = self.page_layout()
+        self.header.set_purpose(
+            self.header.purpose_label.text() + " " + self.tr("* marks the required roles.")
         )
         self.summary_label = QLabel()
         self.summary_label.setObjectName("mappingSummary")
+        self.summary_label.setProperty("role", "caption")
         self._history: list[tuple] = []  # (starter, placeholders, without, catalog) before a change
         self.undo_button = QPushButton(self.tr("Undo"))
         self.undo_button.setObjectName("mappingUndo")
         self.undo_button.setToolTip(self.tr("Take back the last choice (Ctrl+Z)"))
         self.undo_button.setEnabled(False)
         self.undo_button.clicked.connect(self.undo)
-        summary_row = QHBoxLayout()
-        summary_row.addWidget(self.summary_label, 1)
-        summary_row.addWidget(self.undo_button)
-        self.layout_.addLayout(summary_row)
+        buttons.set_kind(self.undo_button, buttons.QUIET)
+        icons.set_icon(self.undo_button, "undo")
+        self.header.add_widget(self.summary_label)  # in the header's slot (T15.13)
+        self.header.add_widget(self.undo_button)
         shortcut = QShortcut(QKeySequence.StandardKey.Undo, self)
         shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         shortcut.activated.connect(self.undo)
@@ -218,8 +254,10 @@ class MappingPage(WizardPage):
         body = QWidget()
         body.setObjectName("mappingBody")
         body_layout = QVBoxLayout(body)
-        body_layout.setContentsMargins(0, 0, 6, 0)
+        body_layout.setContentsMargins(0, 0, theme.px("space_8"), 0)
+        body_layout.setSpacing(theme.px("space_12"))
         self.rows_box = QVBoxLayout()
+        self.rows_box.setSpacing(theme.px("space_12"))
         body_layout.addLayout(self.rows_box)
         self.sound_section = SoundSection()
         self.sound_section.changed.connect(self.changed.emit)
@@ -248,25 +286,35 @@ class MappingPage(WizardPage):
             if widget is not None:
                 widget.deleteLater()
         self.rows = {}
+        self.group_cards = {}
         rows = {row.role: row for row in mapping.rows(archetype)}
         placed: set[str] = set()
         for group, roles in labels.MAPPING_GROUPS:
             members = [rows[r] for r in roles if r in rows]
             if not members:
                 continue
-            header = QLabel(f"<b>{self.tr(group)}</b>")
+            card = Card()  # a section is a card with its heading (T15.13)
+            card.setObjectName(f"groupCard_{group}")
+            card.box.setSpacing(0)
+            header = card.add_heading(self.tr(group))
             header.setObjectName(f"group_{group}")
-            self.rows_box.addWidget(header)
+            self.group_cards[group] = card
+            self.rows_box.addWidget(card)
             for row in members:
                 widget = RoleRowWidget(row, self)
                 self.rows[row.role] = widget
-                self.rows_box.addWidget(widget)
+                card.box.addWidget(widget)
                 placed.add(row.role)
-        for role, row in rows.items():  # a role without a group still gets a row
-            if role not in placed:
-                widget = RoleRowWidget(row, self)
+        leftover = [role for role in rows if role not in placed]
+        if leftover:  # a role without a group still gets a row
+            card = Card()
+            card.setObjectName("groupCard_other")
+            card.box.setSpacing(0)
+            self.rows_box.addWidget(card)
+            for role in leftover:
+                widget = RoleRowWidget(rows[role], self)
                 self.rows[role] = widget
-                self.rows_box.addWidget(widget)
+                card.box.addWidget(widget)
         self._refresh()
         self.sound_section.set_data(
             state.catalog,
@@ -465,6 +513,7 @@ class MappingPage(WizardPage):
     def _set_status(widget: RoleRowWidget, state: str, text: str) -> None:
         widget.status_label.setText(text)
         widget.status_label.setProperty("state", state)
+        widget.set_missing(state in ("warning", "error"))
         widget.status_label.style().unpolish(widget.status_label)
         widget.status_label.style().polish(widget.status_label)
 

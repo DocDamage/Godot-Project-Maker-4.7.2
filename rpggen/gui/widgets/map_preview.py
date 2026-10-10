@@ -83,6 +83,8 @@ class MapPreviewWidget(QWidget):
             dot = QLabel()
             dot.setObjectName(f"legendDot_{kind}")
             dot.setFixedSize(10, 10)
+            # a data colour (the marker's, from MARKER_COLORS): the other inline style that
+            # stays (T15.05)
             dot.setStyleSheet(
                 f"background: rgb({r},{g},{b}); border: 1px solid black; border-radius: 5px;"
             )

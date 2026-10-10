@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QSizePolicy,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -24,9 +25,9 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import anim_edit, audio_info, explain, labels
 from rpggen.core import catalog as catalog_mod
-from rpggen.gui import workers
+from rpggen.gui import icons, theme, workers
 from rpggen.gui.edits import EditSession
-from rpggen.gui.widgets import audio_preview, image_view
+from rpggen.gui.widgets import audio_preview, buttons, image_view
 from rpggen.gui.widgets.anim_preview import AnimPlayer
 from rpggen.gui.widgets.asset_grid import STATUS_COLORS, PathResolver
 from rpggen.gui.widgets.flow_layout import FlowLayout
@@ -159,7 +160,15 @@ class AssetDetail(QWidget):
         self.player.frameChanged.connect(lambda _index: self._on_frame())
         self.player.finished.connect(self.stop_animation)
 
+        # a card with four sections (T15.12): Picture, What it is, How it is used, Actions
+        self.setObjectName("assetDetail")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QVBoxLayout(self)
+        pad = theme.px("space_12")
+        layout.setContentsMargins(pad, pad, pad, pad)
+        layout.setSpacing(theme.px("space_8"))
+        self.section_labels: dict[str, QLabel] = {}
+        layout.addWidget(self._section("picture", self.tr("Picture")))
         self.preview = ImageView("assetPreview")
         self.preview.setMinimumHeight(180)
         layout.addWidget(self.preview, 2)
@@ -262,17 +271,26 @@ class AssetDetail(QWidget):
         self._space.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self._space.activated.connect(self.toggle_playback)
 
-        form = QFormLayout()
-        layout.addLayout(form)
         self.path_label = QLabel()
         self.path_label.setObjectName("pathLabel")
+        self.path_label.setProperty("role", "caption")
         self.path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self.show_folder_button = QPushButton(self.tr("Show in folder"))
+        # a long path is cut at the right (the tooltip has all of it): it must not set the
+        # panel's width
+        self.path_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.path_label.setAccessibleName(self.tr("Path"))
+        self.show_folder_button = QPushButton()
         self.show_folder_button.setObjectName("showFolderButton")
+        buttons.icon_only(self.show_folder_button, "folder-open", self.tr("Show in folder"))
         row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
         row.addWidget(self.path_label, 1)
         row.addWidget(self.show_folder_button)
-        form.addRow(self.tr("Path"), row)
+        layout.addLayout(row)
+
+        layout.addWidget(self._section("what", self.tr("What it is")))
+        form = self._form()
+        layout.addLayout(form)
         self.pack_label = QLabel()
         self.pack_label.setObjectName("packLabel")
         form.addRow(self.tr("Pack"), self.pack_label)
@@ -311,6 +329,9 @@ class AssetDetail(QWidget):
         role_box.addWidget(self.why_label)
         form.addRow(self.tr("Role"), role_box)
 
+        layout.addWidget(self._section("how", self.tr("How it is used")))
+        form = self._form()
+        layout.addLayout(form)
         self.confidence_bar = QProgressBar()
         self.confidence_bar.setObjectName("confidenceBar")
         self.confidence_bar.setRange(0, 100)
@@ -338,7 +359,9 @@ class AssetDetail(QWidget):
         self.tags_edit.setObjectName("tagsEdit")
         form.addRow(self.tr("Tags"), self.tags_edit)
 
-        buttons = FlowLayout()  # wraps when the panel is narrow
+        layout.addWidget(self._section("actions", self.tr("Actions")))
+        decide = FlowLayout()  # the decision first, the tools on a line of their own
+        tools = FlowLayout()  # (both wrap when the panel is narrow)
         self.confirm_button = QPushButton(self.tr("Confirm"))
         self.confirm_button.setObjectName("confirmButton")
         self.exclude_button = QPushButton(self.tr("Exclude"))
@@ -349,15 +372,20 @@ class AssetDetail(QWidget):
         self.anim_button.setObjectName("animationsButton")
         self.cut_button = QPushButton(self.tr("Cut objects…"))
         self.cut_button.setObjectName("cutObjectsButton")
-        for b in (
-            self.confirm_button,
-            self.exclude_button,
-            self.grid_button,
-            self.anim_button,
-            self.cut_button,
+        buttons.set_kind(self.confirm_button, buttons.PRIMARY)
+        for button, icon_name, line in (
+            (self.confirm_button, "check", decide),
+            (self.exclude_button, "x", decide),
+            (self.grid_button, "layout-grid", tools),
+            (self.anim_button, "play", tools),
+            (self.cut_button, "box", tools),
         ):
-            buttons.addWidget(b)
-        layout.addLayout(buttons)
+            icons.set_icon(
+                button, icon_name, "on_accent" if button is self.confirm_button else None
+            )
+            line.addWidget(button)
+        layout.addLayout(decide)
+        layout.addLayout(tools)
 
         self.usage_combo.activated.connect(self._on_usage)
         self.role_combo.activated.connect(self._on_role)
@@ -372,6 +400,23 @@ class AssetDetail(QWidget):
         self.cut_button.clicked.connect(lambda: self._emit(self.cutObjectsRequested))
         self.session.changed.connect(self._on_session_changed)
         self.setEnabled(False)
+
+    def _section(self, key: str, text: str) -> QLabel:
+        label = QLabel(text)
+        label.setObjectName(f"detailSection_{key}")
+        label.setProperty("role", "section")
+        self.section_labels[key] = label
+        return label
+
+    @staticmethod
+    def _form() -> QFormLayout:
+        form = QFormLayout()
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setVerticalSpacing(theme.px("space_8"))
+        form.setHorizontalSpacing(theme.px("space_12"))
+        # a combo with a long entry must not set the panel's width
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        return form
 
     @staticmethod
     def _combo(name: str, items: list[str], kind: str) -> QComboBox:
@@ -418,6 +463,7 @@ class AssetDetail(QWidget):
                 return
             eff = catalog_mod.effective(asset)
             self.path_label.setText(asset.path)
+            self.path_label.setToolTip(asset.path)
             self.pack_label.setText(asset.pack_id)
             self._select(self.usage_combo, eff.get("usage"))
             self._select(self.role_combo, eff.get("role"))
@@ -427,6 +473,8 @@ class AssetDetail(QWidget):
             self.confidence_bar.setValue(round(asset.confidence * 100))
             self.status_badge.setText(asset.status)
             color = STATUS_COLORS.get(asset.status, STATUS_COLORS["UNUSED"])
+            # a data colour (the status of this asset), read from the grid's table: one of the
+            # two inline styles the wizard keeps (T15.05)
             self.status_badge.setStyleSheet(f"color: {color}; font-weight: bold;")
             usage = eff.get("usage")
             self._show_media_kind(asset, eff)

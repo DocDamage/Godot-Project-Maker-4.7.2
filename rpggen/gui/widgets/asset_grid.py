@@ -13,19 +13,22 @@ from PySide6.QtCore import (
     QModelIndex,
     QPersistentModelIndex,
     QRect,
+    QRectF,
     QSize,
     QSortFilterProxyModel,
     Qt,
     Signal,
 )
-from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPixmap
+from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QListView,
     QPushButton,
+    QSizePolicy,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -35,7 +38,8 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import labels
-from rpggen.gui import thumbnails
+from rpggen.gui import icons, theme, thumbnails
+from rpggen.gui.widgets import buttons
 from rpggen.gui.widgets.flow_layout import FlowLayout
 
 AssetIdRole = Qt.ItemDataRole.UserRole + 1
@@ -606,7 +610,12 @@ class AssetCardDelegate(QStyledItemDelegate):
         rect = option.rect.adjusted(2, 2, -2, -2)
         selected = bool(option.state & QStyle.StateFlag.State_Selected)
         palette = option.palette
-        painter.fillRect(rect, palette.highlight() if selected else palette.base())
+        # a cell is a small card (T15.12): rounded corners; the strip and the glyph say the status
+        shape = QPainterPath()
+        radius = theme.px("radius_control")
+        shape.addRoundedRect(QRectF(rect), radius, radius)
+        painter.setClipPath(shape)
+        painter.fillRect(rect, palette.highlight() if selected else theme.color("surface"))
         status = index.data(StatusRole) or "UNUSED"
         painter.fillRect(
             QRect(rect.left(), rect.top(), self.STRIP, rect.height()),
@@ -779,6 +788,34 @@ CHIPS: list[tuple[str, str, set[str] | None]] = [
     ("chipAll", "All", None),
 ]
 COMBO_MAX_WIDTH = 240
+SEARCH_WIDTH = 150
+# the status a chip stands for, as the dot beside its word (All has none)
+CHIP_DOTS = {
+    "chipAttention": "NEEDS_REVIEW",
+    "chipAuto": "AUTO_DETECTED",
+    "chipConfirmed": "CONFIRMED",
+    "chipUnused": "UNUSED",
+}
+
+
+def status_dot(status: str | None, size: int = 10) -> QIcon:
+    """A round dot in a status colour (an empty icon for no status). The chip's word stays
+    beside it, so the colour is never the only cue."""
+    if not status:
+        return QIcon()
+    ratio = icons.screen_ratio()
+    pixmap = QPixmap(theme.device_size(size, ratio), theme.device_size(size, ratio))
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor(STATUS_COLORS[status]))
+    painter.drawEllipse(pixmap.rect().adjusted(1, 1, -1, -1))
+    painter.end()
+    pixmap.setDevicePixelRatio(ratio)
+    return QIcon(pixmap)
+
+
 LISTED_CHIP = "chipListed"  # shown while a list of assets is shown (from the results page)
 CHANGED_CHIP = "chipChanged"  # shown only after a pack update
 
@@ -803,8 +840,12 @@ class AssetGrid(QWidget):
         self.view.setModel(self.proxy)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        bar = FlowLayout()  # row 1: the status chips with their counts (wraps when narrow)
+        layout.setContentsMargins(0, theme.px("space_8"), 0, 0)
+        layout.setSpacing(theme.px("space_8"))
+        # one filter row (T15.12): the status chips, the two combos, the search field, the
+        # folder toggle and what the page adds at its end; it wraps in a narrow pane
+        bar = FlowLayout(spacing=6)
+        self.filter_bar = bar
         self.chips: dict[str, QPushButton] = {}
         self._chip_labels: dict[str, str] = {}
         for name, label, statuses in CHIPS:
@@ -812,7 +853,10 @@ class AssetGrid(QWidget):
             chip.setObjectName(name)
             chip.setCheckable(True)
             chip.setAutoExclusive(True)
+            chip.setProperty("chip", True)
             chip.setToolTip(self.tr("Show only the assets with this status"))
+            chip.setIcon(status_dot(CHIP_DOTS.get(name)))
+            chip.setIconSize(QSize(10, 10))
             chip.clicked.connect(lambda _=False, s=statuses: self._show_statuses(s))
             bar.addWidget(chip)
             self.chips[name] = chip
@@ -821,6 +865,7 @@ class AssetGrid(QWidget):
         changed.setObjectName(CHANGED_CHIP)
         changed.setCheckable(True)
         changed.setAutoExclusive(True)
+        changed.setProperty("chip", True)
         changed.setVisible(False)
         changed.clicked.connect(self._show_changed)
         bar.addWidget(changed)
@@ -829,6 +874,7 @@ class AssetGrid(QWidget):
         listed.setObjectName(LISTED_CHIP)
         listed.setCheckable(True)
         listed.setAutoExclusive(True)
+        listed.setProperty("chip", True)
         listed.setVisible(False)
         listed.setToolTip(self.tr("The assets the generation report named"))
         listed.clicked.connect(lambda: self.proxy.set_only_ids(self.listed_ids))
@@ -844,13 +890,6 @@ class AssetGrid(QWidget):
         self.confirm_auto_button.setVisible(False)
         self.confirm_auto_button.clicked.connect(self.confirmAutoRequested)
         bar.addWidget(self.confirm_auto_button)
-        self.help_button = QPushButton(self.tr("Shortcuts"))
-        self.help_button.setObjectName("shortcutsButton")
-        self.help_button.setToolTip(self.tr("Keyboard shortcuts of this page"))
-        self.help_button.clicked.connect(self.shortcutsRequested)
-        bar.addWidget(self.help_button)
-        layout.addLayout(bar)
-        bar2 = QHBoxLayout()  # row 2: filters, search and the thumbnail size
         self.role_combo = QComboBox()
         self.role_combo.setObjectName("roleFilter")
         self.role_combo.setToolTip(self.tr("Show only assets with this role"))
@@ -861,24 +900,54 @@ class AssetGrid(QWidget):
         self.search.setObjectName("searchFilter")
         self.search.setPlaceholderText(self.tr("Search by name or folder"))
         self.search.setClearButtonEnabled(True)
-        self.search.setMinimumWidth(120)
+        self.search.setMinimumWidth(SEARCH_WIDTH)
+        self._search_icon = self.search.addAction(
+            icons.icon("search", "text_muted"), QLineEdit.ActionPosition.LeadingPosition
+        )
+        theme.signals.changed.connect(self._retheme)
         for combo in (self.role_combo, self.pack_combo):
             combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        bar2.addWidget(self.role_combo)
-        bar2.addWidget(self.pack_combo)
-        bar2.addWidget(self.search, 1)
-        self.group_button = QPushButton(self.tr("Group by folder"))
+        bar.addWidget(self.role_combo)
+        bar.addWidget(self.pack_combo)
+        bar.addWidget(self.search)
+        self.group_button = QPushButton()
         self.group_button.setObjectName("groupByFolder")
         self.group_button.setCheckable(True)
-        self.group_button.setToolTip(
-            self.tr("A header per folder, with Confirm all, Select all and Make rule…")
+        buttons.icon_only(
+            self.group_button,
+            "list",
+            self.tr(
+                "Group by folder: a header per folder, with Confirm all, Select all and Make rule…"
+            ),
+            buttons.SECONDARY,
         )
+        self.group_button.setAccessibleName(self.tr("Group by folder"))
         self.group_button.clicked.connect(lambda on: self.set_grouped(bool(on)))
-        bar2.addWidget(self.group_button)
-        layout.addLayout(bar2)
+        bar.addWidget(self.group_button)
+        layout.addLayout(bar)
         self.view.card_delegate.headerToggled.connect(self.toggle_folder)
         self.view.card_delegate.headerAction.connect(self._on_header_action)
         layout.addWidget(self.view, 1)
+        # the footer (T15.12): what the queue holds at the left, the keys and Shortcuts at the right
+        footer = QHBoxLayout()
+        footer.setContentsMargins(0, 0, 0, 0)
+        footer.setSpacing(theme.px("space_8"))
+        self.queue_label = QLabel()
+        self.queue_label.setObjectName("queueLabel")
+        self.queue_label.setProperty("role", "caption")
+        self.queue_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.keys_label = QLabel(self.tr("C Confirm · X Exclude · 1–9 Role · N Next"))
+        self.keys_label.setObjectName("keysLabel")
+        self.keys_label.setProperty("role", "caption")
+        self.help_button = QPushButton(self.tr("Shortcuts"))
+        self.help_button.setObjectName("shortcutsButton")
+        self.help_button.setToolTip(self.tr("Keyboard shortcuts of this page"))
+        buttons.set_kind(self.help_button, buttons.QUIET)
+        self.help_button.clicked.connect(self.shortcutsRequested)
+        footer.addWidget(self.queue_label, 1)
+        footer.addWidget(self.keys_label)
+        footer.addWidget(self.help_button)
+        layout.addLayout(footer)
         self.model.modelReset.connect(self._update_counts)
         self.model.dataChanged.connect(self._on_model_data_changed)
 
@@ -891,6 +960,18 @@ class AssetGrid(QWidget):
         self.view.selectionModel().selectionChanged.connect(
             lambda *_: self.selectionChanged.emit(self.selected_ids())
         )
+
+    def add_filter_widget(self, widget: QWidget) -> None:
+        """Put one of the page's controls at the end of the filter row (the Profile menu)."""
+        self.filter_bar.addWidget(widget)
+
+    def set_queue_text(self, text: str) -> None:
+        self.queue_label.setText(text)
+        self.queue_label.setToolTip(text)
+
+    def _retheme(self, *_args: object) -> None:
+        with contextlib.suppress(RuntimeError):  # the grid was closed
+            self._search_icon.setIcon(icons.icon("search", "text_muted"))
 
     # ------------------------------------------------------------------ counts and size
 
@@ -929,9 +1010,16 @@ class AssetGrid(QWidget):
         self.proxy.rank = None if asset_ids is None else {a: i for i, a in enumerate(asset_ids)}
         self.proxy.invalidate()
 
+    def _show_group_icon(self, on: bool) -> None:
+        """The toggle shows what a press gives: the list of folders, or the plain grid."""
+        themed = self.group_button._themed_icon  # type: ignore[attr-defined]
+        themed.name = "layout-grid" if on else "list"
+        themed.apply()
+
     def set_grouped(self, on: bool, by_pack: bool = False) -> None:
         """A header row per folder (or per pack), or the flat grid."""
         self.group_button.setChecked(on)
+        self._show_group_icon(on)
         if on == self.model.grouped and by_pack == self.model.by_pack:
             return
         selected = self.selected_ids()

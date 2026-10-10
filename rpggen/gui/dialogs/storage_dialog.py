@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 from rpggen import paths
 from rpggen.core import app_settings, cache_policy
 from rpggen.gui import workers
+from rpggen.gui.widgets import buttons
 
 CACHE_LABELS = {
     "extracted": "Extracted packs",
@@ -127,6 +128,8 @@ class StorageDialog(QDialog):
             button = QPushButton(self.tr("Clear"))
             button.setObjectName(f"clear_{name}")
             button.setToolTip(self.tr("Delete this"))
+            if name in cache_policy.DATA_ITEMS:  # the one destructive button of the wizard
+                buttons.set_kind(button, buttons.DANGER)
             button.clicked.connect(lambda _=False, n=name: self.clear(n))
             self.clear_buttons[name] = button
             grid.addWidget(button, row, 2)

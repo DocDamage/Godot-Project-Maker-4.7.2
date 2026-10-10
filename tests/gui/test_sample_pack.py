@@ -281,10 +281,19 @@ def _window_with(qtbot, tmp_path, monkeypatch, available: bool) -> MainWindow:
     monkeypatch.setattr(godot, "auto_find_godot", lambda: [exe])
     monkeypatch.setattr(ProjectPage, "documents_dir", lambda self: tmp_path / "Documents")
     (tmp_path / "Documents").mkdir(exist_ok=True)
+    # the welcome card starts a generation (T15.22): these tests look at what it filled in
+    from rpggen.gui.pages.generate_page import GeneratePage
+
+    monkeypatch.setattr(GeneratePage, "start", lambda self: STARTED.append(self.state))
+    STARTED.clear()
     win = MainWindow(state_mod.WizardState(), default_pages(), show_welcome=True)
     qtbot.addWidget(win)
     win.show()
     return win
+
+
+STARTED: list = []  # the states the (replaced) Generate page was asked to start with
+GENERATE_INDEX = OPTIONS_INDEX + 1
 
 
 def _state_facts(win: MainWindow) -> dict:
@@ -306,9 +315,9 @@ def test_the_welcome_card_is_the_plain_button_while_the_metroidvania_is_off(
     win = _window_with(qtbot, tmp_path, monkeypatch, available=False)
     card = win.welcome.sample_card
     assert card.menu() is None and win.welcome.sample_side_action is None
-    assert card.toolTip() == "Fills in the bundled sample pack and goes straight to the options"
+    assert card.toolTip() == "Fills in the bundled sample pack, generates it and shows the result"
     card.click()
-    assert win.current_index == OPTIONS_INDEX
+    assert win.current_index == GENERATE_INDEX and [win.state] == STARTED
     assert win.state.pack_sources == [SAMPLE] and win.state.archetype == "turn_based"
 
 
@@ -343,7 +352,7 @@ def test_the_first_entry_fills_the_same_state_with_the_flag_on_or_off(
             win.welcome.sample_top_action.trigger()  # from the menu
         else:
             win.welcome.sample_card.click()  # the card itself
-        assert win.current_index == OPTIONS_INDEX
+        assert win.current_index == GENERATE_INDEX
         found = _state_facts(win)
         for pack in found["config"]["packs"]:
             pack.pop("source", None)  # an absolute path of this checkout
@@ -351,3 +360,96 @@ def test_the_first_entry_fills_the_same_state_with_the_flag_on_or_off(
     assert facts[0] == facts[1] == facts[2]
     assert facts[0]["name"] == "Sample RPG" and facts[0]["archetype"] == "turn_based"
     assert facts[0]["packs"] == ["sample_pack"]
+
+
+# ------------------------------------------------------------------------ two clicks (T15.22)
+
+
+class _FakeWorkerSignals:
+    def __init__(self) -> None:
+        from PySide6.QtCore import QObject, Signal
+
+        class Signals(QObject):
+            finished = Signal(object)
+            failed = Signal(object)
+
+        self.q = Signals()
+
+
+def test_the_welcome_sample_lands_on_generate_with_the_run_started(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    """From the welcome view the sample is walked through every page (each writes its defaults)
+    to the Generate page, where the run starts and a banner says what is used."""
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True)
+    entered: list[str] = []
+    for page in win.pages:
+        original = page.enter
+        page.enter = lambda state, o=original, p=page: (entered.append(p.title), o(state))[1]
+    win.welcome.sample_card.click()
+    assert win.current_index == GENERATE_INDEX and not win.welcome_visible
+    assert entered[:6] == ["Project", "Archetype", "Audit", "Mapping", "Options", "Generate"]
+    assert [win.state] == STARTED and win.state.sample_run
+    assert win.state.config is not None and win.state.config.project_name == "Sample RPG"
+    assert win.state.catalog is not None  # the Options page wrote its defaults on the way
+    generate = win.current_page
+    assert "default options" in generate.sample_banner.text()
+    assert "nothing was written yet" in generate.sample_banner.text()
+
+
+def test_back_is_open_during_a_sample_run_until_it_writes(qtbot, tmp_path, monkeypatch) -> None:
+    from PySide6.QtWidgets import QApplication
+
+    from rpggen.gui.pages.generate_page import PHASES, GeneratePage
+
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True)
+    win.welcome.sample_card.click()
+    generate = win.current_page
+    assert isinstance(generate, GeneratePage)
+    cancelled: list[bool] = []
+
+    class Worker:  # a run that is on, and stops when it is cancelled
+        def cancel(self) -> None:
+            cancelled.append(True)
+            generate.running = False
+
+        signals = _FakeWorkerSignals().q
+
+    generate.worker = Worker()  # type: ignore[assignment]
+    generate.running = True
+    generate._on_progress("build", PHASES.index("build") + 1, len(PHASES))
+    win.refresh()
+    assert generate.back_allowed_while_running() and win.back_button.isEnabled()
+    assert not generate.sample_banner.isHidden()
+    # the Cancel of the page is in the window's bar, where Next was
+    assert generate.cancel_button.isVisibleTo(win) and not win.next_button.isVisibleTo(win)
+    assert generate.cancel_button.parentWidget() is win.next_button.parentWidget()
+    assert generate.cancel_button.objectName() == "generateCancel"
+    # ... but not once the run writes the project
+    generate._on_progress("promote", PHASES.index("promote") + 1, len(PHASES))
+    QApplication.processEvents()
+    assert not generate.back_allowed_while_running() and not win.back_button.isEnabled()
+    assert generate.stop_for_back() is False and cancelled == []
+    generate._on_progress("smoke", PHASES.index("smoke") + 1, len(PHASES))
+    win.refresh()
+    win.back_button.click()  # stops the run and shows the options
+    assert cancelled == [True] and win.current_index == OPTIONS_INDEX
+    assert not win.state.sample_run  # the options are the user's choice from here on
+    # a run the user started from the Options page has no banner and no open Back
+    generate.running = True
+    generate._on_progress("build", PHASES.index("build") + 1, len(PHASES))
+    assert not generate.back_allowed_while_running()
+    generate.running = False  # nothing runs when the window closes
+    generate.worker = None
+
+
+def test_the_project_pages_sample_button_still_stops_at_the_options(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    """A user who is in the wizard is choosing a pack, not asking for a result."""
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True)
+    win.welcome.own_card.click()
+    win.pages[0].sample_button.click()
+    assert win.current_index == OPTIONS_INDEX and STARTED == []
+    assert not win.state.sample_run
+    assert win.next_button.text() == "Generate" and win.next_button.isEnabled()

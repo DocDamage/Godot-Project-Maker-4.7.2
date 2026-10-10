@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import QSize, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
+    QHBoxLayout,
     QLabel,
     QPlainTextEdit,
     QPushButton,
@@ -19,6 +20,9 @@ from PySide6.QtWidgets import (
 import rpggen
 from rpggen import godot_target, paths
 from rpggen.core import runtime_version
+from rpggen.gui import icons
+
+APP_ICON_SIZE = 48
 
 
 def notices_text() -> str:
@@ -49,9 +53,18 @@ class AboutDialog(QDialog):
         self.setObjectName("aboutDialog")
         self.setWindowTitle(self.tr("About rpggen"))
         layout = QVBoxLayout(self)
-        title = QLabel(f"<h2>rpggen {rpggen.__version__}</h2>")
+        head = QHBoxLayout()
+        self.icon_label = QLabel()
+        self.icon_label.setObjectName("aboutIcon")
+        self.icon_label.setFixedSize(QSize(APP_ICON_SIZE, APP_ICON_SIZE))
+        self.icon_label.setPixmap(icons.pixmap("app", None, APP_ICON_SIZE))
+        self.icon_label.setAccessibleName(self.tr("The rpggen icon"))
+        title = QLabel(f"rpggen {rpggen.__version__}")
         title.setObjectName("aboutTitle")
-        layout.addWidget(title)
+        title.setProperty("role", "display")
+        head.addWidget(self.icon_label)
+        head.addWidget(title, 1)
+        layout.addLayout(head)
         runtime = runtime_version.read_version(paths.templates_root()) or "?"
         self.details = QLabel(
             self.tr(

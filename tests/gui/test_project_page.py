@@ -254,7 +254,8 @@ def test_next_on_an_empty_page_reveals_the_three_errors_and_focuses_the_packs(
     win.next_button.click()
     assert win.current_index == 0
     assert set(_errors(page)) >= {"packsStatus", "targetStatus", "nameStatus"}
-    assert page.pack_list.hasFocus() or page.pack_list.isAncestorOf(win.focusWidget() or page)
+    # the empty pack list is the drop zone: the focus is on its first button (T15.11)
+    assert win.focusWidget() is page.add_zip_button
     assert win.problem_label.isHidden()
 
 

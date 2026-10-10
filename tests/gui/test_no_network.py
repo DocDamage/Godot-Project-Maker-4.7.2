@@ -15,7 +15,7 @@ from rpggen.gui import state as state_mod
 from rpggen.gui.pages.generate_page import GeneratePage
 from rpggen.gui.pages.project_page import ProjectPage
 from rpggen.gui.pages.results_page import ResultsPage
-from rpggen.gui.wizard import OPTIONS_INDEX, MainWindow, default_pages
+from rpggen.gui.wizard import MainWindow, default_pages
 
 pytestmark = pytest.mark.slow
 
@@ -48,9 +48,8 @@ def test_the_whole_flow_on_the_sample_pack_opens_no_socket(
     qtbot.waitUntil(lambda: "found" in window.welcome.godot_status.text(), timeout=60_000)
     assert window.welcome_visible
 
-    window.welcome.sample_card.click()
-    qtbot.waitUntil(lambda: window.current_index == OPTIONS_INDEX, timeout=120_000)
-    window.next_button.click()  # Generate
+    window.welcome.sample_card.click()  # walks to the Generate page and starts (T15.22)
+    qtbot.waitUntil(lambda: isinstance(window.current_page, GeneratePage), timeout=120_000)
     generate = window.current_page
     assert isinstance(generate, GeneratePage)
     qtbot.waitUntil(lambda: not generate.running, timeout=300_000)

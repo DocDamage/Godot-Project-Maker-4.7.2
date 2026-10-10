@@ -6,32 +6,45 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QDialogButtonBox,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
 
 from rpggen import procenv
-from rpggen.core import conflicts, godot, orchestrator, promote, report, world_repair
+from rpggen.core import (
+    conflicts,
+    godot,
+    godot_log,
+    orchestrator,
+    promote,
+    report,
+    world_repair,
+)
 from rpggen.errors import Issue, RpgGenError, Severity
-from rpggen.gui import fixes
+from rpggen.gui import fixes, icons, theme
 from rpggen.gui.dialogs import diagnostic_export, error_lookup
 from rpggen.gui.dialogs.conflict_dialog import ConflictDialog
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
+from rpggen.gui.widgets import buttons as button_kinds
+from rpggen.gui.widgets.card import DANGER, INFO, SUCCESS, Banner, Card
 from rpggen.gui.widgets.collapsible import CollapsibleSection
+from rpggen.gui.widgets.log_view import LogView
 
 COUNT_LABELS = (
     ("assets", "Assets processed"),
@@ -110,6 +123,9 @@ class ClickableLabel(QLabel):
 
 class ResultsPage(WizardPage):
     title = "Results"
+    purpose = str(
+        QT_TRANSLATE_NOOP("WizardPage", "What was made, what to look at, and what to do next.")
+    )
     help_anchor = "4. In Godot"
     allow_next = False
     generateAnother = Signal()  # noqa: N815
@@ -125,66 +141,80 @@ class ResultsPage(WizardPage):
         self.result: orchestrator.RunResult | None = None
         self.shown_issues: list[Issue] = []
         self.shown_groups: list[list[Issue]] = []
-        layout = QVBoxLayout(self)
-        self.header = QLabel()
+        outer = self.page_layout()
+        # the body scrolls in a small window (as Mapping and Options do); the buttons under it
+        # stay in view
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setObjectName("resultsScroll")
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        body = QWidget()
+        body.setObjectName("resultsBody")
+        layout = QVBoxLayout(body)
+        layout.setContentsMargins(0, 0, theme.px("space_8"), 0)
+        layout.setSpacing(theme.px("space_12"))
+        self.scroll_area.setWidget(body)
+        outer.addWidget(self.scroll_area, 1)
+        # how the run went (T15.17): a banner with the run id at its right and, after a
+        # failure, the phase in its second line. ``header`` and ``phase_label`` are its labels.
+        self.banner = Banner(INFO)
+        self.banner.setObjectName("resultsBanner")
+        self.header = self.banner.text_label
         self.header.setObjectName("resultsHeader")
-        layout.addWidget(self.header)
+        self.header.setProperty("role", "section")
+        self.phase_label = self.banner.detail_label
+        self.phase_label.setObjectName("failedPhase")
+        self.phase_label.setProperty("role", None)
         self.run_label = QLabel()
         self.run_label.setObjectName("runLabel")
-        self.run_label.setProperty("muted", True)
+        self.run_label.setProperty("role", "caption")
         self.run_label.setToolTip(
             self.tr("The number of this run: the lines of the log and the report that belong to it")
         )
-        layout.addWidget(self.run_label)
-        self.phase_label = QLabel()
-        self.phase_label.setObjectName("failedPhase")
-        self.phase_label.setWordWrap(True)
-        layout.addWidget(self.phase_label)
-        # the numbers, as one compact strip
-        counts_box = QWidget()
-        self.counts_box = counts_box
-        strip = QHBoxLayout(counts_box)
-        strip.setContentsMargins(0, 0, 0, 0)
-        self.count_labels: dict[str, QLabel] = {}
-        for key, text in COUNT_LABELS:
-            caption = QLabel(self.tr(text))
-            caption.setProperty("muted", True)
-            value = QLabel("0")
-            value.setObjectName(f"count_{key}")
-            value.setStyleSheet("font-weight: bold;")
-            self.count_labels[key] = value
-            strip.addWidget(value)
-            strip.addWidget(caption)
-            strip.addSpacing(14)
-        strip.addStretch(1)
-        layout.addWidget(counts_box)
+        self.banner.add_action(self.run_label)
+        layout.addWidget(self.banner)
+        # after a failure, right under the banner: where the run's files and logs are
+        self.failure_row = QWidget()
+        self.failure_row.setObjectName("failureActions")
+        self.failure_layout = QHBoxLayout(self.failure_row)
+        self.failure_layout.setContentsMargins(0, 0, 0, 0)
+        self.failure_row.setVisible(False)
+        layout.addWidget(self.failure_row)
         # the picture of the starter map, and what to do next
         self.success_box = QWidget()
         success = QHBoxLayout(self.success_box)
         success.setContentsMargins(0, 0, 0, 0)
+        success.setSpacing(theme.px("space_16"))
+        self.picture_card = Card(margin=theme.px("space_8"))
+        self.picture_card.setObjectName("pictureCard")
         self.map_picture = ClickableLabel()
         self.map_picture.setObjectName("mapPicture")
         self.map_picture.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.map_picture.setMinimumSize(320, 200)
+        self.map_picture.setMinimumSize(300, 180)
         self.map_picture.setToolTip(
             self.tr("The starter map as it was built. Click to open it full size.")
         )
         self.map_picture.clicked.connect(self.open_picture)
-        success.addWidget(self.map_picture, 3)
+        self.picture_card.box.addWidget(self.map_picture)
+        success.addWidget(self.picture_card, 3)
         right = QVBoxLayout()
+        right.setSpacing(theme.px("space_8"))
         self.godot_button = QPushButton(self.tr("Open in Godot"))
         self.godot_button.setObjectName("openGodot")
-        self.godot_button.setProperty("primary", True)
-        self.godot_button.setMinimumHeight(40)
-        self.godot_button.setStyleSheet("font-weight: bold; font-size: 14px;")
+        button_kinds.set_kind(self.godot_button, button_kinds.PRIMARY)
+        self.godot_button.setProperty("tall", True)
         self.godot_button.setToolTip(self.tr("Open the new project in the Godot editor"))
+        icons.set_icon(self.godot_button, "external-link", "on_accent")
         right.addWidget(self.godot_button)
         self.play_button = QPushButton(self.tr("Play"))
         self.play_button.setObjectName("playGame")
         self.play_button.setToolTip(self.tr("Run the game, without opening the editor"))
+        icons.set_icon(self.play_button, "play")
         self.starter_button = QPushButton(self.tr("Open starter map"))
         self.starter_button.setObjectName("openStarterMap")
         self.starter_button.setToolTip(self.tr("Open the editor with the starter map shown"))
+        icons.set_icon(self.starter_button, "map")
         play_row = QHBoxLayout()
         play_row.addWidget(self.play_button)
         play_row.addWidget(self.starter_button)
@@ -199,11 +229,35 @@ class ResultsPage(WizardPage):
         right.addStretch(1)
         success.addLayout(right, 2)
         layout.addWidget(self.success_box)
+        # the numbers, as a row of small tiles: the number, and under it what it counts
+        counts_box = QWidget()
+        self.counts_box = counts_box
+        strip = QHBoxLayout(counts_box)
+        strip.setContentsMargins(0, 0, 0, 0)
+        strip.setSpacing(theme.px("space_8"))
+        self.count_labels: dict[str, QLabel] = {}
+        self.count_tiles: dict[str, Card] = {}
+        for key, text in COUNT_LABELS:
+            tile = Card(margin=theme.px("space_8"))
+            tile.setObjectName(f"tile_{key}")
+            tile.box.setSpacing(0)
+            value = QLabel("0")
+            value.setObjectName(f"count_{key}")
+            value.setProperty("stat", True)
+            caption = QLabel(self.tr(text))
+            caption.setProperty("role", "caption")
+            tile.box.addWidget(value)
+            tile.box.addWidget(caption)
+            self.count_labels[key] = value
+            self.count_tiles[key] = tile
+            strip.addWidget(tile, 1)
+        layout.addWidget(counts_box)
         self.issue_title = QLabel()
         layout.addWidget(self.issue_title)
         self.issue_list = QListWidget()
         self.issue_list.setObjectName("issueList")
         self.issue_list.setToolTip(self.tr("Select a line to read how to fix it"))
+        self.issue_list.setMinimumHeight(96)
         layout.addWidget(self.issue_list, 1)
         # a group of many issues of one code: its members, and what can be done with them
         self.group_detail = QListWidget()
@@ -234,6 +288,25 @@ class ResultsPage(WizardPage):
         self.fix_label.setObjectName("fixText")
         self.fix_label.setWordWrap(True)
         layout.addWidget(self.fix_label)
+        # the last lines of the failed phase's log (T15.17): what Godot said, without a click
+        self.log_card = Card(margin=theme.px("space_8"))
+        self.log_card.setObjectName("logTailCard")
+        self.log_more_button = QPushButton(self.tr("Show more"))
+        self.log_more_button.setObjectName("logShowMore")
+        self.log_more_button.setToolTip(self.tr("Open the whole log file"))
+        button_kinds.set_kind(self.log_more_button, button_kinds.QUIET)
+        self.log_more_button.clicked.connect(self.show_whole_log)
+        self.log_title = self.log_card.add_heading(
+            self.tr("Last lines of the log"), self.log_more_button
+        )
+        self.log_tail = LogView(max_lines=godot_log.TAIL_LINES * 2)
+        self.log_tail.setObjectName("logTail")
+        self.log_tail.setMinimumHeight(90)
+        self.log_tail.setMaximumHeight(170)
+        self.log_card.box.addWidget(self.log_tail)
+        self.log_card.setVisible(False)
+        self.shown_log: Path | None = None
+        layout.addWidget(self.log_card)
         self.issue_list.currentRowChanged.connect(self._on_issue_selected)
         self.issue_list.itemDoubleClicked.connect(self._on_issue_double_clicked)
         # notes (the INFO issues; the checks that did not run come first)
@@ -258,12 +331,23 @@ class ResultsPage(WizardPage):
         self.conflicts_button.setToolTip(
             self.tr("Choose between your changes and the new versions rpggen made (.rpggen-new)")
         )
-        self.failed_button = self._button("Open failed folder", "openFailed", buttons)
-        self.logs_button = self._button("View logs", "viewLogs", buttons)
+        self.failed_button = self._button("Open failed folder", "openFailed", self.failure_layout)
+        self.logs_button = self._button("View logs", "viewLogs", self.failure_layout)
         self.bundle_button = self._button("Export diagnostic bundle", "exportBundle", buttons)
+        self._bottom_buttons = buttons
+        self.failure_layout.addStretch(1)
+        for button, icon_name in (
+            (self.folder_button, "folder-open"),
+            (self.report_button, "book-open"),
+            (self.restore_button, "undo"),
+            (self.failed_button, "folder-open"),
+            (self.logs_button, "list"),
+            (self.bundle_button, "download"),
+        ):
+            icons.set_icon(button, icon_name)
         self.project_button = self._button("Back to the Project page", "backToProject", buttons)
         buttons.addStretch(1)
-        layout.addLayout(buttons)
+        outer.addLayout(buttons)
         # what to do next, on a row of its own: one row does not fit the smallest window with the
         # wider fonts of Linux
         next_row = QHBoxLayout()
@@ -272,7 +356,7 @@ class ResultsPage(WizardPage):
         self.options_button = self._button(
             "Change options and regenerate", "changeOptionsButton", next_row
         )
-        layout.addLayout(next_row)
+        outer.addLayout(next_row)
         self.another_button.setToolTip(self.tr("Start again from the welcome screen"))
         self.options_button.setToolTip(self.tr("Go back to the options of this project"))
         self.project_button.setToolTip(self.tr("Fix the Godot or folder choice on the first page"))
@@ -410,8 +494,12 @@ class ResultsPage(WizardPage):
         result = state.run_result
         self.result = result
         if result is None:
+            self.banner.set_kind(INFO)
             self.header.setText(self.tr("Nothing has been generated yet."))
+            self.phase_label.setVisible(False)
             self.run_label.clear()
+            self.failure_row.setVisible(False)
+            self.log_card.setVisible(False)
             return
         self.run_label.setText(self.tr("Run {0}").format(result.run_id) if result.run_id else "")
         counts = report.counts(result.catalog, result.issues, result.target if result.ok else None)
@@ -462,6 +550,9 @@ class ResultsPage(WizardPage):
                 text = f"{mark} {issue.code} × {len(group)}: {issue.message}"
             else:
                 text = f"{mark} {issue.code}: {issue.message}"
+            cause = issue.detail.get("cause")
+            if isinstance(cause, str) and cause:  # T15.21: what Godot said, under the message
+                text += f"\n      {self.tr('Godot said')}: {cause}"
             if issue.fix:
                 text += f"\n      {self.tr('Fix')}: {issue.fix}"
             self.issue_list.addItem(QListWidgetItem(text))
@@ -487,6 +578,26 @@ class ResultsPage(WizardPage):
             ):
                 found.append(asset.id)
         return found
+
+    def asset_of_file(self, file: object) -> str | None:
+        """The catalog asset a file named by Godot belongs to (T15.21): the pack's own file
+        (``res://assets/packs/...``), or a generated file with the name of exactly one asset
+        or object (``res://generated/objects/house.tscn`` → the object *house*)."""
+        if not isinstance(file, str) or not file:
+            return None
+        if self.state is None or self.state.catalog is None:
+            return None
+        catalog = self.state.catalog
+        path = file.replace("\\", "/").removeprefix("res://")
+        for asset in catalog.assets:
+            if path == asset.path or path.endswith("/" + asset.path) or asset.path.endswith(path):
+                return asset.id
+        stem = Path(path).stem.lower()
+        for obj in catalog.objects:  # an object scene is named after the object
+            if stem in (obj.id.lower(), obj.name.lower()):
+                return obj.sheet or None
+        named = [a.id for a in catalog.assets if Path(a.path).stem.lower() == stem]
+        return named[0] if len(named) == 1 else None
 
     def show_selected_assets(self) -> None:
         """ "Show these assets": the Audit page, filtered to what the selected group names."""
@@ -602,9 +713,14 @@ class ResultsPage(WizardPage):
             self.open_path(self.result.target / link.removeprefix("show:"))
 
     def _show_success(self, result: orchestrator.RunResult) -> None:
+        self.banner.set_kind(SUCCESS)
         self.header.setText(self.tr("Your project was generated."))
         self._set_state(self.header, "ok")
         self.phase_label.clear()
+        self.phase_label.setVisible(False)
+        self.failure_row.setVisible(False)
+        self.log_card.setVisible(False)
+        self._place_bundle_button(failed=False)
         self.counts_box.setVisible(True)
         self.success_box.setVisible(True)
         self._show_picture()
@@ -636,8 +752,17 @@ class ResultsPage(WizardPage):
         self._update_conflicts_button()
 
     def _show_failure(self, result: orchestrator.RunResult) -> None:
-        self.header.setText(self.tr("Generation failed. Nothing was delivered."))
-        self._set_state(self.header, "error")
+        cancelled = bool(getattr(result, "cancelled", False))
+        self.banner.set_kind(INFO if cancelled else DANGER)
+        self.header.setText(
+            self.tr("Generation was cancelled. Nothing was delivered.")
+            if cancelled
+            else self.tr("Generation failed. Nothing was delivered.")
+        )
+        self._set_state(self.header, "" if cancelled else "error")
+        self.phase_label.setVisible(True)
+        self.failure_row.setVisible(True)
+        self._place_bundle_button(failed=True)
         sentence = PHASE_FAILED_TEXT.get(result.failed_phase or "", "Something went wrong.")
         self.phase_label.setText(
             f"{self.tr(sentence)}  "
@@ -667,6 +792,65 @@ class ResultsPage(WizardPage):
         self.failed_button.setEnabled(has_folder)
         self.logs_button.setVisible(True)
         self.logs_button.setEnabled(has_folder)
+        self._show_log_tail(result)
+        if self.issue_list.count():  # the first problem's fix and buttons show at once
+            self.issue_list.setCurrentRow(0)
+
+    def _place_bundle_button(self, failed: bool) -> None:
+        """*Export diagnostic bundle* is in the action row under the banner after a failure
+        and with the other buttons at the bottom after a success."""
+        for layout in (self.failure_layout, self._bottom_buttons):
+            layout.removeWidget(self.bundle_button)
+        if failed:
+            self.failure_layout.insertWidget(2, self.bundle_button)
+        else:
+            self._bottom_buttons.insertWidget(
+                max(self._bottom_buttons.count() - 1, 0), self.bundle_button
+            )
+
+    # ------------------------------------------------------------------ the log tail (T15.17)
+
+    def failed_log(self, result: orchestrator.RunResult) -> Path | None:
+        """The log of the failed phase: the one an issue names (T15.21), else the newest."""
+        if result.failed_staging is None:
+            return None
+        log_dir = result.failed_staging / "rpggen" / "logs"
+        for issue in result.issues:
+            name = issue.detail.get("log")
+            if isinstance(name, str) and name and (log_dir / name).is_file():
+                return log_dir / name
+        logs = sorted(log_dir.glob("godot_*.log"), key=lambda p: p.stat().st_mtime)
+        return logs[-1] if logs else None
+
+    def _show_log_tail(self, result: orchestrator.RunResult) -> None:
+        self.shown_log = self.failed_log(result)
+        self.log_tail.clear()
+        if self.shown_log is None:
+            self.log_card.setVisible(False)
+            return
+        try:
+            text = self.shown_log.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            self.log_card.setVisible(False)
+            return
+        self.log_tail.append_line(godot_log.tail(text))
+        self.log_title.setText(self.tr("Last lines of the log ({0})").format(self.shown_log.name))
+        self.log_card.setVisible(True)
+
+    def show_whole_log(self, name: str | None = None) -> None:
+        """The whole file in the viewer (*Show more*, and the *Open the log* fix)."""
+        path = self.shown_log
+        if name and self.result is not None and self.result.failed_staging is not None:
+            named = self.result.failed_staging / "rpggen" / "logs" / name
+            path = named if named.is_file() else path
+        if path is None:
+            self.view_logs()
+            return
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            text = self.tr("No logs were written.")
+        self.run_viewer(TextViewer(path.name, godot_log.strip_ansi(text), False, self))
 
     # ------------------------------------------------------------------ one-click fixes
 
@@ -678,7 +862,13 @@ class ResultsPage(WizardPage):
         self.fix_buttons = []
         self.shown_fix_issue = issue
         if issue is not None:
-            for fix in fixes.fixes_for(issue.code):
+            offered = fixes.fixes_for_issue(
+                issue,
+                names_asset=bool(self.asset_of_file(issue.detail.get("file"))),
+                has_failed_folder=self.result is not None
+                and self.result.failed_staging is not None,
+            )
+            for fix in offered:
                 button = QPushButton(self.tr(fix.label))
                 button.setObjectName(f"fix_{fix.action}")
                 button.clicked.connect(lambda _=False, f=fix, i=issue: self.apply_fix(f, i))
@@ -712,6 +902,18 @@ class ResultsPage(WizardPage):
 
             def repair_world(self) -> None:
                 page.repair_world()
+
+            def open_log(self, name: str) -> None:
+                page.show_whole_log(name)
+
+            def show_asset(self, file: str) -> bool:
+                asset_id = page.asset_of_file(file)
+                if asset_id:
+                    page.showAssets.emit([asset_id])
+                return bool(asset_id)
+
+            def open_failed_folder(self) -> None:
+                page.open_failed_folder()
 
         return Nav()
 

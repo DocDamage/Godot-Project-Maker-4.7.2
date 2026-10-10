@@ -6,9 +6,10 @@ import copy
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, Qt, QTimer
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEventLoop, Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication,
+    QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -16,16 +17,17 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSystemTrayIcon,
-    QVBoxLayout,
     QWidget,
 )
 
 from rpggen.core import app_settings, orchestrator, pack_sniff, vcs
 from rpggen.errors import CODES, Issue, IssueList
-from rpggen.gui import taskbar, workers
+from rpggen.gui import icons, taskbar, theme, workers
 from rpggen.gui.dialogs.promotion_dialog import PromotionDialog
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
+from rpggen.gui.widgets import buttons, stepper
+from rpggen.gui.widgets.card import INFO, Banner, Card
 from rpggen.gui.widgets.log_view import LogView
 
 PHASES = orchestrator.PHASES_M1
@@ -48,6 +50,15 @@ ICON_RUNNING = "⏳"
 ICON_DONE = "✔"
 ICON_FAILED = "✖"
 ICON_SKIPPED = "–"
+WRITING_PHASES = ("promote", "report")  # from here on the project folder is being written
+# what the step delegate paints for a row's glyph
+STEP_STATES = {
+    ICON_PENDING: stepper.PENDING,
+    ICON_RUNNING: stepper.RUNNING,
+    ICON_DONE: stepper.DONE,
+    ICON_FAILED: stepper.ERROR,
+    ICON_SKIPPED: stepper.SKIPPED,
+}
 # why a check did not run, in a few words (the issue's own text is in the tooltip)
 SKIP_REASONS = {
     "ENV-010": "export templates are not installed",
@@ -58,6 +69,11 @@ SKIP_REASONS = {
 
 class GeneratePage(WizardPage):
     title = "Generate"
+    purpose = str(
+        QT_TRANSLATE_NOOP(
+            "WizardPage", "rpggen builds, checks and plays the project before it hands it over."
+        )
+    )
     help_anchor = "2. First run with the sample pack"
     next_label = "Show results"
 
@@ -70,9 +86,18 @@ class GeneratePage(WizardPage):
         self.current_phase = ""
         self.allow_back = False
         self.allow_next = False
-        layout = QVBoxLayout(self)
+        layout = self.page_layout()
+        # a sample run from the welcome view (T15.22): what it does, and that Back is open
+        self.sample_banner = Banner(
+            INFO,
+            self.tr("Using the default options. Back changes them; nothing was written yet."),
+        )
+        self.sample_banner.setObjectName("sampleBanner")
+        self.sample_banner.setVisible(False)
+        layout.addWidget(self.sample_banner)
         self.status_label = QLabel()
         self.status_label.setObjectName("generateStatus")
+        self.status_label.setProperty("role", "section")
         layout.addWidget(self.status_label)
         # what the running Godot phase is doing: "Building tile sets (7 of 31)", or the last line
         # Godot printed while it imports
@@ -82,8 +107,8 @@ class GeneratePage(WizardPage):
         layout.addWidget(self.step_label)
         self.elapsed_label = QLabel()
         self.elapsed_label.setObjectName("elapsedLabel")
-        self.elapsed_label.setProperty("muted", True)
-        layout.addWidget(self.elapsed_label)
+        self.elapsed_label.setProperty("role", "caption")
+        self.header.add_widget(self.elapsed_label)  # the time, in the header's slot (T15.15)
         self._clock = QTimer(self)
         self._clock.setInterval(1000)
         self._clock.timeout.connect(self._tick)
@@ -100,23 +125,49 @@ class GeneratePage(WizardPage):
         self.progress = QProgressBar()
         self.progress.setObjectName("generateProgress")
         self.progress.setRange(0, len(PHASES))
-        layout.addWidget(self.progress)
+        self.progress.setTextVisible(False)
+        # the bar says no number itself: the percentage is beside it
+        self.percent_label = QLabel("0 %")
+        self.percent_label.setObjectName("generatePercent")
+        self.percent_label.setProperty("role", "caption")
+        self.percent_label.setMinimumWidth(40)
+        self.percent_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        progress_row = QHBoxLayout()
+        progress_row.setContentsMargins(0, 0, 0, 0)
+        progress_row.addWidget(self.progress, 1)
+        progress_row.addWidget(self.percent_label)
+        layout.addLayout(progress_row)
+        self.progress.valueChanged.connect(lambda _v: self._show_percent())
+        # the phases as a checklist (T15.15): the step delegate paints a circle per phase;
+        # the rows keep their text (glyph, name, note) for the tests and the screen reader
         self.phase_list = QListWidget()
         self.phase_list.setObjectName("phaseList")
         self.phase_list.setToolTip(self.tr("The steps of the generation and how long each took"))
-        self.phase_list.setMaximumHeight(24 * (len(PHASES) + 1))
+        self.phase_delegate = stepper.StepDelegate(self.phase_list, compact=True)
+        self.phase_list.setItemDelegate(self.phase_delegate)
+        self.phase_list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+        self.phase_list.setFixedHeight(self.phase_delegate.row_height * len(PHASES) + 6)
         for _ in PHASES:
             self.phase_list.addItem(QListWidgetItem())
+        self._spinner = QTimer(self)  # turns the ring of the running phase
+        self._spinner.setInterval(80)
+        self._spinner.timeout.connect(self._spin)
         self._set_icons({})
         layout.addWidget(self.phase_list)
         self.details_button = QPushButton(self.tr("Show details"))
         self.details_button.setObjectName("generateDetails")
         self.details_button.setCheckable(True)
         self.details_button.setToolTip(self.tr("Show the log of the run"))
+        buttons.set_kind(self.details_button, buttons.QUIET)
+        icons.set_icon(self.details_button, "chevron-right")
         layout.addWidget(self.details_button, 0, Qt.AlignmentFlag.AlignLeft)
+        self.log_card = Card(margin=theme.px("space_8"))
+        self.log_card.setObjectName("logCard")
+        self.log_card.setVisible(False)
         self.log_view = LogView()
         self.log_view.setVisible(False)
-        layout.addWidget(self.log_view, 1)
+        self.log_card.box.addWidget(self.log_view, 1)
+        layout.addWidget(self.log_card, 1)
         self.log_note = QLabel(
             self.tr(
                 "Older lines are not shown here; the whole log is in the project's rpggen/logs."
@@ -124,15 +175,23 @@ class GeneratePage(WizardPage):
         )
         self.log_note.setObjectName("logNote")
         self.log_note.setProperty("muted", True)
+        self.log_note.setProperty("role", "caption")
         self.log_note.setVisible(False)
-        layout.addWidget(self.log_note)
-        self.log_view.truncated.connect(lambda: self.log_note.setVisible(self.log_view.isVisible()))
+        self.log_card.box.addWidget(self.log_note)  # the card's footer
+        self.log_view.truncated.connect(lambda: self.log_note.setVisible(self.log_card.isVisible()))
         layout.addStretch(0)
         self.details_button.toggled.connect(self._show_details)
+        # Cancel is the page's button, but while a run is on the window shows it in its button
+        # bar where Next is (T15.03, T15.15): ``bar_button`` is what the window looks for
         self.cancel_button = QPushButton(self.tr("Cancel"))
         self.cancel_button.setObjectName("generateCancel")
+        self.cancel_button.setToolTip(self.tr("Stop the generation: nothing is delivered"))
+        buttons.set_kind(self.cancel_button, buttons.SECONDARY)
+        self.cancel_button.setMinimumWidth(buttons.BAR_BUTTON_WIDTH)
         self.cancel_button.clicked.connect(self.cancel)
-        layout.addWidget(self.cancel_button)
+        self.cancel_button.setVisible(False)
+        self.bar_button = self.cancel_button
+        layout.addWidget(self.cancel_button, 0, Qt.AlignmentFlag.AlignRight)
 
     # ------------------------------------------------------------------ phase list
 
@@ -151,21 +210,48 @@ class GeneratePage(WizardPage):
                 item.setText(f"{ICON_SKIPPED}  {label}  ·  {self.tr('skipped')}: {reason}")
                 fix = CODES[code].fix if code in CODES else ""
                 item.setToolTip(f"{code}: {fix}" if fix else code)
+                item.setData(stepper.StateRole, stepper.SKIPPED)
+                item.setData(stepper.LabelRole, f"{label}  ·  {self.tr('skipped')}: {reason}")
+                item.setData(stepper.NoteRole, "")
                 continue
             text = f"{icons.get(name, ICON_PENDING)}  {label}"
+            note = ""
             if name in self._durations and icons.get(name) in (ICON_DONE, ICON_FAILED):
-                text += f"  ·  {self._durations[name]:.0f} s"
+                note = f"{self._durations[name]:.0f} s"
             elif icons.get(name) == ICON_RUNNING and name == self.current_phase:
                 note = self.phase_note(time.monotonic() - self._phase_started)
-                if note:
-                    text += f"  ·  {note}"
+            if note:
+                text += f"  ·  {note}"
             item.setText(text)
             item.setToolTip(name)
+            item.setData(stepper.StateRole, STEP_STATES.get(icons.get(name, ICON_PENDING)))
+            item.setData(stepper.LabelRole, label)
+            item.setData(stepper.NoteRole, note)
+        running = ICON_RUNNING in icons.values() and not theme.reduce_motion()
+        if running and not self._spinner.isActive():
+            self._spinner.start()
+        elif not running and self._spinner.isActive():
+            self._spinner.stop()
+
+    def _spin(self) -> None:
+        """One step of the running phase's ring (a still ring with reduce motion)."""
+        self.phase_delegate.spin_frame = (self.phase_delegate.spin_frame + 1) % stepper.SPIN_FRAMES
+        viewport = self.phase_list.viewport()
+        if viewport is not None:
+            viewport.update()
+
+    def _show_percent(self) -> None:
+        top = max(self.progress.maximum(), 1)
+        self.percent_label.setText(f"{round(100 * self.progress.value() / top)} %")
 
     def _show_details(self, shown: bool) -> None:
+        self.log_card.setVisible(shown)
         self.log_view.setVisible(shown)
         self.log_note.setVisible(shown and self.log_view.dropped)
         self.details_button.setText(self.tr("Hide details") if shown else self.tr("Show details"))
+        themed = self.details_button._themed_icon  # type: ignore[attr-defined]
+        themed.name = "chevron-down" if shown else "chevron-right"
+        themed.apply()
 
     # ------------------------------------------------------------------ the clock
 
@@ -333,8 +419,9 @@ class GeneratePage(WizardPage):
             return
         self.current_phase = ""
         self.running = True
-        self.allow_back = False
+        self.allow_back = self.back_allowed_while_running()  # a sample run: Back stays open
         self.allow_next = False
+        self.sample_banner.setVisible(state.sample_run)
         self.cancel_button.setEnabled(True)
         self.status_label.setText(self.tr("Generating…"))
         state.run_result = None
@@ -384,6 +471,39 @@ class GeneratePage(WizardPage):
 
     _promotion_dialog: PromotionDialog | None = None
 
+    # ------------------------------------------------------------------ a sample run (T15.22)
+
+    def back_allowed_while_running(self) -> bool:
+        """Back is open during a sample run until the run starts to write the project (the
+        ``promote`` phase): before that a cancel leaves nothing behind."""
+        if not self.running or self.state is None or not self.state.sample_run:
+            return False
+        return self.current_phase not in WRITING_PHASES and not self.cancelled
+
+    def _sync_sample(self) -> None:
+        sample = bool(self.state is not None and self.state.sample_run)
+        self.sample_banner.setVisible(sample and self.running)
+        if self.running:
+            allowed = self.back_allowed_while_running()
+            if allowed != self.allow_back:
+                self.allow_back = allowed
+                self.changed.emit()
+
+    def stop_for_back(self, timeout_ms: int = 15000) -> bool:
+        """Back was pressed while a sample run is on: stop the run (nothing was written) and
+        say True, or False when the run can no longer be left."""
+        if not self.back_allowed_while_running() or self.worker is None:
+            return False
+        worker = self.worker
+        self.cancel()
+        loop = QEventLoop()
+        worker.signals.finished.connect(loop.quit)
+        worker.signals.failed.connect(loop.quit)
+        QTimer.singleShot(timeout_ms, loop.quit)
+        if self.running:
+            loop.exec()
+        return not self.running
+
     def cancel(self) -> None:
         if self.worker is not None and self.running:
             self.cancelled = True
@@ -426,6 +546,7 @@ class GeneratePage(WizardPage):
         self.progress.setValue(index - 1)
         taskbar.set_progress(self.window(), index - 1, total)  # the taskbar button, the dock
         self._retitle()
+        self._sync_sample()  # Back closes when the run starts to write
         self.status_label.setText(
             self.tr("Phase {0} of {1}: {2}").format(
                 index, total, self.tr(PHASE_LABELS.get(name, name))
@@ -547,6 +668,7 @@ class GeneratePage(WizardPage):
         app_settings.store().update(remember)
 
     def _show_finished(self, result: orchestrator.RunResult) -> None:
+        self.sample_banner.setVisible(False)
         taskbar.clear(self.window(), failed=not result.ok and not result.cancelled)
         if result.timings:
             self._durations.update(result.timings)

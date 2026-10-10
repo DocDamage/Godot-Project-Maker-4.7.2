@@ -55,17 +55,103 @@ def _contrast(a: str, b: str) -> float:
     return (hi + 0.05) / (lo + 0.05)
 
 
-def test_the_two_stylesheets_have_the_same_selectors_and_status_colours() -> None:
-    dark = (GUI / "style.qss").read_text(encoding="utf-8")
-    light = (GUI / "style_light.qss").read_text(encoding="utf-8")
+def _selectors(text: str) -> list[str]:
+    return [s.strip() for s in re.findall(r"([^{}]+)\{", text)]
 
-    def selectors(text: str) -> list[str]:
-        body = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-        return re.findall(r"([^{}]+)\{", body)
 
-    assert [s.strip() for s in selectors(dark)] == [s.strip() for s in selectors(light)]
-    block = re.compile(r"status-colors.*?\n(.*?)\*/", re.S)
-    assert block.search(dark).group(1) == block.search(light).group(1)  # the same in both
+def test_the_template_renders_for_both_themes_with_the_same_selectors() -> None:
+    dark, light = theme.stylesheet("dark"), theme.stylesheet("light")
+    assert _selectors(dark) == _selectors(light) and len(_selectors(dark)) > 100
+    for rendered in (dark, light):
+        outside_urls = re.sub(r"url\([^)]*\)", "", rendered)
+        assert "@" not in outside_urls  # no placeholder is left
+        assert "/*" not in rendered
+        for path in re.findall(r"url\(([^)]*)\)", rendered):
+            assert Path(path).is_file(), path  # every icon the stylesheet names was written
+    assert theme.TOKENS["dark"]["accent"] in dark and theme.TOKENS["light"]["accent"] in light
+    assert theme.stylesheet("nonsense") == dark  # unknown: the dark theme
+
+
+def test_a_placeholder_that_is_not_a_token_stops_the_rendering() -> None:
+    with pytest.raises(KeyError, match="acent"):
+        theme.render("QLabel { color: @acent; }", "dark")
+    with pytest.raises(KeyError, match="no icon"):
+        theme.render("QLabel { image: url(@icon(no-such-icon, text)); }", "dark")
+    with pytest.raises(KeyError, match="not a token"):
+        theme.render("QLabel { image: url(@icon(check, no_such_colour)); }", "dark")
+    assert theme.render("/* @nothing here */ QLabel { margin: @space_8; }", "light").strip() == (
+        "QLabel { margin: 8px; }"
+    )
+
+
+def test_both_themes_have_the_same_tokens_and_every_token_is_used() -> None:
+    assert set(theme.TOKENS["dark"]) == set(theme.TOKENS["light"])
+    template = theme.template_text()
+    python = "".join(path.read_text(encoding="utf-8") for path in GUI.rglob("*.py"))
+    theme_py = (GUI / "theme.py").read_text(encoding="utf-8")
+    used_in_theme = theme_py.split("def crisp_scale")[1]  # past the tables themselves
+    for name in list(theme.TOKENS["dark"]) + list(theme.SIZES):
+        in_template = re.search(rf"@{name}\b", template) or re.search(
+            rf"@icon\([a-z0-9-]+,\s*{name}\)", template
+        )
+        in_python = f'"{name}"' in python.replace(theme_py, used_in_theme)
+        assert in_template or in_python, f"the token {name} is read by nobody"
+
+
+@pytest.mark.parametrize("name", ["dark", "light"])
+def test_the_tokens_meet_the_contrast_rules(name: str) -> None:
+    tokens = theme.TOKENS[name]
+    for surface in ("bg", "base", "surface", "surface_hover"):
+        assert _contrast(tokens["text"], tokens[surface]) >= 4.5, surface
+        assert _contrast(tokens["text_muted"], tokens[surface]) >= 4.5, surface
+    for surface in ("bg", "surface"):
+        assert _contrast(tokens["border_strong"], tokens[surface]) >= 3.0, surface
+        assert _contrast(tokens["focus"], tokens[surface]) >= 3.0, surface
+        for state in ("danger", "warning", "success", "accent"):
+            assert _contrast(tokens[state], tokens[surface]) >= 4.5, (state, surface)
+    for fill in ("accent", "accent_hover", "accent_pressed"):
+        assert _contrast(tokens["on_accent"], tokens[fill]) >= 4.5, fill
+    for fill in ("danger", "warning", "success"):
+        assert _contrast(tokens["on_status"], tokens[fill]) >= 4.5, fill
+
+
+@pytest.mark.parametrize("name", ["dark", "light"])
+def test_every_rule_with_a_colour_and_a_background_is_readable(name: str) -> None:
+    """A small parser over the rendered stylesheet: a rule that sets both ``color`` and
+    ``background`` to plain colours must reach 4.5:1 (3:1 for a disabled look, which only has
+    to be told apart). Rules without both are judged by the token test above."""
+    rendered = theme.stylesheet(name)
+    checked = 0
+    for selector, body in re.findall(r"([^{}]+)\{([^}]*)\}", rendered):
+        props = dict(
+            (key.strip(), value.strip())
+            for key, _, value in (line.partition(":") for line in body.split(";"))
+            if value
+        )
+        colour, background = props.get("color"), props.get("background")
+        if not (colour and background):
+            continue
+        if not (
+            re.fullmatch(r"#[0-9a-f]{6}", colour) and re.fullmatch(r"#[0-9a-f]{6}", background)
+        ):
+            continue
+        need = 3.0 if ":disabled" in selector else 4.5
+        assert _contrast(colour, background) >= need, (selector.strip(), colour, background)
+        checked += 1
+    assert checked >= 10
+
+
+def test_the_palette_reads_the_same_tokens_as_the_stylesheet() -> None:
+    for name in theme.THEMES:
+        pal = theme.palette(name)
+        tokens = theme.TOKENS[name]
+        assert pal.color(QPalette.ColorRole.Window).name() == tokens["bg"]
+        assert pal.color(QPalette.ColorRole.Base).name() == tokens["base"]
+        assert pal.color(QPalette.ColorRole.Highlight).name() == tokens["accent"]
+        assert pal.color(QPalette.ColorRole.PlaceholderText).name() == tokens["text_muted"]
+        assert pal.color(QPalette.ColorRole.Link).name() == tokens["accent"]
+    assert theme.px("radius_card") == 10 and theme.px("control_height") == 30
+    assert theme.color("grid_line", "dark").alpha() == 150  # a colour with transparency
 
 
 @pytest.mark.parametrize("name", ["dark", "light"])
@@ -81,7 +167,7 @@ def test_switching_the_theme_changes_the_palette_and_is_remembered(qtbot) -> Non
     app = QApplication.instance()
     theme.apply_theme("light")
     assert app.palette().color(QPalette.ColorRole.Base).name() == "#ffffff"
-    assert "e6e9ee" in app.styleSheet()
+    assert theme.TOKENS["light"]["accent"] in app.styleSheet()
     assert app_settings.load().theme == "light"
     theme.apply_theme("dark")
     assert app.palette().color(QPalette.ColorRole.Base).name() == theme.BACKGROUNDS["dark"]
@@ -427,8 +513,9 @@ def _tab_stops(root: QWidget) -> list[QWidget]:
         if not widget.isEnabled() or widget.objectName().startswith("qt_"):
             continue
         parent = widget.parentWidget()
-        if isinstance(parent, QComboBox | QAbstractSpinBox | QAbstractItemView):
-            continue  # the line edit of a combo, the buttons of a spin box, a combo's list
+        if isinstance(parent, QComboBox | QAbstractSpinBox | QAbstractItemView | QLineEdit):
+            continue  # the line edit of a combo, the buttons of a spin box, a combo's list,
+            # the icon and the clear button inside a line edit
         if isinstance(widget, QAbstractSlider) and widget.objectName() == "":
             continue  # a scroll bar
         out.append(widget)

@@ -16,22 +16,25 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QListView,
     QListWidget,
     QListWidgetItem,
     QMenu,
     QPushButton,
-    QSizePolicy,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from rpggen import features, godot_target
 from rpggen.core import app_settings, pack_sniff
-from rpggen.gui import workers
+from rpggen.gui import icons, theme, workers
+from rpggen.gui.widgets import buttons
+from rpggen.gui.widgets.card import INFO, SUCCESS, WARNING, Banner, Card, CardButton
 
 PICTURE = "rpggen/results/starter_map.png"  # the starter map as it was built (T11.27)
 PICTURE_SIZE = QSize(112, 70)
+CARD_HEIGHT = 160  # the three choices
+TWO_COLUMNS_FROM = 900  # the recent projects: two columns from this width of the view
 ARCHETYPE_WORDS = {"turn_based": "turn-based", "arpg": "action", "metroidvania": "metroidvania"}
 
 
@@ -60,8 +63,10 @@ class ProjectCard(QFrame):
         self.project = project
         self.target = project.target
         self.setObjectName("projectCard")
+        self.setProperty("card", True)
+        self.setProperty("interactive", True)
         grid = QGridLayout(self)
-        grid.setContentsMargins(8, 6, 8, 6)
+        grid.setContentsMargins(12, 8, 12, 8)
         grid.setHorizontalSpacing(10)
         grid.setVerticalSpacing(1)
         self.picture = QLabel()
@@ -109,6 +114,7 @@ class ProjectCard(QFrame):
         self.remove_button.setToolTip(
             self.tr("Take the project off this list (nothing is deleted)")
         )
+        buttons.set_kind(self.remove_button, buttons.QUIET)
         self.remove_button.setVisible(False)
         self.remove_button.clicked.connect(lambda: self.removeRequested.emit(self.target))
         grid.addWidget(self.regenerate_button, 0, 2, 2, 1, Qt.AlignmentFlag.AlignVCenter)
@@ -187,6 +193,8 @@ class WelcomePage(QWidget):
     recentChosen = Signal(str)  # a recent project's folder
     regenerateRequested = Signal(str)  # a card's Regenerate: open it and go to Generate
     downloadGodotRequested = Signal()
+    chooseGodotRequested = Signal()  # point at a Godot the user has: the Project page's Browse
+    userGuideRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -199,28 +207,34 @@ class WelcomePage(QWidget):
         self.cards_checked = False
         self._worker: workers.Worker | None = None
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 24, 32, 16)
+        layout.setContentsMargins(
+            theme.px("space_32"), theme.px("space_24"), theme.px("space_32"), theme.px("space_16")
+        )
+        layout.setSpacing(theme.px("space_8"))
         title = QLabel(self.tr("Welcome to rpggen"))
         title.setObjectName("welcomeTitle")
-        title.setStyleSheet("font-size: 22px; font-weight: bold;")
+        title.setProperty("role", "display")
         layout.addWidget(title)
         subtitle = QLabel(self.tr("Turn an asset pack into a playable Godot project."))
         subtitle.setObjectName("welcomeSubtitle")
+        subtitle.setProperty("muted", True)
         layout.addWidget(subtitle)
-        layout.addSpacing(12)
+        layout.addSpacing(theme.px("space_8"))
 
         cards = QHBoxLayout()
-        cards.setSpacing(16)
+        cards.setSpacing(theme.px("space_16"))
         self.sample_card = self._card(
             "sampleCard",
+            "play",
             self.tr("Try the sample"),
             self.tr("See a finished project in about a minute. Nothing to configure."),
             self.trySampleRequested,
-            self.tr("Fills in the bundled sample pack and goes straight to the options"),
+            self.tr("Fills in the bundled sample pack, generates it and shows the result"),
         )
         self._add_sample_choices()
         self.own_card = self._card(
             "ownPackCard",
+            "folder-open",
             self.tr("Start with my asset pack"),
             self.tr("Add the packs you own, check what rpggen detected, then generate."),
             self.ownPackRequested,
@@ -228,6 +242,7 @@ class WelcomePage(QWidget):
         )
         self.open_card = self._card(
             "openProjectCard",
+            "refresh-cw",
             self.tr("Open an existing project"),
             self.tr("Change the options of a project made with rpggen and regenerate it safely."),
             self.openProjectRequested,
@@ -236,16 +251,15 @@ class WelcomePage(QWidget):
         for card in (self.sample_card, self.own_card, self.open_card):
             cards.addWidget(card, 1)
         layout.addLayout(cards)
+        layout.addSpacing(theme.px("space_8"))
 
+        # the recent projects, or (while there are none) how the wizard works
+        recent_head = QHBoxLayout()
         self.recent_label = QLabel(self.tr("Recent projects"))
         self.recent_label.setObjectName("recentLabel")
-        layout.addWidget(self.recent_label)
-        self.recent_list = QListWidget()
-        self.recent_list.setObjectName("recentList")
-        self.recent_list.setToolTip(self.tr("Double-click or press Enter to open a project"))
-        self.recent_list.itemActivated.connect(self._on_recent_activated)
-        layout.addWidget(self.recent_list, 5)  # the cards get most of the spare height
-        recent_buttons = QHBoxLayout()
+        self.recent_label.setProperty("role", "section")
+        recent_head.addWidget(self.recent_label)
+        recent_head.addStretch(1)
         self.locate_button = QPushButton(self.tr("Locate…"))
         self.locate_button.setObjectName("recentLocate")
         self.locate_button.setToolTip(
@@ -256,19 +270,74 @@ class WelcomePage(QWidget):
         self.remove_button.setToolTip(
             self.tr("Take the project off this list (nothing is deleted)")
         )
-        recent_buttons.addWidget(self.locate_button)
-        recent_buttons.addWidget(self.remove_button)
-        recent_buttons.addStretch(1)
-        layout.addLayout(recent_buttons)
+        for button in (self.locate_button, self.remove_button):
+            buttons.set_kind(button, buttons.QUIET)
+            recent_head.addWidget(button)
+        layout.addLayout(recent_head)
+        self.recent_list = QListWidget()
+        self.recent_list.setObjectName("recentList")
+        self.recent_list.setToolTip(self.tr("Double-click or press Enter to open a project"))
+        self.recent_list.setFlow(QListView.Flow.LeftToRight)
+        self.recent_list.setWrapping(True)
+        self.recent_list.setResizeMode(QListView.ResizeMode.Adjust)
+        self.recent_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.recent_list.setSpacing(0)
+        self.recent_list.itemActivated.connect(self._on_recent_activated)
+        layout.addWidget(self.recent_list, 5)  # the cards get most of the spare height
         self.locate_button.clicked.connect(self.locate_selected)
         self.remove_button.clicked.connect(self.remove_selected)
         self.recent_list.currentItemChanged.connect(lambda *_: self._sync_recent_buttons())
+
+        self.how_box = QWidget()
+        self.how_box.setObjectName("howItWorks")
+        how = QVBoxLayout(self.how_box)
+        how.setContentsMargins(0, 0, 0, 0)
+        how.setSpacing(theme.px("space_8"))
+        how_label = QLabel(self.tr("How it works"))
+        how_label.setProperty("role", "section")
+        how.addWidget(how_label)
+        steps = QHBoxLayout()
+        steps.setSpacing(theme.px("space_16"))
+        self.how_cards: list[Card] = []
+        for number, (icon_name, text) in enumerate(
+            (
+                ("file-archive", self.tr("Add a pack you own")),
+                ("search", self.tr("Check what rpggen found")),
+                ("gamepad-2", self.tr("Generate and open in Godot")),
+            ),
+            start=1,
+        ):
+            step = Card()
+            step.setObjectName(f"howStep{number}")
+            row = QHBoxLayout()
+            row.setSpacing(theme.px("space_12"))
+            picture = QLabel()
+            picture.setFixedSize(QSize(24, 24))
+            picture.setProperty("stepIcon", icon_name)
+            number_label = QLabel(str(number))
+            number_label.setProperty("role", "title")
+            line = QLabel(text)
+            line.setWordWrap(True)
+            row.addWidget(picture)
+            row.addWidget(number_label)
+            row.addWidget(line, 1)
+            step.box.addLayout(row)
+            step.setAccessibleName(self.tr("Step {0}: {1}").format(number, text))
+            self.how_cards.append(step)
+            steps.addWidget(step, 1)
+        how.addLayout(steps)
+        self.guide_button = QPushButton(self.tr("Read the user guide"))
+        self.guide_button.setObjectName("welcomeGuide")
+        self.guide_button.setToolTip(self.tr("Opens the user guide (F1)"))
+        buttons.set_kind(self.guide_button, buttons.QUIET)
+        icons.set_icon(self.guide_button, "book-open")
+        self.guide_button.clicked.connect(self.userGuideRequested)
+        how.addWidget(self.guide_button, 0, Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.how_box)
         layout.addStretch(1)
 
-        status = QHBoxLayout()
-        self.godot_status = QLabel(self.tr("Looking for Godot…"))
+        self.godot_status = Banner(INFO, self.tr("Looking for Godot…"))
         self.godot_status.setObjectName("welcomeGodotStatus")
-        status.addWidget(self.godot_status, 1)
         self.download_button = QPushButton(
             self.tr("Download Godot {0}").format(godot_target.VERSION)
         )
@@ -276,19 +345,60 @@ class WelcomePage(QWidget):
         self.download_button.setToolTip(
             self.tr("Downloads the official Godot from github.com/godotengine/godot/releases")
         )
+        buttons.set_kind(self.download_button, buttons.PRIMARY)
         self.download_button.setVisible(False)
         self.download_button.clicked.connect(self.downloadGodotRequested)
-        status.addWidget(self.download_button)
-        layout.addLayout(status)
+        self.choose_godot_button = QPushButton(self.tr("Choose…"))
+        self.choose_godot_button.setObjectName("welcomeChooseGodot")
+        self.choose_godot_button.setToolTip(
+            self.tr("Point rpggen at a Godot you already have (on the Project page)")
+        )
+        self.choose_godot_button.setVisible(False)
+        self.choose_godot_button.clicked.connect(self.chooseGodotRequested)
+        self.godot_status.add_action(self.download_button)
+        self.godot_status.add_action(self.choose_godot_button)
+        layout.addWidget(self.godot_status)
+        self._redraw_icons()
+        theme.signals.changed.connect(self._redraw_icons)
         self.refresh()
 
+    def _redraw_icons(self, *_args: object) -> None:
+        try:
+            for step in self.how_cards:
+                for label in step.findChildren(QLabel):
+                    name = label.property("stepIcon")
+                    if name:
+                        label.setPixmap(icons.pixmap(str(name), "accent", 24))
+        except RuntimeError:  # the view was closed while a theme change was on its way
+            pass
+
+    def resizeEvent(self, event) -> None:  # type: ignore[no-untyped-def]  # noqa: N802
+        super().resizeEvent(event)
+        self._fit_recent()
+
+    def recent_columns(self) -> int:
+        """Two columns of project cards in a wide window, one below 900 px."""
+        return 2 if self.width() >= TWO_COLUMNS_FROM else 1
+
+    def _fit_recent(self) -> None:
+        columns = self.recent_columns()
+        viewport = self.recent_list.viewport()
+        room = (viewport.width() if viewport is not None else self.recent_list.width()) - 2
+        width = max(200, room // columns)
+        for i in range(self.recent_list.count()):
+            item = self.recent_list.item(i)
+            card = self.cards.get(item.data(Qt.ItemDataRole.UserRole))
+            if card is not None:
+                item.setSizeHint(QSize(width, card.sizeHint().height()))
+
     def _add_sample_choices(self) -> None:
-        """Make *Try the sample* a split button (T14.09): a click is the top-down village, as
-        before, and the arrow lists both samples. While the metroidvania is not available the
-        card stays the plain button of 1.1."""
+        """*Choose a sample* under the sample card's description (T14.09, T15.08): a click on
+        the card is the top-down village, as before, and the button lists both samples. While
+        the metroidvania is not available the card has no such button."""
         self.sample_menu: QMenu | None = None
         self.sample_top_action: QAction | None = None
         self.sample_side_action: QAction | None = None
+        self.sample_choose_button: QPushButton | None = None
         if not features.METROIDVANIA_AVAILABLE:
             return
         menu = QMenu(self.sample_card)
@@ -303,36 +413,27 @@ class WelcomePage(QWidget):
         self.sample_side_action.triggered.connect(self.trySideSampleRequested)
         menu.setToolTipsVisible(True)
         self.sample_menu = menu
-        self.sample_card.setMenu(menu)
-        self.sample_card.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.sample_card.set_choices(menu)
+        chooser = self.sample_card.add_footer(self.tr("Choose a sample"))
+        chooser.setObjectName("sampleChoose")
+        chooser.setToolTip(self.tr("The top-down village or the side-view cave"))
+        chooser.setMenu(menu)
+        self.sample_choose_button = chooser
         self.sample_card.setToolTip(
             self.tr(
-                "Fills in the bundled sample pack and goes straight to the options. "
-                "The arrow offers the side-view sample too"
+                "Fills in the bundled sample pack, generates it and shows the result. "
+                "Choose a sample offers the side-view sample too"
             )
         )
 
     def _card(
-        self, name: str, title: str, text: str, signal: SignalInstance, tip: str
-    ) -> QToolButton:
-        card = QToolButton()
+        self, name: str, icon_name: str, title: str, text: str, signal: SignalInstance, tip: str
+    ) -> CardButton:
+        card = CardButton(title, text, icon_name)
         card.setObjectName(name)
-        card.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         card.setToolTip(tip)
-        card.setAccessibleName(title)
-        card.setMinimumHeight(130)
-        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        card.setMinimumHeight(CARD_HEIGHT)
         card.clicked.connect(signal)
-        inner = QVBoxLayout(card)  # labels, so that the text wraps instead of being cut off
-        inner.setContentsMargins(16, 14, 16, 14)
-        heading = QLabel(f"<b style='font-size:15px'>{title}</b>")
-        body = QLabel(text)
-        body.setWordWrap(True)
-        for label in (heading, body):
-            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        inner.addWidget(heading)
-        inner.addWidget(body)
-        inner.addStretch(1)
         return card
 
     # ------------------------------------------------------------------ content
@@ -364,6 +465,8 @@ class WelcomePage(QWidget):
         self.recent_list.setVisible(bool(recent))
         self.locate_button.setVisible(bool(recent))
         self.remove_button.setVisible(bool(recent))
+        self.how_box.setVisible(not recent)  # a first start says what to do instead
+        self._fit_recent()
         self._sync_recent_buttons()
         if recent:
             self._check_available(list(recent))
@@ -422,7 +525,7 @@ class WelcomePage(QWidget):
                 card.set_missing(missing)
                 if not missing and target in result:
                     card.load_picture()  # the folder answered: reading it will not hang
-                item.setSizeHint(card.sizeHint())
+        self._fit_recent()
         self._sync_recent_buttons()
 
     def show_changed(self, changes: dict[str, list]) -> None:
@@ -433,7 +536,7 @@ class WelcomePage(QWidget):
             card = self.cards.get(item.data(Qt.ItemDataRole.UserRole))
             if card is not None:
                 card.set_changed(changes.get(card.target, []))
-                item.setSizeHint(card.sizeHint())
+        self._fit_recent()
 
     def _sync_recent_buttons(self) -> None:
         item = self.recent_list.currentItem()
@@ -499,7 +602,10 @@ class WelcomePage(QWidget):
         """Find a usable Godot in a worker (it launches Godot to read the version)."""
         self._godot_generation += 1
         generation = self._godot_generation
-        self.godot_status.setText(self.tr("Looking for Godot…"))
+        self.godot_status.set_kind(INFO)
+        self.godot_status.set_text(self.tr("Looking for Godot…"))
+        self.download_button.setVisible(False)
+        self.choose_godot_button.setVisible(False)
         worker = workers.Worker(workers.find_working_godot)
 
         def done(found: tuple[Path, str] | None) -> None:
@@ -522,14 +628,13 @@ class WelcomePage(QWidget):
             return  # the window was closed while the worker ran
         if found:
             exe, version = found
-            self.godot_status.setText(self.tr("Godot {0} found at {1}").format(version, exe))
-            self.godot_status.setProperty("state", "ok")
-            self.download_button.setVisible(False)
+            self.godot_status.set_kind(SUCCESS)
+            self.godot_status.set_text(self.tr("Godot {0} found at {1}").format(version, exe))
         else:
-            self.godot_status.setText(
-                self.tr("Godot {0} not found").format(godot_target.MAJOR_MINOR)
+            self.godot_status.set_kind(WARNING)
+            self.godot_status.set_text(
+                self.tr("Godot {0} not found").format(godot_target.MAJOR_MINOR),
+                self.tr("rpggen needs it to build and check the project."),
             )
-            self.godot_status.setProperty("state", "error")
-            self.download_button.setVisible(True)
-        self.godot_status.style().unpolish(self.godot_status)
-        self.godot_status.style().polish(self.godot_status)
+        self.download_button.setVisible(not found)
+        self.choose_godot_button.setVisible(not found)

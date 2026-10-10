@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import shutil
@@ -745,9 +746,42 @@ def _cancel(state: _State) -> RunResult:
     )
 
 
+# the phases whose failure Godot explains in a log, and the codes those failures carry
+_CAUSE_CODES = ("BUILD-", "VAL-", "SMOKE-", "EXPORT-")
+
+
+def _attach_cause(state: _State) -> None:
+    """T15.21: say why the failed phase failed. The first error of its Godot log goes into the
+    ``detail`` of that phase's error issues as ``cause`` (what Godot said), ``log`` (the log
+    file's name) and ``file`` (the ``res://`` path it names), so that the Results page and the
+    report can show the cause and offer the log and the asset."""
+    phase = state.current_phase
+    log_dir = getattr(state, "log_dir", None)
+    if not phase or log_dir is None:
+        return
+    logs = sorted(Path(log_dir).glob(f"godot_{phase}*.log"), key=lambda p: p.stat().st_mtime)
+    if not logs:
+        return
+    log_path = logs[-1]
+    try:
+        cause = godot_log.first_error(log_path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return
+    for issue in state.issues:
+        if issue.severity is not Severity.ERROR or not issue.code.startswith(_CAUSE_CODES):
+            continue
+        issue.detail.setdefault("log", log_path.name)
+        if cause is not None:
+            issue.detail.setdefault("cause", cause.sentence())
+            if cause.path:
+                issue.detail.setdefault("file", cause.path)
+
+
 def _fail(state: _State) -> RunResult:
     failed: Path | None = None
     report: Path | None = None
+    with contextlib.suppress(Exception):  # the cause is a help, never a second failure
+        _attach_cause(state)
     if state.staging is not None and state.staging.staging.exists():
         failed = staging.discard(state.staging)
         report = failed / REPORT_NAME

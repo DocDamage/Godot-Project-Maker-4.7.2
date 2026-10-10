@@ -6,13 +6,12 @@ import dataclasses
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, Qt, QTimer, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
     QFrame,
-    QHBoxLayout,
     QLabel,
     QMenu,
     QMessageBox,
@@ -43,7 +42,7 @@ from rpggen.core.analyzer import similarity
 from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
 from rpggen.gui import edits as edits_mod
-from rpggen.gui import workers
+from rpggen.gui import icons, theme, workers
 from rpggen.gui.dialogs.contact_sheet_dialog import ContactSheetDialog, SheetOptions
 from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog, FindProfileDialog
 from rpggen.gui.dialogs.variant_dialog import VariantDialog
@@ -73,6 +72,7 @@ from rpggen.gui.widgets.tour import Tour, TourStep
 log = logging.getLogger(__name__)
 
 TOUR_NAME = "audit"
+REVIEW_BAR_WIDTH = 200  # the review progress bar in the page header
 TOUR_DELAY_MS = 400  # the page must still be shown then: walking through it starts no tour
 
 QUICK_ROLES = ["GROUND", "WALL", "DECORATION", "BUILDING", "PLAYER", "NPC", "ENEMY", "ITEM", "UI"]
@@ -115,6 +115,12 @@ class AuditPage(WizardPage):
     focus_next = Signal()  # everything that needed attention is done: the window may focus Next
 
     title = "Audit"
+    purpose = str(
+        QT_TRANSLATE_NOOP(
+            "WizardPage",
+            "Check what rpggen found in your packs. Confirm what is right, fix what is not.",
+        )
+    )
     help_anchor = "3. Using a pack you bought"
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -123,25 +129,31 @@ class AuditPage(WizardPage):
         self.session: EditSession | None = None
         self.tour: Tour | None = None
         self.resolver: PathResolver = lambda asset: None
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout = self.page_layout()
         self.state: WizardState | None = None
         # the progress of the review: "328 of 340 reviewed - 12 need attention"
-        progress_row = QHBoxLayout()
-        progress_row.setContentsMargins(6, 4, 6, 0)
+        # ... in the header's slot (T15.06, T15.12), with its bar and the Review mode button
+        review_box = QVBoxLayout()
+        review_box.setContentsMargins(0, 0, 0, 0)
+        review_box.setSpacing(theme.px("space_4"))
         self.progress_label = QLabel()
         self.progress_label.setObjectName("reviewProgressLabel")
+        self.progress_label.setProperty("role", "caption")
+        self.progress_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.progress_bar = QProgressBar()
         self.progress_bar.setObjectName("reviewProgress")
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setFixedHeight(10)
+        self.progress_bar.setFixedWidth(REVIEW_BAR_WIDTH)
         self.progress_bar.setToolTip(self.tr("How much of the pack you have looked at"))
-        progress_row.addWidget(self.progress_label)
-        progress_row.addWidget(self.progress_bar, 1)
+        review_box.addWidget(self.progress_label)
+        review_box.addWidget(self.progress_bar, 0, Qt.AlignmentFlag.AlignRight)
+        review_holder = QWidget()
+        review_holder.setObjectName("reviewProgressBox")
+        review_holder.setLayout(review_box)
         # what the last command did to the selection: "9 similar assets selected" (T13.04)
         self.selection_note = QLabel()
         self.selection_note.setObjectName("selectionNote")
-        progress_row.addWidget(self.selection_note)
+        self.selection_note.setProperty("role", "caption")
         self.similar_shortcut = QShortcut(QKeySequence("Ctrl+Shift+S"), self)
         self.similar_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.similar_shortcut.activated.connect(self.select_similar)
@@ -152,8 +164,10 @@ class AuditPage(WizardPage):
             self.tr("One asset at a time with a large preview (F7). The keys stay the same.")
         )
         self.review_button.clicked.connect(lambda on: self.set_review_mode(bool(on)))
-        progress_row.addWidget(self.review_button)
-        layout.addLayout(progress_row)
+        icons.set_icon(self.review_button, "eye")
+        self.header.add_widget(self.selection_note)
+        self.header.add_widget(review_holder)
+        self.header.add_widget(self.review_button)
         self.done_label = QLabel()
         self.done_label.setObjectName("reviewDoneLabel")
         self.done_label.setProperty("state", "ok")
@@ -177,8 +191,8 @@ class AuditPage(WizardPage):
         self.sheet_action.setObjectName("contactSheetAction")
         self.profile_button.setMenu(profile_menu)
         self.profile_button.setToolTip(self.tr("Export, import or look online for a pack profile"))
-        # the tab bar's corner gives a widget its minimum width: ask for the whole button
-        self.profile_button.setMinimumWidth(self.profile_button.sizeHint().width() + 12)
+        self.profile_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        icons.set_icon(self.profile_button, "settings")
         self.export_action.triggered.connect(lambda: self.export_profile())
         self.import_action.triggered.connect(lambda: self.import_profile())
         self.online_action.triggered.connect(lambda: self.find_profile_online())
@@ -189,7 +203,8 @@ class AuditPage(WizardPage):
         self.tabs = QTabWidget()
         self.tabs.setObjectName("auditTabs")
         self.tabs.addTab(self.grid, self.tr("Assets"))
-        self.tabs.setCornerWidget(self.profile_button, Qt.Corner.TopRightCorner)
+        # at the end of the filter row (T15.12): the tab strip has no corner widget to clip
+        self.grid.add_filter_widget(self.profile_button)
         self.rules_panel: RulesPanel | None = None
         self.terrain_tab: TerrainTab | None = None
         self.packs_panel: PackInfoPanel | None = None
@@ -259,6 +274,7 @@ class AuditPage(WizardPage):
         )
         finished = total > 0 and attention == 0
         self.done_label.setVisible(finished)
+        self.grid.set_queue_text(self.review_counter())
         self.done_label.setText(
             self.tr(
                 "Everything that needed attention is done. Auto-detected assets can be left as "
@@ -675,6 +691,7 @@ class AuditPage(WizardPage):
         self.changed.emit()
 
     def _on_selection(self, ids: list[str]) -> None:
+        self.grid.set_queue_text(self.review_counter())  # the footer under the grid
         if self.detail is None:
             return
         if self.in_review_mode:  # the panel is in the review widget; one asset at a time

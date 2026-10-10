@@ -17,6 +17,18 @@ def cache_dir(tmp_path, monkeypatch):
     return paths.cache_dir()
 
 
+@pytest.fixture(autouse=True)
+def _delete_closed_widgets(qapp):
+    """pytest-qt closes a test's widgets and asks for their deletion, but no event loop runs
+    between tests to carry it out, so every window of the session stayed alive. With the
+    stylesheet of M15 that is slow: a theme change restyles every widget there is. This runs
+    after qtbot's own teardown (it is set up first) and deletes what was asked to go."""
+    yield
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _styled_app(qapp):
     gui_app.create_app()

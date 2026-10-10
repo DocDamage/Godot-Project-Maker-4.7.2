@@ -129,7 +129,16 @@ def test_the_metroidvania_path_generates_a_project_that_passes_its_smoke_test(
     side = window.welcome.sample_side_action
     assert side is not None and side.text() == "Side-view cave"
     side.trigger()
-    qtbot.waitUntil(lambda: window.current_index == OPTIONS_INDEX, timeout=120_000)
+    # T15.22: the sample walks on to the Generate page and starts with the default options;
+    # Back is open until the run writes the project, stops the run and shows the options
+    qtbot.waitUntil(lambda: window.current_index == OPTIONS_INDEX + 1, timeout=120_000)
+    started = window.current_page
+    qtbot.waitUntil(lambda: started.running, timeout=30_000)
+    assert not started.sample_banner.isHidden() and window.back_button.isEnabled()
+    window.back_button.click()
+    assert not started.running and window.current_index == OPTIONS_INDEX
+    assert not window.state.sample_run
+    assert not (tmp_path / "Documents" / "rpggen-sample-1" / "project.godot").exists()
     assert window.state.archetype == "metroidvania"
     cfg = window.state.config
     assert cfg is not None and cfg.archetype == "metroidvania"

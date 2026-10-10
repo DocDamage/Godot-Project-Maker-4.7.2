@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core.promote import PromotionSummary
+from rpggen.gui import icons
+from rpggen.gui.widgets.card import INFO, Banner
 
 
 def group_by_folder(files: list[str]) -> dict[str, list[str]]:
@@ -72,12 +74,20 @@ class PromotionDialog(QDialog):
             summary.skipped_deleted,
             False,
         )
-        self.backup_label = QLabel(
-            self.tr("The old versions are saved first, in {0}.").format(summary.backup)
+        for item, icon_name, colour in (
+            (self.update_item, "refresh-cw", "accent"),
+            (self.conflict_item, "alert-triangle", "warning"),
+            (self.delete_item, "trash", "danger"),
+            (self.respected_item, "info", "text_muted"),
+        ):
+            item.setIcon(0, icons.icon(icon_name, colour))
+        self.backup_banner = Banner(
+            INFO, self.tr("The old versions are saved first, in {0}.").format(summary.backup)
         )
+        self.backup_banner.setObjectName("promotionBackupBanner")
+        self.backup_label = self.backup_banner.text_label
         self.backup_label.setObjectName("promotionBackup")
-        self.backup_label.setWordWrap(True)
-        layout.addWidget(self.backup_label)
+        layout.addWidget(self.backup_banner)
         buttons = QDialogButtonBox()
         self.go_button = buttons.addButton(
             self.tr("Regenerate"), QDialogButtonBox.ButtonRole.AcceptRole

@@ -2,36 +2,117 @@
 
 from __future__ import annotations
 
+import atexit
 import math
+import re
+import shutil
 import sys
+import tempfile
 from importlib import resources
+from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtGui import QColor, QGuiApplication, QPalette
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtGui import QColor, QFocusEvent, QGuiApplication, QPalette
+from PySide6.QtWidgets import QApplication, QDialogButtonBox, QWidget
 
 from rpggen.core import app_settings
 
-FILES = {"dark": "style.qss", "light": "style_light.qss"}
+TEMPLATE = "style.qss.in"
+THEMES = ("dark", "light")
 SYSTEM = "system"
-CHOICES = (SYSTEM, "dark", "light")
+CHOICES = (SYSTEM, *THEMES)
 
-# Colours the canvases (image views, the animation preview, the map preview) take from the theme,
-# so that a light window has no dark boxes. The transparency checkerboard keeps its own greys.
-TOKENS: dict[str, dict[str, QColor]] = {
+# The design values of the wizard (T15.01): every colour and every size the stylesheet, the
+# palette and the painting widgets use comes from here. A colour is "#rrggbb" or
+# "rgba(r, g, b, a)" with a from 0 to 255, which is what a Qt stylesheet reads too.
+TOKENS: dict[str, dict[str, str]] = {
     "dark": {
-        "canvas_bg": QColor("#3c3c3c"),
-        "canvas_bg_alt": QColor("#464646"),
-        "grid_line": QColor(255, 255, 255, 150),
-        "diff_changed": QColor(230, 170, 40, 70),  # lines that differ (conflict dialog)
+        "bg": "#1b1e24",  # the window
+        "base": "#20232a",  # inputs, lists, the audit grid
+        "surface": "#262a32",  # cards, group boxes, the detail panel
+        "surface_hover": "#2d323c",  # a card or row under the pointer
+        "border": "#373d48",  # 1 px lines
+        "border_strong": "#6b7486",  # input borders, dividers that must be seen (3:1)
+        "text": "#e6e8ec",
+        "text_muted": "#9aa3b2",  # hints, captions, secondary rows
+        "text_disabled": "#8a92a1",
+        "accent": "#5c9bff",  # the one primary button, selection, links, the current step
+        "accent_hover": "#7aaeff",
+        "accent_pressed": "#4680e4",
+        "on_accent": "#0b1220",  # text on the accent (white has under 3:1 on this blue)
+        "focus": "#8db8ff",  # the keyboard focus ring
+        "danger": "#f2706d",
+        "warning": "#ffb74d",
+        "success": "#66bb6a",
+        "on_status": "#0b1220",  # text and icons on a danger, warning or success fill
+        # the canvases (image views, the animation preview, the map preview)
+        "canvas_bg": "#3c3c3c",
+        "canvas_bg_alt": "#464646",
+        "grid_line": "rgba(255, 255, 255, 150)",
+        "diff_changed": "rgba(230, 170, 40, 70)",  # lines that differ (conflict dialog)
     },
     "light": {
-        "canvas_bg": QColor("#d9dce2"),
-        "canvas_bg_alt": QColor("#cdd1d8"),
-        "grid_line": QColor(20, 24, 32, 160),
-        "diff_changed": QColor(230, 160, 20, 90),
+        "bg": "#f5f6f8",
+        "base": "#ffffff",
+        "surface": "#ffffff",
+        "surface_hover": "#f0f2f5",
+        "border": "#d9dde3",
+        "border_strong": "#868e9b",
+        "text": "#1f2328",
+        "text_muted": "#5f6672",
+        "text_disabled": "#838993",
+        "accent": "#2b67c8",
+        "accent_hover": "#265bb1",
+        "accent_pressed": "#214f99",
+        "on_accent": "#ffffff",
+        "focus": "#2b67c8",
+        "danger": "#b3261e",
+        "warning": "#8a5a00",
+        "success": "#2e7d32",
+        "on_status": "#ffffff",
+        "canvas_bg": "#d9dce2",
+        "canvas_bg_alt": "#cdd1d8",
+        "grid_line": "rgba(20, 24, 32, 160)",
+        "diff_changed": "rgba(230, 160, 20, 90)",
     },
 }
+
+# Sizes in pixels, the same in both themes. The body text is the application font, unchanged.
+SIZES: dict[str, int] = {
+    "space_4": 4,
+    "space_8": 8,
+    "space_12": 12,
+    "space_16": 16,
+    "space_24": 24,
+    "space_32": 32,
+    "radius_control": 6,
+    "radius_card": 10,
+    "radius_chip": 10,  # half a chip's height (Qt draws no rounding for a larger radius)
+    "radius_item": 4,
+    "font_caption": 12,
+    "font_section": 15,
+    "font_title": 18,
+    "font_display": 22,
+    "control_height": 30,
+    "control_inner": 28,  # the height inside a 1 px border
+    "control_inner_focus": 26,  # and inside the 2 px focus ring
+    "pad_control": 12,
+    "pad_control_focus": 11,
+    "icon": 16,
+}
+
+_PLACEHOLDER = re.compile(
+    r"@icon\(\s*([a-z0-9][a-z0-9-]*)\s*,\s*([a-z_0-9]+)\s*\)|@([a-z][a-z0-9_]*)"
+)
+_COMMENT = re.compile(r"/[*].*?[*]/", re.S)
+_RGBA = re.compile(r"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)")
+
+
+def _qcolor(value: str) -> QColor:
+    match = _RGBA.fullmatch(value)
+    if match is not None:
+        return QColor(*(int(part) for part in match.groups()))
+    return QColor(value)
 
 
 def crisp_scale(scale: float, ratio: float) -> float:
@@ -110,7 +191,7 @@ def system_scheme() -> str:
 
 def resolve(choice: str) -> str:
     """The theme in effect for a choice: "system" is whatever the system says."""
-    return system_scheme() if choice == SYSTEM else (choice if choice in FILES else "dark")
+    return system_scheme() if choice == SYSTEM else (choice if choice in THEMES else "dark")
 
 
 def current() -> str:
@@ -119,8 +200,21 @@ def current() -> str:
 
 
 def token(name: str, theme: str | None = None) -> QColor:
-    """A canvas colour of the theme in effect (or of ``theme``)."""
-    return QColor(TOKENS[theme or _effective][name])
+    """A colour of the theme in effect (or of ``theme``)."""
+    return _qcolor(TOKENS[theme or _effective][name])
+
+
+color = token  # the name the painting widgets use (T15.01)
+
+
+def hex_of(name: str, theme: str | None = None) -> str:
+    """A token as the text a stylesheet or an SVG takes ("#rrggbb")."""
+    return token(name, theme).name()
+
+
+def px(name: str) -> int:
+    """A size of the design system in logical pixels (``px("space_16")``, ``px("radius_card")``)."""
+    return SIZES[name]
 
 
 def _follow_system() -> None:
@@ -141,52 +235,106 @@ def on_system_scheme_changed(*_args: object) -> None:
 
 
 # The backgrounds the status colours must stand out from (3:1, checked by a test).
-BACKGROUNDS = {"dark": "#20232a", "light": "#ffffff"}
+BACKGROUNDS = {name: TOKENS[name]["base"] for name in THEMES}
+
+ICON_FOLDER = "icons"  # beside this module: data files, not a package
+_icon_root: Path | None = None
+
+
+def icon_source(name: str) -> str:
+    """The text of an icon of the set (``rpggen/gui/icons/<name>.svg``); KeyError when the set
+    has no such icon, so a typo is found by the first test that asks for it."""
+    try:
+        file = resources.files("rpggen.gui").joinpath(ICON_FOLDER, f"{name}.svg")
+        return file.read_text(encoding="utf-8")
+    except (OSError, ModuleNotFoundError) as exc:
+        raise KeyError(f"no icon named {name!r}") from exc
+
+
+def icon_file(name: str, token_name: str, theme: str | None = None) -> str:
+    """The path (with forward slashes, as a stylesheet's ``url()`` wants it) of an icon drawn in
+    a token's colour. A stylesheet cannot colour an SVG, so the coloured copies are written to
+    a folder of this process, once each, and removed when the process ends."""
+    global _icon_root
+    theme = theme or _effective
+    if _icon_root is None or not _icon_root.is_dir():
+        _icon_root = Path(tempfile.mkdtemp(prefix="rpggen-icons-"))
+        atexit.register(shutil.rmtree, _icon_root, ignore_errors=True)
+    path = _icon_root / theme / f"{name}__{token_name}.svg"
+    if not path.is_file():
+        text = icon_source(name).replace("currentColor", hex_of(token_name, theme))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return path.as_posix()
+
+
+def _values(name: str) -> dict[str, str]:
+    """Every placeholder of the template for a theme: the colours, the sizes with their unit,
+    the six status colours of the audit grid and the body font size."""
+    from rpggen.gui.widgets.asset_grid import STATUS_COLORS  # the grid owns them (not a cycle
+    # at import time: the grid imports this module)
+
+    values = dict(TOKENS[name])
+    values.update({key: f"{size}px" for key, size in SIZES.items()})
+    values.update({f"status_{key.lower()}": colour for key, colour in STATUS_COLORS.items()})
+    return values
+
+
+def render(template: str, name: str) -> str:
+    """The template with every ``@token`` and ``@icon(name, token)`` replaced for a theme. A
+    placeholder that is not a token raises ``KeyError``."""
+    values = _values(name)
+
+    def replace(match: re.Match[str]) -> str:
+        if match.group(1) is not None:
+            if match.group(2) not in TOKENS[name]:
+                raise KeyError(f"stylesheet: @icon colour {match.group(2)!r} is not a token")
+            return icon_file(match.group(1), match.group(2), name)
+        key = match.group(3)
+        if key not in values:
+            raise KeyError(f"stylesheet: @{key} is not a token")
+        return values[key]
+
+    return _PLACEHOLDER.sub(replace, _COMMENT.sub("", template))
+
+
+def template_text() -> str:
+    return resources.files("rpggen.gui").joinpath(TEMPLATE).read_text(encoding="utf-8")
 
 
 def stylesheet(name: str) -> str:
-    """The stylesheet text of a theme; an unknown or missing one falls back to the dark theme."""
-    for candidate in (FILES.get(name, FILES["dark"]), FILES["dark"]):
-        try:
-            return resources.files("rpggen.gui").joinpath(candidate).read_text(encoding="utf-8")
-        except OSError:
-            continue
-    return ""
+    """The stylesheet of a theme, rendered from the one template; an unknown theme is dark."""
+    return render(template_text(), name if name in THEMES else "dark")
 
 
 def palette(name: str) -> QPalette:
-    """The application palette of a theme (the stylesheets only colour a few widgets)."""
+    """The application palette of a theme, from the same tokens as the stylesheet."""
+    name = name if name in THEMES else "dark"
     pal = QPalette()
-    if name == "light":
-        window, base, text, button, mid = "#f3f4f6", "#ffffff", "#1f2328", "#e8eaee", "#c4c8d0"
-        disabled, highlight, placeholder = "#8a9099", "#3d6fb4", "#6b7280"
-    else:
-        window, base, text, button, mid = "#2a2e37", "#20232a", "#e6e8ec", "#353a45", "#4a505c"
-        disabled, highlight, placeholder = "#7b8290", "#3d6fb4", "#9aa0aa"
     roles = {
-        QPalette.ColorRole.Window: window,
-        QPalette.ColorRole.WindowText: text,
-        QPalette.ColorRole.Base: base,
-        QPalette.ColorRole.AlternateBase: window,
-        QPalette.ColorRole.Text: text,
-        QPalette.ColorRole.Button: button,
-        QPalette.ColorRole.ButtonText: text,
-        QPalette.ColorRole.ToolTipBase: base,
-        QPalette.ColorRole.ToolTipText: text,
-        QPalette.ColorRole.Mid: mid,
-        QPalette.ColorRole.Highlight: highlight,
-        QPalette.ColorRole.HighlightedText: "#ffffff",
-        QPalette.ColorRole.PlaceholderText: placeholder,
-        QPalette.ColorRole.Link: "#4f8fd8" if name != "light" else "#1a5fb4",
+        QPalette.ColorRole.Window: "bg",
+        QPalette.ColorRole.WindowText: "text",
+        QPalette.ColorRole.Base: "base",
+        QPalette.ColorRole.AlternateBase: "bg",
+        QPalette.ColorRole.Text: "text",
+        QPalette.ColorRole.Button: "surface",
+        QPalette.ColorRole.ButtonText: "text",
+        QPalette.ColorRole.ToolTipBase: "surface",
+        QPalette.ColorRole.ToolTipText: "text",
+        QPalette.ColorRole.Mid: "border_strong",
+        QPalette.ColorRole.Highlight: "accent",
+        QPalette.ColorRole.HighlightedText: "on_accent",
+        QPalette.ColorRole.PlaceholderText: "text_muted",
+        QPalette.ColorRole.Link: "accent",
     }
-    for role, colour in roles.items():
-        pal.setColor(role, QColor(colour))
+    for role, token_name in roles.items():
+        pal.setColor(role, token(token_name, name))
     for role in (
         QPalette.ColorRole.WindowText,
         QPalette.ColorRole.Text,
         QPalette.ColorRole.ButtonText,
     ):
-        pal.setColor(QPalette.ColorGroup.Disabled, role, QColor(disabled))
+        pal.setColor(QPalette.ColorGroup.Disabled, role, token("text_disabled", name))
     return pal
 
 
@@ -200,12 +348,69 @@ def apply_theme(name: str, *, remember: bool = True) -> str:
     app = QApplication.instance()
     if isinstance(app, QApplication):
         app.setPalette(palette(_effective))
-        app.setStyleSheet(stylesheet(_effective))
+        sheet = stylesheet(_effective)
+        if app.styleSheet() != sheet:  # setting it restyles every widget there is: not for
+            app.setStyleSheet(sheet)  # the theme that is in effect already
         _follow_system()
     if remember:
         app_settings.update(theme=name)
     signals.changed.emit(_effective)
     return name
+
+
+class FocusRing(QObject):
+    """Marks the widget that got the focus **from the keyboard** with the property
+    ``kbfocus="true"``, which the stylesheet draws as the 2 px focus ring (T15.02). A click
+    gives focus without a ring. (The stylesheet's own ``:focus`` cannot tell the two apart, and
+    the style that draws styled controls never asks a proxy style for the ring.)"""
+
+    REASONS = (
+        Qt.FocusReason.TabFocusReason,
+        Qt.FocusReason.BacktabFocusReason,
+        Qt.FocusReason.ShortcutFocusReason,
+    )
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt override
+        kind = event.type()
+        if kind == QEvent.Type.FocusIn:
+            if isinstance(event, QFocusEvent) and event.reason() in self.REASONS:
+                self.mark(watched, True)
+        elif kind == QEvent.Type.FocusOut and watched.property("kbfocus"):
+            self.mark(watched, False)
+        elif kind == QEvent.Type.Show and isinstance(watched, QDialogButtonBox):
+            # T15.19: the accepting button of every dialog is the primary one (message boxes
+            # too); done here once, so that no dialog has to remember it
+            from rpggen.gui.widgets import buttons
+
+            buttons.style_box(watched)
+        return False
+
+    @staticmethod
+    def mark(widget: QObject, on: bool) -> None:
+        if not isinstance(widget, QWidget):
+            return
+        widget.setProperty("kbfocus", "true" if on else None)
+        repolish(widget)
+
+
+def repolish(widget: QWidget) -> None:
+    """Make the stylesheet look at a widget's properties again (a property that changes after
+    the widget was shown does not restyle it by itself)."""
+    style = widget.style()
+    if style is not None:
+        style.unpolish(widget)
+        style.polish(widget)
+    widget.update()
+
+
+_focus_ring: FocusRing | None = None
+
+
+def install_focus_ring(app: QApplication) -> None:
+    global _focus_ring
+    if _focus_ring is None:
+        _focus_ring = FocusRing(app)
+        app.installEventFilter(_focus_ring)
 
 
 def saved_theme() -> str:

@@ -96,7 +96,7 @@ def test_checklist_shows_status_per_role(qtbot) -> None:
     assert player.asset_combo.currentText() == "hero.png · basic16"
     assert player.asset_combo.toolTip() == "basic16.characters.hero"
     assert player.used_label.text() == "Used for the player actor"
-    assert player.role_label.text().startswith("<b>Player *")
+    assert player.role_label.text().startswith("Player *")
     assert not player.thumb_label.pixmap().isNull()
     npc = page.rows["NPC"]
     assert npc.status_label.text().startswith("⚠")
@@ -222,7 +222,7 @@ def test_rows_are_grouped_and_summarised(qtbot) -> None:
         page.summary_label.text()
         == "2 of 2 required roles assigned, 0 of 7 optional roles assigned"
     )
-    assert page.rows["GROUND"].role_label.text().startswith("<b>Ground tiles *")
+    assert page.rows["GROUND"].role_label.text().startswith("Ground tiles *")
 
 
 def test_clear_returns_a_chosen_role_to_the_automatic_choice(qtbot) -> None:

@@ -37,6 +37,12 @@ class Navigation(Protocol):
 
     def repair_world(self) -> None: ...
 
+    def open_log(self, name: str) -> None: ...
+
+    def show_asset(self, file: str) -> bool: ...
+
+    def open_failed_folder(self) -> None: ...
+
 
 _GODOT = (
     Fix("download_godot", "Download Godot 4.7.2"),
@@ -56,6 +62,14 @@ FIXES: dict[str, tuple[Fix, ...]] = {
     "VAL-028": (Fix("repair_world", "Repair the world…"),),
 }
 
+# T15.21: fixes that depend on what an issue carries, not on its code, so that a fix never
+# needs a code that does not bring the detail. ``detail["log"]`` is the failed phase's log
+# file, ``detail["file"]`` a file Godot named.
+OPEN_LOG = Fix("open_log", "Open the log")
+SHOW_ASSET = Fix("show_asset", "Show this asset in the audit")
+OPEN_FAILED_FOLDER = Fix("open_failed_folder", "Open failed folder")
+DETAIL_FIXES: tuple[tuple[str, Fix], ...] = (("log", OPEN_LOG), ("file", SHOW_ASSET))
+
 # the widget of the Project page that the action points at
 FOCUS = {
     "download_godot": "downloadGodotButton",
@@ -67,6 +81,25 @@ FOCUS = {
 def fixes_for(code: str) -> tuple[Fix, ...]:
     """The buttons of an issue code; a code that is not registered has none."""
     return FIXES.get(code, ())
+
+
+def fixes_for_issue(
+    issue: Issue, *, names_asset: bool = False, has_failed_folder: bool = False
+) -> tuple[Fix, ...]:
+    """Every button of an issue: those of its code, then those of what it carries. *Show this
+    asset* needs ``names_asset`` (the file is an asset of the catalog), *Open failed folder*
+    a folder that was kept."""
+    out = list(fixes_for(issue.code))
+    for key, fix in DETAIL_FIXES:
+        value = issue.detail.get(key)
+        if not isinstance(value, str) or not value:
+            continue
+        if fix is SHOW_ASSET and not names_asset:
+            continue
+        out.append(fix)
+    if issue.detail.get("log") and has_failed_folder:
+        out.append(OPEN_FAILED_FOLDER)
+    return tuple(out)
 
 
 def apply(fix: Fix, issue: Issue, state: WizardState, nav: Navigation) -> bool:
@@ -94,6 +127,16 @@ def apply(fix: Fix, issue: Issue, state: WizardState, nav: Navigation) -> bool:
         nav.resolve_conflicts(file if isinstance(file, str) and file else None)
     elif action == "repair_world":  # T13.24: shows what it would do before it writes
         nav.repair_world()
+    elif action == "open_log":
+        name = issue.detail.get("log")
+        if not isinstance(name, str) or not name:
+            return False
+        nav.open_log(name)
+    elif action == "show_asset":
+        file = issue.detail.get("file")
+        return isinstance(file, str) and bool(file) and nav.show_asset(file)
+    elif action == "open_failed_folder":
+        nav.open_failed_folder()
     else:
         return False
     return True

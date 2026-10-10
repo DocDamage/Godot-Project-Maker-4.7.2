@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QStandardPaths, Qt, QTimer, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QStandardPaths, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -49,6 +48,11 @@ DEBOUNCE_MS = 300
 
 class ProjectPage(WizardPage):
     title = "Project"
+    purpose = str(
+        QT_TRANSLATE_NOOP(
+            "WizardPage", "Your asset packs, where the project goes, and which Godot builds it."
+        )
+    )
     help_anchor = "3. Using a pack you bought"
     shows_inline_errors = True  # the fields print their own messages
     sampleReady = Signal()  # "Try with sample pack" filled in valid inputs
@@ -59,7 +63,7 @@ class ProjectPage(WizardPage):
         self._worker: workers.Worker | None = None
         self._loading = False
 
-        layout = QVBoxLayout(self)
+        layout = self.page_layout()
         self.form = form = ProjectForm()
         # the form scrolls when a long message wraps on a small window (as Mapping and Options do)
         self.scroll_area = QScrollArea()
@@ -80,6 +84,7 @@ class ProjectPage(WizardPage):
         self.name_edit, self.name_status = form.name_edit, form.name_status
         self.sample_button, self.sample_row = form.sample_button, form.sample_row
         self.pack_list.on_paths_dropped = self.add_sources
+        form.drop_zone.on_paths_dropped = self.add_sources
         self.pack_list.card_delegate.removeRequested.connect(self.remove_row)
         self.sample_button.clicked.connect(self.try_sample)
 
@@ -264,9 +269,7 @@ class ProjectPage(WizardPage):
         target = self.target()
         if not self.model.name_touched and not self._loading:
             self.name_edit.setText(target.name if target else "")
-        self.update_pack_button.setVisible(
-            target is not None and preflight.is_rpggen_project(target)
-        )
+        self.form.show_update_button(target is not None and preflight.is_rpggen_project(target))
         self._on_inputs_changed()
 
     def _on_name_edited(self) -> None:
@@ -388,7 +391,9 @@ class ProjectPage(WizardPage):
         inputs = self.inputs()
         show_status(self.packs_status, self.model.packs_status(inputs))
         self._refresh_pack_rows(self.model.current_check(inputs))
-        show_status(self.godot_status, self.model.godot_status(inputs))
+        godot_status = self.model.godot_status(inputs)
+        show_status(self.godot_status, godot_status)
+        self.form.show_godot_chip(godot_status)  # fine: the version, as a chip by the label
         self.download_godot_button.setVisible(self.model.offers_download(inputs))
         show_status(self.target_status, self.model.target_status(inputs))
         show_status(self.name_status, self.model.name_status(inputs.name))
@@ -406,7 +411,7 @@ class ProjectPage(WizardPage):
         self.model.touch_all()
         self._refresh_cheap()
         order = (
-            (not self.sources(), self.pack_list),
+            (not self.sources(), self.form.packs_focus()),
             (self.target() is None, self.target_edit),
             (self.godot_path() is None, self.godot_combo),
             (not self.name_edit.text().strip(), self.name_edit),

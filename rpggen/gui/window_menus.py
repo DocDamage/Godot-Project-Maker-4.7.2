@@ -221,6 +221,15 @@ class WindowMenus:
         w.recentChosen.connect(lambda folder: self.open_project(Path(folder)))
         w.regenerateRequested.connect(lambda folder: self.regenerate_project(Path(folder)))
         w.downloadGodotRequested.connect(self.download_godot_from_welcome)
+        w.chooseGodotRequested.connect(self.choose_godot_from_welcome)
+        w.userGuideRequested.connect(self.show_user_guide)
+
+    def choose_godot_from_welcome(self) -> None:
+        """The welcome banner's Choose…: the Project page, with its Browse for Godot open."""
+        self.start_own_pack()
+        page = self._project_page()
+        if page is not None:
+            page._browse_godot()
 
     # ------------------------------------------------------------------ welcome view
 
@@ -230,8 +239,13 @@ class WindowMenus:
         self._update_title()
 
     def leave_welcome(self) -> None:
+        was_welcome = self.welcome_visible
         self.root_stack.setCurrentIndex(1)  # type: ignore[attr-defined]
         self._update_title()
+        if was_welcome:
+            from rpggen.gui.wizard import fade_in
+
+            fade_in(self.root_stack.currentWidget())  # type: ignore[attr-defined]
 
     @property
     def welcome_visible(self) -> bool:
@@ -246,25 +260,34 @@ class WindowMenus:
         return None
 
     def try_sample(self) -> None:
-        """The welcome card: the same path as the small button on the Project page."""
-        self.leave_welcome()
-        self.show_page(0)  # type: ignore[attr-defined]
-        page = self._project_page()
-        if page is not None:
-            page.try_sample()
+        """The welcome card (T15.22): the bundled sample pack, walked through every page as
+        with Next (so each writes its defaults) to the Generate page, where the run starts.
+        A first start to a playable project is this click, a wait and Open in Godot."""
+        self._start_sample(side=False)
 
-    def try_side_sample(self) -> None:
-        """The welcome card's second entry (T14.09): the side-view pack as a metroidvania, by
-        the same walk to the Options page."""
+    def _start_sample(self, side: bool) -> None:
         from rpggen.gui.models import project_model
 
         self.leave_welcome()
         self.show_page(0)  # type: ignore[attr-defined]
         page = self._project_page()
-        if page is not None:
+        if page is None:
+            return
+        if side:
             # the Archetype page starts on the state's archetype when the walk reaches it
             self.state.archetype = project_model.SIDE_SAMPLE_ARCHETYPE  # type: ignore[attr-defined]
-            page.try_sample(side=True)
+        self.state.sample_run = True  # type: ignore[attr-defined]
+        self._walk_to_generate = True  # the walk goes on when the pack has been read
+        if not (page.try_sample(side=True) if side else page.try_sample()):
+            self._walk_to_generate = False  # no Godot yet, or no sample pack: the page says so
+            self.state.sample_run = False  # type: ignore[attr-defined]
+            return
+        self.continue_walk()
+
+    def try_side_sample(self) -> None:
+        """The welcome card's second entry (T14.09): the side-view pack as a metroidvania, by
+        the same walk to the Generate page."""
+        self._start_sample(side=True)
 
     def start_own_pack(self) -> None:
         self.leave_welcome()
@@ -616,7 +639,6 @@ class WindowMenus:
     # ------------------------------------------------------------------ window title
 
     def _update_title(self) -> None:
-        state = self.state  # type: ignore[attr-defined]
         if self.welcome_visible:
             self.setWindowTitle("rpggen")
             return

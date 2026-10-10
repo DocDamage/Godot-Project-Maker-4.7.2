@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
     QLabel,
+    QLineEdit,
     QPushButton,
     QScrollBar,
     QSizePolicy,
@@ -121,8 +122,9 @@ def layout_problems(root: QWidget) -> list[str]:
         name = widget.objectName()
         if not widget.isVisible() or name.startswith("qt_") or isinstance(widget, QScrollBar):
             continue
-        if isinstance(widget.parentWidget(), QTabBar | QComboBox | QAbstractSpinBox):
-            continue  # the scroll arrows of a tab bar, the editor of a combo: Qt places those
+        if isinstance(widget.parentWidget(), QTabBar | QComboBox | QAbstractSpinBox | QLineEdit):
+            continue  # the scroll arrows of a tab bar, the editor of a combo, the icon in a
+            # search field: Qt places those
         if _inside_scroll_area(widget):
             continue
         need = _effective_minimum(widget)

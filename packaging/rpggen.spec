@@ -56,10 +56,11 @@ datas += tree(os.path.join(ROOT, "docs"), "docs", skip_dirs={"spec", "dev"})
 datas += [(os.path.join(ROOT, name), ".") for name in ("LICENSE", "THIRD_PARTY_NOTICES.md", "README.md")]
 datas += [(os.path.join(ROOT, "rpggen", "schema", f), os.path.join("rpggen", "schema"))
           for f in os.listdir(os.path.join(ROOT, "rpggen", "schema")) if f.endswith(".json")]
-datas += [
-    (os.path.join(ROOT, "rpggen", "gui", name), os.path.join("rpggen", "gui"))
-    for name in ("style.qss", "style_light.qss")
-]
+# the stylesheet template and the icon set (T15.01, T15.04)
+datas += [(os.path.join(ROOT, "rpggen", "gui", "style.qss.in"), os.path.join("rpggen", "gui"))]
+ICONS = os.path.join(ROOT, "rpggen", "gui", "icons")
+datas += [(os.path.join(ICONS, f), os.path.join("rpggen", "gui", "icons"))
+          for f in sorted(os.listdir(ICONS)) if f.endswith(".svg")]
 # the wizard's compiled translations (tools/package.py builds them first; T12.56)
 I18N = os.path.join(ROOT, "rpggen", "gui", "i18n")
 datas += [(os.path.join(I18N, f), os.path.join("rpggen", "gui", "i18n"))

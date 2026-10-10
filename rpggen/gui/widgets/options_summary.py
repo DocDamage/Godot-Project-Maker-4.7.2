@@ -92,10 +92,6 @@ class OptionsSummary(QGroupBox):
             chip = QLabel(self.tr(name))
             chip.setObjectName("summaryChip")
             chip.setProperty("chip", True)
-            chip.setStyleSheet(
-                "QLabel#summaryChip { border: 1px solid #6b7280; border-radius: 9px;"
-                " padding: 1px 8px; }"
-            )
             self.chip_flow.addWidget(chip)
             self.chips.append(chip)
         self.chip_box.updateGeometry()

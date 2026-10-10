@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import re
 from pathlib import Path
 
 import pytest
@@ -113,11 +112,13 @@ def test_delegate_paints_every_status(qtbot, basic_catalog, status) -> None:
     assert strip.name() == ag.STATUS_COLORS[status]
 
 
-def test_status_colors_mirror_the_stylesheet() -> None:
-    qss = (Path(ag.__file__).parents[1] / "style.qss").read_text(encoding="utf-8")
-    block = re.search(r"status-colors.*?\n(.*?)\*/", qss, re.S).group(1)
-    found = dict(re.findall(r"^(\w+)=(#[0-9a-f]{6})$", block, re.M))
-    assert found == ag.STATUS_COLORS
+def test_the_stylesheet_reads_the_status_colours_from_the_grid() -> None:
+    from rpggen.gui import theme
+
+    # the template has them as @status_<name> (T15.01): no second copy to keep in step
+    assert theme.render("@status_confirmed @status_needs_review", "dark") == (
+        f"{ag.STATUS_COLORS['CONFIRMED']} {ag.STATUS_COLORS['NEEDS_REVIEW']}"
+    )
 
 
 def test_delegate_scales_by_integers() -> None:

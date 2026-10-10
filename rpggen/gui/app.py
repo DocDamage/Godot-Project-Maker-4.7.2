@@ -96,6 +96,7 @@ def create_app(argv: list[str] | None = None) -> QApplication:
     assert isinstance(app, QApplication)
     app.setStyle("Fusion")
     theme.apply_theme(theme.saved_theme(), remember=False)
+    theme.install_focus_ring(app)
     translations.install(app_settings.get().language)  # before any widget sets its texts
     return app
 

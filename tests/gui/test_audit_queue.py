@@ -185,7 +185,8 @@ def test_the_grid_gets_the_spare_height_not_the_done_label(qtbot) -> None:
     layout = page.layout()
     margins = layout.contentsMargins()
     spacing = layout.spacing() if layout.spacing() >= 0 else 6
-    taken = page.done_label.height() + page.progress_label.height() + 4  # the progress row
+    # the page header (the review progress is in its slot, T15.12) and the done label
+    taken = page.done_label.height() + page.page_header.height()
     taken += 2 * spacing + margins.top() + margins.bottom()
     assert page.splitter.height() >= page.height() - taken - 8
     assert page.done_label.height() <= page.done_label.sizeHint().height() + 8

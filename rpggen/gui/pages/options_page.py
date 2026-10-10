@@ -7,8 +7,8 @@ from __future__ import annotations
 import random
 from typing import Any
 
+from PySide6.QtCore import QT_TRANSLATE_NOOP
 from PySide6.QtWidgets import (
-    QBoxLayout,
     QFrame,
     QHBoxLayout,
     QInputDialog,
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 from rpggen.core import config as config_mod
 from rpggen.core import vcs
 from rpggen.errors import Issue
+from rpggen.gui import icons, theme
 from rpggen.gui.dialogs.options_dialogs import ManagePresetsDialog, SolidValuesDialog
 from rpggen.gui.models.options_model import (  # noqa: F401 - tests import DEFAULTS_ITEM
     DEFAULTS_ITEM,
@@ -31,26 +32,31 @@ from rpggen.gui.models.options_model import (  # noqa: F401 - tests import DEFAU
 )
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
+from rpggen.gui.widgets import buttons
 from rpggen.gui.widgets import options_sections as sections
 from rpggen.gui.widgets.options_summary import OptionsSummary
 
-WIDE_WIDTH = 1100  # at this width and more the options use two columns
+WIDE_WIDTH = 920  # at this width of the page and more the feature cards are side by side
 SUMMARY_SIDE_WIDTH = 1200  # at this width and more the summary has a column of its own
 
 
 class OptionsPage(WizardPage):
     title = "Options"
+    purpose = str(
+        QT_TRANSLATE_NOOP(
+            "WizardPage", "What the project includes. Presets fill the page in one click."
+        )
+    )
     help_anchor = "3. Using a pack you bought"
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.model = OptionsModel(self.tr)
         self._loading = False
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
+        outer = self.page_layout()
 
         self.presets = sections.PresetBar()
-        outer.addWidget(self.presets)
+        self.header.add_widget(self.presets)  # in the header's slot (T15.14)
         self.preset_combo = self.presets.combo
         self.save_preset_button = self.presets.save_button
         self.manage_presets_button = self.presets.manage_button
@@ -60,15 +66,10 @@ class OptionsPage(WizardPage):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         content = QWidget()
-        self.columns = QBoxLayout(QBoxLayout.Direction.TopToBottom, content)
-        self.left = QWidget()
-        self.right = QWidget()
-        left = QVBoxLayout(self.left)
-        right = QVBoxLayout(self.right)
-        left.setContentsMargins(0, 0, 0, 0)
-        right.setContentsMargins(0, 0, 0, 0)
-        self.columns.addWidget(self.left, 1)
-        self.columns.addWidget(self.right, 1)
+        content.setObjectName("optionsBody")
+        column_box = QVBoxLayout(content)  # the feature cards, then every section full width
+        column_box.setContentsMargins(0, 0, theme.px("space_8"), 0)
+        column_box.setSpacing(theme.px("space_12"))
         scroll.setWidget(content)
         # the summary card: on top, or in a right-hand column at SUMMARY_SIDE_WIDTH and more
         self.summary = OptionsSummary()
@@ -78,7 +79,7 @@ class OptionsPage(WizardPage):
         self.side = QWidget()
         self.side.setObjectName("summarySide")
         self.side_layout = QVBoxLayout(self.side)
-        self.side_layout.setContentsMargins(0, 0, 6, 0)
+        self.side_layout.setContentsMargins(theme.px("space_12"), 0, 0, 0)
         self.side_layout.addStretch(1)
         self.side.setFixedWidth(300)
         self.side.setVisible(False)
@@ -102,11 +103,6 @@ class OptionsPage(WizardPage):
             self.starter_box,
             self.world_box,
             self.imported_box,
-        )
-        for widget in column:
-            left.addWidget(widget)
-        left.addStretch(1)
-        column = (
             self.screen_box,
             self.layers_box,
             self.version_control,
@@ -114,12 +110,16 @@ class OptionsPage(WizardPage):
             self.advanced,
         )
         for widget in column:
-            right.addWidget(widget)
-        right.addStretch(1)
+            column_box.addWidget(widget)
+        column_box.addStretch(1)
 
         # the widgets under the names the tests and the other pages use
         self.feature_boxes, self.feature_needs = self.features.boxes, self.features.needs
         self.features_reset = self.features.reset
+        buttons.set_kind(self.features_reset, buttons.QUIET)
+        icons.set_icon(self.features_reset, "refresh-cw")
+        self.features_reset.setToolTip(self.tr("Put the feature check boxes back to the defaults"))
+        self.header.add_widget(self.features_reset)  # it left the first feature group
         box = self.starter_box
         self.starter_note, self.starter_size = box.note, box.size_editor
         self.starter_counts, self.starter_reset = box.counts, box.reset
@@ -186,9 +186,7 @@ class OptionsPage(WizardPage):
         if wide == self._wide:
             return
         self._wide = wide
-        self.columns.setDirection(
-            QBoxLayout.Direction.LeftToRight if wide else QBoxLayout.Direction.TopToBottom
-        )
+        self.features.set_columns(2 if wide else 1)
 
     def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
         super().resizeEvent(event)

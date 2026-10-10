@@ -37,7 +37,7 @@ def test_success_leads_with_the_picture_and_a_what_next_list(qtbot, tmp_path: Pa
     page._on_next_link("show:README.md")
     page.map_picture.clicked.emit()
     assert opened == [state.run_result.target / "README.md", results / "starter_map.png"]
-    assert page.godot_button.property("primary") is True
+    assert page.godot_button.property("kind") == "primary"  # the one main action (T15.03)
 
 
 def test_success_without_a_picture_says_so(qtbot, tmp_path: Path) -> None:

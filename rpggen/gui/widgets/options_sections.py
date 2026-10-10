@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -29,6 +30,7 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import config as config_mod
 from rpggen.core import map_preview, options, room_plan, world_plan
+from rpggen.gui import theme
 from rpggen.gui.models.options_model import (
     ABILITY_LABELS,
     EXPORT_TARGET_LABELS,
@@ -73,7 +75,7 @@ class PresetBar(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         header = QHBoxLayout(self)
-        header.setContentsMargins(6, 4, 6, 0)
+        header.setContentsMargins(0, 0, 0, 0)
         header.addWidget(QLabel(self.tr("Preset")))
         self.combo = QComboBox()
         self.combo.setObjectName("presetCombo")
@@ -82,7 +84,7 @@ class PresetBar(QWidget):
                 "Apply the options of a saved preset (packs, name and seed are not part of one)"
             )
         )
-        self.combo.setMinimumWidth(180)
+        self.combo.setMinimumWidth(160)
         header.addWidget(self.combo)
         self.save_button = QPushButton(self.tr("Save as preset…"))
         self.save_button.setObjectName("savePreset")
@@ -92,7 +94,6 @@ class PresetBar(QWidget):
         self.manage_button.setToolTip(self.tr("Rename or delete saved presets"))
         header.addWidget(self.save_button)
         header.addWidget(self.manage_button)
-        header.addStretch(1)
 
     def fill(
         self, builtin: list[tuple[str, str]], user: list[tuple[str, str]] | None = None
@@ -117,8 +118,11 @@ class FeatureGroups(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        self.grid = QGridLayout(self)  # one card per group, side by side when there is room
+        self.grid.setContentsMargins(0, 0, 0, 0)
+        self.grid.setSpacing(theme.px("space_12"))
+        self.groups: list[QGroupBox] = []
+        self.columns = 0
         self.boxes: dict[str, QCheckBox] = {}
         self.needs: dict[str, QLabel] = {}
         self.descriptions: dict[str, QLabel] = {}
@@ -135,11 +139,12 @@ class FeatureGroups(QWidget):
                 check.setTristate(False)
                 check.setToolTip(self.tr(text))
                 description = _muted(self.tr(text), f"featureText_{key}")
-                description.setContentsMargins(22, 0, 0, 4)
+                description.setProperty("role", "caption")
+                description.setContentsMargins(26, 0, 0, 4)
                 needs = QLabel()
                 needs.setObjectName(f"featureNeeds_{key}")
                 needs.setProperty("state", "warning")
-                needs.setContentsMargins(22, 0, 0, 2)
+                needs.setContentsMargins(26, 0, 0, 2)
                 needs.setVisible(False)
                 self.boxes[key] = check
                 self.needs[key] = needs
@@ -147,9 +152,21 @@ class FeatureGroups(QWidget):
                 vbox.addWidget(check)
                 vbox.addWidget(needs)
                 vbox.addWidget(description)
-            if group == options.FEATURE_GROUPS[0]:
-                vbox.addWidget(self.reset, 0, Qt.AlignmentFlag.AlignRight)
-            layout.addWidget(box)
+            vbox.addStretch(1)
+            self.groups.append(box)
+        self.set_columns(1)
+
+    def set_columns(self, columns: int) -> None:
+        """Lay the group cards out in one column or in two (T15.14)."""
+        if columns == self.columns:
+            return
+        self.columns = columns
+        for box in self.groups:
+            self.grid.removeWidget(box)
+        for i, box in enumerate(self.groups):
+            self.grid.addWidget(box, i // columns, i % columns)
+        for column in range(2):
+            self.grid.setColumnStretch(column, 1 if column < columns else 0)
 
     def set_hidden(self, keys: set[str]) -> None:
         """Features the chosen kind of game does not have (a metroidvania has no pathfinding):
@@ -953,8 +970,12 @@ class AdvancedOptions(CollapsibleSection):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(_tr("Advanced"), parent)
         self.setObjectName("advanced")
+        # a card whose heading row is the header that opens it (T15.14)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        pad = theme.px("space_12")
+        self.layout().setContentsMargins(pad, pad, pad, pad)  # type: ignore[union-attr]
         body = QVBoxLayout(self.body)
-        body.setContentsMargins(0, 0, 0, 0)
+        body.setContentsMargins(theme.px("space_4"), theme.px("space_8"), 0, 0)
         seed_row = QHBoxLayout()
         seed_row.addWidget(QLabel(self.tr("Seed")))
         self.seed_box = spin(0, SEED_MAX)
