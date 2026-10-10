@@ -120,7 +120,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.18 | Smoke sequences and integration tests | M | T16.17 | open |
 | T16.19 | Documentation, screenshots and changelogs | M | T16.18 | open |
 | T16.20 | Gate (1.4.0) | M | T16.19 | open |
-| T16.21 | What the real packs need: numbered frames, `.aseprite` sources, names with sizes, engine duplicates | M | — | started: the files that are no assets, names as artists write them, sizes in a name, numbered frames without an action word, the `.aseprite` reader, the bundle sniff, numbered sheets, the cutter's manifest and engine layouts are done; the rest is open (the notes say which) |
+| T16.21 | What the real packs need: numbered frames, `.aseprite` sources, names with sizes, engine duplicates | M | — | started: the files that are no assets, names as artists write them, sizes in a name, numbered frames without an action word, the `.aseprite` reader, the bundle sniff, numbered sheets, the cutter's manifest, engine layouts, copies and the catalog's half of the colour variants are done; the rest is open (the notes say which) |
 | T16.22 | A bundle of packs: choosing which to add | M | T16.21 | open |
 
 ---

@@ -375,3 +375,67 @@ def test_a_copy_is_unused_and_a_jpg_is_never_a_tile_sheet(tmp_path: Path) -> Non
     photo = catalog.effective(_asset(cat, "7.jpg"))
     assert photo["usage"] == "background" and "grid" not in photo
     assert catalog.effective(_asset(cat, "badge.jpg"))["usage"] == "sprite"
+
+
+# ----------------------------------------------------------------------------- colour variants
+
+
+@pytest.mark.parametrize(
+    ("path", "key", "colour"),
+    [
+        ("Cars/Classic_Bug/Classic_Bug.png", "cars/classic_bug/classic_bug", ""),
+        ("Cars/Classic_Bug/Classic_Bug_red.png", "cars/classic_bug/classic_bug", "red"),
+        ("cows/cow_01/brown/idle/cow_01_brown_idle_down_32x32.png",
+         "cows/cow_01/idle/cow_01_idle_down_32_x_32", "brown"),
+        ("cows/cow_01/black_white/idle/cow_01_black_white_idle_down_32x32.png",
+         "cows/cow_01/idle/cow_01_idle_down_32_x_32", "black_white"),
+        ("cows/cow_02/brown/idle/cow_02_brown_idle_down_32x32.png",
+         "cows/cow_02/idle/cow_02_idle_down_32_x_32", "brown"),
+        ("barrier_red.png", "barrier", "red"),
+        ("Redwood/tree.png", "redwood/tree", ""),  # a colour inside a word is no colour
+        ("greenhouse.png", "greenhouse", ""),
+    ],
+)  # fmt: skip
+def test_what_a_file_is_without_its_colour(path: str, key: str, colour: str) -> None:
+    assert classifier.colour_key(path) == (key, colour)
+
+
+def test_pictures_a_pack_ships_in_several_colours_are_grouped(tmp_path: Path) -> None:
+    pack = tmp_path / "wheels"
+    _sheet(pack / "Cars" / "Classic_Bug" / "Classic_Bug.png", (64, 32), 32)
+    for colour in ("red", "blue", "black_white"):
+        _sheet(pack / "Cars" / "Classic_Bug" / f"Classic_Bug_{colour}.png", (64, 32), 32)
+    _sheet(pack / "Cars" / "Limo" / "Limo_green.png", (64, 32), 32)  # one colour: no group
+    _sheet(pack / "Cars" / "Kart" / "Kart_pink.png", (64, 32), 32)  # two colours, no plain one
+    _sheet(pack / "Cars" / "Kart" / "Kart_cyan.png", (64, 32), 32)
+    _sheet(pack / "Cars" / "Truck" / "Truck.png", (64, 32), 32)  # another size: not a variant
+    _sheet(pack / "Cars" / "Truck" / "Truck_red.png", (96, 32), 32)
+    cat = _catalog(pack)
+
+    def tags(name: str) -> list[str]:
+        own = ("variant_of:", "colour:")
+        return [
+            t for t in catalog.effective(_asset(cat, name)).get("tags", []) if t.startswith(own)
+        ]
+
+    bug = _asset(cat, "Classic_Bug.png")
+    assert tags("Classic_Bug.png") == [], "the plain one is what the others are variants of"
+    assert tags("Classic_Bug_red.png") == ["colour:red", f"variant_of:{bug.id}"]
+    assert tags("Classic_Bug_black_white.png") == ["colour:black_white", f"variant_of:{bug.id}"]
+    assert [a.path.rsplit("_", 1)[-1] for a in catalog.colour_variants(cat, bug.id)] == [
+        "white.png",
+        "blue.png",
+        "red.png",
+    ]
+    assert f"a colour variant of {explain._named(bug.id)}" in explain.why(
+        _asset(cat, "Classic_Bug_red.png")
+    )
+    assert tags("Limo_green.png") == []
+    cyan = _asset(cat, "Kart_cyan.png")
+    assert tags("Kart_cyan.png") == ["colour:cyan"]  # the first by name stands for the group
+    assert tags("Kart_pink.png") == ["colour:pink", f"variant_of:{cyan.id}"]
+    assert tags("Truck.png") == [] and tags("Truck_red.png") == []
+    # every variant is an asset of its own, with a role of its own
+    assert len(cat.assets) == 9 and all(a.status != "UNUSED" for a in cat.assets)
+    again, _issues, _generated = catalog.assemble([_open(pack)], cat, [])
+    assert [a.to_json() for a in again.assets] == [a.to_json() for a in cat.assets], "stable"

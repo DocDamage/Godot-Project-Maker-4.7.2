@@ -414,6 +414,42 @@ def copy_of(path: str, stems: set[tuple[str, str]]) -> str | None:
     return base if ("/".join(folders).casefold(), base.casefold()) in stems else None
 
 
+# Colour variants a pack ships as files (T16.21): ``Classic_Bug_red.png`` beside
+# ``Classic_Bug.png``, ``cow_01/brown/...`` beside ``cow_01/black_white/...``.
+COLOUR_WORDS = frozenset(
+    {"black", "white", "red", "green", "blue", "yellow", "pink", "purple", "orange", "brown",
+     "grey", "gray", "cyan", "lime", "beige"}
+)  # fmt: skip
+VARIANT_TAG = "variant_of:"
+COLOUR_TAG = "colour:"
+_NAME_PARTS = re.compile(r"[A-Za-z]+|\d+")
+
+
+def colour_key(path: str) -> tuple[str, str]:
+    """``(what the file is without its colour, the colour)`` for a path inside a pack; the
+    colour is "" for a file that names none. Two files with one key and two colours are the
+    same thing in two colours. A colour is a colour word, or two joined (``black_white``), as a
+    word of the file name or as a whole folder; numbers stay in the key, so ``cow_01`` and
+    ``cow_02`` are two animals."""
+    folders, stem = _path_parts(path)
+    colours: list[str] = []
+    kept_folders: list[str] = []
+    for folder in folders:
+        words = [w.lower() for w in _NAME_PARTS.findall(folder)]
+        if words and all(w in COLOUR_WORDS for w in words):
+            colours.extend(words)
+        else:
+            kept_folders.append(folder.casefold())
+    kept_words: list[str] = []
+    for word in (w.lower() for w in _NAME_PARTS.findall(stem)):
+        if word in COLOUR_WORDS:
+            if word not in colours:
+                colours.append(word)
+        else:
+            kept_words.append(word)
+    return "/".join([*kept_folders, "_".join(kept_words)]), "_".join(colours)
+
+
 PREVIEW_FOLDERS = frozenset({"preview", "previews", "screenshot", "screenshots"})
 GUIDE_WORDS = frozenset(
     {"preview", "test", "grid", "guide", "slots", "template", "mockup", "showcase"}

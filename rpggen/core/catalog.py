@@ -702,6 +702,59 @@ def pack_view(pack: CatalogPack) -> str:
     return "side" if VIEW_SIDE in pack.warnings else "top"
 
 
+def mark_colour_variants(catalog: Catalog) -> None:
+    """Tag the pictures a pack ships in several colours (T16.21): every one gets
+    ``colour:<name>`` when its name or folder says one, and every one but the first of a group
+    ``variant_of:<id of the first>``. The first is the file without a colour word when there is
+    one (``Classic_Bug.png`` beside ``Classic_Bug_red.png``), else the first colour by name.
+    Only pictures of one pack, one size and one usage are a group; information only: every
+    variant stays an asset of its own with its own role."""
+    from rpggen.core import classifier
+
+    groups: dict[tuple[Any, ...], list[tuple[str, Asset]]] = {}
+    for asset in catalog.assets:
+        if asset.kind != "image" or "#" in asset.id or asset.status == "MISSING":
+            continue
+        root = f"assets/packs/{asset.pack_id}/"
+        if not asset.path.startswith(root):
+            continue  # a generated picture
+        key, colour = classifier.colour_key(asset.path[len(root) :])
+        facets = asset.detected
+        if facets.get("role") == "NONE":
+            continue  # a preview, another engine's copy: not offered as a variant
+        size = tuple(facets.get("size") or ())
+        groups.setdefault((asset.pack_id, key, size, facets.get("usage")), []).append(
+            (colour, asset)
+        )
+    for members in groups.values():
+        if len({colour for colour, _a in members}) < 2:
+            continue
+        members.sort(key=lambda m: (m[0] != "", m[0], _sort_key(m[1].id)))
+        first = members[0][1]
+        for colour, asset in members:
+            tags = [
+                t
+                for t in asset.detected.get("tags", [])
+                if not str(t).startswith((classifier.VARIANT_TAG, classifier.COLOUR_TAG))
+            ]
+            if colour:
+                tags.append(classifier.COLOUR_TAG + colour)
+            if asset is not first:
+                tags.append(classifier.VARIANT_TAG + first.id)
+            asset.detected["tags"] = sorted(tags)
+
+
+def colour_variants(catalog: Catalog, asset_id: str) -> list[Asset]:
+    """The assets tagged as colour variants of ``asset_id``, by id."""
+    from rpggen.core import classifier
+
+    tag = classifier.VARIANT_TAG + asset_id
+    return sorted(
+        (a for a in catalog.assets if tag in (a.detected.get("tags") or [])),
+        key=lambda a: _sort_key(a.id),
+    )
+
+
 def _license_files(inv: Inventory, root: str) -> list[str]:
     return sorted((f"{root}/{f.path}" for f in inv.files if f.kind == "license"), key=_sort_key)
 
@@ -985,6 +1038,7 @@ def assemble(
     from rpggen.core.analyzer import similarity
 
     similarity.mark_duplicates(catalog, picture_hashes)
+    mark_colour_variants(catalog)
 
     # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
     terrain.apply_tiled_wang(catalog, adapter_tilesets)
