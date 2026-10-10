@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import IO
 
 from rpggen import godot_target, procenv
-from rpggen.core import godot_fetch
+from rpggen.core import godot_fetch, godot_log
 from rpggen.errors import Issue, IssueList, RpgGenError
 
 log = logging.getLogger(__name__)
@@ -222,6 +222,7 @@ def _run(
             return
         with contextlib.suppress(OSError, ValueError):
             for line in iter(stream.readline, ""):
+                line = godot_log.strip_ansi(line)
                 sink.append(line)
                 with write_lock:
                     if log_file is not None:
@@ -280,6 +281,7 @@ def run_godot(
     cmd = [str(exe), "--headless", "--path", str(project), *args]
     env = procenv.child_env(os.environ) or dict(os.environ)
     env["RPGGEN"] = "1"
+    env["NO_COLOR"] = "1"  # saves work only: _run strips whatever colour codes still come
     log.debug("running %s", cmd)
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)

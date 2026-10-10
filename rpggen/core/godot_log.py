@@ -1,6 +1,17 @@
 from __future__ import annotations
 
+import re
+
 from rpggen.errors import Issue, IssueList
+
+# CSI sequences (colours, cursor moves) and the two-character escapes a terminal understands
+ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[@-Z\\-_]")
+
+
+def strip_ansi(text: str) -> str:
+    """``text`` without terminal escape sequences (Godot colours its errors and rich prints)."""
+    return ANSI_RE.sub("", text) if "\x1b" in text else text
+
 
 MARKERS = ("SCRIPT ERROR:", "Parse Error:", "ERROR:", "[RPG-")
 

@@ -395,6 +395,18 @@ class GeneratePage(WizardPage):
                 else self.tr("Cancelling…")
             )
 
+    @property
+    def run_percent(self) -> int | None:
+        """How far the run is, for the window's title; None while nothing runs."""
+        if not self.running or self.progress.maximum() <= 0:
+            return None
+        return round(100 * self.progress.value() / self.progress.maximum())
+
+    def _retitle(self) -> None:
+        update = getattr(self.window(), "_update_title", None)
+        if callable(update):
+            update()
+
     def _on_progress(self, name: str, index: int, total: int) -> None:
         if name not in PHASES:
             return
@@ -413,6 +425,7 @@ class GeneratePage(WizardPage):
         self.progress.setMaximum(total)
         self.progress.setValue(index - 1)
         taskbar.set_progress(self.window(), index - 1, total)  # the taskbar button, the dock
+        self._retitle()
         self.status_label.setText(
             self.tr("Phase {0} of {1}: {2}").format(
                 index, total, self.tr(PHASE_LABELS.get(name, name))

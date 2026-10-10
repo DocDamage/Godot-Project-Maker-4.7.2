@@ -40,3 +40,43 @@ def test_ignore_patterns_are_honored(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_ignore_list_starts_empty() -> None:
     assert godot_log.IGNORED_ERROR_PATTERNS == []
+
+
+def test_colour_codes_are_stripped() -> None:
+    assert godot_log.strip_ansi("\x1b[90m\x1b[1mERROR:\x1b[0m bad \x1b[?25hthing") == "ERROR: bad thing"
+    assert godot_log.strip_ansi("plain [90m text") == "plain [90m text"  # no escape: left alone
+
+
+def test_a_coloured_line_is_plain_in_the_callback_the_log_and_the_output(tmp_path) -> None:
+    import sys
+
+    from rpggen.core import godot
+
+    seen: list[str] = []
+    code = (
+        "import sys; e = chr(27); print(e + '[91mERROR:' + e + '[0m red'); "
+        "print(e + '[1mbold' + e + '[0m', file=sys.stderr)"
+    )
+    log_path = tmp_path / "run.log"
+    with open(log_path, "w", encoding="utf-8") as fh:
+        _code, out, err, _t, _c = godot._run(
+            [sys.executable, "-c", code], timeout_s=30, env=dict(__import__("os").environ),
+            on_line=seen.append, log_file=fh,
+        )
+    assert out.strip() == "ERROR: red" and err.strip() == "bold"
+    assert sorted(seen) == ["ERROR: red", "bold"]
+    assert "\x1b" not in log_path.read_text(encoding="utf-8")
+
+
+def test_godot_is_asked_not_to_colour(tmp_path, monkeypatch) -> None:
+    from rpggen.core import godot
+
+    got: dict[str, str] = {}
+
+    def fake_run(cmd, *, env, **_kwargs):  # type: ignore[no-untyped-def]
+        got.update(env)
+        return 0, "", "", False, False
+
+    monkeypatch.setattr(godot, "_run", fake_run)
+    godot.run_godot(tmp_path / "godot", tmp_path, [], timeout_s=5, log_name="x", log_dir=tmp_path)
+    assert got["NO_COLOR"] == "1" and got["RPGGEN"] == "1"

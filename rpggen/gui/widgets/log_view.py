@@ -6,6 +6,8 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QPlainTextEdit, QWidget
 
+from rpggen.core.godot_log import strip_ansi
+
 MAX_LINES = 5_000
 
 
@@ -34,6 +36,7 @@ class LogView(QPlainTextEdit):
     def append_line(self, line: str) -> None:
         """Add text (it may hold several lines) and follow the end unless the user scrolled up."""
         follow = self.at_bottom()
+        line = strip_ansi(line)  # lines from git or 7-Zip; Godot's are stripped where they are read
         self.appendPlainText(line)
         self._added += line.count("\n") + 1
         if not self.dropped and self._added > self._max_lines:

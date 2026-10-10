@@ -617,10 +617,27 @@ class WindowMenus:
 
     def _update_title(self) -> None:
         state = self.state  # type: ignore[attr-defined]
+        if self.welcome_visible:
+            self.setWindowTitle("rpggen")
+            return
+        self.setWindowTitle(self.title_text())
+
+    def title_text(self) -> str:
+        """ "36 % · My game · 6. Generate — rpggen" (T15.18): the project (its name, else its
+        folder's), the step, and in front the percentage while a run is on, so that the taskbar
+        and Alt-Tab say where the user is and how far a minimised run has come."""
+        state = self.state  # type: ignore[attr-defined]
+        index = self.current_index  # type: ignore[attr-defined]
         name = (state.project_name or "").strip()
-        title = "rpggen"
-        if name and not self.welcome_visible:
-            title += f" — {name}"
-            if state.regenerating:
-                title += " [regenerating]"
-        self.setWindowTitle(title)
+        if not name and state.target is not None:
+            name = Path(state.target).name
+        parts: list[str] = []
+        if 0 <= index < len(self.pages):  # type: ignore[attr-defined]
+            percent = getattr(self.pages[index], "run_percent", None)  # type: ignore[attr-defined]
+            if percent is not None:
+                parts.append(f"{percent} %")
+        if name:
+            parts.append(name + (" [regenerating]" if state.regenerating else ""))
+        if 0 <= index < len(self._sidebar_names):  # type: ignore[attr-defined]
+            parts.append(f"{index + 1}. {self._sidebar_names[index]}")  # type: ignore[attr-defined]
+        return " · ".join(parts) + (" — " if parts else "") + "rpggen"

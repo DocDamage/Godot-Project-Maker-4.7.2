@@ -187,10 +187,10 @@ def test_window_title_names_the_project_and_regeneration(qtbot) -> None:
     win = _window(qtbot)
     win.state.project_name = "My Game"
     win.refresh()
-    assert win.windowTitle() == "rpggen — My Game"
+    assert win.windowTitle() == "My Game · 1. Project — rpggen"
     win.state.regenerating = True
     win.refresh()
-    assert win.windowTitle().endswith("[regenerating]")
+    assert win.windowTitle() == "My Game [regenerating] · 1. Project — rpggen"
 
 
 def test_theme_and_thumbnail_choices_are_remembered(qtbot) -> None:

@@ -144,3 +144,17 @@ def test_the_estimate_is_set_per_phase_and_never_counts_down(qtbot) -> None:
     assert page.round_seconds(2.0) == 5 and page.round_seconds(42.4) == 40
     assert app_settings.estimate(history, "promote", 200) == 10.0
     page.running = False
+
+
+# ------------------------------------------------------------------ colour codes (T15.16)
+
+
+def test_the_log_view_shows_a_coloured_line_as_plain_text(qtbot) -> None:
+    from rpggen.gui.widgets.log_view import LogView
+
+    view = LogView()
+    qtbot.addWidget(view)
+    esc = chr(27)
+    view.append_line(f"{esc}[90m{esc}[1mWARNING:{esc}[0m something")
+    view.append_lines([f"{esc}[31mred{esc}[0m", "plain"])
+    assert view.toPlainText().splitlines() == ["WARNING: something", "red", "plain"]

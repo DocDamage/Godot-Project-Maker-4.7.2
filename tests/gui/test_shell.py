@@ -203,3 +203,45 @@ def test_a_forward_click_stops_at_the_first_page_that_blocks(qtbot) -> None:
     win._on_sidebar_clicked(win.sidebar.item(4))
     assert win.current_index == 2  # entered, and Next is blocked there
     assert not win.sidebar.item(4).flags() & Qt.ItemFlag.ItemIsEnabled
+
+
+# ------------------------------------------------------------------ the window title (T15.18)
+
+
+def test_the_title_names_the_project_and_the_step(qtbot, tmp_path) -> None:
+    state = state_mod.WizardState()
+    state.pack_sources = [tmp_path]
+    win = _window(qtbot, state)
+    assert win.windowTitle() == "1. Project — rpggen"  # no name and no folder yet
+    state.target = tmp_path / "out" / "forest_game"
+    win.refresh()
+    assert win.windowTitle() == "forest_game · 1. Project — rpggen"  # the folder's name
+    state.project_name = "My game"
+    for index, name in enumerate(PAGE_NAMES):
+        win.show_page(index)
+        assert win.windowTitle() == f"My game · {index + 1}. {name} — rpggen"
+    win.show_welcome_view()
+    assert win.windowTitle() == "rpggen"
+
+
+def test_the_title_starts_with_the_percentage_during_a_run(qtbot) -> None:
+    win = _window(qtbot)
+    win.state.project_name = "My game"
+    win.show_page(5)
+    win.pages[5].run_percent = 36  # type: ignore[attr-defined]
+    win.refresh()
+    assert win.windowTitle() == "36 % · My game · 6. Generate — rpggen"
+    win.pages[5].run_percent = None  # type: ignore[attr-defined]
+    win.refresh()
+    assert win.windowTitle() == "My game · 6. Generate — rpggen"
+
+
+def test_the_generate_page_reports_its_percentage(qtbot) -> None:
+    from rpggen.gui.pages.generate_page import PHASES, GeneratePage
+
+    page = GeneratePage()
+    qtbot.addWidget(page)
+    assert page.run_percent is None
+    page.running = True
+    page._on_progress(PHASES[2], 3, len(PHASES))
+    assert page.run_percent == round(100 * 2 / len(PHASES))
