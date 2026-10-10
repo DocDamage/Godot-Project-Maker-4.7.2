@@ -201,9 +201,14 @@ def _would_repeat(
     cfg = copy.deepcopy(state.cfg)
     if not cfg.sounds:  # as the catalog phase fills them in
         cfg.sounds = sound_slots.default_sounds(catalog, cfg.archetype)
-    if old.inputs_sha256 != orchestrator.inputs_fingerprint(cfg, catalog, placeholders):
+    # and as it adds the placeholders and stand-ins: into a copy, their files into a folder
+    # that goes away (the summary and the plan are of the packs' own catalog)
+    finished = catalog_mod.Catalog.from_json(catalog.to_json())
+    with tempfile.TemporaryDirectory(prefix="rpggen_dry_") as made:
+        orchestrator.add_run_made_assets(finished, cfg, placeholders, Path(made))
+    if old.inputs_sha256 != orchestrator.inputs_fingerprint(cfg, finished, placeholders):
         return False
-    if run_memory.last_run_failed(target):
+    if run_memory.last_run_failed(target) or run_memory.own_files_changed(target):
         return False
     return not ledger_mod.edited_generated_files(target, old)
 

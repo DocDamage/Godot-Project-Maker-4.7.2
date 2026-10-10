@@ -118,6 +118,8 @@ def add_placeholder_assets(
 
     Returns the written files and ASSET-011 info issues. Roles that already have an asset are
     skipped. The assets live in the pack ``debug_placeholders`` with the tag ``debug_placeholder``.
+    A placeholder of the last run (a regeneration finds it in the catalog, without its file) is
+    replaced, so a catalog never holds two of one role.
     """
     issues = IssueList()
     written: list[Path] = []
@@ -163,9 +165,11 @@ def add_placeholder_assets(
             if role in CHARACTER_ROLES
             else ([w * 4, h] if role == "GROUND" else [w, h])
         )
+        asset_id = f"{PLACEHOLDER_PACK}.{role.lower()}"
+        catalog.assets[:] = [a for a in catalog.assets if a.id != asset_id]
         catalog.assets.append(
             catalog_mod.Asset(
-                id=f"{PLACEHOLDER_PACK}.{role.lower()}",
+                id=asset_id,
                 pack_id=PLACEHOLDER_PACK,
                 path=rel,
                 sha256=hashlib.sha256(target.read_bytes()).hexdigest(),

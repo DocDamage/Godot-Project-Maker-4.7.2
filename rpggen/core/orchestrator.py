@@ -315,25 +315,24 @@ def phase_catalog(state: _State) -> None:
     if not state.cfg.sounds:
         # nothing was chosen (the command line, an older project): the packs' audio is used
         state.cfg.sounds = sound_slots.default_sounds(catalog, state.cfg.archetype)
-    # T15.20: what this run is made from, taken once the config has its defaults (the saved
-    # config of the project has them too) and before the catalog gets what a run derives from
-    # it (placeholders, stand-ins); the dry run takes it at the same point
-    state.inputs_sha = inputs_fingerprint(state.cfg, catalog, state.placeholders)
-    if state.placeholders:
-        _written, placeholder_issues = placeholders.add_placeholder_assets(
-            catalog, state.placeholders, state.cfg.base_tile_size, state.staging.staging
+    made_issues, stand_ins = add_run_made_assets(
+        catalog, state.cfg, state.placeholders, state.staging.staging
+    )
+    state.issues.extend(made_issues)
+    if stand_ins:
+        state.cb.on_log(
+            "side view: the packs have no "
+            + ", ".join(k.replace("_", "-") for k in stand_ins)
+            + " tile; generated ones are used"
         )
-        state.issues.extend(placeholder_issues)
-    if state.cfg.archetype == "metroidvania":
-        from rpggen.core import side_kit
-
-        stand_ins = side_kit.add(catalog, state.cfg.base_tile_size, state.staging.staging)
-        if stand_ins:
-            state.cb.on_log(
-                "side view: the packs have no "
-                + ", ".join(k.replace("_", "-") for k in stand_ins)
-                + " tile; generated ones are used"
-            )
+    # T15.20: what this run is made from, taken once the config has its defaults (the saved
+    # config of the project has them too) and the catalog has what a run adds to it
+    # (placeholders, stand-ins): a regeneration finds those of the last run in the project's
+    # catalog, so only the finished catalog is the same from run to run. The dry run takes it
+    # at the same point.
+    state.inputs_sha = inputs_fingerprint(
+        state.cfg, catalog, state.placeholders, state.repair_world
+    )
     state.catalog = catalog
     state.generated = generated
     _plan_world(state, catalog)
@@ -346,6 +345,28 @@ def phase_catalog(state: _State) -> None:
     # A required role without any asset stops generation before Godot runs.
     state.issues.extend(requirements.check(catalog, state.cfg))
     state.issues.extend(staging.write_project_files(state.staging, state.cfg, catalog))
+
+
+def add_run_made_assets(
+    catalog: catalog_mod.Catalog,
+    cfg: config_mod.GeneratorConfig,
+    roles: list[str],
+    root: Path,
+) -> tuple[IssueList, list[str]]:
+    """Add what a run makes itself to ``catalog`` and write the files under ``root``: a debug
+    placeholder for every role of ``roles`` the packs lack, and for a metroidvania the side-view
+    kit. Returns the issues (ASSET-011) and the kinds the kit stands in for."""
+    issues = IssueList()
+    if roles:
+        _written, issues = placeholders.add_placeholder_assets(
+            catalog, roles, cfg.base_tile_size, root
+        )
+    stand_ins: list[str] = []
+    if cfg.archetype == "metroidvania":
+        from rpggen.core import side_kit
+
+        stand_ins = side_kit.add(catalog, cfg.base_tile_size, root)
+    return issues, stand_ins
 
 
 # --------------------------------------------------------------------------- repeats (T15.20)
@@ -372,18 +393,24 @@ def templates_fingerprint() -> str:
 
 
 def inputs_fingerprint(
-    cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog, placeholders: list[str]
+    cfg: config_mod.GeneratorConfig,
+    catalog: catalog_mod.Catalog,
+    placeholders: list[str],
+    repair_world: bool | None = None,
 ) -> str:
     """What a generation is made from, as one hash: the catalog (every pack file's hash, the
     audit's decisions, the rules and the objects), the config (the mapping, the options, the
-    seed), the roles filled with placeholders, the templates and the generator's version. Two
-    runs with the same fingerprint and the same Godot build the same project."""
+    seed), the roles filled with placeholders, whether the world is mended after the build
+    (``repair_world`` is the run's own switch; None leaves it to the config), the templates
+    and the generator's version. Two runs with the same fingerprint and the same Godot build
+    the same project."""
     payload = {
         "generator": __version__,
         "templates": templates_fingerprint(),
         "config": cfg.to_json(),
         "catalog": catalog.to_json(),
         "placeholders": sorted(placeholders),
+        "repair_world": cfg.repair_world if repair_world is None else repair_world,
     }
     text = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -391,8 +418,9 @@ def inputs_fingerprint(
 
 def repeat_reason(state: _State) -> str:
     """Why this run is **not** a repeat of the last one ("" when it is): every phase runs then.
-    A repeat is a regeneration of the same inputs with the same Godot over a project whose
-    generated files nobody touched, after a run that succeeded."""
+    A repeat is a regeneration of the same inputs with the same Godot over a project in which
+    nobody touched a file since the last run, a generated one or one of their own, and that
+    run succeeded."""
     if state.staging is None or not state.staging.regenerate or state.old_ledger is None:
         return "a first generation"
     if state.full_checks:
@@ -413,6 +441,8 @@ def repeat_reason(state: _State) -> str:
     edited = ledger_mod.edited_generated_files(Path(state.target), old)
     if edited:
         return f"{edited[0]} was changed or deleted"
+    if run_memory.own_files_changed(Path(state.target)):
+        return "a file of your own (game/, project.godot) changed since the last run"
     return ""
 
 

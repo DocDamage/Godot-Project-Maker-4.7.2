@@ -41,6 +41,7 @@ def _project(tmp: Path) -> tuple[Path, Ledger]:
     old = Ledger(entries, inputs_sha256=SHA, godot_version="4.7.2.stable")
     old.save(target / paths.LEDGER)
     _write(target, paths.CONFIG, "{}")
+    run_memory.remember(target, ok=True)  # the run that made it: the user's files as they are
     return target, old
 
 
@@ -121,6 +122,18 @@ def test_a_repeat_needs_the_same_inputs_the_same_godot_and_an_untouched_project(
     assert "failed or was cancelled" in reason()
     run_memory.remember(target, ok=True)
     assert reason() == ""
+    # a file of the user's own changed since that run: the checks are what a run says about it
+    _write(target, "game/maps/starter_map.tscn", "the user's map, with a door less")
+    assert "of your own" in reason()
+    run_memory.remember(target, ok=True)  # ... and the run after it is a repeat again
+    assert reason() == ""
+    _write(target, "game/maps/cellar.tscn", "a map the user made")
+    assert "of your own" in reason()
+    (target / "game/maps/cellar.tscn").unlink()
+    assert reason() == ""
+    _write(target, "project.godot", "settings; a new input action")
+    assert "of your own" in reason()
+    run_memory.remember(target, ok=True)
     _write(target, "generated/tilesets/overworld.tres", "edited")
     assert "overworld.tres was changed or deleted" in reason()
 
@@ -168,6 +181,12 @@ def test_the_fingerprint_follows_every_input() -> None:
     feature.features["save"] = not feature.features.get("save", True)
     assert orchestrator.inputs_fingerprint(feature, cat, []) != base
     assert orchestrator.inputs_fingerprint(cfg, cat, ["NPC"]) != base  # a placeholder
+    # the world repair: the run's own switch, else the config's
+    assert orchestrator.inputs_fingerprint(cfg, cat, [], repair_world=True) == base
+    assert orchestrator.inputs_fingerprint(cfg, cat, [], repair_world=False) != base
+    no_repair = copy.deepcopy(cfg)
+    no_repair.repair_world = False
+    assert orchestrator.inputs_fingerprint(no_repair, cat, []) != base
     assert orchestrator.inputs_fingerprint(cfg, cat, ["NPC", "ENEMY"]) == (
         orchestrator.inputs_fingerprint(cfg, cat, ["ENEMY", "NPC"])
     )
@@ -252,6 +271,35 @@ def test_a_first_generation_records_the_inputs(tmp_path: Path) -> None:
 # ------------------------------------------------------------------ the memory of the last run
 
 
+def test_what_the_users_files_were_at_the_last_run_is_kept_outside_the_project(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "game_folder"
+    _write(target, "game/maps/a.tscn", "a")
+    _write(target, "project.godot", "settings")
+    _write(target, "generated/x.tres", "x")
+    assert run_memory.own_files_changed(target), "nothing is known of a run: not a repeat"
+    run_memory.remember(target, ok=True)
+    assert not run_memory.own_files_changed(target)
+    assert sorted(p.name for p in target.rglob("*") if p.is_file()) == [
+        "a.tscn",
+        "project.godot",
+        "x.tres",
+    ], "nothing was written into the project"
+    _write(target, "generated/x.tres", "another x")  # not the user's: the ledger's business
+    _write(target, ".godot/imported/a.ctex", "the editor's cache")
+    assert not run_memory.own_files_changed(target)
+    known = run_memory.own_files_hash(target)
+    _write(target, "game/maps/a.tscn", "b")  # the same length, another content
+    assert run_memory.own_files_changed(target) and run_memory.own_files_hash(target) != known
+    _write(target, "game/maps/a.tscn", "a")
+    assert not run_memory.own_files_changed(target)
+    (target / "game/maps/a.tscn").rename(target / "game/maps/b.tscn")
+    assert run_memory.own_files_changed(target)
+    run_memory.remember(target, ok=False)  # a failed run knows nothing of them
+    assert run_memory.own_files_changed(target) and run_memory.last_run_failed(target)
+
+
 def test_the_outcome_of_the_last_run_is_kept_outside_the_project(tmp_path: Path) -> None:
     target = tmp_path / "project"
     target.mkdir()
@@ -291,3 +339,46 @@ def test_the_command_line_has_full(tmp_path: Path, monkeypatch) -> None:
     ]
     assert cli.main(base) == 0 and seen["full_checks"] is False
     assert cli.main([*base, "--full"]) == 0 and seen["full_checks"] is True
+
+
+# ------------------------------------------------------------------ what a run makes itself
+
+
+def _assembled(previous: catalog_mod.Catalog | None) -> tuple[catalog_mod.Catalog, list[str]]:
+    from rpggen.core import archive, inventory
+
+    opened = archive.open_pack(paths.sample_pack_root(), set(), pack_id="sample_pack")
+    cat, issues, _generated = catalog_mod.assemble(
+        [(opened, inventory.build_inventory(opened))], previous, []
+    )
+    return cat, [i.code for i in issues]
+
+
+@pytest.mark.parametrize("archetype", ["turn_based", "metroidvania"])
+def test_a_regeneration_makes_its_placeholders_and_its_kit_once(
+    tmp_path: Path, archetype: str
+) -> None:
+    """The catalog of a project holds the placeholders and the side-view kit of its last run,
+    and their files are not in any pack. The next run makes them again: it does not report them
+    as vanished, does not add a second one, and builds from the same catalog as the last."""
+    from rpggen.core import placeholders, side_kit
+
+    ref = config.PackRef("sample_pack", "sample_pack", "0" * 64, "folder")
+    cfg = config.default_for("T", [ref], archetype=archetype)
+    roles = ["BOSS"]  # the sample pack has none
+    made = set(catalog_mod.RUN_MADE_PACKS)
+    assert made == {placeholders.PLACEHOLDER_PACK, side_kit.KIT_PACK}
+    previous, prints = None, []
+    for run in range(3):
+        cat, codes = _assembled(previous)
+        assert "CAT-004" not in codes, run
+        issues, stand_ins = orchestrator.add_run_made_assets(cat, cfg, roles, tmp_path / str(run))
+        assert [i.code for i in issues] == ["ASSET-011"]
+        assert bool(stand_ins) == (archetype == "metroidvania")
+        own = [a for a in cat.assets if a.pack_id in made]
+        assert len(own) == (2 if stand_ins else 1), [a.id for a in own]
+        assert all(a.status == "CONFIRMED" for a in own)
+        assert len({a.id for a in cat.assets}) == len(cat.assets)
+        prints.append(orchestrator.inputs_fingerprint(cfg, cat, roles))
+        previous = catalog_mod.Catalog.from_json(cat.to_json())
+    assert prints[0] == prints[1] == prints[2]

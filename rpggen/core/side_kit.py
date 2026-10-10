@@ -117,7 +117,8 @@ def make_image(tile: int) -> Image.Image:
 def add(catalog: catalog_mod.Catalog, tile: int, staging_root: Path) -> list[str]:
     """Write the kit sheet into the staging copy and add it to the catalog when the packs lack a
     side-view kind. Returns the kinds the kit stands in for (empty: nothing was added). Calling
-    it again on a catalog that has the kit changes nothing."""
+    it again on a catalog that has the kit changes nothing; the kit of the last run (a
+    regeneration finds it in the catalog, without its file) is replaced by this one."""
     lacking = missing_kinds(catalog)
     if not lacking:
         return []
@@ -125,8 +126,10 @@ def add(catalog: catalog_mod.Catalog, tile: int, staging_root: Path) -> list[str
     target = Path(staging_root) / rel
     target.parent.mkdir(parents=True, exist_ok=True)
     make_image(tile).save(target, format="PNG", optimize=False, compress_level=9, pnginfo=None)
-    if catalog.asset(KIT_ASSET) is not None:
+    known = catalog.asset(KIT_ASSET)
+    if known is not None and known.status != "MISSING":
         return lacking
+    catalog.assets[:] = [a for a in catalog.assets if a.id != KIT_ASSET]
     facets: dict[str, Any] = {
         "usage": "tiles",
         "role": "DECORATION",

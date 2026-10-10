@@ -22,7 +22,8 @@ your work away. Three rules hold every time, and each one has its own automated 
 Since 1.3.0 a regeneration first asks whether anything it is made from changed since the last
 run that succeeded: the packs (every file's content), the audit, the mapping, the options, the
 seed, rpggen itself (its version, the runtime and the build recipes) and the Godot that builds.
-When nothing did, and nobody changed or deleted a generated file of the project, the run is
+When nothing did, and no file of the project was changed or deleted since then, a generated
+one or one of your own, the run is
 **a repeat**: the import, the build, the validation, the smoke test and the export check are
 not run again, nothing is written and the project is left exactly as it is. The Generate page
 shows those phases with a dash and *skipped: nothing changed since the last run*, the command
@@ -34,15 +35,21 @@ A run is **not** a repeat, and does everything, when
 * anything in the list above changed, or the project was made by a version before 1.3.0 (its
   ledger does not say what it was made from; the first regeneration with 1.3 records it);
 * a generated file was edited or deleted (the run has a conflict to find or a deletion to
-  respect; the files you are meant to edit, `game/`, `project.godot`, the config and the
-  catalog, do not count);
+  respect);
+* a file of your own changed since the last run: anything under `game/`, or `project.godot`.
+  rpggen never rewrites those, but the validator and the smoke test are what a run has to say
+  about a map you painted or a door you removed, and the world repair acts on what they find.
+  What your files were at the last run is noted in rpggen's data folder, not in the project,
+  so the first regeneration on another computer is a full one;
+* the world repair was switched off for the last run and is on for this one, or the other way
+  round;
 * the last run into the folder failed or was cancelled;
 * you ask for it: `rpggen generate ... --full` for one run, or **Run every check again on
   every regeneration** in the regeneration preview for a project (the choice is kept in the
   project's `rpggen/ownership_ledger.json` as `run_every_check`).
 
-Editing a scene under `game/` does not make a regeneration run its checks; use `--full` when
-you want the validator and the smoke test over your own changes.
+`--full` is for when you want every check again although nothing changed, for example after
+an update of the export templates.
 
 ## Before you regenerate
 

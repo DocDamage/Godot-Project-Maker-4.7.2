@@ -26,7 +26,8 @@ TOLERANCE = 2.0  # CI hardware allowance over the section 45 targets
 COLD_S = 60 * TOLERANCE
 WARM_S = 5 * TOLERANCE
 GENERATE_S = 10 * 60
-REGENERATE_S = 60 * TOLERANCE  # section 45: a regeneration without changes, under a minute
+REGENERATE_S = 60 * TOLERANCE  # section 45: a regeneration with every check, under a minute
+REGENERATE_UNCHANGED_S = 10 * TOLERANCE  # T15.20: nothing changed, so no check is repeated
 SIDE_SAMPLE_S = 90 * TOLERANCE  # T14.11: the side-view sample as a metroidvania, played through
 
 
@@ -77,8 +78,7 @@ def test_full_generation_of_a_big_pack(generated) -> None:
     assert elapsed < GENERATE_S, f"generation took {elapsed:.0f}s (limit {GENERATE_S}s)"
 
 
-def test_a_regeneration_without_changes_is_fast(generated, godot_exe: Path) -> None:
-    target, _elapsed = generated
+def _regenerate(target: Path, godot_exe: Path, full_checks: bool) -> tuple[float, object]:
     started = time.perf_counter()
     result = orchestrator.run(
         target / paths.CONFIG,
@@ -86,10 +86,27 @@ def test_a_regeneration_without_changes_is_fast(generated, godot_exe: Path) -> N
         godot_exe,
         placeholders=["PLAYER", "GROUND"],  # as in the first run: the pack has neither
         force_while_open=True,
+        full_checks=full_checks,
     )
-    elapsed = time.perf_counter() - started
+    return time.perf_counter() - started, result
+
+
+def test_a_regeneration_without_changes_repeats_no_check(generated, godot_exe: Path) -> None:
+    target, _elapsed = generated
+    elapsed, result = _regenerate(target, godot_exe, full_checks=False)
     print(f"\nregeneration of 1000 images, nothing changed: {elapsed:.1f}s")
     record("regeneration of 1000 images, nothing changed", elapsed)
+    assert result.ok, [(i.code, i.message) for i in result.issues if i.severity.value == "error"]
+    assert elapsed < REGENERATE_UNCHANGED_S, (
+        f"regeneration took {elapsed:.0f}s (limit {REGENERATE_UNCHANGED_S:.0f}s)"
+    )
+
+
+def test_a_full_regeneration_is_fast(generated, godot_exe: Path) -> None:
+    target, _elapsed = generated
+    elapsed, result = _regenerate(target, godot_exe, full_checks=True)
+    print(f"\nregeneration of 1000 images, full: {elapsed:.1f}s")
+    record("regeneration of 1000 images, full", elapsed)
     assert result.ok, [(i.code, i.message) for i in result.issues if i.severity.value == "error"]
     assert elapsed < REGENERATE_S, f"regeneration took {elapsed:.0f}s (limit {REGENERATE_S:.0f}s)"
 

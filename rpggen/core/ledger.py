@@ -207,9 +207,10 @@ def recipes_from_results(project: Path) -> dict[str, str]:
 def edited_generated_files(target: Path, ledger: Ledger, limit: int = 1) -> list[str]:
     """Generated files of the project that are not as the ledger recorded them: changed, or
     deleted without the ledger knowing (T15.20: a regeneration over them is not a repeat; it
-    has a conflict to find or a deletion to respect). Files a person is meant to edit (the
-    ``game/`` seeds, ``project.godot``, the config and the catalog) do not count. Stops after
-    ``limit`` finds."""
+    has a conflict to find or a deletion to respect). Files a person is meant to edit are not
+    looked at here: the ledger keeps what a ``game/`` seed was when it was made, not what it
+    was at the last run (``run_memory.own_files_changed`` knows that), and the config and the
+    catalog are in the fingerprint. Stops after ``limit`` finds."""
     found: list[str] = []
     for rel, entry in ledger.files.items():
         if entry.owner != "generated" or rel in MERGE_MANAGED:

@@ -708,6 +708,9 @@ def _license_files(inv: Inventory, root: str) -> list[str]:
 
 REVIEWED_STATUSES = frozenset({"CONFIRMED", "UNUSED"})
 ATTENTION_STATUSES = frozenset({"CONFLICT", "NEEDS_REVIEW", "MISSING"})
+# Packs whose assets a run makes itself, every time it needs them (``placeholders.py``,
+# ``side_kit.py``): no pack file is behind them, so one of them is never reported as vanished.
+RUN_MADE_PACKS = frozenset({"debug_placeholders", "rpggen_side_kit"})
 
 
 def folder_of(catalog: Catalog, asset: Asset) -> str:
@@ -1205,7 +1208,8 @@ def _carry_previous(
         kept = Asset.from_json(old.to_json())
         kept.status = "MISSING"
         catalog.assets.append(kept)
-        issues.add("CAT-004", asset=old.id, file=old.path)
+        if old.pack_id not in RUN_MADE_PACKS:  # the run that needs it makes it again
+            issues.add("CAT-004", asset=old.id, file=old.path)
         if not any(p.pack_id == old.pack_id for p in catalog.packs):
             prev_pack = next((p for p in previous.packs if p.pack_id == old.pack_id), None)
             if prev_pack is not None:
