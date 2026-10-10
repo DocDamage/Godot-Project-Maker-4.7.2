@@ -128,6 +128,15 @@ inventory, equipment, menus) are the same.
 * **Select similar** (`Ctrl+Shift+S`, or right-click → *Select similar*): selects the assets
   that look like the selected one, so that a set of look-alike sprites gets its role in one go.
   The same picture shipped twice in different packs is tagged `duplicate_of:<id>`.
+* **LPC characters.** A character of the Liberated Pixel Cup collection comes in parts: a body,
+  and hair, a head, clothes and a weapon drawn over it. rpggen reads every part and puts a
+  character together by itself when a pack leaves no choice (one body, one layer of a kind).
+  Where there is a choice, right-click the body (or the character) → **Compose LPC
+  character…**: pick one layer of each part, or none, see the character as it stands, and
+  give it a name. The character is an asset of its own, one sheet with every animation its
+  body has; the parts stay unused by themselves, each with the reason on its card. *Remove
+  character* takes one away again and frees its body. A layer that has no picture for an
+  animation (a hat without a *run*) is not drawn in it.
 * **Variants.** Right-click a sprite → **Make variant…** to get a second enemy from the one a
   pack ships: turn the hue (with saturation and brightness), or change single colours in the
   palette table (click a colour in the source picture to find its row, double-click the row to

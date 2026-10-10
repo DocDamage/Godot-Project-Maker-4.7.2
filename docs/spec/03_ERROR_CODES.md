@@ -44,6 +44,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | ASSET-027 | I | No sound effects were found in the packs. | Add sound effects to an asset pack, or assign them in Mapping. |
 | ASSET-029 | W | The variant {variant} was left out: {reason}. | Put the source file back into the pack, or remove the variant on the Audit page. |
 | ASSET-030 | I | The player {asset} has no {missing} animation: its idle frame is shown in the air. | Add a jump and a fall animation on the Audit page, or use a side-view character. |
+| ASSET-033 | W | The LPC character {character} was left out or is incomplete: {reason}. | Put the part back into the pack, or choose the character's parts again on the Audit page. |
 | ASSET-028 | W | Pack {pack_id} needs attribution, but no author was found in its license files. | Enter the author on the Audit page (pack information) so that the credits screen names them. |
 | ADAPT-001 | W | Adapter {adapter} failed on {file}: {reason}. | Report a bug with a diagnostic bundle. |
 | ADAPT-002 | W | Tiled tileset {file} references missing image {image}. | Fix the pack or map the image manually. |

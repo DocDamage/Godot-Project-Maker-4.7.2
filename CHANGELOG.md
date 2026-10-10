@@ -8,9 +8,13 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 * **LPC characters**: the universal sheet is read whole (cast, thrust, shoot, and the
   generator's climb, idle, jump, sit, emote, run and the other rows, where they are drawn), and
   the LPC collection's files are read: a picture per animation, or a folder per animation with
-  a picture per colour, become one character. Hair, clothes and weapons are read as layers and
-  left unused: rpggen does not draw one picture over another yet. An LPC project made with an
-  earlier version gets the added animations when it is regenerated.
+  a picture per colour, are read as the parts of a character: its body, and the hair, clothes
+  and weapons that are drawn over it. An LPC project made with an earlier version gets the
+  added animations when it is regenerated.
+* **LPC characters put together**: a pack with one body and one layer of each kind gets its
+  character by itself; with *Compose LPC character…* on the Audit page you choose the layers
+  of a body, see the result and name it. The character is one sheet with every animation of
+  its body, and can be the player.
 
 ## 1.3.0
 

@@ -888,6 +888,14 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Compose LPC character…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove character</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>{0} similar assets selected</source>
         <translation type="unfinished"></translation>
     </message>
@@ -994,6 +1002,49 @@ Details: {0}</source>
     </message>
     <message>
         <source>{0} change(s) since the analysis</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>CharacterDialog</name>
+    <message>
+        <source>Compose LPC character</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The character, looking at you</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>An LPC character is a body with layers drawn over it. Choose one of each part, or none; the character becomes an asset of its own.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The name of the character in the audit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The {0} layer of the character, or none</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>(none)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This character cannot be drawn: {0}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The body alone.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The body and {0} layer(s).</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

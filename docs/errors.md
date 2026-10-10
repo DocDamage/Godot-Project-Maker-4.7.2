@@ -54,6 +54,7 @@
 | ASSET-027 | info | No sound effects were found in the packs. | Add sound effects to an asset pack, or assign them in Mapping. |
 | ASSET-029 | warning | The variant {variant} was left out: {reason}. | Put the source file back into the pack, or remove the variant on the Audit page. |
 | ASSET-030 | info | The player {asset} has no {missing} animation: its idle frame is shown in the air. | Add a jump and a fall animation on the Audit page, or use a side-view character. |
+| ASSET-033 | warning | The LPC character {character} was left out or is incomplete: {reason}. | Put the part back into the pack, or choose the character's parts again on the Audit page. |
 | ASSET-028 | warning | Pack {pack_id} needs attribution, but no author was found in its license files. | Enter the author on the Audit page (pack information) so that the credits screen names them. |
 
 ## Adapters (ADAPT)

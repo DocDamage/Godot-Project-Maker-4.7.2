@@ -81,7 +81,9 @@ def test_the_files_of_one_thing_of_the_collection_are_one_sprite() -> None:
     body = assets[body_files[0]]
     eff = catalog.effective(body)
     assert body.detected_by == "lpc" and eff["frame"] == [64, 64] and eff["origin"] == [32, 60]
-    assert eff["tags"] == ["lpc_body"] and body.status != "UNUSED"
+    # (the body is in the character the pack's one hair makes with it, so it is unused by
+    # itself: tests/unit/test_lpc_compose.py)
+    assert "lpc_body" in eff["tags"]
     anims = eff["animations"]
     root = "assets/packs/lpc_parts/spritesheets/body/bodies/male"
     assert anims["walk_down"] == {

@@ -33,6 +33,7 @@ from rpggen.core import (
     contact_sheet,
     labels,
     learned_rules,
+    lpc_compose,
     profile_registry,
     profiles,
 )
@@ -43,6 +44,7 @@ from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
 from rpggen.gui import edits as edits_mod
 from rpggen.gui import icons, theme, workers
+from rpggen.gui.dialogs.character_dialog import CharacterDialog
 from rpggen.gui.dialogs.contact_sheet_dialog import ContactSheetDialog, SheetOptions
 from rpggen.gui.dialogs.profile_dialogs import ExportProfileDialog, FindProfileDialog
 from rpggen.gui.dialogs.variant_dialog import VariantDialog
@@ -99,6 +101,9 @@ def make_resolver(state: WizardState) -> PathResolver:
         parts = asset.path.split("/", 3)
         if len(parts) == 4 and parts[:2] == ["assets", "packs"] and asset.pack_id in roots:
             return roots[asset.pack_id] / parts[3]
+        if asset.path.startswith(lpc_compose.CHARACTER_DIR + "/"):  # an LPC character
+            sheet = lpc_compose.cached_file(asset.sha256)
+            return sheet if sheet.is_file() else None
         if asset.path.startswith(variants_mod.VARIANT_DIR + "/"):  # rendered into the cache
             cached = variants_mod.cached_file(asset.sha256)
             if cached.is_file():
@@ -1029,7 +1034,64 @@ class AuditPage(WizardPage):
             remove = menu.addAction(self.tr("Remove variant"))
             remove.setObjectName("removeVariantAction")
             remove.triggered.connect(self.remove_variant)
+        if self.character_body() is not None:
+            compose = menu.addAction(self.tr("Compose LPC character…"))
+            compose.setObjectName("composeCharacterAction")
+            compose.triggered.connect(self.compose_character)
+        if self.selected_character() is not None:
+            gone = menu.addAction(self.tr("Remove character"))
+            gone.setObjectName("removeCharacterAction")
+            gone.triggered.connect(self.remove_character)
         menu.exec(self.grid.view.viewport().mapToGlobal(pos))
+
+    # ------------------------------------------------------------------ LPC characters (M16)
+
+    def selected_character(self) -> str | None:
+        asset = self._one_selected()
+        return asset.id if asset is not None and lpc_compose.is_character(asset) else None
+
+    def character_body(self) -> catalog_mod.Asset | None:
+        """The body the selection stands for: an LPC body, or the body of an LPC character."""
+        asset = self._one_selected()
+        if asset is None or self.session is None:
+            return None
+        if lpc_compose.is_body(asset):
+            return asset
+        definition = lpc_compose.definition_of(self.session.catalog, asset.id)
+        return self.session.catalog.asset(definition["body"]) if definition else None
+
+    def _pack_roots(self) -> dict[str, Path]:
+        assert self.state is not None
+        return {p.pack_id: Path(p.root) for p in self.state.opened_packs}
+
+    def run_character_dialog(self, dialog: CharacterDialog) -> bool:  # overridden by tests
+        return bool(dialog.exec())
+
+    def compose_character(self) -> str | None:
+        """Ask for the layers of the selected body (or change the selected character), then
+        add the character as one undo step. Returns its id."""
+        body = self.character_body()
+        if body is None or self.session is None or self.state is None:
+            return None
+        chosen = self.selected_character()
+        existing = lpc_compose.definition_of(self.session.catalog, chosen) if chosen else None
+        roots = self._pack_roots()
+        dialog = CharacterDialog(self.session.catalog, body, roots, existing, self)
+        if not self.run_character_dialog(dialog):
+            return None
+        definition = dialog.definition()
+        if not self.session.set_character(definition, roots):
+            return None
+        self.grid.select_ids([definition["id"]])
+        return str(definition["id"])
+
+    def remove_character(self) -> bool:
+        character_id = self.selected_character()
+        return (
+            character_id is not None
+            and self.session is not None
+            and self.session.remove_character(character_id, self._pack_roots())
+        )
 
     # ------------------------------------------------------------------ recolour variants (T13.18)
 

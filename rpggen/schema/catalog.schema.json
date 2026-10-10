@@ -54,6 +54,12 @@
       "items": {
         "$ref": "#/$defs/Variant"
       }
+    },
+    "characters": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LpcCharacter"
+      }
     }
   },
   "additionalProperties": false,
@@ -1499,6 +1505,19 @@
         }
       },
       "additionalProperties": false
+    },
+    "LpcCharacter": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "body": {"type": "string", "minLength": 1},
+        "layers": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "auto": {"type": "boolean"},
+        "removed": {"type": "boolean"}
+      },
+      "additionalProperties": false,
+      "required": ["id", "name", "body", "layers"]
     },
     "Variant": {
       "type": "object",

@@ -46,6 +46,10 @@ def _named(asset_id: str) -> str:
 
 
 UNUSED_REASONS = {
+    "lpc_in_character": (
+        "the body of an LPC character that is put together with its layers; the character is "
+        "an asset of its own. Give the body a role to use it bare as well."
+    ),
     "lpc_layer": (
         "a layer of an LPC character (hair, clothes, a weapon): it is drawn over a body, "
         "which rpggen does not do yet. Its animations are read; give it a role to use it alone."

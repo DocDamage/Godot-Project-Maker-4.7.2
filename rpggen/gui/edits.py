@@ -97,6 +97,43 @@ def remove_variant(catalog: Catalog, variant_id: str) -> Catalog:
     )
 
 
+def _with_characters(
+    catalog: Catalog, definitions: list[dict[str, Any]], pack_roots: dict[str, Path]
+) -> Catalog:
+    """``catalog`` with these LPC characters and no others, rendered (M16). The assets are
+    copies: what a character does to its body must not reach the catalog of an undo step."""
+    from rpggen.core import lpc_compose
+    from rpggen.errors import IssueList
+
+    fresh = dataclasses.replace(catalog, assets=[copy.deepcopy(a) for a in catalog.assets])
+    lpc_compose.apply(fresh, definitions, pack_roots, IssueList(), catalog)
+    fresh.assets.sort(key=lambda a: catalog_mod._sort_key(a.id))
+    return fresh
+
+
+def set_character(
+    catalog: Catalog, definition: dict[str, Any], pack_roots: dict[str, Path]
+) -> Catalog:
+    """Add an LPC character, or change the one with this id. Nothing changes when it cannot
+    be drawn (a body whose pictures are gone)."""
+    ident = str(definition.get("id"))
+    others = [copy.deepcopy(d) for d in catalog.characters if d.get("id") != ident]
+    fresh = _with_characters(catalog, [*others, {**definition, "auto": False}], pack_roots)
+    return fresh if fresh.asset(ident) is not None else catalog
+
+
+def remove_character(catalog: Catalog, character_id: str, pack_roots: dict[str, Path]) -> Catalog:
+    """Take an LPC character away again: its asset goes and its body is free. Its definition
+    stays, marked as removed, so that the next analysis does not put it together again."""
+    if not any(d.get("id") == character_id and not d.get("removed") for d in catalog.characters):
+        return catalog
+    kept = [
+        {**d, "auto": False, "removed": True} if d.get("id") == character_id else copy.deepcopy(d)
+        for d in catalog.characters
+    ]
+    return _with_characters(catalog, kept, pack_roots)
+
+
 def clear_override(catalog: Catalog, asset_id: str, key: str) -> Catalog:
     """Remove ``overrides[key]`` so the detected (or rule) value applies again."""
     asset = catalog.asset(asset_id)
@@ -348,6 +385,19 @@ class EditSession(QObject):
 
     def remove_variant(self, variant_id: str) -> bool:
         return self.apply("Remove variant", lambda c: remove_variant(c, variant_id), [variant_id])
+
+    def set_character(self, definition: dict[str, Any], pack_roots: dict[str, Path]) -> bool:
+        ids = [str(definition.get("id")), str(definition.get("body"))]
+        return self.apply(
+            "Compose character", lambda c: set_character(c, definition, pack_roots), ids
+        )
+
+    def remove_character(self, character_id: str, pack_roots: dict[str, Path]) -> bool:
+        return self.apply(
+            "Remove character",
+            lambda c: remove_character(c, character_id, pack_roots),
+            [character_id],
+        )
 
     def set_overrides(
         self, asset_ids: list[str], values: dict[str, Any], text: str = "Edit"

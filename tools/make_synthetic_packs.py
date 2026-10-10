@@ -527,13 +527,21 @@ LPC_FILES = {  # the collection's animations: frames in a row, rows
 }  # fmt: skip
 
 
-def _lpc_file(action: str, color: int) -> Image.Image:
+def _lpc_file(action: str, color: int, band: tuple[int, int] = (0, 64)) -> Image.Image:
+    """An animation of the collection: a figure in every cell. ``band`` keeps only the rows of
+    each cell from its first to its second number: a layer covers a part of the body (hair its
+    top, a shirt its middle), not all of it."""
     count, rows = LPC_FILES[action]
     img = Image.new("RGBA", (count * 64, rows * 64), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     for row in range(rows):
         for col in range(count):
             _character(d, col * 64, row * 64, 64, 64, pal(color + row), col, 60)
+        for top, bottom in ((0, band[0]), (band[1], 64)):
+            if bottom > top:
+                d.rectangle(
+                    [0, row * 64 + top, img.width - 1, row * 64 + bottom - 1], fill=(0, 0, 0, 0)
+                )
     return img
 
 
@@ -547,10 +555,12 @@ def make_lpc_parts(out: Path) -> None:
     for action in LPC_FILES:
         _save_png(_lpc_file(action, 1), sheets / "body" / "bodies" / "male" / f"{action}.png")
     for action in ("walk", "slash", "hurt"):
-        _save_png(_lpc_file(action, 9), sheets / "hair" / "afro" / "adult" / f"{action}.png")
+        _save_png(
+            _lpc_file(action, 9, (0, 26)), sheets / "hair" / "afro" / "adult" / f"{action}.png"
+        )
         for n, colour in enumerate(("red", "blue")):
             shirt = sheets / "torso" / "clothes" / "shirt" / "male" / action / f"{colour}.png"
-            _save_png(_lpc_file(action, 20 + 5 * n), shirt)
+            _save_png(_lpc_file(action, 20 + 5 * n, (26, 46)), shirt)
     # a weapon drawn in 192 px frames: not the collection's 64 px layout
     big = Image.new("RGBA", (1152, 768), (0, 0, 0, 0))
     ImageDraw.Draw(big).rectangle([80, 80, 110, 110], fill=pal(40))
@@ -570,7 +580,7 @@ def make_lpc_parts(out: Path) -> None:
         {
             body: {
                 "usage": "sprite",
-                "role": "NPC",
+                "role": "NONE",  # it is in the character its hair makes with it
                 "frame": [64, 64],
                 "anims": sorted(
                     [

@@ -270,6 +270,9 @@ class Catalog:
     maps: list[dict[str, Any]] = field(default_factory=list)
     # Recolour variants (T13.18): [{id, source, name, op, params, stats?}]; see ``variants``.
     variants: list[dict[str, Any]] = field(default_factory=list)
+    # LPC characters put together from a body and layers (M16): [{id, name, body, layers,
+    # auto?}]; see ``lpc_compose``.
+    characters: list[dict[str, Any]] = field(default_factory=list)
 
     def allocate_source_id(self, tileset: str) -> int:
         """Return the next never-reused source id of ``tileset`` and advance the counter."""
@@ -291,6 +294,8 @@ class Catalog:
             ]
         if self.variants:  # optional too
             out["variants"] = copy.deepcopy(self.variants)
+        if self.characters:
+            out["characters"] = copy.deepcopy(self.characters)
         return out
 
     def _to_json(self) -> dict[str, Any]:
@@ -320,6 +325,7 @@ class Catalog:
             catalog_version=d["catalog_version"],
             maps=copy.deepcopy(d.get("maps", [])),
             variants=copy.deepcopy(d.get("variants", [])),
+            characters=copy.deepcopy(d.get("characters", [])),
         )
 
 
@@ -1083,6 +1089,19 @@ def assemble(
         generated.update(
             variants_mod.apply(catalog, previous.variants, pack_roots, issues, previous)
         )
+    from rpggen.core import lpc_compose
+
+    if (previous is not None and previous.characters) or lpc_compose.bodies(catalog):
+        # LPC characters: a body with its layers drawn over it, rendered again from the packs
+        generated.update(
+            lpc_compose.apply(
+                catalog,
+                previous.characters if previous is not None else None,
+                pack_roots,
+                issues,
+                previous,
+            )
+        )
     _add_objects(catalog, objects_raw, previous)
     assign_tilesets(catalog, previous, adapter_tilesets)
     terrain.attach_terrain_sets(catalog, terrain_result)
@@ -1305,6 +1324,8 @@ def _carry_previous(
     variant_ids = {str(v.get("id")) for v in previous.variants}
     for old in previous.assets:
         if old.id in present_ids or old.id in variant_ids:  # variants are rendered again
+            continue
+        if old.detected_by == "lpc_compose":  # and so are LPC characters
             continue
         kept = Asset.from_json(old.to_json())
         kept.status = "MISSING"
