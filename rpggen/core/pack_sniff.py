@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from rpggen.core import archive as archive_mod
 from rpggen.core import inventory
 from rpggen.errors import Issue, IssueList
 
@@ -33,6 +34,25 @@ LPC_WIDTH, LPC_MIN_HEIGHT = 832, 1344
 
 FORMATS = ("rpgmaker", "lpc", "tiled", "ldtk", "aseprite", "generic")
 
+# A bundle (T16.21): one archive or folder that holds many packs, a folder each.
+BUNDLE_MIN_PACKS = 10
+# Words a folder that is a pack of its own carries in its name; the folders of one pack
+# ("body", "hair", "Cars", "Tilesets") are named after what is in them instead.
+BUNDLE_PACK_WORDS = frozenset(
+    {"pack", "packs", "tileset", "tilesets", "asset", "assets", "kit", "bundle", "collection"}
+)
+_WORDS = re.compile(r"[A-Za-z]+")
+
+
+@dataclass(frozen=True)
+class BundlePack:
+    """One pack folder of a bundle, from the listing alone."""
+
+    name: str  # the folder's name: the name of the pack it would be
+    path: str  # the folder inside the archive or folder, with ``/``
+    images: int
+    bytes: int
+
 
 @dataclass(frozen=True)
 class PackSniff:
@@ -42,6 +62,8 @@ class PackSniff:
     tile_size: int | None = None
     has_license: bool | None = None  # None: not known (a rar is not listed)
     issues: tuple[Issue, ...] = field(default_factory=tuple)
+    # the pack folders when this is a bundle of packs (empty: one pack)
+    bundle: tuple[BundlePack, ...] = field(default_factory=tuple)
 
 
 class _Source:
@@ -53,6 +75,10 @@ class _Source:
     def head(self, name: str, size: int) -> bytes:
         return b""
 
+    def sizes(self) -> dict[str, int]:
+        """Bytes per name, as far as the listing says (a name it does not have counts 0)."""
+        return {}
+
 
 class _Folder(_Source):
     def __init__(self, root: Path, deadline: float) -> None:
@@ -60,17 +86,23 @@ class _Folder(_Source):
 
     def names(self) -> list[str]:
         out: list[str] = []
+        self._sizes: dict[str, int] = {}
         stack = [self.root]
         while stack and len(out) < MAX_NAMES and time.monotonic() < self.deadline:
             try:
-                for entry in stack.pop().iterdir():
+                for entry in os.scandir(stack.pop()):
                     if entry.is_dir():
-                        stack.append(entry)
+                        stack.append(Path(entry.path))
                     else:
-                        out.append(entry.relative_to(self.root).as_posix())
+                        name = Path(entry.path).relative_to(self.root).as_posix()
+                        out.append(name)
+                        self._sizes[name] = entry.stat().st_size
             except OSError:
                 continue
         return out
+
+    def sizes(self) -> dict[str, int]:
+        return getattr(self, "_sizes", {})
 
     def head(self, name: str, size: int) -> bytes:
         try:
@@ -87,6 +119,9 @@ class _Zip(_Source):
     def names(self) -> list[str]:
         return [i.filename for i in self.zf.infolist() if not i.is_dir()][:MAX_NAMES]
 
+    def sizes(self) -> dict[str, int]:
+        return {i.filename: i.file_size for i in self.zf.infolist() if not i.is_dir()}
+
     def head(self, name: str, size: int) -> bytes:
         try:
             with self.zf.open(name) as fh:
@@ -96,11 +131,52 @@ class _Zip(_Source):
 
 
 class _Names(_Source):
-    def __init__(self, names: list[str]) -> None:
+    def __init__(self, names: list[str], sizes: dict[str, int] | None = None) -> None:
         self._names = names
+        self._sizes = sizes or {}
 
     def names(self) -> list[str]:
         return self._names[:MAX_NAMES]
+
+    def sizes(self) -> dict[str, int]:
+        return self._sizes
+
+
+def find_bundle(names: list[str], sizes: dict[str, int] | None = None) -> tuple[BundlePack, ...]:
+    """The pack folders of a bundle, or ``()`` for one pack. A bundle is ten or more folders
+    with pictures in them, side by side at the top (inside the one folder an archive wraps
+    everything in, when it has one), with no picture beside them, and at least half of them
+    named as packs are (*... Tileset*, *... Asset Pack*). Read from the names alone."""
+    sizes = sizes or {}
+    files = [
+        (_norm(n), sizes.get(n, 0))
+        for n in names
+        if not archive_mod.is_junk(_norm(n)) and not _norm(n).rsplit("/", 1)[-1].startswith("._")
+    ]
+    pictures = [(n, size) for n, size in files if inventory.classify_kind(n) == "image"]
+    if not pictures:
+        return ()
+    tops = {n.split("/", 1)[0] for n, _size in pictures}
+    prefix = ""
+    if len(tops) == 1 and all("/" in n for n, _size in pictures):
+        prefix = next(iter(tops)) + "/"
+    folders: dict[str, list[int]] = {}
+    for name, size in pictures:
+        rest = name[len(prefix) :]
+        if "/" not in rest:
+            return ()  # a picture beside the folders: this is one pack
+        folders.setdefault(rest.split("/", 1)[0], []).append(size)
+    if len(folders) < BUNDLE_MIN_PACKS:
+        return ()
+    named = sum(
+        1 for folder in folders if {w.lower() for w in _WORDS.findall(folder)} & BUNDLE_PACK_WORDS
+    )
+    if named * 2 < len(folders):
+        return ()
+    return tuple(
+        BundlePack(folder, prefix + folder, len(folders[folder]), sum(folders[folder]))
+        for folder in sorted(folders, key=lambda f: (f.casefold(), f))
+    )
 
 
 def stamp(path: Path | str) -> str | None:
@@ -231,8 +307,10 @@ def sniff(path: Path | str) -> PackSniff:
                 if z.needs_password():
                     issues.add("ARCH-002")
                     return PackSniff(issues=tuple(issues))
-                names = [n for n in z.getnames() if not n.endswith("/")]
-            return _result(_Names(names), names, deadline)
+                listed = [i for i in z.list() if not i.is_directory]
+            names = [i.filename for i in listed]
+            sized = {i.filename: int(i.uncompressed or 0) for i in listed}
+            return _result(_Names(names, sized), names, deadline)
         if suffix == ".rar":
             return PackSniff(format="generic", has_license=None)  # not listed without 7-Zip
         issues.add("ARCH-001", path=str(path), reason="not a folder or a zip/7z/rar archive")
@@ -246,5 +324,8 @@ def sniff(path: Path | str) -> PackSniff:
 
 
 def _result(source: _Source, names: list[str], deadline: float) -> PackSniff:
+    bundle = find_bundle(names, source.sizes())
+    if bundle:  # many packs: what one of them is, is asked when it is added; nothing is read
+        return PackSniff(format="generic", has_license=_has_license(names), bundle=bundle)
     fmt, tile = classify(source, names, deadline)
     return PackSniff(format=fmt, tile_size=tile, has_license=_has_license(names))

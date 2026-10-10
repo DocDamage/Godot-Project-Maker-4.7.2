@@ -128,3 +128,82 @@ def test_nothing_recorded_or_a_pack_that_is_away_is_not_a_change(tmp_path: Path)
     missing = tmp_path / "unplugged"
     assert pack_sniff.stamp(missing) is None
     assert pack_sniff.changed_since(missing, "dir:3:10:5") is None
+
+
+# ----------------------------------------------------------------- a bundle of packs (T16.21)
+
+THEMES = ["Abandoned Hospital", "Alien Jungle", "Backrooms", "Cyberpunk City", "Desert Ruins",
+          "Haunted Manor", "Medieval Fantasy Town", "Modern Gym", "Monder Interiors", "Pirate Cove",
+          "Space Station", "WW1 Trench & Bunker"]  # fmt: skip
+
+
+def _bundle_names(top: str = "Bundle/", suffix: str = " Pixel Art Tileset Pack") -> list[str]:
+    names = []
+    for index, theme in enumerate(THEMES):
+        folder = f"{top}{theme}{suffix}"
+        names += [f"{folder}/{n}.png" for n in (1, 2, 3, 5)]  # a gap in the numbers
+        if index == 0:
+            names.append(f"{folder}/deeper/tileset-1/9.png")  # sheets one folder down
+    return names
+
+
+def test_a_bundle_is_told_from_the_listing_of_its_archive_alone(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    archive = tmp_path / "bundle.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        for name in _bundle_names():
+            zf.writestr(name, b"x" * 100)
+        zf.writestr("Bundle/Backrooms Pixel Art Tileset Pack/__MACOSX/._1.png", b"junk")
+        zf.writestr("Bundle/Backrooms Pixel Art Tileset Pack/notes.txt", b"hello")
+    reads: list[str] = []
+    monkeypatch.setattr(pack_sniff._Zip, "head", lambda self, name, size: reads.append(name) or b"")
+    result = pack_sniff.sniff(archive)
+    assert reads == [], "nothing is opened: the names and sizes of the listing are enough"
+    assert not result.issues and result.format == "generic"
+    assert [p.name for p in result.bundle] == sorted(
+        (f"{theme} Pixel Art Tileset Pack" for theme in THEMES), key=str.casefold
+    )
+    first = result.bundle[0]
+    assert first.path == "Bundle/Abandoned Hospital Pixel Art Tileset Pack"
+    assert (first.images, first.bytes) == (5, 500), "the sheets one folder down count"
+    assert {(p.images, p.bytes) for p in result.bundle[1:]} == {(4, 400)}
+
+
+def test_a_folder_of_packs_is_a_bundle_and_one_of_its_folders_is_a_pack(tmp_path: Path) -> None:
+    root = tmp_path / "CuteSCKR"
+    for name in _bundle_names(top=""):
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_bytes(b"x" * 10)
+    result = pack_sniff.sniff(root)
+    assert len(result.bundle) == 12 and result.bundle[3].path == result.bundle[3].name
+    assert sum(p.images for p in result.bundle) == 49 and result.bundle[1].bytes == 40
+    one = pack_sniff.sniff(root / result.bundle[1].path)
+    assert one.bundle == () and one.format == "generic"
+
+
+@pytest.mark.parametrize(
+    ("names", "why"),
+    [
+        (_bundle_names()[: 4 * 9 + 1], "nine folders are the folders of one pack"),
+        ([*_bundle_names(), "Bundle/cover.png"], "a picture beside the folders"),
+        (_bundle_names(suffix=""), "folders named after what is in them, not as packs"),
+        (
+            [f"lpc/{part}/{n}.png" for part in ["body", "hair", "torso", "legs", "feet", "head", "hands", "belt", "cape", "wings"] for n in (1, 2)],
+            "the ten part folders of a character pack",
+        ),
+        (["readme.txt", "a/b.txt"], "no picture at all"),
+        ([], "nothing"),
+    ],
+)  # fmt: skip
+def test_one_pack_with_many_folders_is_no_bundle(names: list[str], why: str) -> None:
+    assert pack_sniff.find_bundle(names) == (), why
+
+
+def test_half_of_the_folders_named_as_packs_is_enough() -> None:
+    names = _bundle_names()
+    plain = [n.replace(" Pixel Art Tileset Pack", "") if i % 2 else n for i, n in enumerate(names)]
+    by_folder = {n.split("/")[1] for n in plain}
+    assert len(by_folder) > 12  # both spellings of some folders: still half are named as packs
+    assert len(pack_sniff.find_bundle(plain)) == len(by_folder)
+    assert len(pack_sniff.find_bundle([n.replace("/", "\\") for n in names])) == 12

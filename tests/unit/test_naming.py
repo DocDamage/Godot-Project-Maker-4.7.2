@@ -257,3 +257,82 @@ def test_a_preview_is_unused_says_why_and_comes_back_with_one_choice(tmp_path: P
     again, _issues, _generated = catalog.assemble([_open(pack)], cat, [])
     assert _asset(again, "test.png").status == "CONFIRMED"
     assert catalog.effective(_asset(again, "test.png"))["role"] == "GROUND"
+
+
+# ----------------------------------------------------------------------------- numbered sheets
+
+
+_SHEETS = 0
+
+
+def _sheet(path: Path, size: tuple[int, int], cell: int) -> None:
+    """A sheet of opaque tiles in two colours, so that its grid can be measured; every sheet
+    in a colour of its own, so that none is taken for a copy of another."""
+    global _SHEETS
+    _SHEETS += 1
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img = Image.new("RGBA", size, (0, 0, 0, 0))
+    for y in range(0, size[1], cell):
+        for x in range(0, size[0], cell):
+            shade = 60 + 90 * (((x // cell) + (y // cell)) % 2)
+            tile = Image.new("RGBA", (cell, cell), (shade, (_SHEETS * 37) % 256, 60, 255))
+            img.paste(tile, (x, y))
+    img.save(path)
+
+
+def test_a_sheet_named_by_a_number_takes_its_words_from_its_folder(tmp_path: Path) -> None:
+    pack = tmp_path / "bundle"
+    town = pack / "Medieval Fantasy Town Pixel Art Tileset Pack"
+    for n in (1, 2, 3, 5, 8):  # a gap in the numbers is nothing
+        _sheet(town / f"{n}.png", (768, 768), 96 if n == 2 else 48)
+    _sheet(town / "ww1" / "4.png", (1024, 1024), 32)  # one folder down
+    _sheet(pack / "Haunted Manor Tileset" / "1.png", (2048, 2048), 64)
+    _picture(pack / "Haunted Manor Tileset" / "2.png", (100, 100))  # small: not a sheet
+    _sheet(pack / "Characters" / "1.png", (512, 512), 32)  # no folder says tile set
+    cat = _catalog(pack)
+    town_sheets = [a for a in cat.assets if "/Medieval" in a.path and "/ww1/" not in a.path]
+    assert len(town_sheets) == 5, "five numbered sheets are five tile sheets, not one animation"
+    for asset in town_sheets:
+        eff = catalog.effective(asset)
+        assert eff["usage"] == "tiles" and eff["grid"]["cell"] == [48, 48], asset.path
+        assert eff["tags"] == ["fantasy", "medieval", "town"]
+        assert asset.status == "NEEDS_REVIEW"
+        assert explain.why(asset).startswith("the file name is only a number")
+    deeper = catalog.effective(_asset(cat, "ww1/4.png"))
+    assert deeper["grid"]["cell"] == [32, 32] and deeper["tags"] == [
+        "fantasy",
+        "medieval",
+        "town",
+        "ww1",
+    ]
+    manor = catalog.effective(_asset(cat, "Haunted Manor Tileset/1.png"))
+    assert manor["usage"] == "tiles" and manor["tags"] == ["haunted", "manor"]
+    assert manor["grid"]["cell"] in ([64, 64], [32, 32])  # measured, else the usual tile
+    assert "tags" not in catalog.effective(_asset(cat, "Haunted Manor Tileset/2.png"))
+    assert "only a number" not in explain.why(_asset(cat, "Characters/1.png")) or (
+        catalog.effective(_asset(cat, "Characters/1.png"))["usage"] == "tiles"
+    )
+    assert "tags" not in catalog.effective(_asset(cat, "Characters/1.png"))
+
+
+def test_a_folder_of_a_bundle_added_on_its_own_is_named_by_the_pack(tmp_path: Path) -> None:
+    pack = tmp_path / "Modern Gym Fitness Center Pixel Art Tileset Pack"
+    _sheet(pack / "1.png", (768, 768), 48)
+    cat = _catalog(pack)
+    eff = catalog.effective(cat.assets[0])
+    assert eff["usage"] == "tiles" and eff["grid"]["cell"] == [48, 48]
+    assert eff["tags"] == ["center", "fitness", "gym", "modern"]
+
+
+def test_the_words_of_a_folder(tmp_path: Path) -> None:
+    path = "Medieval Fantasy Town Pixel Art Tileset Pack/tileset-1/3.png"
+    assert classifier.is_numbered_name(path) and classifier.is_numbered_name("a/ 12 .png")
+    assert not classifier.is_numbered_name("a/tile12.png") and not classifier.is_numbered_name(
+        "a/B-10.png"
+    )
+    assert classifier.folder_words(path)[:2] == ["tileset", "medieval"]  # the nearest folder first
+    assert classifier.folder_tags(path) == ["medieval", "fantasy", "town"]
+    assert classifier.folder_tags("3.png", "abandoned hospital tileset") == [
+        "abandoned",
+        "hospital",
+    ]

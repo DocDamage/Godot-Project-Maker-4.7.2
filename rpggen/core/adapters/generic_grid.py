@@ -21,7 +21,12 @@ GENERIC_CONSTANTS = {
     "FALLBACK_CONFIDENCE": 0.3,
     "BUILDING_MIN_CELLS": 4,  # objects at least 4x4 cells are buildings, others decoration
     "FOOTPRINT_FRACTION": 0.3,
+    "NUMBERED_SHEET_CONFIDENCE": 0.6,  # needs review: what stands on the sheet is not known
 }
+# A numbered sheet (T16.21) has no name to read its grid from. 768 x 768 is the B-E sheet of
+# RPG Maker MV and MZ (16 x 16 tiles of 48 px), which a bundle of tile sets is mostly made of.
+NUMBERED_SHEET_CELLS = {(768, 768): 48}
+NUMBERED_SHEET_FALLBACK = (48, 32, 16)
 STANDARD_ACTIONS = {"idle", "walk", "attack", "hurt", "death"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}
 
@@ -65,6 +70,7 @@ class GenericGridAdapter:
         if ctx.analyze is None:
             return result
         prior = build_pack_prior(ctx.results)
+        self._pack_words = ctx.pack_id.replace("_", " ")
         for f in inv.files:
             if (
                 f.kind != "image"
@@ -136,6 +142,15 @@ class GenericGridAdapter:
             result.assets.append(AssetFragment(f.path, facets, confidence, "partial"))
             return
 
+        numbered = self._numbered_sheet(f.path, a)
+        if numbered is not None:  # 2b. "3.png" in a folder of tile sheets
+            result.assets.append(
+                AssetFragment(f.path, numbered, K["NUMBERED_SHEET_CONFIDENCE"], "partial")
+            )
+            if top and list(top["cell"]) == numbered["grid"]["cell"]:
+                result.objects.extend(self._objects(f.path, a))
+            return
+
         if (
             top
             and top["score"] >= K["TILES_MIN_SCORE"]
@@ -166,6 +181,45 @@ class GenericGridAdapter:
         result.assets.append(  # 6. unknown: a single frame that needs review
             AssetFragment(f.path, self._single_frame(w, h), K["FALLBACK_CONFIDENCE"], "partial")
         )
+
+    def _numbered_sheet(self, path: str, a: dict[str, Any]) -> dict[str, Any] | None:
+        """The facets of a sheet named by a number only, in a folder (or a pack) that says it
+        holds tile sets: a tile sheet, with the grid of a known sheet size, else the measured
+        one, else the largest usual tile that divides it, and the folders' words as tags.
+        None for every other picture."""
+        from rpggen.core import classifier
+
+        w, h = a["w"], a["h"]
+        if not classifier.is_numbered_name(path) or min(w, h) < classifier.SHEET_MIN_SIDE:
+            return None
+        pack_words = getattr(self, "_pack_words", "")
+        words = set(classifier.folder_words(path, pack_words))
+        if not words & classifier.TILE_SHEET_WORDS and (w, h) not in NUMBERED_SHEET_CELLS:
+            return None
+        top = a["grid_candidates"][0] if a["grid_candidates"] else None
+        cell = NUMBERED_SHEET_CELLS.get((w, h))
+        measured = (
+            cell is None
+            and top is not None
+            and top["score"] >= GENERIC_CONSTANTS["TILES_MIN_SCORE"]
+            and list(top["margin"]) == [0, 0]
+            and list(top["separation"]) == [0, 0]
+            and top["cell"][0] == top["cell"][1]
+        )
+        if measured and top is not None:
+            cell = int(top["cell"][0])
+        if cell is None:
+            cell = next((c for c in NUMBERED_SHEET_FALLBACK if w % c == 0 and h % c == 0), None)
+        if cell is None:
+            return None
+        facets: dict[str, Any] = {
+            "usage": "tiles",
+            "grid": {"cell": [cell, cell], "margin": [0, 0], "separation": [0, 0]},
+        }
+        tags = classifier.folder_tags(path, pack_words)
+        if tags:
+            facets["tags"] = sorted(tags)
+        return facets
 
     @staticmethod
     def _single_frame(w: int, h: int) -> dict[str, Any]:

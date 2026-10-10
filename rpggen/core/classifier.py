@@ -273,6 +273,41 @@ def pack_view(inventory: Any, sheets: Any = ()) -> str:
     return "side" if side > top else "top"
 
 
+# A sheet whose name is a number and nothing else (``3.png``) says nothing: its folders do
+# (T16.21). These words of a folder say what kind of thing the sheet is; the others
+# (``medieval``, ``town``) say what is on it and become its tags.
+TILE_SHEET_WORDS = frozenset({"tileset", "tilesets", "tile", "tiles", "autotile", "autotiles"})
+PACK_FILLER_WORDS = TILE_SHEET_WORDS | frozenset(
+    {"pixel", "pixelart", "art", "pack", "packs", "asset", "assets", "bundle", "sprites",
+     "sprite", "sheet", "sheets", "the", "and", "of", "for", "by", "px"}
+)  # fmt: skip
+SHEET_MIN_SIDE = 256  # a numbered picture at least this large is a sheet, never a frame
+
+
+def is_numbered_name(path: str) -> bool:
+    """True for a file whose name is only a number: ``12.png``, ``Town Tileset/ 3 .png``."""
+    _folders, stem = _path_parts(path)
+    return stem.strip().isdigit()
+
+
+def folder_words(path: str, pack_words: str = "") -> list[str]:
+    """The words the folders of ``path`` give a file that has none of its own, nearest folder
+    first; ``pack_words`` is the name of the pack (its folder, when it was added on its own)."""
+    folders, _stem = _path_parts(path)
+    words: list[str] = []
+    for folder in [*reversed(folders), pack_words]:
+        for word in _tokenize(folder):
+            if word not in words:
+                words.append(word)
+    return words
+
+
+def folder_tags(path: str, pack_words: str = "") -> list[str]:
+    """What the folders say is on a numbered sheet: their words without those every pack of a
+    bundle shares (*pixel art tileset pack*), which say what kind of file it is."""
+    return [w for w in folder_words(path, pack_words) if w not in PACK_FILLER_WORDS and len(w) > 2]
+
+
 PREVIEW_FOLDERS = frozenset({"preview", "previews", "screenshot", "screenshots"})
 GUIDE_WORDS = frozenset(
     {"preview", "test", "grid", "guide", "slots", "template", "mockup", "showcase"}

@@ -93,6 +93,8 @@ def why(asset: catalog_mod.Asset) -> str:
         )
     elif asset.detected_by and asset.detected_by not in ("inventory", "generic_grid"):
         parts.append(f"read by the {asset.detected_by} reader")
+    if classifier.is_numbered_name(asset.path) and eff.get("usage") == "tiles":
+        parts.insert(0, "the file name is only a number: read by its folder's words")
     for written, read in sorted(classifier.folded_typos(asset.path).items()):
         parts.append(f"{written} read as {read}")
     text = "; ".join(parts) if parts else "no strong hint in the name or the picture"
