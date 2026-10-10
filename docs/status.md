@@ -36,6 +36,8 @@ rows (T14.13), below.
 | M12 Review follow-ups | Fixes, engineering, UX and 25 features (below) | 70 of 71 cards done; T12.66 (the gate) open |
 | M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | On the branch `m13` (not part of 1.0): every card is implemented; T13.23 (the gate) is open. 23 of 24 cards done |
 | M14 Metroidvania (1.2.0) | The third archetype (below) | On the branch `m14` (not part of 1.0 or 1.1): every card is implemented; the manual rows of the gate (T14.13) are open. It was built before the 1.1 tag existed, on top of `m13` |
+| M15 Look, feel and ease of use (1.3.0) | A design system (tokens, one stylesheet, button kinds, icons, cards, a stepper sidebar, page headers), every page and dialog restyled, the Generate log without escape codes, actionable failures, a regeneration that skips what did not change, visual goldens (`docs/spec/M15_ui_polish.md`) | Planned 2026-10-09 from the UI review; starts after the 1.2 tag. No card started |
+| M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; the kinds for M17 sketched (`docs/spec/M16_arcade_archetypes.md`) | Planned 2026-10-09; starts after the 1.3 tag. No card started |
 
 ## M12 in detail
 
@@ -80,6 +82,8 @@ with the pack cards, the regeneration preview, the conflict resolver and the Sto
 T12.66 (the gate) is open; see below.
 
 ## After 1.0: M13 and M14
+
+**M15 and M16** (planned 2026-10-09) are specified but not started: `docs/spec/M15_ui_polish.md` (the look, feel and ease of use, release 1.3.0) and `docs/spec/M16_arcade_archetypes.md` (three more kinds of game, release 1.4.0). Each has its order of work, index and gate; neither has a branch yet.
 
 Planned on 2026-10-08 from the second review. Neither blocks the 1.0 tag: 1.0 ships from M12, M13
 is release 1.1.0 (`docs/spec/M13_polish.md`) and M14 is release 1.2.0

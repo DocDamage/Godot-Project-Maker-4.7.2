@@ -118,6 +118,8 @@ If an API in a card does not exist in 4.7.2, find the closest equivalent. Record
 | `M12_review_followups.md` | M12 | Review follow-ups: fixes, engineering, UX and 25 features; the 1.0 gate. |
 | `M13_polish.md` | M13 | Release 1.1.0, after the 1.0 tag: ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner; the first milestone under the post-release compatibility contract. |
 | `M14_metroidvania.md` | M14 | Release 1.2.0: the Metroidvania archetype (platform actor, abilities, rooms, guardian, save stations, a side-view sample pack). |
+| `M15_ui_polish.md` | M15 | Release 1.3.0: the look, feel and ease of use of the wizard (design tokens, one stylesheet, button kinds, icons, cards, the stepper sidebar, page headers, every page and dialog), the Generate log fix, actionable failures, regeneration that skips unchanged work, visual goldens. |
+| `M16_arcade_archetypes.md` | M16 | Release 1.4.0: three more kinds of game on a shared arcade framework (shoot 'em up, run and gun with a grapple, racing), three sample packs, and the kinds sketched for M17. |
 
 Each milestone ends with a **Milestone Gate** card. All its checks must pass before the next milestone starts.
 
