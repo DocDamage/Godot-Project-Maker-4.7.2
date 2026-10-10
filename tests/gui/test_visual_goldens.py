@@ -77,17 +77,15 @@ def test_every_page_looks_as_its_golden(
     made_with = dev.ui_goldens_font()
     assert made_with, "no goldens: python -m rpggen.dev update-ui-goldens"
     gui_app.create_app()
-    original = QApplication.font()
     monkeypatch.setattr(godot, "auto_find_godot", godot.auto_find_godot)  # the renderer's patch
-    family = dev.ensure_real_font()
-    if family != made_with:
-        QApplication.setFont(original)
-        pytest.skip(f"the goldens were rendered with {made_with}; this machine has {family}")
     shutil.rmtree(FAILED, ignore_errors=True)
     expected = {path.stem for path in dev.UI_GOLDENS.glob("*.png")}
     seen: set[str] = set()
     problems: list[str] = []
-    try:
+    with dev.golden_font() as family:
+        if family is None:
+            pytest.skip(f"the test font in {dev.UI_GOLDEN_FONTS} cannot be loaded here")
+        assert family == made_with, "the goldens were made with another font: update them"
         for name, shown in dev.ui_golden_pictures(tmp_path):
             seen.add(name)
             golden = QImage(str(dev.UI_GOLDENS / f"{name}.png"))
@@ -105,7 +103,5 @@ def test_every_page_looks_as_its_golden(
                     f"{block:.0%} of one block (limits {dev.MEAN_LIMIT:.1%} and "
                     f"{dev.BLOCK_LIMIT:.0%}); see {FAILED / name}.diff.png"
                 )
-    finally:
-        QApplication.setFont(original)
     assert not problems, "\n".join(problems)
     assert seen == expected, f"goldens without a page, or pages without one: {seen ^ expected}"

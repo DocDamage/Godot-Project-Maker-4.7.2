@@ -176,8 +176,9 @@ spec, is in [the notes](dev/implementation_notes.md); the ones a reader should k
 * The icons are rpggen's own drawings in the manner of Lucide, not Lucide's files.
 * The audit's filter row is two lines beside the detail panel in the default window (it was
   three, with *Profile* cut off); one line would mean moving the splitter.
-* The visual goldens are rendered with Segoe UI and compared on Windows; the Ubuntu legs skip
-  the comparison, because no test font is bundled.
+* The visual goldens are rendered with a test font in the repository (DejaVu 2.37), on
+  Windows. Whether Ubuntu draws the same font closely enough has not been seen yet: the first
+  CI run says.
 * *Run every check again* in the regeneration preview is the project's standing choice;
   `--full` is the switch for one run.
 * A regeneration is a repeat only when your own files (`game/`, `project.godot`) are also what
@@ -192,7 +193,7 @@ The gate (T15.25) is open:
 | Item | What to do |
 |------|------------|
 | The 1.2 tag | M15 was built on M14 before `v1.2.0` existed (the repository has no tags). Tag the earlier releases first (their gates, below and above), then run the suites of `m15` again. |
-| CI on `m15` | Every suite green on Windows and Ubuntu, on both PySide6 legs. The visual goldens were made on the development machine: the first Windows run shows whether Segoe UI of the CI image draws the same; if not, take the pictures of that run's `_failed` artifact as the goldens. Perf within its ceilings, with the two regeneration rows. |
+| CI on `m15` | Every suite green on Windows and Ubuntu, on both PySide6 legs. The visual goldens were made on Windows with the bundled font: the first run shows whether the Ubuntu legs (FreeType of the system, PySide6 6.7 and the newest) draw it within the limits. If one does not, look at its `_failed` artifact before widening a limit. Perf within its ceilings, with the two regeneration rows. |
 | Frozen smoke test | `python tools/package.py --smoke` on the three systems: the icons and `style.qss.in` must be in the bundle. |
 | Upgrade test | The upgrade test of M13 with the 1.3 build over a 1.0, a 1.1 and a 1.2 project: no prompt, nothing under `game/` changes, and the second regeneration repeats no check (the first one is full: those projects have no fingerprint). |
 | Manual rows | Both themes at 100 %, 150 % and 200 % on every page and dialog; a 300-asset audit with the filter row; the seven pages with NVDA; keyboard only from the welcome view to Results; reduce motion on and off; the French wizard (the longer texts must fit the rows and the stepper). The new wizard texts of M15 are marked unfinished in the French file. |

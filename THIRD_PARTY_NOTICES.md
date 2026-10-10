@@ -43,3 +43,11 @@ are also available in the packages' `dist-info` folders inside the bundle.
   MIT License, and the **asset packs you supply**, which keep their own licenses (rpggen lists
   them in `GENERATION_REPORT.md`).
 * Godot Engine (MIT) is **not** bundled; install it separately from https://godotengine.org/.
+
+## In the repository only
+
+* **DejaVu fonts 2.37** (`tests/gui/fonts`: DejaVu Sans, DejaVu Sans Bold, DejaVu Sans Mono).
+  The font the pictures of the visual regression test are rendered with. They are not part of
+  any build of rpggen. Bitstream Vera license, with the DejaVu changes in the public domain;
+  the full text is `tests/gui/fonts/LICENSE.txt`. From
+  https://github.com/dejavu-fonts/dejavu-fonts/releases/tag/version_2_37.

@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -238,6 +239,10 @@ def layout_shots(out: Path | None = None) -> int:
 
 UI_GOLDENS = REPO_ROOT / "tests" / "gui" / "goldens"
 UI_GOLDENS_MADE_WITH = "made_with.json"  # the font the goldens were rendered with
+# The test font: DejaVu 2.37 (regular, bold and mono), the same files on every system, so the
+# goldens do not depend on the fonts of the machine that renders them.
+UI_GOLDEN_FONTS = REPO_ROOT / "tests" / "gui" / "fonts"
+UI_GOLDEN_FAMILY = "DejaVu Sans"
 UI_GOLDEN_ARCHETYPE = "turn_based"
 MEAN_LIMIT = 0.015  # the mean absolute difference over the whole picture
 BLOCK_LIMIT = 0.20  # and over any one block of BLOCK x BLOCK pixels
@@ -282,8 +287,8 @@ def ui_golden_pictures(scratch: Path) -> Iterator[tuple[str, QImage]]:
     ``(name, picture)``. Nothing in a picture depends on the machine but its font: the welcome
     view is a first start without a Godot, the Project page has no folder and no Godot yet, the
     later pages show the sample pack and a finished run, and nothing is animated. The
-    application needs a real font (``ensure_real_font``) and its settings in a folder of their
-    own (``RPGGEN_CACHE_DIR``)."""
+    application needs the test font (``golden_font``) and its settings in a folder of their own
+    (``RPGGEN_CACHE_DIR``)."""
     from rpggen.core import app_settings
     from rpggen.gui import theme
     from rpggen.gui.wizard import MainWindow, default_pages
@@ -360,6 +365,38 @@ def compare_pictures(shown: QImage, golden: QImage) -> tuple[float, float, QImag
     return float(diff.mean()), float((sums / areas).max()), picture
 
 
+@contextmanager
+def golden_font() -> Iterator[str | None]:
+    """Give the application the bundled test font for as long as the block runs: the family, or
+    None when the files cannot be loaded. Afterwards the application has the font and the font
+    database it had, so a test that runs later measures with the machine's own font."""
+    from PySide6.QtGui import QFont, QFontDatabase
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    assert isinstance(app, QApplication)
+    original = QApplication.font()
+    ids = [
+        QFontDatabase.addApplicationFont(str(path))
+        for path in sorted(UI_GOLDEN_FONTS.glob("*.ttf"))
+    ]
+    loaded = [i for i in ids if i >= 0]
+    families = {f for i in loaded for f in QFontDatabase.applicationFontFamilies(i)}
+    try:
+        if len(loaded) != len(ids) or UI_GOLDEN_FAMILY not in families:
+            yield None
+        else:
+            font = QFont(UI_GOLDEN_FAMILY, 9)
+            # the hinter is what differs most between two builds of FreeType
+            font.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
+            app.setFont(font)
+            yield UI_GOLDEN_FAMILY
+    finally:
+        app.setFont(original)
+        for font_id in loaded:
+            QFontDatabase.removeApplicationFont(font_id)
+
+
 def ui_goldens_font() -> str | None:
     """The font family the goldens in the repository were rendered with (None: there are none)."""
     import json
@@ -380,18 +417,18 @@ def update_ui_goldens() -> int:
     with tempfile.TemporaryDirectory(prefix="rpggen_ui_goldens_") as tmp:
         os.environ["RPGGEN_CACHE_DIR"] = str(Path(tmp) / "cache")
         gui_app.create_app()
-        family = ensure_real_font()
-        if family is None:
-            print("no real font on this machine: the goldens were not written")
-            return 1
-        UI_GOLDENS.mkdir(parents=True, exist_ok=True)
-        for old in UI_GOLDENS.glob("*.png"):
-            old.unlink()
-        shutil.rmtree(UI_GOLDENS / "_failed", ignore_errors=True)
-        count = 0
-        for name, picture in ui_golden_pictures(Path(tmp)):
-            picture.save(str(UI_GOLDENS / f"{name}.png"))
-            count += 1
+        with golden_font() as family:
+            if family is None:
+                print(f"the test font in {UI_GOLDEN_FONTS} cannot be loaded: nothing was written")
+                return 1
+            UI_GOLDENS.mkdir(parents=True, exist_ok=True)
+            for old in UI_GOLDENS.glob("*.png"):
+                old.unlink()
+            shutil.rmtree(UI_GOLDENS / "_failed", ignore_errors=True)
+            count = 0
+            for name, picture in ui_golden_pictures(Path(tmp)):
+                picture.save(str(UI_GOLDENS / f"{name}.png"))
+                count += 1
         note = {"font": family, "platform": sys.platform}
         (UI_GOLDENS / UI_GOLDENS_MADE_WITH).write_text(
             json.dumps(note, indent=2) + "\n", encoding="utf-8", newline="\n"

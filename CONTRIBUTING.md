@@ -175,9 +175,9 @@ both themes.
   `python -m rpggen.dev update-ui-goldens`, look at what changed (`git diff --stat` names the
   pages) and commit the new pictures with the change, with a before and after of each page in
   the pull request. A failure leaves the page as it is now and a picture of the difference in
-  `tests/gui/goldens/_failed`; CI uploads them. The goldens are rendered with Segoe UI
-  (`made_with.json`), so the test runs on Windows and is skipped where that font is missing;
-  make them on Windows.
+  `tests/gui/goldens/_failed`; CI uploads them. The goldens are rendered with the test font
+  in `tests/gui/fonts` (DejaVu 2.37: regular, bold and mono), not with a font of the machine,
+  so they can be made and compared on any system.
 
 ## Documentation
 
