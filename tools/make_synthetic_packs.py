@@ -1221,6 +1221,244 @@ def make_platformer(out: Path) -> None:
     )
 
 
+# ------------------------------------------------------------------------------------------
+# What real packs look like (T16.21): a numbered frame export, one art for several engines, a
+# bundle of packs.
+
+
+def _blank(fw: int = 16, fh: int = 16) -> Image.Image:
+    return Image.new("RGBA", (fw, fh), (0, 0, 0, 0))
+
+
+def _sheet(size: int, cell: int, start: int) -> Image.Image:
+    """An opaque sheet of ``cell`` px tiles, each in a colour of its own."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    per_row = size // cell
+    for row in range(per_row):
+        for col in range(per_row):
+            _tile(draw, col * cell, row * cell, cell, cell, start + row * per_row + col, step=1)
+    return img
+
+
+def _numbered_frames(folder: Path, stem: str, runs: list[int], blanks: list[int], color: int,
+                     form: str = "{0}{1}") -> int:  # fmt: skip
+    """Frames ``<stem><n>.png``: ``runs`` of drawn frames with ``blanks[i]`` empty ones after
+    run ``i``. Returns how many files were written."""
+    number = 0
+    for index, count in enumerate(runs):
+        for i in range(count):
+            number += 1
+            _save_png(_frame(color + index, i), folder / (form.format(stem, number) + ".png"))
+        for _ in range(blanks[index] if index < len(blanks) else 0):
+            number += 1
+            _save_png(_blank(), folder / (form.format(stem, number) + ".png"))
+    return number
+
+
+def make_frames_export(out: Path) -> None:
+    """One picture per frame with no action word in any name: blank frames between the
+    animations, the ``.aseprite`` source beside some of them, a preview folder and a test
+    picture, and a folder name with a letter missing."""
+    from rpggen.core.adapters import aseprite_file
+    from rpggen.core.adapters.aseprite_file import Tag
+
+    pack = out / "frames_export"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_terrain(), pack / "TERRAIN" / "TERRAIN.png")
+    # the hero: 15 frames, three animations, and the source that names them
+    count = _numbered_frames(pack / "HERO", "HERO", [4, 5, 3], [1, 2], 0)
+    tags = [
+        Tag("Idle", 0, 3, "forward", 0),
+        Tag("Run", 5, 9, "forward", 0),
+        Tag("Attack", 12, 14, "forward", 1),
+    ]
+    source = aseprite_file.write(16, 16, [250] * 5 + [100] * 7 + [80] * 3, tags)
+    assert count == 15
+    (pack / "HERO" / "HERO.aseprite").write_bytes(source)
+    # the slime: the same kind of export, and nothing that names its animations
+    _numbered_frames(pack / "ENEMY" / "SLIME", "SLIME", [3, 4], [1], 5, form="{0} {1}")
+    # a prop: six frames, no blank one; its source says they are frames
+    _numbered_frames(pack / "PROPS" / "FLAME", "FLAME", [6], [], 8)
+    (pack / "PROPS" / "FLAME" / "FLAME.aseprite").write_bytes(
+        aseprite_file.write(16, 16, [125] * 6, [])
+    )
+    # numbered pictures that are not frames: three coins, nothing says animation
+    for i in range(3):
+        _save_png(_item_icon(i), pack / "PROPS" / "COIN" / f"COIN{i + 1}.png")
+    # two background layers beside the one-frame file they were drawn in
+    for n in (1, 2):
+        sky = Image.new("RGBA", (256, 256), pal(20 + n))
+        _save_png(sky, pack / "BACKGROUD" / f"BACKGROUND ({n}) .png")
+    (pack / "BACKGROUD" / "BACKGROUND.aseprite").write_bytes(
+        aseprite_file.write(256, 256, [100], [])
+    )
+    _save_png(Image.new("RGBA", (64, 48), pal(30)), pack / "PREVIEW" / "Preview (1).png")
+    _save_png(Image.new("RGBA", (64, 48), pal(31)), pack / "test.png")
+    _expected(
+        out,
+        "frames_export",
+        {
+            "TERRAIN/TERRAIN.png": {"usage": "tiles", "role": "GROUND"},
+            "HERO/HERO1.png": {
+                "usage": "sprite",
+                "role": "PLAYER",
+                "frame": [16, 16],
+                "anims": ["attack_down", "idle_down", "walk_down"],
+            },
+            "ENEMY/SLIME/SLIME 1.png": {
+                "usage": "sprite",
+                "role": "ENEMY",
+                "anims": ["anim_1", "anim_2"],
+            },
+            "PROPS/FLAME/FLAME1.png": {
+                "usage": "sprite",
+                "role": "DECORATION",
+                "anims": ["idle_down"],
+            },
+            "PROPS/COIN/COIN1.png": {"usage": "sprite"},
+            "PROPS/COIN/COIN3.png": {"usage": "sprite"},
+            "BACKGROUD/BACKGROUND (1) .png": {"usage": "background", "role": "BACKGROUND"},
+            "BACKGROUD/BACKGROUND (2) .png": {"usage": "background", "role": "BACKGROUND"},
+            "PREVIEW/Preview (1).png": {"role": "NONE"},
+            "test.png": {"role": "NONE"},
+        },
+    )
+
+
+def _blob_sheet(color: int) -> Image.Image:
+    """192 x 64: the 12 x 4 layout of a 47-tile autotile, every tile drawn."""
+    img = Image.new("RGBA", (192, 64), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    for row in range(4):
+        for col in range(12):
+            _tile(draw, col * 16, row * 16, 16, 16, color, step=1)
+            draw.rectangle(
+                [col * 16 + 4, row * 16 + 4, col * 16 + 11, row * 16 + 11], fill=pal(color + 7)
+            )
+    return img
+
+
+def make_multi_engine(out: Path) -> None:
+    """One art laid out for five engines, with sizes and frame counts in the file names, the
+    colours of an animal as folders, and the files a pack carries that are no assets."""
+    pack = out / "multi_engine"
+    _write_text(pack / "info" / "License.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_terrain(), pack / "assets" / "tiles" / "ground_16x16.png")
+    for n, colour in enumerate(("brown", "black", "black_white")):
+        folder = pack / "assets" / "animals" / "cows" / "cow_01" / colour
+        stem = f"cow_01_{colour}"
+        _save_png(_strip(4, 3 + n), folder / "move" / f"{stem}_move_down_16x16_4frames.png")
+        _save_png(_strip(2, 3 + n), folder / "sleep" / f"{stem}_sleep_16x16_2frames.png")
+    _save_png(_strip(8, 12, 16, 32), pack / "assets" / "crops" / "corn_16x32_8frames.png")
+    _save_png(_strip(5, 13, 16, 32), pack / "assets" / "crops" / "wheat_growth_16x32_5frames.png")
+    raw = Image.new("RGBA", (16, 96), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(raw)
+    for row in range(6):
+        _tile(draw, 0, row * 16, 16, 16, 40 + row, step=1)
+    _save_png(raw, pack / "assets" / "autotiles" / "01_grass.png")
+    godot = pack / "engines" / "Godot" / "autotiles"
+    _save_png(_blob_sheet(40), godot / "3x3" / "01_grass.png")
+    _save_png(_sheet(64, 16, 40), godot / "2x2" / "01_grass.png")
+    for index, engine in enumerate(("RPG_Maker_MV_MZ", "RPG_Maker_VX_VXace", "RPG_Maker_XP")):
+        _save_png(_sheet(96, 16, 50 + index), pack / "engines" / engine / "tiles" / "grass.png")
+    _save_png(_sheet(80, 16, 60).crop((0, 0, 16, 80)), pack / "engines" / "Unity" / "grass.png")
+    (pack / "assets" / "crops" / "In development").write_bytes(b"")
+    _write_text(pack / "Please_rate.html", "<html><body>rate this pack</body></html>\n")
+    junk = pack / "assets" / "__MACOSX"
+    junk.mkdir(parents=True, exist_ok=True)
+    (junk / "._ground_16x16.png").write_bytes(b"junk")
+    cows = "assets/animals/cows/cow_01"
+    expected: dict[str, dict] = {
+        "assets/tiles/ground_16x16.png": {"usage": "tiles", "role": "GROUND"},
+        "assets/crops/corn_16x32_8frames.png": {
+            "usage": "sprite",
+            "frame": [16, 32],
+            "anims": ["idle_down"],
+        },
+        "assets/crops/wheat_growth_16x32_5frames.png": {"usage": "sprite", "frame": [16, 32]},
+        "engines/Godot/autotiles/3x3/01_grass.png": {"usage": "tiles"},
+        "engines/Godot/autotiles/2x2/01_grass.png": {"role": "NONE"},
+        "assets/autotiles/01_grass.png": {"role": "NONE"},
+        "engines/Unity/grass.png": {"role": "NONE"},
+    }
+    for engine in ("RPG_Maker_MV_MZ", "RPG_Maker_VX_VXace", "RPG_Maker_XP"):
+        expected[f"engines/{engine}/tiles/grass.png"] = {"role": "NONE"}
+    for colour in ("brown", "black", "black_white"):
+        expected[f"{cows}/{colour}/move/cow_01_{colour}_move_down_16x16_4frames.png"] = {
+            "usage": "sprite",
+            "frame": [16, 16],
+            "anims": ["walk_down"],
+        }
+        expected[f"{cows}/{colour}/sleep/cow_01_{colour}_sleep_16x16_2frames.png"] = {
+            "usage": "sprite",
+            "anims": ["sleep_down"],
+        }
+    _expected(out, "multi_engine", expected)
+
+
+BUNDLE_THEMES = (
+    "Abandoned Hospital", "Alien Jungle", "Backrooms", "Cyberpunk City", "Desert Ruins",
+    "Haunted Manor", "Medieval Fantasy Town", "Modern Gym", "Monder Interiors", "Pirate Cove",
+    "Space Station", "WW1 Trench & Bunker",
+)  # fmt: skip
+
+
+def make_bundle(out: Path) -> None:
+    """A zip that is a bundle: twelve pack folders under one top folder, their sheets named by a
+    number only (with a gap), one of them with five 768 px sheets, one with what a
+    sprite-cutting tool left in it."""
+    import json
+
+    top = "Bundle"
+    entries: list[tuple[str, bytes]] = [(f"{top}/LICENSE.txt", b"CC0-1.0 synthetic test pack\n")]
+    expected: dict[str, dict] = {}
+    for index, theme in enumerate(BUNDLE_THEMES):
+        suffix = " Tileset" if index % 3 == 0 else " Pixel Art Tileset Pack"
+        folder = f"{top}/{theme}{suffix}"
+        if theme == "Medieval Fantasy Town":  # five numbered sheets are five tile sheets
+            for n in (1, 2, 3, 5, 6):
+                sheet = _sheet(768, 48, 100 + n * 16)
+                entries.append((f"{folder}/{n}.png", _png_bytes(sheet)))
+                expected[f"{folder}/{n}.png"] = {"usage": "tiles"}
+            continue
+        for n in (1, 3):  # 2 is missing: a gap in the numbers of sheets is nothing
+            data = _png_bytes(_sheet(256, 32, index * 16 + n))
+            entries.append((f"{folder}/{n}.png", data))
+            expected[f"{folder}/{n}.png"] = {"usage": "tiles"}
+        if theme == "Abandoned Hospital":  # the output of a sprite cutter, with its manifest
+            cut = f"{folder}/_organized_sprites"
+            sprites = [
+                ("sheet_01_beds_001", "sheet_01", "beds", 0, 0, 64, 32),
+                ("sheet_01_carts_001", "sheet_01", "carts", 64, 0, 32, 32),
+                ("sheet_03_beds_001", "sheet_03", "beds", 32, 64, 64, 64),
+            ]
+            manifest = [
+                {
+                    "id": name,
+                    "source_sheet": sheet,
+                    "source_file": "G:/Packs/" + theme + f" Tileset/{int(sheet[-2:])}.png",
+                    "category": category,
+                    "bbox": {"x": x, "y": y, "width": w, "height": h},
+                }
+                for name, sheet, category, x, y, w, h in sprites
+            ]
+            text = json.dumps(manifest, indent=2) + "\n"
+            entries.append((f"{cut}/manifest/sprites.json", text.encode("utf-8")))
+            for name, _sheet_name, category, _x, _y, w, h in sprites:
+                picture = _png_bytes(Image.new("RGBA", (w, h), pal(len(entries))))
+                entries.append((f"{cut}/sprites/{category}/{name}.png", picture))
+                expected[f"{cut}/sprites/{category}/{name}.png"] = {"role": "NONE"}
+            preview = _png_bytes(Image.new("RGBA", (128, 96), pal(77)))
+            entries.append((f"{cut}/previews/sheet_01_contact.png", preview))
+            expected[f"{cut}/previews/sheet_01_contact.png"] = {"role": "NONE"}
+    # (The grids of these sheets are asserted in tests/unit/test_real_pack_shapes.py: the
+    # expected file's "cell" is for the grid detector alone, and a numbered sheet gets its
+    # grid from its size and its folder.)
+    _write_zip(out / "bundle.zip", sorted(entries))
+    _expected(out, "bundle", expected)
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -1238,6 +1476,9 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "platformer": make_platformer,
     "weird_names": make_weird_names,
     "zipped": make_zipped,
+    "frames_export": make_frames_export,
+    "multi_engine": make_multi_engine,
+    "bundle": make_bundle,
     "audio_basic": lambda out: make_audio_basic(out),
 }
 

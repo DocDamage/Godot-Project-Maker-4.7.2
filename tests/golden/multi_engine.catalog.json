@@ -1,0 +1,997 @@
+{
+  "assets": [
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/multi_engine/assets/animals/cows/cow_01/black/move/cow_01_black_move_down_16x16_4frames.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          64,
+          16
+        ],
+        "tags": [
+          "colour:black"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "multi_engine.assets.animals.cows.cow_01.black.move.cow_01_black_move_down_16x16_4frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/animals/cows/cow_01/black/move/cow_01_black_move_down_16x16_4frames.png",
+      "sha256": "23eb14f093e0623f4a4279aa59a055762433ec07ed0de783ddb75b3335494d35",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "sleep_down": {
+            "fps": 2.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/multi_engine/assets/animals/cows/cow_01/black/sleep/cow_01_black_sleep_16x16_2frames.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "colour:black"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "multi_engine.assets.animals.cows.cow_01.black.sleep.cow_01_black_sleep_16x16_2frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/animals/cows/cow_01/black/sleep/cow_01_black_sleep_16x16_2frames.png",
+      "sha256": "c763cf2b2dd069bea0632bf8bc516fbd71cb37022912e624ddf1ec871b8ba040",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/multi_engine/assets/animals/cows/cow_01/black_white/move/cow_01_black_white_move_down_16x16_4frames.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          64,
+          16
+        ],
+        "tags": [
+          "colour:black_white",
+          "variant_of:multi_engine.assets.animals.cows.cow_01.black.move.cow_01_black_move_down_16x16_4frames"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "multi_engine.assets.animals.cows.cow_01.black_white.move.cow_01_black_white_move_down_16x16_4frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/animals/cows/cow_01/black_white/move/cow_01_black_white_move_down_16x16_4frames.png",
+      "sha256": "722a7de7eda4302965005b1211e3e68faa02932f5f7679be9582595e03e4235e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "sleep_down": {
+            "fps": 2.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/multi_engine/assets/animals/cows/cow_01/black_white/sleep/cow_01_black_white_sleep_16x16_2frames.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "colour:black_white",
+          "variant_of:multi_engine.assets.animals.cows.cow_01.black.sleep.cow_01_black_sleep_16x16_2frames"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "multi_engine.assets.animals.cows.cow_01.black_white.sleep.cow_01_black_white_sleep_16x16_2frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/animals/cows/cow_01/black_white/sleep/cow_01_black_white_sleep_16x16_2frames.png",
+      "sha256": "a168d6d5398339673e824413e440e26da5d4c5b102e0008fcbb6972331570b1f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/multi_engine/assets/animals/cows/cow_01/brown/move/cow_01_brown_move_down_16x16_4frames.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          64,
+          16
+        ],
+        "tags": [
+          "colour:brown",
+          "variant_of:multi_engine.assets.animals.cows.cow_01.black.move.cow_01_black_move_down_16x16_4frames"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "multi_engine.assets.animals.cows.cow_01.brown.move.cow_01_brown_move_down_16x16_4frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/animals/cows/cow_01/brown/move/cow_01_brown_move_down_16x16_4frames.png",
+      "sha256": "db71858f3e10713dc4c5320707f52d898b71fcff1e9e25e80be70a35064ebb18",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "sleep_down": {
+            "fps": 2.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/multi_engine/assets/animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_16x16_2frames.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "colour:brown",
+          "variant_of:multi_engine.assets.animals.cows.cow_01.black.sleep.cow_01_black_sleep_16x16_2frames"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "multi_engine.assets.animals.cows.cow_01.brown.sleep.cow_01_brown_sleep_16x16_2frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_16x16_2frames.png",
+      "sha256": "70d8a2eb008bb4d82cc848f0b5a7038e723e0a2a75346e703e05863a009dc443",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          96
+        ],
+        "origin": [
+          8,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          96
+        ],
+        "tags": [
+          "unused_because:other_layout"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "multi_engine.assets.autotiles.n01_grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/autotiles/01_grass.png",
+      "sha256": "9b9be497824958d5d358ff47650e03a09e82c2d79600ed13fabda97983988634",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                7,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          32
+        ],
+        "grid": {
+          "cell": [
+            16,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          31
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          128,
+          32
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "multi_engine.assets.crops.corn_16x32_8frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/crops/corn_16x32_8frames.png",
+      "sha256": "126afd2f5d58706057986940ac73c6e488e231349285371cd1ee3d26c303d9f9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          32
+        ],
+        "grid": {
+          "cell": [
+            16,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          31
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          80,
+          32
+        ],
+        "tags": [
+          "growth"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "multi_engine.assets.crops.wheat_growth_16x32_5frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/crops/wheat_growth_16x32_5frames.png",
+      "sha256": "603fa493171ae2d1cfbc08f567500316481599b67d9ed144b9e5eaa2ddba2762",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.4345,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.0625
+          ],
+          [
+            "WALL",
+            0.03125
+          ]
+        ],
+        "size": [
+          128,
+          64
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "multi_engine.assets.tiles.ground_16x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/assets/tiles/ground_16x16.png",
+      "sha256": "b0722cbbe8365b85a6b955ea53425f8253fe97bca34ff795ab2097ada5b8f817",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.447062,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "unused_because:other_layout"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "multi_engine.engines.godot.autotiles.n2x2.n01_grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/engines/Godot/autotiles/2x2/01_grass.png",
+      "sha256": "66a4e02b80d2bd769e4e653979e1937ac382d7c1056dfa01807aea00ed64e621",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          192,
+          64
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "multi_engine.engines.godot.autotiles.n3x3.n01_grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/engines/Godot/autotiles/3x3/01_grass.png",
+      "sha256": "94997ace60f67994c2ef74bbc7d89672d08a004d67f2e81bf8be5378eb1fbc4c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.44137,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "NONE",
+        "size": [
+          96,
+          96
+        ],
+        "tags": [
+          "unused_because:other_engine"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "multi_engine.engines.rpg_maker_mv_mz.tiles.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/engines/RPG_Maker_MV_MZ/tiles/grass.png",
+      "sha256": "d942b01c08df271f634979af414a789aa5f3153740bd4e8f873ae2363bdafb90",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.418369,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "NONE",
+        "size": [
+          96,
+          96
+        ],
+        "tags": [
+          "unused_because:other_engine"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "multi_engine.engines.rpg_maker_vx_vxace.tiles.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/engines/RPG_Maker_VX_VXace/tiles/grass.png",
+      "sha256": "c3c74ec96bd51a466700f42e9c0781c0377ae73bddf6a4309d8347ea81148f46",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.44137,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "NONE",
+        "size": [
+          96,
+          96
+        ],
+        "tags": [
+          "unused_because:other_engine"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "multi_engine.engines.rpg_maker_xp.tiles.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/engines/RPG_Maker_XP/tiles/grass.png",
+      "sha256": "d89b74498d4a20f7094689b2a4e42e005616c7dcb8847037766a2f3ed6d45565",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          80
+        ],
+        "origin": [
+          8,
+          79
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          80
+        ],
+        "tags": [
+          "unused_because:other_engine"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "multi_engine.engines.unity.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "multi_engine",
+      "path": "assets/packs/multi_engine/engines/Unity/grass.png",
+      "sha256": "1c7688bb7edc6feb0c62fc48725d8d817064cdb91f2b45677f163866a9d71dc7",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 6,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/multi_engine/info/License.txt"
+      ],
+      "pack_id": "multi_engine",
+      "profile_id": null,
+      "root": "assets/packs/multi_engine",
+      "source_sha256": "5f1f833c64c18b93c273b91d1e15680f0564d941f7b0e6236f4802ee3ac2d4d5",
+      "warnings": [
+        "engines:5:Godot",
+        "strips_direction_assumed:assets/animals/cows/cow_01/black/sleep/cow_01_black_sleep_16x16_2frames.png",
+        "strips_direction_assumed:assets/animals/cows/cow_01/black_white/sleep/cow_01_black_white_sleep_16x16_2frames.png",
+        "strips_direction_assumed:assets/animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_16x16_2frames.png"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "multi_engine.assets.tiles.ground_16x16",
+          "source_id": 0
+        },
+        {
+          "asset": "multi_engine.engines.godot.autotiles.n2x2.n01_grass",
+          "source_id": 1
+        },
+        {
+          "asset": "multi_engine.engines.godot.autotiles.n3x3.n01_grass",
+          "source_id": 2
+        },
+        {
+          "asset": "multi_engine.engines.rpg_maker_mv_mz.tiles.grass",
+          "source_id": 3
+        },
+        {
+          "asset": "multi_engine.engines.rpg_maker_vx_vxace.tiles.grass",
+          "source_id": 4
+        },
+        {
+          "asset": "multi_engine.engines.rpg_maker_xp.tiles.grass",
+          "source_id": 5
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "BACKGROUD/BACKGROUND (1) .png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "BACKGROUD/BACKGROUND (2) .png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "ENEMY/SLIME/SLIME 1.png": {
+    "anims": [
+      "anim_1",
+      "anim_2"
+    ],
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "HERO/HERO1.png": {
+    "anims": [
+      "attack_down",
+      "idle_down",
+      "walk_down"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "PREVIEW/Preview (1).png": {
+    "role": "NONE"
+  },
+  "PROPS/COIN/COIN1.png": {
+    "usage": "sprite"
+  },
+  "PROPS/COIN/COIN3.png": {
+    "usage": "sprite"
+  },
+  "PROPS/FLAME/FLAME1.png": {
+    "anims": [
+      "idle_down"
+    ],
+    "role": "DECORATION",
+    "usage": "sprite"
+  },
+  "TERRAIN/TERRAIN.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "test.png": {
+    "role": "NONE"
+  }
+}

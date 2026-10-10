@@ -472,3 +472,20 @@ def test_a_pack_without_a_marked_sheet_is_not_read_as_rpg_maker(tmp_path: Path) 
     _sheet(pack / "tiles_mv.png", (768, 768), 48)
     cat = _catalog(pack)
     assert "rpgmaker" not in cat.packs[0].adapters_matched
+
+
+# ----------------------------------------------------------------------------- autotile sheets
+
+
+def test_a_12_by_4_sheet_is_a_tile_sheet_where_the_words_say_tile_set(tmp_path: Path) -> None:
+    pack = tmp_path / "wheels"
+    _sheet(pack / "Tilesets" / "race_track_1.png", (192, 64), 16)
+    _sheet(pack / "autotiles" / "3x3" / "grass.png", (384, 128), 32)
+    _sheet(pack / "Cars" / "bug_turn.png", (192, 64), 64)  # three frames of 64: no such word
+    _sheet(pack / "Tilesets" / "wide.png", (200, 64), 8)  # not three times as wide as high
+    cat = _catalog(pack)
+    track = catalog.effective(_asset(cat, "race_track_1.png"))
+    assert track["usage"] == "tiles" and track["grid"]["cell"] == [16, 16]
+    assert catalog.effective(_asset(cat, "grass.png"))["grid"]["cell"] == [32, 32]
+    turn = catalog.effective(_asset(cat, "bug_turn.png"))
+    assert turn.get("grid", {}).get("cell") != [16, 16]

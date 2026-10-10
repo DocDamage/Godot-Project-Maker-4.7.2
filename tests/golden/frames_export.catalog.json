@@ -1,0 +1,612 @@
+{
+  "assets": [
+    {
+      "confidence": 0.8,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          256,
+          256
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "frames_export.backgroud.background_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/BACKGROUD/BACKGROUND (1) .png",
+      "sha256": "c262b571c165f12f390616ad9791a1b65eebe1c13a6349300e08dd79ad5df74b",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          256,
+          256
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "frames_export.backgroud.background_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/BACKGROUD/BACKGROUND (2) .png",
+      "sha256": "a79813cab3ad86a692de5dcece695acb4b6e3697a52379124841b1c67fbe3af6",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "anim_1": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/5910441cc789a32931e895e5f28ace93321a399457a900a1b5179973f8770276.png"
+          },
+          "anim_2": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/9d90a89fa8050b58108ad2044b6dea25980b553f15890ce95240b5278068f58e.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.137931
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sequences",
+      "id": "frames_export.enemy.slime.slime_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/ENEMY/SLIME/SLIME 1.png",
+      "sha256": "9d22c480f06633f7b5d2c9f188264db74198e9f1ce1b5c22f7dc1a772c89e890",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.52381,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.5,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/0200da958b00ba951772518794c695313fd26337c5baa41f9a9abdbe8f741bf2.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/2c0b6d5a034518523c3759eb8f59e0a4d5440430393992cb4695e4fb15650b21.png"
+          },
+          "walk_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/bb33a9111ca83bb790b032f8101d3ac6fe73b765d23c6820aa3efa56bd995916.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.238095
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sequences",
+      "id": "frames_export.hero.hero1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/HERO/HERO1.png",
+      "sha256": "7a074550adec21953891596c8bd27313f290d5f02e996ffe1213853f2ea4395c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "frame": [
+          64,
+          48
+        ],
+        "origin": [
+          32,
+          47
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          48
+        ],
+        "tags": [
+          "unused_because:preview_folder"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "frames_export.preview.preview_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/PREVIEW/Preview (1).png",
+      "sha256": "01e2065e1de034346199094a7dc77d7da1db19e9ed8b017cb4c9a4c1097cb039",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.482759,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.344828
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "frames_export.props.coin.coin1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/PROPS/COIN/COIN1.png",
+      "sha256": "be0c2d57a5ab96f2d40cd13271b65861467caeb2f3d1d29720c6b3534adce755",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.482759,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.344828
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "frames_export.props.coin.coin2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/PROPS/COIN/COIN2.png",
+      "sha256": "c98904108f0c831980c5300764d8eb3e7bc6e347172d90e7f40eba27ca44d46d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.482759,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.344828
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "frames_export.props.coin.coin3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/PROPS/COIN/COIN3.png",
+      "sha256": "d99cd1f1c5db52349705442f27224083c27f9e041f933e978575f76c76453cc3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/afda96cbd4d229c551e2653d935f0c45b47c9ae6a434250524576fac4ab55c22.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sequences",
+      "id": "frames_export.props.flame.flame1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/PROPS/FLAME/FLAME1.png",
+      "sha256": "c292a15f51df0eb08a9698a991766864e5154e7f3b7201230215c5907fedbfaa",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.4345,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.086957
+          ],
+          [
+            "WALL",
+            0.043478
+          ]
+        ],
+        "size": [
+          128,
+          64
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "frames_export.terrain.terrain",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/TERRAIN/TERRAIN.png",
+      "sha256": "b0722cbbe8365b85a6b955ea53425f8253fe97bca34ff795ab2097ada5b8f817",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "frame": [
+          64,
+          48
+        ],
+        "origin": [
+          32,
+          47
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          48
+        ],
+        "tags": [
+          "unused_because:guide_picture"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "frames_export.test",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "frames_export",
+      "path": "assets/packs/frames_export/test.png",
+      "sha256": "8c1f5f1ee210b8b2bd24d662bc748aaf8ea4d5c2091648fa13e97710d998b16b",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "sequences",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/frames_export/LICENSE.txt"
+      ],
+      "pack_id": "frames_export",
+      "profile_id": null,
+      "root": "assets/packs/frames_export",
+      "source_sha256": "dd2ce161cad9a62bc2711199d06d31d946a3d59457c1ff5489780aea214ab414",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "frames_export.terrain.terrain",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

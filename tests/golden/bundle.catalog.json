@@ -1,0 +1,1785 @@
+{
+  "assets": [
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "abandoned",
+          "hospital"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.abandoned_hospital_tileset.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Abandoned Hospital Tileset/1.png",
+      "sha256": "8767bf5e31fd10ee9074dd940dc8f6845307f8f2f90d39bdfc5f46d87d800d4a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "abandoned",
+          "hospital"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.abandoned_hospital_tileset.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Abandoned Hospital Tileset/3.png",
+      "sha256": "d313bc65a85ab942f7229cbd54a1f907c7108fc0ff0858164949bd4296ae7863",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          128,
+          96
+        ],
+        "origin": [
+          64,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          128,
+          96
+        ],
+        "tags": [
+          "unused_because:cut_preview"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "cutter",
+      "id": "bundle.bundle.abandoned_hospital_tileset.organized_sprites.previews.sheet_01_contact",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Abandoned Hospital Tileset/_organized_sprites/previews/sheet_01_contact.png",
+      "sha256": "41f3dd31b230ad47bf50082b4f8e48b5c35e4d61cc4d3df49310273dcbaf3f95",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "unused_because:cut_copy"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "cutter",
+      "id": "bundle.bundle.abandoned_hospital_tileset.organized_sprites.sprites.beds.sheet_01_beds_001",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Abandoned Hospital Tileset/_organized_sprites/sprites/beds/sheet_01_beds_001.png",
+      "sha256": "ca8d8de12d1d16252c75cf0500c95305a248536e31f74288f4dd382e0d888a6c",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          64
+        ],
+        "origin": [
+          32,
+          63
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "unused_because:cut_copy"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "cutter",
+      "id": "bundle.bundle.abandoned_hospital_tileset.organized_sprites.sprites.beds.sheet_03_beds_001",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Abandoned Hospital Tileset/_organized_sprites/sprites/beds/sheet_03_beds_001.png",
+      "sha256": "81b307b52a5b7d88db9f73ea9b9100c591c5399ad4c202cbd4078c2601b570f5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "unused_because:cut_copy"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "cutter",
+      "id": "bundle.bundle.abandoned_hospital_tileset.organized_sprites.sprites.carts.sheet_01_carts_001",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Abandoned Hospital Tileset/_organized_sprites/sprites/carts/sheet_01_carts_001.png",
+      "sha256": "5a0041ae0e88a0eb959335de6fcc19d8d851aca13953e59ef80b2d92e6932de8",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "alien",
+          "jungle"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.alien_jungle_pixel_art_tileset_pack.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Alien Jungle Pixel Art Tileset Pack/1.png",
+      "sha256": "808cd96da3ba89e99d07b7381065e916d08998ee487d43710ec0d2fec9ee74f8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "alien",
+          "jungle"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.alien_jungle_pixel_art_tileset_pack.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Alien Jungle Pixel Art Tileset Pack/3.png",
+      "sha256": "72afd1a1be7ffdf418430726531397c192d87dbe43329fe372801e2c82b5952f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "backrooms"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.backrooms_pixel_art_tileset_pack.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Backrooms Pixel Art Tileset Pack/1.png",
+      "sha256": "2136016f50c7825a393283c67df3713de26541d9e6abba198db2231dc981eae0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "backrooms"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.backrooms_pixel_art_tileset_pack.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Backrooms Pixel Art Tileset Pack/3.png",
+      "sha256": "da7af36cef6bac3a81f686e99ac64c8bcd92f3fc6a62e69c8f6bf5556eba9181",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "city",
+          "cyberpunk"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.cyberpunk_city_tileset.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Cyberpunk City Tileset/1.png",
+      "sha256": "cdc3f8ef442c7dd89554a90305f6c41bd9d19f24f5f2805a125b4e8b1a731fd1",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "city",
+          "cyberpunk"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.cyberpunk_city_tileset.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Cyberpunk City Tileset/3.png",
+      "sha256": "82375ef7d0bff10c34af7d13273556ca9d6dc1e8b7ba0efeff34eeef529d3f0f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "desert",
+          "ruins"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.desert_ruins_pixel_art_tileset_pack.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Desert Ruins Pixel Art Tileset Pack/1.png",
+      "sha256": "db3859f2e0a475d7ca61ef4f6e56e03db8fb24711274f990590d6126050bbf23",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "desert",
+          "ruins"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.desert_ruins_pixel_art_tileset_pack.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Desert Ruins Pixel Art Tileset Pack/3.png",
+      "sha256": "82984bff7c09bcdb141508b7e048dfe1d32f0cc59ca793b3700c65a85ff235c6",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "haunted",
+          "manor"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.haunted_manor_pixel_art_tileset_pack.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Haunted Manor Pixel Art Tileset Pack/1.png",
+      "sha256": "2efd109f51c2fd3353f4cce7d38cdc1a8f6c564e50e780e5b31dc77468b72dde",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "haunted",
+          "manor"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.haunted_manor_pixel_art_tileset_pack.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Haunted Manor Pixel Art Tileset Pack/3.png",
+      "sha256": "14cf25c8fe0e37c186fd346717c407d019b1a181f24648a68f5ec0446bbb2b05",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            48,
+            48
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          768,
+          768
+        ],
+        "tags": [
+          "fantasy",
+          "medieval",
+          "town"
+        ],
+        "tileset": "overworld_48",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.medieval_fantasy_town_tileset.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Medieval Fantasy Town Tileset/1.png",
+      "sha256": "25fccb5147cf2f55d170a5b80a50cfd2cf9ef46756e5080b6986ca548dc83e68",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            48,
+            48
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          768,
+          768
+        ],
+        "tags": [
+          "fantasy",
+          "medieval",
+          "town"
+        ],
+        "tileset": "overworld_48",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.medieval_fantasy_town_tileset.n2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Medieval Fantasy Town Tileset/2.png",
+      "sha256": "5a3dc1bd697b813e25eead47093c40067aec1f768e09025cbbf1756a76d41f8f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            48,
+            48
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          768,
+          768
+        ],
+        "tags": [
+          "fantasy",
+          "medieval",
+          "town"
+        ],
+        "tileset": "overworld_48",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.medieval_fantasy_town_tileset.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Medieval Fantasy Town Tileset/3.png",
+      "sha256": "761a6c5022df5745d4137675af6213fce05f587f41daa2c6c9b36a847e166109",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            48,
+            48
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          768,
+          768
+        ],
+        "tags": [
+          "fantasy",
+          "medieval",
+          "town"
+        ],
+        "tileset": "overworld_48",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.medieval_fantasy_town_tileset.n5",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Medieval Fantasy Town Tileset/5.png",
+      "sha256": "dcb6f1456954c1789217bd0966b967618f36c2b9366e2fa2572bffc04dfab9dc",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            48,
+            48
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          768,
+          768
+        ],
+        "tags": [
+          "fantasy",
+          "medieval",
+          "town"
+        ],
+        "tileset": "overworld_48",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.medieval_fantasy_town_tileset.n6",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Medieval Fantasy Town Tileset/6.png",
+      "sha256": "fc25ef60d19b5458af887180612df5de1bfdc841b21d95537fa9a04af7161dab",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "gym",
+          "modern"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.modern_gym_pixel_art_tileset_pack.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Modern Gym Pixel Art Tileset Pack/1.png",
+      "sha256": "438968441c28cb7f55d30c55da6883b3bea22385a4edafaa45759231120fa759",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "gym",
+          "modern"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.modern_gym_pixel_art_tileset_pack.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Modern Gym Pixel Art Tileset Pack/3.png",
+      "sha256": "cd6c11793d81bd6dc7a11754fc827509a3ac9a50097beee6c4ac4d74c1654d8c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "interiors",
+          "monder"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.monder_interiors_pixel_art_tileset_pack.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Monder Interiors Pixel Art Tileset Pack/1.png",
+      "sha256": "8627409ea966335a283a0be3f0735f0ccd406184af151a894c37d633c7bb5303",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "interiors",
+          "monder"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.monder_interiors_pixel_art_tileset_pack.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Monder Interiors Pixel Art Tileset Pack/3.png",
+      "sha256": "93f48da24f794e32a57506b449daf1471d996a0b2b81d217d4471749b3f7aa6a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "cove",
+          "pirate"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.pirate_cove_tileset.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Pirate Cove Tileset/1.png",
+      "sha256": "17469fca7afb0fb620d3d402e59012b036f57286f268109b157f56226c33de74",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "cove",
+          "pirate"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.pirate_cove_tileset.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Pirate Cove Tileset/3.png",
+      "sha256": "d85959f10743b0538194dbf9bda136e84af487698088d26626023fde4f83a853",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "space",
+          "station"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.space_station_pixel_art_tileset_pack.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Space Station Pixel Art Tileset Pack/1.png",
+      "sha256": "b8c3c052cb7d65fc70cd676fb6cfd8a4d2ea0cc0f89ce7412da5344f83ccd23d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "space",
+          "station"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.space_station_pixel_art_tileset_pack.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/Space Station Pixel Art Tileset Pack/3.png",
+      "sha256": "3aa933d0b71070c0c24ce77f83934536d53fdffda07e1045978d8035137d1ddd",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "bunker",
+          "trench",
+          "ww1"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.ww1_trench_bunker_pixel_art_tileset_pack.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/WW1 Trench & Bunker Pixel Art Tileset Pack/1.png",
+      "sha256": "393b3034123af9f8b1f7050e6096a02d07e4612bc2c34d50b59b00ba42fd255c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.111111
+          ],
+          [
+            "WALL",
+            0.055556
+          ]
+        ],
+        "size": [
+          256,
+          256
+        ],
+        "tags": [
+          "bunker",
+          "trench",
+          "ww1"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "bundle.bundle.ww1_trench_bunker_pixel_art_tileset_pack.n3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "bundle",
+      "path": "assets/packs/bundle/Bundle/WW1 Trench & Bunker Pixel Art Tileset Pack/3.png",
+      "sha256": "50d9094b98c164957f9163f17d05c21399383fc6686bc6e9595353a0b6d2ffdd",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 22,
+        "retired": []
+      },
+      "overworld_48": {
+        "next_source_id": 5,
+        "retired": []
+      }
+    }
+  },
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            22
+          ],
+          [
+            64,
+            22
+          ],
+          [
+            64,
+            32
+          ],
+          [
+            0,
+            32
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        22,
+        64,
+        10
+      ],
+      "id": "bundle.bundle.abandoned_hospital_tileset.n1#sheet_01_beds_001",
+      "name": "sheet_01_beds_001",
+      "origin": [
+        32,
+        31
+      ],
+      "region": [
+        0,
+        0,
+        64,
+        32
+      ],
+      "role": "DECORATION",
+      "sheet": "bundle.bundle.abandoned_hospital_tileset.n1",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "beds"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            22
+          ],
+          [
+            32,
+            22
+          ],
+          [
+            32,
+            32
+          ],
+          [
+            0,
+            32
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        22,
+        32,
+        10
+      ],
+      "id": "bundle.bundle.abandoned_hospital_tileset.n1#sheet_01_carts_001",
+      "name": "sheet_01_carts_001",
+      "origin": [
+        16,
+        31
+      ],
+      "region": [
+        64,
+        0,
+        32,
+        32
+      ],
+      "role": "DECORATION",
+      "sheet": "bundle.bundle.abandoned_hospital_tileset.n1",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "carts"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            45
+          ],
+          [
+            64,
+            45
+          ],
+          [
+            64,
+            64
+          ],
+          [
+            0,
+            64
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        45,
+        64,
+        19
+      ],
+      "id": "bundle.bundle.abandoned_hospital_tileset.n3#sheet_03_beds_001",
+      "name": "sheet_03_beds_001",
+      "origin": [
+        32,
+        63
+      ],
+      "region": [
+        32,
+        64,
+        64,
+        64
+      ],
+      "role": "DECORATION",
+      "sheet": "bundle.bundle.abandoned_hospital_tileset.n3",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "beds"
+      ]
+    }
+  ],
+  "packs": [
+    {
+      "adapters_matched": [
+        "cutter",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/bundle/Bundle/LICENSE.txt"
+      ],
+      "pack_id": "bundle",
+      "profile_id": null,
+      "root": "assets/packs/bundle",
+      "source_sha256": "0248c5fe3d85de5af5b71646e4e938b713aa255dd15cb9be456a84961e9c2853",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "bundle.bundle.abandoned_hospital_tileset.n1",
+          "source_id": 0
+        },
+        {
+          "asset": "bundle.bundle.abandoned_hospital_tileset.n3",
+          "source_id": 1
+        },
+        {
+          "asset": "bundle.bundle.alien_jungle_pixel_art_tileset_pack.n1",
+          "source_id": 2
+        },
+        {
+          "asset": "bundle.bundle.alien_jungle_pixel_art_tileset_pack.n3",
+          "source_id": 3
+        },
+        {
+          "asset": "bundle.bundle.backrooms_pixel_art_tileset_pack.n1",
+          "source_id": 4
+        },
+        {
+          "asset": "bundle.bundle.backrooms_pixel_art_tileset_pack.n3",
+          "source_id": 5
+        },
+        {
+          "asset": "bundle.bundle.cyberpunk_city_tileset.n1",
+          "source_id": 6
+        },
+        {
+          "asset": "bundle.bundle.cyberpunk_city_tileset.n3",
+          "source_id": 7
+        },
+        {
+          "asset": "bundle.bundle.desert_ruins_pixel_art_tileset_pack.n1",
+          "source_id": 8
+        },
+        {
+          "asset": "bundle.bundle.desert_ruins_pixel_art_tileset_pack.n3",
+          "source_id": 9
+        },
+        {
+          "asset": "bundle.bundle.haunted_manor_pixel_art_tileset_pack.n1",
+          "source_id": 10
+        },
+        {
+          "asset": "bundle.bundle.haunted_manor_pixel_art_tileset_pack.n3",
+          "source_id": 11
+        },
+        {
+          "asset": "bundle.bundle.modern_gym_pixel_art_tileset_pack.n1",
+          "source_id": 12
+        },
+        {
+          "asset": "bundle.bundle.modern_gym_pixel_art_tileset_pack.n3",
+          "source_id": 13
+        },
+        {
+          "asset": "bundle.bundle.monder_interiors_pixel_art_tileset_pack.n1",
+          "source_id": 14
+        },
+        {
+          "asset": "bundle.bundle.monder_interiors_pixel_art_tileset_pack.n3",
+          "source_id": 15
+        },
+        {
+          "asset": "bundle.bundle.pirate_cove_tileset.n1",
+          "source_id": 16
+        },
+        {
+          "asset": "bundle.bundle.pirate_cove_tileset.n3",
+          "source_id": 17
+        },
+        {
+          "asset": "bundle.bundle.space_station_pixel_art_tileset_pack.n1",
+          "source_id": 18
+        },
+        {
+          "asset": "bundle.bundle.space_station_pixel_art_tileset_pack.n3",
+          "source_id": 19
+        },
+        {
+          "asset": "bundle.bundle.ww1_trench_bunker_pixel_art_tileset_pack.n1",
+          "source_id": 20
+        },
+        {
+          "asset": "bundle.bundle.ww1_trench_bunker_pixel_art_tileset_pack.n3",
+          "source_id": 21
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        32,
+        32
+      ]
+    },
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld_48",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "bundle.bundle.medieval_fantasy_town_tileset.n1",
+          "source_id": 0
+        },
+        {
+          "asset": "bundle.bundle.medieval_fantasy_town_tileset.n2",
+          "source_id": 1
+        },
+        {
+          "asset": "bundle.bundle.medieval_fantasy_town_tileset.n3",
+          "source_id": 2
+        },
+        {
+          "asset": "bundle.bundle.medieval_fantasy_town_tileset.n5",
+          "source_id": 3
+        },
+        {
+          "asset": "bundle.bundle.medieval_fantasy_town_tileset.n6",
+          "source_id": 4
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        48,
+        48
+      ]
+    }
+  ]
+}

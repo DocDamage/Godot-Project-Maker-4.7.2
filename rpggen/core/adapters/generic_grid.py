@@ -27,6 +27,11 @@ GENERIC_CONSTANTS = {
 # RPG Maker MV and MZ (16 x 16 tiles of 48 px), which a bundle of tile sets is mostly made of.
 NUMBERED_SHEET_CELLS = {(768, 768): 48}
 NUMBERED_SHEET_FALLBACK = (48, 32, 16)
+# The 47-tile autotile sheet: 12 x 4 tiles, so three times as wide as high.
+AUTOTILE_CELLS = (8, 16, 24, 32, 48, 64)
+AUTOTILE_WORDS = frozenset(
+    {"autotile", "autotiles", "tileset", "tilesets", "tile", "tiles", "terrain", "terrains", "blob"}
+)
 STANDARD_ACTIONS = {"idle", "walk", "attack", "hurt", "death"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}
 PHOTO_EXTS = {".jpg", ".jpeg"}  # a format without transparency (T16.21)
@@ -95,6 +100,13 @@ class GenericGridAdapter:
         w, h = a["w"], a["h"]
         candidates = a["grid_candidates"]
         top = candidates[0] if candidates else None
+
+        blob = self._autotile_sheet(f.path, a)
+        if blob is not None:  # 0. a 12 x 4 autotile sheet in a folder of tile sets
+            result.assets.append(
+                AssetFragment(f.path, blob, K["NUMBERED_SHEET_CONFIDENCE"], "partial")
+            )
+            return
 
         strip = a.get("strip")
         if strip and strip["axis"] == "x":  # 1. single-row strip
@@ -189,6 +201,27 @@ class GenericGridAdapter:
         result.assets.append(  # 6. unknown: a single frame that needs review
             AssetFragment(f.path, self._single_frame(w, h), K["FALLBACK_CONFIDENCE"], "partial")
         )
+
+    def _autotile_sheet(self, path: str, a: dict[str, Any]) -> dict[str, Any] | None:
+        """The facets of a sheet three times as wide as high (12 x 4 tiles: the 47-tile
+        autotile, as ``192 x 64``) whose folders or name say tile set, autotile or terrain: a
+        tile sheet of that tile, so that the terrain reader looks at it. Without those words
+        such a picture is far more often a strip of three frames. None for any other picture."""
+        from rpggen.core import classifier
+
+        w, h = a["w"], a["h"]
+        if w != 3 * h or h % 4 or h // 4 not in AUTOTILE_CELLS:
+            return None
+        pack_words = getattr(self, "_pack_words", "")
+        folders, name_words = classifier.tokens(path)
+        words = {*classifier.folder_words(path, pack_words), *folders, *name_words}
+        if not words & AUTOTILE_WORDS:
+            return None
+        cell = h // 4
+        return {
+            "usage": "tiles",
+            "grid": {"cell": [cell, cell], "margin": [0, 0], "separation": [0, 0]},
+        }
 
     def _numbered_sheet(self, path: str, a: dict[str, Any]) -> dict[str, Any] | None:
         """The facets of a sheet named by a number only, in a folder (or a pack) that says it

@@ -1,0 +1,95 @@
+{
+  "Bundle/Abandoned Hospital Tileset/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Abandoned Hospital Tileset/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Abandoned Hospital Tileset/_organized_sprites/previews/sheet_01_contact.png": {
+    "role": "NONE"
+  },
+  "Bundle/Abandoned Hospital Tileset/_organized_sprites/sprites/beds/sheet_01_beds_001.png": {
+    "role": "NONE"
+  },
+  "Bundle/Abandoned Hospital Tileset/_organized_sprites/sprites/beds/sheet_03_beds_001.png": {
+    "role": "NONE"
+  },
+  "Bundle/Abandoned Hospital Tileset/_organized_sprites/sprites/carts/sheet_01_carts_001.png": {
+    "role": "NONE"
+  },
+  "Bundle/Alien Jungle Pixel Art Tileset Pack/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Alien Jungle Pixel Art Tileset Pack/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Backrooms Pixel Art Tileset Pack/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Backrooms Pixel Art Tileset Pack/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Cyberpunk City Tileset/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Cyberpunk City Tileset/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Desert Ruins Pixel Art Tileset Pack/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Desert Ruins Pixel Art Tileset Pack/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Haunted Manor Pixel Art Tileset Pack/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Haunted Manor Pixel Art Tileset Pack/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Medieval Fantasy Town Tileset/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Medieval Fantasy Town Tileset/2.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Medieval Fantasy Town Tileset/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Medieval Fantasy Town Tileset/5.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Medieval Fantasy Town Tileset/6.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Modern Gym Pixel Art Tileset Pack/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Modern Gym Pixel Art Tileset Pack/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Monder Interiors Pixel Art Tileset Pack/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Monder Interiors Pixel Art Tileset Pack/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Pirate Cove Tileset/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Pirate Cove Tileset/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Space Station Pixel Art Tileset Pack/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/Space Station Pixel Art Tileset Pack/3.png": {
+    "usage": "tiles"
+  },
+  "Bundle/WW1 Trench & Bunker Pixel Art Tileset Pack/1.png": {
+    "usage": "tiles"
+  },
+  "Bundle/WW1 Trench & Bunker Pixel Art Tileset Pack/3.png": {
+    "usage": "tiles"
+  }
+}

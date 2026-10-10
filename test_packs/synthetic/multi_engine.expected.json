@@ -1,0 +1,92 @@
+{
+  "assets/animals/cows/cow_01/black/move/cow_01_black_move_down_16x16_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "usage": "sprite"
+  },
+  "assets/animals/cows/cow_01/black/sleep/cow_01_black_sleep_16x16_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "assets/animals/cows/cow_01/black_white/move/cow_01_black_white_move_down_16x16_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "usage": "sprite"
+  },
+  "assets/animals/cows/cow_01/black_white/sleep/cow_01_black_white_sleep_16x16_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "assets/animals/cows/cow_01/brown/move/cow_01_brown_move_down_16x16_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "usage": "sprite"
+  },
+  "assets/animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_16x16_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "assets/autotiles/01_grass.png": {
+    "role": "NONE"
+  },
+  "assets/crops/corn_16x32_8frames.png": {
+    "anims": [
+      "idle_down"
+    ],
+    "frame": [
+      16,
+      32
+    ],
+    "usage": "sprite"
+  },
+  "assets/crops/wheat_growth_16x32_5frames.png": {
+    "frame": [
+      16,
+      32
+    ],
+    "usage": "sprite"
+  },
+  "assets/tiles/ground_16x16.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "engines/Godot/autotiles/2x2/01_grass.png": {
+    "role": "NONE"
+  },
+  "engines/Godot/autotiles/3x3/01_grass.png": {
+    "usage": "tiles"
+  },
+  "engines/RPG_Maker_MV_MZ/tiles/grass.png": {
+    "role": "NONE"
+  },
+  "engines/RPG_Maker_VX_VXace/tiles/grass.png": {
+    "role": "NONE"
+  },
+  "engines/RPG_Maker_XP/tiles/grass.png": {
+    "role": "NONE"
+  },
+  "engines/Unity/grass.png": {
+    "role": "NONE"
+  }
+}
