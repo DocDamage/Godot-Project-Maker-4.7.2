@@ -46,6 +46,11 @@ def _named(asset_id: str) -> str:
 
 
 UNUSED_REASONS = {
+    "cut_copy": (
+        "a copy that another tool cut out of a sheet of this pack; the sheet has it as an "
+        "object. Give it a role to use the copy as well."
+    ),
+    "cut_preview": "a preview picture a sprite-cutting tool made. Give it a role to use it.",
     classifier.UNUSED_PREVIEW_FOLDER: (
         "in a preview folder: a picture of the pack, not a part of it. Give it a role to use it."
     ),

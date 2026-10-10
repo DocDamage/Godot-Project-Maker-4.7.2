@@ -88,6 +88,7 @@ def run_adapters(
 def register_defaults() -> None:
     """Register the built-in adapters (idempotent)."""
     from rpggen.core.adapters.aseprite import AsepriteAdapter
+    from rpggen.core.adapters.cutter import CutterAdapter
     from rpggen.core.adapters.generic_grid import GenericGridAdapter
     from rpggen.core.adapters.ldtk import LdtkAdapter
     from rpggen.core.adapters.learned import LearnedAdapter
@@ -106,6 +107,7 @@ def register_defaults() -> None:
         LdtkAdapter(),
         RpgMakerAdapter(),
         LpcAdapter(),
+        CutterAdapter(),
         SequencesAdapter(),
         StripsAdapter(),
         GenericGridAdapter(),
