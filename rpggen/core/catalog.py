@@ -864,6 +864,7 @@ def assemble(
         tops = {f.path.split("/", 1)[0] for f in inv.files if "/" in f.path}
         loose = any("/" not in f.path and f.kind != "license" for f in inv.files)
         wrapper = next(iter(tops)) if len(tops) == 1 and not loose else ""
+        engines = classifier.engine_plan(paths_sorted, wrapper)
         base_ids = ids.disambiguate([ids.asset_id(pack_id, p) for p in paths_sorted])
         id_for_path = dict(zip(paths_sorted, base_ids, strict=True))
         files = {f.path: f for f in inv.files}
@@ -883,7 +884,9 @@ def assemble(
                 if role_conf is not None:
                     confidence = min(confidence, role_conf)
                     reason = classifier.not_game_art(path, wrapper)
-                    if reason:  # a preview or a guide picture: unused, and says why
+                    if not reason and engines is not None:
+                        reason = classifier.not_this_engine(path, engines, wrapper)
+                    if reason:  # a preview, a guide, another engine's copy: unused, says why
                         facets["role"] = "NONE"
                         facets.pop("roles_alt", None)
                         facets["tags"] = sorted(
@@ -952,6 +955,8 @@ def assemble(
         sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
         if classifier.pack_view(inv, sheets) == "side":
             warnings.append(VIEW_SIDE)  # a top-down pack, the usual kind, gets no line
+        if engines is not None:
+            warnings.append(engines.warning)  # "art for 5 engines: Godot's is used"
         catalog.packs.append(
             CatalogPack(
                 pack_id,

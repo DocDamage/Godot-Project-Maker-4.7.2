@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import re
 import unicodedata
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -306,6 +307,92 @@ def folder_tags(path: str, pack_words: str = "") -> list[str]:
     """What the folders say is on a numbered sheet: their words without those every pack of a
     bundle shares (*pixel art tileset pack*), which say what kind of file it is."""
     return [w for w in folder_words(path, pack_words) if w not in PACK_FILLER_WORDS and len(w) > 2]
+
+
+# One art, several engines (T16.21): ``engines/Godot/...``, ``engines/RPG_Maker_MV_MZ/...``.
+ENGINES_FOLDER = "engines"
+UNUSED_OTHER_ENGINE = "other_engine"
+UNUSED_OTHER_LAYOUT = "other_layout"
+AUTOTILE_FOLDERS = frozenset({"autotile", "autotiles"})
+# Godot's two autotile layouts: the 3x3 one is the 47-tile sheet rpggen reads as a terrain.
+LAYOUT_KEPT, LAYOUT_DROPPED = "3x3", "2x2"
+
+
+def _engine_key(folder: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", folder.casefold()).strip("_")
+
+
+def _engine_parts(path: str, wrapper: str = "") -> tuple[str, list[str]] | None:
+    """``(engine folder, the folders below it)`` for a file under ``engines/<Engine>/``."""
+    folders, _stem = _path_parts(path)
+    if wrapper and folders[:1] == [wrapper]:
+        folders = folders[1:]
+    for index, folder in enumerate(folders[:-1]):
+        if folder.casefold() == ENGINES_FOLDER:
+            return folders[index + 1], folders[index + 2 :]
+    return None
+
+
+@dataclass(frozen=True)
+class EnginePlan:
+    """Which engine's copy of the art a pack is read from."""
+
+    engines: tuple[str, ...]  # the engine folders, as the pack names them
+    kept: str  # the one that is used
+    godot_autotiles: bool  # Godot's folder has autotiles: the raw templates are not needed
+    both_layouts: bool  # ... in both of Godot's layouts
+
+    @property
+    def warning(self) -> str:
+        """The line for the pack's card: ``engines:5:Godot``."""
+        return f"engines:{len(self.engines)}:{self.kept}"
+
+
+def engine_plan(paths: list[str], wrapper: str = "") -> EnginePlan | None:
+    """The plan for a pack that ships its art for two engines or more, else None. Godot's
+    folder is used when there is one, else RPG Maker MV's, else another RPG Maker's (the A-sheet
+    reader knows those), else the first by name."""
+    found: dict[str, str] = {}
+    below: dict[str, set[str]] = {}
+    for path in paths:
+        parts = _engine_parts(path, wrapper)
+        if parts is not None:
+            found.setdefault(_engine_key(parts[0]), parts[0])
+            below.setdefault(_engine_key(parts[0]), set()).update(f.casefold() for f in parts[1])
+    if len(found) < 2:
+        return None
+
+    def rank(key: str) -> tuple[int, str]:
+        if key == "godot":
+            return (0, key)
+        if key.startswith("rpg_maker"):
+            return (1 if "mv" in key or "mz" in key else 2, key)
+        return (3, key)
+
+    kept = min(found, key=rank)
+    inside = below.get("godot", set()) if kept == "godot" else set()
+    return EnginePlan(
+        tuple(found[k] for k in sorted(found)),
+        found[kept],
+        bool(inside & AUTOTILE_FOLDERS),
+        LAYOUT_KEPT in inside and LAYOUT_DROPPED in inside,
+    )
+
+
+def not_this_engine(path: str, plan: EnginePlan, wrapper: str = "") -> str | None:
+    """Why a picture of a pack with several engine folders is left unused, or None: it is the
+    copy for another engine, the other of Godot's two autotile layouts, or the raw autotile
+    template the Godot sheets were made from."""
+    parts = _engine_parts(path, wrapper)
+    if parts is not None:
+        if _engine_key(parts[0]) != _engine_key(plan.kept):
+            return UNUSED_OTHER_ENGINE
+        below = [f.casefold() for f in parts[1]]
+        return UNUSED_OTHER_LAYOUT if plan.both_layouts and LAYOUT_DROPPED in below else None
+    folders, _stem = _path_parts(path)
+    if plan.godot_autotiles and any(f.casefold() in AUTOTILE_FOLDERS for f in folders):
+        return UNUSED_OTHER_LAYOUT
+    return None
 
 
 PREVIEW_FOLDERS = frozenset({"preview", "previews", "screenshot", "screenshots"})

@@ -46,6 +46,14 @@ def _named(asset_id: str) -> str:
 
 
 UNUSED_REASONS = {
+    classifier.UNUSED_OTHER_ENGINE: (
+        "the same art laid out for another engine; this pack has it for several, and one "
+        "is used. Give it a role to use this one as well."
+    ),
+    classifier.UNUSED_OTHER_LAYOUT: (
+        "another layout of an autotile the pack also has as a 47-tile sheet, which is the "
+        "one used. Give it a role to use this one as well."
+    ),
     "cut_copy": (
         "a copy that another tool cut out of a sheet of this pack; the sheet has it as an "
         "object. Give it a role to use the copy as well."
