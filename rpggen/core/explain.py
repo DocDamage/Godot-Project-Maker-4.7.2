@@ -46,6 +46,9 @@ def _named(asset_id: str) -> str:
 
 
 UNUSED_REASONS = {
+    classifier.UNUSED_COPY: (
+        "its name says it is a copy of the file beside it. Give it a role to use it as well."
+    ),
     classifier.UNUSED_OTHER_ENGINE: (
         "the same art laid out for another engine; this pack has it for several, and one "
         "is used. Give it a role to use this one as well."

@@ -395,6 +395,25 @@ def not_this_engine(path: str, plan: EnginePlan, wrapper: str = "") -> str | Non
     return None
 
 
+# A copy of a file beside the file (T16.21): ``B-10_副本.jpg`` (*copy*, as a Chinese Windows
+# names it), ``tree - Copy.png``, ``tree (copy).png``, ``tree_copy.png``.
+UNUSED_COPY = "copy"
+_COPY_SUFFIX = re.compile(
+    r"^(?P<base>.*?[A-Za-z0-9)])[\s_\-]*(?:[^\x00-\x7f]+|\(copy\)|copy)[\s_\-]*$", re.IGNORECASE
+)
+
+
+def copy_of(path: str, stems: set[tuple[str, str]]) -> str | None:
+    """The stem of the file that ``path`` is a copy of, when that file lies beside it, else
+    None. ``stems`` holds ``(folder, stem)`` of the pack's pictures, both case-folded."""
+    folders, stem = _path_parts(path)
+    m = _COPY_SUFFIX.match(stem)
+    if m is None:
+        return None
+    base = m.group("base")
+    return base if ("/".join(folders).casefold(), base.casefold()) in stems else None
+
+
 PREVIEW_FOLDERS = frozenset({"preview", "previews", "screenshot", "screenshots"})
 GUIDE_WORDS = frozenset(
     {"preview", "test", "grid", "guide", "slots", "template", "mockup", "showcase"}

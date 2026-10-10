@@ -865,6 +865,13 @@ def assemble(
         loose = any("/" not in f.path and f.kind != "license" for f in inv.files)
         wrapper = next(iter(tops)) if len(tops) == 1 and not loose else ""
         engines = classifier.engine_plan(paths_sorted, wrapper)
+        stems = {
+            (
+                posixpath.dirname(p).casefold(),
+                posixpath.splitext(posixpath.basename(p))[0].casefold(),
+            )
+            for p in paths_sorted
+        }
         base_ids = ids.disambiguate([ids.asset_id(pack_id, p) for p in paths_sorted])
         id_for_path = dict(zip(paths_sorted, base_ids, strict=True))
         files = {f.path: f for f in inv.files}
@@ -886,6 +893,8 @@ def assemble(
                     reason = classifier.not_game_art(path, wrapper)
                     if not reason and engines is not None:
                         reason = classifier.not_this_engine(path, engines, wrapper)
+                    if not reason and classifier.copy_of(path, stems):
+                        reason = classifier.UNUSED_COPY
                     if reason:  # a preview, a guide, another engine's copy: unused, says why
                         facets["role"] = "NONE"
                         facets.pop("roles_alt", None)

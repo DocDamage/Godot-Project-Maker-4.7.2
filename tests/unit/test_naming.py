@@ -336,3 +336,42 @@ def test_the_words_of_a_folder(tmp_path: Path) -> None:
         "abandoned",
         "hospital",
     ]
+
+
+# ----------------------------------------------------------------------------- copies, photos
+
+
+@pytest.mark.parametrize(
+    ("name", "base"),
+    [
+        ("B-10_\u526f\u672c.jpg", "B-10"),  # "copy", as a Chinese Windows names one
+        ("tree - Copy.png", "tree"),
+        ("tree (copy).png", "tree"),
+        ("tree_copy.png", "tree"),
+        ("TREE COPY.png", "TREE"),
+        ("house (2)_\u526f\u672c.png", "house (2)"),
+        ("tree.png", None),
+        ("tree_2.png", None),
+        ("copy.png", None),  # a name of its own
+        ("bush_copy.png", None),  # no bush beside it
+        ("caf\u00e9.png", None),
+    ],
+)
+def test_a_copy_is_told_by_its_name_and_the_file_beside_it(name: str, base: str | None) -> None:
+    stems = {("town", "b-10"), ("town", "tree"), ("town", "house (2)"), ("other", "bush")}
+    assert classifier.copy_of(f"Town/{name}", stems) == base
+
+
+def test_a_copy_is_unused_and_a_jpg_is_never_a_tile_sheet(tmp_path: Path) -> None:
+    pack = tmp_path / "Wild West Pixel Art Tileset"
+    _sheet(pack / "B-10.png", (768, 768), 48)
+    Image.new("RGB", (768, 768), (90, 60, 30)).save(pack / "B-10_\u526f\u672c.jpg")
+    Image.new("RGB", (768, 768), (30, 60, 90)).save(pack / "7.jpg")  # a number, a tile-set folder
+    Image.new("RGB", (64, 48), (30, 60, 90)).save(pack / "badge.jpg")
+    cat = _catalog(pack)
+    copy = _asset(cat, "B-10_\u526f\u672c.jpg")
+    assert copy.status == "UNUSED" and "copy of the file beside it" in explain.why(copy)
+    assert catalog.effective(_asset(cat, "B-10.png"))["usage"] == "tiles"
+    photo = catalog.effective(_asset(cat, "7.jpg"))
+    assert photo["usage"] == "background" and "grid" not in photo
+    assert catalog.effective(_asset(cat, "badge.jpg"))["usage"] == "sprite"

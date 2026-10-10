@@ -29,6 +29,7 @@ NUMBERED_SHEET_CELLS = {(768, 768): 48}
 NUMBERED_SHEET_FALLBACK = (48, 32, 16)
 STANDARD_ACTIONS = {"idle", "walk", "attack", "hurt", "death"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}
+PHOTO_EXTS = {".jpg", ".jpeg"}  # a format without transparency (T16.21)
 
 
 def build_pack_prior(results: list[AdapterResult]) -> dict[int, float]:
@@ -139,6 +140,13 @@ class GenericGridAdapter:
                 "directions": 4,
                 "animations": {k: animations[k] for k in sorted(animations)},
             }
+            result.assets.append(AssetFragment(f.path, facets, confidence, "partial"))
+            return
+
+        if f.ext in PHOTO_EXTS:  # 2a. no transparency: a background or a preview, never tiles
+            big = w >= K["BACKGROUND_MIN"] and h >= K["BACKGROUND_MIN"]
+            facets = {"usage": "background"} if big else self._single_frame(w, h)
+            confidence = K["BACKGROUND_CONFIDENCE"] if big else K["FALLBACK_CONFIDENCE"]
             result.assets.append(AssetFragment(f.path, facets, confidence, "partial"))
             return
 
