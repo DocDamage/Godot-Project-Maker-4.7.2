@@ -1459,6 +1459,210 @@ def make_bundle(out: Path) -> None:
     _expected(out, "bundle", expected)
 
 
+# ------------------------------------------------------------------------------------------
+# The arcade kinds (T16.02): a shoot 'em up, a run and gun, a racing game.
+
+
+def _turned(points: list[tuple[float, float]], turn: float, cx: float, cy: float) -> list[tuple[int, int]]:  # fmt: skip
+    """``points`` (around 0,0; y down) turned clockwise by ``turn`` of a full turn, about
+    ``cx, cy``, as whole pixels. The quarter turns are exact; the others are rounded from a
+    value that is never near a half, so every machine draws the same pixels."""
+    import math
+
+    quarter = round(turn * 4)
+    if abs(turn * 4 - quarter) < 1e-9:
+        cos, sin = ((1, 0), (0, 1), (-1, 0), (0, -1))[quarter % 4]
+    else:
+        cos, sin = math.cos(turn * 2 * math.pi), math.sin(turn * 2 * math.pi)
+    return [
+        (int(math.floor(cx + x * cos - y * sin + 0.5)), int(math.floor(cy + x * sin + y * cos + 0.5)))
+        for x, y in points
+    ]  # fmt: skip
+
+
+def _vehicle_ring(headings: int, cell: int, body: Color, roof: Color) -> Image.Image:
+    """One vehicle seen from above in ``headings`` views in a row, the first pointing up, each
+    turned clockwise by one step from the one before."""
+    img = Image.new("RGBA", (headings * cell, cell), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    half = cell / 2 - 0.25
+    w, length = cell * 0.23, cell * 0.41
+    hull = [(-w, -length * 0.6), (0.0, -length), (w, -length * 0.6), (w, length), (-w, length)]
+    cabin = [(-w * 0.6, -length * 0.15), (w * 0.6, -length * 0.15), (w * 0.6, length * 0.55),
+             (-w * 0.6, length * 0.55)]  # fmt: skip
+    for k in range(headings):
+        cx = k * cell + half
+        d.polygon(_turned(hull, k / headings, cx, half), fill=body, outline=BLACK)
+        d.polygon(_turned(cabin, k / headings, cx, half), fill=roof)
+    return img
+
+
+def _ship(color: Color, size: int = 24, lean: int = 0) -> Image.Image:
+    """A ship seen from above, its nose up; ``lean`` shifts the nose for a banking frame."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    mid = size // 2
+    d.polygon([(mid + lean, 1), (size - 3, size - 4), (mid, size - 7), (2, size - 4)], fill=color,
+              outline=BLACK)  # fmt: skip
+    d.rectangle([mid - 1, size // 3, mid, size // 3 + 3], fill=EYE)
+    return img
+
+
+def _burst(frames: int, size: int) -> Image.Image:
+    """An explosion strip: a ring that grows and thins from frame to frame."""
+    img = Image.new("RGBA", (frames * size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for i in range(frames):
+        cx, cy = i * size + size // 2, size // 2
+        r = 2 + i * (size // 2 - 3) // max(1, frames - 1)
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 200 - i * 24, 40, 255))
+        hole = r - max(1, (frames - i) * r // frames)
+        if hole > 0:
+            d.ellipse([cx - hole, cy - hole, cx + hole, cy + hole], fill=(0, 0, 0, 0))
+    return img
+
+
+def _space(far: bool) -> Image.Image:
+    """A background taller than wide, to scroll down: an opaque sky, or stars with holes."""
+    img = Image.new("RGBA", (128, 256), (8, 8, 24, 255) if far else (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for i in range(40):
+        x, y = (i * 37) % 128, (i * 91) % 256
+        d.point((x, y), fill=(200, 200, 255, 255) if far else (255, 255, 210, 255))
+        if not far:
+            d.rectangle([x, y, x + 1, y + 1], fill=(255, 255, 210, 255))
+    return img
+
+
+def _small(color: Color, size: int = 16, shape: str = "box") -> Image.Image:
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    if shape == "round":
+        d.ellipse([2, 2, size - 3, size - 3], fill=color, outline=BLACK)
+    elif shape == "cone":
+        d.polygon([(size // 2, 1), (size - 3, size - 2), (2, size - 2)], fill=color, outline=BLACK)
+    elif shape == "thin":
+        d.rectangle([size // 2 - 1, 2, size // 2, size - 3], fill=color)
+    else:
+        d.rectangle([2, 4, size - 3, size - 5], fill=color, outline=BLACK)
+    return img
+
+
+def make_shooter(out: Path) -> None:
+    """What a shoot 'em up pack holds, named the way such packs name it."""
+    pack = out / "shooter"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    hero = (90, 170, 230, 255)
+    bank = Image.new("RGBA", (72, 24), (0, 0, 0, 0))
+    for i, lean in enumerate((-3, 0, 3)):
+        bank.paste(_ship(hero, 24, lean), (i * 24, 0))
+    _save_png(bank, pack / "ships" / "player_ship.png")
+    for i in range(5):
+        _save_png(_ship(pal(i + 3), 24).transpose(Image.Transpose.FLIP_TOP_BOTTOM),
+                  pack / "enemies" / f"enemy_ship_{i + 1}.png")  # fmt: skip
+    _save_png(_small((255, 240, 120, 255), 8, "thin"), pack / "bullets" / "bullet.png")
+    _save_png(_small((255, 90, 90, 255), 8, "thin"), pack / "bullets" / "laser.png")
+    _save_png(_burst(6, 24), pack / "fx" / "explosion_6frames.png")
+    _save_png(_small(pal(9), 24, "round"), pack / "asteroids" / "asteroid_1.png")
+    _save_png(_space(True), pack / "backgrounds" / "space_far.png")
+    _save_png(_space(False), pack / "backgrounds" / "space_near.png")
+    _save_png(_ship((200, 60, 90, 255), 48).transpose(Image.Transpose.FLIP_TOP_BOTTOM),
+              pack / "boss" / "boss_ship.png")  # fmt: skip
+    for i in range(3):
+        _save_png(_small(pal(20 + i), 16, "round"), pack / "powerups" / f"capsule_{i + 1}.png")
+    expected: dict[str, dict] = {
+        "ships/player_ship.png": {"usage": "sprite", "frame": [24, 24]},
+        "bullets/bullet.png": {"usage": "sprite", "role": "PROJECTILE"},
+        "bullets/laser.png": {"usage": "sprite", "role": "PROJECTILE"},
+        "fx/explosion_6frames.png": {"usage": "sprite", "role": "EFFECT", "frame": [24, 24]},
+        "backgrounds/space_far.png": {"usage": "background", "role": "BACKGROUND"},
+        "boss/boss_ship.png": {"usage": "sprite", "role": "BOSS"},
+    }
+    for i in range(5):
+        expected[f"enemies/enemy_ship_{i + 1}.png"] = {"usage": "sprite", "role": "ENEMY"}
+    _expected(out, "shooter", expected)
+
+
+def make_gunner(out: Path) -> None:
+    """What a run and gun pack holds: a soldier in strips, enemies, a turret, a boss, side
+    tiles, two background layers, weapon pickups and a hook."""
+    pack = out / "gunner"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_side_ground(), pack / "tiles" / "ground.png")
+    soldier = (96, 150, 90, 255)
+    for action, frames in (("idle", 2), ("run", 4), ("jump", 2), ("shoot", 3)):
+        pose = action if action in ("idle", "run", "jump") else "attack"
+        _save_png(_side_strip(frames, soldier, 24, 24, pose), pack / "soldier" / f"soldier_{action}.png")  # fmt: skip
+    for i, name in enumerate(("trooper", "gunner", "commando")):
+        _save_png(_side_strip(2, pal(30 + i), 24, 24, "run"), pack / "enemies" / f"{name}_walk.png")
+    _save_png(_small((120, 120, 130, 255), 24, "cone"), pack / "enemies" / "turret.png")
+    for action in ("idle", "attack"):
+        _save_png(_side_strip(2, (190, 60, 80, 255), 32, 32, action), pack / "boss" / f"boss_{action}.png")  # fmt: skip
+    for depth, name in ((1, "far"), (3, "near")):
+        _save_png(_side_background(depth), pack / "backgrounds" / f"bg_{name}.png")
+    for i, name in enumerate(("spread", "laser", "flame", "machinegun")):
+        _save_png(_small(pal(40 + i), 16), pack / "pickups" / f"weapon_pickup_{name}.png")
+    _save_png(_small((220, 220, 230, 255), 16, "cone"), pack / "grapple_hook.png")
+    _expected(
+        out,
+        "gunner",
+        {
+            "tiles/ground.png": {"usage": "tiles", "role": "GROUND"},
+            "soldier/soldier_idle.png": {
+                "usage": "sprite",
+                "frame": [24, 24],
+                "anims": ["idle_down", "jump_down", "shoot_down", "walk_down"],
+            },
+            "enemies/trooper_walk.png": {"usage": "sprite", "role": "ENEMY"},
+            "enemies/turret.png": {"usage": "sprite", "role": "ENEMY"},
+            "boss/boss_attack.png": {"usage": "sprite", "role": "BOSS"},
+            "backgrounds/bg_far.png": {"usage": "background", "role": "BACKGROUND"},
+        },
+    )
+
+
+def _road_sheet() -> Image.Image:
+    """A 16 px sheet: asphalt straights and curves, a start line, grass and a barrier."""
+    img = Image.new("RGBA", (128, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    asphalt, grass, line = (70, 70, 78, 255), (76, 150, 70, 255), (240, 240, 240, 255)
+    for col in range(8):
+        x = col * 16
+        d.rectangle([x, 0, x + 15, 15], fill=asphalt if col < 6 else grass)
+        d.rectangle([x, 16, x + 15, 31], fill=grass if col % 2 else asphalt)
+    d.line([(8, 0), (8, 15)], fill=line)  # a straight with its centre line
+    d.line([(16, 8), (31, 8)], fill=line)
+    for i in range(0, 16, 4):  # the start line: a chequered tile
+        d.rectangle([32 + i, 0, 33 + i, 15], fill=line)
+    d.rectangle([48, 6, 63, 9], fill=(200, 40, 40, 255))  # a barrier across the road
+    return img
+
+
+def make_racer(out: Path) -> None:
+    """What a racing pack holds: cars in 16 headings, a road sheet, and what lies on a track."""
+    pack = out / "racer"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_vehicle_ring(16, 24, (220, 60, 60, 255), (250, 220, 220, 255)), pack / "cars" / "player_car.png")  # fmt: skip
+    for i in range(3):
+        _save_png(_vehicle_ring(16, 24, pal(50 + i), (230, 230, 240, 255)), pack / "cars" / f"rival_car_{i + 1}.png")  # fmt: skip
+    _save_png(_road_sheet(), pack / "tiles" / "road.png")
+    _save_png(_small((40, 40, 44, 255), 16, "round"), pack / "props" / "tyre.png")
+    _save_png(_small((240, 130, 40, 255), 16, "cone"), pack / "props" / "cone.png")
+    _save_png(_small((30, 30, 40, 255), 16, "round"), pack / "hazards" / "oil.png")
+    _save_png(_small((90, 220, 255, 255), 16, "cone"), pack / "pickups" / "boost.png")
+    for i in range(4):
+        _save_png(_small(pal(60 + i), 16), pack / "pickups" / f"pickup_{i + 1}.png")
+    expected: dict[str, dict] = {
+        "cars/player_car.png": {"usage": "sprite", "frame": [24, 24]},
+        "tiles/road.png": {"usage": "tiles"},
+        "props/tyre.png": {"usage": "sprite"},
+        "pickups/pickup_1.png": {"usage": "sprite", "role": "ITEM"},
+    }
+    for i in range(3):
+        expected[f"cars/rival_car_{i + 1}.png"] = {"usage": "sprite", "frame": [24, 24]}
+    _expected(out, "racer", expected)
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -1479,6 +1683,9 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "frames_export": make_frames_export,
     "multi_engine": make_multi_engine,
     "bundle": make_bundle,
+    "shooter": make_shooter,
+    "gunner": make_gunner,
+    "racer": make_racer,
     "audio_basic": lambda out: make_audio_basic(out),
 }
 

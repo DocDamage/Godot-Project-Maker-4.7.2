@@ -449,6 +449,8 @@
             8
           ]
         },
+        "headings": {"enum": [8, 12, 16, 24, 32]},
+        "heading_order": {"enum": ["up_cw", "up_ccw", "right_cw", "right_ccw"]},
         "character_index": {
           "type": "integer",
           "minimum": 0
@@ -750,6 +752,10 @@
               ]
             }
           ]
+        },
+        "headings": {"anyOf": [{"type": "null"}, {"enum": [8, 12, 16, 24, 32]}]},
+        "heading_order": {
+          "anyOf": [{"type": "null"}, {"enum": ["up_cw", "up_ccw", "right_cw", "right_ccw"]}]
         },
         "character_index": {
           "anyOf": [
@@ -1416,6 +1422,8 @@
             8
           ]
         },
+        "headings": {"enum": [8, 12, 16, 24, 32]},
+        "heading_order": {"enum": ["up_cw", "up_ccw", "right_cw", "right_ccw"]},
         "character_index": {
           "type": "integer",
           "minimum": 0

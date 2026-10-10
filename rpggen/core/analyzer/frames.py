@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import numpy as np
+from PIL import Image
 
 from rpggen.core.analyzer.grid import GridCandidate
 
@@ -46,6 +47,86 @@ Rect = tuple[int, int, int, int]
 
 
 # --------------------------------------------------------------------------- helpers
+
+
+# A rotation sheet (T16.02): one object in N views, turned by 360/N from one to the next.
+HEADING_COUNTS = (8, 12, 16, 24, 32)
+# Turned back by its angle, a view covers the first one this well on average and at least (a
+# drawn car measures 0.5 to 0.8; a walk cycle 0.2 to 0.6, and no better than left as it is).
+RING_MIN_MEAN = 0.40
+RING_MIN_WORST = 0.30
+RING_MIN_GAIN = 0.12  # ... and this much better than the views compared as they are
+RING_MAX_HEIGHT = 256
+
+
+@dataclass(frozen=True)
+class HeadingRing:
+    """A rotation sheet: ``headings`` views in one row of ``frame`` cells."""
+
+    headings: int
+    frame: tuple[int, int]
+    start: str  # "up" or "right": the way the first view points (its long side)
+    clockwise: bool  # the views turn clockwise from the first on
+    score: float  # how well the views cover the first one when turned back, 0..1
+
+    @property
+    def order(self) -> str:
+        return f"{self.start}_{'cw' if self.clockwise else 'ccw'}"
+
+
+def _ring_score(views: list[Image.Image], count: int, sign: int) -> tuple[float, float, float]:
+    """(mean cover of the first view by the others turned back, the worst, the mean cover of
+    the views as they are). ``sign`` 1: the views turn clockwise."""
+    first = np.asarray(views[0]) > 0
+    turned: list[float] = []
+    plain: list[float] = []
+    for k in range(1, count):
+        for cover, image in (
+            (turned, views[k].rotate(sign * k * 360.0 / count, resample=Image.Resampling.NEAREST)),
+            (plain, views[k]),
+        ):
+            other = np.asarray(image) > 0
+            union = int((first | other).sum())
+            cover.append(float((first & other).sum()) / union if union else 0.0)
+    return float(np.mean(turned)), float(min(turned)), float(np.mean(plain))
+
+
+def heading_ring(mask: np.ndarray) -> HeadingRing | None:
+    """The rotation sheet ``mask`` is, or None: one row of 8, 12, 16, 24 or 32 equal cells
+    (they need not be square: 46 x 54 is one) whose pictures are one object turned step by
+    step. A walk cycle is not: its frames cover each other best as they are, not turned."""
+    height, width = mask.shape
+    if height > RING_MAX_HEIGHT or width < 4 * height or not mask.any():
+        return None
+    best: tuple[float, int, int] | None = None
+    for count in HEADING_COUNTS:
+        if width % count:
+            continue
+        cell = width // count
+        cells = [mask[:, i * cell : (i + 1) * cell] for i in range(count)]
+        if not all(c.any() for c in cells):
+            continue
+        side = (int(max(cell, height) * 1.5) | 1) + 2  # room for a view to turn in
+        views = []
+        for c in cells:
+            canvas = Image.new("L", (side, side), 0)
+            picture = Image.fromarray((c * 255).astype(np.uint8))
+            canvas.paste(picture, ((side - cell) // 2, (side - height) // 2))
+            views.append(canvas)
+        for sign in (1, -1):
+            mean, worst, plain = _ring_score(views, count, sign)
+            ok = mean >= RING_MIN_MEAN and worst >= RING_MIN_WORST and mean >= plain + RING_MIN_GAIN
+            if ok and (best is None or mean > best[0] + 1e-9):
+                best = (mean, count, sign)
+    if best is None:
+        return None
+    mean, count, sign = best
+    cell = width // count
+    rows, cols = np.nonzero(mask[:, :cell])
+    tall = (rows.max() - rows.min()) >= (cols.max() - cols.min())
+    # Pillow turns counter-clockwise for a positive angle: a view that must be turned that way
+    # to cover the first was turned clockwise from it.
+    return HeadingRing(count, (cell, height), "up" if tall else "right", sign == 1, round(mean, 4))
 
 
 def frame_rects(frame: tuple[int, int], cols: int, rows: int) -> list[Rect]:

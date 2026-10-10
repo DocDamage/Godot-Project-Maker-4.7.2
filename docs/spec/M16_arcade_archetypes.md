@@ -101,7 +101,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | Card | Title | Size | Depends on | Status |
 |------|-------|:----:|------------|--------|
 | T16.01 | The arcade framework | L | — | open |
-| T16.02 | Detection for the three kinds | M | — | open |
+| T16.02 | Detection for the three kinds | M | — | done, but for the grid editor's ring and the pack card's words (the wizard, T16.16); the notes have the deviations |
 | T16.03 | Drawn stand-ins and new roles | M | T16.02 | open |
 | T16.04 | Shoot 'em up: ship, bullets, scrolling | M | T16.01, T16.03 | open |
 | T16.05 | Shoot 'em up: waves, enemies, power-ups | M | T16.04 | open |

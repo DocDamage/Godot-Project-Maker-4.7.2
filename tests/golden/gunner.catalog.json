@@ -1,0 +1,813 @@
+{
+  "assets": [
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          320,
+          180
+        ],
+        "tags": [
+          "parallax:1"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.backgrounds.bg_far",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/backgrounds/bg_far.png",
+      "sha256": "5c2d6125dc5d9e40367f67dd8df6cf83aaac2ecf0d1c091ed3699ccd4bb64ffb",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          320,
+          180
+        ],
+        "tags": [
+          "parallax:3"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.backgrounds.bg_near",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/backgrounds/bg_near.png",
+      "sha256": "89a5eed45bce7a79ad3bacadc2587a1eb5bddb877b68f6763448cf06772b13cd",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/gunner/boss/boss_attack.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/gunner/boss/boss_idle.png"
+          }
+        },
+        "frame": [
+          32,
+          32
+        ],
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          16,
+          31
+        ],
+        "role": "BOSS",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "gunner.boss.boss_attack",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/boss/boss_attack.png",
+      "sha256": "fdec5beac994b36c4127e0141e980afb5355ac3118b8e1665f2a3e7428558025",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/gunner/enemies/commando_walk.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          48,
+          24
+        ],
+        "tags": [
+          "soldier"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "gunner.enemies.commando_walk",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/enemies/commando_walk.png",
+      "sha256": "402a85062f680b7bbaf5d2966d6906776ac46dbe3ee962d1f62419028f259011",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/gunner/enemies/gunner_walk.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          48,
+          24
+        ],
+        "tags": [
+          "soldier"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "gunner.enemies.gunner_walk",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/enemies/gunner_walk.png",
+      "sha256": "13ae79f501b3c0080281cc98a4ca31ecb9a5a1a8fc63f2498865875d8073e06e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/gunner/enemies/trooper_walk.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          48,
+          24
+        ],
+        "tags": [
+          "soldier"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "gunner.enemies.trooper_walk",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/enemies/trooper_walk.png",
+      "sha256": "c906cb4e596794e1f807f6006949024e15502131d3491bc6afbae45ce9bc9bf3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "turret"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.enemies.turret",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/enemies/turret.png",
+      "sha256": "d638aaf0ec0c46e5d72808fab6a1f37662dee7ba99520ec209705c3f683f4074",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "grapple"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.grapple_hook",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/grapple_hook.png",
+      "sha256": "2ff1e1583f8a4b9029e308a4027611904b34141b466554e422615d211d0dbcf1",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.481481,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "WEAPON",
+            0.333333
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.pickups.weapon_pickup_flame",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/pickups/weapon_pickup_flame.png",
+      "sha256": "a501f5b3f9c28d46df85d6dd8b32402ab0a1407fbebac78ac8d2c7641fae516d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.481481,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "WEAPON",
+            0.333333
+          ],
+          [
+            "PROJECTILE",
+            0.333333
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "bullet",
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.pickups.weapon_pickup_laser",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/pickups/weapon_pickup_laser.png",
+      "sha256": "5a25d1765d8861b97c8730d5fa3b84508ea0a36f0fbc817cd5d7d840cf17c16f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.481481,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "WEAPON",
+            0.333333
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "gun",
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.pickups.weapon_pickup_machinegun",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/pickups/weapon_pickup_machinegun.png",
+      "sha256": "f2a05999bcff09e876c4b72cbeb9e78787abe23c808d6b25f5014ce6b6f2fe8a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.481481,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "WEAPON",
+            0.333333
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.pickups.weapon_pickup_spread",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/pickups/weapon_pickup_spread.png",
+      "sha256": "cc602d3a87c2391a382f95f92944a39411fe1cf8fbf61a46c8725f1987f456b8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/gunner/soldier/soldier_idle.png"
+          },
+          "jump_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/gunner/soldier/soldier_jump.png"
+          },
+          "shoot_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/gunner/soldier/soldier_shoot.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/gunner/soldier/soldier_run.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          48,
+          24
+        ],
+        "tags": [
+          "soldier"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "gunner.soldier.soldier_idle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/soldier/soldier_idle.png",
+      "sha256": "4d0a7e004f50f17e64c215c7ff397570e24ec412fd30cc54534e0cc9ccd6b4cf",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.4554,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.0625
+          ],
+          [
+            "WALL",
+            0.03125
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "gunner.tiles.ground",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "gunner",
+      "path": "assets/packs/gunner/tiles/ground.png",
+      "sha256": "bf1830562bb1ff7f1acf60b30cd5b93815085cf45a9545c6c9b3f31e989cc38e",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/gunner/LICENSE.txt"
+      ],
+      "pack_id": "gunner",
+      "profile_id": null,
+      "root": "assets/packs/gunner",
+      "source_sha256": "f6c101d4a7d5d670681e63195b77b4495bde65b858898ab6b29ff1d63df7e523",
+      "warnings": [
+        "strips_direction_assumed:boss/boss_attack.png",
+        "strips_direction_assumed:boss/boss_idle.png",
+        "strips_direction_assumed:enemies/commando_walk.png",
+        "strips_direction_assumed:enemies/gunner_walk.png",
+        "strips_direction_assumed:enemies/trooper_walk.png",
+        "strips_direction_assumed:soldier/soldier_idle.png",
+        "strips_direction_assumed:soldier/soldier_jump.png",
+        "strips_direction_assumed:soldier/soldier_run.png",
+        "strips_direction_assumed:soldier/soldier_shoot.png",
+        "view:side"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "gunner.tiles.ground",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

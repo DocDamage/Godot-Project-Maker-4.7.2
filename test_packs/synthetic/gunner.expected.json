@@ -1,0 +1,35 @@
+{
+  "backgrounds/bg_far.png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "boss/boss_attack.png": {
+    "role": "BOSS",
+    "usage": "sprite"
+  },
+  "enemies/trooper_walk.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "enemies/turret.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "soldier/soldier_idle.png": {
+    "anims": [
+      "idle_down",
+      "jump_down",
+      "shoot_down",
+      "walk_down"
+    ],
+    "frame": [
+      24,
+      24
+    ],
+    "usage": "sprite"
+  },
+  "tiles/ground.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  }
+}

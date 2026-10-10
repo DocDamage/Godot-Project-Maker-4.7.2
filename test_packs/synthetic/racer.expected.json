@@ -1,0 +1,40 @@
+{
+  "cars/player_car.png": {
+    "frame": [
+      24,
+      24
+    ],
+    "usage": "sprite"
+  },
+  "cars/rival_car_1.png": {
+    "frame": [
+      24,
+      24
+    ],
+    "usage": "sprite"
+  },
+  "cars/rival_car_2.png": {
+    "frame": [
+      24,
+      24
+    ],
+    "usage": "sprite"
+  },
+  "cars/rival_car_3.png": {
+    "frame": [
+      24,
+      24
+    ],
+    "usage": "sprite"
+  },
+  "pickups/pickup_1.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "props/tyre.png": {
+    "usage": "sprite"
+  },
+  "tiles/road.png": {
+    "usage": "tiles"
+  }
+}

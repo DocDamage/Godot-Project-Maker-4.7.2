@@ -1,0 +1,639 @@
+{
+  "assets": [
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ITEM",
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "asteroid"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.asteroids.asteroid_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/asteroids/asteroid_1.png",
+      "sha256": "416b89ce2a3150d8d390c07b289e79a45c07cc487ffc93ddc5b21d0ff209ca29",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          128,
+          256
+        ],
+        "tags": [
+          "parallax:1"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.backgrounds.space_far",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/backgrounds/space_far.png",
+      "sha256": "05952b97460da0396e8363389a78df9d598edb22d12e1f657facf71b9ff73c79",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          128,
+          256
+        ],
+        "tags": [
+          "parallax:3"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.backgrounds.space_near",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/backgrounds/space_near.png",
+      "sha256": "eb9fc4b5bcd3a80d963bd473db893b9631bc26791ef60c28bd340d92f99f6b38",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          48,
+          48
+        ],
+        "origin": [
+          24,
+          47
+        ],
+        "role": "BOSS",
+        "size": [
+          48,
+          48
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.boss.boss_ship",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/boss/boss_ship.png",
+      "sha256": "c490f92357a431f290b0b184287ca98e97cc551b700c373315ecedea9ac0c54e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          8,
+          8
+        ],
+        "origin": [
+          4,
+          7
+        ],
+        "role": "PROJECTILE",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          8,
+          8
+        ],
+        "tags": [
+          "bullet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.bullets.bullet",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/bullets/bullet.png",
+      "sha256": "f1986301fd6b79a4c4fbd1edca62d0f540ee259711f7e06bdd1645a6d92cc555",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          8,
+          8
+        ],
+        "origin": [
+          4,
+          7
+        ],
+        "role": "PROJECTILE",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          8,
+          8
+        ],
+        "tags": [
+          "bullet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.bullets.laser",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/bullets/laser.png",
+      "sha256": "eeef42f4119e94670f4e69e3904780002ef17174655f463652968c344b37ebd5",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.enemies.enemy_ship_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/enemies/enemy_ship_1.png",
+      "sha256": "0befcbce3a26b1e454366f1f88da0c22126b87de9c6e605089603d9022a40f1f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.enemies.enemy_ship_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/enemies/enemy_ship_2.png",
+      "sha256": "e38785ad832563a94a4e8177a20249acb00a11c3a3815277a19ff8d2f8336979",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.enemies.enemy_ship_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/enemies/enemy_ship_3.png",
+      "sha256": "d53722f1923a666db0d6d0b41cc2b34d838f272644bae78e171d59521d9bda67",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.enemies.enemy_ship_4",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/enemies/enemy_ship_4.png",
+      "sha256": "d5f251832c0b37fc98224c6b9adff825aab49d7c8f1a8072183ebd507e757f36",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.enemies.enemy_ship_5",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/enemies/enemy_ship_5.png",
+      "sha256": "a6797399df207aee54ace9a743e2d5072b1b69a98a44c1127b8ea08cd2b7421f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.655172,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "EFFECT",
+        "roles_alt": [
+          [
+            "NPC",
+            0.172414
+          ],
+          [
+            "PLAYER",
+            0.034483
+          ]
+        ],
+        "size": [
+          144,
+          24
+        ],
+        "tags": [
+          "explosion"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "shooter.fx.explosion_6frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/fx/explosion_6frames.png",
+      "sha256": "a591498b2e406eb91d7254edd7053650892379c3e5cfd00e64a6d69737f054b0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.powerups.capsule_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/powerups/capsule_1.png",
+      "sha256": "c6fc1bd7d9898801a2f73768cf9ccc67ea47ec9c8f54db5788b8d0f28abe51e1",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.powerups.capsule_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/powerups/capsule_2.png",
+      "sha256": "48f548770b845f52cd2c2df0734fda8b964f66e66249e5298a09f928bfbd4cc0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.powerups.capsule_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/powerups/capsule_3.png",
+      "sha256": "741d2996d196dfa61ae3680696f549a395c0373db01d9ca8bf9d922b7d1a5918",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          20
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ]
+        ],
+        "size": [
+          72,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "shooter.ships.player_ship",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "shooter",
+      "path": "assets/packs/shooter/ships/player_ship.png",
+      "sha256": "94bee670cec07c8404d3112475390fbb473149a626e6ef1407dd78e5372cb541",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/shooter/LICENSE.txt"
+      ],
+      "pack_id": "shooter",
+      "profile_id": null,
+      "root": "assets/packs/shooter",
+      "source_sha256": "817076e3f5fdb54ef4461dbe7f99d1d36626992e014ff55ebbe705207b55bce4",
+      "warnings": [
+        "view:shmup"
+      ]
+    }
+  ],
+  "tilesets": []
+}

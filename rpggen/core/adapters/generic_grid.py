@@ -21,6 +21,7 @@ GENERIC_CONSTANTS = {
     "FALLBACK_CONFIDENCE": 0.3,
     "BUILDING_MIN_CELLS": 4,  # objects at least 4x4 cells are buildings, others decoration
     "FOOTPRINT_FRACTION": 0.3,
+    "RING_CONFIDENCE": 0.8,
     "NUMBERED_SHEET_CONFIDENCE": 0.6,  # needs review: what stands on the sheet is not known
 }
 # A numbered sheet (T16.21) has no name to read its grid from. 768 x 768 is the B-E sheet of
@@ -106,6 +107,22 @@ class GenericGridAdapter:
             result.assets.append(
                 AssetFragment(f.path, blob, K["NUMBERED_SHEET_CONFIDENCE"], "partial")
             )
+            return
+
+        ring = a.get("heading_ring")
+        if ring:  # 0b. a rotation sheet: one object in N headings, not an animation
+            fw, fh = ring["frame"]
+            turning = {
+                "usage": "sprite",
+                "grid": {"cell": [fw, fh], "margin": [0, 0], "separation": [0, 0]},
+                "frame": [fw, fh],
+                # the foot of the cell, as for any single picture: the older kinds place the
+                # first view as scenery; the racing kind turns a car about its middle itself
+                "origin": [fw // 2, fh - 1],
+                "headings": ring["headings"],
+                "heading_order": ring["order"],
+            }
+            result.assets.append(AssetFragment(f.path, turning, K["RING_CONFIDENCE"], "partial"))
             return
 
         strip = a.get("strip")

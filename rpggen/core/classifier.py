@@ -31,7 +31,7 @@ ROLE_KEYWORDS: list[tuple[str, dict[str, float]]] = [
     ("ITEM", {"item": 1.0, "items": 1.0, "icon": 1.0, "icons": 1.0, "potion": 1.0, "loot": 1.0, "pickup": 1.0, "gem": 1.0, "coin": 1.0, "key": 1.0, "food": 1.0, "consumable": 1.0}),
     ("WEAPON", {"weapon": 1.0, "weapons": 1.0, "sword": 1.0, "bow": 1.0, "axe": 1.0, "spear": 1.0, "staff": 1.0, "dagger": 1.0}),
     ("EFFECT", {"fx": 1.0, "effect": 1.0, "effects": 1.0, "vfx": 1.0, "explosion": 1.0, "slash": 1.0, "magic": 1.0, "spell": 1.0, "particle": 1.0, "smoke": 1.0, "impact": 1.0}),
-    ("PROJECTILE", {"projectile": 1.0, "arrow": 1.0, "bullet": 1.0, "fireball": 1.0, "bolt": 1.0}),
+    ("PROJECTILE", {"projectile": 1.0, "arrow": 1.0, "bullet": 1.0, "fireball": 1.0, "bolt": 1.0, "laser": 1.0, "missile": 1.0}),
     ("UI", {"ui": 1.0, "gui": 1.0, "hud": 1.0, "button": 1.0, "panel": 1.0, "frame": 1.0, "window": 1.0, "cursor": 1.0, "bar": 1.0, "dialog": 1.0, "dialogue": 1.0, "menu": 1.0}),
     ("PORTRAIT", {"portrait": 1.0, "portraits": 1.0, "face": 1.0, "faces": 1.0, "bust": 1.0}),
     ("BACKGROUND", {"background": 1.0, "backgrounds": 1.0, "bg": 1.0, "parallax": 1.0, "sky": 1.0, "title": 1.0}),
@@ -206,6 +206,71 @@ def parallax_depth(path: str) -> int | None:
     return None
 
 
+# What the words of a file or folder say for the arcade kinds (T16.02): a shoot 'em up, a
+# run and gun, a racing game. A tag is a label; the older kinds do nothing with these.
+ARCADE_TAG_WORDS: tuple[tuple[str, frozenset[str]], ...] = (
+    ("ship", frozenset({"ship", "ships", "spaceship", "spaceships", "fighter", "jet", "plane",
+                        "starship"})),
+    ("bullet", frozenset({"bullet", "bullets", "shot", "shots", "laser", "lasers", "beam",
+                          "missile", "missiles", "rocket", "rockets", "plasma"})),
+    ("explosion", frozenset({"explosion", "explosions", "blast", "boom", "burst"})),
+    ("asteroid", frozenset({"asteroid", "asteroids", "meteor", "meteors"})),
+    ("powerup", frozenset({"powerup", "powerups", "capsule", "capsules", "upgrade"})),
+    ("soldier", frozenset({"soldier", "soldiers", "commando", "trooper", "marine", "gunner"})),
+    ("gun", frozenset({"gun", "guns", "rifle", "machinegun", "shotgun"})),
+    ("grenade", frozenset({"grenade", "grenades"})),
+    ("turret", frozenset({"turret", "turrets", "cannon", "emplacement"})),
+    ("grapple", frozenset({"grapple", "hook", "claw"})),
+    ("car", frozenset({"car", "cars", "kart", "karts", "buggy", "truck", "racer", "vehicle",
+                       "vehicles"})),
+    ("bike", frozenset({"bike", "bikes", "scooter", "chopper", "motorcycle", "superbike"})),
+    ("road", frozenset({"road", "roads", "track", "tracks", "asphalt", "tarmac"})),
+    ("finish", frozenset({"finish", "checkpoint", "checkpoints"})),
+    ("tyre", frozenset({"tyre", "tyres", "tire", "tires", "barrier", "barriers", "cone",
+                        "cones"})),
+    ("oil", frozenset({"oil"})),
+    ("boost", frozenset({"boost", "nitro"})),
+    ("vfx", frozenset({"vfx", "smoke", "nitro", "dust"})),
+    ("mix", frozenset({"mix"})),
+)  # fmt: skip
+ARCADE_TAG_PAIRS: tuple[tuple[str, tuple[str, str]], ...] = (
+    ("powerup", ("power", "up")),
+    ("powerup", ("weapon", "pickup")),
+    ("gun", ("laser", "gun")),
+    ("road", ("dirt", "track")),
+    ("finish", ("start", "line")),
+    ("boost", ("speed", "up")),
+)
+ARCADE_TAGS = frozenset(tag for tag, _words in ARCADE_TAG_WORDS)
+# what a pack of each kind is full of
+SHMUP_TAGS = frozenset({"ship", "bullet", "asteroid"})
+RACING_TAGS = frozenset({"car", "bike", "road", "tyre"})
+
+
+def arcade_tags(name: str) -> list[str]:
+    """The arcade tags the words of a file suggest (T16.02), sorted: ``ship``, ``bullet``,
+    ``car``, ``road`` and so on. The name's own words and those of its nearest folder count; a
+    folder two levels up (``Cars/Classic_Bug/``) counts for the vehicle words, which artists
+    put on the folder of a whole kind."""
+    path = name if "." in name.rsplit("/", 1)[-1] else name + ".png"
+    folders, stem = _path_parts(path)
+    found: set[str] = set()
+    for words in (_all_words(stem), _all_words(folders[-1]) if folders else []):
+        have = set(words)
+        for tag, tag_words in ARCADE_TAG_WORDS:
+            if have & tag_words:
+                found.add(tag)
+        for tag, pair in ARCADE_TAG_PAIRS:
+            if _has_pair(words, pair):
+                found.add(tag)
+    for folder in folders[-2:-1]:
+        have = set(_all_words(folder))
+        for tag, tag_words in ARCADE_TAG_WORDS:
+            if tag in ("car", "bike", "ship") and have & tag_words:
+                found.add(tag)
+    return sorted(found)
+
+
 def side_view_tags(name: str) -> list[str]:
     """The side-view tags the words of a file or an object suggest (T14.02), sorted:
     ``platform``, ``one_way``, ``ladder``, ``hazard``, ``save_point``, ``ability`` and
@@ -271,7 +336,35 @@ def pack_view(inventory: Any, sheets: Any = ()) -> str:
             side += 2
         elif _is_top_sheet(animations):
             top += 2
+    kind = arcade_view(inventory, sheets)
+    if kind is not None and side <= top:
+        return kind
     return "side" if side > top else "top"
+
+
+ARCADE_VIEW_MIN = 3  # this many names of a pack must say it before the pack is one
+
+
+def arcade_view(inventory: Any, sheets: Any = ()) -> str | None:
+    """``"shmup"`` or ``"racing"`` for a pack made for one (T16.02), else None: its folders and
+    files name ships, bullets and asteroids, or cars, roads and tyres (a name counts once), and
+    a rotation sheet among ``sheets`` (one vehicle in N headings) counts for racing."""
+    shmup = racing = 0
+    seen: set[str] = set()
+    for f in getattr(inventory, "files", ()):
+        folders, stem = _path_parts(f.path)
+        for part in (*folders, stem):
+            if part.casefold() in seen:
+                continue
+            seen.add(part.casefold())
+            tags = set(arcade_tags(part))
+            shmup += bool(tags & SHMUP_TAGS)
+            racing += bool(tags & RACING_TAGS)
+    if any(isinstance(facets, dict) and facets.get("headings") for facets in sheets):
+        racing += 2
+    if max(shmup, racing) < ARCADE_VIEW_MIN:
+        return None
+    return "racing" if racing >= shmup else "shmup"
 
 
 # A sheet whose name is a number and nothing else (``3.png``) says nothing: its folders do

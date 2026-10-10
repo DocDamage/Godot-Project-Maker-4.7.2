@@ -186,7 +186,8 @@ def test_the_platformer_golden(platformer: Catalog) -> None:
 def test_no_top_down_golden_has_a_side_view_tag_or_view() -> None:
     names = {"platform", "one_way", "ladder", "hazard", "save_point", "ability"}
     for path in sorted(GOLDEN.glob("*.catalog.json")):
-        if path.name in ("platformer.catalog.json", "sample_pack_side.catalog.json"):
+        # the side-view packs, and the shooter, whose backgrounds are layers that scroll (M16)
+        if path.stem.split(".")[0] in ("platformer", "sample_pack_side", "gunner", "shooter"):
             continue
         data = json.loads(path.read_text(encoding="utf-8"))
         for pack in data["packs"]:

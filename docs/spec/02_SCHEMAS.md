@@ -225,6 +225,8 @@ unknown licence.
 | `frame` | vec2i | usage=sprite | Frame size in px. |
 | `origin` | vec2i | usage=sprite/object | Pixel inside a frame/object that becomes the node origin (the feet). |
 | `directions` | int 1/4/8 | usage=sprite | |
+| `headings` | int 8/12/16/24/32 | usage=sprite | A **rotation sheet** (T16.02, release 1.4): one object in this many views in one row of `frame` cells, each turned by 360/N from the one before; it has no `animations`. The older kinds show its first view. |
+| `heading_order` | `up_cw`, `up_ccw`, `right_cw`, `right_ccw` | with `headings` | The way the first view points (its long side: up or right) and the way the views turn from it. |
 | `character_index` | int | RPG Maker multi-character sheets | Which 3×4 block (0–7). |
 | `ysort` | bool | object/sprite | Default true. |
 | `audio` | `{ "type": "music"/"sfx", "loop": bool, "duration_s"?: number, "loop_start_ms"?: int, "loop_end_ms"?: int }` | usage=audio | `duration_s` is read from the file (WAV, OGG, MP3, FLAC) when it can be; optional. `loop_start_ms` and `loop_end_ms` (T13.17, optional, set on the Audit page) are where a looping track jumps back to and from; without them it loops as a whole. An override may set a part of `audio` (it merges) and `null` takes a loop point away. |

@@ -1,0 +1,53 @@
+{
+  "backgrounds/space_far.png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "boss/boss_ship.png": {
+    "role": "BOSS",
+    "usage": "sprite"
+  },
+  "bullets/bullet.png": {
+    "role": "PROJECTILE",
+    "usage": "sprite"
+  },
+  "bullets/laser.png": {
+    "role": "PROJECTILE",
+    "usage": "sprite"
+  },
+  "enemies/enemy_ship_1.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "enemies/enemy_ship_2.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "enemies/enemy_ship_3.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "enemies/enemy_ship_4.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "enemies/enemy_ship_5.png": {
+    "role": "ENEMY",
+    "usage": "sprite"
+  },
+  "fx/explosion_6frames.png": {
+    "frame": [
+      24,
+      24
+    ],
+    "role": "EFFECT",
+    "usage": "sprite"
+  },
+  "ships/player_ship.png": {
+    "frame": [
+      24,
+      24
+    ],
+    "usage": "sprite"
+  }
+}

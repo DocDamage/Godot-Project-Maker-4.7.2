@@ -13,7 +13,7 @@ from rpggen.core.inventory import Inventory
 
 log = logging.getLogger(__name__)
 
-ANALYZER_VERSION = 4
+ANALYZER_VERSION = 5  # 5: heading_ring (T16.02)
 MIN_REGION_GRID_SCORE = 0.6
 
 
@@ -25,6 +25,7 @@ def analyze_array(a, mask) -> dict[str, Any]:  # noqa: ANN001 - numpy arrays
     bbox = image_facts.opaque_bbox(mask)
     candidates = grid.detect_grid(a, mask)
     strip = frames.detect_strip(mask, candidates)
+    ring = frames.heading_ring(mask)
     sheet = frames.detect_character_sheet(a, mask, candidates[0] if candidates else None)
     region_list: list[list[int]] = []
     if candidates and candidates[0].score >= MIN_REGION_GRID_SCORE:
@@ -77,6 +78,16 @@ def analyze_array(a, mask) -> dict[str, Any]:  # noqa: ANN001 - numpy arrays
                 "direction_confidence": sheet.direction_confidence,
             }
             if sheet
+            else None
+        ),
+        "heading_ring": (
+            {
+                "headings": ring.headings,
+                "frame": list(ring.frame),
+                "order": ring.order,
+                "score": ring.score,
+            }
+            if ring
             else None
         ),
         "baseline_y": baseline,

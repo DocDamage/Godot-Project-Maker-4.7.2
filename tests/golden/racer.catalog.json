@@ -1,0 +1,554 @@
+{
+  "assets": [
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_order": "up_cw",
+        "headings": 16,
+        "origin": [
+          12,
+          23
+        ],
+        "role": "DECORATION",
+        "size": [
+          384,
+          24
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.cars.player_car",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/cars/player_car.png",
+      "sha256": "811114c7c9256cd9b22c9fc78d2fe0ca340377d3547599433e9d1f40674eff7e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_order": "up_cw",
+        "headings": 16,
+        "origin": [
+          12,
+          23
+        ],
+        "role": "DECORATION",
+        "size": [
+          384,
+          24
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.cars.rival_car_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/cars/rival_car_1.png",
+      "sha256": "d3db6d2186d7b050de9ba74a9cba3cd878f32066e9ca348494aa34066155b1b1",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_order": "up_cw",
+        "headings": 16,
+        "origin": [
+          12,
+          23
+        ],
+        "role": "DECORATION",
+        "size": [
+          384,
+          24
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.cars.rival_car_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/cars/rival_car_2.png",
+      "sha256": "ece88dc072db4aba775f4ac992793e5795eff50fcf4ac0062dbd81bbfd80e54e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_order": "up_cw",
+        "headings": 16,
+        "origin": [
+          12,
+          23
+        ],
+        "role": "DECORATION",
+        "size": [
+          384,
+          24
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.cars.rival_car_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/cars/rival_car_3.png",
+      "sha256": "dc545aa6e11932f0bd9bdb1a632df0ce47f4f374d916650143f8292ca6fefa39",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "oil"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.hazards.oil",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/hazards/oil.png",
+      "sha256": "f3b152ef884184c7095ddb9784c4433c3ad70427bc88f460acef29b4227879a2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "boost"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.pickups.boost",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/pickups/boost.png",
+      "sha256": "9a8a14aeab51c708aec8641bc6f01482dadf331233380d99bfcd2d622d0e9467",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.pickups.pickup_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/pickups/pickup_1.png",
+      "sha256": "4cc63d118f91221a459d0f9ead04a982ed31ceaf609815c700d4014315b3bc60",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.pickups.pickup_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/pickups/pickup_2.png",
+      "sha256": "d099b86a384f624aa16892f9680c42b1236c12c347ee9b0b6b48be54e076937c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.pickups.pickup_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/pickups/pickup_3.png",
+      "sha256": "a1a83f4227ebad104b9ab5d698f6a6d7a8090f8e5d26e8ca9a246be8e6acd637",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.pickups.pickup_4",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/pickups/pickup_4.png",
+      "sha256": "199c5a5490a88f94547581161debe9449f1055719827a1639e067f112082e474",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "tyre"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.props.cone",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/props/cone.png",
+      "sha256": "55cd0bffe6b751e1823ec2aca2655a6a287506095b91e7fa246beeaa34eb485a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "tyre"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.props.tyre",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/props/tyre.png",
+      "sha256": "d5246cb7f8ffe5f16acc8374ffed80d2bfc956c824d81f15e6825001aa708def",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.4107,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "ROAD",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.066667
+          ],
+          [
+            "WALL",
+            0.033333
+          ]
+        ],
+        "size": [
+          128,
+          32
+        ],
+        "tags": [
+          "road"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "racer.tiles.road",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "racer",
+      "path": "assets/packs/racer/tiles/road.png",
+      "sha256": "af8c14fe82182da6d0851e8841302a16e3d0a588f243097e5be5809290b1528d",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/racer/LICENSE.txt"
+      ],
+      "pack_id": "racer",
+      "profile_id": null,
+      "root": "assets/packs/racer",
+      "source_sha256": "e0f063b21972373fcd6bcb7fe14abdd11efa0a5760f6bafa2f606389d240beb6",
+      "warnings": [
+        "view:racing"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "racer.tiles.road",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

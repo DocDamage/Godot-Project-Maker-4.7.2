@@ -626,7 +626,10 @@ def _suggest_tags(facets: dict[str, Any], path: str) -> None:
         surface = classifier.suggested_surface(path)
         if surface is not None:
             suggested = [*suggested, f"surface:{surface}"]
-    suggested = [*suggested, *classifier.side_view_tags(path)]
+    side = classifier.side_view_tags(path)
+    # an ability to find is the metroidvania's word for it: it is not also a power-up
+    arcade = [t for t in classifier.arcade_tags(path) if not (t == "powerup" and "ability" in side)]
+    suggested = [*suggested, *side, *arcade]
     if suggested:
         facets["tags"] = sorted(set(facets.get("tags") or []) | set(suggested))
 
@@ -695,6 +698,9 @@ def _side_view_usage(assets: list[Asset]) -> None:
 
 # A pack warning: the pack looks like a side-view (platformer) pack (T14.02).
 VIEW_SIDE = "view:side"
+ROTATION_SHEET_ROLES = frozenset({"DECORATION", "EFFECT", "PROJECTILE", "NONE"})
+VIEW_SHMUP = "view:shmup"  # T16.02: the pack looks like one for a shoot 'em up
+VIEW_RACING = "view:racing"  # ... for a racing game
 
 
 def pack_view(pack: CatalogPack) -> str:
@@ -941,6 +947,13 @@ def assemble(
                     facets["role"] = role
                     if alt:
                         facets["roles_alt"] = alt
+                turning = role_conf is not None and bool(facets.get("headings"))
+                if turning and facets["role"] not in ROTATION_SHEET_ROLES:
+                    # One thing in N headings has no walk and no attack: it is nothing the
+                    # older kinds can make an actor or an item of, whatever its folder says
+                    # (the racing kind gives it the role it has there, T16.03).
+                    facets["role"] = "DECORATION"
+                    facets.pop("roles_alt", None)
                 if role_conf is not None:
                     confidence = min(confidence, role_conf)
                     reason = classifier.not_game_art(path, wrapper)
@@ -1015,8 +1028,18 @@ def assemble(
             issues.add("ASSET-021", pack_id=pack_id, file=root)
         _side_view_usage([a for a in catalog.assets if a.pack_id == pack_id])
         sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
-        if classifier.pack_view(inv, sheets) == "side":
-            warnings.append(VIEW_SIDE)  # a top-down pack, the usual kind, gets no line
+        view = classifier.pack_view(inv, sheets)
+        if view in ("shmup", "racing"):
+            # what such a pack calls a power-up is one: "ability" is the metroidvania's word
+            for asset in catalog.assets:
+                tags = asset.detected.get("tags") or []
+                if asset.pack_id == pack_id and "ability" in tags:
+                    rel = asset.path[len(root) + 1 :]
+                    if "powerup" in classifier.arcade_tags(rel):
+                        kept = {t for t in tags if t != "ability"} | {"powerup"}
+                        asset.detected["tags"] = sorted(kept)
+        if view != "top":  # a top-down pack, the usual kind, gets no line
+            warnings.append({"side": VIEW_SIDE, "shmup": VIEW_SHMUP, "racing": VIEW_RACING}[view])
         if engines is not None:
             warnings.append(engines.warning)  # "art for 5 engines: Godot's is used"
         catalog.packs.append(
