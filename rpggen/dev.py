@@ -8,9 +8,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from rpggen.core import godot
+
+if TYPE_CHECKING:
+    from PySide6.QtGui import QImage
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES = REPO_ROOT / "godot_templates"
@@ -229,12 +234,179 @@ def layout_shots(out: Path | None = None) -> int:
     return 0
 
 
+# ---------------------------------------------------------------------- visual goldens (T15.23)
+
+UI_GOLDENS = REPO_ROOT / "tests" / "gui" / "goldens"
+UI_GOLDENS_MADE_WITH = "made_with.json"  # the font the goldens were rendered with
+UI_GOLDEN_ARCHETYPE = "turn_based"
+MEAN_LIMIT = 0.015  # the mean absolute difference over the whole picture
+BLOCK_LIMIT = 0.20  # and over any one block of BLOCK x BLOCK pixels
+BLOCK = 32
+# Widgets that show this machine's own paths: painted over in a golden picture.
+UI_GOLDEN_MASKED: tuple[str, ...] = ()
+
+
+def _pump(seconds: float) -> None:
+    """Run the application's events for a while: thumbnails and previews load in workers."""
+    import time
+
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        QCoreApplication.processEvents()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        time.sleep(0.01)
+
+
+def _golden_picture(window: Any) -> QImage:
+    from PySide6.QtCore import QPoint, QRect
+    from PySide6.QtGui import QImage, QPainter
+    from PySide6.QtWidgets import QWidget
+
+    from rpggen.gui import theme
+
+    picture = window.grab().toImage().convertToFormat(QImage.Format.Format_RGB888)
+    painter = QPainter(picture)
+    for name in UI_GOLDEN_MASKED:
+        for widget in window.findChildren(QWidget, name):
+            if widget.isVisible():
+                corner = widget.mapTo(window, QPoint(0, 0))
+                painter.fillRect(QRect(corner, widget.size()), theme.token("border"))
+    painter.end()
+    return picture
+
+
+def ui_golden_pictures(scratch: Path) -> Iterator[tuple[str, QImage]]:
+    """The welcome view and the seven pages in both themes and both window sizes, as
+    ``(name, picture)``. Nothing in a picture depends on the machine but its font: the welcome
+    view is a first start without a Godot, the Project page has no folder and no Godot yet, the
+    later pages show the sample pack and a finished run, and nothing is animated. The
+    application needs a real font (``ensure_real_font``) and its settings in a folder of their
+    own (``RPGGEN_CACHE_DIR``)."""
+    from rpggen.core import app_settings
+    from rpggen.gui import theme
+    from rpggen.gui.wizard import MainWindow, default_pages
+
+    found = godot.auto_find_godot
+    godot.auto_find_godot = lambda *_args: []  # type: ignore[assignment]  # none is found
+    motion = app_settings.get().reduce_motion
+    app_settings.update(reduce_motion="on", tours_seen=["audit"])
+    theme.apply_motion()
+    try:
+        state = layout_state(UI_GOLDEN_ARCHETYPE, scratch)
+        for theme_name in LAYOUT_THEMES:
+            theme.apply_theme(theme_name, remember=False)
+            for size_name, (width, height) in layout_sizes().items():
+                target, exe = state.target, state.godot_exe
+                state.target = state.godot_exe = None
+                window = MainWindow(state, default_pages())
+                window.resize(width, height)
+                window.show()
+                prefix = f"{theme_name}_{size_name}"
+                app_settings.update(recent_projects=[])  # the Generate page before this one
+                window.show_welcome_view()
+                window.welcome._godot_generation += 1  # the answer of the search is not shown
+                window.welcome.show_godot(None)
+                _pump(0.3)
+                yield f"{prefix}_0_welcome", _golden_picture(window)
+                window.leave_welcome()
+                for index, page in enumerate(window.pages):
+                    window.show_page(index)
+                    if index == 1:  # the Project page was left: the folder of the run comes back
+                        state.target, state.godot_exe = target, exe
+                    _pump(1.5 if page.title in ("Audit", "Options") else 0.3)
+                    yield f"{prefix}_{index + 1}_{page.title.lower()}", _golden_picture(window)
+                window.close()
+                state.target, state.godot_exe = target, exe
+                _pump(0.05)
+    finally:
+        godot.auto_find_godot = found
+        app_settings.update(reduce_motion=motion)
+        theme.apply_motion()
+        theme.apply_theme("dark", remember=False)
+
+
+def compare_pictures(shown: QImage, golden: QImage) -> tuple[float, float, QImage]:
+    """How far ``shown`` is from ``golden``: the mean absolute difference over the picture, the
+    largest mean difference of one 32 x 32 block (both 0 to 1), and a picture of the difference
+    (the golden in grey, red where the two differ). Pictures of two sizes differ wholly."""
+    import numpy as np
+    from PySide6.QtGui import QImage
+
+    def pixels(image: QImage) -> Any:
+        image = image.convertToFormat(QImage.Format.Format_RGB888)
+        raw = np.frombuffer(image.constBits(), dtype=np.uint8)
+        rows = raw.reshape(image.height(), image.bytesPerLine())[:, : image.width() * 3]
+        return rows.reshape(image.height(), image.width(), 3).astype(np.float32) / 255.0
+
+    if shown.size() != golden.size():
+        return 1.0, 1.0, shown.copy()
+    old = pixels(golden)
+    diff = np.abs(pixels(shown) - old).mean(axis=2)
+    height, width = diff.shape
+    rows = np.add.reduceat(diff, np.arange(0, height, BLOCK), axis=0)
+    sums = np.add.reduceat(rows, np.arange(0, width, BLOCK), axis=1)
+    # a block at the right or bottom edge is smaller: its mean is over what it has
+    areas = np.outer(
+        np.diff(np.append(np.arange(0, height, BLOCK), height)),
+        np.diff(np.append(np.arange(0, width, BLOCK), width)),
+    )
+    grey = old.mean(axis=2, keepdims=True) * 0.5 + 0.25
+    marked = np.clip(np.sqrt(diff)[..., None] * 2.0, 0.0, 1.0)
+    out = grey * (1.0 - marked) + np.array([1.0, 0.1, 0.1], dtype=np.float32) * marked
+    data = np.ascontiguousarray((out * 255.0).astype(np.uint8))
+    picture = QImage(data.data, width, height, width * 3, QImage.Format.Format_RGB888).copy()
+    return float(diff.mean()), float((sums / areas).max()), picture
+
+
+def ui_goldens_font() -> str | None:
+    """The font family the goldens in the repository were rendered with (None: there are none)."""
+    import json
+
+    path = UI_GOLDENS / UI_GOLDENS_MADE_WITH
+    if not path.is_file():
+        return None
+    return str(json.loads(path.read_text(encoding="utf-8")).get("font") or "") or None
+
+
+def update_ui_goldens() -> int:
+    """Rewrite tests/gui/goldens/*.png (and the note of the font they were made with)."""
+    import json
+
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # as the GUI tests render
+    from rpggen.gui import app as gui_app
+
+    with tempfile.TemporaryDirectory(prefix="rpggen_ui_goldens_") as tmp:
+        os.environ["RPGGEN_CACHE_DIR"] = str(Path(tmp) / "cache")
+        gui_app.create_app()
+        family = ensure_real_font()
+        if family is None:
+            print("no real font on this machine: the goldens were not written")
+            return 1
+        UI_GOLDENS.mkdir(parents=True, exist_ok=True)
+        for old in UI_GOLDENS.glob("*.png"):
+            old.unlink()
+        shutil.rmtree(UI_GOLDENS / "_failed", ignore_errors=True)
+        count = 0
+        for name, picture in ui_golden_pictures(Path(tmp)):
+            picture.save(str(UI_GOLDENS / f"{name}.png"))
+            count += 1
+        note = {"font": family, "platform": sys.platform}
+        (UI_GOLDENS / UI_GOLDENS_MADE_WITH).write_text(
+            json.dumps(note, indent=2) + "\n", encoding="utf-8", newline="\n"
+        )
+    print(f"wrote {count} goldens to {UI_GOLDENS} (font: {family})")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m rpggen.dev")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("godot-test", help="run the template project's GDScript tests")
     sub.add_parser("make-fixtures", help="regenerate test_packs/synthetic")
     sub.add_parser("update-goldens", help="rewrite tests/golden/*.catalog.json")
+    sub.add_parser("update-ui-goldens", help="rewrite tests/gui/goldens/*.png")
     shots = sub.add_parser("layout-shots", help="picture every wizard page, theme and size")
     shots.add_argument("--out", type=Path, default=None, help="folder for the PNG files")
     args = parser.parse_args(argv)
@@ -242,6 +414,8 @@ def main(argv: list[str] | None = None) -> int:
         return godot_test()
     if args.command == "update-goldens":
         return update_goldens()
+    if args.command == "update-ui-goldens":
+        return update_ui_goldens()
     if args.command == "layout-shots":
         return layout_shots(args.out)
     return make_fixtures()

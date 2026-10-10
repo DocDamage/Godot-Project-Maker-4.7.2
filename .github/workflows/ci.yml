@@ -75,6 +75,7 @@ jobs:
             **/rpggen/logs/**
             **/.rpggen_failed/**
             tests/**/results.json
+            tests/gui/goldens/_failed/**
             accuracy_report.json
           if-no-files-found: ignore
 

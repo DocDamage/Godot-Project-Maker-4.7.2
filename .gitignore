@@ -28,3 +28,5 @@ rpggen/gui/i18n/*.qm
 # real asset packs for the M16 detection work (one is not redistributable; about 820 MB of
 # archives, most of it CuteSCKR.zip: tilesets and props for top-down games)
 /assets to show game maker/
+# pictures of a failed visual golden test (T15.23)
+tests/gui/goldens/_failed/
