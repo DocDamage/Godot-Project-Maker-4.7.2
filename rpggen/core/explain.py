@@ -45,12 +45,32 @@ def _named(asset_id: str) -> str:
     return f"{rest.replace('.', '/')} from {pack}" if rest else asset_id
 
 
+UNUSED_REASONS = {
+    classifier.UNUSED_PREVIEW_FOLDER: (
+        "in a preview folder: a picture of the pack, not a part of it. Give it a role to use it."
+    ),
+    classifier.UNUSED_GUIDE_PICTURE: (
+        "the name says preview, test or layout guide, not game art. Give it a role to use it."
+    ),
+}
+
+
+def unused_reason(eff: dict[str, Any]) -> str:
+    """Why rpggen left an asset unused by itself ("" when it did not)."""
+    for tag in eff.get("tags") or []:
+        if isinstance(tag, str) and tag.startswith(classifier.UNUSED_TAG):
+            return UNUSED_REASONS.get(tag[len(classifier.UNUSED_TAG) :], "")
+    return ""
+
+
 def why(asset: catalog_mod.Asset) -> str:
     """One or two lines: the keywords, the shape and the other roles that were considered."""
     eff = catalog_mod.effective(asset)
     role = str(eff.get("role", ""))
     if asset.status == "CONFIRMED" and asset.overrides.get("role"):
         return "You chose this role."
+    if role == "NONE" and unused_reason(eff):
+        return "unused: " + unused_reason(eff)
     parts: list[str] = []
     folders, names = matched_keywords(asset.path, role)
     if folders:
@@ -73,6 +93,8 @@ def why(asset: catalog_mod.Asset) -> str:
         )
     elif asset.detected_by and asset.detected_by not in ("inventory", "generic_grid"):
         parts.append(f"read by the {asset.detected_by} reader")
+    for written, read in sorted(classifier.folded_typos(asset.path).items()):
+        parts.append(f"{written} read as {read}")
     text = "; ".join(parts) if parts else "no strong hint in the name or the picture"
     for tag in eff.get("tags") or []:
         if isinstance(tag, str) and tag.startswith("duplicate_of:"):

@@ -51,6 +51,23 @@ EXT_KIND = {
     ".rpgproject": "metadata",
 }
 LICENSE_PREFIXES = ("license", "licence", "credits", "readme", "copying", "attribution")
+# What a pack carries that is no asset (T16.21): the resource forks macOS adds to an archive,
+# links to a shop page, and the empty file some artists leave in a folder that is not ready.
+LINK_EXTENSIONS = (".html", ".htm", ".url", ".webloc")
+PLACEHOLDER_STEMS = frozenset({"in development", "coming soon", "placeholder"})
+
+
+def not_an_asset(rel_path: str, size: int) -> bool:
+    """True for a file of a pack that is neither an asset nor a licence text."""
+    name = rel_path.rsplit("/", 1)[-1]
+    if name.startswith("._"):
+        return True
+    if classify_kind(rel_path) == "license":
+        return False  # an empty LICENSE is still the pack saying something
+    stem, ext = os.path.splitext(name)
+    return (
+        size == 0 or ext.lower() in LINK_EXTENSIONS or stem.strip().casefold() in PLACEHOLDER_STEMS
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -207,6 +224,13 @@ def _list_files(root: Path) -> tuple[list[str], list[dict[str, str]]]:
             continue
         if archive_mod.is_junk(rel):
             skipped.append({"path": rel, "reason": "os_junk"})
+            continue
+        try:
+            size = (root / rel).stat().st_size
+        except OSError:
+            size = -1  # unreadable: the scan reports it
+        if not_an_asset(rel, size):
+            skipped.append({"path": rel, "reason": "not_an_asset"})
             continue
         rels.append(rel)
     rels.sort(key=lambda s: (s.casefold(), s))

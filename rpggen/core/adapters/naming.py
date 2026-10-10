@@ -47,9 +47,9 @@ SIDE_TOKENS = {"side"}
 # The action words a file or folder name can carry (T12.50), and how they are written in a
 # pattern: the longer words first, so that "walking" is not read as "walk" plus a rest.
 ACTIONS = (
-    "idle", "walk", "run", "attack", "hurt", "death", "die", "hit", "move",
+    "idle", "walk", "run", "attack", "hurt", "death", "die", "dead", "hit", "move",
     "jump", "fall", "cast", "shoot", "slash", "thrust", "block", "roll", "dash", "climb", "swim",
-    "interact",
+    "interact", "sleep", "fly",
 )  # fmt: skip
 CANONICAL_ACTIONS = frozenset(SYNONYMS.get(a, a) for a in ACTIONS)
 ACTION_PATTERN = "|".join(sorted(ACTIONS, key=lambda a: (-len(a), a)))
@@ -65,8 +65,62 @@ DEFAULT_FPS = {
     "idle": 4.0, "walk": 8.0, "attack": 12.0, "hurt": 10.0, "death": 8.0,
     "jump": 10.0, "fall": 8.0, "cast": 10.0, "shoot": 12.0, "slash": 12.0, "thrust": 12.0,
     "block": 6.0, "roll": 12.0, "dash": 12.0, "climb": 8.0, "swim": 8.0, "interact": 8.0,
+    "sleep": 2.0, "fly": 8.0,
 }  # fmt: skip
 _SPLIT = re.compile(r"[_\-\s]+")
+
+# What some artists write into a file name (T16.21): the cell size, how many frames the strip
+# has, a nine-slice piece, the number of directions. ``cow_01_brown_move_down_32x32_4frames``.
+_FACT_SUFFIX = re.compile(
+    r"[_\- ](?:(?P<w>\d{1,4})x(?P<h>\d{1,4})|(?P<frames>\d{1,3})frames?"
+    r"|(?P<split>\d{1,2})split|(?P<dirs>\d{1,2})dir(?:ection)?s?)$",
+    re.IGNORECASE,
+)
+GROWTH_WORDS = frozenset({"growth", "grow", "growing"})  # a crop's growth strip (a tag, M17)
+
+
+@dataclass(frozen=True)
+class NameFacts:
+    """A file stem without its size suffixes, and what they said (None: not said)."""
+
+    stem: str
+    cell: tuple[int, int] | None = None
+    frames: int | None = None
+    split: int | None = None
+    directions: int | None = None
+
+    @property
+    def any(self) -> bool:
+        return (self.cell, self.frames, self.split, self.directions) != (None, None, None, None)
+
+
+def name_facts(stem: str) -> NameFacts:
+    """Take ``_<W>x<H>``, ``_<N>frames``, ``_<N>split`` and ``_<N>dir`` off the end of a file
+    stem, in any order. A size of zero or a count of zero is not a fact and stays in the name."""
+    rest = stem.strip()
+    found: dict[str, object] = {}
+    while True:
+        m = _FACT_SUFFIX.search(rest)
+        if m is None:
+            break
+        if m.group("w"):
+            key, value = "cell", (int(m.group("w")), int(m.group("h")))
+            ok = value[0] > 0 and value[1] > 0
+        else:
+            key = "frames" if m.group("frames") else "split" if m.group("split") else "dirs"
+            value = int(m.group(key))
+            ok = value > 0
+        if not ok or key in found:
+            break
+        found[key] = value
+        rest = rest[: m.start()]
+    return NameFacts(
+        rest,
+        found.get("cell"),  # type: ignore[arg-type]
+        found.get("frames"),  # type: ignore[arg-type]
+        found.get("split"),  # type: ignore[arg-type]
+        found.get("dirs"),  # type: ignore[arg-type]
+    )
 
 
 @dataclass(frozen=True)

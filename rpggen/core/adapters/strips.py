@@ -23,6 +23,19 @@ STRIP_NAME = re.compile(
 GIF_STRIP_DIR = "generated/gif_strips"
 
 
+def _named_strip(f: InventoryFile, facts: naming.NameFacts) -> frames_mod.StripInfo | None:
+    """The strip a file's name describes (``_32x32_4frames``), when the picture is that size:
+    one row of ``frames`` cells. A name is a fact the artist wrote down and goes before what
+    the picture's gaps suggest; a name that does not fit the picture is not believed."""
+    if f.image is None or facts.frames is None:
+        return None
+    width, height = f.image["w"], f.image["h"]
+    cell = facts.cell or (width // facts.frames, height)
+    if cell[0] * facts.frames != width or cell[1] != height:
+        return None
+    return frames_mod.StripInfo("x", facts.frames, (cell[0], cell[1]))
+
+
 def _is_still_png(f: InventoryFile) -> bool:
     return f.kind == "image" and f.image is not None and f.ext != ".gif"
 
@@ -55,8 +68,12 @@ class StripsAdapter:
         for f in inv.files:
             if f.kind != "image":
                 continue
-            stem = posixpath.splitext(posixpath.basename(f.path))[0]
-            if STRIP_NAME.match(stem) or (f.ext == ".gif" and f.image and f.image["frames"] > 1):
+            facts = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0])
+            if (
+                STRIP_NAME.match(facts.stem)
+                or facts.frames
+                or (f.ext == ".gif" and f.image and f.image["frames"] > 1)
+            ):
                 return 1.0
         return 0.0
 
@@ -70,8 +87,10 @@ class StripsAdapter:
         for f in inv.files:
             if not _is_still_png(f):
                 continue
-            stem = posixpath.splitext(posixpath.basename(f.path))[0]
-            m = STRIP_NAME.match(stem)
+            facts = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0])
+            m = STRIP_NAME.match(facts.stem)
+            if m is None and f.path not in ctx.claimed:
+                self._counted(f, facts, result)  # "corn_16x32_8frames": frames, no action
             if m:
                 key = (posixpath.dirname(f.path), m.group("name").casefold())
                 if f.path in ctx.claimed:
@@ -106,7 +125,8 @@ class StripsAdapter:
         analyses: list[tuple[InventoryFile, re.Match[str], Any, Any]] = []
         for f, m in members:
             mask = image_facts.occupancy(image_facts.load_rgba(root / f.path))
-            strip = frames_mod.detect_strip(mask)
+            facts = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0])
+            strip = _named_strip(f, facts) or frames_mod.detect_strip(mask)
             if strip is None or strip.axis != "x":
                 continue  # not a horizontal strip: leave it to the generic adapter
             analyses.append((f, m, strip, mask))
@@ -152,6 +172,30 @@ class StripsAdapter:
         primary = used[0]
         result.assets.append(AssetFragment(primary.path, facets, 0.9, "full"))
         result.consumed.extend(f.path for f in used[1:])
+
+    def _counted(self, f: InventoryFile, facts: naming.NameFacts, result: AdapterResult) -> None:
+        """A strip whose name gives its frames and no action: one animation, in a loop."""
+        strip = _named_strip(f, facts)
+        if strip is None or strip.frames < 2:
+            return
+        width, height = strip.frame
+        facets: dict[str, Any] = {
+            "usage": "sprite",
+            "grid": {"cell": [width, height], "margin": [0, 0], "separation": [0, 0]},
+            "frame": [width, height],
+            "origin": [width // 2, height - 1],
+            "animations": {
+                "idle_down": {
+                    "frames": [[i, 0] for i in range(strip.frames)],
+                    "fps": naming.fps("idle"),
+                    "loop": True,
+                }
+            },
+        }
+        words = {w for w in re.split(r"[^a-z]+", facts.stem.casefold()) if w}
+        if words & naming.GROWTH_WORDS:
+            facets["tags"] = ["growth"]
+        result.assets.append(AssetFragment(f.path, facets, 0.9, "full"))
 
     def _gif(
         self,

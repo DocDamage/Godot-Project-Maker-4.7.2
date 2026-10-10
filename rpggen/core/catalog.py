@@ -861,6 +861,9 @@ def assemble(
                 by_key.setdefault((frag.path, frag.variant), []).append((index, frag))
 
         paths_sorted = [f.path for f in inv.files if f.kind == "image"]
+        tops = {f.path.split("/", 1)[0] for f in inv.files if "/" in f.path}
+        loose = any("/" not in f.path and f.kind != "license" for f in inv.files)
+        wrapper = next(iter(tops)) if len(tops) == 1 and not loose else ""
         base_ids = ids.disambiguate([ids.asset_id(pack_id, p) for p in paths_sorted])
         id_for_path = dict(zip(paths_sorted, base_ids, strict=True))
         files = {f.path: f for f in inv.files}
@@ -879,6 +882,13 @@ def assemble(
                         facets["roles_alt"] = alt
                 if role_conf is not None:
                     confidence = min(confidence, role_conf)
+                    reason = classifier.not_game_art(path, wrapper)
+                    if reason:  # a preview or a guide picture: unused, and says why
+                        facets["role"] = "NONE"
+                        facets.pop("roles_alt", None)
+                        facets["tags"] = sorted(
+                            {*facets.get("tags", []), classifier.UNUSED_TAG + reason}
+                        )
                 f = files[path]
                 if f.image:
                     facets["size"] = [f.image["w"], f.image["h"]]

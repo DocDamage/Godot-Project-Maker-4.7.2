@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import re
 import unicodedata
 from pathlib import Path
@@ -45,7 +46,55 @@ _SPLIT_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 _SPLIT_NON_ALNUM = re.compile(r"[^A-Za-z0-9]+")
 
 
-def _tokenize(text: str) -> list[str]:
+TYPO_MIN_LETTERS = 6  # shorter words are too close to one another to be folded
+
+
+def _one_edit_apart(a: str, b: str) -> bool:
+    """True when one letter was left out, added or changed between ``a`` and ``b``."""
+    if a == b or abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) > len(b):
+        a, b = b, a
+    i = 0
+    while i < len(a) and a[i] == b[i]:
+        i += 1
+    return a[i:] == b[i + 1 :] if len(a) < len(b) else a[i + 1 :] == b[i + 1 :]
+
+
+@functools.cache
+def _vocabulary() -> frozenset[str]:
+    """Every word of the word lists that is long enough to stand for a misspelt one."""
+    words: set[str] = set(MUSIC_NAME_TOKENS)
+    for _role, keywords in ROLE_KEYWORDS:
+        words.update(keywords)
+    words |= LIGHT_WORDS | PARALLAX_WORDS | SIDE_VIEW_WORDS | TOP_VIEW_WORDS | {"environment"}
+    words.update(SURFACE_WORDS)
+    return frozenset(w for w in words if len(w) >= TYPO_MIN_LETTERS)
+
+
+@functools.cache
+def fold_typo(word: str) -> str:
+    """The word of the word lists that ``word`` is a slip of the keyboard away from
+    (``backgroud`` → ``background``, T16.21), else ``word`` itself. Only words of six letters
+    and more, only one letter apart with the first and the last letter in place (a slip is
+    made inside a word; ``village`` is not ``villager`` and ``status`` is not ``statue``), only
+    when exactly one listed word is that close, and never a plural for its singular."""
+    vocabulary = _vocabulary()
+    if len(word) < TYPO_MIN_LETTERS or word in vocabulary:
+        return word
+    near = [
+        known
+        for known in vocabulary
+        if word[0] == known[0]
+        and word[-1] == known[-1]
+        and _one_edit_apart(word, known)
+        and word != known + "s"
+        and known != word + "s"
+    ]
+    return near[0] if len(near) == 1 else word
+
+
+def _raw_tokens(text: str) -> list[str]:
     folded = unicodedata.normalize("NFKD", text)
     folded = "".join(c for c in folded if not unicodedata.combining(c))
     parts: list[str] = []
@@ -59,6 +108,23 @@ def _tokenize(text: str) -> list[str]:
         if len(p) == 1 and p not in DIRECTION_LETTERS:
             continue
         out.append(p)
+    return out
+
+
+def _tokenize(text: str) -> list[str]:
+    """The words of a folder or file name as artists write them: a leading number (``10. ``),
+    ampersands, commas, brackets and emoji only separate, and a misspelt word of the word
+    lists is read as the word that was meant."""
+    return [fold_typo(word) for word in _raw_tokens(text)]
+
+
+def folded_typos(posix_path: str) -> dict[str, str]:
+    """``{as written: as read}`` for the words of a path that were taken for a typo."""
+    out: dict[str, str] = {}
+    for part in posix_path.split("/"):
+        for word in _raw_tokens(part.rsplit(".", 1)[0] if "." in part else part):
+            if fold_typo(word) != word:
+                out[word] = fold_typo(word)
     return out
 
 
@@ -205,6 +271,33 @@ def pack_view(inventory: Any, sheets: Any = ()) -> str:
         elif _is_top_sheet(animations):
             top += 2
     return "side" if side > top else "top"
+
+
+PREVIEW_FOLDERS = frozenset({"preview", "previews", "screenshot", "screenshots"})
+GUIDE_WORDS = frozenset(
+    {"preview", "test", "grid", "guide", "slots", "template", "mockup", "showcase"}
+)
+UNUSED_TAG = "unused_because:"
+UNUSED_PREVIEW_FOLDER = "preview_folder"
+UNUSED_GUIDE_PICTURE = "guide_picture"
+
+
+def not_game_art(path: str, wrapper: str = "") -> str | None:
+    """Why a picture of a pack is most likely not game art (T16.21), or None: it lies in a
+    preview folder, or it is a preview, a test or a layout guide (a picture at the pack's root
+    with such a word in its name, or one anywhere whose name is nothing but such words:
+    ``Grid Slots.png``). ``path`` is relative to the pack; ``wrapper`` is the one folder an
+    archive wraps everything in, which does not count as a folder. Such a picture is unused by
+    default, never left out: one click in the audit brings it back."""
+    folders, stem = _path_parts(path)
+    if wrapper and folders[:1] == [wrapper]:
+        folders = folders[1:]
+    if any(folder.strip().casefold() in PREVIEW_FOLDERS for folder in folders):
+        return UNUSED_PREVIEW_FOLDER
+    words = set(_tokenize(stem))
+    if words and (words <= GUIDE_WORDS or (not folders and words & GUIDE_WORDS)):
+        return UNUSED_GUIDE_PICTURE
+    return None
 
 
 def suggested_tags(name: str) -> list[str]:

@@ -102,7 +102,8 @@ Location: `%LOCALAPPDATA%/rpggen/cache/inventories/<source_sha256>.json`. It is 
     },
     { "path": "LICENSE.txt", "sha256": "…", "size": 812, "ext": ".txt", "kind": "license" }
   ],
-  "skipped": [ { "path": "__MACOSX/._grass.png", "reason": "os_junk" } ]
+  "skipped": [ { "path": "__MACOSX/._grass.png", "reason": "os_junk" },
+               { "path": "Get more packs.html", "reason": "not_an_asset" } ]
 }
 ```
 
