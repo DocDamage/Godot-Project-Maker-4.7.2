@@ -18,7 +18,7 @@ unsupported.
 | `aseprite` | 20 | Aseprite JSON (hash and array formats), frame tags, durations |
 | `ldtk` | 30 | LDtk tile set definitions; the tile, auto and IntGrid layers and the spawn, door and sign entities of every level (T12.49) |
 | `rpgmaker` | 40 | RPG Maker MV/MZ tilesets (A1-A5, B-E), character sheets, faces |
-| `lpc` | 50 | Liberated Pixel Cup / Universal LPC character sheets |
+| `lpc` | 50 | Liberated Pixel Cup characters: the universal sheet (832 px wide, the classic 21 rows or the generator's 54) with every animation that is drawn on it, and the LPC collection's files, a picture per animation (`body/bodies/male/walk.png`) or a folder per animation with a picture per colour. A body is a character; hair, clothes and weapons are read as layers and left unused |
 | `sequences` | 55 | animations saved as one numbered image per frame (T12.50, see below) |
 | `strips` | 60 | horizontal animation strips (incl. GIF) |
 | `generic_grid` | 100 | everything else: grid detection, strips, character sheets, small sprites |

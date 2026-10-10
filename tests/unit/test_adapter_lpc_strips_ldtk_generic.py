@@ -64,7 +64,10 @@ def test_lpc_expanded_sheet_and_non_lpc(tmp_path: Path) -> None:
     Image.new("RGBA", (832, 1408), (200, 0, 0, 255)).save(tmp_path / "pk" / "tall.png")
     inv, root, ctx = _open(tmp_path / "pk")
     res = LpcAdapter().extract(inv, root, ctx)
-    assert res.pack_warnings == ["lpc_expanded_sheet_rows_ignored:tall.png"]
+    # the rows under the classic 21 are read since M16 (they were ignored, with a warning);
+    # tests/unit/test_lpc_collection.py has a sheet with something drawn in them
+    assert res.pack_warnings == []
+    assert _by_path(res, "tall.png").facets["frame"] == [64, 64]
     inv2, root2, _ = _open(SYNTH / "basic16")
     assert LpcAdapter().match(inv2, root2) == 0.0
 

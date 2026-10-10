@@ -46,6 +46,10 @@ def _named(asset_id: str) -> str:
 
 
 UNUSED_REASONS = {
+    "lpc_layer": (
+        "a layer of an LPC character (hair, clothes, a weapon): it is drawn over a body, "
+        "which rpggen does not do yet. Its animations are read; give it a role to use it alone."
+    ),
     classifier.UNUSED_COPY: (
         "its name says it is a copy of the file beside it. Give it a role to use it as well."
     ),

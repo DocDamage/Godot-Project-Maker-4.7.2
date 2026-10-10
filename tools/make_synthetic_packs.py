@@ -505,23 +505,112 @@ def make_lpc_like(out: Path) -> None:
                 "role": "NPC",
                 "frame": [64, 64],
                 "baseline_y": 60,
-                "anims": [
-                    "attack_down",
-                    "attack_left",
-                    "attack_right",
-                    "attack_up",
-                    "death",
-                    "hurt",
-                    "idle_down",
-                    "idle_left",
-                    "idle_right",
-                    "idle_up",
-                    "walk_down",
-                    "walk_left",
-                    "walk_right",
-                    "walk_up",
-                ],
+                "anims": sorted(
+                    [
+                        "death",
+                        "hurt",
+                        *(
+                            f"{action}_{direction}"
+                            for action in ("attack", "cast", "idle", "shoot", "thrust", "walk")
+                            for direction in ("down", "left", "right", "up")
+                        ),
+                    ]
+                ),
             }
+        },
+    )
+
+
+LPC_FILES = {  # the collection's animations: frames in a row, rows
+    "walk": (9, 4), "slash": (6, 4), "hurt": (6, 1), "idle": (2, 4), "run": (8, 4),
+    "jump": (5, 4), "climb": (6, 1), "spellcast": (7, 4),
+}  # fmt: skip
+
+
+def _lpc_file(action: str, color: int) -> Image.Image:
+    count, rows = LPC_FILES[action]
+    img = Image.new("RGBA", (count * 64, rows * 64), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for row in range(rows):
+        for col in range(count):
+            _character(d, col * 64, row * 64, 64, 64, pal(color + row), col, 60)
+    return img
+
+
+def make_lpc_parts(out: Path) -> None:
+    """The LPC collection's shape (M16): a picture per animation for a body and for a layer,
+    a folder per animation with a picture per colour, an oversize weapon sheet, and a
+    universal sheet that goes on under the classic 21 rows."""
+    pack = out / "lpc_parts"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    sheets = pack / "spritesheets"
+    for action in LPC_FILES:
+        _save_png(_lpc_file(action, 1), sheets / "body" / "bodies" / "male" / f"{action}.png")
+    for action in ("walk", "slash", "hurt"):
+        _save_png(_lpc_file(action, 9), sheets / "hair" / "afro" / "adult" / f"{action}.png")
+        for n, colour in enumerate(("red", "blue")):
+            shirt = sheets / "torso" / "clothes" / "shirt" / "male" / action / f"{colour}.png"
+            _save_png(_lpc_file(action, 20 + 5 * n), shirt)
+    # a weapon drawn in 192 px frames: not the collection's 64 px layout
+    big = Image.new("RGBA", (1152, 768), (0, 0, 0, 0))
+    ImageDraw.Draw(big).rectangle([80, 80, 110, 110], fill=pal(40))
+    _save_png(big, sheets / "weapon" / "blunt" / "mace" / "attack_slash" / "mace.png")
+    # the generator's sheet: the classic rows, then climb (row 21) and idle (rows 22 to 25)
+    full = Image.new("RGBA", (832, 26 * 64), (0, 0, 0, 0))
+    d = ImageDraw.Draw(full)
+    for row, count in ((8, 9), (9, 9), (10, 9), (11, 9), (12, 6), (13, 6), (14, 6), (15, 6),
+                       (20, 6), (21, 6), (22, 2), (23, 2), (24, 2), (25, 2)):  # fmt: skip
+        for col in range(count):
+            _character(d, col * 64, row * 64, 64, 64, pal(60 + row % 4), col, 60)
+    _save_png(full, pack / "characters" / "guard.png")
+    body = "spritesheets/body/bodies/male/walk.png"
+    _expected(
+        out,
+        "lpc_parts",
+        {
+            body: {
+                "usage": "sprite",
+                "role": "NPC",
+                "frame": [64, 64],
+                "anims": sorted(
+                    [
+                        "climb_up",
+                        "death",
+                        "hurt",
+                        *(
+                            f"{action}_{direction}"
+                            for action in ("attack", "cast", "idle", "jump", "run", "walk")
+                            for direction in ("down", "left", "right", "up")
+                        ),
+                    ]
+                ),
+            },
+            "spritesheets/hair/afro/adult/walk.png": {"usage": "sprite", "role": "NONE"},
+            "spritesheets/torso/clothes/shirt/male/walk/red.png": {
+                "usage": "sprite",
+                "role": "NONE",
+            },
+            "spritesheets/torso/clothes/shirt/male/walk/blue.png": {
+                "usage": "sprite",
+                "role": "NONE",
+            },
+            "characters/guard.png": {
+                "usage": "sprite",
+                "role": "NPC",
+                "frame": [64, 64],
+                "anims": sorted(
+                    [
+                        "climb_up",
+                        "death",
+                        "hurt",
+                        *(
+                            f"{action}_{direction}"
+                            for action in ("attack", "idle", "walk")
+                            for direction in ("down", "left", "right", "up")
+                        ),
+                    ]
+                ),
+            },
         },
     )
 
@@ -1672,6 +1761,7 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "sequences": make_sequences,
     "rpgmaker_like": make_rpgmaker_like,
     "lpc_like": make_lpc_like,
+    "lpc_parts": make_lpc_parts,
     "tiled_meta": make_tiled_meta,
     "tiled_map": make_tiled_map,
     "ldtk_level": make_ldtk_level,

@@ -261,6 +261,10 @@ def classify(source: _Source, names: list[str], deadline: float) -> tuple[str, i
     if sheets:
         size = _png_size(source.head(sheets[0], 32))
         return "rpgmaker", SHEET_WIDTH_TILE.get(size[0]) if size else None
+    from rpggen.core.adapters import lpc
+
+    if lpc.looks_like_collection(names):
+        return "lpc", None  # the collection's files: a picture or a folder per animation
     for name, low in zip(names, lowered, strict=True):
         if time.monotonic() > deadline:
             break

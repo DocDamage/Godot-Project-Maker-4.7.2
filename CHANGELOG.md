@@ -3,6 +3,15 @@
 All notable changes to the rpggen application. The generated game's runtime has its own
 changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
+## 1.4.0 (in work)
+
+* **LPC characters**: the universal sheet is read whole (cast, thrust, shoot, and the
+  generator's climb, idle, jump, sit, emote, run and the other rows, where they are drawn), and
+  the LPC collection's files are read: a picture per animation, or a folder per animation with
+  a picture per colour, become one character. Hair, clothes and weapons are read as layers and
+  left unused: rpggen does not draw one picture over another yet. An LPC project made with an
+  earlier version gets the added animations when it is regenerated.
+
 ## 1.3.0
 
 The look, the feel and the ease of use of the wizard. Nothing was taken away and nothing moved

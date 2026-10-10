@@ -1,0 +1,76 @@
+{
+  "characters/guard.png": {
+    "anims": [
+      "attack_down",
+      "attack_left",
+      "attack_right",
+      "attack_up",
+      "climb_up",
+      "death",
+      "hurt",
+      "idle_down",
+      "idle_left",
+      "idle_right",
+      "idle_up",
+      "walk_down",
+      "walk_left",
+      "walk_right",
+      "walk_up"
+    ],
+    "frame": [
+      64,
+      64
+    ],
+    "role": "NPC",
+    "usage": "sprite"
+  },
+  "spritesheets/body/bodies/male/walk.png": {
+    "anims": [
+      "attack_down",
+      "attack_left",
+      "attack_right",
+      "attack_up",
+      "cast_down",
+      "cast_left",
+      "cast_right",
+      "cast_up",
+      "climb_up",
+      "death",
+      "hurt",
+      "idle_down",
+      "idle_left",
+      "idle_right",
+      "idle_up",
+      "jump_down",
+      "jump_left",
+      "jump_right",
+      "jump_up",
+      "run_down",
+      "run_left",
+      "run_right",
+      "run_up",
+      "walk_down",
+      "walk_left",
+      "walk_right",
+      "walk_up"
+    ],
+    "frame": [
+      64,
+      64
+    ],
+    "role": "NPC",
+    "usage": "sprite"
+  },
+  "spritesheets/hair/afro/adult/walk.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
+  "spritesheets/torso/clothes/shirt/male/walk/blue.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
+  "spritesheets/torso/clothes/shirt/male/walk/red.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  }
+}
