@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMenu,
@@ -226,8 +227,16 @@ class AnimEditorDialog(QDialog):
         self.mirror_button.setObjectName("mirrorButton")
         self.mirror_button.setText(self.tr("Mirror from…"))
         self.mirror_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.rename_button = QToolButton()
+        self.rename_button.setObjectName("renameAnimButton")
+        self.rename_button.setText(self.tr("Rename…"))
+        self.rename_button.setToolTip(
+            self.tr("Give the selected animation its name: walk_down, attack_left, …")
+        )
+        self.rename_button.clicked.connect(self._on_rename)
         row.addWidget(self.add_button)
         row.addWidget(self.mirror_button)
+        row.addWidget(self.rename_button)
         left_box.addLayout(row)
         top.addWidget(left)
 
@@ -452,6 +461,40 @@ class AnimEditorDialog(QDialog):
         self.animations[name] = anim_edit.new_animation()
         self._rebuild_tree(keep=name)
         self._rebuild_menus()
+
+    def ask_name(self, current: str) -> str | None:  # overridden by tests
+        """Ask for the new name of ``current``: the names the game plays are offered, any
+        other can be typed. None when the question was cancelled."""
+        text, ok = QInputDialog.getItem(
+            self,
+            self.tr("Rename animation"),
+            self.tr("The new name of {0}:").format(current),
+            anim_edit.offered_names(self.animations),
+            0,
+            True,
+        )
+        return text if ok else None
+
+    def _on_rename(self) -> None:
+        item = self.tree.currentItem()
+        current = item.data(0, Qt.ItemDataRole.UserRole) if item is not None else None
+        if not current:
+            return
+        typed = self.ask_name(str(current))
+        if typed is not None:
+            self.rename_animation(str(current), typed)
+
+    def rename_animation(self, old: str, typed: str) -> bool:
+        """Call the animation ``old`` what was typed (cleaned to a name). False, with nothing
+        changed, when that is no name or another animation has it."""
+        new = anim_edit.clean_name(typed)
+        changed = anim_edit.renamed(self.animations, old, new)
+        if not new or new == old or changed is self.animations:
+            return False
+        self.animations = changed
+        self._rebuild_tree(keep=new)
+        self._rebuild_menus()
+        return True
 
     def mirror_from(self, source: str, target: str) -> None:
         if source not in self.animations:

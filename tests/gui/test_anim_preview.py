@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QTransform
 
 from rpggen.core import anim_edit, catalog
@@ -370,3 +372,51 @@ def test_active_frames_are_tinted_and_follow_the_edit(qtbot, audit) -> None:
     assert [m[0] for m in marks] == ["active", "current"], "no reopening: the edit is drawn"
     rect = anim_edit.frame_rect(anim, 1, tuple(eff["frame"]), eff.get("grid"))
     assert tuple(marks[0][1:]) == tuple(rect)
+
+
+# ----------------------------------------------------------------- naming an animation (T16.21)
+
+
+def test_an_animation_is_renamed_in_its_place_and_the_override_follows(qtbot, audit) -> None:
+    dialog = _dialog(qtbot, audit)
+    before = dialog.names()
+    old = "walk_left"
+    assert old in before and "dash_left" not in before
+    spec = copy.deepcopy(dialog.animations[old])
+    asked: list[str] = []
+    dialog.ask_name = lambda current: asked.append(current) or "Dash Left"  # type: ignore[method-assign]
+    dialog.select(old)
+    dialog.rename_button.click()
+    assert asked == [old]
+    after = dialog.names()
+    assert after == ["dash_left" if n == old else n for n in before], "in the place it had"
+    assert dialog.animations["dash_left"] == spec
+    assert dialog.tree.currentItem().data(0, Qt.ItemDataRole.UserRole) == "dash_left"
+    overrides = dialog.overrides()["animations"]
+    assert overrides[old] is None and overrides["dash_left"] == spec
+
+
+def test_a_name_that_is_taken_or_no_name_changes_nothing(qtbot, audit) -> None:
+    dialog = _dialog(qtbot, audit)
+    before = copy.deepcopy(dialog.animations)
+    for typed in ("walk_right", "walk_left", "", "   ", "9 lives", "größe"):
+        assert not dialog.rename_animation("walk_left", typed), typed
+    assert not dialog.rename_animation("no_such_animation", "jump_down")
+    assert dialog.animations == before and dialog.overrides() == {}
+    dialog.ask_name = lambda current: None  # type: ignore[method-assign]  # cancelled
+    dialog.select("walk_left")
+    dialog.rename_button.click()
+    assert dialog.animations == before
+
+
+def test_the_names_the_game_plays_are_offered_and_a_lone_action_faces_down() -> None:
+    offered = anim_edit.offered_names({"walk_down": {}, "idle_down": {}})
+    assert offered[:3] == ["idle_left", "idle_right", "idle_up"]
+    assert "walk_down" not in offered and "jump_down" in offered and "shoot_up" in offered
+    assert anim_edit.clean_name(" Attack ") == "attack_down"
+    assert anim_edit.clean_name("Run-Fast 2") == "run_fast_2"
+    assert anim_edit.clean_name("anim_3") == "anim_3"
+    unnamed = {"anim_1": {"frames": [[0, 0]]}, "anim_2": {"frames": [[1, 0]]}}
+    named = anim_edit.renamed(unnamed, "anim_2", "walk_down")
+    assert list(named) == ["anim_1", "walk_down"] and named["walk_down"] == unnamed["anim_2"]
+    assert anim_edit.renamed(unnamed, "anim_2", "anim_1") is unnamed

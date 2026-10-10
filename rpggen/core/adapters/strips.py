@@ -72,6 +72,7 @@ class StripsAdapter:
             if (
                 STRIP_NAME.match(facts.stem)
                 or facts.frames
+                or facts.split == 9
                 or (f.ext == ".gif" and f.image and f.image["frames"] > 1)
             ):
                 return 1.0
@@ -174,7 +175,14 @@ class StripsAdapter:
         result.consumed.extend(f.path for f in used[1:])
 
     def _counted(self, f: InventoryFile, facts: naming.NameFacts, result: AdapterResult) -> None:
-        """A strip whose name gives its frames and no action: one animation, in a loop."""
+        """A strip whose name gives its frames and no action: one animation, in a loop. And
+        a nine-slice piece (``_16x16_9split``): three cells by three, the outer ones its border."""
+        if facts.split == 9 and facts.cell and f.image:
+            cw, ch = facts.cell
+            if (f.image["w"], f.image["h"]) == (3 * cw, 3 * ch):
+                panel = {"usage": "ui", "role": "UI", "nine_slice": [cw, ch, cw, ch]}
+                result.assets.append(AssetFragment(f.path, panel, 0.9, "full"))
+            return
         strip = _named_strip(f, facts)
         if strip is None or strip.frames < 2:
             return

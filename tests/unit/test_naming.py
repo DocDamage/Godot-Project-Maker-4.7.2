@@ -489,3 +489,18 @@ def test_a_12_by_4_sheet_is_a_tile_sheet_where_the_words_say_tile_set(tmp_path: 
     assert catalog.effective(_asset(cat, "grass.png"))["grid"]["cell"] == [32, 32]
     turn = catalog.effective(_asset(cat, "bug_turn.png"))
     assert turn.get("grid", {}).get("cell") != [16, 16]
+
+
+def test_a_nine_slice_piece_is_told_by_its_name(tmp_path: Path) -> None:
+    pack = tmp_path / "ui"
+    _sheet(pack / "themes" / "default_01_16x16_9split.png", (48, 48), 16)
+    _sheet(pack / "themes" / "wrong_01_16x16_9split.png", (64, 48), 16)  # not three by three
+    cat = _catalog(pack)
+    panel = _asset(cat, "default_01_16x16_9split.png")
+    eff = catalog.effective(panel)
+    assert (eff["usage"], eff["role"], eff["nine_slice"]) == ("ui", "UI", [16, 16, 16, 16])
+    assert panel.detected_by == "strips"
+    assert "nine_slice" not in catalog.effective(_asset(cat, "wrong_01_16x16_9split.png")) or (
+        catalog.effective(_asset(cat, "wrong_01_16x16_9split.png"))["nine_slice"]
+        != [16, 16, 16, 16]
+    )

@@ -120,7 +120,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.18 | Smoke sequences and integration tests | M | T16.17 | open |
 | T16.19 | Documentation, screenshots and changelogs | M | T16.18 | open |
 | T16.20 | Gate (1.4.0) | M | T16.19 | open |
-| T16.21 | What the real packs need: numbered frames, `.aseprite` sources, names with sizes, engine duplicates | M | — | open: the core of every point and the three synthetic packs are done; the wizard's side of it (naming an animation, variants as one card, the pack card's words), `.aseprite` pixels and the *Done when* on the real packs are not (the notes have the table) |
+| T16.21 | What the real packs need: numbered frames, `.aseprite` sources, names with sizes, engine duplicates | M | — | open: the core of every point and the three synthetic packs are done; the rest of the wizard's side of it (variants as one card, the pack card's words), `.aseprite` pixels and the *Done when* on the real packs are not (the notes have the table) |
 | T16.22 | A bundle of packs: choosing which to add | M | T16.21 | open |
 
 ---

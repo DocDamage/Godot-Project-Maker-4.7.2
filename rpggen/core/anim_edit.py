@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import re
 from typing import Any
 
 Anim = dict[str, Any]
@@ -21,6 +22,43 @@ def new_animation(fps: float = DEFAULT_FPS, loop: bool = True) -> Anim:
 def missing_standard_names(animations: dict[str, Anim]) -> list[str]:
     """Standard names that do not exist yet, in standard order."""
     return [n for n in STANDARD_NAMES if n not in animations]
+
+
+# The names offered for an animation that has none yet (T16.21): what the runtime of some
+# kind of game plays by name, each in the four directions.
+OFFERED_ACTIONS = (
+    "idle", "walk", "attack", "hurt", "death", "jump", "fall", "climb", "dash", "shoot", "cast",
+)  # fmt: skip
+_NAME = re.compile(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)*")
+
+
+def offered_names(animations: dict[str, Anim]) -> list[str]:
+    """Names to offer for one of ``animations``: every offered action in every direction that
+    is not taken, the actions in their order."""
+    return [
+        f"{action}_{direction}"
+        for action in OFFERED_ACTIONS
+        for direction in DIRECTIONS
+        if f"{action}_{direction}" not in animations
+    ]
+
+
+def clean_name(text: str) -> str:
+    """What a typed name becomes: lower case, with ``_`` for spaces and hyphens, and ``_down``
+    added to a lone action word, as a strip named ``walk`` is read. "" when nothing is left
+    that can be a name."""
+    name = re.sub(r"[\s\-]+", "_", text.strip().lower()).strip("_")
+    if not _NAME.fullmatch(name):
+        return ""
+    return f"{name}_down" if name in OFFERED_ACTIONS else name
+
+
+def renamed(animations: dict[str, Anim], old: str, new: str) -> dict[str, Anim]:
+    """``animations`` with ``old`` called ``new``, in the place it had. Unchanged when ``old``
+    is not there, ``new`` is taken or the two are the same."""
+    if old not in animations or new in animations or not new:
+        return animations
+    return {(new if name == old else name): spec for name, spec in animations.items()}
 
 
 def split_name(name: str) -> tuple[str, str | None]:

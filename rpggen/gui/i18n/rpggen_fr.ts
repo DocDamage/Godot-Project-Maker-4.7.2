@@ -66,6 +66,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Rename…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Give the selected animation its name: walk_down, attack_left, …</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Play</source>
         <translation type="unfinished"></translation>
     </message>
@@ -107,6 +115,14 @@
     </message>
     <message>
         <source>Ping-pong</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rename animation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The new name of {0}:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2330,6 +2346,14 @@ Details: {0}</source>
     </message>
     <message>
         <source>The old versions are saved first, in {0}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Run every check again on every regeneration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off: a regeneration with nothing changed skips the import, the build and the checks. On: every regeneration of this project repeats them all.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
