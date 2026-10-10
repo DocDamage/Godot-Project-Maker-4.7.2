@@ -35,6 +35,13 @@ SEQUENCE_NAME = re.compile(
     re.IGNORECASE,
 )
 DIRECTION_ONLY = re.compile(rf"^(?:{naming.DIRECTION_PATTERN})$", re.IGNORECASE)
+# A frame export with no action word (T16.21): "CHARACTER1", "PORTAL 10", "BOX (3)". The
+# number may be glued to the stem here, because the whole folder is the evidence, not the name.
+EXPORT_FRAME = re.compile(r"^(?P<base>.*?[^\d\s_\-(])[_\- ]*\(?(?P<num>\d+)\)?[_\- ]*$")
+EXPORT_MIN_FRAMES = 3
+SOURCE_EXTENSIONS = (".aseprite", ".ase")
+UNNAMED = "anim_{0}"
+UNNAMED_CONFIDENCE = 0.5  # needs review: the animations have no names yet
 FRAME_STRIP_DIR = "generated/frame_strips"
 WORK_FOLDER = "frame_strips"
 MIN_FRAMES = 2
@@ -130,6 +137,92 @@ def find_sequences(inv: Inventory, claimed: set[str]) -> list[Sequence]:
     return found
 
 
+@dataclass
+class FrameExport:
+    """A folder that is one numbered frame export without an action word."""
+
+    folder: str
+    base: str
+    frames: list[tuple[int, InventoryFile]]  # in numeric order
+    source: str | None  # the .aseprite beside the frames, when there is one
+
+    @property
+    def label(self) -> str:
+        return posixpath.join(self.folder, self.base)
+
+
+def find_frame_exports(inv: Inventory, claimed: set[str]) -> list[FrameExport]:
+    """Folders whose pictures are ``<STEM><n>.png`` with one stem and one size and nothing else
+    (``CHARACTER/CHARACTER1.png`` ... ``CHARACTER168.png``). Whether such a folder is an
+    animation or a set of variants (``icons/icon_01`` ... ``icon_64``) the names cannot say:
+    ``SequencesAdapter`` asks the pictures (a blank separator frame) and the folder (the
+    ``.aseprite`` source the frames were exported from)."""
+    folders: dict[str, list[InventoryFile]] = {}
+    sources: dict[str, list[str]] = {}
+    for f in inv.files:
+        folder = posixpath.dirname(f.path)
+        if f.ext in SOURCE_EXTENSIONS:
+            sources.setdefault(folder, []).append(f.path)
+        elif f.kind == "image":
+            folders.setdefault(folder, []).append(f)
+    found: list[FrameExport] = []
+    for folder in sorted(folders):
+        files = folders[folder]
+        if len(files) < EXPORT_MIN_FRAMES or any(
+            not _is_still(f) or f.path in claimed for f in files
+        ):
+            continue
+        parsed = [
+            (EXPORT_FRAME.match(posixpath.splitext(posixpath.basename(f.path))[0]), f)
+            for f in files
+        ]
+        if any(m is None for m, _f in parsed):
+            continue
+        bases = {m.group("base").strip().casefold() for m, _f in parsed if m}
+        numbers = [int(m.group("num")) for m, _f in parsed if m]
+        sizes = {((f.image or {}).get("w", 0), (f.image or {}).get("h", 0)) for f in files}
+        if len(bases) != 1 or len(set(numbers)) != len(numbers) or len(sizes) != 1:
+            continue
+        if 0 in next(iter(sizes)):
+            continue
+        base = next(m.group("base").strip() for m, _f in parsed if m)
+        beside = sorted(sources.get(folder, []))
+        named = [
+            p
+            for p in beside
+            if posixpath.splitext(posixpath.basename(p))[0].casefold() == base.casefold()
+        ]
+        frames = sorted(zip(numbers, files, strict=True), key=lambda nf: nf[0])
+        found.append(FrameExport(folder, base, frames, (named or beside or [None])[0]))
+    return found
+
+
+def _is_blank(path: Path) -> bool:
+    """A fully transparent picture: what some exporters write between two animations."""
+    try:
+        with Image.open(path) as im:
+            return im.convert("RGBA").getchannel("A").getextrema()[1] == 0
+    except (OSError, ValueError):
+        return False
+
+
+def split_export(root: Path, export: FrameExport) -> tuple[list[Sequence], bool]:
+    """The animations of a frame export, and whether blank frames separated them. They are cut
+    at the blank frames, which belong to no animation; an export without one is cut at the
+    gaps of its numbering."""
+    blank = {f.path for _n, f in export.frames if _is_blank(root / f.path)}
+    runs: list[list[tuple[int, InventoryFile]]] = [[]]
+    previous: int | None = None
+    for number, f in export.frames:
+        cut = f.path in blank or (not blank and previous is not None and number != previous + 1)
+        if cut and runs[-1]:
+            runs.append([])
+        if f.path not in blank:
+            runs[-1].append((number, f))
+        previous = number
+    return [Sequence(export.folder, export.base, run) for run in runs if run], bool(blank)
+
+
 def layout(count: int, frame_width: int) -> tuple[int, int]:
     """Columns and rows of the strip that holds ``count`` frames."""
     cols = max(1, min(count, MAX_STRIP_WIDTH // max(1, frame_width)))
@@ -159,7 +252,10 @@ class SequencesAdapter:
     priority = 55  # before the strips adapter
 
     def match(self, inv: Inventory, root: Path) -> float:
-        return 1.0 if find_sequences(inv, set()) else 0.0
+        if find_sequences(inv, set()):
+            return 1.0
+        exports = find_frame_exports(inv, set())
+        return 1.0 if any(split_export(root, export)[1] for export in exports) else 0.0
 
     def extract(self, inv: Inventory, root: Path, ctx: AdapterContext) -> AdapterResult:
         result = AdapterResult(self.name)
@@ -171,8 +267,66 @@ class SequencesAdapter:
         work = (ctx.work_dir or paths.cache_dir()) / WORK_FOLDER
         for key in sorted(characters):
             self._character(root, ctx.pack_id, characters[key], work, result, issues)
+        taken = set(ctx.claimed) | {f.path for f in result.assets} | set(result.consumed)
+        for export in find_frame_exports(inv, taken):
+            self._export(root, export, work, result, issues)
         result.issues = list(issues)
         return result
+
+    def _export(
+        self,
+        root: Path,
+        export: FrameExport,
+        work: Path,
+        result: AdapterResult,
+        issues: IssueList,
+    ) -> None:
+        """A frame export without an action word: one sprite whose animations are ``anim_1``
+        ... ``anim_n`` until somebody names them."""
+        sequences, separated = split_export(root, export)
+        if not separated:
+            # Nothing in the pictures says these are frames: they stay pictures of their own.
+            # (A source file beside them will say it, once its frames and tags are read.)
+            return
+        if not sequences:
+            return
+        w, h = sequences[0].size
+        animations: dict[str, Any] = {}
+        baseline = 0
+        for index, seq in enumerate(sequences, start=1):
+            file_name = strip_name(seq)
+            dest = work / file_name
+            try:
+                write_strip(root, seq, dest)
+            except (OSError, ValueError) as exc:
+                issues.add(
+                    "ADAPT-001", adapter=self.name, file=seq.frames[0][1].path, reason=str(exc)
+                )
+                return
+            project_path = f"{FRAME_STRIP_DIR}/{file_name}"
+            result.generated[project_path] = str(dest)
+            cols, _rows = layout(len(seq.frames), w)
+            cells = [[i % cols, i // cols] for i in range(len(seq.frames))]
+            animations[UNNAMED.format(index)] = {
+                "frames": cells,
+                "fps": naming.fps("idle") if len(cells) == 1 else 8.0,
+                "loop": True,
+                "source": project_path,
+            }
+            if index == 1:
+                mask = image_facts.occupancy(image_facts.load_rgba(dest))
+                baseline = frames_mod.baseline_y(mask, [(c * w, r * h, w, h) for c, r in cells])
+        facets: dict[str, Any] = {
+            "usage": "sprite",
+            "grid": {"cell": [w, h], "margin": [0, 0], "separation": [0, 0]},
+            "frame": [w, h],
+            "origin": [w // 2, baseline],
+            "animations": animations,
+        }
+        first = sequences[0].frames[0][1]
+        result.assets.append(AssetFragment(first.path, facets, UNNAMED_CONFIDENCE, "full"))
+        result.consumed.extend(f.path for _n, f in export.frames if f.path != first.path)
+        issues.add("ADAPT-005", count=len(animations), sequence=export.label, file=first.path)
 
     def _character(
         self,

@@ -317,3 +317,109 @@ def test_sequences_pack() -> None:
 def test_other_packs_do_not_match(pack: str) -> None:
     inv, root, _ctx = _open(SYNTH / pack)
     assert SequencesAdapter().match(inv, root) == 0.0
+
+
+# ----------------------------------------------------------------- frame exports (T16.21)
+
+
+def _blank(path: Path, size: tuple[int, int] = (8, 8)) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGBA", size, (0, 0, 0, 0)).save(path)
+
+
+def _export(folder: Path, stem: str, runs: list[int], blanks: int = 1, form: str = "{0}{1}") -> int:
+    """Numbered frames in ``folder``: runs of frames with ``blanks`` empty ones between them."""
+    number = 0
+    for index, count in enumerate(runs):
+        for _ in range(count):
+            number += 1
+            _frame(folder / (form.format(stem, number) + ".png"), 40 + number)
+        if index < len(runs) - 1:
+            for _ in range(blanks):
+                number += 1
+                _blank(folder / (form.format(stem, number) + ".png"))
+    return number
+
+
+def test_numbered_frames_without_an_action_word_are_cut_at_the_blank_frames(
+    tmp_path: Path,
+) -> None:
+    pack = tmp_path / "village"
+    total = _export(pack / "CHARACTER", "CHARACTER", [4, 6, 3], blanks=2)
+    assert total == 17
+    (pack / "CHARACTER" / "CHARACTER.aseprite").write_bytes(b"not read yet")
+    inv, root, ctx = _open(pack, tmp_path / "work")
+    assert SequencesAdapter().match(inv, root) == 1.0
+    res = SequencesAdapter().extract(inv, root, ctx)
+    (hero,) = res.assets
+    assert hero.path == "CHARACTER/CHARACTER1.png" and hero.confidence < 0.75  # needs review
+    assert hero.facets["frame"] == [8, 8]
+    assert {k: len(v["frames"]) for k, v in hero.facets["animations"].items()} == {
+        "anim_1": 4,
+        "anim_2": 6,
+        "anim_3": 3,
+    }
+    assert len(res.consumed) == 16, "every other frame, the blank ones too, is part of it"
+    (note,) = res.issues
+    assert note.code == "ADAPT-005" and note.severity.value == "info"
+    assert "3 animations" in note.message and "CHARACTER/CHARACTER" in note.message
+    # the strips hold the frames in their order, and no blank one
+    for spec in hero.facets["animations"].values():
+        strip = Image.open(res.generated[spec["source"]]).convert("RGBA")
+        assert strip.size == (8 * len(spec["frames"]), 8)
+        reds = [strip.getpixel((i * 8 + 3, 3))[0] for i in range(len(spec["frames"]))]
+        assert reds == sorted(reds) and 0 not in reds
+
+
+@pytest.mark.parametrize("form", ["{0}{1}", "{0} {1}", "{0} ({1}) ", "{0}_{1:03d}", "{0}({1})"])
+def test_a_frame_export_is_read_however_its_numbers_are_written(tmp_path: Path, form: str) -> None:
+    pack = tmp_path / "p"
+    _export(pack / "PORTAL", "PORTAL", [10, 2], form=form)  # 10 comes after 9
+    inv, root, ctx = _open(pack, tmp_path / "work")
+    (portal,) = SequencesAdapter().extract(inv, root, ctx).assets
+    assert [len(v["frames"]) for v in portal.facets["animations"].values()] == [10, 2]
+
+
+def test_numbered_pictures_that_nothing_marks_as_frames_stay_pictures(tmp_path: Path) -> None:
+    pack = tmp_path / "p"
+    for n in range(1, 13):  # twelve icons: variants, not an animation
+        _frame(pack / "icons" / f"icon_{n:02d}.png", 20 * n)
+    _export(pack / "mixed", "BOX", [3, 3])  # a frame export ...
+    _frame(pack / "mixed" / "shadow.png", 9)  # ... with another picture beside it
+    _export(pack / "sizes", "FLAME", [3, 3])
+    _frame(pack / "sizes" / "FLAME99.png", 9, size=(16, 16))  # not one size
+    _export(pack / "two", "A", [3, 3])
+    _frame(pack / "two" / "B1.png", 9)  # two stems
+    for n in (1, 2, 3, 4, 5):  # numbered sheets of a bundle: no stem at all
+        _frame(pack / "town" / f"{n}.png", 30 * n, size=(256, 256))
+    _blank(pack / "town" / "6.png", size=(256, 256))
+    inv, root, ctx = _open(pack, tmp_path / "work")
+    assert sequences.find_frame_exports(inv, set()) and not sequences.find_sequences(inv, set())
+    res = SequencesAdapter().extract(inv, root, ctx)
+    assert res.assets == [] and res.consumed == [] and res.issues == []
+    assert [e.folder for e in sequences.find_frame_exports(inv, set())] == ["icons"]
+
+
+def test_an_export_without_a_blank_frame_is_cut_at_the_gaps_of_its_numbers(tmp_path: Path) -> None:
+    pack = tmp_path / "p"
+    for n in (1, 2, 3, 7, 8, 20):
+        _frame(pack / "BOX" / f"BOX{n}.png", 10 * n)
+    inv, root, _ctx = _open(pack)
+    (export,) = sequences.find_frame_exports(inv, set())
+    assert export.base == "BOX" and export.source is None
+    runs, separated = sequences.split_export(root, export)
+    assert not separated and [[n for n, _f in run.frames] for run in runs] == [
+        [1, 2, 3],
+        [7, 8],
+        [20],
+    ]
+
+
+def test_a_frame_export_knows_the_source_beside_it(tmp_path: Path) -> None:
+    pack = tmp_path / "p"
+    _export(pack / "FLAME", "FLAME", [3, 3])
+    (pack / "FLAME" / "notes.aseprite").write_bytes(b"x")
+    (pack / "FLAME" / "flame.ase").write_bytes(b"x")
+    inv, _root, _ctx = _open(pack)
+    (export,) = sequences.find_frame_exports(inv, set())
+    assert export.source == "FLAME/flame.ase", "the one named as the frames goes first"

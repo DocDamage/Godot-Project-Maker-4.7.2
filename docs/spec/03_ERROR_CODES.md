@@ -49,6 +49,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | ADAPT-002 | W | Tiled tileset {file} references missing image {image}. | Fix the pack or map the image manually. |
 | ADAPT-003 | I | Pack profile {profile_id} matched ({ratio}). | — |
 | ADAPT-004 | W | The frame numbers of {sequence} have a gap ({frames}). | Add the missing frames, or rename the files so that the numbers run without a gap. |
+| ADAPT-005 | I | {count} animations were found in the numbered frames of {sequence}; their names are not known. | Give them names (walk, attack, ...) in the asset's animations on the Audit page. |
 | CAT-001 | E | {file} is not valid JSON: {reason}. | Restore from backup or regenerate. |
 | CAT-002 | E | {file} does not match schema: {reason}. | Restore from backup or regenerate. |
 | CAT-003 | E | Catalog version {found} is newer than this generator supports. | Update rpggen. |

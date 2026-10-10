@@ -57,6 +57,7 @@ CODES: dict[str, CodeInfo] = {
     "ADAPT-002": CodeInfo("ADAPT-002", "warning", "Tiled tileset {file} references missing image {image}.", "Fix the pack or map the image manually."),
     "ADAPT-003": CodeInfo("ADAPT-003", "info", "Pack profile {profile_id} matched ({ratio}).", "—"),
     "ADAPT-004": CodeInfo("ADAPT-004", "warning", "The frame numbers of {sequence} have a gap ({frames}).", "Add the missing frames, or rename the files so that the numbers run without a gap."),
+    "ADAPT-005": CodeInfo("ADAPT-005", "info", "{count} animations were found in the numbered frames of {sequence}; their names are not known.", "Give them names (walk, attack, ...) in the asset's animations on the Audit page."),
     "CAT-001": CodeInfo("CAT-001", "error", "{file} is not valid JSON: {reason}.", "Restore from backup or regenerate."),
     "CAT-002": CodeInfo("CAT-002", "error", "{file} does not match schema: {reason}.", "Restore from backup or regenerate."),
     "CAT-003": CodeInfo("CAT-003", "error", "Catalog version {found} is newer than this generator supports.", "Update rpggen."),
