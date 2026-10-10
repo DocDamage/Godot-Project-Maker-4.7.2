@@ -25,5 +25,6 @@ private_corpus_report.md
 # compiled wizard translations: built by tools/update_translations.py release (T12.56)
 rpggen/gui/i18n/*.qm
 
-# real asset packs for the M16 detection work (one is not redistributable; 130 MB of archives)
+# real asset packs for the M16 detection work (one is not redistributable; about 820 MB of
+# archives, most of it CuteSCKR.zip: tilesets and props for top-down games)
 /assets to show game maker/

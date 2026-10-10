@@ -23,7 +23,7 @@ regenerates with 1.4 without a prompt.
 
 ## What the real packs look like
 
-Five packs the user will use were listed on 2026-10-09 (file names and image sizes only; the
+Six packs the user will use were listed on 2026-10-09 (file names and image sizes only; the
 art was not opened). They decide the word lists and the adapter work of T16.02 and T16.21.
 
 | Pack | Kind | What it taught |
@@ -32,13 +32,16 @@ art was not opened). They decide the word lists and the adapter work of T16.02 a
 | Eight *Side-Scroller Tileset* packs (10 files each) | run and gun, metroidvania | Tiles only, no characters: every pack is ten 256 × 256 sheets named by content with a number prefix, spaces and ampersands: `1. Ground & Terrain Tiles.png`, `2. Platform Tiles.png`, `3. Walls & Cliffs.png`, `4. Background Decorations.png`, `8. Hazards Pack.png`, `9. Collectibles & Props.png`, `10. Doors, Windows & Architectural Pieces.png`; themed packs vary the words (`Haunted Platforms & Suspended Walkways`, `Bridges & Traversal Structures`, `Lava Chambers`, `Traps, Hazards & Dungeon Gameplay Objects`). One zip name and one file name carry an emoji. Props and tiles share a sheet: the object cutter is the tool. |
 | *Dark Cursed Village* (rar, 287 entries) | run and gun, metroidvania | A **numbered-frame export with no action words**: `CHARACTER/CHARACTER1.png` … `CHARACTER168.png`, every frame 142 × 142, with 29 blank 123-byte frames as separators between animations; the same for `PROPS/BOX/BOX1..16` (96 × 96), `FLAME1..16` (32 × 128), `PORTAL1..31` (960 × 512), `POST`. Beside each set the **`.aseprite` source** (`CHARACTER.aseprite`), whose tags name the animations. `BACKGROUD/BACKGROUND (1) .png` … `(4)` (480 × 480 parallax layers; a typo and a space before the extension), `TERRAIN/TERRAIN.png`, `SCENE/HOUSE (1).png` (480 × 270), a `PREVIEW` folder of GIFs and a `test.png` to ignore. |
 | *Super Retro Ranch* premium (1,040 files; not CC0: credit asked, no redistribution, no NFT or AI use) | farm (M17), top-down | A strict naming scheme `<thing>_<nn>_<colour>_<action>_<direction>_<W>x<H>_<N>frames.png` (`cow_01_brown_move_down_32x32_4frames.png`, `corn_16x32_8frames.png`, `default_01_16x16_9split.png`): the cell size and frame count are **in the name**. 36 colour variants of one cow (288 files), `move` for walk, `sleep`, `dead`, `fly`. The same art ships in **five engine layouts** under `engines/Godot/autotiles/2x2`, `3x3`, `engines/RPG_Maker_MV_MZ/autotiles/A2` (768 × 576), `RPG_Maker_VX_VXace`, `RPG_Maker_XP`, `Unity`, plus the raw 16 × 96 templates in `assets/autotiles`. A zero-content `In development` file in every folder, `__MACOSX/._` files, `.html` links. Crops with 7–29 growth frames, tools (hoe, shovel, water, sickle), weather overlays, 9-slice UI themes. |
-
+| *CuteSCKR* (one zip of 724 MB: 78 packs, 1,071 PNG files; the licence is not in the archive) | top-down (the three older kinds, and the top-down kinds of Part F) | **A bundle of packs, and sheets with no words in their names.** The zip has one folder per pack, named by theme (`Abandoned Hospital Tileset`, `Medieval Fantasy Town Pixel Art Tileset Pack`, `Modern Gym Fitness Center Pixel Art Tileset Pack`, …; ampersands, hyphens, one misspelt `Monder Interiors`), and inside it 4 to 25 sheets called only `1.png`, `2.png`, … (537 of the files; the numbering has gaps: `1`–`6`, `8`). What a sheet holds can only be read from the picture and from the **folder's** words. 560 sheets are 768 × 768 (a 16 × 16 grid of 48 px tiles, RPG Maker MV's B–E sheet), 47 are 2048 × 2048 and 21 are 1024 × 1024, all tiles and props on one sheet with no characters: the object cutter is the tool. A few names are RPG Maker's own (`prison_MV_A4.png` 768 × 720, `Tile-A2-11.png`, `Tile-B-12.png`, `Tile-C-12.png`), which the A-sheet reader knows. Some packs put their sheets one folder down (`Alien Jungle Tileset/Alien jungle/`, `tileset-1/`, `ww1/`). One pack carries the output of a sprite-cutting tool beside its sheets: `_organized_sprites/sprites/<category>/sheet_01_<category>_001.png` (431 cut props in nine categories such as `baskets_crates_and_bins` and `tall_shelves_and_racks`), `_organized_sprites/previews/sheet_01_boxes.png` and `_contact.png`, and a `manifest/sprites.csv` and `sprites.json` with each prop's source sheet and rectangle (and an absolute path of the artist's own disk). Two `.jpg` files with a non-ASCII suffix (`B-10_副本.jpg`, *copy*). 675 KB per sheet on average: the pack is large by bytes, not by file count. |
 What follows from it, by card: rotation sheets of 46 × 54 as well as square cells, `_mix`
 terrains and the `bikes`, `nitro`, `smoke`, `barrier`, `tire` words (T16.02); numbered frames
 without action words split at blank frames, a reader for binary `.aseprite` files, the
 `WxH_Nframes` suffix, engine-layout duplicates, preview and guide files, number prefixes,
-ampersands, emoji and typos in names (T16.21); the farm kind of Part F has a real pack to be
-designed against.
+ampersands, emoji and typos in names (T16.21); a zip that is a bundle of packs, sheets named
+by a number only whose content comes from their folder's words and from the picture, the
+`MV_A4` / `Tile-A2` names, and the cut sprites and manifest another tool left in a pack
+(T16.21), with the choice of which packs of a bundle to add as a card of its own (T16.22);
+the farm kind of Part F has a real pack to be designed against.
 
 ## Ground rules for this milestone
 
@@ -86,7 +89,7 @@ designed against.
 | 2 | T16.04 – T16.07 | The shoot 'em up: the simplest kind, it proves the framework |
 | 3 | T16.08 – T16.11 | The run and gun, on the platform actor; the grapple last |
 | 4 | T16.12 – T16.15 | Racing: the one kind with a new actor and a new planner |
-| 5 | T16.16, T16.17 | The wizard (cards, roles, options, previews) and the samples |
+| 5 | T16.16, T16.17, T16.22 | The wizard (cards, roles, options, previews), the samples and the bundle's checklist |
 | 6 | T16.18, T16.19, T16.20 | Smoke tests, documentation, the gate, then tag `v1.4.0` |
 
 Each kind can be released alone behind its flag if the others are late.
@@ -118,6 +121,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.19 | Documentation, screenshots and changelogs | M | T16.18 | open |
 | T16.20 | Gate (1.4.0) | M | T16.19 | open |
 | T16.21 | What the real packs need: numbered frames, `.aseprite` sources, names with sizes, engine duplicates | M | — | open |
+| T16.22 | A bundle of packs: choosing which to add | M | T16.21 | open |
 
 ---
 
@@ -281,11 +285,11 @@ world with a party. What they share is written once.
 **Files:** `rpggen/core/adapters/sequences.py`, `rpggen/core/adapters/aseprite.py` (a binary
 reader), `rpggen/core/adapters/naming.py`, `rpggen/core/pack_sniff.py`, `rpggen/core/inventory.py`
 (ignored files), `rpggen/core/catalog.py` (engine-layout duplicates), `docs/spec/03_ERROR_CODES.md`
-(`ADAPT-005`, `ADAPT-006`), `tests/unit/test_sequences.py`, `tests/unit/test_aseprite.py`,
-`tests/unit/test_naming.py`, `tools/make_synthetic_packs.py` (a `frames_export` and a
-`multi_engine` pack)
+(`ADAPT-005`, `ADAPT-006`, `ADAPT-007`), `tests/unit/test_sequences.py`, `tests/unit/test_aseprite.py`,
+`tests/unit/test_naming.py`, `tools/make_synthetic_packs.py` (a `frames_export`, a
+`multi_engine` and a `bundle` pack), `rpggen/core/adapters/rpgmaker.py`
 
-Every finding here comes from the five packs listed above; each benefits every kind, not only
+Every finding here comes from the six packs listed above; each benefits every kind, not only
 the three new ones, so the card runs first and the corpus must be unchanged after it.
 
 **Spec**
@@ -327,6 +331,36 @@ the three new ones, so the card runs first and the corpus must be unchanged afte
   and reads `(1)` as a number; common typos are folded by an edit-distance of one against the
   word lists for words of six letters or more (`BACKGROUD`, `Enviroment`), with the *Why*
   line saying so.
+* **A bundle of packs in one archive.** An archive (or folder) whose top level is one folder
+  holding many folders that each look like a pack (ten or more, each with images and no
+  images beside them; *CuteSCKR* has 78) is a **bundle**. `pack_sniff` reports it with its
+  pack folders (name, image count, bytes) from the archive's listing alone: no file is
+  unpacked. A folder of a bundle added on its own is a pack like any other, with the folder's
+  name. Choosing among the folders in the wizard and on the command line is T16.22.
+* **Sheets named by a number only.** A sheet whose name has no word (`1.png`, `12.png`) takes
+  its words from its **folders**, nearest first (`Medieval Fantasy Town Pixel Art Tileset
+  Pack/3.png` → medieval, fantasy, town, tileset), with the words every pack of the bundle
+  shares (`pixel`, `art`, `tileset`, `pack`) counted as usage hints, not as tags; the *Why*
+  line says the name came from the folder. Such a sheet is a tile sheet by its folder and its
+  grid, and what stands on it (ground, walls, props) is decided by the picture analysis as
+  today; a sheet that mixes tiles and props is offered to the object cutter. Gaps in the
+  numbering are not an error and not a sequence break (these are sheets, not frames: a set of
+  numbered files of 256 px and more with different content is never a frame export).
+* **RPG Maker names inside other packs.** `<name>_MV_A4.png`, `Tile-A2-11.png`, `Tile-B-12.png`
+  are read by the RPG Maker adapter's sheet kinds (A1–A5, B–E) wherever they lie, and a
+  768 × 768 sheet with a 48 px grid is offered as a B–E sheet (16 × 16 tiles) when nothing
+  else names its grid.
+* **What another cutting tool left behind.** A folder `_organized_sprites` (or one that holds a
+  `manifest/sprites.csv` or `sprites.json` with `source_sheet, x, y, width, height` columns) is
+  the output of a sprite cutter. Its manifest is read as **object rectangles on the source
+  sheets** (`sheet_01` → the pack's first sheet; the categories become tags), so the props
+  appear as cut objects of the sheets they came from; the cut PNG copies and the `previews`
+  folder are *unused* with the reason on their cards (the pixels are on the sheets already),
+  and an absolute path in the manifest is ignored. A manifest that does not match its sheets
+  (a rectangle outside the picture) is `ADAPT-007`, a note, and the cut PNGs are used as sprites.
+* **Other pictures.** `.jpg` files are catalogued as backgrounds or previews, never as tiles
+  (no transparency); a name with a non-ASCII suffix (`_副本`, *copy*) is a copy of a file and
+  is *unused* when its sibling exists.
 * **Colour variants in the pack.** Files whose names differ only by a colour word
   (`Classic_Bug_red.png`, `cow_01_brown_…`) or a trailing colour folder are grouped as one
   asset with **palette variants** through the variant pipeline (T13.18): one card in the audit
@@ -344,14 +378,76 @@ the three new ones, so the card runs first and the corpus must be unchanged afte
   ampersand; a typo within distance one and one beyond it (not folded).
 * The `multi_engine` pack catalogues the Godot files once and marks the four other copies.
 * The ignore list; a root `test.png` is *unused* with its reason and can be restored.
+* A `bundle` synthetic archive (twelve small pack folders under one top folder, sheets named
+  `1.png` … with a gap, one pack with an `_organized_sprites` folder and its manifest): the
+  sniff reports a bundle and its twelve folders from the listing alone (nothing is unpacked:
+  the test counts the reads), a folder added on its own is a pack, a numbered
+  sheet has its folder's words and its *Why* line, the manifest's rectangles are cut objects
+  on their sheets and the copies are *unused*; a manifest with a rectangle outside its sheet
+  gives `ADAPT-007`. Five numbered 768 × 768 sheets are five tile sheets, not one animation.
 * The colour-variant grouping over the racer's eight cars and the ranch's 36 cows; the
   corpus (T12.26) is unchanged on all four measures.
 
 **Done when**
-* The five real packs catalogue with these results: the racing pack's 32 vehicles as 32
+* The six real packs catalogue with these results: the racing pack's 32 vehicles as 32
   assets with their colour variants and 16 headings; each side-scroller pack as ten tile
   sheets with the right tags; the village pack's character as one sprite with named
-  animations; the ranch pack with one copy of each picture and *needs credit* on its card.
+  animations; the ranch pack with one copy of each picture and *needs credit* on its card;
+  *CuteSCKR* reported as a bundle of 78 packs, and three of its folders added on their own
+  (a town, an interior and the supermarket with its manifest) catalogued as tile sheets with
+  their folders' words and, for the supermarket, 431 cut objects.
+
+## T16.22 — A bundle of packs: choosing which to add
+
+**Depends on:** T16.21 (the sniff reports the bundle and its folders)
+**Files:** `rpggen/gui/pages/project_page.py`, `rpggen/gui/dialogs/bundle_dialog.py`,
+`rpggen/core/pack_sniff.py` (unpacking the chosen folders only), `rpggen/cli.py`
+(`--pack-folder`), `rpggen/schema/cli.schema.json`, `tests/gui/test_bundle_dialog.py`,
+`tests/unit/test_cli.py`
+
+T16.21 recognises a bundle; this card lets the user take part of one. Without it a bundle
+could only be added whole (1,071 sheets as one pack, for *CuteSCKR*) or unpacked by hand.
+
+**Spec**
+* **The checklist.** Adding a bundle on the Project page opens *Choose packs* instead of
+  adding it: one row per pack folder with its name, image count and size, a search field,
+  *Select all* and *Select none*, and the total of what is ticked (packs, images, MB) beside
+  the *Add* button. Every row is ticked for a bundle of 20 folders or fewer, none above that.
+  *Add* with nothing ticked is disabled; *Cancel* adds nothing.
+* **Each ticked folder is a pack of its own**, named by its folder, so the audit's pack
+  filter, the licence card and the profile work per pack. Only the ticked folders are
+  unpacked, with the progress and the *Cancel* of any pack import.
+* **Coming back.** The Project page shows the bundle's packs grouped under the archive's
+  name with *Choose packs…* on the group, which reopens the checklist with the present
+  choice ticked: ticking adds a pack, clearing one removes it after the confirmation any
+  pack removal asks for. The choice is stored in the project's configuration as the archive
+  and its folders, so a regeneration finds the same packs.
+* **One licence for the bundle.** A licence file at the bundle's top level applies to every
+  pack taken from it; with none (*CuteSCKR* has none in its archive) each pack's licence card
+  says *not found in the bundle* once, on the group, not 78 times.
+* **The command line.** `--pack <archive> --pack-folder <name>` (repeatable) takes those
+  folders; a bundle given without `--pack-folder` stops with the list of its folders and the
+  option's name, and a folder that is not in the bundle is an error naming the nearest match.
+  The configuration file's pack entry takes the same list as `folders`.
+* The dialog follows the dialog rules of M15 (size, keyboard, the search field's focus) and
+  its strings are translatable.
+
+**Tests**
+* The `bundle` synthetic archive of T16.21 opens the checklist with twelve rows, all ticked;
+  one of 25 folders opens with none ticked. Search narrows the rows and keeps the ticks of
+  hidden rows; the total follows the ticks; *Add* is disabled with none.
+* Three ticked folders become three packs with their folders' names, and only their files
+  are unpacked. Reopening shows the three ticked; clearing one removes that pack after the
+  confirmation; the choice survives save and load of the project.
+* The licence note appears once on the group.
+* The CLI: the folders given, none given (the message lists them), an unknown folder; the
+  schema accepts `folders` and rejects it on a pack that is not a bundle.
+* The dialog at the smallest window size and by keyboard alone (the layout-fit and
+  accessibility suites cover it).
+
+**Done when**
+* *CuteSCKR* is offered as 78 rows without a file being unpacked, and a town, an interior
+  and the supermarket are added from it in one step and catalogue as T16.21 says.
 
 ---
 
