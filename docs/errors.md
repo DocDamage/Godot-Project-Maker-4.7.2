@@ -65,6 +65,7 @@
 | ADAPT-003 | info | Pack profile {profile_id} matched ({ratio}). | — |
 | ADAPT-004 | warning | The frame numbers of {sequence} have a gap ({frames}). | Add the missing frames, or rename the files so that the numbers run without a gap. |
 | ADAPT-005 | info | {count} animations were found in the numbered frames of {sequence}; their names are not known. | Give them names (walk, attack, ...) in the asset's animations on the Audit page. |
+| ADAPT-006 | info | The Aseprite file {file} could not be read ({reason}); the pictures beside it are used without it. | — |
 
 ## Catalog (CAT)
 

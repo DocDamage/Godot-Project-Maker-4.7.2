@@ -47,6 +47,7 @@ const CODES := {
 	"ADAPT-003": {"severity": "info", "message": "Pack profile {profile_id} matched ({ratio}).", "fix": "—"},
 	"ADAPT-004": {"severity": "warning", "message": "The frame numbers of {sequence} have a gap ({frames}).", "fix": "Add the missing frames, or rename the files so that the numbers run without a gap."},
 	"ADAPT-005": {"severity": "info", "message": "{count} animations were found in the numbered frames of {sequence}; their names are not known.", "fix": "Give them names (walk, attack, ...) in the asset's animations on the Audit page."},
+	"ADAPT-006": {"severity": "info", "message": "The Aseprite file {file} could not be read ({reason}); the pictures beside it are used without it.", "fix": "—"},
 	"CAT-001": {"severity": "error", "message": "{file} is not valid JSON: {reason}.", "fix": "Restore from backup or regenerate."},
 	"CAT-002": {"severity": "error", "message": "{file} does not match schema: {reason}.", "fix": "Restore from backup or regenerate."},
 	"CAT-003": {"severity": "error", "message": "Catalog version {found} is newer than this generator supports.", "fix": "Update rpggen."},

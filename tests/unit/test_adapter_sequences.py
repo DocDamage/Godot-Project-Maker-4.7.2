@@ -347,7 +347,6 @@ def test_numbered_frames_without_an_action_word_are_cut_at_the_blank_frames(
     pack = tmp_path / "village"
     total = _export(pack / "CHARACTER", "CHARACTER", [4, 6, 3], blanks=2)
     assert total == 17
-    (pack / "CHARACTER" / "CHARACTER.aseprite").write_bytes(b"not read yet")
     inv, root, ctx = _open(pack, tmp_path / "work")
     assert SequencesAdapter().match(inv, root) == 1.0
     res = SequencesAdapter().extract(inv, root, ctx)

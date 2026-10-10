@@ -103,13 +103,14 @@ def name_facts(stem: str) -> NameFacts:
         m = _FACT_SUFFIX.search(rest)
         if m is None:
             break
+        value: object
         if m.group("w"):
-            key, value = "cell", (int(m.group("w")), int(m.group("h")))
-            ok = value[0] > 0 and value[1] > 0
+            cell = (int(m.group("w")), int(m.group("h")))
+            key, value, ok = "cell", cell, cell[0] > 0 and cell[1] > 0
         else:
             key = "frames" if m.group("frames") else "split" if m.group("split") else "dirs"
-            value = int(m.group(key))
-            ok = value > 0
+            count = int(m.group(key))
+            value, ok = count, count > 0
         if not ok or key in found:
             break
         found[key] = value

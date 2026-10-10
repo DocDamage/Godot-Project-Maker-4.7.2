@@ -18,7 +18,7 @@ from typing import Any
 from PIL import Image
 
 from rpggen import paths
-from rpggen.core.adapters import naming
+from rpggen.core.adapters import aseprite_file, naming
 from rpggen.core.adapters.base import AdapterContext, AdapterResult, AssetFragment
 from rpggen.core.analyzer import frames as frames_mod
 from rpggen.core.analyzer import image_facts
@@ -193,7 +193,8 @@ def find_frame_exports(inv: Inventory, claimed: set[str]) -> list[FrameExport]:
             if posixpath.splitext(posixpath.basename(p))[0].casefold() == base.casefold()
         ]
         frames = sorted(zip(numbers, files, strict=True), key=lambda nf: nf[0])
-        found.append(FrameExport(folder, base, frames, (named or beside or [None])[0]))
+        source = (named or beside)[0] if named or beside else None
+        found.append(FrameExport(folder, base, frames, source))
     return found
 
 
@@ -254,8 +255,10 @@ class SequencesAdapter:
     def match(self, inv: Inventory, root: Path) -> float:
         if find_sequences(inv, set()):
             return 1.0
-        exports = find_frame_exports(inv, set())
-        return 1.0 if any(split_export(root, export)[1] for export in exports) else 0.0
+        for export in find_frame_exports(inv, set()):
+            if split_export(root, export)[1] or self._source(root, export, IssueList()):
+                return 1.0
+        return 0.0
 
     def extract(self, inv: Inventory, root: Path, ctx: AdapterContext) -> AdapterResult:
         result = AdapterResult(self.name)
@@ -281,19 +284,27 @@ class SequencesAdapter:
         result: AdapterResult,
         issues: IssueList,
     ) -> None:
-        """A frame export without an action word: one sprite whose animations are ``anim_1``
-        ... ``anim_n`` until somebody names them."""
+        """A frame export without an action word: one sprite. Its animations are those the
+        ``.aseprite`` source beside the frames tags, by name when a tag has one that says what
+        it is; else ``anim_1`` ... ``anim_n`` until somebody names them."""
+        source = self._source(root, export, issues)
         sequences, separated = split_export(root, export)
-        if not separated:
-            # Nothing in the pictures says these are frames: they stay pictures of their own.
-            # (A source file beside them will say it, once its frames and tags are read.)
+        if not separated and source is None:
+            return  # nothing says these are frames: they stay pictures of their own
+        plan = self._plan(export, sequences, source)
+        if not plan:
             return
-        if not sequences:
-            return
-        w, h = sequences[0].size
+        if len(plan) == 1 and plan[0][0] is None:
+            # one animation and no name: what a prop does all the time (a flame, a portal)
+            plan = [("idle_down", *plan[0][1:])]
+        w, h = plan[0][1].size
         animations: dict[str, Any] = {}
         baseline = 0
-        for index, seq in enumerate(sequences, start=1):
+        unnamed = 0
+        for index, (name, seq, fps, loop) in enumerate(plan, start=1):
+            if name is None or name in animations:
+                name = UNNAMED.format(index)
+                unnamed += 1
             file_name = strip_name(seq)
             dest = work / file_name
             try:
@@ -307,10 +318,10 @@ class SequencesAdapter:
             result.generated[project_path] = str(dest)
             cols, _rows = layout(len(seq.frames), w)
             cells = [[i % cols, i // cols] for i in range(len(seq.frames))]
-            animations[UNNAMED.format(index)] = {
+            animations[name] = {
                 "frames": cells,
-                "fps": naming.fps("idle") if len(cells) == 1 else 8.0,
-                "loop": True,
+                "fps": fps,
+                "loop": loop,
                 "source": project_path,
             }
             if index == 1:
@@ -323,10 +334,69 @@ class SequencesAdapter:
             "origin": [w // 2, baseline],
             "animations": animations,
         }
-        first = sequences[0].frames[0][1]
-        result.assets.append(AssetFragment(first.path, facets, UNNAMED_CONFIDENCE, "full"))
+        first = export.frames[0][1]
+        confidence = UNNAMED_CONFIDENCE if unnamed else 0.9
+        result.assets.append(AssetFragment(first.path, facets, confidence, "full"))
         result.consumed.extend(f.path for _n, f in export.frames if f.path != first.path)
-        issues.add("ADAPT-005", count=len(animations), sequence=export.label, file=first.path)
+        if unnamed:
+            issues.add("ADAPT-005", count=unnamed, sequence=export.label, file=first.path)
+
+    def _source(
+        self, root: Path, export: FrameExport, issues: IssueList
+    ) -> aseprite_file.AsepriteFile | None:
+        """The source beside the frames, when it is the file these frames were exported from:
+        as many frames as there are pictures, numbered without a gap. A source that cannot be
+        read is a note (ADAPT-006); one of another shape (a layered still beside four
+        backgrounds) says nothing about the pictures and is left alone."""
+        if export.source is None:
+            return None
+        try:
+            source = aseprite_file.read(root / export.source)
+        except aseprite_file.AsepriteError as exc:
+            issues.add("ADAPT-006", file=export.source, reason=str(exc))
+            return None
+        numbers = [n for n, _f in export.frames]
+        whole = numbers == list(range(numbers[0], numbers[0] + len(numbers)))
+        return source if whole and source.frame_count == len(numbers) > 1 else None
+
+    def _plan(
+        self,
+        export: FrameExport,
+        sequences: list[Sequence],
+        source: aseprite_file.AsepriteFile | None,
+    ) -> list[tuple[str | None, Sequence, float, bool]]:
+        """``(name or None, frames, fps, loop)`` per animation. The tags of the source are the
+        animations when it has any (they cut where the artist cut, also between two
+        animations with no blank frame between them); else the runs between the blank frames."""
+
+        def speed(indexes: list[int]) -> float:
+            if source is None or not indexes:
+                return 8.0
+            times = sorted(source.durations_ms[i] for i in indexes)
+            return round(1000.0 / (times[len(times) // 2] or 100), 6)
+
+        if source is None or not source.tags:
+            first = export.frames[0][0]
+            return [
+                (None, seq, speed([n - first for n, _f in seq.frames]), True) for seq in sequences
+            ]
+        shown = {f.path for seq in sequences for _n, f in seq.frames}  # the frames not blank
+        plan: list[tuple[str | None, Sequence, float, bool]] = []
+        for tag in source.tags:
+            frames = [export.frames[i] for i in tag.frames() if export.frames[i][1].path in shown]
+            if not frames:
+                continue
+            norm = naming.normalize_name(tag.name)
+            known = norm.action in naming.CANONICAL_ACTIONS
+            plan.append(
+                (
+                    norm.name if known else None,
+                    Sequence(export.folder, export.base, frames),
+                    speed(tag.frames()),
+                    tag.looped and (naming.is_looping(norm.action) if known else True),
+                )
+            )
+        return plan
 
     def _character(
         self,
