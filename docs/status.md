@@ -192,7 +192,7 @@ The gate (T15.25) is open:
 
 | Item | What to do |
 |------|------------|
-| The 1.2 tag | M15 was built on M14 before `v1.2.0` existed (the repository has no tags). Tag the earlier releases first (their gates, below and above), then run the suites of `m15` again. |
+| The 1.2 tag | `v1.2.0` is an annotated tag on `433c96e` (the head of `main`, which `m15` is built on), made on 2026-10-10 **in the development checkout only**: pushing a `v*` tag starts the release workflow, which stops while `docs/coverage.md` has a pending row. Push it when the gates of 1.0 to 1.2 are closed (below and above); 1.0 and 1.1 have no tag. |
 | CI on `m15` | Every suite green on Windows and Ubuntu, on both PySide6 legs. The visual goldens were made on Windows with the bundled font: the first run shows whether the Ubuntu legs (FreeType of the system, PySide6 6.7 and the newest) draw it within the limits. If one does not, look at its `_failed` artifact before widening a limit. Perf within its ceilings, with the two regeneration rows. |
 | Frozen smoke test | `python tools/package.py --smoke` on the three systems: the icons and `style.qss.in` must be in the bundle. |
 | Upgrade test | The upgrade test of M13 with the 1.3 build over a 1.0, a 1.1 and a 1.2 project: no prompt, nothing under `game/` changes, and the second regeneration repeats no check (the first one is full: those projects have no fingerprint). |
