@@ -2,8 +2,10 @@ extends RefCounted
 ## The smoke steps of a racing game (T16.12): the title and a new game, then the car on its
 ## first track. It is driven with the real input actions: it speeds up and brakes, steers, is
 ## slower on the grass, bumps off a barrier, boosts, the camera looks ahead of it, and then it
-## is driven once round the track by a simple driver (head for the next corner, brake before
-## it). The track is ended by hand (there is no race yet) and the run goes to the credits.
+## is driven lap after lap round the first track by a simple driver (head for the next
+## waypoint of the track, brake down to the speed it has), through every checkpoint in its
+## order. The tracks are ended by hand (there is no race yet), each after its car was seen
+## standing on its road, and the run goes to the credits.
 
 const SAVE_DIR := "user://smoke_saves"
 const ACTIONS: Array[StringName] = [&"accelerate", &"brake", &"boost", &"move_left", &"move_right", &"move_up", &"move_down"]
@@ -20,8 +22,8 @@ func steps() -> Array[Dictionary]:
 		{"name": "car_boosts", "fn": _car_boosts, "timeout_s": 30.0},
 		{"name": "grass_is_slower", "fn": _grass_is_slower, "timeout_s": 40.0},
 		{"name": "car_bumps_off_a_barrier", "fn": _car_bumps_off_a_barrier, "timeout_s": 40.0},
-		{"name": "car_drives_round_the_track", "fn": _car_drives_round_the_track, "timeout_s": 120.0},
-		{"name": "track_ends_with_the_credits", "fn": _track_ends_with_the_credits, "timeout_s": 60.0},
+		{"name": "car_drives_round_the_track", "fn": _car_drives_round_the_track, "timeout_s": 300.0},
+		{"name": "tracks_end_with_the_credits", "fn": _tracks_end_with_the_credits, "timeout_s": 300.0},
 	]
 
 # ---------------------------------------------------------------- helpers
@@ -254,88 +256,121 @@ func _car_boosts() -> String:
 	await _back_to_start()
 	return ""
 
+## The first row of the track that has road in it, and the cells of its first run of road:
+## [row, first column, last column]. Above it is the verge, and above that the wall.
+func _top_road() -> Array[int]:
+	var surfaces := _surfaces()
+	var cells := surfaces.size_cells()
+	for y in cells.y:
+		for x in cells.x:
+			if surfaces.at_cell(Vector2i(x, y)) != "road":
+				continue
+			var last := x
+			while surfaces.at_cell(Vector2i(last + 1, y)) == "road":
+				last += 1
+			return [y, x, last]
+	return []
+
 func _grass_is_slower() -> String:
 	var car := _car()
 	var surfaces := _surfaces()
-	# the field outside the ring: to the left of the start
-	var grass := _start + Vector2(-car.tile_size * 3.5, 0.0)
+	var top := _top_road()
+	if top.is_empty():
+		return "the track has no road"
+	# the verge above the topmost road, driven along
+	var grass := Vector2(top[1] + 0.5, top[0] - 0.5) * surfaces.cell
 	if surfaces.at(grass) != "grass":
-		return "the cell left of the road is %s, not grass" % surfaces.at(grass)
-	car.place(grass, _start_heading)
+		return "the cell above the road is %s, not grass" % surfaces.at(grass)
+	car.place(grass, 0.0)
 	Input.action_press(&"accelerate")
-	await _frames(120)
+	await _frames(50)
 	var fast := car.speed_tiles()
 	var on := car.surface
 	Input.action_release(&"accelerate")
 	if on != "grass":
-		return "the car on the field is on %s" % on
+		return "the car on the verge is on %s (at %s)" % [on, car.position]
 	var most := RpgCarPhysics.top_speed("grass")
 	if fast > most + 0.01 or fast < most * 0.8:
-		return "two seconds of the pedal on grass made %.1f tiles a second (grass allows %.1f)" % [fast, most]
+		return "the pedal on grass made %.1f tiles a second (grass allows %.1f)" % [fast, most]
 	await _back_to_start()
 	return ""
 
 func _car_bumps_off_a_barrier() -> String:
 	var car := _car()
+	var surfaces := _surfaces()
+	var top := _top_road()
 	var bumps: Array[float] = []
 	var count := func(lost: float) -> void: bumps.append(lost)
 	car.bumped.connect(count)
-	# to the left, at the barrier at the edge of the field
-	car.place(_start, PI)
+	# up from the topmost road, over the verge, at the wall at the edge of the field
+	car.place(Vector2((top[1] + top[2] + 1) * 0.5, top[0] + 1.5) * surfaces.cell, -PI * 0.5)
 	Input.action_press(&"accelerate")
 	var hit := await _wait_for(func() -> bool: return not bumps.is_empty(), 240)
 	Input.action_release(&"accelerate")
 	car.bumped.disconnect(count)
 	if not hit:
-		return "the car drove to the left for four seconds and bumped into nothing (it is at %s)" % car.position
+		return "the car drove up for four seconds and bumped into nothing (it is at %s)" % car.position
 	if bumps[0] < 1.0:
 		return "a bump at speed cost %.1f tiles a second" % bumps[0]
-	if car.position.x < 0.0:
-		return "the car went through the barrier (it is at %s)" % car.position
+	if car.position.y < 0.0:
+		return "the car went through the wall (it is at %s)" % car.position
 	await _frames(20)
 	await _back_to_start()
 	return ""
 
-## The corners of the ring the driver heads for, in the order the car meets them from the start
-## (which is on the left straight, heading up): where the middle of the road turns.
-func _corners() -> Array[Vector2]:
-	var surfaces := _surfaces()
-	var cells := surfaces.size_cells()
-	var first := Vector2i(-1, -1)
-	var last := Vector2i(-1, -1)
-	for y in cells.y:
-		for x in cells.x:
-			if surfaces.at_cell(Vector2i(x, y)) == "road":
-				if first.x < 0:
-					first = Vector2i(x, y)
-				last = Vector2i(x, y)
-	var width := 0
-	while surfaces.at_cell(first + Vector2i(width, width)) == "road":
-		width += 1
-	var half := width * 0.5
-	var a := (Vector2(first) + Vector2(half, half)) * surfaces.cell
-	var b := (Vector2(last) + Vector2(1.0 - half, 1.0 - half)) * surfaces.cell
-	var out: Array[Vector2] = [a, Vector2(b.x, a.y), b, Vector2(a.x, b.y)]
+## The places of `key` ("waypoints", "checkpoints") of the track that is driven, in px.
+func _places(key: String) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for raw: Variant in RpgUtil.to_array(_mode().stages().current().get(key, [])):
+		if raw is Dictionary:
+			var entry: Dictionary = raw
+			var at := RpgUtil.to_array(entry.get("position", []))
+			if at.size() >= 2:
+				out.append(Vector2(RpgUtil.to_float(at[0]), RpgUtil.to_float(at[1])))
 	return out
+
+func _speeds() -> Array[float]:
+	var out: Array[float] = []
+	for raw: Variant in RpgUtil.to_array(_mode().stages().current().get("waypoints", [])):
+		if raw is Dictionary:
+			var entry: Dictionary = raw
+			out.append(RpgUtil.to_float(entry.get("speed", RpgCarPhysics.TOP), RpgCarPhysics.TOP))
+	return out
+
+const LAPS := 2
+## How near a waypoint the driver turns to the next one, in tiles: early enough to stay on the
+## road through a corner.
+const REACH := 4.0
 
 func _car_drives_round_the_track() -> String:
 	var car := _car()
-	var corners := _corners()
-	corners.append(_start)  # and back to where it began
+	var waypoints := _places("waypoints")
+	var speeds := _speeds()
+	var checkpoints := _places("checkpoints")
+	if waypoints.size() < 4 or speeds.size() != waypoints.size():
+		return "the track has %d waypoints" % waypoints.size()
+	var tile := car.tile_size
 	var off_road := 0
 	var steps := 0
-	for goal in corners:
+	var passed := 0  # checkpoints, counted in their order only
+	for n in LAPS * waypoints.size() + 1:
+		var goal := waypoints[n % waypoints.size()]
+		var limit := speeds[n % waypoints.size()]
 		var reached := false
 		for i in 60 * 25:
 			var to := goal - car.position
-			if to.length() < car.tile_size * 2.5:
+			if to.length() < tile * REACH:
 				reached = true
 				break
 			var wheel := RpgCarPhysics.steer_toward(car.heading, to.angle())
-			# slow before a corner: no faster than a turn of the road's own width allows
-			var slow := to.length() < car.tile_size * 7.0 and car.speed_tiles() > 5.0
+			# down to the speed of the waypoint in time: the way a brake needs, and a little
+			var speed := car.speed_tiles()
+			var room := (speed * speed - limit * limit) / (2.0 * RpgCarPhysics.BRAKE) + 2.5
+			var slow := speed > limit and to.length() < room * tile
+			# no pedal while the car is still turning toward the waypoint at speed
+			var turning := absf(RpgCarPhysics.angle_difference(car.heading, to.angle())) > 0.45 and speed > 6.0
 			if car.absolute_steering:
-				# the arrows are the heading: those of the way to the corner
+				# the arrows are the heading: those of the way to the waypoint
 				var way := to.normalized()
 				_hold(&"move_right", way.x > 0.35)
 				_hold(&"move_left", way.x < -0.35)
@@ -345,19 +380,23 @@ func _car_drives_round_the_track() -> String:
 				_hold(&"move_right", wheel > 0.15)
 				_hold(&"move_left", wheel < -0.15)
 			_hold(&"brake", slow)
-			_hold(&"accelerate", not slow)
+			_hold(&"accelerate", not slow and not turning)
 			await _tree().physics_frame
 			steps += 1
-			if car.surface != "road":
+			if car.surface == "grass":
 				off_road += 1
+			if not checkpoints.is_empty() and car.position.distance_to(checkpoints[passed % checkpoints.size()]) < tile * 4.0:
+				passed += 1
 		if not reached:
 			_release_all()
-			return "the driver did not reach the corner at %s in 25 s (the car is at %s on %s)" % [goal, car.position, car.surface]
+			return "the driver did not reach waypoint %d at %s in 25 s (the car is at %s on %s)" % [n % waypoints.size() + 1, goal, car.position, car.surface]
 	_release_all()
 	if off_road > steps / 10:
-		return "the car was off the road for %d of %d steps of its lap" % [off_road, steps]
-	if car.position.distance_to(_start) > car.tile_size * 3.0:
-		return "the lap did not end where it began (%s, the start is %s)" % [car.position, _start]
+		return "the car was on the grass for %d of %d steps of its %d laps" % [off_road, steps, LAPS]
+	if passed < LAPS * checkpoints.size():
+		return "%d laps passed %d checkpoints in their order (the track has %d)" % [LAPS, passed, checkpoints.size()]
+	if car.position.distance_to(waypoints[0]) > tile * (REACH + 0.5):
+		return "the laps did not end where they began (%s)" % car.position
 	return ""
 
 func _hold(action: StringName, down: bool) -> void:
@@ -366,15 +405,34 @@ func _hold(action: StringName, down: bool) -> void:
 	else:
 		Input.action_release(action)
 
-func _track_ends_with_the_credits() -> String:
+func _tracks_end_with_the_credits() -> String:
 	var mode := _mode()
 	var router := _router()
-	var stage := _stage()
 	var finished := [false]
 	mode.run_finished.connect(func(_points: int, _rank: int) -> void: finished[0] = true, CONNECT_ONE_SHOT)
-	stage.finish()
+	var count := mode.stages().size()
+	for index in range(mode.stages().index, count):
+		if not await _wait_for(func() -> bool: return _stage() != null and _stage().stage_index == index and not router.is_busy() and mode.phase == RpgArcadeMode.Phase.PLAYING, 900):
+			return "track %d did not begin" % (index + 1)
+		var car := _car()
+		if car == null:
+			return "track %d has no car" % (index + 1)
+		await _frames(5)
+		if index > 0:
+			# every other track: its car stands on its road, pointing along it, and can go
+			if car.surface != "road":
+				return "the car of track %d starts on %s" % [index + 1, car.surface]
+			var from := car.position
+			Input.action_press(&"accelerate")
+			await _frames(45)
+			Input.action_release(&"accelerate")
+			if car.position.distance_to(from) < car.tile_size * 2.0 or car.surface == "grass":
+				return "the car of track %d did not get going along its road (%s -> %s, on %s)" % [index + 1, from, car.position, car.surface]
+			if _places("waypoints").size() < 4:
+				return "track %d has no waypoints" % (index + 1)
+		_stage().finish()
 	if not await _wait_for(func() -> bool: return finished[0], 900):
-		return "the run did not end after its only track was finished"
+		return "the run did not end after its last track was finished"
 	var credits := false
 	for i in 120:
 		for node in router.find_children("*", "Control", true, false):

@@ -110,9 +110,6 @@ STARTER_MAP_COUNTS = {  # key -> (minimum, maximum)
 }
 
 
-RACING_DEFAULTS = {"steering": "relative", "camera": "follow"}
-
-
 def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
     """The starter map of every project before M11 (so the defaults reproduce it exactly). A
     metroidvania has a *starter world* of rooms instead (T14.06), with options of its own."""
@@ -131,8 +128,10 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
 
         return stage_plan.defaults()
     if archetype == "racing":
-        # how the car is steered and what the camera does (T16.12); the tracks come with T16.13
-        return dict(RACING_DEFAULTS)
+        # the tracks (T16.13), how the car is steered and what the camera does (T16.12)
+        from rpggen.core import track_plan
+
+        return track_plan.defaults()
     if archetype in ARCADE_KINDS:
         return {}
     return {

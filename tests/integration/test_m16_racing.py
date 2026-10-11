@@ -1,5 +1,6 @@
-"""Milestone M16, the racing game (T16.12): the synthetic `racer` pack as a game with a car
-on a flat test track, and a pack without a car or a road, which gets the drawn ones."""
+"""Milestone M16, the racing game (T16.12, T16.13): the synthetic `racer` pack as a game with
+a car on four planned tracks, a pack without a car or a road, which gets the drawn ones, and a
+track that is added later."""
 
 from __future__ import annotations
 
@@ -26,11 +27,14 @@ STEPS = [
     "grass_is_slower",
     "car_bumps_off_a_barrier",
     "car_drives_round_the_track",
-    "track_ends_with_the_credits",
+    "tracks_end_with_the_credits",
 ]
 SCENES = [
     "generated/scenes/racing/car.tscn",
     "generated/scenes/stages/stage_01.tscn",
+    "generated/scenes/stages/stage_02.tscn",
+    "generated/scenes/stages/stage_03.tscn",
+    "generated/scenes/stages/stage_04.tscn",
     "generated/scenes/combat/combat_mode.tscn",
     "generated/scenes/ui/hud_arcade.tscn",
 ]
@@ -92,9 +96,42 @@ def test_the_racer_pack_is_a_racing_game(game) -> None:
     assert not [i for i in result.issues if i.code in ("ASSET-031", "ASSET-032")], (
         "the pack has its own car in sixteen headings and its own road"
     )
-    (track,) = jsonio.read(target / "game/data/stages.json")["stages"]
+    tracks = jsonio.read(target / "game/data/stages.json")["stages"]
+    assert len(tracks) == 4, "four tracks, each a stage of the game"
+    track = tracks[0]
     assert (track["axis"], track["exit"], track["waves"]) == ("none", "custom", [])
     assert track["scene"] == "res://generated/scenes/stages/stage_01.tscn"
+
+
+def test_the_tracks_are_those_of_the_stored_plan(game) -> None:
+    from PIL import Image
+
+    from rpggen.core import track_plan, world_plan
+
+    target, _result = game
+    stored = world_plan.load(target)["stages"]
+    saved = jsonio.read(target / paths.CONFIG)
+    facts = track_plan.facts_of(saved["resolution"], 16)
+    assert stored == track_plan.plan({}, saved["seed"], facts)
+    assert track_plan.check(stored) == []
+    tracks = jsonio.read(target / "game/data/stages.json")["stages"]
+    for planned, listed in zip(stored["list"], tracks, strict=True):
+        assert listed["scene"] == planned["scene"]
+        for key in ("laps", "start", "checkpoints", "waypoints", "pickups"):
+            assert listed[key] == planned[key], key  # what the race reads
+        for key in ("rows", "barriers", "tyres", "decoration", "loop"):
+            assert key not in listed, key  # painted into the scene, not listed
+        scene = _text(target, listed["scene"].removeprefix("res://"))
+        assert "racing/track_surfaces.gd" in scene and "tile_map_data" in scene
+        assert f'rows = PackedStringArray("{planned["rows"][0]}"' in scene
+        assert scene.count("CircleShape2D_") >= len(planned["tyres"]), "a tyre at every corner"
+        assert "racer/props/" in scene, "the tyres and cones of the pack"
+        assert 'name="Marks"' in scene, "the start line, and what lies on the road"
+        assert scene.count('name="Pickup') - 1 == len(planned["pickups"])
+    # the picture of the tracks, side by side, for the Results page
+    picture = Image.open(target / orchestrator.STARTER_PICTURE)
+    widths = [len(t["rows"][0]) * 4 for t in stored["list"]]
+    assert picture.size[0] == sum(widths) + 6 * (len(widths) - 1)
 
 
 def test_the_scenes_are_the_packs_car_on_the_packs_road(game) -> None:
@@ -108,7 +145,7 @@ def test_the_scenes_are_the_packs_car_on_the_packs_road(game) -> None:
     assert "arcade/stage.gd" in track and "racing/race_camera.gd" in track
     assert "racing/track_surfaces.gd" in track
     assert 'name="Ground" type="TileMapLayer"' in track and "tile_map_data" in track
-    assert 'name="Road"' not in track, "the road is painted with the tiles of the pack"
+    assert 'name="Road"' not in track, "the road is painted with a tile of the pack"
     assert 'name="Barriers" type="StaticBody2D"' in track
     assert "generated/scenes/racing/car.tscn" in track
     assert "racing/racing_mode.gd" in _text(target, "generated/scenes/combat/combat_mode.tscn")
@@ -157,4 +194,32 @@ def test_a_pack_without_a_car_drives_the_drawn_one_on_a_drawn_road(
     assert 'name="Road"' in track, "no ground of the pack is a road: the road is drawn"
     assert "fixed = true" in track
     saved = jsonio.read(target / paths.CONFIG)
-    assert saved["starter_map"] == {"steering": "absolute", "camera": "fixed"}
+    assert (saved["starter_map"]["steering"], saved["starter_map"]["camera"]) == (
+        "absolute",
+        "fixed",
+    )
+
+
+def test_an_added_track_grows_the_game(godot_exe: Path, cache: Path, tmp_path: Path) -> None:
+    from rpggen.core import world_plan
+
+    target = tmp_path / "out"
+    first = orchestrator.run_in_memory(
+        _config(tracks=1, track_size="small", laps=1), None, target, godot_exe
+    )
+    assert first.ok, _errors(first)
+    assert len(jsonio.read(target / "game/data/stages.json")["stages"]) == 1
+    second = orchestrator.run_in_memory(
+        _config(tracks=5, track_size="small", laps=1, added_tracks=[{"name": "Dunes"}]),
+        None,
+        target,
+        godot_exe,
+    )
+    assert second.ok, _errors(second)
+    stored = world_plan.load(target)["stages"]
+    assert [t["id"] for t in stored["list"]] == ["stage_01", "stage_02"], "the stored plan counts"
+    assert stored["added"] == ["Dunes"]
+    planned = jsonio.read(target / "generated/data/stages.json")["stages"]
+    assert [t["title"] for t in planned] == ["", "Dunes"]
+    assert (target / "generated/scenes/stages/stage_02.tscn").is_file()
+    assert _smoke(target)[-1] == "tracks_end_with_the_credits"

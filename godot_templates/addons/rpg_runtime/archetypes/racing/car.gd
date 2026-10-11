@@ -29,7 +29,7 @@ signal surface_changed(surface: String)
 @export var skid_sound: StringName = &"sfx_skid"
 
 ## Where the car points: rad, 0 is to the right, a quarter turn clockwise is down.
-var heading := -PI * 0.5
+@export var heading: float = -PI * 0.5
 var throttle := 0.0
 var steer := 0.0
 var stick := Vector2.ZERO

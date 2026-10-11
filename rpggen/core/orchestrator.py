@@ -479,7 +479,7 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
     if state.cfg.archetype == "metroidvania":
         _plan_rooms(state, catalog)
         return
-    if state.cfg.archetype in ("shmup", "run_and_gun"):
+    if state.cfg.archetype in ("shmup", "run_and_gun", "racing"):
         _plan_stages(state)
         return
     areas = state.cfg.starter_map.get("areas")
@@ -527,18 +527,21 @@ def _plan_stages(state: _State) -> None:
     """A shoot 'em up's stages (T16.06): planned once from the options and the seed, stored in
     the project's plan file, and never planned again once the game has its list of stages. A
     stored plan that cannot be finished (somebody changed it) is reported, not replaced."""
-    from rpggen.core import stage_plan, wave_plan
+    from rpggen.core import stage_plan, track_plan, wave_plan
 
     assert state.staging is not None and state.cfg is not None
     root = state.staging.staging
-    # the shoot 'em up plans waves in the air, the run and gun chunks of ground (T16.10)
-    planner: Any = stage_plan if state.cfg.archetype == "run_and_gun" else wave_plan
+    # the shoot 'em up plans waves in the air, the run and gun chunks of ground (T16.10), the
+    # racing game loops of road (T16.13)
+    planner: Any = {"run_and_gun": stage_plan, "racing": track_plan}.get(
+        state.cfg.archetype, wave_plan
+    )
     facts = planner.facts_of(state.cfg.resolution, state.cfg.base_tile_size)
     try:
         plan, notes = planner.for_project(
             root, state.cfg.starter_map_options(), state.cfg.seed, facts
         )
-    except (wave_plan.WavePlanError, stage_plan.StagePlanError) as exc:
+    except (wave_plan.WavePlanError, stage_plan.StagePlanError, track_plan.TrackPlanError) as exc:
         state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
         raise _Stop from None
     for problem in planner.check(plan["stages"]):
@@ -660,12 +663,19 @@ def _world_picture(state: _State, root: Path) -> None:
     try:
         plan = world_plan.load(root)
         rooms = (plan or {}).get("rooms")
-        if not rooms:
+        stages = (plan or {}).get("stages") or {}
+        tracks = stages if stages.get("kind") == "racing" else None
+        if not rooms and not tracks:
             return
         from rpggen.core import map_preview
 
         (root / STARTER_PICTURE).parent.mkdir(parents=True, exist_ok=True)
-        map_preview.render_world(rooms, scale=4).save(root / STARTER_PICTURE, format="PNG")
+        if rooms:
+            picture = map_preview.render_world(rooms, scale=4)
+        else:  # a racing game: its tracks from above, side by side (T16.13)
+            assert tracks is not None
+            picture = map_preview.render_tracks(tracks, scale=4)
+        picture.save(root / STARTER_PICTURE, format="PNG")
         state.cb.on_log(f"world picture written to {STARTER_PICTURE}")
     except Exception as exc:  # noqa: BLE001 - the picture is a nicety
         state.cb.on_log(f"world picture skipped: {exc}")

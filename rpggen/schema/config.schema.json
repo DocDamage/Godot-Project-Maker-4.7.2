@@ -168,6 +168,19 @@
         "grapple": {"type": "boolean"},
         "steering": {"enum": ["relative", "absolute"]},
         "camera": {"enum": ["follow", "fixed"]},
+        "tracks": {"type": "integer", "minimum": 1, "maximum": 8},
+        "laps": {"type": "integer", "minimum": 1, "maximum": 9},
+        "track_size": {"enum": ["small", "medium", "large"]},
+        "added_tracks": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "properties": {"name": {"type": "string", "minLength": 1}},
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        },
         "jump": {"type": "boolean"},
         "stages": {"type": "integer", "minimum": 1, "maximum": 8},
         "length": {"enum": ["short", "medium", "long"]},

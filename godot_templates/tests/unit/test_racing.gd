@@ -9,6 +9,7 @@ const CarRecipe := preload("res://builder/recipes/racing/car_recipe.gd")
 const TrackRecipe := preload("res://builder/recipes/racing/track_recipe.gd")
 const RaceBuild := preload("res://builder/recipes/racing/racing_build.gd")
 const HudRecipe := preload("res://builder/recipes/arcade/hud_recipe.gd")
+const JsonUtil := preload("res://builder/lib/json_util.gd")
 
 const CASES := "res://tests/unit/car_math_cases.json"
 const TILE := 16
@@ -386,7 +387,7 @@ func test_the_test_track_is_a_ring_of_road_with_barriers(t) -> void:
 	car_scene.pack(made)
 	made.free()
 	var start := TrackRecipe.test_start(TILE)
-	var track := TrackRecipe.build_track(0, TrackRecipe.plan()[0], VIEW, TILE, rows, TrackRecipe.test_barriers(), start, null, {}, car_scene) as RpgArcadeStage
+	var track := TrackRecipe.build_track(0, TrackRecipe.test_track(TILE), VIEW, TILE, rows, TrackRecipe.test_barriers(), start, null, {}, car_scene) as RpgArcadeStage
 	t.ok(track != null, "a track is an arcade stage")
 	var surfaces := track.get_node("Surfaces") as RpgTrackSurfaces
 	t.eq(surfaces.size_cells(), cells)
@@ -409,7 +410,7 @@ func test_the_test_track_is_a_ring_of_road_with_barriers(t) -> void:
 	track.get_parent().remove_child(track)
 	track.free()
 	# a fixed camera
-	var still := TrackRecipe.build_track(0, TrackRecipe.plan()[0], VIEW, TILE, rows, TrackRecipe.test_barriers(), start, null, {}, car_scene, true)
+	var still := TrackRecipe.build_track(0, TrackRecipe.test_track(TILE), VIEW, TILE, rows, TrackRecipe.test_barriers(), start, null, {}, car_scene, true)
 	var fixed := still.get_node("Camera") as RpgRaceCamera
 	t.ok(fixed.fixed)
 	t.eq(fixed.position, Vector2(cells) * TILE * 0.5)
@@ -430,3 +431,133 @@ func test_the_hud_shows_the_speed_and_the_boosts(t) -> void:
 	car.free()
 	hud.get_parent().remove_child(hud)
 	hud.free()
+
+# ---------------------------------------------------------------- a planned track (T16.13)
+
+## A tile set of four tiles: a road with a white line down its middle, grass, plain asphalt
+## and a red barrier on asphalt.
+func _road_tiles() -> TileSet:
+	var image := Image.create(TILE * 4, TILE, false, Image.FORMAT_RGBA8)
+	var asphalt := Color8(70, 70, 78)
+	image.fill(asphalt)
+	for y in TILE:
+		image.set_pixel(8, y, Color.WHITE)
+		for x in TILE:
+			image.set_pixel(TILE + x, y, Color8(76, 150, 70))
+	for x in TILE:
+		image.set_pixel(TILE * 3 + x, 7, Color8(200, 40, 40))
+	var tiles := TileSet.new()
+	tiles.tile_size = Vector2i(TILE, TILE)
+	var src := TileSetAtlasSource.new()
+	src.texture = ImageTexture.create_from_image(image)
+	src.texture_region_size = Vector2i(TILE, TILE)
+	tiles.add_source(src, 0)
+	for x in 4:
+		src.create_tile(Vector2i(x, 0))
+	return tiles
+
+func test_the_road_is_painted_with_the_plainest_tile_of_its_sheet(t) -> void:
+	var tiles := _road_tiles()
+	var plain := TrackRecipe.plain_tile(tiles, 0)
+	t.eq(plain, {"source_id": 0, "coords": Vector2i(2, 0)}, "plain asphalt: not the line, not the grass, not the barrier")
+	t.eq(TrackRecipe.plain_tile(tiles, 5), {}, "no such sheet")
+	# a sheet without a grey tile: its first
+	var image := Image.create(TILE * 2, TILE, false, Image.FORMAT_RGBA8)
+	image.fill(Color8(76, 150, 70))
+	var green := TileSet.new()
+	green.tile_size = Vector2i(TILE, TILE)
+	var src := TileSetAtlasSource.new()
+	src.texture = ImageTexture.create_from_image(image)
+	src.texture_region_size = Vector2i(TILE, TILE)
+	green.add_source(src, 0)
+	src.create_tile(Vector2i(0, 0))
+	src.create_tile(Vector2i(1, 0))
+	t.eq(TrackRecipe.plain_tile(green, 0), {"source_id": 0, "coords": Vector2i(0, 0)})
+
+func test_a_planned_track_has_its_start_its_marks_its_tyres_and_its_pickups(t) -> void:
+	# a field of 12 by 7 cells: a road along it with a start line, dirt, oil and a boost arrow
+	var rows := PackedStringArray([
+		"gggggggggggg",
+		"gggggggggggg",
+		"grsrddrorbrg",
+		"grsrddrrrbrg",
+		"grsrrrrrrbrg",
+		"gggggggggggg",
+		"gggggggggggg",
+	])
+	var barriers: Array[Rect2i] = [Rect2i(0, 0, 12, 1), Rect2i(4, 5, 6, 2)]
+	var car_scene := PackedScene.new()
+	var made := CarRecipe.build_car(null, Vector2i(24, 24), 1, TILE)
+	car_scene.pack(made)
+	made.free()
+	var tiles := _road_tiles()
+	var start := Vector2(24, 56)
+	var look := {
+		"heading": 0.0,
+		"tyres": [[24.0, 24.0], [168.0, 24.0]],
+		"decoration": [[100.0, 100.0]],
+		"pickups": [{"position": [120.0, 56.0], "kind": "missile"}],
+	}
+	var track := TrackRecipe.build_track(1, TrackRecipe.test_track(TILE), VIEW, TILE, rows, barriers, start, tiles,
+		TrackRecipe.plain_tile(tiles, 0), car_scene, false, look) as RpgArcadeStage
+	t.eq(track.stage_index, 1)
+	var ground := track.get_node("Ground") as TileMapLayer
+	t.eq(ground.get_used_cells().size(), 30, "every cell of the road has a tile")
+	t.eq(ground.get_cell_atlas_coords(Vector2i(1, 2)), Vector2i(2, 0), "the plain one")
+	t.eq(ground.get_cell_source_id(Vector2i(0, 0)), -1, "none on the grass")
+	t.ok(track.get_node_or_null("Road") == null, "a painted road is not drawn")
+	# over the road: the line, the dirt, the oil and the arrow, a rectangle a run of cells
+	var marks := track.get_node("Marks")
+	var names: Array[String] = []
+	for mark in marks.get_children():
+		names.append(String(mark.name))
+	names.sort()
+	t.eq(names, ["Mark_b_9_2", "Mark_b_9_3", "Mark_b_9_4", "Mark_d_4_2", "Mark_d_4_3", "Mark_o_7_2", "Mark_s_2_2", "Mark_s_2_3", "Mark_s_2_4"] as Array[String])
+	var dirt := marks.get_node("Mark_d_4_2") as Polygon2D
+	t.eq(dirt.polygon[0], Vector2(64, 32))
+	t.eq(dirt.polygon[2], Vector2(96, 48), "two cells of dirt, one rectangle")
+	var surfaces := track.get_node("Surfaces") as RpgTrackSurfaces
+	t.eq([surfaces.at_cell(Vector2i(2, 2)), surfaces.at_cell(Vector2i(4, 2)), surfaces.at_cell(Vector2i(7, 2)), surfaces.at_cell(Vector2i(9, 2))],
+		["road", "dirt", "oil", "boost"], "the start line is road")
+	# barriers: a wall at the edge, a hedge over a cell the loop does not use; and the tyres
+	var walls := track.get_node("Barriers")
+	t.eq((walls.get_node("Wall0") as Polygon2D).color, TrackRecipe.WALL)
+	t.eq((walls.get_node("Wall1") as Polygon2D).color, TrackRecipe.HEDGE)
+	t.ok((walls.get_node("Tyre1") as CollisionShape2D).shape is CircleShape2D)
+	t.eq((walls.get_node("Tyre1") as CollisionShape2D).position, Vector2(168, 24))
+	t.ok(walls.get_node("TyrePicture0") is Polygon2D, "a drawn tyre without a picture of one")
+	t.ok(track.get_node_or_null("Scenery") == null, "no scenery without pictures for it")
+	var pickup := track.get_node("Pickups/Pickup1") as Marker2D
+	t.eq(pickup.position, Vector2(120, 56))
+	t.eq(pickup.get_meta("kind"), "missile")
+	var car := track.get_node("Car") as RpgCar
+	t.eq(car.position, start)
+	t.eq(car.heading, 0.0, "the car points the way the race goes")
+	# the car drives over what the plan put on the road
+	Fixtures.tree().root.add_child(track)
+	car.input_node_enabled = false
+	var seen: Array[String] = []
+	car.surface_changed.connect(func(surface: String) -> void: seen.append(surface))
+	car.throttle = 1.0
+	for i in 200:
+		await Engine.get_main_loop().physics_frame
+		if car.position.x > 170.0:
+			break
+	t.eq(seen, ["dirt", "road", "boost", "road"] as Array[String], "dirt, the road again, the arrow (it passes below the oil)")
+	t.ok(car.is_boosting() and car.boosts == 3, "the arrow boosted it")
+	track.get_parent().remove_child(track)
+	track.free()
+	# with pictures: the tyre of the pack, and scenery on the hedges; a drawn road and line
+	look["tyre_texture"] = _sheet(1, 16)
+	look["decoration_textures"] = [_sheet(1, 16)]
+	var drawn := TrackRecipe.build_track(0, TrackRecipe.test_track(TILE), VIEW, TILE, rows, barriers, start, null, {}, car_scene, false, look)
+	t.ok(drawn.get_node("Barriers/TyrePicture0") is Sprite2D)
+	t.eq(drawn.get_node("Scenery").get_child_count(), 1)
+	t.eq(drawn.get_node("Road").get_child_count(), 3, "a drawn road: a rectangle a row")
+	t.eq((drawn.get_node("Ground") as TileMapLayer).get_used_cells().size(), 0)
+	t.ok(drawn.get_node("Marks/Mark_s_2_2") != null)
+	drawn.free()
+	# the test track knows its way round too
+	var ring := TrackRecipe.test_track(TILE)
+	t.eq(JsonUtil.to_array(ring["waypoints"]).size(), 5, "four corners and the start")
+	t.eq(JsonUtil.to_dict(ring["start"])["heading"], -PI * 0.5)

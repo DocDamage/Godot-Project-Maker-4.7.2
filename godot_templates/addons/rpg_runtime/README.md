@@ -324,14 +324,20 @@ sideways speed that fades with the grip (`drifting` while there is much of it), 
 costs speed (`bumped(lost_tiles)`), a boost of a second and a half. Read `speed_tiles()`,
 `lateral_tiles()`, `surface`, `boosts`, `is_boosting()`; `place(at, heading)` puts it somewhere.
 What it drives on is what the track's `RpgTrackSurfaces` says of the cell under it (`rows` of
-`r` road, `g` grass, `d` dirt, `o` oil, `b` a boost arrow), else the tile's `footstep` or the
+`r` road, `s` the start line, `g` grass, `d` dirt, `o` oil, `b` a boost arrow), else the tile's `footstep` or the
 surface of its asset, as a walking player hears it. `RpgHeadingSprite` (the child `Visual`)
 shows the frame of a sheet of `headings` nearest the heading (the first points up, then
 clockwise) or rotates a single picture. `RpgRaceCamera` follows the car, looks a quarter of
 the screen ahead along its velocity at the top speed and zooms out to 0.85; `fixed` keeps it
 over the whole `track`. `RpgRacingMode` is the arcade run with the player's `car`; a track is
 an `RpgArcadeStage` that does not scroll and ends when `finish()` is called.
-`RpgRacingHud` adds the rows `speed` and `boosts`.
+`RpgRacingHud` adds the rows `speed` and `boosts`. A track's scene has: `Field` (the grass),
+`Ground` (the road, a `TileMapLayer`) or `Road` (a drawn one), `Marks` (the start line, dirt,
+oil and boost arrows, drawn over the road), `Surfaces`, `Barriers` (a `StaticBody2D`: walls at
+the edges, hedges over the cells the loop does not use, a round shape for every tyre),
+`Scenery`, `Pickups` (a `Marker2D` each, with the metadata `kind`), `Car` and `Camera`. Its
+entry in `game/data/stages.json` has what a race reads: `laps`, `start`, `checkpoints` (in
+the order they are passed) and `waypoints` (a place and a speed for every cell of the loop).
 
 `RpgGrapple` (the soldier's child `Grapple`, in a game with the option `grapple`) is the arm:
 `soldier.press_grapple()` (the action `grapple`) fires its hook along the aim (up, an upper

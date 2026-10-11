@@ -1,12 +1,13 @@
 class_name RpgTrackSurfaces
 extends Node2D
 ## What a track is made of, cell by cell: the rows of the track's plan, one character a cell
-## (`r` road, `g` grass, `d` dirt, `o` oil, `b` a boost arrow, `.` nothing: grass). The track
+## (`r` road, `s` the start line, `g` grass, `d` dirt, `o` oil, `b` a boost arrow, `.` nothing:
+## grass). The track
 ## recipe writes it into the track's scene; a car asks it what it drives on. A track without
 ## this node is driven by what its tiles say (their `footstep`, as a walking player hears it).
 
 const GROUP := &"rpg_track_surfaces"
-const LETTERS := {"r": "road", "g": "grass", "d": "dirt", "o": "oil", "b": "boost", ".": "grass"}
+const LETTERS := {"r": "road", "s": "road", "g": "grass", "d": "dirt", "o": "oil", "b": "boost", ".": "grass"}
 
 ## The size of a cell in px.
 @export var cell: float = 16.0

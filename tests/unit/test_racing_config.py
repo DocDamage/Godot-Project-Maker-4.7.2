@@ -31,18 +31,21 @@ def test_the_config_of_a_racing_game_is_valid_and_keeps_its_options() -> None:
     data = cfg.to_json()
     schema.validate("config", data)
     assert data["archetype"] == "racing" and "starter_map" not in data
-    assert config.starter_map_defaults("racing") == {"steering": "relative", "camera": "follow"}
+    rules = config.starter_map_defaults("racing")
+    assert (rules["steering"], rules["camera"]) == ("relative", "follow")
+    assert (rules["tracks"], rules["laps"], rules["track_size"]) == (4, 3, "medium"), "T16.13"
     easy = _cfg(starter_map={"steering": "absolute"})
     data = easy.to_json()
     schema.validate("config", data)
-    assert data["starter_map"] == {"steering": "absolute", "camera": "follow"}
+    # an option that differs writes the whole set, with the defaults of the others
+    assert data["starter_map"] == {**rules, "steering": "absolute"}
     assert config.GeneratorConfig.from_json(data).to_json() == data
-    for bad in ({"steering": "tank"}, {"camera": "chase"}, {"steering": True}):
+    for bad in ({"steering": "tank"}, {"camera": "chase"}, {"tracks": 0}, {"track_size": "huge"}):
         with pytest.raises(Exception):  # noqa: B017, PT011
             schema.validate("config", {**data, "starter_map": bad})
     assert features.RACING_AVAILABLE is False, "the wizard does not offer it before its gate"
     assert [k for k, on in cfg.features.items() if not on] == ["dialogue", "navigation"]
-    assert options.stages_text("racing", {}) == "1 track"
+    assert options.stages_text("racing", {}) == "4 tracks of 3 laps"
 
 
 def test_the_controls_are_a_pedal_a_brake_and_a_boost() -> None:

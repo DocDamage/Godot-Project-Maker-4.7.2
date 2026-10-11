@@ -13,6 +13,7 @@ constant, so existing goldens, smoke steps and the determinism test do not move.
 from __future__ import annotations
 
 import dataclasses
+import math
 from pathlib import Path
 from typing import Any
 
@@ -861,3 +862,77 @@ def world_markers(rooms: dict[str, Any]) -> dict[str, int]:
         for kind, _cell in _room_markers(room):
             counts[kind] += 1
     return counts
+
+
+# --------------------------------------------------------------------------- tracks (T16.13)
+
+TRACK_COLORS = {
+    "g": (76, 150, 70),
+    "r": (70, 70, 78),
+    "s": (240, 240, 240),
+    "d": (150, 112, 70),
+    "o": (24, 24, 32),
+    "b": (90, 220, 255),
+}
+TRACK_BARRIER = (38, 84, 44)
+TRACK_WALL = (200, 40, 40)
+TRACK_CHECKPOINT = (250, 210, 60)
+TRACK_GAP = 6  # px between two tracks of the picture
+
+
+def render_track(track: dict[str, Any], scale: int = 4, tile: int = 16) -> Image.Image:
+    """One track of a racing game's plan at ``scale`` px a tile: the road and what lies on
+    it, the barriers, the start line, the checkpoints (dots) and the car with the way it starts.
+    ``tile`` is the px of a tile in the plan."""
+    rows = track["rows"]
+    picture = Image.new("RGB", (len(rows[0]), len(rows)), TRACK_COLORS["g"])
+    pixels = picture.load()
+    assert pixels is not None
+    for x, y, w, h in track.get("barriers", []):
+        edge = w == 1 or h == 1
+        for py in range(y, min(len(rows), y + h)):
+            for px in range(x, min(len(rows[0]), x + w)):
+                pixels[px, py] = TRACK_WALL if edge else TRACK_BARRIER
+    for y, row in enumerate(rows):
+        for x, char in enumerate(row):
+            if char != "g":
+                pixels[x, y] = TRACK_COLORS.get(char, TRACK_COLORS["r"])
+    picture = picture.resize(
+        (picture.width * scale, picture.height * scale), Image.Resampling.NEAREST
+    )
+    draw = ImageDraw.Draw(picture)
+    k = scale / max(1, tile)
+    for point in track.get("checkpoints", []):
+        x, y = point["position"][0] * k, point["position"][1] * k
+        draw.ellipse([x - scale, y - scale, x + scale, y + scale], fill=TRACK_CHECKPOINT)
+    start = track.get("start")
+    if start:
+        x, y = start["position"][0] * k, start["position"][1] * k
+        dx, dy = math.cos(start["heading"]), math.sin(start["heading"])
+        reach = scale * 3.0
+        draw.line([(x, y), (x + dx * reach, y + dy * reach)], fill=(255, 255, 255), width=2)
+        draw.ellipse([x - scale, y - scale, x + scale, y + scale], fill=(220, 60, 60))
+    return picture
+
+
+def track_rects(stages: dict[str, Any], scale: int = 4) -> dict[str, tuple[int, int, int, int]]:
+    """Track id -> (left, top, width, height) of its picture in ``render_tracks``."""
+    out: dict[str, tuple[int, int, int, int]] = {}
+    left = 0
+    for track in stages["list"]:
+        rows = track["rows"]
+        out[track["id"]] = (left, 0, len(rows[0]) * scale, len(rows) * scale)
+        left += len(rows[0]) * scale + TRACK_GAP
+    return out
+
+
+def render_tracks(stages: dict[str, Any], scale: int = 4) -> Image.Image:
+    """Every track of a racing game's plan, side by side."""
+    rects = track_rects(stages, scale)
+    width = max(r[0] + r[2] for r in rects.values())
+    height = max(r[3] for r in rects.values())
+    picture = Image.new("RGB", (width, height), (24, 24, 28))
+    for track in stages["list"]:
+        left, top, _w, _h = rects[track["id"]]
+        picture.paste(render_track(track, scale, int(stages.get("tile", 16))), (left, top))
+    return picture

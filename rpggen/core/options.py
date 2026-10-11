@@ -122,7 +122,12 @@ def stages_text(archetype: str, starter_map: dict[str, Any]) -> str:
         except stage_plan.StagePlanError:
             return ""
     if archetype == "racing":
-        return "1 track"  # the track plan is T16.13
+        from rpggen.core import track_plan
+
+        try:
+            return track_plan.describe(starter_map)
+        except track_plan.TrackPlanError:
+            return ""
     return "stages"
 
 

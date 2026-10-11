@@ -37,10 +37,24 @@ static func fixed_camera(ctx: BuildContext) -> bool:
 static func car_asset(ctx: BuildContext) -> Dictionary:
 	return ArcadeBuild.chosen(ctx, "VEHICLE", "vehicle")
 
-## The sheet the road is painted with: a GROUND sheet tagged `road` (the drawn road sheet is
-## one); {} when the packs have ground and none of it is a road, and the road is drawn.
+## The sheet the road is painted with: a GROUND sheet of the packs tagged `road`; {} when
+## none of their ground is a road, and the road is drawn. The drawn road sheet does not count:
+## its tiles are a road one tile wide, and a track's road is five.
 static func road_asset(ctx: BuildContext) -> Dictionary:
 	for asset in ArcadeBuild.assets(ctx, "GROUND"):
-		if JsonUtil.to_array(ctx.catalog.effective(asset).get("tags", [])).has("road"):
+		var tags := JsonUtil.to_array(ctx.catalog.effective(asset).get("tags", []))
+		if tags.has("road") and not tags.has("arcade_kit"):
 			return asset
 	return {}
+
+## The first asset of `role` in use that has the tag `tag`; {} without one.
+static func tagged(ctx: BuildContext, role: String, tag: String) -> Dictionary:
+	for asset in ArcadeBuild.assets(ctx, role):
+		if JsonUtil.to_array(ctx.catalog.effective(asset).get("tags", [])).has(tag):
+			return asset
+	return {}
+
+## True for a sheet rpggen drew itself (the arcade kit).
+static func is_drawn(ctx: BuildContext, asset: Dictionary) -> bool:
+	return JsonUtil.to_array(ctx.catalog.effective(asset).get("tags", [])).has("arcade_kit")
+
