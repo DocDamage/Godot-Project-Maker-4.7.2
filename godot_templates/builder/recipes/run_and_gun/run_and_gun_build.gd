@@ -11,13 +11,18 @@ const DIR := "res://addons/rpg_runtime/archetypes/run_and_gun/"
 const MODE_SCRIPT := DIR + "run_and_gun_mode.gd"
 const SOLDIER_SCRIPT := DIR + "soldier.gd"
 const INPUT_SCRIPT := DIR + "soldier_input.gd"
-const GUN_SCRIPT := DIR + "gun.gd"
+const GUN_SCRIPT := DIR + "weapons/machine_gun.gd"
+const PICKUP_SCRIPT := DIR + "weapon_pickup.gd"
+const ENEMY_DIR := DIR + "enemies/"
 const GRENADE_SCRIPT := DIR + "grenade.gd"
 
 const SCENES := "res://generated/scenes/run_and_gun/"
 const SOLDIER_PATH := SCENES + "soldier.tscn"
 const GRENADE_PATH := SCENES + "grenade.tscn"
 const EXPLOSION_PATH := SCENES + "explosion.tscn"
+const PICKUP_PATH := SCENES + "weapon_pickup.tscn"
+const ENEMIES := SCENES + "enemies/"
+const ENEMY_LAYER := 3
 
 const PLAYER_LAYER := 2
 const WORLD_LAYER := 1
@@ -33,6 +38,9 @@ static func health(ctx: BuildContext) -> int:
 
 static func lives(ctx: BuildContext) -> int:
 	return clampi(JsonUtil.to_int(ArcadeBuild.option(ctx, "lives", 3)), 1, 9)
+
+static func keep_weapon(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "keep_weapon", false))
 
 static func left_edge_kills(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "left_edge_kills", true))

@@ -117,7 +117,7 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         return wave_plan.defaults()
     if archetype == "run_and_gun":
         # one hit is a death (the genre); the left edge of the screen kills
-        return {"health": 1, "lives": 3, "left_edge_kills": True}
+        return {"health": 1, "lives": 3, "left_edge_kills": True, "keep_weapon": False}
     if archetype in ARCADE_KINDS:
         return {}
     return {

@@ -704,6 +704,27 @@ def _side_view_usage(assets: list[Asset]) -> None:
 
 # A pack warning: the pack looks like a side-view (platformer) pack (T14.02).
 VIEW_SIDE = "view:side"
+
+
+def _side_view_soldier(assets: list[Asset]) -> None:
+    """A side-view pack whose hero is called a soldier (T16.09): the word makes it an NPC for
+    the classifier, which leaves the pack without a player. When no asset of the pack is the
+    player, the first soldier that can jump is."""
+    if any(a.detected.get("role") == "PLAYER" for a in assets):
+        return
+    for asset in sorted(assets, key=lambda a: a.id):
+        facets = asset.detected
+        if asset.detected_by in ("profile", "learned") or facets.get("role") != "NPC":
+            continue
+        animations = facets.get("animations") or {}
+        if "soldier" in (facets.get("tags") or []) and any(
+            str(name).split("_", 1)[0] == "jump" for name in animations
+        ):
+            facets["role"] = "PLAYER"
+            facets.pop("roles_alt", None)
+            return
+
+
 ROTATION_SHEET_ROLES = frozenset({"DECORATION", "EFFECT", "PROJECTILE", "NONE"})
 # the roles the classifier gives the things of an arcade pack for want of a better one
 ARCADE_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "ENEMY", "NPC"})
@@ -1062,6 +1083,8 @@ def assemble(
                 if kind_role and current in ARCADE_REPLACED_ROLES and kind_role != current:
                     asset.detected["role"] = kind_role
                     asset.detected.pop("roles_alt", None)
+        if view == "side":
+            _side_view_soldier([a for a in catalog.assets if a.pack_id == pack_id])
         if view != "top":  # a top-down pack, the usual kind, gets no line
             warnings.append({"side": VIEW_SIDE, "shmup": VIEW_SHMUP, "racing": VIEW_RACING}[view])
         if engines is not None:

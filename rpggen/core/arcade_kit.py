@@ -341,12 +341,12 @@ def drawn_roles(archetype: str) -> frozenset[str]:
 
 def _has(catalog: catalog_mod.Catalog, stand_in: StandIn) -> bool:
     """True when the packs have what ``stand_in`` would stand in for: an asset in use with its
-    role, or with one of its tags."""
+    role. A tag alone does not count: the recipes of the kinds look for the role, so a pickup
+    that is only tagged ``bullet`` would leave the game without a bullet (T16.09)."""
     for asset in catalog.assets:
         if asset.status in _INACTIVE or asset.pack_id == KIT_PACK:
             continue
-        eff = catalog_mod.effective(asset)
-        if eff.get("role") == stand_in.role or set(stand_in.tags) & set(eff.get("tags") or []):
+        if catalog_mod.effective(asset).get("role") == stand_in.role:
             return True
     return False
 

@@ -103,7 +103,8 @@ func test_eight_aims_give_eight_bullet_angles(t) -> void:
 	pool.auto_advance = false
 	Fixtures.tree().root.add_child(pool)
 	var gun := RpgGun.new()
-	gun.bullet_speed = 100.0
+	gun.tile = 1.0
+	gun.speed_tiles = 100.0
 	var angles := {}
 	for aim in RpgGunAim.all():
 		pool.clear(PLAYER)
@@ -130,7 +131,7 @@ func test_eight_aims_give_eight_bullet_angles(t) -> void:
 	t.eq(fan.size(), 5)
 	t.near(rad_to_deg(fan[0].angle_to(fan[4])), 40.0, 0.001)
 	gun.bullets_per_shot = 1
-	gun.range_px = 50.0
+	gun.range_tiles = 50.0
 	gun.shoot(pool, Vector2.ZERO, Vector2.RIGHT)
 	pool.advance(0.25, Rect2())
 	t.eq(pool.active(PLAYER), 1, "25 px on")
@@ -372,7 +373,7 @@ func test_the_recipes_build_the_soldier_and_the_floor_of_a_stage(t) -> void:
 	t.eq([typed.max_health, typed.left_edge_kills, typed.view, typed.tile_size], [3, false, Vector2(320, 180), 16.0])
 	t.ok(typed.get_collision_layer_value(2) and typed.get_collision_mask_value(1) and typed.get_collision_mask_value(11), "the layers")
 	t.ok(typed.gun() != null and typed.get_node_or_null("Input") is RpgSoldierInput and typed.get_node_or_null("Muzzle") is Polygon2D, "gun, input, flash")
-	t.eq(typed.gun().bullet_speed, 240.0)
+	t.eq([typed.gun().weapon, typed.gun().bullet_speed()], ["machine_gun", 240.0])
 	t.ok(typed.get_node_or_null("Body") is CollisionShape2D and typed.get_node_or_null("Visual") != null, "the platform body")
 	var packed := PackedScene.new()
 	t.eq(packed.pack(typed), OK)

@@ -17,6 +17,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.run_and_gun]
 
 REPO = Path(__file__).resolve().parents[2]
 PLATFORMER = REPO / "test_packs" / "synthetic" / "platformer"
+GUNNER = REPO / "test_packs" / "synthetic" / "gunner"
 STEPS = [
     "title_new_game",
     "soldier_runs_and_the_camera_follows",
@@ -26,6 +27,9 @@ STEPS = [
     "soldier_crouches",
     "grenade_goes_off",
     "soldier_dies_and_drops_back_in",
+    "wave_is_fought",
+    "weapon_is_picked_up",
+    "trap_stops_the_camera",
     "stage_ends_with_the_credits",
 ]
 SCENES = [
@@ -35,6 +39,12 @@ SCENES = [
     "generated/scenes/stages/stage_01.tscn",
     "generated/scenes/combat/combat_mode.tscn",
     "generated/scenes/ui/hud_arcade.tscn",
+    "generated/scenes/run_and_gun/weapon_pickup.tscn",
+    "generated/scenes/run_and_gun/enemies/runner.tscn",
+    "generated/scenes/run_and_gun/enemies/sniper.tscn",
+    "generated/scenes/run_and_gun/enemies/turret.tscn",
+    "generated/scenes/run_and_gun/enemies/jumper.tscn",
+    "generated/scenes/run_and_gun/enemies/wall_cannon.tscn",
 ]
 
 
@@ -168,4 +178,81 @@ def test_a_forgiving_soldier_and_a_left_edge_that_is_a_wall(
     assert "max_health = 3" in soldier and "left_edge_kills = false" in soldier
     assert "start_lives = 5" in _text(target, "generated/scenes/combat/combat_mode.tscn")
     saved = jsonio.read(target / paths.CONFIG)
-    assert saved["starter_map"] == {"health": 3, "lives": 5, "left_edge_kills": False}
+    assert saved["starter_map"] == {
+        "health": 3,
+        "lives": 5,
+        "left_edge_kills": False,
+        "keep_weapon": False,
+    }
+
+
+# ---------------------------------------------------------------- weapons and enemies (T16.09)
+
+
+@pytest.fixture(scope="module")
+def gunner(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):
+    target = tmp_path_factory.mktemp("m16_gunner") / "out"
+    cfg = config.default_for(
+        "Gunner", [config.pack_ref_from_source(GUNNER, "gunner")], archetype="run_and_gun"
+    )
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    return target, result
+
+
+def test_the_gunner_pack_plays_with_its_soldier_its_enemies_and_its_weapons(gunner) -> None:
+    target, result = gunner
+    assert _smoke(target) == STEPS
+    assert not [i for i in result.issues if i.severity.value == "error"]
+    soldier = _text(target, "generated/scenes/run_and_gun/soldier.tscn")
+    assert "sprite_frames/gunner.soldier.soldier_idle.tres" in soldier, "the soldier of the pack"
+    assert "weapons/machine_gun.gd" in soldier, "it starts with the machine gun"
+    # the pack calls no picture a bullet (its pickups only mention one): a drawn one is used
+    drawn = sorted(i.detail["role"] for i in result.issues if i.code == "ASSET-031")
+    assert "PROJECTILE" in drawn
+    assert "arcade_kit/bullet.png" in _text(target, "generated/scenes/stages/stage_01.tscn")
+    enemies = target / "generated/scenes/run_and_gun/enemies"
+    assert sorted(p.name for p in enemies.glob("*.tscn")) == [
+        "jumper.tscn",
+        "runner.tscn",
+        "sniper.tscn",
+        "turret.tscn",
+        "wall_cannon.tscn",
+    ]
+    # the three soldiers of the pack are the three that walk; its turret is both fixed guns
+    walkers = {
+        name: _text(target, f"generated/scenes/run_and_gun/enemies/{name}.tscn")
+        for name in ("runner", "sniper", "jumper")
+    }
+    pictures = [
+        next(w for w in ("commando", "gunner_walk", "trooper") if w in text)
+        for text in walkers.values()
+    ]
+    assert sorted(pictures) == ["commando", "gunner_walk", "trooper"], "one picture each"
+    for name, script in (("runner", "runner.gd"), ("sniper", "sniper.gd"), ("jumper", "jumper.gd")):
+        assert f"run_and_gun/enemies/{script}" in walkers[name]
+    for name in ("turret", "wall_cannon"):
+        text = _text(target, f"generated/scenes/run_and_gun/enemies/{name}.tscn")
+        assert "gunner.enemies.turret" in text or "enemies/turret.png" in text, name
+    pickup = _text(target, "generated/scenes/run_and_gun/weapon_pickup.tscn")
+    for weapon in ("machinegun", "spread", "laser", "flame"):
+        assert f"pickups/weapon_pickup_{weapon}.png" in pickup, "the pickups of the pack, by name"
+
+
+def test_the_first_stage_has_its_waves_of_enemies_and_weapons(gunner) -> None:
+    target, _result = gunner
+    (stage,) = jsonio.read(target / "game/data/stages.json")["stages"]
+    waves = stage["waves"]
+    assert [w["enemy"] for w in waves] == [
+        "runner", "sniper", "pickup", "jumper", "turret", "wall_cannon", "pickup", "runner", "pickup",
+    ]  # fmt: skip
+    assert [w["at"] for w in waves] == sorted(w["at"] for w in waves)
+    assert [w["weapon"] for w in waves if w["enemy"] == "pickup"] == ["spread", "laser", "flame"]
+    (trap,) = [w for w in waves if w.get("blocking")]
+    assert trap["enemy"] == "turret" and trap["count"] == 2, "a trap that stops the camera"
+    for wave in waves:
+        assert (target / wave["scene"].removeprefix("res://")).is_file(), wave["scene"]
+        assert wave["anchor"] == "stage" and wave["at"] < stage["length"]
+    hud = _text(target, "generated/scenes/ui/hud_arcade.tscn")
+    assert "run_and_gun/ui/run_and_gun_hud.gd" in hud
+    assert "RNG_WEAPON_SPREAD	" in _text(target, "game/i18n/strings.tsv")

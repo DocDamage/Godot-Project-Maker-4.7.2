@@ -4,9 +4,11 @@ extends RefCounted
 ## pictures of the packs behind it, a flat floor of the ground tiles of the packs (the layer
 ## "Ground"), the bullet pool (bullets stop at the ground) and the soldier. Its scroller does
 ## not move by itself: the soldier leads the camera to the right. The stage ends at the end of
-## its length; platforms, pits, enemies and a boss are the work of later cards.
+## its length. Its waves are a fixed set for now (runners, a sniper, jumpers, a trap of turrets
+## that stops the camera, a wall cannon, and three weapons on their carriers); platforms, pits
+## and a boss are the work of the stage planner.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -18,6 +20,7 @@ const StageRecipes := preload("../arcade/stage_recipes.gd")
 const SideKit := preload("../metroidvania/side_kit.gd")
 const Parallax := preload("../metroidvania/parallax_recipe.gd")
 const RngBuild := preload("run_and_gun_build.gd")
+const EnemyRecipes := preload("enemy_recipes.gd")
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray([ArcadeBuild.stage_path(0), ArcadeBuild.PLANNED_STAGES_PATH])
@@ -46,9 +49,57 @@ static func plan(ctx: BuildContext) -> Array:
 		"speed": 0.0,  # the soldier leads the camera
 		"length": length,
 		"exit": "reach_end",
-		"par_time_s": ceilf(length / (ArcadeBuild.tile(ctx) * 5.0)) + 20.0,
-		"waves": [],
+		"par_time_s": ceilf(length / (ArcadeBuild.tile(ctx) * 5.0)) + 40.0,
+		"waves": waves(view, ArcadeBuild.tile(ctx)),
 	}]
+
+## How far beyond the right edge of the screen a wave appears, in px.
+const AHEAD := 24.0
+## The waves of the first stage: [what comes, how many, where along the stage (in screens), how
+## high above the floor (in tiles), what else its entry says].
+const FIRST_STAGE := [
+	["runner", 3, 0.5, 0.0, {}],
+	["sniper", 1, 1.2, 0.0, {}],
+	["pickup", 1, 1.6, 5.0, {"weapon": "spread"}],
+	["jumper", 2, 2.2, 0.0, {}],
+	["turret", 2, 3.0, 0.0, {"blocking": true}],
+	["wall_cannon", 1, 3.8, 3.0, {}],
+	["pickup", 1, 4.2, 5.0, {"weapon": "laser"}],
+	["runner", 4, 4.6, 0.0, {}],
+	["pickup", 1, 5.0, 5.0, {"weapon": "flame"}],
+]
+
+## The waves of the first stage on a screen of `view` px. What comes stands on the floor (or
+## hangs above it) just beyond the right edge of the screen at the moment its wave comes; a
+## wave that stops the camera stands on the screen, in its right third, or it would never be
+## seen.
+static func waves(view: Vector2i, tile: int) -> Array:
+	var out: Array = []
+	var cells := stage_cells(float(view.x * RngBuild.STAGE_SCREENS), view, tile)
+	var floor_y := float(floor_row(cells.y) * tile)
+	for row: Array in FIRST_STAGE:
+		var what := JsonUtil.to_str(row[0])
+		var count := JsonUtil.to_int(row[1])
+		var at := JsonUtil.to_float(row[2]) * view.x
+		var gap := tile * (3.0 if what == "turret" else 2.0)
+		var blocking := JsonUtil.to_bool(JsonUtil.to_dict(row[4]).get("blocking", false))
+		var first_x := at + view.x * 0.7 if blocking else at + view.x + AHEAD
+		var entry := {
+			"id": "w%02d" % (out.size() + 1),
+			"enemy": what,
+			"scene": RngBuild.PICKUP_PATH if what == "pickup" else EnemyRecipes.scene_path(what),
+			"formation": "line",
+			"count": count,
+			"gap": gap,
+			"trigger": "progress",
+			"at": at,
+			"anchor": "stage",
+			# the middle of the line, from where its first one stands
+			"position": [first_x + (count - 1) * gap * 0.5, floor_y - JsonUtil.to_float(row[3]) * tile],
+		}
+		entry.merge(JsonUtil.to_dict(row[4]))
+		out.append(entry)
+	return out
 
 static func tileset_def(ctx: BuildContext) -> Dictionary:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")

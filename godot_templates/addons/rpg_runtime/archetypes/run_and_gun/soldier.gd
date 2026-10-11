@@ -19,6 +19,7 @@ signal destroyed
 signal respawned
 signal was_hit(health_left: int)
 signal grenade_thrown(grenade: Node2D)
+signal weapon_changed(weapon: String)
 
 const BLINK_S := 0.1
 const FLASH_S := 0.06
@@ -27,10 +28,20 @@ const FLASH_S := 0.06
 const LEAD := -0.1
 ## A grenade leaves at this speed, in tiles a second, up and forward.
 const THROW := Vector2(7.0, -9.0)
+## The weapons a soldier can carry and the script of each.
+const WEAPONS := {
+	"machine_gun": "res://addons/rpg_runtime/archetypes/run_and_gun/weapons/machine_gun.gd",
+	"spread": "res://addons/rpg_runtime/archetypes/run_and_gun/weapons/spread.gd",
+	"laser": "res://addons/rpg_runtime/archetypes/run_and_gun/weapons/laser.gd",
+	"flame": "res://addons/rpg_runtime/archetypes/run_and_gun/weapons/flame.gd",
+}
+const DEFAULT_WEAPON := "machine_gun"
 
 @export var max_health: int = 1
 @export var invulnerable_s: float = 2.0
 @export var left_edge_kills: bool = true
+## A death costs the weapon (the genre's rule): the soldier comes back with the machine gun.
+@export var keep_weapon: bool = false
 @export var grenades: int = 3
 @export var max_grenades: int = 9
 @export var grenade_scene: PackedScene = null
@@ -72,6 +83,34 @@ func poll_input() -> void:
 
 func gun() -> RpgGun:
 	return get_node_or_null("Gun") as RpgGun
+
+## The name of the weapon in hand.
+func weapon() -> String:
+	var held := gun()
+	return held.weapon if held != null else ""
+
+## Takes another weapon (a pickup): the gun in hand is replaced. False for a name that is no
+## weapon; true also when it is the one already held.
+func equip(weapon_name: String) -> bool:
+	if not WEAPONS.has(weapon_name):
+		return false
+	if weapon() == weapon_name:
+		return true
+	var script := load(RpgUtil.to_str(WEAPONS[weapon_name])) as GDScript
+	if script == null:
+		return false
+	var old := gun()
+	if old != null:
+		old.name = "OldGun"
+		remove_child(old)
+		old.queue_free()
+	var made := Node.new()
+	made.set_script(script)
+	made.name = "Gun"
+	made.set(&"tile", tile_size)
+	add_child(made)
+	weapon_changed.emit(weapon_name)
+	return true
 
 func stage() -> RpgArcadeStage:
 	var node := get_parent()
@@ -156,9 +195,16 @@ func _screen_left() -> float:
 		return -INF
 	return found.scroller().view_center().x - view.x * 0.5
 
-## The left edge of the screen: it kills, or it is a wall.
+## The edges of the screen. The right one is a wall (the camera may be held by a trap, or at
+## the end of the stage); the left one kills, or is a wall too.
 func _keep_on_screen() -> void:
 	var edge := _screen_left()
+	if edge == -INF:
+		return
+	var right := edge + view.x - body_width() * 0.5
+	if position.x > right:
+		position.x = right
+		velocity.x = minf(0.0, velocity.x)
 	if position.x >= edge + body_width() * 0.5:
 		return
 	if left_edge_kills and position.x < edge - body_width():
@@ -232,6 +278,8 @@ func die() -> void:
 	dead = true
 	health = 0
 	velocity = Vector2.ZERO
+	if not keep_weapon:
+		equip(DEFAULT_WEAPON)
 	var visual := get_node_or_null("Visual") as CanvasItem
 	if visual != null:
 		visual.visible = false

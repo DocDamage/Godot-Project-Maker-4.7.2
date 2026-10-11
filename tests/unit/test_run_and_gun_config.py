@@ -56,11 +56,17 @@ def test_the_config_of_a_run_and_gun_is_valid_and_keeps_its_options() -> None:
         "health": 1,
         "lives": 3,
         "left_edge_kills": True,
+        "keep_weapon": False,
     }, "one hit is a death, and the left edge kills: the rules of the genre"
     forgiving = _cfg(starter_map={"health": 3, "left_edge_kills": False})
     data = forgiving.to_json()
     schema.validate("config", data)
-    assert data["starter_map"] == {"health": 3, "lives": 3, "left_edge_kills": False}
+    assert data["starter_map"] == {
+        "health": 3,
+        "lives": 3,
+        "left_edge_kills": False,
+        "keep_weapon": False,
+    }
     assert config.GeneratorConfig.from_json(data).to_json() == data
     for bad in ({"health": 0}, {"health": 6}, {"left_edge_kills": "no"}):
         with pytest.raises(Exception):  # noqa: B017, PT011
@@ -142,3 +148,27 @@ def test_the_smoke_steps_and_the_installed_files_of_a_run_and_gun(tmp_path: Path
     assert "addons/rpg_runtime/archetypes/arcade/bullet_pool.gd" in shmup
     assert not [w for w in shmup if w.endswith("shmup/bullet_pool.gd")]
     assert not [w for w in shmup if "archetypes/metroidvania/" in w]
+
+
+def test_the_soldier_of_a_side_view_pack_is_its_player_and_a_tag_is_no_bullet() -> None:
+    """T16.09: the `gunner` pack calls its hero a soldier, which made it an NPC and left the
+    pack without a player; and its weapon pickups are tagged `bullet` and `powerup`, which made
+    the arcade kit think the pack had bullets while no asset had the role."""
+    from rpggen.core import arcade_kit
+
+    cat = _catalog(SYNTH / "gunner")
+    roles = {a.id: catalog.effective(a)["role"] for a in cat.assets}
+    assert roles["gunner.soldier.soldier_idle"] == "PLAYER"
+    assert [r for r in roles.values() if r == "PLAYER"] == ["PLAYER"], "one player"
+    assert roles["gunner.enemies.trooper_walk"] == "ENEMY", "the other soldiers stay enemies"
+    lacking = {s.role for s in arcade_kit.lacking(cat, "run_and_gun")}
+    assert {"PROJECTILE", "POWERUP", "EXPLOSION"} <= lacking, "a tag alone is not the role"
+    issues = requirements.check(cat, _cfg())
+    assert not [i for i in issues if i.severity.value == "error"]
+    assert not [i for i in issues if i.code == "ASSET-010" and i.detail["role"] == "PROJECTILE"], (
+        "what the kit draws is a note, not a missing role"
+    )
+    # a pack that has a player keeps it: nobody is promoted beside it
+    side = _catalog(SYNTH / "platformer")
+    assert sum(1 for a in side.assets if catalog.effective(a).get("role") == "PLAYER") == 1
+    assert config.starter_map_defaults("run_and_gun")["keep_weapon"] is False

@@ -68,7 +68,7 @@ const ARCHETYPE_RECIPES := {
 	"arpg": ["arpg/swing_recipe", "arpg/enemy_recipes", "arpg/hud_recipe", "arpg/mode_recipe"],
 	"metroidvania": ["metroidvania/enemy_recipes", "metroidvania/objects_recipe", "metroidvania/hud_recipe", "metroidvania/mode_recipe"],
 	"shmup": ["shmup/ship_recipe", "shmup/enemy_recipes", "shmup/hud_recipe", "shmup/mode_recipe"],
-	"run_and_gun": ["run_and_gun/soldier_recipe", "arcade/hud_recipe", "run_and_gun/mode_recipe"],
+	"run_and_gun": ["run_and_gun/soldier_recipe", "run_and_gun/enemy_recipes", "arcade/hud_recipe", "run_and_gun/mode_recipe"],
 }
 ## The shared recipes an archetype does without, and what it runs in the place of the first of
 ## them: a metroidvania has rooms (T14.06), not a starter map with houses and a field.

@@ -2,8 +2,10 @@ extends RefCounted
 ## The smoke steps of a run and gun (T16.08): the title and a new game, then the soldier in its
 ## first stage. It runs with the real input actions and the camera follows it, to the right
 ## only; it jumps, aims up and fires, crouches, throws a grenade, dies and drops back in; and
-## at the end of the stage the run ends with the credits. The enemies, the weapons and the
-## bosses get their steps with their own cards.
+## then the first wave of enemies is fought, a weapon is picked up, a trap of turrets stops the
+## camera until it is destroyed, and at the end of the stage the run ends with the credits. In
+## the steps about enemies the soldier is made safe: they are about what comes, not about
+## dodging it. The bosses get their steps with their own card.
 
 const SAVE_DIR := "user://smoke_saves"
 
@@ -20,7 +22,10 @@ func steps() -> Array[Dictionary]:
 		{"name": "soldier_crouches", "fn": _soldier_crouches, "timeout_s": 20.0},
 		{"name": "grenade_goes_off", "fn": _grenade_goes_off, "timeout_s": 20.0},
 		{"name": "soldier_dies_and_drops_back_in", "fn": _soldier_dies_and_drops_back_in, "timeout_s": 30.0},
-		{"name": "stage_ends_with_the_credits", "fn": _stage_ends_with_the_credits, "timeout_s": 60.0},
+		{"name": "wave_is_fought", "fn": _wave_is_fought, "timeout_s": 60.0},
+		{"name": "weapon_is_picked_up", "fn": _weapon_is_picked_up, "timeout_s": 30.0},
+		{"name": "trap_stops_the_camera", "fn": _trap_stops_the_camera, "timeout_s": 60.0},
+		{"name": "stage_ends_with_the_credits", "fn": _stage_ends_with_the_credits, "timeout_s": 90.0},
 	]
 
 # ---------------------------------------------------------------- helpers
@@ -285,6 +290,136 @@ func _soldier_dies_and_drops_back_in() -> String:
 		return "the stage lost its progress"
 	return ""
 
+func _enemies() -> Array[RpgGunEnemy]:
+	var out: Array[RpgGunEnemy] = []
+	for node in _tree().get_nodes_in_group(RpgArcadeBulletPool.TARGET_GROUP):
+		if node is RpgGunEnemy and not node.is_queued_for_deletion():
+			out.append(node as RpgGunEnemy)
+	return out
+
+## Puts the camera at `progress` of the stage and the soldier two fifths into the screen there
+## (the screen's right edge is a wall, so the soldier alone cannot be put ahead of the camera).
+func _jump_to(progress: float) -> void:
+	var soldier := _soldier()
+	var scroll := _stage().scroller()
+	scroll.follow(progress)
+	soldier.position.x = scroll.view_center().x - soldier.view.x * 0.1
+	soldier.velocity = Vector2.ZERO
+
+func _shoot_everything() -> void:
+	for enemy in _enemies():
+		enemy.die()
+
+func _wave_is_fought() -> String:
+	var stage := _stage()
+	var mode := _mode()
+	var soldier := _soldier()
+	if stage.spawners.is_empty():
+		return "the first stage has no waves"
+	var first := stage.spawners[0]
+	if not first.is_waiting():
+		return "the first wave came before the soldier reached it (progress %.1f, it comes at %.1f)" % [stage.scroller().progress, first.wave.at]
+	soldier.set(&"_safe_left", 600.0)
+	Input.action_press(&"move_right")
+	var came := await _wait_for(func() -> bool: return not first.is_waiting(), 900)
+	Input.action_release(&"move_right")
+	if not came:
+		return "the first wave did not come (progress %.1f, it comes at %.1f)" % [stage.scroller().progress, first.wave.at]
+	var enemies := _enemies()
+	if enemies.size() != first.wave.count:
+		return "the first wave is of %d enemies and %d came" % [first.wave.count, enemies.size()]
+	var from: Array[float] = []
+	for enemy in enemies:
+		from.append(enemy.position.x)
+	await _frames(90)
+	var view := Rect2(Vector2.ZERO, _tree().root.get_visible_rect().size)
+	var seen := 0
+	var moved := 0
+	for i in enemies.size():
+		if not is_instance_valid(enemies[i]):
+			continue
+		if view.has_point(enemies[i].get_global_transform_with_canvas().origin):
+			seen += 1
+		if enemies[i].position.x < from[i] - 8.0:
+			moved += 1
+	if seen == 0:
+		return "no enemy of the first wave is on the screen a second and a half after it came"
+	if moved == 0:
+		return "no enemy of the first wave came toward the soldier"
+	var before := mode.score.points
+	_shoot_everything()
+	if not await _wait_for(func() -> bool: return first.is_cleared(), 60):
+		return "the first wave is not cleared after every enemy of it was shot"
+	if mode.score.points < before + first.wave.count * 100:
+		return "%d kills made %d points" % [first.wave.count, mode.score.points - before]
+	return ""
+
+func _weapon_is_picked_up() -> String:
+	var stage := _stage()
+	var soldier := _soldier()
+	var scene_path := "res://generated/scenes/run_and_gun/weapon_pickup.tscn"
+	if not ResourceLoader.exists(scene_path):
+		return "%s is missing" % scene_path
+	if soldier.weapon() != "machine_gun":
+		return "the soldier starts with %s, not with the machine gun" % soldier.weapon()
+	var pickup := (load(scene_path) as PackedScene).instantiate() as RpgWeaponPickup
+	if pickup == null:
+		return "%s is not a weapon pickup" % scene_path
+	pickup.weapon = "spread"
+	pickup.position = soldier.position + Vector2(0.0, -soldier.tile_size * 4.0)
+	stage.entities().add_child(pickup)
+	pickup.drop()
+	var id := pickup.get_instance_id()
+	if not await _wait_for(func() -> bool: return not is_instance_id_valid(id), 300):
+		return "the weapon that fell on the soldier was not picked up"
+	if soldier.weapon() != "spread" or soldier.gun().bullets_per_shot != 5:
+		return "the soldier holds %s after picking up the spread" % soldier.weapon()
+	var pool := _pool()
+	pool.clear(RpgArcadeBulletPool.Team.PLAYER)
+	Input.action_press(&"shoot")
+	await _frames(4)
+	Input.action_release(&"shoot")
+	if pool.active(RpgArcadeBulletPool.Team.PLAYER) < 5:
+		return "a shot of the spread is %d bullets" % pool.active(RpgArcadeBulletPool.Team.PLAYER)
+	return ""
+
+func _trap_stops_the_camera() -> String:
+	var stage := _stage()
+	var soldier := _soldier()
+	var scroll := stage.scroller()
+	var trap: RpgArcadeSpawner = null
+	for spawner in stage.spawners:
+		if spawner.wave.blocking and spawner.is_waiting():
+			trap = spawner
+			break
+	if trap == null:
+		return ""  # a stage without a trap: nothing to stop the camera
+	soldier.set(&"_safe_left", 600.0)
+	# the camera and the soldier are put where the trap comes; what came on the way is shot
+	_jump_to(trap.wave.at)
+	if not await _wait_for(func() -> bool: return not trap.is_waiting(), 120):
+		return "the trap did not come at its place (progress %.1f, it comes at %.1f)" % [scroll.progress, trap.wave.at]
+	for enemy in _enemies():
+		if not (enemy is RpgGunTurret):
+			enemy.die()
+	await _frames(10)
+	if not scroll.is_held():
+		return "the camera is not held while the trap stands"
+	var held_at := scroll.progress
+	Input.action_press(&"move_right")
+	await _frames(90)
+	Input.action_release(&"move_right")
+	if scroll.progress != held_at:
+		return "the camera went on past a trap that still stands (progress %.1f -> %.1f)" % [held_at, scroll.progress]
+	var fired := 0
+	for enemy in _enemies():
+		if enemy is RpgGunTurret:
+			fired += enemy.shots
+	_shoot_everything()
+	if not await _wait_for(func() -> bool: return trap.is_cleared() and not scroll.is_held(), 120):
+		return "the camera is still held after the trap was destroyed"
+	return ""
+
 func _stage_ends_with_the_credits() -> String:
 	var mode := _mode()
 	var soldier := _soldier()
@@ -294,14 +429,23 @@ func _stage_ends_with_the_credits() -> String:
 	var finished := [false]
 	mode.run_finished.connect(func(_points: int, _rank: int) -> void: finished[0] = true, CONNECT_ONE_SHOT)
 	_release_all()
-	# the soldier is put a screen before the end and runs the rest
-	soldier.position.x = scroll.origin.x + scroll.length - soldier.view.x * 0.5
-	soldier.velocity = Vector2.ZERO
+	soldier.set(&"_safe_left", 600.0)
+	# the camera and the soldier are put a screen before the end, and the soldier runs the
+	# rest; what comes is shot
+	_shoot_everything()
+	await _frames(3)
+	_jump_to(scroll.length - soldier.view.x)
 	await _frames(5)
 	if not soldier.is_on_floor() and not await _wait_for(func() -> bool: return soldier.is_on_floor(), 120):
 		return "there is no floor a screen before the end of the stage"
 	Input.action_press(&"move_right")
-	var done := await _wait_for(func() -> bool: return finished[0], 1200)
+	var done := false
+	for i in 1800:
+		_shoot_everything()
+		if finished[0]:
+			done = true
+			break
+		await _tree().physics_frame
 	Input.action_release(&"move_right")
 	if not done:
 		return "running to the end of the stage did not end it (progress %.1f of %.1f)" % [scroll.progress, scroll.length]

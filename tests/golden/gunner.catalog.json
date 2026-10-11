@@ -655,13 +655,7 @@
           12,
           23
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "PLAYER",
         "size": [
           48,
           24

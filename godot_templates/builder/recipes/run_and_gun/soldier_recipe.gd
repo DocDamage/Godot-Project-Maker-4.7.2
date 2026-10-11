@@ -3,7 +3,7 @@ extends RefCounted
 ## sprite, with its gun, its input and a muzzle flash; the grenade it throws (grenade.tscn, a
 ## drawn one) and the explosion (explosion.tscn, from the EXPLOSION sprite).
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -28,6 +28,7 @@ func input_hash(ctx: BuildContext) -> String:
 		"tile": ArcadeBuild.tile(ctx),
 		"health": RngBuild.health(ctx),
 		"left_edge_kills": RngBuild.left_edge_kills(ctx),
+		"keep_weapon": RngBuild.keep_weapon(ctx),
 	})
 
 static func build_explosion(frames: SpriteFrames) -> AnimatedSprite2D:
@@ -64,7 +65,7 @@ static func build_soldier(frames: SpriteFrames, frame: Vector2i, origin: Vector2
 	root.z_index = 5
 	var gun := Node.new()
 	SceneUtil.attach_script(gun, RngBuild.GUN_SCRIPT)
-	gun.set("bullet_speed", tile * 15.0)
+	gun.set("tile", float(tile))
 	SceneUtil.add(root, gun, root, "Gun")
 	var input := Node.new()
 	SceneUtil.attach_script(input, RngBuild.INPUT_SCRIPT)
@@ -96,5 +97,6 @@ func build(ctx: BuildContext) -> Array:
 		origin = fo["origin"]
 	var soldier := build_soldier(ArcadeBuild.frames_of(ctx, player), frame, origin, ArcadeBuild.view(ctx), tile,
 		explosion, grenade, RngBuild.health(ctx), RngBuild.left_edge_kills(ctx))
+	soldier.set("keep_weapon", RngBuild.keep_weapon(ctx))
 	_save(ctx, soldier, RngBuild.SOLDIER_PATH, issues)
 	return issues

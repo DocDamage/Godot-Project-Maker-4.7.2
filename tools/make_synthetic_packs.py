@@ -1709,6 +1709,7 @@ def make_gunner(out: Path) -> None:
             "tiles/ground.png": {"usage": "tiles", "role": "GROUND"},
             "soldier/soldier_idle.png": {
                 "usage": "sprite",
+                "role": "PLAYER",  # a soldier that can jump, in a pack without another player
                 "frame": [24, 24],
                 "anims": ["idle_down", "jump_down", "shoot_down", "walk_down"],
             },

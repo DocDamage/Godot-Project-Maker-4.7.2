@@ -171,8 +171,10 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         if not _filled(catalog, role) and role not in drawn:
             issue = issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
             issues[-1] = dataclasses.replace(issue, severity=Severity.ERROR)
+    # what the arcade kit draws for the kind is noted above (ASSET-031): it is not also missing
+    stood_in = {i.detail.get("role") for i in issues if i.code == "ASSET-031"}
     for role in recommended(cfg.archetype):
-        if not _filled(catalog, role):
+        if not _filled(catalog, role) and role not in stood_in:
             issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
     if not _assets_with_role(catalog, "AUDIO_MUSIC"):
         issues.add("ASSET-026")

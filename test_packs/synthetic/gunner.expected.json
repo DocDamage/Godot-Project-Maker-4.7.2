@@ -26,6 +26,7 @@
       24,
       24
     ],
+    "role": "PLAYER",
     "usage": "sprite"
   },
   "tiles/ground.png": {

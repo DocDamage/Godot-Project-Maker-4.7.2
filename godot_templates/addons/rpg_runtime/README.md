@@ -297,6 +297,21 @@ wall (`left_edge_kills`); a fall out of the stage is a death. `RpgGrenade` flies
 hurts every target within `blast_radius`. `RpgRunAndGunMode` takes a life per death and brings
 the soldier back; `RpgRunAndGunHud` shows the grenades and the health of a forgiving soldier.
 
+The four weapons (`weapons/`) are guns with other numbers: `RpgMachineGun`, `RpgSpreadGun`
+(five bullets over forty degrees), `RpgLaserGun` (fast, three damage, through everything) and
+`RpgFlameGun` (twenty shots a second that reach four tiles). `RpgSoldier.equip(name)` swaps the
+gun in hand (`weapon()`, the signal `weapon_changed`); a death goes back to the machine gun
+unless `keep_weapon`. `RpgWeaponPickup` comes in on a carrier that flies across the screen: shot,
+the weapon falls and lies, and a touch takes it.
+
+Enemies (`enemies/`) extend `RpgGunEnemy`, a platform actor that is a target of the pool:
+`health`, `points`, `take_hit`, `vulnerable()`, the signal `defeated`, a touch that hurts the
+soldier, `fire_at_soldier()` and `fan_at_soldier(count, deg)`; a behaviour overrides `think`.
+`RpgRunnerEnemy` charges and jumps at the soldier, `RpgSniperEnemy` warns (`telegraphed`) and
+fires one shot, `RpgGunTurret` fires a fan, `RpgJumperEnemy` hops, `RpgWallCannon` is `fixed`
+and can only be hit while it is open. The right edge of the screen is a wall for the soldier,
+so a wave that is `blocking` (a trap) holds both the camera and the soldier until it is cleared.
+
 `RpgArcadeBulletPool` and `RpgArcadeExplosion` (in `arcade/`) are shared by the kinds that
 shoot. The pool has `wall_mask` (the physics layers that stop a bullet: the ground of a
 side-view stage), a `life_s` per bullet (the range of a gun), and hits a node at its
