@@ -52,21 +52,18 @@ def test_the_config_of_a_run_and_gun_is_valid_and_keeps_its_options() -> None:
     data = cfg.to_json()
     schema.validate("config", data)
     assert data["archetype"] == "run_and_gun" and "starter_map" not in data
-    assert config.starter_map_defaults("run_and_gun") == {
-        "health": 1,
-        "lives": 3,
-        "left_edge_kills": True,
-        "keep_weapon": False,
-    }, "one hit is a death, and the left edge kills: the rules of the genre"
+    rules = config.starter_map_defaults("run_and_gun")
+    assert (rules["health"], rules["lives"], rules["left_edge_kills"], rules["keep_weapon"]) == (
+        1,
+        3,
+        True,
+        False,
+    ), "one hit is a death, and the left edge kills: the rules of the genre"
     forgiving = _cfg(starter_map={"health": 3, "left_edge_kills": False})
     data = forgiving.to_json()
     schema.validate("config", data)
-    assert data["starter_map"] == {
-        "health": 3,
-        "lives": 3,
-        "left_edge_kills": False,
-        "keep_weapon": False,
-    }
+    # an option that differs writes the whole set, with the defaults of the others (T16.10)
+    assert data["starter_map"] == {**rules, "health": 3, "left_edge_kills": False}
     assert config.GeneratorConfig.from_json(data).to_json() == data
     for bad in ({"health": 0}, {"health": 6}, {"left_edge_kills": "no"}):
         with pytest.raises(Exception):  # noqa: B017, PT011
@@ -75,7 +72,7 @@ def test_the_config_of_a_run_and_gun_is_valid_and_keeps_its_options() -> None:
         schema.validate("config", {**data, "archetype": "racing"})
     assert features.RUN_AND_GUN_AVAILABLE is False, "the wizard does not offer it before its gate"
     assert [k for k, on in cfg.features.items() if not on] == ["dialogue", "navigation"]
-    assert options.stages_text("run_and_gun", {}) == "1 stage, seen from the side"
+    assert options.stages_text("run_and_gun", {}) == "3 stages, seen from the side"
 
 
 def test_the_controls_start_from_the_metroidvanias() -> None:

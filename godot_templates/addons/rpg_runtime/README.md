@@ -312,6 +312,13 @@ fires one shot, `RpgGunTurret` fires a fan, `RpgJumperEnemy` hops, `RpgWallCanno
 and can only be hit while it is open. The right edge of the screen is a wall for the soldier,
 so a wave that is `blocking` (a trap) holds both the camera and the soldier until it is cleared.
 
+`RpgGunBoss` is the arcade boss as a target of the pool, of a `kind`: `wall` (stands at the
+right of its arena), `walker` (walks out to the left and back) or `flyer` (sweeps in the air).
+Its attacks are `aimed`, `fan`, `burst`, `rain` and `ring` (`volley(attack)`), with the `count`
+and `fast` its phase has in the stage file; a touch of it hurts the soldier. A stage has the
+layers `Ground`, `Platforms`, `Hazards` and `Decoration`, painted from the tiles of its plan;
+a tile of spikes costs the soldier a hit (`touching_hazard()`), and a gap has no bottom.
+
 `RpgArcadeBulletPool` and `RpgArcadeExplosion` (in `arcade/`) are shared by the kinds that
 shoot. The pool has `wall_mask` (the physics layers that stop a bullet: the ground of a
 side-view stage), a `life_s` per bullet (the range of a gun), and hits a node at its

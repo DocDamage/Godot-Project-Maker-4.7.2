@@ -7,9 +7,11 @@ extends RefCounted
 ## the turret and the wall cannon; the others are the runner, the sniper and the jumper, in
 ## the order of their size and their ids (a pack with one such picture uses it for all three).
 ## A behaviour without a picture gets a drawn shape. The pickup shows the picture the packs
-## name after its weapon (`weapon_pickup_laser`), else a tinted one.
+## name after its weapon (`weapon_pickup_laser`), else a tinted one. The three bosses
+## (boss_wall.tscn, boss_walker.tscn, boss_flyer.tscn) are the BOSS picture, else the largest
+## ENEMY picture two and a half times as large, else a drawn shape.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -94,6 +96,8 @@ func outputs(_ctx: BuildContext) -> PackedStringArray:
 	for behaviour in BEHAVIOURS:
 		out.append(scene_path(behaviour))
 	out.append(RngBuild.PICKUP_PATH)
+	for kind in RngBuild.BOSS_KINDS:
+		out.append(RngBuild.boss_path(kind))
 	return out
 
 func input_hash(ctx: BuildContext) -> String:
@@ -105,6 +109,7 @@ func input_hash(ctx: BuildContext) -> String:
 	var found := pickup_assets(ctx)
 	for weapon: String in found:
 		capsules[weapon] = JsonUtil.to_dict(found[weapon]).get("id", "")
+	ids["boss"] = boss_asset(ctx).get("id", "")
 	return ctx.stable_hash({"v": RECIPE_VERSION, "roster": ids, "pickups": capsules,
 		"view": ArcadeBuild.view(ctx), "tile": ArcadeBuild.tile(ctx)})
 
@@ -126,6 +131,52 @@ static func build_enemy(behaviour: String, frames: SpriteFrames, frame: Vector2i
 		var shape := ArcadeBuild.stand_in("Shape", size, shape_color)
 		shape.position = Vector2(0.0, -size.y * 0.5)
 		SceneUtil.add(root, shape, root, "Shape")
+	return root
+
+const BOSS_SHAPES := {"wall": Color(0.45, 0.45, 0.55), "walker": Color(0.75, 0.3, 0.3), "flyer": Color(0.4, 0.55, 0.75)}
+
+## The picture the bosses are made of: the BOSS asset, else the largest ENEMY one ({} for none).
+static func boss_asset(ctx: BuildContext) -> Dictionary:
+	var own := ArcadeBuild.chosen(ctx, "BOSS", "boss")
+	if not own.is_empty():
+		return own
+	var best := {}
+	for a in ArcadeBuild.assets(ctx, "ENEMY"):
+		if best.is_empty() or _area(ctx, a) > _area(ctx, best):
+			best = a
+	return best
+
+## The scene of the boss of `kind`. `frames` null draws a shape; `zoom` enlarges the picture.
+## The two that stand have their feet at the origin; the flyer its middle.
+static func build_boss(kind: String, frames: SpriteFrames, frame: Vector2i, view: Vector2i, tile: int,
+		explosion: PackedScene, zoom: float = 1.0) -> Node2D:
+	var root := Node2D.new()
+	root.name = "Boss" + kind.to_pascal_case()
+	SceneUtil.attach_script(root, RngBuild.BOSS_SCRIPT)
+	root.set("kind", kind)
+	var size := Vector2(frame) * zoom
+	root.set("hit_radius", maxf(8.0, minf(size.x, size.y) * 0.45))
+	root.set("bullet_speed", tile * 6.875)
+	root.set("explosion_scene", explosion)
+	root.set("sweep_px", view.x * 0.22)
+	root.set("walk_px", view.x * 0.3)
+	root.z_index = 3
+	var lift := Vector2.ZERO if kind == "flyer" else Vector2(0.0, -size.y * 0.5)
+	if frames == null:
+		var shape_color: Color = BOSS_SHAPES[kind]
+		var shape := ArcadeBuild.stand_in("Visual", size, shape_color)
+		shape.position = lift
+		SceneUtil.add(root, shape, root, "Visual")
+		return root
+	var visual := AnimatedSprite2D.new()
+	visual.sprite_frames = frames
+	for anim: String in ["idle_left", "idle_side", "idle", "idle_down", "walk_left", "walk_down"]:
+		if frames.has_animation(anim):
+			visual.animation = anim
+			break
+	visual.scale = Vector2(zoom, zoom)
+	visual.position = lift
+	SceneUtil.add(root, visual, root, "Visual")
 	return root
 
 ## The pickup's scene. `pictures` is weapon -> Texture2D.
@@ -180,4 +231,10 @@ func build(ctx: BuildContext) -> Array:
 		if texture != null:
 			pictures[weapon] = texture
 	_save(ctx, build_pickup(pictures, view, tile), RngBuild.PICKUP_PATH, issues)
+	var chief := boss_asset(ctx)
+	var own_boss := not chief.is_empty() and JsonUtil.to_str(ctx.catalog.effective(chief).get("role", "")) == "BOSS"
+	var chief_frame := ArcadeBuild.frame_size(ctx, chief) if not chief.is_empty() else Vector2i(tile * 3, tile * 3)
+	for kind in RngBuild.BOSS_KINDS:
+		_save(ctx, build_boss(kind, ArcadeBuild.frames_of(ctx, chief), chief_frame, view, tile, explosion,
+			1.0 if chief.is_empty() else (2.0 if own_boss else 2.5)), RngBuild.boss_path(kind), issues)
 	return issues

@@ -3,9 +3,10 @@ extends RefCounted
 ## first stage. It runs with the real input actions and the camera follows it, to the right
 ## only; it jumps, aims up and fires, crouches, throws a grenade, dies and drops back in; and
 ## then the first wave of enemies is fought, a weapon is picked up, a trap of turrets stops the
-## camera until it is destroyed, and at the end of the stage the run ends with the credits. In
-## the steps about enemies the soldier is made safe: they are about what comes, not about
-## dodging it. The bosses get their steps with their own card.
+## camera until it is destroyed, the boss of the first stage is fought and beaten in its arena,
+## and the run is taken through every other stage and its boss to the credits. In the steps
+## about enemies the soldier is made safe: they are about what comes, not about dodging it;
+## and the way to a boss is skipped (the camera is put at the arena), not run.
 
 const SAVE_DIR := "user://smoke_saves"
 
@@ -25,7 +26,8 @@ func steps() -> Array[Dictionary]:
 		{"name": "wave_is_fought", "fn": _wave_is_fought, "timeout_s": 60.0},
 		{"name": "weapon_is_picked_up", "fn": _weapon_is_picked_up, "timeout_s": 30.0},
 		{"name": "trap_stops_the_camera", "fn": _trap_stops_the_camera, "timeout_s": 60.0},
-		{"name": "stage_ends_with_the_credits", "fn": _stage_ends_with_the_credits, "timeout_s": 90.0},
+		{"name": "boss_is_beaten", "fn": _boss_is_beaten, "timeout_s": 90.0},
+		{"name": "run_reaches_the_credits", "fn": _run_reaches_the_credits, "timeout_s": 300.0},
 	]
 
 # ---------------------------------------------------------------- helpers
@@ -420,35 +422,90 @@ func _trap_stops_the_camera() -> String:
 		return "the camera is still held after the trap was destroyed"
 	return ""
 
-func _stage_ends_with_the_credits() -> String:
-	var mode := _mode()
-	var soldier := _soldier()
+## Takes the stage that is played to its arena: the camera is put at the end of the stage, the
+## soldier into the arena, and what is on the way is shot. Returns the boss when it has come in
+## and fights, or null.
+func _skip_to_boss() -> RpgGunBoss:
 	var stage := _stage()
-	var router := _router()
-	var scroll := stage.scroller()
-	var finished := [false]
-	mode.run_finished.connect(func(_points: int, _rank: int) -> void: finished[0] = true, CONNECT_ONE_SHOT)
+	var soldier := _soldier()
 	_release_all()
-	soldier.set(&"_safe_left", 600.0)
-	# the camera and the soldier are put a screen before the end, and the soldier runs the
-	# rest; what comes is shot
-	_shoot_everything()
-	await _frames(3)
-	_jump_to(scroll.length - soldier.view.x)
-	await _frames(5)
-	if not soldier.is_on_floor() and not await _wait_for(func() -> bool: return soldier.is_on_floor(), 120):
-		return "there is no floor a screen before the end of the stage"
-	Input.action_press(&"move_right")
-	var done := false
-	for i in 1800:
+	for i in 900:
 		_shoot_everything()
-		if finished[0]:
-			done = true
-			break
+		if soldier != null and is_instance_valid(soldier):
+			soldier.set(&"_safe_left", 600.0)
+		if not stage.scroller().at_end():
+			_jump_to(stage.scroller().length)
+		if stage.boss != null and is_instance_valid(stage.boss) and stage.boss.is_fighting():
+			return stage.boss as RpgGunBoss
 		await _tree().physics_frame
-	Input.action_release(&"move_right")
-	if not done:
-		return "running to the end of the stage did not end it (progress %.1f of %.1f)" % [scroll.progress, scroll.length]
+	return null
+
+func _boss_is_beaten() -> String:
+	var stage := _stage()
+	var mode := _mode()
+	var pool := _pool()
+	var router := _router()
+	if not stage.has_boss():
+		return ""  # a stage without a boss ends where its length ends
+	var boss := await _skip_to_boss()
+	if boss == null:
+		return "the boss of the first stage did not come in at the end of the stage (progress %.1f of %.1f)" % [stage.scroller().progress, stage.scroller().length]
+	var soldier := _soldier()
+	if not soldier.is_on_floor() and not await _wait_for(func() -> bool: return soldier.is_on_floor(), 180):
+		return "the soldier does not stand in the arena (at %s)" % soldier.position
+	if not stage.scroller().is_held():
+		return "the camera is free while the boss fights"
+	var view := Rect2(Vector2.ZERO, _tree().root.get_visible_rect().size)
+	if not view.has_point(boss.get_global_transform_with_canvas().origin):
+		return "the boss (%s) is not on the screen (%s)" % [boss.kind, boss.get_global_transform_with_canvas().origin]
+	if boss.phases.size() < 2:
+		return "the boss has %d phase(s); the plan gives it two at least" % boss.phases.size()
+	pool.clear(RpgArcadeBulletPool.Team.ENEMY)
+	if not await _wait_for(func() -> bool: return pool.active(RpgArcadeBulletPool.Team.ENEMY) > 0, 600):
+		return "the boss did not fire in ten seconds"
+	var before := boss.phase_index()
+	boss.take_hit(boss.health - 1)
+	if boss.phase_index() == before:
+		return "the boss did not change its phase as its health fell"
+	var score := mode.score.points
+	boss.take_hit(5)
+	if mode.score.points <= score:
+		return "beating the boss gave no points"
+	if mode.stages().size() < 2:
+		if not await _wait_for(func() -> bool: return mode.phase == RpgArcadeMode.Phase.FINISHED, 600):
+			return "the run did not end after the boss of its only stage"
+		return ""
+	if not await _wait_for(func() -> bool: return _stage() != null and _stage().stage_index == 1 and not router.is_busy(), 900):
+		return "the second stage did not begin after the boss of the first"
+	if mode.phase != RpgArcadeMode.Phase.PLAYING:
+		return "the run is not being played in the second stage"
+	return ""
+
+func _run_reaches_the_credits() -> String:
+	var mode := _mode()
+	var router := _router()
+	var finished := [mode.phase == RpgArcadeMode.Phase.FINISHED]
+	if not finished[0]:
+		mode.run_finished.connect(func(_points: int, _rank: int) -> void: finished[0] = true, CONNECT_ONE_SHOT)
+	var count := mode.stages().size()
+	var kinds := {}
+	for index in range(mode.stages().index if not finished[0] else count, count):
+		if not await _wait_for(func() -> bool: return _stage() != null and _stage().stage_index == index and not router.is_busy() and mode.phase == RpgArcadeMode.Phase.PLAYING, 900):
+			return "stage %d did not begin" % (index + 1)
+		var soldier := _soldier()
+		if soldier == null or not await _wait_for(func() -> bool: return soldier.is_on_floor(), 180):
+			return "the soldier does not stand at the start of stage %d" % (index + 1)
+		if not _stage().has_boss():
+			return "stage %d has no boss" % (index + 1)
+		var boss := await _skip_to_boss()
+		if boss == null:
+			return "the boss of stage %d did not come in" % (index + 1)
+		kinds[boss.kind] = true
+		boss.take_hit(boss.health)
+	if not await _wait_for(func() -> bool: return finished[0], 900):
+		return "the run did not end after the boss of the last stage"
+	if RpgArcadeHighScores.read().is_empty():
+		return "the finished run is not in the high-score table"
 	if not mode.saved_run().is_empty():
 		return "a finished run is still in the saved game"
 	var credits := false

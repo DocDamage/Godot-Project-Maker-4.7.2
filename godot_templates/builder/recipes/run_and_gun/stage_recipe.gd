@@ -4,11 +4,11 @@ extends RefCounted
 ## pictures of the packs behind it, a flat floor of the ground tiles of the packs (the layer
 ## "Ground"), the bullet pool (bullets stop at the ground) and the soldier. Its scroller does
 ## not move by itself: the soldier leads the camera to the right. The stage ends at the end of
-## its length. Its waves are a fixed set for now (runners, a sniper, jumpers, a trap of turrets
-## that stops the camera, a wall cannon, and three weapons on their carriers); platforms, pits
-## and a boss are the work of the stage planner.
+## its length, in the arena of its boss. There is a scene for every stage of the plan rpggen
+## stored (gaps, steps, planks, spikes and walls, painted from its tiles); a project without a
+## stored plan gets one flat stage with a fixed set of waves.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -21,9 +21,19 @@ const SideKit := preload("../metroidvania/side_kit.gd")
 const Parallax := preload("../metroidvania/parallax_recipe.gd")
 const RngBuild := preload("run_and_gun_build.gd")
 const EnemyRecipes := preload("enemy_recipes.gd")
+const WorldPlan := preload("../../lib/world_plan.gd")
+const RoomsRecipe := preload("../metroidvania/rooms_recipe.gd")
 
-func outputs(_ctx: BuildContext) -> PackedStringArray:
-	var out := PackedStringArray([ArcadeBuild.stage_path(0), ArcadeBuild.PLANNED_STAGES_PATH])
+## The layers of a stage, as a room of a metroidvania has them (the tiles of the plan are
+## painted by the same code), and those the soldier stands on.
+const LAYERS: Array[String] = ["Ground", "Platforms", "Hazards", "Decoration"]
+const SOLID_LAYERS: Array[String] = ["Ground", "Platforms"]
+
+func outputs(ctx: BuildContext) -> PackedStringArray:
+	var out := PackedStringArray()
+	for i in stored_plan().size() if not stored_plan().is_empty() else 1:
+		out.append(ArcadeBuild.stage_path(i))
+	out.append(ArcadeBuild.PLANNED_STAGES_PATH)
 	if not FileAccess.file_exists(ArcadeBuild.STAGES_PATH):
 		out.append(ArcadeBuild.STAGES_PATH)
 	return out
@@ -33,14 +43,46 @@ func input_hash(ctx: BuildContext) -> String:
 	return ctx.stable_hash({
 		"v": RECIPE_VERSION,
 		"stages": plan(ctx),
+		"tiles": stored_plan().map(func(s: Variant) -> Variant: return JsonUtil.to_dict(s).get("tiles", [])),
 		"tileset": def.get("name", ""),
 		"sources": def.get("sources", []),
 		"layers": Parallax.layers(ctx),
 		"bullets": ArcadeBuild.bullet_textures(ctx).keys(),
 	})
 
-## The stages of the game as stages.json has them (without their scenes).
+## The stages rpggen planned and stored (rpggen/world_plan.json, the section `stages`), with
+## their tiles; [] for a project without a stored plan.
+static func stored_plan() -> Array:
+	return JsonUtil.to_array(JsonUtil.to_dict(WorldPlan.read().get("stages", {})).get("list", []))
+
+## The stages of the game as stages.json has them (without their scenes, and without the
+## tiles, which are painted into the scenes): those of the stored plan, each wave and boss with
+## the scene of what comes. A project without a stored plan gets one flat stage with the waves
+## of `FIRST_STAGE`.
 static func plan(ctx: BuildContext) -> Array:
+	var stored := stored_plan()
+	if stored.is_empty():
+		return fallback_plan(ctx)
+	var out: Array = []
+	for raw: Variant in stored:
+		var stage := JsonUtil.to_dict(raw).duplicate(true)
+		for key: String in ["scene", "tiles", "chunks"]:
+			stage.erase(key)
+		var waves_out: Array = []
+		for raw_wave: Variant in JsonUtil.to_array(stage.get("waves", [])):
+			var wave := JsonUtil.to_dict(raw_wave)
+			var what := JsonUtil.to_str(wave.get("enemy", "runner"))
+			wave["scene"] = RngBuild.PICKUP_PATH if what == "pickup" else EnemyRecipes.scene_path(what)
+			waves_out.append(wave)
+		stage["waves"] = waves_out
+		var boss := JsonUtil.to_dict(stage.get("boss", {}))
+		if not boss.is_empty():
+			boss["scene"] = RngBuild.boss_path(JsonUtil.to_str(boss.get("kind", "wall")))
+			stage["boss"] = boss
+		out.append(stage)
+	return out
+
+static func fallback_plan(ctx: BuildContext) -> Array:
 	var view := ArcadeBuild.view(ctx)
 	var length := float(view.x * RngBuild.STAGE_SCREENS)
 	return [{
@@ -128,12 +170,18 @@ static func paint_floor(layer: TileMapLayer, cells: Vector2i, kit: Dictionary) -
 		for y in range(first + 1, cells.y):
 			MapUtil.put(layer, Vector2i(x, y), fill)
 
-## The scene of the stage `index`.
-static func build_stage(ctx: BuildContext, index: int, stage: Dictionary, tile_set: TileSet, kit: Dictionary) -> Node2D:
+## The scene of the stage `index`. `tiles` are the rows of the plan (in the alphabet of the
+## room plan); without them the stage is a flat floor.
+static func build_stage(ctx: BuildContext, index: int, stage: Dictionary, tile_set: TileSet, kit: Dictionary, tiles: Array = []) -> Node2D:
 	var view := ArcadeBuild.view(ctx)
 	var tile := tile_set.tile_size.x
 	var cells := stage_cells(JsonUtil.to_float(stage.get("length", 0.0)), view, tile)
+	if not tiles.is_empty():
+		cells = Vector2i(JsonUtil.to_str(tiles[0]).length(), tiles.size())
 	var start := Vector2(tile * 3.5, floor_row(cells.y) * tile)
+	var planned := JsonUtil.to_array(stage.get("start", []))
+	if planned.size() >= 2:
+		start = Vector2(JsonUtil.to_float(planned[0]), JsonUtil.to_float(planned[1]))
 	var root := StageRecipes.build_stage(index, stage, view, start)
 	root.get_node("PlayerStart").set("side_view", true)
 	root.get_node("PlayerStart").set("facing", "right")
@@ -142,12 +190,21 @@ static func build_stage(ctx: BuildContext, index: int, stage: Dictionary, tile_s
 		root.add_child(background)
 		root.move_child(background, 0)
 		SceneUtil.set_owner_recursive(background, root)
-	var ground := TileMapLayer.new()
-	ground.tile_set = tile_set
-	ground.collision_enabled = true
-	paint_floor(ground, cells, kit)
-	SceneUtil.add(root, ground, root, "Ground")
-	root.move_child(ground, 1 if background != null else 0)
+	var layers := {}
+	var at := 1 if background != null else 0
+	for layer_name in LAYERS:
+		var layer := TileMapLayer.new()
+		layer.tile_set = tile_set
+		layer.collision_enabled = SOLID_LAYERS.has(layer_name)
+		SceneUtil.add(root, layer, root, layer_name)
+		root.move_child(layer, at)
+		at += 1
+		layers[layer_name] = layer
+	if tiles.is_empty():
+		var ground: TileMapLayer = layers["Ground"]
+		paint_floor(ground, cells, kit)
+	else:
+		RoomsRecipe.paint(tiles, layers, kit)
 	var pool := Node2D.new()
 	SceneUtil.attach_script(pool, ArcadeBuild.POOL_SCRIPT)
 	pool.set("textures", ArcadeBuild.bullet_textures(ctx))
@@ -177,9 +234,11 @@ func build(ctx: BuildContext) -> Array:
 	if JsonUtil.to_dict(kit["top"]).is_empty():
 		issues.append(ctx.make_issue("BUILD-002", {"recipe": "stage_recipe", "reason": "the tile set has no solid tile to build a floor from"}, tileset_path))
 		return issues
+	var stored := stored_plan()
 	for i in stages.size():
 		path = ArcadeBuild.stage_path(i)
-		var err := SceneUtil.save_scene(build_stage(ctx, i, JsonUtil.to_dict(stages[i]), tile_set, kit), path)
+		var tiles := JsonUtil.to_array(JsonUtil.to_dict(stored[i]).get("tiles", [])) if i < stored.size() else []
+		var err := SceneUtil.save_scene(build_stage(ctx, i, JsonUtil.to_dict(stages[i]), tile_set, kit, tiles), path)
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
 	var listed := StageRecipes.save_list(stages)

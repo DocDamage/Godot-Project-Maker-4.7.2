@@ -178,6 +178,8 @@ func step(delta: float) -> void:
 		_grenade_asked = false
 		throw_grenade()
 	_follow_camera()
+	if not dead and touching_hazard():
+		hit()
 	if not dead and _below_stage():
 		die()
 
@@ -212,6 +214,18 @@ func _keep_on_screen() -> void:
 	elif not left_edge_kills:
 		position.x = edge + body_width() * 0.5
 		velocity.x = maxf(0.0, velocity.x)
+
+## True when the feet or the middle of the soldier are in a tile that hurts (spikes).
+func touching_hazard() -> bool:
+	var all := layers()
+	if all.is_empty():
+		return false
+	var feet := RpgUtil.world_position(self)
+	var half := body_width() * 0.5 - 1.0
+	for point: Vector2 in [feet + Vector2(0.0, -2.0), feet + Vector2(-half, -2.0), feet + Vector2(half, -2.0), body_center()]:
+		if RpgSideTiles.has_at(all, point, RpgSideTiles.HAZARD):
+			return true
+	return false
 
 func _below_stage() -> bool:
 	var found := stage()

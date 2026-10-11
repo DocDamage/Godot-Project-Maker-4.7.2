@@ -13,6 +13,7 @@ const SOLDIER_SCRIPT := DIR + "soldier.gd"
 const INPUT_SCRIPT := DIR + "soldier_input.gd"
 const GUN_SCRIPT := DIR + "weapons/machine_gun.gd"
 const PICKUP_SCRIPT := DIR + "weapon_pickup.gd"
+const BOSS_SCRIPT := DIR + "boss.gd"
 const ENEMY_DIR := DIR + "enemies/"
 const GRENADE_SCRIPT := DIR + "grenade.gd"
 
@@ -23,6 +24,11 @@ const EXPLOSION_PATH := SCENES + "explosion.tscn"
 const PICKUP_PATH := SCENES + "weapon_pickup.tscn"
 const ENEMIES := SCENES + "enemies/"
 const ENEMY_LAYER := 3
+const BOSS_KINDS: Array[String] = ["wall", "walker", "flyer"]
+
+## The scene of the boss of a kind: boss_wall.tscn, boss_walker.tscn, boss_flyer.tscn.
+static func boss_path(kind: String) -> String:
+	return SCENES + "boss_%s.tscn" % (kind if BOSS_KINDS.has(kind) else "wall")
 
 const PLAYER_LAYER := 2
 const WORLD_LAYER := 1

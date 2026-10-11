@@ -30,7 +30,8 @@ STEPS = [
     "wave_is_fought",
     "weapon_is_picked_up",
     "trap_stops_the_camera",
-    "stage_ends_with_the_credits",
+    "boss_is_beaten",
+    "run_reaches_the_credits",
 ]
 SCENES = [
     "generated/scenes/run_and_gun/soldier.tscn",
@@ -45,6 +46,11 @@ SCENES = [
     "generated/scenes/run_and_gun/enemies/turret.tscn",
     "generated/scenes/run_and_gun/enemies/jumper.tscn",
     "generated/scenes/run_and_gun/enemies/wall_cannon.tscn",
+    "generated/scenes/run_and_gun/boss_wall.tscn",
+    "generated/scenes/run_and_gun/boss_walker.tscn",
+    "generated/scenes/run_and_gun/boss_flyer.tscn",
+    "generated/scenes/stages/stage_02.tscn",
+    "generated/scenes/stages/stage_03.tscn",
 ]
 
 
@@ -106,10 +112,13 @@ def test_the_platformer_pack_is_a_run_and_gun(game) -> None:
     drawn = sorted(i.detail["role"] for i in result.issues if i.code == "ASSET-031")
     assert drawn == ["EXPLOSION", "POWERUP", "PROJECTILE"], "the pack has no bullet of its own"
     assert (target / arcade_kit.KIT_DIR / "bullet.png").is_file()
-    (stage,) = jsonio.read(target / "game/data/stages.json")["stages"]
+    stages = jsonio.read(target / "game/data/stages.json")["stages"]
+    assert len(stages) == 3
+    stage = stages[0]
     assert (stage["axis"], stage["speed"], stage["exit"]) == ("right", 0.0, "reach_end")
-    assert stage["length"] == 6 * saved["resolution"][0], "six screens long"
+    assert stage["length"] == (14 * 20 - 40) * 16, "fourteen chunks; the last screen is the arena"
     assert stage["scene"] == "res://generated/scenes/stages/stage_01.tscn"
+    assert "tiles" not in stage, "the tiles are painted into the scene, not listed"
 
 
 def test_the_scenes_are_a_soldier_on_the_packs_ground(game) -> None:
@@ -178,12 +187,8 @@ def test_a_forgiving_soldier_and_a_left_edge_that_is_a_wall(
     assert "max_health = 3" in soldier and "left_edge_kills = false" in soldier
     assert "start_lives = 5" in _text(target, "generated/scenes/combat/combat_mode.tscn")
     saved = jsonio.read(target / paths.CONFIG)
-    assert saved["starter_map"] == {
-        "health": 3,
-        "lives": 5,
-        "left_edge_kills": False,
-        "keep_weapon": False,
-    }
+    assert (saved["starter_map"]["health"], saved["starter_map"]["lives"]) == (3, 5)
+    assert saved["starter_map"]["left_edge_kills"] is False
 
 
 # ---------------------------------------------------------------- weapons and enemies (T16.09)
@@ -239,20 +244,59 @@ def test_the_gunner_pack_plays_with_its_soldier_its_enemies_and_its_weapons(gunn
         assert f"pickups/weapon_pickup_{weapon}.png" in pickup, "the pickups of the pack, by name"
 
 
-def test_the_first_stage_has_its_waves_of_enemies_and_weapons(gunner) -> None:
+def test_the_stages_are_those_of_the_stored_plan_painted_from_its_tiles(gunner) -> None:
+    from rpggen.core import stage_plan, world_plan
+
     target, _result = gunner
-    (stage,) = jsonio.read(target / "game/data/stages.json")["stages"]
-    waves = stage["waves"]
-    assert [w["enemy"] for w in waves] == [
-        "runner", "sniper", "pickup", "jumper", "turret", "wall_cannon", "pickup", "runner", "pickup",
-    ]  # fmt: skip
-    assert [w["at"] for w in waves] == sorted(w["at"] for w in waves)
-    assert [w["weapon"] for w in waves if w["enemy"] == "pickup"] == ["spread", "laser", "flame"]
-    (trap,) = [w for w in waves if w.get("blocking")]
-    assert trap["enemy"] == "turret" and trap["count"] == 2, "a trap that stops the camera"
-    for wave in waves:
-        assert (target / wave["scene"].removeprefix("res://")).is_file(), wave["scene"]
-        assert wave["anchor"] == "stage" and wave["at"] < stage["length"]
+    stored = world_plan.load(target)["stages"]
+    saved = jsonio.read(target / paths.CONFIG)
+    assert stored == stage_plan.plan(
+        {}, saved["seed"], stage_plan.facts_of(saved["resolution"], 16)
+    )
+    assert stage_plan.check(stored) == []
+    stages = jsonio.read(target / "game/data/stages.json")["stages"]
+    assert [s["scene"] for s in stages] == [s["scene"] for s in stored["list"]]
+    kinds = set()
+    for planned, listed in zip(stored["list"], stages, strict=True):
+        assert [w["id"] for w in listed["waves"]] == [w["id"] for w in planned["waves"]]
+        assert [w["at"] for w in listed["waves"]] == [w["at"] for w in planned["waves"]]
+        (trap,) = [w for w in listed["waves"] if w.get("blocking")]
+        assert trap["enemy"] == "turret", "a trap that stops the camera in every stage"
+        for wave in listed["waves"]:
+            assert (target / wave["scene"].removeprefix("res://")).is_file(), wave["scene"]
+        kind = listed["boss"]["kind"]
+        kinds.add(kind)
+        assert listed["boss"]["scene"] == f"res://generated/scenes/run_and_gun/boss_{kind}.tscn"
+        scene = _text(target, listed["scene"].removeprefix("res://"))
+        for layer in ("Ground", "Platforms", "Hazards", "Decoration"):
+            assert f'name="{layer}" type="TileMapLayer"' in scene, layer
+        assert "generated/scenes/run_and_gun/soldier.tscn" in scene
+    assert len(kinds) >= 2, "not the same boss in every stage"
+    boss = _text(target, "generated/scenes/run_and_gun/boss_wall.tscn")
+    assert "run_and_gun/boss.gd" in boss and "gunner.boss." in boss, "the boss of the pack"
     hud = _text(target, "generated/scenes/ui/hud_arcade.tscn")
     assert "run_and_gun/ui/run_and_gun_hud.gd" in hud
-    assert "RNG_WEAPON_SPREAD	" in _text(target, "game/i18n/strings.tsv")
+    assert "RNG_WEAPON_SPREAD\t" in _text(target, "game/i18n/strings.tsv")
+
+
+def test_an_added_stage_grows_the_run(godot_exe: Path, cache: Path, tmp_path: Path) -> None:
+    from rpggen.core import world_plan
+
+    target = tmp_path / "out"
+    first = orchestrator.run_in_memory(_config(stages=1, length="short"), None, target, godot_exe)
+    assert first.ok, _errors(first)
+    assert len(jsonio.read(target / "game/data/stages.json")["stages"]) == 1
+    second = orchestrator.run_in_memory(
+        _config(stages=5, length="short", added_stages=[{"name": "The Docks"}]),
+        None,
+        target,
+        godot_exe,
+    )
+    assert second.ok, _errors(second)
+    stored = world_plan.load(target)["stages"]
+    assert [s["id"] for s in stored["list"]] == ["stage_01", "stage_02"], "the stored plan counts"
+    assert stored["added"] == ["The Docks"]
+    planned = jsonio.read(target / "generated/data/stages.json")["stages"]
+    assert [s["title"] for s in planned] == ["", "The Docks"]
+    assert (target / "generated/scenes/stages/stage_02.tscn").is_file()
+    assert _smoke(target)[-1] == "run_reaches_the_credits"

@@ -309,7 +309,7 @@ func test_the_recipes_build_the_enemies_and_the_first_stage_has_its_waves(t) -> 
 	var who := EnemyRecipes.roster(ctx)
 	t.eq(who.keys(), ["runner", "sniper", "turret", "jumper", "wall_cannon"])
 	t.eq(EnemyRecipes.pickup_assets(ctx), {})
-	t.eq(EnemyRecipes.new().outputs(ctx).size(), 6, "five enemies and the pickup")
+	t.eq(EnemyRecipes.new().outputs(ctx).size(), 9, "five enemies, the pickup and three bosses")
 	var waves := StageRecipe.waves(VIEW, TILE)
 	t.eq(waves.size(), 9)
 	var kinds := {}
@@ -331,3 +331,141 @@ func test_the_recipes_build_the_enemies_and_the_first_stage_has_its_waves(t) -> 
 	var pickup := EnemyRecipes.build_pickup({}, VIEW, TILE)
 	t.ok(pickup is RpgWeaponPickup and pickup.get_node("Visual") is Sprite2D)
 	pickup.free()
+
+# ---------------------------------------------------------------- the bosses and the plan (T16.10)
+
+func _boss(field: Soldiers.Field, kind: String, at: Vector2) -> RpgGunBoss:
+	var boss := EnemyRecipes.build_boss(kind, null, Vector2i(48, 48), VIEW, TILE, null) as RpgGunBoss
+	boss.auto_advance = false
+	boss.intro_s = 0.25
+	boss.defeat_s = 0.25
+	boss.position = at
+	field.stage.entities().add_child(boss)
+	return boss
+
+func test_the_three_bosses_stand_walk_and_fly_and_fire_their_attacks(t) -> void:
+	var field: Soldiers.Field = await _field(5)
+	var soldier := field.soldier
+	var phases := [
+		{"until": 0.5, "movement": "still", "attacks": ["aimed"], "interval": 1.0, "telegraph_s": 0.25, "count": 2, "fast": 1.0},
+		{"until": 0.0, "movement": "still", "attacks": ["fan"], "interval": 1.0, "telegraph_s": 0.25, "count": 5, "fast": 2.0},
+	]
+	var wall := _boss(field, "wall", Vector2(280, FLOOR_Y))
+	t.eq([wall.kind, wall.hit_radius, wall.bullet_speed, wall.walk_px], ["wall", 21.6, 110.0, 96.0])
+	t.ok(wall.is_in_group(RpgArcadeBulletPool.TARGET_GROUP))
+	t.eq(wall.hit_center(), wall.global_position + Vector2(0, -21.6), "its feet are on the floor: what is hit is above them")
+	wall.setup({"kind": "wall", "health": 40, "points": 5000, "phases": phases})
+	wall.begin()
+	wall.take_hit(10)
+	t.eq(wall.health, 40, "it cannot be hurt during its intro")
+	wall.advance(0.25)
+	for i in 8:
+		wall.advance(0.125)
+	t.eq(field.pool.active(ENEMY), 2, "two aimed shots after a second")
+	t.eq(wall.position, Vector2(280, FLOOR_Y), "a wall stands")
+	field.pool.advance(0.25, Rect2())
+	for at in field.pool.positions(ENEMY):
+		t.ok(at.x < 280.0, "toward the soldier")
+	field.pool.clear(ENEMY)
+	# the soldier's bullets hit it, and at half its health the second phase begins
+	field.pool.fire(PLAYER, Vector2(200, FLOOR_Y - 20), Vector2.RIGHT * 240.0, 20)
+	await field.frames(30)
+	t.eq([wall.health, wall.phase_index()], [20, 1])
+	t.eq(wall.volley("fan").size(), 5)
+	t.near(wall.volley("fan")[0].length(), 220.0, 0.001, "twice as fast")
+	t.eq([wall.volley("burst").size(), wall.volley("rain").size(), wall.volley("ring").size(), wall.volley("aimed").size()], [15, 5, 5, 5])
+	for velocity in wall.volley("rain"):
+		t.ok(velocity.y > 0.0, "rain falls")
+	var events: Array = []
+	wall.defeated.connect(func() -> void: events.append("defeated"))
+	wall.take_hit(99)
+	t.eq(events, ["defeated"])
+	t.ok(not wall.is_in_group(RpgArcadeBulletPool.TARGET_GROUP))
+	wall.advance(0.25)
+	t.ok(wall.is_queued_for_deletion())
+	# the walker goes out to the left and comes back; the flyer sweeps in the air
+	var walker := _boss(field, "walker", Vector2(280, FLOOR_Y))
+	walker.setup({"kind": "walker", "health": 40, "phases": [{"until": 0.0, "movement": "walk", "attacks": [], "speed": 1.0}]})
+	walker.begin()
+	walker.advance(0.25)
+	var xs: Array = []
+	for i in 32:
+		walker.advance(0.125)
+		xs.append(walker.position.x)
+	t.near(xs[15], 280.0 - 96.0, 0.01, "two seconds out: as far as it walks")
+	t.near(xs[31], 280.0, 0.01, "and two back")
+	t.near(xs[7] - xs[6], xs[1] - xs[0], 0.001, "at a steady pace")
+	t.eq(walker.position.y, float(FLOOR_Y), "on the floor")
+	var flyer := _boss(field, "flyer", Vector2(200, 40))
+	flyer.setup({"kind": "flyer", "health": 40, "phases": [{"until": 0.0, "movement": "sweep", "attacks": ["rain"], "interval": 1.0, "count": 4}]})
+	t.eq(flyer.hit_center(), flyer.global_position, "what is hit is its middle")
+	flyer.begin()
+	flyer.advance(0.25)
+	var left := 200.0
+	var right := 200.0
+	for i in 60:
+		flyer.advance(0.125)
+		left = minf(left, flyer.position.x)
+		right = maxf(right, flyer.position.x)
+	t.ok(left < 200.0 - 50.0 and right > 200.0 + 50.0, "it sweeps to both sides")
+	t.ok(absf(flyer.position.y - 40.0) <= 6.0, "and stays in the air")
+	# a touch of a boss hurts the soldier
+	soldier.position = Vector2(walker.position.x, FLOOR_Y)
+	await field.frames(2)
+	walker.advance(0.125)
+	t.eq(soldier.health, 4)
+	field.drop()
+
+func test_spikes_hurt_the_soldier(t) -> void:
+	var field: Soldiers.Field = await _field(3)
+	var soldier := field.soldier
+	var ground := field.stage.get_node("Ground") as TileMapLayer
+	ground.set_cell(Vector2i(8, 8), 0, Soldiers.PlatformTests.HAZARD)
+	t.ok(not soldier.touching_hazard())
+	soldier.position = Vector2(8.5 * TILE, FLOOR_Y)
+	await field.frames(3)
+	t.eq(soldier.health, 2, "a tile of spikes costs a hit")
+	t.ok(soldier.is_invulnerable(), "and leaves a moment to step off them")
+	await field.frames(10)
+	t.eq(soldier.health, 2)
+	field.drop()
+
+func test_the_stage_of_a_plan_is_painted_from_its_tiles(t) -> void:
+	var rows: Array = []
+	for y in 12:
+		rows.append("..........")
+	rows[7] = "....==...."
+	rows[8] = ".......^.."
+	rows[9] = "###..#####"
+	rows[10] = "###..#####"
+	rows[11] = "###..#####"
+	var tile_set := Soldiers.PlatformTests.tileset()
+	var tile := func(coords: Vector2i) -> Dictionary: return {"source_id": 0, "coords": coords}
+	var kit := {"top": tile.call(Soldiers.PlatformTests.GROUND), "fill": tile.call(Soldiers.PlatformTests.GROUND),
+		"one_way": [tile.call(Soldiers.PlatformTests.ONE_WAY), tile.call(Soldiers.PlatformTests.ONE_WAY), tile.call(Soldiers.PlatformTests.ONE_WAY)],
+		"ladder": {}, "hazard": tile.call(Soldiers.PlatformTests.HAZARD), "breakable": {}}
+	var ctx := BuildContext.new("res://builder")
+	ctx.config = {"archetype": "run_and_gun", "resolution": [VIEW.x, VIEW.y], "base_tile_size": TILE}
+	var stage := {"axis": "right", "speed": 0.0, "length": 0.0, "exit": "reach_end", "start": [24.0, 144.0]}
+	var root := StageRecipe.build_stage(ctx, 1, stage, tile_set, kit, rows) as RpgArcadeStage
+	t.ok(root != null and root.stage_index == 1)
+	var ground := root.get_node("Ground") as TileMapLayer
+	var platforms := root.get_node("Platforms") as TileMapLayer
+	var hazards := root.get_node("Hazards") as TileMapLayer
+	t.eq(ground.get_used_cells().size(), 24, "three rows of ground with a gap two wide")
+	t.eq(ground.get_cell_source_id(Vector2i(3, 9)), -1, "the gap has no bottom")
+	t.eq(platforms.get_used_cells(), [Vector2i(4, 7), Vector2i(5, 7)] as Array[Vector2i])
+	t.eq(hazards.get_used_cells(), [Vector2i(7, 8)] as Array[Vector2i])
+	t.ok(ground.collision_enabled and platforms.collision_enabled and not hazards.collision_enabled)
+	t.eq(root.get_spawn(&"default").position, Vector2(24, 144), "the start of the plan")
+	t.eq((root.get_node("Bullets") as RpgArcadeBulletPool).wall_mask, 1)
+	root.free()
+	t.eq(StageRecipe.stored_plan(), [], "the template project has no stored plan")
+	t.eq(StageRecipe.plan(ctx).size(), 1, "so one flat stage")
+	for kind in RngBuild.BOSS_KINDS:
+		var boss := EnemyRecipes.build_boss(kind, null, Vector2i(48, 48), VIEW, TILE, null)
+		t.ok(boss is RpgGunBoss and (boss as RpgGunBoss).kind == kind, kind)
+		t.eq((boss.get_node("Visual") as Node2D).position, Vector2.ZERO if kind == "flyer" else Vector2(0, -24), kind)
+		boss.free()
+	t.eq([RngBuild.boss_path("flyer"), RngBuild.boss_path("nobody")],
+		["res://generated/scenes/run_and_gun/boss_flyer.tscn", "res://generated/scenes/run_and_gun/boss_wall.tscn"])
