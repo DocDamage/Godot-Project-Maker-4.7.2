@@ -432,7 +432,7 @@ class WelcomePage(QWidget):
         card = CardButton(title, text, icon_name)
         card.setObjectName(name)
         card.setToolTip(tip)
-        card.setMinimumHeight(CARD_HEIGHT)
+        card.set_floor_height(CARD_HEIGHT)
         card.clicked.connect(signal)
         return card
 

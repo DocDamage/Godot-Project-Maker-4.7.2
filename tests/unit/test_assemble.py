@@ -359,15 +359,19 @@ def test_assemble_reports_images_and_a_cancel_stops_within_one_image(tmp_path: P
     assert done == sorted(done) and done[0] > 0 and done[-1] == 200
 
     count = {"n": 0}
+    asked: list[float] = []  # when the cancel was first answered with yes
 
     def cancelled() -> bool:
         count["n"] += 1
+        if count["n"] > 20 and not asked:
+            asked.append(time.monotonic())
         return count["n"] > 20
 
-    started = time.monotonic()
     with pytest.raises(catalog.AssemblyCancelled):
         catalog.assemble([(opened, inv)], None, [], use_cache=False, is_cancelled=cancelled)
-    assert time.monotonic() - started < 2.0
+    # from the moment it was asked to stop, not from the start of the call: starting the
+    # worker processes takes seconds on a busy Windows machine and is no part of a cancel
+    assert asked and time.monotonic() - asked[0] < 2.0
     assert count["n"] < 40  # it stopped near image 20, not at the end
 
 

@@ -277,6 +277,52 @@ def test_every_page_starts_with_the_same_header(qtbot, monkeypatch) -> None:
     assert len(opened) == 7
 
 
+def test_the_header_gives_way_to_a_narrow_page(qtbot) -> None:
+    """The title, the page's controls and the help button share a line while they fit; on a
+    narrower page the controls go under the title, and the header never keeps its page from
+    being made narrower than its widest part (the Options page could not be narrowed back out
+    of its two columns with a wide font: its header alone needed more than the page had)."""
+    from rpggen.gui.widgets.page_header import PageHeader
+
+    # in a page, as it always is (a window of its own would be held at its layout's width)
+    page = QWidget()
+    qtbot.addWidget(page)
+    box = QVBoxLayout(page)
+    box.setContentsMargins(0, 0, 0, 0)
+    header = PageHeader("A title of some length", "What the page is for.")
+    box.addWidget(header)
+    box.addStretch(1)
+    bar = QWidget()
+    bar.setMinimumWidth(500)
+    header.add_widget(bar)
+    page.show()
+    assert page.minimumSizeHint().width() == 500, "the page can be as narrow as the controls"
+    row = header._row_width()
+    assert row > 500 + header.title_label.minimumSizeHint().width()
+    assert header.minimumSizeHint().width() == 500 < row, "its widest part, not their sum"
+    page.resize(row + 100, 200)
+    qtbot.wait(10)
+    assert not header.stacked
+    assert bar.mapTo(header, QPoint(0, 0)).y() < header.title_label.geometry().bottom()
+    assert bar.mapTo(header, QPoint(0, 0)).x() > header.title_label.geometry().right()
+    page.resize(row - 50, 200)
+    qtbot.wait(10)
+    assert header.stacked
+    assert bar.mapTo(header, QPoint(0, 0)).y() >= header.title_label.geometry().bottom()
+    assert bar.mapTo(header, QPoint(0, 0)).x() == 0, "under the title, at the left"
+    assert header.purpose_label.geometry().top() >= bar.mapTo(header, QPoint(0, 0)).y()
+    page.resize(row + 100, 200)
+    qtbot.wait(10)
+    assert not header.stacked, "and back on the line when there is room again"
+    # a header without controls of its own has nothing to move
+    plain = PageHeader("Title")
+    qtbot.addWidget(plain)
+    plain.show()
+    plain.resize(40, 60)
+    qtbot.wait(10)
+    assert not plain.stacked
+
+
 def test_the_problem_line_is_a_danger_banner(qtbot) -> None:
     state = state_mod.WizardState()
     state.pack_sources = [Path("x")]  # the stub page 1 has nothing to say with a pack

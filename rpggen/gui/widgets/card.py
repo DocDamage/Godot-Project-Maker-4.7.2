@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import contextlib
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QEvent, QSize, Qt
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -156,6 +156,7 @@ class CardButton(QPushButton):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self._icon_name = icon_name
         self._menu: QMenu | None = None
+        self._floor = 0
         pad = theme.px("space_16")
         self.inner = QVBoxLayout(self)
         self.inner.setContentsMargins(pad, pad, pad, pad)
@@ -198,10 +199,28 @@ class CardButton(QPushButton):
         button: a click on it never opens the menu)."""
         return self._menu
 
+    def set_floor_height(self, height: int) -> None:
+        """The card is never lower than ``height`` px. ``setMinimumHeight`` alone does not hold:
+        the stylesheet gives every button a ``min-height`` and sets it again whenever the card
+        is polished (when it is first shown, on a change of the theme), which took a card's
+        own minimum away and let a full page squeeze the cards under it."""
+        self._floor = max(0, int(height))
+        self._hold_floor()
+
+    def _hold_floor(self) -> None:
+        if self._floor and self.minimumHeight() != self._floor:
+            self.setMinimumHeight(self._floor)
+
+    def event(self, event: QEvent) -> bool:
+        handled = super().event(event)
+        if event.type() in (QEvent.Type.Polish, QEvent.Type.StyleChange):
+            self._hold_floor()  # after the stylesheet has set its own
+        return handled
+
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
         hint = self.inner.sizeHint()
-        return QSize(max(hint.width(), 200), max(hint.height(), self.minimumHeight()))
+        return QSize(max(hint.width(), 200), max(hint.height(), self.minimumHeight(), self._floor))
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt override
         hint = self.inner.minimumSize()
-        return QSize(max(hint.width(), 160), max(hint.height(), self.minimumHeight()))
+        return QSize(max(hint.width(), 160), max(hint.height(), self.minimumHeight(), self._floor))
