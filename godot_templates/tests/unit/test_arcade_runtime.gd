@@ -697,6 +697,7 @@ func test_the_recipes_make_a_stage_scene_that_saves_and_loads(t) -> void:
 	file.close()
 	var mode := RpgArcadeMode.new()
 	t.eq(mode.stages_path, "", "the runtime knows no path of the game; the recipe sets it")
+	t.eq(mode.get_child_count(), 0, "a mode that is only made has no children: the saved scene holds none")
 	mode.stages_path = listed_path
 	t.eq([mode.stages().size(), mode.stages().scene_of(1)], [2, ArcadeBuild.stage_path(1)])
 	mode.free()

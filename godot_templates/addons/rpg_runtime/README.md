@@ -280,6 +280,26 @@ shared section of the saves (`SaveManager.read_shared`, `shared_value`, `set_sha
 `user://saves/meta.json`, one file for every slot). The game saves by itself when a stage is
 entered; the pause menu's Save is off.
 
+### shmup (the shoot-em-up; with `arcade`)
+
+`RpgShmupMode` is the arcade mode with a ship and an `orientation` (`vertical` or `horizontal`);
+`RpgShmupMath` says what follows from it (`forward_of`, `axis_of`, `play_area`, `start_offset`).
+`RpgShmupShip` (a `CharacterBody2D`) flies inside its `play_area`, which rides with the camera;
+it is told what to want (`move`, `shooting`, `focusing`, `press_shoot()`, `press_bomb()`) by
+`RpgShmupShipInput` (the actions `shoot`, `bomb`, `focus` and the four directions). What can be
+hit is one point (`hit_radius`); `hit()` destroys it, `respawn()` brings it back blinking for
+`invulnerable_s`. Its children are `Visual`, `Weapon` (`RpgShmupWeapon`: `kind` straight, spread,
+laser or homing, `level` 1 to 3, `rate`; `shots(kind, level)` says what one shot is), `Bomb`
+(`RpgShmupBomb`: `use(pool, view)`) and `Input`.
+
+`RpgShmupBulletPool` (the node `Bullets` of a stage) holds 400 bullets of the player and 1,000
+of the enemies as numbers, not nodes: `fire(team, at, velocity, damage, radius, kind, homing,
+pierce)`, `clear(team)`, `active(team)`. A player's bullet hits the nodes of the group
+`shmup_targets` (a `hit_radius` and `take_hit(damage)`), an enemy's the ship. `RpgShmupEnemyBullet`
+has the patterns `aimed`, `ring`, `fan` and `spiral` and `fire(pool, from, velocities)`.
+`RpgShmupExplosion` plays once and is gone; `RpgShmupStarfield` draws the stars of a stage whose
+packs have no background; `RpgShmupHud` adds the bombs and the weapon to the arcade HUD.
+
 ### metroidvania
 
 The game is seen from the side. `RpgMetroidvaniaMode` (`SceneRouter.combat`) never has an

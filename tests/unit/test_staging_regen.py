@@ -428,8 +428,8 @@ def test_the_arcade_framework_is_installed_for_the_arcade_kinds_only(tmp_path: P
     for kind in ("turn_based", "arpg", "metroidvania"):
         stg = staging.create_staging(tmp_path / kind)
         written = staging.install_templates(stg, templates, kind)
-        assert not [w for w in written if "arcade" in w], kind
-        others = [k for k in ("turn_based", "arpg", "metroidvania") if k != kind]
+        assert not [w for w in written if "arcade" in w or "shmup" in w], kind
+        others = [k for k in staging.ARCHETYPES if k != kind]
         own = [
             w
             for w in everything

@@ -40,6 +40,7 @@ markers = [
     "slow: long-running",
     "arpg: integration tests of the action-RPG archetype (a CI job of their own)",
     "metroidvania: integration tests of the metroidvania archetype (a CI job of their own)",
+    "shmup: integration tests of the shoot-em-up (a CI job of their own)",
 ]
 testpaths = ["tests"]
 [tool.ruff.lint.per-file-ignores]

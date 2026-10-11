@@ -75,7 +75,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	var wanted: Array = [HERO_PATH, NEW_GAME_PATH, POTION_PATH]
 	for word: String in _gear(ctx):
 		wanted.append(_gear_path(word))
-	if not ctx.demo_removed and not _metroidvania(ctx):
+	if not ctx.demo_removed and not _no_village(ctx):
 		wanted.append(GREETING_PATH)
 		wanted.append(SHOP_PATH)
 		wanted.append(QUEST_PATH)
@@ -87,7 +87,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _metroidvania(ctx) else {}))
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}))
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -142,7 +142,7 @@ func build(ctx: BuildContext) -> Array:
 		_save(ctx, _new_game(ctx.demo_removed, gear.keys(), _start_map(ctx)), NEW_GAME_PATH, issues)
 	if not FileAccess.file_exists(POTION_PATH):
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
-	if _metroidvania(ctx):
+	if _no_village(ctx):
 		return issues  # no village: the rooms recipe seeds the sign and the hermit of the last room
 	if not ctx.demo_removed and not FileAccess.file_exists(GREETING_PATH):
 		_save(ctx, _greeting(_has_party_demo(ctx)), GREETING_PATH, issues)
@@ -206,8 +206,22 @@ func _companion(ctx: BuildContext) -> Resource:
 func _metroidvania(ctx: BuildContext) -> bool:
 	return JsonUtil.to_str(ctx.config.get("archetype", "turn_based")) == "metroidvania"
 
-## Where a new game starts: the starter map, or the start room of a metroidvania's stored plan.
+## The arcade kinds (M16): a run through stages, the first of which is where a new game starts.
+const ARCADE_KINDS: Array[String] = ["shmup", "run_and_gun", "racing"]
+const FIRST_STAGE_PATH := "res://generated/scenes/stages/stage_01.tscn"
+
+func _arcade(ctx: BuildContext) -> bool:
+	return ARCADE_KINDS.has(JsonUtil.to_str(ctx.config.get("archetype", "turn_based")))
+
+## True for a kind without the village: none of its demo data is seeded.
+func _no_village(ctx: BuildContext) -> bool:
+	return _metroidvania(ctx) or _arcade(ctx)
+
+## Where a new game starts: the starter map, the start room of a metroidvania's stored plan, or
+## the first stage of an arcade game.
 func _start_map(ctx: BuildContext) -> String:
+	if _arcade(ctx):
+		return FIRST_STAGE_PATH
 	if _metroidvania(ctx):
 		var plan := JsonUtil.to_dict(JsonUtil.to_dict(JsonUtil.read(WORLD_PLAN_PATH) if FileAccess.file_exists(WORLD_PLAN_PATH) else {}).get("rooms", {}))
 		for raw: Variant in JsonUtil.to_array(plan.get("list", [])):

@@ -272,6 +272,15 @@ def _plan(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict
             },
             "warnings": [],
         }
+    if cfg.archetype in config_mod.ARCADE_KINDS:  # stages, not a map (M16)
+        from rpggen.core import options
+
+        return {
+            "size": [0, 0],
+            "stages": options.stages_text(cfg.archetype, cfg.starter_map_options()),
+            "counts": dict.fromkeys(PLAN_COUNTS, 0),
+            "warnings": [],
+        }
     imported = next(
         (m for m in catalog.maps if m["id"] == cfg.imported_map_selection()["starter"]), None
     )
@@ -332,6 +341,9 @@ def format_summary(summary: dict[str, Any]) -> list[str]:
             size = plan["size"]
             lines.append(row("world", f"{plan['world']}; rooms of {size[0]} x {size[1]} tiles"))
             lines.extend(row("", f"note: {w}") for w in plan["warnings"])
+            return lines
+        if "stages" in plan:
+            lines.append(row("stages", plan["stages"]))
             return lines
         if "imported" in plan:
             size = plan["size"]

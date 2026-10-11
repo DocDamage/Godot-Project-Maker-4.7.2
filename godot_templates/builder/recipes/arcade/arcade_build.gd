@@ -38,14 +38,17 @@ static func stand_in(node_name: String, size: Vector2, color: Color) -> Polygon2
 	return shape
 
 ## The combat mode's scene: a node "Combat" with `script_path` (the mode of the kind, which
-## extends RpgArcadeMode; the framework's own by default). Returns the issues.
-static func save_mode(ctx: BuildContext, script_path: String = MODE_SCRIPT) -> Array:
+## extends RpgArcadeMode; the framework's own by default) and the exported `properties` of the
+## kind. Returns the issues.
+static func save_mode(ctx: BuildContext, script_path: String = MODE_SCRIPT, properties: Dictionary = {}) -> Array:
 	var issues: Array = []
 	var root := Node.new()
 	root.name = "Combat"
 	if not SceneUtil.attach_script(root, script_path):
 		issues.append(ctx.make_issue("VAL-002", {"file": script_path}, script_path))
 	root.set("stages_path", STAGES_PATH)
+	for key: Variant in properties:
+		root.set(JsonUtil.to_str(key), properties[key])
 	var err := SceneUtil.save_scene(root, MODE_PATH)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": MODE_PATH, "err": err}, MODE_PATH))

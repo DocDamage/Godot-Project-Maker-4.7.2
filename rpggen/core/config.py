@@ -76,6 +76,11 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
         bindings["dash"] = {"keys": ["Shift", "C"], "joy_buttons": [10]}
         bindings["attack"] = {"keys": ["J", "X"], "mouse_buttons": [1], "joy_buttons": [2]}
         bindings["down"] = {"keys": ["S", "Down"], "joy_buttons": [12], "joy_axes": [[1, 1.0]]}
+    if archetype == "shmup":
+        # Z fires and X bombs, as the genre has it; Shift flies slowly (the left trigger)
+        bindings["shoot"] = {"keys": ["Z", "J"], "mouse_buttons": [1], "joy_buttons": [0]}
+        bindings["bomb"] = {"keys": ["X", "K"], "joy_buttons": [1]}
+        bindings["focus"] = {"keys": ["Shift"], "joy_axes": [[4, 1.0]]}
     return bindings
 
 
@@ -97,6 +102,11 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         from rpggen.core import room_plan
 
         return room_plan.defaults()
+    if archetype == "shmup":
+        # the game is seen from the top and scrolls up, or from the side and scrolls right
+        return {"orientation": "vertical"}
+    if archetype in ARCADE_KINDS:
+        return {}
     return {
         "size": [40, 24],
         "buildings": 1,

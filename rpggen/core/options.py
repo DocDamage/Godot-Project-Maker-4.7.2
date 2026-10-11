@@ -105,6 +105,14 @@ def missing_deps(features: dict[str, bool], key: str) -> list[str]:
     return [dep for dep in FEATURE_DEPS.get(key, ()) if not features.get(dep, False)]
 
 
+def stages_text(archetype: str, starter_map: dict[str, Any]) -> str:
+    """What an arcade kind's options make: "1 stage, scrolling up"."""
+    if archetype == "shmup":
+        sideways = starter_map.get("orientation") == "horizontal"
+        return "1 stage, scrolling " + ("right" if sideways else "up")
+    return "stages"
+
+
 def effective_features(wanted: dict[str, bool]) -> dict[str, bool]:
     """``wanted`` with every feature whose dependencies are off forced off."""
     out = dict(wanted)
@@ -151,6 +159,12 @@ def summarize(
     """The summary of the current (unsaved) options. The demo feature makes the starter map and
     its second area; each building of the starter map has an interior. An imported map chosen as
     the starter map replaces the starter map and its second area (T12.49)."""
+    if archetype in config_mod.ARCADE_KINDS:
+        # a run through stages (M16): no starter map, no imported maps
+        on = effective_features(features)
+        systems = [FEATURE_INFO[key][1] for key in FEATURE_INFO if on.get(key)]
+        hint = tiles_hint(resolution, tile_size)
+        return Summary(archetype, [], systems, tile_size, hint, stages_text(archetype, starter_map))
     if archetype == "metroidvania":
         # a world of rooms (T14.06): no starter map, no imported maps, no pathfinding
         from rpggen.core import room_plan

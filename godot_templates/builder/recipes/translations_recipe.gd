@@ -53,12 +53,23 @@ func input_hash(ctx: BuildContext) -> String:
 	return ctx.stable_hash({"v": RECIPE_VERSION, "csv": text.sha256_text(), "seed_strings": DataRecipe.SEED_STRINGS, "keys": _ui_keys(), "archetype_keys": _archetype_keys(ctx)})
 
 ## Text keys of the archetype's runtime folder (archetypes/<name>/<prefix>_strings.gd with a KEYS table).
+## The strings of a kind beside those of the framework it shares (the arcade kinds, M16).
+const KIND_STRINGS := {
+	"shmup": "res://addons/rpg_runtime/archetypes/shmup/shmup_strings.gd",
+}
+
 func _archetype_keys(ctx: BuildContext) -> Dictionary:
-	var path: String = ARCHETYPE_STRINGS.get(JsonUtil.to_str(ctx.config.get("archetype", "")), "")
-	if path == "" or not ResourceLoader.exists(path):
-		return {}
-	var script := load(path) as GDScript
-	return script.get_script_constant_map().get("KEYS", {}) if script != null else {}
+	var archetype := JsonUtil.to_str(ctx.config.get("archetype", ""))
+	var keys := {}
+	for table: Dictionary in [ARCHETYPE_STRINGS, KIND_STRINGS]:
+		var path: String = table.get(archetype, "")
+		if path == "" or not ResourceLoader.exists(path):
+			continue
+		var script := load(path) as GDScript
+		if script != null:
+			var found: Dictionary = script.get_script_constant_map().get("KEYS", {})
+			keys.merge(found)
+	return keys
 
 func _ui_keys() -> Dictionary:
 	var script := load(STRINGS_SCRIPT) as GDScript

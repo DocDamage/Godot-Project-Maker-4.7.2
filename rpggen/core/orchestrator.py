@@ -68,7 +68,8 @@ SMOKE_STEPS_METROIDVANIA = "res://generated/builder/smoke/smoke_steps_metroidvan
 ARCHETYPE_SMOKE_STEPS = {"turn_based": SMOKE_STEPS_TURN_BASED, "arpg": SMOKE_STEPS_ARPG}
 # An archetype whose world is not the top-down starter map has a whole sequence of its own (the
 # shared one walks a village): the title screen and a new game are among its steps.
-OWN_SMOKE_STEPS = {"metroidvania": SMOKE_STEPS_METROIDVANIA}
+SMOKE_STEPS_SHMUP = "res://generated/builder/smoke/smoke_steps_shmup.gd"
+OWN_SMOKE_STEPS = {"metroidvania": SMOKE_STEPS_METROIDVANIA, "shmup": SMOKE_STEPS_SHMUP}
 
 
 def smoke_steps_for(archetype: str) -> str:

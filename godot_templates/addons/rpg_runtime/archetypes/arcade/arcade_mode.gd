@@ -51,16 +51,27 @@ var stage: RpgArcadeStage = null
 var phase: int = Phase.IDLE
 var in_run := false
 
-func _init() -> void:
-	lives = RpgArcadeLives.new()
-	lives.name = "Lives"
-	add_child(lives)
-	score = RpgArcadeScore.new()
-	score.name = "Score"
-	add_child(score)
-	score.changed.connect(_on_score_changed)
+## The lives and the score are children of the mode, made when it is first needed: not when the
+## script is attached, or the scene the builder saves would hold them and every game would make
+## them a second time.
+func _ensure_parts() -> void:
+	if lives == null:
+		lives = get_node_or_null("Lives") as RpgArcadeLives
+	if lives == null:
+		lives = RpgArcadeLives.new()
+		lives.name = "Lives"
+		add_child(lives)
+	if score == null:
+		score = get_node_or_null("Score") as RpgArcadeScore
+	if score == null:
+		score = RpgArcadeScore.new()
+		score.name = "Score"
+		add_child(score)
+	if not score.changed.is_connected(_on_score_changed):
+		score.changed.connect(_on_score_changed)
 
 func _ready() -> void:
+	_ensure_parts()
 	add_to_group(GROUP)
 	var bus := RpgUtil.events()
 	if bus != null:
@@ -144,6 +155,7 @@ func _begin_run() -> void:
 ## Takes over a stage that has just been entered: gives it its waves, counts its kills and
 ## starts it. Called by itself when the router enters a stage.
 func bind_stage(next: RpgArcadeStage) -> void:
+	_ensure_parts()
 	stage = next
 	var all := stages()
 	all.index = clampi(next.stage_index, 0, maxi(0, all.size() - 1))

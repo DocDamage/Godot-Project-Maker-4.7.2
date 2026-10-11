@@ -22,7 +22,8 @@
       "enum": [
         "turn_based",
         "arpg",
-        "metroidvania"
+        "metroidvania",
+        "shmup"
       ]
     },
     "packs": {
@@ -158,6 +159,7 @@
         "decorations": {"type": "integer", "minimum": 0, "maximum": 40},
         "ground_patches": {"type": "integer", "minimum": 0, "maximum": 20},
         "ground": {"type": "string"},
+        "orientation": {"enum": ["vertical", "horizontal"]},
         "rooms": {"type": "integer", "minimum": 5, "maximum": 12},
         "room_size": {
           "type": "array",
