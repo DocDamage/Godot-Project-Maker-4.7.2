@@ -27,7 +27,7 @@
           12,
           23
         ],
-        "role": "DECORATION",
+        "role": "VEHICLE",
         "size": [
           384,
           24
@@ -73,7 +73,7 @@
           12,
           23
         ],
-        "role": "DECORATION",
+        "role": "VEHICLE",
         "size": [
           384,
           24
@@ -119,7 +119,7 @@
           12,
           23
         ],
-        "role": "DECORATION",
+        "role": "VEHICLE",
         "size": [
           384,
           24
@@ -165,7 +165,7 @@
           12,
           23
         ],
-        "role": "DECORATION",
+        "role": "VEHICLE",
         "size": [
           384,
           24
@@ -195,7 +195,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "HAZARD",
         "size": [
           16,
           16
@@ -225,7 +225,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "POWERUP",
         "size": [
           16,
           16
@@ -363,13 +363,7 @@
           8,
           15
         ],
-        "role": "DECORATION",
-        "roles_alt": [
-          [
-            "ITEM",
-            0.210526
-          ]
-        ],
+        "role": "HAZARD",
         "size": [
           16,
           16
@@ -399,13 +393,7 @@
           8,
           15
         ],
-        "role": "DECORATION",
-        "roles_alt": [
-          [
-            "ITEM",
-            0.210526
-          ]
-        ],
+        "role": "HAZARD",
         "size": [
           16,
           16

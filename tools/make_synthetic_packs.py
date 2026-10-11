@@ -1673,7 +1673,7 @@ def make_shooter(out: Path) -> None:
         "ships/player_ship.png": {"usage": "sprite", "frame": [24, 24]},
         "bullets/bullet.png": {"usage": "sprite", "role": "PROJECTILE"},
         "bullets/laser.png": {"usage": "sprite", "role": "PROJECTILE"},
-        "fx/explosion_6frames.png": {"usage": "sprite", "role": "EFFECT", "frame": [24, 24]},
+        "fx/explosion_6frames.png": {"usage": "sprite", "role": "EXPLOSION", "frame": [24, 24]},
         "backgrounds/space_far.png": {"usage": "background", "role": "BACKGROUND"},
         "boss/boss_ship.png": {"usage": "sprite", "role": "BOSS"},
     }

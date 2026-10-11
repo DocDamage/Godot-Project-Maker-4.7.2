@@ -11,7 +11,7 @@
           12,
           23
         ],
-        "role": "ITEM",
+        "role": "HAZARD",
         "size": [
           24,
           24
@@ -413,17 +413,7 @@
           12,
           23
         ],
-        "role": "EFFECT",
-        "roles_alt": [
-          [
-            "NPC",
-            0.172414
-          ],
-          [
-            "PLAYER",
-            0.034483
-          ]
-        ],
+        "role": "EXPLOSION",
         "size": [
           144,
           24
@@ -453,7 +443,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "POWERUP",
         "size": [
           16,
           16
@@ -483,7 +473,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "POWERUP",
         "size": [
           16,
           16
@@ -513,7 +503,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "POWERUP",
         "size": [
           16,
           16

@@ -10,6 +10,10 @@ REQUIRED: dict[str, list[str]] = {
     "turn_based": ["PLAYER", "GROUND"],
     "arpg": ["PLAYER", "GROUND"],
     "metroidvania": ["PLAYER", "GROUND"],
+    # the arcade kinds (T16.03)
+    "shmup": ["PLAYER"],
+    "run_and_gun": ["PLAYER", "GROUND"],
+    "racing": ["VEHICLE", "GROUND"],
 }
 RECOMMENDED = ["NPC", "ENEMY", "BUILDING", "WALL", "ITEM", "UI", "PORTRAIT"]
 # The roles an archetype uses beside the required ones (T14.02). The two top-down archetypes
@@ -18,7 +22,11 @@ OPTIONAL: dict[str, list[str]] = {
     "turn_based": RECOMMENDED,
     "arpg": RECOMMENDED,
     "metroidvania": ["BACKGROUND", "DECORATION", "ENEMY", "BOSS", "ITEM", "NPC", "UI", "PORTRAIT"],
-}
+    "shmup": ["ENEMY", "BOSS", "PROJECTILE", "EXPLOSION", "POWERUP", "HAZARD", "BACKGROUND", "UI"],
+    "run_and_gun": ["ENEMY", "BOSS", "PROJECTILE", "EXPLOSION", "POWERUP", "HAZARD", "BACKGROUND",
+                    "DECORATION", "UI"],
+    "racing": ["ENEMY", "HAZARD", "POWERUP", "DECORATION", "UI"],
+}  # fmt: skip
 
 # What needs each role (used in the ASSET-010 message).
 REQUIRED_BY = {
@@ -43,8 +51,42 @@ REQUIRED_BY_ARCHETYPE: dict[str, dict[str, str]] = {
         "BOSS": "the guardian",
         "ITEM": "pickups and chests",
         "NPC": "the characters you talk to",
-    }
+    },
+    "shmup": {
+        "PLAYER": "the ship you fly",
+        "ENEMY": "the waves of enemy ships",
+        "BOSS": "the boss at the end of a stage",
+        "PROJECTILE": "what the ships shoot",
+        "EXPLOSION": "the burst of a ship that is hit",
+        "POWERUP": "the capsules that make the ship stronger",
+        "HAZARD": "asteroids and other things to fly around",
+        "BACKGROUND": "the layers that scroll under the ship",
+        "UI": "the score, the lives and the menus",
+    },
+    "run_and_gun": {
+        "PLAYER": "the soldier, seen from the side",
+        "GROUND": "the floors and platforms of every stage",
+        "ENEMY": "the soldiers and turrets of a stage",
+        "BOSS": "the boss at the end of a stage",
+        "PROJECTILE": "the bullets",
+        "EXPLOSION": "the burst of what is destroyed",
+        "POWERUP": "the weapons to pick up",
+        "HAZARD": "spikes, mines and pits",
+        "BACKGROUND": "the parallax layers behind a stage",
+        "DECORATION": "scenery of the stages",
+        "UI": "the score, the lives and the menus",
+    },
+    "racing": {
+        "VEHICLE": "the car you drive",
+        "GROUND": "the road and what lies beside it",
+        "ENEMY": "the rival cars",
+        "HAZARD": "tyres, cones and oil on the track",
+        "POWERUP": "boosts and pickups on the track",
+        "DECORATION": "trackside scenery",
+        "UI": "the lap counter, the position and the menus",
+    },
 }
+ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
 
 
 def recommended(archetype: str) -> list[str]:
@@ -112,8 +154,21 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     for credit but names no author (after the Audit page's corrections); ASSET-030 for a
     metroidvania whose player has no jump or fall animation."""
     issues = IssueList()
+    drawn: frozenset[str] = frozenset()
+    if cfg.archetype in ARCADE_KINDS:
+        from rpggen.core import arcade_kit
+
+        # what an arcade kind needs and a pack lacks is drawn (T16.03): a note, not an error
+        drawn = arcade_kit.drawn_roles(cfg.archetype)
+        for stand_in in arcade_kit.lacking(catalog, cfg.archetype):
+            issues.add("ASSET-031", role=stand_in.role, thing=stand_in.thing, file="")
+        vehicles = _assets_with_role(catalog, "VEHICLE") if cfg.archetype == "racing" else []
+        chosen = (cfg.starter or {}).get("vehicle")
+        mine = next((v for v in vehicles if v.id == chosen), vehicles[0] if vehicles else None)
+        if mine is not None and not catalog_mod.effective(mine).get("headings"):
+            issues.add("ASSET-032", asset=mine.id)
     for role in REQUIRED.get(cfg.archetype, REQUIRED["turn_based"]):
-        if not _filled(catalog, role):
+        if not _filled(catalog, role) and role not in drawn:
             issue = issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
             issues[-1] = dataclasses.replace(issue, severity=Severity.ERROR)
     for role in recommended(cfg.archetype):

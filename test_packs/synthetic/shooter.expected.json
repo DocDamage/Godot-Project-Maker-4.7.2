@@ -40,7 +40,7 @@
       24,
       24
     ],
-    "role": "EFFECT",
+    "role": "EXPLOSION",
     "usage": "sprite"
   },
   "ships/player_ship.png": {

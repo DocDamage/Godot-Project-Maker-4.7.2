@@ -15,6 +15,9 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   character by itself; with *Compose LPC character…* on the Audit page you choose the layers
   of a body, see the result and name it. The character is one sheet with every animation of
   its body, and can be the player.
+* **Four more roles** in the audit and on the Mapping page: *Vehicle*, *Explosion*,
+  *Power-up* and *Hazard*. A car's rotation sheet is a vehicle; in a shooter or racing pack
+  asteroids, oil and tyres are hazards and capsules and boosts are power-ups.
 
 ## 1.3.0
 

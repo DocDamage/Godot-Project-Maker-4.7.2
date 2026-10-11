@@ -247,6 +247,26 @@ SHMUP_TAGS = frozenset({"ship", "bullet", "asteroid"})
 RACING_TAGS = frozenset({"car", "bike", "road", "tyre"})
 
 
+# The role a thing of an arcade pack has by its tag (T16.03), the first that fits.
+ARCADE_TAG_ROLES: tuple[tuple[str, str], ...] = (
+    ("explosion", "EXPLOSION"),
+    ("bullet", "PROJECTILE"),
+    ("powerup", "POWERUP"),
+    ("boost", "POWERUP"),
+    ("asteroid", "HAZARD"),
+    ("oil", "HAZARD"),
+    ("tyre", "HAZARD"),
+)
+
+
+def arcade_role(tags: list[str]) -> str | None:
+    """The arcade role the tags of an asset give it, or None."""
+    have = set(tags)
+    if "powerup" in have:  # "weapon_pickup_laser": a pickup, though its name has a bullet word
+        return "POWERUP"
+    return next((role for tag, role in ARCADE_TAG_ROLES if tag in have), None)
+
+
 def arcade_tags(name: str) -> list[str]:
     """The arcade tags the words of a file suggest (T16.02), sorted: ``ship``, ``bullet``,
     ``car``, ``road`` and so on. The name's own words and those of its nearest folder count; a

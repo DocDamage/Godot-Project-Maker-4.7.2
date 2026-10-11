@@ -17,6 +17,9 @@ ROLE_KEYS = {
     "ITEM": "chest",
     "PORTRAIT": "portrait",
     "BOSS": "boss",  # the guardian of a metroidvania (T14.02)
+    "VEHICLE": "vehicle",  # the car of a racing game (T16.03)
+    "PROJECTILE": "projectile",
+    "EXPLOSION": "explosion",
 }
 # Asset usages a role can plausibly come from (the picker is restricted to these).
 PLAUSIBLE_USAGE: dict[str, set[str]] = {
@@ -32,6 +35,11 @@ PLAUSIBLE_USAGE: dict[str, set[str]] = {
     "BOSS": {"sprite"},
     "BACKGROUND": {"background"},
     "DECORATION": {"object", "sprite", "tiles"},
+    "VEHICLE": {"sprite"},
+    "PROJECTILE": {"sprite"},
+    "EXPLOSION": {"sprite"},
+    "POWERUP": {"sprite", "object"},
+    "HAZARD": {"sprite", "object", "tiles"},
 }
 OBJECT_ROLES = requirements.OBJECT_ROLES  # roles that can also be filled with a SheetObject
 _INACTIVE = {"UNUSED", "MISSING"}

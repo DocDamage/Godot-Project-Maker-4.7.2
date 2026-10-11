@@ -53,6 +53,8 @@ Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]
 * `starter` may have `boss` (the guardian's sprite, role `BOSS`); `building` is not used.
 * `sounds` has four more fixed slots: `sfx_jump`, `sfx_land`, `sfx_dash`, `sfx_ability`. In the
   other archetypes a slot of such a name is a custom slot.
+
+The arcade kinds (M16) have fixed slots of their own in the same way: `shmup` has `sfx_shoot`, `sfx_explosion`, `sfx_powerup`, `sfx_bomb`, `music_stage`, `music_boss`; `run_and_gun` has `sfx_shoot`, `sfx_explosion`, `sfx_grenade`, `sfx_weapon_pickup`, `sfx_grapple`, `music_stage`, `music_boss`; `racing` has `sfx_engine`, `sfx_skid`, `sfx_bump`, `sfx_pickup`, `sfx_lap`, `sfx_countdown`, `music_race`, `music_results`. Until the kinds can be chosen (T16.04 and later) the `archetype` enum does not list them.
 * `input` has `jump`, `dash`, `attack` and `down`, and `interact` is E / Up (Space jumps).
 * `map_layers` is not used (a room has the layers `Background`, `Ground`, `Platforms`, `Hazards`,
   `Decoration`, `Foreground`), `imported_maps` is not used, and `features.navigation` is off.
@@ -239,7 +241,7 @@ unknown licence.
 | `region` | `[x, y, w, h]` | usage=portrait | Pixel rect of one face inside a face sheet (T2.11). |
 | `terrain_proposal` | object | usage=tiles | Blob/corner terrain recognized on a sheet (T8.06c): `{layout, confidence, mode, terrain_set, tile_overrides}`; `layout` is `blob47_godot_12x4` (Godot's 3x3 minimal template, M16), `blob47_12x4` (the masks in ascending order) or `corners16_4x4`. Not applied until the user accepts it in the audit's Terrain tab, which moves `tile_overrides` into the overrides and sets the override `terrain_proposal` to null. |
 
-**Role** enum: `GROUND, WALL, CLIFF, WATER, ROAD, AUTOTILE, DECORATION, BUILDING, INTERIOR, PLAYER, NPC, ENEMY, BOSS, WEAPON, ITEM, EFFECT, PROJECTILE, UI, PORTRAIT, BACKGROUND, AUDIO_MUSIC, AUDIO_SFX, FONT, NONE`.
+**Role** enum: `GROUND, WALL, CLIFF, WATER, ROAD, AUTOTILE, DECORATION, BUILDING, INTERIOR, PLAYER, NPC, ENEMY, BOSS, WEAPON, ITEM, EFFECT, PROJECTILE, UI, PORTRAIT, BACKGROUND, AUDIO_MUSIC, AUDIO_SFX, FONT, NONE`. From release 1.4 (M16) also `VEHICLE` (the player's car), `EXPLOSION`, `POWERUP` (what the player picks up to get stronger; `ITEM` stays for chests and coins) and `HAZARD` (asteroids, tyres, oil, spikes); they are labels in the audit and rows on the Mapping page in every kind. An asset of the pack `rpggen_arcade_kit` (`generated/arcade_kit/`, `detected_by: "placeholder"`) is a stand-in rpggen drew for an arcade kind; like the side-view kit it is made again on every run.
 
 **Grid:** `{ "cell": vec2i, "margin": vec2i, "separation": vec2i }`. Columns are `floor((w - 2*margin.x + separation.x) / (cell.x + separation.x))`; rows are computed the same way with y. The margin applies to the left and top. A right/bottom remainder is allowed and ignored.
 

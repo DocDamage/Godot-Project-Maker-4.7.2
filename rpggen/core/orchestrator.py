@@ -366,6 +366,12 @@ def add_run_made_assets(
         from rpggen.core import side_kit
 
         stand_ins = side_kit.add(catalog, cfg.base_tile_size, root)
+    if cfg.archetype in requirements.ARCADE_KINDS:
+        from rpggen.core import arcade_kit
+
+        # what the kind needs and the packs lack is drawn; the note for each (ASSET-031) is
+        # the requirement check's, which the dry run and the wizard have too
+        arcade_kit.add(catalog, cfg.archetype, cfg.base_tile_size, root)
     return issues, stand_ins
 
 

@@ -361,13 +361,13 @@ def test_a_regeneration_makes_its_placeholders_and_its_kit_once(
     """The catalog of a project holds the placeholders and the side-view kit of its last run,
     and their files are not in any pack. The next run makes them again: it does not report them
     as vanished, does not add a second one, and builds from the same catalog as the last."""
-    from rpggen.core import placeholders, side_kit
+    from rpggen.core import arcade_kit, placeholders, side_kit
 
     ref = config.PackRef("sample_pack", "sample_pack", "0" * 64, "folder")
     cfg = config.default_for("T", [ref], archetype=archetype)
     roles = ["BOSS"]  # the sample pack has none
     made = set(catalog_mod.RUN_MADE_PACKS)
-    assert made == {placeholders.PLACEHOLDER_PACK, side_kit.KIT_PACK}
+    assert made == {placeholders.PLACEHOLDER_PACK, side_kit.KIT_PACK, arcade_kit.KIT_PACK}
     previous, prints = None, []
     for run in range(3):
         cat, codes = _assembled(previous)

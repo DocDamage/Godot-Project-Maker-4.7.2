@@ -705,6 +705,8 @@ def _side_view_usage(assets: list[Asset]) -> None:
 # A pack warning: the pack looks like a side-view (platformer) pack (T14.02).
 VIEW_SIDE = "view:side"
 ROTATION_SHEET_ROLES = frozenset({"DECORATION", "EFFECT", "PROJECTILE", "NONE"})
+# the roles the classifier gives the things of an arcade pack for want of a better one
+ARCADE_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "ENEMY", "NPC"})
 VIEW_SHMUP = "view:shmup"  # T16.02: the pack looks like one for a shoot 'em up
 VIEW_RACING = "view:racing"  # ... for a racing game
 
@@ -775,7 +777,7 @@ REVIEWED_STATUSES = frozenset({"CONFIRMED", "UNUSED"})
 ATTENTION_STATUSES = frozenset({"CONFLICT", "NEEDS_REVIEW", "MISSING"})
 # Packs whose assets a run makes itself, every time it needs them (``placeholders.py``,
 # ``side_kit.py``): no pack file is behind them, so one of them is never reported as vanished.
-RUN_MADE_PACKS = frozenset({"debug_placeholders", "rpggen_side_kit"})
+RUN_MADE_PACKS = frozenset({"debug_placeholders", "rpggen_side_kit", "rpggen_arcade_kit"})
 
 
 def folder_of(catalog: Catalog, asset: Asset) -> str:
@@ -954,10 +956,14 @@ def assemble(
                     if alt:
                         facets["roles_alt"] = alt
                 turning = role_conf is not None and bool(facets.get("headings"))
-                if turning and facets["role"] not in ROTATION_SHEET_ROLES:
+                if turning and {"car", "bike"} & set(classifier.arcade_tags(path)):
+                    # a car or a bike in N headings is a vehicle (T16.03): what a racing game
+                    # drives; the older kinds have no use for the role and leave it alone
+                    facets["role"] = "VEHICLE"
+                    facets.pop("roles_alt", None)
+                elif turning and facets["role"] not in ROTATION_SHEET_ROLES:
                     # One thing in N headings has no walk and no attack: it is nothing the
-                    # older kinds can make an actor or an item of, whatever its folder says
-                    # (the racing kind gives it the role it has there, T16.03).
+                    # older kinds can make an actor or an item of, whatever its folder says.
                     facets["role"] = "DECORATION"
                     facets.pop("roles_alt", None)
                 if role_conf is not None:
@@ -1044,6 +1050,18 @@ def assemble(
                     if "powerup" in classifier.arcade_tags(rel):
                         kept = {t for t in tags if t != "ability"} | {"powerup"}
                         asset.detected["tags"] = sorted(kept)
+            # ... and its things have the roles of its kind (T16.03), where the words of a
+            # file say so and no reader or rule has decided
+            for asset in catalog.assets:
+                if asset.pack_id != pack_id or asset.kind != "image":
+                    continue
+                if asset.detected_by in ("profile", "learned"):
+                    continue
+                kind_role = classifier.arcade_role(asset.detected.get("tags") or [])
+                current = asset.detected.get("role")
+                if kind_role and current in ARCADE_REPLACED_ROLES and kind_role != current:
+                    asset.detected["role"] = kind_role
+                    asset.detected.pop("roles_alt", None)
         if view != "top":  # a top-down pack, the usual kind, gets no line
             warnings.append({"side": VIEW_SIDE, "shmup": VIEW_SHMUP, "racing": VIEW_RACING}[view])
         if engines is not None:

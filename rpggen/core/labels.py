@@ -24,6 +24,10 @@ ROLE_INFO: dict[str, tuple[str, str]] = {
     "ITEM": ("Item or chest", "Items, icons and the chest of the starter map."),
     "EFFECT": ("Effect", "An animation for hits, magic and other effects."),
     "PROJECTILE": ("Projectile", "Arrows, bolts and other things that fly."),
+    "VEHICLE": ("Vehicle", "A car or a bike the player drives, best as a sheet of headings."),
+    "EXPLOSION": ("Explosion", "The burst when something is destroyed."),
+    "POWERUP": ("Power-up", "What the player picks up to get stronger."),
+    "HAZARD": ("Hazard", "Something to avoid: an asteroid, a tyre, an oil slick."),
     "UI": ("Interface", "Panels and buttons of the menus."),
     "PORTRAIT": ("Portrait", "A face shown next to dialogue."),
     "BACKGROUND": ("Background", "A picture behind battles or the title."),
@@ -54,8 +58,8 @@ ROLE_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
 # The Mapping page's groups: the same, with the roles only a metroidvania has rows for (T14.10).
 MAPPING_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("World", ("GROUND", "WALL", "BUILDING", "BACKGROUND", "DECORATION")),
-    ("Characters", ("PLAYER", "NPC", "ENEMY", "BOSS", "PORTRAIT")),
-    ("Things", ("ITEM",)),
+    ("Characters", ("PLAYER", "VEHICLE", "NPC", "ENEMY", "BOSS", "PORTRAIT")),
+    ("Things", ("ITEM", "PROJECTILE", "EXPLOSION", "POWERUP", "HAZARD")),
     ("Interface", ("UI",)),
 )
 

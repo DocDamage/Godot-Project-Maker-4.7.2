@@ -41,6 +41,8 @@ const CODES := {
 	"ASSET-027": {"severity": "info", "message": "No sound effects were found in the packs.", "fix": "Add sound effects to an asset pack, or assign them in Mapping."},
 	"ASSET-029": {"severity": "warning", "message": "The variant {variant} was left out: {reason}.", "fix": "Put the source file back into the pack, or remove the variant on the Audit page."},
 	"ASSET-030": {"severity": "info", "message": "The player {asset} has no {missing} animation: its idle frame is shown in the air.", "fix": "Add a jump and a fall animation on the Audit page, or use a side-view character."},
+	"ASSET-031": {"severity": "info", "message": "The packs have no {thing}; a drawn one stands in for it (role {role}).", "fix": "Add your own to a pack and give it the role on the Audit page."},
+	"ASSET-032": {"severity": "info", "message": "The vehicle {asset} is one picture, not a sheet of headings: the game turns it.", "fix": "A sheet with the vehicle in 16 headings looks better."},
 	"ASSET-033": {"severity": "warning", "message": "The LPC character {character} was left out or is incomplete: {reason}.", "fix": "Put the part back into the pack, or choose the character's parts again on the Audit page."},
 	"ASSET-028": {"severity": "warning", "message": "Pack {pack_id} needs attribution, but no author was found in its license files.", "fix": "Enter the author on the Audit page (pack information) so that the credits screen names them."},
 	"ADAPT-001": {"severity": "warning", "message": "Adapter {adapter} failed on {file}: {reason}.", "fix": "Report a bug with a diagnostic bundle."},
