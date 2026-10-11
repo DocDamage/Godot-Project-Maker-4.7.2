@@ -372,6 +372,12 @@ def version_control_note(pack_art: str) -> str:
 # What the README's first paragraph adds for a kind of game the shared sections were not
 # written for. Empty for the top-down archetypes, so their README is what it was.
 KIND_NOTES = {
+    "shmup": (
+        "\n\n**This game is a shoot 'em up**: a run through stages with lives and a score, not a"
+        "\nvillage to walk. Where this file speaks of the starter map, doors, shops or quests, it"
+        "\nspeaks of the other kinds of game; start with section 22: the controls, the stages,"
+        "\ntheir waves and bosses, and how to change them."
+    ),
     "metroidvania": (
         "\n\n**This game is a metroidvania**, seen from the side: its world is the rooms in"
         "\n`game/maps/rooms/`, not one starter map. Where this file says *starter map*, read *a"

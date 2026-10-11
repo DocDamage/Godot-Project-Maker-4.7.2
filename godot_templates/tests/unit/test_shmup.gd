@@ -526,3 +526,124 @@ func test_the_hud_has_the_bombs_and_the_weapon(t) -> void:
 		t.ok(RpgShmupStrings.weapon_name(kind) != "SHM_WEAPON_" + kind.to_upper(), kind)
 	ship.free()
 	_drop(hud)
+
+# ---------------------------------------------------------------- the HUD, the title (T16.07)
+
+const ShmupHud := preload("res://builder/recipes/shmup/hud_recipe.gd")
+const SAVE_DIR := "user://test_shmup_saves"
+
+func _saves() -> Node:
+	var save := Fixtures.install("SaveManager", Fixtures.SAVE_MANAGER)
+	save.dir = SAVE_DIR
+	if DirAccess.dir_exists_absolute(SAVE_DIR):
+		for file: String in DirAccess.get_files_at(SAVE_DIR):
+			DirAccess.remove_absolute(SAVE_DIR.path_join(file))
+	return save
+
+func test_the_hud_shows_the_lives_the_score_the_weapon_and_the_high_score(t) -> void:
+	await Fixtures.tree().process_frame
+	Fixtures.install_state()
+	_saves()
+	RpgArcadeHighScores.submit("ANA", 4200, 2)
+	var plan := [{"title": "Nebula", "exit": "custom", "waves": []}]
+	var stage := StageRecipes.build_stage(0, plan[0], VIEW, Vector2(160, 150)) as RpgArcadeStage
+	stage.auto_advance = false
+	var ship := _ship("vertical")
+	stage.add_child(ship)
+	Fixtures.tree().root.add_child(stage)
+	var mode := RpgShmupMode.new()
+	mode.auto_screens = true
+	mode.start_lives = 5
+	mode.sequence = RpgArcadeStageSequence.from_array(plan)
+	Fixtures.tree().root.add_child(mode)
+	var hud := ShmupHud.build_hud("vertical") as RpgShmupHud
+	Fixtures.tree().root.add_child(hud)
+	hud.set_process(false)
+	hud.bind(mode)
+	mode.bind_stage(stage)
+	hud.show_ship(mode.ship)
+	t.eq([hud.lives_text(), hud.score_text(), hud.stage_text()], ["Lives: 5", "Score: 0", "Nebula"], "the lives of the options")
+	t.eq([hud.row_text("bombs"), hud.row_text("weapon")], ["Bombs: 3", "Shot Lv 1"])
+	t.eq(hud.high_score_text(), "Hi: 4200", "the best run of the table")
+	for i in 5:
+		mode.score.add_kill(100)
+	mode.lives.lose()
+	ship.weapon().level_up()
+	ship.weapon().set_kind("laser")
+	ship.bomb().use(null)
+	hud.show_ship(mode.ship)
+	t.eq([hud.lives_text(), hud.score_text(), hud.multiplier_text()], ["Lives: 4", "Score: 500", "x2"])
+	t.eq([hud.row_text("bombs"), hud.row_text("weapon")], ["Bombs: 2", "Laser Lv 2"])
+	t.eq(hud.high_score_text(), "Hi: 4200")
+	mode.score.add_bonus(5000)
+	t.eq(hud.high_score_text(), "Hi: 5500", "a run that passes the best score is the high score")
+	for node: Node in [hud, stage, mode]:
+		_drop(node)
+	Fixtures.uninstall("SaveManager")
+	Fixtures.uninstall_state()
+
+func test_a_game_that_scrolls_up_has_side_panels_and_one_that_scrolls_right_has_none(t) -> void:
+	await Fixtures.tree().process_frame
+	var up := ShmupHud.build_hud("vertical") as RpgShmupHud
+	t.ok(up.panels)
+	Fixtures.tree().root.add_child(up)
+	up.set_process(false)
+	# the layout for a screen of 320 x 180: the play area is 240 wide, 40 px are left on each side
+	t.ok(not up.lay_out_panels(Vector2(320, 180)), "40 px is too narrow for a panel")
+	t.ok(up.lay_out_panels(Vector2(640, 360)), "80 px on each side of a 480 px play area")
+	t.eq(up.panel_width(), 80.0)
+	var left := up.get_node("PanelLeft") as ColorRect
+	var right := up.get_node("PanelRight") as ColorRect
+	t.eq([left.position, left.size], [Vector2.ZERO, Vector2(80, 360)])
+	t.eq([right.position, right.size], [Vector2(560, 0), Vector2(80, 360)])
+	t.ok(left.get_index() < up.get_node("Left").get_index(), "the panels lie behind the texts")
+	_drop(up)
+	var side := ShmupHud.build_hud("horizontal") as RpgShmupHud
+	t.ok(not side.panels)
+	Fixtures.tree().root.add_child(side)
+	side.set_process(false)
+	t.ok(side.get_node_or_null("PanelLeft") == null)
+	t.eq(side.get_node("Right/HighScore").get_parent().name, &"Right", "the high score under the score")
+	t.ok(side.get_node_or_null("Left/Lives") != null, "the lives stay on the left")
+	_drop(side)
+	t.eq(ShmupHud.new().outputs(null), PackedStringArray(["res://generated/scenes/ui/hud_arcade.tscn"]))
+
+func test_the_title_screen_gets_high_scores_and_the_table_closes_on_cancel(t) -> void:
+	await Fixtures.tree().process_frame
+	_saves()
+	RpgArcadeHighScores.submit("BO", 900, 1)
+	var title := Control.new()
+	var box := VBoxContainer.new()
+	title.add_child(box)
+	for button_name: String in ["NewGame", "Credits", "Quit"]:
+		var button := Button.new()
+		button.name = button_name
+		button.unique_name_in_owner = true
+		box.add_child(button)
+		button.owner = title
+	Fixtures.tree().root.add_child(title)
+	var mode := RpgShmupMode.new()
+	Fixtures.tree().root.add_child(mode)
+	mode.customize_title_screen(title)
+	mode.customize_title_screen(title)
+	var names: Array = box.get_children().map(func(n: Node) -> String: return n.name)
+	t.eq(names, ["NewGame", "HighScores", "Credits", "Quit"], "once, above the credits")
+	var entry := box.get_node("HighScores") as Button
+	t.eq(entry.text, "High scores")
+	t.eq(entry.get_node(entry.focus_neighbor_bottom).name, &"Credits", "it is in the focus chain")
+	entry.pressed.emit()
+	var table: RpgArcadeHighScoreTable = null
+	for child in title.get_children():
+		if child is RpgArcadeHighScoreTable:
+			table = child
+	t.ok(table != null, "the table opens over the title")
+	var texts: Array = table.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+	t.ok(texts.has("BO") and texts.has("900"))
+	var cancel := InputEventAction.new()
+	cancel.action = &"ui_cancel"
+	cancel.pressed = true
+	table._unhandled_input(cancel)
+	t.ok(table.is_queued_for_deletion(), "cancel closes it")
+	for node: Node in [title, mode]:
+		_drop(node)
+	Fixtures.uninstall("SaveManager")

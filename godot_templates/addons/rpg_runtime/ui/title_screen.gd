@@ -25,6 +25,11 @@ func _ready() -> void:
 	if credits != null:
 		credits.pressed.connect(_open.bind("credits_menu", {}))
 	(get_node("%Quit") as Button).pressed.connect(_on_quit)
+	# a kind of game may add entries of its own (the high scores of an arcade game, T16.07)
+	var router := RpgUtil.router()
+	var mode: Node = router.combat if router != null else null
+	if mode != null and mode.has_method(&"customize_title_screen"):
+		mode.call(&"customize_title_screen", self)
 	RpgMenuUtil.attach_sounds(RpgMenuUtil.focusables(self))
 	_add_hint()
 	_start_music()

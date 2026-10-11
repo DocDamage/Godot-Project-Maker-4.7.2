@@ -321,6 +321,12 @@ and `sweep`, with the `count` and `fast` its phase has in the stage file. An ene
 own list of stages, from which the mode takes what `stages_path` does not list
 (`RpgArcadeStageSequence.merged`).
 
+`RpgShmupHud` has `panels`: in a game that scrolls up the HUD goes into the strips beside the
+play area (`lay_out_panels(view)`, `panel_width()`), the high score, the stage, the bombs and
+the weapon on the left, the score and the lives on the right. The title screen asks the combat
+mode for entries of its own (`customize_title_screen(title)`); `RpgArcadeMode` adds *High
+scores* (`show_high_scores(over, back)`). The ship plays `shoot_sound` with every shot.
+
 `RpgShmupExplosion` plays once and is gone; `RpgShmupStarfield` draws the stars of a stage whose
 packs have no background; `RpgShmupHud` adds the bombs and the weapon to the arcade HUD.
 

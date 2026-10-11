@@ -86,6 +86,8 @@ func _title_new_game() -> String:
 			break
 		await tree.process_frame
 	var button := title.get_node("%NewGame") as Button
+	if button.get_parent().get_node_or_null("HighScores") == null:
+		return "the title screen has no High scores entry"
 	for i in 120:
 		if button.has_focus():
 			break

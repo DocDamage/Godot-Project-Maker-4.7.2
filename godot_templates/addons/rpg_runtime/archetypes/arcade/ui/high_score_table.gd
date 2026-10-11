@@ -85,6 +85,12 @@ func show_table(table: Array[Dictionary], ask_name: bool = false, score: int = 0
 func _on_submitted(_text: String) -> void:
 	close()
 
+## Cancel closes a table that asks for nothing.
+func _unhandled_input(event: InputEvent) -> void:
+	if _name_edit == null and not _done and (event.is_action_pressed(&"ui_cancel") or (InputMap.has_action(&"cancel") and event.is_action_pressed(&"cancel"))):
+		accept_event()
+		close()
+
 func close() -> void:
 	if _done:
 		return

@@ -339,3 +339,36 @@ def test_a_plain_rpg_pack_has_its_monsters_as_enemies_unturned(plain) -> None:
     assert (target / "generated/scenes/shmup/enemies/carrier.tscn").is_file()
     capsule = _text(target, "generated/scenes/shmup/powerup.tscn")
     assert "arcade_kit/capsule.png" in capsule, "the drawn capsule"
+
+
+# ---------------------------------------------------------------- the HUD and the README (T16.07)
+
+
+def test_the_hud_has_side_panels_when_the_game_scrolls_up(shooter, plain) -> None:
+    up = _text(shooter[0], "generated/scenes/ui/hud_arcade.tscn")
+    assert "archetypes/shmup/ui/shmup_hud.gd" in up and "panels = true" in up
+    side = _text(plain[0], "generated/scenes/ui/hud_arcade.tscn")
+    assert "archetypes/shmup/ui/shmup_hud.gd" in side and "panels = true" not in side
+    strings = _text(shooter[0], "game/i18n/strings.tsv")
+    assert "SHM_HIGH	" in strings and "ARC_HIGH_SCORES	" in strings
+
+
+def test_the_readme_explains_the_kind(shooter) -> None:
+    target, _result = shooter
+    readme = _text(target, "README.md")
+    assert "**This game is a shoot 'em up**" in readme
+    assert "## 22. Stages, enemies and bosses (shoot 'em up)" in readme
+    for needle in (
+        "game/data/stages.json",
+        "generated/data/stages.json",
+        "generated/scenes/shmup/enemies/",
+        "### Adding or changing a wave",
+        "Added stages",
+        "| Bomb | X, K |",
+    ):
+        assert needle in readme, needle
+    assert "metroidvania" not in readme.split("## 22.")[1]
+    # what the README says of a wave is what a wave of the game has
+    wave = jsonio.read(target / "game/data/stages.json")["stages"][0]["waves"][0]
+    for key in ("id", "enemy", "scene", "formation", "count", "gap", "trigger", "at", "position"):
+        assert key in wave and f"`{key}`" in readme or f'"{key}"' in readme, key

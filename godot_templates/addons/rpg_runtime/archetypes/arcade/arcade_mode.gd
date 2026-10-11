@@ -290,6 +290,42 @@ func _show_credits() -> void:
 	if controller != null and controller.has_method(&"open_menu"):
 		controller.call(&"open_menu", "credits_menu", {})
 
+# ------------------------------------------------------------------ the title screen
+
+const HIGH_SCORES_BUTTON := "HighScores"
+
+## Called by the title screen: a button *High scores* above *Credits* (or at the end of the
+## menu), which shows the table over the title.
+func customize_title_screen(title: Control) -> void:
+	var before := title.get_node_or_null("%Credits") as Button
+	if before == null:
+		before = title.get_node_or_null("%Quit") as Button
+	if before == null or before.get_parent().get_node_or_null(HIGH_SCORES_BUTTON) != null:
+		return
+	var button := Button.new()
+	button.name = HIGH_SCORES_BUTTON
+	button.text = RpgArcadeStrings.t("ARC_HIGH_SCORES")
+	var box := before.get_parent()
+	box.add_child(button)
+	box.move_child(button, before.get_index())
+	button.pressed.connect(show_high_scores.bind(title, button))
+	var buttons: Array = []
+	for child in box.get_children():
+		if child is Button:
+			buttons.append(child)
+	RpgMenuUtil.wire_vertical(buttons)
+
+## Shows the high-score table over `over`; when it is closed the focus goes back to `back`.
+func show_high_scores(over: Control, back: Control = null) -> RpgArcadeHighScoreTable:
+	var screen := RpgArcadeHighScoreTable.new()
+	over.add_child(screen)
+	screen.show_table(RpgArcadeHighScores.read())
+	screen.closed.connect(func(_player_name: String) -> void:
+		screen.queue_free()
+		if back != null and is_instance_valid(back):
+			back.grab_focus())
+	return screen
+
 # ------------------------------------------------------------------ the screens
 
 ## True when nobody can press a button: a test, a smoke run.

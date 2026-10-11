@@ -31,6 +31,8 @@ const SHIELD_TINT := Color(0.6, 0.85, 1.0)
 ## Half the size of its picture: that much of the play area is kept free at every edge.
 @export var half_size: Vector2 = Vector2(8, 8)
 @export var explosion_scene: PackedScene = null
+## The sound slot of a shot.
+@export var shoot_sound: StringName = &"sfx_shoot"
 
 ## What the ship wants: a direction (each part -1..1), to fire, to fly slowly.
 var move := Vector2.ZERO
@@ -127,8 +129,8 @@ func advance(delta: float) -> void:
 	_show_bank()
 	var gun := weapon()
 	var bullets := pool()
-	if gun != null:
-		gun.advance(delta, shooting or _shot_asked, bullets, position + forward() * half_size.y, forward())
+	if gun != null and gun.advance(delta, shooting or _shot_asked, bullets, position + forward() * half_size.y, forward()) > 0:
+		_play(shoot_sound)
 	_shot_asked = false
 	if _bomb_asked:
 		_bomb_asked = false
@@ -203,6 +205,11 @@ func set_shield(on: bool) -> void:
 	if visual != null:
 		visual.modulate = SHIELD_TINT if on else Color.WHITE
 	shield_changed.emit(on)
+
+func _play(slot: StringName) -> void:
+	var router := RpgUtil.router()
+	if router != null and router.audio != null:
+		router.audio.call(&"play", slot)
 
 ## The next life: where the stage began, blinking, with the starting bombs.
 func respawn() -> void:

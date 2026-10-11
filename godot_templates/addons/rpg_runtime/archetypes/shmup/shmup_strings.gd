@@ -6,6 +6,7 @@ extends RefCounted
 const KEYS := {
 	"SHM_BOMBS": "Bombs: %d",
 	"SHM_WEAPON": "%s Lv %d",
+	"SHM_HIGH": "Hi: %d",
 	"SHM_WEAPON_STRAIGHT": "Shot",
 	"SHM_WEAPON_SPREAD": "Spread",
 	"SHM_WEAPON_LASER": "Laser",
