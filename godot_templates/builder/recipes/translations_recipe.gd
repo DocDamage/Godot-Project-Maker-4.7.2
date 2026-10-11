@@ -22,6 +22,10 @@ const ARCHETYPE_STRINGS := {
 	"turn_based": "res://addons/rpg_runtime/archetypes/turn_based/battle_strings.gd",
 	"arpg": "res://addons/rpg_runtime/archetypes/arpg/arpg_strings.gd",
 	"metroidvania": "res://addons/rpg_runtime/archetypes/metroidvania/metroidvania_strings.gd",
+	# the arcade kinds (M16) share the framework's strings; each adds its own in its card
+	"shmup": "res://addons/rpg_runtime/archetypes/arcade/arcade_strings.gd",
+	"run_and_gun": "res://addons/rpg_runtime/archetypes/arcade/arcade_strings.gd",
+	"racing": "res://addons/rpg_runtime/archetypes/arcade/arcade_strings.gd",
 }
 
 ## [[locale, path]] for the locales in the CSV header (every column after `keys`).

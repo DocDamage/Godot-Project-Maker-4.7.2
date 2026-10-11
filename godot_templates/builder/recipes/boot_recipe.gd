@@ -16,7 +16,7 @@ const COMBAT_SCENE := "res://generated/scenes/combat/combat_mode.tscn"
 const ARCHETYPE_HUD := "res://generated/scenes/ui/hud_arpg.tscn"
 const ARCHETYPE_HUD_NAME := "hud_arpg"
 ## The HUD scenes an archetype's recipe may have built, by name; the first that exists is used.
-const ARCHETYPE_HUDS: Array[String] = ["hud_arpg", "hud_metroidvania"]
+const ARCHETYPE_HUDS: Array[String] = ["hud_arpg", "hud_metroidvania", "hud_arcade"]
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([OUT_PATH])

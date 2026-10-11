@@ -409,3 +409,55 @@ def test_the_metroidvania_readme_and_the_upgrade_note_of_the_action_rpg(tmp_path
     assert "Reload Current Project" in text
     assert "(metroidvania)" not in text
     assert "Everything is yours to change.\n\n- Godot version" in text, "the first lines of 1.1"
+
+
+def test_the_arcade_framework_is_installed_for_the_arcade_kinds_only(tmp_path: Path) -> None:
+    """T16.01: the shared folder of the three arcade kinds stays out of every older project, whose
+    list of installed files is what it is without the folder."""
+    from rpggen import paths
+
+    templates = paths.templates_root()
+    assert (templates / "addons/rpg_runtime/archetypes/arcade/arcade_mode.gd").is_file()
+    assert (templates / "builder/recipes/arcade/stage_recipes.gd").is_file()
+    everything = staging.install_templates(staging.create_staging(tmp_path / "all"), templates)
+    arcade = [w for w in everything if "/arcade/" in w]
+    assert len(arcade) >= 19 and all(
+        w.startswith(("addons/rpg_runtime/archetypes/arcade/", "generated/builder/recipes/arcade/"))
+        for w in arcade
+    )
+    for kind in ("turn_based", "arpg", "metroidvania"):
+        stg = staging.create_staging(tmp_path / kind)
+        written = staging.install_templates(stg, templates, kind)
+        assert not [w for w in written if "arcade" in w], kind
+        others = [k for k in ("turn_based", "arpg", "metroidvania") if k != kind]
+        own = [
+            w
+            for w in everything
+            if w not in arcade
+            and not any(f"/{o}/" in w or f"smoke_steps_{o}.gd" in w for o in others)
+        ]
+        assert written == own, kind
+        assert not (stg.staging / "addons/rpg_runtime/archetypes/arcade").exists()
+    for kind in ("shmup", "run_and_gun", "racing"):
+        stg = staging.create_staging(tmp_path / kind)
+        written = staging.install_templates(stg, templates, kind)
+        assert [w for w in written if "/arcade/" in w] == arcade, kind
+        for older in ("turn_based", "arpg", "metroidvania"):
+            assert not [w for w in written if f"archetypes/{older}/" in w], (kind, older)
+        assert "addons/rpg_runtime/core/save_manager.gd" in written
+    assert staging._other_archetype("builder/recipes/arcade/hud_recipe.gd", "arpg")
+    assert not staging._other_archetype("builder/recipes/arcade/hud_recipe.gd", "racing")
+    assert not staging._other_archetype("builder/recipes/arcade/hud_recipe.gd", None)
+
+
+def test_an_arcade_kind_starts_with_dialogue_off_and_the_older_kinds_as_they_were() -> None:
+    from rpggen.core import config
+
+    older = config.default_features()
+    assert older == {k: k != "navigation" for k in config.FEATURE_KEYS}
+    for kind in ("turn_based", "arpg", "metroidvania"):
+        assert config.default_features(kind) == older
+        assert config.default_for("T", [], archetype=kind).features == older
+    for kind in config.ARCADE_KINDS:
+        feats = config.default_for("T", [], archetype=kind).features
+        assert [k for k, on in feats.items() if not on] == ["dialogue", "navigation"], kind

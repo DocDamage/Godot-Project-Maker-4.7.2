@@ -54,7 +54,9 @@ Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]
 * `sounds` has four more fixed slots: `sfx_jump`, `sfx_land`, `sfx_dash`, `sfx_ability`. In the
   other archetypes a slot of such a name is a custom slot.
 
-The arcade kinds (M16) have fixed slots of their own in the same way: `shmup` has `sfx_shoot`, `sfx_explosion`, `sfx_powerup`, `sfx_bomb`, `music_stage`, `music_boss`; `run_and_gun` has `sfx_shoot`, `sfx_explosion`, `sfx_grenade`, `sfx_weapon_pickup`, `sfx_grapple`, `music_stage`, `music_boss`; `racing` has `sfx_engine`, `sfx_skid`, `sfx_bump`, `sfx_pickup`, `sfx_lap`, `sfx_countdown`, `music_race`, `music_results`. Until the kinds can be chosen (T16.04 and later) the `archetype` enum does not list them.
+The arcade kinds (M16) have fixed slots of their own in the same way: `shmup` has `sfx_shoot`, `sfx_explosion`, `sfx_powerup`, `sfx_bomb`, `music_stage`, `music_boss`; `run_and_gun` has `sfx_shoot`, `sfx_explosion`, `sfx_grenade`, `sfx_weapon_pickup`, `sfx_grapple`, `music_stage`, `music_boss`; `racing` has `sfx_engine`, `sfx_skid`, `sfx_bump`, `sfx_pickup`, `sfx_lap`, `sfx_countdown`, `music_race`, `music_results`. Until the kinds can be chosen (T16.04 and later) the `archetype` enum does not list them. Their `features` start with `dialogue` and `navigation` off (T16.01); both can be switched on.
+
+The stages of an arcade game are `game/data/stages.json` (T16.01), written by the recipe of the kind from its plan: `{ "stages": [ Stage, ... ] }`. A Stage is `{ "scene", "title", "axis": "up" | "right" | "none", "speed" (px/s), "length" (px; 0 has no end), "exit": "reach_end" | "clear_waves" | "custom", "par_time_s", "music", "waves": [ Wave ], "boss"? }`. A Wave is `{ "id", "enemy", "scene", "formation": "line" | "column" | "v" | "circle" | "sine", "count", "gap" (px), "interval" (s), "position": [x, y], "anchor": "screen" | "stage", "trigger": "start" | "progress" | "time" | "after", "at", "after": "<wave id>", "blocking", "points" }`. A boss is `{ "scene", "name", "health", "points", "position": [x, y], "phases": [ { "until" (the fraction of health the phase lasts down to), "movement", "attacks": [..], "interval", "telegraph_s", "speed" } ] }`. The runtime reads the file and adds nothing to it.
 * `input` has `jump`, `dash`, `attack` and `down`, and `interact` is E / Up (Space jumps).
 * `map_layers` is not used (a room has the layers `Background`, `Ground`, `Platforms`, `Hazards`,
   `Decoration`, `Foreground`), `imported_maps` is not used, and `features.navigation` is off.
@@ -461,6 +463,33 @@ All three files share this shape:
   (`{ "<room id>": true }`: the rooms that are on the room map, T14.08). A reader ignores entries
   it cannot use. The place a defeated player returns to is kept in `flags` (`respawn.map`,
   `respawn.x`, `respawn.y`), set by resting at a save station.
+* The run of an arcade game (release 1.4, T16.01) is kept in `flags` too, as the entry
+  `arcade`: `{ "stage": <index>, "lives": <n>, "score": <n>, "weapon": "<id>" }`, written when a
+  stage is entered and taken away when the run ends. No other kind writes it.
+
+### 9.1 The shared section (`user://saves/meta.json`, meta_version 1)
+
+What belongs to the game and not to one saved game. One file beside the slots, shared by the
+three slots and the autosave, written through a temporary file and verified like a slot:
+
+```json
+{
+  "meta_version": 1,
+  "checksum": "<sha256 hex, as for a slot>",
+  "values": {
+    "high_scores": [ { "name": "ANA", "score": 48200, "stage": 3 } ]
+  }
+}
+```
+
+* `values.high_scores` (T16.01): the ten best runs of an arcade game, the best first; `name` is
+  at most 8 characters, `stage` is the number of the stage the run ended in (from 1). Of two
+  equal scores the earlier one stays in front.
+* The file is optional. A game that never wrote it, every game made before 1.4 and a file
+  that does not verify read an empty section; `save_version` stays 1 and no slot refers to it.
+  Deleting a slot leaves it alone.
+* `SaveManager.read_shared()`, `shared_value(key, fallback)` and `set_shared_value(key, value)`
+  are the only readers and writers.
 
 ---
 

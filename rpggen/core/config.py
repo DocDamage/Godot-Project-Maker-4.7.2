@@ -109,8 +109,15 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
     }
 
 
-def default_features() -> dict[str, bool]:
-    return {key: key != "navigation" for key in FEATURE_KEYS}
+ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
+# What an arcade kind (M16) has switched off until somebody switches it on: a run through
+# stages has nobody to talk to and no enemy that looks for a path.
+ARCADE_OFF = ("dialogue", "navigation")
+
+
+def default_features(archetype: str = "turn_based") -> dict[str, bool]:
+    off = ARCADE_OFF if archetype in ARCADE_KINDS else ("navigation",)
+    return {key: key not in off for key in FEATURE_KEYS}
 
 
 @dataclass(slots=True)
@@ -246,6 +253,7 @@ def default_for(
         packs=list(packs),
         archetype=archetype,
         base_tile_size=base_tile_size,
+        features=default_features(archetype),
     )
 
 

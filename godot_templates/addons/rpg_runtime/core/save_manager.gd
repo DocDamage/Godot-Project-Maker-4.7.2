@@ -214,6 +214,56 @@ func _read_verified(path: String) -> Dictionary:
 		return {}
 	return data
 
+# ------------------------------------------------------------------ the shared section (meta)
+
+## What belongs to the game and not to one saved game (the high scores of an arcade game): one
+## file beside the slots, shared by the three of them and the autosave. A game that never wrote
+## it, and every game made before it existed, reads an empty section.
+const META_FILE := "meta.json"
+const META_VERSION := 1
+
+func _meta_path() -> String:
+	return dir.path_join(META_FILE)
+
+## The whole shared section ({} when there is none or the file is damaged).
+func read_shared() -> Dictionary:
+	var data := _read_verified(_meta_path())
+	if data.is_empty():
+		return {}
+	var values: Variant = RpgUtil.restore_numbers(data.get("values", {}))
+	if values is Dictionary:
+		var found: Dictionary = values
+		return found
+	return {}
+
+## One value of the shared section, or `fallback`.
+func shared_value(key: String, fallback: Variant = null) -> Variant:
+	return read_shared().get(key, fallback)
+
+## Writes one value of the shared section (the others stay). False when the file cannot be written.
+func set_shared_value(key: String, value: Variant) -> bool:
+	var values := read_shared()
+	values[key] = value
+	var data := {"meta_version": META_VERSION, "values": values}
+	data["checksum"] = checksum_of(data)
+	DirAccess.make_dir_recursive_absolute(dir)
+	var tmp := dir.path_join("meta.tmp")
+	var file := FileAccess.open(tmp, FileAccess.WRITE)
+	if file == null:
+		push_error("[RPG-SAVE] cannot write %s (error %d)" % [tmp, FileAccess.get_open_error()])
+		return false
+	file.store_string(JSON.stringify(data, "  ", true))
+	file.flush()
+	file.close()
+	if _read_verified(tmp).is_empty():
+		DirAccess.remove_absolute(tmp)
+		push_error("[RPG-SAVE] verification of %s failed" % tmp)
+		return false
+	if not _move_into_place(tmp, _meta_path()):
+		push_error("[RPG-SAVE] cannot move %s into place" % tmp)
+		return false
+	return true
+
 func has_save(slot: int) -> bool:
 	return FileAccess.file_exists(_slot_path(slot)) or FileAccess.file_exists(_backup_path(slot))
 

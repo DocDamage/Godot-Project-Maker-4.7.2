@@ -163,7 +163,10 @@ def _place(src: Path, dst: Path, src_hash: str | None = None) -> bool:
     return True
 
 
-ARCHETYPES = ("turn_based", "arpg", "metroidvania")
+ARCHETYPES = ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing")
+# A folder several kinds share, and the kinds it is installed for: the arcade framework (T16.01)
+# belongs to the three arcade kinds, and the projects of the older kinds never see it.
+SHARED_FOLDERS: dict[str, tuple[str, ...]] = {"arcade": ("shmup", "run_and_gun", "racing")}
 
 
 def _other_archetype(rel: str, archetype: str | None) -> bool:
@@ -171,12 +174,13 @@ def _other_archetype(rel: str, archetype: str | None) -> bool:
 
     The runtime keeps each archetype in ``addons/rpg_runtime/archetypes/<name>/``, its recipes in
     ``builder/recipes/<name>/`` and its smoke steps in ``builder/smoke/smoke_steps_<name>.gd``.
+    A shared folder (``SHARED_FOLDERS``) is kept in the same places under its own name.
     """
     if archetype is None:
         return False
     parts = rel.split("/")
-    for other in ARCHETYPES:
-        if other == archetype:
+    for other in (*ARCHETYPES, *SHARED_FOLDERS):
+        if other == archetype or archetype in SHARED_FOLDERS.get(other, ()):
             continue
         if parts[:4] == ["addons", "rpg_runtime", "archetypes", other]:
             return True

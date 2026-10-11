@@ -250,6 +250,36 @@ part of 1.0).
 archetypes that fight on the map (the action RPG and the metroidvania). Until 1.1 they were in
 `archetypes/arpg/`; a script at each old path still extends the new one (removed in 2.0).
 
+### arcade (shared by the shoot-em-up, the run and gun and the racing game)
+
+A run through stages with lives and a score. `RpgArcadeMode` (`SceneRouter.combat`; the mode of
+a kind extends it) owns the run: it binds every `RpgArcadeStage` the router enters
+(`bind_stage`), counts kills (`RpgArcadeScore`: `add_kill`, `add_pickup`, `hit`; a multiplier up
+to x8 that a hit resets) and lives (`RpgArcadeLives`: `lose`, an extra life every `extra_every`
+points), shows the tally of a cleared stage (`RpgArcadeStageClear`), goes to the next stage and
+ends the run with the high-score entry and the credits. `player_hit()`, `player_died()` and
+`pickup(points)` are what a kind calls; `life_lost`, `game_over`, `continued`, `stage_started`,
+`stage_cleared`, `stage_wanted` and `run_finished` are its signals. After the last life
+`RpgArcadeContinueScreen` asks: Continue starts the stage again with the score kept.
+
+`RpgArcadeStage` is an `RpgMapRoot` with a `Camera`, a `Scroller` (`RpgArcadeScroller`: `axis`
+up, right or none, `speed`, `length`, `hold(who)` / `release(who)`, `progress`), a node
+`Entities` and one `RpgArcadeSpawner` per wave of its entry in `game/data/stages.json`
+(`RpgArcadeStageSequence`). A wave (`RpgArcadeWave`) is a formation (`line`, `column`, `v`,
+`circle`, `sine`) with a trigger (`start`, `progress`, `time`, `after`) and may be `blocking`.
+An enemy is any `Node2D`; with a signal `defeated` its kill is scored (its `points`, else the
+wave's), and it is gone when it leaves the tree. A stage ends by `exit_condition`: `reach_end`,
+`clear_waves` or `custom` (the kind calls `finish()`). Set `enemy_factory` and `boss_factory` to
+build enemies in code. `RpgArcadeBoss` has health, `RpgArcadeBossPhase`s that change at a
+fraction of it, `telegraphed` before `attacked`, an intro and a defeat with `exploded`; a kind
+overrides `_move(pattern, delta, time_s)` and `_perform(attack)`.
+
+`RpgArcadeHud` (`hud_arcade.tscn`) shows lives, score, multiplier, the stage and a boss's health;
+`set_row(key, text)` adds a row of a kind. `RpgArcadeHighScores` keeps the ten best runs in the
+shared section of the saves (`SaveManager.read_shared`, `shared_value`, `set_shared_value`:
+`user://saves/meta.json`, one file for every slot). The game saves by itself when a stage is
+entered; the pause menu's Save is off.
+
 ### metroidvania
 
 The game is seen from the side. `RpgMetroidvaniaMode` (`SceneRouter.combat`) never has an

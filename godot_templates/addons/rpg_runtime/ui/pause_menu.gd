@@ -29,6 +29,10 @@ func _ready() -> void:
 		# an archetype that saves at stations only (the metroidvania, T14.08)
 		save_button.text = tr("UI_SAVE_AT_STATION")
 		save_button.disabled = true
+	elif mode != null and RpgUtil.to_bool(mode.get("saves_between_stages")):
+		# an arcade game saves by itself between two stages (T16.01)
+		save_button.text = tr("ARC_SAVED_BETWEEN_STAGES")
+		save_button.disabled = true
 	(get_node("%Load") as Button).pressed.connect(_open.bind("save_load_menu", {"mode": "load"}))
 	(get_node("%Settings") as Button).pressed.connect(_open.bind("settings_menu", {}))
 	var credits := get_node_or_null("%Credits") as Button  # projects built before the credits have none

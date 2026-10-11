@@ -100,7 +100,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 
 | Card | Title | Size | Depends on | Status |
 |------|-------|:----:|------------|--------|
-| T16.01 | The arcade framework | L | — | open |
+| T16.01 | The arcade framework | L | — | done as a framework with its tests; played from the title to the credits only once a kind can be generated (T16.04), see the notes |
 | T16.02 | Detection for the three kinds | M | — | done, but for the grid editor's ring and the pack card's words (the wizard, T16.16); the notes have the deviations |
 | T16.03 | Drawn stand-ins and new roles | M | T16.02 | done; the kinds are not in the config's enum until they can be built, and the notes have the other deviations |
 | T16.04 | Shoot 'em up: ship, bullets, scrolling | M | T16.01, T16.03 | open |
