@@ -51,12 +51,19 @@ static func with_scenes(stages: Array) -> Array:
 		out.append(entry)
 	return out
 
-## Writes game/data/stages.json. The file is yours once it exists: it is written when it is
-## missing, or when `replace` says so (the stages of the plan changed). Returns an Error code.
+## Writes the two lists of the stages. game/data/stages.json is yours once it exists: it is
+## written when it is missing (or when `replace` says so) and never touched again.
+## generated/data/stages.json is rpggen's: the stages of the plan, written on every build. The
+## game reads yours and takes from the other one the stages yours does not list (a stage that
+## was added to the plan later). Returns an Error code.
 static func save_list(stages: Array, replace: bool = false) -> int:
+	var planned := with_scenes(stages)
+	var err := JsonUtil.write(ArcadeBuild.PLANNED_STAGES_PATH, {"stages": planned})
+	if err != OK:
+		return err
 	if FileAccess.file_exists(ArcadeBuild.STAGES_PATH) and not replace:
 		return OK
-	return JsonUtil.write(ArcadeBuild.STAGES_PATH, {"stages": with_scenes(stages)})
+	return JsonUtil.write(ArcadeBuild.STAGES_PATH, {"stages": planned})
 
 ## Saves the scene of every stage of `stages` and the list. Returns the issues.
 static func save_all(ctx: BuildContext, stages: Array, view: Vector2i, start: Vector2, replace: bool = false) -> Array:

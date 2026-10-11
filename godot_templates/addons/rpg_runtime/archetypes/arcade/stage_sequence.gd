@@ -29,6 +29,18 @@ static func load_file(path: String) -> RpgArcadeStageSequence:
 	var list: Array = RpgUtil.restore_numbers(parsed)
 	return from_array(list)
 
+## The stages of `listed` and, after them, those of `planned` whose scene `listed` does not
+## have: what a list says of a stage is never changed by the plan.
+static func merged(listed: Array[Dictionary], planned: Array[Dictionary]) -> Array[Dictionary]:
+	var out: Array[Dictionary] = listed.duplicate()
+	var have := {}
+	for entry in listed:
+		have[RpgUtil.to_str(entry.get("scene", ""))] = true
+	for entry in planned:
+		if not have.has(RpgUtil.to_str(entry.get("scene", ""))):
+			out.append(entry)
+	return out
+
 func size() -> int:
 	return stages.size()
 

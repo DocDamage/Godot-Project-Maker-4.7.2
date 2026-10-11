@@ -108,8 +108,12 @@ def missing_deps(features: dict[str, bool], key: str) -> list[str]:
 def stages_text(archetype: str, starter_map: dict[str, Any]) -> str:
     """What an arcade kind's options make: "1 stage, scrolling up"."""
     if archetype == "shmup":
-        sideways = starter_map.get("orientation") == "horizontal"
-        return "1 stage, scrolling " + ("right" if sideways else "up")
+        from rpggen.core import wave_plan
+
+        try:
+            return wave_plan.describe(starter_map)
+        except wave_plan.WavePlanError:
+            return ""
     return "stages"
 
 

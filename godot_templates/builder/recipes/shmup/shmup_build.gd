@@ -35,6 +35,10 @@ static func orientation(ctx: BuildContext) -> String:
 	var way := JsonUtil.to_str(ctx.section("starter_map").get("orientation", "vertical"))
 	return way if way == "horizontal" else "vertical"
 
+## One of the kind's options (config.starter_map), or `fallback`.
+static func option(ctx: BuildContext, key: String, fallback: Variant) -> Variant:
+	return ctx.section("starter_map").get(key, fallback)
+
 ## The size of the screen in px (config.resolution).
 static func view(ctx: BuildContext) -> Vector2i:
 	var raw := JsonUtil.to_array(ctx.config.get("resolution", [640, 360]))

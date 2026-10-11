@@ -12,6 +12,11 @@ var _since := 0.0
 func _init() -> void:
 	in_stage = true
 
+func _read_wave(data: Dictionary, _index: int) -> void:
+	fan_count = maxi(1, RpgUtil.to_int(data.get("fan", fan_count), fan_count))
+	# a wider fan for more bullets, so that the gaps between them stay passable
+	fan_deg = maxf(fan_deg, 12.0 * (fan_count - 1))
+
 func _act(delta: float) -> void:
 	if not is_inside_screen():
 		return

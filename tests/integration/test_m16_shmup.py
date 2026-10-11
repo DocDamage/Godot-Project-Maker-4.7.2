@@ -27,6 +27,8 @@ STEPS = [
     "ship_is_destroyed_and_returns",
     "wave_is_fought",
     "power_up_is_picked_up",
+    "boss_is_beaten",
+    "run_reaches_the_credits",
 ]
 SCENES = [
     "generated/scenes/shmup/ship.tscn",
@@ -39,6 +41,9 @@ SCENES = [
     "generated/scenes/shmup/enemies/turret.tscn",
     "generated/scenes/shmup/enemies/asteroid.tscn",
     "generated/scenes/shmup/enemies/carrier.tscn",
+    "generated/scenes/shmup/boss.tscn",
+    "generated/scenes/stages/stage_02.tscn",
+    "generated/scenes/stages/stage_03.tscn",
 ]
 
 
@@ -115,7 +120,7 @@ def test_the_shooter_pack_is_a_game_that_scrolls_up(shooter) -> None:
     assert not [i for i in result.issues if i.code == "ASSET-031"]
     assert not (target / arcade_kit.KIT_DIR).exists()
     stages = jsonio.read(target / "game/data/stages.json")["stages"]
-    assert len(stages) == 1
+    assert len(stages) == 3
     first = stages[0]
     assert (first["axis"], first["exit"]) == ("up", "reach_end")
     assert first["scene"] == "res://generated/scenes/stages/stage_01.tscn"
@@ -201,7 +206,7 @@ def test_a_plain_rpg_pack_makes_a_game_that_scrolls_right_with_drawn_stand_ins(p
     for name in ("bullet", "explosion", "capsule"):
         assert (target / arcade_kit.KIT_DIR / f"{name}.png").is_file(), name
     saved = jsonio.read(target / paths.CONFIG)
-    assert saved["starter_map"] == {"orientation": "horizontal"}
+    assert saved["starter_map"]["orientation"] == "horizontal"
     first = jsonio.read(target / "game/data/stages.json")["stages"][0]
     assert first["axis"] == "right" and first["length"] == 6 * saved["resolution"][0]
     ship = _text(target, "generated/scenes/shmup/ship.tscn")
@@ -249,30 +254,85 @@ def test_the_enemy_pictures_of_the_pack_are_shared_out_over_the_behaviours(shoot
         assert f"powerups/capsule_{n}.png" in capsule, "the capsules of the pack, a kind each"
 
 
-def test_the_first_stage_has_its_waves(shooter) -> None:
+def test_the_stages_are_those_of_the_stored_plan(shooter) -> None:
+    from rpggen.core import wave_plan, world_plan
+
     target, _result = shooter
-    waves = jsonio.read(target / "game/data/stages.json")["stages"][0]["waves"]
-    assert [w["id"] for w in waves] == [f"w{n:02d}" for n in range(1, 11)]
-    assert [w["enemy"] for w in waves] == [
-        "popcorn", "popcorn", "turret", "popcorn", "asteroid",
-        "popcorn", "carrier", "popcorn", "turret", "popcorn",
-    ]  # fmt: skip
-    assert [w["at"] for w in waves] == sorted(w["at"] for w in waves)
-    for wave in waves:
-        assert (target / wave["scene"].removeprefix("res://")).is_file(), wave["scene"]
-    small = [w for w in waves if w["enemy"] == "popcorn"]
-    assert [w["formation"] for w in small] == ["line", "v", "sine", "circle", "column", "v"]
-    assert all(w["bonus"] == 500 for w in small)
-    assert [w["id"] for w in waves if "drop" in w] == ["w08"], "the fifth formation of small ones"
-    assert {w.get("anchor", "screen") for w in waves if w["enemy"] in ("turret", "asteroid")} == {
-        "stage"
+    stored = world_plan.load(target)["stages"]
+    saved = jsonio.read(target / paths.CONFIG)
+    assert stored == wave_plan.plan({}, saved["seed"], wave_plan.facts_of(saved["resolution"], 16))
+    assert wave_plan.check(stored) == []
+    stages = jsonio.read(target / "game/data/stages.json")["stages"]
+    assert [s["scene"] for s in stages] == [s["scene"] for s in stored["list"]]
+    for planned, listed in zip(stored["list"], stages, strict=True):
+        assert [w["id"] for w in listed["waves"]] == [w["id"] for w in planned["waves"]]
+        assert [w["at"] for w in listed["waves"]] == [w["at"] for w in planned["waves"]]
+        for wave in listed["waves"]:
+            assert (target / wave["scene"].removeprefix("res://")).is_file(), wave["scene"]
+        assert listed["boss"]["scene"] == "res://generated/scenes/shmup/boss.tscn"
+        assert listed["boss"]["health"] == planned["boss"]["health"]
+    small = [w for w in stages[0]["waves"] if w["enemy"] == "popcorn"]
+    assert {w["scene"].rsplit("/", 1)[-1] for w in small} <= {
+        f"popcorn_0{n}.tscn" for n in (1, 2, 3, 4)
     }
+    boss = _text(target, "generated/scenes/shmup/boss.tscn")
+    assert "archetypes/shmup/boss.gd" in boss and "boss/boss_ship.png" in boss
+    assert "scale = " not in boss, "the pack's own boss is as large as it is drawn"
+    for n in (2, 3):
+        stage = _text(target, f"generated/scenes/stages/stage_0{n}.tscn")
+        assert f"stage_index = {n - 1}" in stage and "generated/scenes/shmup/ship.tscn" in stage
+
+
+def test_an_added_stage_grows_the_run_and_the_list_keeps_what_it_had(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    from rpggen.core import world_plan
+
+    target = tmp_path / "out"
+    cfg = _config(SHOOTER, "shooter", "vertical")
+    cfg.starter_map = {"stages": 1, "length": "short", "lives": 5, "bombs": 1}
+    first = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert first.ok, _errors(first)
+    listed = jsonio.read(target / "game/data/stages.json")["stages"]
+    assert len(listed) == 1 and len(listed[0]["waves"]) == 6
+    mode = _text(target, "generated/scenes/combat/combat_mode.tscn")
+    assert "start_lives = 5" in mode
+    assert "start_count = 1" in _text(target, "generated/scenes/shmup/ship.tscn")
+    # somebody names the stage in the list; the next run adds a stage and leaves that alone
+    edited = jsonio.read(target / "game/data/stages.json")
+    edited["stages"][0]["title"] = "My First Stage"
+    jsonio.write(target / "game/data/stages.json", edited)
+    cfg = _config(SHOOTER, "shooter", "vertical")
+    cfg.starter_map = {
+        "stages": 4,  # the stored plan counts, not this
+        "length": "short",
+        "lives": 5,
+        "bombs": 1,
+        "added_stages": [{"name": "Asteroid Belt"}],
+    }
+    second = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert second.ok, _errors(second)
+    stored = world_plan.load(target)["stages"]
+    assert [s["id"] for s in stored["list"]] == ["stage_01", "stage_02"]
+    assert stored["added"] == ["Asteroid Belt"]
+    # the list is the user's and is not touched; the added stage is in rpggen's own list, from
+    # which the game takes what the user's does not have
+    listed = jsonio.read(target / "game/data/stages.json")["stages"]
+    assert [s["title"] for s in listed] == ["My First Stage"]
+    planned = jsonio.read(target / "generated/data/stages.json")["stages"]
+    assert [s["title"] for s in planned] == ["", "Asteroid Belt"]
+    assert planned[1]["scene"] == "res://generated/scenes/stages/stage_02.tscn"
+    mode = _text(target, "generated/scenes/combat/combat_mode.tscn")
+    assert 'planned_stages_path = "res://generated/data/stages.json"' in mode
+    assert (target / "generated/scenes/stages/stage_02.tscn").is_file()
+    assert not (target / "generated/scenes/stages/stage_03.tscn").exists()
+    assert _smoke(target)[-1] == "run_reaches_the_credits"
 
 
 def test_a_plain_rpg_pack_has_its_monsters_as_enemies_unturned(plain) -> None:
     target, _result = plain
-    waves = jsonio.read(target / "game/data/stages.json")["stages"][0]["waves"]
-    assert len(waves) == 10
+    stages = jsonio.read(target / "game/data/stages.json")["stages"]
+    assert len(stages) == 3 and all(len(s["waves"]) == 10 for s in stages)
     small = _text(target, "generated/scenes/shmup/enemies/popcorn_01.tscn")
     assert "sample_pack" in small and "rotation" not in small, "a monster is not laid on its side"
     assert 'orientation = "horizontal"' in small

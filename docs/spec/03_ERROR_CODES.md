@@ -105,6 +105,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | VAL-026 | W | Battle data problem in {file}: {problem}. | Fix the skill, actor, enemy or item resource (README.md, section 11, explains skills, statuses and enemy rules). |
 | VAL-027 | W | The map {map} cannot be reached from the starter map through doors. | Add a door pair to it (the dock's validator offers a fix), or ignore this for a map that is meant to be apart. |
 | VAL-028 | W | Door {node} in {file} leads nowhere: {what} does not exist. | Regenerate (rpggen mends the maps it made), or use Repair the world on the Results page or Fix in the dock's validator. |
+| VAL-029 | W | {stage} cannot be finished as it is planned: {problem}. | Change the stage's entry in rpggen/world_plan.json and game/data/stages.json (fewer bullets, an earlier wave), or delete both files and regenerate to plan the stages again. |
 | SMOKE-001 | E | Smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. |
 | SMOKE-002 | E | Smoke test timed out at step {step}. | See smoke log. |
 | REGEN-001 | W | User-modified generated file {file} not overwritten; new version at {file}.rpggen-new. | Resolve it with *Resolve conflicts* on the Results page or `rpggen conflicts --target <project>`. |

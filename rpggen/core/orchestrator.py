@@ -472,6 +472,9 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
     if state.cfg.archetype == "metroidvania":
         _plan_rooms(state, catalog)
         return
+    if state.cfg.archetype == "shmup":
+        _plan_stages(state)
+        return
     areas = state.cfg.starter_map.get("areas")
     if not areas:
         return
@@ -511,6 +514,31 @@ def _plan_rooms(state: _State, catalog: catalog_mod.Catalog) -> None:
     state.cb.on_log("world: " + room_plan.summary(plan["rooms"]))
     for note in [*plan["notes"], *notes]:
         state.cb.on_log("world: " + note)
+
+
+def _plan_stages(state: _State) -> None:
+    """A shoot 'em up's stages (T16.06): planned once from the options and the seed, stored in
+    the project's plan file, and never planned again once the game has its list of stages. A
+    stored plan that cannot be finished (somebody changed it) is reported, not replaced."""
+    from rpggen.core import wave_plan
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    facts = wave_plan.facts_of(state.cfg.resolution, state.cfg.base_tile_size)
+    try:
+        plan, notes = wave_plan.for_project(
+            root, state.cfg.starter_map_options(), state.cfg.seed, facts
+        )
+    except wave_plan.WavePlanError as exc:
+        state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
+        raise _Stop from None
+    for problem in wave_plan.check(plan["stages"]):
+        stage, _, what = problem.partition(": ")
+        state.issues.add("VAL-029", stage=stage, problem=what)
+    world_plan.save(root, plan)
+    state.cb.on_log("stages: " + wave_plan.summary(plan["stages"]))
+    for note in [*plan["notes"], *notes]:
+        state.cb.on_log("stages: " + note)
 
 
 def _record_world_hashes(state: _State) -> None:

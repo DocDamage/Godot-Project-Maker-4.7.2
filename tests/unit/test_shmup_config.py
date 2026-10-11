@@ -26,14 +26,16 @@ def test_the_config_of_a_shoot_em_up_is_valid_and_keeps_its_orientation() -> Non
     data = cfg.to_json()
     schema.validate("config", data)
     assert data["archetype"] == "shmup" and "starter_map" not in data, "vertical is the default"
-    assert config.starter_map_defaults("shmup") == {"orientation": "vertical"}
-    assert cfg.starter_map_options() == {"orientation": "vertical"}
+    assert config.starter_map_defaults("shmup")["orientation"] == "vertical"
+    assert cfg.starter_map_options() == config.starter_map_defaults("shmup")
     sideways = _cfg(starter_map={"orientation": "horizontal"})
     data = sideways.to_json()
     schema.validate("config", data)
-    assert data["starter_map"] == {"orientation": "horizontal"}
+    # an option that differs writes the whole set, with the defaults of the others (T16.06)
+    whole = {**config.starter_map_defaults("shmup"), "orientation": "horizontal"}
+    assert data["starter_map"] == whole
     again = config.GeneratorConfig.from_json(data)
-    assert again.starter_map_options() == {"orientation": "horizontal"}
+    assert again.starter_map_options() == whole
     assert again.to_json() == data
     data["starter_map"] = {"orientation": "diagonal"}
     with pytest.raises(Exception, match="CAT-002|orientation|diagonal"):
@@ -86,9 +88,9 @@ def test_the_summary_of_the_options_names_the_stage() -> None:
     summary = options.summarize(
         "shmup", cfg.features, cfg.starter_map_options(), 16, cfg.resolution
     )
-    assert summary.maps == [] and summary.world == "1 stage, scrolling up"
+    assert summary.maps == [] and summary.world == "3 stages, scrolling up"
     sideways = options.summarize(
         "shmup", cfg.features, {"orientation": "horizontal"}, 16, cfg.resolution
     )
-    assert sideways.world == "1 stage, scrolling right"
-    assert options.stages_text("shmup", {}) == "1 stage, scrolling up"
+    assert sideways.world == "3 stages, scrolling right"
+    assert options.stages_text("shmup", {}) == "3 stages, scrolling up"

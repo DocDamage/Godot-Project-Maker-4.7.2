@@ -24,6 +24,8 @@ func input_hash(ctx: BuildContext) -> String:
 		"orientation": ShmupBuild.orientation(ctx),
 		"view": ShmupBuild.view(ctx),
 		"tile": ShmupBuild.tile(ctx),
+		"bombs": ShmupBuild.option(ctx, "bombs", 3),
+		"auto_fire": ShmupBuild.option(ctx, "auto_fire", true),
 	})
 
 ## True for an asset the packs call a ship (the tag `ship`): its picture looks up.
@@ -86,6 +88,8 @@ func build(ctx: BuildContext) -> Array:
 	var explosion := load(ShmupBuild.EXPLOSION_PATH) as PackedScene if ResourceLoader.exists(ShmupBuild.EXPLOSION_PATH) else null
 	var ship := build_ship(ShmupBuild.frames_of(ctx, player), ShmupBuild.frame_size(ctx, player) if not player.is_empty() else Vector2i(16, 16),
 		ShmupBuild.orientation(ctx), ShmupBuild.view(ctx), ShmupBuild.tile(ctx), explosion, is_ship(ctx, player))
+	ship.get_node("Bomb").set("start_count", JsonUtil.to_int(ShmupBuild.option(ctx, "bombs", 3)))
+	ship.get_node("Input").set("auto_fire", JsonUtil.to_bool(ShmupBuild.option(ctx, "auto_fire", true)))
 	err = SceneUtil.save_scene(ship, ShmupBuild.SHIP_PATH)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": ShmupBuild.SHIP_PATH, "err": err}, ShmupBuild.SHIP_PATH))

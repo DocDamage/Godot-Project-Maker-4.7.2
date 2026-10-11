@@ -100,7 +100,8 @@ func is_inside_screen() -> bool:
 	return Rect2(-view * 0.5, view).has_point(on_screen())
 
 ## Called by the spawner: the enemy's place in the formation of `wave`, and what the entry of
-## the wave says about it (`path`, `drop`, `shoots`).
+## the wave says about it (`path`, `drop`, `shoots`, and how hard the plan made it: `fast`, a
+## factor of the speed of its bullets, and `tough`, a factor of its health).
 func spawned_in_wave(wave: RpgArcadeWave, index: int) -> void:
 	var places := RpgArcadeWave.offsets(wave.formation, wave.count, wave.gap)
 	var plain := places[index] if index < places.size() else Vector2.ZERO
@@ -111,6 +112,8 @@ func spawned_in_wave(wave: RpgArcadeWave, index: int) -> void:
 	formation = wave.formation
 	if wave.data.has("drop") and (index == wave.count - 1 or wave.count == 1):
 		drop = RpgUtil.to_str(wave.data["drop"])  # the last of a formation carries it
+	bullet_speed *= RpgUtil.to_float(wave.data.get("fast", 1.0), 1.0)
+	health = maxi(1, roundi(health * RpgUtil.to_float(wave.data.get("tough", 1.0), 1.0)))
 	_read_wave(wave.data, index)
 
 ## What a behaviour reads from the entry of its wave.

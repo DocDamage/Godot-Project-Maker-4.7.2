@@ -519,7 +519,125 @@ func test_the_recipes_build_the_enemy_scenes_and_share_out_the_pictures(t) -> vo
 	t.eq(EnemyRecipes.new().outputs(ctx), PackedStringArray([
 		"res://generated/scenes/shmup/enemies/popcorn_01.tscn", "res://generated/scenes/shmup/enemies/turret.tscn",
 		"res://generated/scenes/shmup/enemies/asteroid.tscn", "res://generated/scenes/shmup/enemies/carrier.tscn",
-		"res://generated/scenes/shmup/powerup.tscn"]))
+		"res://generated/scenes/shmup/powerup.tscn", "res://generated/scenes/shmup/boss.tscn"]))
 	var capsule := EnemyRecipes.build_powerup([] as Array[Texture2D], "vertical", VIEW, 16)
 	t.ok(capsule is RpgShmupPowerup and capsule.get_node("Visual") is Sprite2D)
 	capsule.free()
+
+# ---------------------------------------------------------------- the boss and the plan (T16.06)
+
+func _boss(way: String = "vertical") -> RpgShmupBoss:
+	var boss := EnemyRecipes.build_boss(null, Vector2i(64, 64), false, way, VIEW, 16, null) as RpgShmupBoss
+	boss.auto_advance = false
+	boss.intro_s = 0.25
+	boss.defeat_s = 0.25
+	return boss
+
+func test_the_boss_is_a_target_fires_its_patterns_and_touching_it_destroys_the_ship(t) -> void:
+	await Fixtures.tree().process_frame
+	var holder := _field()
+	var pool := _pool(holder)
+	var ship := _ship()
+	holder.add_child(ship)
+	ship.position = Vector2(0, 60)
+	ship.advance(STEP)
+	var boss := _boss()
+	boss.pool_override = pool
+	boss.position = Vector2(0, -40)
+	holder.add_child(boss)
+	t.eq([boss.hit_radius, boss.sweep_px, boss.bullet_speed], [25.6, 70.4, 88.0])
+	t.ok(boss.is_in_group(RpgShmupBulletPool.TARGET_GROUP))
+	boss.setup({"name": "Core", "health": 40, "points": 5000, "phases": [
+		{"until": 0.0, "movement": "still", "attacks": ["ring"], "interval": 1.0, "telegraph_s": 0.25, "count": 12, "fast": 2.0},
+		{"until": 0.5, "movement": "sweep", "attacks": ["fan"], "interval": 1.0, "telegraph_s": 0.25, "count": 5, "fast": 1.0},
+	]})
+	boss.begin()
+	boss.take_hit(10)
+	t.eq(boss.health, 40, "it cannot be hurt during its intro")
+	boss.advance(0.25)
+	t.ok(boss.is_fighting())
+	t.eq(boss.phase_extra().get("count"), 5, "the phase that ends at the higher health is fought first")
+	for i in 8:
+		boss.advance(STEP)
+	t.eq(pool.active(ENEMY), 5, "a fan of five after a second")
+	t.ok(boss.position.x != 0.0, "it sweeps across")
+	pool.advance(0.5, Rect2())
+	var middle := pool.positions(ENEMY)
+	var best := 9.0
+	for at in middle:
+		best = minf(best, absf((at - boss.position).angle_to(ship.position - boss.position)))
+	t.ok(best < 0.2, "the fan is at the ship")
+	pool.clear(ENEMY)
+	boss.take_hit(20)
+	t.eq(boss.phase_index(), 1, "the second phase at half its health")
+	t.eq([boss.phase_extra().get("count"), boss.phase_extra().get("fast")], [12, 2.0])
+	var ring := boss.volley("ring")
+	t.eq(ring.size(), 12)
+	t.near(ring[0].length(), 176.0, 0.001, "twice as fast")
+	t.eq(boss.volley("aimed").size(), 36, "a burst is three times the count")
+	t.eq(boss.volley("sweep").size(), 36)
+	t.eq(boss.volley("spiral").size(), 12)
+	var first := boss.volley("spiral")[0].angle()
+	boss.volleys += 1
+	t.near(angle_difference(first, boss.volley("spiral")[0].angle()), deg_to_rad(12.0), 0.0001, "a spiral turns from volley to volley")
+	for i in 8:
+		boss.advance(STEP)
+	t.eq(pool.active(ENEMY), 12, "a ring in the second phase")
+	# a touch of it destroys the ship; beaten, its bullets are gone and it is no target
+	ship.position = boss.position + Vector2(10, 0)
+	boss.advance(STEP)
+	t.ok(ship.dead)
+	var events: Array = []
+	boss.defeated.connect(func() -> void: events.append("defeated"))
+	boss.take_hit(99)
+	t.eq(events, ["defeated"])
+	t.eq(pool.active(ENEMY), 0)
+	t.ok(not boss.is_in_group(RpgShmupBulletPool.TARGET_GROUP))
+	boss.advance(0.25)
+	t.ok(boss.is_queued_for_deletion(), "after its defeat it is gone")
+	var side := _boss("horizontal")
+	t.eq([side.travel(), side.across(), side.sweep_px], [Vector2.LEFT, Vector2(0, -1), 39.6], "it sweeps up and down in a game that scrolls right")
+	side.free()
+	_drop(holder)
+
+func test_a_harder_wave_makes_its_enemies_tougher_and_their_bullets_faster(t) -> void:
+	var wave := RpgArcadeWave.from_dict({"formation": "line", "count": 2, "fast": 1.5, "tough": 3, "fan": 7})
+	var turret := _enemy("turret") as RpgShmupTurret
+	turret.spawned_in_wave(wave, 0)
+	t.eq([turret.health, turret.bullet_speed, turret.fan_count, turret.fan_deg], [9, 132.0, 7, 72.0])
+	turret.free()
+	var plain := _enemy("turret") as RpgShmupTurret
+	plain.spawned_in_wave(RpgArcadeWave.from_dict({"formation": "line", "count": 2}), 0)
+	t.eq([plain.health, plain.bullet_speed, plain.fan_count, plain.fan_deg], [3, 88.0, 3, 30.0], "a wave that says nothing leaves them as they are")
+	plain.free()
+
+func test_the_list_of_stages_keeps_what_it_has_and_takes_a_stage_that_was_added(t) -> void:
+	var listed: Array[Dictionary] = [{"scene": "res://generated/scenes/stages/stage_01.tscn", "title": "Mine", "waves": []}]
+	var planned: Array[Dictionary] = []
+	planned.assign(StageRecipes.with_scenes([{"title": "", "waves": [1]}, {"title": "New"}]))
+	var both := RpgArcadeStageSequence.merged(listed, planned)
+	t.eq(both.size(), 2)
+	t.eq(both[0], listed[0], "what the file says of a stage is not changed")
+	t.eq(both[1], {"title": "New", "scene": "res://generated/scenes/stages/stage_02.tscn"})
+	t.eq(RpgArcadeStageSequence.merged(both, planned).size(), 2, "nothing is added twice")
+	# the mode reads the game's list and takes the added stage from the plan's
+	var mine := "user://test_shmup_mine.json"
+	var theirs := "user://test_shmup_plan.json"
+	for pair: Array in [[mine, listed], [theirs, planned]]:
+		var file := FileAccess.open(pair[0], FileAccess.WRITE)
+		file.store_string(JSON.stringify({"stages": pair[1]}))
+		file.close()
+	var mode := RpgArcadeMode.new()
+	mode.stages_path = mine
+	mode.planned_stages_path = theirs
+	t.eq([mode.stages().size(), mode.stages().stage_at(0).get("title"), mode.stages().stage_at(1).get("title")], [2, "Mine", "New"])
+	mode.free()
+	DirAccess.remove_absolute(mine)
+	DirAccess.remove_absolute(theirs)
+	var ctx := _ctx()
+	t.eq(StageRecipe.plan(ctx).size(), 1, "without a stored plan: one stage with the fixed waves")
+	t.eq(StageRecipe.new().outputs(ctx)[0], "res://generated/scenes/stages/stage_01.tscn")
+	var boss := EnemyRecipes.build_boss(null, Vector2i(64, 64), false, "vertical", VIEW, 16, null, 3.0)
+	t.ok(boss is RpgShmupBoss and boss.get_node("Visual") is Polygon2D)
+	t.eq((boss.get_node("Visual") as Node2D).scale, Vector2(3, 3))
+	boss.free()

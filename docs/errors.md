@@ -145,6 +145,7 @@
 | VAL-026 | warning | Battle data problem in {file}: {problem}. | Fix the skill, actor, enemy or item resource (README.md, section 11, explains skills, statuses and enemy rules). |
 | VAL-027 | warning | The map {map} cannot be reached from the starter map through doors. | Add a door pair to it (the dock's validator offers a fix), or ignore this for a map that is meant to be apart. |
 | VAL-028 | warning | Door {node} in {file} leads nowhere: {what} does not exist. | Regenerate (rpggen mends the maps it made), or use Repair the world on the Results page or Fix in the dock's validator. |
+| VAL-029 | warning | {stage} cannot be finished as it is planned: {problem}. | Change the stage's entry in rpggen/world_plan.json and game/data/stages.json (fewer bullets, an earlier wave), or delete both files and regenerate to plan the stages again. |
 
 ## Smoke test (SMOKE)
 

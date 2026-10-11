@@ -313,6 +313,14 @@ shot whole pays (`RpgArcadeSpawner.cleared_whole`, `RpgArcadeStage.formation_bon
 `RpgArcadeStage.adopt(enemy, at)` takes in an enemy no wave brought and scores its kill;
 `RpgArcadeLives.gain()` is one more life.
 
+`RpgShmupBoss` is the arcade boss as a target of the player's bullets: `take_hit`, a touch
+that destroys the ship, and `volley(attack)` for the attacks `ring`, `fan`, `spiral`, `aimed`
+and `sweep`, with the `count` and `fast` its phase has in the stage file. An enemy reads `fast`
+(its bullets) and `tough` (its health) from its wave, a turret also `fan`.
+`RpgArcadeMode.start_lives` is the lives of a run; `planned_stages_path` names the generator's
+own list of stages, from which the mode takes what `stages_path` does not list
+(`RpgArcadeStageSequence.merged`).
+
 `RpgShmupExplosion` plays once and is gone; `RpgShmupStarfield` draws the stars of a stage whose
 packs have no background; `RpgShmupHud` adds the bombs and the weapon to the arcade HUD.
 

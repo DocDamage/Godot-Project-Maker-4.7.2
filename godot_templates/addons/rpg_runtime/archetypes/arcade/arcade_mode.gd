@@ -32,6 +32,12 @@ const SCREEN_LAYER := 80
 
 ## The list of the stages (set by the recipe: the stages.json of the game).
 @export var stages_path: String = ""
+## The stages of the plan as the generator made them; a stage of it that the list above does not
+## have (one added to the plan later) is played after the listed ones.
+@export var planned_stages_path: String = ""
+
+## The lives of a run (set by the recipe from the options).
+@export var start_lives: int = 3
 
 ## Read by the save manager: every stage entered saves, without a wait and without a toast.
 var autosave_on_every_map := true
@@ -60,6 +66,7 @@ func _ensure_parts() -> void:
 	if lives == null:
 		lives = RpgArcadeLives.new()
 		lives.name = "Lives"
+		lives.start_lives = start_lives
 		add_child(lives)
 	if score == null:
 		score = get_node_or_null("Score") as RpgArcadeScore
@@ -96,6 +103,9 @@ func start_encounter(_data: RpgEncounterData) -> void:
 func stages() -> RpgArcadeStageSequence:
 	if sequence == null:
 		sequence = RpgArcadeStageSequence.load_file(stages_path)
+		if planned_stages_path != "":
+			var planned := RpgArcadeStageSequence.load_file(planned_stages_path)
+			sequence.stages = RpgArcadeStageSequence.merged(sequence.stages, planned.stages)
 	return sequence
 
 func _on_score_changed(points: int, _multiplier: int) -> void:

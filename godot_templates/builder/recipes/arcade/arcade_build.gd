@@ -16,6 +16,8 @@ const HUD_SCRIPT := DIR + "ui/arcade_hud.gd"
 const SPAWN_SCRIPT := "res://addons/rpg_runtime/world/spawn_point.gd"
 
 const STAGES_PATH := "res://game/data/stages.json"
+## The stages of the plan as rpggen made them, written on every build (see StageRecipes.save_list).
+const PLANNED_STAGES_PATH := "res://generated/data/stages.json"
 const STAGES_DIR := "res://generated/scenes/stages/"
 const MODE_PATH := "res://generated/scenes/combat/combat_mode.tscn"
 
@@ -47,6 +49,7 @@ static func save_mode(ctx: BuildContext, script_path: String = MODE_SCRIPT, prop
 	if not SceneUtil.attach_script(root, script_path):
 		issues.append(ctx.make_issue("VAL-002", {"file": script_path}, script_path))
 	root.set("stages_path", STAGES_PATH)
+	root.set("planned_stages_path", PLANNED_STAGES_PATH)
 	for key: Variant in properties:
 		root.set(JsonUtil.to_str(key), properties[key])
 	var err := SceneUtil.save_scene(root, MODE_PATH)

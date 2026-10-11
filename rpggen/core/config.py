@@ -103,8 +103,10 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
 
         return room_plan.defaults()
     if archetype == "shmup":
-        # the game is seen from the top and scrolls up, or from the side and scrolls right
-        return {"orientation": "vertical"}
+        # a run of stages (T16.06): how it scrolls, how many, how long, how hard
+        from rpggen.core import wave_plan
+
+        return wave_plan.defaults()
     if archetype in ARCADE_KINDS:
         return {}
     return {

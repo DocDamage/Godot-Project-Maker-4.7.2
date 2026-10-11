@@ -3,10 +3,10 @@ extends RefCounted
 ## stages (game/data/stages.json). The stage is the arcade stage of StageRecipes with a
 ## background that loops along the way it scrolls (the BACKGROUND pictures of the packs, the
 ## farthest slowest; a field of stars when the packs have none), the bullet pool and the ship.
-## Its waves are a fixed set of ten for now (small enemies in formations, turrets, rocks and a
-## carrier); the planner of whole stages is a later card. The stage ends where its scrolling ends.
+## There is a scene for every stage of the plan rpggen stored (stage_01.tscn, stage_02.tscn,
+## ...). A stage ends where its scrolling ends, with its boss.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -15,14 +15,18 @@ const ArcadeBuild := preload("../arcade/arcade_build.gd")
 const StageRecipes := preload("../arcade/stage_recipes.gd")
 const ShmupBuild := preload("shmup_build.gd")
 const EnemyRecipes := preload("enemy_recipes.gd")
+const WorldPlan := preload("../../lib/world_plan.gd")
 
 const PARALLAX_TAG := "parallax:"
 ## How fast a layer scrolls against the camera: the farthest first.
 const FACTORS: Array[float] = [0.2, 0.45, 0.7, 0.85]
 const BACKDROP := Color(0.03, 0.03, 0.08)
 
-func outputs(_ctx: BuildContext) -> PackedStringArray:
-	var out := PackedStringArray([ArcadeBuild.stage_path(0)])
+func outputs(ctx: BuildContext) -> PackedStringArray:
+	var out := PackedStringArray()
+	for i in plan(ctx).size():
+		out.append(ArcadeBuild.stage_path(i))
+	out.append(ArcadeBuild.PLANNED_STAGES_PATH)
 	if not FileAccess.file_exists(ArcadeBuild.STAGES_PATH):
 		out.append(ArcadeBuild.STAGES_PATH)
 	return out
@@ -39,8 +43,37 @@ func input_hash(ctx: BuildContext) -> String:
 		"view": ShmupBuild.view(ctx),
 	})
 
-## The stages of the game as stages.json has them (without their scenes).
+## The stages of the game as stages.json has them (without their scenes): those of the stored
+## plan (rpggen/world_plan.json, the section `stages`, made by rpggen from the options and the
+## seed), each wave and boss with the scene of its enemy. A project without a stored plan gets
+## one stage with the fixed waves of `FIRST_STAGE`.
 static func plan(ctx: BuildContext) -> Array:
+	var stored := JsonUtil.to_array(JsonUtil.to_dict(WorldPlan.read().get("stages", {})).get("list", []))
+	if stored.is_empty():
+		return fallback_plan(ctx)
+	var looks := EnemyRecipes.popcorn_count(ctx)
+	var out: Array = []
+	for raw: Variant in stored:
+		var stage := JsonUtil.to_dict(raw).duplicate(true)
+		stage.erase("scene")
+		var waves: Array = []
+		for raw_wave: Variant in JsonUtil.to_array(stage.get("waves", [])):
+			var wave := JsonUtil.to_dict(raw_wave)
+			var behaviour := JsonUtil.to_str(wave.get("enemy", "popcorn"))
+			if behaviour == "popcorn":
+				wave["scene"] = EnemyRecipes.popcorn_path(JsonUtil.to_int(wave.get("look", 0)) % maxi(1, looks))
+			else:
+				wave["scene"] = EnemyRecipes.scene_path(behaviour)
+			waves.append(wave)
+		stage["waves"] = waves
+		var boss := JsonUtil.to_dict(stage.get("boss", {}))
+		if not boss.is_empty():
+			boss["scene"] = EnemyRecipes.BOSS_PATH
+			stage["boss"] = boss
+		out.append(stage)
+	return out
+
+static func fallback_plan(ctx: BuildContext) -> Array:
 	var way := ShmupBuild.orientation(ctx)
 	var view := ShmupBuild.view(ctx)
 	var along := float(view.x if way == "horizontal" else view.y)

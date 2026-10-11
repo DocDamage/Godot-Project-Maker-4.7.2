@@ -10,6 +10,7 @@
       "items": {"$ref": "#/$defs/Area"}
     },
     "rooms": {"$ref": "#/$defs/Rooms"},
+    "stages": {"$ref": "#/$defs/Stages"},
     "grid": {
       "type": "object",
       "additionalProperties": {"$ref": "#/$defs/Cell"}
@@ -39,6 +40,43 @@
   "required": ["world_plan_version", "seed", "areas", "grid", "notes", "maps"],
   "additionalProperties": false,
   "$defs": {
+    "Stages": {
+      "type": "object",
+      "properties": {
+        "plan_version": {"const": 1},
+        "seed": {"type": "integer"},
+        "orientation": {"enum": ["vertical", "horizontal"]},
+        "difficulty": {"enum": ["easy", "normal", "hard"]},
+        "length": {"enum": ["short", "medium", "long"]},
+        "view": {"$ref": "#/$defs/Cell"},
+        "tile": {"type": "integer", "minimum": 8},
+        "added": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": "array", "items": {"type": "string"}},
+        "list": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "scene": {"type": "string"},
+              "title": {"type": "string"},
+              "level": {"type": "integer", "minimum": 0},
+              "axis": {"enum": ["up", "right", "none"]},
+              "speed": {"type": "number"},
+              "length": {"type": "number", "minimum": 0},
+              "exit": {"enum": ["reach_end", "clear_waves", "custom"]},
+              "par_time_s": {"type": "number"},
+              "waves": {"type": "array", "items": {"type": "object", "required": ["id", "enemy", "at"]}},
+              "boss": {"type": "object"}
+            },
+            "required": ["id", "scene", "axis", "speed", "length", "exit", "waves"]
+          }
+        }
+      },
+      "required": ["plan_version", "orientation", "difficulty", "view", "tile", "list"],
+      "additionalProperties": false
+    },
     "Rooms": {
       "type": "object",
       "properties": {

@@ -7,9 +7,10 @@ extends RefCounted
 ## cannon, tower) is the turret, the largest of the others is the carrier when there are two
 ## sizes, and the rest are the small ones. The asteroid is a HAZARD (or an ENEMY) named
 ## asteroid, rock or meteor. A behaviour without a picture gets a drawn shape; a carrier
-## without one is the small enemy, twice as large.
+## without one is the small enemy, twice as large. The boss (boss.tscn) is the BOSS picture,
+## else the largest ENEMY picture three times as large, else a drawn shape.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -19,6 +20,9 @@ const ShmupBuild := preload("shmup_build.gd")
 
 const DIR := "res://generated/scenes/shmup/enemies/"
 const POWERUP_PATH := "res://generated/scenes/shmup/powerup.tscn"
+const BOSS_PATH := "res://generated/scenes/shmup/boss.tscn"
+const BOSS_SCRIPT := ShmupBuild.DIR + "boss.gd"
+const BOSS_SHAPE := Color(0.8, 0.25, 0.3)
 const ENEMY_DIR := ShmupBuild.DIR + "enemies/"
 const SCRIPTS := {
 	"popcorn": ENEMY_DIR + "popcorn.gd",
@@ -100,6 +104,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	for behaviour: String in ["turret", "asteroid", "carrier"]:
 		out.append(scene_path(behaviour))
 	out.append(POWERUP_PATH)
+	out.append(BOSS_PATH)
 	return out
 
 func input_hash(ctx: BuildContext) -> String:
@@ -115,6 +120,7 @@ func input_hash(ctx: BuildContext) -> String:
 	var capsules: Array = []
 	for a in ShmupBuild.assets(ctx, "POWERUP"):
 		capsules.append(a["id"])
+	ids["boss"] = boss_asset(ctx).get("id", "")
 	return ctx.stable_hash({"v": RECIPE_VERSION, "roster": ids, "powerups": capsules,
 		"orientation": ShmupBuild.orientation(ctx), "view": ShmupBuild.view(ctx), "tile": ShmupBuild.tile(ctx)})
 
@@ -152,6 +158,36 @@ static func build_enemy(behaviour: String, frames: SpriteFrames, frame: Vector2i
 	root.set("powerup_scene", powerup)
 	var shape: Color = SHAPES[behaviour]
 	var visual := _visual(frames, is_ship, way, shape, Vector2(frame))
+	visual.scale = Vector2(zoom, zoom)
+	SceneUtil.add(root, visual, root, "Visual")
+	return root
+
+## The picture the boss is made of: the BOSS asset, else the largest ENEMY one ({} for none).
+static func boss_asset(ctx: BuildContext) -> Dictionary:
+	var own := ShmupBuild.chosen(ctx, "BOSS", "boss")
+	if not own.is_empty():
+		return own
+	var best := {}
+	for a in ShmupBuild.assets(ctx, "ENEMY"):
+		if best.is_empty() or _area(ctx, a) > _area(ctx, best):
+			best = a
+	return best
+
+## The scene of the boss. `frames` null draws a shape; `zoom` enlarges the picture (a boss made
+## of an enemy's).
+static func build_boss(frames: SpriteFrames, frame: Vector2i, is_ship: bool, way: String, view: Vector2i,
+		tile: int, explosion: PackedScene, zoom: float = 1.0) -> Node2D:
+	var root := Node2D.new()
+	root.name = "Boss"
+	SceneUtil.attach_script(root, BOSS_SCRIPT)
+	root.set("orientation", way)
+	root.set("bullet_speed", tile * 5.5)
+	root.set("hit_radius", maxf(6.0, minf(frame.x, frame.y) * 0.4 * zoom))
+	root.set("explosion_scene", explosion)
+	var across := view.y if way == "horizontal" else view.x
+	root.set("sweep_px", across * 0.22)
+	root.z_index = 2
+	var visual := _visual(frames, is_ship, way, BOSS_SHAPE, Vector2(frame))
 	visual.scale = Vector2(zoom, zoom)
 	SceneUtil.add(root, visual, root, "Visual")
 	return root
@@ -223,4 +259,9 @@ func build(ctx: BuildContext) -> Array:
 	carrier.set("escort_scene", load(popcorn_path(0)) as PackedScene if ResourceLoader.exists(popcorn_path(0)) else null)
 	carrier.set("drop", "weapon:spread")
 	_save(ctx, carrier, scene_path("carrier"), issues)
+	var chief := boss_asset(ctx)
+	var own_boss := not chief.is_empty() and JsonUtil.to_str(ctx.catalog.effective(chief).get("role", "")) == "BOSS"
+	var chief_frame := ShmupBuild.frame_size(ctx, chief) if not chief.is_empty() else plain * 4
+	_save(ctx, build_boss(ShmupBuild.frames_of(ctx, chief), chief_frame, _is_ship(ctx, chief), way, view, tile, explosion,
+		1.0 if own_boss or chief.is_empty() else 3.0), BOSS_PATH, issues)
 	return issues

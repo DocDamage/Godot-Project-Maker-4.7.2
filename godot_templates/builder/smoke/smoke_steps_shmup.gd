@@ -3,8 +3,9 @@ extends RefCounted
 ## first stage. It flies with the real input actions, fires into the bullet pool, drops a bomb,
 ## is destroyed and comes back, while the stage scrolls; then the first wave of enemies is
 ## fought and a power-up is picked up. The steps about the ship alone hold the scrolling, so
-## that no enemy comes while they run. The bosses and the end of a run get their steps with
-## their own cards.
+## that no enemy comes while they run. Then the boss of the first stage is fought and beaten,
+## and the run is taken through every other stage and its boss to the credits (the stages are
+## skipped to their end: the steps are about the bosses and the way from stage to stage).
 
 const SAVE_DIR := "user://smoke_saves"
 
@@ -21,6 +22,8 @@ func steps() -> Array[Dictionary]:
 		{"name": "ship_is_destroyed_and_returns", "fn": _ship_is_destroyed_and_returns, "timeout_s": 20.0},
 		{"name": "wave_is_fought", "fn": _wave_is_fought, "timeout_s": 40.0},
 		{"name": "power_up_is_picked_up", "fn": _power_up_is_picked_up, "timeout_s": 20.0},
+		{"name": "boss_is_beaten", "fn": _boss_is_beaten, "timeout_s": 60.0},
+		{"name": "run_reaches_the_credits", "fn": _run_reaches_the_credits, "timeout_s": 240.0},
 	]
 
 # ---------------------------------------------------------------- helpers
@@ -280,4 +283,96 @@ func _power_up_is_picked_up() -> String:
 		return "a weapon capsule left the weapon at level %d" % ship.weapon().level
 	ship.set(&"_safe_left", 0.0)
 	stage.scroller().release(self)
+	return ""
+
+## Takes the stage that is played to its end: the scroller is put there and what is on the
+## screen is shot. Returns the boss when it has come in and fights, or null.
+func _skip_to_boss() -> RpgShmupBoss:
+	var stage := _stage()
+	var ship := _ship()
+	if ship != null:
+		ship.set(&"_safe_left", 600.0)
+	var scroll := stage.scroller()
+	scroll.release(self)
+	scroll.progress = scroll.length
+	for i in 600:
+		for enemy in _enemies():
+			enemy.take_hit(999)
+		if stage.boss != null and is_instance_valid(stage.boss) and stage.boss.is_fighting():
+			return stage.boss as RpgShmupBoss
+		await _tree().physics_frame
+	return null
+
+func _boss_is_beaten() -> String:
+	var stage := _stage()
+	var mode := _mode()
+	var pool := _pool()
+	if not stage.has_boss():
+		return "the first stage has no boss"
+	var boss := await _skip_to_boss()
+	if boss == null:
+		return "the boss of the first stage did not come in at the end of the stage"
+	if not stage.scroller().is_held():
+		return "the stage scrolls on while its boss fights"
+	var view := Rect2(Vector2.ZERO, _tree().root.get_visible_rect().size)
+	if not view.has_point(boss.get_global_transform_with_canvas().origin):
+		return "the boss is not on the screen (%s)" % boss.get_global_transform_with_canvas().origin
+	if boss.phases.size() < 2:
+		return "the boss has %d phase(s); the plan gives it two at least" % boss.phases.size()
+	pool.clear(RpgShmupBulletPool.Team.ENEMY)
+	if not await _wait_for(func() -> bool: return pool.active(RpgShmupBulletPool.Team.ENEMY) > 0, 600):
+		return "the boss did not fire in ten seconds"
+	var before := boss.phase_index()
+	boss.take_hit(boss.health - 1)
+	if boss.phase_index() == before:
+		return "the boss did not change its phase as its health fell"
+	var score := mode.score.points
+	boss.take_hit(5)
+	if mode.score.points <= score:
+		return "beating the boss gave no points"
+	if pool.active(RpgShmupBulletPool.Team.ENEMY) != 0:
+		return "the bullets of a beaten boss are still flying"
+	var router := _router()
+	if mode.stages().size() < 2:
+		# the only stage: its boss ends the run
+		if not await _wait_for(func() -> bool: return mode.phase == RpgArcadeMode.Phase.FINISHED, 600):
+			return "the run did not end after the boss of its only stage"
+		return ""
+	if not await _wait_for(func() -> bool: return _stage() != null and _stage().stage_index == 1 and not router.is_busy(), 900):
+		return "the second stage did not begin after the boss of the first"
+	if mode.lives.count < 1 or mode.phase != RpgArcadeMode.Phase.PLAYING:
+		return "the run is not being played in the second stage"
+	return ""
+
+func _run_reaches_the_credits() -> String:
+	var mode := _mode()
+	var router := _router()
+	# a run of one stage ended with the boss of the step before
+	var finished := [mode.phase == RpgArcadeMode.Phase.FINISHED]
+	if not finished[0]:
+		mode.run_finished.connect(func(_points: int, _rank: int) -> void: finished[0] = true, CONNECT_ONE_SHOT)
+	var count := mode.stages().size()
+	for index in range(mode.stages().index if not finished[0] else count, count):
+		if not await _wait_for(func() -> bool: return _stage() != null and _stage().stage_index == index and not router.is_busy() and mode.phase == RpgArcadeMode.Phase.PLAYING, 900):
+			return "stage %d did not begin" % (index + 1)
+		var boss := await _skip_to_boss()
+		if boss == null:
+			return "the boss of stage %d did not come in" % (index + 1)
+		boss.take_hit(boss.health)
+	if not await _wait_for(func() -> bool: return finished[0], 900):
+		return "the run did not end after the boss of the last stage"
+	if RpgArcadeHighScores.read().is_empty():
+		return "the finished run is not in the high-score table"
+	if not mode.saved_run().is_empty():
+		return "a finished run is still in the saved game"
+	var credits := false
+	for i in 120:
+		for node in router.find_children("*", "Control", true, false):
+			if node is RpgCreditsMenu:
+				credits = true
+		if credits:
+			break
+		await _tree().process_frame
+	if not credits:
+		return "the credits did not open after the last stage"
 	return ""
