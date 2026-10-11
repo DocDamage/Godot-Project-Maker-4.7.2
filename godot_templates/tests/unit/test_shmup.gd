@@ -504,7 +504,7 @@ func test_the_recipes_build_the_ship_the_explosion_and_the_background(t) -> void
 	t.eq([ShmupBuild.bullet_kind("pack.bullets.laser_blue"), ShmupBuild.bullet_kind("pack.fx.rocket"),
 		ShmupBuild.bullet_kind("pack.enemy_shot"), ShmupBuild.bullet_kind("pack.bullets.bullet")], ["laser", "missile", "enemy", "bullet"])
 	t.eq(HudRecipe.script_for("shmup"), "res://addons/rpg_runtime/archetypes/shmup/ui/shmup_hud.gd")
-	t.eq(HudRecipe.script_for("racing"), ArcadeBuild.HUD_SCRIPT)
+	t.eq(HudRecipe.script_for("pinball"), ArcadeBuild.HUD_SCRIPT, "a kind without rows of its own has the framework HUD")
 
 func test_the_hud_has_the_bombs_and_the_weapon(t) -> void:
 	await Fixtures.tree().process_frame

@@ -121,6 +121,8 @@ def stages_text(archetype: str, starter_map: dict[str, Any]) -> str:
             return stage_plan.describe(starter_map)
         except stage_plan.StagePlanError:
             return ""
+    if archetype == "racing":
+        return "1 track"  # the track plan is T16.13
     return "stages"
 
 

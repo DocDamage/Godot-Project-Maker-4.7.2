@@ -57,6 +57,7 @@ func input_hash(ctx: BuildContext) -> String:
 const KIND_STRINGS := {
 	"shmup": "res://addons/rpg_runtime/archetypes/shmup/shmup_strings.gd",
 	"run_and_gun": "res://addons/rpg_runtime/archetypes/run_and_gun/run_and_gun_strings.gd",
+	"racing": "res://addons/rpg_runtime/archetypes/racing/racing_strings.gd",
 }
 
 func _archetype_keys(ctx: BuildContext) -> Dictionary:

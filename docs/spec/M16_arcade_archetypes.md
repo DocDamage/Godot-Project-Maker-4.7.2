@@ -111,7 +111,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.09 | Run and gun: weapons, enemies, spawners | M | T16.08 | done; the enemies are the kind's own (not the metroidvania's), and a sniper has no ledge until the stage planner (the notes) |
 | T16.10 | Run and gun: stages and bosses, the stage plan | L | T16.09 | done; the chunks are the plan's own (the room plan gives the alphabet and the reach), no ladders or breakable blocks yet, and the run to the credits is a smoke step (the notes) |
 | T16.11 | Run and gun: the grapple | M | T16.10 | done; the chain is drawn, `grapple`-tagged tiles are a switch of the runtime only, the *Bionic* preset is `stage_plan.PRESETS` until the wizard (T16.16), and the run to the last boss is a smoke step with one real swing (the notes) |
-| T16.12 | Racing: the car and the camera | M | T16.01, T16.03 | open |
+| T16.12 | Racing: the car and the camera | M | T16.01, T16.03 | done; the track says what its cells are made of (the tiles of a pack do not), the test track is painted with one road tile or drawn, and bumps between cars wait for the rivals (the notes) |
 | T16.13 | Racing: the track plan and the track recipe | L | T16.12 | open |
 | T16.14 | Racing: rivals, laps, checkpoints, pickups | M | T16.13 | open |
 | T16.15 | Racing: championship, results and the HUD | S | T16.14 | open |

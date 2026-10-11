@@ -70,7 +70,9 @@ ARCHETYPE_SMOKE_STEPS = {"turn_based": SMOKE_STEPS_TURN_BASED, "arpg": SMOKE_STE
 # shared one walks a village): the title screen and a new game are among its steps.
 SMOKE_STEPS_SHMUP = "res://generated/builder/smoke/smoke_steps_shmup.gd"
 SMOKE_STEPS_RUN_AND_GUN = "res://generated/builder/smoke/smoke_steps_run_and_gun.gd"
+SMOKE_STEPS_RACING = "res://generated/builder/smoke/smoke_steps_racing.gd"
 OWN_SMOKE_STEPS = {
+    "racing": SMOKE_STEPS_RACING,
     "metroidvania": SMOKE_STEPS_METROIDVANIA,
     "shmup": SMOKE_STEPS_SHMUP,
     "run_and_gun": SMOKE_STEPS_RUN_AND_GUN,

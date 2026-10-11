@@ -86,6 +86,11 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
         # the grapple arm (T16.11): fires along the aim, and lets go again
         bindings["grapple"] = {"keys": ["L", "V"], "joy_buttons": [1]}
         bindings["down"] = {"keys": ["S", "Down"], "joy_buttons": [12], "joy_axes": [[1, 1.0]]}
+    if archetype == "racing":
+        # the pedal and the brake (which reverses); left and right steer (T16.12)
+        bindings["accelerate"] = {"keys": ["Up", "W"], "joy_buttons": [0], "joy_axes": [[5, 1.0]]}
+        bindings["brake"] = {"keys": ["Down", "S"], "joy_buttons": [1], "joy_axes": [[4, 1.0]]}
+        bindings["boost"] = {"keys": ["Shift", "Space"], "joy_buttons": [2]}
     if archetype == "shmup":
         # Z fires and X bombs, as the genre has it; Shift flies slowly (the left trigger)
         bindings["shoot"] = {"keys": ["Z", "J"], "mouse_buttons": [1], "joy_buttons": [0]}
@@ -105,6 +110,9 @@ STARTER_MAP_COUNTS = {  # key -> (minimum, maximum)
 }
 
 
+RACING_DEFAULTS = {"steering": "relative", "camera": "follow"}
+
+
 def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
     """The starter map of every project before M11 (so the defaults reproduce it exactly). A
     metroidvania has a *starter world* of rooms instead (T14.06), with options of its own."""
@@ -122,6 +130,9 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         from rpggen.core import stage_plan
 
         return stage_plan.defaults()
+    if archetype == "racing":
+        # how the car is steered and what the camera does (T16.12); the tracks come with T16.13
+        return dict(RACING_DEFAULTS)
     if archetype in ARCADE_KINDS:
         return {}
     return {

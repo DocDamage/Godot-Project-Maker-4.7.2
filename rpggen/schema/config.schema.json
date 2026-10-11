@@ -24,7 +24,8 @@
         "arpg",
         "metroidvania",
         "shmup",
-        "run_and_gun"
+        "run_and_gun",
+        "racing"
       ]
     },
     "packs": {
@@ -165,6 +166,8 @@
         "left_edge_kills": {"type": "boolean"},
         "keep_weapon": {"type": "boolean"},
         "grapple": {"type": "boolean"},
+        "steering": {"enum": ["relative", "absolute"]},
+        "camera": {"enum": ["follow", "fixed"]},
         "jump": {"type": "boolean"},
         "stages": {"type": "integer", "minimum": 1, "maximum": 8},
         "length": {"enum": ["short", "medium", "long"]},

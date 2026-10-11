@@ -312,6 +312,27 @@ fires one shot, `RpgGunTurret` fires a fan, `RpgJumperEnemy` hops, `RpgWallCanno
 and can only be hit while it is open. The right edge of the screen is a wall for the soldier,
 so a wave that is `blocking` (a trap) holds both the camera and the soldier until it is cleared.
 
+**Racing** (`archetypes/racing/`). `RpgCar` is a `CharacterBody2D` seen from above that is told
+what to want: `throttle` (1 the pedal, -1 the brake, which reverses a car that stands), `steer`
+(-1 left to 1 right), `press_boost()`; with `absolute_steering` the `stick` is the heading.
+`RpgCarInput` (the child `Input` of the player's car) tells it from the actions `accelerate`,
+`brake`, `boost`, `move_left` / `move_right`. It drives by `RpgCarPhysics`, pure functions that
+rpggen has too (`rpggen/core/car_math.py`; both are tested against
+one table of cases in rpggen's tests): a top speed, a brake, a turn rate that falls with the speed
+(none standing), a grip and a top speed per surface (`road`, `dirt`, `grass`, `oil`, `boost`),
+sideways speed that fades with the grip (`drifting` while there is much of it), a bump that
+costs speed (`bumped(lost_tiles)`), a boost of a second and a half. Read `speed_tiles()`,
+`lateral_tiles()`, `surface`, `boosts`, `is_boosting()`; `place(at, heading)` puts it somewhere.
+What it drives on is what the track's `RpgTrackSurfaces` says of the cell under it (`rows` of
+`r` road, `g` grass, `d` dirt, `o` oil, `b` a boost arrow), else the tile's `footstep` or the
+surface of its asset, as a walking player hears it. `RpgHeadingSprite` (the child `Visual`)
+shows the frame of a sheet of `headings` nearest the heading (the first points up, then
+clockwise) or rotates a single picture. `RpgRaceCamera` follows the car, looks a quarter of
+the screen ahead along its velocity at the top speed and zooms out to 0.85; `fixed` keeps it
+over the whole `track`. `RpgRacingMode` is the arcade run with the player's `car`; a track is
+an `RpgArcadeStage` that does not scroll and ends when `finish()` is called.
+`RpgRacingHud` adds the rows `speed` and `boosts`.
+
 `RpgGrapple` (the soldier's child `Grapple`, in a game with the option `grapple`) is the arm:
 `soldier.press_grapple()` (the action `grapple`) fires its hook along the aim (up, an upper
 diagonal, forward; `RpgGrapple.direction`), `reach_tiles` far. It holds on any solid tile or

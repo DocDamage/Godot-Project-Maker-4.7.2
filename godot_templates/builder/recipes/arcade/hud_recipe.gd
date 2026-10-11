@@ -14,6 +14,7 @@ const OUT_PATH := "res://generated/scenes/ui/hud_arcade.tscn"
 const KIND_SCRIPTS := {
 	"shmup": "res://addons/rpg_runtime/archetypes/shmup/ui/shmup_hud.gd",
 	"run_and_gun": "res://addons/rpg_runtime/archetypes/run_and_gun/ui/run_and_gun_hud.gd",
+	"racing": "res://addons/rpg_runtime/archetypes/racing/ui/racing_hud.gd",
 }
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:

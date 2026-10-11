@@ -40,8 +40,8 @@ def test_the_config_of_a_shoot_em_up_is_valid_and_keeps_its_orientation() -> Non
     data["starter_map"] = {"orientation": "diagonal"}
     with pytest.raises(Exception, match="CAT-002|orientation|diagonal"):
         schema.validate("config", data)
-    # the kinds that cannot be built yet are still no archetype of a config
-    for kind in ("racing",):
+    # a kind that does not exist is no archetype of a config
+    for kind in ("pinball",):
         with pytest.raises(Exception):  # noqa: B017, PT011
             schema.validate("config", {**cfg.to_json(), "archetype": kind})
     assert features.SHMUP_AVAILABLE is False, "the wizard does not offer it before its gate"
