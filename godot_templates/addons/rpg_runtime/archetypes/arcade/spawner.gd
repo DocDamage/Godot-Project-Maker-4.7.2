@@ -5,12 +5,16 @@ extends Node
 ## is cleared (every enemy is gone from the stage, killed or flown away).
 ##
 ## An enemy is any Node2D. When it has a signal `defeated` the spawner hears of the kill and
-## reports its points (the property `points` of the enemy, else those of the wave).
+## reports its points (the property `points` of the enemy, else those of the wave). When it has
+## a method `spawned_in_wave(wave, index)` it is told which place of the formation it has, after
+## it is in the stage. A wave of which every enemy was shot is cleared whole (`cleared_whole`).
 
 signal triggered
 signal spawned(enemy: Node2D)
 signal enemy_defeated(points: int)
 signal cleared
+## Every enemy of the wave was shot: none flew away.
+signal cleared_whole(bonus: int)
 
 enum State { WAITING, SPAWNING, ACTIVE, CLEARED }
 
@@ -23,6 +27,7 @@ var _middle := Vector2.ZERO
 var _offsets := PackedVector2Array()
 var _made := 0
 var _alive := 0
+var _shot := 0
 var _since := 0.0
 
 func is_waiting() -> bool:
@@ -88,12 +93,15 @@ func _spawn_one() -> void:
 		if enemy.has_signal(&"defeated"):
 			enemy.connect(&"defeated", _on_defeated.bind(enemy))
 		_parent.add_child(enemy)
+		if enemy.has_method(&"spawned_in_wave"):
+			enemy.call(&"spawned_in_wave", wave, index)
 		spawned.emit(enemy)
 	if _made >= wave.count:
 		state = State.ACTIVE
 		_check_cleared()
 
 func _on_defeated(enemy: Node2D) -> void:
+	_shot += 1
 	var own: Variant = enemy.get(&"points") if is_instance_valid(enemy) else null
 	enemy_defeated.emit(RpgUtil.to_int(own, wave.points) if own != null else wave.points)
 
@@ -104,4 +112,6 @@ func _on_gone() -> void:
 func _check_cleared() -> void:
 	if state == State.ACTIVE and _alive == 0:
 		state = State.CLEARED
+		if _shot >= wave.count and _shot > 0:
+			cleared_whole.emit(wave.bonus)
 		cleared.emit()

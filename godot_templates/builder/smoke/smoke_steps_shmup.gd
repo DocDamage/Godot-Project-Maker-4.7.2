@@ -1,8 +1,10 @@
 extends RefCounted
 ## The smoke steps of a shoot-em-up (T16.04): the title and a new game, then the ship in its
 ## first stage. It flies with the real input actions, fires into the bullet pool, drops a bomb,
-## is destroyed and comes back, while the stage scrolls. The waves, the bosses and the end of a
-## run get their steps with their own cards.
+## is destroyed and comes back, while the stage scrolls; then the first wave of enemies is
+## fought and a power-up is picked up. The steps about the ship alone hold the scrolling, so
+## that no enemy comes while they run. The bosses and the end of a run get their steps with
+## their own cards.
 
 const SAVE_DIR := "user://smoke_saves"
 
@@ -17,6 +19,8 @@ func steps() -> Array[Dictionary]:
 		{"name": "ship_shoots", "fn": _ship_shoots, "timeout_s": 20.0},
 		{"name": "bomb_clears_bullets", "fn": _bomb_clears_bullets, "timeout_s": 20.0},
 		{"name": "ship_is_destroyed_and_returns", "fn": _ship_is_destroyed_and_returns, "timeout_s": 20.0},
+		{"name": "wave_is_fought", "fn": _wave_is_fought, "timeout_s": 40.0},
+		{"name": "power_up_is_picked_up", "fn": _power_up_is_picked_up, "timeout_s": 20.0},
 	]
 
 # ---------------------------------------------------------------- helpers
@@ -132,6 +136,7 @@ func _stage_scrolls() -> String:
 	var way := RpgShmupMath.forward_of(_mode().orientation)
 	if moved.dot(way) <= 0.0:
 		return "the camera moved %s, not along %s" % [moved, way]
+	scroll.hold(self)  # the next steps are about the ship alone: no wave comes meanwhile
 	return ""
 
 func _ship_flies() -> String:
@@ -210,4 +215,69 @@ func _ship_is_destroyed_and_returns() -> String:
 	pool.clear(RpgShmupBulletPool.Team.ENEMY)
 	if mode.phase != RpgArcadeMode.Phase.PLAYING:
 		return "the run is not being played after a lost life (phase %d)" % mode.phase
+	return ""
+
+func _enemies() -> Array[RpgShmupEnemy]:
+	var out: Array[RpgShmupEnemy] = []
+	for node in _tree().get_nodes_in_group(RpgShmupBulletPool.TARGET_GROUP):
+		if node is RpgShmupEnemy and not node.is_queued_for_deletion():
+			out.append(node as RpgShmupEnemy)
+	return out
+
+func _wave_is_fought() -> String:
+	var stage := _stage()
+	var mode := _mode()
+	var ship := _ship()
+	if stage.spawners.is_empty():
+		return "the first stage has no waves"
+	var first := stage.spawners[0]
+	if not first.is_waiting():
+		return "the first wave came while the scrolling was held"
+	ship.set(&"_safe_left", 600.0)  # the step is about the enemies: nothing destroys the ship in it
+	stage.scroller().release(self)
+	if not await _wait_for(func() -> bool: return not first.is_waiting(), 900):
+		return "the first wave did not come (progress %.1f, it comes at %.1f)" % [stage.scroller().progress, first.wave.at]
+	var came := _enemies()
+	if came.size() != first.wave.count:
+		return "the first wave is of %d enemies and %d came" % [first.wave.count, came.size()]
+	await _frames(120)
+	var view := Rect2(Vector2.ZERO, _tree().root.get_visible_rect().size)
+	var seen := 0
+	for enemy in came:
+		if is_instance_valid(enemy) and view.has_point(enemy.get_global_transform_with_canvas().origin):
+			seen += 1
+	if seen == 0:
+		return "no enemy of the first wave is on the screen two seconds after it came"
+	var before := mode.score.points
+	for enemy in came:
+		if is_instance_valid(enemy):
+			enemy.take_hit(99)
+	if not await _wait_for(func() -> bool: return first.is_cleared(), 60):
+		return "the first wave is not cleared after every enemy of it was shot"
+	# kills are counted with the multiplier, so only the least they can make is checked
+	if mode.score.points < before + first.wave.count * 100 + first.wave.bonus:
+		return "%d kills and the bonus of the formation made %d points" % [first.wave.count, mode.score.points - before]
+	stage.scroller().hold(self)
+	return ""
+
+func _power_up_is_picked_up() -> String:
+	var stage := _stage()
+	var ship := _ship()
+	var scene_path := "res://generated/scenes/shmup/powerup.tscn"
+	if not ResourceLoader.exists(scene_path):
+		return "%s is missing" % scene_path
+	var capsule := (load(scene_path) as PackedScene).instantiate() as RpgShmupPowerup
+	if capsule == null:
+		return "%s is not a power-up" % scene_path
+	capsule.kind = "weapon_up"
+	capsule.position = ship.position + ship.forward() * 40.0
+	stage.entities().add_child(capsule)
+	var level := ship.weapon().level
+	var id := capsule.get_instance_id()  # a lambda must not hold a node that is freed meanwhile
+	if not await _wait_for(func() -> bool: return not is_instance_id_valid(id), 300):
+		return "the capsule did not drift to the ship"
+	if ship.weapon().level != level + 1:
+		return "a weapon capsule left the weapon at level %d" % ship.weapon().level
+	ship.set(&"_safe_left", 0.0)
+	stage.scroller().release(self)
 	return ""

@@ -297,6 +297,22 @@ of the enemies as numbers, not nodes: `fire(team, at, velocity, damage, radius, 
 pierce)`, `clear(team)`, `active(team)`. A player's bullet hits the nodes of the group
 `shmup_targets` (a `hit_radius` and `take_hit(damage)`), an enemy's the ship. `RpgShmupEnemyBullet`
 has the patterns `aimed`, `ring`, `fan` and `spiral` and `fire(pool, from, velocities)`.
+Enemies (`enemies/`) extend `RpgShmupEnemy`: `health`, `points`, `hit_radius`, `take_hit`,
+the signal `defeated`, a touch that destroys the ship, `drop` (the power-up it leaves) and
+`in_stage` (it scrolls past with the background instead of flying with the screen). A behaviour
+overrides `_fly`, `_drift`, `_act` and `_read_wave`. `RpgShmupPopcorn` flies a `path` and may
+fire one aimed shot; the enemies of a formation fly the same path, so the formation moves as
+one. `RpgShmupTurret` fires a fan while it is on the screen, `RpgShmupAsteroid` drifts and
+breaks once into two `pieces()`, `RpgShmupCarrier` stays a third of the way in and releases
+its `escort_scene`. `RpgShmupPowerup` drifts to the ship's side and is picked up by a touch;
+`apply(kind, ship, mode)` is what it gives. The ship's `set_shield(true)` takes the next hit.
+
+The framework's part of it: a spawned enemy with a method `spawned_in_wave(wave, index)` is
+told its place; `RpgArcadeWave.data` is the whole entry of the wave and `bonus` what a formation
+shot whole pays (`RpgArcadeSpawner.cleared_whole`, `RpgArcadeStage.formation_bonus`);
+`RpgArcadeStage.adopt(enemy, at)` takes in an enemy no wave brought and scores its kill;
+`RpgArcadeLives.gain()` is one more life.
+
 `RpgShmupExplosion` plays once and is gone; `RpgShmupStarfield` draws the stars of a stage whose
 packs have no background; `RpgShmupHud` adds the bombs and the weapon to the arcade HUD.
 

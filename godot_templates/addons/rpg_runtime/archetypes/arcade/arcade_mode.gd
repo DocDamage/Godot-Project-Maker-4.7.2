@@ -165,6 +165,7 @@ func bind_stage(next: RpgArcadeStage) -> void:
 		next.setup(all.current())
 	next.enemy_defeated.connect(_on_kill)
 	next.boss_defeated.connect(_on_kill)
+	next.formation_bonus.connect(_on_formation_bonus)
 	next.cleared.connect(_on_stage_cleared)
 	_store_run()
 	phase = Phase.PLAYING
@@ -174,6 +175,10 @@ func bind_stage(next: RpgArcadeStage) -> void:
 func _on_kill(points: int) -> void:
 	if phase == Phase.PLAYING:
 		score.add_kill(points)
+
+func _on_formation_bonus(points: int) -> void:
+	if phase == Phase.PLAYING:
+		score.add_bonus(points)
 
 ## The player picked something up worth `points`.
 func pickup(points: int) -> void:

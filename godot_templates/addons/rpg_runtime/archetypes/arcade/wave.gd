@@ -29,6 +29,11 @@ var after := ""
 var blocking := false
 ## Points per enemy when the enemy does not say.
 var points := 100
+## A bonus for a formation of which every enemy was shot (none got away); 0 gives none.
+var bonus := 0
+## The whole entry of the wave: what a kind adds to it (a path, a drop) is read from here by
+## its enemies.
+var data: Dictionary = {}
 
 static func from_dict(d: Dictionary) -> RpgArcadeWave:
 	var wave := RpgArcadeWave.new()
@@ -50,6 +55,8 @@ static func from_dict(d: Dictionary) -> RpgArcadeWave:
 	wave.after = RpgUtil.to_str(d.get("after", ""))
 	wave.blocking = RpgUtil.to_bool(d.get("blocking", false))
 	wave.points = RpgUtil.to_int(d.get("points", 100), 100)
+	wave.bonus = maxi(0, RpgUtil.to_int(d.get("bonus", 0)))
+	wave.data = d
 	return wave
 
 ## Where each of `count` enemies stands, relative to the middle of the formation.

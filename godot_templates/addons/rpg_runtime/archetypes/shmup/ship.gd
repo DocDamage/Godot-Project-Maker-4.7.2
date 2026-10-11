@@ -11,8 +11,12 @@ extends CharacterBody2D
 
 signal destroyed
 signal respawned
+signal shield_changed(on: bool)
 
 const BLINK_S := 0.1
+## How long the ship is safe after its shield took a hit.
+const SHIELD_GRACE_S := 0.5
+const SHIELD_TINT := Color(0.6, 0.85, 1.0)
 
 ## Px a second.
 @export var speed: float = 120.0
@@ -33,6 +37,8 @@ var move := Vector2.ZERO
 var shooting := false
 var focusing := false
 var dead := false
+## A shield (a power-up) takes the next hit in the ship's place.
+var shielded := false
 ## False for a test that steps the ship by hand.
 var auto_advance := true
 ## The middle of the screen when the ship is not in a stage (a test).
@@ -169,6 +175,10 @@ static func bank_animation(frames: SpriteFrames, lean: float, ship_orientation: 
 func hit() -> bool:
 	if dead or is_invulnerable():
 		return false
+	if shielded:
+		set_shield(false)
+		_safe_left = SHIELD_GRACE_S
+		return false
 	dead = true
 	var visual := get_node_or_null("Visual") as CanvasItem
 	if visual != null:
@@ -183,6 +193,16 @@ func hit() -> bool:
 		gun.reset()
 	destroyed.emit()
 	return true
+
+## Puts the shield up or takes it down (the picture is tinted while it is up).
+func set_shield(on: bool) -> void:
+	if shielded == on:
+		return
+	shielded = on
+	var visual := get_node_or_null("Visual") as CanvasItem
+	if visual != null:
+		visual.modulate = SHIELD_TINT if on else Color.WHITE
+	shield_changed.emit(on)
 
 ## The next life: where the stage began, blinking, with the starting bombs.
 func respawn() -> void:

@@ -39,6 +39,15 @@ func _steps(points: int) -> int:
 	@warning_ignore("integer_division")
 	return points / extra_every
 
+## One more life (a power-up), up to MAX_LIVES. True when it was given.
+func gain() -> bool:
+	if count >= MAX_LIVES:
+		return false
+	count += 1
+	changed.emit(count)
+	extra_life.emit()
+	return true
+
 ## A life is lost. True when it was the last one (game_over is emitted).
 func lose() -> bool:
 	if count <= 0:

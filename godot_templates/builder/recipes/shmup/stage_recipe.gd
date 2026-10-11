@@ -3,9 +3,10 @@ extends RefCounted
 ## stages (game/data/stages.json). The stage is the arcade stage of StageRecipes with a
 ## background that loops along the way it scrolls (the BACKGROUND pictures of the packs, the
 ## farthest slowest; a field of stars when the packs have none), the bullet pool and the ship.
-## Its waves are the work of the next card: until then the stage ends where its scrolling ends.
+## Its waves are a fixed set of ten for now (small enemies in formations, turrets, rocks and a
+## carrier); the planner of whole stages is a later card. The stage ends where its scrolling ends.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -13,6 +14,7 @@ const BuildContext := preload("../../lib/build_context.gd")
 const ArcadeBuild := preload("../arcade/arcade_build.gd")
 const StageRecipes := preload("../arcade/stage_recipes.gd")
 const ShmupBuild := preload("shmup_build.gd")
+const EnemyRecipes := preload("enemy_recipes.gd")
 
 const PARALLAX_TAG := "parallax:"
 ## How fast a layer scrolls against the camera: the farthest first.
@@ -51,8 +53,70 @@ static func plan(ctx: BuildContext) -> Array:
 		"length": length,
 		"exit": "reach_end",
 		"par_time_s": ceilf(length / speed) + 10.0,
-		"waves": [],
+		"waves": waves(way, Vector2(view), ShmupBuild.tile(ctx), EnemyRecipes.popcorn_count(ctx)),
 	}]
+
+## Every fifth formation of small enemies carries a power-up.
+const DROP_EVERY := 5
+const FORMATION_BONUS := 500
+## How far beyond the front edge of the screen a wave appears, in px.
+const AHEAD := 24.0
+## The waves of the first stage: [behaviour, formation, count, where along the stage it comes
+## (in screens), where across the screen (-1..1), what else its entry says].
+const FIRST_STAGE := [
+	["popcorn", "line", 5, 0.4, 0.0, {}],
+	["popcorn", "v", 5, 0.9, 0.0, {"shoots": true}],
+	["turret", "line", 2, 1.4, 0.0, {"wide": true}],
+	["popcorn", "sine", 4, 1.9, -0.5, {}],
+	["asteroid", "line", 3, 2.4, 0.0, {"wide": true}],
+	["popcorn", "circle", 6, 2.9, 0.0, {}],
+	["carrier", "line", 1, 3.5, 0.0, {}],
+	["popcorn", "column", 4, 4.3, 0.6, {}],
+	["turret", "line", 2, 4.8, 0.0, {"wide": true}],
+	["popcorn", "v", 5, 5.2, 0.0, {"shoots": true}],
+]
+
+## The waves of the first stage of a game that looks `way`, on a screen of `view` px.
+## `popcorn_scenes` is how many small-enemy scenes there are: the formations take them in turn.
+static func waves(way: String, view: Vector2, tile: int, popcorn_scenes: int) -> Array:
+	var forward := RpgShmupMath.forward_of(way)
+	var sideways := Vector2(-forward.y, forward.x)
+	var along := absf(forward.x) * view.x + absf(forward.y) * view.y
+	var area := RpgShmupMath.play_area(view, way)
+	var half_across := (absf(sideways.x) * area.size.x + absf(sideways.y) * area.size.y) * 0.5
+	var out: Array = []
+	var formations := 0
+	for row: Array in FIRST_STAGE:
+		var behaviour := JsonUtil.to_str(row[0])
+		var extra := JsonUtil.to_dict(row[5])
+		var at := JsonUtil.to_float(row[3]) * along
+		var wide := JsonUtil.to_bool(extra.get("wide", false))
+		var entry := {
+			"id": "w%02d" % (out.size() + 1),
+			"enemy": behaviour,
+			"scene": EnemyRecipes.scene_path(behaviour),
+			"formation": JsonUtil.to_str(row[1]),
+			"count": JsonUtil.to_int(row[2]),
+			"gap": tile * (4.5 if wide else 1.75),
+			"trigger": "progress",
+			"at": at,
+		}
+		var place := forward * (along * 0.5 + AHEAD) + sideways * (JsonUtil.to_float(row[4]) * half_across * 0.7)
+		if behaviour == "turret" or behaviour == "asteroid":
+			# it sits in the stage: ahead of where the screen is when the wave comes
+			place += view * 0.5 + forward * at
+			entry["anchor"] = "stage"
+		entry["position"] = [place.x, place.y]
+		if behaviour == "popcorn":
+			entry["scene"] = EnemyRecipes.popcorn_path(formations % maxi(1, popcorn_scenes))
+			entry["bonus"] = FORMATION_BONUS
+			formations += 1
+			if formations % DROP_EVERY == 0:
+				entry["drop"] = "weapon_up"
+			if extra.has("shoots"):
+				entry["shoots"] = true
+		out.append(entry)
+	return out
 
 ## The background pictures: [{asset, depth, path}], the farthest first. A picture tagged
 ## `parallax:<n>` has that depth; the others follow in the order of their ids.

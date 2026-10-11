@@ -25,6 +25,8 @@ STEPS = [
     "ship_shoots",
     "bomb_clears_bullets",
     "ship_is_destroyed_and_returns",
+    "wave_is_fought",
+    "power_up_is_picked_up",
 ]
 SCENES = [
     "generated/scenes/shmup/ship.tscn",
@@ -32,6 +34,11 @@ SCENES = [
     "generated/scenes/stages/stage_01.tscn",
     "generated/scenes/combat/combat_mode.tscn",
     "generated/scenes/ui/hud_arcade.tscn",
+    "generated/scenes/shmup/powerup.tscn",
+    "generated/scenes/shmup/enemies/popcorn_01.tscn",
+    "generated/scenes/shmup/enemies/turret.tscn",
+    "generated/scenes/shmup/enemies/asteroid.tscn",
+    "generated/scenes/shmup/enemies/carrier.tscn",
 ]
 
 
@@ -110,7 +117,7 @@ def test_the_shooter_pack_is_a_game_that_scrolls_up(shooter) -> None:
     stages = jsonio.read(target / "game/data/stages.json")["stages"]
     assert len(stages) == 1
     first = stages[0]
-    assert (first["axis"], first["exit"], first["waves"]) == ("up", "reach_end", [])
+    assert (first["axis"], first["exit"]) == ("up", "reach_end")
     assert first["scene"] == "res://generated/scenes/stages/stage_01.tscn"
     assert first["length"] == 6 * saved["resolution"][1], "six screens along the way it scrolls"
 
@@ -206,3 +213,69 @@ def test_a_plain_rpg_pack_makes_a_game_that_scrolls_right_with_drawn_stand_ins(p
     assert "rpggen_arcade_kit.explosion" in _text(target, "generated/scenes/shmup/explosion.tscn")
     mode = _text(target, "generated/scenes/combat/combat_mode.tscn")
     assert 'orientation = "horizontal"' in mode
+
+
+# ---------------------------------------------------------------- enemies and waves (T16.05)
+
+
+def test_the_enemy_pictures_of_the_pack_are_shared_out_over_the_behaviours(shooter) -> None:
+    target, _result = shooter
+    enemies = target / "generated/scenes/shmup/enemies"
+    assert sorted(p.name for p in enemies.glob("*.tscn")) == [
+        "asteroid.tscn",
+        "carrier.tscn",
+        "popcorn_01.tscn",
+        "popcorn_02.tscn",
+        "popcorn_03.tscn",
+        "popcorn_04.tscn",
+        "turret.tscn",
+    ]
+    # five enemy ships of one size: four are the small ones, and none is larger than the others,
+    # so the carrier is the first of them, twice as large
+    for n in range(1, 5):
+        scene = _text(target, f"generated/scenes/shmup/enemies/popcorn_{n:02d}.tscn")
+        assert f"enemies/enemy_ship_{n}.png" in scene and "enemies/popcorn.gd" in scene
+        assert "rotation" not in scene, "a pack draws its enemy ships as they come: looking down"
+    carrier = _text(target, "generated/scenes/shmup/enemies/carrier.tscn")
+    assert "enemies/enemy_ship_1.png" in carrier and "scale = Vector2(2, 2)" in carrier
+    assert "enemies/popcorn_01.tscn" in carrier and 'drop = "weapon:spread"' in carrier
+    assert "asteroids/asteroid_1.png" in _text(
+        target, "generated/scenes/shmup/enemies/asteroid.tscn"
+    ), "the hazard the pack calls an asteroid"
+    turret = _text(target, "generated/scenes/shmup/enemies/turret.tscn")
+    assert 'type="Polygon2D"' in turret, "no picture of a turret in the pack: a drawn shape"
+    capsule = _text(target, "generated/scenes/shmup/powerup.tscn")
+    for n in (1, 2, 3):
+        assert f"powerups/capsule_{n}.png" in capsule, "the capsules of the pack, a kind each"
+
+
+def test_the_first_stage_has_its_waves(shooter) -> None:
+    target, _result = shooter
+    waves = jsonio.read(target / "game/data/stages.json")["stages"][0]["waves"]
+    assert [w["id"] for w in waves] == [f"w{n:02d}" for n in range(1, 11)]
+    assert [w["enemy"] for w in waves] == [
+        "popcorn", "popcorn", "turret", "popcorn", "asteroid",
+        "popcorn", "carrier", "popcorn", "turret", "popcorn",
+    ]  # fmt: skip
+    assert [w["at"] for w in waves] == sorted(w["at"] for w in waves)
+    for wave in waves:
+        assert (target / wave["scene"].removeprefix("res://")).is_file(), wave["scene"]
+    small = [w for w in waves if w["enemy"] == "popcorn"]
+    assert [w["formation"] for w in small] == ["line", "v", "sine", "circle", "column", "v"]
+    assert all(w["bonus"] == 500 for w in small)
+    assert [w["id"] for w in waves if "drop" in w] == ["w08"], "the fifth formation of small ones"
+    assert {w.get("anchor", "screen") for w in waves if w["enemy"] in ("turret", "asteroid")} == {
+        "stage"
+    }
+
+
+def test_a_plain_rpg_pack_has_its_monsters_as_enemies_unturned(plain) -> None:
+    target, _result = plain
+    waves = jsonio.read(target / "game/data/stages.json")["stages"][0]["waves"]
+    assert len(waves) == 10
+    small = _text(target, "generated/scenes/shmup/enemies/popcorn_01.tscn")
+    assert "sample_pack" in small and "rotation" not in small, "a monster is not laid on its side"
+    assert 'orientation = "horizontal"' in small
+    assert (target / "generated/scenes/shmup/enemies/carrier.tscn").is_file()
+    capsule = _text(target, "generated/scenes/shmup/powerup.tscn")
+    assert "arcade_kit/capsule.png" in capsule, "the drawn capsule"

@@ -14,6 +14,8 @@ signal wave_cleared(wave_id: String)
 signal enemy_defeated(points: int)
 signal boss_started(boss: RpgArcadeBoss)
 signal boss_defeated(points: int)
+## A formation was shot whole: its bonus.
+signal formation_bonus(points: int)
 signal cleared
 
 const EXITS: Array[String] = ["reach_end", "clear_waves", "custom"]
@@ -109,6 +111,7 @@ func setup(data: Dictionary) -> void:
 		spawner.name = "Spawner%02d" % number
 		spawner.cleared.connect(_on_wave_cleared.bind(spawner))
 		spawner.enemy_defeated.connect(_on_enemy_defeated)
+		spawner.cleared_whole.connect(_on_cleared_whole)
 		add_child(spawner)
 		spawners.append(spawner)
 		number += 1
@@ -177,6 +180,22 @@ func _on_wave_cleared(spawner: RpgArcadeSpawner) -> void:
 
 func _on_enemy_defeated(points: int) -> void:
 	enemy_defeated.emit(points)
+
+func _on_cleared_whole(bonus: int) -> void:
+	if bonus > 0:
+		formation_bonus.emit(bonus)
+
+## Takes an enemy that no wave brought (what a carrier releases, the halves of an asteroid) into
+## the stage at `at`: its kill is scored like any other, and no wave waits for it.
+func adopt(enemy: Node2D, at: Vector2) -> void:
+	enemy.position = at
+	if enemy.has_signal(&"defeated"):
+		enemy.connect(&"defeated", _on_adopted_defeated.bind(enemy))
+	entities().add_child(enemy)
+
+func _on_adopted_defeated(enemy: Node2D) -> void:
+	var own: Variant = enemy.get(&"points") if is_instance_valid(enemy) else null
+	enemy_defeated.emit(RpgUtil.to_int(own, 0) if own != null else 0)
 
 func _end_reached(scroll: RpgArcadeScroller) -> bool:
 	match exit_condition:

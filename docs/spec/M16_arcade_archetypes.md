@@ -104,7 +104,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.02 | Detection for the three kinds | M | — | done, but for the grid editor's ring and the pack card's words (the wizard, T16.16); the notes have the deviations |
 | T16.03 | Drawn stand-ins and new roles | M | T16.02 | done; the kinds are not in the config's enum until they can be built, and the notes have the other deviations |
 | T16.04 | Shoot 'em up: ship, bullets, scrolling | M | T16.01, T16.03 | done; no auto-fire switch in the settings menu yet, and the stage has nothing to shoot at until T16.05 (the notes) |
-| T16.05 | Shoot 'em up: waves, enemies, power-ups | M | T16.04 | open |
+| T16.05 | Shoot 'em up: waves, enemies, power-ups | M | T16.04 | done; an enemy without a picture is a drawn shape with no note, and the waves are a fixed set until the stage planner (the notes) |
 | T16.06 | Shoot 'em up: stages and bosses, the wave plan | L | T16.05 | open |
 | T16.07 | Shoot 'em up: HUD, continue, high scores | S | T16.06 | open |
 | T16.08 | Run and gun: the soldier on the platform actor | M | T16.01, T16.03 | open |
