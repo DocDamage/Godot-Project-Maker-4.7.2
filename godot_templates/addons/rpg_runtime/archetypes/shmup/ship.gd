@@ -46,7 +46,7 @@ var auto_advance := true
 ## The middle of the screen when the ship is not in a stage (a test).
 var area_center := Vector2.ZERO
 ## The pool the ship fires into when it is not in a stage (a test).
-var pool_override: RpgShmupBulletPool = null
+var pool_override: RpgArcadeBulletPool = null
 
 var _offset := Vector2.ZERO
 var _start_offset := Vector2.ZERO
@@ -56,7 +56,7 @@ var _shot_asked := false
 var _bomb_asked := false
 
 func _ready() -> void:
-	add_to_group(RpgShmupBulletPool.SHIP_GROUP)
+	add_to_group(RpgArcadeBulletPool.SHIP_GROUP)
 
 func _physics_process(delta: float) -> void:
 	if auto_advance:
@@ -85,11 +85,11 @@ func center() -> Vector2:
 	var stage := _stage()
 	return stage.scroller().view_center() if stage != null else area_center
 
-func pool() -> RpgShmupBulletPool:
+func pool() -> RpgArcadeBulletPool:
 	if pool_override != null:
 		return pool_override
 	var stage := _stage()
-	return stage.get_node_or_null("Bullets") as RpgShmupBulletPool if stage != null else null
+	return stage.get_node_or_null("Bullets") as RpgArcadeBulletPool if stage != null else null
 
 func is_invulnerable() -> bool:
 	return _safe_left > 0.0

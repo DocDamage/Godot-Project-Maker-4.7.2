@@ -61,7 +61,7 @@ func _center() -> Vector2:
 func _ship() -> Node2D:
 	if not is_inside_tree():
 		return null
-	for node in get_tree().get_nodes_in_group(RpgShmupBulletPool.SHIP_GROUP):
+	for node in get_tree().get_nodes_in_group(RpgArcadeBulletPool.SHIP_GROUP):
 		if node is Node2D and node.has_method(&"hit") and not RpgUtil.to_bool(node.get(&"dead")):
 			return node as Node2D
 	return null

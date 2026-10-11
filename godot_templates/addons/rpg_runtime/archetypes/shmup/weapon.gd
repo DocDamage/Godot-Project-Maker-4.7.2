@@ -76,7 +76,7 @@ func reset() -> void:
 
 ## One step. While `firing`, a shot leaves `muzzle` toward `forward` (a unit vector) every
 ## 1/rate seconds, into `pool`. Returns the bullets fired in this step.
-func advance(delta: float, firing: bool, pool: RpgShmupBulletPool, muzzle: Vector2, forward: Vector2) -> int:
+func advance(delta: float, firing: bool, pool: RpgArcadeBulletPool, muzzle: Vector2, forward: Vector2) -> int:
 	_cooldown = maxf(0.0, _cooldown - delta)
 	if not firing or pool == null or _cooldown > 0.0:
 		return 0
@@ -84,7 +84,7 @@ func advance(delta: float, firing: bool, pool: RpgShmupBulletPool, muzzle: Vecto
 	return shoot(pool, muzzle, forward)
 
 ## One shot now, whatever the rate.
-func shoot(pool: RpgShmupBulletPool, muzzle: Vector2, forward: Vector2) -> int:
+func shoot(pool: RpgArcadeBulletPool, muzzle: Vector2, forward: Vector2) -> int:
 	var right := Vector2(-forward.y, forward.x)
 	var sent := 0
 	for shot in shots(kind, level):
@@ -92,7 +92,7 @@ func shoot(pool: RpgShmupBulletPool, muzzle: Vector2, forward: Vector2) -> int:
 		var width := RpgUtil.to_float(shot["width"], 1.0)
 		var at := muzzle + right * RpgUtil.to_float(shot["side"])
 		var hit := damage * (level if kind == "laser" else 1)
-		if pool.fire(RpgShmupBulletPool.Team.PLAYER, at, forward.rotated(lean) * bullet_speed, hit,
+		if pool.fire(RpgArcadeBulletPool.Team.PLAYER, at, forward.rotated(lean) * bullet_speed, hit,
 				2.0 * width, bullet_kind(kind), kind == "homing", kind == "laser") >= 0:
 			sent += 1
 	if sent > 0:

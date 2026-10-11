@@ -36,7 +36,7 @@ const MARGIN := 48.0
 var auto_advance := true
 ## The middle of the screen when the enemy is not in a stage (a test).
 var area_center := Vector2.ZERO
-var pool_override: RpgShmupBulletPool = null
+var pool_override: RpgArcadeBulletPool = null
 ## Seconds since it appeared.
 var age := 0.0
 ## Its place in its formation, relative to the formation's middle, turned to the way it travels.
@@ -49,7 +49,7 @@ var _was_inside := false
 var _dead := false
 
 func _ready() -> void:
-	add_to_group(RpgShmupBulletPool.TARGET_GROUP)
+	add_to_group(RpgArcadeBulletPool.TARGET_GROUP)
 
 func _physics_process(delta: float) -> void:
 	if auto_advance:
@@ -77,17 +77,17 @@ func center() -> Vector2:
 	var found := stage()
 	return found.scroller().view_center() if found != null else area_center
 
-func pool() -> RpgShmupBulletPool:
+func pool() -> RpgArcadeBulletPool:
 	if pool_override != null:
 		return pool_override
 	var found := stage()
-	return found.get_node_or_null("Bullets") as RpgShmupBulletPool if found != null else null
+	return found.get_node_or_null("Bullets") as RpgArcadeBulletPool if found != null else null
 
 ## The player's ship, or null (none, or destroyed).
 func ship() -> Node2D:
 	if not is_inside_tree():
 		return null
-	for node in get_tree().get_nodes_in_group(RpgShmupBulletPool.SHIP_GROUP):
+	for node in get_tree().get_nodes_in_group(RpgArcadeBulletPool.SHIP_GROUP):
 		if node is Node2D and node.has_method(&"hit") and not RpgUtil.to_bool(node.get(&"dead")):
 			return node as Node2D
 	return null
@@ -188,7 +188,7 @@ func die() -> void:
 	if _dead:
 		return
 	_dead = true
-	remove_from_group(RpgShmupBulletPool.TARGET_GROUP)
+	remove_from_group(RpgArcadeBulletPool.TARGET_GROUP)
 	var parent := get_parent()
 	if explosion_scene != null and parent != null:
 		var burst := explosion_scene.instantiate() as Node2D

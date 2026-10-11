@@ -12,6 +12,8 @@ const JsonUtil := preload("json_util.gd")
 const Geometry := preload("geometry.gd")
 
 const ARCHETYPE := "metroidvania"
+## The kinds of game that are seen from the side: their TileSets get the side-view parts.
+const SIDE_VIEW_KINDS: Array[String] = ["metroidvania", "run_and_gun"]
 ## Index of the one-way physics layer in the TileSet (0 is the solid world).
 const ONE_WAY_PHYSICS := 1
 ## Collision layer 11, "one_way": the player takes it out of its mask to drop through.
@@ -21,7 +23,7 @@ const DATA_LAYERS: Array[String] = ["ladder", "hazard", "breakable"]
 const SOLID_ROLES: Array[String] = ["GROUND", "WALL", "CLIFF"]
 
 static func wanted(config: Dictionary) -> bool:
-	return JsonUtil.to_str(config.get("archetype", "")) == ARCHETYPE
+	return SIDE_VIEW_KINDS.has(JsonUtil.to_str(config.get("archetype", "")))
 
 ## Adds the one-way physics layer and the custom data layers the TileSet does not have yet.
 ## Nothing that exists is removed, reordered or retyped.

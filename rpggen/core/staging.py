@@ -167,6 +167,10 @@ ARCHETYPES = ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "rac
 # A folder several kinds share, and the kinds it is installed for: the arcade framework (T16.01)
 # belongs to the three arcade kinds, and the projects of the older kinds never see it.
 SHARED_FOLDERS: dict[str, tuple[str, ...]] = {"arcade": ("shmup", "run_and_gun", "racing")}
+# The folders of another kind a kind is built on: a run and gun's soldier is the metroidvania's
+# platform actor on the metroidvania's side-view tiles (T16.08), so it gets that kind's runtime
+# folder and recipes (not its smoke steps).
+BORROWED_FOLDERS: dict[str, tuple[str, ...]] = {"run_and_gun": ("metroidvania",)}
 
 
 def _other_archetype(rel: str, archetype: str | None) -> bool:
@@ -182,9 +186,10 @@ def _other_archetype(rel: str, archetype: str | None) -> bool:
     for other in (*ARCHETYPES, *SHARED_FOLDERS):
         if other == archetype or archetype in SHARED_FOLDERS.get(other, ()):
             continue
-        if parts[:4] == ["addons", "rpg_runtime", "archetypes", other]:
+        borrowed = other in BORROWED_FOLDERS.get(archetype, ())
+        if parts[:4] == ["addons", "rpg_runtime", "archetypes", other] and not borrowed:
             return True
-        if parts[:3] == ["builder", "recipes", other]:
+        if parts[:3] == ["builder", "recipes", other] and not borrowed:
             return True
         if (
             len(parts) == 3

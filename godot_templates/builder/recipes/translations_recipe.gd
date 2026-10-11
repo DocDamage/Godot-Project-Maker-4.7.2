@@ -56,6 +56,7 @@ func input_hash(ctx: BuildContext) -> String:
 ## The strings of a kind beside those of the framework it shares (the arcade kinds, M16).
 const KIND_STRINGS := {
 	"shmup": "res://addons/rpg_runtime/archetypes/shmup/shmup_strings.gd",
+	"run_and_gun": "res://addons/rpg_runtime/archetypes/run_and_gun/run_and_gun_strings.gd",
 }
 
 func _archetype_keys(ctx: BuildContext) -> Dictionary:

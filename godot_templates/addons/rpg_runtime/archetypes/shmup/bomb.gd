@@ -33,15 +33,15 @@ func add() -> bool:
 
 ## The blast. Every enemy bullet of `pool` is gone, and every target inside `view` (in the
 ## coordinates of the pool; an empty one means everywhere) takes `damage`. False without a bomb.
-func use(pool: RpgShmupBulletPool, view: Rect2 = Rect2()) -> bool:
+func use(pool: RpgArcadeBulletPool, view: Rect2 = Rect2()) -> bool:
 	if count <= 0:
 		return false
 	count -= 1
 	changed.emit(count)
-	var cleared := pool.clear(RpgShmupBulletPool.Team.ENEMY) if pool != null else 0
+	var cleared := pool.clear(RpgArcadeBulletPool.Team.ENEMY) if pool != null else 0
 	var hit := 0
 	if pool != null and pool.is_inside_tree():
-		for node in pool.get_tree().get_nodes_in_group(RpgShmupBulletPool.TARGET_GROUP):
+		for node in pool.get_tree().get_nodes_in_group(RpgArcadeBulletPool.TARGET_GROUP):
 			if not (node is Node2D) or not node.has_method(&"take_hit"):
 				continue
 			var target := node as Node2D

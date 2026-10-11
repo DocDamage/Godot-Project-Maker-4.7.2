@@ -1,12 +1,15 @@
-class_name RpgShmupBulletPool
+class_name RpgArcadeBulletPool
 extends Node2D
-## Every bullet of a stage: 400 of the player's and 1,000 of the enemies', made once and used
-## again. A bullet is a row of numbers, not a node: the pool moves them, draws them and finds
+## Every bullet of an arcade stage (shared by the kinds that shoot): 400 of the player's and
+## 1,000 of the enemies', made once and used again. A bullet is a row of numbers, not a node: the pool moves them, draws them and finds
 ## what they hit, so a screen full of bullets costs one canvas item.
 ##
-## A player's bullet hits the nodes of the group `shmup_targets` (each has a `hit_radius` and a
+## A player's bullet hits the nodes of the group `arcade_targets` (each has a `hit_radius` and a
 ## method `take_hit(damage)`); an enemy's bullet hits the ship (the group `player`, with a
-## `hit_radius` and a method `hit()`). A bullet that leaves the screen goes back to the pool.
+## `hit_radius` and a method `hit()`). What is hit is a circle around the node, or around
+## `hit_center()` when the node has that method (a soldier who crouches). A bullet that leaves
+## the screen goes back to the pool; so does one whose time is up (`life_s`, the range of a gun)
+## and, with a `wall_mask`, one that flies into the ground.
 
 signal player_bullet_hit(target: Node2D, damage: int)
 
@@ -14,7 +17,7 @@ enum Team { PLAYER, ENEMY }
 
 const PLAYER_CAP := 400
 const ENEMY_CAP := 1000
-const TARGET_GROUP := &"shmup_targets"
+const TARGET_GROUP := &"arcade_targets"
 const SHIP_GROUP := &"player"
 ## A bullet lives this far outside the screen before it is taken back, in px.
 const MARGIN := 16.0
@@ -25,8 +28,13 @@ const HOMING_TURN := 4.0
 ## one is drawn as a small square.
 @export var textures: Dictionary = {}
 
+## The physics layers that stop a bullet (the ground of a side-view stage); 0 stops none.
+@export_flags_2d_physics var wall_mask: int = 0
+
 ## False for a test that steps the pool by hand.
 var auto_advance := true
+## The size of the screen when it is not the viewport's (a test whose window is another size).
+var view_size := Vector2.ZERO
 
 var _caps: Array[int] = [PLAYER_CAP, ENEMY_CAP]
 var _live: Array[PackedByteArray] = [PackedByteArray(), PackedByteArray()]
@@ -37,6 +45,8 @@ var _radius: Array[PackedFloat32Array] = [PackedFloat32Array(), PackedFloat32Arr
 ## Bit 1: homing. Bit 2: goes through what it hits.
 var _flags: Array[PackedByteArray] = [PackedByteArray(), PackedByteArray()]
 var _kind: Array[PackedStringArray] = [PackedStringArray(), PackedStringArray()]
+## Seconds a bullet still flies; 0 flies until it leaves the screen.
+var _life: Array[PackedFloat32Array] = [PackedFloat32Array(), PackedFloat32Array()]
 var _free: Array[PackedInt32Array] = [PackedInt32Array(), PackedInt32Array()]
 var _count: Array[int] = [0, 0]
 
@@ -50,6 +60,7 @@ func _init() -> void:
 		_radius[team].resize(cap)
 		_flags[team].resize(cap)
 		_kind[team].resize(cap)
+		_life[team].resize(cap)
 		_free[team].resize(cap)
 		for i in cap:
 			_free[team][i] = cap - 1 - i  # the lowest number is taken first
@@ -63,7 +74,7 @@ func view_rect() -> Rect2:
 	var viewport := get_viewport()
 	if viewport == null:
 		return Rect2()
-	var size := viewport.get_visible_rect().size
+	var size := view_size if view_size != Vector2.ZERO else viewport.get_visible_rect().size
 	var camera := viewport.get_camera_2d()
 	var center := camera.get_screen_center_position() if camera != null else size * 0.5
 	return Rect2(to_local(center - size * 0.5), size)
@@ -86,7 +97,7 @@ func positions(team: int) -> PackedVector2Array:
 ## A bullet of `team` starts at `at` with `velocity` (px a second). Returns its number, or -1
 ## when every bullet of the team is flying (nothing is fired then).
 func fire(team: int, at: Vector2, velocity: Vector2, damage: int = 1, radius: float = 2.0,
-		kind: String = "bullet", homing: bool = false, pierce: bool = false) -> int:
+		kind: String = "bullet", homing: bool = false, pierce: bool = false, life_s: float = 0.0) -> int:
 	var free := _free[team]
 	if free.is_empty():
 		return -1
@@ -100,6 +111,7 @@ func fire(team: int, at: Vector2, velocity: Vector2, damage: int = 1, radius: fl
 	_radius[team][index] = radius
 	_flags[team][index] = (1 if homing else 0) | (2 if pierce else 0)
 	_kind[team][index] = kind
+	_life[team][index] = life_s
 	_count[team] += 1
 	queue_redraw()
 	return index
@@ -141,6 +153,14 @@ func advance(delta: float, view: Rect2) -> void:
 			if bounded and not keep.has_point(at):
 				_release(team, i)
 				continue
+			if _life[team][i] > 0.0:
+				_life[team][i] -= delta
+				if _life[team][i] <= 0.0:
+					_release(team, i)
+					continue
+			if wall_mask != 0 and _in_wall(at):
+				_release(team, i)
+				continue
 			if team == Team.PLAYER:
 				_hit_targets(i, at, targets)
 			elif ship != null and _touches(at, _radius[team][i], ship):
@@ -167,7 +187,23 @@ func _ship() -> Node2D:
 
 func _touches(at: Vector2, radius: float, body: Node2D) -> bool:
 	var reach := radius + RpgUtil.to_float(body.get(&"hit_radius"), 4.0)
-	return to_local(body.global_position).distance_squared_to(at) <= reach * reach
+	var center := body.global_position
+	if body.has_method(&"hit_center"):
+		var own: Variant = body.call(&"hit_center")
+		if own is Vector2:
+			center = own
+	return to_local(center).distance_squared_to(at) <= reach * reach
+
+## True when `at` (in the pool's coordinates) is inside something solid of `wall_mask`.
+func _in_wall(at: Vector2) -> bool:
+	var world := get_world_2d()
+	if world == null or not is_inside_tree():
+		return false
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = to_global(at)
+	query.collision_mask = wall_mask
+	query.collide_with_areas = false
+	return not world.direct_space_state.intersect_point(query, 1).is_empty()
 
 func _hit_targets(index: int, at: Vector2, targets: Array[Node2D]) -> void:
 	var team := Team.PLAYER

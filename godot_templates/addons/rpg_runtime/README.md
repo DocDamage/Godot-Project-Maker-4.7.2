@@ -280,6 +280,28 @@ shared section of the saves (`SaveManager.read_shared`, `shared_value`, `set_sha
 `user://saves/meta.json`, one file for every slot). The game saves by itself when a stage is
 entered; the pause menu's Save is off.
 
+### run_and_gun (with `arcade` and the platform code of `metroidvania`)
+
+`RpgSoldier` extends `RpgPlatformActor` with a gun that is aimed eight ways. It is told what to
+want (`move_x`, `move_y`, `press_jump()`, `jump_held`, `shooting`, `aim_locked`,
+`press_grenade()`) by `RpgSoldierInput` (the actions `jump`, `shoot`, `grenade`, `aim_lock` and
+the four directions). `RpgGunAim.direction(stick, facing, on_floor, crouching)` is the aim: up,
+the diagonals, forward, and down only in the air; down on the ground is a crouch, which lowers
+`hit_center()` and `hit_radius` and fires forward. `RpgGun` (the child `Gun`: `rate`,
+`bullets_per_shot`, `spread_deg`, `bullet_speed`, `range_px`, `damage`, `pierce`) fires into
+the stage's bullet pool; the child `Muzzle` flashes where the shot goes. `hit()` costs one of
+`max_health` (1 by default: a death); `die()`, `respawn()` (dropped in from the top of the
+screen, safe for `invulnerable_s`). The soldier leads the camera through the stage's scroller
+(`RpgArcadeScroller.follow`): to the right only. The left edge of the screen kills, or is a
+wall (`left_edge_kills`); a fall out of the stage is a death. `RpgGrenade` flies an arc and
+hurts every target within `blast_radius`. `RpgRunAndGunMode` takes a life per death and brings
+the soldier back; `RpgRunAndGunHud` shows the grenades and the health of a forgiving soldier.
+
+`RpgArcadeBulletPool` and `RpgArcadeExplosion` (in `arcade/`) are shared by the kinds that
+shoot. The pool has `wall_mask` (the physics layers that stop a bullet: the ground of a
+side-view stage), a `life_s` per bullet (the range of a gun), and hits a node at its
+`hit_center()` when it has that method.
+
 ### shmup (the shoot-em-up; with `arcade`)
 
 `RpgShmupMode` is the arcade mode with a ship and an `orientation` (`vertical` or `horizontal`);
@@ -292,10 +314,10 @@ hit is one point (`hit_radius`); `hit()` destroys it, `respawn()` brings it back
 laser or homing, `level` 1 to 3, `rate`; `shots(kind, level)` says what one shot is), `Bomb`
 (`RpgShmupBomb`: `use(pool, view)`) and `Input`.
 
-`RpgShmupBulletPool` (the node `Bullets` of a stage) holds 400 bullets of the player and 1,000
+`RpgArcadeBulletPool` (the node `Bullets` of a stage) holds 400 bullets of the player and 1,000
 of the enemies as numbers, not nodes: `fire(team, at, velocity, damage, radius, kind, homing,
 pierce)`, `clear(team)`, `active(team)`. A player's bullet hits the nodes of the group
-`shmup_targets` (a `hit_radius` and `take_hit(damage)`), an enemy's the ship. `RpgShmupEnemyBullet`
+`arcade_targets` (a `hit_radius` and `take_hit(damage)`), an enemy's the ship. `RpgShmupEnemyBullet`
 has the patterns `aimed`, `ring`, `fan` and `spiral` and `fire(pool, from, velocities)`.
 Enemies (`enemies/`) extend `RpgShmupEnemy`: `health`, `points`, `hit_radius`, `take_hit`,
 the signal `defeated`, a touch that destroys the ship, `drop` (the power-up it leaves) and
@@ -327,7 +349,7 @@ the weapon on the left, the score and the lives on the right. The title screen a
 mode for entries of its own (`customize_title_screen(title)`); `RpgArcadeMode` adds *High
 scores* (`show_high_scores(over, back)`). The ship plays `shoot_sound` with every shot.
 
-`RpgShmupExplosion` plays once and is gone; `RpgShmupStarfield` draws the stars of a stage whose
+`RpgArcadeExplosion` plays once and is gone; `RpgShmupStarfield` draws the stars of a stage whose
 packs have no background; `RpgShmupHud` adds the bombs and the weapon to the arcade HUD.
 
 ### metroidvania

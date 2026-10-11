@@ -46,9 +46,9 @@ func _ship() -> RpgShmupShip:
 	var mode := _mode()
 	return mode.ship if mode != null and mode.ship != null and is_instance_valid(mode.ship) else null
 
-func _pool() -> RpgShmupBulletPool:
+func _pool() -> RpgArcadeBulletPool:
 	var stage := _stage()
-	return stage.get_node_or_null("Bullets") as RpgShmupBulletPool if stage != null else null
+	return stage.get_node_or_null("Bullets") as RpgArcadeBulletPool if stage != null else null
 
 func _wait_for(check: Callable, frames: int) -> bool:
 	for i in frames:
@@ -166,7 +166,7 @@ func _ship_flies() -> String:
 
 func _ship_shoots() -> String:
 	var pool := _pool()
-	var team := RpgShmupBulletPool.Team.PLAYER
+	var team := RpgArcadeBulletPool.Team.PLAYER
 	if pool.active(team) != 0:
 		pool.clear(team)
 	Input.action_press(&"shoot")
@@ -188,7 +188,7 @@ func _ship_shoots() -> String:
 func _bomb_clears_bullets() -> String:
 	var pool := _pool()
 	var ship := _ship()
-	var team := RpgShmupBulletPool.Team.ENEMY
+	var team := RpgArcadeBulletPool.Team.ENEMY
 	var sent := RpgShmupEnemyBullet.fire(pool, ship.position - ship.forward() * 60.0, RpgShmupEnemyBullet.ring(12, 0.0))
 	if sent != 12 or pool.active(team) != 12:
 		return "12 enemy bullets were fired and %d are flying" % pool.active(team)
@@ -217,14 +217,14 @@ func _ship_is_destroyed_and_returns() -> String:
 	await _frames(5)
 	if mode.lives.count != lives - 1:
 		return "the ship was hit while it blinked"
-	pool.clear(RpgShmupBulletPool.Team.ENEMY)
+	pool.clear(RpgArcadeBulletPool.Team.ENEMY)
 	if mode.phase != RpgArcadeMode.Phase.PLAYING:
 		return "the run is not being played after a lost life (phase %d)" % mode.phase
 	return ""
 
 func _enemies() -> Array[RpgShmupEnemy]:
 	var out: Array[RpgShmupEnemy] = []
-	for node in _tree().get_nodes_in_group(RpgShmupBulletPool.TARGET_GROUP):
+	for node in _tree().get_nodes_in_group(RpgArcadeBulletPool.TARGET_GROUP):
 		if node is RpgShmupEnemy and not node.is_queued_for_deletion():
 			out.append(node as RpgShmupEnemy)
 	return out
@@ -321,8 +321,8 @@ func _boss_is_beaten() -> String:
 		return "the boss is not on the screen (%s)" % boss.get_global_transform_with_canvas().origin
 	if boss.phases.size() < 2:
 		return "the boss has %d phase(s); the plan gives it two at least" % boss.phases.size()
-	pool.clear(RpgShmupBulletPool.Team.ENEMY)
-	if not await _wait_for(func() -> bool: return pool.active(RpgShmupBulletPool.Team.ENEMY) > 0, 600):
+	pool.clear(RpgArcadeBulletPool.Team.ENEMY)
+	if not await _wait_for(func() -> bool: return pool.active(RpgArcadeBulletPool.Team.ENEMY) > 0, 600):
 		return "the boss did not fire in ten seconds"
 	var before := boss.phase_index()
 	boss.take_hit(boss.health - 1)
@@ -332,7 +332,7 @@ func _boss_is_beaten() -> String:
 	boss.take_hit(5)
 	if mode.score.points <= score:
 		return "beating the boss gave no points"
-	if pool.active(RpgShmupBulletPool.Team.ENEMY) != 0:
+	if pool.active(RpgArcadeBulletPool.Team.ENEMY) != 0:
 		return "the bullets of a beaten boss are still flying"
 	var router := _router()
 	if mode.stages().size() < 2:

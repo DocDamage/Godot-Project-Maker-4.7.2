@@ -72,7 +72,7 @@ func build(ctx: BuildContext) -> Array:
 	ProjectSettings.set_setting("rendering/2d/snap/snap_2d_vertices_to_pixel", true)
 	for i in PHYSICS_LAYER_NAMES.size():
 		ProjectSettings.set_setting("layer_names/2d_physics/layer_%d" % (i + 1), PHYSICS_LAYER_NAMES[i])
-	if JsonUtil.to_str(cfg.get("archetype", "")) == "metroidvania":
+	if JsonUtil.to_str(cfg.get("archetype", "")) in ["metroidvania", "run_and_gun"]:
 		ProjectSettings.set_setting("layer_names/2d_physics/layer_%d" % ONE_WAY_LAYER, ONE_WAY_LAYER_NAME)
 	_apply_autoloads()
 	_apply_tools_plugin(cfg)

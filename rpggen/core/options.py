@@ -114,6 +114,8 @@ def stages_text(archetype: str, starter_map: dict[str, Any]) -> str:
             return wave_plan.describe(starter_map)
         except wave_plan.WavePlanError:
             return ""
+    if archetype == "run_and_gun":
+        return "1 stage, seen from the side"
     return "stages"
 
 

@@ -12,7 +12,7 @@ const BuildContext := preload("res://builder/lib/build_context.gd")
 
 const STEP := 0.125
 const VIEW := Vector2i(320, 180)
-const ENEMY := RpgShmupBulletPool.Team.ENEMY
+const ENEMY := RpgArcadeBulletPool.Team.ENEMY
 
 func _enemy(behaviour: String, way: String = "vertical", powerup: PackedScene = null) -> RpgShmupEnemy:
 	var enemy := EnemyRecipes.build_enemy(behaviour, null, Vector2i(16, 16), false, way, VIEW, 16, null, powerup) as RpgShmupEnemy
@@ -28,14 +28,14 @@ func _ship(way: String = "vertical") -> RpgShmupShip:
 func _field() -> Node2D:
 	var holder := Node2D.new()
 	Fixtures.tree().root.add_child(holder)
-	var pool := RpgShmupBulletPool.new()
+	var pool := RpgArcadeBulletPool.new()
 	pool.name = "Bullets"
 	pool.auto_advance = false
 	holder.add_child(pool)
 	return holder
 
-func _pool(holder: Node2D) -> RpgShmupBulletPool:
-	return holder.get_node("Bullets") as RpgShmupBulletPool
+func _pool(holder: Node2D) -> RpgArcadeBulletPool:
+	return holder.get_node("Bullets") as RpgArcadeBulletPool
 
 func _put(holder: Node2D, enemy: RpgShmupEnemy, at: Vector2) -> void:
 	enemy.pool_override = _pool(holder)
@@ -61,7 +61,7 @@ func test_an_enemy_has_health_points_and_is_gone_when_it_is_shot(t) -> void:
 	var enemy := _enemy("turret")
 	_put(holder, enemy, Vector2(0, -40))
 	t.eq([enemy.health, enemy.points, enemy.in_stage], [3, 300, true])
-	t.ok(enemy.is_in_group(RpgShmupBulletPool.TARGET_GROUP), "the player's bullets find it")
+	t.ok(enemy.is_in_group(RpgArcadeBulletPool.TARGET_GROUP), "the player's bullets find it")
 	t.eq(enemy.travel(), Vector2.DOWN, "it comes from where the ship looks")
 	var shot := [0]
 	enemy.defeated.connect(func() -> void: shot[0] += 1)
@@ -70,7 +70,7 @@ func test_an_enemy_has_health_points_and_is_gone_when_it_is_shot(t) -> void:
 	enemy.take_hit(0)
 	enemy.take_hit(5)
 	t.eq(shot[0], 1)
-	t.ok(enemy.is_queued_for_deletion() and not enemy.is_in_group(RpgShmupBulletPool.TARGET_GROUP))
+	t.ok(enemy.is_queued_for_deletion() and not enemy.is_in_group(RpgArcadeBulletPool.TARGET_GROUP))
 	enemy.take_hit(5)
 	t.eq(shot[0], 1, "once")
 	var side := _enemy("popcorn", "horizontal")
@@ -257,10 +257,10 @@ func test_an_asteroid_drifts_stops_bullets_and_breaks_once_in_two(t) -> void:
 	for i in 8:
 		rock.advance(STEP)
 	t.eq(rock.position, Vector2(8, -24), "it drifts")
-	pool.fire(RpgShmupBulletPool.Team.PLAYER, Vector2(8, 0), Vector2.UP * 160.0, 1)
+	pool.fire(RpgArcadeBulletPool.Team.PLAYER, Vector2(8, 0), Vector2.UP * 160.0, 1)
 	for i in 3:
 		pool.advance(STEP, Rect2())
-	t.eq(pool.active(RpgShmupBulletPool.Team.PLAYER), 0, "a bullet stops at it")
+	t.eq(pool.active(RpgArcadeBulletPool.Team.PLAYER), 0, "a bullet stops at it")
 	t.eq(rock.health, 3)
 	var pieces := rock.pieces()
 	t.eq(pieces.size(), 2)
@@ -275,7 +275,7 @@ func test_an_asteroid_drifts_stops_bullets_and_breaks_once_in_two(t) -> void:
 	await Fixtures.tree().process_frame
 	var left: Array = holder.get_children().filter(func(n: Node) -> bool: return n is RpgShmupAsteroid and not n.is_queued_for_deletion())
 	t.eq(left.size(), 2, "shot, it leaves its two pieces")
-	t.ok((left[0] as RpgShmupAsteroid).is_in_group(RpgShmupBulletPool.TARGET_GROUP), "which can be shot too")
+	t.ok((left[0] as RpgShmupAsteroid).is_in_group(RpgArcadeBulletPool.TARGET_GROUP), "which can be shot too")
 	var wave := RpgArcadeWave.from_dict({"formation": "line", "count": 3})
 	var drifts: Array = []
 	for i in 3:
@@ -546,7 +546,7 @@ func test_the_boss_is_a_target_fires_its_patterns_and_touching_it_destroys_the_s
 	boss.position = Vector2(0, -40)
 	holder.add_child(boss)
 	t.eq([boss.hit_radius, boss.sweep_px, boss.bullet_speed], [25.6, 70.4, 88.0])
-	t.ok(boss.is_in_group(RpgShmupBulletPool.TARGET_GROUP))
+	t.ok(boss.is_in_group(RpgArcadeBulletPool.TARGET_GROUP))
 	boss.setup({"name": "Core", "health": 40, "points": 5000, "phases": [
 		{"until": 0.0, "movement": "still", "attacks": ["ring"], "interval": 1.0, "telegraph_s": 0.25, "count": 12, "fast": 2.0},
 		{"until": 0.5, "movement": "sweep", "attacks": ["fan"], "interval": 1.0, "telegraph_s": 0.25, "count": 5, "fast": 1.0},
@@ -592,7 +592,7 @@ func test_the_boss_is_a_target_fires_its_patterns_and_touching_it_destroys_the_s
 	boss.take_hit(99)
 	t.eq(events, ["defeated"])
 	t.eq(pool.active(ENEMY), 0)
-	t.ok(not boss.is_in_group(RpgShmupBulletPool.TARGET_GROUP))
+	t.ok(not boss.is_in_group(RpgArcadeBulletPool.TARGET_GROUP))
 	boss.advance(0.25)
 	t.ok(boss.is_queued_for_deletion(), "after its defeat it is gone")
 	var side := _boss("horizontal")

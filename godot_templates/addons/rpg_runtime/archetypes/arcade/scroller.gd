@@ -77,6 +77,23 @@ func is_held() -> bool:
 func at_end() -> bool:
 	return length > 0.0 and progress >= length
 
+## The camera is led instead of moving by itself (a side-view stage follows its soldier): the
+## progress rises to `wanted`, never falls, stops at the length and waits while it is held.
+## Returns the px it moved.
+func follow(wanted: float) -> float:
+	_learn_origin()
+	var before := progress
+	if not is_held():
+		var goal := maxf(progress, wanted)
+		progress = minf(goal, length) if length > 0.0 else goal
+	var view := camera()
+	if view != null:
+		view.position = origin + offset()
+	if at_end() and not _ended:
+		_ended = true
+		reached_end.emit()
+	return progress - before
+
 ## One step: the camera moves on unless it is held or at the end. Returns the px it moved.
 func advance(delta: float) -> float:
 	_learn_origin()

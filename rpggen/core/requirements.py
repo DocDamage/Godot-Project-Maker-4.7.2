@@ -181,7 +181,7 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     players = _assets_with_role(catalog, "PLAYER")
     if len(players) > 1 and not any(p.status == "CONFIRMED" for p in players):
         issues.add("ASSET-014", role="PLAYER", candidates=", ".join(p.id for p in players))
-    if cfg.archetype == "metroidvania":
+    if cfg.archetype in ("metroidvania", "run_and_gun"):  # the kinds whose player jumps
         chosen = (cfg.starter or {}).get("player")
         player = next((p for p in players if p.id == chosen), players[0] if players else None)
         missing = missing_air_animations(player)

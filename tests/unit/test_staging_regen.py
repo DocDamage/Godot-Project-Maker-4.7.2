@@ -443,6 +443,8 @@ def test_the_arcade_framework_is_installed_for_the_arcade_kinds_only(tmp_path: P
         written = staging.install_templates(stg, templates, kind)
         assert [w for w in written if "/arcade/" in w] == arcade, kind
         for older in ("turn_based", "arpg", "metroidvania"):
+            if older in staging.BORROWED_FOLDERS.get(kind, ()):
+                continue  # a run and gun is built on the metroidvania's platform code (T16.08)
             assert not [w for w in written if f"archetypes/{older}/" in w], (kind, older)
         assert "addons/rpg_runtime/core/save_manager.gd" in written
     assert staging._other_archetype("builder/recipes/arcade/hud_recipe.gd", "arpg")

@@ -139,7 +139,7 @@ def test_the_scenes_are_made_of_the_packs_own_pictures(shooter) -> None:
         target, "generated/scenes/shmup/explosion.tscn"
     )
     stage = _text(target, "generated/scenes/stages/stage_01.tscn")
-    assert "archetypes/arcade/stage.gd" in stage and "archetypes/shmup/bullet_pool.gd" in stage
+    assert "archetypes/arcade/stage.gd" in stage and "archetypes/arcade/bullet_pool.gd" in stage
     # both backgrounds of the pack loop behind the stage, and the bullets are the pack's
     assert "backgrounds/space_far.png" in stage and "backgrounds/space_near.png" in stage
     assert stage.count('type="Parallax2D"') == 3, "the backdrop and two layers"

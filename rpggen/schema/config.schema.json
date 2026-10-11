@@ -23,7 +23,8 @@
         "turn_based",
         "arpg",
         "metroidvania",
-        "shmup"
+        "shmup",
+        "run_and_gun"
       ]
     },
     "packs": {
@@ -160,6 +161,8 @@
         "ground_patches": {"type": "integer", "minimum": 0, "maximum": 20},
         "ground": {"type": "string"},
         "orientation": {"enum": ["vertical", "horizontal"]},
+        "health": {"type": "integer", "minimum": 1, "maximum": 5},
+        "left_edge_kills": {"type": "boolean"},
         "stages": {"type": "integer", "minimum": 1, "maximum": 8},
         "length": {"enum": ["short", "medium", "long"]},
         "lives": {"type": "integer", "minimum": 1, "maximum": 9},

@@ -1,6 +1,6 @@
-class_name RpgShmupExplosion
+class_name RpgArcadeExplosion
 extends AnimatedSprite2D
-## An explosion: plays its animation once and is gone. Without frames it is gone at once.
+## An explosion (shared by the arcade kinds): plays its animation once and is gone. Without frames it is gone at once.
 
 @export var sound: StringName = &"sfx_explosion"
 

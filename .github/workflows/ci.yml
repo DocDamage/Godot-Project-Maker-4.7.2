@@ -65,7 +65,7 @@ jobs:
       - name: GDScript tests
         run: python -m rpggen.dev godot-test
       - name: Integration tests
-        run: python -m pytest -q -m "integration and not arpg and not metroidvania and not shmup"
+        run: python -m pytest -q -m "integration and not arpg and not metroidvania and not shmup and not run_and_gun"
       - name: Upload diagnostics
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -147,7 +147,7 @@ jobs:
         run: python -m rpggen.dev godot-test
       - name: Integration tests (Godot headless)
         if: matrix.pyside == 'latest'
-        run: python -m pytest -q -m "integration and not arpg and not metroidvania and not shmup"
+        run: python -m pytest -q -m "integration and not arpg and not metroidvania and not shmup and not run_and_gun"
       - name: Upload diagnostics
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -162,14 +162,14 @@ jobs:
   # The integration suites of the archetypes that are not the default one, a job each (T14.11):
   # every archetype generates, validates and plays its sample, which is minutes per run, and on
   # one runner the wall-clock time would grow with every archetype. The jobs above run the rest
-  # (`-m "integration and not arpg and not metroidvania and not shmup"`).
+  # (`-m "integration and not arpg and not metroidvania and not shmup and not run_and_gun"`).
   archetype-integration:
     name: integration (${{ matrix.archetype }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        archetype: [arpg, metroidvania, shmup]
+        archetype: [arpg, metroidvania, shmup, run_and_gun]
         os: [windows-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

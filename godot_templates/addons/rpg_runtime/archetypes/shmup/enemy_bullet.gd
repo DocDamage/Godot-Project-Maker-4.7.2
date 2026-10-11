@@ -31,12 +31,12 @@ static func spiral(step: int, arms: int, speed: float, turn_deg: float = 12.0) -
 	return ring(arms, speed, deg_to_rad(turn_deg) * step)
 
 ## Puts a volley into `pool` at `from`. Returns how many bullets the pool had room for.
-static func fire(pool: RpgShmupBulletPool, from: Vector2, velocities: PackedVector2Array,
+static func fire(pool: RpgArcadeBulletPool, from: Vector2, velocities: PackedVector2Array,
 		damage: int = 1, radius: float = 2.0) -> int:
 	var sent := 0
 	if pool == null:
 		return sent
 	for velocity in velocities:
-		if pool.fire(RpgShmupBulletPool.Team.ENEMY, from, velocity, damage, radius, "enemy") >= 0:
+		if pool.fire(RpgArcadeBulletPool.Team.ENEMY, from, velocity, damage, radius, "enemy") >= 0:
 			sent += 1
 	return sent

@@ -76,6 +76,14 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
         bindings["dash"] = {"keys": ["Shift", "C"], "joy_buttons": [10]}
         bindings["attack"] = {"keys": ["J", "X"], "mouse_buttons": [1], "joy_buttons": [2]}
         bindings["down"] = {"keys": ["S", "Down"], "joy_buttons": [12], "joy_axes": [[1, 1.0]]}
+    if archetype == "run_and_gun":
+        # the metroidvania's bindings are the starting point: Space jumps, J fires, K throws
+        bindings["interact"] = {"keys": ["E"], "joy_buttons": [9]}
+        bindings["jump"] = {"keys": ["Space", "Z"], "joy_buttons": [0]}
+        bindings["shoot"] = {"keys": ["J", "X"], "mouse_buttons": [1], "joy_buttons": [2]}
+        bindings["grenade"] = {"keys": ["K", "C"], "joy_buttons": [3]}
+        bindings["aim_lock"] = {"keys": ["Shift"], "joy_axes": [[4, 1.0]]}
+        bindings["down"] = {"keys": ["S", "Down"], "joy_buttons": [12], "joy_axes": [[1, 1.0]]}
     if archetype == "shmup":
         # Z fires and X bombs, as the genre has it; Shift flies slowly (the left trigger)
         bindings["shoot"] = {"keys": ["Z", "J"], "mouse_buttons": [1], "joy_buttons": [0]}
@@ -107,6 +115,9 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         from rpggen.core import wave_plan
 
         return wave_plan.defaults()
+    if archetype == "run_and_gun":
+        # one hit is a death (the genre); the left edge of the screen kills
+        return {"health": 1, "lives": 3, "left_edge_kills": True}
     if archetype in ARCADE_KINDS:
         return {}
     return {
@@ -122,6 +133,9 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
 
 
 ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
+# The kinds that are seen from the side: their packs get the side-view kit and their tile sets
+# the one-way platforms, ladders and hazards (T14.03, T16.08).
+SIDE_VIEW_KINDS = ("metroidvania", "run_and_gun")
 # What an arcade kind (M16) has switched off until somebody switches it on: a run through
 # stages has nobody to talk to and no enemy that looks for a path.
 ARCADE_OFF = ("dialogue", "navigation")

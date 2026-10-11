@@ -23,13 +23,13 @@ const BURST := 3
 @export var bullet_speed: float = 88.0
 @export var explosion_scene: PackedScene = null
 
-var pool_override: RpgShmupBulletPool = null
+var pool_override: RpgArcadeBulletPool = null
 ## How many volleys it has fired (a spiral and a sweep turn with it).
 var volleys := 0
 var _extras: Array[Dictionary] = []
 
 func _ready() -> void:
-	add_to_group(RpgShmupBulletPool.TARGET_GROUP)
+	add_to_group(RpgArcadeBulletPool.TARGET_GROUP)
 	exploded.connect(_on_exploded)
 	defeated.connect(_on_defeated)
 	finished.connect(queue_free)
@@ -54,20 +54,20 @@ func across() -> Vector2:
 	var way := travel()
 	return Vector2(-way.y, way.x)
 
-func pool() -> RpgShmupBulletPool:
+func pool() -> RpgArcadeBulletPool:
 	if pool_override != null:
 		return pool_override
 	var node := get_parent()
 	while node != null:
 		if node is RpgArcadeStage:
-			return node.get_node_or_null("Bullets") as RpgShmupBulletPool
+			return node.get_node_or_null("Bullets") as RpgArcadeBulletPool
 		node = node.get_parent()
 	return null
 
 func ship() -> Node2D:
 	if not is_inside_tree():
 		return null
-	for node in get_tree().get_nodes_in_group(RpgShmupBulletPool.SHIP_GROUP):
+	for node in get_tree().get_nodes_in_group(RpgArcadeBulletPool.SHIP_GROUP):
 		if node is Node2D and node.has_method(&"hit") and not RpgUtil.to_bool(node.get(&"dead")):
 			return node as Node2D
 	return null
@@ -131,7 +131,7 @@ func _on_exploded(at: Vector2) -> void:
 
 ## Beaten: nothing of it can be hit any more, and what it fired is gone.
 func _on_defeated() -> void:
-	remove_from_group(RpgShmupBulletPool.TARGET_GROUP)
+	remove_from_group(RpgArcadeBulletPool.TARGET_GROUP)
 	var bullets := pool()
 	if bullets != null:
-		bullets.clear(RpgShmupBulletPool.Team.ENEMY)
+		bullets.clear(RpgArcadeBulletPool.Team.ENEMY)

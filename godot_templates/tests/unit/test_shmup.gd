@@ -13,8 +13,8 @@ const BuildContext := preload("res://builder/lib/build_context.gd")
 
 const STEP := 0.125  # exact in binary
 const VIEW := Vector2i(320, 180)
-const PLAYER := RpgShmupBulletPool.Team.PLAYER
-const ENEMY := RpgShmupBulletPool.Team.ENEMY
+const PLAYER := RpgArcadeBulletPool.Team.PLAYER
+const ENEMY := RpgArcadeBulletPool.Team.ENEMY
 
 ## Something a bullet can hit.
 class Target extends Node2D:
@@ -22,7 +22,7 @@ class Target extends Node2D:
 	var taken := 0
 
 	func _ready() -> void:
-		add_to_group(RpgShmupBulletPool.TARGET_GROUP)
+		add_to_group(RpgArcadeBulletPool.TARGET_GROUP)
 
 	func take_hit(damage: int) -> void:
 		taken += damage
@@ -41,8 +41,8 @@ func _ship(way: String) -> RpgShmupShip:
 	(ship.get_node("Input") as RpgShmupShipInput).enabled = false
 	return ship
 
-func _pool() -> RpgShmupBulletPool:
-	var pool := RpgShmupBulletPool.new()
+func _pool() -> RpgArcadeBulletPool:
+	var pool := RpgArcadeBulletPool.new()
 	pool.auto_advance = false
 	Fixtures.tree().root.add_child(pool)
 	return pool
@@ -247,7 +247,7 @@ func test_the_weapon_fires_at_its_rate_into_the_pool_toward_where_the_ship_looks
 # ---------------------------------------------------------------- the pool
 
 func test_the_pool_holds_its_bullets_and_uses_them_again(t) -> void:
-	var pool := RpgShmupBulletPool.new()
+	var pool := RpgArcadeBulletPool.new()
 	t.eq([pool.capacity(PLAYER), pool.capacity(ENEMY)], [400, 1000])
 	for i in 400:
 		t.eq(pool.fire(PLAYER, Vector2(i, 0), Vector2.UP * 100.0), i)
@@ -276,7 +276,7 @@ func test_bullets_hit_targets_and_the_ship(t) -> void:
 	await Fixtures.tree().process_frame
 	var holder := Node2D.new()
 	Fixtures.tree().root.add_child(holder)
-	var pool := RpgShmupBulletPool.new()
+	var pool := RpgArcadeBulletPool.new()
 	pool.auto_advance = false
 	holder.add_child(pool)
 	var target := Target.new()
@@ -351,7 +351,7 @@ func test_a_bomb_clears_the_enemy_bullets_and_hurts_what_is_on_the_screen(t) -> 
 	await Fixtures.tree().process_frame
 	var holder := Node2D.new()
 	Fixtures.tree().root.add_child(holder)
-	var pool := RpgShmupBulletPool.new()
+	var pool := RpgArcadeBulletPool.new()
 	pool.auto_advance = false
 	holder.add_child(pool)
 	var near := Target.new()
@@ -403,7 +403,7 @@ func test_the_ship_flies_shoots_and_dies_in_a_stage_in_both_orientations(t) -> v
 		var root := StageRecipes.build_stage(0, plan[0], VIEW, Vector2(VIEW) * 0.5 + RpgShmupMath.start_offset(Vector2(VIEW), way))
 		var background := StageRecipe.build_background(ctx, way, Vector2(VIEW))
 		root.add_child(background)
-		var pool := RpgShmupBulletPool.new()
+		var pool := RpgArcadeBulletPool.new()
 		pool.name = "Bullets"
 		pool.auto_advance = false
 		root.add_child(pool)
@@ -461,7 +461,7 @@ func test_the_ship_flies_shoots_and_dies_in_a_stage_in_both_orientations(t) -> v
 
 func test_the_recipes_build_the_ship_the_explosion_and_the_background(t) -> void:
 	var burst := ShipRecipe.build_explosion(_frames())
-	t.ok(burst is RpgShmupExplosion)
+	t.ok(burst is RpgArcadeExplosion)
 	var packed := PackedScene.new()
 	t.eq(packed.pack(burst), OK)
 	burst.free()

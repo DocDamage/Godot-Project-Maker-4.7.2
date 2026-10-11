@@ -40,7 +40,7 @@ func input_hash(ctx: BuildContext) -> String:
 ## A metroidvania's rooms are seen from the side (T14.04): nothing blocks the way but the tiles,
 ## and chests and signs are used from beside them.
 static func _side_view(ctx: BuildContext) -> bool:
-	return JsonUtil.to_str(ctx.config.get("archetype", "")) == "metroidvania"
+	return JsonUtil.to_str(ctx.config.get("archetype", "")) in ["metroidvania", "run_and_gun"]
 
 func _tile_size(ctx: BuildContext) -> int:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")

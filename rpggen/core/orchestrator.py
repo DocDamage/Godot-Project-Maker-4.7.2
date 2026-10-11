@@ -69,7 +69,12 @@ ARCHETYPE_SMOKE_STEPS = {"turn_based": SMOKE_STEPS_TURN_BASED, "arpg": SMOKE_STE
 # An archetype whose world is not the top-down starter map has a whole sequence of its own (the
 # shared one walks a village): the title screen and a new game are among its steps.
 SMOKE_STEPS_SHMUP = "res://generated/builder/smoke/smoke_steps_shmup.gd"
-OWN_SMOKE_STEPS = {"metroidvania": SMOKE_STEPS_METROIDVANIA, "shmup": SMOKE_STEPS_SHMUP}
+SMOKE_STEPS_RUN_AND_GUN = "res://generated/builder/smoke/smoke_steps_run_and_gun.gd"
+OWN_SMOKE_STEPS = {
+    "metroidvania": SMOKE_STEPS_METROIDVANIA,
+    "shmup": SMOKE_STEPS_SHMUP,
+    "run_and_gun": SMOKE_STEPS_RUN_AND_GUN,
+}
 
 
 def smoke_steps_for(archetype: str) -> str:
@@ -363,7 +368,7 @@ def add_run_made_assets(
             catalog, roles, cfg.base_tile_size, root
         )
     stand_ins: list[str] = []
-    if cfg.archetype == "metroidvania":
+    if cfg.archetype in config_mod.SIDE_VIEW_KINDS:
         from rpggen.core import side_kit
 
         stand_ins = side_kit.add(catalog, cfg.base_tile_size, root)

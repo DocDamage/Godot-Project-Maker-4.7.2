@@ -107,7 +107,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.05 | Shoot 'em up: waves, enemies, power-ups | M | T16.04 | done; an enemy without a picture is a drawn shape with no note, and the waves are a fixed set until the stage planner (the notes) |
 | T16.06 | Shoot 'em up: stages and bosses, the wave plan | L | T16.05 | done; the options are in `starter_map`, an added stage is read from rpggen's own list, and the run to the credits is a smoke step, not a game played by hand (the notes) |
 | T16.07 | Shoot 'em up: HUD, continue, high scores | S | T16.06 | done; the kind stays behind `SHMUP_AVAILABLE` until its gate, and the title's entry is added by the mode at run time (the notes) |
-| T16.08 | Run and gun: the soldier on the platform actor | M | T16.01, T16.03 | open |
+| T16.08 | Run and gun: the soldier on the platform actor | M | T16.01, T16.03 | done; the camera is led through the stage's scroller instead of `SideCamera`, and the bullet pool and the explosion moved to the arcade folder (the notes) |
 | T16.09 | Run and gun: weapons, enemies, spawners | M | T16.08 | open |
 | T16.10 | Run and gun: stages and bosses, the stage plan | L | T16.09 | open |
 | T16.11 | Run and gun: the grapple | M | T16.10 | open |
