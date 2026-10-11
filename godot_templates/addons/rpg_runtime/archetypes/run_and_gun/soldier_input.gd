@@ -4,7 +4,7 @@ extends Node
 ## poll() at the start of its own physics step, so a press acts in the same frame.
 ##
 ## Actions: move_left / move_right run, move_up / move_down aim (and climb a ladder), `jump`,
-## `shoot`, `grenade`, `aim_lock`. Down with jump drops through a one-way platform.
+## `shoot`, `grenade`, `aim_lock`, `grapple`. Down with jump drops through a one-way platform.
 
 ## Turned off by a test or a smoke step that moves the soldier itself.
 var enabled := true
@@ -33,3 +33,5 @@ func poll(soldier: RpgPlatformActor) -> void:
 	soldier.set(&"aim_locked", _held(&"aim_lock"))
 	if _pressed(&"grenade"):
 		soldier.call(&"press_grenade")
+	if _pressed(&"grapple"):
+		soldier.call(&"press_grapple")

@@ -312,6 +312,20 @@ fires one shot, `RpgGunTurret` fires a fan, `RpgJumperEnemy` hops, `RpgWallCanno
 and can only be hit while it is open. The right edge of the screen is a wall for the soldier,
 so a wave that is `blocking` (a trap) holds both the camera and the soldier until it is cleared.
 
+`RpgGrapple` (the soldier's child `Grapple`, in a game with the option `grapple`) is the arm:
+`soldier.press_grapple()` (the action `grapple`) fires its hook along the aim (up, an upper
+diagonal, forward; `RpgGrapple.direction`), `reach_tiles` far. It holds on any solid tile or
+plank (`tagged_only`: only on tiles with the bool custom data `grapple`). A hook that holds to
+the side swings the soldier: the rope is reeled in to `reel` of its length and the soldier is
+a pendulum on it (`RpgPlatformMath.swing_step`), pushed a little by left and right; the button
+again, or jump, lets go, and the soldier keeps the speed of the swing until it lands. A hook
+that holds straight above hoists: the soldier climbs the rope and gets on to the tile when
+there is room to stand on it (`hoisted`), else it hangs under it. Signals: `hooked(at)`,
+`missed`, `hoisted`, `let_go`; on the soldier `grapple_fired` and `grapple_hooked(at)`. A
+soldier with `can_jump` off (the option `jump`) does not jump; down with jump still drops
+through a plank. `RpgPlatformMath` has the pendulum: `swing_step`, `swing_period`,
+`simulate_swing`, `swing_speed`.
+
 `RpgGunBoss` is the arcade boss as a target of the pool, of a `kind`: `wall` (stands at the
 right of its arena), `walker` (walks out to the left and back) or `flyer` (sweeps in the air).
 Its attacks are `aimed`, `fan`, `burst`, `rain` and `ring` (`volley(attack)`), with the `count`

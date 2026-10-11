@@ -542,6 +542,12 @@ def _plan_stages(state: _State) -> None:
     for problem in planner.check(plan["stages"]):
         stage, _, what = problem.partition(": ")
         state.issues.add("VAL-029", stage=stage, problem=what)
+    if planner is stage_plan:
+        # a soldier that does not jump needs something to swing from and to climb (T16.11)
+        jump = stage_plan.normalized(state.cfg.starter_map_options())["jump"]
+        for problem in stage_plan.check_grapple(plan["stages"], jump):
+            stage, _, what = problem.partition(": ")
+            state.issues.add("VAL-030", stage=stage, problem=what)
     world_plan.save(root, plan)
     state.cb.on_log("stages: " + planner.summary(plan["stages"]))
     for note in [*plan["notes"], *notes]:

@@ -12,14 +12,22 @@ extends RpgPlatformActor
 ## or kills, as `left_edge_kills` says. A fall out of the stage is a death.
 ##
 ## The soldier is told what to want (`move_x`, `move_y`, press_jump, `jump_held`, `shooting`,
-## `aim_locked`, press_grenade): RpgSoldierInput tells it from the input actions, a test tells
-## it directly. Its children: `Visual`, `Body`, `Gun`, `Input` and `Muzzle` (the flash).
+## `aim_locked`, press_grenade, press_grapple): RpgSoldierInput tells it from the input actions,
+## a test tells it directly. Its children: `Visual`, `Body`, `Gun`, `Input` and `Muzzle` (the
+## flash), and `Grapple` when the game has the grapple arm.
+##
+## The grapple (RpgGrapple) is fired along the aim; a hook that holds swings the soldier or
+## hoists it, and the button again (or jump) lets go with the speed of the swing. A soldier
+## with `can_jump` off does not jump: the arm does the climbing. Down with jump still drops
+## through a plank.
 
 signal destroyed
 signal respawned
 signal was_hit(health_left: int)
 signal grenade_thrown(grenade: Node2D)
 signal weapon_changed(weapon: String)
+signal grapple_fired
+signal grapple_hooked(at: Vector2)
 
 const BLINK_S := 0.1
 const FLASH_S := 0.06
@@ -49,6 +57,9 @@ const DEFAULT_WEAPON := "machine_gun"
 ## The size of the screen in px.
 @export var view: Vector2 = Vector2(640, 360)
 @export var shoot_sound: StringName = &"sfx_shoot"
+## Off: the jump button does nothing (the game's option `jump`; it needs the grapple).
+@export var can_jump: bool = true
+@export var grapple_sound: StringName = &"sfx_grapple"
 
 var health := 1
 var dead := false
@@ -69,6 +80,9 @@ var _grenade_asked := false
 var _flash_left := 0.0
 var _start := Vector2.ZERO
 var _started := false
+var _grapple_asked := false
+## After letting go of a swing: its speed is kept until the soldier lands or meets a wall.
+var _carried := false
 
 func _ready() -> void:
 	super._ready()
@@ -141,6 +155,62 @@ func muzzle() -> Vector2:
 	var center := Vector2(0.0, -body_height() * (0.25 if crouching else 0.55))
 	return position + center + aim * (body_width() * 0.5 + 2.0)
 
+func grapple() -> RpgGrapple:
+	return get_node_or_null("Grapple") as RpgGrapple
+
+## The soldier's end of the rope, relative to its feet.
+func hand() -> Vector2:
+	return Vector2(0.0, -body_height() * 0.5)
+
+## The grapple button: fires the hook along the aim, or lets go of what it holds.
+func press_grapple() -> void:
+	_grapple_asked = true
+
+func is_on_rope() -> bool:
+	var rope := grapple()
+	return rope != null and rope.is_attached()
+
+## Jump lets go of the rope; a soldier that cannot jump only drops through a plank with it.
+func press_jump() -> void:
+	if is_on_rope():
+		release_grapple()
+	elif can_jump or (is_on_floor() and move_y > 0.5 and standing_on_one_way()):
+		super.press_jump()
+
+## Lets go of the rope: the soldier flies on with the speed of its swing.
+func release_grapple() -> void:
+	var rope := grapple()
+	if rope == null or rope.is_idle():
+		return
+	var swinging := rope.state == RpgGrapple.State.SWING
+	if swinging:
+		velocity = rope.swing_velocity()
+	rope.release()
+	if swinging:
+		_carried = true
+		_jump_cut = true  # the rise of a swing is not a jump let go early
+		_coyote = 0.0
+		_buffer = 0.0
+
+func _use_grapple() -> void:
+	var rope := grapple()
+	if rope == null:
+		return
+	if rope.is_attached():
+		release_grapple()
+	elif rope.is_idle() and rope.fire(RpgUtil.world_position(self) + hand(), RpgGrapple.direction(aim, facing)):
+		grapple_fired.emit()
+		play_sound(grapple_sound)
+
+## One step on the rope instead of the actor's own: the swing or the hoist.
+func _step_on_rope(delta: float) -> void:
+	var rope := grapple()
+	on_ladder = false
+	rope.move(self, delta, gravity_px(), clampf(move_x, -1.0, 1.0) if controllable() else 0.0)
+	if rope.state == RpgGrapple.State.SWING and absf(rope.omega) > 0.2 and not facing_locked:
+		set_facing(1 if rope.omega > 0.0 else -1)
+	_animate()
+
 ## A grenade at the next step.
 func press_grenade() -> void:
 	_grenade_asked = true
@@ -151,22 +221,40 @@ func step(delta: float) -> void:
 		_start = position
 	if dead:
 		_grenade_asked = false
+		_grapple_asked = false
 		return
+	var rope := grapple()
+	if rope != null and rope.fly(delta, self, hand(), layers()):
+		grapple_hooked.emit(rope.anchor)
+		play_sound(grapple_sound)
+	var hanging := rope != null and rope.is_attached()
 	var stick := Vector2(move_x, move_y)
 	var floor_now := is_on_floor()
 	var was_crouching := crouching
-	crouching = floor_now and stick.y > RpgGunAim.DEAD_ZONE and absf(stick.x) <= RpgGunAim.DEAD_ZONE and not on_ladder
+	crouching = floor_now and stick.y > RpgGunAim.DEAD_ZONE and absf(stick.x) <= RpgGunAim.DEAD_ZONE and not on_ladder and not hanging
 	if crouching != was_crouching:
 		_size_hit()
 	if absf(stick.x) > RpgGunAim.DEAD_ZONE and not facing_locked:
 		set_facing(1 if stick.x > 0.0 else -1)
-	aim = RpgGunAim.direction(stick, facing, floor_now, crouching)
-	# a crouched soldier and one that holds its aim stay where they are
-	var held := move_x
-	if crouching or aim_locked:
-		move_x = 0.0
-	super.step(delta)
-	move_x = held  # what is held stays held: only this step stood still
+	aim = RpgGunAim.direction(stick, facing, floor_now and not hanging, crouching)
+	if _grapple_asked:
+		_grapple_asked = false
+		_use_grapple()
+		hanging = rope != null and rope.is_attached()
+	if hanging:
+		_step_on_rope(delta)
+	else:
+		# a crouched soldier and one that holds its aim stay where they are
+		var held := move_x
+		if crouching or aim_locked:
+			move_x = 0.0
+		if _carried:
+			_wall_lock = maxf(_wall_lock, delta * 2.0)  # the input does not take the speed away
+		super.step(delta)
+		move_x = held  # what is held stays held: only this step stood still
+		if _carried and (is_on_floor() or is_on_wall()):
+			_carried = false
+			_wall_lock = 0.0
 	_keep_on_screen()
 	_step_safety(delta)
 	var weapon := gun()
@@ -291,6 +379,10 @@ func die() -> void:
 		return
 	dead = true
 	health = 0
+	var rope := grapple()
+	if rope != null:
+		rope.release()
+	_carried = false
 	velocity = Vector2.ZERO
 	if not keep_weapon:
 		equip(DEFAULT_WEAPON)
@@ -326,6 +418,13 @@ func respawn() -> void:
 func _animate() -> void:
 	if animation_locked or _driver.sprite == null:
 		return
+	var rope := grapple()
+	if rope != null and not rope.is_idle():
+		for base: String in ["grapple", "aim_up"]:
+			if _driver.has_side(base):
+				_driver.sprite.speed_scale = 1.0
+				_driver.play_side(base, facing)
+				return
 	if crouching and _driver.has_side("crouch"):
 		_driver.sprite.speed_scale = 1.0
 		_driver.play_side("crouch", facing)

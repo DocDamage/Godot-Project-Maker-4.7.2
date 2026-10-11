@@ -5,6 +5,7 @@ by *Added stages*."""
 from __future__ import annotations
 
 import copy
+import math
 from pathlib import Path
 
 import pytest
@@ -162,6 +163,8 @@ def test_the_options_and_what_is_wrong_with_them() -> None:
         "left_edge_kills": True,
         "difficulty": "normal",
         "added_stages": [],
+        "grapple": False,
+        "jump": True,
     }
     assert config.starter_map_defaults("run_and_gun") == stage_plan.defaults()
     for name, chunks in stage_plan.LENGTHS.items():
@@ -179,6 +182,8 @@ def test_the_options_and_what_is_wrong_with_them() -> None:
         ({"length": "endless"}, "length"),
         ({"difficulty": "brutal"}, "difficulty"),
         ({"keep_weapon": "yes"}, "keep_weapon"),
+        ({"grapple": 1}, "grapple"),
+        ({"jump": False}, "jump can be off only when grapple is on"),
         ({"orientation": "vertical"}, "unknown option"),
         ({"added_stages": [{"name": "A"}, {"name": "a"}]}, "two added stages"),
     ):
@@ -218,3 +223,170 @@ def test_added_stages_grow_the_plan_and_a_project_keeps_what_it_stored(tmp_path:
     assert len(grown["stages"]["list"]) == 4
     world_plan.save(project, grown)
     assert world_plan.load(project)["stages"]["kind"] == "run_and_gun"
+
+
+# --------------------------------------------------------------------------- the grapple (T16.11)
+
+BIONIC = {"grapple": True, "jump": False}
+
+
+def _flat(width: int = 30) -> list[list[str]]:
+    """Twelve rows: nine of air and three of ground (its top is row 9)."""
+    return [list("." * width) for _ in range(9)] + [list("#" * width) for _ in range(3)]
+
+
+def _rows(grid: list[list[str]]) -> list[str]:
+    return ["".join(row) for row in grid]
+
+
+def test_the_pendulum_is_the_one_the_runtime_steps() -> None:
+    # the numbers of the platform actor at 16 px tiles: test_grapple.gd has the same period
+    gravity = 2 * room_plan.JUMP_TILES * 16 / room_plan.TIME_TO_PEAK**2
+    period = stage_plan.swing_period(64.0, gravity, math.pi / 4)
+    assert period == pytest.approx(1.947866, abs=1e-6)
+    assert period > math.tau * math.sqrt(64.0 / gravity), "a wide swing takes longer"
+    assert stage_plan.swing_period(64.0, gravity, 1e-6) == pytest.approx(
+        math.tau * math.sqrt(64.0 / gravity)
+    )
+    for hertz in (30, 60, 120):
+        stepped = stage_plan.simulate_swing(64.0, gravity, math.pi / 4, 1 / hertz)
+        assert stepped == pytest.approx(period, rel=0.01), hertz
+    assert stage_plan.swing_period(0.0, gravity, 1.0) == 0.0
+
+
+def test_a_plan_without_jumping_has_a_swing_point_over_every_gap() -> None:
+    assert stage_plan.PRESETS["bionic"] == BIONIC
+    for seed in range(40):
+        for length in stage_plan.LENGTHS:
+            plan = stage_plan.plan({**BIONIC, "length": length}, seed, FACTS)
+            assert plan["seed"] == seed, "no plan of the options has to be planned again"
+            assert (plan["grapple"], plan["jump"]) == (True, False)
+            assert stage_plan.check(plan) == [] and stage_plan.check_grapple(plan) == []
+            schema.validate("world_plan", stage_plan.world(plan, seed))
+            for stage in plan["list"]:
+                tiles = stage["tiles"]
+                tops = stage_plan.ground(tiles)
+                floor = stage_plan.floor_row(plan["rows"])
+                x = 0
+                while x < len(tops):
+                    if stage_plan._standable(tiles, tops, x):
+                        x += 1
+                        continue
+                    end = x
+                    while not stage_plan._standable(tiles, tops, end):
+                        end += 1
+                    hook = stage_plan.swing_point(tiles, x, end - 1, floor)
+                    assert hook is not None, (seed, stage["id"], x)
+                    assert x - 2 <= hook[0] <= end + 2, "the hook holds over the gap"
+                    assert tiles[int(hook[1]) - 1][int(hook[0])] == "#", "on a block"
+                    reach = (floor - stage_plan.HAND - hook[1]) * math.sqrt(2.0)
+                    assert reach <= stage_plan.GRAPPLE_REACH
+                    x = end
+                # what is higher has a plank to be hoisted on to
+                for x in range(len(tops) - 1):
+                    here, nxt = tops[x], tops[x + 1]
+                    both = stage_plan._standable(tiles, tops, x) and stage_plan._standable(
+                        tiles, tops, x + 1
+                    )
+                    if both and nxt < here:  # type: ignore[operator]
+                        assert tiles[nxt][x] == "=", (seed, stage["id"], x)
+                # and the enemies still stand on ground
+                for wave in stage["waves"]:
+                    if wave["enemy"] in ("runner", "jumper", "turret"):
+                        col = int(wave["position"][0] // 16)
+                        assert tops[col] == wave["position"][1] // 16, (seed, wave)
+    kinds = {
+        kind
+        for seed in range(10)
+        for stage in stage_plan.plan(BIONIC, seed, FACTS)["list"]
+        for kind in stage["chunks"]
+    }
+    assert kinds >= {"gap", "spikes", "step", "wall", "planks"}, "the same features, for the arm"
+    # a plan with jumping is what it was before the grapple: no block in the air
+    plain = stage_plan.plan({}, 3, FACTS)
+    assert (plain["grapple"], plain["jump"]) == (False, True)
+    assert stage_plan.check_grapple(plain) == []
+    assert stage_plan.plan({"grapple": True}, 3, FACTS)["list"] == plain["list"]
+    for stage in plain["list"]:
+        floor = stage_plan.floor_row(plain["rows"])
+        assert all("#" not in row for row in stage["tiles"][: floor - 3])
+
+
+def test_a_stage_with_nothing_to_swing_from_is_val_030() -> None:
+    from rpggen.errors_table import CODES
+
+    assert CODES["VAL-030"].severity == "warning"
+    assert stage_plan.climb(_rows(_flat())) == []
+    # a gap of three tiles and nothing over it
+    gap = _flat()
+    for x in (14, 15, 16):
+        for y in (9, 10, 11):
+            gap[y][x] = "."
+    (problem,) = stage_plan.climb(_rows(gap))
+    assert "column 14" in problem and "nothing above them to swing from" in problem
+    assert stage_plan.walk(_rows(gap)) == [], "a soldier that jumps crosses it"
+    # a block five tiles over it: the hook holds, the swing ends over the far side
+    for x in (13, 14, 15, 16, 17):
+        gap[3][x] = "#"
+    assert stage_plan.climb(_rows(gap)) == []
+    hook = stage_plan.swing_point(_rows(gap), 14, 16, 9)
+    assert hook is not None and hook[1] == 4.0
+    # too high for the hook, and it is no swing point
+    high = _flat()
+    high = [list("." * 30) for _ in range(6)] + high
+    for x in (14, 15, 16):
+        for y in (15, 16, 17):
+            high[y][x] = "."
+    for x in (13, 14, 15, 16, 17):
+        high[0][x] = "#"
+    assert len(stage_plan.climb(_rows(high))) == 1
+    # a wider gap than the swing carries over
+    wide = _flat()
+    for x in range(12, 20):
+        for y in (9, 10, 11):
+            wide[y][x] = "."
+    for x in (13, 14, 15):
+        wide[3][x] = "#"
+    assert len(stage_plan.climb(_rows(wide))) == 1
+    # spikes are not walked either
+    spikes = _flat()
+    spikes[8][15] = "^"
+    (problem,) = stage_plan.climb(_rows(spikes))
+    assert "1 tiles that cannot be walked" in problem
+    # a step needs a plank that reaches out from it
+    step = _flat()
+    for x in range(15, 30):
+        step[8][x] = step[7][x] = "#"
+    (problem,) = stage_plan.climb(_rows(step))
+    assert "a step of 2 tiles and no plank" in problem
+    step[7][14] = step[7][13] = "="
+    assert stage_plan.climb(_rows(step)) == []
+    # the whole plan: a plan made for jumping, played without it
+    plain = stage_plan.plan({}, 3, FACTS)
+    assert stage_plan.check_grapple(plain) == []
+    problems = stage_plan.check_grapple(plain, jump=False)
+    assert problems and all(p.startswith("stage_0") for p in problems)
+    assert stage_plan.check_grapple(stage_plan.plan(BIONIC, 3, FACTS), jump=True) == []
+
+
+def test_the_grapple_options_are_kept_by_the_config_and_the_stored_plan(tmp_path: Path) -> None:
+    assert (
+        stage_plan.describe(BIONIC) == "3 stages, seen from the side, with the grapple and no jump"
+    )
+    assert stage_plan.describe({"grapple": True}).endswith("with the grapple")
+    ref = config.PackRef("p", "p", "0" * 64, "folder")
+    cfg = config.default_for("S", [ref], archetype="run_and_gun")
+    cfg.starter_map = dict(BIONIC)
+    data = cfg.to_json()
+    schema.validate("config", data)
+    assert (data["starter_map"]["grapple"], data["starter_map"]["jump"]) == (True, False)
+    assert config.GeneratorConfig.from_json(data).to_json() == data
+    assert config.default_input("run_and_gun")["grapple"] == {
+        "keys": ["L", "V"],
+        "joy_buttons": [1],
+    }
+    # an added stage of a stored plan is for the arm too
+    stored = stage_plan.plan({**BIONIC, "stages": 1, "length": "short"}, 4, FACTS)
+    grown, added = stage_plan.extend(stored, [{"name": "The Tower"}], 4)
+    assert added == ["The Tower"] and stage_plan.check_grapple(grown) == []
+    assert grown["jump"] is False and len(grown["list"]) == 2

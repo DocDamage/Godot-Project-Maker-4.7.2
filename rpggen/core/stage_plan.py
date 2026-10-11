@@ -15,7 +15,14 @@ that holds the camera.
 A plan is checked (``check``): walking the stage from left to right, every piece of ground is
 reached from the one before it by the soldier's jump, worked out with the room plan's numbers
 (the same the platform actor moves by); every wave comes before the stage ends; and the boss's
-bullets stay under the ceiling. No Qt, no Godot.
+bullets stay under the ceiling.
+
+**The grapple (T16.11).** With the option ``jump`` off (it needs ``grapple`` on: the preset
+*Bionic*) the soldier does not jump, and a stage is drawn for the arm: a block hangs over every
+gap and every bed of spikes to swing from, and a plank reaches out from every step and wall to
+be hoisted on to. ``check_grapple`` walks such a stage with the arm's numbers (the reach of the
+hook, the rope reeled in, the pendulum of ``RpgPlatformMath``): a gap with nothing to swing
+from, or a step with nothing to climb, is a problem (``VAL-030``). No Qt, no Godot.
 """
 
 from __future__ import annotations
@@ -66,6 +73,16 @@ JUMP_ACROSS = math.floor(room_plan.horizontal_reach(()))  # 4
 PLAN_UP = 2
 PLAN_ACROSS = 3
 
+# the grapple arm, in tiles (RpgGrapple and RpgSoldier.hand)
+GRAPPLE_REACH = 7.0  # how far the hook flies
+GRAPPLE_REEL = 0.6  # the rope of a swing is this much of the way to the hook
+HAND = 0.75  # the soldier's end of the rope above its feet: half a body of a tile and a half
+BODY_HALF = 0.4  # half the width of the soldier, and a little
+SWING_UP = 5  # rows of air between the ground and the block a soldier swings from
+HOIST_UP = math.floor(GRAPPLE_REACH - HAND)  # how high a plank can be and still be hoisted on to
+LIP = 2  # how far a plank reaches out from a step
+PRESETS = {"bionic": {"grapple": True, "jump": False}}
+
 BULLET_CEILING = 150
 REROLLS = 8
 
@@ -85,6 +102,8 @@ def defaults() -> dict[str, Any]:
         "left_edge_kills": True,
         "difficulty": "normal",
         "added_stages": [],
+        "grapple": False,
+        "jump": True,
     }
 
 
@@ -108,9 +127,11 @@ def normalized(options: Any) -> dict[str, Any]:
         value = out[key]
         if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
             raise StagePlanError(f"{key} must be a whole number from {low} to {high}")
-    for key in ("keep_weapon", "left_edge_kills"):
+    for key in ("keep_weapon", "left_edge_kills", "grapple", "jump"):
         if not isinstance(out[key], bool):
             raise StagePlanError(f"{key} must be true or false")
+    if not out["jump"] and not out["grapple"]:
+        raise StagePlanError("jump can be off only when grapple is on")
     rows = out["added_stages"]
     if not isinstance(rows, list) or len(rows) > MAX_ADDED:
         raise StagePlanError(f"added_stages must be a list of at most {MAX_ADDED} stages")
@@ -179,7 +200,48 @@ class _Chunk:
             self.spots.append([x, self.floor if row is None else row])
 
 
-def _draw(kind: str, cols: int, rows: int, rng: Random) -> _Chunk:
+def _draw_for_the_arm(kind: str, cols: int, rows: int, rng: Random) -> _Chunk:
+    """A chunk for a soldier that does not jump: something to swing from over what cannot be
+    walked, and a plank to be hoisted on to before what is higher."""
+    chunk = _Chunk(kind, cols, rows)
+    f = chunk.floor
+    mid = cols // 2
+    anchor = f - SWING_UP - 1
+    if kind in ("gap", "spikes"):
+        width = rng.randint(2, PLAN_ACROSS) if kind == "gap" else rng.randint(1, 2)
+        x0 = mid - width // 2
+        if kind == "gap":
+            chunk.fill(x0, f, x0 + width - 1, rows - 1, ".")
+        else:
+            chunk.fill(x0, f, x0 + width - 1, f, "^")  # sunk into the ground: a bed of spikes
+        chunk.fill(x0 - 1, anchor, x0 + width, anchor, "#")
+        chunk.ground_spots(x0 + width + 3, cols - 3)
+    elif kind in ("step", "wall"):
+        height = rng.randint(2, PLAN_UP + 1) if kind == "step" else PLAN_UP
+        x0 = mid - 3 if kind == "step" else mid
+        x1 = cols - 4 if kind == "step" else x0 + 1
+        chunk.fill(x0, f - height, x1, f - 1, "#")
+        chunk.fill(x0 - LIP, f - height, x0 - 1, f - height, "=")
+        if kind == "step":
+            chunk.ground_spots(x0 + 1, x1 - 1, f - height)
+            chunk.perch = [x1 - 1, f - height]
+        else:
+            chunk.mount = [x0 - 1, f - 1]
+            chunk.ground_spots(x0 + 4, cols - 3)
+    elif kind == "planks":
+        height = rng.randint(2, PLAN_UP + 1)
+        x0 = mid - 3
+        chunk.fill(x0, f - height, x0 + 5, f - height, "=")
+        chunk.perch = [x0 + 4, f - height]
+        chunk.ground_spots(3, cols - 3)
+    else:  # flat, trap, arena
+        chunk.ground_spots(3, cols - 3)
+    return chunk
+
+
+def _draw(kind: str, cols: int, rows: int, rng: Random, jump: bool = True) -> _Chunk:
+    if not jump:
+        return _draw_for_the_arm(kind, cols, rows, rng)
     chunk = _Chunk(kind, cols, rows)
     f = chunk.floor
     mid = cols // 2
@@ -374,7 +436,7 @@ def _stage(
     rng = Random(f"{KIND}:{seed}:{index}")
     cols, rows, tile = chunk_cols(facts), stage_rows(facts), facts["tile"]
     kinds = _layout(LENGTHS[options["length"]], rng)
-    chunks = [_draw(kind, cols, rows, rng) for kind in kinds]
+    chunks = [_draw(kind, cols, rows, rng, options.get("jump", True)) for kind in kinds]
     tiles = ["".join("".join(c.g[y]) for c in chunks) for y in range(rows)]
     width_px = len(chunks) * cols * tile
     length = float(width_px - facts["view"][0])  # the camera stops with the arena on the screen
@@ -400,15 +462,16 @@ def _stage(
 
 
 def ground(tiles: list[str]) -> list[int | None]:
-    """For every column, the row of the highest solid ground (planks do not count: a soldier
-    can pass under them), or None for a pit."""
+    """For every column, the row of the top of the ground: of the solid tiles that stand on
+    the bottom of the stage (planks do not count: a soldier can pass under them; nor does a
+    block that hangs in the air), or None for a pit."""
     out: list[int | None] = []
     for x in range(len(tiles[0]) if tiles else 0):
         top: int | None = None
-        for y, row in enumerate(tiles):
-            if row[x] in "#B":
-                top = y
+        for y in range(len(tiles) - 1, -1, -1):
+            if tiles[y][x] not in "#B":
                 break
+            top = y
         out.append(top)
     return out
 
@@ -449,6 +512,126 @@ def walk(tiles: list[str]) -> list[str]:
             )
         x = end
     return problems
+
+
+def _standable(tiles: list[str], tops: list[int | None], x: int) -> bool:
+    """Ground a soldier can stand on in column ``x``: solid, and no spikes on it."""
+    top = tops[x] if 0 <= x < len(tops) else None
+    return top is not None and (top == 0 or tiles[top - 1][x] != "^")
+
+
+def swing_point(tiles: list[str], x0: int, x1: int, row: int) -> list[float] | None:
+    """Where a soldier that stands on ground whose top is ``row`` hooks on to swing over the
+    columns ``x0`` to ``x1``: [x, y] of the hook in tiles, or None. The hook is fired up and
+    forward from left of ``x0`` and holds on the underside of something; the rope is reeled in
+    and the soldier swings to where the pendulum comes to rest on the far side, which has to
+    be over ground beyond ``x1``."""
+    tops = ground(tiles)
+    hand_y = row - HAND
+    for cy in range(row - 1):
+        under = cy + 1  # the underside of the cells of row cy
+        rise = hand_y - under
+        if rise < 1.5 or rise * math.sqrt(2.0) > GRAPPLE_REACH:
+            continue
+        for cx in range(max(0, x0 - 2), min(len(tiles[cy]), x1 + 3)):
+            if tiles[cy][cx] not in "#B=" or tiles[under][cx] != ".":
+                continue
+            for part in (0.125, 0.375, 0.625, 0.875):
+                hit = cx + part
+                stand = hit - rise  # the hook goes up as far as it goes forward
+                at = math.floor(stand)
+                if stand > x0 - BODY_HALF or not _standable(tiles, tops, at) or tops[at] != row:
+                    continue
+                if any(  # the way of the hook is free
+                    tiles[math.floor(hand_y - d)][math.floor(stand + d)] != "."
+                    for d in (i * 0.5 for i in range(1, int(rise * 2)))
+                ):
+                    continue
+                land = hit + GRAPPLE_REEL * rise  # where the swing comes to rest
+                feet = under + GRAPPLE_REEL * rise + HAND
+                col = math.floor(land)
+                if land < x1 + 1 + BODY_HALF or not _standable(tiles, tops, col):
+                    continue
+                if tops[col] >= feet:  # type: ignore[operator]
+                    return [hit, float(under)]
+    return None
+
+
+def climb(tiles: list[str]) -> list[str]:
+    """What stops a soldier that does not jump on its way through a stage: nothing (an empty
+    list), a step with no plank to be hoisted on to, or a gap (or spikes) with nothing above
+    it to swing from."""
+    tops = ground(tiles)
+    problems: list[str] = []
+    x = 0
+    while x < len(tops) - 1:
+        if not _standable(tiles, tops, x):
+            problems.append(f"column {x}: no ground to stand on")
+            break
+        here: int = tops[x]  # type: ignore[assignment]
+        if _standable(tiles, tops, x + 1):
+            nxt: int = tops[x + 1]  # type: ignore[assignment]
+            rise = here - nxt
+            if rise >= 1 and not (tiles[nxt][x] == "=" and rise <= HOIST_UP):
+                problems.append(
+                    f"column {x + 1}: a step of {rise} tiles and no plank to be hoisted on to"
+                )
+            x += 1
+            continue
+        end = x + 1
+        while end < len(tops) and not _standable(tiles, tops, end):
+            end += 1
+        if end >= len(tops):
+            problems.append(f"column {x + 1}: the ground ends and does not begin again")
+            break
+        if swing_point(tiles, x + 1, end - 1, here) is None:
+            problems.append(
+                f"column {x + 1}: {end - x - 1} tiles that cannot be walked "
+                "and nothing above them to swing from"
+            )
+        x = end
+    return problems
+
+
+def check_grapple(stages: dict[str, Any], jump: bool | None = None) -> list[str]:
+    """What keeps a soldier that does not jump from finishing a plan (``VAL-030``); an empty
+    list for a game with jumping on. ``jump`` is the option of the game now (a stored plan may
+    have been made for another)."""
+    can_jump = stages.get("jump", True) if jump is None else jump
+    if can_jump:
+        return []
+    problems: list[str] = []
+    for stage in stages["list"]:
+        problems.extend(f"{stage['id']}: {p}" for p in climb(stage.get("tiles", [])))
+    return problems
+
+
+def swing_period(length: float, gravity: float, amplitude: float) -> float:
+    """The time of one whole swing of a pendulum let go at rest at ``amplitude`` rad: the
+    number of ``RpgPlatformMath.swing_period`` (2 pi sqrt(L/g) over the arithmetic-geometric
+    mean of 1 and cos(amplitude / 2))."""
+    if length <= 0.0 or gravity <= 0.0:
+        return 0.0
+    a, b = 1.0, math.cos(amplitude * 0.5)
+    for _ in range(24):
+        a, b = (a + b) * 0.5, math.sqrt(a * b)
+    return math.tau * math.sqrt(length / gravity) / a
+
+
+def simulate_swing(length: float, gravity: float, amplitude: float, delta: float) -> float:
+    """The same swing stepped at ``delta`` the way ``RpgPlatformMath.swing_step`` steps it."""
+    angle, omega, time = amplitude, 0.0, 0.0
+    crossings: list[float] = []
+    pull = gravity / length
+    while time < 60.0 and len(crossings) < 3:
+        before = angle
+        omega -= pull * math.sin(angle) * delta * 0.5
+        angle += omega * delta
+        omega -= pull * math.sin(angle) * delta * 0.5
+        if before != 0.0 and (before > 0) != (angle > 0):
+            crossings.append(time + delta * abs(before) / abs(before - angle))
+        time += delta
+    return crossings[2] - crossings[0] if len(crossings) == 3 else 0.0
 
 
 def boss_bullets(boss: dict[str, Any], lifetime_s: float) -> float:
@@ -500,6 +683,8 @@ def _plan_once(options: dict[str, Any], seed: int, facts: dict[str, Any]) -> dic
         "length": options["length"],
         "view": list(facts["view"]),
         "tile": facts["tile"],
+        "grapple": options["grapple"],
+        "jump": options["jump"],
         "chunk_cols": chunk_cols(facts),
         "rows": stage_rows(facts),
         "list": [_stage(i, options, facts, seed) for i in range(options["stages"])],
@@ -516,7 +701,7 @@ def plan(options: Any, seed: int, facts: Any = None) -> dict[str, Any]:
     found: list[str] = []
     for attempt in range(REROLLS):
         candidate = _plan_once(opts, int(seed) + attempt, known)
-        found = check(candidate)
+        found = check(candidate) + check_grapple(candidate)
         if not found:
             if attempt:
                 candidate["notes"].append(
@@ -537,6 +722,8 @@ def extend(stored: dict[str, Any], added_rows: Any, seed: int) -> tuple[dict[str
         **defaults(),
         "difficulty": out["difficulty"],
         "length": out.get("length", "medium"),
+        "grapple": bool(out.get("grapple", False)),
+        "jump": bool(out.get("jump", True)),
     }
     facts = {"view": out["view"], "tile": out["tile"]}
     for row in added_rows or []:
@@ -548,7 +735,8 @@ def extend(stored: dict[str, Any], added_rows: Any, seed: int) -> tuple[dict[str
         index = len(out["list"])
         for attempt in range(REROLLS):
             stage = _stage(index, options, facts, int(seed) + attempt, name)
-            if not check({**out, "list": [stage]}):
+            one = {**out, "list": [stage]}
+            if not check(one) and not check_grapple(one):
                 break
         else:
             raise StagePlanError(f"no stage called {name} that can be finished")
@@ -573,7 +761,10 @@ def describe(options: Any) -> str:
     """What the options make, without planning: "3 stages, seen from the side"."""
     opts = normalized(options)
     count = opts["stages"] + len(opts["added_stages"])
-    return f"{count} stage{'s' if count != 1 else ''}, seen from the side"
+    arm = ""
+    if opts["grapple"]:
+        arm = ", with the grapple" + ("" if opts["jump"] else " and no jump")
+    return f"{count} stage{'s' if count != 1 else ''}, seen from the side{arm}"
 
 
 def world(stages: dict[str, Any], seed: int) -> dict[str, Any]:

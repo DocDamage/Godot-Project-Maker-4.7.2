@@ -67,3 +67,47 @@ static func dash_distance(speed: float, seconds: float) -> float:
 ## The cell of `tile` px that holds a point.
 static func cell_of(point: Vector2, tile: float) -> Vector2i:
 	return Vector2i(floori(point.x / tile), floori(point.y / tile)) if tile > 0.0 else Vector2i.ZERO
+
+## One step of a pendulum: `angle` (rad, from straight down, to the right is positive) and
+## `omega` (rad/s) of a body on a rope of `length` px under `gravity_px`. Half of the step's pull
+## before the move and half after, as a jump is stepped. Returns Vector2(angle, omega).
+static func swing_step(angle: float, omega: float, length: float, gravity_px: float, delta: float) -> Vector2:
+	if length <= 0.0:
+		return Vector2(angle, 0.0)
+	var pull := gravity_px / length
+	omega -= pull * sin(angle) * delta * 0.5
+	angle += omega * delta
+	omega -= pull * sin(angle) * delta * 0.5
+	return Vector2(angle, omega)
+
+## The time of one whole swing (there and back) let go at rest at `amplitude` rad: the small
+## swing's 2π√(L/g), longer for a wide one (over the arithmetic-geometric mean of 1 and
+## cos(amplitude / 2)). rpggen works out the same number (stage_plan.swing_period).
+static func swing_period(length: float, gravity_px: float, amplitude: float) -> float:
+	if length <= 0.0 or gravity_px <= 0.0:
+		return 0.0
+	var a := 1.0
+	var b := cos(amplitude * 0.5)
+	for i in 24:
+		var mean := (a + b) * 0.5
+		b = sqrt(a * b)
+		a = mean
+	return TAU * sqrt(length / gravity_px) / a
+
+## The time of one whole swing stepped at `delta` the way the grapple steps it.
+static func simulate_swing(length: float, gravity_px: float, amplitude: float, delta: float) -> float:
+	var state := Vector2(amplitude, 0.0)
+	var time := 0.0
+	var crossings: Array[float] = []
+	while time < 60.0 and crossings.size() < 3:
+		var before := state.x
+		state = swing_step(state.x, state.y, length, gravity_px, delta)
+		if before != 0.0 and signf(before) != signf(state.x):
+			crossings.append(time + delta * absf(before) / absf(before - state.x))
+		time += delta
+	return crossings[2] - crossings[0] if crossings.size() == 3 else 0.0
+
+## How fast (px/s, along its path) a body on a rope of `length` px swings through the lowest
+## point when it was let go at rest at `amplitude` rad.
+static func swing_speed(length: float, gravity_px: float, amplitude: float) -> float:
+	return sqrt(maxf(0.0, 2.0 * gravity_px * length * (1.0 - cos(amplitude))))

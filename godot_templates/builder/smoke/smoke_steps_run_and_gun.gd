@@ -6,7 +6,9 @@ extends RefCounted
 ## camera until it is destroyed, the boss of the first stage is fought and beaten in its arena,
 ## and the run is taken through every other stage and its boss to the credits. In the steps
 ## about enemies the soldier is made safe: they are about what comes, not about dodging it;
-## and the way to a boss is skipped (the camera is put at the arena), not run.
+## and the way to a boss is skipped (the camera is put at the arena), not run. In a game with
+## the grapple arm the soldier swings over a gap on it (or, in a stage with nothing planned to
+## swing from, fires it); in a game without jumping the jump button is shown to do nothing.
 
 const SAVE_DIR := "user://smoke_saves"
 
@@ -26,6 +28,7 @@ func steps() -> Array[Dictionary]:
 		{"name": "wave_is_fought", "fn": _wave_is_fought, "timeout_s": 60.0},
 		{"name": "weapon_is_picked_up", "fn": _weapon_is_picked_up, "timeout_s": 30.0},
 		{"name": "trap_stops_the_camera", "fn": _trap_stops_the_camera, "timeout_s": 60.0},
+		{"name": "grapple_swings_the_soldier", "fn": _grapple_swings_the_soldier, "timeout_s": 60.0},
 		{"name": "boss_is_beaten", "fn": _boss_is_beaten, "timeout_s": 90.0},
 		{"name": "run_reaches_the_credits", "fn": _run_reaches_the_credits, "timeout_s": 300.0},
 	]
@@ -66,7 +69,7 @@ func _frames(count: int) -> void:
 		await _tree().physics_frame
 
 func _release_all() -> void:
-	for action: StringName in [&"move_left", &"move_right", &"move_up", &"move_down", &"jump", &"shoot", &"grenade", &"aim_lock"]:
+	for action: StringName in [&"move_left", &"move_right", &"move_up", &"move_down", &"jump", &"shoot", &"grenade", &"aim_lock", &"grapple"]:
 		if InputMap.has_action(action):
 			Input.action_release(action)
 
@@ -179,6 +182,16 @@ func _camera_never_goes_back() -> String:
 func _soldier_jumps() -> String:
 	var soldier := _soldier()
 	var floor_y := soldier.position.y
+	if not soldier.can_jump:
+		# a game without jumping (the grapple does the climbing): the button does nothing
+		Input.action_press(&"jump")
+		await _frames(20)
+		Input.action_release(&"jump")
+		if not soldier.is_on_floor() or absf(soldier.position.y - floor_y) > 1.0:
+			return "the jump button moved a soldier that cannot jump (y %.1f -> %.1f)" % [floor_y, soldier.position.y]
+		if soldier.grapple() == null:
+			return "a soldier that cannot jump has no grapple"
+		return ""
 	Input.action_press(&"jump")
 	var top := floor_y
 	for i in 90:
@@ -420,6 +433,119 @@ func _trap_stops_the_camera() -> String:
 	_shoot_everything()
 	if not await _wait_for(func() -> bool: return trap.is_cleared() and not scroll.is_held(), 120):
 		return "the camera is still held after the trap was destroyed"
+	return ""
+
+## A block of the stage to swing from, ahead of where the soldier may be put: the cells of its
+## left and right end ([Vector2i, Vector2i]), or [] when the stage has none.
+func _block_to_swing_from(ground: TileMapLayer, floor_y: float, from_x: float) -> Array[Vector2i]:
+	var tile := Vector2(ground.tile_set.tile_size)
+	var cells := ground.get_used_cells()
+	cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
+	for cell in cells:
+		if (cell.y + 1) * tile.y > floor_y - tile.y * 3.0 or cell.x * tile.x < from_x:
+			continue
+		if ground.get_cell_source_id(cell + Vector2i.DOWN) != -1 or ground.get_cell_source_id(cell + Vector2i.LEFT) != -1:
+			continue
+		var last := cell
+		while ground.get_cell_source_id(last + Vector2i.RIGHT) != -1:
+			last += Vector2i.RIGHT
+		return [cell, last]
+	return []
+
+func _tap(action: StringName) -> void:
+	Input.action_press(action)
+	await _frames(2)
+	Input.action_release(action)
+
+func _grapple_swings_the_soldier() -> String:
+	var stage := _stage()
+	var mode := _mode()
+	var soldier := _soldier()
+	var rope := soldier.grapple()
+	if rope == null:
+		return ""  # a game without the grapple arm
+	if not InputMap.has_action(&"grapple"):
+		return "the game has the grapple arm and no input action for it"
+	var ground := stage.get_node_or_null("Ground") as TileMapLayer
+	if ground == null:
+		return "the stage has no Ground layer"
+	_release_all()
+	_shoot_everything()
+	soldier.set(&"_safe_left", 600.0)
+	if not await _wait_for(func() -> bool: return soldier.is_on_floor(), 240):
+		return "the soldier does not stand before the grapple is tried"
+	var scroll := stage.scroller()
+	var tile := soldier.tile_size
+	var floor_y := soldier.position.y
+	var rise := floor_y + soldier.hand().y
+	var screen_left := scroll.view_center().x - soldier.view.x * 0.5
+	var block := _block_to_swing_from(ground, floor_y, screen_left + soldier.view.x * 0.5)
+	if block.is_empty():
+		# nothing was planned to swing from (a game that also jumps): the hook is fired up and
+		# comes back, or holds and is let go
+		Input.action_press(&"move_up")
+		await _frames(3)
+		await _tap(&"grapple")
+		var out := not rope.is_idle()
+		Input.action_release(&"move_up")
+		if not out and not await _wait_for(func() -> bool: return not rope.is_idle(), 10):
+			return "pressing grapple did not fire the hook"
+		if not await _wait_for(func() -> bool: return not rope.is_flying(), 120):
+			return "the hook is still flying after two seconds"
+		if rope.is_attached():
+			await _frames(30)
+			await _tap(&"grapple")
+			if not await _wait_for(func() -> bool: return rope.is_idle(), 60):
+				return "pressing grapple again did not let go"
+		return ""
+	var under := (block[0].y + 1) * float(ground.tile_set.tile_size.y)
+	rise -= under
+	var hit_x := (block[1].x + 0.5) * float(ground.tile_set.tile_size.x)
+	var stand_x := hit_x - rise
+	var lives := mode.lives.count
+	_jump_to(maxf(scroll.progress, stand_x - soldier.view.x * 0.4 - scroll.origin.x))
+	soldier.position = Vector2(stand_x, floor_y)
+	await _frames(20)
+	_shoot_everything()
+	if not soldier.is_on_floor():
+		return "the soldier does not stand where the hook is fired from (at %s)" % soldier.position
+	Input.action_press(&"aim_lock")
+	Input.action_press(&"move_right")
+	Input.action_press(&"move_up")
+	await _frames(4)
+	await _tap(&"grapple")
+	var held := await _wait_for(func() -> bool: return rope.is_attached(), 60)
+	Input.action_release(&"move_right")
+	Input.action_release(&"move_up")
+	Input.action_release(&"aim_lock")
+	if not held:
+		return "the hook fired up and forward from %s did not hold on the block at %s" % [soldier.position, block]
+	if rope.state != RpgGrapple.State.SWING:
+		return "a hook that holds up and forward does not swing the soldier (state %d)" % rope.state
+	var top := floor_y
+	var far := [false]
+	for i in 300:
+		await _tree().physics_frame
+		_shoot_everything()
+		top = minf(top, soldier.position.y)
+		if not rope.is_attached():
+			break
+		if soldier.position.x > rope.anchor.x + tile and rope.omega <= 0.0:
+			far[0] = true
+			break
+	if not far[0]:
+		return "the swing did not carry the soldier past the block (at %s, the hook holds at %s)" % [soldier.position, rope.anchor]
+	if top >= floor_y - 1.0:
+		return "the rope did not lift the soldier off the ground"
+	await _tap(&"grapple")
+	if not rope.is_idle():
+		return "pressing grapple again did not let go"
+	if not await _wait_for(func() -> bool: return soldier.is_on_floor() or soldier.dead, 240):
+		return "the soldier did not land after the swing"
+	if soldier.dead or mode.lives.count != lives:
+		return "the swing ended in a death (the soldier came down at x %.1f)" % soldier.position.x
+	if soldier.position.x <= hit_x:
+		return "the soldier landed at x %.1f, not beyond the block at %.1f" % [soldier.position.x, hit_x]
 	return ""
 
 ## Takes the stage that is played to its arena: the camera is put at the end of the stage, the

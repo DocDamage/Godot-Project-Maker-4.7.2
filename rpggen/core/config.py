@@ -83,6 +83,8 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
         bindings["shoot"] = {"keys": ["J", "X"], "mouse_buttons": [1], "joy_buttons": [2]}
         bindings["grenade"] = {"keys": ["K", "C"], "joy_buttons": [3]}
         bindings["aim_lock"] = {"keys": ["Shift"], "joy_axes": [[4, 1.0]]}
+        # the grapple arm (T16.11): fires along the aim, and lets go again
+        bindings["grapple"] = {"keys": ["L", "V"], "joy_buttons": [1]}
         bindings["down"] = {"keys": ["S", "Down"], "joy_buttons": [12], "joy_axes": [[1, 1.0]]}
     if archetype == "shmup":
         # Z fires and X bombs, as the genre has it; Shift flies slowly (the left trigger)

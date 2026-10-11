@@ -16,6 +16,7 @@ const PICKUP_SCRIPT := DIR + "weapon_pickup.gd"
 const BOSS_SCRIPT := DIR + "boss.gd"
 const ENEMY_DIR := DIR + "enemies/"
 const GRENADE_SCRIPT := DIR + "grenade.gd"
+const GRAPPLE_SCRIPT := DIR + "grapple.gd"
 
 const SCENES := "res://generated/scenes/run_and_gun/"
 const SOLDIER_PATH := SCENES + "soldier.tscn"
@@ -50,3 +51,18 @@ static func keep_weapon(ctx: BuildContext) -> bool:
 
 static func left_edge_kills(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "left_edge_kills", true))
+
+## The soldier has the grapple arm (config.starter_map.grapple).
+static func grapple(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "grapple", false))
+
+## The soldier jumps (config.starter_map.jump); a soldier without the arm always does.
+static func can_jump(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "jump", true)) or not grapple(ctx)
+
+## The hook of the packs: an ITEM tagged `grapple` (or the drawn one); {} without one.
+static func hook_asset(ctx: BuildContext) -> Dictionary:
+	for asset in ArcadeBuild.assets(ctx, "ITEM"):
+		if JsonUtil.to_array(ctx.catalog.effective(asset).get("tags", [])).has("grapple"):
+			return asset
+	return {}

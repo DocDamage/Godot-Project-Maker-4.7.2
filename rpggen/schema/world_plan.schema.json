@@ -46,6 +46,8 @@
         "plan_version": {"const": 1},
         "kind": {"enum": ["shmup", "run_and_gun"]},
         "chunk_cols": {"type": "integer", "minimum": 1},
+        "grapple": {"type": "boolean"},
+        "jump": {"type": "boolean"},
         "rows": {"type": "integer", "minimum": 1},
         "seed": {"type": "integer"},
         "orientation": {"enum": ["vertical", "horizontal"]},

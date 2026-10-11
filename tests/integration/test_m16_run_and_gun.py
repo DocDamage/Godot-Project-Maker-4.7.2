@@ -30,6 +30,7 @@ STEPS = [
     "wave_is_fought",
     "weapon_is_picked_up",
     "trap_stops_the_camera",
+    "grapple_swings_the_soldier",
     "boss_is_beaten",
     "run_reaches_the_credits",
 ]
@@ -300,3 +301,47 @@ def test_an_added_stage_grows_the_run(godot_exe: Path, cache: Path, tmp_path: Pa
     assert [s["title"] for s in planned] == ["", "The Docks"]
     assert (target / "generated/scenes/stages/stage_02.tscn").is_file()
     assert _smoke(target)[-1] == "run_reaches_the_credits"
+
+
+def test_the_gunner_plays_as_bionic_without_a_jump(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    from rpggen.core import stage_plan, world_plan
+
+    target = tmp_path / "out"
+    cfg = config.default_for(
+        "Bionic", [config.pack_ref_from_source(GUNNER, "gunner")], archetype="run_and_gun"
+    )
+    cfg.starter_map = dict(stage_plan.PRESETS["bionic"])
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    assert not [i for i in result.issues if i.code in ("VAL-029", "VAL-030")]
+    # every step of the run and gun, with a jump button that does nothing and a swing on the arm
+    assert _smoke(target) == STEPS
+    stored = world_plan.load(target)["stages"]
+    assert (stored["grapple"], stored["jump"]) == (True, False)
+    assert stage_plan.check_grapple(stored) == []
+    soldier = _text(target, "generated/scenes/run_and_gun/soldier.tscn")
+    assert "run_and_gun/grapple.gd" in soldier and 'name="Grapple"' in soldier
+    assert "can_jump = false" in soldier
+    assert "gunner/grapple_hook.png" in soldier, "the hook of the pack"
+    assert "grapple=" in _text(target, "project.godot"), "the input action of the arm"
+    # the same pack with jumping has no arm
+    plain = config.default_for(
+        "Gunner", [config.pack_ref_from_source(GUNNER, "gunner")], archetype="run_and_gun"
+    )
+    assert plain.starter_map_options()["grapple"] is False
+
+
+def test_a_plan_made_for_jumping_is_reported_when_jumping_is_turned_off(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    target = tmp_path / "out"
+    first = orchestrator.run_in_memory(_config(stages=1, length="short"), None, target, godot_exe)
+    assert first.ok, _errors(first)
+    second = orchestrator.run_in_memory(
+        _config(stages=1, length="short", grapple=True, jump=False), None, target, godot_exe
+    )
+    codes = [i.code for i in second.issues]
+    assert "VAL-030" in codes, "the stored plan is kept, and it has nothing to swing from"
+    assert second.ok, "a warning: the game is still made"

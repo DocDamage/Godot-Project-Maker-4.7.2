@@ -86,6 +86,7 @@ def test_the_controls_start_from_the_metroidvanias() -> None:
     assert "Space" not in bindings["interact"]["keys"], "Space jumps"
     for action in ("move_up", "move_down", "move_left", "move_right", "menu"):
         assert action in bindings, action
+    assert bindings["grapple"]["keys"] == ["L", "V"], "the arm (T16.11)"
     assert not {"dash", "attack", "bomb", "focus"} & set(bindings)
     assert _cfg().input == bindings
 

@@ -3,7 +3,7 @@ extends RefCounted
 ## sprite, with its gun, its input and a muzzle flash; the grenade it throws (grenade.tscn, a
 ## drawn one) and the explosion (explosion.tscn, from the EXPLOSION sprite).
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -29,6 +29,9 @@ func input_hash(ctx: BuildContext) -> String:
 		"health": RngBuild.health(ctx),
 		"left_edge_kills": RngBuild.left_edge_kills(ctx),
 		"keep_weapon": RngBuild.keep_weapon(ctx),
+		"grapple": RngBuild.grapple(ctx),
+		"jump": RngBuild.can_jump(ctx),
+		"hook": RngBuild.hook_asset(ctx).get("id", ""),
 	})
 
 static func build_explosion(frames: SpriteFrames) -> AnimatedSprite2D:
@@ -75,6 +78,16 @@ static func build_soldier(frames: SpriteFrames, frame: Vector2i, origin: Vector2
 	SceneUtil.add(root, flash, root, "Muzzle")
 	return root
 
+## Gives a soldier the grapple arm (the child "Grapple"), with the picture of its hook.
+static func add_grapple(root: Node, tile: int, hook: Texture2D = null) -> Node2D:
+	var arm := Node2D.new()
+	SceneUtil.attach_script(arm, RngBuild.GRAPPLE_SCRIPT)
+	arm.set("tile", float(tile))
+	arm.set("hook_texture", hook)
+	arm.z_index = 1
+	SceneUtil.add(root, arm, root, "Grapple")
+	return arm
+
 func _save(ctx: BuildContext, node: Node, path: String, issues: Array) -> PackedScene:
 	var err := SceneUtil.save_scene(node, path)
 	if err != OK:
@@ -98,5 +111,9 @@ func build(ctx: BuildContext) -> Array:
 	var soldier := build_soldier(ArcadeBuild.frames_of(ctx, player), frame, origin, ArcadeBuild.view(ctx), tile,
 		explosion, grenade, RngBuild.health(ctx), RngBuild.left_edge_kills(ctx))
 	soldier.set("keep_weapon", RngBuild.keep_weapon(ctx))
+	soldier.set("can_jump", RngBuild.can_jump(ctx))
+	if RngBuild.grapple(ctx):
+		var hook := RngBuild.hook_asset(ctx)
+		add_grapple(soldier, tile, ArcadeBuild.first_frame(ctx, hook) if not hook.is_empty() else null)
 	_save(ctx, soldier, RngBuild.SOLDIER_PATH, issues)
 	return issues
