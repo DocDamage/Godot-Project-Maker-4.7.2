@@ -27,7 +27,10 @@ COLD_S = 60 * TOLERANCE
 WARM_S = 5 * TOLERANCE
 GENERATE_S = 10 * 60
 REGENERATE_S = 60 * TOLERANCE  # section 45: a regeneration with every check, under a minute
-REGENERATE_UNCHANGED_S = 10 * TOLERANCE  # T15.20: nothing changed, so no check is repeated
+# T15.20: nothing changed, so no check is repeated. 15 s on the development machine; a Windows
+# runner of CI took 30 s for it on 2026-10-12 (and 20 s or less in the runs before), so the
+# limit is what tells a repeat (a full regeneration takes 90 s there) from one that is slow
+REGENERATE_UNCHANGED_S = 45.0
 SIDE_SAMPLE_S = 90 * TOLERANCE  # T14.11: the side-view sample as a metroidvania, played through
 ARCADE_SAMPLE_S = 60 * TOLERANCE  # T16.18: a sample of an arcade kind as that kind, played through
 

@@ -120,13 +120,30 @@ func _finish() -> void:
 
 ## Stops every audio player and gives the mixer a moment to let go of the playbacks; a stream that is
 ## still playing at exit is reported by Godot as a resource still in use.
+## A sound that begins while the mixer is given its moment (the music of the screen the last
+## step opened, an explosion that was on its way) would be playing at exit after all, so the
+## players are looked at again until a round finds none of them playing: an arcade game, which
+## plays far more sounds than the others, ended that way now and then on a slow machine.
 func _silence_audio() -> void:
+	for _round in SILENCE_ROUNDS:
+		var stopped := _stop_players()
+		await get_tree().create_timer(0.3, true, false, true).timeout
+		if stopped == 0:
+			return
+
+const SILENCE_ROUNDS := 6
+
+## Stops every player of the tree and takes its stream; returns how many were playing.
+func _stop_players() -> int:
+	var playing := 0
 	var pending: Array[Node] = [get_tree().root]
 	while not pending.is_empty():
 		var node: Node = pending.pop_back()
 		pending.append_array(node.get_children())
 		if node is AudioStreamPlayer or node is AudioStreamPlayer2D:
+			if node.get("playing"):
+				playing += 1
 			node.call("stop")
 			node.set("stream", null)
-	await get_tree().create_timer(0.3, true, false, true).timeout
+	return playing
 
