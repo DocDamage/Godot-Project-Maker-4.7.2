@@ -507,6 +507,10 @@ class WelcomePage(QWidget):
             return reachable, changes
 
         def done(result: tuple[dict[str, bool], dict[str, list]]) -> None:
+            try:
+                self.recent_list.count()
+            except RuntimeError:  # the view was closed while the folders were looked at
+                return
             if generation == self._available_generation:
                 self.show_available(result[0])
                 self.show_changed(result[1])
