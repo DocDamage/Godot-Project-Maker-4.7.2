@@ -3,6 +3,18 @@
 All notable changes to the rpggen application. The generated game's runtime has its own
 changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
+## 1.5.0 (in work)
+
+* **A farm and life sim**, the seventh kind of game (not yet offered by the wizard): a farmer
+  with tools, a hotbar and energy; soil that is tilled and watered and crops that grow by the
+  night and the season; a farm of its own with a house, a plot, a pond or a well, a shipping
+  bin and, if you want them, a coop and a barn; a village with a shop that keeps hours and
+  people who keep schedules and can be befriended; animals, fishing, foraging, weather and
+  seasons. On the command line: `--archetype farm`.
+* **Detection for farming packs**: growth strips (a crop's stages in a row), the roles *Crop*,
+  *Farm animal* and *Tool*, seasonal variants of a sheet as one card, fence sheets and drawn
+  2 x 2 corner sheets as terrains, and a farmer's tool strips kept apart from the villagers.
+
 ## 1.4.0 (in work)
 
 Three more kinds of game, and what real packs needed to be read. Nothing changes for a project

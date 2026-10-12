@@ -8,7 +8,8 @@ runtime, Part B the farm, Part C the isometric view, Part D the wizard, the samp
 documentation and the gate. Part E keeps the kinds that were not chosen, for a later milestone.
 
 This file follows the format of M01–M16. It was written against `main` at `b610f90` (M16
-merged, its gate open, no release tagged) on 2026-10-12. **Nothing of it is implemented.**
+merged, its gate open, no release tagged) on 2026-10-12. The farm's cards (T17.01 to T17.11)
+were implemented on the branch `m17` the same day; the isometric cards and Part D are open.
 This milestone starts after `v1.4.0` is tagged and ends with `v1.5.0`. Nothing in it changes
 an existing kind unless its project turns the isometric option on: a 1.0–1.4 project
 regenerates with 1.5 without a prompt.
@@ -134,17 +135,17 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 
 | Card | Title | Size | Depends on | Status |
 |------|-------|:----:|------------|--------|
-| T17.01 | Detection for the farm | M | — | open |
-| T17.02 | Roles and drawn stand-ins | M | T17.01 | open |
-| T17.03 | The calendar: time, days and seasons | M | — | open |
-| T17.04 | The farmer, tools and energy | M | T17.02, T17.03 | open |
-| T17.05 | Soil and crops | L | T17.04 | open |
-| T17.06 | The farm plan and the farm recipe | L | T17.05 | open |
-| T17.07 | Animals | M | T17.06 | open |
-| T17.08 | Money: the shipping bin, the shop, the end of a day | M | T17.06 | open |
-| T17.09 | People: schedules, gifts and friendship | L | T17.03, T17.06 | open |
-| T17.10 | Fishing and foraging | M | T17.08 | open |
-| T17.11 | Weather and the HUD | M | T17.05, T17.08 | open |
+| T17.01 | Detection for the farm | M | — | done on synthetic packs; the fence and the 2 x 2 readers were not run on the real pack, and the `multi_engine` golden moved on purpose (the notes) |
+| T17.02 | Roles and drawn stand-ins | M | T17.01 | done; the `ranch` and `multi_engine` goldens moved on purpose (the notes) |
+| T17.03 | The calendar: time, days and seasons | M | — | done; with a calendar the light follows it whatever the *Day and night* setting says (the notes) |
+| T17.04 | The farmer, tools and energy | M | T17.02, T17.03 | done with T17.05 as one commit; the sickle and the axe are bought, *working at zero ends the day* is not done, and nothing was seen on a screen (the notes) |
+| T17.05 | Soil and crops | L | T17.04 | done; a field has no edges (one tile of a pack's soil terrain) (the notes) |
+| T17.06 | The farm plan and the farm recipe | L | T17.05 | done; `added_maps` are names only, and a project from before its second part has no door to its farm (the notes) |
+| T17.07 | Animals | M | T17.06 | done; a coop on a pack with only cows stays empty, and the pail was dropped (the notes) |
+| T17.08 | Money: the shipping bin, the shop, the end of a day | M | T17.06 | done; the counter pays what the bin pays and the bed asks nothing (the notes) |
+| T17.09 | People: schedules, gifts and friendship | L | T17.03, T17.06 | done; all places are on the village, nobody is an angler (the village has no water) (the notes) |
+| T17.10 | Fishing and foraging | M | T17.08 | done; the bar and the bite were looked at in a probe only (the notes) |
+| T17.11 | Weather and the HUD | M | T17.05, T17.08 | done; natural weather and the season swap are covered by unit tests only (the notes) |
 | T17.12 | Isometric packs: reading one picture a tile | L | — | open |
 | T17.13 | The isometric TileSet | L | T17.12 | open |
 | T17.14 | Isometric maps and actors | XL | T17.13 | open |
