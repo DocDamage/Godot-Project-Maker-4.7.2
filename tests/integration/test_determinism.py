@@ -97,3 +97,41 @@ def test_determinism_of_a_metroidvania(godot_exe: Path, tmp_path: Path) -> None:
     files = _same_twice(godot_exe, tmp_path, cfg)
     assert "rpggen/world_plan.json" in files
     assert sum(1 for rel in files if rel.startswith("game/maps/rooms/")) == 6
+
+
+# The three arcade kinds (T16.18): the plan of each comes from its planner (Python, seeded), the
+# scenes from its recipes, and what the pack lacks from the arcade kit, which draws the same
+# pictures every time.
+SHOOTER_PACK = REPO / "test_packs" / "synthetic" / "shooter"
+RACER_PACK = REPO / "test_packs" / "synthetic" / "racer"
+
+
+def _stages(files: dict[str, str]) -> list[str]:
+    return sorted(rel for rel in files if rel.startswith("generated/scenes/stages/"))
+
+
+@pytest.mark.shmup
+def test_determinism_of_a_shoot_em_up(godot_exe: Path, tmp_path: Path) -> None:
+    cfg = orchestrator.default_config_for_pack(SHOOTER_PACK, "Determinism", archetype="shmup")
+    files = _same_twice(godot_exe, tmp_path, cfg)
+    assert "rpggen/world_plan.json" in files and "game/data/stages.json" in files
+    assert _stages(files) == [f"generated/scenes/stages/stage_0{n}.tscn" for n in (1, 2, 3)]
+
+
+@pytest.mark.run_and_gun
+def test_determinism_of_a_run_and_gun(godot_exe: Path, tmp_path: Path) -> None:
+    """The side-view pack has no bullet, explosion or capsule: the drawn ones are part of what
+    has to be the same."""
+    cfg = orchestrator.default_config_for_pack(SIDE_PACK, "Determinism", archetype="run_and_gun")
+    files = _same_twice(godot_exe, tmp_path, cfg)
+    assert "rpggen/world_plan.json" in files and "game/data/stages.json" in files
+    assert _stages(files) == [f"generated/scenes/stages/stage_0{n}.tscn" for n in (1, 2, 3)]
+    assert any(rel.endswith("arcade_kit/bullet.png") for rel in files)
+
+
+@pytest.mark.racing
+def test_determinism_of_a_racing_game(godot_exe: Path, tmp_path: Path) -> None:
+    cfg = orchestrator.default_config_for_pack(RACER_PACK, "Determinism", archetype="racing")
+    files = _same_twice(godot_exe, tmp_path, cfg)
+    assert "rpggen/world_plan.json" in files and "game/data/stages.json" in files
+    assert _stages(files) == [f"generated/scenes/stages/stage_0{n}.tscn" for n in (1, 2, 3, 4)]

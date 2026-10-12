@@ -194,3 +194,107 @@ def test_the_metroidvania_path_generates_a_project_that_passes_its_smoke_test(
     assert results.starter_button.text() == "Open first room"
     assert results.first_map() == "res://game/maps/rooms/room_01.tscn"
     assert results.picture_path() is not None, "the world, seen from the side"
+
+
+@pytest.mark.parametrize(
+    ("key", "label", "archetype", "folders", "last_step", "readme"),
+    [
+        pytest.param(
+            "shmup",
+            "Star lane",
+            "shmup",
+            ["arcade", "shmup"],
+            "run_reaches_the_credits",
+            "**This game is a shoot 'em up**",
+            marks=[pytest.mark.integration, pytest.mark.shmup],
+        ),
+        pytest.param(
+            "gun",
+            "Jungle line",
+            "run_and_gun",
+            ["arcade", "metroidvania", "run_and_gun"],
+            "run_reaches_the_credits",
+            "**This game is a run and gun**",
+            marks=[pytest.mark.integration, pytest.mark.run_and_gun],
+        ),
+        pytest.param(
+            "race",
+            "Dirt cup",
+            "racing",
+            ["arcade", "racing"],
+            "tracks_end_with_the_credits",
+            "**This game is a racing game**",
+            marks=[pytest.mark.integration, pytest.mark.racing],
+        ),
+    ],
+)
+def test_an_arcade_sample_path_generates_a_project_that_passes_its_smoke_test(
+    qtbot,
+    godot_exe: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    key: str,
+    label: str,
+    archetype: str,
+    folders: list[str],
+    last_step: str,
+    readme: str,
+) -> None:
+    """The three kinds of 1.4 (T16.18), each from its sample on the welcome view: the sample
+    walks to the Generate page and starts with the default options (T15.22), and the project
+    it makes has the kind's runtime and README, passed the kind's own smoke sequence, and is
+    shown on the Results page without an error. The kinds are behind their feature flags until
+    the gate (T16.20): the flags are turned on here. Each walk runs in the CI job of its kind
+    (`-m "integration and shmup"` and so on), with the kind's other tests that need Godot."""
+    from rpggen import features, jsonio
+
+    for flag in ("SHMUP_AVAILABLE", "RUN_AND_GUN_AVAILABLE", "RACING_AVAILABLE"):
+        monkeypatch.setattr(features, flag, True)
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(godot, "auto_find_godot", lambda: [godot_exe])
+    monkeypatch.setattr(ProjectPage, "documents_dir", lambda self: tmp_path / "Documents")
+    (tmp_path / "Documents").mkdir()
+    window = MainWindow(state_mod.WizardState(), default_pages())
+    qtbot.addWidget(window)
+    window.show()
+
+    window.show_welcome_view()
+    action = window.welcome.sample_actions.get(key)
+    assert action is not None and action.text() == label
+    action.trigger()
+    qtbot.waitUntil(lambda: window.current_index == OPTIONS_INDEX + 1, timeout=120_000)
+    generate = window.current_page
+    assert isinstance(generate, GeneratePage)
+    qtbot.waitUntil(lambda: generate.running, timeout=30_000)
+    assert not generate.sample_banner.isHidden()
+    assert window.state.archetype == archetype
+    cfg = window.state.config
+    assert cfg is not None and cfg.archetype == archetype
+    assert cfg.starter, "the sample's own pictures are mapped"
+    qtbot.waitUntil(lambda: not generate.running, timeout=300_000)
+    result = window.state.run_result
+    assert result is not None
+    assert result.ok, [(i.code, i.message) for i in result.issues]
+    assert not [i for i in result.issues if i.severity.value == "error"]
+
+    target = window.state.target
+    smoke = jsonio.read(target / "rpggen/results/smoke_results.json")
+    names = [item["name"] for item in smoke["items"]]
+    assert smoke["ok"] is True
+    assert names[0] == "title_new_game" and names[-1] == last_step
+    assert "encounter_start" not in names and "end_room" not in names
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == folders
+    assert (target / "generated/scenes/stages/stage_01.tscn").is_file()
+    assert not (target / "game/maps/starter_map.tscn").exists()
+    assert readme in (target / "README.md").read_text(encoding="utf-8")
+    saved = jsonio.read(target / "rpggen/generator_config.json")
+    assert saved["archetype"] == archetype
+
+    if window.current_page is generate:
+        window.next_button.click()  # Show results
+    results = window.current_page
+    assert isinstance(results, ResultsPage)
+    assert "generated" in results.header.text()
+    assert results.count_labels["errors"].text() == "0"
+    assert int(results.count_labels["scenes"].text()) >= 1

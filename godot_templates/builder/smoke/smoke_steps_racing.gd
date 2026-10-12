@@ -7,6 +7,8 @@ extends RefCounted
 ## has picked up. Then the race is run again with the rivals, one lap: a simple driver (head
 ## for the next waypoint, brake down to its speed, back off what it is stuck on) holds the
 ## buttons for the player, the rivals drive themselves, and the race ends with its standings.
+## In that lap every checkpoint is counted for the player where it lies, in its order, and the
+## player, who starts last and has the debug speed of a smoke run, passes a rival.
 ## Its results are put on the screen as the game shows them, the championship has the points
 ## of the race and is in the save of the run, and the HUD of the next track has its sign, its
 ## rows and its map with a dot for every car. The other tracks are each seen counting down and
@@ -14,24 +16,40 @@ extends RefCounted
 
 const SAVE_DIR := "user://smoke_saves"
 const ACTIONS: Array[StringName] = [&"accelerate", &"brake", &"boost", &"fire", &"move_left", &"move_right", &"move_up", &"move_down"]
+## What a failed step of this sequence is reported as (docs/spec/03_ERROR_CODES.md).
+const CODE := "SMOKE-012"
+## The debug speed: what the player's car has more than a rival's in the race that is driven
+## (its top speed, its acceleration and its grip), and how much faster than the track says it
+## is taken through a corner with that, so that it passes a rival in a lap whatever the track.
+const DEBUG_SPEED := 1.5
+const DEBUG_CORNER := 1.15
+## Passing: a rival this near ahead (tiles), and this near the line the car drives (tiles), is
+## in the way; the driver then heads this far (tiles) beside the waypoint, for this many steps.
+const PASS_AHEAD := 6.0
+const PASS_BESIDE := 1.5
+const PASS_ASIDE := 2.5
+const PASS_STEPS := 45
 
 func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
 
 func steps() -> Array[Dictionary]:
 	return [
-		{"name": "title_new_game", "fn": _title_new_game, "timeout_s": 40.0},
-		{"name": "car_speeds_up_and_brakes", "fn": _car_speeds_up_and_brakes, "timeout_s": 30.0},
-		{"name": "car_steers", "fn": _car_steers, "timeout_s": 30.0},
-		{"name": "camera_looks_ahead", "fn": _camera_looks_ahead, "timeout_s": 30.0},
-		{"name": "car_boosts", "fn": _car_boosts, "timeout_s": 30.0},
-		{"name": "grass_is_slower", "fn": _grass_is_slower, "timeout_s": 40.0},
-		{"name": "car_bumps_off_a_barrier", "fn": _car_bumps_off_a_barrier, "timeout_s": 40.0},
-		{"name": "pickup_is_taken_and_used", "fn": _pickup_is_taken_and_used, "timeout_s": 40.0},
-		{"name": "race_is_driven_to_the_finish", "fn": _race_is_driven_to_the_finish, "timeout_s": 240.0},
-		{"name": "results_and_the_championship", "fn": _results_and_the_championship, "timeout_s": 60.0},
-		{"name": "tracks_end_with_the_credits", "fn": _tracks_end_with_the_credits, "timeout_s": 300.0},
+		_step("title_new_game", _title_new_game, 40.0),
+		_step("car_speeds_up_and_brakes", _car_speeds_up_and_brakes, 30.0),
+		_step("car_steers", _car_steers, 30.0),
+		_step("camera_looks_ahead", _camera_looks_ahead, 30.0),
+		_step("car_boosts", _car_boosts, 30.0),
+		_step("grass_is_slower", _grass_is_slower, 40.0),
+		_step("car_bumps_off_a_barrier", _car_bumps_off_a_barrier, 40.0),
+		_step("pickup_is_taken_and_used", _pickup_is_taken_and_used, 40.0),
+		_step("race_is_driven_to_the_finish", _race_is_driven_to_the_finish, 240.0),
+		_step("results_and_the_championship", _results_and_the_championship, 60.0),
+		_step("tracks_end_with_the_credits", _tracks_end_with_the_credits, 300.0),
 	]
+
+func _step(step_name: String, fn: Callable, timeout_s: float) -> Dictionary:
+	return {"name": step_name, "fn": fn, "timeout_s": timeout_s, "code": CODE}
 
 # ---------------------------------------------------------------- helpers
 
@@ -496,30 +514,79 @@ func _race_is_driven_to_the_finish() -> String:
 				return "%s is not on the track with a driver" % other.name
 	if not await _wait_for(func() -> bool: return race.is_running(), 60 * 6):
 		return "the race did not start"
+	var grid_place := race.place_of(car)
+	if grid_place != race.cars.size():
+		return "the player starts the race at place %d of %d, not last" % [grid_place, race.cars.size()]
+	var top_mul := car.top_mul
+	var accel_mul := car.accel_mul
+	var grip_mul := car.grip_mul
+	car.top_mul = top_mul * DEBUG_SPEED
+	car.accel_mul = accel_mul * DEBUG_SPEED
+	car.grip_mul = grip_mul * DEBUG_SPEED
 	var tile := car.tile_size
 	var target := 0
 	var stuck := 0
 	var grass := 0
 	var steps := 0
 	var best := {}
+	var passed := 0
+	var missed := ""
+	var best_place := grid_place
+	var gates := race.gates.size()
+	var passing := 0
+	var pass_side := 1.0
 	for i in 60 * 150:
 		if not over.is_empty():
 			break
 		var to := waypoints[target] - car.position
 		if to.length() < tile * REACH:
 			target = (target + 1) % waypoints.size()
-		stuck = _drive_toward(car, waypoints[target], speeds[target], stuck)
+		# round a rival that is in the way, on the side of the road it is not on
+		var way := (waypoints[target] - car.position).normalized()
+		var beside := way.orthogonal()
+		if passing > 0:
+			passing -= 1
+		else:
+			for other in rivals:
+				var off := other.position - car.position
+				if off.dot(way) > 0.0 and off.dot(way) < tile * PASS_AHEAD and absf(off.dot(beside)) < tile * PASS_BESIDE:
+					passing = PASS_STEPS
+					pass_side = -1.0 if off.dot(beside) >= 0.0 else 1.0
+					break
+		var goal := waypoints[target] + (beside * pass_side * tile * PASS_ASIDE if passing > 0 else Vector2.ZERO)
+		stuck = _drive_toward(car, goal, speeds[target] * DEBUG_CORNER, stuck)
 		await _tree().physics_frame
 		steps += 1
 		if car.surface == "grass":
 			grass += 1
 		for other in rivals:
 			best[other.get_instance_id()] = maxf(RpgUtil.to_float(best.get(other.get_instance_id(), 0.0)), race.progress(other))
+		# the checkpoints of the lap, each counted where it lies and in its order
+		var counted := race.checkpoints_of(car)
+		if race.lap_of(car) == 1 and counted != passed and over.is_empty():
+			var gate: RpgRaceCheckpoint = race.gates[counted - 1] if counted >= 1 and counted <= gates else null
+			if counted != passed + 1 or gate == null:
+				missed = "checkpoint %d was counted after %d" % [counted, passed]
+			elif car.position.distance_to(gate.position) > gate.width:
+				missed = "checkpoint %d at %s was counted with the car at %s" % [counted, gate.position, car.position]
+			passed = counted
+		if steps > 120:  # the first two seconds are the start: the cars are still side by side
+			best_place = mini(best_place, race.place_of(car))
 	_release_all()
+	car.top_mul = top_mul
+	car.accel_mul = accel_mul
+	car.grip_mul = grip_mul
 	if over.is_empty():
 		return "the race did not end in 150 s (the player is on lap %d with %d checkpoints, at %s on %s)" % [race.lap_of(car), race.checkpoints_of(car), car.position, car.surface]
 	if grass > steps / 5:
 		return "the car was on the grass for %d of %d steps of its race" % [grass, steps]
+	if missed != "":
+		return "the lap was not counted as it was driven: %s" % missed
+	if gates < 1 or passed != gates:
+		return "the lap ended with %d of the %d checkpoints of the track counted" % [passed, gates]
+	if not rivals.is_empty() and best_place >= grid_place:  # a race against the clock has nobody to pass
+		return "the player started at place %d and passed no rival in a lap with the debug speed (it came in at place %d, %d steps)" % [grid_place, mode.last_place, steps]
+	print("[rpggen] INFO race_is_driven_to_the_finish: %d checkpoints, from place %d to place %d at best, place %d at the finish" % [passed, grid_place, best_place, mode.last_place])
 	var table: Array = over[0]
 	if table.size() != race.cars.size():
 		return "the standings have %d rows for %d cars" % [table.size(), race.cars.size()]

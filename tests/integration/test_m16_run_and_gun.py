@@ -30,6 +30,7 @@ STEPS = [
     "wave_is_fought",
     "weapon_is_picked_up",
     "trap_stops_the_camera",
+    "gap_is_crossed",
     "grapple_swings_the_soldier",
     "boss_is_beaten",
     "run_reaches_the_credits",

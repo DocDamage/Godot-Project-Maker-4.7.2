@@ -9,29 +9,40 @@ extends RefCounted
 ## and the way to a boss is skipped (the camera is put at the arena), not run. In a game with
 ## the grapple arm the soldier swings over a gap on it (or, in a stage with nothing planned to
 ## swing from, fires it); in a game without jumping the jump button is shown to do nothing.
+## A gap is crossed the way the game has: with a running jump, or, by a soldier that does not
+## jump, on the rope. It is the first gap that lies ahead when the trap of the first stage is
+## done; a first stage without one leaves it to the first later stage that has one.
 
 const SAVE_DIR := "user://smoke_saves"
+## What a failed step of this sequence is reported as (docs/spec/03_ERROR_CODES.md).
+const CODE := "SMOKE-011"
+## What _cross_what_is_ahead answers when the stage has nothing more to cross.
+const NOTHING_AHEAD := "nothing ahead"
 
 func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
 
 func steps() -> Array[Dictionary]:
 	return [
-		{"name": "title_new_game", "fn": _title_new_game, "timeout_s": 40.0},
-		{"name": "soldier_runs_and_the_camera_follows", "fn": _soldier_runs_and_the_camera_follows, "timeout_s": 30.0},
-		{"name": "camera_never_goes_back", "fn": _camera_never_goes_back, "timeout_s": 20.0},
-		{"name": "soldier_jumps", "fn": _soldier_jumps, "timeout_s": 20.0},
-		{"name": "soldier_aims_and_shoots", "fn": _soldier_aims_and_shoots, "timeout_s": 20.0},
-		{"name": "soldier_crouches", "fn": _soldier_crouches, "timeout_s": 20.0},
-		{"name": "grenade_goes_off", "fn": _grenade_goes_off, "timeout_s": 20.0},
-		{"name": "soldier_dies_and_drops_back_in", "fn": _soldier_dies_and_drops_back_in, "timeout_s": 30.0},
-		{"name": "wave_is_fought", "fn": _wave_is_fought, "timeout_s": 60.0},
-		{"name": "weapon_is_picked_up", "fn": _weapon_is_picked_up, "timeout_s": 30.0},
-		{"name": "trap_stops_the_camera", "fn": _trap_stops_the_camera, "timeout_s": 60.0},
-		{"name": "grapple_swings_the_soldier", "fn": _grapple_swings_the_soldier, "timeout_s": 60.0},
-		{"name": "boss_is_beaten", "fn": _boss_is_beaten, "timeout_s": 90.0},
-		{"name": "run_reaches_the_credits", "fn": _run_reaches_the_credits, "timeout_s": 300.0},
+		_step("title_new_game", _title_new_game, 40.0),
+		_step("soldier_runs_and_the_camera_follows", _soldier_runs_and_the_camera_follows, 30.0),
+		_step("camera_never_goes_back", _camera_never_goes_back, 20.0),
+		_step("soldier_jumps", _soldier_jumps, 20.0),
+		_step("soldier_aims_and_shoots", _soldier_aims_and_shoots, 20.0),
+		_step("soldier_crouches", _soldier_crouches, 20.0),
+		_step("grenade_goes_off", _grenade_goes_off, 20.0),
+		_step("soldier_dies_and_drops_back_in", _soldier_dies_and_drops_back_in, 30.0),
+		_step("wave_is_fought", _wave_is_fought, 60.0),
+		_step("weapon_is_picked_up", _weapon_is_picked_up, 30.0),
+		_step("trap_stops_the_camera", _trap_stops_the_camera, 60.0),
+		_step("gap_is_crossed", _gap_is_crossed, 60.0),
+		_step("grapple_swings_the_soldier", _grapple_swings_the_soldier, 60.0),
+		_step("boss_is_beaten", _boss_is_beaten, 90.0),
+		_step("run_reaches_the_credits", _run_reaches_the_credits, 300.0),
 	]
+
+func _step(step_name: String, fn: Callable, timeout_s: float) -> Dictionary:
+	return {"name": step_name, "fn": fn, "timeout_s": timeout_s, "code": CODE}
 
 # ---------------------------------------------------------------- helpers
 
@@ -457,9 +468,134 @@ func _tap(action: StringName) -> void:
 	await _frames(2)
 	Input.action_release(action)
 
-func _grapple_swings_the_soldier() -> String:
+## The first gap of the ground ahead of `from_x` with room to stand before it: the columns of
+## its first and its last cell ([first, last]), or [] when the stage has none there.
+func _gap_ahead(ground: TileMapLayer, floor_y: float, from_x: float) -> Array[int]:
+	var tile := Vector2(ground.tile_set.tile_size)
+	var row := roundi(floor_y / tile.y)
+	var used := ground.get_used_rect()
+	for x in range(maxi(ceili(from_x / tile.x) + 3, used.position.x + 3), used.end.x - 1):
+		if ground.get_cell_source_id(Vector2i(x, row)) != -1:
+			continue
+		var stand := true
+		for back in range(1, 4):
+			stand = stand and ground.get_cell_source_id(Vector2i(x - back, row)) != -1 and ground.get_cell_source_id(Vector2i(x - back, row - 1)) == -1
+		if not stand:
+			continue
+		var last := x
+		while last + 1 < used.end.x and ground.get_cell_source_id(Vector2i(last + 1, row)) == -1:
+			last += 1
+		if last + 1 >= used.end.x:
+			return []
+		return [x, last]
+	return []
+
+## Takes the camera to `progress` of the stage (what comes on the way is shot, a trap too, so
+## that nothing holds it). False when it did not get there.
+func _camera_to(progress: float) -> bool:
+	var scroll := _stage().scroller()
+	var goal := minf(progress, scroll.length) if scroll.length > 0.0 else progress
+	for i in 600:
+		_shoot_everything()
+		if scroll.progress >= goal - 0.5:
+			return true
+		_jump_to(goal)
+		await _tree().physics_frame
+	return scroll.progress >= goal - 0.5
+
+## True once a gap was crossed in the run.
+var _crossed := false
+
+## The soldier crosses what lies ahead in the stage the way the game has: a gap with a running
+## jump, or, when it does not jump, a gap or a bed of spikes on the rope. Returns "" when it
+## did, NOTHING_AHEAD when the stage has nothing more to cross, or what went wrong.
+func _cross_what_is_ahead() -> String:
+	var stage := _stage()
+	var soldier := _soldier()
+	var ground := stage.get_node_or_null("Ground") as TileMapLayer
+	if ground == null:
+		return "the stage has no Ground layer"
+	_release_all()
+	_shoot_everything()
+	soldier.set(&"_safe_left", 600.0)
+	if not await _wait_for(func() -> bool: return soldier.is_on_floor(), 240):
+		return "the soldier does not stand before a gap is looked for"
+	var floor_y := soldier.position.y
+	var from_x := stage.scroller().view_center().x
+	if soldier.can_jump:
+		var gap := _gap_ahead(ground, floor_y, from_x)
+		if gap.is_empty():
+			return NOTHING_AHEAD
+		return await _jump_over(gap, floor_y)
+	if soldier.grapple() == null:
+		return "a soldier that cannot jump has no grapple"
+	var block := _block_to_swing_from(ground, floor_y, from_x)
+	if block.is_empty():
+		return NOTHING_AHEAD
+	return await _swing_over(block, floor_y)
+
+## A running jump over `gap` (the columns of its first and last cell) from the ground at
+## `floor_y`: the soldier is put two tiles and a half before it and runs with the real actions.
+func _jump_over(gap: Array[int], floor_y: float) -> String:
 	var stage := _stage()
 	var mode := _mode()
+	var soldier := _soldier()
+	var scroll := stage.scroller()
+	var ground := stage.get_node("Ground") as TileMapLayer
+	var tile := float(ground.tile_set.tile_size.x)
+	var left := gap[0] * tile
+	var right := (gap[1] + 1) * tile
+	var wide := gap[1] - gap[0] + 1
+	var stand_x := left - tile * 2.5
+	var lives := mode.lives.count
+	if not await _camera_to(stand_x - soldier.view.x * 0.4 - scroll.origin.x):
+		return "the camera did not get to the gap at column %d (progress %.1f of %.1f)" % [gap[0], scroll.progress, scroll.length]
+	soldier.position = Vector2(stand_x, floor_y)
+	soldier.velocity = Vector2.ZERO
+	await _frames(20)
+	_shoot_everything()
+	if not soldier.is_on_floor() or absf(soldier.position.y - floor_y) > 1.0:
+		return "the soldier does not stand before the gap at column %d (at %s)" % [gap[0], soldier.position]
+	Input.action_press(&"move_right")
+	var jumped := false
+	var top := floor_y
+	var over := false
+	var last := soldier.position
+	for i in 300:
+		await _tree().physics_frame
+		_shoot_everything()
+		if not soldier.dead:
+			last = soldier.position
+		top = minf(top, soldier.position.y)
+		if not jumped and soldier.position.x >= left - tile * 0.5:
+			Input.action_press(&"jump")
+			jumped = true
+		if soldier.dead or mode.lives.count < lives:
+			break
+		if jumped and soldier.position.x > right + tile * 0.5 and soldier.is_on_floor():
+			over = true
+			break
+	_release_all()
+	if soldier.dead or mode.lives.count < lives:
+		return "the jump over the gap of %d tiles at column %d ended in a death (it rose %.1f px and was last at %s; the gap is from x %.1f to %.1f)" % [wide, gap[0], floor_y - top, last, left, right]
+	if not over:
+		return "the soldier did not get over the gap of %d tiles at column %d (it is at %s, the gap ends at x %.1f)" % [wide, gap[0], soldier.position, right]
+	if top >= floor_y - 1.0:
+		return "the soldier crossed a gap of %d tiles without leaving the ground" % wide
+	if absf(soldier.position.y - floor_y) > 1.0:
+		return "the soldier landed at y %.1f beyond the gap, the ground is at %.1f" % [soldier.position.y, floor_y]
+	return ""
+
+func _gap_is_crossed() -> String:
+	var found := await _cross_what_is_ahead()
+	if found == NOTHING_AHEAD:
+		print("[rpggen] INFO gap_is_crossed: the first stage has no gap left ahead; it is crossed in the first later stage that has one")
+		return ""
+	_crossed = found == ""
+	return found
+
+func _grapple_swings_the_soldier() -> String:
+	var stage := _stage()
 	var soldier := _soldier()
 	var rope := soldier.grapple()
 	if rope == null:
@@ -475,9 +611,7 @@ func _grapple_swings_the_soldier() -> String:
 	if not await _wait_for(func() -> bool: return soldier.is_on_floor(), 240):
 		return "the soldier does not stand before the grapple is tried"
 	var scroll := stage.scroller()
-	var tile := soldier.tile_size
 	var floor_y := soldier.position.y
-	var rise := floor_y + soldier.hand().y
 	var screen_left := scroll.view_center().x - soldier.view.x * 0.5
 	var block := _block_to_swing_from(ground, floor_y, screen_left + soldier.view.x * 0.5)
 	if block.is_empty():
@@ -498,13 +632,27 @@ func _grapple_swings_the_soldier() -> String:
 			if not await _wait_for(func() -> bool: return rope.is_idle(), 60):
 				return "pressing grapple again did not let go"
 		return ""
+	return await _swing_over(block, floor_y)
+
+## A swing on the rope from the ground at `floor_y` over what lies under `block` (the cells of
+## its left and right end): the hook is fired up and forward at the far end of the block.
+func _swing_over(block: Array[Vector2i], floor_y: float) -> String:
+	var stage := _stage()
+	var mode := _mode()
+	var soldier := _soldier()
+	var rope := soldier.grapple()
+	var ground := stage.get_node("Ground") as TileMapLayer
+	var scroll := stage.scroller()
+	var tile := soldier.tile_size
 	var under := (block[0].y + 1) * float(ground.tile_set.tile_size.y)
-	rise -= under
+	var rise := floor_y + soldier.hand().y - under
 	var hit_x := (block[1].x + 0.5) * float(ground.tile_set.tile_size.x)
 	var stand_x := hit_x - rise
 	var lives := mode.lives.count
-	_jump_to(maxf(scroll.progress, stand_x - soldier.view.x * 0.4 - scroll.origin.x))
+	if not await _camera_to(stand_x - soldier.view.x * 0.4 - scroll.origin.x):
+		return "the camera did not get to the block at %s (progress %.1f of %.1f)" % [block, scroll.progress, scroll.length]
 	soldier.position = Vector2(stand_x, floor_y)
+	soldier.velocity = Vector2.ZERO
 	await _frames(20)
 	_shoot_everything()
 	if not soldier.is_on_floor():
@@ -542,7 +690,7 @@ func _grapple_swings_the_soldier() -> String:
 		return "pressing grapple again did not let go"
 	if not await _wait_for(func() -> bool: return soldier.is_on_floor() or soldier.dead, 240):
 		return "the soldier did not land after the swing"
-	if soldier.dead or mode.lives.count != lives:
+	if soldier.dead or mode.lives.count < lives:
 		return "the swing ended in a death (the soldier came down at x %.1f)" % soldier.position.x
 	if soldier.position.x <= hit_x:
 		return "the soldier landed at x %.1f, not beyond the block at %.1f" % [soldier.position.x, hit_x]
@@ -623,6 +771,13 @@ func _run_reaches_the_credits() -> String:
 			return "the soldier does not stand at the start of stage %d" % (index + 1)
 		if not _stage().has_boss():
 			return "stage %d has no boss" % (index + 1)
+		if not _crossed:  # the first stage had no gap ahead: the first one that has
+			var found := await _cross_what_is_ahead()
+			if found == "":
+				_crossed = true
+				print("[rpggen] INFO run_reaches_the_credits: the gap was crossed in stage %d" % (index + 1))
+			elif found != NOTHING_AHEAD:
+				return "stage %d: %s" % [index + 1, found]
 		var boss := await _skip_to_boss()
 		if boss == null:
 			return "the boss of stage %d did not come in" % (index + 1)
@@ -630,6 +785,8 @@ func _run_reaches_the_credits() -> String:
 		boss.take_hit(boss.health)
 	if not await _wait_for(func() -> bool: return finished[0], 900):
 		return "the run did not end after the boss of the last stage"
+	if not _crossed:
+		print("[rpggen] INFO run_reaches_the_credits: no stage of the run had a gap ahead of the soldier, none was crossed")
 	if RpgArcadeHighScores.read().is_empty():
 		return "the finished run is not in the high-score table"
 	if not mode.saved_run().is_empty():

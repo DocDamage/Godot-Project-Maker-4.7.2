@@ -4,7 +4,9 @@ extends Node
 ##
 ## A steps script extends RefCounted and defines `func steps() -> Array[Dictionary]`; each step is
 ## {name: String, fn: Callable, timeout_s: float}. `fn` is a coroutine returning "" on success or an
-## error string.
+## error string. A step may name the error code its failure is reported with (`code`, a code with
+## the placeholders of SMOKE-001: the sequence of a kind of game that has its own); without one it
+## is SMOKE-001.
 
 const RESULTS_PATH := "res://rpggen/results/smoke_results.json"
 const ERROR_CODES_PATH := "res://generated/builder/lib/error_codes.gd"
@@ -44,7 +46,8 @@ func _run(steps_path: String) -> void:
 		var detail := RpgUtil.to_str(state["result"])
 		_items.append({"step": index, "name": step["name"], "ok": detail == "", "ms": elapsed, "detail": detail})
 		if detail != "":
-			_issues.append(_issue("SMOKE-001", {"step": index, "name": step["name"], "detail": detail}))
+			var code := RpgUtil.to_str(step.get("code", "SMOKE-001"))
+			_issues.append(_issue(code, {"step": index, "name": step["name"], "detail": detail}))
 			break
 	_finish()
 

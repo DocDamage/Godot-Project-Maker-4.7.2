@@ -154,6 +154,9 @@
 |------|----------|---------|-----------------|
 | SMOKE-001 | error | Smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. |
 | SMOKE-002 | error | Smoke test timed out at step {step}. | See smoke log. |
+| SMOKE-010 | error | The shoot 'em up could not be played to its credits: smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. A wave or a boss of game/data/stages.json that cannot be beaten, or a scene of generated/scenes/shmup/ that was changed, stops the run at this step. |
+| SMOKE-011 | error | The run and gun could not be played to its credits: smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. A gap, a trap or a boss of a stage that cannot be passed stops the run at this step (see VAL-029 and VAL-030). |
+| SMOKE-012 | error | The racing game could not be driven to its credits: smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. A track whose checkpoints cannot be driven in their order, or whose road was painted over, stops the run at this step. |
 
 ## Regeneration (REGEN)
 

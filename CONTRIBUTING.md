@@ -56,6 +56,12 @@ finds path-case and path-separator bugs, so do not skip it.
   `try: widget.objectName() except RuntimeError: return`.
 * **Smoke steps that depend on saves** must clear the autosave slot (`AUTOSAVE_SLOT`, 0) as well
   as slots 1 to 3.
+* **A smoke step that leaves the map it has just entered** (for the title, for another map)
+  waits for the autosave first: the save is made one frame after `map_entered`, a step that
+  begins in that frame runs before it, and a router that is busy makes no autosave. The step
+  waits until the header of slot 0 names the map (`smoke_steps_shmup.gd`).
+* **A smoke step of an arcade kind does not compare the lives for equality** after it has shot
+  enemies: the score gives a life at its thresholds. It asks whether one was lost.
 * **Smoke-test lists** are asserted by the integration tests (`M6_STEPS`, `M7_STEPS`, `M9_STEPS`
   and the list in `test_generate_basic16.py`); adding a step means updating them.
 * **A local Godot** can sit in the project folder (`Godot_v*` is git-ignored); point

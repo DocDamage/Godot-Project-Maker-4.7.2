@@ -109,6 +109,9 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | VAL-030 | W | {stage} cannot be finished by a soldier that does not jump: {problem}. | Turn the option Jump on, or delete rpggen/world_plan.json and game/data/stages.json so that the stages are planned again for the grapple, or put a block to swing from (or a plank to climb) there in the stage's scene. |
 | SMOKE-001 | E | Smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. |
 | SMOKE-002 | E | Smoke test timed out at step {step}. | See smoke log. |
+| SMOKE-010 | E | The shoot 'em up could not be played to its credits: smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. A wave or a boss of game/data/stages.json that cannot be beaten, or a scene of generated/scenes/shmup/ that was changed, stops the run at this step. |
+| SMOKE-011 | E | The run and gun could not be played to its credits: smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. A gap, a trap or a boss of a stage that cannot be passed stops the run at this step (see VAL-029 and VAL-030). |
+| SMOKE-012 | E | The racing game could not be driven to its credits: smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. A track whose checkpoints cannot be driven in their order, or whose road was painted over, stops the run at this step. |
 | REGEN-001 | W | User-modified generated file {file} not overwritten; new version at {file}.rpggen-new. | Resolve it with *Resolve conflicts* on the Results page or `rpggen conflicts --target <project>`. |
 | REGEN-002 | I | File {file} was deleted by the user and was not recreated. | — |
 | REGEN-003 | W | Source {asset} removed from pack; tileset source {source_id} kept. | Confirm removal in the audit. |

@@ -26,8 +26,11 @@ STEPS = [
     "bomb_clears_bullets",
     "ship_is_destroyed_and_returns",
     "wave_is_fought",
+    "second_wave_is_survived",
+    "carrier_is_shot_down",
     "power_up_is_picked_up",
     "boss_is_beaten",
+    "run_is_saved_and_continued",
     "run_reaches_the_credits",
 ]
 SCENES = [
@@ -327,6 +330,34 @@ def test_an_added_stage_grows_the_run_and_the_list_keeps_what_it_had(
     assert (target / "generated/scenes/stages/stage_02.tscn").is_file()
     assert not (target / "generated/scenes/stages/stage_03.tscn").exists()
     assert _smoke(target)[-1] == "run_reaches_the_credits"
+
+
+def test_a_stage_that_cannot_be_played_fails_with_the_kinds_own_smoke_code(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    """T16.18: a step of the shoot 'em up's sequence that fails is SMOKE-010, which names the
+    step and says what the game did; the project is left as it was."""
+    target = tmp_path / "out"
+    cfg = _config(SHOOTER, "shooter", "vertical")
+    cfg.starter_map = {"stages": 1, "length": "short"}
+    first = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert first.ok, _errors(first)
+    assert _smoke(target) == STEPS, "a run of one stage is played to its credits too"
+    # somebody empties the first stage: its list is theirs, and no wave comes
+    listed = jsonio.read(target / "game/data/stages.json")
+    listed["stages"][0]["waves"] = []
+    jsonio.write(target / "game/data/stages.json", listed)
+    kept = (target / "game/data/stages.json").read_bytes()
+    cfg = _config(SHOOTER, "shooter", "vertical")
+    cfg.starter_map = {"stages": 1, "length": "short"}
+    again = orchestrator.run_in_memory(cfg, None, target, godot_exe, full_checks=True)
+    assert not again.ok and again.failed_phase == "smoke"
+    errors = [i for i in again.issues if i.severity.value == "error"]
+    assert [i.code for i in errors] == ["SMOKE-010"], _errors(again)
+    assert 'smoke step 7 "wave_is_fought" failed' in errors[0].message
+    assert "the first stage has no waves" in errors[0].message
+    assert (target / "game/data/stages.json").read_bytes() == kept
+    assert _smoke(target) == STEPS, "the results of the run that passed are still the project's"
 
 
 def test_a_plain_rpg_pack_has_its_monsters_as_enemies_unturned(plain) -> None:
