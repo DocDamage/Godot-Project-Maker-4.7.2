@@ -36,9 +36,12 @@ const ENEMY2_ID := "starter_map_enemy_002"
 ## Archetype -> recipe that knows its enemies (builder/recipes/<this>); the archetypes without one place none.
 const ENEMY_RECIPES := {"turn_based": "turn_based/enemy_recipes.gd", "arpg": "arpg/enemy_recipes.gd"}
 ## Archetype -> recipe that adds its own parts to the map before it is saved (builder/recipes/<this>),
-## with a static `augment_map(root, nodes, layout, house, kept_free)` and a static `map_hash()`.
-## A farm gets its field (T17.05); the other archetypes have none and their map is what it was.
-const MAP_AUGMENTERS := {"farm": "farm/field_recipe.gd"}
+## with a static `prepare(layout, house, skip)` (asked before the walls are painted: `gaps`, cells
+## of the wall to leave open, and `npcs`, how many of the planner's NPCs are placed), a static
+## `augment_map(ctx, root, nodes, layout, house, kept_free, prepared)` and a static `map_hash()`.
+## The village of a farm gets its door to the farm (T17.06) and its people (T17.09); the other
+## archetypes have none and their map is what it was.
+const MAP_AUGMENTERS := {"farm": "farm/people_recipes.gd"}
 const TILESET_PATH := "res://generated/tilesets/overworld.tres"
 ## The second outdoor map and the way to it (T11.23): a gap in the east wall of the starter map.
 const FIELD_PATH := "res://game/maps/field_1.tscn"
@@ -136,6 +139,13 @@ func build(ctx: BuildContext) -> Array:
 	for world_door in world_doors:
 		var gap_cell: Vector2i = world_door["cell"]
 		skip.append(gap_cell)
+	var augmenter := _augmenter(ctx)
+	var prepared := {}
+	if augmenter != null:
+		prepared = JsonUtil.to_dict(augmenter.call("prepare", layout, _house_cells(building, tile_px), skip))
+		var gaps: Array = prepared.get("gaps", [])
+		for gap: Vector2i in gaps:
+			skip.append(gap)
 	MapBuild.paint_walls(root, nodes, size, MapUtil.wall_tile(ctx, def, tile_set), tile_px, skip)
 	var building_tiles: Array[Vector2i] = layout["buildings"]
 	if not building.is_empty():
@@ -146,6 +156,8 @@ func build(ctx: BuildContext) -> Array:
 	var decoration_tiles: Array[Vector2i] = layout["decorations"]
 	_place_decorations(ctx, root, entities, tile_px, decoration_tiles)
 	var npc_tiles: Array[Vector2i] = layout["npcs"]
+	if prepared.has("npcs"):  # the archetype places people of its own where the others would stand
+		npc_tiles = npc_tiles.slice(0, JsonUtil.to_int(prepared["npcs"]))
 	var chest_tiles: Array[Vector2i] = layout["chests"]
 	var enemy_tiles: Array[Vector2i] = layout["enemies"]
 	var placed: Array = []  # ids of the demo entities, for "Remove demo content"
@@ -189,17 +201,12 @@ func build(ctx: BuildContext) -> Array:
 		if not gate.is_empty():
 			WorldPlan.add_gate(gate, door_cell, root, entities, tile_px)
 
-	var augmenter := _augmenter(ctx)
 	if augmenter != null:
-		var info := _building_info(building, tile_px)
-		var house := Vector2i.ZERO
-		if not info.is_empty():
-			house = Vector2i(JsonUtil.to_int(info["size"][0]), JsonUtil.to_int(info["size"][1]))
 		var kept_free: Array[Vector2i] = skip.duplicate()
 		for world_door in world_doors:
 			var door_spawn: Vector2i = world_door["spawn"]
 			kept_free.append(door_spawn)
-		augmenter.call("augment_map", root, nodes, layout, house, kept_free)
+		augmenter.call("augment_map", ctx, root, nodes, layout, _house_cells(building, tile_px), kept_free, prepared)
 
 	var err := SceneUtil.save_scene(root, OUT_PATH)
 	if err != OK:
@@ -248,6 +255,13 @@ func _world_doors(village: Dictionary, layout: Dictionary, building_info: Dictio
 		blocked[WorldPlan.inside(edge, cell)] = true
 		out.append({"door": door, "cell": cell, "spawn": WorldPlan.inside(edge, cell), "road": false})
 	return out
+
+## The size of the starter building in cells; (0, 0) without one.
+static func _house_cells(building: Dictionary, tile_px: int) -> Vector2i:
+	var info := _building_info(building, tile_px)
+	if info.is_empty():
+		return Vector2i.ZERO
+	return Vector2i(JsonUtil.to_int(info["size"][0]), JsonUtil.to_int(info["size"][1]))
 
 ## The east exit and the field behind it belong to the demo: they exist when the demo is on.
 static func east_exit_wanted(ctx: BuildContext) -> bool:

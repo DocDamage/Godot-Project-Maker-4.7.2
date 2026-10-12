@@ -3,30 +3,26 @@ extends RefCounted
 ##
 ## * generated/tilesets/farm_soil.tres: the tile set of the `Soil` layer. Source 0 is drawn
 ##   here: ground that can be tilled (its custom data `tillable` is true: that, and nothing in
-##   the art, is what the hoe asks), and a tilled and a watered tile nobody uses while the
-##   catalog has its own. Source 1 is the tile of tilled soil and source 2 the tile of watered
-##   soil: a pack's own (its tile sheet tagged `soil` or `watered`), else the farm kit's
-##   (T17.02). The tile set also has the bool custom data `water` for a tile that fills the
-##   can; no tile sets it yet.
-## * `augment_map`, which starter_map_recipe calls for a farm: the `Soil` layer under the
-##   entities, a plot of tillable ground on free cells near the spawn, and the node `Field`
-##   (RpgField).
+##   the art, is what the hoe asks), a tilled and a watered tile nobody uses while the catalog
+##   has its own, and two tiles whose custom data `water` is true (a cell that fills the can):
+##   drawn water, and a tile that shows nothing, for a cell whose water the map paints itself
+##   (the pack's water tile on the ground, or a well). Source 1 is the tile of tilled soil and
+##   source 2 the tile of watered soil: a pack's own (its tile sheet tagged `soil` or
+##   `watered`), else the farm kit's (T17.02).
+## * `add_field`, which the farm's map recipe calls (T17.06): the `Soil` layer under what
+##   stands on the map and the node `Field` (RpgField). The recipe then writes the plan's
+##   cells into the layer: `PLOT_TILE` where the plan says the ground can be tilled, a water
+##   tile where the can is filled.
 ##
-## **A stand-in until T17.06.** The world of a farm is, for now, the top-down starter map as it
-## is planned for every kind, with this plot on it. The planned farm (the house with its bed,
-## the bin, the pond, the yards) replaces `augment_map`; the tile set and the field stay. Until
-## then `augment_map` also has the shipping bin and the bed put on the map (T17.08:
-## home_recipe.place_stand_ins, beside the plot and beside the spawn). Of a
-## pack's soil terrain one tile is used, the one that joins on every side: a field has no
+## Of a pack's soil terrain one tile is used, the one that joins on every side: a field has no
 ## edges of its own yet.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
 const FarmBuild := preload("farm_build.gd")
-const HomeRecipe := preload("home_recipe.gd")
 
 const SOURCE_ID := 0
 const PLOT_TILE := Vector2i(0, 0)
@@ -36,10 +32,9 @@ const WATERED_TILE := Vector2i(2, 0)
 const TILLED_SOURCE := 1
 const WATERED_SOURCE := 2
 const CUSTOM_DATA: Array[String] = ["tillable", "water"]
-## The plot of the stand-in map: the first of these sizes (in cells) that finds room.
-const PLOT_SIZES: Array[Vector2i] = [Vector2i(6, 4), Vector2i(5, 3), Vector2i(4, 3)]
-## Cells kept free between the plot and the edge of the map.
-const EDGE := 2
+## Cells that fill the can: drawn water, and one that shows nothing (the map draws its water).
+const WATER_TILE := Vector2i(3, 0)
+const WATER_MARK := Vector2i(4, 0)
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([FarmBuild.SOIL_TILESET])
@@ -62,9 +57,11 @@ func build(ctx: BuildContext) -> Array:
 	source.texture = FarmBuild.soil_texture(tile)
 	source.texture_region_size = Vector2i(tile, tile)
 	tile_set.add_source(source, SOURCE_ID)
-	for coords: Vector2i in [PLOT_TILE, TILLED_TILE, WATERED_TILE]:
+	for coords: Vector2i in [PLOT_TILE, TILLED_TILE, WATERED_TILE, WATER_TILE, WATER_MARK]:
 		source.create_tile(coords)
 	source.get_tile_data(PLOT_TILE, 0).set_custom_data("tillable", true)
+	for coords: Vector2i in [WATER_TILE, WATER_MARK]:
+		source.get_tile_data(coords, 0).set_custom_data("water", true)
 	for entry: Array in [[TILLED_SOURCE, "soil"], [WATERED_SOURCE, "watered"]]:
 		var tag: String = entry[1]
 		var found := FarmBuild.soil_tile(ctx, tag, tile)
@@ -86,21 +83,16 @@ func build(ctx: BuildContext) -> Array:
 		issues.append(ctx.make_issue("BUILD-004", {"file": FarmBuild.SOIL_TILESET, "err": err}, FarmBuild.SOIL_TILESET))
 	return issues
 
-# ---------------------------------------------------------------- the stand-in map (until T17.06)
+# ---------------------------------------------------------------- on a map
 
-## What the starter map's hash holds for a farm, so that a changed plot rebuilds nothing but a
-## map that does not exist yet.
-static func map_hash() -> Dictionary:
-	return {"v": RECIPE_VERSION, "sizes": PLOT_SIZES, "edge": EDGE, "home": HomeRecipe.map_hash()}
-
-## Adds the `Soil` layer, the plot and the `Field` to a starter map that is being built. `nodes`
-## are the map's nodes by name, `layout` is MapBuild.plan's, `house` the size of the starter
-## building in cells ((0, 0) for none), `kept_free` cells nothing may lie on (doors).
-static func augment_map(root: Node2D, nodes: Dictionary, layout: Dictionary, house: Vector2i, kept_free: Array[Vector2i]) -> void:
+## Adds the `Soil` layer and the `Field` (RpgField) to a map that is being built, under what
+## stands on it (`nodes` are the map's nodes by name, MapUtil.build_layers). Returns the layer,
+## which the caller paints, or null when the tile set is missing.
+static func add_field(root: Node2D, nodes: Dictionary) -> TileMapLayer:
 	var tile_set := load(FarmBuild.SOIL_TILESET) as TileSet
 	var ysorted: Node = nodes.get("YSorted")
 	if tile_set == null or ysorted == null:
-		return
+		return null
 	var soil := TileMapLayer.new()
 	soil.name = "Soil"
 	soil.tile_set = tile_set
@@ -120,16 +112,7 @@ static func augment_map(root: Node2D, nodes: Dictionary, layout: Dictionary, hou
 	field.set("tile_px", tile_set.tile_size.x)
 	root.add_child(field)
 	root.move_child(field, soil.get_index() + 1)
-	var plot := plot_rect(layout, house, kept_free)
-	if plot.size == Vector2i.ZERO:
-		print("[rpggen] INFO starter_map: no room for a plot of tillable ground")
-	for y in range(plot.position.y, plot.end.y):
-		for x in range(plot.position.x, plot.end.x):
-			soil.set_cell(Vector2i(x, y), SOURCE_ID, PLOT_TILE)
-	# the bin and the bed stand on this map too until the farm has its own (T17.06)
-	var entities: Node = nodes.get("Entities")
-	if entities != null:
-		HomeRecipe.place_stand_ins(root, entities, layout, blocked_cells(layout, house, kept_free), plot, tile_set.tile_size.x)
+	return soil
 
 ## [source id, cell] of the one tile of `own_source` when the tile set has it, else the drawn
 ## tile `drawn` of source 0.
@@ -139,58 +122,3 @@ static func _own_tile(tile_set: TileSet, own_source: int, drawn: Vector2i) -> Ar
 		if source != null and source.get_tiles_count() > 0:
 			return [own_source, source.get_tile_id(0)]
 	return [SOURCE_ID, drawn]
-
-## The cells of a layout nothing may be painted on: the houses with the row in front of their
-## doors, what stands on the map, its paths, and where the player appears.
-static func blocked_cells(layout: Dictionary, house: Vector2i, kept_free: Array[Vector2i]) -> Dictionary:
-	var blocked := {}
-	var houses: Array[Vector2i] = layout["buildings"]
-	for at in houses:
-		for dx in range(-1, maxi(1, house.x) + 1):
-			for dy in range(-1, maxi(1, house.y) + 2):
-				blocked[at + Vector2i(dx, dy)] = true
-	for key: String in ["decorations", "npcs", "chests", "enemies", "path", "exit_path", "doors"]:
-		if not layout.has(key):
-			continue
-		var raw: Array = layout[key]
-		var cells: Array[Vector2i] = []
-		cells.assign(raw)
-		for cell in cells:
-			blocked[cell] = true
-	var spawn: Vector2i = layout["spawn"]
-	for dx in range(-1, 2):
-		for dy in range(-1, 2):
-			blocked[spawn + Vector2i(dx, dy)] = true
-	for cell in kept_free:
-		blocked[cell] = true
-	return blocked
-
-## The plot: the free rectangle nearest to the spawn, of the first size of PLOT_SIZES that fits.
-## An empty rectangle when the map has no room.
-static func plot_rect(layout: Dictionary, house: Vector2i, kept_free: Array[Vector2i]) -> Rect2i:
-	var size: Vector2i = layout["size"]
-	var spawn: Vector2i = layout["spawn"]
-	var blocked := blocked_cells(layout, house, kept_free)
-	for wanted in PLOT_SIZES:
-		var best := Rect2i()
-		var best_distance := -1
-		for y in range(EDGE, size.y - EDGE - wanted.y + 1):
-			for x in range(EDGE, size.x - EDGE - wanted.x + 1):
-				var rect := Rect2i(Vector2i(x, y), wanted)
-				if not _is_free(rect, blocked):
-					continue
-				var middle := rect.position * 2 + rect.size
-				var distance := absi(middle.x - spawn.x * 2) + absi(middle.y - spawn.y * 2)
-				if best_distance < 0 or distance < best_distance:
-					best = rect
-					best_distance = distance
-		if best_distance >= 0:
-			return best
-	return Rect2i()
-
-static func _is_free(rect: Rect2i, blocked: Dictionary) -> bool:
-	for y in range(rect.position.y, rect.end.y):
-		for x in range(rect.position.x, rect.end.x):
-			if blocked.has(Vector2i(x, y)):
-				return false
-	return true

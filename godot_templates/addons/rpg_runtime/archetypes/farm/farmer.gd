@@ -33,6 +33,37 @@ func _ready() -> void:
 	_icon = get_node_or_null(ICON_NODE) as Sprite2D
 	if _icon != null:
 		_icon.visible = false
+	var interaction := get_node_or_null("Interaction") as RpgInteraction
+	if interaction != null:
+		interaction.before = give_held
+
+# ------------------------------------------------------------------ a gift
+
+## True for an item that can be given: not a tool and not a bag of seeds (the people's plan
+## gives nobody a taste for either).
+func is_gift(item: StringName) -> bool:
+	var found := the_mode()
+	if item == &"" or found == null or found.tool_for(item) != null:
+		return false
+	return found.crops == null or found.crops.crop_of_seed(item) == ""
+
+## `interact` on a person while a gift is held gives it (RpgFriendship.gift: one of the item
+## leaves the bag, the points change by the person's taste). False when nothing was given: the
+## target is nobody of the village, nothing that can be given is held, or the person has had
+## two gifts this week; the farmer then talks as usual.
+func give_held(target: Node) -> bool:
+	var friends := RpgFriendship.current()
+	var found := the_mode()
+	if friends == null or found == null:
+		return false
+	var who := friends.person_of(target)
+	var item := found.hotbar.held_item()
+	if who == "" or not is_gift(item):
+		return false
+	var plan := target.get_node_or_null(RpgSchedule.NODE_NAME) as RpgSchedule
+	if plan != null and plan.away():
+		return false
+	return friends.gift(who, item) != ""
 
 # ------------------------------------------------------------------ the tile ahead
 

@@ -65,13 +65,10 @@ SMOKE_STEPS_TURN_BASED = "res://generated/builder/smoke/smoke_steps_turn_based.g
 SMOKE_STEPS_ARPG = "res://generated/builder/smoke/smoke_steps_arpg.gd"
 SMOKE_STEPS_METROIDVANIA = "res://generated/builder/smoke/smoke_steps_metroidvania.gd"
 SMOKE_STEPS_FARM = "res://generated/builder/smoke/smoke_steps_farm.gd"
-# The archetype's own steps run after the shared sequence (which ends in the starter map). A
-# farm (T17.04) is a top-down game: the shared sequence walks its map, then its own steps work
-# the field. Its whole day, from waking to the shop, is T17.18.
+# The archetype's own steps run after the shared sequence (which ends in the starter map).
 ARCHETYPE_SMOKE_STEPS = {
     "turn_based": SMOKE_STEPS_TURN_BASED,
     "arpg": SMOKE_STEPS_ARPG,
-    "farm": SMOKE_STEPS_FARM,
 }
 # An archetype whose world is not the top-down starter map has a whole sequence of its own (the
 # shared one walks a village): the title screen and a new game are among its steps.
@@ -79,6 +76,9 @@ SMOKE_STEPS_SHMUP = "res://generated/builder/smoke/smoke_steps_shmup.gd"
 SMOKE_STEPS_RUN_AND_GUN = "res://generated/builder/smoke/smoke_steps_run_and_gun.gd"
 SMOKE_STEPS_RACING = "res://generated/builder/smoke/smoke_steps_racing.gd"
 OWN_SMOKE_STEPS = {
+    # a farm (T17.06) is a top-down game whose new game starts in the farmhouse: its file takes
+    # the shared steps and runs them in the village, between its own
+    "farm": SMOKE_STEPS_FARM,
     "racing": SMOKE_STEPS_RACING,
     "metroidvania": SMOKE_STEPS_METROIDVANIA,
     "shmup": SMOKE_STEPS_SHMUP,
@@ -502,7 +502,11 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
     stored_farm = ((world_plan.load(root) or {}).get("farm") if farm else None) or None
     _plan_areas(state, catalog)
     if farm:
+        # in this order: the map is a part of the section the crops make, and the people's
+        # tastes are for what the crops give
         _plan_crops(state, catalog, stored_farm)
+        _plan_farm_map(state, catalog)
+        _plan_people(state, catalog, stored_farm)
 
 
 def _plan_areas(state: _State, catalog: catalog_mod.Catalog) -> None:
@@ -544,10 +548,129 @@ def _plan_crops(state: _State, catalog: catalog_mod.Catalog, stored: dict[str, A
     except crop_plan.CropPlanError as exc:
         state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
         raise _Stop from None
+    # what the other planners of a farm keep in the section stays (a fresh crop plan has neither)
+    for key in ("map", "people"):
+        if stored and key in stored and key not in section:
+            section[key] = stored[key]
     plan = world_plan.load(root) or crop_plan.world(section, state.cfg.seed)
     plan["farm"] = section
     world_plan.save(root, plan)
     state.cb.on_log("farm: " + crop_plan.summary(section))
+    for note in notes:
+        state.cb.on_log("farm: " + note)
+
+
+FARM_ANIMAL_HOUSES = ("coop", "barn")
+
+
+def _building_fact(catalog: catalog_mod.Catalog, obj: Any) -> dict[str, Any]:
+    """``{"size", "door"}`` in cells of a building of the packs (``map_preview.building_info``)."""
+    from rpggen.core import map_preview
+
+    overworld = map_preview._overworld(catalog)
+    tile = int(overworld.tile_size[0]) if overworld is not None else map_preview.Art.tile_px
+    _x, _y, wide, high = obj.region
+    size, door = map_preview.building_geometry((wide, high), obj.door, tile)
+    return {"size": list(size), "door": list(door)}
+
+
+def farm_facts(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict[str, Any]:
+    """What the farm's planner needs to know of the packs (``farm_plan.facts_of``): the
+    footprint of the farmhouse (the starter building, as the village has it; one tagged as a
+    coop or a barn only when the packs have no other), of a coop and a barn of their own (a
+    ``BUILDING`` object tagged so), and whether they have water tiles: a pond, else a well."""
+    from rpggen.core import farm_plan, map_preview
+
+    def tags(obj: Any) -> set[str]:
+        return {str(t) for t in (getattr(obj, "tags", None) or [])}
+
+    chosen = cfg.starter.get("building", "")
+    buildings = map_preview.starter_buildings(catalog, chosen)
+    own: dict[str, Any] = {}
+    for kind in FARM_ANIMAL_HOUSES:
+        found = next((b for b in buildings if kind in tags(b)), None)
+        own[kind] = _building_fact(catalog, found) if found is not None else None
+    houses = [b for b in buildings if b.id == chosen or not tags(b) & set(FARM_ANIMAL_HOUSES)]
+    house = _building_fact(catalog, (houses or buildings)[0]) if buildings else None
+    return farm_plan.facts_of(
+        house=house,
+        water=world_plan._has_role(catalog, ("WATER",)),
+        coop=own["coop"],
+        barn=own["barn"],
+    )
+
+
+def _plan_farm_map(state: _State, catalog: catalog_mod.Catalog) -> None:
+    """A farm's own map (T17.06): planned once from the options, the seed and the buildings of
+    the packs, stored as ``farm.map`` beside the crops, and never planned again once the map
+    exists (the rule of T14.06). What keeps the stored farm from being worked is ``VAL-031``, a
+    line each: a plan that somebody changed is reported, not replaced (a fresh one that fails
+    is planned again by the planner itself, and its notes say so)."""
+    from rpggen.core import farm_plan
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    try:
+        section, notes = farm_plan.for_project(
+            root, state.cfg.starter_map_options(), state.cfg.seed, farm_facts(state.cfg, catalog)
+        )
+        plan = farm_plan.attach(world_plan.load(root) or {}, section)
+    except farm_plan.FarmPlanError as exc:
+        state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
+        raise _Stop from None
+    for problem in farm_plan.check(section):
+        state.issues.add("VAL-031", problem=problem)
+    world_plan.save(root, plan)
+    state.cb.on_log("farm: " + farm_plan.summary(section))
+    for note in notes:
+        state.cb.on_log("farm: " + note)
+
+
+def people_facts(
+    cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog, farm: dict[str, Any]
+) -> dict[str, Any]:
+    """What the people's planner needs to know (``people_plan.facts_of``): the ``NPC`` assets,
+    how many houses the village's own plan has, whether somebody keeps a shop there (the demo's
+    villager opens it, with the ``shops`` feature), and what can be given: what the crops give,
+    and the potion of the demo. The village has no water, so nobody goes to a pond."""
+    from rpggen.core import map_preview, people_plan
+
+    building = map_preview.building_info_for(catalog, cfg.starter.get("building", ""))
+    village = map_preview.plan(cfg.starter_map_options(), cfg.seed, building, cfg.archetype)
+    demo = bool(cfg.features.get("demo", True))
+    items = [str(crop["produce"]) for crop in farm.get("crops", [])]
+    return people_plan.facts_of(
+        catalog,
+        houses=len(village["buildings"]),
+        shop=demo and bool(cfg.features.get("shops", True)),
+        pond=False,
+        items=[*items, *(["potion"] if demo else [])],
+    )
+
+
+def _plan_people(
+    state: _State, catalog: catalog_mod.Catalog, stored: dict[str, Any] | None
+) -> None:
+    """The people of a farm's village (T17.09): planned once from the ``NPC`` assets and the
+    seed, stored as ``farm.people``, and never planned again; an NPC the packs have gained is
+    appended. ``stored`` is the section the project had."""
+    from rpggen.core import people_plan
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    plan = world_plan.load(root)
+    assert plan is not None, "the crops are planned first"
+    facts = people_facts(state.cfg, catalog, plan["farm"])
+    try:
+        people, notes = people_plan.for_project(
+            (stored or {}).get("people"), state.cfg.starter_map_options(), state.cfg.seed, facts
+        )
+    except people_plan.PeoplePlanError as exc:
+        state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
+        raise _Stop from None
+    plan["farm"] = people_plan.store(plan["farm"], people, notes)
+    world_plan.save(root, plan)
+    state.cb.on_log("farm: " + people_plan.summary(people))
     for note in notes:
         state.cb.on_log("farm: " + note)
 
@@ -730,6 +853,28 @@ def _world_picture(state: _State, root: Path) -> None:
         state.cb.on_log(f"world picture skipped: {exc}")
 
 
+def _with_farm_picture(village: Any, root: Path) -> Any:
+    """The picture of a farm's world (T17.06): the farm as its stored plan has it on the left,
+    the village as it was built on the right, at the same height. The village alone while the
+    project has no plan of its farm."""
+    from PIL import Image
+
+    from rpggen.core import farm_plan, map_preview
+
+    stored = farm_plan.stored_in(world_plan.load(root))
+    if not stored:
+        return village
+    rows = max(1, int(stored["size"][1]))
+    farm = map_preview.render_farm(stored, scale=max(2, village.height // rows)).convert("RGBA")
+    gap = 8
+    out = Image.new(
+        "RGBA", (farm.width + gap + village.width, max(farm.height, village.height)), (0, 0, 0, 0)
+    )
+    out.paste(farm, (0, 0))
+    out.paste(village.convert("RGBA"), (farm.width + gap, 0))
+    return out
+
+
 def _starter_picture(state: _State) -> None:
     """A picture of the starter map as it was really built (T11.27), for the Results page.
 
@@ -764,6 +909,8 @@ def _starter_picture(state: _State) -> None:
         from rpggen.core import map_preview
 
         image = map_preview.render_view(jsonio.read(view_path), root, 2)
+        if state.cfg is not None and state.cfg.archetype == "farm":
+            image = _with_farm_picture(image, root)
         image.save(root / STARTER_PICTURE, format="PNG")
         state.cb.on_log(f"starter map picture written to {STARTER_PICTURE}")
     except _Cancelled:

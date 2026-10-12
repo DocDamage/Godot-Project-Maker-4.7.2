@@ -14,6 +14,9 @@ const CHEST_ID := "starter_map_chest_001"
 var _m1 := preload("smoke_steps_m1.gd").new()
 var _m4 := preload("smoke_steps_m4.gd").new()
 var _before := {}  # values remembered between steps
+## The map a new game starts in. A kind whose game starts elsewhere (a farm, in its farmhouse)
+## sets it before it asks for the steps.
+var start_map := "StarterMap"
 
 func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
@@ -152,8 +155,8 @@ func _title_new_game() -> String:
 	key = key.duplicate() as InputEventKey
 	key.pressed = false
 	Input.parse_input_event(key)
-	if not await _wait_for_map("StarterMap", 600):
-		return "pressing confirm on New Game did not open the starter map"
+	if not await _wait_for_map(start_map, 600):
+		return "pressing confirm on New Game did not open the map a new game starts in (%s)" % start_map
 	return ""
 
 ## The sound slots of the generated config (slot -> asset id; missing or "" = silent).

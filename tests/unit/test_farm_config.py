@@ -8,9 +8,23 @@ from pathlib import Path
 import pytest
 
 from rpggen import errors_table, features, paths, schema
-from rpggen.core import config, orchestrator, requirements, staging
+from rpggen.core import (
+    catalog as catalog_mod,
+)
+from rpggen.core import (
+    config,
+    farm_plan,
+    map_preview,
+    orchestrator,
+    people_plan,
+    requirements,
+    staging,
+    world_plan,
+)
+from rpggen.errors import IssueList
 
 MONEY = ("starting_money", "pass_out_loss")  # T17.08
+FIELD = ("farm_size", "plot", "animals", "difficulty", "added_maps")  # T17.06
 FARM_RECIPES = paths.templates_root() / "builder" / "recipes" / "farm"
 FARM_RUNTIME = paths.templates_root() / "addons" / "rpg_runtime" / "archetypes" / "farm"
 
@@ -28,13 +42,14 @@ def test_the_config_of_a_farm_is_valid_and_its_map_is_the_top_down_one() -> None
     data = cfg.to_json()
     schema.validate("config", data)
     assert data["archetype"] == "farm" and "starter_map" not in data
-    # until the farm has a plan of its own (T17.06) its map is the starter map of every top-down
-    # game; its money (T17.08) is two keys of its own
+    # the village of a farm is the starter map of every top-down game; its money (T17.08) and
+    # its own map (T17.06) are keys of their own in the same section
     defaults = config.starter_map_defaults("farm")
-    assert {k: v for k, v in defaults.items() if k not in MONEY} == config.starter_map_defaults(
-        "turn_based"
-    )
+    assert {
+        k: v for k, v in defaults.items() if k not in (*MONEY, *FIELD)
+    } == config.starter_map_defaults("turn_based")
     assert {k: defaults[k] for k in MONEY} == {"starting_money": 100, "pass_out_loss": True}
+    assert {k: defaults[k] for k in FIELD} == farm_plan.defaults()
     again = config.GeneratorConfig.from_json(data)
     assert again.to_json() == data
     for kind in ("orchard",):
@@ -87,9 +102,11 @@ def test_combat_is_off_for_a_farm_and_the_older_kinds_are_as_they_were() -> None
 
 
 def test_the_smoke_steps_and_the_installed_files_of_a_farm(tmp_path: Path) -> None:
-    steps = orchestrator.smoke_steps_for("farm").split(",")
-    assert steps == [orchestrator.SMOKE_STEPS, orchestrator.SMOKE_STEPS_FARM]
-    assert steps[1].endswith("smoke_steps_farm.gd"), "after the shared top-down sequence"
+    # a new game of a farm starts in the farmhouse: its file takes the shared top-down steps
+    # and runs them in the village, between its own
+    assert orchestrator.smoke_steps_for("farm") == orchestrator.SMOKE_STEPS_FARM
+    farm_steps = (templates_smoke() / "smoke_steps_farm.gd").read_text(encoding="utf-8")
+    assert 'preload("smoke_steps_m6.gd")' in farm_steps and "_shared.steps()" in farm_steps
     assert orchestrator.smoke_steps_for("turn_based").count(",") == 1
     assert "farm" not in orchestrator.smoke_steps_for("arpg")
     info = errors_table.CODES["SMOKE-013"]
@@ -123,11 +140,168 @@ def test_the_smoke_steps_and_the_installed_files_of_a_farm(tmp_path: Path) -> No
         assert f"generated/builder/recipes/farm/{name}.gd" in written, name
     for name in ("home_recipe", "shop_recipe"):  # T17.08
         assert f"generated/builder/recipes/farm/{name}.gd" in written, name
+    for name in ("farm_map_recipe", "people_recipes"):  # T17.06, T17.09
+        assert f"generated/builder/recipes/farm/{name}.gd" in written, name
+    assert "addons/rpg_runtime/archetypes/farm/water_source.gd" in written
+    assert "addons/rpg_runtime/actors/schedule.gd" in written
     for older in ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing"):
         other = staging.install_templates(
             staging.create_staging(tmp_path / older), templates, older
         )
         assert not [w for w in other if "farm" in w], older
+
+
+def templates_smoke() -> Path:
+    return paths.templates_root() / "builder" / "smoke"
+
+
+def test_the_options_of_the_farms_own_map() -> None:
+    """T17.06: the size of the field and of the plot, the animal houses, the difficulty and the
+    added maps are keys of ``starter_map``, with the planner's own defaults."""
+    assert farm_plan.defaults() == {
+        "farm_size": "medium",
+        "plot": "medium",
+        "animals": "none",
+        "difficulty": "normal",
+        "added_maps": [],
+    }
+    chosen = {
+        "farm_size": "large",
+        "plot": "small",
+        "animals": "coop_and_barn",
+        "difficulty": "hard",
+        "added_maps": [{"name": "Beach"}],
+    }
+    cfg = _cfg(starter_map=dict(chosen))
+    data = cfg.to_json()
+    schema.validate("config", data)
+    assert {k: data["starter_map"][k] for k in FIELD} == chosen
+    assert config.GeneratorConfig.from_json(data).to_json() == data
+    assert farm_plan.normalized(cfg.starter_map_options())["animals"] == "coop_and_barn"
+    wrong_values = (
+        {"farm_size": "huge"},
+        {"plot": 12},
+        {"animals": "zoo"},
+        {"difficulty": "brutal"},
+        {"added_maps": ["Beach"]},
+        {"added_maps": [{"name": ""}]},
+    )
+    for wrong in wrong_values:
+        with pytest.raises(Exception):  # noqa: B017, PT011
+            schema.validate("config", {**data, "starter_map": {**data["starter_map"], **wrong}})
+    for older in ("turn_based", "arpg", "metroidvania"):
+        assert not {"farm_size", "plot", "animals", "added_maps"} & set(
+            config.starter_map_defaults(older)
+        ), older
+
+
+def test_a_farm_key_does_not_change_the_village_of_the_preview() -> None:
+    """The preview's planner and the builder's (``MapBuild.is_default``) agree on what a default
+    village is: the village's own keys. A farm with another field keeps the default village."""
+    options = _cfg(starter_map={"animals": "coop", "starting_money": 5}).starter_map_options()
+    assert map_preview.is_default(options, "farm")
+    assert map_preview.plan(options, 12345, {}, "farm")["is_default"] is True
+    assert not map_preview.is_default({**options, "npcs": 3}, "farm")
+    assert not map_preview.is_default({**options, "size": [48, 30]}, "farm")
+    assert set(map_preview.VILLAGE_KEYS) == set(config.starter_map_defaults("turn_based"))
+    builder = (paths.templates_root() / "builder/lib/map_build.gd").read_text(encoding="utf-8")
+    for key in map_preview.VILLAGE_KEYS:
+        assert f'"{key}"' in builder, key
+    # the other kinds: as before
+    for kind in ("turn_based", "arpg"):
+        assert map_preview.is_default(config.starter_map_defaults(kind), kind)
+        assert not map_preview.is_default({**config.starter_map_defaults(kind), "chests": 3}, kind)
+
+
+class _Staging:
+    def __init__(self, root: Path) -> None:
+        self.staging = root
+        self.regenerate = False
+
+
+class _Callbacks:
+    def __init__(self) -> None:
+        self.lines: list[str] = []
+
+    def on_log(self, line: str) -> None:
+        self.lines.append(line)
+
+
+class _FakeState:
+    def __init__(self, root: Path, cfg: config.GeneratorConfig) -> None:
+        self.staging = _Staging(root)
+        self.cfg = cfg
+        self.issues = IssueList()
+        self.cb = _Callbacks()
+
+
+def _plan(state: _FakeState) -> dict:
+    catalog = catalog_mod.Catalog()
+    orchestrator._plan_world(state, catalog)  # type: ignore[arg-type]
+    stored = world_plan.load(state.staging.staging)
+    assert stored is not None
+    return stored
+
+
+def test_the_orchestrator_plans_the_crops_then_the_map_then_the_people(tmp_path: Path) -> None:
+    """One file, one section: the crops make it, the map and the people are put into it, in
+    that order, and what is stored is used again."""
+    cfg = _cfg(starter_map={"animals": "coop"})
+    state = _FakeState(tmp_path, cfg)
+    stored = _plan(state)
+    farm = stored["farm"]
+    assert stored["areas"] == [] and {"crops", "map", "people"} <= set(farm)
+    assert farm["map"] and farm["people"]
+    said = [line for line in state.cb.lines if line.startswith("farm: ")]
+    order = [
+        next(i for i, line in enumerate(said) if what in line)
+        for what in (" crops: ", "a farm of ", " people: ")
+    ]
+    assert order == sorted(order), said
+    facts = orchestrator.farm_facts(cfg, catalog_mod.Catalog())
+    assert facts == {"water": False}, (
+        "no building and no water tile: the planner's own house, a well"
+    )
+    assert farm["map"] == farm_plan.plan(cfg.starter_map_options(), cfg.seed, facts)
+    assert farm["map"]["water"]["kind"] == "well"
+    assert [b["kind"] for b in farm["map"]["animal_houses"]] == ["coop"]
+    assert farm_plan.check(farm["map"]) == [] and not state.issues.has_errors()
+    assert len(farm["people"]) == people_plan.DRAWN_PEOPLE, "no NPC in the packs: the drawn three"
+    assert people_plan.check(farm["people"]) == []
+    produce = {crop["produce"] for crop in farm["crops"]}
+    liked = {
+        item for person in farm["people"] for taste in people_plan.TASTES for item in person[taste]
+    }
+    assert liked and liked <= produce | {"potion"}, "tastes are for what the crops give"
+    assert any("no NPC" in note for note in farm["notes"])
+
+    # again, with another seed and other options: the people stay; the map is planned anew
+    # while the project has no farm map yet, and kept once it has
+    other = _cfg(starter_map={"animals": "none"}, seed=777)
+    again = _plan(_FakeState(tmp_path, other))["farm"]
+    assert again["people"] == farm["people"] and again["crops"] == farm["crops"]
+    assert again["map"] != farm["map"] and again["map"]["animal_houses"] == []
+    (tmp_path / "game" / "maps").mkdir(parents=True)
+    (tmp_path / farm_plan.MAP_FILE).write_text("built", encoding="utf-8")
+    kept = _plan(_FakeState(tmp_path, cfg))["farm"]
+    assert kept["map"] == again["map"], "the map exists: its plan is not made again"
+
+
+def test_a_stored_farm_that_cannot_be_worked_is_reported_and_kept(tmp_path: Path) -> None:
+    """``VAL-031``, a line a problem: a plan somebody changed is not replaced."""
+    cfg = _cfg()
+    stored = _plan(_FakeState(tmp_path, cfg))
+    (tmp_path / "game" / "maps").mkdir(parents=True)
+    (tmp_path / farm_plan.MAP_FILE).write_text("built", encoding="utf-8")
+    stored["farm"]["map"]["tillable"] = stored["farm"]["map"]["tillable"][:3]
+    world_plan.save(tmp_path, stored)
+    state = _FakeState(tmp_path, cfg)
+    after = _plan(state)
+    found = [i for i in state.issues if i.code == "VAL-031"]
+    assert len(found) >= 1 and "the plot has 3 cells" in found[0].message
+    assert found[0].severity.value == "warning"
+    assert after["farm"]["map"]["tillable"] == stored["farm"]["map"]["tillable"]
+    assert errors_table.CODES["VAL-031"].severity == "warning"
 
 
 def test_the_money_options_of_a_farm() -> None:

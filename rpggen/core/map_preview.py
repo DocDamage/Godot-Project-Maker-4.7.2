@@ -75,12 +75,27 @@ class Rng:
 # ------------------------------------------------------------------------------------- the plan
 
 
+# The keys the village's planner reads (MapBuild.merged_options in map_build.gd). A kind may keep
+# options of its own in the same section (a farm: its money, its field): they are not the
+# village's, and the builder does not look at them either.
+VILLAGE_KEYS = (
+    "size",
+    "buildings",
+    "npcs",
+    "enemies",
+    "chests",
+    "decorations",
+    "ground_patches",
+    "ground",
+)
+
+
 def is_default(options: dict[str, Any], archetype: str) -> bool:
-    """True when the options (``ground`` aside) are the defaults of ``archetype``."""
+    """True when the village's options (``ground`` aside) are the defaults of ``archetype``."""
     defaults = config_mod.starter_map_defaults(archetype)
-    return all(options.get(k) == v for k, v in defaults.items() if k != "ground") and list(
-        options.get("size", [])
-    ) == list(defaults["size"])
+    return all(
+        options.get(k) == v for k, v in defaults.items() if k in VILLAGE_KEYS and k != "ground"
+    ) and list(options.get("size", [])) == list(defaults["size"])
 
 
 def path_cells(spawn: Tile, door: Tile) -> list[Tile]:

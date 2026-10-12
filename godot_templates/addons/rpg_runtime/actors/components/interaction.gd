@@ -6,6 +6,10 @@ extends Area2D
 @export var tile_size: float = 16.0
 
 var actor: RpgActor
+## Asked before a target is interacted with: `func(target: Node) -> bool`, true when it dealt
+## with the target itself, and then the target's own `interact` is not called (a farmer who
+## holds a gift gives it, T17.09). Nobody sets it in the other kinds.
+var before: Callable = Callable()
 var _shape: CollisionShape2D
 var _prompt: Label = null
 
@@ -108,6 +112,8 @@ func try_interact() -> bool:
 	var target := find_target()
 	if target == null:
 		return false
+	if before.is_valid() and before.call(target) == true:
+		return true
 	RpgUtil.emit(&"interaction_started", [target])
 	target.call("interact", actor)
 	RpgUtil.emit(&"interaction_finished", [target])

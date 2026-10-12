@@ -118,6 +118,59 @@ and the saves it had.
 * `RpgPeoplePage` (`archetypes/farm/ui/people_page.gd`): who was met, their hearts, and their
   taste for the items that were given to them. `RpgPeoplePage.add_to(pause_menu)` adds its
   button to a pause menu.
+* **The weather** (`archetypes/farm/weather.gd`, `RpgFarmWeather`, the mode's child `Weather`,
+  `RpgFarmMode.weather`; a farm only): `sun`, `rain`, a `storm` in summer, `snow` in winter.
+  The weather of a day follows from the game's seed (the flag `farm_weather.seed`, drawn once
+  a game) and the number of the day (`weather_of(seed, index, days_per_season)`), so it is the
+  same before and after a save; the first day is fair. It is decided at `NIGHT_WEATHER` and in
+  force from `day_began`; a new game and a loaded game take theirs when their map is entered.
+  `today`, `forecast()`, `is_wet()`, `keeps_animals_in()`, the signal `changed(kind)`, and the
+  debug hooks `force(kind)` and `force_tomorrow(kind)`. A wet day waters every tilled cell of
+  every field in the morning (`water_fields`), what is tilled later in the day at once, and
+  once more before the crops grow; it tells the schedules `"rain"` (`RpgSchedule.set_weather`).
+  `enabled` is false until the mode's scene sets it: a mode made by code, and the smoke run,
+  have fair weather unless a day is forced.
+* `RpgWeatherOverlay` (`archetypes/farm/weather_overlay.gd`): what falls over the screen on an
+  outdoor map, on a CanvasLayer (2) of the weather: a strip of cells repeated over the screen
+  (`fall`), twice over for a storm without a picture, or drawn snow (`flakes`).
+* `RpgDayNight.weather_tint` (a static `Color`, white): what the outdoor light is multiplied
+  by. Only a farm's weather sets it; interiors and a map's own ambient are not touched.
+* `RpgWeatherSign` (`archetypes/farm/weather_sign.gd`): `interact` shows tomorrow's weather as
+  a toast.
+* `RpgFarmSeasons` (`archetypes/farm/seasons.gd`, the mode's child `Seasons`,
+  `RpgFarmMode.seasons`): on entering an outdoor map and on `season_changed` it replaces the
+  textures that `generated/data/seasons.json` names by those of the season: the atlas sources
+  of the tile sets, `Sprite2D.texture`, the frames of `AnimatedSprite2D` (`apply(map,
+  season)`). It plays the music of the season on outdoor maps (`music_spring` to
+  `music_winter`; a season without its own plays the first that is filled) and `music_night`
+  from 20:00, in the place of the map's own music; a game with none of the slots keeps that.
+* `RpgFarmHud` shows the time (in steps of ten minutes), the weekday, the day and the season,
+  the weather (a word, or an icon of `weather_icons`) and the money, beside the hotbar and the
+  energy; it hides the basic HUD's line of money, and tells a harvest and what the shipping
+  bin paid by a toast (`watch_field`, `harvest_text`, `sale_text`). New text keys:
+  `FARM_WEATHER_SUN`, `_RAIN`, `_STORM`, `_SNOW`, `FARM_FORECAST`, `FARM_HUD_DATE`,
+  `FARM_HARVESTED`, `FARM_SOLD`.
+
+* **The farm's own map and the people in it** (T17.06, T17.09). `RpgWaterSource`
+  (`archetypes/farm/water_source.gd`): the pond or the well of a farm, a solid thing that
+  fills the watering can with `interact` (`fill_can`); `use` with the can held fills it at a
+  tile whose custom data `water` is true, as before. **The morning no longer fills the can**:
+  `RpgFarmMode` filled it as a stand-in while no map had water.
+* `RpgFarmMode` asks for the friendships (`RpgFriendship.ensure()`, after the calendar) and
+  gives the pause menu its People page each time the menu opens (`Events.game_paused`,
+  `RpgPeoplePage.add_to`).
+* `RpgFarmer.give_held(target)`: `interact` on a person while an item that can be given is
+  held (`is_gift`: not a tool, not a bag of seeds) gives it (`RpgFriendship.gift`); when
+  nothing is given the farmer talks as before.
+* `RpgInteraction.before` (a Callable, unset by default): asked before a target is interacted
+  with; when it answers true the target's own `interact` is not called. Only the farmer sets
+  it; every other kind interacts as it did.
+* New texts of the farm: `FARM_CAN_FILLED`, `FARM_CAN_FULL`, and the names of its maps
+  (`MAP_FARM`, `MAP_FARM_HOUSE`, `MAP_FARM_COOP`, `MAP_FARM_BARN`).
+* The door check of the project tools counts the farm of a farm's plan (`farm.map` in
+  `rpggen/world_plan.json`) among the maps of the world: a door of it that leads to a spawn
+  point the village does not have is `VAL-028` (a warning that *Repair the world* mends), not
+  `VAL-017`.
 
 ## 1.4.0
 

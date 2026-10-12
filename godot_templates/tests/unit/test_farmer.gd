@@ -424,18 +424,20 @@ func test_a_mode_that_is_only_made_has_no_parts_and_one_that_is_ready_has_the_ca
 	mode._ready()
 	t.ok(RpgCalendar.current() != null, "the mode asks for the calendar")
 	t.ok(mode.energy != null and mode.hotbar != null and mode.day_end != null)
-	t.eq(mode.get_child_count(), 3, "the energy, the hotbar and the end of the day")
+	t.ok(mode.weather != null and mode.seasons != null)
+	t.eq(mode.get_child_count(), 5, "the energy, the hotbar, the end of the day, the weather and the seasons")
 	mode._ready()
-	t.eq(mode.get_child_count(), 3, "made once")
+	t.eq(mode.get_child_count(), 5, "made once")
 	t.ok(not mode.is_in_combat())
 	for id: StringName in [&"hoe", &"watering_can", &"sickle", &"farm_axe"]:
 		t.ok(mode.tool_for(id) != null and mode.tool_for(id).id == id, String(id))
-	# the morning after a day that nobody stayed up to the end of: rested (RpgDayEnd, T17.08),
-	# and the can is full (a stand-in until the map has water, T17.06)
+	# the morning after a day that nobody stayed up to the end of: rested (RpgDayEnd, T17.08);
+	# the can is as it was: it is filled at the water of the farm (T17.06), not by the night
 	mode.energy.value = 3
 	RpgFarmWateringCan.set_charges(2)
 	RpgCalendar.current().end_day()
 	t.eq(mode.energy.value, mode.energy.max_energy)
-	t.eq(RpgFarmWateringCan.charges(), RpgFarmWateringCan.SIZE)
+	t.eq(RpgFarmWateringCan.charges(), 2)
+	t.ok(RpgFriendship.current() != null, "the mode asks for the friendships")
 	mode.free()
 	Fixtures.uninstall_state()

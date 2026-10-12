@@ -5,8 +5,8 @@ extends RefCounted
 ## (`rpggen/core/farm_kit.py`, T17.02: the pack `rpggen_farm_kit`, which a run adds to the
 ## catalog for what the packs lack).
 ##
-## Three things are still drawn here, in GDScript: the ground of the plot (the kit has no tile
-## for ground that can be tilled), the bag of seeds of a crop (one in the colour of each crop,
+## Three things are still drawn here, in GDScript: the tiles of the `Soil` layer the kit lacks
+## (ground that can be tilled, water), the bag of seeds of a crop (one in the colour of each crop,
 ## where the kit has one bag for all), and a last resort for a picture that is in neither the
 ## packs nor the kit (a catalog whose kit asset was switched off, a crop whose strip is gone).
 
@@ -24,6 +24,7 @@ const BIN := DIR + "shipping_bin.gd"
 const BED := DIR + "bed.gd"
 const SHOP := DIR + "farm_shop.gd"
 const CROP := DIR + "crop.gd"
+const WATER_SOURCE := DIR + "water_source.gd"
 const ITEM_DEF := "res://addons/rpg_runtime/data/item_definition.gd"
 
 const MODE_PATH := "res://generated/scenes/combat/combat_mode.tscn"
@@ -66,6 +67,7 @@ const LEAF := Color(0.3, 0.62, 0.25)
 const EARTH := Color(0.58, 0.44, 0.28)
 const TILLED := Color(0.42, 0.29, 0.18)
 const WET := Color(0.27, 0.2, 0.16)
+const WATER := Color(0.27, 0.5, 0.78)
 
 # ---------------------------------------------------------------- the project
 
@@ -75,7 +77,8 @@ static func tile(ctx: BuildContext) -> int:
 		def = ctx.catalog.tileset_defs()[0]
 	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else maxi(8, JsonUtil.to_int(ctx.config.get("base_tile_size", 16)))
 
-## The `farm` section of the stored plan (rpggen/core/crop_plan.py), or {}.
+## The `farm` section of the stored plan (rpggen/core/crop_plan.py), or {}. Its `map` is the
+## farm's own map (farm_plan.py) and its `people` the people of the village (people_plan.py).
 static func plan() -> Dictionary:
 	if not FileAccess.file_exists(WORLD_PLAN):
 		return {}
@@ -291,11 +294,12 @@ static func drawn_icon(kind: String, colour: Color = Color.WHITE) -> ImageTextur
 	_draw(image, Vector2i.ZERO, 16, _icon_rects(kind, colour))
 	return ImageTexture.create_from_image(image)
 
-## The three drawn soil tiles side by side, each `size` px: ground that can be tilled, tilled
-## soil with its furrows, watered soil. The first is always used; the other two only when
-## neither the packs nor the kit have the tile.
+## The five drawn tiles of the `Soil` layer side by side, each `size` px: ground that can be
+## tilled, tilled soil with its furrows, watered soil, water, and a tile that shows nothing.
+## The first is always used; the tilled and the watered one only when neither the packs nor the
+## kit have the tile; the water where a map has no water tile of the packs.
 static func soil_texture(size: int) -> ImageTexture:
-	var image := _blank(size * 3, size)
+	var image := _blank(size * 5, size)
 	_draw(image, Vector2i.ZERO, size, [[0, 0, 16, 16, EARTH], [3, 4, 2, 1, EARTH.darkened(0.15)], [10, 9, 2, 1, EARTH.darkened(0.15)], [6, 12, 1, 1, EARTH.lightened(0.15)]])
 	for i: int in [1, 2]:
 		var base: Color = TILLED if i == 1 else WET
@@ -303,6 +307,7 @@ static func soil_texture(size: int) -> ImageTexture:
 		for row: int in [2, 6, 10, 14]:
 			rects.append([1, row, 14, 1, base.darkened(0.25)])
 		_draw(image, Vector2i(size * i, 0), size, rects)
+	_draw(image, Vector2i(size * 3, 0), size, [[0, 0, 16, 16, WATER], [2, 4, 5, 1, WATER.lightened(0.25)], [9, 10, 5, 1, WATER.lightened(0.25)]])
 	return ImageTexture.create_from_image(image)
 
 ## The colour of a crop of the plan: its own (a drawn crop), else one that its name gives.

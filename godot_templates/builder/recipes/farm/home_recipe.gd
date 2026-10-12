@@ -3,13 +3,11 @@ extends RefCounted
 ## * generated/scenes/farm/shipping_bin.tscn, an RpgShippingBin, and generated/scenes/farm/bed.tscn,
 ##   an RpgBed: a solid thing of the map that is used with `interact`, with the picture of the
 ##   packs (FarmBuild.bin_asset, bed_asset), else the one of the drawn farm kit, else a drawn box.
-## * `build_bin(ctx)` and `build_bed(ctx)` make the nodes: the farm's map recipe (T17.06) calls
-##   them, or instances the two scenes, and puts them where its plan says. The origin of both is
+## * `build_bin(ctx)` and `build_bed(ctx)` make the nodes; the farm's map recipe (T17.06)
+##   instances the two scenes and puts them where its plan says: the bin on the farm, beside
+##   the house, the bed in the farmhouse. The origin of both is
 ##   the middle of their lower edge; the bed says which cells it lies on (`footprint`) and where
 ##   the farmer wakes (`wake_offset`, the cell under its foot unless the recipe sets another).
-## * `place_stand_ins`, which field_recipe.augment_map calls. **A stand-in until T17.06**, like
-##   the plot: on the top-down starter map the bin stands beside the plot and the bed beside the
-##   place a new game starts at, out of doors. The planned farm places both itself.
 
 const RECIPE_VERSION := 1
 
@@ -25,8 +23,6 @@ const BIN_NAME := "ShippingBin"
 const BED_NAME := "Bed"
 const BIN_COLOR := Color(0.55, 0.36, 0.2)
 const BED_COLOR := Color(0.35, 0.45, 0.75)
-## How far from the place a new game starts at the stand-in bed is looked for, in cells.
-const BED_REACH := 12
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([BIN_SCENE, BED_SCENE])
@@ -106,92 +102,8 @@ static func _add_picture(body: StaticBody2D, texture: Texture2D, size: Vector2, 
 	sprite.position = Vector2(-size.x * 0.5, -size.y)
 	body.add_child(sprite)
 
-# ---------------------------------------------------------------- the stand-in map (until T17.06)
-
-## What the starter map's hash holds of the placement.
-static func map_hash() -> Dictionary:
-	return {"v": RECIPE_VERSION, "reach": BED_REACH}
+# ---------------------------------------------------------------- on a map
 
 ## Where a thing stands whose lower edge lies on the lower edge of `cell`.
 static func foot_of(cell: Vector2i, tile_px: int) -> Vector2:
 	return Vector2(cell) * tile_px + Vector2(tile_px * 0.5, tile_px)
-
-## Puts the bin beside the plot and the bed beside the spawn of a starter map that is being
-## built. `entities` is where the things of the map stand, `blocked` the cells nothing may lie
-## on (field_recipe.blocked_cells), `plot` the plot (an empty rectangle for none).
-static func place_stand_ins(root: Node2D, entities: Node, layout: Dictionary, blocked: Dictionary, plot: Rect2i, tile_px: int) -> void:
-	var size: Vector2i = layout["size"]
-	var spawn: Vector2i = layout["spawn"]
-	var taken := blocked.duplicate()
-	for y in range(plot.position.y, plot.end.y):
-		for x in range(plot.position.x, plot.end.x):
-			taken[Vector2i(x, y)] = true
-	var bin_cell := bin_cell_for(plot, size, taken)
-	if bin_cell.x < 0:
-		print("[rpggen] INFO starter_map: no room for the shipping bin")
-	else:
-		var bin := SceneUtil.instance(BIN_SCENE) as Node2D
-		if bin != null:
-			bin.position = foot_of(bin_cell, tile_px)
-			entities.add_child(bin)
-			bin.owner = root
-			taken[bin_cell] = true
-	var bed := SceneUtil.instance(BED_SCENE) as Node2D
-	if bed == null:
-		return
-	var footprint: Vector2i = bed.get("footprint")
-	var bed_cell := bed_cell_for(spawn, size, taken, footprint)
-	if bed_cell.x < 0:
-		print("[rpggen] INFO starter_map: no room for the bed")
-		bed.free()
-		return
-	# its foot is the lowest row of its cells, and the middle of their width
-	bed.position = Vector2(bed_cell.x * tile_px + footprint.x * tile_px * 0.5, (bed_cell.y + 1) * tile_px)
-	entities.add_child(bed)
-	bed.owner = root
-
-static func _inside(cell: Vector2i, size: Vector2i) -> bool:
-	return cell.x >= 1 and cell.y >= 1 and cell.x < size.x - 1 and cell.y < size.y - 1
-
-## The cell of the bin: the first free one along the left side of the plot, then the right
-## side, then below it (never above its first cell, where the farmer stands to work it).
-## (-1, -1) when there is none, or no plot.
-static func bin_cell_for(plot: Rect2i, size: Vector2i, taken: Dictionary) -> Vector2i:
-	if plot.size == Vector2i.ZERO:
-		return Vector2i(-1, -1)
-	var candidates: Array[Vector2i] = []
-	for y in range(plot.position.y, plot.end.y):
-		candidates.append(Vector2i(plot.position.x - 1, y))
-	for y in range(plot.position.y, plot.end.y):
-		candidates.append(Vector2i(plot.end.x, y))
-	for x in range(plot.position.x, plot.end.x):
-		candidates.append(Vector2i(x, plot.end.y))
-	for cell in candidates:
-		if _inside(cell, size) and not taken.has(cell):
-			return cell
-	return Vector2i(-1, -1)
-
-## The lower left cell of the bed: the nearest to the spawn where the cells of the bed and the
-## row under it (where the farmer wakes) are free; of two as near, the upper, then the left one.
-## (-1, -1) when there is none within BED_REACH.
-static func bed_cell_for(spawn: Vector2i, size: Vector2i, taken: Dictionary, footprint: Vector2i) -> Vector2i:
-	var best := Vector2i(-1, -1)
-	var best_distance := -1
-	for y in range(spawn.y - BED_REACH, spawn.y + BED_REACH + 1):
-		for x in range(spawn.x - BED_REACH, spawn.x + BED_REACH + 1):
-			var cell := Vector2i(x, y)
-			var distance := absi(x - spawn.x) + absi(y - spawn.y)
-			if best_distance >= 0 and distance >= best_distance:
-				continue
-			if _bed_fits(cell, size, taken, footprint):
-				best = cell
-				best_distance = distance
-	return best
-
-static func _bed_fits(cell: Vector2i, size: Vector2i, taken: Dictionary, footprint: Vector2i) -> bool:
-	for dx in footprint.x:
-		for dy in range(-footprint.y + 1, 2):  # its rows, and the row under its foot
-			var at := cell + Vector2i(dx, dy)
-			if not _inside(at, size) or taken.has(at):
-				return false
-	return true

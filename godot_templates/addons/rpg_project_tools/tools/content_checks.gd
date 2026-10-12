@@ -176,6 +176,11 @@ static func world_maps(plan_path: String) -> Array[String]:
 				var area: Dictionary = raw
 				var map := JsonIo.to_str(area.get("map", ""))
 				out.append(map if map.contains("://") else "res://" + map)
+	# the farm of a farm's plan (T17.06) is the world's too: its way out to the village is one
+	# rpggen can mend, in a project whose village was made before the farm had a map
+	var farm_map := JsonIo.to_str(JsonIo.to_dict(JsonIo.to_dict(table.get("farm", {})).get("map", {})).get("map", ""))
+	if farm_map != "":
+		out.append(farm_map if farm_map.contains("://") else "res://" + farm_map)
 	return out
 
 ## VAL-027: a map the starter map cannot reach through doors (a warning: an island may be meant).

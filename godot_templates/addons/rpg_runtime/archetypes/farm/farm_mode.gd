@@ -5,7 +5,8 @@ extends RpgCombatMode
 ## energy and hotbar (its children `Energy` and `Hotbar`), the crops of the game, the four
 ## tools, the night of the fields (the calendar's `on_night`, NIGHT_CROPS), and the end of the
 ## day (its child `DayEnd`, T17.08: the night of the shipping bin, sleeping, passing out, the
-## morning's summary).
+## morning's summary), the weather (its child `Weather`, T17.11) and what a season changes
+## beside the crops (its child `Seasons`, T17.11: the pictures of the ground and the music).
 
 const ENERGY_NODE := "Energy"
 const HOTBAR_NODE := "Hotbar"
@@ -18,6 +19,9 @@ var energy: RpgEnergy = null
 var hotbar: RpgHotbar = null
 ## The end of the day (RpgDayEnd).
 var day_end: RpgDayEnd = null
+## The weather (RpgFarmWeather) and the seasons' pictures and music (RpgFarmSeasons).
+var weather: RpgFarmWeather = null
+var seasons: RpgFarmSeasons = null
 ## The crops of the game (game/data/crops.json).
 var crops: RpgCropData = null
 
@@ -33,8 +37,16 @@ func _ready() -> void:
 	var calendar := RpgCalendar.ensure()
 	if calendar != null:
 		calendar.on_night(RpgCalendar.NIGHT_CROPS, _on_night)
-		if not calendar.day_began.is_connected(_on_morning):
-			calendar.day_began.connect(_on_morning)
+	# the people of the village (T17.09): who they are, how well the farmer knows them, and
+	# their schedules for the NPCs that carry one
+	RpgFriendship.ensure()
+	var bus := RpgUtil.events()
+	if bus != null and not bus.game_paused.is_connected(_on_paused):
+		bus.game_paused.connect(_on_paused)
+	# the weather's morning comes before the day's end: the rain of a wet day has watered the
+	# fields when sleeping saves the game
+	weather.attach()
+	seasons.attach()
 	day_end.attach()  # after the fields: its night (NIGHT_SHOP) and its morning follow theirs
 
 ## Makes what the mode consists of (in `_ready`, not when the scene is built: a saved scene
@@ -59,6 +71,18 @@ func ensure_parts() -> void:
 		day_end.name = RpgDayEnd.NODE_NAME
 		add_child(day_end)
 	day_end.pass_out_loss = pass_out_loss
+	if weather == null:
+		weather = get_node_or_null(RpgFarmWeather.NODE_NAME) as RpgFarmWeather
+	if weather == null:
+		weather = RpgFarmWeather.new()
+		weather.name = RpgFarmWeather.NODE_NAME
+		add_child(weather)
+	if seasons == null:
+		seasons = get_node_or_null(RpgFarmSeasons.NODE_NAME) as RpgFarmSeasons
+	if seasons == null:
+		seasons = RpgFarmSeasons.new()
+		seasons.name = RpgFarmSeasons.NODE_NAME
+		add_child(seasons)
 	if crops == null:
 		crops = RpgCropData.load_default()
 	if _tools.is_empty():
@@ -112,8 +136,18 @@ func _on_night(_day: int) -> void:
 	var next := RpgCalendar.date_after(calendar.day, calendar.season, calendar.year, 1, calendar.days_per_season)
 	RpgField.night_all(crops, RpgCalendar.season_name_of(next[1]))
 
-## A stand-in until the card that owns it: the farmer wakes with a full can (the pond or the
-## well of the farm's plan is T17.06). The energy of the morning is RpgDayEnd's: full after a
-## sleep, half after staying up to 2:00.
-func _on_morning(_day: int) -> void:
-	RpgFarmWateringCan.fill()
+# ------------------------------------------------------------------ the pause menu
+
+## The pause menu has a People page (T17.09). The menu is made anew each time it opens, so the
+## button is added each time; a shop or another menu that pauses the game gets none.
+func _on_paused(paused: bool) -> void:
+	if not paused or RpgFriendship.current() == null:
+		return
+	var router := RpgUtil.router()
+	var controller := router.get_node_or_null("UiController") if router != null else null
+	if controller == null:
+		return
+	var menu: Variant = controller.get(&"_menu")
+	if menu is RpgPauseMenu and is_instance_valid(menu):
+		var pause: RpgPauseMenu = menu
+		RpgPeoplePage.add_to(pause)

@@ -87,7 +87,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash()} if _farm(ctx) else {}))
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash(), "kind_start": _kind_start(ctx)} if _farm(ctx) else {}))
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -139,7 +139,12 @@ func build(ctx: BuildContext) -> Array:
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx, _turn_based(ctx)), HERO_PATH, issues)
 	if not FileAccess.file_exists(NEW_GAME_PATH):
-		_save(ctx, _new_game(ctx.demo_removed, gear.keys(), _start_map(ctx), _kind_items(ctx), _kind_gold(ctx)), NEW_GAME_PATH, issues)
+		var new_game := _new_game(ctx.demo_removed, gear.keys(), _start_map(ctx), _kind_items(ctx), _kind_gold(ctx))
+		var kind_start := _kind_start(ctx)
+		if not kind_start.is_empty():
+			new_game.set("start_map", JsonUtil.to_str(kind_start["map"]))
+			new_game.set("start_spawn", StringName(JsonUtil.to_str(kind_start["spawn"])))
+		_save(ctx, new_game, NEW_GAME_PATH, issues)
 	if not FileAccess.file_exists(POTION_PATH):
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
 	if _no_village(ctx):
@@ -251,6 +256,15 @@ const START_GOLD := 50
 func _kind_gold(ctx: BuildContext) -> int:
 	var script := _farm_script(ctx, FARM_BUILD)
 	return JsonUtil.to_int(script.call("starting_money", ctx), START_GOLD) if script != null else START_GOLD
+
+## Where a new game of the kind starts when that is not the starter map: a farm's in its
+## farmhouse, by the bed (T17.06: {map, spawn} of its stored plan). {} for every other kind, and
+## for a farm without a plan of its own map.
+const FARM_MAP := "farm/farm_map_recipe.gd"
+
+func _kind_start(ctx: BuildContext) -> Dictionary:
+	var script := _farm_script(ctx, FARM_MAP)
+	return JsonUtil.to_dict(script.call("start_of", script.call("plan"))) if script != null else {}
 
 ## The village shop of the kind: a farm's keeps hours and sells the seeds of the season (its
 ## own recipe makes it from the shop every kind has); every other kind's is `shop` as it is.

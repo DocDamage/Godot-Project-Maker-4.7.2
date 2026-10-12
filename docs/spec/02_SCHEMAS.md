@@ -66,7 +66,7 @@ The stages of an arcade game are `game/data/stages.json` (T16.01), written by th
 * `map_layers` is not used (a room has the layers `Background`, `Ground`, `Platforms`, `Hazards`,
   `Decoration`, `Foreground`), `imported_maps` is not used, and `features.navigation` is off.
 
-**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and until the farm has a plan of its own (T17.06) its map is the starter map with a plot of tillable ground on it. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2). Its money (T17.08) is two more keys of `starter_map`, which only a farm has: `starting_money` (0 to 99999, default 100: the gold of `game/data/new_game.tres`, which is written once) and `pass_out_loss` (default true: a farmer who stays up to 2:00 loses a tenth of the money as well as half the energy; false keeps the money). A new game also starts with a hoe, a watering can and fifteen seeds of the first crop; the sickle and the axe are bought. The village shop of a farm (`game/data/shops/village_shop.tres`, written once) is an `RpgFarmShop`: the shop of every top-down kind with `opens` (9), `closes` (17) and `closed_weekday` (6, the day `people_plan.SHOP_CLOSED_DAY` gives the shopkeeper off; -1 for none), `seasonal` (default true: the seeds of the season are on offer, from `crops.json`) and `sell_ratio` 1.
+**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and that starter map is its **village**; the farm itself is a map of its own, planned once and stored (§12.3), with the farmhouse a new game starts in. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2). Its money (T17.08) is two more keys of `starter_map`, which only a farm has: `starting_money` (0 to 99999, default 100: the gold of `game/data/new_game.tres`, which is written once) and `pass_out_loss` (default true: a farmer who stays up to 2:00 loses a tenth of the money as well as half the energy; false keeps the money). A new game also starts with a hoe, a watering can and fifteen seeds of the first crop; the sickle and the axe are bought. The village shop of a farm (`game/data/shops/village_shop.tres`, written once) is an `RpgFarmShop`: the shop of every top-down kind with `opens` (9), `closes` (17) and `closed_weekday` (6, the day `people_plan.SHOP_CLOSED_DAY` gives the shopkeeper off; -1 for none), `seasonal` (default true: the seeds of the season are on offer, from `crops.json`) and `sell_ratio` 1. The farm's own map (T17.06) is five more keys of `starter_map`, read by `rpggen/core/farm_plan.py`: `farm_size` (`small`, `medium`, `large`: a field of 32 by 24, 40 by 30 or 48 by 36 cells; default `medium`), `plot` (`small`, `medium`, `large`: 6 by 4, 12 by 8 or 16 by 10 cells of tillable ground; default `medium`), `animals` (`none`, `coop`, `coop_and_barn`; default `none`), `difficulty` (`easy`, `normal`, `hard`: how much there is to clear, and the days of the crops) and `added_maps` (at most 8 rows `{ "name" }`; the names are stored in the plan, the maps themselves are areas of the world). The planner takes the footprint of the farmhouse from the starter building of the catalog, of a coop and a barn from a `BUILDING` object tagged so, and plans a pond when the packs have a `WATER` tile and a well when they have none. `VAL-031` (a warning, a line a problem) says what keeps the stored farm from being worked. The builder makes `game/maps/farm.tscn` and a room for every building of the plan (`game/maps/farm_house.tscn`, `farm_coop.tscn`, `farm_barn.tscn`) once; `game/data/new_game.tres` of a farm starts in `farm_house.tscn` at the spawn `start`. The door pair between the two maps: the farm's door `to_village` leads to the village's spawn `from_farm`, the village's door `to_farm` (in the wall opposite the farm's way out) to the farm's spawn `from_village`. The people (T17.09) have no key of their own in the config; the builder writes `generated/data/people.json` on every build and `game/data/people.json` and `game/data/dialogue/person_<id>.tres` once, and puts the places their schedules name on the village as markers under `Places`: `home_<n>` (and `home_<n>_2` to `_4`), `home`, `square` (and `square_2` to `_6`) and `work`; the people take the spots of a place in turn.
 
 **PackRef:** `{ "pack_id": str, "source": str (absolute path as the user gave it; informational only), "source_sha256": str, "kind": "zip"|"7z"|"rar"|"folder", "folders"?: [str] }`. `folders` (T16.22, optional) is for a `source` that is a bundle of packs, a folder each: it names the pack folders to take, by their names, and each is a pack of its own. An entry with one folder is the pack `pack_id`; an entry with several is read as one entry per folder, in the order given, with ids made from the folders' names, and is written back that way, so the ids stay. The wizard and `--pack-folder` write one entry per folder. `folders` is not allowed on a `rar` (a rar is not listed, so it is never a bundle); on any other source that is not a bundle, and for a folder the bundle does not have, opening the pack stops with `ARCH-001`, which names the nearest folder. Only the named folders are unpacked, with the licence files of the bundle's top level beside each.
 
@@ -487,6 +487,21 @@ All three files share this shape:
   the cells that were worked (watered, what grows there, its watered nights, withered, the
   nights tilled soil has lain bare). A field grows overnight from this alone, whether its map
   is shown or not. No other kind writes either entry.
+* The weather of a farm (release 1.5, T17.11) is not stored: the weather of a day follows
+  from a seed and the number of the day. The entry `farm_weather` of `flags` is
+  `{ "seed": n, "watered": n }`: the seed (0 to 2^31 - 1), drawn from the game's random
+  numbers the first time a game's weather is asked for and kept from then on, and the day
+  (counted from 0 since the first morning) whose rain has watered the fields already, so
+  that loading a save of a rainy day does not water them again. Both are optional: `watered`
+  is not there before the first rain, and a save without `seed` draws one when it is loaded.
+* The seasonal sheets of a farm (T17.11): `generated/data/seasons.json`, rewritten on every
+  build, is `{ "version": 1, "groups": { "<id of the group's first sheet>": { "<season or
+  empty>": "res://<path of the texture>" } } }`: for every group of sheets the catalog has
+  once a season (the `season:<name>` and `variant_of:<id>` tags of §3) the texture of each
+  season, the sheet that names no season under the empty key. A group has at least two
+  named seasons; a project whose packs have none has `groups: {}`. The runtime replaces
+  the textures of an outdoor map that are members of a group by the group's texture of
+  the season (the one under the empty key, else the first, for a season it lacks).
 * One optional key of a game with a calendar (release 1.5, T17.03): `calendar`,
   `{ "minute": 915, "day": 12, "season": 2, "year": 3 }`. `minute` is the minute of the day
   counted from the midnight before its morning (360, which is 6:00, to 1559, which is 1:59 of
@@ -569,8 +584,11 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `flags.farm` (`energy`, `held`, `water`), `flags.farm_field` | save game | T17.04, T17.05 |
 | `flags.farm.save_slot`, `flags.farm_bin` (`items`: rows `{ item_id, qty }`), `flags.farm_bed` (`map`, `x`, `y`, `facing`, `known`) | save game | T17.08 |
 | `starter_map.starting_money`, `starter_map.pass_out_loss` | generator_config (farm) | T17.08 |
+| `starter_map.farm_size`, `starter_map.plot`, `starter_map.animals`, `starter_map.added_maps` (and `difficulty` for a farm) | generator_config (farm) | T17.06 |
 | `farm.people` | world_plan | T17.09 |
 | `friendship` | save game | T17.09 |
+| `flags.farm_weather` (`seed`, `watered`) | save game | T17.11 |
+| `generated/data/seasons.json` (`version`, `groups`) | generated data (farm) | T17.11 |
 
 ---
 

@@ -175,6 +175,19 @@
         "elimination": {"type": "boolean"},
         "starting_money": {"type": "integer", "minimum": 0, "maximum": 99999},
         "pass_out_loss": {"type": "boolean"},
+        "farm_size": {"enum": ["small", "medium", "large"]},
+        "plot": {"enum": ["small", "medium", "large"]},
+        "animals": {"enum": ["none", "coop", "coop_and_barn"]},
+        "added_maps": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "properties": {"name": {"type": "string", "minLength": 1}},
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        },
         "laps": {"type": "integer", "minimum": 1, "maximum": 9},
         "track_size": {"enum": ["small", "medium", "large"]},
         "added_tracks": {

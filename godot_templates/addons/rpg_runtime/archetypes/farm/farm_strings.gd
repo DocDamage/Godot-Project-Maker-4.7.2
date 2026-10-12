@@ -8,6 +8,8 @@ const KEYS := {
 	"FARM_TIRED": "Too tired. Eat something or sleep.",
 	"FARM_FULL": "The bag is full.",
 	"FARM_CAN_EMPTY": "The can is empty. Fill it at water.",
+	"FARM_CAN_FILLED": "Filled the can.",
+	"FARM_CAN_FULL": "The can is full.",
 	"FARM_WRONG_SEASON": "%s does not grow in %s.",
 	"FARM_ATE": "Ate %s.",
 	"SEASON_SPRING": "spring",
@@ -53,6 +55,20 @@ const KEYS := {
 	"FARM_GIFT_NEUTRAL": "%s thanks you.",
 	"FARM_GIFT_DISLIKES": "%s does not like it.",
 	"FARM_GIFT_ENOUGH": "%s has had enough gifts this week.",
+	# the maps of a farm (T17.06), as a save slot names them
+	"MAP_FARM": "Farm",
+	"MAP_FARM_HOUSE": "Farmhouse",
+	"MAP_FARM_COOP": "Coop",
+	"MAP_FARM_BARN": "Barn",
+	# the weather and the HUD (T17.11)
+	"FARM_WEATHER_SUN": "Sunny",
+	"FARM_WEATHER_RAIN": "Rain",
+	"FARM_WEATHER_STORM": "Storm",
+	"FARM_WEATHER_SNOW": "Snow",
+	"FARM_FORECAST": "Tomorrow's weather: %s.",
+	"FARM_HUD_DATE": "%s %d, %s",
+	"FARM_HARVESTED": "Harvested %s.",
+	"FARM_SOLD": "The shipping bin paid %d %s.",
 }
 
 ## The text of `key` (its translation, else the English above) with `args` filled in.
