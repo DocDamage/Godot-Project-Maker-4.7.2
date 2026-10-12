@@ -27,7 +27,7 @@ def test_try_generate_and_results_on_the_sample_pack(
     qtbot.addWidget(window)
     window.show()
 
-    window.pages[0].sample_button.click()  # Try with sample pack
+    window.pages[0].sample_actions["top"].trigger()  # Try with sample pack: the village
     assert window.current_index == OPTIONS_INDEX
     assert window.next_button.text() == "Generate"
 
@@ -72,7 +72,7 @@ def test_the_arpg_path_generates_a_project_that_passes_its_smoke_test(
     qtbot.addWidget(window)
     window.show()
 
-    window.pages[0].sample_button.click()  # Try with sample pack: ends on the options page
+    window.pages[0].sample_actions["top"].trigger()  # the village: ends on the options page
     assert window.current_index == OPTIONS_INDEX
     assert window.state.archetype == "turn_based"
     archetype_index = next(i for i, p in enumerate(window.pages) if isinstance(p, ArchetypePage))

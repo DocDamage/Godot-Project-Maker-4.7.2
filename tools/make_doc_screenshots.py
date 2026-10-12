@@ -349,9 +349,12 @@ def render(
     godot: Path | None = None,
     size: tuple[int, int] = (1100, 720),
     font: str | None = None,
+    games: bool = True,
 ) -> list[Path]:
     """Write one PNG per wizard page (plus the crash dialog) and return the paths. ``size`` is
-    the window's and ``font`` a family for every text (the machine's own when None)."""
+    the window's and ``font`` a family for every text (the machine's own when None); without
+    ``games`` the pictures of the three arcade games are left out (each is a generation and a
+    game played in a window)."""
     from PySide6.QtGui import QFont
     from PySide6.QtWidgets import QApplication
 
@@ -460,7 +463,8 @@ def render(
             quests = _quests_picture(godot, window.state.target, out)
             if quests is not None:  # Godot needs a window for it: not on a machine without one
                 written.append(quests)
-            written.extend(_game_pictures(godot, tmp_path, out))
+            if games:
+                written.extend(_game_pictures(godot, tmp_path, out))
 
         # the Results page after a failed run: the cause, the end of the log and the buttons
         finished = window.state.run_result

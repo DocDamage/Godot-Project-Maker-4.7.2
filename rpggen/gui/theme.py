@@ -400,7 +400,8 @@ def repolish(widget: QWidget) -> None:
     if style is not None:
         style.unpolish(widget)
         style.polish(widget)
-    widget.update()
+    # not widget.update(): an item view's own update(index) hides it in PySide6 6.7
+    QWidget.update(widget)
 
 
 _focus_ring: FocusRing | None = None

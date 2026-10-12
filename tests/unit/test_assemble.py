@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import json
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
@@ -34,7 +36,16 @@ def test_matches_golden_catalog(pack: Path) -> None:
     cat, _issues, _generated = _assemble(pack)
     data = cat.to_json()
     schema.validate("catalog", data)
-    assert jsonio.dumps(data) == (GOLDEN / f"{pack.stem}.catalog.json").read_text(encoding="utf-8")
+    golden = json.loads((GOLDEN / f"{pack.stem}.catalog.json").read_text(encoding="utf-8"))
+    if sys.platform != "win32":
+        # a picture rpggen writes itself (an LPC character put together) is hashed as the PNG
+        # it was written as, and those bytes depend on the platform's zlib: the goldens are
+        # made on Windows, and elsewhere such a hash is not compared
+        for assets in (data["assets"], golden["assets"]):
+            for asset in assets:
+                if str(asset.get("path", "")).startswith("generated/"):
+                    asset["sha256"] = ""
+    assert jsonio.dumps(data) == jsonio.dumps(golden)
 
 
 def test_assembly_is_deterministic() -> None:

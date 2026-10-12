@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -158,7 +159,10 @@ def test_the_audit_filter_row_wraps_and_profile_is_inside_the_page(qtbot, tmp_pa
     row = [grid.chips[name] for name in ("chipAttention", "chipAuto", "chipConfirmed", "chipAll")]
     row += [grid.role_combo, grid.pack_combo, grid.search, grid.group_button, page.profile_button]
     lines = sorted({_rect_in(w, page).top() for w in row})
-    assert 1 <= len(lines) <= (2 if size[0] >= 1100 else 3), lines
+    # two lines in the default window with the font of Windows; the wider fallback font of the
+    # offscreen platform on Linux needs a third there too
+    two = size[0] >= 1100 and sys.platform == "win32"
+    assert 1 <= len(lines) <= (2 if two else 3), lines
     # the footer under the grid: the queue line, the keys, Shortcuts (quiet)
     assert grid.queue_label.text() and "C Confirm" in grid.keys_label.text()
     assert grid.help_button.text() == "Shortcuts" and grid.help_button.property("kind") == "quiet"
