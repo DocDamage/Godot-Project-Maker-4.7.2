@@ -342,6 +342,9 @@ func new_game() -> void:
 	player_position = Vector2.ZERO
 	player_facing = "down"
 	rng.seed_from_config()
+	var calendar := RpgCalendar.current()
+	if calendar != null:
+		calendar.reset()
 
 # ---------------------------------------------------------------- abilities (T14.05)
 
@@ -723,7 +726,13 @@ func to_dict() -> Dictionary:
 		"equipment": equipment.duplicate(true),
 		"playtime_s": playtime_s,
 		"rng": rng.get_state(),
-	}.merged({"map_fog": _fog_to_dict()} if not map_fog.is_empty() else {}).merged(_side_view_keys())
+	}.merged({"map_fog": _fog_to_dict()} if not map_fog.is_empty() else {}).merged(_side_view_keys()).merged(_calendar_key())
+
+## The `calendar` key of a save (T17.03): written only by a game that has a calendar, so the save
+## of every other game has exactly the keys it had.
+func _calendar_key() -> Dictionary:
+	var calendar := RpgCalendar.current()
+	return {RpgCalendar.SAVE_KEY: calendar.to_dict()} if calendar != null else {}
 
 ## The save keys of the metroidvania, written only when there is something to write, so a
 ## top-down save has exactly the keys it had in 1.1.
@@ -770,6 +779,9 @@ func from_dict(d: Dictionary) -> void:
 	abilities = _abilities_from(data.get("abilities"))
 	broken_cells = _broken_cells_from(data.get("broken_cells"))
 	room_fog = _room_fog_from(data.get("room_fog"))
+	var calendar := RpgCalendar.current()
+	if calendar != null:  # a save without the key is the first morning
+		calendar.from_dict(data.get(RpgCalendar.SAVE_KEY))
 
 ## The optional `variables` key of a save: whole numbers by name; anything else is dropped.
 static func _variables_from(raw: Variant) -> Dictionary:

@@ -35,12 +35,13 @@ func _process(delta: float) -> void:
 func interior() -> bool:
 	return is_interior or str(map_id).begins_with("interior")
 
-## Sets the CanvasModulate colour; only an outdoor map with the cycle on keeps updating.
+## Sets the CanvasModulate colour; only an outdoor map with the cycle on keeps updating. The cycle
+## is on by its setting, or because the game has a calendar the light follows.
 func update_ambient() -> void:
 	if _ambient == null:
 		return
 	var settings := RpgUtil.settings()
-	var cycle := settings != null and settings.day_night and not interior()
+	var cycle := not interior() and (RpgDayNight.calendar() != null or (settings != null and settings.day_night))
 	var state := RpgUtil.state()
 	var playtime := state.playtime_s if state != null else 0.0
 	_ambient.color = ambient_override if ambient_override.a > 0.0 else RpgDayNight.map_ambient(interior(), cycle, playtime)

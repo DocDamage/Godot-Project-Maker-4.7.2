@@ -2,7 +2,8 @@ class_name RpgDayNight
 extends RefCounted
 ## The ambient light of a map (T12.62): through a CanvasModulate, white by day outdoors, dimmer in
 ## interiors. The optional time-of-day cycle (RpgSettings.day_night, off by default) tints the
-## outdoor maps from the play time, so the same moment of a save always looks the same.
+## outdoor maps from the play time, so the same moment of a save always looks the same. A game
+## with a calendar (RpgCalendar, T17.03) has its light from the calendar's time instead.
 
 const DAY := Color(1.0, 1.0, 1.0)
 const INTERIOR := Color(0.78, 0.74, 0.68)
@@ -40,8 +41,19 @@ static func ambient_at(hour: float) -> Color:
 			return c0.lerp(c1, (h - t0) / maxf(t1 - t0, 0.0001))
 	return NIGHT
 
+## The calendar the light follows, or null: a game without one, or one whose calendar does not
+## drive the light, keeps the clock of the play time.
+static func calendar() -> RpgCalendar:
+	var found := RpgCalendar.current()
+	return found if found != null and found.drives_light else null
+
+## The hour of the light now: the calendar's when the light follows one, else from the play time.
+static func current_hour(playtime_s: float) -> float:
+	var followed := calendar()
+	return followed.hour() if followed != null else hour_at(playtime_s)
+
 ## The ambient of a map: dimmer indoors; outdoors the cycle's colour when it is on, else day.
 static func map_ambient(interior: bool, cycle_on: bool, playtime_s: float) -> Color:
 	if interior:
 		return INTERIOR
-	return ambient_at(hour_at(playtime_s)) if cycle_on else DAY
+	return ambient_at(current_hour(playtime_s)) if cycle_on else DAY

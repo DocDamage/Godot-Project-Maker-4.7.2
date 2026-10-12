@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.5.0
+
+**Compatibility with 1.0 to 1.4.** The save version stays 1 and older saves load. One key is
+new and optional: `calendar`, written only by a game that has a calendar; a save without it
+loads on the first morning. No autoload is new, and a game without a calendar has the light
+and the saves it had.
+
+* **The calendar** (`world/calendar.gd`, `RpgCalendar`): the minute of the day, the day of the
+  season, the season and the year. A day runs from 6:00 to 2:00 of the night; a game minute is
+  `minute_s` real seconds (0.7: a day is 14 minutes); a season has `days_per_season` days (28,
+  or 14 or 7). Time stands still while the game is paused (every menu), in a dialogue, in a
+  cutscene, in a battle and while the map changes, and indoors with `stops_indoors`. Signals:
+  `minute_passed`, `hour_passed`, `day_ended`, `day_began`, `season_changed`. `end_day()` ends
+  the day (sleeping; the clock calls it at 2:00). What happens overnight is added with
+  `on_night(priority, callable)` and runs in the order of the priorities (`NIGHT_CROPS`,
+  `NIGHT_ANIMALS`, `NIGHT_SHOP`, `NIGHT_WEATHER`) before `day_ended` is emitted, so a night is
+  the same every time. It is not an autoload: a mode makes it with `RpgCalendar.ensure()` (a
+  child of GameState) and everybody finds it with `RpgCalendar.current()`, which is null in
+  every game without one.
+* `RpgDayNight` takes its hour from the calendar when the game has one whose `drives_light`
+  is on (`RpgDayNight.current_hour`), and the outdoor maps follow it whatever the *Day and
+  night* setting says. Without a calendar the cycle runs on the play time as before.
+
 ## 1.4.0
 
 (There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)
