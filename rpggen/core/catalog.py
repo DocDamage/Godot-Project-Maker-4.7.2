@@ -751,6 +751,50 @@ def _farm_farmer(assets: list[Asset]) -> None:
             return
 
 
+FARM_CHARACTER_ROLES = frozenset({"PLAYER", "NPC"})
+
+
+def _farm_use_strips(assets: list[Asset]) -> None:
+    """A farming pack's strips of a character using a tool (T17.10):
+    ``farmer_hoe_down_16x16_3frames`` beside ``farmer_walk_down_...`` is an animation of the
+    farmer, not a villager. A character strip whose name is the name of another character of its
+    folder and then a tool word is left unused (the role ``NONE``, with the reason), and tagged
+    ``use_anim:<tool>`` and ``of:<the character's id>``, so that nobody takes the farmer hoeing
+    for a person of the village. Its animations stay read. Never over a profile or a learned
+    value."""
+    from rpggen.core import classifier
+
+    def character(asset: Asset) -> bool:
+        facets = asset.detected
+        return (
+            asset.kind == "image"
+            and facets.get("usage") == "sprite"
+            and bool(facets.get("animations"))
+            and facets.get("role") in FARM_CHARACTER_ROLES
+        )
+
+    found = [(a, *classifier.character_words(a.path)) for a in assets if character(a)]
+    who: dict[tuple[str, tuple[str, ...]], Asset] = {}
+    for asset, words, tool in sorted(found, key=lambda row: row[0].id):
+        if words and not tool:
+            who.setdefault((asset.path.rsplit("/", 1)[0], tuple(words)), asset)
+    for asset, words, tool in found:
+        owner = who.get((asset.path.rsplit("/", 1)[0], tuple(words)))
+        if not tool or owner is None or asset.detected_by in ("profile", "learned"):
+            continue
+        facets = asset.detected
+        facets["role"] = "NONE"
+        facets.pop("roles_alt", None)
+        facets["tags"] = sorted(
+            {
+                *facets.get("tags", []),
+                classifier.UNUSED_TAG + classifier.UNUSED_USE_ANIM,
+                classifier.USE_ANIM_TAG + tool,
+                classifier.USE_ANIM_OF_TAG + owner.id,
+            }
+        )
+
+
 # the roles the classifier gives the things of a farming pack for want of a better one
 FARM_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "NPC"})
 FARM_TOOL_REPLACED_ROLES = FARM_REPLACED_ROLES | {"WATER", "WEAPON"}  # tools/water.png, an axe
@@ -1315,6 +1359,7 @@ def assemble(
             _side_view_soldier([a for a in catalog.assets if a.pack_id == pack_id])
         if view == "farm":
             _farm_farmer([a for a in catalog.assets if a.pack_id == pack_id])
+            _farm_use_strips([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_roles([a for a in catalog.assets if a.pack_id == pack_id], root)
             # a crop of one picture has no stages to grow through (T17.01): a note
             for asset in catalog.assets:

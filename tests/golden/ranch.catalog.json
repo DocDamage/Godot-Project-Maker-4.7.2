@@ -2860,19 +2860,16 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.0625
-          ]
-        ],
+        "role": "NONE",
         "size": [
           48,
           16
         ],
         "tags": [
-          "tool"
+          "of:ranch.characters.farmer.farmer_walk_down_16x16_4frames",
+          "tool",
+          "unused_because:use_anim",
+          "use_anim:hoe"
         ],
         "usage": "sprite"
       },
@@ -2883,7 +2880,7 @@
       "pack_id": "ranch",
       "path": "assets/packs/ranch/characters/farmer/farmer_hoe_down_16x16_3frames.png",
       "sha256": "e30489df73656a5ee76f10d1ac95c28f91e58c932fd7628d62330e30125b9f2c",
-      "status": "NEEDS_REVIEW"
+      "status": "UNUSED"
     },
     {
       "confidence": 0.625,
@@ -3065,20 +3062,15 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "WATER",
-            0.375
-          ],
-          [
-            "PLAYER",
-            0.041667
-          ]
-        ],
+        "role": "NONE",
         "size": [
           48,
           16
+        ],
+        "tags": [
+          "of:ranch.characters.farmer.farmer_walk_down_16x16_4frames",
+          "unused_because:use_anim",
+          "use_anim:water"
         ],
         "usage": "sprite"
       },
@@ -3089,7 +3081,7 @@
       "pack_id": "ranch",
       "path": "assets/packs/ranch/characters/farmer/farmer_water_down_16x16_3frames.png",
       "sha256": "94a61a398dff6e0ce4e51f11170794816b393117668004efa1564c7d259eeb6c",
-      "status": "NEEDS_REVIEW"
+      "status": "UNUSED"
     },
     {
       "confidence": 0.9,

@@ -81,10 +81,27 @@ UNUSED_REASONS = {
 
 def unused_reason(eff: dict[str, Any]) -> str:
     """Why rpggen left an asset unused by itself ("" when it did not)."""
-    for tag in eff.get("tags") or []:
-        if isinstance(tag, str) and tag.startswith(classifier.UNUSED_TAG):
+    tags = [t for t in eff.get("tags") or [] if isinstance(t, str)]
+    for tag in tags:
+        if tag == classifier.UNUSED_TAG + classifier.UNUSED_USE_ANIM:
+            return _use_anim_reason(tags)
+        if tag.startswith(classifier.UNUSED_TAG):
             return UNUSED_REASONS.get(tag[len(classifier.UNUSED_TAG) :], "")
     return ""
+
+
+def _use_anim_reason(tags: list[str]) -> str:
+    """A character using a tool (T17.10): whose animation it is, and of which tool."""
+
+    def said(prefix: str) -> str:
+        return next((t[len(prefix) :] for t in tags if t.startswith(prefix)), "")
+
+    owner, tool = said(classifier.USE_ANIM_OF_TAG), said(classifier.USE_ANIM_TAG)
+    whose = _named(owner) if owner else "a character of this pack"
+    return (
+        f"an animation of {whose} using a tool ({tool}), not a character of its own. rpggen "
+        "does not put it on that character yet. Give it a role to use it alone."
+    )
 
 
 def why(asset: catalog_mod.Asset) -> str:

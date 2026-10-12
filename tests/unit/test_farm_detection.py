@@ -418,3 +418,112 @@ def test_the_ranchs_ground_comes_once_a_season_and_its_sheets_are_terrains(
     fence = catalog.effective(assets["autotiles/03_fence.png"])
     assert fence["role"] == "WALL" and len(fence["terrain_proposal"]["tile_overrides"]) == 16
     assert "TILE-006" not in [i.code for i in issues]
+
+
+# ------------------------------------------------------ a character using a tool (T17.10)
+
+
+@pytest.mark.parametrize(
+    ("path", "who", "tool"),
+    [
+        ("characters/farmer/farmer_hoe_down_16x16_3frames.png", ["farmer"], "hoe"),
+        ("characters/farmer/farmer_water_down_16x16_3frames.png", ["farmer"], "water"),
+        ("player/farmer_watering_can_left.png", ["farmer"], "water"),
+        ("player/old_farmer_scythe_up_4frames.png", ["old", "farmer"], "sickle"),
+        ("player/farmer_sickle.png", ["farmer"], "sickle"),
+        ("player/farmer_axe_right.png", ["farmer"], "axe"),
+        ("player/farmer_rod_down.png", ["farmer"], "rod"),
+        ("player/farmer_fish_down.png", ["farmer"], "rod"),
+        ("characters/farmer/farmer_walk_down_16x16_4frames.png", ["farmer"], ""),
+        ("characters/farmer/farmer_idle.png", ["farmer"], ""),
+        ("animals/cow_01_brown_move_down_32x32_4frames.png", ["cow", "brown"], ""),
+        ("tools/hoe_16x16.png", [], "hoe"),
+    ],
+)
+def test_whose_strip_it_is_and_which_tool_it_shows(path: str, who: list[str], tool: str) -> None:
+    assert classifier.character_words(path) == (who, tool)
+    assert set(classifier.USE_ANIM_WORDS.values()) == {"hoe", "water", "sickle", "axe", "rod"}
+
+
+def test_the_farmer_using_a_tool_is_an_animation_of_the_farmer_not_a_villager(
+    ranch: tuple[catalog.Catalog, list],
+) -> None:
+    cat, _issues = ranch
+    assets = _by_path(cat)
+    farmer = assets["characters/farmer/farmer_walk_down_16x16_4frames.png"]
+    for tool in ("hoe", "water"):
+        strip = assets[f"characters/farmer/farmer_{tool}_down_16x16_3frames.png"]
+        eff = catalog.effective(strip)
+        assert (eff["role"], strip.status) == ("NONE", "UNUSED"), tool
+        assert "roles_alt" not in eff and eff["usage"] == "sprite"
+        assert {f"use_anim:{tool}", f"of:{farmer.id}", "unused_because:use_anim"} <= set(
+            eff["tags"]
+        )
+        assert len(eff["animations"]["idle_down"]["frames"]) == 3, "its frames stay read"
+        why = explain.why(strip)
+        assert why.startswith("unused: an animation of characters/farmer/farmer_walk_down")
+        assert f"using a tool ({tool})" in why and "Give it a role" in why
+    assert catalog.effective(farmer)["role"] == "PLAYER"
+    people = [a.id for a in cat.assets if catalog.effective(a).get("role") == "NPC"]
+    assert people == [], "nobody of the ranch is a villager: its people are drawn or lent"
+    # the hoe's icon is still the tool, and a tool word alone makes no animation of anybody
+    assert catalog.effective(assets["tools/hoe_16x16.png"])["role"] == "TOOL"
+    assert not [t for t in catalog.effective(assets["tools/hoe_16x16.png"])["tags"] if ":" in t]
+
+
+def _person_strip(path: Path, frames: int, shade: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image = Image.new("RGBA", (16 * frames, 16), (0, 0, 0, 0))
+    for i in range(frames):
+        image.paste((shade, 90 + 20 * i, 60, 255), (i * 16 + 4, 2 + i, i * 16 + 12, 15))
+    image.save(path)
+
+
+def test_a_tool_strip_is_an_animation_only_of_a_character_beside_it_in_a_farming_pack(
+    tmp_path: Path,
+) -> None:
+    def names(pack: Path) -> dict[str, tuple[str, list[str]]]:
+        cat, _issues = _catalog(pack)
+        return {
+            a.path.rsplit("/", 1)[-1]: (
+                catalog.effective(a)["role"],
+                [t for t in catalog.effective(a).get("tags", []) if t.startswith(("use_", "of:"))],
+            )
+            for a in cat.assets
+        }
+
+    # a village pack with the same names is no farming pack: nothing changes
+    village = tmp_path / "village"
+    for name in ("hero_walk_down_16x16_4frames", "hero_axe_down_16x16_3frames"):
+        _person_strip(village / "characters" / f"{name}.png", int(name[-7]), 120)
+    plain = names(village)
+    assert plain["hero_axe_down_16x16_3frames.png"][0] != "NONE"
+    assert not plain["hero_axe_down_16x16_3frames.png"][1]
+    # a farming pack: another character's tool strip, and a tool strip of nobody
+    farm = tmp_path / "farm"
+    (farm / "crops").mkdir(parents=True)
+    for crop in ("corn", "wheat", "carrot"):
+        _person_strip(farm / "crops" / f"{crop}_16x16_5frames.png", 5, 200)
+    _person_strip(farm / "tiles" / "soil_tilled.png", 1, 90)
+    people = farm / "characters"
+    for name in ("farmer_walk_down_16x16_4frames", "farmer_axe_down_16x16_3frames",
+                 "helper_walk_down_16x16_4frames", "helper_sickle_down_16x16_3frames",
+                 "stranger_hoe_down_16x16_3frames"):  # fmt: skip
+        _person_strip(people / f"{name}.png", int(name[-7]), 60 + 9 * len(name))
+    cat, _issues = _catalog(farm)
+    assert catalog.VIEW_FARM in cat.packs[0].warnings
+    found = names(farm)
+    assert found["farmer_axe_down_16x16_3frames.png"] == (
+        "NONE",
+        ["of:farm.characters.farmer_walk_down_16x16_4frames", "use_anim:axe"],
+    )
+    assert found["helper_sickle_down_16x16_3frames.png"] == (
+        "NONE",
+        ["of:farm.characters.helper_walk_down_16x16_4frames", "use_anim:sickle"],
+    )
+    assert found["stranger_hoe_down_16x16_3frames.png"][0] != "NONE", (
+        "nobody beside it is called so"
+    )
+    assert not found["stranger_hoe_down_16x16_3frames.png"][1]
+    assert found["farmer_walk_down_16x16_4frames.png"][0] == "PLAYER"
+    schema.validate("catalog", cat.to_json())

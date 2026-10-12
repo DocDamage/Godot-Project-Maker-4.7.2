@@ -357,6 +357,35 @@ GROWTH_FOLDER_WORDS = frozenset({"crop", "crops", "plants", "seeds", "farming"})
 GROWTH_MIN_STAGES_BY_SIZE = 3
 
 
+# A character using a tool (T17.10): ``farmer_hoe_down_16x16_3frames`` beside the farmer's walk
+# is an animation of the farmer, not a second character. The word -> the animation it is
+# (``RpgFarmTool.animation``: hoe, water, sickle, axe, rod).
+USE_ANIM_WORDS = {"hoe": "hoe", "water": "water", "watering": "water", "sickle": "sickle",
+                  "scythe": "sickle", "axe": "axe", "rod": "rod", "fish": "rod"}  # fmt: skip
+USE_ANIM_TAG = "use_anim:"
+USE_ANIM_OF_TAG = "of:"
+UNUSED_USE_ANIM = "use_anim"
+
+
+def character_words(path: str) -> tuple[list[str], str]:
+    """(the words of a character strip's name that say who it is, the tool it shows in use or
+    ""): the words before the first that says what the strip shows (an action, a direction, a
+    tool, a size). ``farmer_hoe_down_16x16_3frames`` -> ``(["farmer"], "hoe")``,
+    ``farmer_walk_down`` -> ``(["farmer"], "")``."""
+    from rpggen.core.adapters import naming
+
+    _folders, words = tokens(path)
+    who: list[str] = []
+    for word in words:
+        if word in USE_ANIM_WORDS:
+            return who, USE_ANIM_WORDS[word]
+        said = naming.SYNONYMS.get(word, word)
+        if said in naming.CANONICAL_ACTIONS or said in naming.DIRECTIONS or word[:1].isdigit():
+            break
+        who.append(word)
+    return who, ""
+
+
 def season_of(name: str) -> str | None:
     """The season the words of a path say: of the file (``grass_winter.png``) or of a folder
     anywhere above it. *fall* is autumn. ``spring`` and ``fall`` count as a folder's word only:

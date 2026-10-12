@@ -125,6 +125,10 @@
   "buildings/house.png": {
     "role": "BUILDING"
   },
+  "characters/farmer/farmer_hoe_down_16x16_3frames.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
   "characters/farmer/farmer_walk_down_16x16_4frames.png": {
     "anims": [
       "walk_down",
@@ -137,6 +141,10 @@
       16
     ],
     "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "characters/farmer/farmer_water_down_16x16_3frames.png": {
+    "role": "NONE",
     "usage": "sprite"
   },
   "crops/corn_16x32_8frames.png": {

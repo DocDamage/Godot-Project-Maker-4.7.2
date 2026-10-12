@@ -1952,6 +1952,12 @@ def make_ranch(out: Path) -> None:
             "frame": [16, 16],
             "anims": ["walk_down", "walk_left", "walk_right", "walk_up"],
         },
+        # the farmer using a tool: an animation of the farmer, not a villager (T17.10)
+        "characters/farmer/farmer_hoe_down_16x16_3frames.png": {"usage": "sprite", "role": "NONE"},
+        "characters/farmer/farmer_water_down_16x16_3frames.png": {
+            "usage": "sprite",
+            "role": "NONE",
+        },
         "crops/pumpkin_16x16.png": {"usage": "sprite", "role": "CROP"},  # one picture
         "autotiles/01_soil_tilled.png": {"usage": "tiles", "role": "GROUND"},
         "autotiles/02_soil_watered.png": {"usage": "tiles", "role": "GROUND"},
