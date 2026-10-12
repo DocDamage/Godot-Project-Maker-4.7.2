@@ -10,7 +10,9 @@ extends RefCounted
 ## strip; the last is the ripe one), `regrow` (0: one harvest; else the days to the next one),
 ## `seed_price`, `price`, `energy` (what eating one restores) and `scene`.
 
-const USER_PATH := "res://game/data/crops.json"
+## The user's file of the running game. Set by the farm's mode from its `data_dir`, which the
+## recipe gives it: a runtime script names no path of the game itself.
+static var user_path := ""
 const PLANNED_PATH := "res://generated/data/crops.json"
 
 ## Crop id -> its entry, and the ids in the order of the files.
@@ -20,7 +22,7 @@ var order: Array[String] = []
 ## The crops of the running game: the user's file, then what only the planned file has.
 static func load_default() -> RpgCropData:
 	var data := RpgCropData.new()
-	data.add_file(USER_PATH)
+	data.add_file(user_path)
 	data.add_file(PLANNED_PATH)
 	return data
 

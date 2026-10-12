@@ -16,7 +16,9 @@ extends RefCounted
 ## * `houses`: `{kind, map, yard_map, stalls}`: the scene of the room, the scene of the map its
 ##   yard is on, and how many animals it has room for.
 
-const USER_PATH := "res://game/data/animals.json"
+## The user's file of the running game. Set by the farm's mode from its `data_dir`, which the
+## recipe gives it: a runtime script names no path of the game itself.
+static var user_path := ""
 const PLANNED_PATH := "res://generated/data/animals.json"
 const ON_THE_FLOOR := "floor"
 const BY_HAND := "hand"
@@ -34,7 +36,7 @@ var feed_price := -1
 ## The animals of the running game: the user's file, then what only the planned file has.
 static func load_default() -> RpgAnimalData:
 	var data := RpgAnimalData.new()
-	data.add_file(USER_PATH)
+	data.add_file(user_path)
 	data.add_file(PLANNED_PATH)
 	return data
 

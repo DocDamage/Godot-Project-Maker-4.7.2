@@ -30,7 +30,9 @@ const NODE_NAME := "Forage"
 ## The node of a map whose children `Spot<n>` are its places.
 const HOLDER := "Forage"
 const SPOT_PREFIX := "Spot"
-const USER_PATH := "res://game/data/forage.json"
+## The user's file of the running game. Set by the farm's mode from its `data_dir`, which the
+## recipe gives it: a runtime script names no path of the game itself.
+static var user_path := ""
 const PLANNED_PATH := "res://generated/data/forage.json"
 const FLAG_ENTITY := "farm_forage"
 const PICKED_KEY := "picked"
@@ -76,7 +78,7 @@ func table() -> void:
 	if _loaded:
 		return
 	_loaded = true
-	add_file(USER_PATH)
+	add_file(user_path)
 	add_file(PLANNED_PATH)
 
 ## Adds the entries of a file that are not there yet, and its places when it names any. A file

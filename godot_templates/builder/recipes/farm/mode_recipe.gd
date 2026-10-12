@@ -6,7 +6,9 @@ extends RefCounted
 ## its top-left corner) and the weather with the pictures of its overlay (`Weather`). The option
 ## `starter_map.pass_out_loss` is the mode's property of that name.
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 4
+## The folder of the files that are the user's once they exist (crops.json, people.json, ...).
+const DATA_DIR := "res://game/data"
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
@@ -26,6 +28,7 @@ func build(ctx: BuildContext) -> Array:
 	if not SceneUtil.attach_script(root, FarmBuild.MODE):
 		issues.append(ctx.make_issue("VAL-002", {"file": FarmBuild.MODE}, FarmBuild.MODE))
 	root.set("pass_out_loss", FarmBuild.pass_out_loss(ctx))
+	root.set("data_dir", DATA_DIR)
 	root.add_child(HudRecipe.build_hud(ctx))
 	root.add_child(HudRecipe.build_weather(ctx))
 	var err := SceneUtil.save_scene(root, FarmBuild.MODE_PATH)

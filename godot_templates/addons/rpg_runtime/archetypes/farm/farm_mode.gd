@@ -14,6 +14,9 @@ const HOTBAR_NODE := "Hotbar"
 ## False: staying up to 2:00 costs no money (the option `starter_map.pass_out_loss`; the mode's
 ## recipe sets it).
 @export var pass_out_loss: bool = true
+## The folder of the game's own data files (`crops.json`, `people.json`, ...), set by the
+## recipe. Empty in a mode that is made by code: the game then has the planned files only.
+@export var data_dir: String = ""
 
 var energy: RpgEnergy = null
 var hotbar: RpgHotbar = null
@@ -40,6 +43,7 @@ static func current() -> RpgFarmMode:
 	return router.combat as RpgFarmMode if router != null else null
 
 func _ready() -> void:
+	_name_data_files()
 	ensure_parts()
 	var calendar := RpgCalendar.ensure()
 	if calendar != null:
@@ -58,6 +62,15 @@ func _ready() -> void:
 	day_end.attach()  # after the fields: its night (NIGHT_SHOP) and its morning follow theirs
 	forage.attach()
 	fishing.attach()
+
+## Tells the data classes where the game's own files are, before any of them reads.
+func _name_data_files() -> void:
+	if data_dir == "":
+		return
+	RpgCropData.user_path = data_dir.path_join("crops.json")
+	RpgAnimalData.user_path = data_dir.path_join("animals.json")
+	RpgForage.user_path = data_dir.path_join("forage.json")
+	RpgFriendship.people_path = data_dir.path_join("people.json")
 
 ## Makes what the mode consists of (in `_ready`, not when the scene is built: a saved scene
 ## would hold the parts and every instance would make them twice).

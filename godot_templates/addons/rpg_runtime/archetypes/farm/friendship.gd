@@ -21,7 +21,9 @@ signal changed(person: String)
 const NODE_NAME := "Friendship"
 ## The key of a saved game that holds the friendships.
 const SAVE_KEY := "friendship"
-const PEOPLE_PATH := "res://game/data/people.json"
+## The user's file of the running game. Set by the farm's mode from its `data_dir`, which the
+## recipe gives it: a runtime script names no path of the game itself.
+static var people_path := ""
 const HEARTS := 10
 const HEART_POINTS := 250
 const MAX_POINTS := HEARTS * HEART_POINTS
@@ -75,7 +77,7 @@ static func ensure() -> RpgFriendship:
 		found = RpgFriendship.new()
 		found.name = NODE_NAME
 		state.add_child(found)
-		found.add_file(PEOPLE_PATH)
+		found.add_file(people_path)
 	found.bind()
 	return found
 
