@@ -57,7 +57,9 @@ them, and its TileSets, maps and scenes are unchanged.
   weapons (boost, missile, bomb, shield, parts), `RpgChampionship`, `RpgRaceResults`,
   `RpgRacingHud` and `RpgRaceMinimap`. Actions: `accelerate`, `brake`, `boost`, `fire`.
 * **The smoke runner** (`debug/smoke_runner.gd`): a step may name the error code its failure
-  is reported with (`code`); without one it is SMOKE-001 as before.
+  is reported with (`code`); without one it is SMOKE-001 as before. At its end it stops the
+  audio players until none is playing, not once: a sound that began in that moment was
+  reported by Godot as a resource still in use at exit.
 * **Sound slots** of the kinds (`sfx_shoot`, `sfx_explosion`, `sfx_powerup`, `sfx_bomb`,
   `sfx_grenade`, `sfx_weapon_pickup`, `sfx_grapple`, `sfx_skid`, `sfx_bump`, `sfx_pickup`,
   `sfx_lap`, `sfx_countdown`, and the music slots `music_stage`, `music_boss`, `music_race`,
