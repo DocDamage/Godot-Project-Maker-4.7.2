@@ -96,6 +96,8 @@
 | TILE-007 | info | Collision on {asset} {coords} was edited in Godot and kept. | — |
 | TILE-008 | info | Tile animation at {coords} in {asset} is not a horizontal run and was skipped. | Rearrange frames in a copy of the sheet if needed. |
 | TILE-009 | warning | Layer {layer} of map {map} was skipped: {reason}. | Save the map with zlib, gzip or Zstandard compression, or assign the layer's tile set in the audit. |
+| TILE-010 | warning | The diamond of the isometric tiles of {pack_id} could not be read: {reason}. | Its pictures are used as single pictures. A text file of the pack that gives the tile size of its map (as Tiled's settings do) is read when there is one. |
+| TILE-011 | warning | The packs have isometric ground ({asset}) and square ground: a map is painted with one of the two, and the isometric tiles are left out of this project. | Leave one of the two packs out, or mark the ground that is not wanted as unused. |
 
 ## Animation (ANIM)
 

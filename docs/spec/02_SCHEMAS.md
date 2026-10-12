@@ -230,7 +230,7 @@ unknown licence.
 |-----|------|-----------|---------|
 | `role` | enum Role | always | Primary role. `NONE` means excluded. |
 | `roles_alt` | array of [Role, float] | detection only | Other candidate roles with confidence. |
-| `usage` | enum `tiles`/`sprite`/`growth_strip`/`object`/`ui`/`portrait`/`background`/`audio`/`font` | always | How the asset is consumed. `growth_strip` (T17.01, release 1.5) is a crop's stages in one row of `frame` cells: not an animation, and nothing to the kinds before the farm. |
+| `usage` | enum `tiles`/`sprite`/`growth_strip`/`iso_tile`/`object`/`ui`/`portrait`/`background`/`audio`/`font` | always | How the asset is consumed. `iso_tile` (T17.12, release 1.5) is one tile of an isometric pack, a picture a tile: it is in no tile set, fills no role of a game and is offered for none until a project can be isometric (T17.13). `growth_strip` (T17.01, release 1.5) is a crop's stages in one row of `frame` cells: not an animation, and nothing to the kinds before the farm. |
 | `grid` | Grid | usage=tiles or sprite sheet | |
 | `tileset` | string | usage=tiles | Name of the TileSetDef this sheet belongs to. |
 | `collision` | CollisionSpec | usage=tiles/object | Default for the whole sheet. |
@@ -239,9 +239,18 @@ unknown licence.
 | `frame` | vec2i | usage=sprite | Frame size in px. |
 | `origin` | vec2i | usage=sprite/object | Pixel inside a frame/object that becomes the node origin (the feet). |
 | `directions` | int 1/4/8 | usage=sprite | |
-| `headings` | int 8/12/16/24/32 | usage=sprite | A **rotation sheet** (T16.02, release 1.4): one object in this many views in one row of `frame` cells, each turned by 360/N from the one before; it has no `animations`. The older kinds show its first view. |
+| `headings` | int 4/8/12/16/24/32 | usage=sprite | A **rotation sheet** (T16.02, release 1.4): one object in this many views in one row of `frame` cells, each turned by 360/N from the one before; it has no `animations`. The older kinds show its first view. |
 | `stages` | int ≥ 2 | usage=growth_strip | How many stages a **growth strip** has (T17.01): the cells of its row in order, the last the ripe one. It has no `animations`. How many days a stage takes is not in a pack: the farm's plan gives it. |
 | `heading_order` | `up_cw`, `up_ccw`, `right_cw`, `right_ccw` | with `headings` | The way the first view points (its long side: up or right) and the way the views turn from it. |
+| `heading_files` | array of string | a rotation sheet put together from files | The pictures of a vehicle that a pack has as one file a heading (`taxi_N.png`, `taxi_NE.png`, ... or `boat_0.png` to `_7`; T17.12), as paths inside the pack in the order of the sheet's cells. The asset's picture is the strip rpggen made of them (`generated/frame_strips/`), first view up and clockwise from there; four headings (`4`) come only from such files. Detected facet only. |
+| `projection` | `isometric` | a picture of an isometric pack | The pack draws its world at an angle, on diamonds (T17.12). Absent everywhere else: top-down and side-view art have no key. |
+| `canvas` | vec2i | with `projection` | The size of the picture the tile or the object was drawn in. The pictures of a pack share one, or one width. |
+| `footprint` | vec2i | with `projection` | The diamond a tile of the pack stands on, in px: the pack's, the same on all its pictures. Never assumed to be twice as wide as high (180 x 104, 120 x 69, 132 x 66). Where it came from is in the pack's warning `isometric:<w>x<h>:<source>` with the source `tiled` (the pack's Tiled settings or an isometric Tiled map of it), `tile_information` (the width from a `Tile information.txt`, whose *Tile size* is the diamond with the side of its block under it; the height measured) or `measured` (from the pack's flat tiles). |
+| `origin` | vec2i | with `projection` | The middle of the diamond inside the picture: what lies on the middle of a cell. (For a sprite it is the feet, as above; of an isometric object the two are one point.) |
+| `rise` | int >= 0 | with `projection` | How many px the picture goes above the top corner of its diamond: 0 for a flat tile, more for a block, a wall, a tree. The diamond is the top of the pack's usual ground tile. |
+| `turn` | int 0-7 | with `projection` | Which turn of one thing the picture is, of four or eight (`roadTile_001_0` to `_3`; `cornDouble_N`, `_E`, `_S`, `_W` are 0 to 3, going round clockwise from N). The turns of one thing are one group: every one has the tag `turn:<n>` and every one but the first `variant_of:<id of the first>`, as colour variants have. |
+| `joins` | array of `n`/`e`/`s`/`w` | with `projection` | The sides of its diamond a tile joins on, as its name says them (`beachCornerES`: `[e, s]`; `roadNS`; `waterW`), in the order n, e, s, w. Read only when several files share the name before the capitals. |
+| `stands_on` | `[columns, rows]` | an isometric object | How many diamonds a picture that is no tile stands on, guessed from how wide its base is: `[1, 1]` for a tree or a sign, more for a wide thing. |
 | `character_index` | int | RPG Maker multi-character sheets | Which 3×4 block (0–7). |
 | `ysort` | bool | object/sprite | Default true. |
 | `audio` | `{ "type": "music"/"sfx", "loop": bool, "duration_s"?: number, "loop_start_ms"?: int, "loop_end_ms"?: int }` | usage=audio | `duration_s` is read from the file (WAV, OGG, MP3, FLAC) when it can be; optional. `loop_start_ms` and `loop_end_ms` (T13.17, optional, set on the Audit page) are where a looping track jumps back to and from; without them it loops as a whole. An override may set a part of `audio` (it merges) and `null` takes a loop point away. |
@@ -594,6 +603,8 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `flags.farm_forage` (`picked`: `{ day, spots: { map: [place] } }`), `flags.farm_fishing` (`casts`) | save game | T17.10 |
 | `game/data/forage.json`, `generated/data/forage.json` (`forage`, `fish`; the generated one also `spots`, `map`, `fishing`) | game data (farm) | T17.10 |
 | the tags `use_anim:<tool>`, `of:<asset id>` and `unused_because:use_anim` | asset_catalog | T17.10 |
+| `projection`, `canvas`, `footprint`, `rise`, `turn`, `joins`, `stands_on`, `heading_files`; the usage `iso_tile`; `headings` takes 4 | Facets, pack profile | T17.12 |
+| the tags `turn:<n>`, `slope:up` / `slope:down`, `unused_because:other_view`, `unused_because:atlas_copy`, `unused_because:slope`; the pack warnings `view:isometric` and `isometric:<w>x<h>:<source>` | asset_catalog | T17.12 |
 
 ---
 

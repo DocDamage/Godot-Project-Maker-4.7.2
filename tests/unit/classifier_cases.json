@@ -614,5 +614,33 @@
    "usage": "object"
   },
   "role": "DECORATION"
+ },
+ {
+  "path": "PNG/roadTile_001_0.png",
+  "facets": {
+   "usage": "iso_tile"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "PNG/naturePack_014_2.png",
+  "facets": {
+   "usage": "iso_tile"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "PNG/waterSW.png",
+  "facets": {
+   "usage": "iso_tile"
+  },
+  "role": "WATER"
+ },
+ {
+  "path": "Isometric/wall_N.png",
+  "facets": {
+   "usage": "iso_tile"
+  },
+  "role": "WALL"
  }
 ]

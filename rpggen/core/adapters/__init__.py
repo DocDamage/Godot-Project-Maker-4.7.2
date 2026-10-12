@@ -90,6 +90,8 @@ def register_defaults() -> None:
     from rpggen.core.adapters.aseprite import AsepriteAdapter
     from rpggen.core.adapters.cutter import CutterAdapter
     from rpggen.core.adapters.generic_grid import GenericGridAdapter
+    from rpggen.core.adapters.isometric import IsometricAdapter
+    from rpggen.core.adapters.kenney_atlas import KenneyAtlasAdapter
     from rpggen.core.adapters.ldtk import LdtkAdapter
     from rpggen.core.adapters.learned import LearnedAdapter
     from rpggen.core.adapters.lpc import LpcAdapter
@@ -108,6 +110,8 @@ def register_defaults() -> None:
         RpgMakerAdapter(),
         LpcAdapter(),
         CutterAdapter(),
+        KenneyAtlasAdapter(),
+        IsometricAdapter(),
         SequencesAdapter(),
         StripsAdapter(),
         GenericGridAdapter(),

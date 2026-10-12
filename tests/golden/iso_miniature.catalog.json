@@ -1,0 +1,2113 @@
+{
+  "assets": [
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.blockstone_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/blockStone_E.png",
+      "sha256": "285c54536f6055ed0d1193e94287a76453a74ae3b311259d42636d4810160580",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.blockstone_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/blockStone_N.png",
+      "sha256": "85f96798b33f7e4a80aa7e0366958cd5d9b9c5e89e1a96f9e9b624a48d41de91",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.blockstone_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/blockStone_S.png",
+      "sha256": "cc3fa616b3b17e9102bb2af95625fc49b62eec94d9386d63bc525fffdf4ab8cc",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.blockstone_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/blockStone_W.png",
+      "sha256": "6a05cd6928cd3c8ada9fbcea033d4c30f86b7d0c3e426daff6be40b4fc36d1a5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "crop",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.corndouble_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/cornDouble_E.png",
+      "sha256": "ae1d429aee3a9f4d7cffad7347daca63e6e02616b0b0b9d32b31016b0890e5e2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "crop",
+          "duplicate_of:iso_miniature.angle.corndouble_e",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.corndouble_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/cornDouble_N.png",
+      "sha256": "ae1d429aee3a9f4d7cffad7347daca63e6e02616b0b0b9d32b31016b0890e5e2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "crop",
+          "duplicate_of:iso_miniature.angle.corndouble_e",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.corndouble_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/cornDouble_S.png",
+      "sha256": "ae1d429aee3a9f4d7cffad7347daca63e6e02616b0b0b9d32b31016b0890e5e2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "crop",
+          "duplicate_of:iso_miniature.angle.corndouble_e",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.corndouble_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/cornDouble_W.png",
+      "sha256": "ae1d429aee3a9f4d7cffad7347daca63e6e02616b0b0b9d32b31016b0890e5e2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "soil",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.dirtfarmland_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/dirtFarmland_E.png",
+      "sha256": "6b2904acbd9159968629894410e5c483515199ec27a568b03e85f87a82b692d5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "soil",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.dirtfarmland_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/dirtFarmland_N.png",
+      "sha256": "747405163b9003fc99a64cff8cd03c564e4569fe536ddf8479feea85f210d6aa",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "soil",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.dirtfarmland_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/dirtFarmland_S.png",
+      "sha256": "b1654b568e91860f7506dea3f2a80c760278fe77247811953fd682a276169700",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "soil",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.dirtfarmland_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/dirtFarmland_W.png",
+      "sha256": "77a9666c3a3498fd3d05805685dba8b0c3f2d939c22f8119fca94ae886040d52",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "fence",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.fencewood_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/fenceWood_E.png",
+      "sha256": "598a78ccd79b708ac769d10679c5b68405a926cb2f1ea5780eefe8b63336e242",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "fence",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.fencewood_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/fenceWood_N.png",
+      "sha256": "459db22e6ea6b4e07905719c2715f36b2556cade3837461f07d1e6ef76e56ee9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "duplicate_of:iso_miniature.angle.fencewood_n",
+          "fence",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.fencewood_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/fenceWood_S.png",
+      "sha256": "459db22e6ea6b4e07905719c2715f36b2556cade3837461f07d1e6ef76e56ee9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "duplicate_of:iso_miniature.angle.fencewood_e",
+          "fence",
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.fencewood_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/fenceWood_W.png",
+      "sha256": "598a78ccd79b708ac769d10679c5b68405a926cb2f1ea5780eefe8b63336e242",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.floorstone_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/floorStone_E.png",
+      "sha256": "db985186687d3496cebca37a9013fc73610aa3fafe42065321800f3c24e5aaac",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.floorstone_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/floorStone_N.png",
+      "sha256": "66fd8b6fe5b30947d3742674d983d0bb54752fe70c5d8f17802e4feb6cc78387",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.floorstone_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/floorStone_S.png",
+      "sha256": "4a56a7e511a4009d36bc62d51e80b6f8092fcd22b4b808affe9c0b4bb7be6327",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.floorstone_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/floorStone_W.png",
+      "sha256": "d627aed4ea68f0463faa33f5589a4804caf06196b6c552742a75573c75d76db4",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.floorwood_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/floorWood_E.png",
+      "sha256": "0e2cdb4f9be6a2a320d736039aecf9d10b7550108d32e434b070cdb17884115e",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.floorwood_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/floorWood_N.png",
+      "sha256": "ffba38ef80c4e2a2af48421330243d4de02434c021429e01a79726c095f9448c",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.floorwood_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/floorWood_S.png",
+      "sha256": "80782df0df4d186c5032be6694064421119822427f2529e714c1f940025ad601",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          95
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "unused_because:other_view"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.angle.floorwood_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Angle/floorWood_W.png",
+      "sha256": "f29c57b1d0d3a416f8fb8c79c3d8256151f768ae5b0afd72ae4e9749f5e15586",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          21,
+          18
+        ],
+        "grid": {
+          "cell": [
+            21,
+            18
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_files": [
+          "Cars/car_N.png",
+          "Cars/car_NE.png",
+          "Cars/car_E.png",
+          "Cars/car_SE.png",
+          "Cars/car_S.png",
+          "Cars/car_SW.png",
+          "Cars/car_W.png",
+          "Cars/car_NW.png"
+        ],
+        "heading_order": "up_cw",
+        "headings": 8,
+        "origin": [
+          10,
+          17
+        ],
+        "projection": "isometric",
+        "role": "VEHICLE",
+        "size": [
+          168,
+          18
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.cars.car_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "generated/frame_strips/ed139fb8f5fdc37f07a2dfd23abbf3c6e5c575ac23a001260695d22eb70bed0f.png",
+      "sha256": "28f229001d2e06acaf5a79641b77fa35431ddadf25c59aa764932b9ac8228311",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          18,
+          15
+        ],
+        "origin": [
+          9,
+          14
+        ],
+        "role": "NONE",
+        "size": [
+          18,
+          15
+        ],
+        "tags": [
+          "car",
+          "slope:down",
+          "unused_because:slope"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.cars.car_ned",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Cars/car_NED.png",
+      "sha256": "c1613785e76efa60e3a377be46bced10d22e59106c6b035ff95ce5751ff3f967",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          22,
+          22
+        ],
+        "origin": [
+          11,
+          21
+        ],
+        "role": "NONE",
+        "size": [
+          22,
+          22
+        ],
+        "tags": [
+          "car",
+          "slope:up",
+          "unused_because:slope"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.cars.car_neu",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Cars/car_NEU.png",
+      "sha256": "0b49279d85892dbff12f8f7d024f95cc8692d644632247b0ca526d7653d1d234",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "frame": [
+          96,
+          54
+        ],
+        "origin": [
+          48,
+          53
+        ],
+        "role": "NONE",
+        "size": [
+          96,
+          54
+        ],
+        "tags": [
+          "unused_because:guide_picture"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "iso_miniature.information",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Information.png",
+      "sha256": "94bce453bbe7cdd258f098793df819e40a8c02ea17a45dd9a8f302c6075019ee",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 20,
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.272727
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_miniature.isometric.blockstone_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.blockstone_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/blockStone_E.png",
+      "sha256": "496b024be043d3a76e4feb419a35a050afd06120365286d401a96486089bfeda",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 20,
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.272727
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.blockstone_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/blockStone_N.png",
+      "sha256": "cc0f5bb6a342d8ee651ccd80225298520a06343237eaeae2da1356ba326f9ffc",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 20,
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.272727
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_miniature.isometric.blockstone_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.blockstone_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/blockStone_S.png",
+      "sha256": "5c7ee4174e271ddcb95d9b9e00247fe510f60ccb3390426da48d9149058eb7aa",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 20,
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.272727
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_miniature.isometric.blockstone_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.blockstone_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/blockStone_W.png",
+      "sha256": "c57ce2b6d51669fe0ee3191f271a6b3ffaa2a6bb27b5c8ea88a6138f978f65b9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 10,
+        "role": "DECORATION",
+        "size": [
+          64,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "crop",
+          "turn:1",
+          "variant_of:iso_miniature.isometric.corndouble_n"
+        ],
+        "turn": 1,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.corndouble_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/cornDouble_E.png",
+      "sha256": "42d6cae596c27594089a7f7e7d15cdc29ebd31fcbe8cc22b82ceb40526fe9f81",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 10,
+        "role": "DECORATION",
+        "size": [
+          64,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "crop",
+          "duplicate_of:iso_miniature.isometric.corndouble_e",
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.corndouble_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/cornDouble_N.png",
+      "sha256": "42d6cae596c27594089a7f7e7d15cdc29ebd31fcbe8cc22b82ceb40526fe9f81",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 10,
+        "role": "DECORATION",
+        "size": [
+          64,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "crop",
+          "duplicate_of:iso_miniature.isometric.corndouble_e",
+          "turn:2",
+          "variant_of:iso_miniature.isometric.corndouble_n"
+        ],
+        "turn": 2,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.corndouble_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/cornDouble_S.png",
+      "sha256": "42d6cae596c27594089a7f7e7d15cdc29ebd31fcbe8cc22b82ceb40526fe9f81",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 10,
+        "role": "DECORATION",
+        "size": [
+          64,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "crop",
+          "duplicate_of:iso_miniature.isometric.corndouble_e",
+          "turn:3",
+          "variant_of:iso_miniature.isometric.corndouble_n"
+        ],
+        "turn": 3,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.corndouble_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/cornDouble_W.png",
+      "sha256": "42d6cae596c27594089a7f7e7d15cdc29ebd31fcbe8cc22b82ceb40526fe9f81",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "soil",
+          "turn:1",
+          "variant_of:iso_miniature.isometric.dirtfarmland_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.dirtfarmland_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/dirtFarmland_E.png",
+      "sha256": "4cdfa80ba9ed8200daa4eff040cd32b6ef7795602638539c5aad39896c4b76dc",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "soil",
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.dirtfarmland_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/dirtFarmland_N.png",
+      "sha256": "9182d2a9d8e0ca45641b688a170e80d90f68605e2441b392c2bac5ae25dbe1ce",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "soil",
+          "turn:2",
+          "variant_of:iso_miniature.isometric.dirtfarmland_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.dirtfarmland_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/dirtFarmland_S.png",
+      "sha256": "fa0b2da36a36843d3b4b9957b8e753612cc488cebbc10a2662f645c015c7b369",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "soil",
+          "turn:3",
+          "variant_of:iso_miniature.isometric.dirtfarmland_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.dirtfarmland_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/dirtFarmland_W.png",
+      "sha256": "505435c54167dec1fc75d6aa70b551dc27aef89b94b6f02a1882622c0135bd36",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 6,
+        "role": "WALL",
+        "size": [
+          64,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "fence",
+          "turn:1",
+          "variant_of:iso_miniature.isometric.fencewood_n"
+        ],
+        "turn": 1,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.fencewood_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/fenceWood_E.png",
+      "sha256": "f1f66a123a221a1fd6de16c2616027ada7551220d8a1181988b5d64f12ee79fa",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 6,
+        "role": "WALL",
+        "size": [
+          64,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "fence",
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.fencewood_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/fenceWood_N.png",
+      "sha256": "99f72733a81ed7c80a5e1e9c40dfa6566b485867d64d76e66ac90068b501de99",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 6,
+        "role": "WALL",
+        "size": [
+          64,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "duplicate_of:iso_miniature.isometric.fencewood_n",
+          "fence",
+          "turn:2",
+          "variant_of:iso_miniature.isometric.fencewood_n"
+        ],
+        "turn": 2,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.fencewood_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/fenceWood_S.png",
+      "sha256": "99f72733a81ed7c80a5e1e9c40dfa6566b485867d64d76e66ac90068b501de99",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "frame": [
+          64,
+          96
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 6,
+        "role": "WALL",
+        "size": [
+          64,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "duplicate_of:iso_miniature.isometric.fencewood_e",
+          "fence",
+          "turn:3",
+          "variant_of:iso_miniature.isometric.fencewood_n"
+        ],
+        "turn": 3,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.fencewood_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/fenceWood_W.png",
+      "sha256": "f1f66a123a221a1fd6de16c2616027ada7551220d8a1181988b5d64f12ee79fa",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.483871,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.354839
+          ],
+          [
+            "WALL",
+            0.032258
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "surface:stone",
+          "turn:1",
+          "variant_of:iso_miniature.isometric.floorstone_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.floorstone_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/floorStone_E.png",
+      "sha256": "e854b5816606abbfcdec7ca24fd1400626760fa9c49a391a798f81a2737c51f1",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.483871,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.354839
+          ],
+          [
+            "WALL",
+            0.032258
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "surface:stone",
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.floorstone_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/floorStone_N.png",
+      "sha256": "c7e12fc09fe3b248ccdecc4e642ea43da96f0e3cc03fb28f1ae32798e07dbad9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.483871,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.354839
+          ],
+          [
+            "WALL",
+            0.032258
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "surface:stone",
+          "turn:2",
+          "variant_of:iso_miniature.isometric.floorstone_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.floorstone_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/floorStone_S.png",
+      "sha256": "5ceb442e246e559d01ad7eac2d4737b711c035133e9cd90dbcc2b22f0fdc0246",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.483871,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.354839
+          ],
+          [
+            "WALL",
+            0.032258
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "surface:stone",
+          "turn:3",
+          "variant_of:iso_miniature.isometric.floorstone_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.floorstone_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/floorStone_W.png",
+      "sha256": "250bf57854b242284a9d409fc9c25201e7eaaa9686a923bd26000c66e4c5d862",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "surface:wood",
+          "turn:1",
+          "variant_of:iso_miniature.isometric.floorwood_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.floorwood_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/floorWood_E.png",
+      "sha256": "b6bb8cc89746c5952bcbe0a326e533a35474384ca234b3a7923ded95eb8d1607",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "surface:wood",
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.floorwood_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/floorWood_N.png",
+      "sha256": "6a8eb230130da87f1129e1b99987cd1d55afc845e69fec7b62193e60ee31c039",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "surface:wood",
+          "turn:2",
+          "variant_of:iso_miniature.isometric.floorwood_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.floorwood_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/floorWood_S.png",
+      "sha256": "bb116e131c3399e23084056a8dab4406a12b3237a1d7d66699871765b83e792b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          96
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          74
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "tags": [
+          "surface:wood",
+          "turn:3",
+          "variant_of:iso_miniature.isometric.floorwood_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_miniature.isometric.floorwood_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Isometric/floorWood_W.png",
+      "sha256": "41a04aa4200af82209aa51a6d745a5074aac7eb435c5760c72cd506bd3ef44f5",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "frame": [
+          96,
+          54
+        ],
+        "origin": [
+          48,
+          53
+        ],
+        "role": "NONE",
+        "size": [
+          96,
+          54
+        ],
+        "tags": [
+          "duplicate_of:iso_miniature.information",
+          "unused_because:guide_picture"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "iso_miniature.preview",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_miniature",
+      "path": "assets/packs/iso_miniature/Preview.png",
+      "sha256": "94bce453bbe7cdd258f098793df819e40a8c02ea17a45dd9a8f302c6075019ee",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "isometric",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/iso_miniature/License.txt"
+      ],
+      "pack_id": "iso_miniature",
+      "profile_id": null,
+      "root": "assets/packs/iso_miniature",
+      "source_sha256": "f629d9fd676bf40c8e70191704f988bbc01815b44d9523d5cc519c709b2031b9",
+      "warnings": [
+        "isometric:64x32:measured",
+        "view:isometric",
+        "view:racing"
+      ]
+    }
+  ],
+  "tilesets": []
+}

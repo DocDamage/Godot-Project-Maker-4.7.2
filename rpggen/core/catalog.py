@@ -837,6 +837,9 @@ ARCADE_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "ENEMY", "NPC
 VIEW_SHMUP = "view:shmup"  # T16.02: the pack looks like one for a shoot 'em up
 VIEW_RACING = "view:racing"  # ... for a racing game
 VIEW_FARM = "view:farm"  # T17.01: ... for a farm
+VIEW_ISOMETRIC = "view:isometric"  # T17.12: the pack is one of isometric tiles
+ISO_TILE_USAGE = "iso_tile"  # one isometric tile a picture: no kind before T17.13 reads it
+TURN_TAG = "turn:"
 # The readers whose one-row strips can be a crop's growth (T17.01): the ones that cut a strip
 # by its name's frame count or by the picture, and give it no action.
 GROWTH_READERS = frozenset({"strips", "generic_grid"})
@@ -844,8 +847,33 @@ GROWTH_REVIEW_CONFIDENCE = 0.5  # a growth strip told by its folder and its size
 
 
 def pack_view(pack: CatalogPack) -> str:
-    """``"side"`` or ``"top"``: what detection said about a pack's point of view."""
+    """``"side"``, ``"top"`` or ``"isometric"``: what detection said about a pack's point of
+    view."""
+    if VIEW_ISOMETRIC in pack.warnings:
+        return "isometric"
     return "side" if VIEW_SIDE in pack.warnings else "top"
+
+
+def is_iso_tile(asset: Asset) -> bool:
+    """True for a picture that is one isometric tile (T17.12). Until a project can be
+    isometric (T17.13) such a tile fills no role of a game: no map can be painted with it."""
+    return effective(asset).get("usage") == ISO_TILE_USAGE
+
+
+def isometric_footprint(pack: CatalogPack) -> tuple[int, int, str] | None:
+    """``(width, height, where it came from)`` of the diamond of an isometric pack, from its
+    warning ``isometric:180x104:measured`` (the source is ``tiled``, ``tile_information`` or
+    ``measured``); None for a pack that is not one."""
+    from rpggen.core import classifier
+
+    for mark in pack.warnings:
+        if not mark.startswith(classifier.ISOMETRIC_MARK):
+            continue
+        size, _, source = mark[len(classifier.ISOMETRIC_MARK) :].partition(":")
+        width, _, height = size.partition("x")
+        if width.isdigit() and height.isdigit():
+            return int(width), int(height), source
+    return None
 
 
 def mark_colour_variants(catalog: Catalog) -> None:
@@ -862,10 +890,14 @@ def mark_colour_variants(catalog: Catalog) -> None:
         if asset.kind != "image" or "#" in asset.id or asset.status == "MISSING":
             continue
         root = f"assets/packs/{asset.pack_id}/"
-        if not asset.path.startswith(root):
-            continue  # a generated picture
-        key, colour = classifier.colour_key(asset.path[len(root) :])
         facets = asset.detected
+        made_of = facets.get("heading_files") or []
+        if asset.path.startswith(root):
+            key, colour = classifier.colour_key(asset.path[len(root) :])
+        elif made_of:  # a car's headings put into one strip (T17.12): its files say the colour
+            key, colour = classifier.colour_key(str(made_of[0]))
+        else:
+            continue  # a generated picture
         if facets.get("role") == "NONE":
             continue  # a preview, another engine's copy: not offered as a variant
         size = tuple(facets.get("size") or ())
@@ -931,6 +963,61 @@ def mark_season_variants(catalog: Catalog) -> None:
             if asset is not first:
                 tags.append(classifier.VARIANT_TAG + first.id)
             asset.detected["tags"] = sorted(tags)
+
+
+def mark_turns(catalog: Catalog) -> None:
+    """Group the pictures that are one tile turned (T17.12): ``roadTile_001_0`` to ``_3``,
+    ``cornDouble_N`` / ``_E`` / ``_S`` / ``_W``. The reader gave every one its ``turn``; here
+    every one gets the tag ``turn:<n>`` and every one but the first ``variant_of:<id of the
+    first>``, so that the audit shows the set as one card, as it shows a picture in several
+    colours. A set whose first turn is itself a colour of another picture joins that picture's
+    group, so that a group is never inside a group. Information only: every turn stays an asset
+    of its own."""
+    from rpggen.core import classifier
+    from rpggen.core.adapters import naming
+
+    groups: dict[tuple[str, str, str], list[Asset]] = {}
+    for asset in catalog.assets:
+        if asset.kind != "image" or "#" in asset.id or asset.status == "MISSING":
+            continue
+        root = f"assets/packs/{asset.pack_id}/"
+        if "turn" not in asset.detected or not asset.path.startswith(root):
+            continue
+        rel = asset.path[len(root) :]
+        turn = naming.split_turn(posixpath.splitext(posixpath.basename(rel))[0])
+        if turn is not None:
+            key = (asset.pack_id, posixpath.dirname(rel), turn.base.casefold())
+            groups.setdefault(key, []).append(asset)
+    for members in groups.values():
+        members.sort(key=lambda a: (int(a.detected["turn"]), _sort_key(a.id)))
+        first = members[0]
+        said = next(
+            (
+                str(t)[len(classifier.VARIANT_TAG) :]
+                for t in first.detected.get("tags") or []
+                if str(t).startswith(classifier.VARIANT_TAG)
+            ),
+            first.id,
+        )
+        for asset in members:
+            tags = [
+                t
+                for t in asset.detected.get("tags", [])
+                if not str(t).startswith(TURN_TAG)
+                and not (asset is not first and str(t).startswith(classifier.VARIANT_TAG))
+            ]
+            tags.append(f"{TURN_TAG}{int(asset.detected['turn'])}")
+            if asset is not first:
+                tags.append(classifier.VARIANT_TAG + said)
+            asset.detected["tags"] = sorted(tags)
+
+
+def turn_name(asset: Asset) -> str:
+    """``turn_2`` for a picture that is a tile's second turn; empty for the first turn and for
+    a picture that is no turn."""
+    tags = asset.detected.get("tags") or []
+    found = next((str(t)[len(TURN_TAG) :] for t in tags if str(t).startswith(TURN_TAG)), "")
+    return f"turn_{found}" if found not in ("", "0") else ""
 
 
 def season_name(asset: Asset) -> str:
@@ -999,12 +1086,14 @@ def colour_group(catalog: Catalog, asset_id: str) -> list[Asset]:
 
 def colour_name(asset: Asset) -> str:
     """The colour a variant's name or folder says (``red``, ``black_white``), or its season for
-    a sheet that comes once a season; empty for the picture of a group that names neither."""
+    a sheet that comes once a season, and its turn for a tile turned (``turn_2``,
+    ``red_turn_2``); empty for the picture of a group that names none of them."""
     from rpggen.core import classifier
 
     tags = asset.detected.get("tags") or []
     found = next((str(t) for t in tags if str(t).startswith(classifier.COLOUR_TAG)), "")
-    return found[len(classifier.COLOUR_TAG) :] or season_name(asset)
+    name = found[len(classifier.COLOUR_TAG) :] or season_name(asset)
+    return "_".join(part for part in (name, turn_name(asset)) if part)
 
 
 def _license_files(inv: Inventory, root: str) -> list[str]:
@@ -1183,6 +1272,9 @@ def assemble(
         base_ids = ids.disambiguate([ids.asset_id(pack_id, p) for p in paths_sorted])
         id_for_path = dict(zip(paths_sorted, base_ids, strict=True))
         files = {f.path: f for f in inv.files}
+        # a source rpggen drew (a .aseprite, T16.21; a car's headings put into one strip,
+        # T17.12): the strip in the work folder is the asset's picture
+        drawn = {p: rel for res in results for p, rel in res.rendered.items()}
         for path in paths_sorted:
             variants = sorted(v for (p, v) in by_key if p == path)
             for variant in variants:
@@ -1234,7 +1326,7 @@ def assemble(
                             {*facets.get("tags", []), classifier.UNUSED_TAG + reason}
                         )
                 f = files[path]
-                if f.image:
+                if f.image and path not in drawn:
                     facets["size"] = [f.image["w"], f.image["h"]]
                 _suggest_tags(facets, path)
                 asset_id = id_for_path[path] + (f"#{variant}" if variant else "")
@@ -1245,7 +1337,7 @@ def assemble(
                     Asset(
                         id=asset_id,
                         pack_id=pack_id,
-                        path=f"{root}/{path}",
+                        path=drawn.get(path) or f"{root}/{path}",
                         sha256=f.sha256,
                         kind="image",
                         status="AUTO_DETECTED",
@@ -1256,11 +1348,11 @@ def assemble(
                 )
                 present_ids.add(asset_id)
 
-        # a source rpggen drew for want of an export (a .aseprite, T16.21): the strip in the
-        # work folder is the asset's picture, as a terrain atlas is of the asset made from it
-        drawn = {p: rel for res in results for p, rel in res.rendered.items()}
+        # a source that is no picture and that rpggen drew for want of an export (a .aseprite,
+        # T16.21): the strip is the asset's picture, as a terrain atlas is of the asset made
+        # from it
         for path in sorted(drawn, key=_sort_key):
-            if (path, "") not in by_key:
+            if (path, "") not in by_key or path in id_for_path:
                 continue
             facets, confidence, first = _merge_fragments(by_key[(path, "")])
             if "role" not in facets:
@@ -1333,7 +1425,10 @@ def assemble(
             issues.add("ASSET-021", pack_id=pack_id, file=root)
         _side_view_usage([a for a in catalog.assets if a.pack_id == pack_id])
         sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
-        view = classifier.pack_view(inv, sheets)
+        view = classifier.made_for(inv, sheets)
+        if classifier.isometric_view(inv, sheets):
+            # how the pack is seen (T17.12); what it was made for is said beside it
+            warnings.append(VIEW_ISOMETRIC)
         if view in ("shmup", "racing"):
             # what such a pack calls a power-up is one: "ability" is the metroidvania's word
             for asset in catalog.assets:
@@ -1398,6 +1493,7 @@ def assemble(
     similarity.mark_duplicates(catalog, picture_hashes)
     mark_colour_variants(catalog)
     mark_season_variants(catalog)
+    mark_turns(catalog)
 
     # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
     terrain.apply_tiled_wang(catalog, adapter_tilesets)
