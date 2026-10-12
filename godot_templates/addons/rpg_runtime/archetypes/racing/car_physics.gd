@@ -98,9 +98,20 @@ static func turn(heading: float, speed: float, steer: float, surface_name: Strin
 	var bite := minf(1.0, 0.25 + grip(surface_name))
 	return heading + clampf(steer, -1.0, 1.0) * turn_rate(speed, top) * bite * delta
 
-## The speed sideways to the heading after `delta` s: it fades with the grip.
-static func slide(lateral: float, surface_name: String, delta: float) -> float:
-	return move_toward(lateral, 0.0, TRACTION * grip(surface_name) * delta)
+## The speed sideways to the heading after `delta` s: it fades with the grip (better tyres,
+## `grip_mul` over 1, take it away faster).
+static func slide(lateral: float, surface_name: String, delta: float, grip_mul: float = 1.0) -> float:
+	return move_toward(lateral, 0.0, TRACTION * grip(surface_name) * grip_mul * delta)
+
+## What a level of a part adds to what it makes better.
+const PART_STEP := {"speed": 0.04, "acceleration": 0.08, "tyres": 0.08}
+const PART_LEVELS := 3
+
+## What a car's top speed, acceleration or grip is multiplied by with `level` of the part
+## (`speed`, `acceleration`, `tyres`): 1 without it, more for each of three.
+static func part_factor(part: String, level: int) -> float:
+	var step_up: float = PART_STEP.get(part, 0.0)
+	return 1.0 + step_up * clampi(level, 0, PART_LEVELS)
 
 static func is_drifting(lateral: float, top: float = TOP) -> bool:
 	return absf(lateral) > DRIFT_FROM * top
@@ -127,16 +138,18 @@ static func bump(velocity: Vector2, normal: Vector2) -> Vector2:
 	return along * SCRAPE - normal * into * BOUNCE
 
 ## One step of a car that meets nothing. `state` is x, y, heading, vx, vy and boost (the
-## seconds of boost left); the result is the same a step later, with `lateral`.
-static func step(state: Dictionary, throttle: float, steer: float, surface_name: String, delta: float) -> Dictionary:
+## seconds of boost left); the result is the same a step later, with `lateral`. `top`, `accel`
+## and `grip_mul` are the car's own (its parts).
+static func step(state: Dictionary, throttle: float, steer: float, surface_name: String, delta: float,
+		top: float = TOP, accel: float = ACCEL, grip_mul: float = 1.0) -> Dictionary:
 	var boost := RpgUtil.to_float(state.get("boost", 0.0))
 	var boosting := boost > 0.0
 	var velocity := Vector2(RpgUtil.to_float(state.get("vx", 0.0)), RpgUtil.to_float(state.get("vy", 0.0)))
 	var heading := RpgUtil.to_float(state.get("heading", 0.0))
-	heading = turn(heading, split(velocity, heading).x, steer, surface_name, delta)
+	heading = turn(heading, split(velocity, heading).x, steer, surface_name, delta, top)
 	var parts := split(velocity, heading)
-	var forward := accelerate(parts.x, throttle, top_speed(surface_name, boosting), delta, boosting)
-	var lateral := slide(parts.y, surface_name, delta)
+	var forward := accelerate(parts.x, throttle, top_speed(surface_name, boosting, top), delta, boosting, accel)
+	var lateral := slide(parts.y, surface_name, delta, grip_mul)
 	velocity = join(forward, lateral, heading)
 	return {
 		"x": RpgUtil.to_float(state.get("x", 0.0)) + velocity.x * delta,

@@ -113,7 +113,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.11 | Run and gun: the grapple | M | T16.10 | done; the chain is drawn, `grapple`-tagged tiles are a switch of the runtime only, the *Bionic* preset is `stage_plan.PRESETS` until the wizard (T16.16), and the run to the last boss is a smoke step with one real swing (the notes) |
 | T16.12 | Racing: the car and the camera | M | T16.01, T16.03 | done; the track says what its cells are made of (the tiles of a pack do not), the test track is painted with one road tile or drawn, and bumps between cars wait for the rivals (the notes) |
 | T16.13 | Racing: the track plan and the track recipe | L | T16.12 | done; the tracks are in the plan's section `stages` and in `stages.json` (a track is a stage of the game), the road is one plain tile of the pack or drawn, corners are square, pickups are places only, and the Options preview is the picture function without the page (the notes) |
-| T16.14 | Racing: rivals, laps, checkpoints, pickups | M | T16.13 | open |
+| T16.14 | Racing: rivals, laps, checkpoints, pickups | M | T16.13 | done; a rival without a picture of its own is the player's car tinted (not the variant pipeline), checkpoints are at the edge of their cell, a weapon has a button of its own (`fire`), and the standings are data until the results screen of T16.15 (the notes) |
 | T16.15 | Racing: championship, results and the HUD | S | T16.14 | open |
 | T16.16 | Wizard: cards, roles, options and previews | L | T16.07, T16.11, T16.15 | open |
 | T16.17 | Three sample packs and *Try the sample* | M | T16.16 | open |

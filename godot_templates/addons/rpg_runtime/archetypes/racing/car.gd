@@ -8,14 +8,26 @@ extends CharacterBody2D
 ##
 ## The car is told what to want: `throttle` (1 the pedal, -1 the brake and reverse), `steer`
 ## (-1 left to 1 right) and press_boost(). With `absolute_steering` the `stick` points where the
-## car is to head. RpgCarInput tells the player's car from the input actions; a rival or a test
-## tells it directly. Its children: `Visual` (RpgHeadingSprite), `Body` and, on the player's
-## car, `Input`.
+## car is to head. RpgCarInput tells the player's car from the input actions, RpgRival a
+## rival's from the waypoints of the track; a test tells it directly. Its children: `Visual`
+## (RpgHeadingSprite), `Body` and `Input` (what drives it).
+##
+## In a race (RpgRace) a car stands still until the start (`engine_on`), may carry one weapon
+## (`weapon`: a missile or a bomb, used with press_fire), may have a shield that takes one hit,
+## and spins out of control for a moment when it is hit (`hit`). The parts a player has won
+## make it better: `top_mul`, `accel_mul`, `grip_mul`.
 
 signal bumped(lost_tiles: float)
 signal boosted
 signal drift_started
 signal surface_changed(surface: String)
+signal weapon_fired(kind: String)
+signal spun_out
+signal shield_broken
+
+## How long a car that was hit spins, and how fast it turns while it does.
+const SPIN_S := 1.2
+const SPIN_RAD_S := 11.0
 
 @export var is_player: bool = true
 ## The size of a tile of the track in px: the model's lengths are tiles.
@@ -43,7 +55,21 @@ var surface_override := ""
 ## Reads the input every step; a test or a smoke step turns it off and tells the car itself.
 var input_node_enabled := true
 
+## The car drives (a race keeps it off until the start, and after the finish).
+var engine_on := true
+## The weapon the car carries: "", "missile" or "bomb".
+var weapon := ""
+## A shield takes the next hit.
+var shielded := false
+## Seconds the car still spins after a hit.
+var spin_left := 0.0
+## What the car's parts make of it: its top speed, its acceleration and its grip, times these.
+var top_mul := 1.0
+var accel_mul := 1.0
+var grip_mul := 1.0
+
 var _boost_asked := false
+var _fire_asked := false
 var _surfaces: RpgTrackSurfaces = null
 var _surfaces_known := false
 
@@ -71,6 +97,30 @@ func add_boost() -> bool:
 	boosts += 1
 	return true
 
+## Uses the weapon the car carries, at the next step.
+func press_fire() -> void:
+	_fire_asked = true
+
+## Something hit the car (a missile, a bomb): a shield takes it, else the car spins. True when
+## the car spins.
+func hit() -> bool:
+	if shielded:
+		shielded = false
+		shield_broken.emit()
+		return false
+	spin_left = SPIN_S
+	boost_left = 0.0
+	spun_out.emit()
+	play_sound(skid_sound)
+	return true
+
+func is_spinning() -> bool:
+	return spin_left > 0.0
+
+## The top speed of this car on the road, tiles a second.
+func top_tiles() -> float:
+	return RpgCarPhysics.TOP * top_mul
+
 ## Starts a boost now (a boost arrow of the track; press_boost spends one of the car's own).
 func start_boost() -> void:
 	boost_left = RpgCarPhysics.BOOST_S
@@ -97,6 +147,7 @@ func place(at: Vector2, rad: float) -> void:
 	heading = rad
 	velocity = Vector2.ZERO
 	boost_left = 0.0
+	spin_left = 0.0
 	drifting = false
 	_show()
 
@@ -142,6 +193,29 @@ func _tile_surface() -> String:
 
 ## One physics step: the wheel, the pedals, the grip of the ground, the move, a bump.
 func step(delta: float) -> void:
+	if not engine_on:
+		velocity = Vector2.ZERO
+		_boost_asked = false
+		_fire_asked = false
+		_show()
+		return
+	if _fire_asked:
+		_fire_asked = false
+		if weapon != "" and not is_spinning():
+			var fired := weapon
+			weapon = ""
+			weapon_fired.emit(fired)
+	if is_spinning():
+		# out of control: it turns round and round and loses its speed
+		spin_left = maxf(0.0, spin_left - delta)
+		heading = wrapf(heading + SPIN_RAD_S * delta, -PI, PI)
+		velocity = velocity.move_toward(Vector2.ZERO, RpgCarPhysics.BRAKE * 0.5 * tile_size * delta)
+		var met := move_and_collide(velocity * delta)
+		if met != null:
+			velocity = RpgCarPhysics.bump(velocity, met.get_normal())
+		_boost_asked = false
+		_show()
+		return
 	var here := surface_here()
 	if here != surface:
 		surface = here
@@ -159,11 +233,11 @@ func step(delta: float) -> void:
 	var state := RpgCarPhysics.step({
 		"x": 0.0, "y": 0.0, "heading": heading,
 		"vx": velocity.x / tile_size, "vy": velocity.y / tile_size, "boost": boost_left,
-	}, throttle, wheel, surface, delta)
+	}, throttle, wheel, surface, delta, top_tiles(), RpgCarPhysics.ACCEL * accel_mul, grip_mul)
 	heading = wrapf(RpgUtil.to_float(state["heading"]), -PI, PI)
 	boost_left = RpgUtil.to_float(state["boost"])
 	velocity = Vector2(RpgUtil.to_float(state["vx"]), RpgUtil.to_float(state["vy"])) * tile_size
-	var slides := RpgCarPhysics.is_drifting(RpgUtil.to_float(state["lateral"]))
+	var slides := RpgCarPhysics.is_drifting(RpgUtil.to_float(state["lateral"]), top_tiles())
 	if slides and not drifting:
 		drift_started.emit()
 		play_sound(skid_sound)

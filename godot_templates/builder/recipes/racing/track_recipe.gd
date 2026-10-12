@@ -9,7 +9,7 @@ extends RefCounted
 ## (rpggen/world_plan.json, the section `stages`); a project without one gets a flat test
 ## track, a ring of road.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -54,6 +54,8 @@ func input_hash(ctx: BuildContext) -> String:
 		"scenery": ArcadeBuild.assets(ctx, "DECORATION").map(func(a: Dictionary) -> Variant: return a.get("id", "")),
 		"view": ArcadeBuild.view(ctx),
 		"fixed": RaceBuild.fixed_camera(ctx),
+		"rivals": RaceBuild.rivals(ctx),
+		"rubber_band": RaceBuild.rubber_band(ctx),
 	})
 
 static func tileset_def(ctx: BuildContext) -> Dictionary:
@@ -206,7 +208,10 @@ static func _points(raw: Variant) -> Array[Vector2]:
 ## cells, `start` is where the car stands (px); `road` is the tile the road is painted with
 ## ({}: the road is drawn). `look` has the rest: `heading` (rad, the way the car points),
 ## `tyres`, `decoration` and `pickups` (places in px, the pickups with their `kind`),
-## `finish` (the tile of the start line), `tyre_texture` and `decoration_textures`.
+## `finish` (the tile of the start line), `tyre_texture` and `decoration_textures`,
+## `rival_scenes` (a PackedScene a rival: they stand on the grid ahead of the player, who
+## starts last), `pickup_scene` (what lies at the places of `pickups`; markers without it) and
+## `rubber_band`.
 static func build_track(index: int, stage: Dictionary, view: Vector2i, tile: int, rows: PackedStringArray, barriers: Array[Rect2i],
 		start: Vector2, tile_set: TileSet, road: Dictionary, car_scene: PackedScene, fixed_camera: bool = false, look: Dictionary = {}) -> Node2D:
 	var root := StageRecipes.build_stage(index, stage, view, start)
@@ -317,10 +322,20 @@ static func build_track(index: int, stage: Dictionary, view: Vector2i, tile: int
 		var holder := Node2D.new()
 		SceneUtil.add(root, holder, root, "Pickups")
 		var at := _points(pickups)
+		var pickup_scene: PackedScene = null
+		if look.get("pickup_scene") is PackedScene:
+			pickup_scene = look.get("pickup_scene")
 		for i in at.size():
+			var what := JsonUtil.to_str(JsonUtil.to_dict(pickups[i]).get("kind", "boost"))
+			var lying := pickup_scene.instantiate() as Node2D if pickup_scene != null else null
+			if lying != null:
+				lying.position = at[i]
+				lying.set("kind", what)
+				SceneUtil.add(holder, lying, root, "Pickup%d" % (i + 1))
+				continue
 			var marker := Marker2D.new()
 			marker.position = at[i]
-			marker.set_meta("kind", JsonUtil.to_str(JsonUtil.to_dict(pickups[i]).get("kind", "boost")))
+			marker.set_meta("kind", what)
 			SceneUtil.add(holder, marker, root, "Pickup%d" % (i + 1))
 	# the stage's camera is the race camera, and the scroller leaves it alone
 	var camera := root.get_node("Camera") as Camera2D
@@ -331,12 +346,28 @@ static func build_track(index: int, stage: Dictionary, view: Vector2i, tile: int
 	camera.set("fixed", fixed_camera)
 	camera.position = field.get_center() if fixed_camera else start
 	root.get_node("Scroller").set("camera_path", NodePath(""))
+	var heading := JsonUtil.to_float(look.get("heading", -PI * 0.5))
+	var rivals := JsonUtil.to_array(look.get("rival_scenes", []))
+	for i in rivals.size():
+		if not (rivals[i] is PackedScene):
+			continue
+		var scene: PackedScene = rivals[i]
+		var rival := scene.instantiate() as Node2D
+		if rival != null:
+			rival.position = RaceBuild.grid_slot(start, heading, i, tile)
+			rival.set("heading", heading)
+			SceneUtil.add(root, rival, root, "Rival%d" % (i + 1))
 	if car_scene != null:
 		var car := car_scene.instantiate() as Node2D
 		if car != null:
-			car.position = start
-			car.set("heading", JsonUtil.to_float(look.get("heading", -PI * 0.5)))
+			# alone the car stands in the middle of the road; in a race it starts last
+			car.position = RaceBuild.grid_slot(start, heading, rivals.size(), tile) if not rivals.is_empty() else start
+			car.set("heading", heading)
 			SceneUtil.add(root, car, root, "Car")
+		var race := Node.new()
+		SceneUtil.attach_script(race, RaceBuild.RACE_SCRIPT)
+		race.set("rubber_band", JsonUtil.to_bool(look.get("rubber_band", true)))
+		SceneUtil.add(root, race, root, "Race")
 	return root
 
 static func _barriers_of(track: Dictionary, cells: Vector2i) -> Array[Rect2i]:
@@ -379,6 +410,14 @@ func build(ctx: BuildContext) -> Array:
 		if texture != null and scenery.size() < 6:
 			scenery.append(texture)
 	look["decoration_textures"] = scenery
+	var rival_scenes: Array = []
+	for i in RaceBuild.rivals(ctx):
+		if ResourceLoader.exists(RaceBuild.rival_path(i + 1)):
+			rival_scenes.append(load(RaceBuild.rival_path(i + 1)))
+	look["rival_scenes"] = rival_scenes
+	look["rubber_band"] = RaceBuild.rubber_band(ctx)
+	if ResourceLoader.exists(RaceBuild.PICKUP_PATH):
+		look["pickup_scene"] = load(RaceBuild.PICKUP_PATH)
 	for i in tracks.size():
 		var path := ArcadeBuild.stage_path(i)
 		var entry := JsonUtil.to_dict(tracks[i])

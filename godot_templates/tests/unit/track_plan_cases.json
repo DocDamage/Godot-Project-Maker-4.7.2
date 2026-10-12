@@ -1,0 +1,2335 @@
+{
+ "plan_version": 1,
+ "kind": "racing",
+ "seed": 12345,
+ "orientation": "horizontal",
+ "difficulty": "normal",
+ "track_size": "medium",
+ "laps": 3,
+ "view": [
+  640,
+  360
+ ],
+ "tile": 16,
+ "block": 9,
+ "road": 5,
+ "list": [
+  {
+   "id": "stage_01",
+   "scene": "res://generated/scenes/stages/stage_01.tscn",
+   "title": "",
+   "level": 0,
+   "axis": "none",
+   "speed": 0.0,
+   "length": 0.0,
+   "exit": "custom",
+   "par_time_s": 52.0,
+   "waves": [],
+   "laps": 3,
+   "cells": [
+    5,
+    4
+   ],
+   "loop": [
+    [
+     3,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     4,
+     3
+    ]
+   ],
+   "rows": [
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggrrrrrrrrrrrrggggggrrrrrrrrrrrrgggg",
+    "ggggggggggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "ggggggggggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "ggggggggggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "ggggggggggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrrrrrrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrrrrrrrrrrggggroorrggg",
+    "ggggggggggggrrrrrggggrrrrrrrrrrrrrrggggroorrggg",
+    "ggggggggggggrrrrrggggrrrrrrrrrrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrgggggrrrrrrrrrrrrgggggrrrrrggg",
+    "ggggggggggggrrrrrggggggggggggggggggggggrrrrrggg",
+    "ggggggggggggrrrrrggggggggggggggggggggggrrrrrggg",
+    "ggggggggggggrrrrrggggggggggggggggggggggrrrrrggg",
+    "ggggggggggggrrrrrggggggggggggggggggggggrrrrrggg",
+    "ggggrrrrrrrrrrrrrggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrgggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrsrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrbrrrrrrrrrrrrrrrrrrsrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrbrrrrrrrrrrrrrrrrrrsrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrbrrrrrrrrrrrrrrrrrrsrrrrrrrrrrggg",
+    "ggggrrrrrrrrrrrrrrrrrrrrrrrrrrrrrsrrrrrrrrrgggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg"
+   ],
+   "start": {
+    "position": [
+     568.0,
+     520.0
+    ],
+    "heading": 3.141593,
+    "line": [
+     536.0,
+     520.0
+    ]
+   },
+   "checkpoints": [
+    {
+     "id": "c01",
+     "cell": [
+      1,
+      3
+     ],
+     "position": [
+      304.0,
+      520.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    },
+    {
+     "id": "c02",
+     "cell": [
+      0,
+      2
+     ],
+     "position": [
+      88.0,
+      448.0
+     ],
+     "heading": -1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c03",
+     "cell": [
+      1,
+      1
+     ],
+     "position": [
+      232.0,
+      304.0
+     ],
+     "heading": -1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c04",
+     "cell": [
+      2,
+      0
+     ],
+     "position": [
+      304.0,
+      88.0
+     ],
+     "heading": 0.0,
+     "width": 144.0
+    },
+    {
+     "id": "c05",
+     "cell": [
+      3,
+      1
+     ],
+     "position": [
+      448.0,
+      232.0
+     ],
+     "heading": 0.0,
+     "width": 144.0
+    },
+    {
+     "id": "c06",
+     "cell": [
+      4,
+      0
+     ],
+     "position": [
+      592.0,
+      88.0
+     ],
+     "heading": 0.0,
+     "width": 144.0
+    },
+    {
+     "id": "c07",
+     "cell": [
+      4,
+      2
+     ],
+     "position": [
+      664.0,
+      304.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    }
+   ],
+   "waypoints": [
+    {
+     "cell": [
+      3,
+      3
+     ],
+     "position": [
+      520.0,
+      520.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      2,
+      3
+     ],
+     "position": [
+      376.0,
+      520.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      1,
+      3
+     ],
+     "position": [
+      232.0,
+      520.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      0,
+      3
+     ],
+     "position": [
+      88.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      0,
+      2
+     ],
+     "position": [
+      88.0,
+      376.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      1,
+      2
+     ],
+     "position": [
+      232.0,
+      376.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      1,
+      1
+     ],
+     "position": [
+      232.0,
+      232.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      1,
+      0
+     ],
+     "position": [
+      232.0,
+      88.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      2,
+      0
+     ],
+     "position": [
+      376.0,
+      88.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      2,
+      1
+     ],
+     "position": [
+      376.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      1
+     ],
+     "position": [
+      520.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      0
+     ],
+     "position": [
+      520.0,
+      88.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      4,
+      0
+     ],
+     "position": [
+      664.0,
+      88.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      4,
+      1
+     ],
+     "position": [
+      664.0,
+      232.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      4,
+      2
+     ],
+     "position": [
+      664.0,
+      376.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      4,
+      3
+     ],
+     "position": [
+      664.0,
+      520.0
+     ],
+     "speed": 6.32
+    }
+   ],
+   "barriers": [
+    [
+     0,
+     0,
+     47,
+     1
+    ],
+    [
+     0,
+     37,
+     47,
+     1
+    ],
+    [
+     0,
+     0,
+     1,
+     38
+    ],
+    [
+     46,
+     0,
+     1,
+     38
+    ],
+    [
+     1,
+     1,
+     9,
+     9
+    ],
+    [
+     1,
+     10,
+     9,
+     9
+    ],
+    [
+     19,
+     19,
+     18,
+     9
+    ]
+   ],
+   "tyres": [
+    [
+     40.0,
+     568.0
+    ],
+    [
+     40.0,
+     328.0
+    ],
+    [
+     280.0,
+     424.0
+    ],
+    [
+     184.0,
+     40.0
+    ],
+    [
+     424.0,
+     40.0
+    ],
+    [
+     328.0,
+     280.0
+    ],
+    [
+     568.0,
+     280.0
+    ],
+    [
+     472.0,
+     40.0
+    ],
+    [
+     712.0,
+     40.0
+    ],
+    [
+     712.0,
+     568.0
+    ]
+   ],
+   "decoration": [
+    [
+     54.69,
+     84.44
+    ],
+    [
+     131.89,
+     129.07
+    ],
+    [
+     68.39,
+     242.26
+    ],
+    [
+     60.09,
+     246.42
+    ],
+    [
+     342.72,
+     406.75
+    ],
+    [
+     374.8,
+     380.92
+    ],
+    [
+     513.2,
+     386.2
+    ],
+    [
+     548.35,
+     357.65
+    ]
+   ],
+   "pickups": [
+    {
+     "position": [
+      232.0,
+      520.0
+     ],
+     "kind": "bomb"
+    },
+    {
+     "position": [
+      232.0,
+      376.0
+     ],
+     "kind": "shield"
+    },
+    {
+     "position": [
+      376.0,
+      232.0
+     ],
+     "kind": "speed"
+    }
+   ]
+  },
+  {
+   "id": "stage_02",
+   "scene": "res://generated/scenes/stages/stage_02.tscn",
+   "title": "",
+   "level": 1,
+   "axis": "none",
+   "speed": 0.0,
+   "length": 0.0,
+   "exit": "custom",
+   "par_time_s": 58.0,
+   "waves": [],
+   "laps": 3,
+   "cells": [
+    5,
+    4
+   ],
+   "loop": [
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "rows": [
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrgggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrggggggrrrrrrrrrrrrgggggrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggggrroorggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggggrroorggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggggrrrrrggg",
+    "ggggrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggdddddggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggdddddggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggdddddggggrrrrrggggrrrrrggggrbbbrggg",
+    "ggggggggggggdddddggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggdddddggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrggggrrrrrggggrrrrrggggrrrrrggg",
+    "ggggggggggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "ggggggggggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "ggggggggggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "ggggggggggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "gggggggggggggrrrrrrrrrrrrggggggrrrrrrrrrrrrgggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg"
+   ],
+   "start": {
+    "position": [
+     184.0,
+     88.0
+    ],
+    "heading": 0.0,
+    "line": [
+     216.0,
+     88.0
+    ]
+   },
+   "checkpoints": [
+    {
+     "id": "c01",
+     "cell": [
+      3,
+      0
+     ],
+     "position": [
+      448.0,
+      88.0
+     ],
+     "heading": 0.0,
+     "width": 144.0
+    },
+    {
+     "id": "c02",
+     "cell": [
+      4,
+      1
+     ],
+     "position": [
+      664.0,
+      160.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c03",
+     "cell": [
+      4,
+      3
+     ],
+     "position": [
+      664.0,
+      448.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c04",
+     "cell": [
+      3,
+      2
+     ],
+     "position": [
+      520.0,
+      448.0
+     ],
+     "heading": -1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c05",
+     "cell": [
+      2,
+      1
+     ],
+     "position": [
+      448.0,
+      232.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    },
+    {
+     "id": "c06",
+     "cell": [
+      2,
+      3
+     ],
+     "position": [
+      376.0,
+      448.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c07",
+     "cell": [
+      1,
+      2
+     ],
+     "position": [
+      232.0,
+      448.0
+     ],
+     "heading": -1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c08",
+     "cell": [
+      0,
+      1
+     ],
+     "position": [
+      160.0,
+      232.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    }
+   ],
+   "waypoints": [
+    {
+     "cell": [
+      1,
+      0
+     ],
+     "position": [
+      232.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      2,
+      0
+     ],
+     "position": [
+      376.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      3,
+      0
+     ],
+     "position": [
+      520.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      4,
+      0
+     ],
+     "position": [
+      664.0,
+      88.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      4,
+      1
+     ],
+     "position": [
+      664.0,
+      232.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      4,
+      2
+     ],
+     "position": [
+      664.0,
+      376.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      4,
+      3
+     ],
+     "position": [
+      664.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      3
+     ],
+     "position": [
+      520.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      2
+     ],
+     "position": [
+      520.0,
+      376.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      3,
+      1
+     ],
+     "position": [
+      520.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      2,
+      1
+     ],
+     "position": [
+      376.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      2,
+      2
+     ],
+     "position": [
+      376.0,
+      376.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      2,
+      3
+     ],
+     "position": [
+      376.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      1,
+      3
+     ],
+     "position": [
+      232.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      1,
+      2
+     ],
+     "position": [
+      232.0,
+      376.0
+     ],
+     "speed": 9.6
+    },
+    {
+     "cell": [
+      1,
+      1
+     ],
+     "position": [
+      232.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      0,
+      1
+     ],
+     "position": [
+      88.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      0,
+      0
+     ],
+     "position": [
+      88.0,
+      88.0
+     ],
+     "speed": 6.32
+    }
+   ],
+   "barriers": [
+    [
+     0,
+     0,
+     47,
+     1
+    ],
+    [
+     0,
+     37,
+     47,
+     1
+    ],
+    [
+     0,
+     0,
+     1,
+     38
+    ],
+    [
+     46,
+     0,
+     1,
+     38
+    ],
+    [
+     1,
+     19,
+     9,
+     9
+    ],
+    [
+     1,
+     28,
+     9,
+     9
+    ]
+   ],
+   "tyres": [
+    [
+     712.0,
+     40.0
+    ],
+    [
+     712.0,
+     568.0
+    ],
+    [
+     472.0,
+     568.0
+    ],
+    [
+     568.0,
+     184.0
+    ],
+    [
+     328.0,
+     184.0
+    ],
+    [
+     424.0,
+     568.0
+    ],
+    [
+     184.0,
+     568.0
+    ],
+    [
+     280.0,
+     184.0
+    ],
+    [
+     40.0,
+     280.0
+    ],
+    [
+     40.0,
+     40.0
+    ]
+   ],
+   "decoration": [
+    [
+     51.66,
+     358.97
+    ],
+    [
+     106.56,
+     393.15
+    ],
+    [
+     64.08,
+     560.76
+    ],
+    [
+     64.16,
+     494.92
+    ]
+   ],
+   "pickups": [
+    {
+     "position": [
+      664.0,
+      376.0
+     ],
+     "kind": "boost"
+    },
+    {
+     "position": [
+      376.0,
+      232.0
+     ],
+     "kind": "shield"
+    },
+    {
+     "position": [
+      232.0,
+      232.0
+     ],
+     "kind": "tyres"
+    }
+   ]
+  },
+  {
+   "id": "stage_03",
+   "scene": "res://generated/scenes/stages/stage_03.tscn",
+   "title": "",
+   "level": 2,
+   "axis": "none",
+   "speed": 0.0,
+   "length": 0.0,
+   "exit": "custom",
+   "par_time_s": 65.0,
+   "waves": [],
+   "laps": 3,
+   "cells": [
+    5,
+    4
+   ],
+   "loop": [
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "rows": [
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrgggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrggggggrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrrrbrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrrrbrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrrrbrrrrrrrrrrrggg",
+    "ggggrrrrrrrrrrrrrggggrrrrrrrrrrrrrrrrrrrrrrgggg",
+    "ggggggggggggrrrrrggggrrrrrggggggggggggggggggggg",
+    "ggggggggggggrrrrrggggrrrrrggggggggggggggggggggg",
+    "ggggggggggggrrrrrggggrrrrrggggggggggggggggggggg",
+    "ggggggggggggrrrrrggggrrrrrggggggggggggggggggggg",
+    "ggggrrrrrrrrrrrrrggggrrrrrrrrrrrrrrrrrrrrrrgggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrroorrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrroorrrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrggggggrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrrrrrrrrrrrrrrrdddddrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrrrrrrrrrrrrrrdddddrrrrrrrrrggg",
+    "gggrrrrrrrrrroorrrrrrrrrrrrrrrdddddrrrrrrrrrggg",
+    "gggrrrrrrrrrroorrrrrrrrrrrrrrrdddddrrrrrrrrrggg",
+    "ggggrrrrrrrrrrrrrrrrrrrrrrrrrrdddddrrrrrrrrgggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg"
+   ],
+   "start": {
+    "position": [
+     184.0,
+     88.0
+    ],
+    "heading": 0.0,
+    "line": [
+     216.0,
+     88.0
+    ]
+   },
+   "checkpoints": [
+    {
+     "id": "c01",
+     "cell": [
+      3,
+      0
+     ],
+     "position": [
+      448.0,
+      88.0
+     ],
+     "heading": 0.0,
+     "width": 144.0
+    },
+    {
+     "id": "c02",
+     "cell": [
+      4,
+      1
+     ],
+     "position": [
+      664.0,
+      160.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c03",
+     "cell": [
+      2,
+      1
+     ],
+     "position": [
+      448.0,
+      232.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    },
+    {
+     "id": "c04",
+     "cell": [
+      3,
+      2
+     ],
+     "position": [
+      448.0,
+      376.0
+     ],
+     "heading": 0.0,
+     "width": 144.0
+    },
+    {
+     "id": "c05",
+     "cell": [
+      4,
+      3
+     ],
+     "position": [
+      664.0,
+      448.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c06",
+     "cell": [
+      2,
+      3
+     ],
+     "position": [
+      448.0,
+      520.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    },
+    {
+     "id": "c07",
+     "cell": [
+      0,
+      3
+     ],
+     "position": [
+      160.0,
+      520.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    },
+    {
+     "id": "c08",
+     "cell": [
+      1,
+      2
+     ],
+     "position": [
+      160.0,
+      376.0
+     ],
+     "heading": 0.0,
+     "width": 144.0
+    },
+    {
+     "id": "c09",
+     "cell": [
+      0,
+      1
+     ],
+     "position": [
+      160.0,
+      232.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    }
+   ],
+   "waypoints": [
+    {
+     "cell": [
+      1,
+      0
+     ],
+     "position": [
+      232.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      2,
+      0
+     ],
+     "position": [
+      376.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      3,
+      0
+     ],
+     "position": [
+      520.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      4,
+      0
+     ],
+     "position": [
+      664.0,
+      88.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      4,
+      1
+     ],
+     "position": [
+      664.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      1
+     ],
+     "position": [
+      520.0,
+      232.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      2,
+      1
+     ],
+     "position": [
+      376.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      2,
+      2
+     ],
+     "position": [
+      376.0,
+      376.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      2
+     ],
+     "position": [
+      520.0,
+      376.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      4,
+      2
+     ],
+     "position": [
+      664.0,
+      376.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      4,
+      3
+     ],
+     "position": [
+      664.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      3
+     ],
+     "position": [
+      520.0,
+      520.0
+     ],
+     "speed": 9.6
+    },
+    {
+     "cell": [
+      2,
+      3
+     ],
+     "position": [
+      376.0,
+      520.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      1,
+      3
+     ],
+     "position": [
+      232.0,
+      520.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      0,
+      3
+     ],
+     "position": [
+      88.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      0,
+      2
+     ],
+     "position": [
+      88.0,
+      376.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      1,
+      2
+     ],
+     "position": [
+      232.0,
+      376.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      1,
+      1
+     ],
+     "position": [
+      232.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      0,
+      1
+     ],
+     "position": [
+      88.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      0,
+      0
+     ],
+     "position": [
+      88.0,
+      88.0
+     ],
+     "speed": 6.32
+    }
+   ],
+   "barriers": [
+    [
+     0,
+     0,
+     47,
+     1
+    ],
+    [
+     0,
+     37,
+     47,
+     1
+    ],
+    [
+     0,
+     0,
+     1,
+     38
+    ],
+    [
+     46,
+     0,
+     1,
+     38
+    ]
+   ],
+   "tyres": [
+    [
+     712.0,
+     40.0
+    ],
+    [
+     712.0,
+     280.0
+    ],
+    [
+     328.0,
+     184.0
+    ],
+    [
+     328.0,
+     424.0
+    ],
+    [
+     712.0,
+     328.0
+    ],
+    [
+     712.0,
+     568.0
+    ],
+    [
+     40.0,
+     568.0
+    ],
+    [
+     40.0,
+     328.0
+    ],
+    [
+     280.0,
+     424.0
+    ],
+    [
+     280.0,
+     184.0
+    ],
+    [
+     40.0,
+     280.0
+    ],
+    [
+     40.0,
+     40.0
+    ]
+   ],
+   "decoration": [],
+   "pickups": [
+    {
+     "position": [
+      520.0,
+      232.0
+     ],
+     "kind": "missile"
+    },
+    {
+     "position": [
+      376.0,
+      520.0
+     ],
+     "kind": "boost"
+    },
+    {
+     "position": [
+      232.0,
+      520.0
+     ],
+     "kind": "bomb"
+    },
+    {
+     "position": [
+      664.0,
+      88.0
+     ],
+     "kind": "acceleration"
+    }
+   ]
+  },
+  {
+   "id": "stage_04",
+   "scene": "res://generated/scenes/stages/stage_04.tscn",
+   "title": "",
+   "level": 3,
+   "axis": "none",
+   "speed": 0.0,
+   "length": 0.0,
+   "exit": "custom",
+   "par_time_s": 65.0,
+   "waves": [],
+   "laps": 3,
+   "cells": [
+    5,
+    4
+   ],
+   "loop": [
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "rows": [
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrgggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrroorrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrroorrrrrrrrrrrggg",
+    "gggrrrrrrrrrrsrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggrrrrrgggggggggggggggggggggggggggggggrrrrrggg",
+    "gggdddddgggggrrrrrrrrrrrrggggggrrrrrrrrrrrrrggg",
+    "gggdddddggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "gggdddddggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "gggdddddggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrrggg",
+    "gggdddddggggrrrrrrrrrrrrrrggggrrrrrrrrrrrrrgggg",
+    "gggrrrrrggggrrrrrggggrrrrrggggrrrrrgggggggggggg",
+    "gggrrrrrggggrrrrrggggrrrrrggggrrrrrgggggggggggg",
+    "gggrrrrrggggrrrrrggggrrrrrggggrrrrrgggggggggggg",
+    "gggrrrrrggggrrrrrggggrrrrrggggrrrrrgggggggggggg",
+    "gggrrrrrggggrrrrrggggrrrrrggggrrrrrrrrrrrrrgggg",
+    "gggrrrrrggggroorrggggrrrrrggggrrrrrrrrrrrrrrggg",
+    "gggrbbbrggggroorrggggrbbbrggggrrrrrrrrrrrrrrggg",
+    "gggrrrrrggggrrrrrggggrrrrrggggrrrrrrrrrrrrrrggg",
+    "gggrrrrrggggrrrrrggggrrrrrgggggrrrrrrrrrrrrrggg",
+    "gggrrrrrggggrrrrrggggrrrrrgggggggggggggrrrrrggg",
+    "gggrrrrrggggrrrrrggggrrrrrgggggggggggggrrrrrggg",
+    "gggrrrrrggggrrrrrggggrrrrrgggggggggggggrrrrrggg",
+    "gggrrrrrggggrrrrrggggrrrrrgggggggggggggrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrdddddrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrdddddrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrdddddrrrrrrrrrggg",
+    "gggrrrrrrrrrrrrrrggggrrrrrrrrrdddddrrrrrrrrrggg",
+    "ggggrrrrrrrrrrrrggggggrrrrrrrrdddddrrrrrrrrgggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggggggggggggggggggggg"
+   ],
+   "start": {
+    "position": [
+     184.0,
+     88.0
+    ],
+    "heading": 0.0,
+    "line": [
+     216.0,
+     88.0
+    ]
+   },
+   "checkpoints": [
+    {
+     "id": "c01",
+     "cell": [
+      3,
+      0
+     ],
+     "position": [
+      448.0,
+      88.0
+     ],
+     "heading": 0.0,
+     "width": 144.0
+    },
+    {
+     "id": "c02",
+     "cell": [
+      4,
+      1
+     ],
+     "position": [
+      664.0,
+      160.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c03",
+     "cell": [
+      3,
+      2
+     ],
+     "position": [
+      520.0,
+      304.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c04",
+     "cell": [
+      4,
+      3
+     ],
+     "position": [
+      664.0,
+      448.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c05",
+     "cell": [
+      2,
+      3
+     ],
+     "position": [
+      448.0,
+      520.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    },
+    {
+     "id": "c06",
+     "cell": [
+      2,
+      1
+     ],
+     "position": [
+      376.0,
+      304.0
+     ],
+     "heading": -1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c07",
+     "cell": [
+      1,
+      2
+     ],
+     "position": [
+      232.0,
+      304.0
+     ],
+     "heading": 1.570796,
+     "width": 144.0
+    },
+    {
+     "id": "c08",
+     "cell": [
+      0,
+      3
+     ],
+     "position": [
+      160.0,
+      520.0
+     ],
+     "heading": 3.141593,
+     "width": 144.0
+    },
+    {
+     "id": "c09",
+     "cell": [
+      0,
+      1
+     ],
+     "position": [
+      88.0,
+      304.0
+     ],
+     "heading": -1.570796,
+     "width": 144.0
+    }
+   ],
+   "waypoints": [
+    {
+     "cell": [
+      1,
+      0
+     ],
+     "position": [
+      232.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      2,
+      0
+     ],
+     "position": [
+      376.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      3,
+      0
+     ],
+     "position": [
+      520.0,
+      88.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      4,
+      0
+     ],
+     "position": [
+      664.0,
+      88.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      4,
+      1
+     ],
+     "position": [
+      664.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      1
+     ],
+     "position": [
+      520.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      2
+     ],
+     "position": [
+      520.0,
+      376.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      4,
+      2
+     ],
+     "position": [
+      664.0,
+      376.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      4,
+      3
+     ],
+     "position": [
+      664.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      3,
+      3
+     ],
+     "position": [
+      520.0,
+      520.0
+     ],
+     "speed": 9.6
+    },
+    {
+     "cell": [
+      2,
+      3
+     ],
+     "position": [
+      376.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      2,
+      2
+     ],
+     "position": [
+      376.0,
+      376.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      2,
+      1
+     ],
+     "position": [
+      376.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      1,
+      1
+     ],
+     "position": [
+      232.0,
+      232.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      1,
+      2
+     ],
+     "position": [
+      232.0,
+      376.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      1,
+      3
+     ],
+     "position": [
+      232.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      0,
+      3
+     ],
+     "position": [
+      88.0,
+      520.0
+     ],
+     "speed": 6.32
+    },
+    {
+     "cell": [
+      0,
+      2
+     ],
+     "position": [
+      88.0,
+      376.0
+     ],
+     "speed": 12.0
+    },
+    {
+     "cell": [
+      0,
+      1
+     ],
+     "position": [
+      88.0,
+      232.0
+     ],
+     "speed": 9.6
+    },
+    {
+     "cell": [
+      0,
+      0
+     ],
+     "position": [
+      88.0,
+      88.0
+     ],
+     "speed": 6.32
+    }
+   ],
+   "barriers": [
+    [
+     0,
+     0,
+     47,
+     1
+    ],
+    [
+     0,
+     37,
+     47,
+     1
+    ],
+    [
+     0,
+     0,
+     1,
+     38
+    ],
+    [
+     46,
+     0,
+     1,
+     38
+    ]
+   ],
+   "tyres": [
+    [
+     712.0,
+     40.0
+    ],
+    [
+     712.0,
+     280.0
+    ],
+    [
+     472.0,
+     184.0
+    ],
+    [
+     472.0,
+     424.0
+    ],
+    [
+     712.0,
+     328.0
+    ],
+    [
+     712.0,
+     568.0
+    ],
+    [
+     328.0,
+     568.0
+    ],
+    [
+     424.0,
+     184.0
+    ],
+    [
+     184.0,
+     184.0
+    ],
+    [
+     280.0,
+     568.0
+    ],
+    [
+     40.0,
+     568.0
+    ],
+    [
+     40.0,
+     40.0
+    ]
+   ],
+   "decoration": [],
+   "pickups": [
+    {
+     "position": [
+      520.0,
+      376.0
+     ],
+     "kind": "shield"
+    },
+    {
+     "position": [
+      376.0,
+      232.0
+     ],
+     "kind": "missile"
+    },
+    {
+     "position": [
+      232.0,
+      376.0
+     ],
+     "kind": "bomb"
+    },
+    {
+     "position": [
+      376.0,
+      520.0
+     ],
+     "kind": "speed"
+    }
+   ]
+  }
+ ],
+ "added": [],
+ "notes": [
+  "Track 3 was planned with seed 12346."
+ ]
+}

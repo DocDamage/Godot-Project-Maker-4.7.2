@@ -91,6 +91,8 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
         bindings["accelerate"] = {"keys": ["Up", "W"], "joy_buttons": [0], "joy_axes": [[5, 1.0]]}
         bindings["brake"] = {"keys": ["Down", "S"], "joy_buttons": [1], "joy_axes": [[4, 1.0]]}
         bindings["boost"] = {"keys": ["Shift", "Space"], "joy_buttons": [2]}
+        # the weapon the car has picked up (T16.14): a missile ahead, a bomb behind
+        bindings["fire"] = {"keys": ["X", "K"], "joy_buttons": [3]}
     if archetype == "shmup":
         # Z fires and X bombs, as the genre has it; Shift flies slowly (the left trigger)
         bindings["shoot"] = {"keys": ["Z", "J"], "mouse_buttons": [1], "joy_buttons": [0]}

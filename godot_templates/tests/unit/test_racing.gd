@@ -77,6 +77,10 @@ func _call(fn: String, args: Array) -> Variant:
 			return RpgCarPhysics.slide(args[0], args[1], args[2])
 		"is_drifting":
 			return RpgCarPhysics.is_drifting(args[0])
+		"slide_tuned":
+			return RpgCarPhysics.slide(args[0], args[1], args[2], args[3])
+		"part_factor":
+			return RpgCarPhysics.part_factor(args[0], int(args[1]))
 		"split":
 			return RpgCarPhysics.split(Vector2(args[0], args[1]), args[2])
 		"join":
@@ -121,27 +125,33 @@ func test_the_arithmetic_is_rpggens_over_a_table_of_cases(t) -> void:
 		var case: Dictionary = raw
 		var fn: String = case["fn"]
 		seen[fn] = true
-		if fn == "drive":
+		if fn == "drive" or fn == "drive_tuned":
 			continue
 		var args: Array = case["args"]
 		var got: Variant = _call(fn, args)
 		if not _same(got, case["result"]) and wrong.size() < 5:
 			wrong.append("%s%s gave %s, rpggen has %s" % [fn, args, got, case["result"]])
 	t.eq(wrong, [] as Array[String])
-	t.eq(seen.size(), 18, "every function of the model, and the drive")
-	# the drive: a car that starts, turns hard with a boost, crosses grass and oil, brakes
-	var state := {"x": 0.0, "y": 0.0, "heading": -PI * 0.5, "vx": 0.0, "vy": 0.0, "boost": 0.0}
-	var legs: Array = cases[-1]["result"]
-	t.eq(legs.size(), 6)
-	for leg: Array in legs:
-		if bool(leg[4]):
-			state["boost"] = RpgCarPhysics.BOOST_S
-		for i in int(leg[0]):
-			state = RpgCarPhysics.step(state, leg[1], leg[2], leg[3], DT)
-		var keys := ["x", "y", "heading", "vx", "vy", "lateral"]
-		for k in keys.size():
-			var got: float = state[keys[k]]
-			t.near(got, float(leg[5 + k]), 0.001, "%s after the leg on %s" % [keys[k], leg[3]])
+	t.eq(seen.size(), 21, "every function of the model, and the two drives")
+	# the drives: a car that starts, turns hard with a boost, crosses grass and oil, brakes;
+	# and the same with every part at its third level
+	for which: int in [-2, -1]:
+		var tune: Array = cases[which]["args"]
+		var state := {"x": 0.0, "y": 0.0, "heading": -PI * 0.5, "vx": 0.0, "vy": 0.0, "boost": 0.0}
+		var legs: Array = cases[which]["result"]
+		t.eq(legs.size(), 6)
+		for leg: Array in legs:
+			if bool(leg[4]):
+				state["boost"] = RpgCarPhysics.BOOST_S
+			for i in int(leg[0]):
+				if tune.is_empty():
+					state = RpgCarPhysics.step(state, leg[1], leg[2], leg[3], DT)
+				else:
+					state = RpgCarPhysics.step(state, leg[1], leg[2], leg[3], DT, tune[0], tune[1], tune[2])
+			var keys := ["x", "y", "heading", "vx", "vy", "lateral"]
+			for k in keys.size():
+				var got: float = state[keys[k]]
+				t.near(got, float(leg[5 + k]), 0.001, "%s after the leg on %s (%s)" % [keys[k], leg[3], cases[which]["fn"]])
 
 func test_what_the_ground_does_to_a_car(t) -> void:
 	t.ok(RpgCarPhysics.grip("road") > RpgCarPhysics.grip("dirt"))

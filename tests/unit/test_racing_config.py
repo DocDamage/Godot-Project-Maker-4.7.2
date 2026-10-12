@@ -34,13 +34,21 @@ def test_the_config_of_a_racing_game_is_valid_and_keeps_its_options() -> None:
     rules = config.starter_map_defaults("racing")
     assert (rules["steering"], rules["camera"]) == ("relative", "follow")
     assert (rules["tracks"], rules["laps"], rules["track_size"]) == (4, 3, "medium"), "T16.13"
+    assert (rules["rivals"], rules["rubber_band"]) == (3, True), "T16.14"
     easy = _cfg(starter_map={"steering": "absolute"})
     data = easy.to_json()
     schema.validate("config", data)
     # an option that differs writes the whole set, with the defaults of the others
     assert data["starter_map"] == {**rules, "steering": "absolute"}
     assert config.GeneratorConfig.from_json(data).to_json() == data
-    for bad in ({"steering": "tank"}, {"camera": "chase"}, {"tracks": 0}, {"track_size": "huge"}):
+    for bad in (
+        {"steering": "tank"},
+        {"camera": "chase"},
+        {"tracks": 0},
+        {"track_size": "huge"},
+        {"rivals": 6},
+        {"rubber_band": 1},
+    ):
         with pytest.raises(Exception):  # noqa: B017, PT011
             schema.validate("config", {**data, "starter_map": bad})
     assert features.RACING_AVAILABLE is False, "the wizard does not offer it before its gate"
@@ -55,6 +63,7 @@ def test_the_controls_are_a_pedal_a_brake_and_a_boost() -> None:
     assert bindings["brake"]["keys"] == ["Down", "S"] and bindings["brake"]["joy_buttons"] == [1]
     assert bindings["boost"]["keys"] == ["Shift", "Space"]
     assert bindings["boost"]["joy_buttons"] == [2], "pad X"
+    assert bindings["fire"] == {"keys": ["X", "K"], "joy_buttons": [3]}, "the weapon: pad Y"
     for action in ("move_left", "move_right", "move_up", "move_down", "menu"):
         assert action in bindings, action  # left and right steer; the stick is the heading
     assert not {"jump", "shoot", "attack", "bomb", "grapple"} & set(bindings)
@@ -78,6 +87,7 @@ def test_the_smoke_steps_and_the_installed_files_of_a_racing_game(tmp_path: Path
     for name in (
         "car.gd", "car_physics.gd", "car_input.gd", "heading_sprite.gd", "race_camera.gd",
         "racing_mode.gd", "racing_strings.gd", "track_surfaces.gd", "ui/racing_hud.gd",
+        "race.gd", "rival.gd", "checkpoint.gd", "pickup.gd", "weapon.gd",
     ):  # fmt: skip
         assert f"addons/rpg_runtime/archetypes/racing/{name}" in written, name
     smoke = [w for w in written if "smoke_steps_" in w and w.endswith(".gd")]

@@ -35,8 +35,11 @@ def test_the_table_of_cases_is_what_the_module_gives() -> None:
         if callable(value) and not name.startswith("_") and value.__module__ == car_math.__name__
     }
     # every function of the model is in the table (`step` as the drive, at the end)
-    assert public - {"cases", "write_cases", "step", "move_toward"} == names - {"drive"}
-    assert stored[-1]["fn"] == "drive" and len(stored[-1]["result"]) == 6
+    made_up = {"drive", "drive_tuned", "slide_tuned"}  # `step` and `slide` with a car's parts
+    assert public - {"cases", "write_cases", "step", "move_toward"} == names - made_up
+    assert [c["fn"] for c in stored[-2:]] == ["drive", "drive_tuned"]
+    assert len(stored[-1]["result"]) == len(stored[-2]["result"]) == 6
+    assert stored[-1]["result"] != stored[-2]["result"], "a car with parts drives another line"
     assert len(stored) > 300
 
 
@@ -51,6 +54,9 @@ def test_the_runtime_has_the_same_numbers() -> None:
     ):  # fmt: skip
         value = re.escape(repr(getattr(car_math, name)))
         assert re.search(rf"^const {name} := {value}(\s|$)", text, re.MULTILINE), name
+    for part, value in car_math.PART_STEP.items():
+        assert f'"{part}": {value!r}' in text, part
+    assert f"const PART_LEVELS := {car_math.PART_LEVELS}" in text
     for surface, (grip, top) in car_math.SURFACES.items():
         assert f'"{surface}": [{grip!r}, {top!r}]' in text, surface
     for name, surface in car_math.SURFACE_NAMES.items():

@@ -331,11 +331,43 @@ clockwise) or rotates a single picture. `RpgRaceCamera` follows the car, looks a
 the screen ahead along its velocity at the top speed and zooms out to 0.85; `fixed` keeps it
 over the whole `track`. `RpgRacingMode` is the arcade run with the player's `car`; a track is
 an `RpgArcadeStage` that does not scroll and ends when `finish()` is called.
-`RpgRacingHud` adds the rows `speed` and `boosts`. A track's scene has: `Field` (the grass),
+`RpgRacingHud` adds the rows `speed`, `boosts`, `weapon`, `shield`, `lap`, `place` and `notice`
+(the countdown, *Go!*, *Wrong way!*, the place at the finish).
+
+**The race.** `RpgRace` (the child `Race` of a track) is set up by the mode with the track's
+entry of the list of stages and its cars (`setup(data, cars)`, `begin()`): a countdown
+(`counted(left)`, `started`; until then `car.engine_on` is off), then for every car the
+checkpoints and the laps. A checkpoint and the start line are `RpgRaceCheckpoint`s: a place, a
+way and a width, crossed by going over them that way. A lap counts at the start line and only
+when every checkpoint was passed in its order (`lap_done(car, lap)`). Read `lap_of(car)`,
+`checkpoints_of(car)`, `progress(car)`, `place_of(car)` (1 is first), `order()`,
+`standings()` (`car`, `place`, `player`, `finished`, `time_s`, `lap`), `wrong_way`
+(`wrong_way_changed`: the player went against the track for a second). It is over when the
+player has driven its laps (`finished(standings)`); the mode then gives the points of the place
+(`RpgRacingMode.PLACE_POINTS`, `last_place`) and ends the track. `park_rivals(true)` takes the
+rivals off the track.
+
+`RpgRival` drives a rival's car, as its child `Input`: it follows the waypoints with the car's
+own physics and nothing else. `skill` (0 to 1) is how late it brakes, how fast it takes a
+corner, how much of the car it uses and how well it holds the middle of the road; `pace` is
+the race's rubber band (`RpgRace.rubber_band`), which only ever takes pedal away from a rival
+far ahead of the player. A rival that is stuck backs off and passes on the other side.
+
+`RpgRacePickup` lies on the road (`kind`): `boost` (one more boost), `missile` and `bomb` (a
+weapon to carry: `car.weapon`, used with `press_fire()`, the action `fire`), `shield`
+(`car.shielded`: takes one hit); they come back after six seconds. `speed`, `tyres` and
+`acceleration` are parts: only the player takes them, once, and they stay for the run
+(`RpgRacingMode.part_level(part)`, three levels each, kept in the save; `car.top_mul`,
+`grip_mul`, `accel_mul`). `RpgRaceWeapon` is what was fired: a missile flies ahead and a bomb
+lies behind, and the first other car in reach spins (`car.hit()`, `spun_out`; a shield takes
+it, `shield_broken`).
+
+A track's scene has: `Field` (the grass),
 `Ground` (the road, a `TileMapLayer`) or `Road` (a drawn one), `Marks` (the start line, dirt,
 oil and boost arrows, drawn over the road), `Surfaces`, `Barriers` (a `StaticBody2D`: walls at
 the edges, hedges over the cells the loop does not use, a round shape for every tyre),
-`Scenery`, `Pickups` (a `Marker2D` each, with the metadata `kind`), `Car` and `Camera`. Its
+`Scenery`, `Pickups` (an `RpgRacePickup` each), `Rival1` and so on (on the grid ahead of the
+player, who starts last), `Car`, `Race` and `Camera`. Its
 entry in `game/data/stages.json` has what a race reads: `laps`, `start`, `checkpoints` (in
 the order they are passed) and `waypoints` (a place and a speed for every cell of the loop).
 

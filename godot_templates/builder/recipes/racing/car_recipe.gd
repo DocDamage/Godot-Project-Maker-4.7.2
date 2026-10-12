@@ -74,6 +74,7 @@ func build(ctx: BuildContext) -> Array:
 		headings = maxi(1, JsonUtil.to_int(ctx.catalog.effective(asset).get("headings", 1)))
 	var car := build_car(texture, frame, headings, ArcadeBuild.tile(ctx))
 	car.set("absolute_steering", RaceBuild.absolute_steering(ctx))
+	car.set("boosts", 1)  # one to start with; the rest lie on the track
 	var err := SceneUtil.save_scene(car, RaceBuild.CAR_PATH)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": RaceBuild.CAR_PATH, "err": err}, RaceBuild.CAR_PATH))

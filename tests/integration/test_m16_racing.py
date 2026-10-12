@@ -1,6 +1,6 @@
-"""Milestone M16, the racing game (T16.12, T16.13): the synthetic `racer` pack as a game with
-a car on four planned tracks, a pack without a car or a road, which gets the drawn ones, and a
-track that is added later."""
+"""Milestone M16, the racing game (T16.12 to T16.14): the synthetic `racer` pack as a game
+with a car, three rivals and four planned tracks, a pack without a car or a road, which gets
+the drawn ones, a track that is added later, and a game without rivals."""
 
 from __future__ import annotations
 
@@ -26,11 +26,16 @@ STEPS = [
     "car_boosts",
     "grass_is_slower",
     "car_bumps_off_a_barrier",
-    "car_drives_round_the_track",
+    "pickup_is_taken_and_used",
+    "race_is_driven_to_the_finish",
     "tracks_end_with_the_credits",
 ]
 SCENES = [
     "generated/scenes/racing/car.tscn",
+    "generated/scenes/racing/rival_1.tscn",
+    "generated/scenes/racing/rival_2.tscn",
+    "generated/scenes/racing/rival_3.tscn",
+    "generated/scenes/racing/pickup.tscn",
     "generated/scenes/stages/stage_01.tscn",
     "generated/scenes/stages/stage_02.tscn",
     "generated/scenes/stages/stage_03.tscn",
@@ -92,7 +97,7 @@ def test_the_racer_pack_is_a_racing_game(game) -> None:
         assert (target / rel).is_file(), rel
     saved = jsonio.read(target / paths.CONFIG)
     assert saved["archetype"] == "racing" and "starter_map" not in saved
-    assert {"accelerate", "brake", "boost"} <= set(saved["input"])
+    assert {"accelerate", "brake", "boost", "fire"} <= set(saved["input"])
     assert not [i for i in result.issues if i.code in ("ASSET-031", "ASSET-032")], (
         "the pack has its own car in sixteen headings and its own road"
     )
@@ -128,6 +133,10 @@ def test_the_tracks_are_those_of_the_stored_plan(game) -> None:
         assert "racer/props/" in scene, "the tyres and cones of the pack"
         assert 'name="Marks"' in scene, "the start line, and what lies on the road"
         assert scene.count('name="Pickup') - 1 == len(planned["pickups"])
+        kinds = [p["kind"] for p in planned["pickups"]]
+        assert sum(k in track_plan.PARTS for k in kinds) == 1, "a part lies on every track"
+        for kind in kinds:
+            assert f'kind = "{kind}"' in scene or kind == "boost", kind  # boost is the default
     # the picture of the tracks, side by side, for the Results page
     picture = Image.open(target / orchestrator.STARTER_PICTURE)
     widths = [len(t["rows"][0]) * 4 for t in stored["list"]]
@@ -148,9 +157,24 @@ def test_the_scenes_are_the_packs_car_on_the_packs_road(game) -> None:
     assert 'name="Road"' not in track, "the road is painted with a tile of the pack"
     assert 'name="Barriers" type="StaticBody2D"' in track
     assert "generated/scenes/racing/car.tscn" in track
+    # the race, the rivals on the grid and what lies on the road (T16.14)
+    assert "racing/race.gd" in track and 'name="Race"' in track
+    for number in (1, 2, 3):
+        assert f"generated/scenes/racing/rival_{number}.tscn" in track
+        assert f'name="Rival{number}"' in track
+        rival = _text(target, f"generated/scenes/racing/rival_{number}.tscn")
+        assert "racing/rival.gd" in rival and "racing/car_input.gd" not in rival
+        assert "is_player = false" in rival
+        assert f"assets/packs/racer/cars/rival_car_{number}.png" in rival, "a car of the pack"
+        assert "modulate" not in rival, "its own picture, not the player's in another colour"
+    assert "skill = 0.9" in _text(target, "generated/scenes/racing/rival_1.tscn")
+    assert "racing/pickup.gd" in _text(target, "generated/scenes/racing/pickup.tscn")
+    assert "generated/scenes/racing/pickup.tscn" in track
+    assert "boosts = 1" in car, "one boost to start with: the rest lie on the track"
     assert "racing/racing_mode.gd" in _text(target, "generated/scenes/combat/combat_mode.tscn")
     assert "racing/ui/racing_hud.gd" in _text(target, "generated/scenes/ui/hud_arcade.tscn")
-    assert "RACE_SPEED\t" in _text(target, "game/i18n/strings.tsv")
+    strings = _text(target, "game/i18n/strings.tsv")
+    assert "RACE_SPEED\t" in strings and "RACE_WRONG_WAY\t" in strings
 
 
 def test_the_project_has_the_racing_code_and_no_other_kind(game) -> None:
@@ -187,6 +211,8 @@ def test_a_pack_without_a_car_drives_the_drawn_one_on_a_drawn_road(
     assert _smoke(target) == STEPS
     drawn = sorted(i.detail["role"] for i in result.issues if i.code == "ASSET-031")
     assert drawn == ["VEHICLE"], "the pack has ground of its own, and no car"
+    for number in (1, 2, 3):
+        assert (target / f"generated/scenes/racing/rival_{number}.tscn").is_file()
     car = _text(target, "generated/scenes/racing/car.tscn")
     assert f"{arcade_kit.KIT_DIR}/car.png" in car and "headings = 16" in car
     assert "absolute_steering = true" in car
@@ -223,3 +249,21 @@ def test_an_added_track_grows_the_game(godot_exe: Path, cache: Path, tmp_path: P
     assert [t["title"] for t in planned] == ["", "Dunes"]
     assert (target / "generated/scenes/stages/stage_02.tscn").is_file()
     assert _smoke(target)[-1] == "tracks_end_with_the_credits"
+
+
+def test_a_game_without_rivals_is_a_race_against_the_clock(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    target = tmp_path / "out"
+    result = orchestrator.run_in_memory(
+        _config(tracks=1, track_size="small", laps=1, rivals=0, rubber_band=False),
+        None,
+        target,
+        godot_exe,
+    )
+    assert result.ok, _errors(result)
+    assert _smoke(target) == STEPS
+    assert not (target / "generated/scenes/racing/rival_1.tscn").exists()
+    track = _text(target, "generated/scenes/stages/stage_01.tscn")
+    assert 'name="Race"' in track and 'name="Rival1"' not in track
+    assert "rubber_band = false" in track

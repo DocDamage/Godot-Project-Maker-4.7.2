@@ -9,7 +9,8 @@ loop never crosses itself; every push adds two corners (two of them in a row are
 The field is cut to the loop, walled at its edges, and the cells the loop does not use are
 barriers with scenery on them.
 
-A track has a start line on a straight, **checkpoints** in the order they are passed,
+A track has a start line on a straight, **checkpoints** in the order they are passed (lines
+across the road where it comes into a cell),
 **waypoints** along the middle of the road with the speed the car's own arithmetic
 (``car_math``) allows there, patches of dirt and oil and boost arrows that grow in number
 from track to track, tyres at the outside of its corners and places for pickups.
@@ -38,6 +39,7 @@ DIFFICULTIES = ("easy", "normal", "hard")
 TRACK_RANGE = (1, 8)
 DEFAULT_TRACKS = 4
 LAP_RANGE = (1, 9)
+RIVALS = (0, 5)
 MAX_ADDED = 8
 MAX_TRACKS = 12
 STAGES_FILE = wave_plan.STAGES_FILE
@@ -48,7 +50,9 @@ VERGE = (BLOCK - ROAD) // 2  # grass at each side of it
 BORDER = 1  # the wall round the field
 CAR = 1.5  # tiles a car is wide, at most
 CORNER_RADIUS = 2.5  # tiles: the curve a car drives through a corner cell
-PICKUPS = ("boost", "missile", "bomb", "shield")  # T16.14 makes them; the plan says where
+PICKUPS = ("boost", "missile", "bomb", "shield")
+# a part makes the player's car better for the rest of the championship: one a track
+PARTS = ("speed", "tyres", "acceleration")
 ROAD_LETTERS = "rdobs"  # road, dirt, oil, a boost arrow, the start line
 GRASS = "g"
 REROLLS = 12
@@ -71,6 +75,8 @@ def defaults() -> dict[str, Any]:
         "difficulty": "normal",
         "steering": "relative",
         "camera": "follow",
+        "rivals": 3,
+        "rubber_band": True,
         "added_tracks": [],
     }
 
@@ -91,7 +97,9 @@ def normalized(options: Any) -> dict[str, Any]:
     ):
         if out[key] not in allowed:
             raise TrackPlanError(f"{key} must be one of {', '.join(allowed)}")
-    for key, (low, high) in (("tracks", TRACK_RANGE), ("laps", LAP_RANGE)):
+    if not isinstance(out["rubber_band"], bool):
+        raise TrackPlanError("rubber_band must be true or false")
+    for key, (low, high) in (("tracks", TRACK_RANGE), ("laps", LAP_RANGE), ("rivals", RIVALS)):
         value = out[key]
         if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
             raise TrackPlanError(f"{key} must be a whole number from {low} to {high}")
@@ -292,8 +300,11 @@ def _track(
     rng.shuffle(places)
     pickups: list[dict[str, Any]] = [
         {"position": px(*center_tiles(loop[i])), "kind": rng.choice(PICKUPS)}
-        for i in sorted(places[: counts_of(index, options["difficulty"])["pickups"]])
+        for i in sorted(places[: counts["pickups"]])
     ]
+    if len(places) > counts["pickups"]:  # and one part, on a cell of its own
+        cell = loop[places[counts["pickups"]]]
+        pickups.append({"position": px(*center_tiles(cell)), "kind": PARTS[index % len(PARTS)]})
     for kind in ("boost", "oil", "dirt"):
         for _ in range(counts[kind]):
             if not straights:
@@ -326,12 +337,16 @@ def _track(
             speed = min(speed, car_math.curve_speed(CORNER_RADIUS, surface))
         waypoints.append({"cell": list(cell), "position": px(x, y), "speed": round(speed, 2)})
         if i and i % 2 == 0:
+            # across the road where it comes into the cell: every car goes over that line,
+            # also one that cuts the corner of a corner cell and never sees its middle
+            into = _step(loop[i - 1], cell)
+            edge = (x - into[0] * BLOCK * 0.5, y - into[1] * BLOCK * 0.5)
             checkpoints.append(
                 {
                     "id": f"c{len(checkpoints) + 1:02d}",
                     "cell": list(cell),
-                    "position": px(x, y),
-                    "heading": round(HEADINGS[_step(loop[i - 1], cell)], 6),
+                    "position": px(*edge),
+                    "heading": round(HEADINGS[into], 6),
                     "width": float(BLOCK * tile),
                 }
             )
@@ -610,3 +625,28 @@ def for_project(
     if opts["added_tracks"]:
         fresh, _added = extend(fresh, opts["added_tracks"], seed)
     return world(fresh, seed), []
+
+
+# --------------------------------------------------------------------------- the runtime's tests
+
+CASES_FILE = "godot_templates/tests/unit/track_plan_cases.json"
+CASES_SEED = 12345
+
+
+def write_cases(repo: Any) -> Any:
+    """The plan of the default options for ``CASES_SEED``, as the GDScript tests of the race
+    read it (a rival drives a lap of every track of it). ``python -m rpggen.core.track_plan``
+    writes it; ``tests/unit/test_track_plan.py`` fails when it is not what ``plan`` gives."""
+    import json
+    from pathlib import Path
+
+    path = Path(repo) / CASES_FILE
+    text = json.dumps(plan({}, CASES_SEED), indent=1) + "\n"
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return path
+
+
+if __name__ == "__main__":  # pragma: no cover
+    from pathlib import Path
+
+    print(write_cases(Path(__file__).resolve().parents[2]))

@@ -4,7 +4,7 @@ extends Node
 ## poll() at the start of its own physics step.
 ##
 ## Actions: `accelerate`, `brake` (which reverses a car that stands), move_left / move_right
-## steer, `boost`. With *absolute* steering the stick (or the arrows) point where the car is to
+## steer, `boost`, `fire` (the weapon the car carries). With *absolute* steering the stick (or the arrows) point where the car is to
 ## head, and the car turns that way by itself.
 
 static func _pressed(action: StringName) -> bool:
@@ -25,3 +25,5 @@ func poll(car: CharacterBody2D) -> void:
 	car.set(&"stick", Vector2(_axis(&"move_left", &"move_right"), _axis(&"move_up", &"move_down")))
 	if _pressed(&"boost"):
 		car.call(&"press_boost")
+	if _pressed(&"fire"):
+		car.call(&"press_fire")

@@ -170,7 +170,7 @@ def test_the_checkpoints_are_in_the_order_of_the_loop_and_the_waypoints_on_the_r
                 assert set(row[x : x + w]) == {"g"}, "no barrier on the road"
         assert len(track["decoration"]) == 2 * (cols * cells_y - len(loop))
         for point in track["pickups"]:
-            assert point["kind"] in track_plan.PICKUPS
+            assert point["kind"] in track_plan.PICKUPS + track_plan.PARTS
             x, y = (math.floor(v / 16) for v in point["position"])
             assert rows[y][x] in track_plan.ROAD_LETTERS
 
@@ -291,6 +291,8 @@ def test_the_options_and_what_is_wrong_with_them() -> None:
         "difficulty": "normal",
         "steering": "relative",
         "camera": "follow",
+        "rivals": 3,
+        "rubber_band": True,
         "added_tracks": [],
     }
     assert config.starter_map_defaults("racing") == track_plan.defaults()
@@ -310,6 +312,8 @@ def test_the_options_and_what_is_wrong_with_them() -> None:
         ({"difficulty": "brutal"}, "difficulty"),
         ({"steering": "tank"}, "steering"),
         ({"camera": "chase"}, "camera"),
+        ({"rivals": 6}, "rivals"),
+        ({"rubber_band": "a little"}, "rubber_band"),
         ({"stages": 3}, "unknown option"),
         ({"added_tracks": [{"name": "A"}, {"name": "a"}]}, "two added tracks"),
         ({"added_tracks": [{}]}, "needs a name"),
@@ -392,3 +396,24 @@ def test_the_picture_of_the_tracks_is_drawn_from_the_plan() -> None:
     # a plan of bigger tiles is the same picture
     big = track_plan.plan({}, 7, {"view": [640, 360], "tile": 32})
     assert map_preview.render_tracks(big, 4).tobytes() == whole.tobytes()
+
+
+def test_the_tracks_the_runtimes_tests_drive_are_what_the_planner_gives() -> None:
+    """``godot_templates/tests/unit/track_plan_cases.json`` is written by ``python -m
+    rpggen.core.track_plan``; a change of the planner that is not written there fails here."""
+    import json
+
+    repo = Path(__file__).resolve().parents[2]
+    stored = json.loads((repo / track_plan.CASES_FILE).read_text(encoding="utf-8"))
+    assert stored == track_plan.plan({}, track_plan.CASES_SEED)
+    assert len(stored["list"]) == 4
+    for track in stored["list"]:
+        kinds = [p["kind"] for p in track["pickups"]]
+        assert sum(k in track_plan.PARTS for k in kinds) == 1, "one part lies on every track"
+        assert all(k in track_plan.PICKUPS + track_plan.PARTS for k in kinds)
+    assert [t["pickups"][-1]["kind"] for t in stored["list"]] == [
+        "speed",
+        "tyres",
+        "acceleration",
+        "speed",
+    ], "a different part on each of three tracks"

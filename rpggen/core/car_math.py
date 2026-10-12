@@ -136,9 +136,10 @@ def turn(
     return heading + steer * turn_rate(speed, top) * bite * delta
 
 
-def slide(lateral: float, surface_name: str, delta: float) -> float:
-    """The speed sideways to the heading after ``delta`` s: it fades with the grip."""
-    return move_toward(lateral, 0.0, TRACTION * grip(surface_name) * delta)
+def slide(lateral: float, surface_name: str, delta: float, grip_mul: float = 1.0) -> float:
+    """The speed sideways to the heading after ``delta`` s: it fades with the grip (better
+    tyres, ``grip_mul`` over 1, take it away faster)."""
+    return move_toward(lateral, 0.0, TRACTION * grip(surface_name) * grip_mul * delta)
 
 
 def is_drifting(lateral: float, top: float = TOP) -> bool:
@@ -167,18 +168,37 @@ def bump(vx: float, vy: float, nx: float, ny: float) -> tuple[float, float]:
     return ax * SCRAPE - into * BOUNCE * nx, ay * SCRAPE - into * BOUNCE * ny
 
 
+PART_STEP = {"speed": 0.04, "acceleration": 0.08, "tyres": 0.08}  # what a level of a part adds
+PART_LEVELS = 3
+
+
+def part_factor(part: str, level: int) -> float:
+    """What a car's top speed, acceleration or grip is multiplied by with ``level`` of the
+    part (``speed``, ``acceleration``, ``tyres``): 1 without it, more for each of three."""
+    return 1.0 + PART_STEP.get(part, 0.0) * max(0, min(PART_LEVELS, int(level)))
+
+
 def step(
-    state: dict[str, float], throttle: float, steer: float, surface_name: str, delta: float
+    state: dict[str, float],
+    throttle: float,
+    steer: float,
+    surface_name: str,
+    delta: float,
+    top: float = TOP,
+    accel: float = ACCEL,
+    grip_mul: float = 1.0,
 ) -> dict[str, float]:
     """One step of a car that meets nothing: ``state`` is x, y, heading, vx, vy and boost (the
-    seconds of boost left); the result is the same a step later, with ``lateral``."""
+    seconds of boost left); the result is the same a step later, with ``lateral``. ``top``,
+    ``accel`` and ``grip_mul`` are the car's own (its parts)."""
     boosting = state.get("boost", 0.0) > 0.0
     heading = state["heading"]
     forward, _side = split(state["vx"], state["vy"], heading)
-    heading = turn(heading, forward, steer, surface_name, delta)
+    heading = turn(heading, forward, steer, surface_name, delta, top)
     forward, lateral = split(state["vx"], state["vy"], heading)
-    forward = accelerate(forward, throttle, top_speed(surface_name, boosting), delta, boosting)
-    lateral = slide(lateral, surface_name, delta)
+    limit = top_speed(surface_name, boosting, top)
+    forward = accelerate(forward, throttle, limit, delta, boosting, accel)
+    lateral = slide(lateral, surface_name, delta, grip_mul)
     vx, vy = join(forward, lateral, heading)
     return {
         "x": state["x"] + vx * delta,
@@ -276,6 +296,10 @@ def cases() -> list[dict[str, Any]]:
         for name in ("road", "grass", "oil"):
             add("slide", [lateral, name, 0.05], slide(lateral, name, 0.05))
         add("is_drifting", [lateral], is_drifting(lateral))
+        add("slide_tuned", [lateral, "grass", 0.05, 1.24], slide(lateral, "grass", 0.05, 1.24))
+    for part in ("speed", "acceleration", "tyres", "paint"):
+        for level in (0, 1, 3, 7):
+            add("part_factor", [part, level], part_factor(part, level))
     for heading in (0.0, 0.7, -2.0, 3.0):
         add("split", [4.0, -3.0, heading], split(4.0, -3.0, heading))
         add("join", [6.0, 1.5, heading], join(6.0, 1.5, heading))
@@ -317,6 +341,19 @@ def cases() -> list[dict[str, Any]]:
             + [_r(state[k]) for k in ("x", "y", "heading", "vx", "vy", "lateral")]
         )
     out.append({"fn": "drive", "args": [], "result": drive})
+    # the same drive with every part at its third level
+    tuned = [TOP * part_factor("speed", 3), ACCEL * part_factor("acceleration", 3)]
+    tuned.append(part_factor("tyres", 3))
+    state = {"x": 0.0, "y": 0.0, "heading": -math.pi * 0.5, "vx": 0.0, "vy": 0.0, "boost": 0.0}
+    legs: list[list[Any]] = []
+    for frames, throttle, steer, name in plan:
+        for _ in range(frames):
+            state = step(state, throttle, steer, name, 1.0 / 60.0, *tuned)
+        legs.append(
+            [frames, throttle, steer, name, False]
+            + [_r(state[k]) for k in ("x", "y", "heading", "vx", "vy", "lateral")]
+        )
+    out.append({"fn": "drive_tuned", "args": [_r(v) for v in tuned], "result": legs})
     return out
 
 

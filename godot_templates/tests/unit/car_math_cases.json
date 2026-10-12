@@ -1886,6 +1886,16 @@
   "result": false
  },
  {
+  "fn": "slide_tuned",
+  "args": [
+   0.0,
+   "grass",
+   0.05,
+   1.24
+  ],
+  "result": 0.0
+ },
+ {
   "fn": "slide",
   "args": [
    0.2,
@@ -1918,6 +1928,16 @@
    0.2
   ],
   "result": false
+ },
+ {
+  "fn": "slide_tuned",
+  "args": [
+   0.2,
+   "grass",
+   0.05,
+   1.24
+  ],
+  "result": 0.0
  },
  {
   "fn": "slide",
@@ -1954,6 +1974,16 @@
   "result": true
  },
  {
+  "fn": "slide_tuned",
+  "args": [
+   3.0,
+   "grass",
+   0.05,
+   1.24
+  ],
+  "result": 2.5536
+ },
+ {
   "fn": "slide",
   "args": [
    -5.0,
@@ -1986,6 +2016,144 @@
    -5.0
   ],
   "result": true
+ },
+ {
+  "fn": "slide_tuned",
+  "args": [
+   -5.0,
+   "grass",
+   0.05,
+   1.24
+  ],
+  "result": -4.5536
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "speed",
+   0
+  ],
+  "result": 1.0
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "speed",
+   1
+  ],
+  "result": 1.04
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "speed",
+   3
+  ],
+  "result": 1.12
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "speed",
+   7
+  ],
+  "result": 1.12
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "acceleration",
+   0
+  ],
+  "result": 1.0
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "acceleration",
+   1
+  ],
+  "result": 1.08
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "acceleration",
+   3
+  ],
+  "result": 1.24
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "acceleration",
+   7
+  ],
+  "result": 1.24
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "tyres",
+   0
+  ],
+  "result": 1.0
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "tyres",
+   1
+  ],
+  "result": 1.08
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "tyres",
+   3
+  ],
+  "result": 1.24
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "tyres",
+   7
+  ],
+  "result": 1.24
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "paint",
+   0
+  ],
+  "result": 1.0
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "paint",
+   1
+  ],
+  "result": 1.0
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "paint",
+   3
+  ],
+  "result": 1.0
+ },
+ {
+  "fn": "part_factor",
+  "args": [
+   "paint",
+   7
+  ],
+  "result": 1.0
  },
  {
   "fn": "split",
@@ -3299,6 +3467,94 @@
     -1.45441,
     -0.557393,
     4.767527,
+    0.0
+   ]
+  ]
+ },
+ {
+  "fn": "drive_tuned",
+  "args": [
+   13.44,
+   11.16,
+   1.24
+  ],
+  "result": [
+   [
+    60,
+    1.0,
+    0.0,
+    "road",
+    false,
+    0.0,
+    -5.673,
+    -1.570796,
+    0.0,
+    -11.16,
+    0.0
+   ],
+   [
+    30,
+    1.0,
+    1.0,
+    "road",
+    false,
+    2.654064,
+    -11.462265,
+    -0.589937,
+    9.683865,
+    -9.694157,
+    -2.668392
+   ],
+   [
+    30,
+    1.0,
+    -1.0,
+    "grass",
+    false,
+    6.004085,
+    -15.181581,
+    -1.385098,
+    3.833823,
+    -6.801076,
+    2.512204
+   ],
+   [
+    20,
+    0.0,
+    1.0,
+    "oil",
+    false,
+    7.074457,
+    -17.206544,
+    -1.059817,
+    2.792236,
+    -5.373877,
+    -0.192423
+   ],
+   [
+    30,
+    -1.0,
+    0.0,
+    "road",
+    false,
+    7.319416,
+    -17.643468,
+    -1.059817,
+    -1.182478,
+    2.109139,
+    0.0
+   ],
+   [
+    30,
+    -1.0,
+    0.3,
+    "road",
+    false,
+    6.727862,
+    -15.416766,
+    -1.493798,
+    -0.413536,
+    5.360071,
     0.0
    ]
   ]
