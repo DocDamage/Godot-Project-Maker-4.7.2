@@ -37,7 +37,8 @@ rows (T14.13), below.
 | M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | On the branch `m13` (not part of 1.0): every card is implemented; T13.23 (the gate) is open. 23 of 24 cards done |
 | M14 Metroidvania (1.2.0) | The third archetype (below) | On the branch `m14` (not part of 1.0 or 1.1): every card is implemented; the manual rows of the gate (T14.13) are open. It was built before the 1.1 tag existed, on top of `m13` |
 | M15 Look, feel and ease of use (1.3.0) | A design system (tokens, one stylesheet, button kinds, icons, cards, a stepper sidebar, page headers), every page and dialog restyled, the Generate log without escape codes, actionable failures, a regeneration that skips what did not change, visual goldens (`docs/spec/M15_ui_polish.md`) | On the branch `m15` (on top of `main`, which holds M14): every card is implemented; the gate (T15.25) is open, below |
-| M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; a bundle of packs added folder by folder; the kinds for M17 sketched (`docs/spec/M16_arcade_archetypes.md`) | On the branch `m16` (on `m15`, before the 1.3 tag): every card but the gate is implemented and the three kinds are switched on. The gate (T16.20) is open, below |
+| M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; a bundle of packs added folder by folder (`docs/spec/M16_arcade_archetypes.md`) | Merged into `main` on 2026-10-12 (`b610f90`, with M15 under it): every card but the gate is implemented and the three kinds are switched on. The gate (T16.20) is open, below |
+| M17 Farm and isometric (1.5.0) | A farm and life sim, the seventh kind, and isometric tiles as a second view of the top-down kinds and the racing game (`docs/spec/M17_farm_isometric.md`) | Specified on 2026-10-12 on the branch `m17`; nothing is implemented. Its isometric part waits for a list of real isometric packs (T17.12) |
 
 ## M12 in detail
 
@@ -83,7 +84,7 @@ T12.66 (the gate) is open; see below.
 
 ## After 1.0: M13 and M14
 
-**M15** (the look, feel and ease of use, release 1.3.0, `docs/spec/M15_ui_polish.md`) is implemented on the branch `m15`; what its gate still needs is under *What is left before 1.3.0*. **M16** (three more kinds of game, release 1.4.0, `docs/spec/M16_arcade_archetypes.md`) is implemented on the branch `m16`; what its gate still needs is under *What is left before 1.4.0*.
+**M15** (the look, feel and ease of use, release 1.3.0, `docs/spec/M15_ui_polish.md`) is implemented on the branch `m15`; what its gate still needs is under *What is left before 1.3.0*. **M16** (three more kinds of game, release 1.4.0, `docs/spec/M16_arcade_archetypes.md`) is implemented and merged into `main`; what its gate still needs is under *What is left before 1.4.0*. **M17** (a farm and life sim, and isometric tiles, release 1.5.0, `docs/spec/M17_farm_isometric.md`) is specified and not started.
 
 Planned on 2026-10-08 from the second review. Neither blocks the 1.0 tag: 1.0 ships from M12, M13
 is release 1.1.0 (`docs/spec/M13_polish.md`) and M14 is release 1.2.0
@@ -188,12 +189,12 @@ The gate (T16.20) is open:
 
 | Item | What to do |
 |------|------------|
-| CI on `m16` | Every suite green on Windows and Ubuntu, on both PySide6 legs, with the three new integration jobs (`shmup`, `run_and_gun`, `racing`); perf within its ceilings, with the three sample rows (120 s each). The branch was pushed on 2026-10-12; the run has not been looked at. |
+| CI | Done on 2026-10-12: the run on `b610f90` (the head of `m16`, now of `main`) was green on every job: Windows, Ubuntu on both PySide6 legs, the integration jobs of the five kinds on both systems, and perf with the three sample rows. It took four runs: what the first three found is in the history (pictures written by another Pillow, a call PySide6 6.7 does not have, tests that the local runs had left out, a late callback). The private-corpus job is skipped, as always. |
 | Frozen smoke test | `python tools/package.py --smoke` on the three systems: the three samples and the drawn kit must be in the bundle. |
 | Upgrade test | Over a 1.0, 1.1, 1.2 and 1.3 project of each older kind: no prompt, nothing under `game/` changes, byte-identical TileSets and sprite frames. (A regenerated older game shows its minimap, which was off the screen before: the runtime's changelog.) |
 | Corpus | The private corpus (T12.26) unchanged on all four measures. It is not on the development machine. |
 | Manual rows | With a gamepad: *Star lane* in both orientations to the credits; *Jungle line* with jumping and as Bionic; *Dirt cup* with relative and absolute steering; each kind from a real pack made for it and from a plain RPG pack; a 300-asset shooter pack through the audit; the six real packs of T16.21 and the bundle chooser on *CuteSCKR*. |
-| The tag | `v1.4.0` is not made. The versions in `pyproject.toml`, `rpggen/__init__.py` and the runtime's `VERSION` are still 1.2.0. |
+| The tag | `v1.4.0` is not made, by the owner's decision of 2026-10-12, until this gate is closed. The versions in `pyproject.toml`, `rpggen/__init__.py` and the runtime's `VERSION` are still 1.2.0. **No tag exists at all**, here or on GitHub: the `v1.0.0`, `v1.1.0` and `v1.2.0` that the 1.3 section below says were made on 2026-10-10 are not in this checkout and were never pushed, so each is to be made again when its gate closes. |
 
 ## What is left before 1.3.0
 

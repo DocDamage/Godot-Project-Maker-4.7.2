@@ -977,6 +977,10 @@ kind, wizard and samples included.
 milestone on its own, and the most valuable for RPG packs, which were drawn for exactly that
 kind of game.
 
+**Chosen on 2026-10-12:** M17 is the farm and life sim and the isometric tiles
+(`M17_farm_isometric.md`, release 1.5.0). The other five kinds stay for a later milestone;
+that file's Part E keeps them.
+
 ---
 
 ## Appendix — The request of 2026-10-09, item by item
