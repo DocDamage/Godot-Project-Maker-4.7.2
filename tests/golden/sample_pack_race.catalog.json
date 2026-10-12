@@ -1,0 +1,762 @@
+{
+  "assets": [
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_order": "up_cw",
+        "headings": 16,
+        "origin": [
+          12,
+          23
+        ],
+        "role": "VEHICLE",
+        "size": [
+          384,
+          24
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.cars.player_car",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/cars/player_car.png",
+      "sha256": "80c2013419faac77a0f59d8cc75942ba8032120f2a5bb3b991d4dcae1097e6bb",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_order": "up_cw",
+        "headings": 16,
+        "origin": [
+          12,
+          23
+        ],
+        "role": "VEHICLE",
+        "size": [
+          384,
+          24
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.cars.rival_car_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/cars/rival_car_1.png",
+      "sha256": "980fc32e44bbdb1383bbb394f27a2e768ac9d18859d690e03606e41c02130f81",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_order": "up_cw",
+        "headings": 16,
+        "origin": [
+          12,
+          23
+        ],
+        "role": "VEHICLE",
+        "size": [
+          384,
+          24
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.cars.rival_car_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/cars/rival_car_2.png",
+      "sha256": "6ad1734e7e7e7cc994b2dedbe32ec19b003ad98e155c69f980c1e2bbfa2dcfaf",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "heading_order": "up_cw",
+        "headings": 16,
+        "origin": [
+          12,
+          23
+        ],
+        "role": "VEHICLE",
+        "size": [
+          384,
+          24
+        ],
+        "tags": [
+          "car"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.cars.rival_car_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/cars/rival_car_3.png",
+      "sha256": "16697265d101b14dd3824b474fd485847559678b1d94e741d0a5bc59514d2ff8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "HAZARD",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "oil"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.hazards.oil",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/hazards/oil.png",
+      "sha256": "d9d3a81d3bf04bf8058934eede32d61acc39a7d8da674bc5d5b9700e0ec630b8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_race.music.race_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/music/race_theme.wav",
+      "sha256": "570351c47e50c4abdf74c6bc674cbf5b3f053abd38ff41c4f8634b920755f688",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_race.music.results_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/music/results_theme.wav",
+      "sha256": "6f5b48c0e5b884f3293f205be2e153c925710807cb5e35d38b9bd7f623ed41ae",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "POWERUP",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "boost"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.pickups.boost",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/pickups/boost.png",
+      "sha256": "02e78e05ede876ae0867dbd6ed0ac1f338bad28e127ac2bb757fe988192423f7",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.pickups.pickup_bomb",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/pickups/pickup_bomb.png",
+      "sha256": "879a2d920c114445cf4cbe36adea0fa3aee893442286b9d905dd645175de698b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.pickups.pickup_shield",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/pickups/pickup_shield.png",
+      "sha256": "29a0e3da54c04ca442bbfe254d3432991595fa11c896032720a16c7fdc266120",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.pickups.pickup_strike",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/pickups/pickup_strike.png",
+      "sha256": "0f3e88af3f076d2b9c96f718e5d0436a72b290dd121e282a309a48e5e68c066d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "HAZARD",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "tyre"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.props.cone",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/props/cone.png",
+      "sha256": "d5161d14013128250b10c5ea7ad3e8d45d52ec85c901a92c0e1c038d2ce725fa",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "HAZARD",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "tyre"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.props.tyre",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/props/tyre.png",
+      "sha256": "a630604391d86fe03178c7097db8910489cf81ab8ed8d7c274142049b59d5af4",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          32,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.scenery.grandstand",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/scenery/grandstand.png",
+      "sha256": "4e66e08f107b074a910eb653d7d469a22cd5bc9dca5878969ccb81e326b08a30",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.scenery.tree",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/scenery/tree.png",
+      "sha256": "16e4558cc1ea8a52ae9cb9abfbfc06eeb626259e31bb66678e45863676c5421b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.1,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_race.sfx.bump",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/sfx/bump.wav",
+      "sha256": "5967fdb02d8f744af3d0491e9710a61fa6d52245abfe7ef0588e51dc4684ab19",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.14,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_race.sfx.countdown",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/sfx/countdown.wav",
+      "sha256": "883b432b9e692c86dd7e64b0f316d4c5c133fbdf8f159404c729fb4432cee3f1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.5,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_race.sfx.engine",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/sfx/engine.wav",
+      "sha256": "5c474b8c28d4550ae1d6d48cea2da1ac7dc9ed3e63d779cd2dff7f515bc73846",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.27,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_race.sfx.lap",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/sfx/lap.wav",
+      "sha256": "721c77656519f577f8bd09fd53ef550566c22833c2c89a7fbdf9490c00787999",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.24,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_race.sfx.pickup",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/sfx/pickup.wav",
+      "sha256": "8356d4a7a40faf346e969ede54a4890cd648f0ea69f8499346641e57caca344f",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.24,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_race.sfx.skid",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/sfx/skid.wav",
+      "sha256": "1fdcb1f14cfae11c53c4e4be5c9ea5be8a0efc13d55c40e93061c5f21444acf7",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.4437,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "ROAD",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.066667
+          ],
+          [
+            "WALL",
+            0.033333
+          ]
+        ],
+        "size": [
+          128,
+          32
+        ],
+        "tags": [
+          "road"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.tiles.road",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/tiles/road.png",
+      "sha256": "74fe64d64c60995b5b1f12b639ce7fc13f5ef2f5b3f4da9c79ccfff3f8a1025d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          48,
+          48
+        ],
+        "origin": [
+          24,
+          47
+        ],
+        "role": "UI",
+        "size": [
+          48,
+          48
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_race.ui.panel",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_race",
+      "path": "assets/packs/sample_pack_race/ui/panel.png",
+      "sha256": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/sample_pack_race/LICENSE.txt"
+      ],
+      "pack_id": "sample_pack_race",
+      "profile_id": null,
+      "root": "assets/packs/sample_pack_race",
+      "source_sha256": "a9ced9eedf520158ce953f4a0f6d5a78c74d137e204cc0acfad4b3d6ec518e2f",
+      "warnings": [
+        "view:racing"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "sample_pack_race.tiles.road",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

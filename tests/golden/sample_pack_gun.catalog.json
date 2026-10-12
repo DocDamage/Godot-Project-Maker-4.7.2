@@ -1,0 +1,1278 @@
+{
+  "assets": [
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          320,
+          180
+        ],
+        "tags": [
+          "parallax:1"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.backgrounds.bg_far",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/backgrounds/bg_far.png",
+      "sha256": "3a097bed986f06bcfa61fdae86484e03117b17a05be43377de601b4fe6d4a5ca",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          320,
+          180
+        ],
+        "tags": [
+          "parallax:3"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.backgrounds.bg_near",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/backgrounds/bg_near.png",
+      "sha256": "c743937893fad6bbc36d2cd5cc76b7bbfb654b35fac63952e8c345a425785afe",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/sample_pack_gun/boss/gate_attack.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_gun/boss/gate_idle.png"
+          }
+        },
+        "frame": [
+          64,
+          64
+        ],
+        "grid": {
+          "cell": [
+            64,
+            64
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          32,
+          63
+        ],
+        "role": "BOSS",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          128,
+          64
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_gun.boss.gate_attack",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/boss/gate_attack.png",
+      "sha256": "b49f525e31f44e14fa7c3096f02a571d92e3548cfc6c3a5f208853e5ea3baf57",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          8,
+          8
+        ],
+        "origin": [
+          4,
+          7
+        ],
+        "role": "PROJECTILE",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          8,
+          8
+        ],
+        "tags": [
+          "bullet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.bullets.bullet",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/bullets/bullet.png",
+      "sha256": "da6c54a5b07b6a50f024ad716ea9d714481a8bab1184722977bc67e6b56f9e5b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_gun/enemies/leaper_walk.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          96,
+          24
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_gun.enemies.leaper_walk",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/enemies/leaper_walk.png",
+      "sha256": "177003250c1e67f4a5d9c28c09dfa637ade743ff9b43827307af992cd775df15",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_gun/enemies/sniper_idle.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          48,
+          24
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_gun.enemies.sniper_idle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/enemies/sniper_idle.png",
+      "sha256": "c3d363074568faee70158955a426225c6089fb019208eb2249ab74d5a83af2a4",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_gun/enemies/trooper_walk.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          96,
+          24
+        ],
+        "tags": [
+          "soldier"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_gun.enemies.trooper_walk",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/enemies/trooper_walk.png",
+      "sha256": "12e8daf56d1ea9d02be690118d6d04bbd38a1bee3aad4b7b65052c840d63cbc4",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "turret"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.enemies.turret",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/enemies/turret.png",
+      "sha256": "b0f3677b10cfedd0a363163d1d001913a91cc6cb060378a8ad4bf291a48f557d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.416667,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "WALL",
+            0.375
+          ],
+          [
+            "ITEM",
+            0.166667
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "turret"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.enemies.wall_cannon",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/enemies/wall_cannon.png",
+      "sha256": "7846ef7eefa509103d7e5bd9d14009afac89487592a1821a2997708fb2926565",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.655172,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "EFFECT",
+        "roles_alt": [
+          [
+            "NPC",
+            0.172414
+          ],
+          [
+            "PLAYER",
+            0.034483
+          ]
+        ],
+        "size": [
+          144,
+          24
+        ],
+        "tags": [
+          "explosion"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_gun.fx.explosion_6frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/fx/explosion_6frames.png",
+      "sha256": "27dd2cd5be28578121a23f767e3de5f4cb9b495f7a694c5ba299134354099605",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.hazards.mine",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/hazards/mine.png",
+      "sha256": "338301dbea26608802320735182fcb03cd323fb6f0a4f999fa0006d72d58f0e6",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "grapple"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.items.grapple_hook",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/items/grapple_hook.png",
+      "sha256": "4ba2db2ed2cd45109090ee0f907649d23ebc10bde0227d8aa6648c890000f171",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_gun.music.boss_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/music/boss_theme.wav",
+      "sha256": "6847e092b19193593e1480a814c5e77e260a6f1e0f3aeb1ed25e69e928a2a4dc",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_gun.music.stage_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/music/stage_theme.wav",
+      "sha256": "304f8fa2bab73d1c37320557b38ee8dbd874ff17378a6da08a0f6377f3e06547",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.481481,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "WEAPON",
+            0.333333
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.pickups.weapon_pickup_flame",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/pickups/weapon_pickup_flame.png",
+      "sha256": "a7d58ff46300dfd0fe343e3342319a7272e8fca98743e0f90e5732814b2d4970",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.481481,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "WEAPON",
+            0.333333
+          ],
+          [
+            "PROJECTILE",
+            0.333333
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "bullet",
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.pickups.weapon_pickup_laser",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/pickups/weapon_pickup_laser.png",
+      "sha256": "f265d1c8f31aa86385867580dc18219eab644268abe17dd09197912fcc423cf7",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.481481,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "WEAPON",
+            0.333333
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "gun",
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.pickups.weapon_pickup_machinegun",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/pickups/weapon_pickup_machinegun.png",
+      "sha256": "bd91ad93b546fbaea3b85f74a83da6a6646eb7179af44553c81b1ca5330a8faa",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.481481,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "WEAPON",
+            0.333333
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.pickups.weapon_pickup_spread",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/pickups/weapon_pickup_spread.png",
+      "sha256": "2a2734ffded4b8074248d672d89eda3cd98a022368a802c04b07a940b327338d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.props.fern",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/props/fern.png",
+      "sha256": "42eec3c970cfa2433a1cf88e0374ddcce52e40079574613dbd82be1d62b64ffe",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.32,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_gun.sfx.explosion",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/sfx/explosion.wav",
+      "sha256": "f88f9214d5664386c5ed18a02d9149efaef79ba9b7068fcc29b4d300f74bc3e3",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.13,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_gun.sfx.grapple",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/sfx/grapple.wav",
+      "sha256": "f4e4276f2f20a70cf5b4e9c3391b2f941216ea8653d9cf8f7f3aebf84bbaddec",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.16,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_gun.sfx.grenade",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/sfx/grenade.wav",
+      "sha256": "5b73f6b75f4cf29fb7e68aa7df7996d64a9c87b7f790b016982274133a4c5145",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.12,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_gun.sfx.jump",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/sfx/jump.wav",
+      "sha256": "e3769c7895f988d3e2958694c78eb717fb5660cf017b6b0a267fcb14e4b67512",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.09,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_gun.sfx.shoot",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/sfx/shoot.wav",
+      "sha256": "9120e1248e699be94006d44e6fadccfa0c6feb138fca08ac1a481a9d039fae8b",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.4,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_gun.sfx.weapon_pickup",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/sfx/weapon_pickup.wav",
+      "sha256": "2b7a47cc31343b3618783168c4d38aab94d88e0f67eb6134bb463857e1f75932",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "death_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/sample_pack_gun/soldier/soldier_death.png"
+          },
+          "fall_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_gun/soldier/soldier_fall.png"
+          },
+          "hurt_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/sample_pack_gun/soldier/soldier_hurt.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_gun/soldier/soldier_idle.png"
+          },
+          "jump_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/sample_pack_gun/soldier/soldier_jump.png"
+          },
+          "shoot_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/sample_pack_gun/soldier/soldier_shoot.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_gun/soldier/soldier_run.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          19
+        ],
+        "role": "PLAYER",
+        "size": [
+          72,
+          24
+        ],
+        "tags": [
+          "soldier"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_gun.soldier.soldier_death",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/soldier/soldier_death.png",
+      "sha256": "f367f3c44eb8ae69faf807f8d4bae6b55f939731a893118ffadbe007db8c575a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6882,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.086957
+          ],
+          [
+            "WALL",
+            0.043478
+          ]
+        ],
+        "size": [
+          128,
+          32
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.tiles.jungle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/tiles/jungle.png",
+      "sha256": "e1ffca4cf0e59596de0ea6d2d4a6b6bae68a5d732e7c41963ef9feed31e2b29c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          48,
+          48
+        ],
+        "origin": [
+          24,
+          47
+        ],
+        "role": "UI",
+        "size": [
+          48,
+          48
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_gun.ui.panel",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_gun",
+      "path": "assets/packs/sample_pack_gun/ui/panel.png",
+      "sha256": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/sample_pack_gun/LICENSE.txt"
+      ],
+      "pack_id": "sample_pack_gun",
+      "profile_id": null,
+      "root": "assets/packs/sample_pack_gun",
+      "source_sha256": "e03d3ee9519d24e95d6ce77943fcf055b4f977e8675e9433deb5a07d56d10f82",
+      "warnings": [
+        "strips_direction_assumed:boss/gate_attack.png",
+        "strips_direction_assumed:boss/gate_idle.png",
+        "strips_direction_assumed:enemies/leaper_walk.png",
+        "strips_direction_assumed:enemies/sniper_idle.png",
+        "strips_direction_assumed:enemies/trooper_walk.png",
+        "strips_direction_assumed:soldier/soldier_death.png",
+        "strips_direction_assumed:soldier/soldier_fall.png",
+        "strips_direction_assumed:soldier/soldier_hurt.png",
+        "strips_direction_assumed:soldier/soldier_idle.png",
+        "strips_direction_assumed:soldier/soldier_jump.png",
+        "strips_direction_assumed:soldier/soldier_run.png",
+        "strips_direction_assumed:soldier/soldier_shoot.png",
+        "view:side"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "sample_pack_gun.tiles.jungle",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

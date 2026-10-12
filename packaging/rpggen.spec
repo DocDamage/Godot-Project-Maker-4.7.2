@@ -52,6 +52,9 @@ datas = []
 datas += tree(os.path.join(ROOT, "godot_templates"), "godot_templates", skip_dirs={"tests", ".godot"})
 datas += tree(os.path.join(ROOT, "sample_pack"), "sample_pack")
 datas += tree(os.path.join(ROOT, "sample_pack_side"), "sample_pack_side")
+# the samples of the arcade kinds (T16.17)
+for _sample in ("sample_pack_shmup", "sample_pack_gun", "sample_pack_race"):
+    datas += tree(os.path.join(ROOT, _sample), _sample)
 datas += tree(os.path.join(ROOT, "docs"), "docs", skip_dirs={"spec", "dev"})
 datas += [(os.path.join(ROOT, name), ".") for name in ("LICENSE", "THIRD_PARTY_NOTICES.md", "README.md")]
 datas += [(os.path.join(ROOT, "rpggen", "schema", f), os.path.join("rpggen", "schema"))

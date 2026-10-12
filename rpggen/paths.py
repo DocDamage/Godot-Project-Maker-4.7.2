@@ -175,6 +175,11 @@ def sample_pack_side_root() -> Path:
     return templates_root().parent / "sample_pack_side"
 
 
+def sample_pack_dir(folder: str) -> Path:
+    """A bundled sample pack by the name of its folder (``sample_pack_shmup``, T16.17)."""
+    return templates_root().parent / folder
+
+
 def templates_root() -> Path:
     """Folder holding the Godot template project (inside the bundle when frozen)."""
     if getattr(sys, "frozen", False):

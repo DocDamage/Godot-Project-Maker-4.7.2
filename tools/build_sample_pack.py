@@ -5,6 +5,8 @@ Usage:
     python tools/build_sample_pack.py --out DIR  # write somewhere else (used by the tests)
     python tools/build_sample_pack.py --no-profile
     python tools/build_sample_pack.py --side     # the side-view pack, sample_pack_side/ (T14.09)
+    python tools/build_sample_pack.py --kind shmup | gun | race   # an arcade pack (T16.17):
+                                                 # sample_pack_shmup/, _gun/, _race/
 
 Every pixel is drawn from integer arithmetic (no randomness, no antialiasing), so the images are
 the same on every machine. The pack is original work released under CC0-1.0: nothing is copied
@@ -910,6 +912,781 @@ def build_side_profile(pack: Path, profile_path: Path) -> dict:
     return data
 
 
+# ------------------------------------------------------------------------------ the arcade packs
+# Three small packs (T16.17), one for each kind of M16: *Star lane* for the shoot 'em up, *Jungle
+# line* for the run and gun, *Dirt cup* for the racing game. Drawn the same way as the two
+# above, by this script only; each is under 200 KB with its sounds and its profile.
+
+SHOT: Px = (255, 240, 120)
+FLAME: Px = (255, 150, 40)
+HULL: Px = (90, 170, 230)
+EARTH: Px = (126, 92, 60)
+LEAF: Px = (70, 150, 74)
+ASPHALT: Px = (112, 96, 76)  # the road of the Dirt cup is packed dirt
+TURF: Px = (84, 156, 72)
+
+
+def _strip(frames: list[Image.Image]) -> Image.Image:
+    """The frames side by side, in one row."""
+    w, h = frames[0].size
+    img, _d = canvas(w * len(frames), h)
+    for i, frame in enumerate(frames):
+        img.paste(frame, (i * w, 0))
+    return img
+
+
+def _flipped(img: Image.Image) -> Image.Image:
+    """Upside down: an enemy ship comes down the screen."""
+    return img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+
+
+def explosion_strip() -> Image.Image:
+    """Six frames of 24 x 24: a ball of fire that grows, then a ring that thins."""
+    frames = []
+    for i in range(6):
+        img, d = canvas(24, 24)
+        r = 3 + i * 8 // 5
+        d.ellipse([12 - r, 12 - r, 11 + r, 11 + r], fill=rgba((255, 214 - i * 26, 60)))
+        core = r - 2 - i
+        if core > 0:
+            d.ellipse([12 - core, 12 - core, 11 + core, 11 + core], fill=rgba(WHITE))
+        hole = (i - 2) * 3
+        if hole > 0:
+            d.ellipse([12 - hole, 12 - hole, 11 + hole, 11 + hole], fill=(0, 0, 0, 0))
+        frames.append(img)
+    return _strip(frames)
+
+
+def shot(kind: str) -> Image.Image:
+    """An 8 x 8 shot that flies up: a bullet, a laser or a missile."""
+    img, d = canvas(8, 8)
+    if kind == "laser":
+        d.rectangle([3, 0, 4, 7], fill=rgba((120, 240, 255)))
+        d.point([(3, 0), (4, 7)], fill=rgba(WHITE))
+    elif kind == "missile":
+        d.rectangle([3, 1, 4, 5], fill=rgba((206, 210, 222)), outline=rgba(BLACK))
+        d.point([(3, 0), (4, 0)], fill=rgba((220, 60, 60)))
+        d.point([(3, 7), (4, 7)], fill=rgba(FLAME))
+    else:
+        d.rectangle([3, 2, 4, 5], fill=rgba(SHOT))
+        d.point([(3, 1), (4, 6)], fill=rgba(WHITE))
+    return img
+
+
+# ---------------------------------------------------------------- Star lane (the shoot 'em up)
+
+SHMUP_PACK_NAME = "sample_pack_shmup"
+
+
+def player_ship() -> Image.Image:
+    """Three frames of 24 x 24, the nose up: banking left, level, banking right."""
+    frames = []
+    for lean in (-2, 0, 2):
+        img, d = canvas(24, 24)
+        d.polygon([(2, 19), (11 + lean, 9), (12 + lean, 9), (21, 19), (12, 16)],
+                  fill=rgba(shade(HULL, -40)), outline=rgba(BLACK))  # fmt: skip
+        d.polygon([(11 + lean, 1), (12 + lean, 1), (15, 18), (8, 18)],
+                  fill=rgba(HULL), outline=rgba(BLACK))  # fmt: skip
+        d.rectangle([11 + lean // 2, 7, 12 + lean // 2, 10], fill=rgba(WHITE))
+        d.rectangle([10, 19, 13, 21], fill=rgba(FLAME))
+        d.point([(11, 22), (12, 22)], fill=rgba(SHOT))
+        frames.append(img)
+    return _strip(frames)
+
+
+def enemy_ship(kind: int) -> Image.Image:
+    """One of four small ships of 24 x 24, drawn nose up and turned to come down the screen."""
+    img, d = canvas(24, 24)
+    body: Px = ((214, 84, 84), (204, 120, 214), (236, 160, 70), (110, 200, 130))[kind]
+    dark = rgba(shade(body, -60))
+    if kind == 0:  # a dart
+        d.polygon([(11, 2), (12, 2), (19, 20), (12, 16), (11, 16), (4, 20)],
+                  fill=rgba(body), outline=rgba(BLACK))  # fmt: skip
+    elif kind == 1:  # a saucer
+        d.ellipse([3, 7, 20, 17], fill=rgba(body), outline=rgba(BLACK))
+        d.ellipse([8, 4, 15, 11], fill=rgba(shade(body, 50)), outline=rgba(BLACK))
+    elif kind == 2:  # a beetle with two wings
+        d.rectangle([2, 10, 21, 13], fill=dark, outline=rgba(BLACK))
+        d.rounded_rectangle([8, 3, 15, 20], 3, fill=rgba(body), outline=rgba(BLACK))
+    else:  # a wing
+        d.polygon([(2, 18), (11, 5), (12, 5), (21, 18), (17, 18), (12, 12), (11, 12), (6, 18)],
+                  fill=rgba(body), outline=rgba(BLACK))  # fmt: skip
+    d.rectangle([11, 8, 12, 10], fill=rgba((250, 236, 150)))
+    return _flipped(img)
+
+
+def turret() -> Image.Image:
+    """A 24 x 24 gun on a round base: it stands on the stage and turns its barrel."""
+    img, d = canvas(24, 24)
+    d.ellipse([3, 3, 20, 20], fill=rgba((104, 112, 128)), outline=rgba(BLACK))
+    d.ellipse([7, 7, 16, 16], fill=rgba((150, 160, 176)), outline=rgba(BLACK))
+    d.rectangle([10, 12, 13, 22], fill=rgba((206, 210, 222)), outline=rgba(BLACK))
+    return img
+
+
+def carrier_ship() -> Image.Image:
+    """A 32 x 24 ship with a hold: the one that carries a power-up."""
+    img, d = canvas(32, 24)
+    hold: Px = (96, 190, 214)
+    d.polygon([(2, 14), (8, 4), (23, 4), (29, 14), (22, 20), (9, 20)],
+              fill=rgba(hold), outline=rgba(BLACK))  # fmt: skip
+    d.rectangle([12, 8, 19, 15], fill=rgba((250, 214, 90)), outline=rgba(BLACK))
+    d.rectangle([4, 12, 7, 15], fill=rgba(shade(hold, -60)))
+    d.rectangle([24, 12, 27, 15], fill=rgba(shade(hold, -60)))
+    return _flipped(img)
+
+
+def boss_ship() -> Image.Image:
+    """The boss of a stage, 64 x 48: a hull with two engines and a core that glows."""
+    img, d = canvas(64, 48)
+    hull: Px = (170, 64, 96)
+    d.polygon([(2, 20), (14, 6), (49, 6), (61, 20), (52, 40), (11, 40)],
+              fill=rgba(hull), outline=rgba(BLACK))  # fmt: skip
+    d.rectangle([6, 2, 15, 22], fill=rgba(shade(hull, -40)), outline=rgba(BLACK))
+    d.rectangle([48, 2, 57, 22], fill=rgba(shade(hull, -40)), outline=rgba(BLACK))
+    d.ellipse([24, 14, 39, 29], fill=rgba((250, 214, 90)), outline=rgba(BLACK))
+    d.ellipse([28, 18, 35, 25], fill=rgba(WHITE))
+    for x in (18, 30, 42):
+        d.rectangle([x, 38, x + 3, 45], fill=rgba((206, 210, 222)), outline=rgba(BLACK))
+    return _flipped(img)
+
+
+def capsule(kind: int) -> Image.Image:
+    """A 16 x 16 capsule: the stripe says what it gives (a weapon, a bomb, a life)."""
+    img, d = canvas(16, 16)
+    stripe: Px = ((250, 214, 90), (236, 110, 90), (110, 200, 130))[kind]
+    d.rounded_rectangle([2, 4, 13, 11], 3, fill=rgba((230, 234, 244)), outline=rgba(BLACK))
+    d.rectangle([6, 5, 9, 10], fill=rgba(stripe))
+    d.point([(4, 6)], fill=rgba(WHITE))
+    return img
+
+
+def asteroid(size: int, seed: int) -> Image.Image:
+    """A rock of ``size`` px: a round body with craters."""
+    img, d = canvas(size, size)
+    rock: Px = (136, 124, 116)
+    d.ellipse([1, 2, size - 2, size - 3], fill=rgba(rock), outline=rgba(BLACK))
+    for k in range(3):
+        x = 4 + noise(k, 1, seed) % max(1, size - 10)
+        y = 5 + noise(k, 2, seed) % max(1, size - 12)
+        d.ellipse([x, y, x + 3, y + 2], fill=rgba(shade(rock, -40)))
+    return img
+
+
+def stars(far: bool) -> Image.Image:
+    """A 128 x 256 layer that repeats downwards: the dark of space with small stars (opaque),
+    or a few larger stars with nothing between them."""
+    img = Image.new("RGBA", (128, 256), rgba((10, 10, 28)) if far else (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for i in range(56 if far else 14):
+        x, y = (i * 37 + 5) % 128, (i * 91 + 11) % 256
+        if far:
+            d.point([(x, y)], fill=rgba((170, 176, 220) if i % 3 else (110, 116, 170)))
+        else:
+            d.rectangle([x, y, x + 1, y + 1], fill=rgba((255, 250, 214)))
+            d.point([(x - 1, y), (x + 2, y + 1)], fill=rgba((196, 190, 150)))
+    return img
+
+
+SHMUP_IMAGES = {
+    "ships/player_ship.png": player_ship,
+    **{f"enemies/enemy_ship_{k + 1}.png": (lambda k=k: enemy_ship(k)) for k in range(4)},
+    "enemies/turret.png": turret,
+    "enemies/carrier_ship.png": carrier_ship,
+    "boss/boss_ship.png": boss_ship,
+    "bullets/bullet.png": lambda: shot("bullet"),
+    "bullets/laser.png": lambda: shot("laser"),
+    "bullets/missile.png": lambda: shot("missile"),
+    "fx/explosion_6frames.png": explosion_strip,
+    **{f"powerups/capsule_{k + 1}.png": (lambda k=k: capsule(k)) for k in range(3)},
+    "asteroids/asteroid_1.png": lambda: asteroid(24, 3),
+    "asteroids/asteroid_2.png": lambda: asteroid(16, 8),
+    "backgrounds/stars_far.png": lambda: stars(True),
+    "backgrounds/stars_near.png": lambda: stars(False),
+    "ui/panel.png": panel,
+}
+
+SHMUP_SOURCE_TEXT = """\
+Star lane, the rpggen sample pack for a shoot 'em up: sources
+
+This pack has no outside sources. Every file is generated by
+`tools/build_sample_pack.py --kind shmup` (deterministic integer drawing with Pillow; the sounds
+by `tools/sample_audio.py`) and released under CC0-1.0.
+
+ships/player_ship.png      The ship, nose up, 24 x 24 per frame: banking left, level, right
+enemies/enemy_ship_*.png   Four small ships that come down the screen
+enemies/turret.png         A gun that stands on the stage
+enemies/carrier_ship.png   A larger ship that carries a power-up
+boss/boss_ship.png         The boss of a stage, 64 x 48
+bullets/*.png              A bullet, a laser and a missile, 8 x 8 each, flying up
+fx/explosion_6frames.png   An explosion in six frames of 24 x 24
+powerups/capsule_*.png     Three capsules: a weapon, a bomb, a life
+asteroids/asteroid_*.png   Two rocks to fly around
+backgrounds/stars_*.png    Two layers of 128 x 256 that scroll: far and near
+ui/panel.png               A window panel with a nine-slice border
+music/*.wav                Three loops of 2.56 s: the stage, the boss, the title
+sfx/*.wav                  Five sounds: shoot, explosion, powerup, bomb, hit
+
+The sounds are mono, 8-bit, 11025 Hz, so that the whole pack is under 200 KB.
+`sample_shmup.rpgprofile.json` is the audit of this pack (made with the normal audit pipeline),
+so the sample opens with every asset confirmed.
+"""
+
+
+# ---------------------------------------------------------------- Jungle line (the run and gun)
+
+GUN_PACK_NAME = "sample_pack_gun"
+# cells of tiles/jungle.png (column, row)
+GUN_ONE_WAY = ((4, 0), (5, 0), (6, 0))
+GUN_SPIKES = ((4, 1),)
+GUN_GRAPPLE = ((7, 0),)
+
+
+def _earth(img: Image.Image, x0: int, y0: int, base: Px, seed: int, grass: bool) -> None:
+    for y in range(16):
+        for x in range(16):
+            n = noise(x, y, seed)
+            tone = shade(base, (n % 21) - 10 if n % 3 == 0 else 0)
+            if (x * 2 + y + seed) % 13 == 0:
+                tone = shade(base, -26)
+            img.putpixel((x0 + x, y0 + y), rgba(tone))
+    if grass:
+        for x in range(16):
+            depth = 3 + noise(x, 0, seed + 4) % 3
+            for y in range(depth):
+                img.putpixel((x0 + x, y0 + y), rgba(shade(LEAF, 20 - y * 10)))
+
+
+def jungle_sheet() -> Image.Image:
+    """8 x 2 tiles of 16 px. Columns 0 to 3: earth under grass (top row) and earth (bottom
+    row). Top row, columns 4 to 6: a rope bridge to jump through (left end, middle, right end);
+    column 7: a block with a ring under it, for the grapple. Bottom row: stakes, a crate, dark
+    earth, stone."""
+    img, d = canvas(128, 32)
+    for col in range(4):
+        _earth(img, col * 16, 0, shade(EARTH, col % 2 * 8), col + 1, True)
+        _earth(img, col * 16, 16, shade(EARTH, -12 - col % 2 * 8), col + 9, False)
+    # the bridge: the top 5 px of the cell
+    d.rectangle([64, 0, 111, 4], fill=rgba(PLANK))
+    d.line([(64, 0), (111, 0)], fill=rgba(shade(PLANK, 34)))
+    d.line([(64, 4), (111, 4)], fill=rgba(shade(PLANK, -50)))
+    for x in range(64, 112, 6):
+        d.line([(x, 0), (x, 4)], fill=rgba(shade(PLANK, -50)))
+    # the grapple block: stone with a ring that hangs from it
+    _earth(img, 112, 0, (124, 124, 136), 41, False)
+    d.rectangle([112, 0, 127, 15], outline=rgba((70, 70, 84)))
+    d.ellipse([117, 9, 122, 14], outline=rgba((250, 214, 90)))
+    # stakes: four points on a base
+    d.rectangle([64, 29, 79, 31], fill=rgba(shade(EARTH, -40)))
+    for t in range(4):
+        x = 64 + t * 4
+        d.polygon([(x, 28), (x + 1, 20), (x + 2, 20), (x + 3, 28)], fill=rgba((214, 200, 170)))
+        d.point([(x + 1, 20)], fill=rgba(WHITE))
+    # a crate
+    d.rectangle([80, 16, 95, 31], fill=rgba(PLANK), outline=rgba(shade(PLANK, -70)))
+    d.line([(80, 16), (95, 31)], fill=rgba(shade(PLANK, -50)))
+    d.line([(95, 16), (80, 31)], fill=rgba(shade(PLANK, -50)))
+    _earth(img, 96, 16, shade(EARTH, -40), 33, False)
+    _earth(img, 112, 16, (124, 124, 136), 47, False)
+    return img
+
+
+def _soldier(
+    d: ImageDraw.ImageDraw, ox: int, size: int, body: Px, band: Px, pose: str, i: int
+) -> None:
+    """One frame of a soldier facing right with a gun, feet on the bottom row of the frame."""
+    skin: Px = (236, 196, 156)
+    if pose == "death":  # falling back, then lying
+        tilt = min(i, 2)
+        y = size - 6 - (2 - tilt) * 3
+        d.rectangle([ox + 5 - tilt, y, ox + 17 - tilt, y + 4], fill=rgba(body),
+                    outline=rgba(shade(body, -70)))  # fmt: skip
+        d.rectangle([ox + 2 - tilt, y - 1, ox + 6 - tilt, y + 4], fill=rgba(skin),
+                    outline=rgba(shade(skin, -90)))  # fmt: skip
+        d.rectangle([ox + 2 - tilt, y - 1, ox + 6 - tilt, y], fill=rgba(band))
+        return
+    lift = {"jump": 4, "fall": 2}.get(pose, 0)
+    bob = i % 2 if pose in ("idle", "run") else 0
+    cx = ox + size // 2 - 1 + (1 if pose == "run" else 0)
+    feet = size - 1 - lift
+    top = feet - 17 + bob
+    torso = (236, 232, 240) if pose == "hurt" else body
+    d.rectangle(
+        [cx - 4, top + 7, cx + 3, feet - 4], fill=rgba(torso), outline=rgba(shade(body, -70))
+    )
+    d.rectangle([cx - 4, top, cx + 3, top + 6], fill=rgba(skin), outline=rgba(shade(skin, -90)))
+    d.rectangle([cx - 4, top, cx + 3, top + 1], fill=rgba(band))  # a headband
+    d.point([(cx - 5, top + 1), (cx - 6, top + 2)], fill=rgba(band))
+    d.point([(cx + 1, top + 4)], fill=rgba(BLACK))
+    stride = {"run": (i % 4 - 1) * 2 if i % 2 else 0, "jump": -1, "fall": 2}.get(pose, 0)
+    d.rectangle([cx - 3 - stride, feet - 3, cx - 2 - stride, feet], fill=rgba(shade(body, -60)))
+    d.rectangle([cx + 1 + stride, feet - 3, cx + 2 + stride, feet], fill=rgba(shade(body, -60)))
+    # the gun: held forward; a shot kicks it back and shows a flash
+    kick = (0, 1, 0)[i % 3] if pose == "shoot" else 0
+    d.rectangle([cx + 2 - kick, top + 9, cx + 8 - kick, top + 10], fill=rgba((60, 62, 74)))
+    d.point([(cx + 2 - kick, top + 11)], fill=rgba((60, 62, 74)))
+    if pose == "shoot" and i % 3 == 1:
+        d.rectangle([cx + 9, top + 8, cx + 10, top + 11], fill=rgba(SHOT))
+
+
+def soldier_strip(pose: str, frames: int, body: Px, band: Px, size: int = 24) -> Image.Image:
+    img, d = canvas(frames * size, size)
+    for i in range(frames):
+        _soldier(d, i * size, size, body, band, pose, i)
+    return img
+
+
+def gun_turret(wall: bool) -> Image.Image:
+    """A 24 x 24 gun that looks left: on a base on the ground, or on a plate on a wall."""
+    img, d = canvas(24, 24)
+    steel: Px = (120, 126, 140)
+    if wall:
+        d.rectangle([16, 2, 23, 21], fill=rgba(shade(steel, -40)), outline=rgba(BLACK))
+        d.ellipse([8, 6, 19, 17], fill=rgba(steel), outline=rgba(BLACK))
+        d.rectangle([0, 10, 9, 13], fill=rgba((206, 210, 222)), outline=rgba(BLACK))
+    else:
+        d.polygon([(4, 23), (8, 14), (17, 14), (21, 23)], fill=rgba(shade(steel, -40)),
+                  outline=rgba(BLACK))  # fmt: skip
+        d.ellipse([7, 5, 18, 16], fill=rgba(steel), outline=rgba(BLACK))
+        d.rectangle([0, 8, 9, 11], fill=rgba((206, 210, 222)), outline=rgba(BLACK))
+    d.point([(13, 10)], fill=rgba((236, 110, 90)))
+    return img
+
+
+def wall_boss(pose: str) -> Image.Image:
+    """The boss of a stage: a gate of steel, 64 x 64 per frame, two frames with a gap between
+    them. It looks left; its core opens when it attacks."""
+    img, d = canvas(128, 64)
+    steel: Px = (98, 104, 122)
+    for i in range(2):
+        ox = i * 64
+        d.rectangle([ox + 18, 0, ox + 59, 63], fill=rgba(steel), outline=rgba(BLACK))
+        for y in (10, 30, 50):
+            d.line([(ox + 19, y), (ox + 58, y)], fill=rgba(shade(steel, -36)))
+            d.point([(ox + 22, y - 4), (ox + 55, y - 4)], fill=rgba(shade(steel, 50)))
+        open_ = 6 if pose == "attack" and i == 1 else (1 if i else 0)
+        d.rectangle(
+            [ox + 28, 24 - open_, ox + 51, 39 + open_], fill=rgba((40, 30, 44)), outline=rgba(BLACK)
+        )
+        core: Px = (250, 120, 80) if pose == "attack" else (250, 214, 90)
+        d.ellipse([ox + 35, 27, ox + 44, 36], fill=rgba(core), outline=rgba(BLACK))
+        for y in (6, 52):  # two guns
+            d.rectangle(
+                [ox + 4, y, ox + 20, y + 4], fill=rgba((206, 210, 222)), outline=rgba(BLACK)
+            )
+    return img
+
+
+def jungle_background(far: bool) -> Image.Image:
+    """A 320 x 180 layer that repeats sideways: the sky over far hills (opaque), or trunks and
+    leaves with the sky between them."""
+    img, d = canvas(320, 180)
+    if far:
+        for y in range(180):
+            d.line([(0, y), (319, y)], fill=rgba(shade((70, 130, 150), -y // 6)))
+        for k in range(8):
+            x = k * 40
+            height = 40 + noise(k, 1, 5) % 30
+            d.polygon([(x - 10, 179), (x + 20, 179 - height), (x + 50, 179)],
+                      fill=rgba((40, 86, 78)))  # fmt: skip
+        return img
+    trunk: Px = (58, 44, 40)
+    for k in range(5):
+        x = k * 64 + 12
+        width = 8 + noise(k, 2, 9) % 6
+        d.rectangle([x, 30, x + width, 179], fill=rgba(trunk))
+        d.ellipse([x - 22, 0, x + width + 22, 52], fill=rgba(shade(LEAF, -70 + k % 2 * 8)))
+    return img
+
+
+def weapon_pickup(kind: int) -> Image.Image:
+    """A 16 x 16 badge with the mark of a weapon: spread, laser, flame, machine gun."""
+    img, d = canvas(16, 16)
+    tone: Px = ((236, 110, 90), (120, 240, 255), (255, 150, 40), (250, 214, 90))[kind]
+    d.rounded_rectangle([1, 3, 14, 12], 2, fill=rgba((44, 48, 64)), outline=rgba(tone))
+    if kind == 0:
+        for dy in (-2, 0, 2):
+            d.line([(4, 8), (11, 8 + dy)], fill=rgba(tone))
+    elif kind == 1:
+        d.line([(3, 8), (12, 8)], fill=rgba(tone))
+        d.line([(3, 7), (12, 7)], fill=rgba(WHITE))
+    elif kind == 2:
+        d.polygon([(4, 10), (7, 5), (9, 8), (11, 5), (12, 10)], fill=rgba(tone))
+    else:
+        d.point([(4, 8), (6, 8), (8, 8), (10, 8), (12, 8)], fill=rgba(tone))
+        d.point([(5, 6), (9, 6)], fill=rgba(tone))
+    return img
+
+
+def grapple_hook() -> Image.Image:
+    """A 16 x 16 hook with three claws, pointing up."""
+    img, d = canvas(16, 16)
+    steel = rgba((206, 210, 222))
+    d.line([(7, 6), (7, 15)], fill=steel, width=2)
+    d.arc([2, 1, 8, 9], 180, 360, fill=steel)
+    d.arc([7, 1, 13, 9], 180, 360, fill=steel)
+    d.point([(2, 6), (13, 6), (7, 1), (8, 1)], fill=rgba(WHITE))
+    return img
+
+
+def mine() -> Image.Image:
+    img, d = canvas(16, 16)
+    d.ellipse([3, 7, 12, 15], fill=rgba((70, 74, 86)), outline=rgba(BLACK))
+    d.rectangle([7, 4, 8, 7], fill=rgba((206, 210, 222)))
+    d.point([(7, 3), (8, 3)], fill=rgba((236, 60, 60)))
+    return img
+
+
+def fern() -> Image.Image:
+    """A 16 x 16 plant: scenery of a stage."""
+    img, d = canvas(16, 16)
+    for dx in (-5, -2, 2, 5):
+        d.line([(8, 15), (8 + dx, 4 + abs(dx))], fill=rgba(shade(LEAF, dx * 4)), width=2)
+    return img
+
+
+GUN_BODY: Px = (86, 138, 84)
+GUN_BAND: Px = (214, 70, 70)
+SOLDIER_STRIPS = (
+    ("idle", 2), ("run", 4), ("jump", 2), ("fall", 2), ("shoot", 3), ("hurt", 2), ("death", 3),
+)  # fmt: skip
+
+GUN_IMAGES = {
+    "tiles/jungle.png": jungle_sheet,
+    **{
+        f"soldier/soldier_{pose}.png": (
+            lambda pose=pose, n=n: soldier_strip(pose, n, GUN_BODY, GUN_BAND)
+        )
+        for pose, n in SOLDIER_STRIPS
+    },
+    "enemies/trooper_walk.png": lambda: soldier_strip("run", 4, (150, 96, 80), (60, 60, 70)),
+    "enemies/leaper_walk.png": lambda: soldier_strip("run", 4, (120, 100, 160), (240, 220, 120)),
+    "enemies/sniper_idle.png": lambda: soldier_strip("idle", 2, (96, 110, 130), (40, 40, 48)),
+    "enemies/turret.png": lambda: gun_turret(False),
+    "enemies/wall_cannon.png": lambda: gun_turret(True),
+    "boss/gate_idle.png": lambda: wall_boss("idle"),
+    "boss/gate_attack.png": lambda: wall_boss("attack"),
+    "backgrounds/bg_far.png": lambda: jungle_background(True),
+    "backgrounds/bg_near.png": lambda: jungle_background(False),
+    **{
+        f"pickups/weapon_pickup_{name}.png": (lambda k=k: weapon_pickup(k))
+        for k, name in enumerate(("spread", "laser", "flame", "machinegun"))
+    },
+    "items/grapple_hook.png": grapple_hook,
+    "bullets/bullet.png": lambda: shot("bullet"),
+    "fx/explosion_6frames.png": explosion_strip,
+    "hazards/mine.png": mine,
+    "props/fern.png": fern,
+    "ui/panel.png": panel,
+}
+
+GUN_SOURCE_TEXT = """\
+Jungle line, the rpggen sample pack for a run and gun: sources
+
+This pack has no outside sources. Every file is generated by
+`tools/build_sample_pack.py --kind gun` (deterministic integer drawing with Pillow; the sounds
+by `tools/sample_audio.py`) and released under CC0-1.0.
+
+tiles/jungle.png           8 x 2 tiles of 16 px: earth under grass, a rope bridge to jump through
+                           (three cells), a block with a ring for the grapple, stakes, a crate
+soldier/soldier_*.png      The soldier facing right, 24 x 24 per frame: idle, run, jump, fall,
+                           shoot, hurt, death (one strip each)
+enemies/trooper_walk.png   A soldier that runs at you
+enemies/leaper_walk.png    One that jumps
+enemies/sniper_idle.png    One that stands and aims
+enemies/turret.png         A gun on the ground
+enemies/wall_cannon.png    A gun on a wall
+boss/gate_*.png            The boss, a gate of steel, 64 x 64 per frame: idle, attack
+backgrounds/bg_*.png       Two parallax layers of 320 x 180: far, near
+pickups/weapon_pickup_*.png  Four weapons to pick up: spread, laser, flame, machine gun
+items/grapple_hook.png     The hook of the grapple arm
+bullets/bullet.png         A bullet, 8 x 8
+fx/explosion_6frames.png   An explosion in six frames of 24 x 24
+hazards/mine.png           A mine
+props/fern.png             A plant
+ui/panel.png               A window panel with a nine-slice border
+music/*.wav                Two loops of 2.56 s: the stage, the boss
+sfx/*.wav                  Six sounds: shoot, explosion, grenade, grapple, jump, weapon_pickup
+
+The sounds are mono, 8-bit, 11025 Hz, so that the whole pack is under 200 KB.
+`sample_gun.rpgprofile.json` is the audit of this pack (made with the normal audit pipeline), so
+the sample opens with every asset confirmed.
+"""
+
+
+# ---------------------------------------------------------------- Dirt cup (the racing game)
+
+RACE_PACK_NAME = "sample_pack_race"
+CAR_HEADINGS = 16
+CAR_CELL = 24
+
+
+def car_ring(body: Px, stripe: Px) -> Image.Image:
+    """A car seen from above in sixteen headings in a row of 24 x 24 cells, the first pointing
+    up, each turned clockwise by one step from the one before. The points are turned by
+    ``arcade_kit._turned``: exact for the quarter turns and rounded from values that are never
+    near a half for the others, so every machine draws the same pixels."""
+    from rpggen.core import arcade_kit
+
+    img, d = canvas(CAR_HEADINGS * CAR_CELL, CAR_CELL)
+    half = CAR_CELL / 2 - 0.25
+    w, length = 5.52, 9.84
+    hull = [(-w, -length * 0.55), (-w * 0.6, -length), (w * 0.6, -length), (w, -length * 0.55),
+            (w, length), (-w, length)]  # fmt: skip
+    cabin = [(-w * 0.62, -length * 0.2), (w * 0.62, -length * 0.2), (w * 0.62, length * 0.5),
+             (-w * 0.62, length * 0.5)]  # fmt: skip
+    band = [(-w * 0.2, -length * 0.95), (w * 0.2, -length * 0.95), (w * 0.2, -length * 0.25),
+            (-w * 0.2, -length * 0.25)]  # fmt: skip
+    for k in range(CAR_HEADINGS):
+        cx = k * CAR_CELL + half
+        d.polygon(arcade_kit._turned(hull, k, cx, half), fill=rgba(body), outline=rgba(BLACK))
+        d.polygon(arcade_kit._turned(band, k, cx, half), fill=rgba(stripe))
+        d.polygon(arcade_kit._turned(cabin, k, cx, half), fill=rgba((44, 52, 72)))
+    return img
+
+
+def road_sheet() -> Image.Image:
+    """8 x 2 tiles of 16 px. Top row: packed dirt (plain, with ruts, with stones), the start
+    line, and four tiles of grass. Bottom row: loose dirt, mud, and grass with flowers."""
+    img, d = canvas(128, 32)
+    for col in range(8):
+        for row in range(2):
+            x0, y0 = col * 16, row * 16
+            dirt = (row == 0 and col < 4) or (row == 1 and col < 3)
+            base = shade(ASPHALT if row == 0 else shade(ASPHALT, 16), 0) if dirt else TURF
+            for y in range(16):
+                for x in range(16):
+                    n = noise(x, y, col + row * 8 + 1)
+                    spread = 9 if dirt else 13
+                    tone = shade(base, (n % spread) - spread // 2 if n % 3 == 0 else 0)
+                    img.putpixel((x0 + x, y0 + y), rgba(tone))
+    for x in (20, 27):  # ruts
+        d.line([(x, 0), (x, 15)], fill=rgba(shade(ASPHALT, -22)))
+    for x, y in ((35, 3), (41, 10), (38, 13), (45, 5)):  # stones
+        d.point([(x, y)], fill=rgba(shade(ASPHALT, 46)))
+    for i in range(0, 16, 4):  # the start line: chequered
+        for j in range(0, 16, 4):
+            tone = WHITE if (i + j) // 4 % 2 == 0 else BLACK
+            d.rectangle([48 + i, j, 51 + i, j + 3], fill=rgba(tone))
+    for x, y in ((6, 20), (11, 26), (3, 29)):  # mud
+        d.ellipse([32 + x, y, 36 + x, y + 2], fill=rgba(shade(ASPHALT, -40)))
+    for col in (5, 7):  # flowers
+        for k in range(3):
+            x = col * 16 + 3 + noise(k, col, 3) % 10
+            y = 18 + noise(k, col, 4) % 10
+            d.point([(x, y)], fill=rgba((250, 236, 150) if k % 2 else WHITE))
+    return img
+
+
+def cone() -> Image.Image:
+    img, d = canvas(16, 16)
+    d.polygon([(7, 2), (8, 2), (12, 13), (3, 13)], fill=rgba((240, 130, 40)), outline=rgba(BLACK))
+    d.line([(5, 8), (10, 8)], fill=rgba(WHITE))
+    d.rectangle([2, 13, 13, 14], fill=rgba((200, 100, 30)), outline=rgba(BLACK))
+    return img
+
+
+def tyre() -> Image.Image:
+    img, d = canvas(16, 16)
+    d.ellipse([2, 2, 13, 13], fill=rgba((44, 44, 50)), outline=rgba(BLACK))
+    d.ellipse([5, 5, 10, 10], fill=rgba((90, 90, 100)), outline=rgba(BLACK))
+    return img
+
+
+def oil() -> Image.Image:
+    img, d = canvas(16, 16)
+    d.ellipse([1, 4, 14, 12], fill=rgba((26, 26, 36)))
+    d.ellipse([4, 2, 10, 8], fill=rgba((26, 26, 36)))
+    d.line([(5, 6), (8, 5)], fill=rgba((110, 120, 170)))
+    return img
+
+
+def boost_arrow() -> Image.Image:
+    """A 16 x 16 arrow that points up: drive over it for a push."""
+    img, d = canvas(16, 16)
+    for y0 in (2, 8):
+        arrow = [(8, y0), (13, y0 + 5), (10, y0 + 5), (8, y0 + 3), (7, y0 + 3), (5, y0 + 5),
+                 (2, y0 + 5), (7, y0)]  # fmt: skip
+        d.polygon(arrow, fill=rgba((90, 220, 255)), outline=rgba((30, 90, 130)))
+    return img
+
+
+def race_pickup(kind: int) -> Image.Image:
+    """A 16 x 16 box with what it holds: a missile, a bomb, a shield."""
+    img, d = canvas(16, 16)
+    tone: Px = ((236, 110, 90), (250, 214, 90), (110, 200, 240))[kind]
+    d.rounded_rectangle([2, 2, 13, 13], 2, fill=rgba((230, 234, 244)), outline=rgba(BLACK))
+    if kind == 0:
+        d.rectangle([7, 4, 8, 10], fill=rgba(tone))
+        d.point([(6, 11), (9, 11)], fill=rgba(tone))
+    elif kind == 1:
+        d.ellipse([5, 6, 10, 11], fill=rgba((44, 44, 50)))
+        d.point([(9, 5), (10, 4)], fill=rgba(tone))
+    else:
+        d.arc([4, 4, 11, 11], 0, 360, fill=rgba(tone))
+        d.point([(7, 7), (8, 8)], fill=rgba(tone))
+    return img
+
+
+def trackside_tree() -> Image.Image:
+    img, d = canvas(16, 16)
+    d.ellipse([1, 1, 14, 14], fill=rgba(shade(LEAF, -30)), outline=rgba(shade(LEAF, -90)))
+    d.ellipse([4, 3, 10, 9], fill=rgba(shade(LEAF, 16)))
+    return img
+
+
+def grandstand() -> Image.Image:
+    """A 32 x 16 stand seen from above: rows of seats under a roof edge."""
+    img, d = canvas(32, 16)
+    d.rectangle([0, 0, 31, 15], fill=rgba((150, 156, 172)), outline=rgba(BLACK))
+    for row in range(3):
+        for seat in range(7):
+            tone = ((214, 84, 84), (90, 170, 230), (250, 214, 90))[(row + seat) % 3]
+            d.rectangle([3 + seat * 4, 3 + row * 4, 4 + seat * 4, 4 + row * 4], fill=rgba(tone))
+    return img
+
+
+RACE_IMAGES = {
+    "cars/player_car.png": lambda: car_ring((220, 60, 60), (250, 236, 150)),
+    "cars/rival_car_1.png": lambda: car_ring((70, 130, 220), WHITE),
+    "cars/rival_car_2.png": lambda: car_ring((90, 180, 100), (250, 236, 150)),
+    "cars/rival_car_3.png": lambda: car_ring((236, 170, 60), (60, 60, 70)),
+    "tiles/road.png": road_sheet,
+    "props/cone.png": cone,
+    "props/tyre.png": tyre,
+    "hazards/oil.png": oil,
+    "pickups/boost.png": boost_arrow,
+    **{
+        f"pickups/pickup_{name}.png": (lambda k=k: race_pickup(k))
+        for k, name in enumerate(("strike", "bomb", "shield"))
+    },
+    "scenery/tree.png": trackside_tree,
+    "scenery/grandstand.png": grandstand,
+    "ui/panel.png": panel,
+}
+
+RACE_SOURCE_TEXT = """\
+Dirt cup, the rpggen sample pack for a racing game: sources
+
+This pack has no outside sources. Every file is generated by
+`tools/build_sample_pack.py --kind race` (deterministic integer drawing with Pillow; the sounds
+by `tools/sample_audio.py`) and released under CC0-1.0.
+
+cars/player_car.png        The car from above in 16 headings, 24 x 24 each, the first pointing up
+cars/rival_car_*.png       Three rivals, drawn the same way
+tiles/road.png             8 x 2 tiles of 16 px: packed dirt, the start line, grass, mud
+props/cone.png             A cone
+props/tyre.png             A tyre of the barriers
+hazards/oil.png            An oil slick
+pickups/boost.png          A boost arrow
+pickups/pickup_*.png       Three boxes: a strike (a missile), a bomb, a shield
+scenery/tree.png           A tree beside the track
+scenery/grandstand.png     A stand, 32 x 16
+ui/panel.png               A window panel with a nine-slice border
+music/*.wav                Two loops of 2.56 s: the race, the results
+sfx/*.wav                  Six sounds: engine, skid, bump, pickup, lap, countdown
+
+The sounds are mono, 8-bit, 11025 Hz, so that the whole pack is under 200 KB.
+`sample_race.rpgprofile.json` is the audit of this pack (made with the normal audit pipeline), so
+the sample opens with every asset confirmed.
+"""
+
+
+# ---------------------------------------------------------------- building the three
+
+
+def _gun_overrides(cat, edits, name):  # noqa: ANN001, ANN202 - imported lazily with the pipeline
+    tiles: dict[str, dict] = {}
+    for col, row in GUN_ONE_WAY:
+        tiles[f"{col},{row}"] = {"collision": {"profile": "ONE_WAY"}}
+    for col, row in GUN_SPIKES:
+        tiles[f"{col},{row}"] = {"collision": {"profile": "NONE"}, "custom": {"hazard": True}}
+    cat = edits.set_override(
+        cat, f"{name}.tiles.jungle", "tile_overrides", dict(sorted(tiles.items()))
+    )
+    for weapon in ("spread", "laser", "flame", "machinegun"):  # a weapon to pick up is a power-up
+        cat = edits.set_override(cat, f"{name}.pickups.weapon_pickup_{weapon}", "role", "POWERUP")
+    cat = edits.set_override(cat, f"{name}.hazards.mine", "role", "HAZARD")
+    cat = edits.set_override(cat, f"{name}.fx.explosion_6frames", "role", "EXPLOSION")
+    return edits.set_override(cat, f"{name}.props.fern", "role", "DECORATION")
+
+
+def _race_overrides(cat, edits, name):  # noqa: ANN001, ANN202
+    for n in (1, 2, 3):  # the other cars are who you race against
+        cat = edits.set_override(cat, f"{name}.cars.rival_car_{n}", "role", "ENEMY")
+    for prop in ("tree", "grandstand"):
+        cat = edits.set_override(cat, f"{name}.scenery.{prop}", "role", "DECORATION")
+    return cat
+
+
+# kind -> (folder, title, profile file, profile id, images, sounds, SOURCE.txt, the audit's edits)
+ARCADE_PACKS: dict[str, tuple] = {
+    "shmup": (SHMUP_PACK_NAME, "Star lane", "sample_shmup.rpgprofile.json",
+              "rpggen_sample_pack_shmup", SHMUP_IMAGES, sample_audio.SHMUP_FILES,
+              SHMUP_SOURCE_TEXT, None),
+    "gun": (GUN_PACK_NAME, "Jungle line", "sample_gun.rpgprofile.json",
+            "rpggen_sample_pack_gun", GUN_IMAGES, sample_audio.GUN_FILES, GUN_SOURCE_TEXT,
+            _gun_overrides),
+    "race": (RACE_PACK_NAME, "Dirt cup", "sample_race.rpgprofile.json",
+             "rpggen_sample_pack_race", RACE_IMAGES, sample_audio.RACE_FILES, RACE_SOURCE_TEXT,
+             _race_overrides),
+}  # fmt: skip
+
+
+def build_arcade_pack(kind: str, out: Path) -> Path:
+    """Write the pack of ``kind`` (``shmup``, ``gun`` or ``race``) into ``out``; returns it."""
+    _name, title, _profile, _id, images, sounds, source, _edit = ARCADE_PACKS[kind]
+    out.mkdir(parents=True, exist_ok=True)
+    for rel, make in images.items():
+        save_png(make(), out / rel)
+    for rel, make_audio in sounds.items():
+        target = out / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(make_audio())
+    licence = LICENSE_TEXT.replace("rpggen sample pack", f"{title}, an rpggen sample pack", 1)
+    (out / "LICENSE.txt").write_text(licence, encoding="utf-8", newline="\n")
+    (out / "SOURCE.txt").write_text(source, encoding="utf-8", newline="\n")
+    return out
+
+
+def build_arcade_profile(kind: str, pack: Path, profile_path: Path) -> dict:
+    """Audit the pack with the normal pipeline, confirm everything and export the profile."""
+    import os
+
+    from rpggen.core import archive, catalog, inventory, profiles
+    from rpggen.gui import edits
+
+    name, title, _profile, profile_id, _images, _sounds, _source, edit = ARCADE_PACKS[kind]
+    with tempfile.TemporaryDirectory() as cache:
+        old = os.environ.get("RPGGEN_CACHE_DIR")
+        os.environ["RPGGEN_CACHE_DIR"] = cache  # no installed profile may influence the audit
+        try:
+            opened = archive.open_pack(pack, set(), pack_id=name)
+            inv = inventory.build_inventory(opened)
+            cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [])
+        finally:
+            if old is None:
+                del os.environ["RPGGEN_CACHE_DIR"]
+            else:
+                os.environ["RPGGEN_CACHE_DIR"] = old
+    if edit is not None:
+        cat = edit(cat, edits, name)
+    cat = edits.confirm(cat, [a.id for a in cat.assets if a.status != "UNUSED"])
+    data = profiles.export_profile(
+        cat,
+        name,
+        inv,
+        {
+            "profile_id": profile_id,
+            "title": f"{title} (rpggen sample pack)",
+            "author": "rpggen",
+            "license": "CC0-1.0",
+        },
+    )
+    profiles.write_profile(data, profile_path)
+    return data
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=None)
@@ -917,7 +1694,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--side", action="store_true", help="build the side-view pack (sample_pack_side/)"
     )
+    parser.add_argument(
+        "--kind",
+        choices=sorted(ARCADE_PACKS),
+        help="build the sample pack of an arcade kind (sample_pack_shmup/, _gun/, _race/)",
+    )
     args = parser.parse_args(argv)
+    if args.kind:
+        name, _title, profile, _id, images, sounds, _source, _edit = ARCADE_PACKS[args.kind]
+        out = args.out or REPO_ROOT / name
+        build_arcade_pack(args.kind, out)
+        print(f"wrote {len(images)} images and {len(sounds)} sounds to {out}")
+        if not args.no_profile:
+            build_arcade_profile(args.kind, out, out / profile)
+            print(f"wrote {out / profile}")
+        return 0
     if args.side:
         out = args.out or REPO_ROOT / SIDE_PACK_NAME
         build_side_pack(out)

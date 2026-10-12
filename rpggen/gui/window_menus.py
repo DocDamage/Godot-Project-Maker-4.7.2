@@ -216,6 +216,7 @@ class WindowMenus:
         w = self.welcome  # type: ignore[attr-defined]
         w.trySampleRequested.connect(self.try_sample)
         w.trySideSampleRequested.connect(self.try_side_sample)
+        w.tryKindSampleRequested.connect(self.try_kind_sample)
         w.ownPackRequested.connect(self.start_own_pack)
         w.openProjectRequested.connect(self.open_project_dialog)
         w.recentChosen.connect(lambda folder: self.open_project(Path(folder)))
@@ -263,22 +264,25 @@ class WindowMenus:
         """The welcome card (T15.22): the bundled sample pack, walked through every page as
         with Next (so each writes its defaults) to the Generate page, where the run starts.
         A first start to a playable project is this click, a wait and Open in Godot."""
-        self._start_sample(side=False)
+        self._start_sample("")
 
-    def _start_sample(self, side: bool) -> None:
-        from rpggen.gui.models import project_model
-
+    def _start_sample(self, key: str) -> None:
+        """``key``: a sample of ``project_model.SAMPLES``; "" is the top-down village with
+        the kind of game left as it is."""
         self.leave_welcome()
         self.show_page(0)  # type: ignore[attr-defined]
         page = self._project_page()
         if page is None:
             return
-        if side:
-            # the Archetype page starts on the state's archetype when the walk reaches it
-            self.state.archetype = project_model.SIDE_SAMPLE_ARCHETYPE  # type: ignore[attr-defined]
+        if key:
+            from rpggen.gui.models import project_model
+
+            # the Archetype page starts on the state's kind when the walk reaches it, and the
+            # walk goes on as soon as the page has its pack
+            self.state.archetype = project_model.sample(key).archetype  # type: ignore[attr-defined]
         self.state.sample_run = True  # type: ignore[attr-defined]
         self._walk_to_generate = True  # the walk goes on when the pack has been read
-        if not (page.try_sample(side=True) if side else page.try_sample()):
+        if not (page.try_sample(key=key) if key else page.try_sample()):
             self._walk_to_generate = False  # no Godot yet, or no sample pack: the page says so
             self.state.sample_run = False  # type: ignore[attr-defined]
             return
@@ -287,7 +291,11 @@ class WindowMenus:
     def try_side_sample(self) -> None:
         """The welcome card's second entry (T14.09): the side-view pack as a metroidvania, by
         the same walk to the Generate page."""
-        self._start_sample(side=True)
+        self._start_sample("side")
+
+    def try_kind_sample(self, key: str) -> None:
+        """One of the samples of the arcade kinds (T16.17), by the same walk."""
+        self._start_sample(key)
 
     def start_own_pack(self) -> None:
         self.leave_welcome()

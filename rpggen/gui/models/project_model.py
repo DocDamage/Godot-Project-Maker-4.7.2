@@ -32,6 +32,90 @@ SAMPLE_PROFILE = "sample.rpgprofile.json"
 SIDE_SAMPLE_NAME = "Sample Cave"
 SIDE_SAMPLE_PROFILE = "sample_side.rpgprofile.json"
 SIDE_SAMPLE_ARCHETYPE = "metroidvania"
+
+
+@dataclass(frozen=True)
+class Sample:
+    """A bundled sample pack and the game it is tried as."""
+
+    key: str
+    label: str  # in the menus
+    tooltip: str
+    folder: str  # beside the template project
+    profile: str  # the audit of the pack, in its folder
+    name: str  # of the project
+    archetype: str
+
+
+# The five samples, in the order of the kinds' cards (T16.17). The first two are older.
+SAMPLES: tuple[Sample, ...] = (
+    Sample(
+        "top",
+        "Top-down village",
+        "A turn-based RPG from the village pack",
+        "sample_pack",
+        SAMPLE_PROFILE,
+        SAMPLE_NAME,
+        "turn_based",
+    ),
+    Sample(
+        "side",
+        "Side-view cave",
+        "A metroidvania from the cave pack",
+        "sample_pack_side",
+        SIDE_SAMPLE_PROFILE,
+        SIDE_SAMPLE_NAME,
+        SIDE_SAMPLE_ARCHETYPE,
+    ),
+    Sample(
+        "shmup",
+        "Star lane",
+        "A shoot 'em up from the Star lane pack",
+        "sample_pack_shmup",
+        "sample_shmup.rpgprofile.json",
+        "Star Lane",
+        "shmup",
+    ),
+    Sample(
+        "gun",
+        "Jungle line",
+        "A run and gun from the Jungle line pack",
+        "sample_pack_gun",
+        "sample_gun.rpgprofile.json",
+        "Jungle Line",
+        "run_and_gun",
+    ),
+    Sample(
+        "race",
+        "Dirt cup",
+        "A racing game from the Dirt cup pack",
+        "sample_pack_race",
+        "sample_race.rpgprofile.json",
+        "Dirt Cup",
+        "racing",
+    ),
+)
+
+
+def sample(key: str) -> Sample:
+    """The sample with ``key``; the top-down village for a key that is not one."""
+    return next((s for s in SAMPLES if s.key == key), SAMPLES[0])
+
+
+def offered_samples() -> list[Sample]:
+    """The samples whose kind of game can be chosen (its feature flag): the sample of a kind
+    that is not offered yet is not offered either."""
+    from rpggen import features
+
+    on = {
+        "metroidvania": features.METROIDVANIA_AVAILABLE,
+        "shmup": features.SHMUP_AVAILABLE,
+        "run_and_gun": features.RUN_AND_GUN_AVAILABLE,
+        "racing": features.RACING_AVAILABLE,
+    }
+    return [s for s in SAMPLES if on.get(s.archetype, True)]
+
+
 NAME_MAX = 64
 ARCHIVE_SUFFIXES = (".zip", ".7z", ".rar")
 FORMAT_NAMES = {

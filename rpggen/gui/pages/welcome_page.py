@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rpggen import features, godot_target
+from rpggen import godot_target
 from rpggen.core import app_settings, pack_sniff
 from rpggen.gui import icons, theme, workers
 from rpggen.gui.widgets import buttons
@@ -188,6 +188,7 @@ class WelcomePage(QWidget):
 
     trySampleRequested = Signal()
     trySideSampleRequested = Signal()  # the side-view sample, as a metroidvania (T14.09)
+    tryKindSampleRequested = Signal(str)  # noqa: N815 - a sample of an arcade kind, by key
     ownPackRequested = Signal()
     openProjectRequested = Signal()  # ask for a folder
     recentChosen = Signal(str)  # a recent project's folder
@@ -392,37 +393,60 @@ class WelcomePage(QWidget):
                 item.setSizeHint(QSize(width, card.sizeHint().height()))
 
     def _add_sample_choices(self) -> None:
-        """*Choose a sample* under the sample card's description (T14.09, T15.08): a click on
-        the card is the top-down village, as before, and the button lists both samples. While
-        the metroidvania is not available the card has no such button."""
+        """*Choose a sample* under the sample card's description (T14.09, T15.08, T16.17): a
+        click on the card is the top-down village, as before, and the button lists every sample
+        whose kind of game can be chosen. While that is the village alone the card has no such
+        button."""
+        from rpggen.gui.models import project_model
+
         self.sample_menu: QMenu | None = None
         self.sample_top_action: QAction | None = None
         self.sample_side_action: QAction | None = None
+        self.sample_actions: dict[str, QAction] = {}
         self.sample_choose_button: QPushButton | None = None
-        if not features.METROIDVANIA_AVAILABLE:
+        offered = project_model.offered_samples()
+        if len(offered) < 2:
             return
         menu = QMenu(self.sample_card)
         menu.setObjectName("sampleMenu")
-        self.sample_top_action = menu.addAction(self.tr("Top-down village"))
-        self.sample_top_action.setObjectName("sampleTopDown")
-        self.sample_top_action.setToolTip(self.tr("A turn-based RPG from the village pack"))
-        self.sample_top_action.triggered.connect(self.trySampleRequested)
-        self.sample_side_action = menu.addAction(self.tr("Side-view cave"))
-        self.sample_side_action.setObjectName("sampleSideView")
-        self.sample_side_action.setToolTip(self.tr("A metroidvania from the cave pack"))
-        self.sample_side_action.triggered.connect(self.trySideSampleRequested)
+        names = {"top": "sampleTopDown", "side": "sampleSideView"}
+        for sample in offered:
+            action = menu.addAction(self.tr(sample.label))
+            action.setObjectName(names.get(sample.key, f"sample_{sample.key}"))
+            action.setToolTip(self.tr(sample.tooltip))
+            if sample.key == "top":
+                action.triggered.connect(self.trySampleRequested)
+            elif sample.key == "side":
+                action.triggered.connect(self.trySideSampleRequested)
+            else:
+                action.triggered.connect(
+                    lambda _on=False, k=sample.key: self.tryKindSampleRequested.emit(k)
+                )
+            self.sample_actions[sample.key] = action
+        self.sample_top_action = self.sample_actions.get("top")
+        self.sample_side_action = self.sample_actions.get("side")
         menu.setToolTipsVisible(True)
         self.sample_menu = menu
         self.sample_card.set_choices(menu)
         chooser = self.sample_card.add_footer(self.tr("Choose a sample"))
         chooser.setObjectName("sampleChoose")
-        chooser.setToolTip(self.tr("The top-down village or the side-view cave"))
+        two = [s.key for s in offered] == ["top", "side"]
+        chooser.setToolTip(
+            self.tr("The top-down village or the side-view cave")
+            if two
+            else self.tr("A sample pack for each kind of game")
+        )
         chooser.setMenu(menu)
         self.sample_choose_button = chooser
         self.sample_card.setToolTip(
             self.tr(
                 "Fills in the bundled sample pack, generates it and shows the result. "
                 "Choose a sample offers the side-view sample too"
+            )
+            if two
+            else self.tr(
+                "Fills in the bundled sample pack, generates it and shows the result. "
+                "Choose a sample offers a pack for each kind of game"
             )
         )
 

@@ -116,7 +116,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.14 | Racing: rivals, laps, checkpoints, pickups | M | T16.13 | done; a rival without a picture of its own is the player's car tinted (not the variant pipeline), checkpoints are at the edge of their cell, a weapon has a button of its own (`fire`), and the standings are data until the results screen of T16.15 (the notes) |
 | T16.15 | Racing: championship, results and the HUD | S | T16.14 | done; the HUD stays `racing_hud.gd`, the track map is a subclass of the minimap that draws the track, elimination is off by default, and the overlay screens and the minimap of earlier milestones were found to be misplaced and fixed (the notes) |
 | T16.16 | Wizard: cards, roles, options and previews | L | T16.07, T16.11, T16.15 | done; the grid is by the window's width, a card of the grid leaves its list out while two rows would not fit, *Arcade classic* has no *no continues* (nothing in the config counts them), the presets are in `options.py`, and the kinds stay behind their flags until the gate (the notes) |
-| T16.17 | Three sample packs and *Try the sample* | M | T16.16 | open |
+| T16.17 | Three sample packs and *Try the sample* | M | T16.16 | done; the soldier has no crouch or aim strips (the adapter does not read those words), the grapple block is only drawn, the packs' sounds are 8-bit at 11025 Hz to stay under 200 KB, and they were not generated and played here (T16.18); two schema gaps were mended (the notes) |
 | T16.18 | Smoke sequences and integration tests | M | T16.17 | open |
 | T16.19 | Documentation, screenshots and changelogs | M | T16.18 | open |
 | T16.20 | Gate (1.4.0) | M | T16.19 | open |

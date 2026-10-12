@@ -200,3 +200,156 @@ SIDE_EFFECTS = {
     "sfx/powerup.wav": powerup,
 }
 SIDE_FILES = {**FILES, **SIDE_EFFECTS}
+
+
+# ------------------------------------------------------------------- the arcade samples (T16.17)
+# Three small packs of under 200 KB each, sounds included: these files are mono, 8-bit, 11025 Hz
+# (every second sample of what the functions above make, its high byte), and their loops are one
+# bar of 2.56 s.
+
+SMALL_RATE = RATE // 2
+
+
+def to_wav_small(samples: np.ndarray) -> bytes:
+    """``samples`` (16-bit values at ``RATE``) as an 8-bit WAV of half the rate."""
+    halved = np.clip(samples[::2], -FULL - 1, FULL)
+    data = ((halved >> 8) + 128).astype(np.uint8)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(1)
+        w.setframerate(SMALL_RATE)
+        w.writeframes(data.tobytes())
+    return buf.getvalue()
+
+
+def _loop(melody: list[int], bass: list[int], step: int = 16) -> bytes:
+    """One bar: sixteen melody notes of ``step`` hundredths over four bass notes; 0 is a rest."""
+    lead = _voice("tri", [(freq, step) for freq in melody], 52, 1)
+    low = _voice("sq", [(freq, step * 4) for freq in bass], 22, 1)
+    n = min(len(lead), len(low))
+    return to_wav_small(lead[:n] + low[:n])
+
+
+def stage_theme() -> bytes:  # E minor, driving
+    melody = [330, 392, 494, 392, 330, 392, 587, 494, 440, 494, 587, 494, 392, 330, 294, 0]
+    return _loop(melody, [82, 82, 98, 73])
+
+
+def boss_theme() -> bytes:  # lower and closer together
+    melody = [220, 233, 220, 196, 220, 262, 247, 220, 196, 208, 196, 175, 196, 220, 208, 0]
+    return _loop(melody, [55, 55, 52, 49])
+
+
+def title_theme() -> bytes:  # C major, rising
+    melody = [262, 330, 392, 523, 392, 330, 392, 523, 587, 523, 392, 330, 392, 330, 262, 0]
+    return _loop(melody, [131, 98, 110, 98])
+
+
+def race_theme() -> bytes:  # G major, quick
+    melody = [392, 494, 587, 494, 392, 494, 659, 587, 523, 587, 659, 587, 494, 392, 330, 0]
+    return _loop(melody, [98, 123, 131, 147])
+
+
+def results_theme() -> bytes:
+    melody = [523, 659, 784, 659, 523, 659, 784, 1047, 784, 659, 523, 659, 784, 659, 523, 0]
+    return _loop(melody, [131, 165, 196, 131])
+
+
+def _sweep(kind: str, start: int, step: int, parts: int, hundredths: int) -> np.ndarray:
+    n = RATE * hundredths // 100 // parts
+    make = triangle if kind == "tri" else square
+    return np.concatenate([make(max(40, start + step * k), n, k * 9000) for k in range(parts)])
+
+
+def shoot() -> bytes:
+    return to_wav_small(_shaped(_sweep("sq", 1100, -120, 6, 9), 26, RATE // 200, 1))
+
+
+def explosion() -> bytes:
+    n = RATE * 32 // 100
+    return to_wav_small(
+        _shaped(noise(n, 17), 62, 30, 1) // 2 + _shaped(square(62, n), 36, 30, 1) // 3
+    )
+
+
+def bomb() -> bytes:
+    low = _sweep("sq", 180, -14, 10, 50)
+    n = len(low)
+    return to_wav_small(_shaped(noise(n, 23), 64, 30, 1) // 2 + _shaped(low, 40, 30, 1) // 3)
+
+
+def grenade() -> bytes:
+    return to_wav_small(_shaped(_sweep("tri", 520, -50, 6, 16), 44, RATE // 100, 1))
+
+
+def grapple() -> bytes:
+    click = _shaped(noise(RATE * 3 // 100, 29), 40, 10, 1) // 2
+    return to_wav_small(np.concatenate([_shaped(_sweep("sq", 500, 90, 5, 10), 24, 40, 1), click]))
+
+
+def engine() -> bytes:
+    """Half a second that loops: a low square with a slower one under it."""
+    n = RATE // 2
+    return to_wav_small(square(88, n) * 20 // 100 + square(44, n) * 14 // 100)
+
+
+def skid() -> bytes:
+    n = RATE * 24 // 100
+    return to_wav_small(
+        _shaped(noise(n, 31), 40, 200, 2) // 2 + _shaped(triangle(1240, n), 18, 200, 2)
+    )
+
+
+def bump() -> bytes:
+    n = RATE * 10 // 100
+    return to_wav_small(
+        _shaped(noise(n, 37), 50, 10, 1) // 2 + _shaped(square(70, n), 40, 10, 1) // 3
+    )
+
+
+def lap() -> bytes:
+    return to_wav_small(np.concatenate([note("tri", f, 9, 50) for f in (523, 659, 1047)]))
+
+
+def countdown() -> bytes:
+    return to_wav_small(note("sq", 660, 14, 30))
+
+
+def _small(make) -> bytes:  # noqa: ANN001 - one of the 16-bit effects above, made small
+    with wave.open(io.BytesIO(make()), "rb") as w:
+        return to_wav_small(
+            np.frombuffer(w.readframes(w.getnframes()), dtype="<i2").astype(np.int64)
+        )
+
+
+SHMUP_FILES = {
+    "music/stage_theme.wav": stage_theme,
+    "music/boss_theme.wav": boss_theme,
+    "music/title_theme.wav": title_theme,
+    "sfx/shoot.wav": shoot,
+    "sfx/explosion.wav": explosion,
+    "sfx/powerup.wav": lambda: _small(powerup),
+    "sfx/bomb.wav": bomb,
+    "sfx/hit.wav": lambda: _small(hit),
+}
+GUN_FILES = {
+    "music/stage_theme.wav": stage_theme,
+    "music/boss_theme.wav": boss_theme,
+    "sfx/shoot.wav": shoot,
+    "sfx/explosion.wav": explosion,
+    "sfx/grenade.wav": grenade,
+    "sfx/grapple.wav": grapple,
+    "sfx/jump.wav": lambda: _small(jump),
+    "sfx/weapon_pickup.wav": lambda: _small(powerup),
+}
+RACE_FILES = {
+    "music/race_theme.wav": race_theme,
+    "music/results_theme.wav": results_theme,
+    "sfx/engine.wav": engine,
+    "sfx/skid.wav": skid,
+    "sfx/bump.wav": bump,
+    "sfx/pickup.wav": lambda: _small(coin),
+    "sfx/lap.wav": lap,
+    "sfx/countdown.wav": countdown,
+}

@@ -51,6 +51,9 @@ Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]
   must be at least `len(abilities) + 3`. As for a starter map, only the keys that differ from the
   defaults are written.
 * `starter` may have `boss` (the guardian's sprite, role `BOSS`); `building` is not used.
+* For the arcade kinds (M16) `starter` may have `vehicle` (the car of a racing game, role
+  `VEHICLE`), `projectile` and `explosion`: the keys the Mapping page writes for those roles
+  since T16.03 (the schema takes them since T16.17).
 * `sounds` has four more fixed slots: `sfx_jump`, `sfx_land`, `sfx_dash`, `sfx_ability`. In the
   other archetypes a slot of such a name is a custom slot.
 
@@ -427,6 +430,8 @@ All three files share this shape:
 * A profile matches when the fraction of `required_files` present with an identical hash is at least `min_match`.
 * `required_files` holds up to 20 files, chosen as the largest images.
 * Profiles never contain image data.
+* The partial Facets of an asset may have `headings` and `heading_order` (T16.17): a profile
+  of a pack with a vehicle in N headings says so, as the catalog does (T16.02).
 
 ---
 
@@ -519,6 +524,8 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `rooms` | world_plan | T14.06 |
 | `abilities`, `broken_cells`, `room_fog` | save game | T14.05, T14.08 |
 | `summary.map.world`, `summary.map.rooms`; repair kind `exit` | command-line documents | T14.10, T14.06 |
+| `assets.<file>.headings`, `heading_order` | pack profile | T16.17 |
+| `starter.vehicle`, `starter.projectile`, `starter.explosion` | generator_config | T16.03, T16.17 |
 | `summary.map.stages`; `summary.archetype` takes `shmup`, `run_and_gun`, `racing` | command-line documents | T16.16 |
 
 ---

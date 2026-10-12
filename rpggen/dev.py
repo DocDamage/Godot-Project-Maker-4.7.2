@@ -75,6 +75,15 @@ def synthetic_packs() -> list[Path]:
 
 
 SIDE_SAMPLE = "sample_pack_side"
+# the sample packs that have a golden catalog
+SAMPLE_GOLDENS = (SIDE_SAMPLE, "sample_pack_shmup", "sample_pack_gun", "sample_pack_race")
+# the sample a kind of game is laid out (and tried) with; the others take the first
+KIND_SAMPLES = {
+    "metroidvania": SIDE_SAMPLE,
+    "shmup": "sample_pack_shmup",
+    "run_and_gun": "sample_pack_gun",
+    "racing": "sample_pack_race",
+}
 
 
 def update_goldens() -> int:
@@ -94,16 +103,15 @@ def update_goldens() -> int:
             with open(target, "w", encoding="utf-8", newline="\n") as fh:
                 fh.write(jsonio.dumps(cat.to_json()))
             print(f"wrote {pack_path.stem}.catalog.json")
-        # the side-view sample pack has its own golden (T14.09); the top-down one never had
-        side = REPO_ROOT / SIDE_SAMPLE
-        opened = archive.open_pack(side, set(), pack_id=SIDE_SAMPLE)
-        inv = inventory.build_inventory(opened)
-        cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [], use_cache=False)
-        with open(
-            golden / f"{SIDE_SAMPLE}.catalog.json", "w", encoding="utf-8", newline="\n"
-        ) as fh:
-            fh.write(jsonio.dumps(cat.to_json()))
-        print(f"wrote {SIDE_SAMPLE}.catalog.json")
+        # the side-view sample pack has its own golden (T14.09), and so have the three of the
+        # arcade kinds (T16.17); the top-down one never had
+        for name in SAMPLE_GOLDENS:
+            opened = archive.open_pack(REPO_ROOT / name, set(), pack_id=name)
+            inv = inventory.build_inventory(opened)
+            cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [], use_cache=False)
+            with open(golden / f"{name}.catalog.json", "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(jsonio.dumps(cat.to_json()))
+            print(f"wrote {name}.catalog.json")
     return 0
 
 
@@ -166,9 +174,8 @@ def layout_state(archetype: str, scratch: Path):  # noqa: ANN201 - WizardState, 
     from rpggen.gui import workers
     from rpggen.gui.state import WizardState
 
-    # a kind seen from the side is laid out with the pack made for one: the side-view sample
-    side = archetype in config.SIDE_VIEW_KINDS
-    sample = paths.sample_pack_side_root() if side else paths.sample_pack_root()
+    # a kind is laid out with the pack that is made for it: its sample
+    sample = paths.sample_pack_dir(KIND_SAMPLES.get(archetype, "sample_pack"))
     state = WizardState(project_name="Layout check", pack_sources=[sample], archetype=archetype)
     workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
     ref = config.PackRef(sample.name, str(sample), "0" * 64, "folder")

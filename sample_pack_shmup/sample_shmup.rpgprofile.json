@@ -1,0 +1,542 @@
+{
+  "assets": {
+    "asteroids/asteroid_1.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "origin": [
+        12,
+        23
+      ],
+      "role": "HAZARD",
+      "size": [
+        24,
+        24
+      ],
+      "tags": [
+        "asteroid"
+      ],
+      "usage": "sprite"
+    },
+    "asteroids/asteroid_2.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "HAZARD",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "asteroid"
+      ],
+      "usage": "sprite"
+    },
+    "backgrounds/stars_far.png": {
+      "role": "BACKGROUND",
+      "size": [
+        128,
+        256
+      ],
+      "tags": [
+        "parallax:1"
+      ],
+      "usage": "background"
+    },
+    "backgrounds/stars_near.png": {
+      "role": "BACKGROUND",
+      "size": [
+        128,
+        256
+      ],
+      "tags": [
+        "parallax:3"
+      ],
+      "usage": "background"
+    },
+    "boss/boss_ship.png": {
+      "frame": [
+        64,
+        48
+      ],
+      "origin": [
+        32,
+        47
+      ],
+      "role": "BOSS",
+      "size": [
+        64,
+        48
+      ],
+      "tags": [
+        "ship"
+      ],
+      "usage": "sprite"
+    },
+    "bullets/bullet.png": {
+      "frame": [
+        8,
+        8
+      ],
+      "origin": [
+        4,
+        7
+      ],
+      "role": "PROJECTILE",
+      "size": [
+        8,
+        8
+      ],
+      "tags": [
+        "bullet"
+      ],
+      "usage": "sprite"
+    },
+    "bullets/laser.png": {
+      "frame": [
+        8,
+        8
+      ],
+      "origin": [
+        4,
+        7
+      ],
+      "role": "PROJECTILE",
+      "size": [
+        8,
+        8
+      ],
+      "tags": [
+        "bullet"
+      ],
+      "usage": "sprite"
+    },
+    "bullets/missile.png": {
+      "frame": [
+        8,
+        8
+      ],
+      "origin": [
+        4,
+        7
+      ],
+      "role": "PROJECTILE",
+      "size": [
+        8,
+        8
+      ],
+      "tags": [
+        "bullet"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/carrier_ship.png": {
+      "frame": [
+        32,
+        24
+      ],
+      "origin": [
+        16,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        32,
+        24
+      ],
+      "tags": [
+        "ship"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/enemy_ship_1.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        24,
+        24
+      ],
+      "tags": [
+        "ship"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/enemy_ship_2.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        24,
+        24
+      ],
+      "tags": [
+        "ship"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/enemy_ship_3.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        24,
+        24
+      ],
+      "tags": [
+        "ship"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/enemy_ship_4.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        24,
+        24
+      ],
+      "tags": [
+        "ship"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/turret.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        24,
+        24
+      ],
+      "tags": [
+        "turret"
+      ],
+      "usage": "sprite"
+    },
+    "fx/explosion_6frames.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 4.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              5,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        12,
+        23
+      ],
+      "role": "EXPLOSION",
+      "size": [
+        144,
+        24
+      ],
+      "tags": [
+        "explosion"
+      ],
+      "usage": "sprite"
+    },
+    "music/boss_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/stage_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/title_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "powerups/capsule_1.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "POWERUP",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "powerup"
+      ],
+      "usage": "sprite"
+    },
+    "powerups/capsule_2.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "POWERUP",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "powerup"
+      ],
+      "usage": "sprite"
+    },
+    "powerups/capsule_3.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "POWERUP",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "powerup"
+      ],
+      "usage": "sprite"
+    },
+    "sfx/bomb.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/explosion.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/hit.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/powerup.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/shoot.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "ships/player_ship.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        12,
+        22
+      ],
+      "role": "PLAYER",
+      "size": [
+        72,
+        24
+      ],
+      "tags": [
+        "ship"
+      ],
+      "usage": "sprite"
+    },
+    "ui/panel.png": {
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "role": "UI",
+      "size": [
+        48,
+        48
+      ],
+      "usage": "sprite"
+    }
+  },
+  "author": "rpggen",
+  "fingerprint": {
+    "min_match": 0.8,
+    "required_files": {
+      "asteroids/asteroid_1.png": "16b5b7c2a56eb20b28b3c646dd983abca4d9945aca023348e73646c4fedad1fc",
+      "asteroids/asteroid_2.png": "ce53e651ac8114e2802f8eedb96d19bc32014ad797da11deab4cfe8454727c69",
+      "backgrounds/stars_far.png": "14adf6a8268423e6ebc352e08b324e1e80ba51628ef3ea557bc8833f99928d67",
+      "backgrounds/stars_near.png": "3db1bdb1175dd60674eb22f20404be20df5204ade73d0da6c8066539a13f9294",
+      "boss/boss_ship.png": "7a032a62e00ddbcb1f84101ef6ae768f543d1f56182f67448722f8d97c059579",
+      "bullets/bullet.png": "da6c54a5b07b6a50f024ad716ea9d714481a8bab1184722977bc67e6b56f9e5b",
+      "bullets/laser.png": "23afc32471b68a7b5334132a9dddb4c68fbfa4cea1f4b7760752b61a1cf9f346",
+      "bullets/missile.png": "98a470f6be13f2d926cc08651d5293e3eb1ad0a9d02dfd7fdd5d95c93d9391ed",
+      "enemies/carrier_ship.png": "73fc0f256ebf590316cbd43c29d381e306c1a390639af4815810b362e02e7e49",
+      "enemies/enemy_ship_1.png": "8faceae5044d5543f78174d2da1433f651be51c95df99539809c6794c54d8086",
+      "enemies/enemy_ship_2.png": "9b69ffccebcb688be119f782d047a05a7f5076122af7b158c93dc4d136c5ab64",
+      "enemies/enemy_ship_3.png": "b71911873030e75d8dc0cf082b1bda634fd746f534b1ac936faf396811283061",
+      "enemies/enemy_ship_4.png": "eec138da49c2151f7e6df3194483c030e82de7ce841607b1519385612fe4d8ce",
+      "enemies/turret.png": "30742dce77e514f0f9bf2d4ab6cd339bdb8c19c614f1a24e1045811c13b91290",
+      "fx/explosion_6frames.png": "27dd2cd5be28578121a23f767e3de5f4cb9b495f7a694c5ba299134354099605",
+      "powerups/capsule_1.png": "27d2ca7be5d06af7893f2abdeb4557c662c439697df6c7d52ec1767cec32c238",
+      "powerups/capsule_2.png": "0bfdbc275cd8717e7ea659976436edfff67a51be32702023f513b83522cb86db",
+      "powerups/capsule_3.png": "4d8064b1e0a08e6172d118faf3fb6adbdff3bb41b9ffa4bd6526e648cb46e68f",
+      "ships/player_ship.png": "239d0c54475491d421fa4ece71f6b31bd3b674f931a6063df94827ec271ab5e7",
+      "ui/panel.png": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7"
+    }
+  },
+  "folder_rules": [],
+  "license": "CC0-1.0",
+  "objects": [],
+  "profile_id": "rpggen_sample_pack_shmup",
+  "profile_version": 1,
+  "tilesets": [],
+  "title": "Star lane (rpggen sample pack)"
+}

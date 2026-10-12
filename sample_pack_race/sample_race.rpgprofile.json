@@ -1,0 +1,471 @@
+{
+  "assets": {
+    "cars/player_car.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "heading_order": "up_cw",
+      "headings": 16,
+      "origin": [
+        12,
+        23
+      ],
+      "role": "VEHICLE",
+      "size": [
+        384,
+        24
+      ],
+      "tags": [
+        "car"
+      ],
+      "usage": "sprite"
+    },
+    "cars/rival_car_1.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "heading_order": "up_cw",
+      "headings": 16,
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        384,
+        24
+      ],
+      "tags": [
+        "car"
+      ],
+      "usage": "sprite"
+    },
+    "cars/rival_car_2.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "heading_order": "up_cw",
+      "headings": 16,
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        384,
+        24
+      ],
+      "tags": [
+        "car"
+      ],
+      "usage": "sprite"
+    },
+    "cars/rival_car_3.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "heading_order": "up_cw",
+      "headings": 16,
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        384,
+        24
+      ],
+      "tags": [
+        "car"
+      ],
+      "usage": "sprite"
+    },
+    "hazards/oil.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "HAZARD",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "oil"
+      ],
+      "usage": "sprite"
+    },
+    "music/race_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/results_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "pickups/boost.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "POWERUP",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "boost"
+      ],
+      "usage": "sprite"
+    },
+    "pickups/pickup_bomb.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "pickups/pickup_shield.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "pickups/pickup_strike.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "props/cone.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "HAZARD",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "tyre"
+      ],
+      "usage": "sprite"
+    },
+    "props/tyre.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "HAZARD",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "tyre"
+      ],
+      "usage": "sprite"
+    },
+    "scenery/grandstand.png": {
+      "frame": [
+        32,
+        16
+      ],
+      "origin": [
+        16,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        32,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "scenery/tree.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "sfx/bump.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/countdown.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/engine.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/lap.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/pickup.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/skid.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "tiles/road.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "size": [
+        128,
+        32
+      ],
+      "tags": [
+        "road"
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "ui/panel.png": {
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "role": "UI",
+      "size": [
+        48,
+        48
+      ],
+      "usage": "sprite"
+    }
+  },
+  "author": "rpggen",
+  "fingerprint": {
+    "min_match": 0.8,
+    "required_files": {
+      "cars/player_car.png": "80c2013419faac77a0f59d8cc75942ba8032120f2a5bb3b991d4dcae1097e6bb",
+      "cars/rival_car_1.png": "980fc32e44bbdb1383bbb394f27a2e768ac9d18859d690e03606e41c02130f81",
+      "cars/rival_car_2.png": "6ad1734e7e7e7cc994b2dedbe32ec19b003ad98e155c69f980c1e2bbfa2dcfaf",
+      "cars/rival_car_3.png": "16697265d101b14dd3824b474fd485847559678b1d94e741d0a5bc59514d2ff8",
+      "hazards/oil.png": "d9d3a81d3bf04bf8058934eede32d61acc39a7d8da674bc5d5b9700e0ec630b8",
+      "pickups/boost.png": "02e78e05ede876ae0867dbd6ed0ac1f338bad28e127ac2bb757fe988192423f7",
+      "pickups/pickup_bomb.png": "879a2d920c114445cf4cbe36adea0fa3aee893442286b9d905dd645175de698b",
+      "pickups/pickup_shield.png": "29a0e3da54c04ca442bbfe254d3432991595fa11c896032720a16c7fdc266120",
+      "pickups/pickup_strike.png": "0f3e88af3f076d2b9c96f718e5d0436a72b290dd121e282a309a48e5e68c066d",
+      "props/cone.png": "d5161d14013128250b10c5ea7ad3e8d45d52ec85c901a92c0e1c038d2ce725fa",
+      "props/tyre.png": "a630604391d86fe03178c7097db8910489cf81ab8ed8d7c274142049b59d5af4",
+      "scenery/grandstand.png": "4e66e08f107b074a910eb653d7d469a22cd5bc9dca5878969ccb81e326b08a30",
+      "scenery/tree.png": "16e4558cc1ea8a52ae9cb9abfbfc06eeb626259e31bb66678e45863676c5421b",
+      "tiles/road.png": "74fe64d64c60995b5b1f12b639ce7fc13f5ef2f5b3f4da9c79ccfff3f8a1025d",
+      "ui/panel.png": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7"
+    }
+  },
+  "folder_rules": [],
+  "license": "CC0-1.0",
+  "objects": [],
+  "profile_id": "rpggen_sample_pack_race",
+  "profile_version": 1,
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "tiles/road.png"
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ],
+  "title": "Dirt cup (rpggen sample pack)"
+}

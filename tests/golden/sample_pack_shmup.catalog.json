@@ -1,0 +1,918 @@
+{
+  "assets": [
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "HAZARD",
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "asteroid"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.asteroids.asteroid_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/asteroids/asteroid_1.png",
+      "sha256": "16b5b7c2a56eb20b28b3c646dd983abca4d9945aca023348e73646c4fedad1fc",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "HAZARD",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "asteroid"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.asteroids.asteroid_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/asteroids/asteroid_2.png",
+      "sha256": "ce53e651ac8114e2802f8eedb96d19bc32014ad797da11deab4cfe8454727c69",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          128,
+          256
+        ],
+        "tags": [
+          "parallax:1"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.backgrounds.stars_far",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/backgrounds/stars_far.png",
+      "sha256": "14adf6a8268423e6ebc352e08b324e1e80ba51628ef3ea557bc8833f99928d67",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "role": "BACKGROUND",
+        "size": [
+          128,
+          256
+        ],
+        "tags": [
+          "parallax:3"
+        ],
+        "usage": "background"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.backgrounds.stars_near",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/backgrounds/stars_near.png",
+      "sha256": "3db1bdb1175dd60674eb22f20404be20df5204ade73d0da6c8066539a13f9294",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          64,
+          48
+        ],
+        "origin": [
+          32,
+          47
+        ],
+        "role": "BOSS",
+        "size": [
+          64,
+          48
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.boss.boss_ship",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/boss/boss_ship.png",
+      "sha256": "7a032a62e00ddbcb1f84101ef6ae768f543d1f56182f67448722f8d97c059579",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          8,
+          8
+        ],
+        "origin": [
+          4,
+          7
+        ],
+        "role": "PROJECTILE",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          8,
+          8
+        ],
+        "tags": [
+          "bullet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.bullets.bullet",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/bullets/bullet.png",
+      "sha256": "da6c54a5b07b6a50f024ad716ea9d714481a8bab1184722977bc67e6b56f9e5b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          8,
+          8
+        ],
+        "origin": [
+          4,
+          7
+        ],
+        "role": "PROJECTILE",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          8,
+          8
+        ],
+        "tags": [
+          "bullet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.bullets.laser",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/bullets/laser.png",
+      "sha256": "23afc32471b68a7b5334132a9dddb4c68fbfa4cea1f4b7760752b61a1cf9f346",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          8,
+          8
+        ],
+        "origin": [
+          4,
+          7
+        ],
+        "role": "PROJECTILE",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          8,
+          8
+        ],
+        "tags": [
+          "bullet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.bullets.missile",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/bullets/missile.png",
+      "sha256": "98a470f6be13f2d926cc08651d5293e3eb1ad0a9d02dfd7fdd5d95c93d9391ed",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          32,
+          24
+        ],
+        "origin": [
+          16,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          32,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.enemies.carrier_ship",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/enemies/carrier_ship.png",
+      "sha256": "73fc0f256ebf590316cbd43c29d381e306c1a390639af4815810b362e02e7e49",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.enemies.enemy_ship_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/enemies/enemy_ship_1.png",
+      "sha256": "8faceae5044d5543f78174d2da1433f651be51c95df99539809c6794c54d8086",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.enemies.enemy_ship_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/enemies/enemy_ship_2.png",
+      "sha256": "9b69ffccebcb688be119f782d047a05a7f5076122af7b158c93dc4d136c5ab64",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.enemies.enemy_ship_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/enemies/enemy_ship_3.png",
+      "sha256": "b71911873030e75d8dc0cf082b1bda634fd746f534b1ac936faf396811283061",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.enemies.enemy_ship_4",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/enemies/enemy_ship_4.png",
+      "sha256": "eec138da49c2151f7e6df3194483c030e82de7ce841607b1519385612fe4d8ce",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          24,
+          24
+        ],
+        "origin": [
+          12,
+          23
+        ],
+        "role": "ENEMY",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "turret"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.enemies.turret",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/enemies/turret.png",
+      "sha256": "30742dce77e514f0f9bf2d4ab6cd339bdb8c19c614f1a24e1045811c13b91290",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.655172,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          23
+        ],
+        "role": "EXPLOSION",
+        "size": [
+          144,
+          24
+        ],
+        "tags": [
+          "explosion"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_shmup.fx.explosion_6frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/fx/explosion_6frames.png",
+      "sha256": "27dd2cd5be28578121a23f767e3de5f4cb9b495f7a694c5ba299134354099605",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_shmup.music.boss_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/music/boss_theme.wav",
+      "sha256": "6847e092b19193593e1480a814c5e77e260a6f1e0f3aeb1ed25e69e928a2a4dc",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_shmup.music.stage_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/music/stage_theme.wav",
+      "sha256": "304f8fa2bab73d1c37320557b38ee8dbd874ff17378a6da08a0f6377f3e06547",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_shmup.music.title_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/music/title_theme.wav",
+      "sha256": "d6f3e42a0307a0f3ade234c8839dbd445fac7de298a60bb42749496b7cda4a54",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "POWERUP",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.powerups.capsule_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/powerups/capsule_1.png",
+      "sha256": "27d2ca7be5d06af7893f2abdeb4557c662c439697df6c7d52ec1767cec32c238",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "POWERUP",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.powerups.capsule_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/powerups/capsule_2.png",
+      "sha256": "0bfdbc275cd8717e7ea659976436edfff67a51be32702023f513b83522cb86db",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "POWERUP",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "powerup"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.powerups.capsule_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/powerups/capsule_3.png",
+      "sha256": "4d8064b1e0a08e6172d118faf3fb6adbdff3bb41b9ffa4bd6526e648cb46e68f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.5,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_shmup.sfx.bomb",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/sfx/bomb.wav",
+      "sha256": "80e2ca87812ddbec90ca4c6c69fc8fe0ecc3517d5998d692c37f8f198192cec3",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.32,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_shmup.sfx.explosion",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/sfx/explosion.wav",
+      "sha256": "f88f9214d5664386c5ed18a02d9149efaef79ba9b7068fcc29b4d300f74bc3e3",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.14,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_shmup.sfx.hit",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/sfx/hit.wav",
+      "sha256": "bedaa060e9204c1e50ab60f8be09c65a2e691a98ae2a344bb82937df7654c192",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.4,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_shmup.sfx.powerup",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/sfx/powerup.wav",
+      "sha256": "2b7a47cc31343b3618783168c4d38aab94d88e0f67eb6134bb463857e1f75932",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.09,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_shmup.sfx.shoot",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/sfx/shoot.wav",
+      "sha256": "9120e1248e699be94006d44e6fadccfa0c6feb138fca08ac1a481a9d039fae8b",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          22
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ]
+        ],
+        "size": [
+          72,
+          24
+        ],
+        "tags": [
+          "ship"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.ships.player_ship",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/ships/player_ship.png",
+      "sha256": "239d0c54475491d421fa4ece71f6b31bd3b674f931a6063df94827ec271ab5e7",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          48,
+          48
+        ],
+        "origin": [
+          24,
+          47
+        ],
+        "role": "UI",
+        "size": [
+          48,
+          48
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_shmup.ui.panel",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_shmup",
+      "path": "assets/packs/sample_pack_shmup/ui/panel.png",
+      "sha256": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/sample_pack_shmup/LICENSE.txt"
+      ],
+      "pack_id": "sample_pack_shmup",
+      "profile_id": null,
+      "root": "assets/packs/sample_pack_shmup",
+      "source_sha256": "9db8a6de1a796b050140663777d84c3ed8a63f0edae415949d1d6e25f765874e",
+      "warnings": [
+        "view:shmup"
+      ]
+    }
+  ],
+  "tilesets": []
+}

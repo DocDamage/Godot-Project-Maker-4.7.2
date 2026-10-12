@@ -6,11 +6,13 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QStandardPaths, Qt, QTimer, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QPoint, QStandardPaths, Qt, QTimer, Signal
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
     QInputDialog,
+    QMenu,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -86,7 +88,10 @@ class ProjectPage(WizardPage):
         self.pack_list.on_paths_dropped = self.add_sources
         form.drop_zone.on_paths_dropped = self.add_sources
         self.pack_list.card_delegate.removeRequested.connect(self.remove_row)
-        self.sample_button.clicked.connect(self.try_sample)
+        self.sample_button.clicked.connect(self._on_sample_button)
+        self.sample_archetype = ""  # the kind of the sample that was chosen by name
+        self.sample_actions: dict[str, QAction] = {}
+        self._add_sample_menu()
 
         self._debounce = QTimer(self)
         self._debounce.setSingleShot(True)
@@ -111,6 +116,37 @@ class ProjectPage(WizardPage):
 
     # ------------------------------------------------------------------ sample pack
 
+    def _add_sample_menu(self) -> None:
+        """The sample button lists the samples the welcome view offers (T16.17): with more
+        than one on offer a click opens the list, and an entry fills the page with its pack
+        and sets its kind of game. With one it stays the plain button."""
+        offered = model_mod.offered_samples()
+        if len(offered) < 2:
+            return
+        menu = QMenu(self.sample_button)
+        menu.setObjectName("projectSampleMenu")
+        menu.setToolTipsVisible(True)
+        for entry in offered:
+            action = menu.addAction(self.tr(entry.label))
+            action.setObjectName(f"projectSample_{entry.key}")
+            action.setToolTip(self.tr(entry.tooltip))
+            action.triggered.connect(lambda _on=False, k=entry.key: self.try_sample(key=k))
+            self.sample_actions[entry.key] = action
+        self.sample_menu = menu
+        self.sample_button.setToolTip(
+            self.tr("Fill in a bundled sample pack and go straight to the options.")
+        )
+
+    def _on_sample_button(self) -> None:
+        """The list of samples under the button, or the one sample there is."""
+        if self.sample_menu is None:
+            self.try_sample()
+            return
+        below = self.sample_button.mapToGlobal(QPoint(0, self.sample_button.height()))
+        self.sample_menu.popup(below)  # not exec: the page goes on when an entry is chosen
+
+    sample_menu: QMenu | None = None
+
     def documents_dir(self) -> Path:  # overridden by tests
         found = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
         return Path(found) if found else Path.home() / "Documents"
@@ -118,11 +154,15 @@ class ProjectPage(WizardPage):
     def sample_target(self) -> Path:
         return model_mod.sample_target(self.documents_dir())
 
-    def try_sample(self, side: bool = False) -> bool:
-        """Fill the page with the bundled sample pack; emits ``sampleReady`` when every input
-        is valid so the window can continue to the Options page. ``side`` takes the side-view
-        pack (T14.09) instead of the top-down village."""
-        sample = paths.sample_pack_side_root() if side else paths.sample_pack_root()
+    def try_sample(self, side: bool = False, key: str = "") -> bool:
+        """Fill the page with a bundled sample pack; emits ``sampleReady`` when every input
+        is valid so the window can continue to the Options page. ``key`` names the sample
+        (``project_model.SAMPLES``); without one it is the top-down village, or with ``side``
+        the side-view pack (T14.09). A sample chosen by its key also sets the kind of game."""
+        chosen = model_mod.sample(key or ("side" if side else "top"))
+        # the plain button is today's path: the kind of game stays what it was
+        self.sample_archetype = chosen.archetype if key else ""
+        sample = paths.sample_pack_dir(chosen.folder)
         if not sample.is_dir():
             QMessageBox.warning(
                 self,
@@ -130,7 +170,7 @@ class ProjectPage(WizardPage):
                 self.tr("The sample pack was not found: {0}").format(sample),
             )
             return False
-        profile = sample / (model_mod.SIDE_SAMPLE_PROFILE if side else SAMPLE_PROFILE)
+        profile = sample / chosen.profile
         if profile.is_file():
             try:
                 profiles.install_profile(profile)  # the audit of the sample is all CONFIRMED
@@ -141,7 +181,7 @@ class ProjectPage(WizardPage):
             self.pack_list.clear()
             self.pack_list.add_path(sample)
             self.target_edit.setText(str(self.sample_target()))
-            self.name_edit.setText(model_mod.SIDE_SAMPLE_NAME if side else SAMPLE_NAME)
+            self.name_edit.setText(chosen.name)
             self.model.name_touched = True
             self.model.touch_all()
         finally:

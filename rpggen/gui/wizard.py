@@ -196,7 +196,7 @@ class MainWindow(WindowMenus, QMainWindow):
             page.changed.connect(self.refresh)
             page.helpRequested.connect(self.show_user_guide)
             if isinstance(page, ProjectPage):
-                page.sampleReady.connect(lambda: self.continue_to(OPTIONS_INDEX))
+                page.sampleReady.connect(lambda p=page: self._on_sample_ready(p))
             if hasattr(page, "generateAnother"):
                 page.generateAnother.connect(self.new_project)  # type: ignore[attr-defined]
                 page.changeOptions.connect(self.change_options)  # type: ignore[attr-defined]
@@ -301,6 +301,15 @@ class MainWindow(WindowMenus, QMainWindow):
             return
         if self._leave_current():
             self.show_page(self.current_index + 1)
+
+    def _on_sample_ready(self, page) -> None:  # noqa: ANN001 - the Project page
+        """A sample filled the Project page: on to the options. A sample that was chosen by
+        its name is tried as the kind of game it is made for (the Archetype page starts on
+        the state's kind when the walk reaches it)."""
+        kind = getattr(page, "sample_archetype", "")
+        if kind:
+            self.state.archetype = kind
+        self.continue_to(OPTIONS_INDEX)
 
     def continue_to(self, index: int) -> None:
         """Press Next until page ``index`` is shown or a page stops the way (errors, a veto)."""

@@ -1,0 +1,853 @@
+{
+  "assets": {
+    "backgrounds/bg_far.png": {
+      "role": "BACKGROUND",
+      "size": [
+        320,
+        180
+      ],
+      "tags": [
+        "parallax:1"
+      ],
+      "usage": "background"
+    },
+    "backgrounds/bg_near.png": {
+      "role": "BACKGROUND",
+      "size": [
+        320,
+        180
+      ],
+      "tags": [
+        "parallax:3"
+      ],
+      "usage": "background"
+    },
+    "boss/gate_attack.png": {
+      "animations": {
+        "attack_down": {
+          "fps": 12.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": false,
+          "source": "assets/packs/sample_pack_gun/boss/gate_attack.png"
+        },
+        "idle_down": {
+          "fps": 4.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_gun/boss/gate_idle.png"
+        }
+      },
+      "frame": [
+        64,
+        64
+      ],
+      "grid": {
+        "cell": [
+          64,
+          64
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        32,
+        63
+      ],
+      "role": "BOSS",
+      "size": [
+        128,
+        64
+      ],
+      "usage": "sprite"
+    },
+    "bullets/bullet.png": {
+      "frame": [
+        8,
+        8
+      ],
+      "origin": [
+        4,
+        7
+      ],
+      "role": "PROJECTILE",
+      "size": [
+        8,
+        8
+      ],
+      "tags": [
+        "bullet"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/leaper_walk.png": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_gun/enemies/leaper_walk.png"
+        }
+      },
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        96,
+        24
+      ],
+      "usage": "sprite"
+    },
+    "enemies/sniper_idle.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 4.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_gun/enemies/sniper_idle.png"
+        }
+      },
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        48,
+        24
+      ],
+      "usage": "sprite"
+    },
+    "enemies/trooper_walk.png": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_gun/enemies/trooper_walk.png"
+        }
+      },
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        96,
+        24
+      ],
+      "tags": [
+        "soldier"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/turret.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        24,
+        24
+      ],
+      "tags": [
+        "turret"
+      ],
+      "usage": "sprite"
+    },
+    "enemies/wall_cannon.png": {
+      "frame": [
+        24,
+        24
+      ],
+      "origin": [
+        12,
+        23
+      ],
+      "role": "ENEMY",
+      "size": [
+        24,
+        24
+      ],
+      "tags": [
+        "turret"
+      ],
+      "usage": "sprite"
+    },
+    "fx/explosion_6frames.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 4.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              5,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        12,
+        23
+      ],
+      "role": "EXPLOSION",
+      "size": [
+        144,
+        24
+      ],
+      "tags": [
+        "explosion"
+      ],
+      "usage": "sprite"
+    },
+    "hazards/mine.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "HAZARD",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "items/grapple_hook.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "grapple"
+      ],
+      "usage": "sprite"
+    },
+    "music/boss_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/stage_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "pickups/weapon_pickup_flame.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "POWERUP",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "powerup"
+      ],
+      "usage": "sprite"
+    },
+    "pickups/weapon_pickup_laser.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "POWERUP",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "bullet",
+        "powerup"
+      ],
+      "usage": "sprite"
+    },
+    "pickups/weapon_pickup_machinegun.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "POWERUP",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "gun",
+        "powerup"
+      ],
+      "usage": "sprite"
+    },
+    "pickups/weapon_pickup_spread.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "POWERUP",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "powerup"
+      ],
+      "usage": "sprite"
+    },
+    "props/fern.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "sfx/explosion.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/grapple.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/grenade.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/jump.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/shoot.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/weapon_pickup.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "soldier/soldier_death.png": {
+      "animations": {
+        "death_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": false,
+          "source": "assets/packs/sample_pack_gun/soldier/soldier_death.png"
+        },
+        "fall_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_gun/soldier/soldier_fall.png"
+        },
+        "hurt_down": {
+          "fps": 10.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": false,
+          "source": "assets/packs/sample_pack_gun/soldier/soldier_hurt.png"
+        },
+        "idle_down": {
+          "fps": 4.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_gun/soldier/soldier_idle.png"
+        },
+        "jump_down": {
+          "fps": 10.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": false,
+          "source": "assets/packs/sample_pack_gun/soldier/soldier_jump.png"
+        },
+        "shoot_down": {
+          "fps": 12.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": false,
+          "source": "assets/packs/sample_pack_gun/soldier/soldier_shoot.png"
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_gun/soldier/soldier_run.png"
+        }
+      },
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        12,
+        19
+      ],
+      "role": "PLAYER",
+      "size": [
+        72,
+        24
+      ],
+      "tags": [
+        "soldier"
+      ],
+      "usage": "sprite"
+    },
+    "tiles/jungle.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "size": [
+        128,
+        32
+      ],
+      "tile_overrides": {
+        "4,0": {
+          "collision": {
+            "profile": "ONE_WAY"
+          }
+        },
+        "4,1": {
+          "collision": {
+            "profile": "NONE"
+          },
+          "custom": {
+            "hazard": true
+          }
+        },
+        "5,0": {
+          "collision": {
+            "profile": "ONE_WAY"
+          }
+        },
+        "6,0": {
+          "collision": {
+            "profile": "ONE_WAY"
+          }
+        }
+      },
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "ui/panel.png": {
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "role": "UI",
+      "size": [
+        48,
+        48
+      ],
+      "usage": "sprite"
+    }
+  },
+  "author": "rpggen",
+  "fingerprint": {
+    "min_match": 0.8,
+    "required_files": {
+      "backgrounds/bg_far.png": "3a097bed986f06bcfa61fdae86484e03117b17a05be43377de601b4fe6d4a5ca",
+      "backgrounds/bg_near.png": "c743937893fad6bbc36d2cd5cc76b7bbfb654b35fac63952e8c345a425785afe",
+      "boss/gate_attack.png": "b49f525e31f44e14fa7c3096f02a571d92e3548cfc6c3a5f208853e5ea3baf57",
+      "boss/gate_idle.png": "7c45a7436559e6168bb716f4cbcbdea1321d5bf5c1b7d335612baa35854ad9c4",
+      "enemies/leaper_walk.png": "177003250c1e67f4a5d9c28c09dfa637ade743ff9b43827307af992cd775df15",
+      "enemies/sniper_idle.png": "c3d363074568faee70158955a426225c6089fb019208eb2249ab74d5a83af2a4",
+      "enemies/trooper_walk.png": "12e8daf56d1ea9d02be690118d6d04bbd38a1bee3aad4b7b65052c840d63cbc4",
+      "enemies/turret.png": "b0f3677b10cfedd0a363163d1d001913a91cc6cb060378a8ad4bf291a48f557d",
+      "enemies/wall_cannon.png": "7846ef7eefa509103d7e5bd9d14009afac89487592a1821a2997708fb2926565",
+      "fx/explosion_6frames.png": "27dd2cd5be28578121a23f767e3de5f4cb9b495f7a694c5ba299134354099605",
+      "hazards/mine.png": "338301dbea26608802320735182fcb03cd323fb6f0a4f999fa0006d72d58f0e6",
+      "soldier/soldier_death.png": "f367f3c44eb8ae69faf807f8d4bae6b55f939731a893118ffadbe007db8c575a",
+      "soldier/soldier_fall.png": "f3a9df0cc089436f00d8048117d57f818d610f87e97dda268936f432bf7a9e2d",
+      "soldier/soldier_hurt.png": "5c13b35c5886001015f5b8dc99878e9d283bef4312d5219a05221a4755ca67b8",
+      "soldier/soldier_idle.png": "6e3a30287e0c0c2b4dc82d3ae76c76022944fdab503a4ebe225afd90bc586faa",
+      "soldier/soldier_jump.png": "d50c00657ac7383ff30ce33a47ba01ed0f609c3b13b39bd219226b2096529c08",
+      "soldier/soldier_run.png": "4b8d21fca924669d02230c6e82be9da8fb402f46ef49b19bf5d8183de8409ecc",
+      "soldier/soldier_shoot.png": "44d00750bb812aab51a3d5a533ce69b6c0a3d77dbafcb1dd0ec8a9bec8122372",
+      "tiles/jungle.png": "e1ffca4cf0e59596de0ea6d2d4a6b6bae68a5d732e7c41963ef9feed31e2b29c",
+      "ui/panel.png": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7"
+    }
+  },
+  "folder_rules": [],
+  "license": "CC0-1.0",
+  "objects": [],
+  "profile_id": "rpggen_sample_pack_gun",
+  "profile_version": 1,
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "tiles/jungle.png"
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ],
+  "title": "Jungle line (rpggen sample pack)"
+}

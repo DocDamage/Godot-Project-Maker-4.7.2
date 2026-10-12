@@ -119,7 +119,7 @@ def window(qtbot, tmp_path, monkeypatch) -> MainWindow:
 def test_try_fills_the_page_and_jumps_to_options(qtbot, window, tmp_path) -> None:
     page = window.pages[0]
     assert page.sample_button.text() == "Try with sample pack"
-    page.sample_button.click()
+    page.sample_actions["top"].trigger()  # the button lists the samples (T16.17)
     assert window.current_index == OPTIONS_INDEX
     state = window.state
     assert state.project_name == "Sample RPG"
@@ -449,7 +449,234 @@ def test_the_project_pages_sample_button_still_stops_at_the_options(
     """A user who is in the wizard is choosing a pack, not asking for a result."""
     win = _window_with(qtbot, tmp_path, monkeypatch, available=True)
     win.welcome.own_card.click()
-    win.pages[0].sample_button.click()
+    win.pages[0].sample_actions["top"].trigger()  # the list of the button (T16.17)
     assert win.current_index == OPTIONS_INDEX and STARTED == []
     assert not win.state.sample_run
     assert win.next_button.text() == "Generate" and win.next_button.isEnabled()
+
+
+# ------------------------------------------------------------------------ the arcade samples (T16.17)
+
+# kind of the tool -> (folder, profile, the kind of game, the roles it must fill, sound slots)
+ARCADE_SAMPLES = {
+    "shmup": (
+        "sample_pack_shmup",
+        "sample_shmup.rpgprofile.json",
+        "shmup",
+        {"PLAYER", "ENEMY", "BOSS", "PROJECTILE", "EXPLOSION", "POWERUP", "HAZARD", "BACKGROUND"},
+        {"music_stage", "music_boss", "music_title", "sfx_shoot", "sfx_explosion", "sfx_bomb"},
+    ),
+    "gun": (
+        "sample_pack_gun",
+        "sample_gun.rpgprofile.json",
+        "run_and_gun",
+        {"PLAYER", "GROUND", "ENEMY", "BOSS", "PROJECTILE", "EXPLOSION", "POWERUP", "HAZARD",
+         "BACKGROUND", "DECORATION", "ITEM"},
+        {"music_stage", "music_boss", "sfx_shoot", "sfx_explosion", "sfx_grenade", "sfx_grapple"},
+    ),
+    "race": (
+        "sample_pack_race",
+        "sample_race.rpgprofile.json",
+        "racing",
+        {"VEHICLE", "GROUND", "ENEMY", "HAZARD", "POWERUP", "DECORATION"},
+        {"music_race", "music_results", "sfx_engine", "sfx_skid", "sfx_bump", "sfx_lap"},
+    ),
+}  # fmt: skip
+
+
+def _assemble(folder: str):
+    opened = archive.open_pack(ROOT / folder, set(), pack_id=folder)
+    inv = inventory.build_inventory(opened)
+    cat, issues, _gen = catalog.assemble([(opened, inv)], None, [])
+    return cat, issues
+
+
+@pytest.mark.parametrize("kind", sorted(ARCADE_SAMPLES))
+def test_an_arcade_sample_is_cc0_documented_small_and_what_the_tool_makes(
+    tmp_path: Path, kind: str
+) -> None:
+    folder, profile, _archetype, _roles, _slots = ARCADE_SAMPLES[kind]
+    pack = ROOT / folder
+    assert paths.sample_pack_dir(folder) == pack and pack.is_dir()
+    assert "CC0" in (pack / "LICENSE.txt").read_text(encoding="utf-8")
+    source = (pack / "SOURCE.txt").read_text(encoding="utf-8")
+    for png in pack.rglob("*.png"):
+        rel = png.relative_to(pack).as_posix()
+        stem = png.stem.split("_")[0]
+        assert (
+            rel in source
+            or f"{png.parent.name}/*.png" in source
+            or f"{png.parent.name}/{stem}_*.png" in source
+            or f"{png.parent.name}/{'_'.join(png.stem.split('_')[:2])}_*.png" in source
+        ), rel
+    size = sum(p.stat().st_size for p in pack.rglob("*") if p.is_file())
+    assert size < 200_000, f"{folder} is {size} bytes"
+    tool = _build_tool()
+    tool.build_arcade_pack(kind, tmp_path / "fresh")
+    tool.build_arcade_pack(kind, tmp_path / "again")
+    name, _title, profile_name, _id, images, sounds, _source, _edit = tool.ARCADE_PACKS[kind]
+    assert (name, profile_name) == (folder, profile)
+    assert sorted(p.relative_to(pack).as_posix() for p in pack.rglob("*.png")) == sorted(images)
+    assert sorted(p.relative_to(pack).as_posix() for p in pack.rglob("*.wav")) == sorted(sounds)
+    for rel in images:
+        a = Image.open(pack / rel).convert("RGBA")
+        b = Image.open(tmp_path / "fresh" / rel).convert("RGBA")
+        assert a.size == b.size and ImageChops.difference(a, b).getbbox() is None, rel
+        assert (tmp_path / "fresh" / rel).read_bytes() == (tmp_path / "again" / rel).read_bytes()
+    for rel in sounds:
+        assert (pack / rel).read_bytes() == (tmp_path / "fresh" / rel).read_bytes(), rel
+    for text in ("LICENSE.txt", "SOURCE.txt"):
+        assert (pack / text).read_bytes() == (tmp_path / "fresh" / text).read_bytes(), text
+
+
+@pytest.mark.parametrize("kind", sorted(ARCADE_SAMPLES))
+def test_an_arcade_sample_is_catalogued_without_an_edit(kind: str) -> None:
+    """The golden holds, and with the pack's own profile (what *Try the sample* installs) the
+    audit is all confirmed and the kind has nothing to draw and nothing to ask for."""
+    from rpggen import jsonio
+    from rpggen.core import arcade_kit, sound_slots
+
+    folder, profile, archetype, roles, slots = ARCADE_SAMPLES[kind]
+    cat, _issues = _assemble(folder)
+    golden = ROOT / "tests" / "golden" / f"{folder}.catalog.json"
+    assert jsonio.dumps(cat.to_json()) == golden.read_text(encoding="utf-8")
+    ref = config.PackRef(folder, str(ROOT / folder), "0" * 64, "folder")
+    cfg = config.default_for("Sample", [ref], archetype=archetype)
+    # without the profile nothing stops a run: at most a note
+    plain = requirements.check(cat, cfg)
+    assert [i.code for i in plain if i.severity is Severity.ERROR] == []
+
+    profiles.install_profile(ROOT / folder / profile)
+    cat, issues = _assemble(folder)
+    assert {a.status for a in cat.assets} == {"CONFIRMED"}
+    assert cat.packs[0].profile_id == f"rpggen_{folder}"
+    assert [i.code for i in issues if i.severity is not Severity.INFO] == []
+    assert roles <= {catalog.effective(a)["role"] for a in cat.assets}
+    assert requirements.check(cat, cfg) == [], "no note at all: nothing is missing or drawn"
+    assert arcade_kit.lacking(cat, archetype) == []
+    assert mapping.missing_required(cat, archetype, set()) == []
+    filled = sound_slots.default_sounds(cat, archetype)
+    assert slots <= set(filled), sorted(slots - set(filled))
+
+
+def test_what_each_arcade_sample_is_made_of() -> None:
+    star, _i = _assemble("sample_pack_shmup")
+    assert catalog.VIEW_SHMUP in star.packs[0].warnings
+    ship = catalog.effective(star.asset("sample_pack_shmup.ships.player_ship"))
+    assert ship["role"] == "PLAYER" and ship["frame"] == [24, 24]
+    enemies = [a for a in star.assets if catalog.effective(a)["role"] == "ENEMY"]
+    assert len(enemies) == 6
+    layers = sorted(t for a in star.assets for t in a.detected.get("tags", []) if "parallax" in t)
+    assert layers == ["parallax:1", "parallax:3"]
+
+    profiles.install_profile(ROOT / "sample_pack_gun" / "sample_gun.rpgprofile.json")
+    jungle, _i = _assemble("sample_pack_gun")
+    assert catalog.pack_view(jungle.packs[0]) == "side"
+    soldier = next(a for a in jungle.assets if catalog.effective(a)["role"] == "PLAYER")
+    assert sorted(catalog.effective(soldier)["animations"]) == [
+        "death_down", "fall_down", "hurt_down", "idle_down", "jump_down", "shoot_down",
+        "walk_down",
+    ]  # fmt: skip
+    assert requirements.missing_air_animations(soldier) == []
+    assert len([a for a in jungle.assets if catalog.effective(a)["role"] == "ENEMY"]) == 5
+    boss = next(a for a in jungle.assets if catalog.effective(a)["role"] == "BOSS")
+    assert catalog.effective(boss)["frame"] == [64, 64]
+    assert sorted(catalog.effective(boss)["animations"]) == ["attack_down", "idle_down"]
+    weapons = [a.id.rsplit("_", 1)[-1] for a in jungle.assets if ".pickups." in a.id]
+    assert sorted(weapons) == ["flame", "laser", "machinegun", "spread"]
+    hook = jungle.asset("sample_pack_gun.items.grapple_hook")
+    assert catalog.effective(hook)["role"] == "ITEM" and "grapple" in hook.detected["tags"]
+    tiles = catalog.effective(jungle.asset("sample_pack_gun.tiles.jungle"))["tile_overrides"]
+    assert [k for k, v in tiles.items() if v.get("collision") == {"profile": "ONE_WAY"}] == [
+        "4,0", "5,0", "6,0",
+    ]  # fmt: skip
+    assert tiles["4,1"]["custom"] == {"hazard": True}
+
+    profiles.install_profile(ROOT / "sample_pack_race" / "sample_race.rpgprofile.json")
+    dirt, _i = _assemble("sample_pack_race")
+    assert catalog.VIEW_RACING in dirt.packs[0].warnings
+    car = catalog.effective(dirt.asset("sample_pack_race.cars.player_car"))
+    assert car["role"] == "VEHICLE" and car["headings"] == 16 and car["frame"] == [24, 24]
+    rivals = [a for a in dirt.assets if catalog.effective(a)["role"] == "ENEMY"]
+    assert len(rivals) == 3 and all(catalog.effective(a)["headings"] == 16 for a in rivals)
+    road = dirt.asset("sample_pack_race.tiles.road")
+    assert catalog.effective(road)["role"] == "GROUND" and "road" in road.detected["tags"]
+    assert mapping.default_starter(dirt, "racing")["vehicle"] == "sample_pack_race.cars.player_car"
+
+
+def _all_kinds_on(monkeypatch) -> None:
+    from rpggen import features
+
+    for flag in ("SHMUP_AVAILABLE", "RUN_AND_GUN_AVAILABLE", "RACING_AVAILABLE"):
+        monkeypatch.setattr(features, flag, True)
+
+
+FIVE = ["Top-down village", "Side-view cave", "Star lane", "Jungle line", "Dirt cup"]
+
+
+def test_the_samples_that_are_offered_follow_the_kinds_that_can_be_chosen(monkeypatch) -> None:
+    from rpggen import features
+    from rpggen.gui.models import project_model
+
+    monkeypatch.setattr(features, "METROIDVANIA_AVAILABLE", True)
+    assert [s.label for s in project_model.offered_samples()] == FIVE[:2]
+    monkeypatch.setattr(features, "RACING_AVAILABLE", True)
+    assert [s.key for s in project_model.offered_samples()] == ["top", "side", "race"]
+    _all_kinds_on(monkeypatch)
+    assert [s.label for s in project_model.offered_samples()] == FIVE
+    assert [s.archetype for s in project_model.SAMPLES] == [
+        "turn_based", "metroidvania", "shmup", "run_and_gun", "racing",
+    ]  # fmt: skip
+    for sample in project_model.SAMPLES:
+        pack = paths.sample_pack_dir(sample.folder)
+        assert pack.is_dir() and (pack / sample.profile).is_file(), sample.key
+    assert project_model.sample("nothing").key == "top"
+
+
+@pytest.mark.parametrize(
+    ("key", "folder", "name", "archetype"),
+    [
+        ("shmup", "sample_pack_shmup", "Star Lane", "shmup"),
+        ("gun", "sample_pack_gun", "Jungle Line", "run_and_gun"),
+        ("race", "sample_pack_race", "Dirt Cup", "racing"),
+    ],
+)
+def test_the_welcome_menu_lists_five_and_each_lands_on_its_kind(
+    qtbot, tmp_path, monkeypatch, key: str, folder: str, name: str, archetype: str
+) -> None:
+    _all_kinds_on(monkeypatch)
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True)
+    welcome = win.welcome
+    menu = welcome.sample_card.menu()
+    assert menu is not None and [a.text() for a in menu.actions()] == FIVE
+    assert welcome.sample_choose_button.toolTip() == "A sample pack for each kind of game"
+    welcome.sample_actions[key].trigger()
+    assert not win.welcome_visible and win.current_index == GENERATE_INDEX
+    state = win.state
+    assert [state] == STARTED and state.sample_run
+    assert state.pack_sources == [ROOT / folder] and state.project_name == name
+    assert state.archetype == archetype
+    assert state.config is not None and state.config.archetype == archetype
+    assert state.config.input == config.default_input(archetype)
+    assert state.catalog is not None
+    assert {a.status for a in state.catalog.assets} == {"CONFIRMED"}
+    assert mapping.missing_required(state.catalog, archetype, set(state.placeholders)) == []
+
+
+def test_the_project_pages_sample_button_offers_the_same_list(qtbot, tmp_path, monkeypatch) -> None:
+    _all_kinds_on(monkeypatch)
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True)
+    win.welcome.own_card.click()
+    page = win.pages[0]
+    assert page.sample_menu is not None
+    assert [a.text() for a in page.sample_menu.actions()] == FIVE
+    page.sample_button.click()  # opens the list: nothing is filled in yet
+    assert page.sample_menu.isVisible() and win.current_index == 0 and win.state.catalog is None
+    page.sample_menu.close()
+    page.sample_actions["race"].trigger()
+    assert win.current_index == OPTIONS_INDEX and STARTED == []
+    assert not win.state.sample_run
+    assert win.state.archetype == "racing" and win.state.config.archetype == "racing"
+    assert win.state.pack_sources == [ROOT / "sample_pack_race"]
+    assert win.current_page.arcade_box is not None
+    assert win.current_page.arcade_box.objectName() == "racingBox"

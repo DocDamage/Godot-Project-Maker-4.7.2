@@ -696,6 +696,10 @@ class ArchetypeCard(QToolButton):
             self.grid.removeWidget(widget)
         for row in range(6):
             self.grid.setRowStretch(row, 0)
+        # a card of the grid grows with its row (the drawing takes what there is, up to its
+        # height); a card of the column is as high as what is in it
+        grows = QSizePolicy.Policy.Minimum if shape == "row" else QSizePolicy.Policy.Expanding
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, grows)
         if shape == "row":
             self.mock.setFixedSize(QSize(*MOCK_ROW_SIZE))
             self.grid.addWidget(self.mock, 0, 0, len(texts), 1, Qt.AlignmentFlag.AlignTop)
@@ -704,7 +708,7 @@ class ArchetypeCard(QToolButton):
             self.grid.setColumnStretch(0, 0)
             self.grid.setColumnStretch(1, 1)
         else:
-            self.mock.setMinimumSize(QSize(200, 64 if compact else 96))
+            self.mock.setMinimumSize(QSize(200, 48 if compact else 96))
             self.mock.setMaximumSize(QSize(16777215, MOCK_GRID_HEIGHT))
             for row, widget in enumerate((texts[0], texts[1], self.mock, *texts[2:])):
                 self.grid.addWidget(widget, row, 0)
@@ -928,7 +932,7 @@ class ArchetypePage(WizardPage):
         rows = -(-len(self.cards) // columns)
         for row in range(len(self.cards) + 1):
             # the rows of the grid share the height; under a column the room that is left
-            self.cards_grid.setRowStretch(row, int(wide and row < rows or row == rows))
+            self.cards_grid.setRowStretch(row, int(row < rows if wide else row == rows))
 
     def resizeEvent(self, event) -> None:  # noqa: ANN001, N802 - Qt override
         super().resizeEvent(event)

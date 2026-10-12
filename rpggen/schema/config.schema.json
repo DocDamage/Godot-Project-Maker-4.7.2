@@ -304,7 +304,10 @@
         "building": {"type": "string"},
         "chest": {"type": "string"},
         "portrait": {"type": "string"},
-        "boss": {"type": "string"}
+        "boss": {"type": "string"},
+        "vehicle": {"type": "string"},
+        "projectile": {"type": "string"},
+        "explosion": {"type": "string"}
       },
       "additionalProperties": false
     },
