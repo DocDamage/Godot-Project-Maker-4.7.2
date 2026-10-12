@@ -117,11 +117,11 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.15 | Racing: championship, results and the HUD | S | T16.14 | done; the HUD stays `racing_hud.gd`, the track map is a subclass of the minimap that draws the track, elimination is off by default, and the overlay screens and the minimap of earlier milestones were found to be misplaced and fixed (the notes) |
 | T16.16 | Wizard: cards, roles, options and previews | L | T16.07, T16.11, T16.15 | done; the grid is by the window's width, a card of the grid leaves its list out while two rows would not fit, *Arcade classic* has no *no continues* (nothing in the config counts them), the presets are in `options.py`, and the kinds stay behind their flags until the gate (the notes) |
 | T16.17 | Three sample packs and *Try the sample* | M | T16.16 | done; the soldier has no crouch or aim strips (the adapter does not read those words), the grapple block is only drawn, the packs' sounds are 8-bit at 11025 Hz to stay under 200 KB, and they were not generated and played here (T16.18); two schema gaps were mended (the notes) |
-| T16.18 | Smoke sequences and integration tests | M | T16.17 | open |
-| T16.19 | Documentation, screenshots and changelogs | M | T16.18 | open |
-| T16.20 | Gate (1.4.0) | M | T16.19 | open |
-| T16.21 | What the real packs need: numbered frames, `.aseprite` sources, names with sizes, engine duplicates | M | — | open: the core of every point and the three synthetic packs are done; the rest of the wizard's side of it (variants as one card, the pack card's words), `.aseprite` pixels and the *Done when* on the real packs are not (the notes have the table) |
-| T16.22 | A bundle of packs: choosing which to add | M | T16.21 | open |
+| T16.18 | Smoke sequences and integration tests | M | T16.17 | done on Windows; the three jobs have not run on CI or on Ubuntu, and the save step of a shoot 'em up needs a second stage (the notes) |
+| T16.19 | Documentation, screenshots and changelogs | M | T16.18 | done; the run and gun got the section of the generated README it lacked (the notes) |
+| T16.20 | Gate (1.4.0) | M | T16.19 | open: the flags are on and the suites were run locally on Windows; CI, the frozen build, the upgrade test, the corpus and every manual row are not done, and `v1.4.0` is not tagged (the notes) |
+| T16.21 | What the real packs need: numbered frames, `.aseprite` sources, names with sizes, engine duplicates | M | — | every point of the spec is implemented with its tests, but for the colour variants in the editor dock; the *Done when* on the six real packs was last measured before the twelfth part and was not met then (the notes have the table) |
+| T16.22 | A bundle of packs: choosing which to add | M | T16.21 | done for archives; a bundle that is a folder has no group, the Audit page still names the licence per pack, and the real *CuteSCKR* archive was not run (the notes) |
 
 ---
 

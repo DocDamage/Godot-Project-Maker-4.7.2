@@ -142,12 +142,20 @@ FLOWS = {
 }
 
 
-def _arcade_on(monkeypatch) -> None:
+def _arcade_on(monkeypatch, on: bool = True) -> None:
     for flag in ("SHMUP_AVAILABLE", "RUN_AND_GUN_AVAILABLE", "RACING_AVAILABLE"):
-        monkeypatch.setattr(features, flag, True)
+        monkeypatch.setattr(features, flag, on)
 
 
-def test_there_are_six_cards_and_a_kind_behind_its_flag_cannot_be_chosen(qtbot) -> None:
+def test_the_three_arcade_kinds_are_on_since_the_gate_of_1_4() -> None:
+    assert features.SHMUP_AVAILABLE and features.RUN_AND_GUN_AVAILABLE
+    assert features.RACING_AVAILABLE
+
+
+def test_there_are_six_cards_and_a_kind_behind_its_flag_cannot_be_chosen(
+    qtbot, monkeypatch
+) -> None:
+    _arcade_on(monkeypatch, False)
     state = WizardState(archetype="racing")
     page = _page(qtbot, state)
     assert list(page.cards) == ["turn_based", "arpg", "metroidvania", *ARCADE]
@@ -265,6 +273,7 @@ def test_a_pack_made_for_a_kind_points_at_its_card(qtbot, monkeypatch) -> None:
     assert archetype_page.pack_kind_of(racer) == "racing"
     assert archetype_page.pack_kind_of(shooter) == "shmup"
     assert archetype_page.pack_kind_of(gunner) == "" and archetype_page.pack_kind_of(None) == ""
+    _arcade_on(monkeypatch, False)
     off = _page(qtbot, WizardState(catalog=racer))
     assert off.view_hint.isHidden(), "the card cannot be chosen: nothing points at it"
     _arcade_on(monkeypatch)

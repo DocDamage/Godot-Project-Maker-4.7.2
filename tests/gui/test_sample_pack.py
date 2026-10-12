@@ -271,10 +271,14 @@ def test_the_side_profile_confirms_the_audit_and_names_the_special_tiles() -> No
 # ------------------------------------------------------------------------ the two entries
 
 
-def _window_with(qtbot, tmp_path, monkeypatch, available: bool) -> MainWindow:
+def _window_with(qtbot, tmp_path, monkeypatch, available: bool, arcade: bool = False) -> MainWindow:
+    """A window with the side-view sample on offer or not, and the three arcade samples of
+    M16 (on since the gate of 1.4) only when ``arcade``."""
     from rpggen import features
 
     monkeypatch.setattr(features, "METROIDVANIA_AVAILABLE", available)
+    for flag in ("SHMUP_AVAILABLE", "RUN_AND_GUN_AVAILABLE", "RACING_AVAILABLE"):
+        monkeypatch.setattr(features, flag, arcade)
     exe = tmp_path / "godot.exe"
     exe.write_text("x")
     monkeypatch.setattr(godot, "detect_version", lambda p: (4, 7, 2, "stable"))
@@ -604,11 +608,11 @@ def test_what_each_arcade_sample_is_made_of() -> None:
     assert mapping.default_starter(dirt, "racing")["vehicle"] == "sample_pack_race.cars.player_car"
 
 
-def _all_kinds_on(monkeypatch) -> None:
+def _all_kinds(monkeypatch, on: bool) -> None:
     from rpggen import features
 
     for flag in ("SHMUP_AVAILABLE", "RUN_AND_GUN_AVAILABLE", "RACING_AVAILABLE"):
-        monkeypatch.setattr(features, flag, True)
+        monkeypatch.setattr(features, flag, on)
 
 
 FIVE = ["Top-down village", "Side-view cave", "Star lane", "Jungle line", "Dirt cup"]
@@ -619,10 +623,12 @@ def test_the_samples_that_are_offered_follow_the_kinds_that_can_be_chosen(monkey
     from rpggen.gui.models import project_model
 
     monkeypatch.setattr(features, "METROIDVANIA_AVAILABLE", True)
+    assert [s.label for s in project_model.offered_samples()] == FIVE, "all are on since 1.4"
+    _all_kinds(monkeypatch, False)
     assert [s.label for s in project_model.offered_samples()] == FIVE[:2]
     monkeypatch.setattr(features, "RACING_AVAILABLE", True)
     assert [s.key for s in project_model.offered_samples()] == ["top", "side", "race"]
-    _all_kinds_on(monkeypatch)
+    _all_kinds(monkeypatch, True)
     assert [s.label for s in project_model.offered_samples()] == FIVE
     assert [s.archetype for s in project_model.SAMPLES] == [
         "turn_based", "metroidvania", "shmup", "run_and_gun", "racing",
@@ -644,8 +650,7 @@ def test_the_samples_that_are_offered_follow_the_kinds_that_can_be_chosen(monkey
 def test_the_welcome_menu_lists_five_and_each_lands_on_its_kind(
     qtbot, tmp_path, monkeypatch, key: str, folder: str, name: str, archetype: str
 ) -> None:
-    _all_kinds_on(monkeypatch)
-    win = _window_with(qtbot, tmp_path, monkeypatch, available=True)
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True, arcade=True)
     welcome = win.welcome
     menu = welcome.sample_card.menu()
     assert menu is not None and [a.text() for a in menu.actions()] == FIVE
@@ -664,8 +669,7 @@ def test_the_welcome_menu_lists_five_and_each_lands_on_its_kind(
 
 
 def test_the_project_pages_sample_button_offers_the_same_list(qtbot, tmp_path, monkeypatch) -> None:
-    _all_kinds_on(monkeypatch)
-    win = _window_with(qtbot, tmp_path, monkeypatch, available=True)
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True, arcade=True)
     win.welcome.own_card.click()
     page = win.pages[0]
     assert page.sample_menu is not None

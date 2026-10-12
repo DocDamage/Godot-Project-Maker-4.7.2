@@ -1071,7 +1071,7 @@ def render_stage_strip(stages: dict[str, Any], scale: int = 2) -> Image.Image:
             for x, y in grapple_points(tiles):
                 pixels[x, y] = STRIP_MARKERS["grapple"]
         picture.paste(strip.resize((w, h), Image.Resampling.NEAREST), (0, top))
-        marks = [
+        marks: list[tuple[Any, str, float]] = [
             (wave["position"], "pickup" if wave.get("enemy") == "pickup" else "enemy", dot)
             for wave in stage.get("waves", [])
             if wave.get("position")
@@ -1082,6 +1082,6 @@ def render_stage_strip(stages: dict[str, Any], scale: int = 2) -> Image.Image:
             floor = next((y for y, row in enumerate(tiles) if row[-1] == "#"), len(tiles) - 1)
             marks.append(([(len(tiles[0]) - cols * 0.5) * tile, floor * tile], "boss", dot * 2.0))
         for position, kind, size in marks:  # a mark stands on its place: the feet are the point
-            x, y = float(position[0]) * k, top + float(position[1]) * k - size
-            draw.ellipse([x - size, y - size, x + size, y + size], fill=STRIP_MARKERS[kind])
+            mx, my = float(position[0]) * k, top + float(position[1]) * k - size
+            draw.ellipse([mx - size, my - size, mx + size, my + size], fill=STRIP_MARKERS[kind])
     return picture

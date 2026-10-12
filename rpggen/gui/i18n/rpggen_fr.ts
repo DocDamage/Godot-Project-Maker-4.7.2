@@ -139,6 +139,25 @@
     </message>
 </context>
 <context>
+    <name>ArcadeBox</name>
+    <message>
+        <source>{0} ({1} to {2})</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation type="unfinished">Retirer</translation>
+    </message>
+    <message>
+        <source>No preview</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ArchetypePage</name>
     <message>
         <source>What kind of game do you want to start with?</source>
@@ -265,6 +284,117 @@ New abilities open new ways.</source>
     </message>
     <message>
         <source>Controls: A and D to run, Space to jump, J to attack, Shift to dash.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shoot &apos;em up</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fly over a scrolling stage and shoot waves of enemies.
+A boss ends it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shoot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Power up</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Boss</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A ship, its shots, its bombs and power-up capsules</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stages of waves that scroll up or to the right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lives, a score, a continue screen and high scores</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Controls: WASD or arrows to fly, Z to shoot, X for a bomb, Shift to slow.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Run and gun</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Run right through a stage, aim in eight ways.
+A boss waits at its end.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Aim</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A soldier that runs, jumps, ducks and aims up and down</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Weapons to pick up, enemies that spawn, and bosses</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A grapple arm that swings, if you want one</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Controls: A and D to run, Space to jump, J to shoot, K for a grenade.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Racing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Race rivals round a track seen from above.
+A championship of tracks.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Drive</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Overtake</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lap</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Podium</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A car in sixteen headings, with rivals that race it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tracks with laps, checkpoints, hazards and pickups</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Points for every race, and a champion at the end</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Controls: Up to accelerate, Down to brake, Left and Right to steer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -457,6 +587,26 @@ New abilities open new ways.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Variants</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show all</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show every colour as a card of its own in the grid, or as one card again</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select all</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select every colour of this picture, to change them together</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>How it is used</source>
         <translation type="unfinished"></translation>
     </message>
@@ -510,6 +660,14 @@ New abilities open new ways.</source>
     </message>
     <message>
         <source>Why: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Variants ({0})</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>plain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -617,6 +775,17 @@ New abilities open new ways.</source>
     </message>
     <message>
         <source>All packs</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>AssetListModel</name>
+    <message>
+        <source>{0} colour variants</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>a colour variant of {0}</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -944,6 +1113,61 @@ Details: {0}</source>
     </message>
     <message>
         <source>{0} assets selected</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>BundleDialog</name>
+    <message>
+        <source>Choose packs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0} holds {1} packs. Tick the ones to add: each becomes a pack of its own, and only those are unpacked.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search packs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show the packs whose name has these words</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select all</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tick every pack that is shown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select none</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clear every pack that is shown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The packs of the bundle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No pack has these words.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0} of {1} packs · {2} images · {3} MB</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1454,11 +1678,22 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>{0} headings, each where it points (the first is circled)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Detected candidates</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>{0} × {1}, {2} non-empty, remainder {3} px</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>HeadingRing</name>
+    <message>
+        <source>{0} headings in a ring</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1786,6 +2021,14 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>{0} headings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0} colours</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>placeholder</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1803,6 +2046,14 @@ Details: {0}</source>
     </message>
     <message>
         <source>The asset for this role: pick another candidate</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>plain</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0}  (colour: {1})</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1915,6 +2166,18 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Tracks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0}: {1}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>{0} (yours)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1954,6 +2217,10 @@ Details: {0}</source>
     <name>OptionsSummary</name>
     <message>
         <source>Summary</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The options do not fit together</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2171,6 +2438,14 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Choose packs…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose again which packs of a bundle are added.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>or</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2298,11 +2573,47 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Looks like a shooter pack</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Looks like a racing pack</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>art for {0} engines: {1}&apos;s is used</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bundle of {0} packs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Licence found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>No licence file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0} images</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0} pack(s) taken</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose packs…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0} of {1} packs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Licence: not found in the bundle</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2313,11 +2624,27 @@ Details: {0}</source>
 <context>
     <name>ProjectPage</name>
     <message>
+        <source>Fill in a bundled sample pack and go straight to the options.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Sample pack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>The sample pack was not found: {0}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove packs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove {0} pack(s) from the project?
+
+{1}
+
+What you set for their assets in the audit is not used any more.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2413,6 +2740,29 @@ Details: {0}</source>
     </message>
     <message>
         <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>RacingBox</name>
+    <message>
+        <source>Tracks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Added tracks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a track</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A track with this name is planned after the last one</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Every track from above: the loop, its checkpoints and its pickups</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2727,6 +3077,29 @@ Details: {0}</source>
     </message>
 </context>
 <context>
+    <name>RunAndGunBox</name>
+    <message>
+        <source>Stages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Added stages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a stage</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A stage with this name is planned after the last one</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Every stage seen from the side: its chunks, its enemies and the boss arena</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ScreenBox</name>
     <message>
         <source>Screen</source>
@@ -2746,6 +3119,29 @@ Details: {0}</source>
     </message>
     <message>
         <source>The size of the game window</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ShmupBox</name>
+    <message>
+        <source>Stages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Added stages</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a stage</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A stage with this name is planned after the last one</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The waves of every stage: a column a stage, the boss at the top</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3319,22 +3715,6 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Top-down village</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>A turn-based RPG from the village pack</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Side-view cave</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>A metroidvania from the cave pack</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Choose a sample</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3343,7 +3723,15 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>A sample pack for each kind of game</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Fills in the bundled sample pack, generates it and shows the result. Choose a sample offers the side-view sample too</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fills in the bundled sample pack, generates it and shows the result. Choose a sample offers a pack for each kind of game</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

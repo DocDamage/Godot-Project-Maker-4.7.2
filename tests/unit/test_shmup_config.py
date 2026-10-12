@@ -44,7 +44,7 @@ def test_the_config_of_a_shoot_em_up_is_valid_and_keeps_its_orientation() -> Non
     for kind in ("pinball",):
         with pytest.raises(Exception):  # noqa: B017, PT011
             schema.validate("config", {**cfg.to_json(), "archetype": kind})
-    assert features.SHMUP_AVAILABLE is False, "the wizard does not offer it before its gate"
+    assert features.SHMUP_AVAILABLE is True, "the wizard offers it since the gate of 1.4"
 
 
 def test_the_controls_of_a_shoot_em_up() -> None:

@@ -759,12 +759,12 @@ class ArcadeBox(QGroupBox):
             row.setContentsMargins(0, 0, 0, 0)
             row.setSpacing(4)
             dot = LegendDot(QColor(r, g, b))  # the mark's colour, from the picture's table
-            label = QLabel(self.tr(text))
-            label.setObjectName(f"{self.PREFIX}Legend_{key}")
+            legend_label = QLabel(self.tr(text))
+            legend_label.setObjectName(f"{self.PREFIX}Legend_{key}")
             row.addWidget(dot)
-            row.addWidget(label)
+            row.addWidget(legend_label)
             legend.addWidget(item)
-            self.legend_labels[key] = label
+            self.legend_labels[key] = legend_label
             self.legend_items[key] = item
         layout.addWidget(self.legend_box)
         self.summary = _muted("", f"{self.PREFIX}Summary")
@@ -1066,7 +1066,7 @@ class RunAndGunBox(ArcadeBox):
     def show_plan(self, stages: dict[str, Any] | None, error: str = "") -> None:
         super().show_plan(stages, error)
         # the points the arm holds on to are drawn for a soldier that does not jump
-        self.legend_items["grapple"].setVisible(bool(stages) and not stages.get("jump", True))
+        self.legend_items["grapple"].setVisible(bool(stages and not stages.get("jump", True)))
 
 
 class RacingBox(ArcadeBox):

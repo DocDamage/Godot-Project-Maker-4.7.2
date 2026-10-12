@@ -95,7 +95,7 @@ def test_a_side_view_pack_suggests_the_card(qtbot) -> None:
     state.archetype = "turn_based"
     page = _archetype_page(qtbot, state)
     assert not page.view_hint.isHidden(), "shown whatever card is chosen"
-    assert page.view_hint.text() == archetype_page.SIDE_HINT
+    assert page.view_hint.text() == archetype_page.SIDE_BOTH_HINT, "the run and gun fits too"
     assert page.metroidvania_card.isEnabled()
     page.metroidvania_card.click()
     assert page.air_warning.isHidden(), "the sample hero has jump and fall animations"

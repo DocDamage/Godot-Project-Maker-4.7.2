@@ -37,7 +37,7 @@ rows (T14.13), below.
 | M13 Polish (1.1.0) | Ten wizard UX cards, seven feature improvements, three additions, the lock-and-key planner, world repair (below) | On the branch `m13` (not part of 1.0): every card is implemented; T13.23 (the gate) is open. 23 of 24 cards done |
 | M14 Metroidvania (1.2.0) | The third archetype (below) | On the branch `m14` (not part of 1.0 or 1.1): every card is implemented; the manual rows of the gate (T14.13) are open. It was built before the 1.1 tag existed, on top of `m13` |
 | M15 Look, feel and ease of use (1.3.0) | A design system (tokens, one stylesheet, button kinds, icons, cards, a stepper sidebar, page headers), every page and dialog restyled, the Generate log without escape codes, actionable failures, a regeneration that skips what did not change, visual goldens (`docs/spec/M15_ui_polish.md`) | On the branch `m15` (on top of `main`, which holds M14): every card is implemented; the gate (T15.25) is open, below |
-| M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; the kinds for M17 sketched (`docs/spec/M16_arcade_archetypes.md`) | Started 2026-10-10 on the branch `m16` (on `m15`, before the 1.3 tag). T16.01 to T16.17 are done (the framework, detection, the three kinds, the wizard for them and their three sample packs); the kinds stay behind their feature flags until the gate. Open: T16.18 to T16.20 (smoke sequences, documentation, the gate), T16.21 (what the real packs need: most of the way) and T16.22 (choosing the packs of a bundle) |
+| M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; a bundle of packs added folder by folder; the kinds for M17 sketched (`docs/spec/M16_arcade_archetypes.md`) | On the branch `m16` (on `m15`, before the 1.3 tag): every card but the gate is implemented and the three kinds are switched on. The gate (T16.20) is open, below |
 
 ## M12 in detail
 
@@ -83,7 +83,7 @@ T12.66 (the gate) is open; see below.
 
 ## After 1.0: M13 and M14
 
-**M15** (the look, feel and ease of use, release 1.3.0, `docs/spec/M15_ui_polish.md`) is implemented on the branch `m15`; what its gate still needs is under *What is left before 1.3.0*. **M16** (three more kinds of game, release 1.4.0, `docs/spec/M16_arcade_archetypes.md`) is specified with its order of work, index and gate, and not started.
+**M15** (the look, feel and ease of use, release 1.3.0, `docs/spec/M15_ui_polish.md`) is implemented on the branch `m15`; what its gate still needs is under *What is left before 1.3.0*. **M16** (three more kinds of game, release 1.4.0, `docs/spec/M16_arcade_archetypes.md`) is implemented on the branch `m16`; what its gate still needs is under *What is left before 1.4.0*.
 
 Planned on 2026-10-08 from the second review. Neither blocks the 1.0 tag: 1.0 ships from M12, M13
 is release 1.1.0 (`docs/spec/M13_polish.md`) and M14 is release 1.2.0
@@ -167,6 +167,35 @@ M13 (release 1.1.0), so the list is empty on the branch `m13`; `main` (1.0) stil
 sell one item at a time, every house leads to the same interior, the validator does not check the
 ids a dialogue names, Zstandard map layers are not read, the action RPG has no followers, and the
 sound slots are a fixed list.
+
+## What is left before 1.4.0
+
+The cards T16.01 to T16.19, T16.21 and T16.22 are implemented (2026-10-12); the detail, with
+every deviation from the spec, is in [the notes](dev/implementation_notes.md). What a reader
+should know:
+
+* **Nobody has played the three kinds by hand.** What is known of them is what their smoke
+  sequences and tests assert; the feel of the ship, the soldier, the arm and the car, and the
+  difficulty of all three, are untuned.
+* *Continue* in a shoot 'em up or a run and gun begins the stage with the first weapon: the
+  saved run does not carry it.
+* The *Done when* of T16.21 on the six real packs was last measured on 2026-10-10 and was not
+  met then; what was added since (the `.aseprite` pictures, colour variants as one card, a zip
+  of zips as a bundle) has run on synthetic files only. The bundle chooser (T16.22) was not run
+  on the real *CuteSCKR* archive.
+* Colour variants are one card in the audit and on the Mapping page, not in the editor dock.
+* The French file has the new wizard texts of M16 unfinished.
+
+The gate (T16.20) is open:
+
+| Item | What to do |
+|------|------------|
+| CI on `m16` | Every suite green on Windows and Ubuntu, on both PySide6 legs, with the three new integration jobs (`shmup`, `run_and_gun`, `racing`); perf within its ceilings, with the three sample rows (120 s each). The branch was pushed on 2026-10-12; the run has not been looked at. |
+| Frozen smoke test | `python tools/package.py --smoke` on the three systems: the three samples and the drawn kit must be in the bundle. |
+| Upgrade test | Over a 1.0, 1.1, 1.2 and 1.3 project of each older kind: no prompt, nothing under `game/` changes, byte-identical TileSets and sprite frames. (A regenerated older game shows its minimap, which was off the screen before: the runtime's changelog.) |
+| Corpus | The private corpus (T12.26) unchanged on all four measures. It is not on the development machine. |
+| Manual rows | With a gamepad: *Star lane* in both orientations to the credits; *Jungle line* with jumping and as Bionic; *Dirt cup* with relative and absolute steering; each kind from a real pack made for it and from a plain RPG pack; a 300-asset shooter pack through the audit; the six real packs of T16.21 and the bundle chooser on *CuteSCKR*. |
+| The tag | `v1.4.0` is not made. The versions in `pyproject.toml`, `rpggen/__init__.py` and the runtime's `VERSION` are still 1.2.0. |
 
 ## What is left before 1.3.0
 
