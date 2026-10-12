@@ -40,10 +40,30 @@ and what follows for this milestone:
 | The same art in five engine layouts; Godot's 3x3 autotiles | Read from Godot's folder since T16.21; the 47-tile sheets are terrains since the reader of 2026-10-10. 9 of its 20 terrain sheets are not read yet (fences, plain grounds, templates): T17.01. |
 | Not CC0: credit asked, no redistribution, no NFT or AI use | The pack is never part of the repository, a sample or a test. **Its pictures are not opened, read into a model, or generated from**: as in M16, only its file names and sizes are used to decide what the readers must understand. The *Done when* rows that name it are run by the owner on the owner's machine. |
 
-**No isometric pack has been listed.** Part C is written from the layouts isometric packs are
-commonly sold in, and its first card (T17.12) starts by listing two or three packs the owner
-names, as the table of M16 did; the card's word lists and sizes are corrected from that list
-before any reader is written. Until then every number in Part C about packs is an assumption.
+**The isometric packs** were named on 2026-10-12: the folder `D:\kenney assets\2D assets`
+(Kenney, CC0), which has 23 packs with *Isometric* or *Axonometric* in their names among 154.
+They were listed by file name and image size, and their text files were read. They are not
+what Part C first assumed (sheets of diamonds on a grid), and Part C is written from them:
+
+| Pack (files) | What it taught |
+|--------------|----------------|
+| *Medieval Town* (268), *Modular Buildings* (404), *Modular Roads* (1,208), *Nature* (752), *Space Interior* (320), *Tower Defense* (472), *Minigolf* (192) | **One picture a tile, every picture of a pack the same size**, the tile standing at the bottom of it: 210 x 244, 224 x 206, 180 x 184, 220 x 379, 240 x 192, 124 x 123, 180 x 256. A text file says what the pictures cannot: `Tile information.txt` (*Image size : 210 x 244 px*, *Tile size : 180 x 115 px*) or `Tiled (settings).txt` (*Orientation: Isometric*, *Map tile size: 180 x 104 px*, *Tileset tile size: 180 x 256 px*). **The footprint is not twice as wide as high**: 180 x 115, 180 x 125, 120 x 98, 120 x 74, and 180 x 104 for the map, which is the true 30 degree angle. Names are `<pack>_<nnn>_<r>.png` or `<thing>_<nn>_<r>.png` with `r` from 0 to 3: **the same tile turned four ways**, not four frames of an animation (the numbered-frame reader of T16.21 would take them for one). |
+| *Tiles Base* (128), *Tiles City* (128 and 11 details), *Tiles Buildings* (129) | Older: `landscapeTiles_000.png` to `_127`, **pictures of different sizes with one width** (132 or 133 wide; 83, 99, 101, 131 high): the tile is the bottom of the picture and what is above it is its height. No text file. A `Spritesheet/` folder with the same pictures packed and a `<TextureAtlas>` XML of `<SubTexture name x y width height>`: the pack ships its art twice. |
+| *Vector Roads Base* (96), *Vector Roads Water* (42), *Vector Buildings* (658) | 100 x 65 and 50 x 55 pictures whose **names say which sides join**: `beachCornerES.png`, `beachE.png`, `bridgeHighEW.png`, `waterSW.png` (N, E, S, W and pairs of them). Four building materials in four folders with the same 155 names. |
+| *Miniature Farm*, *Dungeon*, *Library*, *Overworld*, *Prototype* (each a zip beside a `Preview.png` and a `Sample.png` of 918 x 515) and *Miniature Bases* (unpacked: 320 pictures of 256 x 512) | **The pack is a zip inside its folder**, with previews beside it. Inside: the same 229 names twice, in a folder `Isometric/` and a folder `Angle/` (**two views of one model**), each name with `_N`, `_E`, `_S`, `_W` (`cornDouble_E.png`): the four turns by a letter. *Miniature Farm* has corn, a chimney and the rest of a farm: the one pack that is both halves of this milestone. `Information.png`, `Samples/`, three `.url` files. Only *Miniature Farm*'s zip was listed; the other four are taken to be alike. |
+| *Tiles Vehicles* (553) | Cars as **one small picture a heading** (17 to 33 px): `taxi_N.png`, `_NE`, `_E`, … eight headings, and `_NEU`, `_NED` and the like for a car going up or down a slope; five colour folders (`Civilian/Black/Sedan 1/`), four service cars. The isometric racing car of T17.15. |
+| *Watercraft* (232) | 512 x 512, `watercraftPack_001_0.png` to `_7`: eight turns by a number; a sheet and an XML for each boat. |
+| *Isometric Blocks*, *Axonometric Blocks* (135 each) | One model set in two projections as two packs: 111 x 128 and 92 x 80. *Axonometric* is not the isometric angle. |
+
+What follows from it, by card: a pack of one picture a tile with the tile at the bottom, its
+footprint from the pack's text file or measured, never assumed 2:1; turns by `_0`–`_3`,
+`_0`–`_7` and by compass letters, which are variants of a tile and headings of a vehicle,
+never frames; sides in a name as how a tile joins; `Isometric/` chosen over `Angle/`; a zip
+inside the pack folder opened; an atlas XML beside loose pictures as a duplicate; previews and
+samples left out (T17.12). The TileSet is built from single pictures, not cut from a sheet
+(T17.13). **None of the packs that were listed has a character** (the four unopened zips
+were not looked into): an isometric game takes its people from another pack or has them
+drawn (T17.14). No pack has autotiles: ground joins by whole tiles whose names say how.
 
 ## Ground rules for this milestone
 
@@ -67,8 +87,9 @@ before any reader is written. Until then every number in Part C about packs is a
 * **Every pack makes a game.** What a pack lacks for the farm is drawn (`farm_kit.py`, beside
   `side_kit.py` and `arcade_kit.py`): a crop in five stages, tilled and watered soil, the
   four tools, a hen, a shipping bin. A drawn stand-in is the note `ASSET-031`. The isometric
-  option draws nothing: it needs isometric ground tiles, and without them the option is not
-  offered.
+  option draws no ground: it needs isometric ground tiles, and without them the option is not
+  offered. It does draw a hero, a villager and an enemy for the view (`iso_kit.py`), because
+  the isometric packs that were listed have none.
 * **Feature flags.** `features.FARM_AVAILABLE` and `features.ISOMETRIC_AVAILABLE`, off until
   their gate rows pass; an off kind's card is disabled and its sample is not offered, and an
   off option is not shown.
@@ -124,7 +145,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.09 | People: schedules, gifts and friendship | L | T17.03, T17.06 | open |
 | T17.10 | Fishing and foraging | M | T17.08 | open |
 | T17.11 | Weather and the HUD | M | T17.05, T17.08 | open |
-| T17.12 | Isometric sheets: the packs, and reading them | L | — | open |
+| T17.12 | Isometric packs: reading one picture a tile | L | — | open |
 | T17.13 | The isometric TileSet | L | T17.12 | open |
 | T17.14 | Isometric maps and actors | XL | T17.13 | open |
 | T17.15 | Isometric racing | M | T17.14 | open |
@@ -517,47 +538,95 @@ shared part, off in every project that has no calendar.
 
 # Part C — Isometric tiles
 
-## T17.12 — Isometric sheets: the packs, and reading them
+## T17.12 — Isometric packs: reading one picture a tile
 
 **Depends on:** nothing
-**Files:** this file (the table of packs), `rpggen/core/analyzer/isometric.py` (new),
-`rpggen/core/adapters/generic_grid.py`, `rpggen/core/classifier.py`,
-`rpggen/schema/catalog.schema.json`, `docs/spec/02_SCHEMAS.md`,
-`tests/unit/test_isometric.py` (new), `tools/make_synthetic_packs.py` (an `iso` pack)
+**Files:** `rpggen/core/adapters/isometric.py` (new: the adapter of a pack of single tiles),
+`rpggen/core/analyzer/isometric.py` (new: the footprint), `rpggen/core/adapters/kenney_atlas.py`
+(new: the `<TextureAtlas>` XML), `rpggen/core/adapters/sequences.py` (turns are not frames),
+`rpggen/core/adapters/naming.py`, `rpggen/core/classifier.py`, `rpggen/core/pack_sniff.py`,
+`rpggen/core/inventory.py`, `rpggen/core/catalog.py`, `rpggen/schema/catalog.schema.json`,
+`docs/spec/02_SCHEMAS.md`, `tests/unit/test_isometric.py` (new),
+`tools/make_synthetic_packs.py` (an `iso_tiles` and an `iso_miniature` pack)
+
+The packs are the table above. They are CC0, so their pictures may be opened to measure
+them; they are still not copied into the repository: the synthetic packs are drawn by the
+tool in their shapes and names.
 
 **Spec**
-* **First: the packs.** Two or three isometric packs the owner names are listed here as M16
-  listed its six (file names and image sizes only), and what they teach replaces the
-  assumptions below. The card is not started before that list exists.
-* **The footprint.** `isometric.footprint(sheet)`: a ground tile of an isometric sheet is a
-  diamond twice as wide as high (2:1; the common sizes are 32 x 16, 64 x 32, 128 x 64, and
-  sheets whose cells are taller than the diamond because a block has sides). The reader
-  finds the cell from the transparent corners that repeat over the sheet and the diamond
-  from the opaque outline at the top of a cell. A sheet it finds a diamond in is
-  `projection: isometric` with `footprint: [w, h]` and `cell: [w, h]`; one where the corners
-  say isometric and no diamond fits is `TILE-010`, a warning, and stays a picture.
-* **Words:** `isometric`, `iso`, `dimetric`, `2.5d` in a folder or a name raise the
-  confidence and are never enough alone.
-* **What stands on a tile.** Walls, trees, houses and props in an isometric pack are single
-  pictures or cells much taller than the footprint: objects, with their footprint (how many
-  diamonds they stand on) guessed from the width of their base and open to the audit's
-  editor, which shows the diamond grid.
-* **Characters** in isometric packs are often drawn in four diagonal directions (NE, NW, SE,
-  SW) or in eight; the direction words `ne`, `nw`, `se`, `sw` are read as the diagonals of
-  T12.50's eight.
-* **Pack view** gains `isometric`. A pack with isometric ground and square ground is told so
-  on its card (`TILE-011` if both are mapped as ground in one project).
-* The grid editor of the audit draws a diamond grid over an isometric sheet and edits the
-  footprint and the cell.
+* **A pack of single tiles.** A folder whose pictures are one size (or one width), each with
+  see-through corners and its opaque part resting on the bottom, is a pack of isometric tiles
+  when its words (`isometric`, `iso`) or its text file say so, or when the footprints that
+  are measured agree. Every picture is one **tile asset**: `projection: isometric`,
+  `canvas: [w, h]`, `footprint: [w, h]` (the diamond the tile stands on) and `rise` (how far
+  the picture goes above its diamond: a flat tile, a block, a tree).
+* **The footprint, in this order:** the pack's own words (`Tile information.txt`: *Tile size*;
+  `Tiled (settings).txt`: *Map tile size*, which wins when both are there, since it is what a
+  map is laid out by); else measured: the width is the opaque width of the ground tiles, and
+  the height the one at which the flat tiles of the pack meet without a gap, found by laying
+  two of them side by side at each candidate height and counting open and doubled pixels
+  along the seam. **Never assumed to be half the width**: the listed packs have 180 x 104,
+  180 x 115, 180 x 125, 120 x 98 and 120 x 74. Whether *Tile size* in those text files is the
+  diamond or the diamond with the block's side under it is not known from the text alone:
+  the card begins by laying two tiles of *Medieval Town* and of *Modular Roads* at the size
+  their file gives and at the measured one, and the notes say which the words mean. A pack
+  where no height fits is `TILE-010`, a warning, and its pictures stay pictures.
+* **One width, several heights** (the older packs: 132 x 83, 132 x 99, 132 x 131): the
+  footprint is the pack's, the picture's own height above it is its rise. A width that is
+  one pixel off (133) is the same tile.
+* **Turns.** A set of names that differ only in a last `_0`–`_3` or `_0`–`_7`, or in a last
+  compass word (`_N`, `_E`, `_S`, `_W`, and `_NE` … for eight), all of one size, is **one
+  thing turned**, not an animation: the sequence reader leaves it alone. For a tile the turns
+  are `turn: 0..3` of one asset (one card in the audit with a *Turns (4)* row, as colour
+  variants have); for a vehicle or a boat they are its headings (`headings: 4 | 8`,
+  `heading_order` from the letters), which T16.02's rotation sheets already are, here as
+  files. A last `U` or `D` on a heading (`_NEU`) is the same heading on a slope: kept as a
+  tag, unused in 1.5.0.
+* **Sides in a name.** `…CornerES`, `…EW`, `…NS`, a lone `…E` after a ground word
+  (`beachE`, `waterSW`, `bridgeHighEW`) say which of the diamond's four sides the tile joins
+  on: recorded as `joins: [..]`, which the planner uses to choose the piece of a road, a
+  shore or a wall (T17.14). They are compass words only when the stem without them is shared
+  by several files; `Blue`, `House` and `News` are not sides.
+* **Two views of one model.** Sibling folders `Isometric` and `Angle` with the same names:
+  `Isometric` is used and `Angle` is *unused* with the reason on its cards, like the engine
+  layouts of T16.21. *Axonometric* in a pack's name is not isometric: its pictures are read
+  as pictures.
+* **The pack is a zip in its folder.** A folder that holds one archive and nothing but
+  previews beside it (`Preview.png`, `Sample.png`, `Samples/`, `Information.png`, `.url`
+  files) is opened as that archive; the previews are left out by the names the inventory
+  already knows, to which `sample`, `samples` and `information` are added.
+* **An atlas beside its pictures.** A `<TextureAtlas>` XML with `<SubTexture>` entries is
+  read as the rectangles of its sheet. When the loose pictures of the same names are in the
+  pack, they are used and the sheet is *unused* (the art is there twice); a pack with only
+  the sheet is read through the XML.
+* **Objects.** A tile with a rise is still a tile when it fills its diamond (a block, a
+  wall); a picture whose base is narrower than the diamond (a tree, a sign, a lamp) is an
+  object standing on one. How many diamonds a wide object stands on is guessed from its base
+  and open to the audit's editor, which draws the diamond grid.
+* **Characters.** None of the listed packs has one. Direction words `ne`, `nw`, `se`, `sw` on
+  a character sheet are read as the diagonals of T12.50's eight, for packs that do.
+* **Pack view** gains `isometric`; the pack card says *Isometric tiles, 180 x 104*. Isometric
+  and square ground mapped in one project is `TILE-011`.
+* Two synthetic packs: `iso_tiles` (in the manner of *Modular Roads* and *Nature*: 24 tiles
+  turned four ways in one canvas with a `Tile information.txt`, a tree and a house as
+  objects, an atlas of the same pictures, a preview) and `iso_miniature` (a zip in a folder
+  beside a preview: `Isometric/` and `Angle/` with `_N` to `_W` names, a corn plant, and a car
+  in eight headings by letters).
 
 **Tests**
-* The footprint over synthetic sheets of the three sizes, a block sheet with sides, a square
-  sheet (none) and a top-down sheet of round bushes (none); the direction words; the `iso`
-  golden; no other golden moves; the corpus is unchanged.
+* The footprint from each text file, and measured for packs drawn at 2:1, at 30 degrees and
+  at 180 x 125; a pack that fits none (`TILE-010`); one width with three heights; turns by
+  number and by letter are one asset and no animation, while `walk_0` to `walk_3` still is
+  one; sides in names, and three names that end in letters and are not sides; `Angle`
+  unused; the zip in a folder; the atlas alone and beside its pictures; the two goldens; no
+  other golden moves; the corpus is unchanged.
 
 **Done when**
-* The `iso` synthetic pack and the packs of the table are catalogued as isometric with the
-  right footprints without an edit.
+* The two synthetic packs are catalogued without an edit, and on the owner's machine the 23
+  packs are: each of the seven one-size packs as its tiles with the footprint its text file
+  gives and four turns a tile; the three older packs with one footprint and their rises; the
+  road packs with their joins; the five zipped packs opened, `Isometric` used; the vehicles as
+  cars in eight headings with their colours as variants; *Axonometric Blocks* as pictures.
 
 ## T17.13 — The isometric TileSet
 
@@ -570,14 +639,26 @@ shared part, off in every project that has no calendar.
 **Spec**
 * A project with `projection: isometric` gets a TileSet whose tiles are diamonds: Godot's
   isometric tile shape with the layout and the offset axis that fit how the planner counts
-  cells, the tile size the footprint, and for every atlas the texture region the cell and the
-  texture origin that puts the diamond of a taller cell on the grid. **Each of these
-  properties and its values is verified in `docs/godot_api_verified.md` first**, with the
-  three cases that matter: a flat tile, a block with sides, and a tile taller than two cells.
+  cells, and the tile size the pack's footprint (which is whatever T17.12 found: 180 x 104,
+  not a fixed 2:1). **Each of these properties and its values is verified in
+  `docs/godot_api_verified.md` first.**
+* **The tiles are single pictures**, so the recipe does not cut a sheet: rpggen packs the
+  pictures of a pack into atlas pictures in the work folder (as it writes a terrain atlas),
+  each in a cell of the pack's canvas, deterministically and in the order of their ids, so
+  that an added tile gets a new cell and no painted cell moves on regeneration (the rule of
+  the TileSet merge, M5). Every tile's texture origin puts its diamond on the grid: the tile
+  rests on the bottom of its canvas, so the origin follows from the canvas, the footprint and
+  nothing else. The three cases to verify: a flat tile, a block with a rise, and a tree three
+  times as high as its diamond.
+* **Turns** of a tile are alternative tiles of one source, so a map can turn a piece without
+  another asset, and the planner asks for *this piece, turned to join east and south*.
+* **Packs of different footprints** (180 x 104 and 120 x 74) cannot share a map: the project
+  has the footprint of its ground, and tiles of another are objects or are left out with a
+  note, as a pack of another tile size is today.
 * **Collision** polygons are the diamond (full) or its halves and quarters, from the
   collision profiles that exist; **terrain** sets work on the diamond's four sides (the peering
-  bits of an isometric tile set), from the same seam test the square reader uses, over the
-  diamond's edges.
+  bits of an isometric tile set) when a pack has such a set; the listed packs have none, and
+  their ground joins by whole tiles chosen from their `joins`.
 * The top-down TileSet of every other project is byte for byte what it was (the recipe
   changes its output only for the option, as the side-view layers did in M14).
 
@@ -608,6 +689,14 @@ arithmetic), `rpggen/core/map_preview.py`, `godot_templates/tests/unit/test_iso.
   every planner, its checks and its tests hold for both projections.
 * **`RpgIso`** and `iso_math.py`: cell to screen position, screen to cell, the depth of a
   cell, one table of cases between the two languages.
+* **Roads, shores and walls** are laid from the pieces' `joins` (T17.12): for every cell the
+  planner knows which of its four neighbours are the same ground, and the recipe takes the
+  piece and the turn that joins exactly those sides; a pack without the piece for a case gets
+  the nearest and a note. This is what terrains do for a top-down pack.
+* **People.** A character drawn from the front or for a top-down game stands on an isometric
+  map as it is (the usual look of such games); the packs that were listed have no character,
+  so the hero, a villager and an enemy of the drawn kit (`iso_kit.py`, `ASSET-031`) stand in
+  when no other pack of the project has them.
 * **Movement.** An actor moves in screen space; with an isometric map *up* on the pad is up
   on the screen (the genre's usual choice) and an option `iso_controls: screen | grid` makes
   the four directions follow the diamond's axes instead. The four or eight facing directions
@@ -650,10 +739,14 @@ RC Pro-Am is seen at an angle; M16 made the view from above and left this.
 * **The car drives on the plan's flat grid** and is drawn on the screen through `RpgIso`: the
   physics of `car_math` does not know the view, so the table of cases holds and a rival
   drives the same lap. What the player sees is squeezed in height, as the genre has it.
-* **Headings:** a rotation sheet drawn for the isometric view (its sixteen views are of a car
-  on a tilted ground) is used as it is; one drawn from straight above is used too and looks
-  flat, which the Mapping page says. `HeadingSprite` picks the frame from the heading as it
-  appears on the screen.
+* **Headings:** a car in eight headings as eight files (*Tiles Vehicles*: `taxi_N.png` …
+  `taxi_NW.png`, T17.12) is the picture of the isometric car, and its other colours and
+  models the rivals; a rotation sheet drawn from straight above is used too and looks flat,
+  which the Mapping page says. `HeadingSprite` picks the picture from the heading as it
+  appears on the screen. Eight headings turn in steps of 45 degrees, which shows; the car
+  still steers smoothly underneath.
+* **The road** is laid from the road pieces' `joins` as T17.14 lays any road; the track
+  plan's corners are the corner pieces.
 * Relative steering is the default; with absolute steering the stick is a direction on the
   screen.
 * The map of the track in the corner stays the plan from above.
@@ -717,9 +810,10 @@ RC Pro-Am is seen at an angle; M16 made the view from above and left this.
 * *Green acre* (`--kind farm`): a farmer with walk and four tool strips, four crops with
   growth strips, soil and watered soil, grass in four seasons, a hen and a cow, tools, a
   house, a coop, a bin, a fence, three villagers, a rain overlay, four loops and eight sounds.
-* *Stone isle* (`--kind iso`): isometric ground in two terrains, water, a block with sides,
-  walls, a house of four diamonds, trees, a hero and two villagers in four diagonal
-  directions, a slime, a chest. It sets the turn-based kind with the isometric view.
+* *Stone isle* (`--kind iso`): one picture a tile in one canvas with its text file, as the
+  real packs are: grass and stone ground, water with shore pieces named by their sides, road
+  pieces, a block, walls, a house of four diamonds, trees, each turned four ways; a hero and
+  two villagers, a slime, a chest. It sets the turn-based kind with the isometric view.
 * Each under 200 KB with a licence file and its profile; goldens for both; no older golden
   moves. *Try the sample* lists seven.
 
@@ -784,9 +878,10 @@ RC Pro-Am is seen at an angle; M16 made the view from above and left this.
 * Manual rows, by the owner: play *Green acre* through a season with a gamepad (the feel of
   the tile ahead, the length of a day, whether the money and the energy are fair); play
   *Stone isle* as a turn-based game and as an action RPG with both control options; drive
-  *Dirt cup* in the isometric view; generate a farm from *Super Retro Ranch* and from a plain
-  RPG pack and compare the notes; generate an isometric game from each pack of T17.12's
-  table; a 300-asset farming pack through the audit.
+  *Dirt cup* in the isometric view with the cars of *Tiles Vehicles*; generate a farm from
+  *Super Retro Ranch* and from a plain RPG pack and compare the notes; generate an isometric
+  game from *Medieval Town*, *Nature* and *Modular Roads* together, and an isometric farm
+  from *Miniature Farm*; a 300-asset farming pack through the audit.
 * Then flip the two flags on and tag `v1.5.0`.
 
 ---
@@ -804,7 +899,7 @@ in the order that was recommended there; nothing here builds toward them except 
 
 | Kind | Key | In the line of | Size | What M17 gives it |
 |------|-----|----------------|:----:|-------------------|
-| Tower defense | `tower_defense` | Kingdom Rush | M | nothing |
+| Tower defense | `tower_defense` | Kingdom Rush | M | the isometric view; the owner has *Isometric Tower Defense* (472 pictures) |
 | Beat 'em up | `brawler` | Streets of Rage, River City Ransom | L | nothing |
 | Dungeon run | `dungeon_run` | The Binding of Isaac, the dungeons of Zelda | L | the isometric view would be an option of it |
 | Tactics | `tactics` | Fire Emblem, Advance Wars | XL | the isometric view (the genre's usual one) and `RpgIso`'s cell arithmetic |
