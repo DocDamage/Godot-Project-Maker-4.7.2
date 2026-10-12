@@ -42,6 +42,12 @@ def _analyze(pack: Path) -> tuple[float, WizardState]:
     return time.perf_counter() - started, state
 
 
+def _errors(result) -> str:  # type: ignore[no-untyped-def]
+    """Every error of a run, a line each: pytest shortens a list to its first and last entries,
+    and the one in the middle is the one that says which step of the game failed."""
+    return "\n".join(f"{i.code}: {i.message}" for i in result.issues if i.severity.value == "error")
+
+
 def test_inventory_and_analysis_cold_then_warm(
     big_pack: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -100,7 +106,7 @@ def test_a_regeneration_without_changes_repeats_no_check(generated, godot_exe: P
     elapsed, result = _regenerate(target, godot_exe, full_checks=False)
     print(f"\nregeneration of 1000 images, nothing changed: {elapsed:.1f}s")
     record("regeneration of 1000 images, nothing changed", elapsed)
-    assert result.ok, [(i.code, i.message) for i in result.issues if i.severity.value == "error"]
+    assert result.ok, _errors(result)
     assert elapsed < REGENERATE_UNCHANGED_S, (
         f"regeneration took {elapsed:.0f}s (limit {REGENERATE_UNCHANGED_S:.0f}s)"
     )
@@ -111,7 +117,7 @@ def test_a_full_regeneration_is_fast(generated, godot_exe: Path) -> None:
     elapsed, result = _regenerate(target, godot_exe, full_checks=True)
     print(f"\nregeneration of 1000 images, full: {elapsed:.1f}s")
     record("regeneration of 1000 images, full", elapsed)
-    assert result.ok, [(i.code, i.message) for i in result.issues if i.severity.value == "error"]
+    assert result.ok, _errors(result)
     assert elapsed < REGENERATE_S, f"regeneration took {elapsed:.0f}s (limit {REGENERATE_S:.0f}s)"
 
 
@@ -180,7 +186,7 @@ def test_the_side_view_sample_generates_as_a_metroidvania_in_time(
     elapsed = time.perf_counter() - started
     print(f"\nmetroidvania from the side-view sample: {elapsed:.1f}s")
     record("metroidvania from the side-view sample", elapsed)
-    assert result.ok, [(i.code, i.message) for i in result.issues if i.severity.value == "error"]
+    assert result.ok, _errors(result)
     assert elapsed < SIDE_SAMPLE_S, f"took {elapsed:.0f}s (limit {SIDE_SAMPLE_S:.0f}s)"
 
 
@@ -220,5 +226,5 @@ def test_an_arcade_sample_generates_as_its_kind_in_time(
     elapsed = time.perf_counter() - started
     print(f"\n{what}: {elapsed:.1f}s")
     record(what, elapsed)
-    assert result.ok, [(i.code, i.message) for i in result.issues if i.severity.value == "error"]
+    assert result.ok, _errors(result)
     assert elapsed < ARCADE_SAMPLE_S, f"took {elapsed:.0f}s (limit {ARCADE_SAMPLE_S:.0f}s)"
