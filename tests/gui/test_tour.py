@@ -128,7 +128,9 @@ def test_walking_through_the_page_starts_no_tour_and_leaving_does_not_mark_it(
     assert app_settings.get().tours_seen == []
     # going through all five steps marks it seen as well
     _show_audit(window, audit)
-    assert audit.maybe_start_tour()
+    # the page asks for the tour itself a moment after it is shown, and on a slow machine that
+    # moment is over by now: the tour runs, whoever started it
+    assert audit.maybe_start_tour() or (audit.tour is not None and audit.tour.running)
     for _ in range(5):
         audit.tour.next_button.click()
     assert app_settings.load().tours_seen == ["audit"]

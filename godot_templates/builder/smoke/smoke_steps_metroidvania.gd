@@ -185,7 +185,12 @@ func _put(cell: Vector2i) -> bool:
 	player.velocity = Vector2.ZERO
 	player.on_ladder = false
 	await _frames(2)
-	return await _wait_for(func() -> bool: return player.is_on_floor(), 90)
+	# asked of the player there is, not of the one that was put: a room that is entered again
+	# while this waits (a slow machine) frees it, and a freed capture is a script error
+	var standing := func() -> bool:
+		var now := _player()
+		return now != null and now.is_on_floor()
+	return await _wait_for(standing, 90)
 
 func _row_of(room: Dictionary, y: int) -> String:
 	var rows := JsonUtil.to_array(room.get("tiles", []))
