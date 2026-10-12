@@ -241,7 +241,7 @@
       "overrides": {},
       "pack_id": "racer",
       "path": "assets/packs/racer/pickups/boost.png",
-      "sha256": "9a8a14aeab51c708aec8641bc6f01482dadf331233380d99bfcd2d622d0e9467",
+      "sha256": "9f7ca7af5cf541b73cb68ccb73b3a8500d02e8852cad8f3956d95e2d03688e55",
       "status": "NEEDS_REVIEW"
     },
     {
@@ -379,7 +379,7 @@
       "overrides": {},
       "pack_id": "racer",
       "path": "assets/packs/racer/props/cone.png",
-      "sha256": "55cd0bffe6b751e1823ec2aca2655a6a287506095b91e7fa246beeaa34eb485a",
+      "sha256": "d5cc42bc64ea04751237b30b39165efdce883c120bbf04c24c4f3d5dd1d25c48",
       "status": "NEEDS_REVIEW"
     },
     {
@@ -494,7 +494,7 @@
       "pack_id": "racer",
       "profile_id": null,
       "root": "assets/packs/racer",
-      "source_sha256": "e0f063b21972373fcd6bcb7fe14abdd11efa0a5760f6bafa2f606389d240beb6",
+      "source_sha256": "04837d81cebde9ad286c0c978ea315559284851c2a0d07c99c04602fff14ee72",
       "warnings": [
         "view:racing"
       ]

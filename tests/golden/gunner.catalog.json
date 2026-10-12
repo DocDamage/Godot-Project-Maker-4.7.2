@@ -373,7 +373,7 @@
       "overrides": {},
       "pack_id": "gunner",
       "path": "assets/packs/gunner/enemies/turret.png",
-      "sha256": "d638aaf0ec0c46e5d72808fab6a1f37662dee7ba99520ec209705c3f683f4074",
+      "sha256": "b28f59353f580a79c18dcab093f018dba826eeedce50cc481753584c4e38ba6b",
       "status": "NEEDS_REVIEW"
     },
     {
@@ -403,7 +403,7 @@
       "overrides": {},
       "pack_id": "gunner",
       "path": "assets/packs/gunner/grapple_hook.png",
-      "sha256": "2ff1e1583f8a4b9029e308a4027611904b34141b466554e422615d211d0dbcf1",
+      "sha256": "04824d17c29acd4a4e35df5ede9450bda4f1a3b3828abd57619427f351be7364",
       "status": "NEEDS_REVIEW"
     },
     {
@@ -750,7 +750,7 @@
       "pack_id": "gunner",
       "profile_id": null,
       "root": "assets/packs/gunner",
-      "source_sha256": "f6c101d4a7d5d670681e63195b77b4495bde65b858898ab6b29ff1d63df7e523",
+      "source_sha256": "8e2500adb18af29be37dbf1ede434add5a7ab92d83178f6a103702e6317eb754",
       "warnings": [
         "strips_direction_assumed:boss/boss_attack.png",
         "strips_direction_assumed:boss/boss_idle.png",
