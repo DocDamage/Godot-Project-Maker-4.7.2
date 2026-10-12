@@ -14,6 +14,11 @@ extends RpgShopDefinition
 ## touching this file: `RpgFarmShop.add_stock_source(callable)`, where the callable takes the
 ## name of the season ("spring") and returns rows `{item_id, price}` (a price below 0, or none,
 ## is the item's own `value`).
+##
+## **A row that is no thing for the bag** (an animal, T17.07) also names `deliver`, a callable
+## `func(item_id: StringName, qty: int) -> String`: buying the row pays its price and calls it
+## instead of putting the item into the inventory; it returns "" or why not (the codes of
+## RpgShopDefinition), and a row that was refused costs nothing.
 
 ## Every farm shop asks these for more rows; see the top of the file.
 static var stock_sources: Array[Callable] = []
@@ -103,6 +108,24 @@ func _entry(item_id: StringName) -> Dictionary:
 		if StringName(str(entry.get("item_id", ""))) == item_id:
 			return entry
 	return {}
+
+## Buys `qty` of an item. A row with a `deliver` (see the top of the file) is paid for and
+## delivered; every other row is bought as in any shop.
+func buy(game: RpgGameState, item_id: StringName, qty: int = 1) -> String:
+	var handler: Variant = _entry(item_id).get("deliver")
+	if not (handler is Callable):
+		return super.buy(game, item_id, qty)
+	var deliver: Callable = handler
+	if qty <= 0 or not deliver.is_valid() or not game.items.has(item_id):
+		return NOT_FOR_SALE
+	var cost := buy_price(item_id, game.items) * qty
+	if game.gold < cost:
+		return NOT_ENOUGH_GOLD
+	var refused := RpgUtil.to_str(deliver.call(item_id, qty))
+	if refused != OK:
+		return refused
+	game.gold -= cost
+	return OK
 
 ## The item ids on offer that GameState knows, in the order of `stock_today()`, without the
 ## tools the farmer has (a thing of which one is held and that is never sold back).

@@ -13,7 +13,7 @@ extends RefCounted
 ## always for sale is a row of `EXTRA_STOCK`; a thing that depends on the day or on the game
 ## is added while the game runs, with `RpgFarmShop.add_stock_source`.
 
-const VERSION := 1
+const VERSION := 2
 
 const SeedUtil := preload("../../lib/seed_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -32,10 +32,21 @@ const SELL_RATIO := 1.0
 const TOOL_PRICES := {"sickle": 50, "farm_axe": 120}
 ## Rows `{item_id, price}` that are always for sale beside the above: none yet.
 const EXTRA_STOCK: Array[Dictionary] = []
+## The fishing rod (T17.10): for sale where the farm has a pond and the option
+## `starter_map.fishing` is on (FarmBuild.fishing(), the stored plan's `farm.forage.fishing`).
+## It is not a row of EXTRA_STOCK because a farm with a well does not sell it.
+const ROD_STOCK: Array[Dictionary] = [{"item_id": "fishing_rod", "price": 150}]
 
 ## What data_recipe's hash holds of the farm's shop.
 static func shop_hash() -> Dictionary:
-	return {"v": VERSION, "opens": OPENS, "closes": CLOSES, "closed": CLOSED_WEEKDAY, "ratio": SELL_RATIO, "tools": TOOL_PRICES, "extra": EXTRA_STOCK}
+	return {"v": VERSION, "opens": OPENS, "closes": CLOSES, "closed": CLOSED_WEEKDAY, "ratio": SELL_RATIO, "tools": TOOL_PRICES, "extra": EXTRA_STOCK, "rod": rod_stock()}
+
+## The rod's row where it is sold, else nothing.
+static func rod_stock() -> Array:
+	var rows: Array = []
+	if FarmBuild.fishing():
+		rows.append_array(ROD_STOCK)
+	return rows
 
 ## The rows a farm's shop lists beside what the village shop of every kind lists.
 static func farm_stock() -> Array:
@@ -44,6 +55,7 @@ static func farm_stock() -> Array:
 		if not FarmBuild.START_TOOLS.has(tool_id) and TOOL_PRICES.has(tool_id):
 			rows.append({"item_id": tool_id, "price": JsonUtil.to_int(TOOL_PRICES[tool_id])})
 	rows.append_array(EXTRA_STOCK)
+	rows.append_array(rod_stock())
 	return rows
 
 ## The farm's shop made of the village shop `shop` (an RpgShopDefinition).

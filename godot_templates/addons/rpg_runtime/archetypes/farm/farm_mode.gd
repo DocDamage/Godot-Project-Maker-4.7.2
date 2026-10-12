@@ -22,6 +22,13 @@ var day_end: RpgDayEnd = null
 ## The weather (RpgFarmWeather) and the seasons' pictures and music (RpgFarmSeasons).
 var weather: RpgFarmWeather = null
 var seasons: RpgFarmSeasons = null
+## The animal houses and the animals in them (RpgAnimalHouse, T17.07): its child `Animals`,
+## which does nothing in a farm without an animal house.
+var animals: RpgAnimalHouse = null
+## What lies at the edges of the farm in the morning (RpgForage, T17.10: its child `Forage`,
+## which also holds the table of the fish) and the cast of the rod (RpgFishing: `Fishing`).
+var forage: RpgForage = null
+var fishing: RpgFishing = null
 ## The crops of the game (game/data/crops.json).
 var crops: RpgCropData = null
 
@@ -47,7 +54,10 @@ func _ready() -> void:
 	# fields when sleeping saves the game
 	weather.attach()
 	seasons.attach()
+	animals.attach()  # after the weather: it says whether the animals go out
 	day_end.attach()  # after the fields: its night (NIGHT_SHOP) and its morning follow theirs
+	forage.attach()
+	fishing.attach()
 
 ## Makes what the mode consists of (in `_ready`, not when the scene is built: a saved scene
 ## would hold the parts and every instance would make them twice).
@@ -83,12 +93,34 @@ func ensure_parts() -> void:
 		seasons = RpgFarmSeasons.new()
 		seasons.name = RpgFarmSeasons.NODE_NAME
 		add_child(seasons)
+	if animals == null:
+		animals = get_node_or_null(RpgAnimalHouse.NODE_NAME) as RpgAnimalHouse
+	if animals == null:
+		animals = RpgAnimalHouse.new()
+		animals.name = RpgAnimalHouse.NODE_NAME
+		add_child(animals)
+	if forage == null:
+		forage = get_node_or_null(RpgForage.NODE_NAME) as RpgForage
+	if forage == null:
+		forage = RpgForage.new()
+		forage.name = RpgForage.NODE_NAME
+		add_child(forage)
+	if fishing == null:
+		fishing = get_node_or_null(RpgFishing.NODE_NAME) as RpgFishing
+	if fishing == null:
+		fishing = RpgFishing.new()
+		fishing.name = RpgFishing.NODE_NAME
+		add_child(fishing)
 	if crops == null:
 		crops = RpgCropData.load_default()
 	if _tools.is_empty():
 		var tools: Array[RpgFarmTool] = [RpgFarmHoe.new(), RpgFarmWateringCan.new(), RpgFarmSickle.new(), RpgFarmAxe.new()]
 		for tool in tools:
 			_tools[tool.id] = tool
+	if not _tools.has(&"fishing_rod"):
+		var rod := RpgFarmRod.new()  # the rod of T17.10: it casts through the mode's `Fishing`
+		rod.fishing = fishing
+		_tools[rod.id] = rod
 
 func is_in_combat() -> bool:
 	return false
@@ -101,13 +133,16 @@ func tool_for(item_id: StringName) -> RpgFarmTool:
 	var tool: RpgFarmTool = _tools.get(item_id)
 	return tool
 
-## What eating one of an item restores: the `energy` of the crop it is the produce of, else
-## the amount of a healing item, else 0 (it is no food).
+## What eating one of an item restores: the `energy` of the crop it is the produce of, of the
+## fish or the thing to forage it is (T17.10), else the amount of a healing item, else 0 (it is
+## no food).
 func food_energy(item_id: StringName) -> int:
 	if crops != null:
 		var crop_id := crops.crop_of_produce(item_id)
 		if crop_id != "":
 			return maxi(0, RpgUtil.to_int(crops.crop(crop_id).get("energy", 0)))
+	if forage != null and forage.energy_of(item_id) > 0:
+		return forage.energy_of(item_id)
 	var state := RpgUtil.state()
 	var def: RpgItemDefinition = state.items.get(item_id) if state != null else null
 	if def != null and def.use_effect == &"heal":

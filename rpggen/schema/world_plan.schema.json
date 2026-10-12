@@ -50,6 +50,8 @@
         "crops": {"type": "array", "items": {"$ref": "#/$defs/Crop"}},
         "map": {"$ref": "#/$defs/FarmMap"},
         "people": {"type": "array", "items": {"$ref": "#/$defs/Person"}},
+        "animals": {"$ref": "#/$defs/FarmAnimals"},
+        "forage": {"$ref": "#/$defs/FarmForage"},
         "notes": {"type": "array", "items": {"type": "string"}}
       },
       "required": ["plan_version", "seed", "difficulty", "crops", "notes"],
@@ -234,6 +236,123 @@
         "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
       },
       "required": ["id", "name", "asset", "home", "job", "schedule", "loves", "likes", "dislikes"],
+      "additionalProperties": false
+    },
+    "FarmForage": {
+      "type": "object",
+      "properties": {
+        "plan_version": {"const": 1},
+        "seed": {"type": "integer"},
+        "fishing": {"type": "boolean"},
+        "forage": {"type": "array", "items": {"$ref": "#/$defs/ForageThing"}},
+        "fish": {"type": "array", "items": {"$ref": "#/$defs/ForageFish"}},
+        "spots": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["plan_version", "seed", "fishing", "forage", "fish", "spots", "notes"],
+      "additionalProperties": false
+    },
+    "ForageThing": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "asset": {"type": "string"},
+        "item": {"type": "string", "minLength": 1},
+        "seasons": {
+          "type": "array",
+          "items": {"enum": ["spring", "summer", "autumn", "winter"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "price": {"type": "integer", "minimum": 0},
+        "energy": {"type": "integer", "minimum": 0},
+        "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"}
+      },
+      "required": ["id", "name", "asset", "item", "seasons", "price", "energy"],
+      "additionalProperties": false
+    },
+    "ForageFish": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "asset": {"type": "string"},
+        "item": {"type": "string", "minLength": 1},
+        "seasons": {
+          "type": "array",
+          "items": {"enum": ["spring", "summer", "autumn", "winter"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "times": {
+          "type": "array",
+          "items": {"enum": ["morning", "day", "evening"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "water": {"type": "array", "items": {"enum": ["pond"]}, "minItems": 1, "uniqueItems": true},
+        "price": {"type": "integer", "minimum": 0},
+        "energy": {"type": "integer", "minimum": 0},
+        "speed": {"type": "number", "minimum": 0.25, "maximum": 4},
+        "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"}
+      },
+      "required": ["id", "name", "asset", "item", "seasons", "times", "water", "price", "energy", "speed"],
+      "additionalProperties": false
+    },
+    "FarmAnimals": {
+      "type": "object",
+      "properties": {
+        "plan_version": {"const": 1},
+        "seed": {"type": "integer"},
+        "feed": {
+          "type": "object",
+          "properties": {
+            "item": {"type": "string", "minLength": 1},
+            "name": {"type": "string", "minLength": 1},
+            "price": {"type": "integer", "minimum": 0}
+          },
+          "required": ["item", "name", "price"],
+          "additionalProperties": false
+        },
+        "names": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1},
+        "kinds": {"type": "array", "items": {"$ref": "#/$defs/AnimalKind"}},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["plan_version", "seed", "feed", "names", "kinds", "notes"],
+      "additionalProperties": false
+    },
+    "AnimalKind": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "house": {"enum": ["coop", "barn"]},
+        "ticket": {"type": "string", "minLength": 1},
+        "cost": {"type": "integer", "minimum": 1},
+        "product": {"type": "string", "minLength": 1},
+        "product_name": {"type": "string", "minLength": 1},
+        "price": {"type": "integer", "minimum": 1},
+        "large": {"type": "string", "minLength": 1},
+        "large_price": {"type": "integer", "minimum": 1},
+        "collect": {"enum": ["floor", "hand"]},
+        "variants": {"type": "array", "items": {"$ref": "#/$defs/AnimalVariant"}, "minItems": 1}
+      },
+      "required": [
+        "id", "name", "house", "ticket", "cost", "product", "product_name", "price", "large",
+        "large_price", "collect", "variants"
+      ],
+      "additionalProperties": false
+    },
+    "AnimalVariant": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "colour": {"type": "string"},
+        "asset": {"type": "string"},
+        "sleep": {"type": "string"}
+      },
+      "required": ["id", "colour", "asset", "sleep"],
       "additionalProperties": false
     },
     "PersonEntry": {

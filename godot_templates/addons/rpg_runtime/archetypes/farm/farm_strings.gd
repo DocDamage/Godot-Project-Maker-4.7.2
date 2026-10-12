@@ -55,6 +55,20 @@ const KEYS := {
 	"FARM_GIFT_NEUTRAL": "%s thanks you.",
 	"FARM_GIFT_DISLIKES": "%s does not like it.",
 	"FARM_GIFT_ENOUGH": "%s has had enough gifts this week.",
+	# animals (T17.07)
+	"FARM_ANIMAL": "Animal",
+	"FARM_HOUSE_COOP": "coop",
+	"FARM_HOUSE_BARN": "barn",
+	"FARM_ANIMAL_BOUGHT": "%s has moved into the %s.",
+	"FARM_ANIMAL_PETTED": "You pet %s.",
+	"FARM_ANIMAL_HEARTS": "%s: %d of %d hearts.",
+	"FARM_ANIMAL_GAVE": "%s gave %s.",
+	"FARM_ANIMAL_PICKED": "Picked up %s.",
+	"FARM_TROUGH_FILLED": "Filled the trough. Everybody in the %s is fed today.",
+	"FARM_TROUGH_FULL": "The trough is full.",
+	"FARM_TROUGH_EMPTY": "The trough is empty. Hold %s to fill it.",
+	"FARM_TROUGH_NOBODY": "Nobody lives here yet. Animals are sold at the shop.",
+	"FARM_HAY_CUT": "Cut %s.",
 	# the maps of a farm (T17.06), as a save slot names them
 	"MAP_FARM": "Farm",
 	"MAP_FARM_HOUSE": "Farmhouse",
@@ -69,6 +83,15 @@ const KEYS := {
 	"FARM_HUD_DATE": "%s %d, %s",
 	"FARM_HARVESTED": "Harvested %s.",
 	"FARM_SOLD": "The shipping bin paid %d %s.",
+	# fishing and foraging (T17.10)
+	"ITEM_FISHING_ROD_NAME": "Fishing rod",
+	"ITEM_FISHING_ROD_DESC": "Cast it at a pond, then hold the button to keep the fish.",
+	"FARM_FORAGED": "Found %s.",
+	"FARM_FISH_WELL": "Nothing lives in a well.",
+	"FARM_FISH_PULLED": "You pulled the line in.",
+	"FARM_FISH_NOTHING": "Nothing bites.",
+	"FARM_FISH_AWAY": "The fish got away.",
+	"FARM_FISH_CAUGHT": "Caught %s.",
 }
 
 ## The text of `key` (its translation, else the English above) with `args` filled in.

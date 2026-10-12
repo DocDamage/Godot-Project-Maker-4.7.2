@@ -17,7 +17,10 @@ extends RefCounted
 ## again -> the farmer walks into the house and sleeps in the bed (`interact`): the day ends
 ## once, the energy is full, the game is saved -> the morning's summary names the crop and
 ## what it earned, and `confirm` closes it -> the shop is closed before 9:00 and on its closed
-## day, and sells the seeds of the season in its hours -> the weather and the HUD (T17.11).
+## day, and sells the seeds of the season in its hours -> the weather and the HUD (T17.11) ->
+## a thing that lies at one of the farm's forage places is picked up with `interact`, and on a
+## farm with a pond the rod is cast with `use` and the fish landed with `use` held as the bar
+## asks (T17.10).
 ##
 ## The nights of the growing are the calendar's `end_day()`, run in full (a day that nobody
 ## slept through); the night after the harvest is slept in the bed.
@@ -73,6 +76,16 @@ func steps() -> Array[Dictionary]:
 		_step("rain_waters_the_field", _rain_waters_the_field, 40.0),
 		_step("hud_shows_the_day", _hud_shows_the_day, 20.0),
 		_step("season_turns", _season_turns, 90.0),
+		# fishing and foraging (T17.10): they stand on their own too
+		_step("forage_on_the_farm", _forage_on_the_farm, 40.0),
+		_step("catch_a_fish", _catch_a_fish, 90.0),
+		# the animals (T17.07): only in a farm with an animal house, else each passes with a note
+		_step("buy_a_hen", _buy_a_hen, 60.0),
+		_step("hen_in_the_coop", _hen_in_the_coop, 60.0),
+		_step("feed_at_the_trough", _feed_at_the_trough, 40.0),
+		_step("pet_the_hen", _pet_the_hen, 40.0),
+		_step("egg_in_the_morning", _egg_in_the_morning, 60.0),
+		_step("ship_the_egg", _ship_the_egg, 40.0),
 	])
 	return list
 
@@ -1274,4 +1287,678 @@ func _season_turns() -> String:
 		return "the withered crop is not shown"
 	if not field.remove_crop(cell):
 		return "the withered crop could not be cut away"
+	return ""
+
+# ---------------------------------------------------------------- fishing and foraging (T17.10)
+#
+# These two steps stand on their own: they go to the farm's map when another one is shown and
+# count on nothing an earlier step left behind (the rod is lent when the bag has none).
+
+const FORAGE_FARM := "res://game/maps/farm.tscn"
+
+func _forage_frames(count: int) -> void:
+	for i in count:
+		await _tree().physics_frame
+
+func _forage_wait(check: Callable, frames: int) -> bool:
+	for i in frames:
+		if check.call():
+			return true
+		await _tree().physics_frame
+	return check.call()
+
+## The fish and the forage of the stored plan (`farm.forage`), or {}.
+func _forage_plan() -> Dictionary:
+	if not FileAccess.file_exists(PLAN_PATH):
+		return {}
+	return JsonUtil.to_dict(JsonUtil.to_dict(JsonUtil.to_dict(JsonUtil.read(PLAN_PATH)).get("farm", {})).get("forage", {}))
+
+## The farm's map, entered when another map is shown. null when the game has none.
+func _forage_farm() -> Node:
+	var router := RpgUtil.router()
+	var scene := _tree().current_scene
+	if scene != null and scene.scene_file_path == FORAGE_FARM:
+		return scene
+	if router == null or not ResourceLoader.exists(FORAGE_FARM):
+		return null
+	await router.go_to(FORAGE_FARM)
+	await _forage_wait(func() -> bool: return not router.is_busy(), 300)
+	await _forage_frames(5)
+	scene = _tree().current_scene
+	return scene if scene != null and scene.scene_file_path == FORAGE_FARM else null
+
+## Puts the farmer at `at`, looking `facing`, and waits until it can act.
+func _forage_stand(at: Vector2, facing: String) -> String:
+	var farmer := _farmer()
+	if farmer == null:
+		return "the farmer is gone"
+	farmer.global_position = at
+	farmer.set_facing(facing)
+	await _forage_frames(4)
+	if not await _forage_wait(func() -> bool: return not farmer.is_busy() and not farmer.move_locked, 180):
+		return "the farmer never came free"
+	return ""
+
+## The places of the farm are the plan's, and a thing that lies at one this morning is picked up
+## with `interact`.
+func _forage_on_the_farm() -> String:
+	var mode := RpgFarmMode.current()
+	if mode == null or mode.forage == null:
+		return "the farm's mode has no forage"
+	var scene: Node = await _forage_farm()
+	var field := RpgField.current()
+	if scene == null or field == null:
+		return "the game has no farm map with a field"
+	var forage := mode.forage
+	var spots := JsonUtil.to_array(_forage_plan().get("spots", []))
+	var places := forage.places_on(scene)
+	if spots.is_empty():
+		return "the plan has no places to forage (rpggen/world_plan.json, farm.forage.spots)"
+	if scene.get_node_or_null("Forage") == null or places.size() != spots.size():
+		return "the farm has %d places to forage, the plan lists %d" % [places.size(), spots.size()]
+	for i in spots.size():
+		if field.cell_at(places[i]) != _cell(spots[i]):
+			return "Forage/Spot%d lies in %s, the plan says %s" % [i + 1, field.cell_at(places[i]), _cell(spots[i])]
+	forage.refresh()
+	await _forage_frames(3)
+	var lying := forage.lying(places.size())
+	var shown := forage.shown()
+	if shown.is_empty() or shown.size() != lying.size():
+		return "%d things lie on the farm this morning, %d should (%s)" % [shown.size(), lying.size(), RpgField.season_now()]
+	var spot: int = shown[0]
+	var thing := forage.thing_at(spot)
+	var item := thing.item_id
+	if item != lying[spot] or not _state().items.has(item):
+		return "the thing at Spot%d is '%s', expected '%s' (an item of the game)" % [spot + 1, item, lying[spot]]
+	# standing on its cell: it is walked over, and `interact` finds it under the feet
+	var failure: String = await _forage_stand(places[spot], "down")
+	if failure != "":
+		return failure
+	var before := _state().inventory.count(item)
+	var picked := false
+	for attempt in 3:
+		await _tap("interact")
+		if await _forage_wait(func() -> bool: return _state().inventory.count(item) == before + 1, 30):
+			picked = true
+			break
+	if not picked:
+		return "`interact` at Spot%d did not pick up %s" % [spot + 1, item]
+	await _forage_frames(2)
+	if forage.thing_at(spot) != null or forage.lying(places.size()).has(spot):
+		return "%s still lies at Spot%d after it was picked up" % [item, spot + 1]
+	if not forage.picked_today().has(spot):
+		return "the flags do not remember that Spot%d was picked today" % (spot + 1)
+	return ""
+
+## On a farm with a pond: the rod casts with `use` at the water, a fish bites, and it is landed
+## by holding `use` as the bar asks; the fish is in the bag. A farm with a well passes.
+func _catch_a_fish() -> String:
+	var mode := RpgFarmMode.current()
+	if mode == null or mode.fishing == null or mode.forage == null:
+		return "the farm's mode has no fishing"
+	if not JsonUtil.to_bool(_forage_plan().get("fishing", false)):
+		print("[rpggen] INFO catch_a_fish: the farm has no pond, or fishing is switched off: step passes")
+		return ""
+	var scene: Node = await _forage_farm()
+	var field := RpgField.current()
+	if scene == null or field == null:
+		return "the game has no farm map with a field"
+	var fishing := mode.fishing
+	var rod := mode.tool_for(&"fishing_rod")
+	var marker := scene.get_node_or_null("Markers/WaterFill") as Node2D
+	if rod == null or marker == null or not _state().items.has(&"fishing_rod"):
+		return "the game has no fishing rod, or the farm no place at its water"
+	var at := field.cell_at(marker.global_position)
+	var facing := ""
+	for entry: Array in [[Vector2i.UP, "up"], [Vector2i.LEFT, "left"], [Vector2i.RIGHT, "right"], [Vector2i.DOWN, "down"]]:
+		var step: Vector2i = entry[0]
+		if facing == "" and field.is_water(at + step):
+			facing = str(entry[1])
+	if facing == "":
+		return "no cell beside %s says it is water" % at
+	var calendar := RpgCalendar.current()
+	var biting := RpgFishing.fish_of(mode.forage.fish, calendar.season_name(), RpgFishing.time_of(calendar.minute), RpgFishing.POND)
+	if biting.is_empty():
+		return "no fish of game/data/forage.json bites in %s at %d:00" % [calendar.season_name(), calendar.clock()[0]]
+	# the rod is bought at the shop; it is lent for this step when the bag has none
+	var lent := not _state().inventory.has(&"fishing_rod")
+	if lent:
+		_state().inventory.add(&"fishing_rod", 1)
+	# in a bag of more than ten stacks the rod goes to the front, where the hotbar is
+	var slots := _state().inventory.slots
+	for i in slots.size():
+		if i >= RpgHotbar.SLOTS and StringName(str(slots[i].get("item_id", ""))) == &"fishing_rod":
+			slots.insert(0, slots.pop_at(i))
+			break
+	var failure: String = await _land_a_fish(field.cell_center(at), facing, at, mode, fishing, rod)
+	Input.action_release("use")
+	if fishing.is_busy():
+		fishing.cancel()
+	if lent:
+		_state().inventory.remove(&"fishing_rod", 1)
+	return failure
+
+func _land_a_fish(stand: Vector2, facing: String, at: Vector2i, mode: RpgFarmMode, fishing: RpgFishing, rod: RpgFarmTool) -> String:
+	var failure: String = await _forage_stand(stand, facing)
+	if failure == "":
+		failure = await _hold(&"fishing_rod")
+	if failure != "":
+		return failure
+	if not RpgField.current().is_water(_farmer().tile_ahead()):
+		return "the tile ahead of %s is no water" % at
+	mode.energy.fill()
+	var energy := mode.energy.value
+	var minute := RpgCalendar.current().minute
+	var casts := fishing.casts()
+	# the cast: the real action, once
+	await _tap("use")
+	if not await _forage_wait(func() -> bool: return fishing.state != RpgFishing.IDLE, 60):
+		return "`use` with the rod at the pond cast nothing"
+	if mode.energy.value != energy - rod.energy_cost:
+		return "the cast cost %d energy, expected %d" % [energy - mode.energy.value, rod.energy_cost]
+	if fishing.casts() != casts + 1 or RpgCalendar.current().minute < minute + RpgFishing.CAST_MINUTES:
+		return "the cast was not counted, or passed no time"
+	var fish := fishing.fish_id
+	var item := StringName(str(mode.forage.fish_entry(fish).get("item", "")))
+	if fish == "" or not _state().items.has(item):
+		return "the fish on the line ('%s') is no item of the game" % fish
+	var before := _state().inventory.count(item)
+	# the wait (1 to 4 s) and the bite, with the button let go
+	if not await _forage_wait(func() -> bool: return fishing.state == RpgFishing.REELING or fishing.state == RpgFishing.IDLE, 600):
+		return "no bite within ten seconds"
+	if fishing.state != RpgFishing.REELING:
+		return "the cast ended before the bar opened"
+	if not _farmer().move_locked:
+		return "the farmer can walk away while the line is out"
+	if fishing.bar() == null or not fishing.bar().visible:
+		return "the bar is not shown"
+	# the bar: the real action, held while the fish is above the middle of the zone
+	for frame in 2400:
+		if fishing.state != RpgFishing.REELING:
+			break
+		if fishing.mark > fishing.zone:
+			Input.action_press("use")
+		else:
+			Input.action_release("use")
+		await _tree().physics_frame
+	Input.action_release("use")
+	if fishing.state != RpgFishing.IDLE:
+		return "the fish was neither landed nor lost within forty seconds (the meter stands at %.2f)" % fishing.meter
+	await _forage_frames(3)
+	if _state().inventory.count(item) != before + 1:
+		return "the bag has %d of %s after the catch, expected %d" % [_state().inventory.count(item), item, before + 1]
+	if not await _forage_wait(func() -> bool: return not _farmer().move_locked, 120):
+		return "the farmer stays locked after the catch"
+	return ""
+
+# ---------------------------------------------------------------- the animals (T17.07)
+#
+# These steps run only in a farm with an animal house (`animals`: coop, coop_and_barn) whose
+# packs, or the drawn farm kit, have an animal to live in it; in any other farm each passes with
+# an INFO line. They count on nothing an earlier step left behind but the game itself: they
+# move the clock to the hour they need, give the farmer the money for what they buy, and go
+# to the maps they work on. One animal is bought for every house that has a kind of animal.
+
+## The animal houses of the game, or null in a farm that keeps no animals.
+func _animals_herd() -> RpgAnimalHouse:
+	var mode := RpgFarmMode.current()
+	var herd := mode.animals if mode != null else null
+	return herd if herd != null and herd.data != null and not herd.data.is_empty() else null
+
+## The animals the first of these steps bought: `{id, kind, house}` each.
+func _animals_bought() -> Array:
+	return JsonUtil.to_array(_box.get("animals", []))
+
+## True, with an INFO line, when the step has nothing to do in this farm.
+func _animals_skip(step_name: String) -> bool:
+	if _animals_herd() == null:
+		print("[rpggen] INFO %s: the farm has no animal house, step passes" % step_name)
+		return true
+	if _animals_bought().is_empty() and step_name != "buy_a_hen":
+		print("[rpggen] INFO %s: no animal was bought, step passes" % step_name)
+		return true
+	return false
+
+func _animals_frames(count: int) -> void:
+	for i in count:
+		await _tree().physics_frame
+
+## Goes to the map `path` when it is not the one that is shown, and waits until it is entered.
+func _animals_go(path: String) -> String:
+	var router := RpgUtil.router()
+	var here := _tree().current_scene.scene_file_path if _tree().current_scene != null else ""
+	if router == null or not ResourceLoader.exists(path):
+		return "the map %s is missing" % path
+	if here != path:
+		await router.go_to(path)
+		for i in 600:
+			if not router.is_busy() and _tree().current_scene != null and _tree().current_scene.scene_file_path == path:
+				break
+			await _tree().physics_frame
+	await _animals_frames(5)
+	if _tree().current_scene == null or _tree().current_scene.scene_file_path != path:
+		return "the map %s was not entered" % path
+	return "" if _farmer() != null else "the map %s has no farmer" % path
+
+## Holds `item_id`, putting its stack among the ten slots of the hotbar first when the bag has
+## it further back. "" when it is held afterwards.
+func _animals_hold(item_id: StringName) -> String:
+	var slots: Array = _state().inventory.slots
+	for i in slots.size():
+		if JsonUtil.to_str(JsonUtil.to_dict(slots[i]).get("item_id", "")) == String(item_id) and i >= RpgHotbar.SLOTS:
+			var last: Variant = slots[RpgHotbar.SLOTS - 1]
+			slots[RpgHotbar.SLOTS - 1] = slots[i]
+			slots[i] = last
+			break
+	return await _hold(item_id)
+
+## Puts the farmer below `thing`, looking up at it, `gap` px from its origin.
+func _animals_face(thing: Node2D, gap: float) -> String:
+	return await _stand(thing.global_position + Vector2(0.0, gap), "up")
+
+## The first morning hour the shop is open on a fair day: the night passes when it is too late
+## in the day, and the shop's closed day is slept through.
+func _animals_shop_hour(shop: RpgFarmShop) -> void:
+	var calendar := RpgCalendar.current()
+	if calendar.minute > shop.opens * 60:
+		await _weather_end_day()
+	var guard := 0
+	while calendar.weekday() == shop.closed_weekday and guard < RpgCalendar.WEEK_DAYS:
+		await _weather_end_day()
+		guard += 1
+	calendar.pass_minutes(shop.opens * 60 - calendar.minute)
+	RpgFarmMode.current().weather.force(RpgFarmWeather.SUN)
+	await _animals_frames(2)
+
+## An animal is bought at the shop for every house that has a kind: the row is paid for, the
+## animal is in the herd and not in the bag, and the house has a stall less. The feed is bought
+## as a thing for the bag.
+func _buy_a_hen() -> String:
+	if _animals_skip("buy_a_hen"):
+		return ""
+	var herd := _animals_herd()
+	var data := herd.data
+	var shop := RpgShopDefinition.load_shop(&"village_shop") as RpgFarmShop
+	if shop == null:
+		return "game/data/shops/village_shop.tres is not the shop of a farm"
+	var wanted: Array[String] = []
+	for house_id in data.house_order:
+		if not ResourceLoader.exists(JsonUtil.to_str(data.house(house_id).get("map", ""))):
+			return "the room of the %s (%s) is missing" % [house_id, data.house(house_id).get("map", "")]
+		if data.stalls(house_id) < 1:
+			return "the %s has no stall" % house_id
+		var kinds := data.kinds_of(house_id)
+		if kinds.is_empty():
+			print("[rpggen] INFO buy_a_hen: the game has no animal for the %s" % house_id)
+		else:
+			wanted.append(kinds[0])
+	_box["animals"] = []
+	if wanted.is_empty():
+		print("[rpggen] INFO buy_a_hen: the game has no animal to buy, step passes")
+		return ""
+	var feed := data.feed_item
+	if feed == &"" or not _state().items.has(feed):
+		return "the game has no feed item (%s)" % feed
+	await _animals_shop_hour(shop)
+	if not shop.is_open():
+		return "the shop is closed at %s on weekday %d" % [RpgCalendar.current().clock(), RpgCalendar.current().weekday()]
+	var offered := shop.offered(_state().items)
+	if not offered.has(feed):
+		return "the shop does not sell %s: %s" % [feed, offered]
+	var menu: RpgShopMenu = await _ask_for_shop()
+	if menu == null:
+		return "the shop did not open in its hours"
+	var failure := ""
+	var bought: Array = []
+	for kind_id in wanted:
+		var ticket := StringName(JsonUtil.to_str(data.kind(kind_id).get("ticket", "")))
+		var house_id := data.house_of(kind_id)
+		var price := shop.buy_price(ticket, _state().items)
+		_state().gold += price
+		var gold: int = _state().gold
+		var room := herd.room_in(house_id)
+		var before := RpgAnimalHouse.herd().size()
+		var row: Button = null
+		for candidate in menu.rows():
+			if menu.item_of(candidate) == ticket:
+				row = candidate
+		if row == null:
+			failure = "%s is not a row of the shop (%s)" % [ticket, shop.offered(_state().items)]
+			break
+		if price <= 0:
+			failure = "the %s has no price" % kind_id
+			break
+		row.pressed.emit()
+		await _animals_frames(2)
+		var herd_now := RpgAnimalHouse.herd()
+		if herd_now.size() != before + 1 or _state().gold != gold - price or _state().inventory.count(ticket) != 0:
+			failure = "buying a %s left %d animals (was %d), %d money (was %d) and %d of the row in the bag" % [kind_id, herd_now.size(), before, _state().gold, gold, _state().inventory.count(ticket)]
+			break
+		var made: Dictionary = herd_now[herd_now.size() - 1]
+		if made["kind"] != kind_id or made["house"] != house_id or JsonUtil.to_str(made["name"]) == "" or herd.room_in(house_id) != room - 1:
+			failure = "the %s that was bought is %s, and the %s has room for %d (was %d)" % [kind_id, made, house_id, herd.room_in(house_id), room]
+			break
+		bought.append({"id": JsonUtil.to_int(made["id"]), "kind": kind_id, "house": house_id})
+	if failure == "":
+		# the feed: a portion for every house, and one to spare
+		var portions := bought.size() + 1
+		var had := _state().inventory.count(feed)
+		_state().gold += shop.buy_price(feed, _state().items) * portions
+		for i in portions:
+			var feed_row: Button = null
+			for candidate in menu.rows():
+				if menu.item_of(candidate) == feed:
+					feed_row = candidate
+			if feed_row == null:
+				failure = "%s is not a row of the shop" % feed
+				break
+			feed_row.pressed.emit()
+			await _animals_frames(2)
+		if failure == "" and _state().inventory.count(feed) != had + portions:
+			failure = "the shop sold %d of %d %s" % [_state().inventory.count(feed) - had, portions, feed]
+	if is_instance_valid(menu):
+		menu.close()
+	await _animals_frames(2)
+	_tree().paused = false
+	if failure != "":
+		return failure
+	_box["animals"] = bought
+	return ""
+
+## By day the animal is in the yard of its house, inside the fence; rain sends it in; in the
+## evening the yard is empty and it is in its stall in the room, asleep.
+func _hen_in_the_coop() -> String:
+	if _animals_skip("hen_in_the_coop"):
+		return ""
+	var herd := _animals_herd()
+	var calendar := RpgCalendar.current()
+	var weather := RpgFarmMode.current().weather
+	weather.force(RpgFarmWeather.SUN)
+	if not herd.is_outside():
+		return "the animals are indoors at %s on a fair day" % [calendar.clock()]
+	for raw: Variant in _animals_bought():
+		var animal := JsonUtil.to_dict(raw)
+		var id := JsonUtil.to_int(animal["id"])
+		var house := herd.data.house(JsonUtil.to_str(animal["house"]))
+		var failure: String = await _animals_go(JsonUtil.to_str(house.get("yard_map", "")))
+		if failure != "":
+			return failure
+		var scene := _tree().current_scene
+		var yard := scene.get_node_or_null("Yards/%s" % JsonUtil.to_str(animal["house"]).capitalize()) as Node2D
+		if yard == null or not (yard.get_meta(&"yard", null) is Rect2i):
+			return "the farm has no yard of the %s" % animal["house"]
+		var cells: Rect2i = yard.get_meta(&"yard")
+		var tile := float(RpgUtil.map_tile_px(scene))
+		var ground := Rect2(yard.global_position, Vector2(cells.size) * tile)
+		var node := herd.node_of(id)
+		if node == null:
+			return "the %s is not in its yard by day" % animal["kind"]
+		if not node.is_roaming() or not ground.has_point(node.global_position):
+			return "the %s stands at %s, outside its yard %s" % [animal["kind"], node.global_position, ground]
+		if node.get_node_or_null("Visual") == null:
+			return "the %s has no picture" % animal["kind"]
+		await _animals_frames(30)
+		node = herd.node_of(id)
+		if node == null or not ground.has_point(node.global_position):
+			return "the %s left its yard" % animal["kind"]
+		weather.force(RpgFarmWeather.RAIN)
+		await _animals_frames(2)
+		if herd.node_of(id) != null:
+			return "the %s is out in the rain" % animal["kind"]
+		weather.force(RpgFarmWeather.SUN)
+		await _animals_frames(2)
+		if herd.node_of(id) == null:
+			return "the %s did not come out again after the rain" % animal["kind"]
+	# the evening
+	calendar.pass_minutes(RpgAnimalHouse.EVENING - calendar.minute)
+	await _animals_frames(3)
+	if not herd.is_night() or herd.is_outside():
+		return "the animals are out at %s" % [calendar.clock()]
+	for raw: Variant in _animals_bought():
+		var animal := JsonUtil.to_dict(raw)
+		var id := JsonUtil.to_int(animal["id"])
+		if herd.node_of(id) != null:
+			return "the %s is still in its yard in the evening" % animal["kind"]
+		var house := herd.data.house(JsonUtil.to_str(animal["house"]))
+		var failure: String = await _animals_go(JsonUtil.to_str(house.get("map", "")))
+		if failure != "":
+			return failure
+		var scene := _tree().current_scene
+		var node := herd.node_of(id)
+		if node == null:
+			return "the %s is not in the %s in the evening" % [animal["kind"], animal["house"]]
+		var stall := scene.get_node_or_null("Markers/Stall%d" % (JsonUtil.to_int(RpgAnimalHouse.animal(id)["stall"]) + 1)) as Node2D
+		if stall == null:
+			return "the %s has no stall for it" % animal["house"]
+		if node.global_position.distance_to(stall.global_position) > RpgUtil.map_tile_px(scene):
+			return "the %s is at %s, not in its stall at %s" % [animal["kind"], node.global_position, stall.global_position]
+		if not node.asleep or node.is_roaming():
+			return "the %s is not asleep in the evening" % animal["kind"]
+	return ""
+
+## The trough of the room that is shown, or null.
+func _animals_trough(herd: RpgAnimalHouse) -> RpgFarmTrough:
+	for node in herd.shown():
+		if node is RpgFarmTrough:
+			return node as RpgFarmTrough
+	return null
+
+## `interact` at the trough with the feed held: one portion goes in and every animal of the
+## house is fed; a second portion is not taken.
+func _feed_at_the_trough() -> String:
+	if _animals_skip("feed_at_the_trough"):
+		return ""
+	var herd := _animals_herd()
+	var feed := herd.data.feed_item
+	for raw: Variant in _animals_bought():
+		var animal := JsonUtil.to_dict(raw)
+		var id := JsonUtil.to_int(animal["id"])
+		var house_id := JsonUtil.to_str(animal["house"])
+		var failure: String = await _animals_go(JsonUtil.to_str(herd.data.house(house_id).get("map", "")))
+		if failure != "":
+			return failure
+		var trough := _animals_trough(herd)
+		if trough == null or trough.house != house_id:
+			return "the %s has no trough" % house_id
+		if RpgAnimalHouse.trough_full(house_id) or RpgUtil.to_bool(RpgAnimalHouse.animal(id)["fed"]):
+			return "the trough of the %s is full before anything went in" % house_id
+		if _state().inventory.count(feed) < 2:
+			_state().inventory.add(feed, 2)
+		var had := _state().inventory.count(feed)
+		failure = await _animals_face(trough, RpgUtil.map_tile_px(_tree().current_scene) * 0.5)
+		if failure != "":
+			return failure
+		# with a tool in the hand nothing goes in
+		failure = await _animals_hold(&"hoe")
+		if failure != "":
+			return failure
+		await _tap("interact")
+		await _animals_frames(3)
+		if RpgAnimalHouse.trough_full(house_id) or _state().inventory.count(feed) != had:
+			return "`interact` with a hoe in the hand filled the trough"
+		failure = await _animals_hold(feed)
+		if failure != "":
+			return failure
+		if not await _interact_until(func() -> bool: return RpgAnimalHouse.trough_full(house_id)):
+			return "`interact` with %s in the hand did not fill the trough of the %s" % [feed, house_id]
+		if _state().inventory.count(feed) != had - 1:
+			return "filling the trough took %d %s, expected one" % [had - _state().inventory.count(feed), feed]
+		if not RpgUtil.to_bool(RpgAnimalHouse.animal(id)["fed"]):
+			return "the %s is not fed although its trough is full" % animal["kind"]
+		var shown := trough.get_node_or_null("Feed") as CanvasItem
+		if shown == null or not shown.visible:
+			return "the full trough shows no feed"
+		await _tap("interact")
+		await _animals_frames(3)
+		if _state().inventory.count(feed) != had - 1:
+			return "a full trough took another portion"
+	return ""
+
+## `interact` with the animal pets it, once a day.
+func _pet_the_hen() -> String:
+	if _animals_skip("pet_the_hen"):
+		return ""
+	var herd := _animals_herd()
+	for raw: Variant in _animals_bought():
+		var animal := JsonUtil.to_dict(raw)
+		var id := JsonUtil.to_int(animal["id"])
+		var house := herd.data.house(JsonUtil.to_str(animal["house"]))
+		# wherever it is now: in its stall in the evening, in its yard by day
+		var where := JsonUtil.to_str(house.get("yard_map", "")) if herd.is_outside() else JsonUtil.to_str(house.get("map", ""))
+		var failure: String = await _animals_go(where)
+		if failure != "":
+			return failure
+		var node := herd.node_of(id)
+		if node == null:
+			return "the %s is not on the map it should be on (%s)" % [animal["kind"], where]
+		node.roam(Rect2())  # it stands still to be petted
+		node.move_dir(Vector2.ZERO)
+		await _animals_frames(2)
+		var tile := float(RpgUtil.map_tile_px(_tree().current_scene))
+		failure = await _animals_face(node, tile * 0.6)
+		if failure != "":
+			return failure
+		failure = await _animals_hold(&"hoe")
+		if failure != "":
+			return failure
+		var before := RpgAnimalHouse.friendship(id)
+		if RpgUtil.to_bool(RpgAnimalHouse.animal(id)["petted"]):
+			return "the %s was petted before anybody touched it" % animal["kind"]
+		if not await _interact_until(func() -> bool: return RpgUtil.to_bool(RpgAnimalHouse.animal(id)["petted"])):
+			return "`interact` with the %s did not pet it" % animal["kind"]
+		if RpgAnimalHouse.friendship(id) != before + RpgAnimalHouse.PET_POINTS:
+			return "petting gave %d points, expected %d" % [RpgAnimalHouse.friendship(id) - before, RpgAnimalHouse.PET_POINTS]
+		await _tap("interact")
+		await _animals_frames(3)
+		if RpgAnimalHouse.friendship(id) != before + RpgAnimalHouse.PET_POINTS:
+			return "a second petting on the same day gave points"
+	return ""
+
+## The night passes: a fed animal has its product in the morning. What lies on the floor of
+## the house is picked up there; what the animal carries is taken from it with `interact`.
+func _egg_in_the_morning() -> String:
+	if _animals_skip("egg_in_the_morning"):
+		return ""
+	var herd := _animals_herd()
+	var mode := RpgFarmMode.current()
+	for raw: Variant in _animals_bought():
+		var fed := RpgAnimalHouse.animal(JsonUtil.to_int(JsonUtil.to_dict(raw)["id"]))
+		if not RpgUtil.to_bool(fed["fed"]) or fed["ready"] != "":
+			return "before the night the %s is %s" % [fed["kind"], fed]
+	await _weather_end_day()
+	mode.weather.force(RpgFarmWeather.SUN)
+	await _animals_frames(3)
+	var products: Array = []
+	for raw: Variant in _animals_bought():
+		var animal := JsonUtil.to_dict(raw)
+		var id := JsonUtil.to_int(animal["id"])
+		var kind_id := JsonUtil.to_str(animal["kind"])
+		var house := herd.data.house(JsonUtil.to_str(animal["house"]))
+		var row := RpgAnimalHouse.animal(id)
+		var product := herd.data.product(kind_id)
+		if row["ready"] != String(product):
+			return "the fed %s has '%s' ready in the morning, expected %s" % [kind_id, row["ready"], product]
+		if RpgUtil.to_bool(row["fed"]) or RpgUtil.to_bool(row["petted"]) or RpgAnimalHouse.trough_full(JsonUtil.to_str(animal["house"])):
+			return "the morning did not empty the trough of the %s: %s" % [animal["house"], row]
+		if not _state().items.has(product) or RpgShippingBin.price_of(product) <= 0:
+			return "%s is no item with a price" % product
+		var had := _state().inventory.count(product)
+		var failure := ""
+		if herd.data.on_the_floor(kind_id):
+			failure = await _animals_go(JsonUtil.to_str(house.get("map", "")))
+			if failure != "":
+				return failure
+			var lying: RpgAnimalProduct = null
+			for node in herd.shown():
+				var found := node as RpgAnimalProduct
+				if found != null and found.animal_id == id:
+					lying = found
+			if lying == null or lying.item_id != product:
+				return "no %s lies in the %s in the morning" % [product, animal["house"]]
+			if herd.node_of(id) != null:
+				return "the %s is indoors on a fair morning" % kind_id
+			failure = await _animals_face(lying, RpgUtil.map_tile_px(_tree().current_scene) * 0.5)
+		else:
+			failure = await _animals_go(JsonUtil.to_str(house.get("yard_map", "")))
+			if failure != "":
+				return failure
+			var node := herd.node_of(id)
+			if node == null:
+				return "the %s is not in its yard in the morning" % kind_id
+			node.roam(Rect2())  # it stands still to give what it has
+			node.move_dir(Vector2.ZERO)
+			await _animals_frames(2)
+			failure = await _animals_face(node, RpgUtil.map_tile_px(_tree().current_scene) * 0.6)
+		if failure != "":
+			return failure
+		failure = await _animals_hold(&"hoe")
+		if failure != "":
+			return failure
+		if not await _interact_until(func() -> bool: return _state().inventory.count(product) == had + 1):
+			return "`interact` did not take the %s of the %s" % [product, kind_id]
+		if RpgAnimalHouse.animal(id)["ready"] != "":
+			return "the %s still has its %s after it was taken" % [kind_id, product]
+		await _animals_frames(3)
+		for node in herd.shown():
+			var left := node as RpgAnimalProduct
+			if left != null and left.animal_id == id:
+				return "the %s still lies there after it was picked up" % product
+		products.append(product)
+	_box["animal_products"] = products
+	return ""
+
+## What the animals gave is put into the shipping bin and paid for overnight at its price.
+func _ship_the_egg() -> String:
+	if _animals_skip("ship_the_egg"):
+		return ""
+	var products: Array = JsonUtil.to_array(_box.get("animal_products", []))
+	if products.is_empty():
+		return "the animals gave nothing to ship"
+	var failure: String = await _animals_go("res://game/maps/farm.tscn")
+	if failure != "":
+		return failure
+	var scene := _tree().current_scene
+	var bin := scene.find_child("ShippingBin", true, false) as RpgShippingBin
+	var front := scene.get_node_or_null("Markers/BinFront") as Node2D
+	if bin == null or front == null:
+		return "the farm has no shipping bin with a place to stand before it"
+	# as the crop was shipped: from the cell before the bin, looking at it
+	var tile := float(RpgUtil.map_tile_px(scene))
+	var to_bin := bin.global_position + Vector2(0.0, -tile * 0.5) - front.global_position
+	var looks := "up"
+	if absf(to_bin.x) > absf(to_bin.y):
+		looks = "left" if to_bin.x < 0.0 else "right"
+	elif to_bin.y > 0.0:
+		looks = "down"
+	failure = await _stand(front.global_position, looks)
+	if failure != "":
+		return failure
+	var expected := 0
+	for raw: Variant in products:
+		var product: StringName = raw
+		var had := _state().inventory.count(product)
+		var in_bin := RpgShippingBin.count(product)
+		if had < 1:
+			return "the farmer has no %s to ship" % product
+		failure = await _animals_hold(product)
+		if failure != "":
+			return failure
+		if not await _interact_until(func() -> bool: return RpgShippingBin.count(product) == in_bin + had):
+			return "`interact` with the bin put %d of %d %s into it" % [RpgShippingBin.count(product) - in_bin, had, product]
+	for row in RpgShippingBin.contents():
+		expected += RpgShippingBin.price_of(StringName(JsonUtil.to_str(row["item_id"]))) * JsonUtil.to_int(row["qty"])
+	var gold: int = _state().gold
+	await _weather_end_day()
+	if _state().gold != gold + expected or expected <= 0:
+		return "the night paid %d for what the animals gave, expected %d" % [_state().gold - gold, expected]
+	var sold: Array = JsonUtil.to_array(RpgFarmMode.current().day_end.last_sale.get("rows", []))
+	for raw: Variant in products:
+		var listed := false
+		for row: Variant in sold:
+			if JsonUtil.to_str(JsonUtil.to_dict(row).get("item_id", "")) == JsonUtil.to_str(raw):
+				listed = true
+		if not listed:
+			return "the morning's summary does not list %s" % raw
+	if not RpgShippingBin.is_empty():
+		return "the bin is not empty in the morning"
 	return ""

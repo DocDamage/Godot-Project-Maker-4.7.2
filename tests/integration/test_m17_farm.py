@@ -15,9 +15,11 @@ import pytest
 
 from rpggen import features, jsonio, paths, schema
 from rpggen.core import (
+    animal_plan,
     config,
     crop_plan,
     farm_plan,
+    forage_plan,
     ledger,
     orchestrator,
     people_plan,
@@ -54,9 +56,21 @@ STEPS = [
     "rain_waters_the_field",
     "hud_shows_the_day",
     "season_turns",
+    "forage_on_the_farm",
+    "catch_a_fish",
 ]
-TOOLS = ("hoe", "watering_can", "sickle", "farm_axe")
-START_TOOLS = ("hoe", "watering_can")  # the other two are bought at the shop (T17.08)
+# the steps of the animals (T17.07), after all the others: in a farm without an animal house each
+# passes with a note
+ANIMAL_STEPS = [
+    "buy_a_hen",
+    "hen_in_the_coop",
+    "feed_at_the_trough",
+    "pet_the_hen",
+    "egg_in_the_morning",
+    "ship_the_egg",
+]
+TOOLS = ("hoe", "watering_can", "sickle", "farm_axe", "fishing_rod")
+START_TOOLS = ("hoe", "watering_can")  # the others are bought at the shop (T17.08, T17.10)
 FILES = [
     "generated/scenes/combat/combat_mode.tscn",
     "generated/scenes/actors/player.tscn",
@@ -71,6 +85,8 @@ FILES = [
     "generated/scenes/farm/shipping_bin.tscn",
     "generated/scenes/farm/bed.tscn",
     "game/data/shops/village_shop.tres",
+    "generated/data/forage.json",
+    "game/data/forage.json",
 ]
 
 
@@ -144,7 +160,7 @@ def test_the_kind_is_generated_but_not_offered(plain) -> None:
 def test_the_sample_pack_is_a_farm_that_passes_its_smoke_run(plain) -> None:
     target, _result = plain
     names = _smoke(target)
-    assert names[-len(STEPS) :] == STEPS
+    assert names[-len(STEPS + ANIMAL_STEPS) :] == STEPS + ANIMAL_STEPS
     # the shared top-down sequence ran before them, as it does for the other top-down kinds
     assert names[0] == "title_new_game" and names[1:4] == HOUSE_STEPS
     assert names.index("go_to_the_village") < names.index("map_music"), "then the village's steps"
@@ -163,9 +179,12 @@ def test_the_project_has_the_farm_code_and_no_other_kinds(plain) -> None:
     assert sorted(p.stem for p in (archetypes / "farm/tools").glob("*.gd")) == [
         "axe",
         "hoe",
+        "rod",
         "sickle",
         "watering_can",
     ]
+    for name in ("forage", "forage_pickup", "fishing", "ui/fishing_bar"):  # T17.10
+        assert (archetypes / "farm" / f"{name}.gd").is_file(), name
     recipes = target / "generated/builder/recipes"
     assert sorted(p.name for p in recipes.iterdir() if p.is_dir()) == ["farm"]
     smoke = sorted(p.name for p in (target / "generated/builder/smoke").glob("smoke_steps_*.gd"))
@@ -228,7 +247,7 @@ def test_a_pack_without_crops_gets_the_drawn_ones_and_a_plot_to_grow_them_on(pla
             for name in ("berry", "carrot", "turnip")
         ]
     }
-    crops_only = {k: v for k, v in section.items() if k not in ("map", "people")}
+    crops_only = {k: v for k, v in section.items() if k not in ("map", "people", "forage")}
     assert crops_only == crop_plan.plan({}, 12345, kit), "the plan of the seed, of the kit's crops"
     assert sorted(c["id"] for c in section["crops"]) == ["berry", "carrot", "turnip"]
     assert crop_plan.check(section) == []
@@ -484,11 +503,16 @@ def test_a_stored_plan_that_was_broken_by_hand_is_reported(plain, godot_exe: Pat
 
 def test_the_growth_strips_of_the_ranch_pack_are_its_crops(ranch) -> None:
     target, _result = ranch
-    assert _smoke(target)[-len(STEPS) :] == STEPS
+    assert _smoke(target)[-len(STEPS + ANIMAL_STEPS) :] == STEPS + ANIMAL_STEPS
     section = world_plan.load(target)["farm"]
     assert sorted(c["id"] for c in section["crops"]) == ["corn", "pumpkin", "tomato", "wheat"]
-    # the pack has no building object: the village has no house, and the people's plan says so
-    assert section["notes"] == ["The village has no house: everybody lives in house 1."]
+    # the pack has nobody but the farmer (its strips of the farmer hoeing and watering are
+    # animations of the farmer, not villagers) and no building object: the people's plan says so
+    assert section["notes"] == [
+        "The packs have no NPC: 3 people share the stand-in.",
+        "The village has no house: everybody lives in house 1.",
+    ]
+    assert [p["asset"] for p in section["people"]] == ["", "", ""]
     by_id = {c["id"]: c for c in section["crops"]}
     assert (by_id["wheat"]["stages"], by_id["corn"]["stages"], by_id["tomato"]["stages"]) == (
         5,
@@ -562,3 +586,289 @@ def test_the_mode_has_the_weather_and_the_hud_and_the_project_its_readme(plain) 
     crops = {c["id"]: c for c in jsonio.read(target / "game/data/crops.json")["crops"]}
     shown = json.loads(readme.split("```json\n")[1].split("\n```")[0])
     assert crops[shown["id"]] == shown, "the crop the README shows is a crop of this game"
+
+
+# ---------------------------------------------------------------- fishing and foraging (T17.10)
+
+
+def _forage_markers(target: Path) -> list[tuple[int, int]]:
+    """The cells of the markers ``Forage/Spot<n>`` of the farm's map, by their number."""
+    lines = _text(target, "game/maps/farm.tscn").splitlines()
+    assert any(line.startswith('[node name="Forage" type="Node2D" parent="."') for line in lines)
+    found: dict[int, tuple[int, int]] = {}
+    for at, line in enumerate(lines):
+        if line.startswith('[node name="Spot') and 'parent="Forage"' in line:
+            assert 'type="Marker2D"' in line
+            x, y = lines[at + 1].removeprefix("position = Vector2(").rstrip(")").split(", ")
+            assert float(x) % 16 == 8 and float(y) % 16 == 8, "the middle of a cell"
+            found[int(line.split('"')[1].removeprefix("Spot"))] = (
+                int(float(x)) // 16,
+                int(float(y)) // 16,
+            )
+    assert sorted(found) == list(range(1, len(found) + 1))
+    return [found[n] for n in sorted(found)]
+
+
+@pytest.mark.parametrize("which", ["plain", "ranch"])
+def test_the_forage_places_are_markers_on_free_cells_of_the_plan(
+    which: str, request: pytest.FixtureRequest
+) -> None:
+    target, _result = request.getfixturevalue(which)
+    farm = world_plan.load(target)["farm"]
+    section = forage_plan.stored_in(world_plan.load(target))
+    assert section is not None and forage_plan.check(section) == []
+    spots = [tuple(c) for c in section["spots"]]
+    assert len(spots) == forage_plan.SPOTS[farm["map"]["farm_size"]]
+    assert _forage_markers(target) == spots, "the markers are the plan's places, in their order"
+    free = set(forage_plan.free_cells(farm["map"]))
+    walkable = farm_plan.reached_cells(farm["map"])
+    taken = {tuple(c) for key in ("tillable", "paths", "trees") for c in farm["map"][key]}
+    for spot in spots:
+        assert spot in free and spot in walkable and spot not in taken, spot
+    assert spots == [tuple(c) for c in forage_plan.spots_for(farm["map"], section["seed"])]
+    # the table: the planned file on every build, the user's once, an item for every entry
+    planned = jsonio.read(target / "generated/data/forage.json")
+    own = jsonio.read(target / "game/data/forage.json")
+    schema.validate("forage", planned)
+    schema.validate("forage", own)
+    assert own == forage_plan.forage_file(section)
+    assert planned["spots"] == section["spots"] and planned["map"] == "farm"
+    assert planned["fishing"] is section["fishing"]
+    files = ledger.Ledger.load(target / paths.LEDGER).files
+    assert files["generated/data/forage.json"].owner == "generated"
+    assert files["game/data/forage.json"].owner == "user_seed"
+    for row in [*section["forage"], *section["fish"]]:
+        item = _text(target, f"game/data/items/{row['item']}.tres")
+        assert f'id = &"{row["item"]}"' in item and f"value = {row['price']}" in item
+        assert row["asset"].startswith("rpggen_farm_kit."), "neither pack has a fish of its own"
+        assert f"generated/farm_kit/{row['asset'].split('.', 1)[1]}.png" in item
+        assert files[f"game/data/items/{row['item']}.tres"].owner == "user_seed"
+    assert len(section["forage"]) == 4 and len(section["fish"]) == 3
+    mode = _text(target, "generated/scenes/combat/combat_mode.tscn")
+    assert "forage.gd" not in mode and "fishing.gd" not in mode, "the mode makes the two itself"
+    strings = _text(target, "game/i18n/strings.tsv")
+    assert "FARM_FISH_CAUGHT\t" in strings and "ITEM_FISHING_ROD_NAME\t" in strings
+
+
+def test_the_rod_is_sold_where_the_farm_has_a_pond_and_not_otherwise(plain, ranch) -> None:
+    """The top-down sample has water tiles, so its farm has a pond and its shop the rod; the
+    ranch has none, so its farm has a well, no rod in the shop, and its smoke step passes
+    without a cast."""
+    for (target, _result), kind in ((plain, "pond"), (ranch, "well")):
+        farm = world_plan.load(target)["farm"]
+        assert farm["map"]["water"]["kind"] == kind
+        assert farm["forage"]["fishing"] is (kind == "pond")
+        shop = _text(target, "game/data/shops/village_shop.tres")
+        assert ('"item_id": "fishing_rod"' in shop) is (kind == "pond"), kind
+        # the rod is an item of every farm: only the shop differs
+        rod = _text(target, "game/data/items/fishing_rod.tres")
+        assert 'id = &"fishing_rod"' in rod and "generated/farm_kit/fishing_rod.png" in rod
+        assert "fishing_rod" not in _text(target, "game/data/new_game.tres"), "it is bought"
+        log = _text(target, "rpggen/logs/godot_smoke.log")
+        assert ("catch_a_fish: the farm has no pond" in log) is (kind == "well")
+        assert "catch_a_fish" in _smoke(target)
+    assert config.starter_map_defaults("farm")["fishing"] is True
+
+
+# ---------------------------------------------------------------- the animals (T17.07)
+
+
+def _animal_farm(source: Path, pack_id: str, animals: str, target: Path, godot_exe: Path):
+    cfg = _config(source, pack_id)
+    cfg.starter_map["animals"] = animals
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    return target, result
+
+
+@pytest.fixture(scope="module")
+def coop(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):
+    """The top-down sample as a farm with a coop: it has no animal, so the kit's hen."""
+    profiles.install_profile(SAMPLE / "sample.rpgprofile.json")
+    target = tmp_path_factory.mktemp("m17_coop") / "out"
+    return _animal_farm(SAMPLE, "sample_pack", "coop", target, godot_exe)
+
+
+@pytest.fixture(scope="module")
+def barn(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):
+    """The ranch pack as a farm with a coop and a barn: its own hens and cows, in three colours."""
+    target = tmp_path_factory.mktemp("m17_barn") / "out"
+    return _animal_farm(RANCH, "ranch", "coop_and_barn", target, godot_exe)
+
+
+def _animal_notes(target: Path) -> list[str]:
+    """What the animals' smoke steps said of themselves (``INFO <step>: ...``)."""
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    return [
+        line
+        for line in log.splitlines()
+        if "[rpggen] INFO " in line and any(f"INFO {step}:" in line for step in ANIMAL_STEPS)
+    ]
+
+
+def _animal_files(target: Path) -> tuple[dict, dict, dict]:
+    """(the animals of the plan, the farm's map of the plan, game/data/animals.json), checked
+    against each other: the file is what the planner says it is, and the planned copy is the
+    same."""
+    farm = world_plan.load(target)["farm"]
+    animals = farm["animals"]
+    assert animal_plan.check(animals) == []
+    listed = jsonio.read(target / animal_plan.ANIMALS_FILE)
+    schema.validate("animals", listed)
+    assert jsonio.read(target / animal_plan.PLANNED_FILE) == listed
+    scenes = {
+        f"{kind['id']}.{variant['id']}": (
+            f"res://generated/scenes/farm/animals/{kind['id']}__{variant['id']}.tscn"
+        )
+        for kind in animals["kinds"]
+        for variant in kind["variants"]
+    }
+    assert listed == animal_plan.animals_file(animals, animal_plan.houses_of(farm["map"]), scenes)
+    files = ledger.Ledger.load(target / paths.LEDGER).files
+    assert files[animal_plan.ANIMALS_FILE].owner == "user_seed"
+    assert files[animal_plan.PLANNED_FILE].owner == "generated"
+    for scene in scenes.values():
+        rel = scene.removeprefix("res://")
+        assert "archetypes/farm/animal.gd" in _text(target, rel), rel
+        assert files[rel].owner == "generated"
+    for kind in animals["kinds"]:
+        for item, price in (
+            (kind["product"], kind["price"]),
+            (kind["large"], kind["large_price"]),
+            (kind["ticket"], kind["cost"]),
+            (animals["feed"]["item"], animals["feed"]["price"]),
+        ):
+            text = _text(target, f"game/data/items/{item}.tres")
+            assert f'id = &"{item}"' in text, item
+            # a price of 10 is the default of an item, and a saved resource leaves defaults out
+            assert f"value = {price}" in text or price == 10, item
+            assert files[f"game/data/items/{item}.tres"].owner == "user_seed"
+        # the row of the shop is a key item: it is never in the bag, the bin or a sale
+        assert "category = 5" in _text(target, f"game/data/items/{kind['ticket']}.tres")
+    return animals, farm["map"], listed
+
+
+def _house_rooms(target: Path, farm_map: dict) -> None:
+    """Every animal house of the plan is on the farm with its yard, and has its room with the
+    trough and a marker for every stall."""
+    farm = _text(target, "game/maps/farm.tscn")
+    for building in farm_map["animal_houses"]:
+        kind = building["kind"]
+        name = kind.capitalize()
+        assert f'[node name="{name}" type="Node2D" parent="Yards"' in farm, kind
+        assert f'metadata/house_map = "res://game/maps/farm_{kind}.tscn"' in farm
+        assert f"metadata/stalls = {len(building['interior']['stalls'])}" in farm
+        assert f'[node name="Gate_{kind}"' in farm
+        assert len(_nodes(farm, f"Fence_{kind}_")) == len(building["yard"]["fence"])
+        room = _text(target, f"game/maps/farm_{kind}.tscn")
+        assert "is_interior = true" in room
+        assert '[node name="Trough"' in room
+        stalls = len(building["interior"]["stalls"])
+        assert _nodes(room, "Stall") == [f"Stall{n + 1}" for n in range(stalls)]
+        assert "archetypes/farm/trough.gd" not in room, (
+            "the trough is made when the room is entered"
+        )
+
+
+def test_a_farm_with_a_coop_keeps_the_drawn_hen(coop) -> None:
+    target, _result = coop
+    names = _smoke(target)
+    assert names[-len(ANIMAL_STEPS) :] == ANIMAL_STEPS
+    assert _animal_notes(target) == [], "every step of the animals did its work"
+    animals, farm_map, listed = _animal_files(target)
+    assert farm_map["animals"] == "coop"
+    assert [b["kind"] for b in farm_map["animal_houses"]] == ["coop"]
+    _house_rooms(target, farm_map)
+    assert not (target / "game/maps/farm_barn.tscn").exists()
+    # the sample pack has no animal: the hen is the farm kit's, in the one colour it is drawn in
+    assert [k["id"] for k in animals["kinds"]] == ["hen"]
+    hen = animals["kinds"][0]
+    assert (hen["house"], hen["product"], hen["collect"]) == ("coop", "egg", "floor")
+    assert hen["variants"] == [
+        {"id": "hen", "colour": "", "asset": "rpggen_farm_kit.hen", "sleep": ""}
+    ]
+    assert animals["notes"] == []
+    assert listed["houses"] == [
+        {
+            "kind": "coop",
+            "map": "res://game/maps/farm_coop.tscn",
+            "yard_map": "res://game/maps/farm.tscn",
+            "stalls": farm_plan.STALLS["coop"],
+        }
+    ]
+    scene = _text(target, "generated/scenes/farm/animals/hen__hen.tscn")
+    assert 'kind = "hen"' in scene and "sprite_frames/rpggen_farm_kit.hen.tres" in scene
+    assert "collision_layer = 16" in scene, "the interactables: found by `interact`, walked through"
+    # the egg is the farm kit's picture, the hen's row its first frame
+    assert "generated/farm_kit/egg.png" in _text(target, "game/data/items/egg.tres")
+    assert "generated/farm_kit/hen.png" in _text(target, "game/data/items/animal_hen.tres")
+    # the shop's own file lists neither: the game adds the rows while a house has room
+    shop = _text(target, "game/data/shops/village_shop.tres")
+    assert "animal_hen" not in shop and '"hay"' not in shop
+    mode = _text(target, "generated/scenes/combat/combat_mode.tscn")
+    assert "animal_house.gd" not in mode, "the mode makes its part itself"
+    readme = _text(target, "README.md")
+    assert "### Animals" in readme and "game/data/animals.json" in readme
+
+
+def test_a_ranch_with_a_coop_and_a_barn_keeps_its_hens_and_cows(barn) -> None:
+    target, _result = barn
+    names = _smoke(target)
+    assert names[-len(ANIMAL_STEPS) :] == ANIMAL_STEPS
+    assert _animal_notes(target) == [], "a hen and a cow were bought, fed, petted and gave"
+    animals, farm_map, listed = _animal_files(target)
+    assert [b["kind"] for b in farm_map["animal_houses"]] == ["coop", "barn"]
+    _house_rooms(target, farm_map)
+    assert [(k["id"], k["house"], k["collect"]) for k in animals["kinds"]] == [
+        ("hen", "coop", "floor"),
+        ("cow", "barn", "hand"),
+    ]
+    assert [h["kind"] for h in listed["houses"]] == ["coop", "barn"]
+    for kind, cell in (("hen", "16x16"), ("cow", "32x32")):
+        entry = next(k for k in animals["kinds"] if k["id"] == kind)
+        # its colour variants, each with the strip it walks in and the one it sleeps in
+        assert [v["colour"] for v in entry["variants"]] == ["black", "brown", "white"]
+        for variant in entry["variants"]:
+            colour = variant["colour"]
+            assert variant["id"] == f"{kind}_01_{colour}"
+            assert variant["asset"].endswith(f"{kind}_01_{colour}_move_down_{cell}_4frames")
+            assert variant["sleep"].endswith(f"{kind}_01_{colour}_sleep_{cell}_2frames")
+            scene = _text(target, f"generated/scenes/farm/animals/{kind}__{variant['id']}.tscn")
+            assert f'kind = "{kind}"' in scene
+            assert '&"walk_down"' in scene and '&"sleep_down"' in scene, variant["id"]
+            assert f"{kind}_01_{colour}_move_down_{cell}_4frames.png" in scene
+            assert f"{kind}_01_{colour}_sleep_{cell}_2frames.png" in scene
+    # the pack draws neither an egg nor milk: the kit's egg, and a drawn bottle of nothing
+    assert "generated/farm_kit/egg.png" in _text(target, "game/data/items/egg.tres")
+    assert 'id = &"milk"' in _text(target, "game/data/items/milk.tres")
+    assert "cow_01_black_move_down_32x32_4frames.png" in _text(
+        target, "game/data/items/animal_cow.tres"
+    )
+
+
+def test_a_farm_without_animals_has_nothing_of_them(plain, ranch) -> None:
+    """``animals: none``, the default: no house, no plan of animals, no file of theirs; the
+    steps of the animals pass with a note each. What such a farm has of this card is the code
+    (inert), its lines in the translations and the part of the README."""
+    for target, _result in (plain, ranch):
+        farm = world_plan.load(target)["farm"]
+        assert farm["map"]["animals"] == "none" and farm["map"]["animal_houses"] == []
+        assert "animals" not in farm
+        for rel in (
+            animal_plan.ANIMALS_FILE,
+            animal_plan.PLANNED_FILE,
+            "generated/scenes/farm/animals",
+            "game/maps/farm_coop.tscn",
+            "game/maps/farm_barn.tscn",
+            "game/data/items/hay.tres",
+            "game/data/items/egg.tres",
+            "game/data/items/animal_hen.tres",
+        ):
+            assert not (target / rel).exists(), rel
+        assert "Yards" not in _text(target, "game/maps/farm.tscn")
+        notes = _animal_notes(target)
+        assert len(notes) == len(ANIMAL_STEPS), notes
+        assert all("the farm has no animal house, step passes" in line for line in notes)
+        assert (target / "addons/rpg_runtime/archetypes/farm/animal_house.gd").is_file()
+        assert "FARM_TROUGH_FULL\t" in _text(target, "game/i18n/strings.tsv")
+        assert "### Animals" in _text(target, "README.md")

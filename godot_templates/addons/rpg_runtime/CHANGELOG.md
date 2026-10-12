@@ -172,6 +172,64 @@ and the saves it had.
   point the village does not have is `VAL-028` (a warning that *Repair the world* mends), not
   `VAL-017`.
 
+* **Foraging** (a farm only, T17.10). `RpgForage` (`archetypes/farm/forage.gd`, the mode's
+  child `Forage`): every morning things of the season lie at some of the places of a map (its
+  markers `Forage/Spot<n>`; for a farm map without markers the cells `spots` of
+  `generated/data/forage.json`) and are picked up with `interact` (`RpgForagePickup`,
+  `archetypes/farm/forage_pickup.gd`, made by `refresh` among the entities of the map). What
+  lies where is not stored: `forage_of(entries, seed, day, season, places)` derives it from
+  the seed of the game (the weather's), the map (`map_seed`), the index of the day and the
+  season, 45 in a hundred places and always at least one. What was picked up today is the flag
+  `farm_forage.picked`. The table is `game/data/forage.json`, then what only
+  `generated/data/forage.json` has (`things`, `fish`, `energy_of`).
+* **Fishing** (a farm only, T17.10). `RpgFarmRod` (`archetypes/farm/tools/rod.gd`, the item
+  `fishing_rod`, 3 energy a cast) casts at a tile whose custom data `water` is true;
+  `RpgFishing` (`archetypes/farm/fishing.gd`, the mode's child `Fishing`) does the rest:
+  `cast(field, cell)` (false with a toast at a well: `water_kind` asks the map's
+  `RpgWaterSource`), a wait of 1 to 4 seconds of the running game that follows from the seed
+  and the number of the cast (`wait_of`; the flag `farm_fishing.casts`), the bite (`bit`, the
+  sound `sfx_bite` when the game has such a slot), then the bar (`RpgFishingBar`,
+  `archetypes/farm/ui/fishing_bar.gd`, on a layer of its own): `mark`, `zone`, `meter`, the
+  zone rising while `use` is held; `caught(item)` when the meter is full, `lost(why)` when it
+  is empty, when the line is pulled in, when nothing bites, when the bag is full and when a new
+  day or another map ends the cast. A cast passes 10 minutes of the calendar and the bar 20
+  more. `fish_for` chooses among the fish of the table that bite in the season, at the time of
+  day (`time_of`) and in the water. `advance(delta)` and `button` are for tests.
+* `RpgFarmMode` has the two parts (`forage`, `fishing`) and the rod among its tools;
+  `food_energy` knows what a fish and a thing to forage restore. `RpgFarmer.fishing` keeps the
+  farmer where it stands while a line is out. `RpgWaterSource.kind` is now read by the game.
+  New texts: `ITEM_FISHING_ROD_NAME`, `ITEM_FISHING_ROD_DESC`, `FARM_FORAGED`,
+  `FARM_FISH_WELL`, `FARM_FISH_PULLED`, `FARM_FISH_NOTHING`, `FARM_FISH_AWAY`,
+  `FARM_FISH_CAUGHT`. New flags of the saved game (no new key): `farm_forage`, `farm_fishing`.
+* **Animals** (T17.07; `archetypes/farm/`). `RpgAnimalHouse` is a part of the mode (its child
+  `Animals`, `RpgFarmMode.animals`; it does nothing in a farm without an animal house). The
+  herd is data in the flags of the game state (`farm_animals.herd`: a row an animal with its
+  kind, name, house, stall, colour variant, friendship, `fed`, `petted` and the product it has
+  `ready`; `farm_animals.trough`: house -> full), so the save has no new key and the night
+  works on animals whose map is not shown. `herd()`, `animal(id)`, `of_house(house)`,
+  `friendship(id)`, `hearts(id)`, `trough_full(house)` are static; `room_in`, `can_buy`, `buy`,
+  `fill_trough`, `feed_with`, `pet`, `take_product`, `touch`, `product_for`, `product_price`,
+  `night`, `is_outside`, `is_night`, `populate`, `show_room`, `show_yard`, `node_of`, `shown`
+  and the signal `changed` are the node's. One portion of the feed in the trough of a house
+  feeds every animal of it for the day; petting gives 15 points once a day; in the night
+  (`on_night`, `NIGHT_ANIMALS`) a fed animal gets its product and 5 points and an unfed one
+  loses 20; from five hearts (of ten, 100 points each) the product is the kind's `large` item.
+  Animals are out in their yard from 6:00 to 18:00 unless `RpgFarmWeather.keeps_animals_in()`,
+  else in their stalls; the nodes of a map are made from the data when it is entered and when
+  the hour or the weather changes the place.
+* `RpgFarmAnimal` extends `RpgActor` (layer 5: found by `interact`, walked through): the node of one animal (`animal_id`, `kind`),
+  which wanders a rectangle (`roam`, with random numbers of its own), sleeps (`sleep`: the
+  `sleep` animation when the sheet has one) and is petted and relieved of its product by
+  `interact`. `RpgFarmTrough` (a `StaticBody2D`, layers 1 and 5, made at `Markers/Trough` by
+  `make`) takes the held feed on `interact`; `RpgAnimalProduct` (an `Area2D`, layer 5) is what
+  lies on the floor of a coop and is picked up by `interact`. `RpgAnimalData` reads
+  `game/data/animals.json`, then `generated/data/animals.json` for the kinds and houses the
+  first does not list.
+* `RpgFarmShop.buy` (new, an override): a row of a stock source that names `deliver` (a callable
+  `func(item_id, qty) -> String`) is paid for and delivered instead of being put into the bag;
+  the animals' rows are such rows, and no other shop has any. `RpgField` has the signal
+  `cleared(cell, what)`, emitted by `clear_obstacle`: cut grass is hay in a farm with animals.
+
 ## 1.4.0
 
 (There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)

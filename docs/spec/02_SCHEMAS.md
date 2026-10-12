@@ -66,7 +66,7 @@ The stages of an arcade game are `game/data/stages.json` (T16.01), written by th
 * `map_layers` is not used (a room has the layers `Background`, `Ground`, `Platforms`, `Hazards`,
   `Decoration`, `Foreground`), `imported_maps` is not used, and `features.navigation` is off.
 
-**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and that starter map is its **village**; the farm itself is a map of its own, planned once and stored (§12.3), with the farmhouse a new game starts in. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2). Its money (T17.08) is two more keys of `starter_map`, which only a farm has: `starting_money` (0 to 99999, default 100: the gold of `game/data/new_game.tres`, which is written once) and `pass_out_loss` (default true: a farmer who stays up to 2:00 loses a tenth of the money as well as half the energy; false keeps the money). A new game also starts with a hoe, a watering can and fifteen seeds of the first crop; the sickle and the axe are bought. The village shop of a farm (`game/data/shops/village_shop.tres`, written once) is an `RpgFarmShop`: the shop of every top-down kind with `opens` (9), `closes` (17) and `closed_weekday` (6, the day `people_plan.SHOP_CLOSED_DAY` gives the shopkeeper off; -1 for none), `seasonal` (default true: the seeds of the season are on offer, from `crops.json`) and `sell_ratio` 1. The farm's own map (T17.06) is five more keys of `starter_map`, read by `rpggen/core/farm_plan.py`: `farm_size` (`small`, `medium`, `large`: a field of 32 by 24, 40 by 30 or 48 by 36 cells; default `medium`), `plot` (`small`, `medium`, `large`: 6 by 4, 12 by 8 or 16 by 10 cells of tillable ground; default `medium`), `animals` (`none`, `coop`, `coop_and_barn`; default `none`), `difficulty` (`easy`, `normal`, `hard`: how much there is to clear, and the days of the crops) and `added_maps` (at most 8 rows `{ "name" }`; the names are stored in the plan, the maps themselves are areas of the world). The planner takes the footprint of the farmhouse from the starter building of the catalog, of a coop and a barn from a `BUILDING` object tagged so, and plans a pond when the packs have a `WATER` tile and a well when they have none. `VAL-031` (a warning, a line a problem) says what keeps the stored farm from being worked. The builder makes `game/maps/farm.tscn` and a room for every building of the plan (`game/maps/farm_house.tscn`, `farm_coop.tscn`, `farm_barn.tscn`) once; `game/data/new_game.tres` of a farm starts in `farm_house.tscn` at the spawn `start`. The door pair between the two maps: the farm's door `to_village` leads to the village's spawn `from_farm`, the village's door `to_farm` (in the wall opposite the farm's way out) to the farm's spawn `from_village`. The people (T17.09) have no key of their own in the config; the builder writes `generated/data/people.json` on every build and `game/data/people.json` and `game/data/dialogue/person_<id>.tres` once, and puts the places their schedules name on the village as markers under `Places`: `home_<n>` (and `home_<n>_2` to `_4`), `home`, `square` (and `square_2` to `_6`) and `work`; the people take the spots of a place in turn.
+**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and that starter map is its **village**; the farm itself is a map of its own, planned once and stored (§12.3), with the farmhouse a new game starts in. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2). Its money (T17.08) is two more keys of `starter_map`, which only a farm has: `starting_money` (0 to 99999, default 100: the gold of `game/data/new_game.tres`, which is written once) and `pass_out_loss` (default true: a farmer who stays up to 2:00 loses a tenth of the money as well as half the energy; false keeps the money). A new game also starts with a hoe, a watering can and fifteen seeds of the first crop; the sickle and the axe are bought. The village shop of a farm (`game/data/shops/village_shop.tres`, written once) is an `RpgFarmShop`: the shop of every top-down kind with `opens` (9), `closes` (17) and `closed_weekday` (6, the day `people_plan.SHOP_CLOSED_DAY` gives the shopkeeper off; -1 for none), `seasonal` (default true: the seeds of the season are on offer, from `crops.json`) and `sell_ratio` 1. The farm's own map (T17.06) is five more keys of `starter_map`, read by `rpggen/core/farm_plan.py`: `farm_size` (`small`, `medium`, `large`: a field of 32 by 24, 40 by 30 or 48 by 36 cells; default `medium`), `plot` (`small`, `medium`, `large`: 6 by 4, 12 by 8 or 16 by 10 cells of tillable ground; default `medium`), `animals` (`none`, `coop`, `coop_and_barn`; default `none`), `difficulty` (`easy`, `normal`, `hard`: how much there is to clear, and the days of the crops) and `added_maps` (at most 8 rows `{ "name" }`; the names are stored in the plan, the maps themselves are areas of the world). The planner takes the footprint of the farmhouse from the starter building of the catalog, of a coop and a barn from a `BUILDING` object tagged so, and plans a pond when the packs have a `WATER` tile and a well when they have none. `VAL-031` (a warning, a line a problem) says what keeps the stored farm from being worked. The builder makes `game/maps/farm.tscn` and a room for every building of the plan (`game/maps/farm_house.tscn`, `farm_coop.tscn`, `farm_barn.tscn`) once; `game/data/new_game.tres` of a farm starts in `farm_house.tscn` at the spawn `start`. The door pair between the two maps: the farm's door `to_village` leads to the village's spawn `from_farm`, the village's door `to_farm` (in the wall opposite the farm's way out) to the farm's spawn `from_village`. The people (T17.09) have no key of their own in the config; the builder writes `generated/data/people.json` on every build and `game/data/people.json` and `game/data/dialogue/person_<id>.tres` once, and puts the places their schedules name on the village as markers under `Places`: `home_<n>` (and `home_<n>_2` to `_4`), `home`, `square` (and `square_2` to `_6`) and `work`; the people take the spots of a place in turn. Fishing and foraging (T17.10) have one key of `starter_map`, which only a farm has: `fishing` (default true; false keeps the fishing rod out of the shop). The rod is sold only where the farm's plan has a pond (`farm.map.water.kind`); what is planned of the fish, the things to forage and the places they lie at is `farm.forage` (§12.6). The builder writes `generated/data/forage.json` on every build, and `game/data/forage.json` and an item for every fish and every thing to forage (`game/data/items/<item>.tres`) and for the rod (`fishing_rod.tres`) once; the places are the markers `Forage/Spot<n>` of `game/maps/farm.tscn`.
 
 **PackRef:** `{ "pack_id": str, "source": str (absolute path as the user gave it; informational only), "source_sha256": str, "kind": "zip"|"7z"|"rar"|"folder", "folders"?: [str] }`. `folders` (T16.22, optional) is for a `source` that is a bundle of packs, a folder each: it names the pack folders to take, by their names, and each is a pack of its own. An entry with one folder is the pack `pack_id`; an entry with several is read as one entry per folder, in the order given, with ids made from the folders' names, and is written back that way, so the ids stay. The wizard and `--pack-folder` write one entry per folder. `folders` is not allowed on a `rar` (a rar is not listed, so it is never a bundle); on any other source that is not a bundle, and for a folder the bundle does not have, opening the pack stops with `ARCH-001`, which names the nearest folder. Only the named folders are unpacked, with the licence files of the bundle's top level beside each.
 
@@ -589,6 +589,11 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `friendship` | save game | T17.09 |
 | `flags.farm_weather` (`seed`, `watered`) | save game | T17.11 |
 | `generated/data/seasons.json` (`version`, `groups`) | generated data (farm) | T17.11 |
+| `starter_map.fishing` | generator_config (farm) | T17.10 |
+| `farm.forage` | world_plan | T17.10 |
+| `flags.farm_forage` (`picked`: `{ day, spots: { map: [place] } }`), `flags.farm_fishing` (`casts`) | save game | T17.10 |
+| `game/data/forage.json`, `generated/data/forage.json` (`forage`, `fish`; the generated one also `spots`, `map`, `fishing`) | game data (farm) | T17.10 |
+| the tags `use_anim:<tool>`, `of:<asset id>` and `unused_because:use_anim` | asset_catalog | T17.10 |
 
 ---
 
@@ -895,3 +900,102 @@ the group `rpg_place`) or `cell` (`[x, y]`), and optionally `facing`. The builde
 file **once**; it is the user's afterwards: a person's tastes, name and day are changed there,
 and `RpgFriendship` reads it when the game starts and gives each NPC that carries an
 `RpgSchedule` without entries of its own the schedule of its person.
+
+### 12.5 `farm.animals` (the animals of a farm, T17.07)
+
+Planned once by `rpggen/core/animal_plan.py` from the sprites of the catalog with the role
+`ANIMAL` and the animal houses of the farm's own plan (§12.3, `animal_houses`), and **stored
+and reused**: once the key is there the seed no longer changes it, and a kind or a colour the
+packs gain later is appended. It is an optional key of the `farm` section: **a farm without an
+animal house (`animals: none`) has none**, and nothing of the animals is written for it. The
+planner reads no option.
+
+`plan_version` (1), `seed`, `feed` (`item`, `name`, `price`: hay, what goes into a trough),
+`names` (what an animal is called when it is bought, in an order the seed gives), `notes` (a
+house the packs have no animal for stays empty) and `kinds`, the coop's first.
+
+**Kind:** `id` (`hen`: the word of the asset's tags that names an animal, else the last such
+word of its id, else the first word of its file name), `name`, `house` (`coop` for a hen, a
+chicken and a duck; `barn` for a cow, a sheep, a goat, a pig and every other animal), `ticket`
+(`animal_<id>`: the item the shop lists the kind as; it never reaches the bag) and `cost`,
+`product` and `price`, `large` (`<product>_large`: what an animal gives from five hearts on)
+and `large_price` (half as much again), `collect` (`floor` for the kinds of the coop: the
+product lies in the house in the morning; `hand` for the others: `interact` with the animal
+takes it) and `variants`. Only the kinds whose house the farm has are planned. The products
+and prices come from a table in the planner (egg 25, duck egg 35, milk 60, goat milk 50, wool
+70, truffle 90; 40 for an animal nobody knows); an animal costs six of its products.
+
+**Variant:** `id` (`hen_01_black`: the animal's own name and its colour), `colour` (`""` for
+an animal drawn in one), `asset` (the sprite it walks in) and `sleep` (the sprite it sleeps
+in when that is another file, else `""`). There is one for each colour of each animal the
+packs drew (T16.21); the drawn hen of the farm kit is one variant without a colour.
+
+`animal_plan.check` finds: two kinds of one id, a kind without a picture, in a house that is
+neither, without a price, or whose product is taken in a way nobody knows.
+
+**`game/data/animals.json`** (`rpggen/schema/animals.schema.json`) is what the game reads:
+`{ "animals": [ Kind ], "feed", "names", "houses" }`. A Kind is as above, each of its variants
+with `scene` (`generated/scenes/farm/animals/<kind>__<variant>.tscn`). `houses` is a row for
+each animal house of the farm's plan: `kind`, `map` (the scene of its room), `yard_map` (the
+scene of the map its yard is on) and `stalls` (how many animals it has room for). The builder
+writes the file **once**; it is the user's afterwards. `generated/data/animals.json` is the
+same, written on every build: `RpgAnimalData` takes from it the kinds and the houses the
+user's file does not list. The items of a kind (`product`, `large`, `ticket`) and the feed are
+seeded once into `game/data/items/`.
+
+**In the saved game** the herd is in the flags, with no new key of the save: the entity
+`farm_animals` has `herd` (a row an animal: `id`, `kind`, `name`, `house`, `stall`, `variant`,
+`friendship` (0 to 1000), `fed`, `petted`, `ready` (the item it has to give, or `""`)),
+`trough` (house -> full today), `bought` and `bought_<kind>` (how many were bought: the next
+name and the next colour).
+
+### 12.6 `farm.forage` (the fish and the forage of a farm, T17.10)
+
+Planned once by `rpggen/core/forage_plan.py` from the `ITEM` pictures of the catalog tagged
+`forage` and `fish` (the packs' own, else the seven drawn ones of the farm kit: four things to
+forage, one a season, and three fish), the seed and the farm's own map (§12.3), and **stored
+and reused**: once the key is there the seed no longer changes it, and a fish or a thing the
+packs gain later is appended. `forage` is an optional key of the `farm` section:
+
+| Key | Type | What |
+|-----|------|------|
+| `plan_version` | 1 | |
+| `seed` | int | The seed it was planned with. |
+| `fishing` | bool | The rod is sold: the option `starter_map.fishing` is on **and** the farm's map has a pond. It is the one key that is not kept: it follows the option and the map on every generation. |
+| `forage` | array of Thing | The things to forage, in the order the seed gave. |
+| `fish` | array of Fish | The fish. |
+| `spots` | array of `[x, y]` | The cells of the farm's map where a thing may lie in the morning, sorted from the top: 6, 8 or 10 for a small, a medium or a large field. |
+| `notes` | array of string | What the planner added (the drawn ones, when a plan is made without the kit). |
+
+**Thing:** `id` and `item` (the id of the item it is, `forage_<name>`), `name`, `asset` (the
+picture; `""` for a drawn one of a plan made without the kit, which then has a `color`),
+`seasons` (from the picture's `season:<name>` tags, else a season of its own; every season has
+at least one thing), `price` and `energy` (what eating one restores).
+
+**Fish:** the same keys (the item is `fish_<name>`), and `times` (`morning`: before 12:00,
+`day`: before 18:00, `evening`), `water` (`["pond"]`) and `speed` (how fast its mark moves
+along the bar: 1.0, 1.2 or 1.4, the dearer the faster). A fish bites at two of the three times
+and in three of the four seasons unless the packs have fewer than three fish; at every time of
+every season at least one bites.
+
+**The places** (`forage_plan.free_cells`, `spots_for`) are read off the farm's map, which is
+not changed: cells the farmer can walk to from the door of the house, within five cells of the
+edge, that are not the plot nor beside it, not a path, not in a yard, not before a door, the
+bin or the way out, not beside the water, and with nothing of the plan on them; chosen by the
+seed, no two nearer than four cells while the farm has room. The builder writes them into
+`game/maps/farm.tscn` as `Marker2D` nodes `Forage/Spot1` ... (the map is written once: a farm
+map that was made before has none, and the game then goes by `spots` of
+`generated/data/forage.json`). **Which place has what on which day is not planned and not
+stored**: the game derives it from its seed, the map, the index of the day and the season
+(`RpgForage.forage_of`), and keeps only what was picked up today (`flags.farm_forage`).
+
+`forage_plan.check` finds: a season with nothing to forage, a time of a season at which no
+fish bites, two entries of one id.
+
+**`game/data/forage.json`** (`rpggen/schema/forage.schema.json`) is what the game reads:
+`{ "forage": [ Thing ], "fish": [ Fish ] }` without `asset` and `color`
+(`forage_plan.forage_file`). The builder writes it **once**; it is the user's afterwards. It
+writes the same lists with `spots`, `map` (`farm`: the id of the map the cells are of) and
+`fishing` to `generated/data/forage.json` on every build; the game reads the user's file and
+takes from the generated one the entries the user's does not list.
+

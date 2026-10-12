@@ -39,8 +39,8 @@ is picked whatever you hold.
 ### Energy
 
 The yellow bar over the hotbar is your energy, 100 when you are rested. A tool costs energy
-when it does something (the hoe, the can and the sickle 2, the axe 4) and none when it does
-not. At zero you walk at half your speed and no tool works. Eating restores it: hold what you
+when it does something (the hoe, the can and the sickle 2, the axe 4, a cast of the rod 3)
+and none when it does not. At zero you walk at half your speed and no tool works. Eating restores it: hold what you
 harvested and `use` it. Sleeping fills it.
 
 ### The tools
@@ -51,6 +51,7 @@ harvested and `use` it. Sleeping fills it.
 | Watering can | Waters tilled soil. It holds water for 20 squares; `use` it at water to fill it. |
 | Sickle | Cuts a ripe crop, a withered one and grass. Sold at the shop. |
 | Axe | Clears stumps and branches. Sold at the shop. |
+| Fishing rod | Casts a line into the pond (see *Fishing and foraging*). Sold at the shop of a farm that has a pond. |
 
 ### Crops
 
@@ -98,6 +99,48 @@ one**, copy an entry, give it a new `id`, `seed` and `produce`, make the two ite
 drawn your own). A crop your packs gain later is added to `generated/data/crops.json` by the
 next generation; the game grows every crop of that list that your own list does not have.
 
+### Animals
+
+A farm made with the option **Animals** (`starter_map.animals`: `coop`, or `coop_and_barn`) has
+a coop, or a coop and a barn, on the farm: a building with a room inside and a fenced yard
+before it. The default is `none`: such a farm has no animal house, and nothing of this part is
+in its game.
+
+- **Buying.** In its hours the shop lists a row for every kind of animal whose house has a free
+  stall (a coop and a barn have four each), and **hay**. An animal you buy is not in your bag:
+  it moves into its house. It gets the next name of a list and the next colour of its kind.
+- **Where they are.** From 6:00 to 18:00 on a fair day the animals are out in the yard of their
+  house and wander about in it. From 18:00 on, and all day when it rains, storms or snows, each
+  is in its stall in the house; at night it sleeps.
+- **Feeding.** Hold hay and `interact` with the **trough** in the house: one portion feeds
+  every animal of that house for the day. Grass you cut with the sickle gives one hay.
+- **Petting.** `interact` with an animal pets it, once a day (15 points of friendship).
+- **In the morning** an animal that was fed has its product. A hen's **egg lies in the coop**,
+  a square below her stall: `interact` picks it up. A cow gives her **milk** when you
+  `interact` with her; no pail is needed. A product that is not taken stays, and the animal
+  makes no second one until it is. A fed night also gives 5 points; an animal that was not fed
+  gives nothing and loses 20. Animals never die and never leave.
+- **Friendship** is counted in points, ten hearts of 100 each. From five hearts on an animal
+  gives the **large** product: an item of its own (`egg_large`) that sells for half as much
+  again. `interact` with an animal you have petted already tells you its hearts.
+
+The animals of the game are in **`game/data/animals.json`**, written once and then yours:
+
+- `animals`: one entry a kind, with its `house` (`coop` or `barn`), what the shop asks for it
+  (`cost`, the `value` of the item `ticket`), what it gives (`product`, and `large` from five
+  hearts on; their prices are the `value` of those two items in `game/data/items/`), how the
+  product is taken (`collect`: `floor`, it lies in the house; `hand`, `interact` with the
+  animal) and its pictures (`variants`: a `scene` for each colour).
+- `feed`: the item that goes into a trough. `names`: what the animals are called, in turn.
+- `houses`: for each house the scene of its room (`map`), the map its yard is on (`yard_map`)
+  and its `stalls`. A room has the markers `Markers/Trough` and `Markers/Stall1` and so on;
+  the yard is the node `Yards/Coop` (or `Barn`) of the farm's map, whose metadata `yard` is its
+  ground in squares.
+
+A kind or a colour your packs gain later is added to `generated/data/animals.json` by the next
+generation; the game has every kind and house of that list that your own list does not have.
+Whether a farm has a coop or a barn is decided when it is first generated, with its map.
+
 ### Money: the shipping bin and the shop
 
 - **The shipping bin.** With something you can sell in your hand, `interact` puts the whole
@@ -106,7 +149,8 @@ next generation; the game grows every crop of that list that your own list does 
   begins with a list of what it earned.
 - **The shop** in the village is open from **9:00 to 17:00** and closed on **Sunday**; its
   keeper says so when you come at another time. It sells the seeds of the crops that grow in
-  the season, the sickle and the axe, and buys what you bring at its price. Its file is
+  the season, the sickle and the axe (and the fishing rod, on a farm with a pond), and buys
+  what you bring at its price. Its file is
   `game/data/shops/village_shop.tres` (**Opens**, **Closes**, **Closed Weekday**, and
   **Seasonal** for the seeds).
 
@@ -124,6 +168,60 @@ next generation; the game grows every crop of that list that your own list does 
 - The **music** follows the season on outdoor maps when the sound slots *Spring music* to
   *Winter music* are filled (a season without its own plays the first that is), and after
   20:00 the *Night music* when that slot is filled.
+
+### Fishing and foraging
+
+- **Foraging.** Every morning a few things lie at the edges of the farm: what lies there
+  depends on the season. Walk onto one and pick it up with `interact`. What you do not pick up
+  is gone the next morning, when other things lie in other places. Where and what follows from
+  the game's seed and the date, so loading a save does not change a morning.
+- The places are the markers **`Forage/Spot1`, `Spot2`, ...** of `game/maps/farm.tscn`: move
+  them, delete them or add more (`Spot9`, ...) in the editor. Any map with such markers has
+  things to forage.
+- **Fishing.** A farm with a **pond** sells a **fishing rod** at the shop (a farm with a well
+  has no fish: the game says so when you cast into it). Hold the rod, face the water and `use`
+  it: the line is out and you stand still. After **one to four seconds** a fish **bites** (a
+  mark over your head; `use` again before that pulls the line in). Then a bar opens: the pale
+  line is the fish, the green zone is yours. **Hold `use`** and the zone rises, let go and it
+  sinks. While the zone is over the fish the meter beside the bar fills; when it is full the
+  fish is yours, and when it runs empty the fish got away.
+- A cast costs 3 energy and ten minutes of the day; landing or losing a fish another twenty.
+- Which fish bites depends on the **season** and the **time of day**: the morning (before
+  12:00), the day (before 18:00) and the evening.
+- Fish and what you forage are items like your harvest: sell them (the bin, the shop), eat
+  them (`use`) or give them away.
+- With **`starter_map.fishing`: false** in `rpggen/generator_config.json` the shop does not
+  sell the rod. (The shop's file is written once: in a project that has it already, add or
+  remove the row `fishing_rod` in `game/data/shops/village_shop.tres` yourself.)
+
+The fish and the things to forage are in **`game/data/forage.json`**, written once and then
+yours: a list `forage` and a list `fish`.
+
+```json
+{
+  "id": "fish_carp",
+  "name": "Carp",
+  "item": "fish_carp",
+  "seasons": ["spring", "summer", "winter"],
+  "times": ["day", "evening"],
+  "water": ["pond"],
+  "price": 45,
+  "energy": 12,
+  "speed": 1.2
+}
+```
+
+- `item` is the id of the item you get: `game/data/items/fish_carp.tres`, where its name, its
+  icon and its price are (`price` here is what rpggen gave that item when it made it).
+- `seasons` is when it is there; a fish also has `times` (`morning`, `day`, `evening`),
+  `water` (`pond`) and `speed` (how fast it moves along the bar: 1 is easy, 1.4 is lively).
+- `energy` is what eating one restores.
+- An entry of `forage` has `id`, `name`, `item`, `seasons`, `price` and `energy`.
+
+**To add a fish or a thing to forage**, copy an entry, give it a new `id` and `item`, and make
+the item (copy `fish_carp.tres` in the editor and change its `id`, name and icon). What your
+packs gain later is added to `generated/data/forage.json` by the next generation; the game
+knows every entry of that list that your own list does not have.
 
 ### The screen
 
@@ -155,9 +253,15 @@ and what they love, like and dislike (`loves`, `likes`, `dislikes`: lists of ite
 | The crops | `game/data/crops.json` (yours) |
 | The same list as rpggen planned it | `generated/data/crops.json` (rewritten on every build) |
 | The people | `game/data/people.json` (yours) |
+| The animals, the feed and the animal houses | `game/data/animals.json` (yours) |
+| The same list as rpggen planned it | `generated/data/animals.json` (rewritten on every build) |
+| The scenes of the animals | `generated/scenes/farm/animals/` |
+| The fish and the things to forage | `game/data/forage.json` (yours) |
+| The same list as rpggen planned it, with the forage places of the plan | `generated/data/forage.json` (rewritten on every build) |
+| The places where things to forage lie | the markers `Forage/Spot<n>` of `game/maps/farm.tscn` (yours) |
 | The shop | `game/data/shops/village_shop.tres` (yours) |
 | What a new game starts with | `game/data/new_game.tres` (yours) |
-| The seeds, the produce and the tools as items | `game/data/items/` (yours) |
+| The seeds, the produce, the fish, the forage and the tools as items | `game/data/items/` (yours) |
 | The plan the crops, the farm and the people come from | `rpggen/world_plan.json`, the section `farm` |
 | The scenes of the crops, the shipping bin, the bed, the weather sign | `generated/scenes/farm/` |
 | The sheets that change with the season | `generated/data/seasons.json` |

@@ -23,6 +23,9 @@ extends Node2D
 ## A cell was tilled, watered, planted, harvested or cleared, or a night passed over it.
 signal changed(cell: Vector2i)
 signal harvested(crop_id: String, item_id: StringName, qty: int)
+## A thing was cleared away from `cell`: `what` is `stump`, `branch` or `grass`. Whoever gives
+## something for it listens (cut grass is hay in a farm that keeps animals, T17.07).
+signal cleared(cell: Vector2i, what: String)
 
 const GROUP := &"farm_field"
 const FLAG_ENTITY := "farm_field"
@@ -186,8 +189,10 @@ func clear_obstacle(cell: Vector2i, kinds: Array[String]) -> bool:
 	var id := RpgUtil.to_str(thing.get("entity_id")) if thing.get("entity_id") != null else ""
 	if state != null and id != "":
 		state.set_flag(id, "collected", true)
+	var what := RpgUtil.to_str(thing.get_meta(CLEAR_META))
 	thing.queue_free()
 	changed.emit(cell)
+	cleared.emit(cell, what)
 	return true
 
 # ------------------------------------------------------------------ the work

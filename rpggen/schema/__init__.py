@@ -20,6 +20,8 @@ KINDS = (
     "world_plan",
     "crops",
     "people",
+    "animals",
+    "forage",
 )
 
 

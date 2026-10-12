@@ -425,9 +425,15 @@ func test_a_mode_that_is_only_made_has_no_parts_and_one_that_is_ready_has_the_ca
 	t.ok(RpgCalendar.current() != null, "the mode asks for the calendar")
 	t.ok(mode.energy != null and mode.hotbar != null and mode.day_end != null)
 	t.ok(mode.weather != null and mode.seasons != null)
-	t.eq(mode.get_child_count(), 5, "the energy, the hotbar, the end of the day, the weather and the seasons")
+	# the parts by their names, not their number: every card of the farm adds its own
+	for part: String in [RpgFarmMode.ENERGY_NODE, RpgFarmMode.HOTBAR_NODE, RpgDayEnd.NODE_NAME, RpgFarmWeather.NODE_NAME, RpgFarmSeasons.NODE_NAME, RpgAnimalHouse.NODE_NAME]:
+		t.ok(mode.get_node_or_null(part) != null, "the mode has its part %s" % part)
+	t.ok(mode.animals != null and mode.animals.data.is_empty(), "the animal houses are a part that does nothing in a farm without one")
+	t.ok(mode.forage != null and mode.get_node_or_null(RpgForage.NODE_NAME) == mode.forage, "the forage is a part of the mode (T17.10)")
+	t.ok(mode.fishing != null and mode.get_node_or_null(RpgFishing.NODE_NAME) == mode.fishing, "and so is the fishing")
+	var parts := mode.get_child_count()
 	mode._ready()
-	t.eq(mode.get_child_count(), 5, "made once")
+	t.eq(mode.get_child_count(), parts, "made once")
 	t.ok(not mode.is_in_combat())
 	for id: StringName in [&"hoe", &"watering_can", &"sickle", &"farm_axe"]:
 		t.ok(mode.tool_for(id) != null and mode.tool_for(id).id == id, String(id))

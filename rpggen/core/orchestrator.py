@@ -507,6 +507,8 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
         _plan_crops(state, catalog, stored_farm)
         _plan_farm_map(state, catalog)
         _plan_people(state, catalog, stored_farm)
+        _plan_animals(state, catalog, stored_farm)
+        _plan_forage(state, catalog, stored_farm)  # after the map: its places lie on it
 
 
 def _plan_areas(state: _State, catalog: catalog_mod.Catalog) -> None:
@@ -549,7 +551,7 @@ def _plan_crops(state: _State, catalog: catalog_mod.Catalog, stored: dict[str, A
         state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
         raise _Stop from None
     # what the other planners of a farm keep in the section stays (a fresh crop plan has neither)
-    for key in ("map", "people"):
+    for key in ("map", "people", "animals", "forage"):
         if stored and key in stored and key not in section:
             section[key] = stored[key]
     plan = world_plan.load(root) or crop_plan.world(section, state.cfg.seed)
@@ -671,6 +673,63 @@ def _plan_people(
     plan["farm"] = people_plan.store(plan["farm"], people, notes)
     world_plan.save(root, plan)
     state.cb.on_log("farm: " + people_plan.summary(people))
+    for note in notes:
+        state.cb.on_log("farm: " + note)
+
+
+def _plan_forage(
+    state: _State, catalog: catalog_mod.Catalog, stored: dict[str, Any] | None
+) -> None:
+    """A farm's fish and forage (T17.10): planned once from the ``ITEM`` pictures tagged
+    ``fish`` and ``forage`` (the packs', else the drawn ones of the kit), the seed and the
+    farm's own map, stored as ``farm.forage``, and never planned again; what the packs have
+    gained is appended. ``stored`` is the section the project had. The farm's map is read, not
+    changed: the places where things lie are cells of it that are free."""
+    from rpggen.core import forage_plan
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    plan = world_plan.load(root)
+    assert plan is not None, "the crops are planned first"
+    section, notes = forage_plan.for_project(
+        (stored or {}).get("forage"),
+        state.cfg.starter_map_options(),
+        state.cfg.seed,
+        forage_plan.facts_of(catalog),
+        plan["farm"].get("map"),
+    )
+    plan["farm"] = forage_plan.store(plan["farm"], section)
+    world_plan.save(root, plan)
+    state.cb.on_log("farm: " + forage_plan.summary(section))
+    for note in notes:
+        state.cb.on_log("farm: " + note)
+
+
+def _plan_animals(
+    state: _State, catalog: catalog_mod.Catalog, stored: dict[str, Any] | None
+) -> None:
+    """The animals of a farm (T17.07): planned once from the ``ANIMAL`` sprites of the packs for
+    the animal houses the farm's own plan has, stored as ``farm.animals``, and never planned
+    again; a kind or a colour the packs have gained is appended. A farm without an animal house
+    has no such key. ``stored`` is the section the project had."""
+    from rpggen.core import animal_plan
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    plan = world_plan.load(root)
+    assert plan is not None, "the crops are planned first"
+    houses = [h["kind"] for h in animal_plan.houses_of(plan["farm"].get("map"))]
+    animals, notes = animal_plan.for_project(
+        (stored or {}).get("animals"),
+        state.cfg.starter_map_options(),
+        state.cfg.seed,
+        animal_plan.facts_of(catalog, houses),
+    )
+    if animals is None:
+        return
+    plan["farm"] = animal_plan.store(plan["farm"], animals)
+    world_plan.save(root, plan)
+    state.cb.on_log("farm: " + animal_plan.summary(animals))
     for note in notes:
         state.cb.on_log("farm: " + note)
 
