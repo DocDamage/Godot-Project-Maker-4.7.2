@@ -11,3 +11,6 @@ METROIDVANIA_AVAILABLE = True
 SHMUP_AVAILABLE = True
 RUN_AND_GUN_AVAILABLE = True
 RACING_AVAILABLE = True
+# The farm and life sim of M17, off until its gate (T17.20). The kind can be generated from the
+# command line and a config since T17.04; the wizard does not offer it.
+FARM_AVAILABLE = False

@@ -11,6 +11,7 @@
     },
     "rooms": {"$ref": "#/$defs/Rooms"},
     "stages": {"$ref": "#/$defs/Stages"},
+    "farm": {"$ref": "#/$defs/Farm"},
     "grid": {
       "type": "object",
       "additionalProperties": {"$ref": "#/$defs/Cell"}
@@ -40,6 +41,179 @@
   "required": ["world_plan_version", "seed", "areas", "grid", "notes", "maps"],
   "additionalProperties": false,
   "$defs": {
+    "Farm": {
+      "type": "object",
+      "properties": {
+        "plan_version": {"const": 1},
+        "seed": {"type": "integer"},
+        "difficulty": {"enum": ["easy", "normal", "hard"]},
+        "crops": {"type": "array", "items": {"$ref": "#/$defs/Crop"}},
+        "map": {"$ref": "#/$defs/FarmMap"},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["plan_version", "seed", "difficulty", "crops", "notes"],
+      "additionalProperties": false
+    },
+    "FarmMap": {
+      "type": "object",
+      "properties": {
+        "plan_version": {"const": 1},
+        "seed": {"type": "integer"},
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "map": {"type": "string", "minLength": 1},
+        "farm_size": {"enum": ["small", "medium", "large"]},
+        "plot": {"enum": ["small", "medium", "large"]},
+        "animals": {"enum": ["none", "coop", "coop_and_barn"]},
+        "difficulty": {"enum": ["easy", "normal", "hard"]},
+        "size": {"$ref": "#/$defs/Cell"},
+        "house": {"$ref": "#/$defs/FarmBuilding"},
+        "bin": {
+          "type": "object",
+          "properties": {"cell": {"$ref": "#/$defs/Cell"}, "front": {"$ref": "#/$defs/Cell"}},
+          "required": ["cell"],
+          "additionalProperties": false
+        },
+        "tillable": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "water": {
+          "type": "object",
+          "properties": {
+            "kind": {"enum": ["pond", "well"]},
+            "cells": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+            "fill": {"$ref": "#/$defs/Cell"}
+          },
+          "required": ["kind", "cells"],
+          "additionalProperties": false
+        },
+        "animal_houses": {"type": "array", "items": {"$ref": "#/$defs/FarmBuilding"}},
+        "paths": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "debris": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {"enum": ["branch", "stump", "grass"]},
+              "cell": {"$ref": "#/$defs/Cell"}
+            },
+            "required": ["kind", "cell"],
+            "additionalProperties": false
+          }
+        },
+        "trees": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "scenery": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {"enum": ["bush", "rock", "flowers"]},
+              "cell": {"$ref": "#/$defs/Cell"}
+            },
+            "required": ["kind", "cell"],
+            "additionalProperties": false
+          }
+        },
+        "exit": {
+          "type": "object",
+          "properties": {
+            "edge": {"enum": ["N", "E", "S", "W"]},
+            "cell": {"$ref": "#/$defs/Cell"},
+            "spawn": {"$ref": "#/$defs/Cell"},
+            "facing": {"enum": ["up", "down", "left", "right"]},
+            "to": {"type": "string"}
+          },
+          "required": ["edge", "cell", "spawn", "facing", "to"],
+          "additionalProperties": false
+        },
+        "start": {
+          "type": "object",
+          "properties": {
+            "map": {"type": "string"},
+            "cell": {"$ref": "#/$defs/Cell"},
+            "facing": {"enum": ["up", "down", "left", "right"]}
+          },
+          "required": ["map", "cell", "facing"],
+          "additionalProperties": false
+        },
+        "added_maps": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": [
+        "plan_version", "seed", "id", "map", "farm_size", "plot", "animals", "difficulty", "size",
+        "house", "bin", "tillable", "water", "animal_houses", "paths", "debris", "trees",
+        "scenery", "exit", "start", "added_maps", "notes"
+      ],
+      "additionalProperties": false
+    },
+    "FarmBuilding": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "kind": {"enum": ["house", "coop", "barn"]},
+        "rect": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4},
+        "door": {"$ref": "#/$defs/Cell"},
+        "interior": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+            "size": {"$ref": "#/$defs/Cell"},
+            "door": {"$ref": "#/$defs/Cell"},
+            "arrive": {"$ref": "#/$defs/Cell"},
+            "bed": {
+              "type": "object",
+              "properties": {"cell": {"$ref": "#/$defs/Cell"}, "size": {"$ref": "#/$defs/Cell"}},
+              "required": ["cell", "size"],
+              "additionalProperties": false
+            },
+            "start": {"$ref": "#/$defs/Cell"},
+            "trough": {"$ref": "#/$defs/Cell"},
+            "stalls": {"type": "array", "items": {"$ref": "#/$defs/Cell"}}
+          },
+          "required": ["id", "size", "door", "arrive"],
+          "additionalProperties": false
+        },
+        "yard": {
+          "type": "object",
+          "properties": {
+            "rect": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4},
+            "fence": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+            "gate": {"$ref": "#/$defs/Cell"},
+            "side": {"enum": ["N", "E", "S", "W"]}
+          },
+          "required": ["rect", "fence"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["id", "kind", "rect", "door", "interior"],
+      "additionalProperties": false
+    },
+    "Crop": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "asset": {"type": "string"},
+        "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+        "seed": {"type": "string", "minLength": 1},
+        "produce": {"type": "string", "minLength": 1},
+        "seasons": {
+          "type": "array",
+          "items": {"enum": ["spring", "summer", "autumn", "winter"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "days": {"type": "integer", "minimum": 1},
+        "stages": {"type": "integer", "minimum": 1},
+        "regrow": {"type": "integer", "minimum": 0},
+        "seed_price": {"type": "integer", "minimum": 0},
+        "price": {"type": "integer", "minimum": 0},
+        "energy": {"type": "integer", "minimum": 0},
+        "yield": {"type": "integer", "minimum": 1}
+      },
+      "required": [
+        "id", "name", "seed", "produce", "seasons", "days", "stages", "regrow", "seed_price",
+        "price", "energy"
+      ],
+      "additionalProperties": false
+    },
     "Stages": {
       "type": "object",
       "properties": {

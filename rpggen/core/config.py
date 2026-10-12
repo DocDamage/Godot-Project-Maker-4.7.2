@@ -140,9 +140,18 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
         bindings["shoot"] = {"keys": ["Z", "J"], "mouse_buttons": [1], "joy_buttons": [0]}
         bindings["bomb"] = {"keys": ["X", "K"], "joy_buttons": [1]}
         bindings["focus"] = {"keys": ["Shift"], "joy_axes": [[4, 1.0]]}
+    if archetype == "farm":
+        # Space uses what is held on the tile ahead (T17.04), so it no longer interacts
+        bindings["interact"] = {"keys": ["E"], "joy_buttons": [2]}
+        bindings["use"] = {"keys": ["Space", "J"], "mouse_buttons": [1], "joy_buttons": [0]}
+        bindings["next_item"] = {"keys": ["R"], "joy_buttons": [10]}
+        bindings["prev_item"] = {"keys": ["Q"], "joy_buttons": [9]}
+        for slot in range(1, FARM_HOTBAR_SLOTS + 1):  # the number keys; 0 is the tenth slot
+            bindings[f"hotbar_{slot}"] = {"keys": [str(slot % 10)]}
     return bindings
 
 
+FARM_HOTBAR_SLOTS = 10  # RpgHotbar.SLOTS
 STARTER_MAP_SIZE_RANGE = (24, 96)
 STARTER_MAP_COUNTS = {  # key -> (minimum, maximum)
     "buildings": (0, 4),
@@ -199,8 +208,14 @@ SIDE_VIEW_KINDS = ("metroidvania", "run_and_gun")
 ARCADE_OFF = ("dialogue", "navigation")
 
 
+# A farm (M17) has nothing to fight until somebody switches combat on.
+FARM_OFF = ("combat", "navigation")
+
+
 def default_features(archetype: str = "turn_based") -> dict[str, bool]:
     off = ARCADE_OFF if archetype in ARCADE_KINDS else ("navigation",)
+    if archetype == "farm":
+        off = FARM_OFF
     return {key: key not in off for key in FEATURE_KEYS}
 
 

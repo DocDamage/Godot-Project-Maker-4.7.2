@@ -64,8 +64,15 @@ SMOKE_STEPS = SMOKE_STEPS_M6
 SMOKE_STEPS_TURN_BASED = "res://generated/builder/smoke/smoke_steps_turn_based.gd"
 SMOKE_STEPS_ARPG = "res://generated/builder/smoke/smoke_steps_arpg.gd"
 SMOKE_STEPS_METROIDVANIA = "res://generated/builder/smoke/smoke_steps_metroidvania.gd"
-# The archetype's own steps run after the shared sequence (which ends in the starter map).
-ARCHETYPE_SMOKE_STEPS = {"turn_based": SMOKE_STEPS_TURN_BASED, "arpg": SMOKE_STEPS_ARPG}
+SMOKE_STEPS_FARM = "res://generated/builder/smoke/smoke_steps_farm.gd"
+# The archetype's own steps run after the shared sequence (which ends in the starter map). A
+# farm (T17.04) is a top-down game: the shared sequence walks its map, then its own steps work
+# the field. Its whole day, from waking to the shop, is T17.18.
+ARCHETYPE_SMOKE_STEPS = {
+    "turn_based": SMOKE_STEPS_TURN_BASED,
+    "arpg": SMOKE_STEPS_ARPG,
+    "farm": SMOKE_STEPS_FARM,
+}
 # An archetype whose world is not the top-down starter map has a whole sequence of its own (the
 # shared one walks a village): the title screen and a new game are among its steps.
 SMOKE_STEPS_SHMUP = "res://generated/builder/smoke/smoke_steps_shmup.gd"
@@ -380,6 +387,12 @@ def add_run_made_assets(
         # what the kind needs and the packs lack is drawn; the note for each (ASSET-031) is
         # the requirement check's, which the dry run and the wizard have too
         arcade_kit.add(catalog, cfg.archetype, cfg.base_tile_size, root)
+    if cfg.archetype == "farm":
+        from rpggen.core import farm_kit
+
+        # the crops, the soil and the tools the packs lack are drawn (T17.02); the notes are
+        # the requirement check's here too
+        farm_kit.add(catalog, cfg.base_tile_size, root)
     return issues, stand_ins
 
 
@@ -482,6 +495,19 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
     if state.cfg.archetype in ("shmup", "run_and_gun", "racing"):
         _plan_stages(state)
         return
+    root = state.staging.staging
+    # the crops of a farm are a section of the same file: what is stored of them is read before
+    # the areas are planned, and put back after
+    farm = state.cfg.archetype == "farm"
+    stored_farm = ((world_plan.load(root) or {}).get("farm") if farm else None) or None
+    _plan_areas(state, catalog)
+    if farm:
+        _plan_crops(state, catalog, stored_farm)
+
+
+def _plan_areas(state: _State, catalog: catalog_mod.Catalog) -> None:
+    """The areas of a top-down world, when the config has any (see ``_plan_world``)."""
+    assert state.staging is not None and state.cfg is not None
     areas = state.cfg.starter_map.get("areas")
     if not areas:
         return
@@ -501,6 +527,29 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
     state.cb.on_log("world: " + world_plan.summary(plan))
     for note in [*plan["notes"], *notes]:
         state.cb.on_log("world: " + note)
+
+
+def _plan_crops(state: _State, catalog: catalog_mod.Catalog, stored: dict[str, Any] | None) -> None:
+    """A farm's crops (T17.05): planned once from the growth strips of the packs and the seed,
+    stored as the section ``farm`` of the project's plan file, and never planned again; a crop
+    the packs have gained is appended. ``stored`` is the section the project had."""
+    from rpggen.core import crop_plan
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    try:
+        section, notes = crop_plan.for_project(
+            stored, state.cfg.starter_map_options(), state.cfg.seed, crop_plan.facts_of(catalog)
+        )
+    except crop_plan.CropPlanError as exc:
+        state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
+        raise _Stop from None
+    plan = world_plan.load(root) or crop_plan.world(section, state.cfg.seed)
+    plan["farm"] = section
+    world_plan.save(root, plan)
+    state.cb.on_log("farm: " + crop_plan.summary(section))
+    for note in notes:
+        state.cb.on_log("farm: " + note)
 
 
 def _plan_rooms(state: _State, catalog: catalog_mod.Catalog) -> None:

@@ -87,7 +87,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}))
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx)} if _farm(ctx) else {}))
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -139,7 +139,7 @@ func build(ctx: BuildContext) -> Array:
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx, _turn_based(ctx)), HERO_PATH, issues)
 	if not FileAccess.file_exists(NEW_GAME_PATH):
-		_save(ctx, _new_game(ctx.demo_removed, gear.keys(), _start_map(ctx)), NEW_GAME_PATH, issues)
+		_save(ctx, _new_game(ctx.demo_removed, gear.keys(), _start_map(ctx), _kind_items(ctx)), NEW_GAME_PATH, issues)
 	if not FileAccess.file_exists(POTION_PATH):
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
 	if _no_village(ctx):
@@ -230,12 +230,29 @@ func _start_map(ctx: BuildContext) -> String:
 				return "res://" + JsonUtil.to_str(room.get("map", ""))
 	return STARTER_MAP_PATH
 
-func _new_game(demo_removed: bool = false, gear_words: Array = [], start_map: String = STARTER_MAP_PATH) -> Resource:
+## A farm (T17.04): a top-down game whose new game starts with what its own recipes name.
+const FARM_BUILD := "farm/farm_build.gd"
+
+func _farm(ctx: BuildContext) -> bool:
+	return JsonUtil.to_str(ctx.config.get("archetype", "turn_based")) == "farm"
+
+## What a new game of the kind starts with before what every game has: the tools of a farm
+## and its first seeds, so that they are the first slots of its hotbar. [] for every other kind.
+func _kind_items(ctx: BuildContext) -> Array:
+	if not _farm(ctx):
+		return []
+	var here: Script = get_script()
+	var script := load(here.resource_path.get_base_dir().path_join(FARM_BUILD)) as GDScript
+	return JsonUtil.to_array(script.call("starting_items")) if script != null else []
+
+func _new_game(demo_removed: bool = false, gear_words: Array = [], start_map: String = STARTER_MAP_PATH, kind_items: Array = []) -> Resource:
 	var ng := SeedUtil.make(NEW_GAME)
 	ng.set("start_map", start_map)
 	ng.set("start_spawn", &"default")
 	ng.set("gold", 50)
-	var starting: Array = [] if demo_removed else [{"item_id": "potion", "qty": 2}]
+	var starting: Array = kind_items.duplicate()
+	if not demo_removed:
+		starting.append({"item_id": "potion", "qty": 2})
 	for word: String in gear_words:
 		starting.append({"item_id": word, "qty": 1})
 	ng.set("items", SeedUtil.dict_array(starting))

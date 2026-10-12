@@ -22,6 +22,44 @@ and the saves it had.
 * `RpgDayNight` takes its hour from the calendar when the game has one whose `drives_light`
   is on (`RpgDayNight.current_hour`), and the outdoor maps follow it whatever the *Day and
   night* setting says. Without a calendar the cycle runs on the play time as before.
+* **The farm** (`archetypes/farm/`, a seventh kind; installed only into a farm's project).
+  `RpgFarmMode` is its mode (`SceneRouter.combat`): it asks for the calendar, makes the
+  farmer's `RpgEnergy` and `RpgHotbar`, knows the four tools (`tool_for`), what an item
+  restores when it is eaten (`food_energy`, `eat`), and runs the night of the fields from the
+  calendar's `on_night` (`NIGHT_CROPS`). Until sleeping and the farm's own map exist it fills
+  the energy and the watering can every morning.
+* `RpgFarmer` extends `RpgActor`, the top-down player: `cell()`, `tile_ahead()` (and the static
+  `ahead_of`, `step_of`), a frame on the ground at the tile ahead (the child `TileFrame`), and
+  `use_held()`: a ripe crop ahead is harvested whatever is held, a tool works, a seed is
+  planted in tilled soil, food is eaten. New input actions: `use`, `next_item`, `prev_item`,
+  `hotbar_1` to `hotbar_10`. A tool's use shows the sheet's animation of its name (`hoe`,
+  `water`, `sickle`, `axe`), else `attack`, else the tool's icon over the hands (`ToolIcon`).
+  At zero energy the farmer walks at half its speed and no tool works.
+* `RpgFarmTool` (an item id, an energy cost, a use time, the cell states it acts on, what it
+  clears) and the four tools in `tools/`: `RpgFarmHoe` (`hoe`: tills ground), `RpgFarmWateringCan`
+  (`watering_can`: waters soil, holds 20 cells' worth, is filled at a `water` tile for no
+  energy), `RpgFarmSickle` (`sickle`: a ripe crop, a withered one, grass) and `RpgFarmAxe`
+  (`farm_axe`: a stump, a branch). A use that changes nothing costs nothing.
+* `RpgHotbar`: the first ten stacks of the inventory, one of them held (`held`, `select`,
+  `next`, `prev`, `item_at`, `qty_at`, `held_item`, `hold_item`; the signal `changed`).
+  `RpgEnergy`: `value`, `max_energy` (100), `spend`, `restore`, `fill`, `is_exhausted`; the
+  signal `changed`. `RpgFarmHud` (`ui/farm_hud.gd`) shows both at the bottom of the screen.
+* `RpgField`, a node of a farm map: the state of every worked cell as data (`cells`), painted
+  on the map's `Soil` layer, with the crops as `RpgCrop` scenes among the Y-sorted entities.
+  What can be tilled is the bool custom data `tillable` of a tile, and `water` fills the can.
+  `till`, `water`, `water_all`, `plant`, `harvest`, `remove_crop`, `clear_obstacle`,
+  `state_of` (`ground`, `soil`, `crop`, `ripe`, `withered`), `is_watered`, `crop_at`,
+  `grown_at`; the signals `changed` and `harvested`. A night (`RpgField.grow`, `night_all`):
+  a watered crop grows a day, an unwatered one does not, soil dries, a crop that does not grow
+  in the season that begins withers, and bare soil is ground again after three dry nights. A
+  field grows whether its map is shown or not.
+* `RpgCropData`: the crops of `game/data/crops.json` (the user's; a crop only
+  `generated/data/crops.json` has is added). `crop`, `crop_of_seed`, `crop_of_produce`, `days`,
+  `stages`, `regrow`, `grows_in`, `of_season`, and the static `stage_of` and `is_ripe`.
+* **Saves.** A farm keeps its state in `flags`, so the save has no new key: `farm` (`energy`,
+  `held`, `water`) and `farm_field` (one key a field: its worked cells).
+* `RpgWorldMapMenu` lists no *World* row for a plan file that holds nothing but a farm's
+  crops (no areas). Every other game is what it was.
 
 ## 1.4.0
 

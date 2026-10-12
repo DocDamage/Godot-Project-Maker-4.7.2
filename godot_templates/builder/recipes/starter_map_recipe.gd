@@ -35,6 +35,10 @@ const ENEMY_ID := "starter_map_enemy_001"
 const ENEMY2_ID := "starter_map_enemy_002"
 ## Archetype -> recipe that knows its enemies (builder/recipes/<this>); the archetypes without one place none.
 const ENEMY_RECIPES := {"turn_based": "turn_based/enemy_recipes.gd", "arpg": "arpg/enemy_recipes.gd"}
+## Archetype -> recipe that adds its own parts to the map before it is saved (builder/recipes/<this>),
+## with a static `augment_map(root, nodes, layout, house, kept_free)` and a static `map_hash()`.
+## A farm gets its field (T17.05); the other archetypes have none and their map is what it was.
+const MAP_AUGMENTERS := {"farm": "farm/field_recipe.gd"}
 const TILESET_PATH := "res://generated/tilesets/overworld.tres"
 ## The second outdoor map and the way to it (T11.23): a gap in the east wall of the starter map.
 const FIELD_PATH := "res://game/maps/field_1.tscn"
@@ -65,7 +69,20 @@ func input_hash(ctx: BuildContext) -> String:
 		"demo_removed": ctx.demo_removed,
 		"demo": ctx.section("features").get("demo", true),
 		"world": WorldPlan.area(WorldPlan.read(), WorldPlan.VILLAGE_ID),
-	})
+	}.merged(_augmenter_hash(ctx)))
+
+## The archetype's map augmenter (MAP_AUGMENTERS), or null.
+func _augmenter(ctx: BuildContext) -> GDScript:
+	var rel: String = MAP_AUGMENTERS.get(JsonUtil.to_str(ctx.config.get("archetype", "")), "")
+	if rel == "":
+		return null
+	var here: Script = get_script()
+	return load(here.resource_path.get_base_dir().path_join(rel)) as GDScript
+
+## What the augmenter adds to the hash: nothing for an archetype without one.
+func _augmenter_hash(ctx: BuildContext) -> Dictionary:
+	var augmenter := _augmenter(ctx)
+	return {"augmenter": augmenter.call("map_hash")} if augmenter != null else {}
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -171,6 +188,18 @@ func build(ctx: BuildContext) -> Array:
 		var gate := WorldPlan.gate_of(village, JsonUtil.to_str(door.get("id", "")))
 		if not gate.is_empty():
 			WorldPlan.add_gate(gate, door_cell, root, entities, tile_px)
+
+	var augmenter := _augmenter(ctx)
+	if augmenter != null:
+		var info := _building_info(building, tile_px)
+		var house := Vector2i.ZERO
+		if not info.is_empty():
+			house = Vector2i(JsonUtil.to_int(info["size"][0]), JsonUtil.to_int(info["size"][1]))
+		var kept_free: Array[Vector2i] = skip.duplicate()
+		for world_door in world_doors:
+			var door_spawn: Vector2i = world_door["spawn"]
+			kept_free.append(door_spawn)
+		augmenter.call("augment_map", root, nodes, layout, house, kept_free)
 
 	var err := SceneUtil.save_scene(root, OUT_PATH)
 	if err != OK:

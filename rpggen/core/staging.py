@@ -163,7 +163,7 @@ def _place(src: Path, dst: Path, src_hash: str | None = None) -> bool:
     return True
 
 
-ARCHETYPES = ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing")
+ARCHETYPES = ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing", "farm")
 # A folder several kinds share, and the kinds it is installed for: the arcade framework (T16.01)
 # belongs to the three arcade kinds, and the projects of the older kinds never see it.
 SHARED_FOLDERS: dict[str, tuple[str, ...]] = {"arcade": ("shmup", "run_and_gun", "racing")}

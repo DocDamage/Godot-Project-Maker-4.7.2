@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "rpggen crops of a farm (game/data/crops.json)",
+  "type": "object",
+  "properties": {
+    "crops": {"type": "array", "items": {"$ref": "#/$defs/Crop"}}
+  },
+  "required": ["crops"],
+  "additionalProperties": false,
+  "$defs": {
+    "Crop": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "seed": {"type": "string", "minLength": 1},
+        "produce": {"type": "string", "minLength": 1},
+        "seasons": {
+          "type": "array",
+          "items": {"enum": ["spring", "summer", "autumn", "winter"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "days": {"type": "integer", "minimum": 1},
+        "stages": {"type": "integer", "minimum": 1},
+        "regrow": {"type": "integer", "minimum": 0},
+        "seed_price": {"type": "integer", "minimum": 0},
+        "price": {"type": "integer", "minimum": 0},
+        "energy": {"type": "integer", "minimum": 0},
+        "yield": {"type": "integer", "minimum": 1},
+        "scene": {"type": "string"}
+      },
+      "required": [
+        "id", "name", "seed", "produce", "seasons", "days", "stages", "regrow", "seed_price",
+        "price", "energy"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -282,7 +282,17 @@ def _world_lines(project: Path | None) -> list[str]:
         )
         lines += [f"- {note}" for note in plan.get("notes", [])]
         return lines
+    farm = plan.get("farm")
+    if farm and not plan.get("areas"):  # a farm without areas (T17.05): its crops are its plan
+        from rpggen.core import crop_plan
+
+        lines = ["", "## World", "", f"- {crop_plan.summary(farm)}"]
+        return [*lines, *(f"- {note}" for note in farm.get("notes", []))]
     lines = ["", "## World", "", f"- {world_plan.summary(plan)}"]
+    if farm:
+        from rpggen.core import crop_plan
+
+        lines.append(f"- {crop_plan.summary(farm)}")
     key = plan.get("key")
     if key:
         holder = world_plan.area_of(plan, key["area"])

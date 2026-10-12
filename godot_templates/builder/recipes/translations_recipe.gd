@@ -26,6 +26,7 @@ const ARCHETYPE_STRINGS := {
 	"shmup": "res://addons/rpg_runtime/archetypes/arcade/arcade_strings.gd",
 	"run_and_gun": "res://addons/rpg_runtime/archetypes/arcade/arcade_strings.gd",
 	"racing": "res://addons/rpg_runtime/archetypes/arcade/arcade_strings.gd",
+	"farm": "res://addons/rpg_runtime/archetypes/farm/farm_strings.gd",
 }
 
 ## [[locale, path]] for the locales in the CSV header (every column after `keys`).

@@ -18,7 +18,7 @@ const CHARACTERS_DIR := ACTORS_DIR + "characters/"
 const FALLBACK_NPC_PATH := CHARACTERS_DIR + "npc_fallback.tscn"
 ## Archetype -> helper that adds the archetype's parts to the player (builder/recipes/<this>); the
 ## archetypes without one leave the player as it is.
-const PLAYER_AUGMENTERS := {"arpg": "arpg/arpg_build.gd"}
+const PLAYER_AUGMENTERS := {"arpg": "arpg/arpg_build.gd", "farm": "farm/farm_build.gd"}
 ## Archetype -> helper that builds the whole actor instead of ActorBuild (builder/recipes/<this>):
 ## a side-view character is another kind of body (T14.03). Its static `build_actor(kind, root_name,
 ## frames, frame, origin, tile)` returns the scene's root.

@@ -1,0 +1,259 @@
+extends RefCounted
+## What the farm's recipes share (T17.04, T17.05): the parts the farmer has beside the top-down
+## player, the stored plan of the crops, and the pictures the recipes use: a pack's own (by its
+## role, its tag and a word of its file name), else the one of the drawn farm kit
+## (`rpggen/core/farm_kit.py`, T17.02: the pack `rpggen_farm_kit`, which a run adds to the
+## catalog for what the packs lack).
+##
+## Three things are still drawn here, in GDScript: the ground of the plot (the kit has no tile
+## for ground that can be tilled), the bag of seeds of a crop (one in the colour of each crop,
+## where the kit has one bag for all), and a last resort for a picture that is in neither the
+## packs nor the kit (a catalog whose kit asset was switched off, a crop whose strip is gone).
+
+const SceneUtil := preload("../../lib/scene_util.gd")
+const JsonUtil := preload("../../lib/json_util.gd")
+const TextureUtil := preload("../../lib/texture_util.gd")
+const BuildContext := preload("../../lib/build_context.gd")
+
+const DIR := "res://addons/rpg_runtime/archetypes/farm/"
+const FARMER := DIR + "farmer.gd"
+const MODE := DIR + "farm_mode.gd"
+const HUD := DIR + "ui/farm_hud.gd"
+const FIELD := DIR + "field.gd"
+const CROP := DIR + "crop.gd"
+const ITEM_DEF := "res://addons/rpg_runtime/data/item_definition.gd"
+
+const MODE_PATH := "res://generated/scenes/combat/combat_mode.tscn"
+const WORLD_PLAN := "res://rpggen/world_plan.json"
+const SOIL_TILESET := "res://generated/tilesets/farm_soil.tres"
+const CROPS_DIR := "res://generated/scenes/farm/crops/"
+const ITEMS_DIR := "res://game/data/items/"
+const HOTBAR_SLOTS := 10
+
+const KIT_PACK := "rpggen_farm_kit"
+## The tools: item id -> the words a pack's tool picture is known by (role TOOL, tag `tool`;
+## farm_kit.TOOL_WORDS).
+const TOOLS := {
+	"hoe": ["hoe"],
+	"watering_can": ["watering", "water", "can", "wateringcan"],
+	"sickle": ["sickle", "scythe"],
+	"farm_axe": ["axe", "hatchet"],
+}
+## Item id -> the name of the kit's picture. The axe's item is `farm_axe` (`axe` is the weapon
+## the starter gear may be); its picture is the kit's `axe`.
+const KIT_TOOLS := {"hoe": "hoe", "watering_can": "watering_can", "sickle": "sickle", "farm_axe": "axe"}
+const TOOL_ORDER: Array[String] = ["hoe", "watering_can", "sickle", "farm_axe"]
+const START_SEEDS := 15
+
+const WOOD := Color(0.55, 0.36, 0.2)
+const METAL := Color(0.75, 0.77, 0.8)
+const CAN := Color(0.4, 0.55, 0.7)
+const BAG := Color(0.8, 0.68, 0.45)
+const LEAF := Color(0.3, 0.62, 0.25)
+const EARTH := Color(0.58, 0.44, 0.28)
+const TILLED := Color(0.42, 0.29, 0.18)
+const WET := Color(0.27, 0.2, 0.16)
+
+# ---------------------------------------------------------------- the project
+
+static func tile(ctx: BuildContext) -> int:
+	var def: Dictionary = ctx.catalog.tileset_def("overworld")
+	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
+		def = ctx.catalog.tileset_defs()[0]
+	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else maxi(8, JsonUtil.to_int(ctx.config.get("base_tile_size", 16)))
+
+## The `farm` section of the stored plan (rpggen/core/crop_plan.py), or {}.
+static func plan() -> Dictionary:
+	if not FileAccess.file_exists(WORLD_PLAN):
+		return {}
+	return JsonUtil.to_dict(JsonUtil.to_dict(JsonUtil.read(WORLD_PLAN)).get("farm", {}))
+
+## The crops of the plan, in its order.
+static func crops() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for raw: Variant in JsonUtil.to_array(plan().get("crops", [])):
+		out.append(JsonUtil.to_dict(raw))
+	return out
+
+## What a new game of a farm starts with, before what every game starts with: the four tools
+## and the seeds of the first crop of the plan (it grows in spring).
+static func starting_items() -> Array:
+	var items: Array = []
+	for tool_id in TOOL_ORDER:
+		items.append({"item_id": tool_id, "qty": 1})
+	var planned := crops()
+	if not planned.is_empty():
+		items.append({"item_id": JsonUtil.to_str(planned[0].get("seed", "")), "qty": START_SEEDS})
+	return items
+
+# ---------------------------------------------------------------- the packs
+
+static func _usable(asset: Dictionary) -> bool:
+	return not (asset.get("status", "") in ["UNUSED", "MISSING"])
+
+## The picture of a tool: a pack's own (role TOOL, tag `tool`, one of the tool's words in its
+## file name; the farmer swinging its hoe has the tag too, but is no TOOL), else the kit's, or {}.
+static func tool_asset(ctx: BuildContext, tool_id: String) -> Dictionary:
+	var words: Array = TOOLS.get(tool_id, [])
+	for asset in ctx.catalog.assets():
+		var eff: Dictionary = ctx.catalog.effective(asset)
+		var tags: Array = eff.get("tags", [])
+		if not _usable(asset) or asset.get("pack_id", "") == KIT_PACK or eff.get("role", "") != "TOOL" or not tags.has("tool"):
+			continue
+		var file := JsonUtil.to_str(asset.get("path", "")).get_file().get_basename().to_lower()
+		for word: String in words:
+			if file.split("_", false).has(word):
+				return asset
+	return kit_asset(ctx, JsonUtil.to_str(KIT_TOOLS.get(tool_id, "")))
+
+## The picture `kit_name` of the drawn farm kit, or {} when this run did not draw it.
+static func kit_asset(ctx: BuildContext, kit_name: String) -> Dictionary:
+	var asset: Dictionary = ctx.catalog.asset("%s.%s" % [KIT_PACK, kit_name])
+	return asset if not asset.is_empty() and _usable(asset) else {}
+
+## The tile of tilled (`soil`) or watered (`watered`) soil as {path, coords}: a pack's own tile
+## sheet with that tag, else the kit's tile; {} when neither has one. Of a sheet of many tiles
+## (a terrain) the tile is the one that joins on every side; a sheet that does not say which
+## that is gives {}.
+static func soil_tile(ctx: BuildContext, tag: String, size: int) -> Dictionary:
+	var found: Dictionary = {}
+	for asset in ctx.catalog.assets():
+		var eff: Dictionary = ctx.catalog.effective(asset)
+		var tags: Array = eff.get("tags", [])
+		if not _usable(asset) or eff.get("usage", "") != "tiles" or not tags.has(tag):
+			continue
+		if tag == "soil" and tags.has("watered"):
+			continue
+		if asset.get("pack_id", "") != KIT_PACK:
+			found = asset
+			break
+		if found.is_empty():
+			found = asset
+	if found.is_empty():
+		return {}
+	var facets: Dictionary = ctx.catalog.effective(found)
+	var sheet: Array = facets.get("size", [size, size])
+	var path := "res://" + JsonUtil.to_str(found["path"])
+	if JsonUtil.to_int(sheet[0]) <= size and JsonUtil.to_int(sheet[1]) <= size:
+		return {"path": path, "coords": Vector2i.ZERO}
+	var overrides: Dictionary = facets.get("tile_overrides", {})
+	if overrides.is_empty():
+		overrides = JsonUtil.to_dict(JsonUtil.to_dict(facets.get("terrain_proposal", {})).get("tile_overrides", {}))
+	var cells: Array = overrides.keys()
+	cells.sort()
+	for key: Variant in cells:
+		var peering := JsonUtil.to_dict(JsonUtil.to_dict(JsonUtil.to_dict(overrides[key]).get("terrain", {})).get("peering", {}))
+		var whole := peering.size() >= 4
+		for side: Variant in peering.values():
+			if JsonUtil.to_int(side, -1) < 0:
+				whole = false
+		if whole:
+			var parts := JsonUtil.to_str(key).split(",")
+			return {"path": path, "coords": Vector2i(int(parts[0]), int(parts[1]))}
+	return {}
+
+## The first cell of a picture as a texture (an icon), or null.
+static func first_frame(ctx: BuildContext, asset: Dictionary) -> Texture2D:
+	return frame_texture(ctx, asset, 0)
+
+## Cell `index` of a strip as a texture, or null.
+static func frame_texture(ctx: BuildContext, asset: Dictionary, index: int) -> Texture2D:
+	if asset.is_empty():
+		return null
+	var eff: Dictionary = ctx.catalog.effective(asset)
+	var size: Array = eff.get("frame", eff.get("size", [16, 16]))
+	var cell := Vector2i(JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1]))
+	return TextureUtil.region_texture("res://" + JsonUtil.to_str(asset["path"]), Rect2i(Vector2i(cell.x * index, 0), cell))
+
+# ---------------------------------------------------------------- the farmer
+
+## What the farmer has beside the top-down player: its script, the frame on the tile ahead and
+## the icon of the tool in use. Called by actor_recipes for the player of a farm.
+static func augment_player(root: Node, frame: Vector2i, _origin: Vector2i, tile_px: int) -> void:
+	SceneUtil.attach_script(root, FARMER)
+	root.set("tile_px", tile_px)
+	var half := tile_px * 0.5
+	var outline := Line2D.new()
+	outline.name = "TileFrame"
+	outline.top_level = true  # it lies on the ground of the map, not at the farmer's feet
+	outline.points = PackedVector2Array([Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half)])
+	outline.closed = true
+	outline.width = 1.0
+	outline.default_color = Color(1.0, 1.0, 1.0, 0.7)
+	root.add_child(outline)
+	var icon := Sprite2D.new()
+	icon.name = "ToolIcon"
+	icon.position = Vector2(0.0, -frame.y * 0.5)
+	icon.z_index = 1
+	icon.visible = false
+	root.add_child(icon)
+
+# ---------------------------------------------------------------- drawn stand-ins
+
+## A rectangle of one colour with its bottom middle on the origin.
+static func stand_in(node_name: String, size: Vector2, color: Color) -> Polygon2D:
+	var shape := Polygon2D.new()
+	shape.name = node_name
+	var half := size.x * 0.5
+	shape.polygon = PackedVector2Array([Vector2(-half, -size.y), Vector2(half, -size.y), Vector2(half, 0.0), Vector2(-half, 0.0)])
+	shape.color = color
+	return shape
+
+static func _blank(width: int, height: int) -> Image:
+	var image := Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0, 0, 0, 0))
+	return image
+
+## Rectangles given in sixteenths of `size`: [[x, y, w, h, colour], ...].
+static func _draw(image: Image, at: Vector2i, size: int, rects: Array) -> void:
+	var unit := size / 16.0
+	for rect: Array in rects:
+		var x0 := roundi(JsonUtil.to_float(rect[0]) * unit)
+		var y0 := roundi(JsonUtil.to_float(rect[1]) * unit)
+		var x1 := roundi((JsonUtil.to_float(rect[0]) + JsonUtil.to_float(rect[2])) * unit)
+		var y1 := roundi((JsonUtil.to_float(rect[1]) + JsonUtil.to_float(rect[3])) * unit)
+		var colour: Color = rect[4]
+		image.fill_rect(Rect2i(at + Vector2i(x0, y0), Vector2i(maxi(1, x1 - x0), maxi(1, y1 - y0))), colour)
+
+static func _icon_rects(kind: String, colour: Color) -> Array:
+	match kind:
+		"hoe":
+			return [[7, 3, 2, 11, WOOD], [4, 2, 7, 3, METAL]]
+		"watering_can":
+			return [[4, 6, 8, 7, CAN], [12, 5, 3, 2, CAN], [2, 7, 2, 4, CAN], [5, 7, 6, 1, CAN.lightened(0.3)]]
+		"sickle":
+			return [[7, 9, 2, 6, WOOD], [5, 2, 7, 2, METAL], [11, 3, 2, 5, METAL], [4, 3, 2, 3, METAL]]
+		"farm_axe":
+			return [[7, 3, 2, 12, WOOD], [9, 3, 4, 5, METAL]]
+		"seed":
+			return [[4, 5, 8, 9, BAG], [6, 3, 4, 2, BAG.darkened(0.25)], [7, 8, 2, 3, colour]]
+	return [[5, 5, 6, 7, colour], [4, 6, 8, 5, colour], [7, 3, 2, 2, LEAF]]  # what is harvested
+
+## A drawn icon of 16 px: a tool (its item id), a bag of seeds (`seed`) or produce (anything
+## else) in `colour`.
+static func drawn_icon(kind: String, colour: Color = Color.WHITE) -> ImageTexture:
+	var image := _blank(16, 16)
+	_draw(image, Vector2i.ZERO, 16, _icon_rects(kind, colour))
+	return ImageTexture.create_from_image(image)
+
+## The three drawn soil tiles side by side, each `size` px: ground that can be tilled, tilled
+## soil with its furrows, watered soil. The first is always used; the other two only when
+## neither the packs nor the kit have the tile.
+static func soil_texture(size: int) -> ImageTexture:
+	var image := _blank(size * 3, size)
+	_draw(image, Vector2i.ZERO, size, [[0, 0, 16, 16, EARTH], [3, 4, 2, 1, EARTH.darkened(0.15)], [10, 9, 2, 1, EARTH.darkened(0.15)], [6, 12, 1, 1, EARTH.lightened(0.15)]])
+	for i: int in [1, 2]:
+		var base: Color = TILLED if i == 1 else WET
+		var rects: Array = [[0, 0, 16, 16, base]]
+		for row: int in [2, 6, 10, 14]:
+			rects.append([1, row, 14, 1, base.darkened(0.25)])
+		_draw(image, Vector2i(size * i, 0), size, rects)
+	return ImageTexture.create_from_image(image)
+
+## The colour of a crop of the plan: its own (a drawn crop), else one that its name gives.
+static func crop_colour(crop: Dictionary) -> Color:
+	var given := JsonUtil.to_str(crop.get("color", ""))
+	if given != "":
+		return Color.html(given)
+	var hue := (JsonUtil.to_str(crop.get("id", "")).hash() % 360) / 360.0
+	return Color.from_hsv(absf(hue), 0.65, 0.85)

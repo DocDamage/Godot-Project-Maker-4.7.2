@@ -70,6 +70,8 @@ const ARCHETYPE_RECIPES := {
 	"shmup": ["shmup/ship_recipe", "shmup/enemy_recipes", "shmup/hud_recipe", "shmup/mode_recipe"],
 	"run_and_gun": ["run_and_gun/soldier_recipe", "run_and_gun/enemy_recipes", "arcade/hud_recipe", "run_and_gun/mode_recipe"],
 	"racing": ["racing/car_recipe", "racing/rival_recipes", "racing/hud_recipe", "racing/mode_recipe"],
+	# a farm (T17.04) is a top-down game: it skips nothing and adds its tools, crops, soil and mode
+	"farm": ["farm/farmer_recipe", "farm/crop_recipes", "farm/field_recipe", "farm/mode_recipe"],
 }
 ## The shared recipes an archetype does without, and what it runs in the place of the first of
 ## them: a metroidvania has rooms (T14.06), not a starter map with houses and a field.

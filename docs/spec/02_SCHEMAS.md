@@ -57,7 +57,7 @@ Default `map_layers`: `["Ground", "GroundDetails", "Walls", "Props", "Overhead"]
 * `sounds` has four more fixed slots: `sfx_jump`, `sfx_land`, `sfx_dash`, `sfx_ability`. In the
   other archetypes a slot of such a name is a custom slot.
 
-The arcade kinds (M16) have fixed slots of their own in the same way: `shmup` has `sfx_shoot`, `sfx_explosion`, `sfx_powerup`, `sfx_bomb`, `music_stage`, `music_boss`; `run_and_gun` has `sfx_shoot`, `sfx_explosion`, `sfx_grenade`, `sfx_weapon_pickup`, `sfx_grapple`, `music_stage`, `music_boss`; `racing` has `sfx_engine`, `sfx_skid`, `sfx_bump`, `sfx_pickup`, `sfx_lap`, `sfx_countdown`, `music_race`, `music_results`. The `archetype` enum lists a kind once it can be built: `shmup` since T16.04, `run_and_gun` since T16.08; `racing` not yet. A `run_and_gun` has in `starter_map` (T16.10): `stages` (1 to 8, default 3), `length` (`short`, `medium`, `long`: 6, 9 or 13 chunks of half a screen between the start and the boss's arena), `lives` (1 to 9, default 3), `health` (1 to 5, default 1: one hit is a death), `keep_weapon` (default false: a death costs the weapon), `left_edge_kills` (default true; false makes the left edge of the screen a wall), `difficulty` (`easy`, `normal`, `hard`) and `added_stages` (at most 8 rows `{ "name" }`). Its stages are planned once by `rpggen/core/stage_plan.py` and stored in the section `stages` of `rpggen/world_plan.json` like a shoot-em-up's, with `kind: "run_and_gun"`, `chunk_cols` and `rows`; a Stage there also has `chunks` (the kind of each: `flat`, `gap`, `step`, `planks`, `spikes`, `wall`, `trap`, `arena`), `tiles` (its rows in the room plan's alphabet: `#` ground, `.` air, `=` a one-way plank, `^` spikes), `start` ([x, y] px, the soldier's feet) and a `boss` with a `kind` (`wall`, `walker`, `flyer`). The tiles are painted into the stage's scene and are not in `stages.json`. The grapple (T16.11) is two more keys of `starter_map`: `grapple` (default false: the soldier has the arm; its input action is `grapple`, L / V / pad B) and `jump` (default true; false needs `grapple` true, and the soldier does not jump). The stored plan has both; a plan made with `jump` false has a block of ground in the air over every gap and every bed of spikes (which is sunk into the ground) to swing from, and planks that reach out from every step and wall to be hoisted on to. `VAL-030` (a warning) names what a soldier that does not jump cannot pass. A `racing` game (T16.12) has in `starter_map`: `steering` (`relative`, the default: left and right turn the car; `absolute`: the stick or the arrows are the heading of the car) and `camera` (`follow`, the default; `fixed`: the whole track on the screen). Its input actions are `accelerate` (Up / W / pad A / the right trigger), `brake` (Down / S / pad B / the left trigger; it reverses a car that stands), `boost` (Shift / Space / pad X), and `move_left` / `move_right` to steer. Its tracks are stages (`game/data/stages.json`, with `axis: "none"` and `exit: "custom"`). The tracks (T16.13) are four more keys of `starter_map`: `tracks` (1 to 8, default 4), `laps` (1 to 9, default 3), `track_size` (`small`, `medium`, `large`: a field of 4 by 3, 5 by 4 or 6 by 4 cells of nine tiles), `difficulty` (`easy`, `normal`, `hard`) and `added_tracks` (at most 8 rows `{ "name" }`). They are planned once by `rpggen/core/track_plan.py` and stored in the section `stages` of `rpggen/world_plan.json` with `kind: "racing"`, `track_size`, `laps`, `block` (9) and `road` (5). A track there is a Stage with: `laps`; `cells` ([columns, rows] of its field); `loop` (its cells in the order they are driven, clockwise); `rows` (what every tile is: `g` grass, `r` road, `s` the start line, `d` dirt, `o` oil, `b` a boost arrow); `start` (`position` [x, y] px of the car, `heading` in rad, `line` [x, y] px); `checkpoints` (`id`, `cell`, `position`, `heading`, `width` px, in the order they are passed); `waypoints` (one a cell: `cell`, `position`, `speed` in tiles a second); `barriers` ([x, y, w, h] in tiles: the four edges of the field, then the cells the loop does not use); `tyres` and `decoration` ([x, y] px); `pickups` (`position`, `kind`: `boost`, `missile`, `bomb`, `shield`). `stages.json` has a track without what is painted into its scene (`rows`, `barriers`, `tyres`, `decoration`, `loop`, `cells`). The race (T16.14) is two more keys of `starter_map`: `rivals` (0 to 5, default 3) and `rubber_band` (default true: a rival far ahead of the player eases off a little), and one more input action, `fire` (X / K / pad Y: the weapon the car has picked up). A checkpoint's `position` is the middle of the edge where the road comes into its cell. A pickup's `kind` is `boost`, `missile`, `bomb`, `shield`, or a part: `speed`, `tyres`, `acceleration` (one part lies on every track, a different one on each of three). The championship (T16.15) is one more key of `starter_map`: `elimination` (default false; true puts a player who comes in last twice out of the championship). It is not part of the plan of the tracks: it is a property of the game's combat mode. The saved game of a racing game has the championship in its arcade run (`flags.arcade.extra`: `races`, `last` (how often the player was last) and `points`, rows of `[driver, points, place in the last race]` with the drivers `player`, `rival_1`, ...). A wave of a run and gun names its `enemy` (`runner`, `sniper`, `turret`, `jumper`, `wall_cannon`, or `pickup` with a `weapon`: `machine_gun`, `spread`, `laser`, `flame`); it is placed in the stage (`anchor: stage`) and may be `blocking`. Its input actions are `jump`, `shoot`, `grenade` and `aim_lock` beside the four directions and `down`. It is seen from the side like a metroidvania: its tile sets get the one-way platforms, ladders and hazards, its packs the side-view kit, and its project the metroidvania's runtime folder and recipes beside its own. A `shmup` keeps its options in `starter_map` (T16.06): `orientation` (`vertical`, the default: seen from the top, scrolling up; or `horizontal`: seen from the side, scrolling right), `stages` (1 to 8, default 3), `length` (`short`, `medium`, `long`: 4, 6 or 9 screens a stage), `lives` (1 to 9, default 3), `bombs` (0 to 9, default 3), `auto_fire` (default true), `difficulty` (`easy`, `normal`, `hard`: the speed and the number of the enemies' bullets and the health of the bosses) and `added_stages` (at most 8 rows `{ "name" }`, each a stage after the last). As for a starter map the section is written only when it differs from the defaults, and then whole. Its input actions are `shoot`, `bomb` and `focus` beside the four directions.
+The arcade kinds (M16) have fixed slots of their own in the same way: `shmup` has `sfx_shoot`, `sfx_explosion`, `sfx_powerup`, `sfx_bomb`, `music_stage`, `music_boss`; `run_and_gun` has `sfx_shoot`, `sfx_explosion`, `sfx_grenade`, `sfx_weapon_pickup`, `sfx_grapple`, `music_stage`, `music_boss`; `racing` has `sfx_engine`, `sfx_skid`, `sfx_bump`, `sfx_pickup`, `sfx_lap`, `sfx_countdown`, `music_race`, `music_results`. The `archetype` enum lists a kind once it can be built: `shmup` since T16.04, `run_and_gun` since T16.08; `racing` not yet. A `run_and_gun` has in `starter_map` (T16.10): `stages` (1 to 8, default 3), `length` (`short`, `medium`, `long`: 6, 9 or 13 chunks of half a screen between the start and the boss's arena), `lives` (1 to 9, default 3), `health` (1 to 5, default 1: one hit is a death), `keep_weapon` (default false: a death costs the weapon), `left_edge_kills` (default true; false makes the left edge of the screen a wall), `difficulty` (`easy`, `normal`, `hard`) and `added_stages` (at most 8 rows `{ "name" }`). Its stages are planned once by `rpggen/core/stage_plan.py` and stored in the section `stages` of `rpggen/world_plan.json` like a shoot-em-up's, with `kind: "run_and_gun"`, `chunk_cols` and `rows`; a Stage there also has `chunks` (the kind of each: `flat`, `gap`, `step`, `planks`, `spikes`, `wall`, `trap`, `arena`), `tiles` (its rows in the room plan's alphabet: `#` ground, `.` air, `=` a one-way plank, `^` spikes), `start` ([x, y] px, the soldier's feet) and a `boss` with a `kind` (`wall`, `walker`, `flyer`). The tiles are painted into the stage's scene and are not in `stages.json`. The grapple (T16.11) is two more keys of `starter_map`: `grapple` (default false: the soldier has the arm; its input action is `grapple`, L / V / pad B) and `jump` (default true; false needs `grapple` true, and the soldier does not jump). The stored plan has both; a plan made with `jump` false has a block of ground in the air over every gap and every bed of spikes (which is sunk into the ground) to swing from, and planks that reach out from every step and wall to be hoisted on to. `VAL-030` (a warning) names what a soldier that does not jump cannot pass. A `racing` game (T16.12) has in `starter_map`: `steering` (`relative`, the default: left and right turn the car; `absolute`: the stick or the arrows are the heading of the car) and `camera` (`follow`, the default; `fixed`: the whole track on the screen). Its input actions are `accelerate` (Up / W / pad A / the right trigger), `brake` (Down / S / pad B / the left trigger; it reverses a car that stands), `boost` (Shift / Space / pad X), and `move_left` / `move_right` to steer. Its tracks are stages (`game/data/stages.json`, with `axis: "none"` and `exit: "custom"`). The tracks (T16.13) are four more keys of `starter_map`: `tracks` (1 to 8, default 4), `laps` (1 to 9, default 3), `track_size` (`small`, `medium`, `large`: a field of 4 by 3, 5 by 4 or 6 by 4 cells of nine tiles), `difficulty` (`easy`, `normal`, `hard`) and `added_tracks` (at most 8 rows `{ "name" }`). They are planned once by `rpggen/core/track_plan.py` and stored in the section `stages` of `rpggen/world_plan.json` with `kind: "racing"`, `track_size`, `laps`, `block` (9) and `road` (5). A track there is a Stage with: `laps`; `cells` ([columns, rows] of its field); `loop` (its cells in the order they are driven, clockwise); `rows` (what every tile is: `g` grass, `r` road, `s` the start line, `d` dirt, `o` oil, `b` a boost arrow); `start` (`position` [x, y] px of the car, `heading` in rad, `line` [x, y] px); `checkpoints` (`id`, `cell`, `position`, `heading`, `width` px, in the order they are passed); `waypoints` (one a cell: `cell`, `position`, `speed` in tiles a second); `barriers` ([x, y, w, h] in tiles: the four edges of the field, then the cells the loop does not use); `tyres` and `decoration` ([x, y] px); `pickups` (`position`, `kind`: `boost`, `missile`, `bomb`, `shield`). `stages.json` has a track without what is painted into its scene (`rows`, `barriers`, `tyres`, `decoration`, `loop`, `cells`). The race (T16.14) is two more keys of `starter_map`: `rivals` (0 to 5, default 3) and `rubber_band` (default true: a rival far ahead of the player eases off a little), and one more input action, `fire` (X / K / pad Y: the weapon the car has picked up). A checkpoint's `position` is the middle of the edge where the road comes into its cell. A pickup's `kind` is `boost`, `missile`, `bomb`, `shield`, or a part: `speed`, `tyres`, `acceleration` (one part lies on every track, a different one on each of three). The championship (T16.15) is one more key of `starter_map`: `elimination` (default false; true puts a player who comes in last twice out of the championship). It is not part of the plan of the tracks: it is a property of the game's combat mode. The saved game of a racing game has the championship in its arcade run (`flags.arcade.extra`: `races`, `last` (how often the player was last) and `points`, rows of `[driver, points, place in the last race]` with the drivers `player`, `rival_1`, ...). A wave of a run and gun names its `enemy` (`runner`, `sniper`, `turret`, `jumper`, `wall_cannon`, or `pickup` with a `weapon`: `machine_gun`, `spread`, `laser`, `flame`); it is placed in the stage (`anchor: stage`) and may be `blocking`. Its input actions are `jump`, `shoot`, `grenade` and `aim_lock` beside the four directions and `down`. It is seen from the side like a metroidvania: its tile sets get the one-way platforms, ladders and hazards, its packs the side-view kit, and its project the metroidvania's runtime folder and recipes beside its own. A `shmup` keeps its options in `starter_map` (T16.06): `orientation` (`vertical`, the default: seen from the top, scrolling up; or `horizontal`: seen from the side, scrolling right), `stages` (1 to 8, default 3), `length` (`short`, `medium`, `long`: 4, 6 or 9 screens a stage), `lives` (1 to 9, default 3), `bombs` (0 to 9, default 3), `auto_fire` (default true), `difficulty` (`easy`, `normal`, `hard`: the speed and the number of the enemies' bullets and the health of the bosses) and `added_stages` (at most 8 rows `{ "name" }`, each a stage after the last). As for a starter map the section is written only when it differs from the defaults, and then whole. Its input actions are `shoot`, `bomb` and `focus` beside the four directions. A `farm` (M17) has `sfx_hoe`, `sfx_water`, `sfx_plant`, `sfx_harvest`, `sfx_sell`, `sfx_animal`, `sfx_rooster` (a new day), `music_spring`, `music_summer`, `music_autumn`, `music_winter` (a season without its own plays the first that is filled) and `music_night`, filled by file name like the others and silent when empty.
 
 The stages of a shoot-em-up are planned once (`rpggen/core/wave_plan.py`) and stored in `rpggen/world_plan.json` as the section `stages`: `{ "plan_version": 1, "seed", "orientation", "difficulty", "length", "view": [w, h], "tile", "list": [ Stage ], "added": [names], "notes": [..] }`. A Stage there is the Stage of `stages.json` below with `id`, `level` (0 for the first) and, per wave, `threat` (how hard it is; it never falls), `fast`, `tough`, `fan` and `look` (which of the small-enemy scenes), without the scenes of its enemies. A project that has `game/data/stages.json` keeps its stored plan: it is never planned again, and a row of `added_stages` appends a stage to it. The builder writes the plan with its scenes to `generated/data/stages.json` on every build and to `game/data/stages.json` once; the game reads the second (the user's) and takes from the first the stages the second does not list. Their `features` start with `dialogue` and `navigation` off (T16.01); both can be switched on.
 
@@ -65,6 +65,8 @@ The stages of an arcade game are `game/data/stages.json` (T16.01), written by th
 * `input` has `jump`, `dash`, `attack` and `down`, and `interact` is E / Up (Space jumps).
 * `map_layers` is not used (a room has the layers `Background`, `Ground`, `Platforms`, `Hazards`,
   `Decoration`, `Foreground`), `imported_maps` is not used, and `features.navigation` is off.
+
+**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and until the farm has a plan of its own (T17.06) its map is the starter map with a plot of tillable ground on it. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2).
 
 **PackRef:** `{ "pack_id": str, "source": str (absolute path as the user gave it; informational only), "source_sha256": str, "kind": "zip"|"7z"|"rar"|"folder", "folders"?: [str] }`. `folders` (T16.22, optional) is for a `source` that is a bundle of packs, a folder each: it names the pack folders to take, by their names, and each is a pack of its own. An entry with one folder is the pack `pack_id`; an entry with several is read as one entry per folder, in the order given, with ids made from the folders' names, and is written back that way, so the ids stay. The wizard and `--pack-folder` write one entry per folder. `folders` is not allowed on a `rar` (a rar is not listed, so it is never a bundle); on any other source that is not a bundle, and for a folder the bundle does not have, opening the pack stops with `ARCH-001`, which names the nearest folder. Only the named folders are unpacked, with the licence files of the bundle's top level beside each.
 
@@ -84,6 +86,8 @@ The stages of an arcade game are `game/data/stages.json` (T16.01), written by th
 ```
 
 The ARPG archetype adds `attack` (J, mouse button 1, joy 2), `secondary_attack` (K, mouse button 2, joy 3), `dodge` (Shift, joy 1) and `quick_item` (Q, joy 9). Mouse buttons use the key `"mouse_buttons": [1]`.
+
+A `farm` (T17.04) has `interact` on E and pad X (joy 2) only, because Space is `use`: `use` (Space, J, mouse button 1, joy 0: what is held is used on the tile ahead), `next_item` (R, joy 10) and `prev_item` (Q, joy 9), and `hotbar_1` to `hotbar_10` (the keys 1 to 9 and 0: the ten slots of the hotbar).
 
 * Key names are Godot key names as accepted by `OS.find_keycode_from_string`. ⚠ VERIFY.
 * Joy button indices are Godot `JoyButton` enum values. Axis entries are `[axis_index, direction]`.
@@ -249,7 +253,7 @@ unknown licence.
 | `region` | `[x, y, w, h]` | usage=portrait | Pixel rect of one face inside a face sheet (T2.11). |
 | `terrain_proposal` | object | usage=tiles | Blob/corner terrain recognized on a sheet (T8.06c): `{layout, confidence, mode, terrain_set, tile_overrides}`; `layout` is `blob47_godot_12x4` (Godot's 3x3 minimal template, M16), `blob47_12x4` (the masks in ascending order), `corners16_4x4`, `corners16_drawn_4x4` (T17.01: the 16 corner tiles in the order the sheet has them, read off which corners of each tile are drawn; for art over nothing only), or `sides16_godot_12x4` (T17.01: a fence sheet, tiles that join at their sides only, in the cells of Godot's template; `mode` is `sides` and only one tile for each of the 16 combinations of sides gets a terrain). Not applied until the user accepts it in the audit's Terrain tab, which moves `tile_overrides` into the overrides and sets the override `terrain_proposal` to null. |
 
-**Role** enum: `GROUND, WALL, CLIFF, WATER, ROAD, AUTOTILE, DECORATION, BUILDING, INTERIOR, PLAYER, NPC, ENEMY, BOSS, WEAPON, ITEM, EFFECT, PROJECTILE, UI, PORTRAIT, BACKGROUND, AUDIO_MUSIC, AUDIO_SFX, FONT, NONE`. From release 1.4 (M16) also `VEHICLE` (the player's car), `EXPLOSION`, `POWERUP` (what the player picks up to get stronger; `ITEM` stays for chests and coins) and `HAZARD` (asteroids, tyres, oil, spikes); they are labels in the audit and rows on the Mapping page in every kind. An asset of the pack `rpggen_arcade_kit` (`generated/arcade_kit/`, `detected_by: "placeholder"`) is a stand-in rpggen drew for an arcade kind; like the side-view kit it is made again on every run.
+**Role** enum: `GROUND, WALL, CLIFF, WATER, ROAD, AUTOTILE, DECORATION, BUILDING, INTERIOR, PLAYER, NPC, ENEMY, BOSS, WEAPON, ITEM, EFFECT, PROJECTILE, UI, PORTRAIT, BACKGROUND, AUDIO_MUSIC, AUDIO_SFX, FONT, NONE`. From release 1.4 (M16) also `VEHICLE` (the player's car), `EXPLOSION`, `POWERUP` (what the player picks up to get stronger; `ITEM` stays for chests and coins) and `HAZARD` (asteroids, tyres, oil, spikes); they are labels in the audit and rows on the Mapping page in every kind. An asset of the pack `rpggen_arcade_kit` (`generated/arcade_kit/`, `detected_by: "placeholder"`) is a stand-in rpggen drew for an arcade kind; like the side-view kit it is made again on every run. From release 1.5 (M17) also `CROP` (a growth strip, or a crop of one picture), `ANIMAL` (a farm animal that is kept; `NPC` stays for people and `ENEMY` for what fights) and `TOOL` (the icon of a hoe, a watering can and the like), labels in the audit and rows on the Mapping page in every kind like those of M16. Detection gives `CROP` to every growth strip, and in a pack whose view is `farm` to a crop of one picture, `ANIMAL` to an animated sprite tagged `animal`, `TOOL` to a picture without animation tagged `tool`, and `EFFECT` to an animated overlay tagged `weather`; a pack of another view gets none of them. An asset of the pack `rpggen_farm_kit` (`generated/farm_kit/`, `detected_by: "placeholder"`, tag `farm_kit`) is a stand-in rpggen drew for a farm (T17.02), made again on every run: `turnip`, `carrot` and `berry` (growth strips of five stages, `CROP`, drawn when fewer than two crops of the packs can grow), `soil` and `watered` (one tile each, usage `tiles`, role `DECORATION`, tags `soil` / `watered`), `hoe`, `watering_can`, `sickle` and `axe` (`TOOL`, tag `tool`), `seed_bag` and `egg` (`ITEM`, tags `seed` / `product`), `hen` (`ANIMAL`, four frames of walk in the rows down, left, right, up), `shipping_bin` and `bed` (`DECORATION`, tags `bin` / `bed`), `rain` (`EFFECT`, tag `weather`, three frames of four tiles a side); the single pictures with a role the top-down recipes place by themselves (`ITEM`, `DECORATION`) have the usage `object`, so that only the farm's recipes place them. `rpggen_farm_kit.grown.<name>` (`generated/farm_kit/grown/`, tag `grown_from:<asset id>`) is the growth strip of a crop the packs have as one picture: four drawn stages, then the picture as the ripe one.
 
 **Grid:** `{ "cell": vec2i, "margin": vec2i, "separation": vec2i }`. Columns are `floor((w - 2*margin.x + separation.x) / (cell.x + separation.x))`; rows are computed the same way with y. The margin applies to the left and top. A right/bottom remainder is allowed and ignored.
 
@@ -474,6 +478,15 @@ All three files share this shape:
 * The run of an arcade game (release 1.4, T16.01) is kept in `flags` too, as the entry
   `arcade`: `{ "stage": <index>, "lives": <n>, "score": <n>, "weapon": "<id>" }`, written when a
   stage is entered and taken away when the run ends. No other kind writes it.
+* A farm (release 1.5, T17.04 and T17.05) keeps what it has to remember in `flags`, so its save
+  has no key of its own: the entry `farm` is `{ "energy": 0..100, "held": 0..9, "water": 0..20 }`
+  (the farmer's energy, the held slot of the hotbar, what is left in the watering can; a key
+  that was never written has its default: rested, the first slot, a full can), and the entry
+  `farm_field` has one key a field, named by the id of its map, whose value is
+  `{ "<x>,<y>": { "w": bool, "crop": "<crop id or empty>", "grown": n, "dead": bool, "idle": n } }`:
+  the cells that were worked (watered, what grows there, its watered nights, withered, the
+  nights tilled soil has lain bare). A field grows overnight from this alone, whether its map
+  is shown or not. No other kind writes either entry.
 * One optional key of a game with a calendar (release 1.5, T17.03): `calendar`,
   `{ "minute": 915, "day": 12, "season": 2, "year": 3 }`. `minute` is the minute of the day
   counted from the midnight before its morning (360, which is 6:00, to 1559, which is 1:59 of
@@ -538,6 +551,10 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `starter.vehicle`, `starter.projectile`, `starter.explosion` | generator_config | T16.03, T16.17 |
 | `summary.map.stages`; `summary.archetype` takes `shmup`, `run_and_gun`, `racing` | command-line documents | T16.16 |
 | `calendar` | save game | T17.03 |
+| `archetype` takes `farm`; the input actions `use`, `next_item`, `prev_item`, `hotbar_1` to `hotbar_10` | generator_config | T17.04 |
+| `farm` | world_plan | T17.05 |
+| `farm.map` | world_plan | T17.06 |
+| `flags.farm` (`energy`, `held`, `water`), `flags.farm_field` | save game | T17.04, T17.05 |
 
 ---
 
@@ -663,6 +680,7 @@ area it joins.
 | `grid` | object | Area id → `[x, y]` on the world's grid. The village is `[0, 0]`, the first area `[1, 0]`. |
 | `notes` | array of string | What the planner changed (a biome the packs cannot fill, a cave that is not locked). They are in the report under *World*. |
 | `key` | object, optional | `{ "item", "area", "opens", "chest" }`: the key item, the area whose chest holds it, the area it opens. Only when a cave is locked. |
+| `farm` | object, optional | The crops of a farm (§12.2). A farm without `starter_map.areas` has the file for this section alone: `areas` is `[]`, and its maps are those of a game without a plan. |
 | `maps` | object | Area id → `{ "map_hash" }`: the ledger hash of the map rpggen built, recorded once. A map that was there before the run that would have built it has no entry: a person may have made or changed it (T13.24). |
 
 **Area:** `id` (the slug of the name, unique; the village is `starter_map`), `name`, `biome` (what
@@ -713,3 +731,91 @@ cell whose floor the thing stands on): `spawn`, `sign`, `station`, `npc`, `chest
   `ledge` (double jump, high jump), `gap` (dash), `wall` (break blocks) or `shaft` (wall jump);
   `size` is the height or width in tiles, out of reach without the ability and within reach
   with it (and with the abilities found before it).
+
+### 12.2 `farm` (the crops of a farm, T17.05)
+
+Planned once by `rpggen/core/crop_plan.py` from the growth strips of the packs (usage
+`growth_strip`, T17.01) and the seed, and **stored and reused**: once the section is there the
+seed and the options no longer change it, and a growth strip the packs gain later is appended.
+
+| Key | Type | Notes |
+|-----|------|-------|
+| `plan_version` | int | 1 |
+| `seed` | int | The seed the crops were planned with. |
+| `difficulty` | enum `easy`/`normal`/`hard` | How many watered nights a picture of a strip stands for (0.75, 1, 1.5). `normal` until the farm's options have the key (T17.06). |
+| `crops` | array of Crop | In the order the seed gave. The first grows in spring: a new game starts with its seeds. |
+| `notes` | array of string | What the planner did beside planning (the drawn crops of a pack with fewer than two). |
+
+**Crop:** `id` (the name of the strip without its cell size and frame count, unique), `name`,
+`asset` (the growth strip, or `""` for a drawn crop, which has a `color` instead), `seed` and
+`produce` (item ids: `seed_<id>`, `crop_<id>`), `seasons` (of `spring`, `summer`, `autumn`,
+`winter`; shared out so that every season has at least two crops), `days` (watered nights from
+seed to harvest: a night a picture after the first, times the difficulty, 2 to 14), `stages`
+(the pictures of the strip; the last is the ripe one), `regrow` (0, or the days to the next
+harvest of a crop that grows again: every third crop of a plan), `seed_price`, `price` (one
+harvest) and `energy` (what eating one restores).
+
+**`game/data/crops.json`** (`rpggen/schema/crops.schema.json`) is what the game reads:
+`{ "crops": [ Crop ] }`, a Crop as above without `asset` and `color`, with `scene` (the RpgCrop
+scene, `res://generated/scenes/farm/crops/<id>.tscn`) and optionally `yield` (how many a
+harvest gives, 1). The builder writes it once (it is the user's afterwards) and writes the same
+to `generated/data/crops.json` on every build; the game reads the user's file and takes from
+the generated one the crops the user's does not list. The picture a crop shows after `grown`
+watered nights is `grown * (stages - 1) // days`, the same in `crop_plan.stage_of` and
+`RpgCropData.stage_of`.
+
+### 12.3 `farm.map` (the map of a farm, T17.06)
+
+Planned once by `rpggen/core/farm_plan.py` from the options, the seed and what the packs say of
+their buildings and their water, and **stored and reused**: once `game/maps/farm.tscn` exists
+the seed and the options no longer change it. The farm's own options are keys of `starter_map`
+beside the village's: `farm_size` (`small`, `medium`, `large`: a field of 32 x 24, 40 x 30 or
+48 x 36 cells), `plot` (`small`, `medium`, `large`: 6 x 4, 12 x 8 or 16 x 10 cells that can be
+tilled), `animals` (`none`, `coop`, `coop_and_barn`), `difficulty` (how much there is to clear)
+and `added_maps` (at most 8 rows `{ "name" }`).
+
+**The plan is a grid of cells and has no position on the screen.** A cell is `[x, y]`, `x` to
+the east and `y` to the south, `[0, 0]` the north-west corner; a rectangle is `[x, y, w, h]`.
+The same plan is painted with square tiles or with diamonds (T17.14). The outermost cells of
+the field are its edge (nobody walks there) but for the way out.
+
+| Key | Type | Notes |
+|-----|------|-------|
+| `plan_version` | int | 1 |
+| `seed` | int | The seed the farm was asked for with (a note says when a later one made it). |
+| `id`, `map` | string | `farm`, `game/maps/farm.tscn`. |
+| `farm_size`, `plot`, `animals`, `difficulty` | enums | What it was planned with. `farm_size` is the field it got (a note says when the packs' buildings needed a larger one); `plot` is what was asked for. |
+| `size` | `[w, h]` | The cells of the field. |
+| `house` | Building | The farmhouse, in the north of the field. |
+| `bin` | object | `{ "cell", "front" }`: the shipping bin against a side of the house, and the cell south of it where the farmer stands. |
+| `tillable` | array of cell | The plot, cell by cell: the ground that can be tilled (the builder writes it as the tile's custom data). |
+| `water` | object | `{ "kind", "cells", "fill" }`: a `pond` (several cells; the packs have water tiles) or a `well` (one cell), and the cell south of it where the can is filled. |
+| `animal_houses` | array of Building | The coop, then the barn; `[]` without animals. Each has a `yard`. |
+| `paths` | array of cell | Ground that is a path: from the door of the house to the way out, to the plot, the water and before every gate. The first is the door, the last the way out. Nothing lies on a path. |
+| `debris` | array | `{ "kind", "cell" }`: what there is to clear, on the plot and round it: `branch`, `stump` (in the way until they are cleared) and `grass` (walked over). |
+| `trees` | array of cell | Trees within two cells of the edge (three on a large field). In the way. |
+| `scenery` | array | `{ "kind", "cell" }` near the edge: `bush`, `rock` (in the way), `flowers` (walked over). |
+| `exit` | object | `{ "edge", "cell", "spawn", "facing", "to" }`: the gap in the edge (`E`, `S` or `W`), the cell inside it where the farmer arrives and where it looks, and the map it leads to (`starter_map`, the village). |
+| `start` | object | `{ "map", "cell", "facing" }`: where a new game starts: a cell of the room of the house, beside the bed. |
+| `added_maps` | array of string | The names of *Added maps*. The maps are not planned here: they are areas of the world (T13.20). |
+| `notes` | array of string | What the planner changed (a later seed, a smaller plot, a larger field). |
+
+**Building:** `id` (`farm_house`, `farm_coop`, `farm_barn`), `kind` (`house`, `coop`, `barn`),
+`rect` (the cells it stands on; 6 x 4, 4 x 3 and 6 x 4 unless the packs say otherwise), `door`
+(the cell **before** its bottom row where the farmer goes in and comes out; it is walked on),
+`interior` and, for an animal house, `yard`. **Interior** (a room, a map of its own): `id` (the
+building's), `size` (`[w, h]` with its walls, which are its outermost cells), `door` (the way
+out, a cell of the bottom wall), `arrive` (the floor cell before it), and in the house `bed`
+(`{ "cell", "size" }`: its head and `[1, 2]`, a cell wide and two long) and `start`, in an
+animal house `trough` and `stalls` (a cell an animal: four). **Yard:** `rect` (the ground
+inside the fence, before the building and a cell wider at each side; the building's `door` is
+one of its cells), `fence` (cell by cell: round the yard, up to the wall of the building),
+`gate` (a cell of that ring that is no fence: it is walked through) and `side` (`S`, `E` or
+`W`: where the gate is).
+
+`farm_plan.check` is what `VAL-031` reports: from the door of the house the farmer walks (to
+the four sides, not through the edge, a building, the bin, water, a fence, a tree, a bush, a
+rock, a branch or a stump) to a cell of the plot, to a cell beside the water, to a cell beside
+the bin, through every gate into its yard and to its door, and to the way out; the plot has
+twelve cells; nothing lies on something else (only a thing to clear on the plot); the farmer
+starts on the floor of the house beside the bed and can walk to its door.

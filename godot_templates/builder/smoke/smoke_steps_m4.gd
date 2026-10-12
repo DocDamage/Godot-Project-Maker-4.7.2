@@ -14,9 +14,16 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "decor_blocks", "fn": _decor_blocks, "timeout_s": 20.0})
 	list.append({"name": "walk_to_field", "fn": _walk_to_field, "timeout_s": 30.0})
 	list.append({"name": "return_from_field", "fn": _return_from_field, "timeout_s": 30.0})
-	if FileAccess.file_exists("res://rpggen/world_plan.json"):  # a world of areas (T13.20)
+	if _has_areas():  # a world of areas (T13.20)
 		list.append({"name": "world_doors", "fn": _world_doors, "timeout_s": 60.0})
 	return list
+
+## True when the project has a stored plan of areas. The plan file of a farm without areas
+## (T17.05) holds only its crops.
+func _has_areas() -> bool:
+	if not FileAccess.file_exists("res://rpggen/world_plan.json"):
+		return false
+	return not JsonUtil.to_array(JsonUtil.to_dict(JsonUtil.read("res://rpggen/world_plan.json")).get("areas", [])).is_empty()
 
 func _router() -> RpgSceneRouter:
 	return _tree().root.get_node_or_null("SceneRouter") as RpgSceneRouter

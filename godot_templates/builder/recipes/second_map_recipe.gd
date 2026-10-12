@@ -57,7 +57,7 @@ func _wanted(ctx: BuildContext) -> bool:
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
 	var plan := WorldPlan.read()
-	if not plan.is_empty():
+	if WorldPlan.has_areas(plan):
 		return _area_outputs(plan)
 	if FileAccess.file_exists(OUT_PATH) or not _wanted(ctx):
 		return PackedStringArray()
@@ -86,7 +86,7 @@ func input_hash(ctx: BuildContext) -> String:
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var world := WorldPlan.read()
-	if not world.is_empty():
+	if WorldPlan.has_areas(world):
 		_build_areas(ctx, world, issues)
 		return issues
 	if FileAccess.file_exists(OUT_PATH) or not _wanted(ctx):

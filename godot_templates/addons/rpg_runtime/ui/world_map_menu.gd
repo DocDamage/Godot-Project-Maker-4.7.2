@@ -43,7 +43,9 @@ func refresh() -> void:
 	var plan := world_plan()
 	if not RpgMinimapData.room_list(plan).is_empty():
 		_keys = []  # a world of rooms (T14.08) has one map: the room map
-	if not plan.is_empty():
+	# the plan file of a farm without areas (T17.05) holds only its crops: that is no world
+	var crops_only := plan.has("farm") and RpgUtil.to_array(plan.get("areas", [])).is_empty()
+	if not plan.is_empty() and not crops_only:
 		_keys.push_front(WORLD_KEY)
 	if _list == null:
 		return

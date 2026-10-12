@@ -19,6 +19,11 @@ static func read() -> Dictionary:
 		return {}
 	return JsonUtil.to_dict(JsonUtil.read(PATH))
 
+## True for the plan of a world of areas. The plan file of a farm that has no areas (T17.05)
+## holds nothing but its crops: its maps are those of a game without a plan.
+static func has_areas(plan: Dictionary) -> bool:
+	return not JsonUtil.to_array(plan.get("areas", [])).is_empty()
+
 static func areas(plan: Dictionary) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for raw: Variant in JsonUtil.to_array(plan.get("areas", [])):

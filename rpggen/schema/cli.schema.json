@@ -84,7 +84,8 @@
             "metroidvania",
             "shmup",
             "run_and_gun",
-            "racing"
+            "racing",
+            "farm"
           ]
         },
         "regeneration": {
