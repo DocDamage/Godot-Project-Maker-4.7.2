@@ -339,21 +339,27 @@ def drawn_roles(archetype: str) -> frozenset[str]:
     return frozenset(s.role for s in STAND_INS.get(archetype, ()) if s.required)
 
 
-def _has(catalog: catalog_mod.Catalog, stand_in: StandIn) -> bool:
+def _has(catalog: catalog_mod.Catalog, stand_in: StandIn, projection: str = "top_down") -> bool:
     """True when the packs have what ``stand_in`` would stand in for: an asset in use with its
     role. A tag alone does not count: the recipes of the kinds look for the role, so a pickup
     that is only tagged ``bullet`` would leave the game without a bullet (T16.09)."""
     for asset in catalog.assets:
         if asset.status in _INACTIVE or asset.pack_id == KIT_PACK:
             continue
+        # what was drawn for the other view is not there for this one (T17.13): a top-down
+        # race does not drive the car of an isometric pack
+        if not catalog_mod.fits_projection(asset, projection):
+            continue
         if catalog_mod.effective(asset).get("role") == stand_in.role:
             return True
     return False
 
 
-def lacking(catalog: catalog_mod.Catalog, archetype: str) -> list[StandIn]:
+def lacking(
+    catalog: catalog_mod.Catalog, archetype: str, projection: str = "top_down"
+) -> list[StandIn]:
     """What the kit has to draw for ``archetype`` with this catalog."""
-    return [s for s in STAND_INS.get(archetype, ()) if not _has(catalog, s)]
+    return [s for s in STAND_INS.get(archetype, ()) if not _has(catalog, s, projection)]
 
 
 def asset_id(stand_in: StandIn) -> str:
@@ -361,7 +367,11 @@ def asset_id(stand_in: StandIn) -> str:
 
 
 def add(
-    catalog: catalog_mod.Catalog, archetype: str, tile: int, staging_root: Path
+    catalog: catalog_mod.Catalog,
+    archetype: str,
+    tile: int,
+    staging_root: Path,
+    projection: str = "top_down",
 ) -> tuple[list[str], IssueList]:
     """Draw what ``archetype`` needs and the packs lack into the staging copy, add it to the
     catalog and return the names with one ``ASSET-031`` note each. The stand-ins of the last
@@ -370,7 +380,7 @@ def add(
     own = {asset_id(s) for group in STAND_INS.values() for s in group}
     catalog.assets[:] = [a for a in catalog.assets if a.id not in own]
     added: list[str] = []
-    for stand_in in lacking(catalog, archetype):
+    for stand_in in lacking(catalog, archetype, projection):
         image = stand_in.draw(tile)
         rel = f"{KIT_DIR}/{stand_in.name}.png"
         target = Path(staging_root) / rel

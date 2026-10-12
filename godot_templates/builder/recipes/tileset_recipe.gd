@@ -8,6 +8,7 @@ const Geometry := preload("../lib/geometry.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
 const SideTileset := preload("../lib/side_tileset.gd")
+const IsoTileset := preload("../lib/iso_tileset.gd")
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray()
@@ -41,6 +42,11 @@ func input_hash(ctx: BuildContext) -> String:
 	if SideTileset.wanted(ctx.config):
 		# only a metroidvania's hash has the key: a top-down project's hash is the one of 1.1
 		hashed["side"] = _side_inputs(ctx)
+	var iso := IsoTileset.inputs(ctx.catalog)
+	if not iso.is_empty():
+		# only an isometric project's hash has the key (T17.13): no other hash moves, which is
+		# why RECIPE_VERSION stays what it was
+		hashed["iso"] = iso
 	return ctx.stable_hash(hashed)
 
 ## What the side-view parts of the TileSets are built from: every sheet's tags.
@@ -169,6 +175,12 @@ func _build_tileset(ctx: BuildContext, def: Dictionary, issues: Array) -> void:
 	if def_sources.is_empty():
 		issues.append(ctx.make_issue("TILE-001", {"tileset": def["name"]}, out_path))
 		return
+	if IsoTileset.wanted(def):
+		# the tile set of an isometric project (T17.13): diamonds, tiles that are single
+		# pictures in an atlas. Nothing below this line is run for it, and it is run for
+		# nothing else.
+		_build_iso_tileset(ctx, def, issues)
+		return
 	var ts: TileSet = null
 	var merging := FileAccess.file_exists(out_path)
 	if merging:
@@ -187,22 +199,7 @@ func _build_tileset(ctx: BuildContext, def: Dictionary, issues: Array) -> void:
 		issues.append(ctx.make_issue("TILE-004", {"asset": def["name"]}, out_path))
 
 	# Physics and custom data layers: add the missing ones, never remove, reorder or retype.
-	var physics: Array = def.get("physics_layers", [])
-	while ts.get_physics_layers_count() < physics.size():
-		var idx := ts.get_physics_layers_count()
-		ts.add_physics_layer()
-		ts.set_physics_layer_collision_layer(idx, JsonUtil.to_int(physics[idx]["layer_bits"]))
-		ts.set_physics_layer_collision_mask(idx, JsonUtil.to_int(physics[idx]["mask_bits"]))
-	var custom_types := {"string": TYPE_STRING, "float": TYPE_FLOAT, "int": TYPE_INT, "bool": TYPE_BOOL}
-	var custom_layers: Array = def.get("custom_data", [])
-	for layer: Dictionary in custom_layers:
-		var layer_name: String = layer["name"]
-		if ts.get_custom_data_layer_by_name(layer_name) == -1:
-			ts.add_custom_data_layer()
-			var idx := ts.get_custom_data_layers_count() - 1
-			ts.set_custom_data_layer_name(idx, layer_name)
-			var layer_type: Variant.Type = custom_types.get(layer.get("type", "string"), TYPE_STRING)
-			ts.set_custom_data_layer_type(idx, layer_type)
+	_ensure_layers(ts, def)
 
 	if _side:
 		SideTileset.ensure_layers(ts)
@@ -426,6 +423,13 @@ func _configure_tile(ctx: BuildContext, td: TileData, asset: Dictionary, collisi
 	if collision.get("profile", "NONE") == "ALPHA_POLYGON":
 		pixels = cell_img.get_data().hex_encode().sha256_text()
 	var spec_hash: String = ctx.stable_hash({"c": collision, "cell": [atlas_cell.x, atlas_cell.y], "px": pixels})
+	_apply_collision(ctx, td, asset, spec_hash, desired, is_new, tile_key, issues)
+	td.set_custom_data("asset_id", asset["id"])
+
+## Gives a tile the polygons `desired` under the bookkeeping of T5.04: they replace what is there
+## only when the spec (`spec_hash`) changed since the last build and the polygons are still the
+## ones rpggen applied.
+func _apply_collision(ctx: BuildContext, td: TileData, asset: Dictionary, spec_hash: String, desired: Array, is_new: bool, tile_key: String, issues: Array) -> void:
 	var desired_hash := _polys_hash(desired)
 	var current_hash := _polys_hash(_tile_polygons(td))
 	var record: Dictionary = _apply.get(tile_key, {})
@@ -451,7 +455,122 @@ func _configure_tile(ctx: BuildContext, td: TileData, asset: Dictionary, collisi
 	if record != new_record:
 		_apply[tile_key] = new_record
 		_apply_dirty = true
-	td.set_custom_data("asset_id", asset["id"])
+
+# --------------------------------------------------------------------------- isometric (T17.13)
+
+## The tile set of an isometric project. The merge rules are the ones above: an existing file is
+## loaded and added to, a source keeps its id, a tile its atlas coords, nothing is removed.
+func _build_iso_tileset(ctx: BuildContext, def: Dictionary, issues: Array) -> void:
+	var out_path: String = Paths.TILESETS_DIR + "%s.tres" % def["name"]
+	var ts: TileSet = null
+	var merging := FileAccess.file_exists(out_path)
+	if merging:
+		ts = ResourceLoader.load(out_path, "TileSet", ResourceLoader.CACHE_MODE_IGNORE) as TileSet
+		if ts == null:
+			issues.append(ctx.make_issue("BUILD-002", {"recipe": "tileset_recipe", "reason": "the existing TileSet %s could not be loaded; it was not touched" % out_path}, out_path))
+			return
+	else:
+		ts = TileSet.new()
+	var footprint: Vector2i = ctx.vec2i(def["tile_size"])
+	if not merging:
+		IsoTileset.shape(ts, footprint)
+	elif ts.tile_size != footprint or not IsoTileset.has_shape(ts):
+		# maps are painted on the diamonds the tile set has: they stay
+		issues.append(ctx.make_issue("TILE-004", {"asset": def["name"]}, out_path))
+	footprint = ts.tile_size
+	_ensure_layers(ts, def)
+	if _nav_enabled and ts.get_navigation_layers_count() == 0:
+		ts.add_navigation_layer()
+	var sources: Array[Dictionary] = []
+	sources.assign(JsonUtil.to_array(def.get("sources", [])))
+	sources.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return JsonUtil.to_int(a["source_id"]) < JsonUtil.to_int(b["source_id"]))
+	for s in sources:
+		_build_iso_source(ctx, ts, def, s, footprint, issues)
+	DirAccess.make_dir_recursive_absolute(out_path.get_base_dir())
+	var err := ResourceSaver.save(ts, out_path)
+	if err != OK:
+		issues.append(ctx.make_issue("BUILD-004", {"file": out_path, "err": err}, out_path))
+
+## The physics and custom data layers of a definition the TileSet does not have yet.
+func _ensure_layers(ts: TileSet, def: Dictionary) -> void:
+	var physics: Array = def.get("physics_layers", [])
+	while ts.get_physics_layers_count() < physics.size():
+		var idx := ts.get_physics_layers_count()
+		ts.add_physics_layer()
+		ts.set_physics_layer_collision_layer(idx, JsonUtil.to_int(physics[idx]["layer_bits"]))
+		ts.set_physics_layer_collision_mask(idx, JsonUtil.to_int(physics[idx]["mask_bits"]))
+	var custom_types := {"string": TYPE_STRING, "float": TYPE_FLOAT, "int": TYPE_INT, "bool": TYPE_BOOL}
+	var custom_layers: Array = def.get("custom_data", [])
+	for layer: Dictionary in custom_layers:
+		var layer_name: String = layer["name"]
+		if ts.get_custom_data_layer_by_name(layer_name) == -1:
+			ts.add_custom_data_layer()
+			var idx := ts.get_custom_data_layers_count() - 1
+			ts.set_custom_data_layer_name(idx, layer_name)
+			var layer_type: Variant.Type = custom_types.get(layer.get("type", "string"), TYPE_STRING)
+			ts.set_custom_data_layer_type(idx, layer_type)
+
+## One atlas picture of single tiles as a source: every tile the definition places in it gets
+## its tile, its origin, its custom data and its collision. A tile the source has and the
+## definition no longer places (its picture left the pack) stays, and is reported (TILE-005).
+func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionary, footprint: Vector2i, issues: Array) -> void:
+	var ts_name: String = def["name"]
+	var atlas_id: String = s["asset"]
+	var atlas: Dictionary = ctx.catalog.asset(atlas_id)
+	if atlas.is_empty():
+		issues.append(ctx.make_issue("CAT-004", {"asset": atlas_id, "file": "(catalog)"}))
+		return
+	var source_id := JsonUtil.to_int(s["source_id"])
+	var tex_path: String = "res://" + str(atlas["path"])
+	var tex := load(tex_path) as Texture2D
+	if tex == null:
+		issues.append(ctx.make_issue("VAL-002", {"file": tex_path}, tex_path))
+		return
+	var src: TileSetAtlasSource
+	if ts.has_source(source_id):
+		src = ts.get_source(source_id) as TileSetAtlasSource
+	else:
+		src = TileSetAtlasSource.new()
+		ts.add_source(src, source_id)
+	var grid: Dictionary = ctx.catalog.effective(atlas).get("grid", {})
+	var atlas_cell: Vector2i = ctx.vec2i(grid.get("cell", [footprint.x, footprint.y]))
+	if src.texture == null or src.texture.resource_path != tex_path:
+		src.texture = tex
+	if src.texture_region_size != atlas_cell:
+		src.texture_region_size = atlas_cell
+	var placed := {}
+	for tile in IsoTileset.tiles_of_source(def, source_id):
+		var asset_id: String = tile["id"]
+		var coords: Vector2i = tile["coords"]
+		var at: Vector2i = tile["at"]
+		var asset: Dictionary = ctx.catalog.asset(asset_id)
+		if asset.is_empty():
+			issues.append(ctx.make_issue("CAT-004", {"asset": asset_id, "file": "(catalog)"}))
+			continue
+		var eff: Dictionary = ctx.catalog.effective(asset)
+		if (coords.x + 1) * atlas_cell.x > tex.get_width() or (coords.y + 1) * atlas_cell.y > tex.get_height():
+			issues.append(ctx.make_issue("TILE-002", {"asset": atlas_id, "coords": "%d,%d" % [coords.x, coords.y]}, tex_path))
+			continue
+		placed[coords] = true
+		var is_new := IsoTileset.configure_tile(ts, src, coords, at, atlas_cell, asset, eff)
+		var td := src.get_tile_data(coords, 0)
+		var collision := IsoTileset.default_collision(eff)
+		var middle := atlas_cell / 2
+		var origin: Vector2i = ctx.vec2i(eff.get("origin", [middle.x, middle.y]))
+		var desired := IsoTileset.collision_polygons(collision, footprint, origin)
+		var spec_hash: String = ctx.stable_hash({"c": collision, "iso": [footprint.x, footprint.y], "o": [origin.x, origin.y]})
+		_apply_collision(ctx, td, asset, spec_hash, desired, is_new, "%s/%d/%d,%d" % [ts_name, source_id, coords.x, coords.y], issues)
+		if _nav_enabled and JsonUtil.to_str(eff.get("role", "")) == "GROUND" and collision.get("profile", "NONE") == "NONE" and td.get_navigation_polygon(0) == null:
+			td.set_navigation_polygon(0, IsoTileset.navigation_polygon(footprint))
+	var emptied: Array = []
+	for i in src.get_tiles_count():
+		var coords := src.get_tile_id(i)
+		if not placed.has(coords):
+			emptied.append("%d,%d" % [coords.x, coords.y])
+	if not emptied.is_empty():
+		emptied.sort()
+		var shown: String = ", ".join(emptied.slice(0, 8)) + (" ..." if emptied.size() > 8 else "")
+		issues.append(ctx.make_issue("TILE-005", {"asset": atlas_id, "coords": shown}, tex_path))
 
 ## Every GROUND-role tile without collision gets a full-tile navigation polygon on layer 0. A tile
 ## that already has one (maybe edited in Godot) is left alone.

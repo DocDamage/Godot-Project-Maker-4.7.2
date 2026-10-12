@@ -45,6 +45,10 @@ USAGE_INFO: dict[str, tuple[str, str]] = {
     "sprite": ("Sprite or character", "Frames of a character, enemy or item."),
     "growth_strip": ("Growth strip", "A crop's stages in a row, the last one ripe."),
     "iso_tile": ("Isometric tile", "One tile of an isometric pack: a picture a tile."),
+    "iso_atlas": (
+        "Isometric tile atlas",
+        "The tiles of an isometric pack packed into one picture for the project's tile set.",
+    ),
     "object": ("Object", "A single picture placed on the map, like a house or a tree."),
     "ui": ("Interface art", "Panels and buttons."),
     "portrait": ("Portrait", "A face for dialogue."),

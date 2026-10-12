@@ -3,10 +3,47 @@ extends RefCounted
 
 const JsonUtil := preload("json_util.gd")
 
-var catalog: Dictionary = {}
+const TOP_DOWN := "top_down"
+const ISOMETRIC := "isometric"
+## The usage of a picture rpggen packed isometric tiles into: the tile set's, nobody's choice.
+const ISO_ATLAS_USAGE := "iso_atlas"
 
-func _init(p_catalog: Dictionary = {}) -> void:
+var catalog: Dictionary = {}
+## How the project is seen (the config's `projection`, T17.13): the build context sets it.
+## `assets()` and everything built on it leave out what was drawn for the other view.
+var projection: String = TOP_DOWN
+
+func _init(p_catalog: Dictionary = {}, p_projection: String = TOP_DOWN) -> void:
 	catalog = p_catalog
+	projection = p_projection if p_projection == ISOMETRIC else TOP_DOWN
+
+## Whether an asset with the effective facets `eff` can be used by a project seen in
+## `p_projection`: a top-down project uses nothing that was drawn for the isometric view (no
+## isometric tile, no tree, house or car drawn at that angle), and an isometric project paints
+## with no sheet of square tiles. Keep equal to `rpggen.core.catalog.fits_projection`.
+static func fits(eff: Dictionary, p_projection: String) -> bool:
+	var usage := JsonUtil.to_str(eff.get("usage", ""))
+	if usage == ISO_ATLAS_USAGE:
+		return false
+	if p_projection == ISOMETRIC:
+		return usage != "tiles"
+	return JsonUtil.to_str(eff.get("projection", "")) != ISOMETRIC
+
+## One effective facet of an asset without merging the three layers: the override's, else the
+## rule's, else the detected one (a null in a layer deletes the key, as `merge` has it).
+static func facet(asset: Dictionary, key: String) -> Variant:
+	for layer: String in ["overrides", "rule", "detected"]:
+		var part: Variant = asset.get(layer)
+		if part is Dictionary:
+			var facets: Dictionary = part
+			if facets.has(key):
+				return facets[key]
+	return null
+
+## The same for an asset of this project. (Asked of every asset on every lookup, so it reads
+## the two facets it needs and merges nothing.)
+func fits_projection(asset: Dictionary) -> bool:
+	return fits({"usage": facet(asset, "usage"), "projection": facet(asset, "projection")}, projection)
 
 ## Deep merge of `over` onto `base`. A null value in `over` deletes the key. Dictionaries merge
 ## recursively; every other value (including arrays) replaces.
@@ -44,8 +81,16 @@ func _list(key: String) -> Array[Dictionary]:
 	out.assign(raw)
 	return out
 
+## The assets a recipe may pick from, sorted by id: every asset of the catalog that fits the
+## project's projection. Every lookup by role, tag or usage goes through here, so no recipe of
+## a top-down or an arcade game picks an isometric tile for its ground or an isometric tree for
+## its scenery. `asset(id)` still finds any asset by its id (the tile set recipe needs the
+## tiles it was told to use).
 func assets() -> Array[Dictionary]:
-	var list := _list("assets")
+	var list: Array[Dictionary] = []
+	for a in _list("assets"):
+		if fits_projection(a):
+			list.append(a)
 	list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return JsonUtil.to_str(a["id"]) < JsonUtil.to_str(b["id"]))
 	return list
 

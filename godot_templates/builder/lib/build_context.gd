@@ -41,7 +41,7 @@ func load_inputs() -> bool:
 		return false
 	config = cfg
 	var catalog_data: Dictionary = cat
-	catalog = CatalogReader.new(catalog_data)
+	catalog = CatalogReader.new(catalog_data, JsonUtil.to_str(config.get("projection", CatalogReader.TOP_DOWN)))
 	var ledger: Variant = JsonUtil.read(Paths.LEDGER) if FileAccess.file_exists(Paths.LEDGER) else null
 	demo_removed = false
 	if ledger is Dictionary:

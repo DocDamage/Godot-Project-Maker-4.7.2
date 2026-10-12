@@ -21,6 +21,7 @@ from rpggen.core import (
     godot,
     godot_log,
     inventory,
+    iso_atlas,
     placeholders,
     preflight,
     promote,
@@ -258,6 +259,9 @@ def check_target(state: _State) -> None:
         state.cfg = config_mod.load(state.cfg_path)
     sources = [Path(p.source) for p in state.cfg.packs]
     state.issues.extend(preflight.check_target(state.target, sources))
+    if preflight.is_rpggen_project(state.target):
+        # a generated project keeps its projection (T17.13): its maps are painted in one
+        config_mod.check_projection_kept(state.cfg, Path(state.target))
     if (
         preflight.is_rpggen_project(state.target)
         and not state.force_while_open
@@ -327,6 +331,8 @@ def phase_catalog(state: _State) -> None:
         derived = catalog_mod.dominant_tile_size(catalog)
         state.cfg.base_tile_size = derived or 16
         state.cb.on_log(f"base tile size {state.cfg.base_tile_size} (from the packs)")
+    # an isometric project needs isometric ground from a pack (T17.13): none is drawn
+    iso_atlas.check_ground(catalog, state.cfg)
     if not state.cfg.sounds:
         # nothing was chosen (the command line, an older project): the packs' audio is used
         state.cfg.sounds = sound_slots.default_sounds(catalog, state.cfg.archetype)
@@ -374,7 +380,7 @@ def add_run_made_assets(
     issues = IssueList()
     if roles:
         _written, issues = placeholders.add_placeholder_assets(
-            catalog, roles, cfg.base_tile_size, root
+            catalog, roles, cfg.base_tile_size, root, cfg.projection
         )
     stand_ins: list[str] = []
     if cfg.archetype in config_mod.SIDE_VIEW_KINDS:
@@ -386,13 +392,18 @@ def add_run_made_assets(
 
         # what the kind needs and the packs lack is drawn; the note for each (ASSET-031) is
         # the requirement check's, which the dry run and the wizard have too
-        arcade_kit.add(catalog, cfg.archetype, cfg.base_tile_size, root)
+        arcade_kit.add(catalog, cfg.archetype, cfg.base_tile_size, root, cfg.projection)
     if cfg.archetype == "farm":
         from rpggen.core import farm_kit
 
         # the crops, the soil and the tools the packs lack are drawn (T17.02); the notes are
         # the requirement check's here too
-        farm_kit.add(catalog, cfg.base_tile_size, root)
+        farm_kit.add(catalog, cfg.base_tile_size, root, cfg.projection)
+    if iso_atlas.wanted(cfg):
+        # last, after everything that assigns the tile sets again: the single tiles of the
+        # isometric packs are packed into atlases, and the project's tile set is theirs
+        # (T17.13). A project that is seen from above gets none of it.
+        iso_atlas.add(catalog, cfg, root)
     return issues, stand_ins
 
 

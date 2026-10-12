@@ -229,6 +229,27 @@ and the saves it had.
   `func(item_id, qty) -> String`) is paid for and delivered instead of being put into the bag;
   the animals' rows are such rows, and no other shop has any. `RpgField` has the signal
   `cleared(cell, what)`, emitted by `clear_obstacle`: cut grass is hay in a farm with animals.
+* **The isometric tile set** (T17.13; the builder only: no script of the runtime changed, and a
+  project that is not isometric is built as it was). A project whose config says `projection:
+  isometric` gets `generated/tilesets/iso.tres` from the tile set recipe through the new
+  `builder/lib/iso_tileset.gd`: Godot's isometric tile shape with the layout *diamond down*
+  (a cell (x, y), x east and y south, has its middle at `((x - y + 1) * w / 2, (x + y + 1) * h
+  / 2)`), the tile size the diamond of the pack (180 x 104, never assumed 2:1), sources that
+  are atlas pictures of single tiles in `generated/iso_atlases/`, and for every tile its
+  texture origin (the middle of its diamond from the middle of its atlas cell), the custom
+  data `asset_id`, `footstep`, `tillable` and `water`, and a collision polygon that is its
+  diamond (a wall) or a profile laid on the diamond. A tile turned four ways is four tiles: an
+  alternative tile of Godot cannot show another picture. `IsoTileset.new(catalog)` answers
+  the map recipes: `tile_for(asset_id, turn)`, `piece_for(pack | tag | role, joins)`,
+  `paint(layer, cell, asset_id, turn)`, `cell_to_local`, `stand(sprite, facets, at)`. The merge
+  rules are the ones of every tile set: no source loses its id and no tile its atlas coords.
+  `RECIPE_VERSION` of the tile set recipe stays 5: its hash has a new key only for an
+  isometric tile set.
+* `CatalogReader.assets()` (and with it `assets_by_role` and every lookup built on them) leaves
+  out what was drawn for the other view (T17.13): nothing whose `projection` is `isometric` in
+  a project that is seen from above or from the side, no sheet of square tiles in an isometric
+  one. No catalog before 1.5 has such an asset, so nothing an older project is built from
+  changes. `asset(id)` still finds any asset by its id.
 
 ## 1.4.0
 

@@ -416,6 +416,7 @@
             "sprite",
             "growth_strip",
             "iso_tile",
+            "iso_atlas",
             "object",
             "ui",
             "portrait",
@@ -687,6 +688,7 @@
                 "sprite",
                 "growth_strip",
                 "iso_tile",
+                "iso_atlas",
                 "object",
                 "ui",
                 "portrait",
@@ -1280,6 +1282,21 @@
         },
         "patterns_from_objects": {
           "type": "boolean"
+        },
+        "projection": {"enum": ["isometric"]},
+        "tiles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "source": {"type": "integer", "minimum": 0},
+              "coords": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
+              "at": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
+              "of": {"type": "string"}
+            },
+            "additionalProperties": false,
+            "required": ["source", "coords", "at"]
+          }
         }
       },
       "additionalProperties": false,
@@ -1325,6 +1342,22 @@
               "type": "integer",
               "minimum": 0
             }
+          }
+        },
+        "iso_atlases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "cell": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
+              "columns": {"type": "integer", "minimum": 1},
+              "rows": {"type": "integer", "minimum": 1},
+              "next_cell": {"type": "integer", "minimum": 0},
+              "cells": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+              "sources": {"type": "array", "items": {"type": "integer", "minimum": 0}}
+            },
+            "additionalProperties": false,
+            "required": ["cell", "columns", "rows", "next_cell", "cells", "sources"]
           }
         }
       },
@@ -1446,6 +1479,7 @@
             "sprite",
             "growth_strip",
             "iso_tile",
+            "iso_atlas",
             "object",
             "ui",
             "portrait",

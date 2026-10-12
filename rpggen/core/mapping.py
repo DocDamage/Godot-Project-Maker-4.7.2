@@ -46,6 +46,18 @@ PLAUSIBLE_USAGE: dict[str, set[str]] = {
 }
 OBJECT_ROLES = requirements.OBJECT_ROLES  # roles that can also be filled with a SheetObject
 _INACTIVE = {"UNUSED", "MISSING"}
+TOP_DOWN = "top_down"
+ISOMETRIC = catalog_mod.PROJECTION_ISOMETRIC
+
+
+def plausible_usage(role: str, projection: str = TOP_DOWN) -> set[str]:
+    """The usages ``role`` can come from in a project seen in ``projection``: an isometric
+    project (T17.13) takes what a top-down one takes from a sheet of tiles from the single
+    tiles of an isometric pack."""
+    usages = PLAUSIBLE_USAGE.get(role, set())
+    if projection == ISOMETRIC and "tiles" in usages:
+        return (usages - {"tiles"}) | {catalog_mod.ISO_TILE_USAGE}
+    return usages
 
 
 @dataclass(frozen=True)
@@ -61,20 +73,23 @@ def rows(archetype: str) -> list[RoleRow]:
     return [RoleRow(r, r in required, ROLE_KEYS.get(r)) for r in ordered]
 
 
-def _usable(asset: catalog_mod.Asset) -> bool:
-    # an isometric tile is no choice for a role until a project can be isometric (T17.13)
+def _usable(asset: catalog_mod.Asset, projection: str = TOP_DOWN) -> bool:
+    # what was drawn for the other view is no choice for a role (T17.13): an isometric tile in
+    # a top-down project, a sheet of squares in an isometric one
     return (
         asset.status not in _INACTIVE
         and asset.kind == "image"
-        and not catalog_mod.is_iso_tile(asset)
+        and catalog_mod.fits_projection(asset, projection)
     )
 
 
-def assets_with_role(catalog: catalog_mod.Catalog, role: str) -> list[catalog_mod.Asset]:
+def assets_with_role(
+    catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
+) -> list[catalog_mod.Asset]:
     return [
         a
         for a in sorted(catalog.assets, key=lambda a: a.id)
-        if _usable(a) and catalog_mod.effective(a).get("role") == role
+        if _usable(a, projection) and catalog_mod.effective(a).get("role") == role
     ]
 
 
@@ -86,14 +101,21 @@ def _is_variant(asset: catalog_mod.Asset) -> bool:
     return "derived_from" in asset.detected
 
 
-def candidates(catalog: catalog_mod.Catalog, role: str) -> list[catalog_mod.Asset]:
+def _later_turn(asset: catalog_mod.Asset) -> bool:
+    """True for the second to the last turn of a tile (T17.12): the first stands for all."""
+    return bool(catalog_mod.turn_name(asset))
+
+
+def candidates(
+    catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
+) -> list[catalog_mod.Asset]:
     """Assets the picker offers for ``role``: plausible usage, assets that already have the role
     first."""
-    usages = PLAUSIBLE_USAGE.get(role, set())
+    usages = plausible_usage(role, projection)
     pool = [
         a
         for a in sorted(catalog.assets, key=lambda a: a.id)
-        if _usable(a) and catalog_mod.effective(a).get("usage") in usages
+        if _usable(a, projection) and catalog_mod.effective(a).get("usage") in usages
     ]
     return sorted(
         pool,
@@ -106,15 +128,27 @@ def candidates(catalog: catalog_mod.Catalog, role: str) -> list[catalog_mod.Asse
     )
 
 
-def best_for(catalog: catalog_mod.Catalog, role: str) -> str | None:
+def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN) -> str | None:
     """The asset (or object, for buildings) that fills a role by default."""
     # a drawn stand-in of the farm (T17.02) is found by the farm's recipes, by its tag: it is
     # never the chest or the scenery of a map by itself
-    found = [a for a in assets_with_role(catalog, role) if a.pack_id != requirements.FARM_KIT_PACK]
+    found = [
+        a
+        for a in assets_with_role(catalog, role, projection)
+        if a.pack_id != requirements.FARM_KIT_PACK
+    ]
     if found:
-        # a recolour variant (T13.18) never takes a role from the pack's own asset by itself
+        # a recolour variant (T13.18) never takes a role from the pack's own asset by itself,
+        # and of a tile turned four ways (T17.12) the first turn is the one that is named
         ranked = sorted(
-            found, key=lambda a: (_is_variant(a), a.status != "CONFIRMED", -a.confidence, a.id)
+            found,
+            key=lambda a: (
+                _is_variant(a),
+                _later_turn(a),
+                a.status != "CONFIRMED",
+                -a.confidence,
+                a.id,
+            ),
         )
         return ranked[0].id
     if role in OBJECT_ROLES:
@@ -124,30 +158,37 @@ def best_for(catalog: catalog_mod.Catalog, role: str) -> str | None:
     return None
 
 
-def is_assigned(catalog: catalog_mod.Catalog, role: str) -> bool:
-    return best_for(catalog, role) is not None
+def is_assigned(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN) -> bool:
+    return best_for(catalog, role, projection) is not None
 
 
-def valid_selection(catalog: catalog_mod.Catalog, role: str, ident: str | None) -> bool:
+def valid_selection(
+    catalog: catalog_mod.Catalog, role: str, ident: str | None, projection: str = TOP_DOWN
+) -> bool:
     """True when ``ident`` still exists and (for assets) still has ``role``."""
     if not ident:
         return False
     asset = catalog.asset(ident)
     if asset is not None:
-        return _usable(asset) and catalog_mod.effective(asset).get("role") == role
+        return _usable(asset, projection) and catalog_mod.effective(asset).get("role") == role
     return role in OBJECT_ROLES and any(o.id == ident and o.role == role for o in catalog.objects)
 
 
-def default_starter(catalog: catalog_mod.Catalog, archetype: str) -> dict[str, str]:
+def default_starter(
+    catalog: catalog_mod.Catalog, archetype: str, projection: str = TOP_DOWN
+) -> dict[str, str]:
     out: dict[str, str] = {}
     for row in rows(archetype):
-        if row.key and (ident := best_for(catalog, row.role)):
+        if row.key and (ident := best_for(catalog, row.role, projection)):
             out[row.key] = ident
     return out
 
 
 def resolve_starter(
-    catalog: catalog_mod.Catalog, archetype: str, current: dict[str, str]
+    catalog: catalog_mod.Catalog,
+    archetype: str,
+    current: dict[str, str],
+    projection: str = TOP_DOWN,
 ) -> dict[str, str]:
     """``current`` with stale entries dropped and gaps filled with the default choice."""
     out: dict[str, str] = {}
@@ -155,9 +196,9 @@ def resolve_starter(
         if not row.key:
             continue
         ident = current.get(row.key)
-        if valid_selection(catalog, row.role, ident):
+        if valid_selection(catalog, row.role, ident, projection):
             out[row.key] = ident  # type: ignore[assignment]
-        elif (best := best_for(catalog, row.role)) is not None:
+        elif (best := best_for(catalog, row.role, projection)) is not None:
             out[row.key] = best
     return out
 
@@ -168,11 +209,16 @@ def used_for(role: str, archetype: str | None = None) -> str:
 
 
 def missing_required(
-    catalog: catalog_mod.Catalog, archetype: str, placeholders: set[str]
+    catalog: catalog_mod.Catalog,
+    archetype: str,
+    placeholders: set[str],
+    projection: str = TOP_DOWN,
 ) -> list[str]:
     """Required roles with neither an asset nor a placeholder."""
     return [
         r.role
         for r in rows(archetype)
-        if r.required and not is_assigned(catalog, r.role) and r.role not in placeholders
+        if r.required
+        and not is_assigned(catalog, r.role, projection)
+        and r.role not in placeholders
     ]

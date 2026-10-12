@@ -66,6 +66,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="the kind of game for --pack (a --config carries its own)",
     )
     gen.add_argument(
+        "--projection",
+        choices=("top_down", "isometric"),
+        default="top_down",
+        help="how the maps are seen, for --pack: from above, or isometric with a pack of "
+        "isometric tiles (turn_based, arpg, farm and racing; a --config carries its own)",
+    )
+    gen.add_argument(
         "--preset",
         metavar="NAME",
         help="apply a saved option preset (saved on the wizard's Options page) to the config",
@@ -332,6 +339,7 @@ def _generate(args: argparse.Namespace) -> int:
                     cfg = orchestrator.default_config_for_pack(
                         args.pack, name, tile_size=args.tile_size or 16, archetype=args.archetype
                     )
+                cfg.projection = args.projection
                 cfg_path = Path(tmp) / "generator_config.json"
                 config_mod.save(cfg, cfg_path)
             if args.preset:

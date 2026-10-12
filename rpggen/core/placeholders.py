@@ -113,6 +113,7 @@ def add_placeholder_assets(
     roles: list[str],
     base_tile_size: int,
     staging_root: Path,
+    projection: str = "top_down",
 ) -> tuple[list[Path], IssueList]:
     """Create placeholder files and catalog assets for the requested roles that are missing.
 
@@ -126,7 +127,11 @@ def add_placeholder_assets(
     added = False
     for role in sorted(set(roles)):
         if any(
-            a.status not in ("UNUSED", "MISSING") and catalog_mod.effective(a).get("role") == role
+            a.status not in ("UNUSED", "MISSING")
+            and catalog_mod.effective(a).get("role") == role
+            # what was drawn for the other view fills nothing (T17.13): a top-down game whose
+            # only ground is isometric gets the placeholder the requirements asked for
+            and catalog_mod.fits_projection(a, projection)
             for a in catalog.assets
         ):
             continue

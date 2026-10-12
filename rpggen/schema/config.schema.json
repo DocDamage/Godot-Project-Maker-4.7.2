@@ -298,6 +298,7 @@
       "additionalProperties": false
     },
     "repair_world": {"type": "boolean"},
+    "projection": {"enum": ["top_down", "isometric"]},
     "export_targets": {
       "type": "array",
       "items": {"enum": ["windows", "web", "linux", "macos"]},
