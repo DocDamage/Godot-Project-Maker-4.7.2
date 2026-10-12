@@ -23,6 +23,11 @@ const KEYS: Array = [
 const CYCLE_MINUTES := 24.0
 const START_HOUR := 8.0
 
+## What the outdoor light is multiplied by: white (nothing) unless a game with weather sets it
+## for a dull day (the farm's RpgFarmWeather, T17.11). Interiors and a map's own ambient are
+## not touched by it.
+static var weather_tint: Color = DAY
+
 ## The hour (0..24) after `playtime_s` seconds of play.
 static func hour_at(playtime_s: float, cycle_minutes: float = CYCLE_MINUTES, start_hour: float = START_HOUR) -> float:
 	return fposmod(start_hour + playtime_s / (maxf(cycle_minutes, 0.01) * 60.0) * 24.0, 24.0)
@@ -56,4 +61,5 @@ static func current_hour(playtime_s: float) -> float:
 static func map_ambient(interior: bool, cycle_on: bool, playtime_s: float) -> Color:
 	if interior:
 		return INTERIOR
-	return ambient_at(current_hour(playtime_s)) if cycle_on else DAY
+	var colour := ambient_at(current_hour(playtime_s)) if cycle_on else DAY
+	return colour if weather_tint == DAY else Color(colour.r * weather_tint.r, colour.g * weather_tint.g, colour.b * weather_tint.b, colour.a)

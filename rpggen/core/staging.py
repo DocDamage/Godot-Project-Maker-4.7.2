@@ -401,6 +401,12 @@ KIND_NOTES = {
         "\nroom*, and start with section 22: the controls, the rooms, abilities, enemies and save"
         "\nstations."
     ),
+    "farm": (
+        "\n\n**This game is a farm**: a top-down game in which the days pass. What this file"
+        "\nsays of maps, doors, shops and saving holds for it; section 22 has what is its own:"
+        "\nthe controls, a day and how it ends, energy, crops, the shipping bin and the shop,"
+        "\nthe weather, the seasons and the people."
+    ),
 }
 
 
