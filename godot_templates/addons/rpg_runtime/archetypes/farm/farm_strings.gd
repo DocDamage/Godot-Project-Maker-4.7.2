@@ -22,6 +22,23 @@ const KEYS := {
 	"ITEM_SICKLE_DESC": "Cuts a ripe crop, a withered one and grass.",
 	"ITEM_FARM_AXE_NAME": "Axe",
 	"ITEM_FARM_AXE_DESC": "Clears stumps and branches.",
+	# money (T17.08)
+	"FARM_BIN_PUT": "Put %s into the shipping bin.",
+	"FARM_BIN_TOOK": "Took %s back out of the bin.",
+	"FARM_BIN_EMPTY": "The bin is empty. Hold what you want to sell.",
+	"FARM_SUMMARY_TITLE": "Sold overnight",
+	"FARM_SUMMARY_TOTAL": "Total: %d %s",
+	"FARM_PASSED_OUT": "You stayed up too late and passed out.",
+	"FARM_PASSED_OUT_LOST": "You stayed up too late and passed out. %d %s is gone.",
+	"FARM_SHOP_CLOSED": "The shop is closed. It is open from %d:00 to %d:00.",
+	"FARM_SHOP_CLOSED_DAY": "The shop is closed. It is open from %d:00 to %d:00, every day but %s.",
+	"FARM_WEEKDAY_0": "Monday",
+	"FARM_WEEKDAY_1": "Tuesday",
+	"FARM_WEEKDAY_2": "Wednesday",
+	"FARM_WEEKDAY_3": "Thursday",
+	"FARM_WEEKDAY_4": "Friday",
+	"FARM_WEEKDAY_5": "Saturday",
+	"FARM_WEEKDAY_6": "Sunday",
 	# people (T17.09)
 	"FARM_PEOPLE": "People",
 	"FARM_PEOPLE_NONE": "You have met nobody yet.",
@@ -45,6 +62,10 @@ static func t(key: String, args: Array = []) -> String:
 ## The name of a season of the calendar ("spring").
 static func season(season_name: String) -> String:
 	return t("SEASON_" + season_name.to_upper())
+
+## The name of a day of the week (RpgCalendar.weekday(): 0 is the first day of a year, "Monday").
+static func weekday(day: int) -> String:
+	return t("FARM_WEEKDAY_%d" % posmod(day, RpgCalendar.WEEK_DAYS))
 
 ## The name of an item as a sentence shows it.
 static func item_name(item_id: StringName) -> String:

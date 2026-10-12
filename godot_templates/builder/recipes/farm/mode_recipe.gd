@@ -1,9 +1,10 @@
 extends RefCounted
 ## The farm's mode scene: boot adds it under SceneRouter as `combat`. It is RpgFarmMode (which
-## asks for the calendar and makes the energy and the hotbar) with its part of the HUD as a
-## child: the hotbar's ten slots and the energy bar over them, at the bottom of the screen.
+## asks for the calendar and makes the energy, the hotbar and the end of the day) with its part
+## of the HUD as a child: the hotbar's ten slots and the energy bar over them, at the bottom of
+## the screen. The option `starter_map.pass_out_loss` is the mode's property of that name.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const UiUtil := preload("../../lib/ui_util.gd")
@@ -21,7 +22,7 @@ func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([FarmBuild.MODE_PATH])
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "pass_out_loss": FarmBuild.pass_out_loss(ctx)})
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -29,6 +30,7 @@ func build(ctx: BuildContext) -> Array:
 	root.name = "Combat"
 	if not SceneUtil.attach_script(root, FarmBuild.MODE):
 		issues.append(ctx.make_issue("VAL-002", {"file": FarmBuild.MODE}, FarmBuild.MODE))
+	root.set("pass_out_loss", FarmBuild.pass_out_loss(ctx))
 	root.add_child(_hud())
 	var err := SceneUtil.save_scene(root, FarmBuild.MODE_PATH)
 	if err != OK:

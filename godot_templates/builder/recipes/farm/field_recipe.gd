@@ -14,16 +14,19 @@ extends RefCounted
 ##
 ## **A stand-in until T17.06.** The world of a farm is, for now, the top-down starter map as it
 ## is planned for every kind, with this plot on it. The planned farm (the house with its bed,
-## the bin, the pond, the yards) replaces `augment_map`; the tile set and the field stay. Of a
+## the bin, the pond, the yards) replaces `augment_map`; the tile set and the field stay. Until
+## then `augment_map` also has the shipping bin and the bed put on the map (T17.08:
+## home_recipe.place_stand_ins, beside the plot and beside the spawn). Of a
 ## pack's soil terrain one tile is used, the one that joins on every side: a field has no
 ## edges of its own yet.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
 const FarmBuild := preload("farm_build.gd")
+const HomeRecipe := preload("home_recipe.gd")
 
 const SOURCE_ID := 0
 const PLOT_TILE := Vector2i(0, 0)
@@ -88,7 +91,7 @@ func build(ctx: BuildContext) -> Array:
 ## What the starter map's hash holds for a farm, so that a changed plot rebuilds nothing but a
 ## map that does not exist yet.
 static func map_hash() -> Dictionary:
-	return {"v": RECIPE_VERSION, "sizes": PLOT_SIZES, "edge": EDGE}
+	return {"v": RECIPE_VERSION, "sizes": PLOT_SIZES, "edge": EDGE, "home": HomeRecipe.map_hash()}
 
 ## Adds the `Soil` layer, the plot and the `Field` to a starter map that is being built. `nodes`
 ## are the map's nodes by name, `layout` is MapBuild.plan's, `house` the size of the starter
@@ -120,10 +123,13 @@ static func augment_map(root: Node2D, nodes: Dictionary, layout: Dictionary, hou
 	var plot := plot_rect(layout, house, kept_free)
 	if plot.size == Vector2i.ZERO:
 		print("[rpggen] INFO starter_map: no room for a plot of tillable ground")
-		return
 	for y in range(plot.position.y, plot.end.y):
 		for x in range(plot.position.x, plot.end.x):
 			soil.set_cell(Vector2i(x, y), SOURCE_ID, PLOT_TILE)
+	# the bin and the bed stand on this map too until the farm has its own (T17.06)
+	var entities: Node = nodes.get("Entities")
+	if entities != null:
+		HomeRecipe.place_stand_ins(root, entities, layout, blocked_cells(layout, house, kept_free), plot, tile_set.tile_size.x)
 
 ## [source id, cell] of the one tile of `own_source` when the tile set has it, else the drawn
 ## tile `drawn` of source 0.

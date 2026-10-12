@@ -173,6 +173,8 @@
         "rivals": {"type": "integer", "minimum": 0, "maximum": 5},
         "rubber_band": {"type": "boolean"},
         "elimination": {"type": "boolean"},
+        "starting_money": {"type": "integer", "minimum": 0, "maximum": 99999},
+        "pass_out_loss": {"type": "boolean"},
         "laps": {"type": "integer", "minimum": 1, "maximum": 9},
         "track_size": {"enum": ["small", "medium", "large"]},
         "added_tracks": {

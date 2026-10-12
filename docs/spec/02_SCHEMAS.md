@@ -66,7 +66,7 @@ The stages of an arcade game are `game/data/stages.json` (T16.01), written by th
 * `map_layers` is not used (a room has the layers `Background`, `Ground`, `Platforms`, `Hazards`,
   `Decoration`, `Foreground`), `imported_maps` is not used, and `features.navigation` is off.
 
-**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and until the farm has a plan of its own (T17.06) its map is the starter map with a plot of tillable ground on it. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2).
+**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and until the farm has a plan of its own (T17.06) its map is the starter map with a plot of tillable ground on it. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2). Its money (T17.08) is two more keys of `starter_map`, which only a farm has: `starting_money` (0 to 99999, default 100: the gold of `game/data/new_game.tres`, which is written once) and `pass_out_loss` (default true: a farmer who stays up to 2:00 loses a tenth of the money as well as half the energy; false keeps the money). A new game also starts with a hoe, a watering can and fifteen seeds of the first crop; the sickle and the axe are bought. The village shop of a farm (`game/data/shops/village_shop.tres`, written once) is an `RpgFarmShop`: the shop of every top-down kind with `opens` (9), `closes` (17) and `closed_weekday` (6, the day `people_plan.SHOP_CLOSED_DAY` gives the shopkeeper off; -1 for none), `seasonal` (default true: the seeds of the season are on offer, from `crops.json`) and `sell_ratio` 1.
 
 **PackRef:** `{ "pack_id": str, "source": str (absolute path as the user gave it; informational only), "source_sha256": str, "kind": "zip"|"7z"|"rar"|"folder", "folders"?: [str] }`. `folders` (T16.22, optional) is for a `source` that is a bundle of packs, a folder each: it names the pack folders to take, by their names, and each is a pack of its own. An entry with one folder is the pack `pack_id`; an entry with several is read as one entry per folder, in the order given, with ids made from the folders' names, and is written back that way, so the ids stay. The wizard and `--pack-folder` write one entry per folder. `folders` is not allowed on a `rar` (a rar is not listed, so it is never a bundle); on any other source that is not a bundle, and for a folder the bundle does not have, opening the pack stops with `ARCH-001`, which names the nearest folder. Only the named folders are unpacked, with the licence files of the bundle's top level beside each.
 
@@ -567,6 +567,8 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `farm` | world_plan | T17.05 |
 | `farm.map` | world_plan | T17.06 |
 | `flags.farm` (`energy`, `held`, `water`), `flags.farm_field` | save game | T17.04, T17.05 |
+| `flags.farm.save_slot`, `flags.farm_bin` (`items`: rows `{ item_id, qty }`), `flags.farm_bed` (`map`, `x`, `y`, `facing`, `known`) | save game | T17.08 |
+| `starter_map.starting_money`, `starter_map.pass_out_loss` | generator_config (farm) | T17.08 |
 | `farm.people` | world_plan | T17.09 |
 | `friendship` | save game | T17.09 |
 

@@ -1,6 +1,7 @@
-"""Milestone M17, the farm (T17.04, T17.05): the top-down sample pack, which has nothing made
-for the kind, as a farm with the crops, soil and tools of the drawn farm kit, and the synthetic `ranch` pack, whose
-growth strips are its crops."""
+"""Milestone M17, the farm (T17.04, T17.05, T17.08): the top-down sample pack, which has nothing
+made for the kind, as a farm with the crops, soil and tools of the drawn farm kit, and the
+synthetic `ranch` pack, whose growth strips are its crops. Both ship a harvest, sleep, read the
+morning's summary and buy seeds at the shop."""
 
 from __future__ import annotations
 
@@ -27,8 +28,13 @@ STEPS = [
     "a_night_grows_it",
     "crop_ripens",
     "harvest",
+    "ship_the_crop",
+    "sleep_in_the_bed",
+    "morning_summary",
+    "buy_seeds_at_the_shop",
 ]
 TOOLS = ("hoe", "watering_can", "sickle", "farm_axe")
+START_TOOLS = ("hoe", "watering_can")  # the other two are bought at the shop (T17.08)
 FILES = [
     "generated/scenes/combat/combat_mode.tscn",
     "generated/scenes/actors/player.tscn",
@@ -36,6 +42,9 @@ FILES = [
     "generated/data/crops.json",
     "game/data/crops.json",
     "game/maps/starter_map.tscn",
+    "generated/scenes/farm/shipping_bin.tscn",
+    "generated/scenes/farm/bed.tscn",
+    "game/data/shops/village_shop.tres",
 ]
 
 
@@ -161,11 +170,14 @@ def test_the_recipe_writes_the_farmer_for_the_top_down_sample(plain) -> None:
     assert "archetypes/farm/farm_mode.gd" in mode and "archetypes/farm/ui/farm_hud.gd" in mode
     assert mode.count('type="PanelContainer"') == 10, "ten slots"
     assert 'name="EnergyBar"' in mode
-    # a new game starts with the tools and the seeds of the first crop, the first slots
+    # a new game starts with a hoe, a can and the seeds of the first crop, the first slots
     new_game = _text(target, "game/data/new_game.tres")
     first = jsonio.read(target / "game/data/crops.json")["crops"][0]
-    order = [new_game.index(f'"{item}"') for item in (*TOOLS, first["seed"], "potion")]
+    order = [new_game.index(f'"{item}"') for item in (*START_TOOLS, first["seed"], "potion")]
     assert order == sorted(order)
+    assert '"sickle"' not in new_game and '"farm_axe"' not in new_game
+    assert '"qty": 15' in new_game, "fifteen seeds"
+    assert f"gold = {config.FARM_STARTING_MONEY}" in new_game, "a little money"
     for tool in TOOLS:
         item = _text(target, f"game/data/items/{tool}.tres")
         picture = "axe" if tool == "farm_axe" else tool
@@ -224,6 +236,42 @@ def test_a_pack_without_crops_gets_the_drawn_ones_and_a_plot_to_grow_them_on(pla
     # the tile set of the map is what a turn-based game of the pack has: nothing was added to it
     overworld = _text(target, "generated/tilesets/overworld.tres")
     assert "tillable" not in overworld
+
+
+def test_the_bin_the_bed_and_the_shop_of_a_farm(plain) -> None:
+    target, _result = plain
+    # the two scenes, with the pictures of the drawn farm kit (the sample pack has neither)
+    bin_scene = _text(target, "generated/scenes/farm/shipping_bin.tscn")
+    assert "archetypes/farm/shipping_bin.gd" in bin_scene and 'type="StaticBody2D"' in bin_scene
+    assert "generated/farm_kit/shipping_bin.png" in bin_scene
+    bed = _text(target, "generated/scenes/farm/bed.tscn")
+    assert "archetypes/farm/bed.gd" in bed and "generated/farm_kit/bed.png" in bed
+    # a tile wide and two long, awake in the cell under its foot: the defaults of RpgBed, so
+    # the scene does not repeat them
+    assert "footprint" not in bed and "wake_offset" not in bed
+    assert "size = Vector2(14.4, 28.8)" in bed, "all of the bed blocks"
+    for scene in (bin_scene, bed):
+        assert "collision_layer = 17" in scene, "the world and the interactables"
+    # the stand-in map has one of each, among the things that Y-sort with the farmer
+    starter = _text(target, "game/maps/starter_map.tscn")
+    assert starter.count("scenes/farm/shipping_bin.tscn") == 1
+    assert starter.count("scenes/farm/bed.tscn") == 1
+    assert 'name="ShippingBin" parent="YSorted/Entities"' in starter
+    assert 'name="Bed" parent="YSorted/Entities"' in starter
+    # the village shop is the farm's: hours, the tools a new game lacks, the item's price
+    shop = _text(target, "game/data/shops/village_shop.tres")
+    assert "archetypes/farm/farm_shop.gd" in shop and 'id = &"village_shop"' in shop
+    for item in ("potion", "sickle", "farm_axe"):
+        assert f'"item_id": "{item}"' in shop, item
+    assert "sell_ratio = 1.0" in shop
+    assert "seed_" not in shop, "the seeds of the season are added by the game, from its crops"
+    files = ledger.Ledger.load(target / paths.LEDGER).files
+    assert files["game/data/shops/village_shop.tres"].owner == "user_seed"
+    assert files["generated/scenes/farm/bed.tscn"].owner == "generated"
+    # the default option is the default of the mode: its scene does not say it
+    assert "pass_out_loss" not in _text(target, "generated/scenes/combat/combat_mode.tscn")
+    strings = _text(target, "game/i18n/strings.tsv")
+    assert "FARM_SUMMARY_TITLE\t" in strings and "FARM_SHOP_CLOSED_DAY\t" in strings
 
 
 def test_a_second_run_changes_nothing(plain, godot_exe: Path) -> None:

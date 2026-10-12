@@ -10,6 +10,10 @@ import pytest
 from rpggen import errors_table, features, paths, schema
 from rpggen.core import config, orchestrator, requirements, staging
 
+MONEY = ("starting_money", "pass_out_loss")  # T17.08
+FARM_RECIPES = paths.templates_root() / "builder" / "recipes" / "farm"
+FARM_RUNTIME = paths.templates_root() / "addons" / "rpg_runtime" / "archetypes" / "farm"
+
 
 def _cfg(**changes) -> config.GeneratorConfig:
     ref = config.PackRef("ranch", "ranch", "0" * 64, "folder")
@@ -24,8 +28,13 @@ def test_the_config_of_a_farm_is_valid_and_its_map_is_the_top_down_one() -> None
     data = cfg.to_json()
     schema.validate("config", data)
     assert data["archetype"] == "farm" and "starter_map" not in data
-    # until the farm has a plan of its own (T17.06) its map is the starter map of every top-down game
-    assert config.starter_map_defaults("farm") == config.starter_map_defaults("turn_based")
+    # until the farm has a plan of its own (T17.06) its map is the starter map of every top-down
+    # game; its money (T17.08) is two keys of its own
+    defaults = config.starter_map_defaults("farm")
+    assert {k: v for k, v in defaults.items() if k not in MONEY} == config.starter_map_defaults(
+        "turn_based"
+    )
+    assert {k: defaults[k] for k in MONEY} == {"starting_money": 100, "pass_out_loss": True}
     again = config.GeneratorConfig.from_json(data)
     assert again.to_json() == data
     for kind in ("orchard",):
@@ -108,10 +117,48 @@ def test_the_smoke_steps_and_the_installed_files_of_a_farm(tmp_path: Path) -> No
     assert "addons/rpg_runtime/world/calendar.gd" in written
     for name in ("farm_mode", "farmer", "field", "crop", "crop_data", "hotbar", "energy", "tool"):
         assert f"addons/rpg_runtime/archetypes/farm/{name}.gd" in written, name
+    for name in ("shipping_bin", "bed", "day_end", "farm_shop", "ui/day_summary"):  # T17.08
+        assert f"addons/rpg_runtime/archetypes/farm/{name}.gd" in written, name
     for name in ("farm_build", "farmer_recipe", "mode_recipe", "crop_recipes", "field_recipe"):
+        assert f"generated/builder/recipes/farm/{name}.gd" in written, name
+    for name in ("home_recipe", "shop_recipe"):  # T17.08
         assert f"generated/builder/recipes/farm/{name}.gd" in written, name
     for older in ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing"):
         other = staging.install_templates(
             staging.create_staging(tmp_path / older), templates, older
         )
         assert not [w for w in other if "farm" in w], older
+
+
+def test_the_money_options_of_a_farm() -> None:
+    """T17.08: ``starting_money`` and ``pass_out_loss`` are keys of ``starter_map``; the section
+    is written only when it differs from the defaults, and then whole."""
+    cfg = _cfg(starter_map={"starting_money": 250, "pass_out_loss": False})
+    data = cfg.to_json()
+    schema.validate("config", data)
+    assert data["starter_map"]["starting_money"] == 250
+    assert data["starter_map"]["pass_out_loss"] is False
+    assert data["starter_map"]["size"] == [40, 24], "the whole section"
+    assert config.GeneratorConfig.from_json(data).to_json() == data
+    for wrong in ({"starting_money": -1}, {"starting_money": 1.5}, {"pass_out_loss": 1}):
+        with pytest.raises(Exception):  # noqa: B017, PT011
+            schema.validate("config", {**data, "starter_map": {**data["starter_map"], **wrong}})
+    # the other kinds do not have the keys
+    for older in ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing"):
+        assert not set(MONEY) & set(config.starter_map_defaults(older)), older
+    # the builder's own default is the config's (a project without the section)
+    build = (FARM_RECIPES / "farm_build.gd").read_text(encoding="utf-8")
+    assert f"const START_MONEY := {config.FARM_STARTING_MONEY}\n" in build
+
+
+def test_the_shop_is_closed_on_the_day_the_shopkeeper_has_off() -> None:
+    """One place decides the day: ``people_plan.SHOP_CLOSED_DAY``. The recipe that makes the
+    shop and the default of the shop's script are held to it."""
+    from rpggen.core import people_plan
+
+    day = people_plan.SHOP_CLOSED_DAY
+    recipe = (FARM_RECIPES / "shop_recipe.gd").read_text(encoding="utf-8")
+    assert f"const CLOSED_WEEKDAY := {day}\n" in recipe
+    shop = (FARM_RUNTIME / "farm_shop.gd").read_text(encoding="utf-8")
+    assert f"@export var closed_weekday: int = {day}\n" in shop
+    assert "const OPENS := 9\n" in recipe and "const CLOSES := 17\n" in recipe

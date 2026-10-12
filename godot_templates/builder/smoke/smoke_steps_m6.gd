@@ -407,7 +407,9 @@ func _equip_raises_attack() -> String:
 
 ## The village shop through the event bus (what `open_shop:village_shop` does): it opens paused,
 ## the potion row set to two buys two for twice the price, pressing it with no gold buys nothing,
-## and the Sell tab pays back half for both. Everything is put back afterwards.
+## and the Sell tab pays back what the shop pays for both (half, unless the shop says otherwise).
+## Everything is put back afterwards. A shop that keeps hours (a farm's, T17.08) is visited
+## when it opens: the clock is set for the visit and set back.
 func _shop_buy_sell() -> String:
 	var tree := _tree()
 	var state: RpgGameState = _autoload("GameState") as RpgGameState
@@ -415,10 +417,16 @@ func _shop_buy_sell() -> String:
 	var controller := router.get_node_or_null("UiController") as RpgUiController if router != null else null
 	if state == null or controller == null:
 		return "GameState or the UiController is missing"
-	if RpgShopDefinition.load_shop(&"village_shop") == null:
+	var shop := RpgShopDefinition.load_shop(&"village_shop")
+	if shop == null:
 		return "game/data/shops/village_shop.tres was not seeded"
 	var gold: int = state.gold
 	var potions: int = state.inventory.count(&"potion")
+	var calendar := RpgCalendar.current()
+	var minute := calendar.minute if calendar != null else 0
+	if calendar != null and shop.closed_reason() != "":
+		calendar.minute = JsonUtil.to_int(shop.get("opens")) * 60
+	var paid_back := 2 * shop.sell_price(&"potion", state.items)
 	state.gold = 100
 	RpgUtil.emit(&"shop_requested", [&"village_shop"])
 	var menu: RpgShopMenu = null
@@ -458,7 +466,7 @@ func _shop_buy_sell() -> String:
 			menu.set_quantity(&"potion", 2)
 			sell_row.pressed.emit()
 			await _frames(2)
-			if state.gold != 10 or state.inventory.count(&"potion") != potions:
+			if state.gold != paid_back or state.inventory.count(&"potion") != potions:
 				failure = "selling left gold %d and %d potions" % [state.gold, state.inventory.count(&"potion")]
 	if menu != null and is_instance_valid(menu):
 		menu.close()
@@ -467,6 +475,8 @@ func _shop_buy_sell() -> String:
 		failure = "closing the shop did not unpause the game"
 	tree.paused = false
 	state.gold = gold
+	if calendar != null:
+		calendar.minute = minute
 	return failure
 
 func _shop_menu(controller: RpgUiController) -> RpgShopMenu:

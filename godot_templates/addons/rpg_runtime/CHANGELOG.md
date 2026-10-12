@@ -58,6 +58,38 @@ and the saves it had.
   `stages`, `regrow`, `grows_in`, `of_season`, and the static `stage_of` and `is_ripe`.
 * **Saves.** A farm keeps its state in `flags`, so the save has no new key: `farm` (`energy`,
   `held`, `water`) and `farm_field` (one key a field: its worked cells).
+* **Money** (a farm only). `RpgShippingBin` (`archetypes/farm/shipping_bin.gd`, a solid thing
+  of a map): `interact` while a thing with a price is held puts the whole held stack into it,
+  `interact` with a tool or nothing in the hand takes the last stack back out. What is in it
+  is in the flags (`farm_bin.items`), so the static `contents`, `count`, `put`, `take_back`,
+  `price_of` and `sell_all` need no node: the night sells the bin wherever the farmer is, each
+  thing at its item's `value`.
+* `RpgDayEnd` (`archetypes/farm/day_end.gd`, the mode's child `DayEnd`, `RpgFarmMode.day_end`,
+  `RpgDayEnd.current()`): its night listener (`NIGHT_SHOP`) sells the bin; `sleep()` ends the
+  day once, and the morning after it the energy is full, the game is saved into the autosave
+  slot and into the slot the player last saved to or loaded from by hand (`chosen_slot()`,
+  the flag `farm.save_slot`; a game without one is offered the save screen), and the farmer
+  stands at the bed. A day the clock ends at 2:00 is passing out: half the energy
+  (`PASS_OUT_ENERGY`), a tenth of the money gone (`PASS_OUT_MONEY`) unless `pass_out_loss`
+  is off (`RpgFarmMode.pass_out_loss`), awake at the bed of the game on whatever map it is,
+  saved. A day ended by `end_day()` from elsewhere is neither: rested, nothing saved. Signals
+  `woke(how)` (`slept`, `passed_out`, `ended`) and `summary_opened`. The mode no longer fills
+  the energy every morning; it still fills the watering can until a map has water.
+* `RpgBed` (`archetypes/farm/bed.gd`): `interact` sleeps. The first bed a game sees and every
+  bed slept in is where the farmer wakes (`RpgBed.home`, the flags `farm_bed`;
+  `wake_offset`, `wake_facing`, `footprint`).
+* `RpgDaySummary` (`archetypes/farm/ui/day_summary.gd`): what the night sold, what each thing
+  earned and the total, over the paused game, once, and only after a night that sold
+  something; `confirm`, `interact`, `cancel` or its button closes it (`lines`, `total_text`,
+  `worth_showing`, the signal `closed`).
+* `RpgFarmShop` (`archetypes/farm/farm_shop.gd`, an `RpgShopDefinition`): `opens`, `closes`,
+  `closed_weekday` and `is_open()`, `open_at`, `hours_text()`; its offer is its `stock`, then
+  the seeds of the crops that grow in the season of the day (`seasonal`), then what
+  `RpgFarmShop.add_stock_source(callable)` adds (the callable takes the season's name and
+  returns rows `{item_id, price}`); a tool the farmer has is not offered again.
+* `RpgShopDefinition.closed_reason()` is new and "" for every shop; `RpgUiController.open_shop`
+  shows a non-empty one as a toast and does not open the shop. Only `RpgFarmShop` gives one,
+  so every other shop opens as it did.
 * `RpgWorldMapMenu` lists no *World* row for a plan file that holds nothing but a farm's
   crops (no areas). Every other game is what it was.
 * **Schedules** (`actors/schedule.gd`, `RpgSchedule`; installed in every project and at work

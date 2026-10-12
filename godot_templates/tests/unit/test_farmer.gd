@@ -423,14 +423,15 @@ func test_a_mode_that_is_only_made_has_no_parts_and_one_that_is_ready_has_the_ca
 	t.eq(RpgCalendar.current(), null, "no calendar before a mode asks for one")
 	mode._ready()
 	t.ok(RpgCalendar.current() != null, "the mode asks for the calendar")
-	t.ok(mode.energy != null and mode.hotbar != null)
-	t.eq(mode.get_child_count(), 2)
+	t.ok(mode.energy != null and mode.hotbar != null and mode.day_end != null)
+	t.eq(mode.get_child_count(), 3, "the energy, the hotbar and the end of the day")
 	mode._ready()
-	t.eq(mode.get_child_count(), 2, "made once")
+	t.eq(mode.get_child_count(), 3, "made once")
 	t.ok(not mode.is_in_combat())
 	for id: StringName in [&"hoe", &"watering_can", &"sickle", &"farm_axe"]:
 		t.ok(mode.tool_for(id) != null and mode.tool_for(id).id == id, String(id))
-	# the morning (a stand-in until sleeping, T17.08): rested, and the can is full
+	# the morning after a day that nobody stayed up to the end of: rested (RpgDayEnd, T17.08),
+	# and the can is full (a stand-in until the map has water, T17.06)
 	mode.energy.value = 3
 	RpgFarmWateringCan.set_charges(2)
 	RpgCalendar.current().end_day()

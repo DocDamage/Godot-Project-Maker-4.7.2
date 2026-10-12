@@ -20,6 +20,9 @@ const FARMER := DIR + "farmer.gd"
 const MODE := DIR + "farm_mode.gd"
 const HUD := DIR + "ui/farm_hud.gd"
 const FIELD := DIR + "field.gd"
+const BIN := DIR + "shipping_bin.gd"
+const BED := DIR + "bed.gd"
+const SHOP := DIR + "farm_shop.gd"
 const CROP := DIR + "crop.gd"
 const ITEM_DEF := "res://addons/rpg_runtime/data/item_definition.gd"
 
@@ -43,7 +46,17 @@ const TOOLS := {
 ## the starter gear may be); its picture is the kit's `axe`.
 const KIT_TOOLS := {"hoe": "hoe", "watering_can": "watering_can", "sickle": "sickle", "farm_axe": "axe"}
 const TOOL_ORDER: Array[String] = ["hoe", "watering_can", "sickle", "farm_axe"]
+## What a new game has of them (T17.08): the other two are bought at the shop.
+const START_TOOLS: Array[String] = ["hoe", "watering_can"]
 const START_SEEDS := 15
+## The money of a new game unless `starter_map.starting_money` says otherwise
+## (config.FARM_STARTING_MONEY).
+const START_MONEY := 100
+## The bin and the bed: a pack's own is known by these (farm_kit.BIN, farm_kit.BED).
+const BIN_ROLES: Array[String] = ["DECORATION", "ITEM", "BUILDING"]
+const BIN_TAG := "bin"
+const BED_ROLES: Array[String] = ["DECORATION", "INTERIOR", "ITEM"]
+const BED_WORDS: Array[String] = ["bed", "beds"]
 
 const WOOD := Color(0.55, 0.36, 0.2)
 const METAL := Color(0.75, 0.77, 0.8)
@@ -75,11 +88,23 @@ static func crops() -> Array[Dictionary]:
 		out.append(JsonUtil.to_dict(raw))
 	return out
 
-## What a new game of a farm starts with, before what every game starts with: the four tools
-## and the seeds of the first crop of the plan (it grows in spring).
+## One of the farm's options (a key of the config's `starter_map`), or `fallback`.
+static func option(ctx: BuildContext, key: String, fallback: Variant) -> Variant:
+	return ctx.section("starter_map").get(key, fallback)
+
+## The money a new game starts with (`starter_map.starting_money`).
+static func starting_money(ctx: BuildContext) -> int:
+	return maxi(0, JsonUtil.to_int(option(ctx, "starting_money", START_MONEY), START_MONEY))
+
+## False when staying up to 2:00 costs no money (`starter_map.pass_out_loss`).
+static func pass_out_loss(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(option(ctx, "pass_out_loss", true), true)
+
+## What a new game of a farm starts with, before what every game starts with: a hoe, a can and
+## fifteen seeds of the first crop of the plan (it grows in spring).
 static func starting_items() -> Array:
 	var items: Array = []
-	for tool_id in TOOL_ORDER:
+	for tool_id in START_TOOLS:
 		items.append({"item_id": tool_id, "qty": 1})
 	var planned := crops()
 	if not planned.is_empty():
@@ -105,6 +130,36 @@ static func tool_asset(ctx: BuildContext, tool_id: String) -> Dictionary:
 			if file.split("_", false).has(word):
 				return asset
 	return kit_asset(ctx, JsonUtil.to_str(KIT_TOOLS.get(tool_id, "")))
+
+## The picture of the shipping bin: a pack's own (an object or a sprite tagged `bin`), else the
+## kit's, or {}.
+static func bin_asset(ctx: BuildContext) -> Dictionary:
+	for asset in ctx.catalog.assets():
+		var eff: Dictionary = ctx.catalog.effective(asset)
+		var tags: Array = eff.get("tags", [])
+		if _own_object(asset, eff, BIN_ROLES) and tags.has(BIN_TAG):
+			return asset
+	return kit_asset(ctx, "shipping_bin")
+
+## The picture of the bed: a pack's own (an object or a sprite with `bed` in its file name),
+## else the kit's, or {}.
+static func bed_asset(ctx: BuildContext) -> Dictionary:
+	for asset in ctx.catalog.assets():
+		var eff: Dictionary = ctx.catalog.effective(asset)
+		if not _own_object(asset, eff, BED_ROLES):
+			continue
+		var file := JsonUtil.to_str(asset.get("path", "")).get_file().get_basename().to_lower()
+		for word in BED_WORDS:
+			if file.split("_", false).has(word):
+				return asset
+	return kit_asset(ctx, "bed")
+
+## True for a picture of the packs (not the kit's) that is in use, stands on a map (an object
+## or a sprite) and has one of `roles`.
+static func _own_object(asset: Dictionary, eff: Dictionary, roles: Array[String]) -> bool:
+	if not _usable(asset) or asset.get("pack_id", "") == KIT_PACK:
+		return false
+	return roles.has(JsonUtil.to_str(eff.get("role", ""))) and ["sprite", "object"].has(JsonUtil.to_str(eff.get("usage", "")))
 
 ## The picture `kit_name` of the drawn farm kit, or {} when this run did not draw it.
 static func kit_asset(ctx: BuildContext, kit_name: String) -> Dictionary:

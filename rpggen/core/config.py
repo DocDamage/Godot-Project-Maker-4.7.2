@@ -152,6 +152,7 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
 
 
 FARM_HOTBAR_SLOTS = 10  # RpgHotbar.SLOTS
+FARM_STARTING_MONEY = 100  # FarmBuild.START_MONEY: five bags of the cheapest seeds, or a sickle
 STARTER_MAP_SIZE_RANGE = (24, 96)
 STARTER_MAP_COUNTS = {  # key -> (minimum, maximum)
     "buildings": (0, 4),
@@ -187,7 +188,7 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         return track_plan.defaults()
     if archetype in ARCADE_KINDS:
         return {}
-    return {
+    options: dict[str, Any] = {
         "size": [40, 24],
         "buildings": 1,
         "npcs": 1,
@@ -197,6 +198,11 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         "ground_patches": 6,
         "ground": "",
     }
+    if archetype == "farm":
+        # money (T17.08): what a new game starts with, and whether staying up to 2:00 costs any
+        options["starting_money"] = FARM_STARTING_MONEY
+        options["pass_out_loss"] = True
+    return options
 
 
 ARCADE_KINDS = ("shmup", "run_and_gun", "racing")

@@ -87,7 +87,7 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx)} if _farm(ctx) else {}))
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash()} if _farm(ctx) else {}))
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -139,7 +139,7 @@ func build(ctx: BuildContext) -> Array:
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx, _turn_based(ctx)), HERO_PATH, issues)
 	if not FileAccess.file_exists(NEW_GAME_PATH):
-		_save(ctx, _new_game(ctx.demo_removed, gear.keys(), _start_map(ctx), _kind_items(ctx)), NEW_GAME_PATH, issues)
+		_save(ctx, _new_game(ctx.demo_removed, gear.keys(), _start_map(ctx), _kind_items(ctx), _kind_gold(ctx)), NEW_GAME_PATH, issues)
 	if not FileAccess.file_exists(POTION_PATH):
 		_save(ctx, _potion(ctx), POTION_PATH, issues)
 	if _no_village(ctx):
@@ -151,7 +151,7 @@ func build(ctx: BuildContext) -> Array:
 	if not ctx.demo_removed and not FileAccess.file_exists(QUEST_PATH):
 		_save(ctx, _quest(_has_chest(ctx)), QUEST_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(SHOP_PATH):
-		_save(ctx, _shop(gear.keys(), _turn_based(ctx)), SHOP_PATH, issues)
+		_save(ctx, _kind_shop(ctx, _shop(gear.keys(), _turn_based(ctx))), SHOP_PATH, issues)
 	if not ctx.demo_removed and _turn_based(ctx):
 		for path: String in [ANTIDOTE_PATH, ETHER_PATH]:
 			if not FileAccess.file_exists(path):
@@ -245,11 +245,41 @@ func _kind_items(ctx: BuildContext) -> Array:
 	var script := load(here.resource_path.get_base_dir().path_join(FARM_BUILD)) as GDScript
 	return JsonUtil.to_array(script.call("starting_items")) if script != null else []
 
-func _new_game(demo_removed: bool = false, gear_words: Array = [], start_map: String = STARTER_MAP_PATH, kind_items: Array = []) -> Resource:
+## The money a new game starts with: 50, or what a farm's options say (T17.08).
+const START_GOLD := 50
+
+func _kind_gold(ctx: BuildContext) -> int:
+	var script := _farm_script(ctx, FARM_BUILD)
+	return JsonUtil.to_int(script.call("starting_money", ctx), START_GOLD) if script != null else START_GOLD
+
+## The village shop of the kind: a farm's keeps hours and sells the seeds of the season (its
+## own recipe makes it from the shop every kind has); every other kind's is `shop` as it is.
+const FARM_SHOP := "farm/shop_recipe.gd"
+
+func _kind_shop(ctx: BuildContext, shop: Resource) -> Resource:
+	var script := _farm_script(ctx, FARM_SHOP)
+	if script == null:
+		return shop
+	var made: Resource = script.call("for_farm", shop)
+	return made
+
+func _farm_shop_hash() -> Dictionary:
+	var here: Script = get_script()
+	var script := load(here.resource_path.get_base_dir().path_join(FARM_SHOP)) as GDScript
+	return JsonUtil.to_dict(script.call("shop_hash")) if script != null else {}
+
+## A script of the farm's recipes for a farm, null for every other kind.
+func _farm_script(ctx: BuildContext, rel: String) -> GDScript:
+	if not _farm(ctx):
+		return null
+	var here: Script = get_script()
+	return load(here.resource_path.get_base_dir().path_join(rel)) as GDScript
+
+func _new_game(demo_removed: bool = false, gear_words: Array = [], start_map: String = STARTER_MAP_PATH, kind_items: Array = [], gold: int = START_GOLD) -> Resource:
 	var ng := SeedUtil.make(NEW_GAME)
 	ng.set("start_map", start_map)
 	ng.set("start_spawn", &"default")
-	ng.set("gold", 50)
+	ng.set("gold", gold)
 	var starting: Array = kind_items.duplicate()
 	if not demo_removed:
 		starting.append({"item_id": "potion", "qty": 2})

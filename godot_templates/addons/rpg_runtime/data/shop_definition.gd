@@ -34,6 +34,11 @@ static func load_shop(shop_id: StringName) -> RpgShopDefinition:
 		return null
 	return load(path) as RpgShopDefinition
 
+## What is said instead of showing the wares when the shop cannot be entered now, or "" (every
+## shop but one with opening hours: the farm's, RpgFarmShop, T17.08).
+func closed_reason() -> String:
+	return ""
+
 func sells(item_id: StringName) -> bool:
 	return _entry(item_id).size() > 0
 

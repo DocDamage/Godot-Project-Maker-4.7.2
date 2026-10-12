@@ -1,12 +1,17 @@
 extends RefCounted
-## The farm's smoke steps (T17.04, T17.05), appended after the shared sequence (which ends in
-## the starter map): the map has its field and the game its farmer, calendar and tools -> a cell
-## is tilled, planted and watered with the real input actions (`hotbar_<n>` chooses, `use`
-## works) -> a night passes and the crop is a day further -> the nights to ripeness -> the crop
-## is picked with `interact`.
+## The farm's smoke steps (T17.04, T17.05, T17.08), appended after the shared sequence (which
+## ends in the starter map): the map has its field and the game its farmer, calendar and tools
+## -> a cell is tilled, planted and watered with the real input actions (`hotbar_<n>` chooses,
+## `use` works) -> a night passes and the crop is a day further -> the nights to ripeness -> the
+## crop is picked with `interact` -> it is put into the shipping bin, taken back out and put in
+## again (`interact`) -> the farmer sleeps in the bed (`interact`): the day ends once, the
+## energy is full, the game is saved -> the morning's summary names the crop and what it
+## earned, and `confirm` closes it -> the shop is closed before 9:00 and on its closed day, and
+## sells the seeds of the season in its hours.
 ##
-## Nobody can sleep yet (T17.08), so the night is the calendar's `end_day()`, run in full. The
-## farm's whole day, from waking to the shop and the people, is T17.18.
+## The nights of the growing are the calendar's `end_day()`, run in full (a day that nobody
+## slept through); the night after the harvest is slept in the bed. The farm's whole day, from
+## waking to the people, is T17.18.
 
 ## What a failed step of this sequence is reported as (docs/spec/03_ERROR_CODES.md).
 const CODE := "SMOKE-013"
@@ -25,6 +30,10 @@ func steps() -> Array[Dictionary]:
 		_step("a_night_grows_it", _a_night_grows_it, 20.0),
 		_step("crop_ripens", _crop_ripens, 30.0),
 		_step("harvest", _harvest, 30.0),
+		_step("ship_the_crop", _ship_the_crop, 30.0),
+		_step("sleep_in_the_bed", _sleep_in_the_bed, 40.0),
+		_step("morning_summary", _morning_summary, 30.0),
+		_step("buy_seeds_at_the_shop", _buy_seeds_at_the_shop, 40.0),
 	]
 
 func _step(step_name: String, fn: Callable, timeout_s: float) -> Dictionary:
@@ -116,7 +125,11 @@ func _farm_is_there() -> String:
 	if field.state_of(plot[0] + Vector2i.UP) != "":
 		return "the cell above the plot is part of it"
 	for item: StringName in [&"hoe", &"watering_can", &"sickle", &"farm_axe"]:
-		if mode.tool_for(item) == null or not _state().inventory.has(item):
+		if mode.tool_for(item) == null or not _state().items.has(item):
+			return "the game has no %s" % item
+	# a new game starts with a hoe and a can (T17.08); the sickle and the axe are bought
+	for item: StringName in [&"hoe", &"watering_can"]:
+		if not _state().inventory.has(item):
 			return "a new game has no %s" % item
 	if mode.crops.order.is_empty():
 		return "game/data/crops.json has no crop"
@@ -273,3 +286,260 @@ func _harvest() -> String:
 	if not saved.has(RpgField.cell_name(cell)):
 		return "the field is not in the saved game"
 	return ""
+
+# ---------------------------------------------------------------- money (T17.08)
+
+func _controller() -> RpgUiController:
+	var router := RpgUtil.router()
+	return router.get_node_or_null("UiController") as RpgUiController if router != null else null
+
+func _open_menu() -> Node:
+	var controller := _controller()
+	var menu: Node = controller.get("_menu") if controller != null else null
+	return menu if menu != null and is_instance_valid(menu) else null
+
+## Puts the farmer at `at`, looking `facing`, and waits until it can act.
+func _stand(at: Vector2, facing: String) -> String:
+	var farmer := _farmer()
+	if farmer == null:
+		return "the farmer is gone"
+	farmer.global_position = at
+	farmer.set_facing(facing)
+	await _frames(4)
+	if not await _wait_for(func() -> bool: return not farmer.is_busy(), 120):
+		return "the farmer never finished using its tool"
+	return ""
+
+## `interact` until `done` says so (the first press may come before the bodies are known).
+func _interact_until(done: Callable) -> bool:
+	for attempt in 3:
+		await _tap("interact")
+		if await _wait_for(done, 30):
+			return true
+	return false
+
+func _ship_the_crop() -> String:
+	var scene := _tree().current_scene
+	var field := RpgField.current()
+	var bin := scene.find_child("ShippingBin", true, false) as RpgShippingBin
+	if bin == null:
+		return "the starter map has no shipping bin"
+	if not ResourceLoader.exists("res://generated/scenes/farm/shipping_bin.tscn"):
+		return "generated/scenes/farm/shipping_bin.tscn is missing"
+	# the bin stands beside the plot: the farmer works it from the cell of the plot next to it
+	var bin_cell := field.cell_at(bin.global_position + Vector2(0.0, -field.tile_px * 0.5))
+	var failure := "no cell of the plot is next to the bin at %s" % bin_cell
+	for entry: Array in [[Vector2i.RIGHT, "left"], [Vector2i.LEFT, "right"], [Vector2i.UP, "down"], [Vector2i.DOWN, "up"]]:
+		var step: Vector2i = entry[0]
+		if field.state_of(bin_cell + step) != "":
+			failure = await _stand(field.cell_center(bin_cell + step), str(entry[1]))
+			break
+	if failure != "":
+		return failure
+	var produce := StringName(str(_crop().get("produce", "")))
+	var had := _state().inventory.count(produce)
+	if had < 1:
+		return "the farmer has no %s to ship" % produce
+	if RpgShippingBin.price_of(produce) <= 0:
+		return "%s has no price" % produce
+	failure = await _hold(produce)
+	if failure != "":
+		return failure
+	if not await _interact_until(func() -> bool: return RpgShippingBin.count(produce) == had):
+		return "`interact` with the bin put %d of %d %s into it" % [RpgShippingBin.count(produce), had, produce]
+	if _state().inventory.count(produce) != 0:
+		return "the held stack did not leave the inventory"
+	# a mistake can be undone: with a tool in the hand the stack comes back out
+	failure = await _hold(&"hoe")
+	if failure != "":
+		return failure
+	if not await _interact_until(func() -> bool: return _state().inventory.count(produce) == had):
+		return "`interact` with a tool in the hand did not take the stack back out"
+	if not RpgShippingBin.is_empty():
+		return "the bin still holds something"
+	failure = await _hold(produce)
+	if failure != "":
+		return failure
+	if not await _interact_until(func() -> bool: return RpgShippingBin.count(produce) == had):
+		return "the stack did not go into the bin again"
+	_box["shipped"] = had
+	_box["produce"] = produce
+	return ""
+
+func _sleep_in_the_bed() -> String:
+	var scene := _tree().current_scene
+	var mode := RpgFarmMode.current()
+	var calendar := RpgCalendar.current()
+	var save := RpgUtil.save_manager()
+	var bed := scene.find_child("Bed", true, false) as RpgBed
+	if bed == null:
+		return "the starter map has no bed"
+	if mode.day_end == null or RpgDayEnd.current() != mode.day_end:
+		return "the mode has no end of the day"
+	var home := RpgBed.home(_state())
+	if home.is_empty() or str(home.get("map", "")) != scene.scene_file_path:
+		return "the bed of the map is not where the farmer wakes: %s" % home
+	var failure: String = await _stand(bed.wake_position(), "up")
+	if failure != "":
+		return failure
+	mode.energy.value = 30
+	save.delete(RpgSaveManager.AUTOSAVE_SLOT)
+	var today := calendar.today()
+	var gold: int = _state().gold
+	var ended: Array[int] = []
+	var count := func(day: int) -> void: ended.append(day)
+	calendar.day_ended.connect(count)
+	var slept: bool = await _interact_until(func() -> bool: return calendar.today() > today)
+	await _frames(3)
+	calendar.day_ended.disconnect(count)
+	if not slept:
+		return "`interact` with the bed did not end the day"
+	if ended.size() != 1 or calendar.today() != today + 1:
+		return "sleeping ended %d days" % ended.size()
+	if mode.day_end.last_night != RpgDayEnd.SLEPT:
+		return "the night was '%s', expected a sleep" % mode.day_end.last_night
+	if mode.energy.value != mode.energy.max_energy:
+		return "the energy is %d in the morning, expected %d" % [mode.energy.value, mode.energy.max_energy]
+	var produce: StringName = _box["produce"]
+	var earned := RpgShippingBin.price_of(produce) * RpgUtil.to_int(_box["shipped"])
+	if _state().gold != gold + earned:
+		return "the night paid %d, expected %d" % [_state().gold - gold, earned]
+	if not RpgShippingBin.is_empty():
+		return "the bin is not empty in the morning"
+	if not mode.day_end.saved or not save.has_save(RpgSaveManager.AUTOSAVE_SLOT):
+		return "sleeping did not save into the autosave slot"
+	if RpgUtil.to_int(save.header(RpgSaveManager.AUTOSAVE_SLOT).get("gold", -1)) != gold + earned:
+		return "the save of the morning does not hold the money of the night"
+	_box["earned"] = earned
+	_box["gold"] = gold + earned
+	return ""
+
+func _morning_summary() -> String:
+	var tree := _tree()
+	var day_end := RpgFarmMode.current().day_end
+	var summary := day_end.summary()
+	if summary == null:
+		return "the morning shows no summary"
+	if not tree.paused:
+		return "the game is not paused behind the summary"
+	var produce: StringName = _box["produce"]
+	var lines := RpgDaySummary.lines(summary.sale)
+	var wanted := "%s x%d" % [RpgFarmStrings.item_name(produce), RpgUtil.to_int(_box["shipped"])]
+	if lines.size() != 1 or not lines[0].begins_with(wanted) or not lines[0].contains(str(_box["earned"])):
+		return "the summary lists %s, expected one line of %s for %s" % [lines, wanted, _box["earned"]]
+	var total := summary.get_node_or_null("%Total") as Label
+	if total == null or total.text != RpgDaySummary.total_text(summary.sale) or not total.text.contains(str(_box["earned"])):
+		return "the summary does not show the total"
+	await _frames(3)
+	await _tap("confirm")
+	if not await _wait_for(func() -> bool: return day_end.summary() == null, 60):
+		return "`confirm` did not close the summary"
+	await _frames(3)
+	# a game that has no slot of its own yet is offered the save screen: it is closed again
+	var menu := _open_menu()
+	if menu != null:
+		if not (menu is RpgSaveLoadMenu) or day_end.chosen_slot() != RpgSaveManager.NO_SLOT:
+			return "a menu that is not the offered save screen is open after the summary"
+		menu.call(&"close")
+		await _frames(3)
+	if tree.paused:
+		return "the game is still paused after the summary"
+	if _state().gold != RpgUtil.to_int(_box["gold"]):
+		return "the money changed while the summary was shown"
+	# the next night sells nothing and shows nothing
+	RpgCalendar.current().end_day()
+	await _frames(3)
+	if day_end.summary() != null or tree.paused:
+		return "a night in which nothing was sold shows a summary"
+	return ""
+
+## Asks for the village shop as the keeper's `open_shop:village_shop` does and waits for it.
+func _ask_for_shop() -> RpgShopMenu:
+	RpgUtil.emit(&"shop_requested", [&"village_shop"])
+	for i in 30:
+		await _tree().physics_frame
+		var menu := _open_menu() as RpgShopMenu
+		if menu != null:
+			return menu
+	return null
+
+func _buy_seeds_at_the_shop() -> String:
+	var tree := _tree()
+	var mode := RpgFarmMode.current()
+	var calendar := RpgCalendar.current()
+	var shop := RpgShopDefinition.load_shop(&"village_shop") as RpgFarmShop
+	if shop == null:
+		return "game/data/shops/village_shop.tres is not the shop of a farm"
+	if calendar.clock()[0] >= shop.opens:
+		return "the morning is at %s, later than the shop opens" % [calendar.clock()]
+	# the morning, before 9:00: closed, and it says so
+	if shop.is_open() or shop.closed_reason() == "":
+		return "the shop is open at %s" % [calendar.clock()]
+	var early: RpgShopMenu = await _ask_for_shop()
+	if early != null:
+		return "the shop opened before its hours"
+	# its closed day: closed at noon too
+	var guard := 0
+	while calendar.weekday() != shop.closed_weekday and guard < RpgCalendar.WEEK_DAYS:
+		calendar.end_day()
+		guard += 1
+	await _frames(2)
+	calendar.pass_minutes(12 * 60 - calendar.minute)
+	if shop.is_open():
+		return "the shop is open at noon of its closed day (weekday %d)" % calendar.weekday()
+	var on_closed_day: RpgShopMenu = await _ask_for_shop()
+	if on_closed_day != null:
+		return "the shop opened on its closed day"
+	calendar.end_day()
+	await _frames(2)
+	# opening time
+	calendar.pass_minutes(shop.opens * 60 - calendar.minute)
+	if calendar.clock() != ([shop.opens, 0] as Array[int]) or not shop.is_open():
+		return "the shop is closed at %s on weekday %d" % [calendar.clock(), calendar.weekday()]
+	var in_season := mode.crops.of_season(calendar.season_name())
+	if in_season.is_empty():
+		return "no crop grows in %s" % calendar.season_name()
+	var seeds: Array[StringName] = []
+	for crop_id in in_season:
+		seeds.append(StringName(str(mode.crops.crop(crop_id).get("seed", ""))))
+	var offered := shop.offered(_state().items)
+	for seed_id in seeds:
+		if not offered.has(seed_id):
+			return "the shop does not offer %s in %s: %s" % [seed_id, calendar.season_name(), offered]
+	for crop_id in mode.crops.order:
+		var other := StringName(str(mode.crops.crop(crop_id).get("seed", "")))
+		if not in_season.has(crop_id) and offered.has(other):
+			return "the shop offers %s out of its season" % other
+	for tool: StringName in [&"sickle", &"farm_axe"]:
+		if not offered.has(tool):
+			return "the shop does not sell the %s" % tool
+	var menu: RpgShopMenu = await _ask_for_shop()
+	if menu == null:
+		return "the shop did not open in its hours"
+	var failure := ""
+	var wanted := seeds[0]
+	var price := shop.buy_price(wanted, _state().items)
+	var gold: int = _state().gold
+	var had := _state().inventory.count(wanted)
+	var row: Button = null
+	for candidate in menu.rows():
+		if menu.item_of(candidate) == wanted:
+			row = candidate
+	if not tree.paused:
+		failure = "the game was not paused behind the shop"
+	elif row == null:
+		failure = "%s is not a row of the shop" % wanted
+	elif price <= 0 or gold < price:
+		failure = "%s costs %d and the farmer has %d" % [wanted, price, gold]
+	else:
+		row.pressed.emit()
+		await _frames(2)
+		if _state().inventory.count(wanted) != had + 1 or _state().gold != gold - price:
+			failure = "buying %s left %d of them and %d money (was %d and %d)" % [wanted, _state().inventory.count(wanted), _state().gold, had, gold]
+	if is_instance_valid(menu):
+		menu.close()
+	await _frames(2)
+	if failure == "" and tree.paused:
+		failure = "closing the shop did not unpause the game"
+	tree.paused = false
+	return failure

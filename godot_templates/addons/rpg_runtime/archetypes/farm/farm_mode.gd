@@ -3,13 +3,21 @@ extends RpgCombatMode
 ## The farm's mode (T17.04), SceneRouter.combat. A farm has no encounters; what the mode owns is
 ## what lasts from map to map: the calendar it asks for (`RpgCalendar.ensure()`), the farmer's
 ## energy and hotbar (its children `Energy` and `Hotbar`), the crops of the game, the four
-## tools, and the night of the fields (the calendar's `on_night`, NIGHT_CROPS).
+## tools, the night of the fields (the calendar's `on_night`, NIGHT_CROPS), and the end of the
+## day (its child `DayEnd`, T17.08: the night of the shipping bin, sleeping, passing out, the
+## morning's summary).
 
 const ENERGY_NODE := "Energy"
 const HOTBAR_NODE := "Hotbar"
 
+## False: staying up to 2:00 costs no money (the option `starter_map.pass_out_loss`; the mode's
+## recipe sets it).
+@export var pass_out_loss: bool = true
+
 var energy: RpgEnergy = null
 var hotbar: RpgHotbar = null
+## The end of the day (RpgDayEnd).
+var day_end: RpgDayEnd = null
 ## The crops of the game (game/data/crops.json).
 var crops: RpgCropData = null
 
@@ -27,6 +35,7 @@ func _ready() -> void:
 		calendar.on_night(RpgCalendar.NIGHT_CROPS, _on_night)
 		if not calendar.day_began.is_connected(_on_morning):
 			calendar.day_began.connect(_on_morning)
+	day_end.attach()  # after the fields: its night (NIGHT_SHOP) and its morning follow theirs
 
 ## Makes what the mode consists of (in `_ready`, not when the scene is built: a saved scene
 ## would hold the parts and every instance would make them twice).
@@ -43,6 +52,13 @@ func ensure_parts() -> void:
 		hotbar = RpgHotbar.new()
 		hotbar.name = HOTBAR_NODE
 		add_child(hotbar)
+	if day_end == null:
+		day_end = get_node_or_null(RpgDayEnd.NODE_NAME) as RpgDayEnd
+	if day_end == null:
+		day_end = RpgDayEnd.new()
+		day_end.name = RpgDayEnd.NODE_NAME
+		add_child(day_end)
+	day_end.pass_out_loss = pass_out_loss
 	if crops == null:
 		crops = RpgCropData.load_default()
 	if _tools.is_empty():
@@ -96,8 +112,8 @@ func _on_night(_day: int) -> void:
 	var next := RpgCalendar.date_after(calendar.day, calendar.season, calendar.year, 1, calendar.days_per_season)
 	RpgField.night_all(crops, RpgCalendar.season_name_of(next[1]))
 
-## A stand-in until the cards that own it: the farmer wakes rested (sleeping and passing out
-## are T17.08) and with a full can (the pond or the well of the farm's plan is T17.06).
+## A stand-in until the card that owns it: the farmer wakes with a full can (the pond or the
+## well of the farm's plan is T17.06). The energy of the morning is RpgDayEnd's: full after a
+## sleep, half after staying up to 2:00.
 func _on_morning(_day: int) -> void:
-	energy.fill()
 	RpgFarmWateringCan.fill()

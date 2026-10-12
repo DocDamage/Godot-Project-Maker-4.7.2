@@ -69,13 +69,18 @@ func _open_pending_shop() -> void:
 		open_shop(shop_id)
 
 ## Pauses the tree and shows the shop with this id (game/data/shops/<id>.tres). Returns the menu,
-## or null when the shop or the menu scene is missing or another menu is open.
+## or null when the shop or the menu scene is missing, another menu is open, or the shop is
+## closed (a shop with opening hours says so in a toast instead).
 func open_shop(shop_id: StringName) -> Control:
 	if is_pause_open():
 		return null
 	var shop := RpgShopDefinition.load_shop(shop_id)
 	if shop == null:
 		push_error("[RPG-DATA] shop %s not found in %s" % [shop_id, RpgShopDefinition.SHOPS_DIR])
+		return null
+	var closed := shop.closed_reason()  # "" for every shop without opening hours
+	if closed != "":
+		RpgUtil.notify(closed)
 		return null
 	return _open_menu("shop_menu", {"shop": shop})
 
