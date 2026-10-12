@@ -1,7 +1,9 @@
 """Drawn stand-ins for the farm (T17.02).
 
 A farm needs crops that grow, soil that is tilled and watered, four tools, seeds, a hen and her
-egg, a shipping bin, a bed and rain. A pack made for another kind of game has none of them, and
+egg, a shipping bin, a bed and rain; and, for the pond and the edges of the farm (T17.10), a
+fishing rod, fish to catch and things to forage. A pack made for another kind of game has none
+of them, and
 a farming pack may miss one. Rather than refusing to make a game, rpggen draws what is missing,
 plainly, in the pack's tile size, and says so with a note (``ASSET-031``), as ``arcade_kit.py``
 does for the arcade kinds. A pack's own asset always wins.
@@ -74,8 +76,22 @@ TOOL_WORDS: dict[str, tuple[str, ...]] = {
     "watering_can": ("watering", "water", "can", "wateringcan"),
     "sickle": ("sickle", "scythe"),
     "axe": ("axe", "hatchet"),
+    "fishing_rod": ("rod", "fishingrod"),
 }
 TOOLS = tuple(TOOL_WORDS)
+LINE: Color = (230, 232, 236, 255)
+SCALE: Color = (250, 250, 250, 140)
+# the three drawn fish and the colour of each, as ``forage_plan.DRAWN_FISH`` names them
+FISH: tuple[tuple[str, Color], ...] = (
+    ("perch", (126, 168, 92, 255)),
+    ("carp", (226, 142, 62, 255)),
+    ("eel", (84, 96, 132, 255)),
+)
+# the four drawn things to forage, one a season, as ``forage_plan.DRAWN_FORAGE`` names them
+FORAGE = ("wild_herb", "wild_berries", "mushroom", "winter_root")
+BERRY: Color = (112, 72, 168, 255)
+CAP: Color = (190, 70, 56, 255)
+ROOT: Color = (206, 170, 120, 255)
 
 
 def _new(width: int, height: int) -> tuple[Image.Image, ImageDraw.ImageDraw]:
@@ -203,8 +219,56 @@ def tool_icon(tile: int, kind: str) -> Image.Image:
         head = [(_q(t, 9), _q(t, 3)), (_q(t, 13), _q(t, 2)), (_q(t, 13), _q(t, 9)),
                 (_q(t, 9), _q(t, 8))]  # fmt: skip
         d.polygon(head, fill=STEEL, outline=DARK)
+    elif kind == "fishing_rod":
+        d.line([(_q(t, 3), _q(t, 14)), (_q(t, 13), _q(t, 2))], fill=WOOD, width=max(1, t // 8))
+        d.rectangle(_box(t, 4, 10, 7, 13), fill=STEEL, outline=DARK)  # the reel
+        d.line([(_q(t, 13), _q(t, 2)), (_q(t, 13), _q(t, 10))], fill=LINE)
+        d.rectangle(_box(t, 12, 10, 14, 12), fill=RED)  # the float
     else:
         raise ValueError(f"no such tool: {kind}")
+    return img
+
+
+def fish(tile: int, body: Color = FISH[0][1]) -> Image.Image:
+    """A fish seen from the side, its head to the left, a tile a side. The three fish differ by
+    their colour."""
+    t = _size(tile)
+    img, d = _new(t, t)
+    tail = [(_q(t, 11), _q(t, 8)), (_q(t, 15), _q(t, 4)), (_q(t, 15), _q(t, 12))]
+    d.polygon(tail, fill=body, outline=DARK)
+    d.ellipse(_box(t, 1, 4, 13, 12), fill=body, outline=DARK)
+    d.rectangle(_box(t, 6, 6, 10, 7), fill=SCALE)
+    d.rectangle(_box(t, 3, 7, 4, 8), fill=DARK)
+    return img
+
+
+def forage(tile: int, kind: str) -> Image.Image:
+    """One of ``FORAGE`` as it lies on the ground, a tile a side: a herb in spring, berries in
+    summer, a mushroom in autumn, a root in winter."""
+    t = _size(tile)
+    img, d = _new(t, t)
+    if kind == "wild_herb":
+        d.rectangle(_box(t, 7, 6, 9, 15), fill=STEM)
+        for x0, y0 in ((2, 4), (9, 3), (3, 9), (9, 8)):
+            d.ellipse(_box(t, x0, y0, x0 + 5, y0 + 4), fill=LEAF, outline=STEM)
+    elif kind == "wild_berries":
+        d.ellipse(_box(t, 2, 6, 14, 15), fill=LEAF, outline=STEM)
+        for x0, y0 in ((4, 8), (9, 7), (7, 11)):
+            d.ellipse(_box(t, x0, y0, x0 + 3, y0 + 3), fill=BERRY, outline=DARK)
+    elif kind == "mushroom":
+        d.rectangle(_box(t, 6, 9, 10, 15), fill=SHELL, outline=DARK)
+        d.pieslice([_q(t, 2), _q(t, 3), _q(t, 14) - 1, _q(t, 17) - 1], start=180, end=360,
+                   fill=CAP, outline=DARK)  # fmt: skip
+        d.rectangle(_box(t, 5, 6, 6, 7), fill=WHITE)
+        d.rectangle(_box(t, 9, 5, 11, 7), fill=WHITE)
+    elif kind == "winter_root":
+        root = [(_q(t, 4), _q(t, 6)), (_q(t, 12), _q(t, 6)), (_q(t, 8), _q(t, 15))]
+        d.polygon(root, fill=ROOT, outline=DARK)
+        d.rectangle(_box(t, 7, 2, 9, 6), fill=STEM)
+        d.rectangle(_box(t, 5, 3, 7, 5), fill=LEAF)
+        d.rectangle(_box(t, 9, 3, 11, 5), fill=LEAF)
+    else:
+        raise ValueError(f"no such thing to forage: {kind}")
     return img
 
 
@@ -338,6 +402,17 @@ def _tool_stand_in(name: str) -> StandIn:
                    ("tool",), "tool", TOOL_WORDS[name])  # fmt: skip
 
 
+def _fish_stand_in(name: str, body: Color) -> StandIn:
+    return StandIn(name, "ITEM", f"fish ({name})", partial(fish, body=body), ("fish",), "fish",
+                   usage="object")  # fmt: skip
+
+
+def _forage_stand_in(name: str) -> StandIn:
+    thing = f"thing to forage ({name.replace('_', ' ')})"
+    return StandIn(name, "ITEM", thing, partial(forage, kind=name), ("forage",), "forage",
+                   usage="object")  # fmt: skip
+
+
 CROP_STAND_INS = tuple(_crop_stand_in(name, fruit) for name, fruit in CROPS)
 SOIL = StandIn("soil", "DECORATION", "tilled soil", soil, ("soil",), "soil", roles=None,
                usage="tiles", fills=False)  # fmt: skip
@@ -356,9 +431,13 @@ BED = StandIn("bed", "DECORATION", "bed", bed, ("bed",), words=("bed", "beds"),
               roles=("DECORATION", "INTERIOR", "ITEM"), usage="object", fills=False)  # fmt: skip
 RAIN_OVERLAY = StandIn("rain", "EFFECT", "rain", rain, ("weather",), "weather",
                        ("rain", "storm"))  # fmt: skip
+# a pack with a fish, or with a thing to forage, has its own: none of the drawn ones is added
+FISH_STAND_INS = tuple(_fish_stand_in(name, body) for name, body in FISH)
+FORAGE_STAND_INS = tuple(_forage_stand_in(name) for name in FORAGE)
 # what a farm gets when the packs lack it, in the order of the notes
 STAND_INS: tuple[StandIn, ...] = (
     *CROP_STAND_INS, SOIL, WATERED, *TOOL_STAND_INS, SEED_BAG, HEN, EGG, BIN, BED, RAIN_OVERLAY,
+    *FISH_STAND_INS, *FORAGE_STAND_INS,
 )  # fmt: skip
 
 

@@ -29,8 +29,11 @@ from rpggen.gui.widgets import asset_detail
 REPO = Path(__file__).resolve().parents[2]
 SYNTH = REPO / "test_packs" / "synthetic"
 ROLES = {"CROP", "ANIMAL", "TOOL"}
+# the fishing rod, the fish and the things to forage are T17.10's
+WATERSIDE = ["perch", "carp", "eel", "wild_herb", "wild_berries", "mushroom", "winter_root"]
 ALL = ["turnip", "carrot", "berry", "soil", "watered", "hoe", "watering_can", "sickle", "axe",
-       "seed_bag", "hen", "egg", "shipping_bin", "bed", "rain"]  # fmt: skip
+       "fishing_rod", "seed_bag", "hen", "egg", "shipping_bin", "bed", "rain",
+       *WATERSIDE]  # fmt: skip
 
 
 @pytest.fixture(autouse=True)
@@ -89,6 +92,8 @@ SIZES = {
     "watering_can": lambda t: (t, t),
     "sickle": lambda t: (t, t),
     "axe": lambda t: (t, t),
+    "fishing_rod": lambda t: (t, t),
+    **{name: (lambda t: (t, t)) for name in WATERSIDE},
     "seed_bag": lambda t: (t, t),
     "hen": lambda t: (4 * t, 4 * t),
     "egg": lambda t: (t, t),
@@ -152,7 +157,14 @@ def test_what_the_pictures_show(tile: int) -> None:
     assert np.asarray(farm_kit.watered(tile))[..., 3].all()
     assert _png(farm_kit.soil(tile)) != _png(farm_kit.watered(tile))
     icons = {kind: _png(farm_kit.tool_icon(tile, kind)) for kind in farm_kit.TOOLS}
-    assert len(set(icons.values())) == len(farm_kit.TOOLS) == 4
+    assert len(set(icons.values())) == len(farm_kit.TOOLS) == 5, "the four, and the rod"
+    fish = {name: _png(farm_kit.fish(tile, body)) for name, body in farm_kit.FISH}
+    assert len(set(fish.values())) == 3, "three fish in three colours"
+    assert all(body in _colours(farm_kit.fish(tile, body)) for _name, body in farm_kit.FISH)
+    found = {kind: _png(farm_kit.forage(tile, kind)) for kind in farm_kit.FORAGE}
+    assert len(set(found.values())) == len(farm_kit.FORAGE) == 4, "one a season"
+    with pytest.raises(ValueError, match="no such thing to forage"):
+        farm_kit.forage(tile, "banana")
     with pytest.raises(ValueError, match="no such tool"):
         farm_kit.tool_icon(tile, "banana")
     hen = _cells(farm_kit.hen(tile), 4, 4)
@@ -299,12 +311,12 @@ def test_the_ranch_gets_its_roles_and_keeps_what_it_has(tmp_path: Path) -> None:
     assert len(animals) == 12 and {roles[n] for n in animals} == {"ANIMAL"}, "walking or asleep"
     assert roles["rain_64x64_3frames.png"] == "EFFECT", "nobody to talk to"
     assert roles["farmer_walk_down_16x16_4frames.png"] == "PLAYER"
-    assert roles["farmer_hoe_down_16x16_3frames.png"] == "NPC", "tagged tool, but no icon"
+    assert roles["farmer_hoe_down_16x16_3frames.png"] == "NONE", "the farmer hoeing (T17.10)"
     assert roles["house.png"] == "BUILDING" and roles["shipping_bin.png"] == "DECORATION"
     assert "NPC" not in {roles[n] for n in animals} and "WATER" not in roles.values()
     # a pack's own asset wins: only what the ranch has none of is drawn
     lacking = [s.name for s in farm_kit.lacking(cat)]
-    assert lacking == ["axe", "seed_bag", "egg", "bed"]
+    assert lacking == ["axe", "fishing_rod", "seed_bag", "egg", "bed", *WATERSIDE]
     own = {s.name: farm_kit.own_asset(cat, s) for s in farm_kit.STAND_INS}
     assert own["hoe"].id == "ranch.tools.hoe_16x16", "not the farmer's strip with the hoe"
     assert own["watering_can"].id == "ranch.tools.water_16x16"
@@ -318,11 +330,13 @@ def test_the_ranch_gets_its_roles_and_keeps_what_it_has(tmp_path: Path) -> None:
     issues = requirements.check(cat, _cfg(SYNTH / "ranch"))
     assert not _errors(issues)
     assert [i.detail["thing"] for i in issues if i.code == "ASSET-031"] == [
-        "axe", "bag of seeds", "egg", "bed"]  # fmt: skip
+        "axe", "fishing rod", "bag of seeds", "egg", "bed", "fish (perch)", "fish (carp)",
+        "fish (eel)", "thing to forage (wild herb)", "thing to forage (wild berries)",
+        "thing to forage (mushroom)", "thing to forage (winter root)"]  # fmt: skip
     # the run: the four stand-ins, and the pumpkin's stages
     staging = _staged(cat, SYNTH / "ranch", tmp_path / "staging")
     names, notes = farm_kit.add(cat, 16, staging)
-    assert names == [*lacking, "grown/pumpkin_16x16"] and len(notes) == 4
+    assert names == [*lacking, "grown/pumpkin_16x16"] and len(notes) == len(lacking) == 12
     schema.validate("catalog", cat.to_json())
     pumpkin = cat.asset("rpggen_farm_kit.grown.pumpkin_16x16")
     eff = catalog.effective(pumpkin)

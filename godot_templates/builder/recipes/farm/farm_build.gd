@@ -42,11 +42,13 @@ const TOOLS := {
 	"watering_can": ["watering", "water", "can", "wateringcan"],
 	"sickle": ["sickle", "scythe"],
 	"farm_axe": ["axe", "hatchet"],
+	"fishing_rod": ["rod", "fishingrod"],
 }
 ## Item id -> the name of the kit's picture. The axe's item is `farm_axe` (`axe` is the weapon
 ## the starter gear may be); its picture is the kit's `axe`.
-const KIT_TOOLS := {"hoe": "hoe", "watering_can": "watering_can", "sickle": "sickle", "farm_axe": "axe"}
-const TOOL_ORDER: Array[String] = ["hoe", "watering_can", "sickle", "farm_axe"]
+const KIT_TOOLS := {"hoe": "hoe", "watering_can": "watering_can", "sickle": "sickle", "farm_axe": "axe", "fishing_rod": "fishing_rod"}
+## The fishing rod (T17.10) is the last: an item of every farm, sold where the farm has a pond.
+const TOOL_ORDER: Array[String] = ["hoe", "watering_can", "sickle", "farm_axe", "fishing_rod"]
 ## What a new game has of them (T17.08): the other two are bought at the shop.
 const START_TOOLS: Array[String] = ["hoe", "watering_can"]
 const START_SEEDS := 15
@@ -90,6 +92,15 @@ static func crops() -> Array[Dictionary]:
 	for raw: Variant in JsonUtil.to_array(plan().get("crops", [])):
 		out.append(JsonUtil.to_dict(raw))
 	return out
+
+## The fish and the forage of the plan (rpggen/core/forage_plan.py: `farm.forage`), or {}.
+static func forage() -> Dictionary:
+	return JsonUtil.to_dict(plan().get("forage", {}))
+
+## True when the rod is sold: the farm has a pond and the option `starter_map.fishing` is on
+## (the plan's `fishing`, which follows both on every generation).
+static func fishing() -> bool:
+	return JsonUtil.to_bool(forage().get("fishing", false))
 
 ## One of the farm's options (a key of the config's `starter_map`), or `fallback`.
 static func option(ctx: BuildContext, key: String, fallback: Variant) -> Variant:
@@ -283,12 +294,16 @@ static func _icon_rects(kind: String, colour: Color) -> Array:
 			return [[7, 9, 2, 6, WOOD], [5, 2, 7, 2, METAL], [11, 3, 2, 5, METAL], [4, 3, 2, 3, METAL]]
 		"farm_axe":
 			return [[7, 3, 2, 12, WOOD], [9, 3, 4, 5, METAL]]
+		"fishing_rod":
+			return [[3, 12, 3, 2, WOOD], [6, 9, 3, 3, WOOD], [9, 6, 3, 3, WOOD], [12, 3, 2, 3, WOOD], [13, 5, 1, 6, METAL], [12, 11, 3, 2, Color(0.84, 0.24, 0.2)]]
+		"fish":
+			return [[2, 6, 9, 5, colour], [3, 5, 7, 7, colour], [11, 7, 2, 3, colour], [13, 5, 2, 7, colour], [4, 7, 1, 1, Color(0.17, 0.13, 0.12)]]
 		"seed":
 			return [[4, 5, 8, 9, BAG], [6, 3, 4, 2, BAG.darkened(0.25)], [7, 8, 2, 3, colour]]
 	return [[5, 5, 6, 7, colour], [4, 6, 8, 5, colour], [7, 3, 2, 2, LEAF]]  # what is harvested
 
-## A drawn icon of 16 px: a tool (its item id), a bag of seeds (`seed`) or produce (anything
-## else) in `colour`.
+## A drawn icon of 16 px: a tool (its item id), a bag of seeds (`seed`), a fish (`fish`) or
+## produce (anything else) in `colour`.
 static func drawn_icon(kind: String, colour: Color = Color.WHITE) -> ImageTexture:
 	var image := _blank(16, 16)
 	_draw(image, Vector2i.ZERO, 16, _icon_rects(kind, colour))

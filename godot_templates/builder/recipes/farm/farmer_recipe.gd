@@ -1,12 +1,13 @@
 extends RefCounted
 ## The farmer's tools as items (T17.04): game/data/items/hoe.tres, watering_can.tres,
-## sickle.tres and farm_axe.tres, seeded once (they are the user's afterwards). An icon is the
-## pack's picture of the tool (role TOOL), else the one of the drawn farm kit.
+## sickle.tres, farm_axe.tres and fishing_rod.tres (T17.10), seeded once (they are the user's
+## afterwards). An icon is the pack's picture of the tool (role TOOL), else the one of the drawn
+## farm kit.
 ##
 ## The farmer itself is the player scene of actor_recipes with the parts FarmBuild.augment_player
 ## adds (the script RpgFarmer, the frame on the tile ahead, the icon of the tool in use).
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const SeedUtil := preload("../../lib/seed_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")

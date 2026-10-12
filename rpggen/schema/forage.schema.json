@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "rpggen fish and forage of a farm (game/data/forage.json)",
+  "type": "object",
+  "properties": {
+    "forage": {"type": "array", "items": {"$ref": "#/$defs/Thing"}},
+    "fish": {"type": "array", "items": {"$ref": "#/$defs/Fish"}},
+    "spots": {
+      "type": "array",
+      "items": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2}
+    },
+    "map": {"type": "string"},
+    "fishing": {"type": "boolean"}
+  },
+  "required": ["forage", "fish"],
+  "additionalProperties": false,
+  "$defs": {
+    "Thing": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "item": {"type": "string", "minLength": 1},
+        "seasons": {
+          "type": "array",
+          "items": {"enum": ["spring", "summer", "autumn", "winter"]},
+          "uniqueItems": true
+        },
+        "price": {"type": "integer", "minimum": 0},
+        "energy": {"type": "integer", "minimum": 0}
+      },
+      "required": ["id", "item", "seasons"],
+      "additionalProperties": false
+    },
+    "Fish": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "item": {"type": "string", "minLength": 1},
+        "seasons": {
+          "type": "array",
+          "items": {"enum": ["spring", "summer", "autumn", "winter"]},
+          "uniqueItems": true
+        },
+        "times": {
+          "type": "array",
+          "items": {"enum": ["morning", "day", "evening"]},
+          "uniqueItems": true
+        },
+        "water": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "price": {"type": "integer", "minimum": 0},
+        "energy": {"type": "integer", "minimum": 0},
+        "speed": {"type": "number", "minimum": 0.25, "maximum": 4}
+      },
+      "required": ["id", "item", "seasons", "times"],
+      "additionalProperties": false
+    }
+  }
+}

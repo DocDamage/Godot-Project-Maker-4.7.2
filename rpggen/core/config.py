@@ -202,6 +202,8 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         # money (T17.08): what a new game starts with, and whether staying up to 2:00 costs any
         options["starting_money"] = FARM_STARTING_MONEY
         options["pass_out_loss"] = True
+        # fishing (T17.10): false keeps the rod out of the shop of a farm that has a pond
+        options["fishing"] = True
         # the farm's own map (T17.06) beside the village's: how large the field and the plot
         # are, which animal houses stand on it, how much there is to clear, and the added maps
         from rpggen.core import farm_plan

@@ -22,6 +22,10 @@ const SLOW := 0.5
 var mode: RpgFarmMode = null
 var field: RpgField = null
 
+## True while a line is cast (RpgFishing sets it, T17.10): the farmer stands where it is
+## beyond the rod's use time.
+var fishing := false
+
 var _busy := 0.0
 var _base_speed := -1.0
 var _frame: Node2D = null
@@ -217,7 +221,7 @@ func _begin_use(tool: RpgFarmTool, item: StringName) -> void:
 
 func _end_use() -> void:
 	_busy = 0.0
-	move_locked = false
+	move_locked = fishing
 	if animation_locked:
 		release_animation()
 	if _icon != null:

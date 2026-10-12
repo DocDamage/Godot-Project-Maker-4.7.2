@@ -25,6 +25,7 @@ from rpggen.errors import IssueList
 
 MONEY = ("starting_money", "pass_out_loss")  # T17.08
 FIELD = ("farm_size", "plot", "animals", "difficulty", "added_maps")  # T17.06
+FISHING = ("fishing",)  # T17.10
 FARM_RECIPES = paths.templates_root() / "builder" / "recipes" / "farm"
 FARM_RUNTIME = paths.templates_root() / "addons" / "rpg_runtime" / "archetypes" / "farm"
 
@@ -46,10 +47,11 @@ def test_the_config_of_a_farm_is_valid_and_its_map_is_the_top_down_one() -> None
     # its own map (T17.06) are keys of their own in the same section
     defaults = config.starter_map_defaults("farm")
     assert {
-        k: v for k, v in defaults.items() if k not in (*MONEY, *FIELD)
+        k: v for k, v in defaults.items() if k not in (*MONEY, *FIELD, *FISHING)
     } == config.starter_map_defaults("turn_based")
     assert {k: defaults[k] for k in MONEY} == {"starting_money": 100, "pass_out_loss": True}
     assert {k: defaults[k] for k in FIELD} == farm_plan.defaults()
+    assert {k: defaults[k] for k in FISHING} == {"fishing": True}
     again = config.GeneratorConfig.from_json(data)
     assert again.to_json() == data
     for kind in ("orchard",):
@@ -336,3 +338,46 @@ def test_the_shop_is_closed_on_the_day_the_shopkeeper_has_off() -> None:
     shop = (FARM_RUNTIME / "farm_shop.gd").read_text(encoding="utf-8")
     assert f"@export var closed_weekday: int = {day}\n" in shop
     assert "const OPENS := 9\n" in recipe and "const CLOSES := 17\n" in recipe
+
+
+def test_the_orchestrator_plans_the_fish_and_the_forage_after_the_map(tmp_path: Path) -> None:
+    """T17.10: ``farm.forage`` is planned once, after the map its places lie on, and kept; the
+    places follow a map that is planned again, and ``fishing`` follows the option."""
+    from rpggen.core import forage_plan
+
+    cfg = _cfg()
+    state = _FakeState(tmp_path, cfg)
+    farm = _plan(state)["farm"]
+    forage = farm["forage"]
+    schema.validate("world_plan", world_plan.load(tmp_path))
+    assert forage == forage_plan.plan(cfg.starter_map_options(), cfg.seed, None, farm["map"])
+    assert forage_plan.check(forage) == [] and len(forage["spots"]) == 8
+    assert farm["map"]["water"]["kind"] == "well" and forage["fishing"] is False
+    said = [line for line in state.cb.lines if line.startswith("farm: ")]
+    assert any("things to forage at 8 places, 3 fish (no fishing)" in line for line in said)
+    assert any("drawn" in line for line in said), "an empty catalog: the drawn ones, noted"
+    # another seed before the map is built: the map is planned anew and the places with it;
+    # the fish and the things stay what they were
+    other = _cfg(seed=777)
+    again = _plan(_FakeState(tmp_path, other))["farm"]
+    assert again["map"] != farm["map"]
+    assert again["forage"]["fish"] == forage["fish"]
+    assert again["forage"]["forage"] == forage["forage"]
+    free = set(forage_plan.free_cells(again["map"]))
+    assert {tuple(c) for c in again["forage"]["spots"]} <= free
+    # once the map exists nothing of it moves, whatever the seed
+    (tmp_path / "game" / "maps").mkdir(parents=True)
+    (tmp_path / farm_plan.MAP_FILE).write_text("built", encoding="utf-8")
+    kept = _plan(_FakeState(tmp_path, cfg))["farm"]
+    assert kept["forage"] == again["forage"] and kept["map"] == again["map"]
+    # a pond and the option: the plan's `fishing` is what the shop's recipe reads
+    stored = world_plan.load(tmp_path)
+    stored["farm"]["map"]["water"]["kind"] = "pond"
+    world_plan.save(tmp_path, stored)
+    assert _plan(_FakeState(tmp_path, cfg))["farm"]["forage"]["fishing"] is True
+    off = _cfg(starter_map={"fishing": False})
+    assert _plan(_FakeState(tmp_path, off))["farm"]["forage"]["fishing"] is False
+    shop = (FARM_RECIPES / "shop_recipe.gd").read_text(encoding="utf-8")
+    assert '{"item_id": "fishing_rod", "price": 150}' in shop and "FarmBuild.fishing()" in shop
+    build = (FARM_RECIPES / "farm_build.gd").read_text(encoding="utf-8")
+    assert 'forage().get("fishing", false)' in build

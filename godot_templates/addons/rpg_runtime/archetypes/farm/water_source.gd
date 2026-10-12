@@ -5,7 +5,8 @@ extends StaticBody2D
 ## ahead (the map recipe writes the bool custom data `water` into the cells this body covers).
 ## Filling costs no energy. Layers: world (1) + interactables (5).
 
-## What it is: `pond` or `well` (the plan's `water.kind`; the game does not read it).
+## What it is: `pond` or `well` (the plan's `water.kind`). A pond has fish and a well has none
+## (RpgFishing.water_kind, T17.10).
 @export var kind: String = "pond"
 
 ## True when the bag holds a watering can.

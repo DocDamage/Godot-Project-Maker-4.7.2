@@ -21,9 +21,11 @@ extends RefCounted
 ## Node2D at the yard's first cell with the metadata `kind`, `yard` (Rect2i, cells), `gate`
 ## (Vector2i), `stalls` (int) and `house_map` (the scene of the room)), `Markers/WaterFill`,
 ## `Markers/BinFront` and `Markers/HouseDoor`, and the weather's sign `WeatherSign` (T17.11); in a room, `Markers/Trough` and
-## `Markers/Stall1` ... `Markers/Stall<n>`.
+## `Markers/Stall1` ... `Markers/Stall<n>`. The places where things to forage lie (T17.10) are
+## the markers `Forage/Spot1` ... of the farm, at the cells `farm.forage.spots` of the plan
+## (forage_recipe.add_places).
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 
 const Paths := preload("../../lib/paths.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -39,6 +41,7 @@ const FarmBuild := preload("farm_build.gd")
 const FieldRecipe := preload("field_recipe.gd")
 const HomeRecipe := preload("home_recipe.gd")
 const HudRecipe := preload("hud_recipe.gd")
+const ForageRecipe := preload("forage_recipe.gd")
 
 const MAPS_DIR := "res://game/maps/"
 const MAP_ID := "farm"
@@ -281,6 +284,7 @@ func input_hash(ctx: BuildContext) -> String:
 		"bed": FarmBuild.bed_asset(ctx).get("id", ""),
 		"sign": HudRecipe.sign_asset(ctx).get("id", ""),
 		"field": FieldRecipe.RECIPE_VERSION,
+		"forage": ForageRecipe.spots(),
 	})
 
 func build(ctx: BuildContext) -> Array:
@@ -374,6 +378,7 @@ func _build_farm(ctx: BuildContext, farm: Dictionary, issues: Array) -> void:
 	_add_bin(ctx, farm, root, entities, markers, tile_px)
 	_add_sign(ctx, farm, root, entities, tile_px)
 	_add_things(farm, root, entities, tile_px, entries)
+	ForageRecipe.add_places(root, tile_px)
 
 	if not way_out.is_empty():
 		MapUtil.add_marker(spawns, root, FROM_VILLAGE, MapUtil.tile_center(cell_of(way_out.get("spawn")), tile_px), true, JsonUtil.to_str(way_out.get("facing", "down")))
