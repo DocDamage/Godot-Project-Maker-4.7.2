@@ -124,6 +124,77 @@ def name_facts(stem: str) -> NameFacts:
     )
 
 
+# One thing turned (T17.12): ``roadTile_001_0`` to ``_3``, ``watercraftPack_001_0`` to ``_7``,
+# ``cornDouble_N`` / ``_E`` / ``_S`` / ``_W``, ``taxi_NE``. The compass words are capitals, as
+# the packs write them: a small ``n`` after an action is a character's direction. A last ``U``
+# or ``D`` (``taxi_NEU``) is the same heading on a slope going up or down.
+COMPASS = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+_TURN = re.compile(
+    r"^(?P<base>.*[^_\- ])[_\- ]"
+    r"(?:(?P<number>[0-7])|(?P<word>NE|NW|SE|SW|N|E|S|W)(?P<slope>[UD])?)$"
+)
+TURN_SETS = (  # the turns a set must have, all of them, to be one thing turned
+    frozenset(range(4)),
+    frozenset(range(8)),
+)
+COMPASS_SETS = (frozenset({"N", "E", "S", "W"}), frozenset(COMPASS))
+# Sides in a name (T17.12): ``beachCornerES``, ``roadNS``, ``waterW``. Capitals glued to the
+# name, each side once; ``News`` and ``Blue`` end in small letters and are words.
+_JOINS = re.compile(r"^(?P<base>.*[a-z0-9])(?P<sides>[NESW]{1,4})$")
+SIDES = ("n", "e", "s", "w")
+
+
+@dataclass(frozen=True)
+class Turn:
+    """What the end of a file stem says about a turn: ``roadTile_001_2``, ``taxi_NEU``."""
+
+    base: str  # the stem without the turn
+    word: str  # the compass word (``NE``), or "" for a number
+    number: int  # the number, or the word's place going round clockwise from N (of eight)
+    slope: str = ""  # "up" or "down" for a heading on a slope
+
+
+def split_turn(stem: str) -> Turn | None:
+    """The turn a file stem ends in, or None. Whether the file is one of a set of turns the
+    stems beside it say (``turns_of``): ``item_3`` alone ends in a number too."""
+    m = _TURN.match(stem.strip())
+    if m is None:
+        return None
+    if m.group("number") is not None:
+        return Turn(m.group("base"), "", int(m.group("number")))
+    slope = {"U": "up", "D": "down"}.get(m.group("slope") or "", "")
+    return Turn(m.group("base"), m.group("word"), COMPASS.index(m.group("word")), slope)
+
+
+def turns_of(turns: list[Turn]) -> int:
+    """How many turns a set of stems with one base is: 4 or 8 when they are exactly the
+    numbers 0 to 3 or 0 to 7, or the four or the eight compass words (the headings on a slope
+    beside them do not count); else 0, and the stems are not one thing turned."""
+    flat = [t for t in turns if not t.slope]
+    if len({(t.word, t.number) for t in flat}) != len(flat):
+        return 0
+    words = {t.word for t in flat}
+    if "" not in words:
+        return len(words) if frozenset(words) in COMPASS_SETS else 0
+    if words != {""} or any(t.slope for t in turns):
+        return 0
+    numbers = frozenset(t.number for t in flat)
+    return len(numbers) if numbers in TURN_SETS else 0
+
+
+def split_joins(stem: str) -> tuple[str, list[str]] | None:
+    """``("beachCorner", ["e", "s"])`` for ``beachCornerES``: the name and the sides of its
+    diamond a tile joins on, in the order n, e, s, w. None for a stem that ends in no such
+    capitals or names a side twice. They are sides only when several files share the name."""
+    m = _JOINS.match(stem.strip())
+    if m is None:
+        return None
+    sides = m.group("sides").lower()
+    if len(set(sides)) != len(sides):
+        return None
+    return m.group("base"), [side for side in SIDES if side in sides]
+
+
 @dataclass(frozen=True)
 class NormalizedName:
     action: str

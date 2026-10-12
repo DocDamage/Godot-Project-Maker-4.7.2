@@ -62,7 +62,12 @@ def rows(archetype: str) -> list[RoleRow]:
 
 
 def _usable(asset: catalog_mod.Asset) -> bool:
-    return asset.status not in _INACTIVE and asset.kind == "image"
+    # an isometric tile is no choice for a role until a project can be isometric (T17.13)
+    return (
+        asset.status not in _INACTIVE
+        and asset.kind == "image"
+        and not catalog_mod.is_iso_tile(asset)
+    )
 
 
 def assets_with_role(catalog: catalog_mod.Catalog, role: str) -> list[catalog_mod.Asset]:

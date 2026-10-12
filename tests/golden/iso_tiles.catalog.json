@@ -1,0 +1,5055 @@
+{
+  "assets": [
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "frame": [
+          60,
+          64
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 10,
+        "role": "BUILDING",
+        "size": [
+          60,
+          64
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.house_01_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/house_01_0.png",
+      "sha256": "eb800326c80b8840650b4dacb33267b4034425904af0801b63f560f5def21674",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "frame": [
+          60,
+          64
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 10,
+        "role": "BUILDING",
+        "size": [
+          60,
+          64
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "duplicate_of:iso_tiles.png.house_01_0",
+          "turn:1",
+          "variant_of:iso_tiles.png.house_01_0"
+        ],
+        "turn": 1,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.house_01_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/house_01_1.png",
+      "sha256": "eb800326c80b8840650b4dacb33267b4034425904af0801b63f560f5def21674",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "frame": [
+          60,
+          64
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 10,
+        "role": "BUILDING",
+        "size": [
+          60,
+          64
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "duplicate_of:iso_tiles.png.house_01_0",
+          "turn:2",
+          "variant_of:iso_tiles.png.house_01_0"
+        ],
+        "turn": 2,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.house_01_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/house_01_2.png",
+      "sha256": "eb800326c80b8840650b4dacb33267b4034425904af0801b63f560f5def21674",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "frame": [
+          60,
+          64
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 10,
+        "role": "BUILDING",
+        "size": [
+          60,
+          64
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "duplicate_of:iso_tiles.png.house_01_0",
+          "turn:3",
+          "variant_of:iso_tiles.png.house_01_0"
+        ],
+        "turn": 3,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.house_01_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/house_01_3.png",
+      "sha256": "eb800326c80b8840650b4dacb33267b4034425904af0801b63f560f5def21674",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_001_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_001_0.png",
+      "sha256": "436d8bd359a55feadd6186a0597555d8c9af382d480a683e4bb9092702341377",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_001_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_001_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_001_1.png",
+      "sha256": "fa1b64bf0904b72085613a537a0791a63f495c82cdad630cd93eed8bc8c5cd79",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_001_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_001_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_001_2.png",
+      "sha256": "20e7974d54354a4d4326dcf570ccdd487a6bfaed8f564118922b7f3c39e7f2b7",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_001_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_001_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_001_3.png",
+      "sha256": "dd179ddde550298c10404dcbdc8dc829763f39223c029c5bd31c54e3016b05fb",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_002_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_002_0.png",
+      "sha256": "ace57b216e90e923bcd039490d455b5ce83aaae46429516831cdc1547752655f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_002_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_002_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_002_1.png",
+      "sha256": "4039ad2a2fa2e68b34f053e475b047a6bee2acc881de47f87b2f077e88c4de2c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_002_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_002_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_002_2.png",
+      "sha256": "8d57e51803dfcd81140cc9129bb7e9ef29b0b80affb390e15f7fb096569a55b4",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_002_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_002_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_002_3.png",
+      "sha256": "e9707144fffc7af996835efd0cdfd4bb72da2774f65c58e7bd4cfa5cfd9259c0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_003_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_003_0.png",
+      "sha256": "33321710bdc3fb153a9dc6c95fac2b4d080696c52450ea460165f96c9ada603e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_003_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_003_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_003_1.png",
+      "sha256": "9116e9c22d8daa03514a4761aa423b4db78abc8e07118227fefe278a8348591f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_003_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_003_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_003_2.png",
+      "sha256": "2d1d2dbd473ce89c14e780a4b05d233a6890f430c2a5edc59c1b5f69f4bd18db",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_003_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_003_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_003_3.png",
+      "sha256": "44413f9753ececc70500eea74b73af9f74d8858ddecb8ef389c3da1d305aa37e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_004_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_004_0.png",
+      "sha256": "2a2e77ac4525dc1f63c4766793354ed6816caa24569a60702f7660c6fe720a67",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_004_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_004_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_004_1.png",
+      "sha256": "89823cea7652d49744b37525881f6fb6b46d423d0681c91cd456145aa3e8b935",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_004_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_004_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_004_2.png",
+      "sha256": "91ca0381033c89efede3cec02c7b2dda7b7aa9ee6bf865da3a94193e38564eda",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_004_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_004_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_004_3.png",
+      "sha256": "77440f862d5d787a9f8554571a120f1715a3b81249a659f6dc90954a97543ead",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_005_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_005_0.png",
+      "sha256": "325aa900b5160930d4739fc1df7fd854d9a6637fe312a19db27d092e85c2d066",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_005_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_005_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_005_1.png",
+      "sha256": "f261c5179b99c69fb01412dd769d0eaf471637744dfba297e9f3b18ad7dfa1b5",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_005_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_005_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_005_2.png",
+      "sha256": "a0875bfdc0c609a51fcbd22ee534d87e4877fa0fb335c032e517ef77a1a76508",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_005_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_005_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_005_3.png",
+      "sha256": "d31ad84231188f046ed936465db00ba85d16b6bc52458d47f6ac623a2f33b65d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_006_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_006_0.png",
+      "sha256": "56f999d60872659c9e03ede27d92b833051aca23703aa8e6494580a398d4c379",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_006_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_006_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_006_1.png",
+      "sha256": "7fb7b03dd929f9d02269a63283c708579c1716788cca69461e2b253c94fb785c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_006_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_006_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_006_2.png",
+      "sha256": "4d9d5b03d6652f75fe44a318aa384d1c8c306659ea64c6ec88576692db58213f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_006_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_006_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_006_3.png",
+      "sha256": "e7c9f295bb3e2bfb6052d8f5fe410b0f6af735676ede2ca8255b29eb629bb878",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_007_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_007_0.png",
+      "sha256": "542fd72a939b42429b9d05bb7c9a13ec6ab78a4026f0ea8196439c3bc4a4c5d0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_007_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_007_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_007_1.png",
+      "sha256": "8c2bfceff631aae646b767744cb3ffcb94c2e1f0890c37cfb03925bcc6f3a73d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_007_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_007_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_007_2.png",
+      "sha256": "9ed9a04a2f23799a3a4ba3fae3ecfba79383eef304104ee05041b89cd1545ce0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_007_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_007_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_007_3.png",
+      "sha256": "569c466ac6d996585a01c7c05f8397cb7474832e7e420cf9ea925f0308294bf9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_008_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_008_0.png",
+      "sha256": "3eb320b41c0492afad64261ef73d26984daa8e979e8952b465e8976739af8147",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_008_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_008_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_008_1.png",
+      "sha256": "da6ba041748081be31d750757e74540a3164d5db62cc4852a3e7b68781b05c97",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_008_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_008_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_008_2.png",
+      "sha256": "2f9b66429d8a08eece353d50f1628e10d1395a6a3f9b136eddc8dea131bf246b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_008_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_008_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_008_3.png",
+      "sha256": "ed567e4ff3869f69b0d57d795e67bf8cc808de1b9ab64984f43d12c6ac04fffd",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_009_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_009_0.png",
+      "sha256": "d9e211afe3c6f6b931b28599952d275bf5716e046a22f8697554c60045d2c0f9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_009_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_009_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_009_1.png",
+      "sha256": "2962baf77e81ed231324e7a4c96f9a2b8ae839effee484b4d6db0333f1e47ebf",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_009_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_009_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_009_2.png",
+      "sha256": "724438933027f4f78bcbdaa82cb3616bd0d70d9b485bd0a27d81758368a9da3b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_009_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_009_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_009_3.png",
+      "sha256": "fd9d4112b991a4792e7386051df988fe17014a73ad97b52a5da657e222b4be00",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_010_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_010_0.png",
+      "sha256": "16c30e04c51c2dee04ab4949b5732f0e439ea3a0438a827a9094dac730cd72ca",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_010_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_010_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_010_1.png",
+      "sha256": "0559c6ababdb877897034535d73b6e3be72c944afc42e2e0c11b9a5429fa26d9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_010_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_010_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_010_2.png",
+      "sha256": "6ce8afa88da3e4f10fe00098fcb107051d599c4a2855655281442e2a34b10552",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_010_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_010_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_010_3.png",
+      "sha256": "cb8b9eeffd87288480ee05a46978ead30d601eea50283e2719dcf7b6245acaed",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_011_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_011_0.png",
+      "sha256": "39fe74cdc2a4df86a705d5c478e8459bd2edd8a8f7d666298b23bd883631d866",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_011_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_011_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_011_1.png",
+      "sha256": "6ff33ecde3f433246176fd2babfa1d219359a55557992a03f0eaa814d2f275d1",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_011_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_011_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_011_2.png",
+      "sha256": "6c498852378d2f892db4d9c5d7a44b86499d67c364f6377944c5d23669524243",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_011_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_011_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_011_3.png",
+      "sha256": "5d9bb9ad8ceb6ea5656080a28f77e6f4503bc24335a360e4d449a2d083293934",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_012_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_012_0.png",
+      "sha256": "85fa6628c3d92700bacc9d9b9cb34c739004a360f3eb3bc87a74a0593bc47ec0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_012_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_012_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_012_1.png",
+      "sha256": "ac48ebd2fec16a632fa31244b43f3ed51f5c064a3a65e98508da1d47e723ea84",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_012_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_012_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_012_2.png",
+      "sha256": "c3adab33466509370fa899f14f8bdb5bd0c86b3c72e75cc8eb71fdb46f0e7d66",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_012_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_012_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_012_3.png",
+      "sha256": "8494a595640ce20cff389578ce68acdac56d86b972eea1c48edaeee94cc6829f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_013_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_013_0.png",
+      "sha256": "89176d10ffe31c0aa070bc00833b0db1eab7b1db3f4e131a499f095dcc7c9adc",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_013_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_013_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_013_1.png",
+      "sha256": "0ee0b391afeb04589a565ca90880a3cbb88a7e38957265ba85ea979dbc8f9b54",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_013_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_013_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_013_2.png",
+      "sha256": "01eec9362ced79a5a72c4f2d972647d0e82734f831e2d5b90e24bbc962afb61f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_013_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_013_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_013_3.png",
+      "sha256": "d4e17f60a25a57609494ebb5fc58fa77b6e54ed126fb9cf8320284ff741af570",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_014_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_014_0.png",
+      "sha256": "7097a82cb792a5c46fecd1d9c393fb35b10a304d2766ac26b7df82186b003a1d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_014_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_014_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_014_1.png",
+      "sha256": "3c8a83d1c2f3165e785d0d7c373b91f328956d4a336b3eaeb4c0d3747d64cbac",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_014_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_014_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_014_2.png",
+      "sha256": "840edac605e01ddfbb0fe702280a410076dc160692b4e499fc7d1b650ef44c0e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_014_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_014_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_014_3.png",
+      "sha256": "557b8a4f2e66b6f696f601a72f2341b14f88fb03ad633aca016cd71b9771126c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_015_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_015_0.png",
+      "sha256": "434944ca06989584b169fefc81526a402cb456d7f98c06808ba01dcfadb27b8b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_015_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_015_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_015_1.png",
+      "sha256": "927ba3833d06d405362761c97345343f496317f3f1c8e4bb38ff78688cca6c8e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_015_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_015_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_015_2.png",
+      "sha256": "6516e29d9b76b10586a938507f85a2a6711c64a1accc4f6a7311e8087c5930cb",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_015_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_015_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_015_3.png",
+      "sha256": "4c434ae2a0b18f5cda3314ebdaf762ed6d49b481200ca3c444eaa17cc7175bbb",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_016_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_016_0.png",
+      "sha256": "e86b23e50e38202742d4870c0f75753e203ceef47b5d506d0a6d36b14f4c1ec2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_016_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_016_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_016_1.png",
+      "sha256": "f299846247e8100ebabee2fcf3cf1435cf6d393df81675f32e39e3ce66cf71c2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_016_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_016_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_016_2.png",
+      "sha256": "2c00e6f345213ddd9c4182f158a00bcb87cb9b7a316991832efd84558386bd89",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_016_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_016_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_016_3.png",
+      "sha256": "1217610c8d3abf92eb0bce998bb09a409fda8abe04c4d24191ea112745a35a97",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_017_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_017_0.png",
+      "sha256": "19effcaf8713be306e9371f02dd02fdbc380de3220aae807bb610f44f29a9564",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_017_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_017_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_017_1.png",
+      "sha256": "a7460daaebed12e38c0a0b3b002b0ff49418df3052ee7b9025c0926e4f99c0d5",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_017_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_017_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_017_2.png",
+      "sha256": "be2c94d823805039fa6ebaf4f7694423925ddcee36f1a7d0e4710906cd97cc65",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_017_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_017_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_017_3.png",
+      "sha256": "cb05e9ea62dc0cff95ce43a9b0725b8f99d8faae051b4db93a6d02450d5ec6ba",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_018_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_018_0.png",
+      "sha256": "9b6e354b1af481caa887e8103c09e8a1499099d821d05c6d082df1a35e22dbf0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_018_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_018_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_018_1.png",
+      "sha256": "73019570112770fcfc1ea8bb9a75635ef16c231965adea0ffecfc8b9cd92e84d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_018_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_018_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_018_2.png",
+      "sha256": "1402e36be93de2f605e6ea7d996ff71174217a0a513d6b1937d2ecce6d74af63",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_018_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_018_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_018_3.png",
+      "sha256": "415c48e198b8b09f7e67f24ad066d80022257be3c960cbbfb00e91bace5fa27a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_019_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_019_0.png",
+      "sha256": "c4643b5507517021e736eec2d68da4d9d1b09630424d00d3432e4fc7bccd8077",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_019_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_019_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_019_1.png",
+      "sha256": "45c379a9b2fad5950a66eab4fe7e42cda0a7f226a4e3d5674aee8925dbd30e19",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_019_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_019_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_019_2.png",
+      "sha256": "b776d02b7080e85c4d96a731fa493798eb698da5d546f42ca2710182a3c31d71",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_019_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_019_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_019_3.png",
+      "sha256": "5b97ac07e43099cfd909a64c0899b292c5ceb674b6540d726df03756bd15caa5",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_020_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_020_0.png",
+      "sha256": "d47f1b47daab3410e9d8212581f081dcbd1821e07458bffa6731d0c146fc1e75",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_020_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_020_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_020_1.png",
+      "sha256": "a98f67c910837a1085afb53ae88e39a2326af7af0703c081ad1e6e610d948922",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_020_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_020_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_020_2.png",
+      "sha256": "7f98e905d4f4b61e47fd9aea99553028c70fd4a93b57fead309aa210b2156597",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_020_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_020_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_020_3.png",
+      "sha256": "3c6f3b44798c4acc6b781316cf361a2cdc62a07742e07ed77d9ddf9e1cb78bb3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_021_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_021_0.png",
+      "sha256": "b73895b23728ec5a76c489fa9a79291d177f04e9b169464924a3f1d693561d7a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_021_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_021_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_021_1.png",
+      "sha256": "c69e7bef5ba076e6d54f9da8715c58e134822298ed7e25dd496b9e69186adeb4",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_021_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_021_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_021_2.png",
+      "sha256": "00bdd7671e6596226506e6b4bc0308e99bc2f24cbecd71be1f5ba54fe200fd2c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_021_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_021_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_021_3.png",
+      "sha256": "6d1152edc36e54be137ff466fbdbb30c13274045b63d0896c598232b843462f2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_022_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_022_0.png",
+      "sha256": "39af44640c57bb9c666c165215c4dc87df696ea8817b41865f29a4e3571ecfdd",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_022_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_022_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_022_1.png",
+      "sha256": "59487c9e92a61891f533f807692db2e6da31e260a6db0e0ef24c4e5dab8d73bb",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_022_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_022_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_022_2.png",
+      "sha256": "24549d204ef7b086a003debad7e85ab5395807bb47141674669fd07ae623134d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_022_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_022_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_022_3.png",
+      "sha256": "ccba990230b6f02fbbdaede2fc52ff9a92985768cbd6a472813cbaed75210701",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_023_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_023_0.png",
+      "sha256": "91ab07d667f2687487cd788ee3a6919f9088ffd39f717cb7318d10328121dbe8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_023_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_023_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_023_1.png",
+      "sha256": "8a07be7d911c227b5a99e56f9e1d596893f06917c95b7e9cbf0acd5394433983",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_023_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_023_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_023_2.png",
+      "sha256": "ec1d108ded8b97800d54c0b475c5aac8dd1d382fee6eab42d73c59dbbf16b3d7",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_023_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_023_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_023_3.png",
+      "sha256": "dd7a92087b2a169db4e0a3343804486ee96921c2f65fe6b43aebf68fbead5cd9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_024_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_024_0.png",
+      "sha256": "d7063db36ecf1c0bd24c7c506e65cc93556fa69b4bb149d45ed3f008f7ac1412",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:iso_tiles.png.isotile_024_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_024_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_024_1.png",
+      "sha256": "3032bffb28ee6f645372a24aa313002c62c97515bfde748fd2c3da89b4a2f71e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:iso_tiles.png.isotile_024_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_024_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_024_2.png",
+      "sha256": "5509cd8dabd7f5c9bb69afc329edd399bd985649771320c8d92719ec6e773d7f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 12,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          60,
+          64
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:iso_tiles.png.isotile_024_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.isotile_024_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/isoTile_024_3.png",
+      "sha256": "e383fcda0daff93bde778e1122916102e0f0b85b915ee899884f81886259e2de",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "frame": [
+          60,
+          64
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 22,
+        "role": "DECORATION",
+        "size": [
+          60,
+          64
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.tree_01_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/tree_01_0.png",
+      "sha256": "d569a39710836406dbf5d576e75f2d47fd8be525b56d6d426052c7bbf0609725",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "frame": [
+          60,
+          64
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 22,
+        "role": "DECORATION",
+        "size": [
+          60,
+          64
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "duplicate_of:iso_tiles.png.tree_01_0",
+          "turn:1",
+          "variant_of:iso_tiles.png.tree_01_0"
+        ],
+        "turn": 1,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.tree_01_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/tree_01_1.png",
+      "sha256": "d569a39710836406dbf5d576e75f2d47fd8be525b56d6d426052c7bbf0609725",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "frame": [
+          60,
+          64
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 22,
+        "role": "DECORATION",
+        "size": [
+          60,
+          64
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "duplicate_of:iso_tiles.png.tree_01_0",
+          "turn:2",
+          "variant_of:iso_tiles.png.tree_01_0"
+        ],
+        "turn": 2,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.tree_01_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/tree_01_2.png",
+      "sha256": "d569a39710836406dbf5d576e75f2d47fd8be525b56d6d426052c7bbf0609725",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          60,
+          64
+        ],
+        "footprint": [
+          60,
+          34
+        ],
+        "frame": [
+          60,
+          64
+        ],
+        "origin": [
+          30,
+          39
+        ],
+        "projection": "isometric",
+        "rise": 22,
+        "role": "DECORATION",
+        "size": [
+          60,
+          64
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "tags": [
+          "duplicate_of:iso_tiles.png.tree_01_0",
+          "turn:3",
+          "variant_of:iso_tiles.png.tree_01_0"
+        ],
+        "turn": 3,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "iso_tiles.png.tree_01_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/PNG/tree_01_3.png",
+      "sha256": "d569a39710836406dbf5d576e75f2d47fd8be525b56d6d426052c7bbf0609725",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "frame": [
+          120,
+          68
+        ],
+        "origin": [
+          60,
+          67
+        ],
+        "role": "NONE",
+        "size": [
+          120,
+          68
+        ],
+        "tags": [
+          "unused_because:guide_picture"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "iso_tiles.preview",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/Preview.png",
+      "sha256": "bef08a865617f6827282eb72ed1bf341765118cc7cd9d76f136bff5e28c7ef05",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          780,
+          512
+        ],
+        "origin": [
+          390,
+          511
+        ],
+        "role": "NONE",
+        "size": [
+          780,
+          512
+        ],
+        "tags": [
+          "unused_because:atlas_copy"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "kenney_atlas",
+      "id": "iso_tiles.spritesheet.isotiles_sheet",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_tiles",
+      "path": "assets/packs/iso_tiles/Spritesheet/isoTiles_sheet.png",
+      "sha256": "5b53ed4f746412dae9fd2df8233dc33e1f48f388ca6007038c2c5bb7d57524ba",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "kenney_atlas",
+        "isometric",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/iso_tiles/License.txt"
+      ],
+      "pack_id": "iso_tiles",
+      "profile_id": null,
+      "root": "assets/packs/iso_tiles",
+      "source_sha256": "b4d85a9631e3539efbe911469a0609f991c9cb8168479fe5872e506db1fab4f0",
+      "warnings": [
+        "isometric:60x34:tile_information",
+        "view:isometric"
+      ]
+    }
+  ],
+  "tilesets": []
+}

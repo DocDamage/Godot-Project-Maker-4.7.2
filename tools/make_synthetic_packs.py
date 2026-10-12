@@ -1990,6 +1990,251 @@ def make_ranch(out: Path) -> None:
     _expected(out, "ranch", expected)
 
 
+# ------------------------------------------------------------------------------------------
+# Isometric packs (T17.12): one picture a tile, drawn in the shapes and the names of the packs
+# that were listed (nothing of them is copied).
+
+ISO_GRASS: Color = (104, 170, 84, 255)
+ISO_SIDE_LEFT: Color = (122, 86, 58, 255)
+ISO_SIDE_RIGHT: Color = (150, 108, 72, 255)
+ISO_MARK: Color = (245, 240, 210, 255)
+
+
+def _diamond_columns(w: int, h: int) -> list[tuple[int, int]]:
+    """The first and the last row of every column of a diamond ``w`` wide and ``h`` high whose
+    top corner is at row 0: its edges fall ``h / w`` rows a column, exactly."""
+    out = []
+    for x in range(w):
+        top = (abs(2 * x + 1 - w) * h) // (2 * w)
+        out.append((top, h - 1 - top))
+    return out
+
+
+def _iso_block(
+    canvas: tuple[int, int],
+    foot: tuple[int, int],
+    side: int,
+    face: Color,
+    *,
+    bottom: int = 0,
+    turn: int | None = None,
+    left: Color = ISO_SIDE_LEFT,
+    right: Color = ISO_SIDE_RIGHT,
+) -> Image.Image:
+    """One isometric tile in its picture: a diamond ``foot`` with ``side`` rows of block under
+    it, in the middle of the canvas, its lowest point ``bottom`` rows above the canvas's
+    bottom. ``turn`` paints a mark on one of the face's four corners, so that four turns of a
+    tile are four pictures of one outline."""
+    w, h = foot
+    img = Image.new("RGBA", canvas, (0, 0, 0, 0))
+    px = img.load()
+    x0 = (canvas[0] - w) // 2
+    y0 = canvas[1] - bottom - side - h
+    for x, (top, low) in enumerate(_diamond_columns(w, h)):
+        for y in range(top, low + 1):
+            px[x0 + x, y0 + y] = face
+        for y in range(low + 1, low + 1 + side):
+            px[x0 + x, y0 + y] = left if x < w // 2 else right
+    if turn is not None:
+        cx, cy = x0 + w // 2, y0 + h // 2
+        dx, dy = ((0, -1), (1, 0), (0, 1), (-1, 0))[turn % 4]
+        mx, my = cx + dx * (w // 4), cy + dy * (h // 4)
+        for y in range(my - 1, my + 1):
+            for x in range(mx - 2, mx + 2):
+                px[x, y] = ISO_MARK
+    return img
+
+
+def _iso_tree(canvas: tuple[int, int], foot: tuple[int, int], side: int) -> Image.Image:
+    """A tree standing on the middle of a diamond: a trunk narrower than the diamond."""
+    img = Image.new("RGBA", canvas, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    cx = canvas[0] // 2
+    foot_y = canvas[1] - side - foot[1] // 2
+    draw.rectangle([cx - 3, foot_y - 16, cx + 2, foot_y], fill=(110, 74, 46, 255))
+    draw.ellipse([cx - 14, foot_y - 40, cx + 13, foot_y - 12], fill=(52, 128, 66, 255))
+    return img
+
+
+def _iso_house(canvas: tuple[int, int], foot: tuple[int, int], side: int) -> Image.Image:
+    """A small house on the middle of a diamond: a block smaller than the diamond with a roof."""
+    small = (foot[0] * 2 // 3, foot[1] * 2 // 3)
+    lift = side + (foot[1] - small[1]) // 2
+    return _iso_block(
+        canvas, small, 16, (176, 70, 58, 255), bottom=lift,
+        left=(214, 196, 160, 255), right=(236, 220, 186, 255),
+    )  # fmt: skip
+
+
+def _texture_atlas(image: str, entries: list[tuple[str, int, int, int, int]]) -> str:
+    lines = [f'<TextureAtlas imagePath="{image}">']
+    for name, x, y, w, h in entries:
+        lines.append(f'\t<SubTexture name="{name}" x="{x}" y="{y}" width="{w}" height="{h}"/>')
+    return "\n".join([*lines, "</TextureAtlas>", ""])
+
+
+ISO_TILES_CANVAS = (60, 64)
+ISO_TILES_FOOT = (60, 34)  # nearly the 30 degree diamond: not twice as wide as high
+ISO_TILES_SIDE = 8
+ISO_TILES_COUNT = 24
+ISO_TILES_RAISED = 6  # the last so many tiles are blocks that stand higher
+
+
+def make_iso_tiles(out: Path) -> None:
+    """In the manner of the rendered isometric packs: 24 tiles turned four ways in one canvas,
+    a ``Tile information.txt`` whose *Tile size* is the diamond with the block's side, a tree
+    and a house as objects, a sheet with an atlas of the same pictures, and a preview."""
+    pack = out / "iso_tiles"
+    canvas, foot, side = ISO_TILES_CANVAS, ISO_TILES_FOOT, ISO_TILES_SIDE
+    _write_text(pack / "License.txt", "CC0-1.0 synthetic test pack\n")
+    _write_text(
+        pack / "Tile information.txt",
+        f"\n\tImage size : {canvas[0]} x {canvas[1]} px\n"
+        f"\tTile size  : {foot[0]} x {foot[1] + side} px\n",
+    )
+    pictures: list[tuple[str, Image.Image]] = []
+    expected: dict[str, dict] = {}
+    for i in range(1, ISO_TILES_COUNT + 1):
+        lift = 12 if i > ISO_TILES_COUNT - ISO_TILES_RAISED else 0
+        for turn in range(4):
+            name = f"isoTile_{i:03d}_{turn}.png"
+            pictures.append((name, _iso_block(canvas, foot, side + lift, pal(i), turn=turn)))
+            expected[f"PNG/{name}"] = {"usage": "iso_tile", "role": "GROUND"}
+    for turn in range(4):
+        pictures.append((f"tree_01_{turn}.png", _iso_tree(canvas, foot, side)))
+        pictures.append((f"house_01_{turn}.png", _iso_house(canvas, foot, side)))
+        expected[f"PNG/tree_01_{turn}.png"] = {"usage": "sprite", "role": "DECORATION", "frame": list(canvas)}  # fmt: skip
+        expected[f"PNG/house_01_{turn}.png"] = {"usage": "sprite", "role": "BUILDING", "frame": list(canvas)}  # fmt: skip
+    for name, img in pictures:
+        _save_png(img, pack / "PNG" / name)
+    # the same pictures packed into one sheet, with the list of its rectangles (whose
+    # imagePath is the name the sheet had when it was packed, as in the real packs)
+    cols = 13
+    rows = -(-len(pictures) // cols)
+    sheet = Image.new("RGBA", (cols * canvas[0], rows * canvas[1]), (0, 0, 0, 0))
+    entries = []
+    for index, (name, img) in enumerate(pictures):
+        x, y = (index % cols) * canvas[0], (index // cols) * canvas[1]
+        sheet.paste(img, (x, y))
+        entries.append((name, x, y, canvas[0], canvas[1]))
+    _save_png(sheet, pack / "Spritesheet" / "isoTiles_sheet.png")
+    _write_text(pack / "Spritesheet" / "isoTiles_sheet.xml", _texture_atlas("sheet.png", entries))
+    preview = Image.new("RGBA", (120, 68), (58, 58, 58, 255))
+    for i in range(3):
+        tile = _iso_block(canvas, foot, side, pal(i + 1))
+        preview.alpha_composite(tile, (i * 30, 2))
+    _save_png(preview, pack / "Preview.png")
+    expected["Spritesheet/isoTiles_sheet.png"] = {"usage": "sprite", "role": "NONE"}
+    expected["Preview.png"] = {"role": "NONE"}
+    _expected(out, "iso_tiles", expected)
+
+
+ISO_MINI_CANVAS = (64, 96)
+ISO_MINI_FOOT = (64, 32)
+ISO_MINI_SIDE = 6
+COMPASS_FOUR = ("N", "E", "S", "W")
+COMPASS_EIGHT = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+
+
+def _iso_car(heading: int, body: Color, slope: int = 0) -> Image.Image:
+    """A small car seen at an angle, pointing one of eight ways (0 is up, clockwise): a
+    picture as large as the car, so the eight are of different sizes."""
+    import math
+
+    angle = heading * math.pi / 4
+    dx, dy = math.sin(angle), -math.cos(angle) * 0.6 - slope * 0.2
+    length, width = 9.0, 5.0
+    nx, ny = dy, -dx * 0.6
+    corners = [
+        (dx * length + nx * width, dy * length + ny * width),
+        (dx * length - nx * width, dy * length - ny * width),
+        (-dx * length - nx * width, -dy * length - ny * width),
+        (-dx * length + nx * width, -dy * length + ny * width),
+    ]
+    xs, ys = [c[0] for c in corners], [c[1] for c in corners]
+    w = int(math.ceil(max(xs) - min(xs))) + 3
+    h = int(math.ceil(max(ys) - min(ys))) + 6
+    ox, oy = -min(xs) + 1, -min(ys) + 1
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    shifted = [(int(round(x + ox)), int(round(y + oy))) for x, y in corners]
+    draw.polygon([(x, y + 3) for x, y in shifted], fill=(40, 40, 46, 255))
+    draw.polygon(shifted, fill=body)
+    fx, fy = int(round(dx * 5 + ox)), int(round(dy * 5 + oy))
+    draw.rectangle([fx - 1, fy - 1, fx + 1, fy + 1], fill=(170, 214, 240, 255))
+    return img
+
+
+def make_iso_miniature(out: Path) -> None:
+    """In the manner of the miniature packs: the pack is a zip in its folder beside previews;
+    inside, the same names in a folder ``Isometric`` and a folder ``Angle`` (two views of one
+    model), every name with ``_N``, ``_E``, ``_S``, ``_W``; a corn plant; and a car in eight
+    headings by letters, with two of them on a slope."""
+    canvas, foot, side = ISO_MINI_CANVAS, ISO_MINI_FOOT, ISO_MINI_SIDE
+    entries: list[tuple[str, bytes]] = []
+    expected: dict[str, dict] = {}
+
+    def corn(view_foot: tuple[int, int]) -> Image.Image:
+        img = Image.new("RGBA", canvas, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        cx, foot_y = canvas[0] // 2, canvas[1] - side - view_foot[1] // 2
+        for dx in (-5, 4):
+            draw.rectangle([cx + dx, foot_y - 26, cx + dx + 1, foot_y], fill=(96, 150, 62, 255))
+            draw.rectangle([cx + dx - 1, foot_y - 18, cx + dx + 2, foot_y - 11], fill=(232, 200, 72, 255))  # fmt: skip
+        return img
+
+    def fence(view_foot: tuple[int, int], turn: int) -> Image.Image:
+        img = Image.new("RGBA", canvas, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        cx, foot_y = canvas[0] // 2, canvas[1] - side - view_foot[1] // 2
+        lean = (view_foot[1] // 4) * (1 if turn % 2 else -1)
+        draw.line([(cx - 12, foot_y - 10 - lean), (cx + 12, foot_y - 10 + lean)], fill=WOOD, width=2)  # fmt: skip
+        for dx in (-12, 0, 12):
+            y = foot_y + (lean * dx) // 12
+            draw.rectangle([cx + dx - 1, y - 14, cx + dx, y], fill=WOOD_DARK)
+        return img
+
+    views = (("Isometric", foot), ("Angle", (foot[0], foot[1] + 12)))
+    for folder, view_foot in views:
+        for turn, letter in enumerate(COMPASS_FOUR):
+            things = {
+                "floorWood": _iso_block(canvas, view_foot, side, (176, 132, 84, 255), turn=turn),
+                "floorStone": _iso_block(canvas, view_foot, side, (150, 150, 158, 255), turn=turn),
+                "dirtFarmland": _iso_block(canvas, view_foot, side, (128, 92, 60, 255), turn=turn),
+                "blockStone": _iso_block(
+                    canvas, view_foot, side + 20, (138, 138, 150, 255), turn=turn
+                ),  # fmt: skip
+                "cornDouble": corn(view_foot),
+                "fenceWood": fence(view_foot, turn),
+            }
+            for name, img in things.items():
+                entries.append((f"{folder}/{name}_{letter}.png", _png_bytes(img)))
+    for heading, letter in enumerate(COMPASS_EIGHT):
+        entries.append((f"Cars/car_{letter}.png", _png_bytes(_iso_car(heading, (214, 64, 60, 255)))))  # fmt: skip
+    entries.append(("Cars/car_NEU.png", _png_bytes(_iso_car(1, (214, 64, 60, 255), slope=1))))
+    entries.append(("Cars/car_NED.png", _png_bytes(_iso_car(1, (214, 64, 60, 255), slope=-1))))
+    picture = Image.new("RGBA", (96, 54), (58, 58, 58, 255))
+    picture.alpha_composite(_iso_block((64, 44), foot, side, (176, 132, 84, 255)), (16, 6))
+    for name in ("Preview.png", "Information.png"):
+        entries.append((name, _png_bytes(picture)))
+    entries.append(("License.txt", b"CC0-1.0 synthetic test pack\n"))
+    entries.append(("Instructions.url", b"[InternetShortcut]\nURL=https://example.invalid/\n"))
+    entries.sort(key=lambda e: e[0])
+    pack = out / "iso_miniature"
+    _write_zip(pack / "Isometric Miniature Sample (1.0).zip", entries)
+    _save_png(picture, pack / "Preview.png")
+    _save_png(picture, pack / "Sample.png")
+    for letter in COMPASS_FOUR:
+        expected[f"Isometric/floorWood_{letter}.png"] = {"usage": "iso_tile", "role": "GROUND"}
+        expected[f"Isometric/blockStone_{letter}.png"] = {"usage": "iso_tile"}
+        expected[f"Isometric/cornDouble_{letter}.png"] = {"usage": "sprite", "frame": list(canvas)}
+        expected[f"Isometric/fenceWood_{letter}.png"] = {"usage": "sprite", "role": "WALL"}
+        expected[f"Angle/floorWood_{letter}.png"] = {"usage": "sprite", "role": "NONE"}
+    expected["Cars/car_NEU.png"] = {"usage": "sprite", "role": "NONE"}
+    expected["Preview.png"] = {"role": "NONE"}
+    _expected(out, "iso_miniature", expected)
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -2015,6 +2260,8 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "gunner": make_gunner,
     "racer": make_racer,
     "ranch": make_ranch,
+    "iso_tiles": make_iso_tiles,
+    "iso_miniature": make_iso_miniature,
     "audio_basic": lambda out: make_audio_basic(out),
 }
 

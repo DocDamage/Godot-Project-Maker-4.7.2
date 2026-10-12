@@ -553,7 +553,41 @@ def _is_top_sheet(animations: Any) -> bool:
     )
 
 
+# An isometric pack (T17.12). *Axonometric* is another angle: such a pack is read as pictures.
+ISOMETRIC_WORDS = frozenset({"isometric", "iso"})
+NOT_ISOMETRIC_WORDS = frozenset({"axonometric"})
+VIEW_ISOMETRIC = "isometric"
+ISOMETRIC_MARK = "isometric:"  # a pack warning: ``isometric:180x104:measured``
+
+
+def name_words(text: str) -> list[str]:
+    """The words of a pack's or a folder's name, small letters, as ``tokens`` splits them."""
+    return _all_words(text)
+
+
+def isometric_view(inventory: Any, sheets: Any = ()) -> bool:
+    """True for a pack of isometric tiles (T17.12): one of ``sheets`` (detected facets) was
+    read as isometric. Without sheets (a listing of names, before anything was read) the
+    pack's name and its folders say it: ``isometric`` or ``iso``, and not ``axonometric``."""
+    if sheets:
+        return any(isinstance(f, dict) and f.get("projection") == VIEW_ISOMETRIC for f in sheets)
+    words = set(_all_words(str(getattr(inventory, "pack_id", "") or "")))
+    for f in getattr(inventory, "files", ()):
+        for folder in _path_parts(f.path)[0]:
+            words.update(_all_words(folder))
+    return bool(words & ISOMETRIC_WORDS) and not words & NOT_ISOMETRIC_WORDS
+
+
 def pack_view(inventory: Any, sheets: Any = ()) -> str:
+    """``"side"`` or ``"top"``, the kind a pack was made for (``"shmup"``, ``"racing"``,
+    ``"farm"``), or ``"isometric"`` for a pack of isometric tiles (T17.12), which is asked
+    first: how a pack looks at its world. What else such a pack is, ``made_for`` says."""
+    if isometric_view(inventory, sheets):
+        return VIEW_ISOMETRIC
+    return made_for(inventory, sheets)
+
+
+def made_for(inventory: Any, sheets: Any = ()) -> str:
     """``"side"`` or ``"top"``, or the kind a pack was made for (``"shmup"``, ``"racing"``,
     ``"farm"``): how a pack looks at its world (T14.02). The words of its folders
     and files count (platformer, sidescroller, metroidvania, jump against rpg, topdown,
@@ -791,10 +825,13 @@ def colour_key(path: str) -> tuple[str, str]:
     return "/".join([*kept_folders, "_".join(kept_words)]), "_".join(colours)
 
 
-PREVIEW_FOLDERS = frozenset({"preview", "previews", "screenshot", "screenshots"})
-GUIDE_WORDS = frozenset(
-    {"preview", "test", "grid", "guide", "slots", "template", "mockup", "showcase"}
+PREVIEW_FOLDERS = frozenset(
+    {"preview", "previews", "screenshot", "screenshots", "sample", "samples"}
 )
+GUIDE_WORDS = frozenset(
+    {"preview", "test", "grid", "guide", "slots", "template", "mockup", "showcase",
+     "sample", "samples", "information"}
+)  # fmt: skip
 UNUSED_TAG = "unused_because:"
 UNUSED_PREVIEW_FOLDER = "preview_folder"
 UNUSED_GUIDE_PICTURE = "guide_picture"
@@ -894,7 +931,7 @@ def classify(
                 mult = max(mult, FILE_WEIGHT)
             scores[role] += weight * mult
 
-    if usage == "tiles":
+    if usage in ("tiles", "iso_tile"):  # a sheet of tiles, or one isometric tile (T17.12)
         scores["GROUND"] += 0.6
         scores["DECORATION"] += 0.2
         scores["WALL"] += 0.1

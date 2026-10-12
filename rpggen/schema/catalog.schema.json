@@ -415,6 +415,7 @@
             "tiles",
             "sprite",
             "growth_strip",
+            "iso_tile",
             "object",
             "ui",
             "portrait",
@@ -471,8 +472,16 @@
           ]
         },
         "stages": {"type": "integer", "minimum": 2},
-        "headings": {"enum": [8, 12, 16, 24, 32]},
+        "headings": {"enum": [4, 8, 12, 16, 24, 32]},
         "heading_order": {"enum": ["up_cw", "up_ccw", "right_cw", "right_ccw"]},
+        "heading_files": {"type": "array", "items": {"type": "string"}, "minItems": 2},
+        "projection": {"enum": ["isometric"]},
+        "canvas": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
+        "footprint": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
+        "rise": {"type": "integer", "minimum": 0},
+        "turn": {"type": "integer", "minimum": 0, "maximum": 7},
+        "joins": {"type": "array", "items": {"enum": ["n", "e", "s", "w"]}, "minItems": 1, "maxItems": 4, "uniqueItems": true},
+        "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",
           "minimum": 0
@@ -677,6 +686,7 @@
                 "tiles",
                 "sprite",
                 "growth_strip",
+                "iso_tile",
                 "object",
                 "ui",
                 "portrait",
@@ -791,10 +801,18 @@
           ]
         },
         "stages": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 2}]},
-        "headings": {"anyOf": [{"type": "null"}, {"enum": [8, 12, 16, 24, 32]}]},
+        "headings": {"anyOf": [{"type": "null"}, {"enum": [4, 8, 12, 16, 24, 32]}]},
         "heading_order": {
           "anyOf": [{"type": "null"}, {"enum": ["up_cw", "up_ccw", "right_cw", "right_ccw"]}]
         },
+        "heading_files": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "string"}, "minItems": 2}]},
+        "projection": {"anyOf": [{"type": "null"}, {"enum": ["isometric"]}]},
+        "canvas": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2}]},
+        "footprint": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2}]},
+        "rise": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 0}]},
+        "turn": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 0, "maximum": 7}]},
+        "joins": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"enum": ["n", "e", "s", "w"]}, "minItems": 1, "maxItems": 4, "uniqueItems": true}]},
+        "stands_on": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2}]},
         "character_index": {
           "anyOf": [
             {
@@ -1427,6 +1445,7 @@
             "tiles",
             "sprite",
             "growth_strip",
+            "iso_tile",
             "object",
             "ui",
             "portrait",
@@ -1483,8 +1502,16 @@
           ]
         },
         "stages": {"type": "integer", "minimum": 2},
-        "headings": {"enum": [8, 12, 16, 24, 32]},
+        "headings": {"enum": [4, 8, 12, 16, 24, 32]},
         "heading_order": {"enum": ["up_cw", "up_ccw", "right_cw", "right_ccw"]},
+        "heading_files": {"type": "array", "items": {"type": "string"}, "minItems": 2},
+        "projection": {"enum": ["isometric"]},
+        "canvas": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
+        "footprint": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
+        "rise": {"type": "integer", "minimum": 0},
+        "turn": {"type": "integer", "minimum": 0, "maximum": 7},
+        "joins": {"type": "array", "items": {"enum": ["n", "e", "s", "w"]}, "minItems": 1, "maxItems": 4, "uniqueItems": true},
+        "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",
           "minimum": 0

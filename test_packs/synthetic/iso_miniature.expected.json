@@ -1,0 +1,97 @@
+{
+  "Angle/floorWood_E.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
+  "Angle/floorWood_N.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
+  "Angle/floorWood_S.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
+  "Angle/floorWood_W.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
+  "Cars/car_NEU.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
+  "Isometric/blockStone_E.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric/blockStone_N.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric/blockStone_S.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric/blockStone_W.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric/cornDouble_E.png": {
+    "frame": [
+      64,
+      96
+    ],
+    "usage": "sprite"
+  },
+  "Isometric/cornDouble_N.png": {
+    "frame": [
+      64,
+      96
+    ],
+    "usage": "sprite"
+  },
+  "Isometric/cornDouble_S.png": {
+    "frame": [
+      64,
+      96
+    ],
+    "usage": "sprite"
+  },
+  "Isometric/cornDouble_W.png": {
+    "frame": [
+      64,
+      96
+    ],
+    "usage": "sprite"
+  },
+  "Isometric/fenceWood_E.png": {
+    "role": "WALL",
+    "usage": "sprite"
+  },
+  "Isometric/fenceWood_N.png": {
+    "role": "WALL",
+    "usage": "sprite"
+  },
+  "Isometric/fenceWood_S.png": {
+    "role": "WALL",
+    "usage": "sprite"
+  },
+  "Isometric/fenceWood_W.png": {
+    "role": "WALL",
+    "usage": "sprite"
+  },
+  "Isometric/floorWood_E.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric/floorWood_N.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric/floorWood_S.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric/floorWood_W.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Preview.png": {
+    "role": "NONE"
+  }
+}

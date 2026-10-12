@@ -38,6 +38,7 @@ USAGES = [
     "tiles",
     "sprite",
     "growth_strip",  # a crop's stages (T17.01)
+    "iso_tile",  # one isometric tile a picture (T17.12)
     "object",
     "ui",
     "portrait",

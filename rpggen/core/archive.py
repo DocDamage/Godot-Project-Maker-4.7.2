@@ -544,6 +544,46 @@ def _extract_nested(root: Path, issues: IssueList, ctl: Control) -> None:
         issues.add("ARCH-006", entry=rel)
 
 
+# --------------------------------------------------------------------------- a zip in a folder
+
+LONE_ARCHIVES = (".zip", ".7z")
+BESIDE_KINDS = ("license", "doc")  # what may lie beside the archive and is no part of a pack
+
+
+def lone_archive(folder: Path) -> Path | None:
+    """The archive a pack folder is (T17.12): some packs are one zip in a folder with nothing
+    but previews beside it (``Preview.png``, ``Sample.png``, a folder ``Samples``, links to a
+    shop). None for a folder with a picture of its own that is no preview, with a folder that
+    is no preview folder, with two archives or with none: that folder is the pack."""
+    from rpggen.core import classifier, inventory
+
+    found: list[Path] = []
+    try:
+        entries = sorted(os.scandir(folder), key=lambda e: _sort_key(e.name))
+    except OSError:
+        return None
+    for entry in entries:
+        name = entry.name
+        if is_junk(name):
+            continue
+        if entry.is_dir(follow_symlinks=False):
+            if name.strip().casefold() not in classifier.PREVIEW_FOLDERS:
+                return None
+            continue
+        if not entry.is_file(follow_symlinks=False):
+            return None
+        if Path(name).suffix.lower() in LONE_ARCHIVES:
+            found.append(Path(entry.path))
+            continue
+        kind = inventory.classify_kind(name)
+        if kind in BESIDE_KINDS or inventory.not_an_asset(name, entry.stat().st_size):
+            continue
+        if kind == "image" and classifier.not_game_art(name):
+            continue
+        return None
+    return found[0] if len(found) == 1 else None
+
+
 # --------------------------------------------------------------------------- public API
 
 _EXTRACTORS = {"zip": _extract_zip, "7z": _extract_7z, "rar": _extract_rar}
@@ -594,6 +634,9 @@ def open_pack(
     ``is_cancelled`` is polled between chunks, and a cancel (``Cancelled``) removes the
     half-extracted folder.
 
+    A folder that holds one archive and nothing but previews beside it is opened as that
+    archive (``lone_archive``, T17.12).
+
     ``folder`` names one pack folder of a bundle (T16.22): that folder alone is the pack. The
     wizard names such a pack by a path that does not exist, ``<archive>/<folder>``
     (``pack_sniff.member_path``); it is opened the same way.
@@ -619,6 +662,13 @@ def open_pack(
         )
     if kind == "folder":  # never written to
         root = source.joinpath(*PurePosixPath(inner).parts) if inner else source
+        lone = None if inner else lone_archive(root)
+        if lone is not None:
+            # the pack is an archive in its folder, beside its previews (T17.12): it is opened
+            # as that archive, under the folder's name
+            return open_pack(
+                lone, existing_ids, pack_id, progress=progress, is_cancelled=is_cancelled
+            )
         return OpenedPack(pack_id, "folder", root, "", [])
 
     if inner:  # the pack's own identity: the archive's and the folder's

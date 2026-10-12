@@ -126,7 +126,10 @@ def _assets_with_role(catalog: catalog_mod.Catalog, role: str) -> list[catalog_m
     return [
         a
         for a in sorted(catalog.assets, key=lambda a: a.id)
-        if a.status not in _INACTIVE and catalog_mod.effective(a).get("role") == role
+        if a.status not in _INACTIVE
+        and catalog_mod.effective(a).get("role") == role
+        # an isometric tile fills no role until a project can be isometric (T17.13)
+        and not catalog_mod.is_iso_tile(a)
     ]
 
 
@@ -155,6 +158,22 @@ def role_counts(catalog: catalog_mod.Catalog) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def mixed_ground(catalog: catalog_mod.Catalog) -> str | None:
+    """The first isometric ground tile of a catalog that also has square ground (a tile sheet
+    with the role), or None: a map is painted with one of the two (``TILE-011``)."""
+    square = False
+    isometric: str | None = None
+    for asset in sorted(catalog.assets, key=lambda a: a.id):
+        facets = catalog_mod.effective(asset)
+        if asset.status in _INACTIVE or facets.get("role") != "GROUND":
+            continue
+        if catalog_mod.is_iso_tile(asset):
+            isometric = isometric or asset.id
+        elif facets.get("usage") == "tiles" and asset.pack_id not in catalog_mod.RUN_MADE_PACKS:
+            square = True  # a pack's own: a placeholder or a drawn stand-in is nobody's choice
+    return isometric if square else None
+
+
 AIR_ACTIONS = ("jump", "fall")
 
 
@@ -173,7 +192,8 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     several PLAYER assets exist and none is CONFIRMED; ASSET-028 for a pack whose licence asks
     for credit but names no author (after the Audit page's corrections); ASSET-030 for a
     metroidvania whose player has no jump or fall animation; ASSET-031 for what an arcade kind
-    or a farm gets drawn because the packs lack it."""
+    or a farm gets drawn because the packs lack it; TILE-011 for packs with isometric ground
+    beside square ground."""
     issues = IssueList()
     drawn: frozenset[str] = frozenset()
     stood_in: set[str] = set()  # the roles a drawn stand-in fills: noted, so not also missing
@@ -200,6 +220,9 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         mine = next((v for v in vehicles if v.id == chosen), vehicles[0] if vehicles else None)
         if mine is not None and not catalog_mod.effective(mine).get("headings"):
             issues.add("ASSET-032", asset=mine.id)
+    mixed = mixed_ground(catalog)
+    if mixed is not None:  # isometric and square ground in one project (T17.12)
+        issues.add("TILE-011", asset=mixed, file="")
     for role in REQUIRED.get(cfg.archetype, REQUIRED["turn_based"]):
         if not _filled(catalog, role) and role not in drawn:
             issue = issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))

@@ -72,7 +72,7 @@ class PackSniff:
     bundle: tuple[BundlePack, ...] = field(default_factory=tuple)
     bundle_license: bool = False  # a licence file beside the pack folders: it is for them all
     # what the names say about the pack, as the catalog's pack warnings do: ``view:shmup``,
-    # ``view:racing``, ``view:farm``, ``view:side``, ``engines:5:Godot``
+    # ``view:racing``, ``view:farm``, ``view:side``, ``view:isometric``, ``engines:5:Godot``
     marks: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -467,19 +467,24 @@ def _is_aseprite(head: bytes) -> bool:
     return isinstance(data, dict) and "frames" in data and isinstance(data.get("meta"), dict)
 
 
-def sniff(path: Path | str) -> PackSniff:
-    """Sniff a pack folder or archive; see the module docstring."""
+def sniff(path: Path | str, name: str = "") -> PackSniff:
+    """Sniff a pack folder or archive; see the module docstring. ``name`` is what the pack is
+    called when that is not the name of ``path`` (the folder an archive lies in)."""
     path = Path(path)
     deadline = time.monotonic() + BUDGET_S
     issues = IssueList()
     if not path.exists():
         issues.add("ARCH-001", path=str(path), reason="does not exist")
         return PackSniff(issues=tuple(issues))
+    name = name or (path.name if path.is_dir() else path.stem)
     try:
         if path.is_dir():
+            lone = archive_mod.lone_archive(path)
+            if lone is not None:  # the pack is an archive in its folder (T17.12)
+                return sniff(lone, name)
             source: _Source = _Folder(path, deadline)
             names = source.names()
-            return _result(source, names, deadline)
+            return _result(source, names, deadline, name)
         suffix = path.suffix.lower()
         if suffix == ".zip":
             with zipfile.ZipFile(path) as zf:
@@ -487,7 +492,7 @@ def sniff(path: Path | str) -> PackSniff:
                     issues.add("ARCH-002")
                     return PackSniff(issues=tuple(issues))
                 source = _Zip(zf)
-                return _result(source, source.names(), deadline)
+                return _result(source, source.names(), deadline, name)
         if suffix == ".7z":
             import py7zr
 
@@ -498,7 +503,7 @@ def sniff(path: Path | str) -> PackSniff:
                 listed = [i for i in z.list() if not i.is_directory]
             names = [i.filename for i in listed]
             sized = {i.filename: int(i.uncompressed or 0) for i in listed}
-            return _result(_Names(names, sized), names, deadline)
+            return _result(_Names(names, sized), names, deadline, name)
         if suffix == ".rar":
             return PackSniff(format="generic", has_license=None)  # not listed without 7-Zip
         issues.add("ARCH-001", path=str(path), reason="not a folder or a zip/7z/rar archive")
@@ -511,14 +516,14 @@ def sniff(path: Path | str) -> PackSniff:
     return PackSniff(issues=tuple(issues))
 
 
-def _marks(names: list[str]) -> tuple[str, ...]:
+def _marks(names: list[str], pack_name: str = "") -> tuple[str, ...]:
     """What the names alone say about a pack: its point of view and the engines it ships its
     art for. The analysis says the same later, with the pictures to go by."""
     from rpggen.core import classifier
 
     normed = [_norm(n) for n in names[:MARK_NAMES]]
     marks: list[str] = []
-    listed = SimpleNamespace(files=[SimpleNamespace(path=n) for n in normed])
+    listed = SimpleNamespace(files=[SimpleNamespace(path=n) for n in normed], pack_id=pack_name)
     view = classifier.pack_view(listed)
     if view != "top":
         marks.append(f"view:{view}")
@@ -530,7 +535,7 @@ def _marks(names: list[str]) -> tuple[str, ...]:
     return tuple(marks)
 
 
-def _result(source: _Source, names: list[str], deadline: float) -> PackSniff:
+def _result(source: _Source, names: list[str], deadline: float, name: str = "") -> PackSniff:
     bundle = find_bundle(names, source.sizes())
     if not bundle:  # ... or a zip of zips: its packs are the archives inside
         bundle = find_archive_bundle(source, names, deadline)
@@ -543,5 +548,5 @@ def _result(source: _Source, names: list[str], deadline: float) -> PackSniff:
         )
     fmt, tile = classify(source, names, deadline)
     return PackSniff(
-        format=fmt, tile_size=tile, has_license=_has_license(names), marks=_marks(names)
+        format=fmt, tile_size=tile, has_license=_has_license(names), marks=_marks(names, name)
     )

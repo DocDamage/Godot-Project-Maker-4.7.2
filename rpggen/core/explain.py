@@ -70,6 +70,18 @@ UNUSED_REASONS = {
         "object. Give it a role to use the copy as well."
     ),
     "cut_preview": "a preview picture a sprite-cutting tool made. Give it a role to use it.",
+    "atlas_copy": (
+        "a sheet the pack's pictures are packed into; the pack has them as single pictures "
+        "too, and those are used. Give it a role to use the sheet as well."
+    ),
+    "other_view": (
+        "the same model seen from another angle; the pack has it in a folder Isometric too, "
+        "and that one is used. Give it a role to use this one as well."
+    ),
+    "slope": (
+        "a heading of a vehicle on a slope going up or down; a game drives on the flat ones. "
+        "Give it a role to use it."
+    ),
     classifier.UNUSED_PREVIEW_FOLDER: (
         "in a preview folder: a picture of the pack, not a part of it. Give it a role to use it."
     ),
@@ -139,7 +151,10 @@ def why(asset: catalog_mod.Asset) -> str:
             other = _named(tag[len(classifier.VARIANT_TAG) :])
             coloured = any(str(t).startswith(classifier.COLOUR_TAG) for t in eff.get("tags") or [])
             seasonal = any(str(t).startswith(classifier.SEASON_TAG) for t in eff.get("tags") or [])
-            if seasonal and not coloured:
+            turned = any(str(t).startswith(catalog_mod.TURN_TAG) for t in eff.get("tags") or [])
+            if turned and not coloured:
+                parts.append(f"{other} turned")
+            elif seasonal and not coloured:
                 parts.append(f"{other} drawn for another season")
             else:
                 parts.append(f"a colour variant of {other}")
