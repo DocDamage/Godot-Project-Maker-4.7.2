@@ -1,4 +1,4 @@
-"""Milestone M16, the racing game (T16.12 to T16.14): the synthetic `racer` pack as a game
+"""Milestone M16, the racing game (T16.12 to T16.15): the synthetic `racer` pack as a game
 with a car, three rivals and four planned tracks, a pack without a car or a road, which gets
 the drawn ones, a track that is added later, and a game without rivals."""
 
@@ -28,6 +28,7 @@ STEPS = [
     "car_bumps_off_a_barrier",
     "pickup_is_taken_and_used",
     "race_is_driven_to_the_finish",
+    "results_and_the_championship",
     "tracks_end_with_the_credits",
 ]
 SCENES = [
@@ -256,7 +257,9 @@ def test_a_game_without_rivals_is_a_race_against_the_clock(
 ) -> None:
     target = tmp_path / "out"
     result = orchestrator.run_in_memory(
-        _config(tracks=1, track_size="small", laps=1, rivals=0, rubber_band=False),
+        _config(
+            tracks=1, track_size="small", laps=1, rivals=0, rubber_band=False, elimination=True
+        ),
         None,
         target,
         godot_exe,
@@ -267,3 +270,31 @@ def test_a_game_without_rivals_is_a_race_against_the_clock(
     track = _text(target, "generated/scenes/stages/stage_01.tscn")
     assert 'name="Race"' in track and 'name="Rival1"' not in track
     assert "rubber_band = false" in track
+    assert "elimination = true" in _text(target, "generated/scenes/combat/combat_mode.tscn")
+
+
+def test_the_readme_explains_the_kind(game) -> None:
+    target, _result = game
+    readme = _text(target, "README.md")
+    assert "**This game is a racing game**" in readme
+    assert "## 22. Tracks, rivals and the championship (racing)" in readme
+    for needle in (
+        "game/data/stages.json",
+        "generated/scenes/racing/",
+        "| Points | 10 | 6 | 4 | 3 | 2 | 1 |",
+        "| Use the weapon | X, K |",
+        "starter_map.elimination",
+        "Added tracks",
+    ):
+        assert needle in readme, needle
+    assert "shoot" not in readme.split("## 22.")[1]
+    # what the README says of a track is what a track of the game has
+    track = jsonio.read(target / "game/data/stages.json")["stages"][0]
+    for key in ("title", "laps", "checkpoints", "waypoints", "start"):
+        assert key in track and f"`{key}`" in readme, key
+    # the HUD of the race and the mode's rule
+    hud = _text(target, "generated/scenes/ui/hud_arcade.tscn")
+    assert "racing/ui/racing_hud.gd" in hud and "track_map = false" not in hud
+    assert "elimination = true" not in _text(target, "generated/scenes/combat/combat_mode.tscn")
+    strings = _text(target, "game/i18n/strings.tsv")
+    assert "RACE_TABLE\t" in strings and "RACE_CHAMPION\t" in strings

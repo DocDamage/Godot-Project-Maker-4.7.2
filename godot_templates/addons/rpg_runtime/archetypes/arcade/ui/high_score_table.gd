@@ -23,7 +23,8 @@ static func lines(table: Array[Dictionary]) -> Array:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# (with the offsets: a control that is in the tree keeps its size otherwise, which is none)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 ## Shows `table`. With `ask_name` a name is asked for (the run made the table) and `closed`
 ## carries it; `score` is the score of that run.

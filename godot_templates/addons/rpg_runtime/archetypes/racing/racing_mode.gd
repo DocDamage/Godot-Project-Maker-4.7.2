@@ -5,9 +5,21 @@ extends RpgArcadeMode
 ## counted down, and when the player has driven its laps the place it came in is worth points
 ## and the track is over. The parts the player has won (`speed`, `tyres`, `acceleration`,
 ## three levels each) stay for the run and are kept in its save.
+##
+## The run is a championship (RpgChampionship): every race gives each driver the points of its
+## place, the screen after a race (RpgRaceResults) shows the race and the table, and after the
+## last race it names the champion before the credits. With `elimination` a player who came in
+## last twice is out: the continue screen asks, and *Continue* drives that race again as if it
+## had not been driven. The table is saved with the run, between the races.
 
-## The points of a place, the first first.
+## The player is out of the championship (the continue screen follows).
+signal eliminated
+
+## The points of a place for the score of the run, the first first.
 const PLACE_POINTS: Array[int] = [3000, 1800, 1000, 500, 250, 100]
+
+## A player who came in last twice is out (set by the recipe from the options).
+@export var elimination: bool = false
 
 ## The player's car on the track that is driven, or null.
 var car: RpgCar = null
@@ -15,12 +27,32 @@ var car: RpgCar = null
 var race: RpgRace = null
 ## The place the player came in at in the race that has just ended (0: none yet).
 var last_place := 0
+## The table of the run.
+var championship := RpgChampionship.new()
+## The rows of the race that has just ended (RpgChampionship.record), and the parts won in it.
+var last_results: Array[Dictionary] = []
+var parts_won: Array[String] = []
+
+## The championship as it was before the race that is driven now.
+var _before := {}
+
+func run_data() -> Dictionary:
+	return championship.to_data()
+
+func restore_run_data(data: Dictionary) -> void:
+	championship = RpgChampionship.new()
+	championship.elimination = elimination
+	championship.from_data(data)
 
 func bind_stage(next: RpgArcadeStage) -> void:
 	car = _find_car(next)
 	race = next.get_node_or_null("Race") as RpgRace
 	last_place = 0
+	last_results = []
+	parts_won = []
+	championship.elimination = elimination
 	super.bind_stage(next)
+	_before = championship.to_data()
 	_fit_parts()
 	if race == null:
 		return
@@ -75,6 +107,7 @@ func _fit_parts() -> void:
 
 func _on_part_taken(kind: String) -> void:
 	if add_part(kind):
+		parts_won.append(kind)
 		pickup(500)
 
 func _on_race_finished(standings: Array) -> void:
@@ -82,7 +115,36 @@ func _on_race_finished(standings: Array) -> void:
 		var entry: Dictionary = raw
 		if RpgUtil.to_bool(entry.get("player", false)):
 			last_place = RpgUtil.to_int(entry.get("place", 0))
+	last_results = championship.record(standings)
 	if last_place >= 1:
 		pickup(PLACE_POINTS[mini(last_place, PLACE_POINTS.size()) - 1])
 	if stage != null and is_instance_valid(stage):
 		stage.finish()
+
+## The track is over. A player who is out sees the results and is asked whether to go on: the
+## race then counts for nothing and is driven again. Otherwise the run goes on as an arcade
+## run does, with the results in the place of the tally.
+func _on_stage_cleared() -> void:
+	if phase != Phase.PLAYING or stage == null or not championship.is_eliminated():
+		await super._on_stage_cleared()
+		return
+	phase = Phase.CLEARING
+	eliminated.emit()
+	await _show_results(true)
+	championship.from_data(_before)
+	await _game_over()
+
+func _show_stage_clear(bonus: Dictionary) -> void:
+	if last_results.is_empty():
+		await super._show_stage_clear(bonus)  # a track that was ended without its race
+		return
+	await _show_results(false)
+
+func _show_results(is_out: bool) -> void:
+	if is_automatic() or stage == null:
+		return
+	var screen := RpgRaceResults.new()
+	var layer := _open(screen)
+	screen.show_results(stage.title_text(), last_results, parts_won, championship.table(), stages().is_last(), is_out)
+	await screen.finished
+	_close(layer)

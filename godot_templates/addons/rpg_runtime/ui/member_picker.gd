@@ -9,7 +9,8 @@ signal closed
 var _buttons: Array[Button] = []
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# (with the offsets: a control that is in the tree keeps its size otherwise, which is none)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var dim := ColorRect.new()
 	dim.name = "Dim"

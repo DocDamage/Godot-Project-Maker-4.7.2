@@ -29,7 +29,8 @@ static func rows(bonus: Dictionary, score: int) -> Array:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# (with the offsets: a control that is in the tree keeps its size otherwise, which is none)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 ## Shows the tally of the stage `stage_title`; `score` is the score with the bonus in it.
 func show_tally(stage_title: String, bonus: Dictionary, score: int) -> void:

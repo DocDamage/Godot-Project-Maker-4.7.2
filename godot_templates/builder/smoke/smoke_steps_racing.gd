@@ -1,5 +1,5 @@
 extends RefCounted
-## The smoke steps of a racing game (T16.12 to T16.14): the title and a new game, the race of
+## The smoke steps of a racing game (T16.12 to T16.15): the title and a new game, the race of
 ## the first track counting down with every car standing on its grid, and the start. Then the
 ## rivals are taken off the track and the car is driven alone with the real input actions: it
 ## speeds up and brakes, steers, the camera looks ahead of it, it boosts, is slower on the
@@ -7,8 +7,10 @@ extends RefCounted
 ## has picked up. Then the race is run again with the rivals, one lap: a simple driver (head
 ## for the next waypoint, brake down to its speed, back off what it is stuck on) holds the
 ## buttons for the player, the rivals drive themselves, and the race ends with its standings.
-## The other tracks are each seen counting down and starting, and ended by hand, to the
-## credits.
+## Its results are put on the screen as the game shows them, the championship has the points
+## of the race and is in the save of the run, and the HUD of the next track has its sign, its
+## rows and its map with a dot for every car. The other tracks are each seen counting down and
+## starting, and ended by hand, to the credits.
 
 const SAVE_DIR := "user://smoke_saves"
 const ACTIONS: Array[StringName] = [&"accelerate", &"brake", &"boost", &"fire", &"move_left", &"move_right", &"move_up", &"move_down"]
@@ -27,6 +29,7 @@ func steps() -> Array[Dictionary]:
 		{"name": "car_bumps_off_a_barrier", "fn": _car_bumps_off_a_barrier, "timeout_s": 40.0},
 		{"name": "pickup_is_taken_and_used", "fn": _pickup_is_taken_and_used, "timeout_s": 40.0},
 		{"name": "race_is_driven_to_the_finish", "fn": _race_is_driven_to_the_finish, "timeout_s": 240.0},
+		{"name": "results_and_the_championship", "fn": _results_and_the_championship, "timeout_s": 60.0},
 		{"name": "tracks_end_with_the_credits", "fn": _tracks_end_with_the_credits, "timeout_s": 300.0},
 	]
 
@@ -473,7 +476,13 @@ func _race_is_driven_to_the_finish() -> String:
 	var tracks := mode.stages().size()
 	var points := mode.score.points
 	var over: Array = []
-	race.finished.connect(func(standings: Array) -> void: over.append(standings), CONNECT_ONE_SHOT)
+	_results.clear()
+	_parts.assign(mode.parts_won)
+	var on_over := func(standings: Array) -> void:
+		over.append(standings)
+		_results.assign(mode.last_results)  # the mode heard of the finish first
+		_track_title = _stage().title_text()
+	race.finished.connect(on_over, CONNECT_ONE_SHOT)
 	race.park_rivals(false)
 	race.laps = 1
 	race.begin()
@@ -531,6 +540,102 @@ func _race_is_driven_to_the_finish() -> String:
 	if tracks > 1:
 		if not await _wait_for(func() -> bool: return _stage() != null and _stage().stage_index == first_stage + 1 and not router.is_busy() and mode.phase == RpgArcadeMode.Phase.PLAYING, 900):
 			return "the next track did not begin after the race"
+	return ""
+
+## The rows of the race that was driven, as the mode had them when it ended.
+var _results: Array[Dictionary] = []
+var _parts: Array[String] = []
+var _track_title := ""
+
+func _hud() -> RpgRacingHud:
+	for node in _tree().root.find_children("*", "CanvasLayer", true, false):
+		if node is RpgRacingHud:
+			return node as RpgRacingHud
+	return null
+
+func _results_and_the_championship() -> String:
+	var mode := _mode()
+	var cup := mode.championship
+	var cars := _results.size()
+	if cars < 1:
+		return "the race left no results"
+	if cup.races != 1:
+		return "the championship has %d races after the first" % cup.races
+	var table := cup.table()
+	if table.size() != cars:
+		return "the table has %d drivers for %d cars" % [table.size(), cars]
+	var mine := -1
+	for i in cars:
+		var row := _results[i]
+		if RpgUtil.to_int(row.get("place", 0)) != i + 1 or RpgUtil.to_int(row.get("points", -1)) != RpgChampionship.points_for(i + 1):
+			return "row %d of the results is %s" % [i + 1, row]
+		if RpgUtil.to_bool(row.get("player", false)):
+			mine = i
+			if not RpgUtil.to_bool(row.get("finished", false)) or RpgUtil.to_float(row.get("time_s", 0.0)) <= 0.0:
+				return "the player's row has no time: %s" % [row]
+		if RpgUtil.to_str(table[i].get("driver", "")) != RpgUtil.to_str(row.get("driver", "?")):
+			return "after one race the table is not in the order of that race"
+	if mine < 0 or cup.points_of(RpgChampionship.PLAYER) != RpgChampionship.points_for(mine + 1):
+		return "the player has %d points for place %d" % [cup.points_of(RpgChampionship.PLAYER), mine + 1]
+	# the screen the game shows after the race (a smoke run does not wait for it)
+	var layer := CanvasLayer.new()
+	layer.layer = RpgArcadeMode.SCREEN_LAYER
+	_tree().root.add_child(layer)
+	var screen := RpgRaceResults.new()
+	layer.add_child(screen)
+	screen.show_results(_track_title, _results, _parts, table, mode.stages().size() == 1)
+	await _frames(20)
+	var shown := screen.grid_texts("Race")
+	var totals := screen.grid_texts("Table")
+	var said := screen.heading_shown()
+	var box := screen.get_node_or_null("Center/Box") as Control
+	var fits := box != null and screen.get_viewport_rect().encloses(box.get_global_rect())
+	var box_size := "%s in %s, the screen %s" % [box.get_global_rect(), screen.get_global_rect(), screen.get_viewport_rect()] if box != null else ""
+	layer.queue_free()
+	if shown.size() != cars or totals.size() != cars:
+		return "the results show %d and %d rows for %d cars" % [shown.size(), totals.size(), cars]
+	if shown[mine][1] != RpgChampionship.driver_name(RpgChampionship.PLAYER) or shown[mine][2] == "-":
+		return "the player's line of the results is %s" % [shown[mine]]
+	if said == "":
+		return "the results have no heading"
+	if not fits:
+		return "the results do not fit the screen: %s" % box_size
+	if mode.stages().size() == 1:
+		return ""  # the run is over: no next track, and nothing of it is saved
+	# the save of the run has the table
+	var saved: Dictionary = mode.saved_run().get("extra", {})
+	if RpgUtil.to_int(saved.get("races", 0)) != 1 or RpgUtil.to_array(saved.get("points", [])).size() != cars:
+		return "the save of the run has no table of the championship: %s" % [saved]
+	# the HUD of the track that has begun
+	var hud := _hud()
+	var race := _race()
+	if hud == null or race == null:
+		return "there is no race HUD, or no race, on the second track"
+	await _frames(3)
+	if (hud.get_node("Left/Lives") as Label).visible:
+		return "the HUD of a racing game shows lives"
+	if hud.row_text("lap") == "" or hud.row_text("place") == "" or hud.row_text("speed") == "":
+		return "the HUD has no lap, place or speed"
+	if hud.row_text("points") != RpgRacingStrings.t("RACE_POINTS", [cup.points_of(RpgChampionship.PLAYER)]):
+		return "the HUD's points are '%s'" % hud.row_text("points")
+	if race.phase == RpgRace.Phase.COUNTDOWN and not hud.sign_text().is_valid_int():
+		return "the sign does not count down: '%s'" % hud.sign_text()
+	var map := hud.track_minimap()
+	if map == null or not map.visible or map.track_texture() == null:
+		return "the HUD has no map of the track"
+	var view := map.get_viewport_rect()
+	if not view.encloses(map.get_global_rect()):
+		return "the map of the track is not on the screen: %s" % [map.get_global_rect()]
+	if Vector2i(map.track_texture().get_size()) != _surfaces().size_cells():
+		return "the map is %s px for a track of %s cells" % [map.track_texture().get_size(), _surfaces().size_cells()]
+	var mine_dots := 0
+	for dot in map.dots():
+		mine_dots += 1 if RpgUtil.to_bool(dot["player"]) else 0
+		var at: Vector2 = dot["position"]
+		if not Rect2(Vector2.ZERO, RpgMinimap.VIEW).has_point(at):
+			return "a car is off the map at %s" % [at]
+	if map.dots().size() != race.cars.size() or mine_dots != 1:
+		return "the map has %d dots (%d the player's) for %d cars" % [map.dots().size(), mine_dots, race.cars.size()]
 	return ""
 
 func _hold(action: StringName, down: bool) -> void:

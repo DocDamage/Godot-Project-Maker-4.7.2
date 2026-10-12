@@ -681,20 +681,21 @@ func test_the_hud_shows_the_lap_the_place_and_what_the_car_carries(t) -> void:
 	var hud := HudRecipe.build_hud(HudRecipe.script_for("racing")) as RpgRacingHud
 	Fixtures.tree().root.add_child(hud)
 	hud.set_process(false)
+	hud.track_minimap().set_process(false)
 	var me := field.player
 	field.race.countdown_s = 3.0
 	hud.show_race(field.race, me)
-	t.eq(hud.row_text("notice"), "3", "the countdown")
+	t.eq(hud.sign_text(), "3", "the countdown")
 	t.eq(hud.row_text("lap"), "Lap 1/2")
 	t.eq(hud.row_text("place"), "Place 1/2")
 	field.run(200)
 	hud.show_race(field.race, me)
-	t.eq(hud.row_text("notice"), "Go!")
+	t.eq(hud.sign_text(), "Go!")
 	field.move(field.rivals[0], Vector2(380, 20))
 	field.run(60)
 	hud.show_race(field.race, me)
 	t.eq(hud.row_text("place"), "Place 2/2")
-	t.eq(hud.row_text("notice"), "")
+	t.eq(hud.sign_text(), "")
 	me.weapon = "bomb"
 	me.shielded = true
 	hud.show_car(me)
@@ -708,9 +709,9 @@ func test_the_hud_shows_the_lap_the_place_and_what_the_car_carries(t) -> void:
 	me.velocity = Vector2(-100, 0)
 	field.run(70)
 	hud.show_race(field.race, me)
-	t.eq(hud.row_text("notice"), "Wrong way!")
+	t.eq(hud.sign_text(), "Wrong way!")
 	hud.show_race(null, me)
-	t.eq([hud.row_text("lap"), hud.row_text("place"), hud.row_text("notice")], ["", "", ""])
+	t.eq([hud.row_text("lap"), hud.row_text("place"), hud.sign_text()], ["", "", ""])
 	hud.get_parent().remove_child(hud)
 	hud.free()
 	field.drop()

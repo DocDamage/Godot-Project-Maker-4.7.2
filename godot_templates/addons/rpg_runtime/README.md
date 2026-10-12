@@ -331,8 +331,26 @@ clockwise) or rotates a single picture. `RpgRaceCamera` follows the car, looks a
 the screen ahead along its velocity at the top speed and zooms out to 0.85; `fixed` keeps it
 over the whole `track`. `RpgRacingMode` is the arcade run with the player's `car`; a track is
 an `RpgArcadeStage` that does not scroll and ends when `finish()` is called.
-`RpgRacingHud` adds the rows `speed`, `boosts`, `weapon`, `shield`, `lap`, `place` and `notice`
-(the countdown, *Go!*, *Wrong way!*, the place at the finish).
+`RpgRacingHud` is the arcade HUD without the lives, with the rows `speed`, `boosts`,
+`weapon`, `shield`, `lap`, `place`, `points` (the player's, once a race was driven) and `last`
+(how often it was last, in a game with elimination), a sign in the middle of the screen
+(`sign_text()`: the countdown, *Go!*, *Wrong way!*, the place at the finish) and, with
+`track_map`, an `RpgRaceMinimap` in the bottom-right corner (`track_minimap()`): `RpgMinimap`
+showing the whole track from its `RpgTrackSurfaces`, a pixel a cell, with a dot for every car
+(`dots()`); the *Minimap* setting turns it off.
+
+**The championship.** `RpgRacingMode.championship` is an `RpgChampionship`: `record(standings)`
+counts a race (10, 6, 4, 3, 2, 1 points for the places; it returns the rows of the race with
+`driver`, `place`, `points`, `total`, `time_s`, `finished`), `table()` is the drivers by their
+points (of two with the same, the one who was better in the last race first), `points_of`,
+`place_of`, `leader()`. The drivers are `player` and `rival_1`, `rival_2`, ... (the number of
+the rival's node). The mode records every race that ends (`last_results`, `parts_won`), shows
+`RpgRaceResults` in the place of the arcade tally (the race, the parts won, the table; after
+the last race its heading names the champion) and keeps the table in the save of the run
+(`RpgArcadeMode.run_data()` / `restore_run_data(data)`, which a kind overrides for what it
+keeps of a run). With `elimination` a player who came in last `RpgChampionship.LAST_LIMIT`
+times is out (`eliminated`, then the arcade continue screen): *Continue* puts the table back
+to what it was before that race and drives it again.
 
 **The race.** `RpgRace` (the child `Race` of a track) is set up by the mode with the track's
 entry of the list of stages and its cars (`setup(data, cars)`, `begin()`): a countdown

@@ -11,8 +11,8 @@ extends RpgCombatMode
 ## multiplier back at x1, Quit goes to the title.
 ##
 ## Saving: between stages only, by itself, into the autosave slot (the pause menu's Save is off).
-## The save holds the stage, the lives, the score and the weapon; loading it starts that stage
-## from its beginning.
+## The save holds the stage, the lives, the score and the weapon, and what the kind adds
+## (`run_data`); loading it starts that stage from its beginning.
 
 signal stage_started(index: int)
 signal stage_cleared(index: int, bonus: Dictionary)
@@ -137,12 +137,25 @@ func _store_run() -> void:
 	var state := RpgUtil.state()
 	if state == null:
 		return
-	state.flags[SAVE_ENTITY] = {
+	var entry := {
 		"stage": stages().index,
 		"lives": lives.count,
 		"score": score.points,
 		"weapon": weapon,
 	}
+	var extra := run_data()
+	if not extra.is_empty():
+		entry["extra"] = extra
+	state.flags[SAVE_ENTITY] = entry
+
+## What the kind keeps of a run beside the stage, the lives, the score and the weapon (a racing
+## game: its championship). It is saved with them and given back to `restore_run_data`.
+func run_data() -> Dictionary:
+	return {}
+
+## Takes what `run_data` gave when the run was saved; {} when a new run begins.
+func restore_run_data(_data: Dictionary) -> void:
+	pass
 
 func _forget_run() -> void:
 	var state := RpgUtil.state()
@@ -157,10 +170,12 @@ func _begin_run() -> void:
 		score.reset()
 		lives.reset()
 		weapon = ""
+		restore_run_data({})
 		return
 	score.restore(RpgUtil.to_int(saved.get("score", 0)))
 	lives.restore(RpgUtil.to_int(saved.get("lives", lives.start_lives), lives.start_lives), score.points)
 	weapon = RpgUtil.to_str(saved.get("weapon", ""))
+	restore_run_data(RpgUtil.to_dict(saved.get("extra", {})))
 
 ## Takes over a stage that has just been entered: gives it its waves, counts its kills and
 ## starts it. Called by itself when the router enters a stage.

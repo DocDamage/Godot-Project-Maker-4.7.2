@@ -35,6 +35,7 @@ def test_the_config_of_a_racing_game_is_valid_and_keeps_its_options() -> None:
     assert (rules["steering"], rules["camera"]) == ("relative", "follow")
     assert (rules["tracks"], rules["laps"], rules["track_size"]) == (4, 3, "medium"), "T16.13"
     assert (rules["rivals"], rules["rubber_band"]) == (3, True), "T16.14"
+    assert rules["elimination"] is False, "T16.15: nobody is put out unless the game says so"
     easy = _cfg(starter_map={"steering": "absolute"})
     data = easy.to_json()
     schema.validate("config", data)
@@ -48,6 +49,7 @@ def test_the_config_of_a_racing_game_is_valid_and_keeps_its_options() -> None:
         {"track_size": "huge"},
         {"rivals": 6},
         {"rubber_band": 1},
+        {"elimination": "twice"},
     ):
         with pytest.raises(Exception):  # noqa: B017, PT011
             schema.validate("config", {**data, "starter_map": bad})
@@ -88,6 +90,7 @@ def test_the_smoke_steps_and_the_installed_files_of_a_racing_game(tmp_path: Path
         "car.gd", "car_physics.gd", "car_input.gd", "heading_sprite.gd", "race_camera.gd",
         "racing_mode.gd", "racing_strings.gd", "track_surfaces.gd", "ui/racing_hud.gd",
         "race.gd", "rival.gd", "checkpoint.gd", "pickup.gd", "weapon.gd",
+        "championship.gd", "ui/results.gd", "ui/race_minimap.gd",
     ):  # fmt: skip
         assert f"addons/rpg_runtime/archetypes/racing/{name}" in written, name
     smoke = [w for w in written if "smoke_steps_" in w and w.endswith(".gd")]

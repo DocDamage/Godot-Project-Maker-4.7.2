@@ -34,7 +34,11 @@ func _ready() -> void:
 	custom_minimum_size = VIEW
 	size = VIEW
 	set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	position = Vector2(-VIEW.x - MARGIN, MARGIN)
+	# (offsets from the corner: a position is counted from the left edge of the screen)
+	offset_left = -VIEW.x - MARGIN
+	offset_right = -MARGIN
+	offset_top = MARGIN
+	offset_bottom = MARGIN + VIEW.y
 	visible = false
 
 func _process(delta: float) -> void:

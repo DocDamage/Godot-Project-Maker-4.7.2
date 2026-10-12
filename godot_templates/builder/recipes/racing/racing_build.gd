@@ -16,6 +16,7 @@ const SURFACES_SCRIPT := DIR + "track_surfaces.gd"
 const RACE_SCRIPT := DIR + "race.gd"
 const RIVAL_SCRIPT := DIR + "rival.gd"
 const PICKUP_SCRIPT := DIR + "pickup.gd"
+const HUD_SCRIPT := DIR + "ui/racing_hud.gd"
 
 const SCENES := "res://generated/scenes/racing/"
 const CAR_PATH := SCENES + "car.tscn"
@@ -36,6 +37,10 @@ static func rivals(ctx: BuildContext) -> int:
 
 static func rubber_band(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "rubber_band", true))
+
+## A player who comes in last twice is out of the championship (config.starter_map.elimination).
+static func elimination(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "elimination", false))
 
 ## The pictures of the rivals: the other vehicles of the packs, then their enemies that are
 ## sprites. Fewer than the rivals there are: the rest drive the player's car in another colour.

@@ -77,6 +77,7 @@ def defaults() -> dict[str, Any]:
         "camera": "follow",
         "rivals": 3,
         "rubber_band": True,
+        "elimination": False,
         "added_tracks": [],
     }
 
@@ -97,8 +98,9 @@ def normalized(options: Any) -> dict[str, Any]:
     ):
         if out[key] not in allowed:
             raise TrackPlanError(f"{key} must be one of {', '.join(allowed)}")
-    if not isinstance(out["rubber_band"], bool):
-        raise TrackPlanError("rubber_band must be true or false")
+    for key in ("rubber_band", "elimination"):
+        if not isinstance(out[key], bool):
+            raise TrackPlanError(f"{key} must be true or false")
     for key, (low, high) in (("tracks", TRACK_RANGE), ("laps", LAP_RANGE), ("rivals", RIVALS)):
         value = out[key]
         if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:

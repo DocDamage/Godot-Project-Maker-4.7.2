@@ -293,6 +293,7 @@ def test_the_options_and_what_is_wrong_with_them() -> None:
         "camera": "follow",
         "rivals": 3,
         "rubber_band": True,
+        "elimination": False,
         "added_tracks": [],
     }
     assert config.starter_map_defaults("racing") == track_plan.defaults()
@@ -314,6 +315,7 @@ def test_the_options_and_what_is_wrong_with_them() -> None:
         ({"camera": "chase"}, "camera"),
         ({"rivals": 6}, "rivals"),
         ({"rubber_band": "a little"}, "rubber_band"),
+        ({"elimination": 2}, "elimination"),
         ({"stages": 3}, "unknown option"),
         ({"added_tracks": [{"name": "A"}, {"name": "a"}]}, "two added tracks"),
         ({"added_tracks": [{}]}, "needs a name"),

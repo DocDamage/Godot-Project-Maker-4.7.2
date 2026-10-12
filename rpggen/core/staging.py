@@ -383,6 +383,12 @@ KIND_NOTES = {
         "\nspeaks of the other kinds of game; start with section 22: the controls, the stages,"
         "\ntheir waves and bosses, and how to change them."
     ),
+    "racing": (
+        "\n\n**This game is a racing game**: a championship of races on tracks seen from above,"
+        "\nnot a village to walk. Where this file speaks of the starter map, doors, shops or"
+        "\nquests, it speaks of the other kinds of game; start with section 22: the controls,"
+        "\nthe races, the championship, and how to change the tracks."
+    ),
     "metroidvania": (
         "\n\n**This game is a metroidvania**, seen from the side: its world is the rooms in"
         "\n`game/maps/rooms/`, not one starter map. Where this file says *starter map*, read *a"

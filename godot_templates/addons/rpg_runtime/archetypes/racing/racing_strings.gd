@@ -16,6 +16,19 @@ const KEYS := {
 	"RACE_FINISHED": "Finished: place %d",
 	"RACE_ITEM_MISSILE": "Missile",
 	"RACE_ITEM_BOMB": "Bomb",
+	"RACE_POINTS": "Points: %d",
+	"RACE_LAST": "Last place: %d/%d",
+	"RACE_RESULTS": "%s: results",
+	"RACE_THIS_RACE": "Race",
+	"RACE_TABLE": "Championship",
+	"RACE_CHAMPION": "Champion: %s",
+	"RACE_ELIMINATED": "Last twice: you are out",
+	"RACE_PARTS_WON": "Parts won: %s",
+	"RACE_PART_SPEED": "Speed",
+	"RACE_PART_TYRES": "Tyres",
+	"RACE_PART_ACCELERATION": "Acceleration",
+	"RACE_DRIVER_YOU": "You",
+	"RACE_DRIVER_RIVAL": "Rival %d",
 }
 
 ## The text of `key` (its translation, else the English above) with `args` filled in.

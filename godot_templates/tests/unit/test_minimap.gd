@@ -250,3 +250,14 @@ func test_the_world_map_names_areas_by_the_plan(t) -> void:
 	t.eq(menu.area_name(_world(), "game__maps__starter_map"), "MAP_STARTER_MAP", "the starter map keeps its text key")
 	t.eq(menu.area_name({}, "game__maps__imported__pack__cave"), "MAP_CAVE")
 	menu.free()
+
+func test_the_minimap_is_in_the_top_right_corner_of_the_screen(t) -> void:
+	var layer := CanvasLayer.new()
+	Fixtures.tree().root.add_child(layer)
+	var minimap := RpgMinimap.new()
+	layer.add_child(minimap)
+	var screen := minimap.get_viewport_rect().size
+	t.eq(minimap.size, RpgMinimap.VIEW)
+	t.eq(minimap.position, Vector2(screen.x - RpgMinimap.VIEW.x - RpgMinimap.MARGIN, RpgMinimap.MARGIN))
+	layer.get_parent().remove_child(layer)
+	layer.free()
