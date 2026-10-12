@@ -22,6 +22,7 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 | `quest_stage:<id>:<stage>` | the quest is at that stage |
 | `party:<actor id>` | the character is in the party (the player always is) |
 | `var:<name><op><N>` | the variable compares so with N; `op` is `>=`, `<=`, `==`, `!=`, `>` or `<` (a variable never set is 0) |
+| `friendship:<id>>=N` | the person has at least N hearts (a farm; false in every other game) |
 
 ## Dialogue events
 

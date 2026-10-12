@@ -16,6 +16,9 @@ const ENCOUNTERS_DIR := "res://game/data/encounters"
 ## The value of GameState.quests[id] once a quest is finished.
 const QUEST_DONE := "done"
 const NEW_GAME_PATH := "res://game/data/new_game.tres"
+## The child a farm's mode adds for its friendships (T17.09), and its key of a saved game.
+const FRIENDSHIP_NODE := "Friendship"
+const FRIENDSHIP_KEY := "friendship"
 ## The equipment slots, in display order. An item goes to the slot of its category.
 const EQUIP_SLOTS: Array[StringName] = [&"weapon", &"armor", &"accessory"]
 ## The stats an equipment preview compares.
@@ -345,6 +348,9 @@ func new_game() -> void:
 	var calendar := RpgCalendar.current()
 	if calendar != null:
 		calendar.reset()
+	var friendship := _friendship()
+	if friendship != null:
+		friendship.call(&"reset")
 
 # ---------------------------------------------------------------- abilities (T14.05)
 
@@ -726,13 +732,24 @@ func to_dict() -> Dictionary:
 		"equipment": equipment.duplicate(true),
 		"playtime_s": playtime_s,
 		"rng": rng.get_state(),
-	}.merged({"map_fog": _fog_to_dict()} if not map_fog.is_empty() else {}).merged(_side_view_keys()).merged(_calendar_key())
+	}.merged({"map_fog": _fog_to_dict()} if not map_fog.is_empty() else {}).merged(_side_view_keys()).merged(_calendar_key()).merged(_friendship_key())
 
 ## The `calendar` key of a save (T17.03): written only by a game that has a calendar, so the save
 ## of every other game has exactly the keys it had.
 func _calendar_key() -> Dictionary:
 	var calendar := RpgCalendar.current()
 	return {RpgCalendar.SAVE_KEY: calendar.to_dict()} if calendar != null else {}
+
+## The friendships of a farm (T17.09): the child `Friendship` its mode makes (RpgFriendship,
+## which only a farm's project has, so it is found by its name), or null.
+func _friendship() -> Node:
+	var node := get_node_or_null(FRIENDSHIP_NODE)
+	return node if node != null and node.has_method(&"to_dict") else null
+
+## The `friendship` key of a save: written only by a game that has friendships.
+func _friendship_key() -> Dictionary:
+	var friendship := _friendship()
+	return {FRIENDSHIP_KEY: friendship.call(&"to_dict")} if friendship != null else {}
 
 ## The save keys of the metroidvania, written only when there is something to write, so a
 ## top-down save has exactly the keys it had in 1.1.
@@ -782,6 +799,9 @@ func from_dict(d: Dictionary) -> void:
 	var calendar := RpgCalendar.current()
 	if calendar != null:  # a save without the key is the first morning
 		calendar.from_dict(data.get(RpgCalendar.SAVE_KEY))
+	var friendship := _friendship()
+	if friendship != null:  # a save without the key: nobody is met
+		friendship.call(&"from_dict", data.get(FRIENDSHIP_KEY))
 
 ## The optional `variables` key of a save: whole numbers by name; anything else is dropped.
 static func _variables_from(raw: Variant) -> Dictionary:

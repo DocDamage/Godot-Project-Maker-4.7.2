@@ -19,6 +19,7 @@ KINDS = (
     "cli",
     "world_plan",
     "crops",
+    "people",
 )
 
 

@@ -9,6 +9,8 @@ extends RefCounted
 ##   quest_active:<id>    quest_done:<id>    quest_stage:<id>:<stage>    party:<actor id>
 ##   var:<name><op><N>    (op is one of >= <= == != > <; a variable never set is 0)
 ##   ability:<id>         (the player has the ability; the metroidvania, T14.05)
+##   friendship:<id>>=N   (the person has at least N hearts; the farm, T17.09. False in a game
+##                         without friendships)
 ## Unknown atoms are false and log "[RPG-DLG] unknown condition atom".
 
 ## The comparison operators of var:, longest first so that ">=" is not read as ">".
@@ -67,7 +69,7 @@ static func _tokens(expr: String) -> PackedStringArray:
 ## The atom prefixes the language knows (for the editor's checks and completion).
 const ATOMS: Array[String] = [
 	"flag:", "item:", "gold>=", "level>=", "party:", "var:", "quest_active:", "quest_done:",
-	"quest_stage:", "quest:", "ability:",
+	"quest_stage:", "quest:", "ability:", "friendship:",
 ]
 
 ## What is wrong with `expr` without evaluating it: unknown or malformed atoms, a dangling
@@ -116,6 +118,10 @@ static func atom_problem(atom: String) -> String:
 			if at > 0:
 				return "" if body.substr(at + op.length()).is_valid_int() else "'%s' needs a number" % atom
 		return "var needs <name><op><N>: '%s'" % atom
+	if atom.begins_with("friendship:"):
+		var body := atom.trim_prefix("friendship:")
+		var at := body.find(">=")
+		return "" if at > 0 and body.substr(at + 2).is_valid_int() else "friendship needs <id>>=N: '%s'" % atom
 	if atom.begins_with("quest_stage:"):
 		return "" if atom.trim_prefix("quest_stage:").split(":").size() == 2 else "quest_stage needs <id>:<stage>: '%s'" % atom
 	if atom.begins_with("quest:"):
@@ -149,6 +155,8 @@ static func _atom(atom: String, state: RpgGameState) -> bool:
 		return state.has_ability(StringName(atom.trim_prefix("ability:")))
 	if atom.begins_with("var:"):
 		return _compare_var(state, atom)
+	if atom.begins_with("friendship:"):
+		return _friendship(state, atom)
 	if atom.begins_with("quest_active:"):
 		return state.quest_is_active(StringName(atom.trim_prefix("quest_active:")))
 	if atom.begins_with("quest_done:"):
@@ -191,6 +199,19 @@ static func _compare_var(state: RpgGameState, atom: String) -> bool:
 			_:
 				return value < wanted
 	return _unknown(atom)
+
+## friendship:<id>>=<N>, e.g. friendship:anna>=4: the hearts of a person. The friendships are a
+## child of the game state that only a farm has (RpgFriendship, found by its name: the script is
+## not in the project of another kind); without it nobody has a heart.
+static func _friendship(state: RpgGameState, atom: String) -> bool:
+	var body := atom.trim_prefix("friendship:")
+	var at := body.find(">=")
+	if at <= 0 or not body.substr(at + 2).is_valid_int():
+		return _unknown(atom)
+	var friendship := state.get_node_or_null(RpgGameState.FRIENDSHIP_NODE)
+	if friendship == null or not friendship.has_method(&"hearts"):
+		return false
+	return RpgUtil.to_int(friendship.call(&"hearts", body.substr(0, at))) >= body.substr(at + 2).to_int()
 
 static func _unknown(atom: String) -> bool:
 	push_error("[RPG-DLG] unknown condition atom '%s'" % atom)

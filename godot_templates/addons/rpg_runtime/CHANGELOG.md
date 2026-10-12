@@ -60,6 +60,32 @@ and the saves it had.
   `held`, `water`) and `farm_field` (one key a field: its worked cells).
 * `RpgWorldMapMenu` lists no *World* row for a plan file that holds nothing but a farm's
   crops (no areas). Every other game is what it was.
+* **Schedules** (`actors/schedule.gd`, `RpgSchedule`; installed in every project and at work
+  only in one with a calendar). A child `Schedule` of an NPC with `entries`: from which
+  `hour`, on which `days` of the week, in which `weather`, on which `map`, at which `place` (a
+  marker made by `RpgSchedule.make_place`, a `Marker2D` in the group `rpg_place`) or `cell`.
+  `resolve(hour, weekday, weather)` gives the entry in force: the last whose hour has come
+  among those of the day and the weather, an entry with a weather before one without. When
+  its map is entered the NPC is put where the calendar says it is; one whose place is on
+  another map is away (hidden, not in the way, not talkable). When an hour passes on the map
+  that is shown it walks to its new place along the map's navigation
+  (`NavigationServer2D.map_get_path`), to the nearest door when the place is on another map,
+  and from the nearest door when it comes back; on a map without navigation it fades out, is
+  moved and fades in (`fade_s`). `RpgSchedule.set_weather` tells every schedule the weather
+  of the day; `RpgSchedule.source` gives a schedule without entries those of its `person`.
+  New: `RpgNpc.schedule()` (null for an NPC without one, which is what it was).
+* **Friendship** (`archetypes/farm/friendship.gd`, `RpgFriendship`; a farm only): points a
+  person, ten hearts of 250. `talk(id)` gives 20 once a day; `gift(id, item_id)` gives by
+  taste (80 loved, 45 liked, 20 otherwise, -20 disliked) and is taken twice a week; the
+  calendar's `day_began` resets both counters. It reads `game/data/people.json` (the people,
+  their tastes and their schedules), counts a talk when the player interacts with the NPC of
+  a person, and is found with `RpgFriendship.current()` (made by `ensure()`, a child of
+  GameState). Saved under the new optional key `friendship`, written only by a game that has
+  it; the save version stays 1.
+* The dialogue condition `friendship:<id>>=N` (hearts); false in a game without friendships.
+* `RpgPeoplePage` (`archetypes/farm/ui/people_page.gd`): who was met, their hearts, and their
+  taste for the items that were given to them. `RpgPeoplePage.add_to(pause_menu)` adds its
+  button to a pause menu.
 
 ## 1.4.0
 

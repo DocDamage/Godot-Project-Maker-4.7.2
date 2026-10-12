@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "rpggen people of a farm's village (game/data/people.json)",
+  "type": "object",
+  "properties": {
+    "people": {"type": "array", "items": {"$ref": "#/$defs/Person"}}
+  },
+  "required": ["people"],
+  "additionalProperties": false,
+  "$defs": {
+    "Person": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "scene": {"type": "string"},
+        "home": {"type": "integer", "minimum": 1},
+        "job": {"type": "string"},
+        "schedule": {"type": "array", "items": {"$ref": "#/$defs/Entry"}},
+        "loves": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "likes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "required": ["id", "name", "schedule", "loves", "likes", "dislikes"],
+      "additionalProperties": false
+    },
+    "Entry": {
+      "type": "object",
+      "properties": {
+        "hour": {"type": "integer", "minimum": 0, "maximum": 23},
+        "days": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 0, "maximum": 6},
+          "uniqueItems": true
+        },
+        "weather": {"type": "string"},
+        "map": {"type": "string"},
+        "place": {"type": "string", "minLength": 1},
+        "cell": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "facing": {"enum": ["up", "down", "left", "right"]}
+      },
+      "required": ["hour"],
+      "oneOf": [{"required": ["place"]}, {"required": ["cell"]}],
+      "additionalProperties": false
+    }
+  }
+}
