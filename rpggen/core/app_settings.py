@@ -65,6 +65,8 @@ class AppSettings:
     quick_roles: list[str] = field(default_factory=list)  # the 1-9 keys of the audit page
     phase_timings: dict[str, float] = field(default_factory=dict)  # seconds of the last run
     timing_assets: int = 0  # how many assets that run had (the estimate scales by the ratio)
+    # the same per kind of game (T16.16): archetype -> [assets, seconds] of its last run
+    kind_timings: dict[str, list[float]] = field(default_factory=dict)
     cache_limit_gb: float = 10.0  # extracted archives: least recently used go beyond this
     keep_full_failed_runs: bool = False  # a failed run keeps its pack art and import cache
     confirm_regeneration: bool = True  # show the changes before a regeneration writes them
@@ -89,6 +91,7 @@ class AppSettings:
             "quick_roles": list(self.quick_roles),
             "phase_timings": dict(self.phase_timings),
             "timing_assets": self.timing_assets,
+            "kind_timings": {k: list(v) for k, v in self.kind_timings.items()},
             "cache_limit_gb": self.cache_limit_gb,
             "keep_full_failed_runs": self.keep_full_failed_runs,
             "confirm_regeneration": self.confirm_regeneration,
@@ -247,6 +250,15 @@ def from_json(data: Any) -> AppSettings:
     counted = data.get("timing_assets")
     if isinstance(counted, int) and not isinstance(counted, bool) and counted >= 0:
         s.timing_assets = counted
+    by_kind = data.get("kind_timings")
+    if isinstance(by_kind, dict):
+        s.kind_timings = {
+            str(k): [float(v[0]), float(v[1])]
+            for k, v in by_kind.items()
+            if isinstance(v, list)
+            and len(v) == 2
+            and all(isinstance(n, (int, float)) and not isinstance(n, bool) for n in v)
+        }
     confirm = data.get("confirm_regeneration")
     if isinstance(confirm, bool):
         s.confirm_regeneration = confirm

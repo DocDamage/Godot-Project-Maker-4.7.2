@@ -273,13 +273,25 @@ def _plan(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict
             "warnings": [],
         }
     if cfg.archetype in config_mod.ARCADE_KINDS:  # stages, not a map (M16)
-        from rpggen.core import options
+        from rpggen.core import options, stage_plan, track_plan, wave_plan
 
+        planner: Any = {"run_and_gun": stage_plan, "racing": track_plan}.get(
+            cfg.archetype, wave_plan
+        )
+        chosen = cfg.starter_map_options()
+        facts = planner.facts_of(cfg.resolution, cfg.base_tile_size)
+        notes: list[str] = []
+        try:  # the plan a first run would make: "3 stages, 24 waves, 3 bosses" (T16.16)
+            world, _kept = planner.for_project(None, chosen, cfg.seed, facts)
+            text = options.plan_text(cfg.archetype, world["stages"], chosen)
+            notes = list(world["stages"].get("notes", []))
+        except ValueError as error:  # WavePlanError, StagePlanError, TrackPlanError
+            text, notes = "", [str(error)]
         return {
             "size": [0, 0],
-            "stages": options.stages_text(cfg.archetype, cfg.starter_map_options()),
+            "stages": text,
             "counts": dict.fromkeys(PLAN_COUNTS, 0),
-            "warnings": [],
+            "warnings": notes,
         }
     imported = next(
         (m for m in catalog.maps if m["id"] == cfg.imported_map_selection()["starter"]), None
@@ -343,7 +355,8 @@ def format_summary(summary: dict[str, Any]) -> list[str]:
             lines.extend(row("", f"note: {w}") for w in plan["warnings"])
             return lines
         if "stages" in plan:
-            lines.append(row("stages", plan["stages"]))
+            lines.append(row("stages", plan["stages"] or "none: the options make no plan"))
+            lines.extend(row("", f"note: {w}") for w in plan["warnings"])
             return lines
         if "imported" in plan:
             size = plan["size"]

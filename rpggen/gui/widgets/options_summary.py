@@ -30,7 +30,10 @@ ARCHETYPE_NAMES = {
     "turn_based": "Turn-based RPG",
     "arpg": "Action RPG",
     "metroidvania": "Metroidvania",
+    **options.ARCADE_NAMES,
 }
+# an arcade kind's numbers are words of the plan: each is translated as a whole
+PLAN_NOUN = {"racing": "Tracks: {0}"}
 
 
 class OptionsSummary(QGroupBox):
@@ -67,11 +70,18 @@ class OptionsSummary(QGroupBox):
         seconds: float | None,
         size_bytes: int | None,
     ) -> None:
-        self.archetype_label.setText(
-            "<b>" + self.tr(ARCHETYPE_NAMES.get(summary.archetype, summary.archetype)) + "</b>"
-        )
+        name = "<b>" + self.tr(ARCHETYPE_NAMES.get(summary.archetype, summary.archetype)) + "</b>"
+        # an arcade kind with its numbers: Shoot 'em up · vertical · 3 stages · 3 lives
+        self.archetype_label.setText(" · ".join([name, *summary.numbers]))
         maps = [self.tr(m) if not m[0].isdigit() else self._interiors(m) for m in summary.maps]
-        if summary.archetype == "metroidvania":
+        if summary.archetype in options.ARCADE_NAMES:
+            noun = PLAN_NOUN.get(summary.archetype, "Stages: {0}")
+            self.maps_label.setText(
+                self.tr(noun).format(summary.world)
+                if summary.world
+                else self.tr("The options do not fit together")
+            )
+        elif summary.archetype == "metroidvania":
             self.maps_label.setText(
                 self.tr("World: {0}").format(summary.world)
                 if summary.world

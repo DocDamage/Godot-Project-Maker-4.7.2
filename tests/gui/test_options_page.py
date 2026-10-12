@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from rpggen.core import config, options
 from rpggen.gui.pages.options_page import OptionsPage
 from rpggen.gui.state import WizardState
@@ -376,3 +378,238 @@ def test_turning_off_combat_disables_and_clears_navigation(qtbot) -> None:
     page.feature_boxes["combat"].setChecked(True)
     assert navigation.isEnabled() and navigation.isChecked(), "the wish comes back"
     assert needs.isHidden()
+
+
+# ------------------------------------------------------------------------ the arcade kinds (T16.16)
+
+ARCADE_BOXES = {"shmup": "shmupBox", "run_and_gun": "runAndGunBox", "racing": "racingBox"}
+
+
+def _arcade_page(qtbot, kind: str, **starter) -> tuple[OptionsPage, WizardState]:
+    cfg = config.default_for("T", [REF], archetype=kind)
+    cfg.starter_map = dict(starter)
+    state = WizardState(config=cfg, archetype=kind)
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.resize(828, 900)
+    page.show()
+    page.enter(state)
+    return page, state
+
+
+def test_the_numbers_of_an_arcade_kind_in_words() -> None:
+    assert options.arcade_numbers("shmup", {}) == ["vertical", "3 stages", "3 lives"]
+    assert options.arcade_numbers("shmup", {"stages": 1, "lives": 1}) == [
+        "vertical",
+        "1 stage",
+        "1 life",
+    ]
+    assert options.arcade_numbers("run_and_gun", {"grapple": True, "jump": False}) == [
+        "3 stages",
+        "3 lives",
+        "grapple, no jump",
+    ]
+    assert options.arcade_numbers("racing", {"rivals": 1}) == ["4 tracks", "3 laps", "1 rival"]
+    assert options.arcade_numbers("racing", {"laps": 99}) == [], "options that make no plan"
+    assert options.arcade_numbers("turn_based", {}) == []
+    summary = options.summarize("shmup", config.default_features("shmup"), {}, 16, (640, 360))
+    assert summary.numbers == ("vertical", "3 stages", "3 lives")
+    assert "Demo scene" not in summary.systems and "Navigation" not in summary.systems
+
+
+def test_a_planned_run_in_words_and_the_estimate_of_a_kind() -> None:
+    from rpggen.core import stage_plan, track_plan, wave_plan
+
+    waves = wave_plan.plan({}, 5)
+    count = sum(len(stage["waves"]) for stage in waves["list"])
+    assert options.plan_text("shmup", waves, {}) == f"3 stages, {count} waves, 3 bosses"
+    stages = stage_plan.plan({"stages": 1}, 5)
+    text = options.plan_text("run_and_gun", stages, {"stages": 1})
+    assert text.startswith("1 stage, ") and text.endswith(" waves, 1 boss")
+    carried = sum(1 for wave in stages["list"][0]["waves"] if wave["enemy"] == "pickup")
+    assert carried and f", {len(stages['list'][0]['waves']) - carried} waves" in text
+    tracks = track_plan.plan({"rivals": 2}, 5)
+    assert options.plan_text("racing", tracks, {"rivals": 2}) == "4 tracks of 3 laps, 2 rivals"
+    # the estimate learns per kind, and says nothing of a kind that was never timed
+    timed = {"racing": [100.0, 40.0]}
+    assert options.estimate_kind_seconds(timed, "racing", 200) == 80.0
+    assert options.estimate_kind_seconds(timed, "shmup", 200) is None
+    assert options.estimate_kind_seconds({"racing": [0.0, 40.0]}, "racing", 200) is None
+
+
+def test_the_pictures_of_a_wave_plan_and_of_a_stage_plan() -> None:
+    from rpggen.core import map_preview, stage_plan, wave_plan
+
+    waves = wave_plan.plan({"stages": 2}, 3)
+    chart = map_preview.render_waves(waves, scale=2)
+    rects = map_preview.wave_rects(waves, 2)
+    assert list(rects) == ["stage_01", "stage_02"]
+    last = rects["stage_02"]
+    assert chart.size == (last[0] + last[2], map_preview.WAVE_HEIGHT * 2)
+    colours = {colour for _n, colour in chart.getcolors(1 << 16)}
+    assert map_preview.WAVE_BOSS in colours and map_preview.WAVE_COLORS["popcorn"] in colours
+    assert map_preview.WAVE_COLORS["carrier"] in colours, "the power-up carrier of every stage"
+    left, top, width, _height = rects["stage_01"]
+    assert chart.getpixel((left + width // 2, top + 6)) == map_preview.WAVE_BOSS, "at the top"
+
+    run = stage_plan.plan({"stages": 2}, 3)
+    strip = map_preview.render_stage_strip(run, scale=2)
+    places = map_preview.strip_rects(run, 2)
+    first = run["list"][0]
+    assert places["stage_01"][2:] == (len(first["tiles"][0]) * 2, len(first["tiles"]) * 2)
+    assert strip.size[0] == places["stage_01"][2]
+    assert places["stage_02"][1] == places["stage_01"][3] + map_preview.STRIP_GAP
+    colours = {colour for _n, colour in strip.getcolors(1 << 16)}
+    for mark in ("start", "enemy", "pickup", "boss"):
+        assert map_preview.STRIP_MARKERS[mark] in colours, mark
+    assert map_preview.STRIP_TILES["#"] in colours and map_preview.STRIP_ARENA in colours
+    assert map_preview.STRIP_MARKERS["grapple"] not in colours, "a soldier that jumps has none"
+    arm = stage_plan.plan({"grapple": True, "jump": False}, 3)
+    points = map_preview.grapple_points(arm["list"][0]["tiles"])
+    assert points, "something to swing from"
+    armed = map_preview.render_stage_strip(arm, scale=2)
+    assert (
+        armed.getpixel((points[0][0] * 2, points[0][1] * 2))
+        == (map_preview.STRIP_MARKERS["grapple"])
+    )
+
+
+def test_an_arcade_kind_has_its_box_in_place_of_the_starter_map(qtbot) -> None:
+    summaries = {
+        "shmup": ("<b>Shoot 'em up</b> · vertical · 3 stages · 3 lives", "Stages: 3 stages, "),
+        "run_and_gun": ("<b>Run and gun</b> · 3 stages · 3 lives", "Stages: 3 stages, "),
+        "racing": ("<b>Racing</b> · 4 tracks · 3 laps · 3 rivals", "Tracks: 4 tracks of 3 laps"),
+    }
+    for kind, name in ARCADE_BOXES.items():
+        page, state = _arcade_page(qtbot, kind)
+        before = state.config.to_json()
+        box = page.arcade_box
+        assert box is not None and box.objectName() == name and not box.isHidden()
+        assert [b.isHidden() for b in page.arcade_boxes.values()].count(False) == 1
+        assert page.starter_box.isHidden() and page.world_box.isHidden()
+        assert page.imported_box.isHidden() and page.layers_box.isHidden()
+        assert page.feature_boxes["demo"].isHidden() and page.feature_boxes["navigation"].isHidden()
+        assert not page.feature_boxes["dialogue"].isHidden()
+        assert box.values() == config.starter_map_defaults(kind)
+        # the preview is drawn from the plan, with the plan in words under it
+        assert box.plan is not None and len(box.plan["list"]) == (4 if kind == "racing" else 3)
+        assert not box.preview.pixmap().isNull()
+        assert box.preview.pixmap().height() <= box.PREVIEW_HEIGHT
+        assert box.summary.text() == page.model.planner().summary(box.plan)
+        assert len(box.legend_labels) == len(box.LEGEND) >= 5
+        title, plan = summaries[kind]
+        assert page.summary.archetype_label.text() == title
+        assert page.summary.maps_label.text().startswith(plan)
+        assert "Demo scene" not in [chip.text() for chip in page.summary.chips]
+        assert page.validate(state) == []
+        page.leave(state)
+        assert state.config.to_json() == before, "the defaults are not written out"
+
+
+def test_the_options_of_a_shoot_em_up_follow_its_box(qtbot) -> None:
+    page, state = _arcade_page(qtbot, "shmup")
+    box = page.arcade_box
+    seen: list[int] = []
+    page.changed.connect(lambda: seen.append(1))
+    box.combos["orientation"].setCurrentIndex(box.combos["orientation"].findData("horizontal"))
+    box.spins["stages"].setValue(5)
+    box.checks["auto_fire"].setChecked(False)
+    assert len(seen) == 3
+    assert len(box.plan["list"]) == 5 and box.plan["orientation"] == "horizontal"
+    assert box.summary.text() == "5 stages, 5 bosses, scrolling right"
+    assert page.summary.archetype_label.text() == (
+        "<b>Shoot 'em up</b> · horizontal · 5 stages · 3 lives"
+    )
+    assert box.spins["stages"].maximum() == 8 and box.spins["lives"].minimum() == 1
+    # an added stage is a row of the options, named after the last
+    assert box.add_row() and box.added_rows() == [{"name": "Stage 6"}]
+    assert len(box.plan["list"]) == 6
+    page.leave(state)
+    assert state.config.starter_map == {
+        "orientation": "horizontal",
+        "stages": 5,
+        "auto_fire": False,
+        "added_stages": [{"name": "Stage 6"}],
+    }
+    box.reset.click()
+    assert box.values() == config.starter_map_defaults("shmup")
+    assert len(box.plan["list"]) == 3
+    # the screen decides how long a stage is: the plan follows the resolution
+    length = box.plan["list"][0]["length"]
+    page.resolution.set_value((320, 180))
+    assert box.plan["list"][0]["length"] != length and box.plan["view"] == [320, 180]
+
+
+def test_a_soldier_without_the_arm_always_jumps_and_the_presets_of_the_kinds(qtbot) -> None:
+    page, state = _arcade_page(qtbot, "run_and_gun")
+    box = page.arcade_box
+    grapple, jump = box.checks["grapple"], box.checks["jump"]
+    assert jump.isChecked() and not jump.isEnabled(), "no arm: the box cannot be cleared"
+    assert box.legend_items["grapple"].isHidden()
+    labels = [page.preset_combo.itemText(i) for i in range(page.preset_combo.count())]
+    assert labels[-2:] == ["Arcade classic", "Bionic"] and "Sunday drive" not in labels
+    box.spins["stages"].setValue(2)
+    assert page.apply_preset_named("__builtin__:bionic")
+    assert grapple.isChecked() and not jump.isChecked() and jump.isEnabled()
+    assert box.spins["stages"].value() == 2, "a preset of a kind keeps the other options"
+    assert box.plan["jump"] is False and not box.legend_items["grapple"].isHidden()
+    assert page.summary.archetype_label.text().endswith("2 stages · 3 lives · grapple, no jump")
+    grapple.setChecked(False)
+    assert jump.isChecked() and not jump.isEnabled(), "the arm goes: the jump comes back"
+    assert page.validate(state) == []
+    assert page.apply_preset_named("__builtin__:arcade_classic")
+    assert box.combos["difficulty"].currentData() == "hard" and box.spins["lives"].value() == 3
+    page.leave(state)
+    assert state.config.starter_map == {"stages": 2, "difficulty": "hard"}
+
+    race, race_state = _arcade_page(qtbot, "racing")
+    labels = [race.preset_combo.itemText(i) for i in range(race.preset_combo.count())]
+    assert labels[-1] == "Sunday drive" and "Bionic" not in labels
+    assert race.apply_preset_named("__builtin__:sunday_drive")
+    track = race.arcade_box
+    assert track.combos["steering"].currentData() == "absolute"
+    assert track.spins["rivals"].value() == 2 and track.checks["rubber_band"].isChecked()
+    assert race.summary.archetype_label.text() == "<b>Racing</b> · 4 tracks · 3 laps · 2 rivals"
+    assert track.add_row() and track.added_rows() == [{"name": "Track 5"}]
+    assert len(track.plan["list"]) == 5
+    assert track.remove_row() and track.added_rows() == []
+    race.leave(race_state)
+    assert race_state.config.starter_map == {"steering": "absolute", "rivals": 2}
+    # the presets of the arcade kinds are no preset of the others, and their names are taken
+    plain, _state = _page(qtbot)
+    labels = [plain.preset_combo.itemText(i) for i in range(plain.preset_combo.count())]
+    assert not {"Arcade classic", "Bionic", "Sunday drive"} & set(labels)
+    assert not plain.apply_preset_named("__builtin__:bionic")
+    assert not plain.model.save_preset("Bionic")
+    assert options.kind_preset("bionic", "shmup", {}) is None
+    assert options.kind_preset_keys("run_and_gun") == ["arcade_classic", "bionic"]
+
+
+def test_the_stages_of_a_game_that_exists_are_kept_but_one_can_be_added(
+    qtbot, tmp_path: Path
+) -> None:
+    from rpggen.core import wave_plan, world_plan
+
+    target = tmp_path / "game"
+    world, _notes = wave_plan.for_project(None, {"added_stages": [{"name": "Finale"}]}, 9)
+    (target / "rpggen").mkdir(parents=True)
+    (target / wave_plan.STAGES_FILE).parent.mkdir(parents=True)
+    (target / wave_plan.STAGES_FILE).write_text("{}", encoding="utf-8")
+    world_plan.save(target, world)
+    assert wave_plan.exists(target)
+    cfg = config.default_for("T", [REF], archetype="shmup")
+    cfg.starter_map = {"added_stages": [{"name": "Finale"}]}
+    state = WizardState(config=cfg, archetype="shmup", target=target, regenerating=True)
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.show()
+    page.enter(state)
+    box = page.arcade_box
+    assert page.model.starter_locked and not box.note.isHidden()
+    assert "kept as they are" in box.note.text()
+    assert not box.spins["stages"].isEnabled() and not box.reset.isEnabled()
+    assert len(box.plan["list"]) == 4, "the stored plan, with the stage that was added"
+    assert not box.remove_row(), "a stage that is built stays"
+    assert box.add_row("Encore") and len(box.plan["list"]) == 5
+    page.leave(state)
+    assert state.config.starter_map == {"added_stages": [{"name": "Finale"}, {"name": "Encore"}]}

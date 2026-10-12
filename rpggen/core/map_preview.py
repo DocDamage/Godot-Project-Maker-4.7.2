@@ -877,6 +877,8 @@ TRACK_COLORS = {
 TRACK_BARRIER = (38, 84, 44)
 TRACK_WALL = (200, 40, 40)
 TRACK_CHECKPOINT = (250, 210, 60)
+TRACK_PICKUP = (236, 120, 220)
+TRACK_CAR = (220, 60, 60)
 TRACK_GAP = 6  # px between two tracks of the picture
 
 
@@ -902,6 +904,10 @@ def render_track(track: dict[str, Any], scale: int = 4, tile: int = 16) -> Image
     )
     draw = ImageDraw.Draw(picture)
     k = scale / max(1, tile)
+    half = scale * 0.75
+    for pickup in track.get("pickups", []):  # under the checkpoints: a small square each
+        x, y = pickup["position"][0] * k, pickup["position"][1] * k
+        draw.rectangle([x - half, y - half, x + half, y + half], fill=TRACK_PICKUP)
     for point in track.get("checkpoints", []):
         x, y = point["position"][0] * k, point["position"][1] * k
         draw.ellipse([x - scale, y - scale, x + scale, y + scale], fill=TRACK_CHECKPOINT)
@@ -911,7 +917,7 @@ def render_track(track: dict[str, Any], scale: int = 4, tile: int = 16) -> Image
         dx, dy = math.cos(start["heading"]), math.sin(start["heading"])
         reach = scale * 3.0
         draw.line([(x, y), (x + dx * reach, y + dy * reach)], fill=(255, 255, 255), width=2)
-        draw.ellipse([x - scale, y - scale, x + scale, y + scale], fill=(220, 60, 60))
+        draw.ellipse([x - scale, y - scale, x + scale, y + scale], fill=TRACK_CAR)
     return picture
 
 
@@ -935,4 +941,147 @@ def render_tracks(stages: dict[str, Any], scale: int = 4) -> Image.Image:
     for track in stages["list"]:
         left, top, _w, _h = rects[track["id"]]
         picture.paste(render_track(track, scale, int(stages.get("tile", 16))), (left, top))
+    return picture
+
+
+# --------------------------------------------------------------------------- waves (T16.16)
+
+WAVE_BACKGROUND = (16, 18, 34)
+WAVE_LANE = (30, 34, 58)
+WAVE_BOSS = (214, 92, 214)
+WAVE_COLORS = {
+    "popcorn": (240, 160, 60),
+    "turret": (224, 80, 80),
+    "asteroid": (150, 150, 160),
+    "carrier": (90, 220, 255),
+}
+WAVE_ORDER = ("popcorn", "turret", "asteroid", "carrier", "boss")  # the legend's order
+WAVE_COLUMN = 30  # px a stage's column is wide at scale 1
+WAVE_HEIGHT = 64  # ... and high
+WAVE_GAP = 4
+
+
+def wave_rects(stages: dict[str, Any], scale: int = 2) -> dict[str, tuple[int, int, int, int]]:
+    """Stage id -> (left, top, width, height) of its column in ``render_waves``."""
+    step = (WAVE_COLUMN + WAVE_GAP) * scale
+    return {
+        stage["id"]: (i * step, 0, WAVE_COLUMN * scale, WAVE_HEIGHT * scale)
+        for i, stage in enumerate(stages["list"])
+    }
+
+
+def render_waves(stages: dict[str, Any], scale: int = 2) -> Image.Image:
+    """The wave chart of a shoot 'em up's plan: a column for every stage, read from the bottom
+    (where the stage starts) to the top; a mark for every wave, as wide as it has enemies and
+    coloured by what comes, and the boss as a block at the top."""
+    rects = wave_rects(stages, scale)
+    width = max((r[0] + r[2] for r in rects.values()), default=WAVE_COLUMN * scale)
+    picture = Image.new("RGB", (width, WAVE_HEIGHT * scale), WAVE_BACKGROUND)
+    draw = ImageDraw.Draw(picture)
+    head = 10 * scale  # the room of the boss at the top of a column
+    for stage in stages["list"]:
+        left, top, w, h = rects[stage["id"]]
+        draw.rectangle([left, top, left + w - 1, top + h - 1], fill=WAVE_LANE)
+        length = max(1.0, float(stage.get("length", 1.0)))
+        for wave in stage.get("waves", []):
+            part = min(1.0, max(0.0, float(wave.get("at", 0.0)) / length))
+            y = top + h - 2 * scale - part * (h - head - 4 * scale)
+            mark = min(w - 4 * scale, (3 + 3 * int(wave.get("count", 1))) * scale)
+            x = left + (w - mark) / 2
+            colour = WAVE_COLORS.get(str(wave.get("enemy")), WAVE_COLORS["popcorn"])
+            draw.rectangle([x, y - scale, x + mark - 1, y + scale - 1], fill=colour)
+        if stage.get("boss"):
+            draw.rectangle(
+                [left + 3 * scale, top + 2 * scale, left + w - 3 * scale - 1, top + head - scale],
+                fill=WAVE_BOSS,
+            )
+    return picture
+
+
+# --------------------------------------------------------------------------- stages (T16.16)
+
+STRIP_SKY = (28, 30, 52)
+STRIP_ARENA = (52, 34, 60)
+STRIP_TILES = {"#": (104, 92, 120), "=": (166, 122, 76), "^": (222, 74, 74)}
+STRIP_CHUNK = (44, 47, 74)  # the line between two chunks
+STRIP_MARKERS = {
+    "start": (96, 160, 232),
+    "enemy": (236, 120, 70),
+    "pickup": (90, 220, 255),
+    "boss": WAVE_BOSS,
+    "grapple": (250, 214, 90),
+}
+STRIP_ORDER = ("start", "enemy", "pickup", "boss", "grapple")
+STRIP_GAP = 3  # px between two stages of the picture
+ARENA_CHUNKS = 2  # stage_plan.ARENA_CHUNKS (that module imports this one's neighbours)
+
+
+def grapple_points(tiles: list[str]) -> list[tuple[int, int]]:
+    """The cells of a stage a hook can hold on to from below: a solid tile or a plank with air
+    under it (the ground and what stands on it have none)."""
+    return [
+        (x, y)
+        for y, row in enumerate(tiles[:-1])
+        for x, char in enumerate(row)
+        if char in "#=" and tiles[y + 1][x] == "."
+    ]
+
+
+def strip_rects(stages: dict[str, Any], scale: int = 2) -> dict[str, tuple[int, int, int, int]]:
+    """Stage id -> (left, top, width, height) of its strip in ``render_stage_strip``."""
+    out: dict[str, tuple[int, int, int, int]] = {}
+    top = 0
+    for stage in stages["list"]:
+        tiles = stage.get("tiles") or ["."]
+        out[stage["id"]] = (0, top, len(tiles[0]) * scale, len(tiles) * scale)
+        top += len(tiles) * scale + STRIP_GAP
+    return out
+
+
+def render_stage_strip(stages: dict[str, Any], scale: int = 2) -> Image.Image:
+    """Every stage of a run and gun's plan as a strip seen from the side, one under the other:
+    the ground, the planks and the spikes of its chunks, where the soldier starts, where the
+    enemies and the weapons come, the boss in its arena, and (for a soldier that does not jump)
+    the blocks its arm can hold on to."""
+    rects = strip_rects(stages, scale)
+    width = max((r[2] for r in rects.values()), default=scale)
+    height = max((r[1] + r[3] for r in rects.values()), default=scale)
+    picture = Image.new("RGB", (width, height), SIDE_BACKGROUND)
+    tile = max(1, int(stages.get("tile", 16)))
+    cols = max(1, int(stages.get("chunk_cols", 20)))
+    k = scale / tile
+    dot = max(2.0, scale * 1.5)
+    draw = ImageDraw.Draw(picture)
+    for stage in stages["list"]:
+        tiles = stage.get("tiles") or ["."]
+        _left, top, w, h = rects[stage["id"]]
+        strip = Image.new("RGB", (len(tiles[0]), len(tiles)), STRIP_SKY)
+        pixels = strip.load()
+        assert pixels is not None
+        arena = len(tiles[0]) - ARENA_CHUNKS * cols
+        for y, row in enumerate(tiles):
+            for x, char in enumerate(row):
+                if char in STRIP_TILES:
+                    pixels[x, y] = STRIP_TILES[char]
+                elif x >= arena:
+                    pixels[x, y] = STRIP_ARENA
+                elif x % cols == 0 and x:
+                    pixels[x, y] = STRIP_CHUNK
+        if not stages.get("jump", True):
+            for x, y in grapple_points(tiles):
+                pixels[x, y] = STRIP_MARKERS["grapple"]
+        picture.paste(strip.resize((w, h), Image.Resampling.NEAREST), (0, top))
+        marks = [
+            (wave["position"], "pickup" if wave.get("enemy") == "pickup" else "enemy", dot)
+            for wave in stage.get("waves", [])
+            if wave.get("position")
+        ]
+        if stage.get("start"):
+            marks.append((stage["start"], "start", dot))
+        if stage.get("boss"):
+            floor = next((y for y, row in enumerate(tiles) if row[-1] == "#"), len(tiles) - 1)
+            marks.append(([(len(tiles[0]) - cols * 0.5) * tile, floor * tile], "boss", dot * 2.0))
+        for position, kind, size in marks:  # a mark stands on its place: the feet are the point
+            x, y = float(position[0]) * k, top + float(position[1]) * k - size
+            draw.ellipse([x - size, y - size, x + size, y + size], fill=STRIP_MARKERS[kind])
     return picture

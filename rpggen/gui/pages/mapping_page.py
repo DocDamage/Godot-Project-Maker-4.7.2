@@ -348,6 +348,15 @@ class MappingPage(WizardPage):
             return f"{obj.name} · {where}".rstrip(" ·"), ident
         return ident, ident
 
+    def heading_count(self, ident: str) -> int:
+        """How many headings the rotation sheet ``ident`` has; 0 for anything else."""
+        assert self.state is not None and self.state.catalog is not None
+        asset = self.state.catalog.asset(ident)
+        if asset is None:
+            return 0
+        headings = catalog_mod.effective(asset).get("headings")
+        return headings if isinstance(headings, int) and not isinstance(headings, bool) else 0
+
     def _refresh(self) -> None:
         assert self.state is not None and self.state.catalog is not None
         catalog = self.state.catalog
@@ -358,6 +367,9 @@ class MappingPage(WizardPage):
             if ident is not None:
                 self._set_status(widget, "ok", "✔ " + self.tr("assigned"))
                 text, tip = self._display_name(catalog, ident)
+                if (headings := self.heading_count(ident)) > 0:
+                    # a car is one picture in N headings (T16.16): said beside its thumbnail
+                    text += " · " + self.tr("{0} headings").format(headings)
                 self._show_current(widget, ident, text, tip)
                 widget.thumb_label.setPixmap(self._thumb(catalog, ident))
                 widget.fallback_box.setVisible(False)

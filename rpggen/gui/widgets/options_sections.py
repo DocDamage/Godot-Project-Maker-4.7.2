@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Any
 
 from PySide6.QtCore import QCoreApplication, Qt, Signal
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtGui import QColor, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -29,7 +29,15 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import config as config_mod
-from rpggen.core import map_preview, options, room_plan, world_plan
+from rpggen.core import (
+    map_preview,
+    options,
+    room_plan,
+    stage_plan,
+    track_plan,
+    wave_plan,
+    world_plan,
+)
 from rpggen.gui import theme
 from rpggen.gui.models.options_model import (
     ABILITY_LABELS,
@@ -626,6 +634,504 @@ class StarterWorldBox(QGroupBox):
             widget.setEnabled(state.layout_enabled)
         self.note.setText(state.note)
         self.note.setVisible(state.note_visible)
+
+
+# ----------------------------------------------------------------------- the arcade kinds (T16.16)
+
+Rgb = tuple[int, int, int]
+# a field of an arcade box: ("spin", key, label, tooltip, (low, high)), ("combo", key, label,
+# tooltip, ((value, label), ...)) or ("check", key, label, tooltip, None)
+Field = tuple[str, str, str, str, Any]
+DIFFICULTY_CHOICES = (("easy", "Easy"), ("normal", "Normal"), ("hard", "Hard"))
+LENGTH_CHOICES = (("short", "Short"), ("medium", "Medium"), ("long", "Long"))
+
+
+class LegendDot(QWidget):
+    """A dot of a picture's own colour, for its legend (painted: no style sheet has a data
+    colour)."""
+
+    def __init__(self, colour: QColor, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.colour = colour
+        self.setFixedSize(10, 10)
+
+    def paintEvent(self, event) -> None:  # noqa: ANN001, N802 - Qt override
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QColor(0, 0, 0))
+        painter.setBrush(self.colour)
+        painter.drawEllipse(self.rect().adjusted(0, 0, -1, -1))
+        painter.end()
+
+
+class ArcadeBox(QGroupBox):
+    """What the three arcade kinds share on the Options page: the kind's options as spin boxes,
+    combos and check boxes, a preview drawn from the plan with a legend of what its marks are,
+    the plan in words, and the table of the stages (or tracks) added to a game that exists."""
+
+    edited = Signal()
+    PREVIEW_HEIGHT = 150
+    PREFIX = ""  # of the widgets' object names: "shmup_stages"
+    KIND = ""
+    FIELDS: tuple[Field, ...] = ()
+    ADDED_KEY = "added_stages"
+    ADDED_NOUN = "Stage"  # a new row is "Stage 4"
+    COUNT_KEY = "stages"
+    LEGEND: tuple[tuple[str, str, Rgb], ...] = ()  # (key, name, colour)
+    MAX_ADDED = 8
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        from rpggen.gui.widgets.flow_layout import FlowLayout
+
+        self._loading = False
+        self._locked_rows = 0
+        self.plan: dict[str, Any] | None = None
+        self._pixmap = QPixmap()
+        layout = QVBoxLayout(self)
+        self.note = QLabel()
+        self.note.setObjectName(f"{self.PREFIX}Note")
+        self.note.setWordWrap(True)
+        self.note.setProperty("state", "warning")
+        self.note.setVisible(False)
+        layout.addWidget(self.note)
+
+        self.spins: dict[str, QSpinBox] = {}
+        self.combos: dict[str, QComboBox] = {}
+        self.checks: dict[str, QCheckBox] = {}
+        number_box = QWidget()
+        numbers = FlowLayout(number_box, spacing=theme.px("space_12"))
+        check_box = QWidget()
+        checks = FlowLayout(check_box, spacing=theme.px("space_12"))
+        for kind, key, label, tooltip, extra in self.FIELDS:
+            name = f"{self.PREFIX}_{key}"
+            if kind == "check":
+                check = QCheckBox(self.tr(label))
+                check.setObjectName(name)
+                check.setToolTip(self.tr(tooltip))
+                check.toggled.connect(self._changed)
+                self.checks[key] = check
+                checks.addWidget(check)
+                continue
+            widget: QWidget
+            if kind == "spin":
+                low, high = extra
+                box = spin(low, high)
+                box.setToolTip(self.tr("{0} ({1} to {2})").format(self.tr(tooltip), low, high))
+                box.valueChanged.connect(self._changed)
+                self.spins[key] = box
+                widget = box
+            else:
+                combo = QComboBox()
+                for value, text in extra:
+                    combo.addItem(self.tr(text), value)
+                combo.setToolTip(self.tr(tooltip))
+                combo.currentIndexChanged.connect(self._changed)
+                self.combos[key] = combo
+                widget = combo
+            widget.setObjectName(name)
+            holder = QWidget()
+            column = QVBoxLayout(holder)
+            column.setContentsMargins(0, 0, 0, 0)
+            column.setSpacing(2)
+            column.addWidget(QLabel(self.tr(label)))
+            column.addWidget(widget)
+            numbers.addWidget(holder)
+        layout.addWidget(number_box)
+        layout.addWidget(check_box)
+        self.reset = reset_button(f"reset_{self.PREFIX}")
+        layout.addWidget(self.reset, 0, Qt.AlignmentFlag.AlignRight)
+
+        self.preview = QLabel()
+        self.preview.setObjectName(f"{self.PREFIX}Preview")
+        self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.preview.setMinimumHeight(self.PREVIEW_HEIGHT)
+        self.preview.setWordWrap(True)
+        layout.addWidget(self.preview)
+        self.legend_box = QWidget()
+        self.legend_box.setObjectName(f"{self.PREFIX}Legend")
+        legend = FlowLayout(self.legend_box, spacing=10)
+        self.legend_labels: dict[str, QLabel] = {}
+        self.legend_items: dict[str, QWidget] = {}
+        for key, text, (r, g, b) in self.LEGEND:
+            item = QWidget()
+            row = QHBoxLayout(item)
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(4)
+            dot = LegendDot(QColor(r, g, b))  # the mark's colour, from the picture's table
+            label = QLabel(self.tr(text))
+            label.setObjectName(f"{self.PREFIX}Legend_{key}")
+            row.addWidget(dot)
+            row.addWidget(label)
+            legend.addWidget(item)
+            self.legend_labels[key] = label
+            self.legend_items[key] = item
+        layout.addWidget(self.legend_box)
+        self.summary = _muted("", f"{self.PREFIX}Summary")
+        layout.addWidget(self.summary)
+
+        self.added_label = QLabel()
+        layout.addWidget(self.added_label)
+        self.added = QTableWidget(0, 1)
+        self.added.setObjectName(f"{self.PREFIX}Added")
+        self.added.setHorizontalHeaderLabels([self.tr("Name")])
+        self.added.horizontalHeader().setStretchLastSection(True)
+        self.added.verticalHeader().setVisible(False)
+        self.added.setMinimumHeight(84)
+        self.added.setMaximumHeight(140)
+        layout.addWidget(self.added)
+        buttons = QHBoxLayout()
+        self.add_button = QPushButton()
+        self.add_button.setObjectName(f"{self.PREFIX}Add")
+        self.remove_button = QPushButton(self.tr("Remove"))
+        self.remove_button.setObjectName(f"{self.PREFIX}Remove")
+        buttons.addWidget(self.add_button)
+        buttons.addWidget(self.remove_button)
+        buttons.addStretch(1)
+        layout.addLayout(buttons)
+        self.added.itemChanged.connect(self._changed)
+        self.added.itemSelectionChanged.connect(self._update_buttons)
+        self.add_button.clicked.connect(self.add_row)
+        self.remove_button.clicked.connect(self.remove_row)
+        self._update_buttons()
+
+    # ------------------------------------------------------------------ values
+
+    def values(self) -> dict[str, Any]:
+        out: dict[str, Any] = {key: box.value() for key, box in self.spins.items()}
+        out.update({key: combo.currentData() for key, combo in self.combos.items()})
+        out.update({key: check.isChecked() for key, check in self.checks.items()})
+        out[self.ADDED_KEY] = self.added_rows()
+        return out
+
+    def added_rows(self) -> list[dict[str, str]]:
+        rows = []
+        for row in range(self.added.rowCount()):
+            item = self.added.item(row, 0)
+            text = item.text().strip() if item else ""
+            if text:
+                rows.append({"name": text})
+        return rows
+
+    def load(self, values: dict[str, Any], locked_rows: int = 0) -> None:
+        """``locked_rows``: how many of the added rows the game already has (they stay)."""
+        self._loading = True
+        try:
+            for key, box in self.spins.items():
+                box.setValue(int(values[key]))
+            for key, combo in self.combos.items():
+                combo.setCurrentIndex(max(0, combo.findData(values[key])))
+            for key, check in self.checks.items():
+                check.setChecked(bool(values[key]))
+            self.added.setRowCount(0)
+            for row in values.get(self.ADDED_KEY, []) or []:
+                self._append(str(row.get("name", "")))
+            self._locked_rows = min(locked_rows, self.added.rowCount())
+            for row in range(self._locked_rows):
+                item = self.added.item(row, 0)
+                if item is not None:
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.sync()
+        finally:
+            self._loading = False
+        self._update_buttons()
+
+    def sync(self) -> None:
+        """What one option does to another (a kind's own rule); nothing here."""
+
+    def _changed(self, *_args: object) -> None:
+        if self._loading:
+            return
+        self._loading = True  # a rule may move another widget: one signal for the lot
+        try:
+            self.sync()
+        finally:
+            self._loading = False
+        self.edited.emit()
+
+    # ------------------------------------------------------------------ added rows
+
+    def _append(self, name: str) -> None:
+        row = self.added.rowCount()
+        self.added.blockSignals(True)
+        self.added.insertRow(row)
+        self.added.setItem(row, 0, QTableWidgetItem(name))
+        self.added.blockSignals(False)
+
+    def add_row(self, name: str = "") -> bool:
+        """A new row (named "Stage N" after the last when nothing is given)."""
+        if self.added.rowCount() >= self.MAX_ADDED:
+            return False
+        if not isinstance(name, str) or not name:
+            taken = {row["name"] for row in self.added_rows()}
+            number = self.spins[self.COUNT_KEY].value() + self.added.rowCount() + 1
+            while f"{self.ADDED_NOUN} {number}" in taken:
+                number += 1
+            name = f"{self.ADDED_NOUN} {number}"
+        self._append(name)
+        self._update_buttons()
+        self._changed()
+        return True
+
+    def remove_row(self) -> bool:
+        """Removes the chosen row (the last one when none is chosen); one that is built stays."""
+        row = self.added.currentRow()
+        if row < 0:
+            row = self.added.rowCount() - 1
+        if row < self._locked_rows or row < 0:
+            return False
+        self.added.removeRow(row)
+        self._update_buttons()
+        self._changed()
+        return True
+
+    def _update_buttons(self) -> None:
+        self.add_button.setEnabled(self.added.rowCount() < self.MAX_ADDED)
+        self.remove_button.setEnabled(self.added.rowCount() > self._locked_rows)
+
+    # ------------------------------------------------------------------ preview and state
+
+    def picture(self, stages: dict[str, Any]):  # noqa: ANN201 - a PIL image
+        raise NotImplementedError
+
+    def words(self, stages: dict[str, Any]) -> str:
+        raise NotImplementedError
+
+    def show_plan(self, stages: dict[str, Any] | None, error: str = "") -> None:
+        """The plan as its picture, or why there is none."""
+        self.plan = stages
+        if stages is None:
+            self._pixmap = QPixmap()
+            self.preview.setPixmap(QPixmap())
+            self.preview.setText(error or self.tr("No preview"))
+            self.summary.setText("")
+            return
+        picture = self.picture(stages).convert("RGBA")
+        image = QImage(
+            picture.tobytes(), picture.width, picture.height, QImage.Format.Format_RGBA8888
+        ).copy()
+        self._pixmap = QPixmap.fromImage(image)
+        self.preview.setText("")
+        self._fit()
+        self.summary.setText(self.words(stages))
+
+    def _fit(self) -> None:
+        if self._pixmap.isNull():
+            return
+        room = max(40, self.preview.width() - 8)
+        pixmap = self._pixmap
+        if pixmap.width() > room or pixmap.height() > self.PREVIEW_HEIGHT:
+            pixmap = pixmap.scaled(
+                room,
+                self.PREVIEW_HEIGHT,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.FastTransformation,
+            )
+        self.preview.setPixmap(pixmap)
+
+    def resizeEvent(self, event) -> None:  # noqa: ANN001, N802 - Qt override
+        super().resizeEvent(event)
+        self._fit()
+
+    def show_state(self, state: StarterState) -> None:
+        for widget in (*self.spins.values(), *self.combos.values(), *self.checks.values()):
+            widget.setEnabled(state.layout_enabled)
+        self.reset.setEnabled(state.layout_enabled)
+        self.note.setText(state.note)
+        self.note.setVisible(state.note_visible)
+        if state.layout_enabled:
+            self._loading = True
+            try:
+                self.sync()  # a rule's own disabled widget stays disabled
+            finally:
+                self._loading = False
+
+
+class ShmupBox(ArcadeBox):
+    """The stages of a shoot 'em up (T16.06) and its wave chart."""
+
+    PREFIX = "shmup"
+    KIND = "shmup"
+    FIELDS = (
+        (
+            "combo",
+            "orientation",
+            "Scrolls",
+            "The way the stages scroll: up the screen or to the right",
+            (("vertical", "Up (vertical)"), ("horizontal", "Right (horizontal)")),
+        ),
+        ("spin", "stages", "Stages", "Stages of the run", wave_plan.STAGE_RANGE),
+        ("combo", "length", "Length", "How long a stage is", LENGTH_CHOICES),
+        ("spin", "lives", "Lives", "Ships at the start of a run", wave_plan.LIVES_RANGE),
+        ("spin", "bombs", "Bombs", "Bombs of every ship", wave_plan.BOMBS_RANGE),
+        (
+            "combo",
+            "difficulty",
+            "Difficulty",
+            "How fast and how many the enemy's bullets are",
+            DIFFICULTY_CHOICES,
+        ),
+        ("check", "auto_fire", "Auto-fire", "The ship fires while the button is held", None),
+    )
+    LEGEND = (
+        ("popcorn", "formation", map_preview.WAVE_COLORS["popcorn"]),
+        ("turret", "turrets", map_preview.WAVE_COLORS["turret"]),
+        ("asteroid", "asteroids", map_preview.WAVE_COLORS["asteroid"]),
+        ("carrier", "power-up carrier", map_preview.WAVE_COLORS["carrier"]),
+        ("boss", "boss", map_preview.WAVE_BOSS),
+    )
+    MAX_ADDED = wave_plan.MAX_ADDED
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setTitle(self.tr("Stages"))
+        self.setObjectName("shmupBox")
+        self.added_label.setText(self.tr("Added stages"))
+        self.add_button.setText(self.tr("Add a stage"))
+        self.added.setToolTip(self.tr("A stage with this name is planned after the last one"))
+        self.preview.setAccessibleName(
+            self.tr("The waves of every stage: a column a stage, the boss at the top")
+        )
+
+    def picture(self, stages: dict[str, Any]):  # noqa: ANN201
+        return map_preview.render_waves(stages, scale=2)
+
+    def words(self, stages: dict[str, Any]) -> str:
+        return wave_plan.summary(stages)
+
+
+class RunAndGunBox(ArcadeBox):
+    """The stages of a run and gun (T16.10), the grapple (T16.11) and its stage strip."""
+
+    PREFIX = "gun"
+    KIND = "run_and_gun"
+    PREVIEW_HEIGHT = 170
+    FIELDS = (
+        ("spin", "stages", "Stages", "Stages of the run", stage_plan.STAGE_RANGE),
+        ("combo", "length", "Length", "How long a stage is", LENGTH_CHOICES),
+        ("spin", "lives", "Lives", "Soldiers at the start of a run", stage_plan.LIVES_RANGE),
+        ("spin", "health", "Health", "Hits a soldier takes", stage_plan.HEALTH_RANGE),
+        (
+            "combo",
+            "difficulty",
+            "Difficulty",
+            "How fast and how many the enemy's bullets are",
+            DIFFICULTY_CHOICES,
+        ),
+        ("check", "keep_weapon", "Keep the weapon", "A weapon survives the soldier's death", None),
+        (
+            "check",
+            "left_edge_kills",
+            "The left edge kills",
+            "The screen never scrolls back: what it leaves behind is lost",
+            None,
+        ),
+        ("check", "grapple", "Grapple arm", "An arm that swings and hoists the soldier", None),
+        ("check", "jump", "Jump", "Off only with the grapple: the arm is the way up", None),
+    )
+    LEGEND = (
+        ("start", "start", map_preview.STRIP_MARKERS["start"]),
+        ("enemy", "enemies", map_preview.STRIP_MARKERS["enemy"]),
+        ("pickup", "weapon", map_preview.STRIP_MARKERS["pickup"]),
+        ("boss", "boss arena", map_preview.STRIP_MARKERS["boss"]),
+        ("grapple", "grapple point", map_preview.STRIP_MARKERS["grapple"]),
+    )
+    MAX_ADDED = stage_plan.MAX_ADDED
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setTitle(self.tr("Stages"))
+        self.setObjectName("runAndGunBox")
+        self.added_label.setText(self.tr("Added stages"))
+        self.add_button.setText(self.tr("Add a stage"))
+        self.added.setToolTip(self.tr("A stage with this name is planned after the last one"))
+        self.preview.setAccessibleName(
+            self.tr("Every stage seen from the side: its chunks, its enemies and the boss arena")
+        )
+        self.sync()
+
+    def sync(self) -> None:
+        """A soldier without the arm jumps: the box cannot be cleared then."""
+        grapple, jump = self.checks["grapple"], self.checks["jump"]
+        if not grapple.isChecked():
+            jump.setChecked(True)
+        jump.setEnabled(grapple.isChecked() and grapple.isEnabled())
+
+    def picture(self, stages: dict[str, Any]):  # noqa: ANN201
+        return map_preview.render_stage_strip(stages, scale=2)
+
+    def words(self, stages: dict[str, Any]) -> str:
+        return stage_plan.summary(stages)
+
+    def show_plan(self, stages: dict[str, Any] | None, error: str = "") -> None:
+        super().show_plan(stages, error)
+        # the points the arm holds on to are drawn for a soldier that does not jump
+        self.legend_items["grapple"].setVisible(bool(stages) and not stages.get("jump", True))
+
+
+class RacingBox(ArcadeBox):
+    """The tracks of a racing game (T16.13 to T16.15) and its loops."""
+
+    PREFIX = "race"
+    KIND = "racing"
+    ADDED_KEY = "added_tracks"
+    ADDED_NOUN = "Track"
+    COUNT_KEY = "tracks"
+    FIELDS = (
+        ("spin", "tracks", "Tracks", "Tracks of the championship", track_plan.TRACK_RANGE),
+        ("spin", "laps", "Laps", "Laps of every race", track_plan.LAP_RANGE),
+        (
+            "combo",
+            "track_size",
+            "Track size",
+            "How much ground a track covers",
+            (("small", "Small"), ("medium", "Medium"), ("large", "Large")),
+        ),
+        ("combo", "difficulty", "Difficulty", "How many turns and hazards", DIFFICULTY_CHOICES),
+        (
+            "combo",
+            "steering",
+            "Steering",
+            "Relative: left and right turn the car. Absolute: the car heads where you point",
+            (("relative", "Relative"), ("absolute", "Absolute")),
+        ),
+        (
+            "combo",
+            "camera",
+            "Camera",
+            "Follow the car, or show the whole track",
+            (("follow", "Follows the car"), ("fixed", "The whole track")),
+        ),
+        ("spin", "rivals", "Rivals", "Cars you race against", track_plan.RIVALS),
+        ("check", "rubber_band", "Rubber-banding", "Rivals far behind catch up a little", None),
+        ("check", "elimination", "Elimination", "Who is last twice is out", None),
+    )
+    LEGEND = (
+        ("start", "start", map_preview.TRACK_CAR),
+        ("checkpoint", "checkpoint", map_preview.TRACK_CHECKPOINT),
+        ("pickup", "pickup", map_preview.TRACK_PICKUP),
+        ("boost", "boost arrow", map_preview.TRACK_COLORS["b"]),
+        ("oil", "oil", map_preview.TRACK_COLORS["o"]),
+        ("dirt", "dirt", map_preview.TRACK_COLORS["d"]),
+    )
+    MAX_ADDED = track_plan.MAX_ADDED
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setTitle(self.tr("Tracks"))
+        self.setObjectName("racingBox")
+        self.added_label.setText(self.tr("Added tracks"))
+        self.add_button.setText(self.tr("Add a track"))
+        self.added.setToolTip(self.tr("A track with this name is planned after the last one"))
+        self.preview.setAccessibleName(
+            self.tr("Every track from above: the loop, its checkpoints and its pickups")
+        )
+
+    def picture(self, stages: dict[str, Any]):  # noqa: ANN201
+        return map_preview.render_tracks(stages, scale=3)
+
+    def words(self, stages: dict[str, Any]) -> str:
+        return track_plan.summary(stages)
 
 
 class ImportedMapsBox(QGroupBox):

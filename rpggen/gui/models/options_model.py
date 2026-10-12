@@ -50,6 +50,14 @@ ABILITY_LABELS = {
 }
 # what a room is made of (T14.06); a metroidvania's layer list shows these and cannot be edited
 ROOM_LAYERS = ("Background", "Ground", "Platforms", "Hazards", "Decoration", "Foreground")
+EXISTING_STAGES_TEXT = (
+    "This project has its stages: the ones that exist are kept as they are. "
+    "You can still add a stage below; it comes after the last."
+)
+EXISTING_TRACKS_TEXT = (
+    "This project has its tracks: the ones that exist are kept as they are. "
+    "You can still add a track below; it comes after the last."
+)
 IMPORTED_STARTER_TEXT = (
     "The starter map is an imported map, so the layout options are not used. "
     "Set the starter map under Imported maps back to the layout options to use them."
@@ -287,9 +295,24 @@ class OptionsModel:
         return self.draft is not None and self.draft.archetype == "metroidvania"
 
     @property
+    def is_arcade(self) -> bool:
+        """A shoot 'em up, a run and gun or a racing game (M16): a run of stages or tracks
+        instead of a starter map."""
+        return self.draft is not None and self.draft.archetype in config_mod.ARCADE_KINDS
+
+    @property
+    def planned(self) -> bool:
+        """The kinds whose world is planned as a whole (rooms, stages, tracks): they have a
+        box of their own in place of the starter map, and no imported maps."""
+        return self.is_side or self.is_arcade
+
+    @property
     def kept_key(self) -> str:
         """The one starter option that still counts once the map or the world exists: the
-        table a new area or a new room is added in."""
+        table a new area, a new room, a new stage or a new track is added in."""
+        if self.is_arcade:
+            assert self.draft is not None
+            return "added_tracks" if self.draft.archetype == "racing" else "added_stages"
         return "added_rooms" if self.is_side else "areas"
 
     def starter_exists(self) -> bool:
@@ -300,6 +323,10 @@ class OptionsModel:
             from rpggen.core import room_plan
 
             return room_plan.exists(state.target)
+        if self.is_arcade:
+            from rpggen.core import wave_plan
+
+            return wave_plan.exists(state.target)
         return (state.target / "game" / "maps" / "starter_map.tscn").is_file()
 
     def imported_starter(self) -> str:
@@ -309,11 +336,16 @@ class OptionsModel:
         """The layout options apply to a planned starter map: not to one that already exists and
         not to an imported one."""
         locked = self.starter_locked
-        if self.is_side:
+        if self.planned:
+            text = EXISTING_WORLD_TEXT
+            if self.is_arcade:
+                assert self.draft is not None
+                racing = self.draft.archetype == "racing"
+                text = EXISTING_TRACKS_TEXT if racing else EXISTING_STAGES_TEXT
             return StarterState(
                 layout_enabled=not locked,
                 imported_enabled=False,
-                note=self.tr(EXISTING_WORLD_TEXT),
+                note=self.tr(text),
                 note_visible=locked,
             )
         imported = bool(self.imported_starter()) and not locked
@@ -362,6 +394,48 @@ class OptionsModel:
             return None, str(error)
         return world["rooms"], ""
 
+    def planner(self):  # noqa: ANN201 - one of the three plan modules
+        """The module that plans the stages of the draft's arcade kind."""
+        from rpggen.core import stage_plan, track_plan, wave_plan
+
+        assert self.draft is not None
+        return {"run_and_gun": stage_plan, "racing": track_plan}.get(
+            self.draft.archetype, wave_plan
+        )
+
+    def stages_preview(self, values: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
+        """The stages (or the tracks) the options of an arcade kind give now, for the box's
+        preview: the stored plan with what was added once the project has its stages, else a
+        fresh plan from the seed, the screen and the tile size. ``(None, why)`` when the
+        options make no plan."""
+        if self.draft is None or not self.is_arcade:
+            return None, ""
+        planner = self.planner()
+        state = self.state
+        target = state.target if state is not None and self.starter_locked else None
+        facts = planner.facts_of(self.draft.resolution, self.draft.base_tile_size)
+        try:
+            world, _notes = planner.for_project(target, values, self.draft.seed, facts)
+        except ValueError as error:  # the plan errors of the three kinds
+            return None, str(error)
+        return world["stages"], ""
+
+    def built_added_stages(self) -> int:
+        """How many rows of the draft's added stages (or tracks) the project already has."""
+        from rpggen.core import world_plan
+
+        state = self.state
+        if self.draft is None or state is None or not self.starter_locked or state.target is None:
+            return 0
+        stored = world_plan.load(state.target) or {}
+        have = {str(name).casefold() for name in (stored.get("stages") or {}).get("added", [])}
+        built = 0
+        for row in self.draft.starter_map.get(self.kept_key, []):
+            if str(row.get("name", "")).strip().casefold() not in have:
+                break
+            built += 1
+        return built
+
     def built_added_rooms(self) -> int:
         """How many rows of the draft's ``added_rooms`` are rooms the project already has (they
         can no longer be renamed or removed)."""
@@ -387,11 +461,14 @@ class OptionsModel:
         """Why the draft's world options make no world ("" when they do)."""
         from rpggen.core import room_plan
 
-        if not self.is_side or self.draft is None:
+        if self.draft is None or not self.planned:
             return ""
         try:
-            room_plan.normalized(self.draft.starter_map_options())
-        except room_plan.RoomPlanError as error:
+            if self.is_arcade:
+                self.planner().normalized(self.draft.starter_map_options())
+            else:
+                room_plan.normalized(self.draft.starter_map_options())
+        except ValueError as error:  # RoomPlanError and the three plan errors
             return str(error)
         return ""
 
@@ -432,7 +509,7 @@ class OptionsModel:
         """The options the starter map preview draws, or None when there is nothing to draw."""
         if self.starter_locked or self.draft is None or self.catalog is None:
             return None
-        if self.imported_starter() or self.is_side:
+        if self.imported_starter() or self.planned:
             return None
         return {**self.starter_defaults(), **values}
 
@@ -509,7 +586,12 @@ class OptionsModel:
     def collect(self, values: OptionValues) -> None:
         if self.draft is None:
             return
-        self.draft.features = options.effective_features(values.features)
+        kept = (  # what the page does not show for an arcade kind stays as it was
+            {key: bool(self.draft.features.get(key, False)) for key in options.ARCADE_HIDDEN}
+            if self.is_arcade
+            else {}
+        )
+        self.draft.features = {**options.effective_features(values.features), **kept}
         self.draft.resolution = values.resolution
         self.draft.window_size = values.window_size
         if self.is_side:
@@ -534,6 +616,10 @@ class OptionsModel:
             layer_problems = []  # the layers of a room are fixed
             if why := self.world_error():
                 return [self.tr("Starter world: {0}.").format(why), *self.input_errors]
+        if self.is_arcade and (why := self.world_error()):
+            racing = self.draft.archetype == "racing"
+            what = self.tr("Tracks") if racing else self.tr("Stages")
+            return [self.tr("{0}: {1}.").format(what, why), *self.input_errors]
         return [*layer_problems, *self.input_errors, *options.config_errors(self.draft)]
 
     # ------------------------------------------------------------------ summary
@@ -553,7 +639,10 @@ class OptionsModel:
         )
         settings = app_settings.get()
         assets = len(self.catalog.assets) if self.catalog else 0
-        seconds = options.estimate_generation_seconds(
+        # what the last run of this kind took, when there was one (T16.16); else the last run
+        seconds = options.estimate_kind_seconds(
+            settings.kind_timings, self.draft.archetype, assets
+        ) or options.estimate_generation_seconds(
             settings.phase_timings, settings.timing_assets, assets
         )
         pack_bytes = self.pack_size()
@@ -577,9 +666,14 @@ class OptionsModel:
 
     def builtin_items(self) -> list[tuple[str, str]]:
         """``(label, combo data)`` of the built-in presets, in their order."""
-        return [
+        items = [
             (self.tr(label), BUILTIN_PREFIX + key)
             for key, (label, _on) in options.BUILTIN_PRESETS.items()
+        ]
+        kind = self.draft.archetype if self.draft is not None else ""
+        return items + [  # the presets of the chosen arcade kind (T16.16)
+            (self.tr(options.builtin_label(key)), BUILTIN_PREFIX + key)
+            for key in options.kind_preset_keys(kind)
         ]
 
     def user_items(self) -> list[tuple[str, str]]:
@@ -597,11 +691,13 @@ class OptionsModel:
         such preset. Raises ``ValueError`` when it does not fit."""
         if self.draft is None:
             return False
-        preset = (
-            options.builtin_preset(name.removeprefix(BUILTIN_PREFIX), self.draft.archetype)
-            if name.startswith(BUILTIN_PREFIX)
-            else app_settings.get().option_presets.get(name)
-        )
+        if name.startswith(BUILTIN_PREFIX):
+            key, kind = name.removeprefix(BUILTIN_PREFIX), self.draft.archetype
+            preset = options.builtin_preset(key, kind) or options.kind_preset(
+                key, kind, self.draft.starter_map
+            )
+        else:
+            preset = app_settings.get().option_presets.get(name)
         if preset is None:
             return False
         new = options.apply_preset(self.draft, preset)

@@ -131,6 +131,67 @@ def stages_text(archetype: str, starter_map: dict[str, Any]) -> str:
     return "stages"
 
 
+ARCADE_NAMES = {"shmup": "Shoot 'em up", "run_and_gun": "Run and gun", "racing": "Racing"}
+# The features an arcade kind has no use for: its stages are not a demo scene one can leave
+# out, and nothing in them looks for a path. The Options page does not show them and leaves
+# their values as the config has them.
+ARCADE_HIDDEN = ("demo", "navigation")
+
+
+def _count(number: int, noun: str) -> str:
+    if noun == "life":
+        return f"{number} {'life' if number == 1 else 'lives'}"
+    return f"{number} {noun}{'' if number == 1 else 's'}"
+
+
+def arcade_numbers(archetype: str, starter_map: dict[str, Any]) -> list[str]:
+    """What the summary says of an arcade kind beside its name (T16.16): "vertical", "3 stages",
+    "3 lives". Nothing when the options do not fit together."""
+    from rpggen.core import stage_plan, track_plan, wave_plan
+
+    try:
+        if archetype == "shmup":
+            opts = wave_plan.normalized(starter_map)
+            stages = opts["stages"] + len(opts["added_stages"])
+            return [opts["orientation"], _count(stages, "stage"), _count(opts["lives"], "life")]
+        if archetype == "run_and_gun":
+            opts = stage_plan.normalized(starter_map)
+            stages = opts["stages"] + len(opts["added_stages"])
+            out = [_count(stages, "stage"), _count(opts["lives"], "life")]
+            if opts["grapple"]:
+                out.append("grapple" if opts["jump"] else "grapple, no jump")
+            return out
+        if archetype == "racing":
+            opts = track_plan.normalized(starter_map)
+            tracks = opts["tracks"] + len(opts["added_tracks"])
+            return [
+                _count(tracks, "track"),
+                _count(opts["laps"], "lap"),
+                _count(opts["rivals"], "rival"),
+            ]
+    except ValueError:  # the three plan errors are ValueErrors
+        return []
+    return []
+
+
+def plan_text(archetype: str, stages: dict[str, Any], starter_map: dict[str, Any]) -> str:
+    """A planned run in words, for a dry run (T16.16): "3 stages, 24 waves, 3 bosses" or
+    "4 tracks of 3 laps, 3 rivals"."""
+    every = stages["list"]
+    if archetype == "racing":
+        from rpggen.core import track_plan
+
+        laps = int(stages.get("laps", every[0].get("laps", 3) if every else 3))
+        rivals = track_plan.normalized(starter_map)["rivals"]
+        return f"{_count(len(every), 'track')} of {_count(laps, 'lap')}, {_count(rivals, 'rival')}"
+    waves = sum(1 for s in every for w in s.get("waves", []) if w.get("enemy") != "pickup")
+    bosses = sum(1 for s in every if s.get("boss"))
+    return (
+        f"{_count(len(every), 'stage')}, {_count(waves, 'wave')}, "
+        f"{bosses} boss{'' if bosses == 1 else 'es'}"
+    )
+
+
 def effective_features(wanted: dict[str, bool]) -> dict[str, bool]:
     """``wanted`` with every feature whose dependencies are off forced off."""
     out = dict(wanted)
@@ -164,6 +225,8 @@ class Summary:
     tile_size: int
     tiles: str  # "≈ 40 × 22.5 tiles on screen"
     world: str = ""  # a metroidvania's starter world: "6 rooms, 2 abilities, a guardian"
+    # an arcade kind's numbers, said beside its name: ("vertical", "3 stages", "3 lives")
+    numbers: tuple[str, ...] = ()
 
 
 def summarize(
@@ -179,10 +242,18 @@ def summarize(
     the starter map replaces the starter map and its second area (T12.49)."""
     if archetype in config_mod.ARCADE_KINDS:
         # a run through stages (M16): no starter map, no imported maps
-        on = effective_features(features)
+        on = {**effective_features(features), **dict.fromkeys(ARCADE_HIDDEN, False)}
         systems = [FEATURE_INFO[key][1] for key in FEATURE_INFO if on.get(key)]
         hint = tiles_hint(resolution, tile_size)
-        return Summary(archetype, [], systems, tile_size, hint, stages_text(archetype, starter_map))
+        return Summary(
+            archetype,
+            [],
+            systems,
+            tile_size,
+            hint,
+            stages_text(archetype, starter_map),
+            tuple(arcade_numbers(archetype, starter_map)),
+        )
     if archetype == "metroidvania":
         # a world of rooms (T14.06): no starter map, no imported maps, no pathfinding
         from rpggen.core import room_plan
@@ -278,6 +349,18 @@ def estimate_generation_seconds(
     if total <= 0 or saved_assets <= 0 or assets <= 0:
         return None
     return total * assets / saved_assets
+
+
+def estimate_kind_seconds(
+    kind_timings: dict[str, list[float]], archetype: str, assets: int
+) -> float | None:
+    """The time the last run of this kind of game took, scaled by the ratio of asset counts;
+    None while no run of the kind was timed (the estimate then falls back to the last run of
+    any kind)."""
+    saved = kind_timings.get(archetype)
+    if not saved or saved[0] <= 0 or saved[1] <= 0 or assets <= 0:
+        return None
+    return saved[1] * assets / saved[0]
 
 
 def estimate_project_bytes(pack_bytes: int) -> int:
@@ -385,12 +468,44 @@ BUILTIN_PRESETS: dict[str, tuple[str, tuple[str, ...] | None]] = {
 }
 
 
+# The presets of the arcade kinds (T16.16): key -> (label, the kinds it is offered for, what it
+# sets among the kind's own options). Everything else on the page stays as it is.
+KIND_PRESETS: dict[str, tuple[str, tuple[str, ...], dict[str, Any]]] = {
+    "arcade_classic": (
+        "Arcade classic",
+        ("shmup", "run_and_gun"),
+        {"lives": 3, "difficulty": "hard"},
+    ),
+    "bionic": ("Bionic", ("run_and_gun",), {"grapple": True, "jump": False}),
+    "sunday_drive": (
+        "Sunday drive",
+        ("racing",),
+        {"steering": "absolute", "rivals": 2, "rubber_band": True},
+    ),
+}
+
+
+def kind_preset_keys(archetype: str) -> list[str]:
+    """The keys of ``KIND_PRESETS`` that are offered for ``archetype``, in their order."""
+    return [key for key, (_label, kinds, _set) in KIND_PRESETS.items() if archetype in kinds]
+
+
+def kind_preset(key: str, archetype: str, current: dict[str, Any]) -> dict[str, Any] | None:
+    """A preset of an arcade kind as ``apply_preset`` takes it: the kind's options as they are
+    (``current``) with the preset's values. None for an unknown key or another kind."""
+    if key not in KIND_PRESETS or archetype not in KIND_PRESETS[key][1]:
+        return None
+    return {"starter_map": {**copy.deepcopy(current), **KIND_PRESETS[key][2]}}
+
+
 def builtin_label(key: str) -> str:
-    return BUILTIN_PRESETS[key][0]
+    return BUILTIN_PRESETS[key][0] if key in BUILTIN_PRESETS else KIND_PRESETS[key][0]
 
 
 def builtin_labels() -> list[str]:
-    return [label for label, _on in BUILTIN_PRESETS.values()]
+    return [label for label, _on in BUILTIN_PRESETS.values()] + [
+        label for label, _kinds, _set in KIND_PRESETS.values()
+    ]
 
 
 def builtin_preset(key: str, archetype: str = "turn_based") -> dict[str, Any] | None:

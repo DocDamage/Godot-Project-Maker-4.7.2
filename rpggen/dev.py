@@ -109,6 +109,8 @@ def update_goldens() -> int:
 
 LAYOUT_ARCHETYPES = ("turn_based", "arpg", "metroidvania")
 LAYOUT_THEMES = ("dark", "light")
+# the kinds of M16: laid out by a test of their own, with their feature flags switched on
+LAYOUT_ARCADE = ("shmup", "run_and_gun", "racing")
 
 
 _FONT_FILES = (
@@ -164,8 +166,8 @@ def layout_state(archetype: str, scratch: Path):  # noqa: ANN201 - WizardState, 
     from rpggen.gui import workers
     from rpggen.gui.state import WizardState
 
-    # a metroidvania is laid out with the pack it is made for: the side-view sample
-    side = archetype == "metroidvania"
+    # a kind seen from the side is laid out with the pack made for one: the side-view sample
+    side = archetype in config.SIDE_VIEW_KINDS
     sample = paths.sample_pack_side_root() if side else paths.sample_pack_root()
     state = WizardState(project_name="Layout check", pack_sources=[sample], archetype=archetype)
     workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))

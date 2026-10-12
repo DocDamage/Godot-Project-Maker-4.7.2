@@ -580,3 +580,44 @@ def test_a_dry_run_of_a_metroidvania_plans_the_world_of_rooms(
     assert "(metroidvania)" in err
     assert "world:        6 rooms, 2 abilities, a guardian; rooms of 40 x 23 tiles" in err
     assert not target.exists()
+
+
+@pytest.mark.parametrize(
+    ("pack", "archetype", "text"),
+    [
+        ("shooter", "shmup", r"3 stages, \d+ waves, 3 bosses"),
+        ("gunner", "run_and_gun", r"3 stages, \d+ waves, 3 bosses"),
+        ("racer", "racing", r"4 tracks of 3 laps, 3 rivals"),
+    ],
+)
+def test_a_dry_run_of_an_arcade_kind_describes_its_plan(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys, pack: str, archetype: str, text: str
+) -> None:
+    """T16.16: ``--archetype`` takes the three keys, and the dry run says what would be planned."""
+    import re
+
+    _no_godot_no_staging(monkeypatch)
+    code, doc, err = _call(
+        capsys,
+        "generate",
+        "--pack",
+        str(SYNTH / pack),
+        "--archetype",
+        archetype,
+        "--target",
+        str(tmp_path / "game"),
+        "--dry-run",
+    )
+    assert code == 0, err
+    summary = doc["summary"]
+    assert summary["archetype"] == archetype
+    assert re.fullmatch(text, summary["map"]["stages"]), summary["map"]
+    assert re.search(r"^stages:\s+" + text + "$", err, re.MULTILINE), err
+    assert not (tmp_path / "game").exists()
+
+
+def test_an_unknown_archetype_is_a_usage_error(capsys) -> None:
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["generate", "--pack", str(SYNTH / "shooter"), "--archetype", "pinball"])
+    assert raised.value.code == 2
+    assert "--archetype" in capsys.readouterr().err

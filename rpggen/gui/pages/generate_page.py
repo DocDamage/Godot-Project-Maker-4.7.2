@@ -679,6 +679,10 @@ class GeneratePage(WizardPage):
             if result.timings:
                 assets = len(result.catalog.assets) if result.catalog is not None else 0
                 app_settings.update(phase_timings=dict(result.timings), timing_assets=assets)
+                kind = result.cfg.archetype if result.cfg is not None else ""
+                if kind and assets:  # the estimate of the Options page learns per kind
+                    took = [float(assets), float(sum(result.timings.values()))]
+                    app_settings.store().update(lambda s: s.kind_timings.update({kind: took}))
             self._set_icons({p: ICON_DONE for p in PHASES})
             self.elapsed_label.setText(
                 self.tr("Finished in {0}").format(self.format_seconds(sum(result.timings.values())))

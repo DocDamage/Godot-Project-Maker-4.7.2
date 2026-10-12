@@ -519,6 +519,7 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `rooms` | world_plan | T14.06 |
 | `abilities`, `broken_cells`, `room_fog` | save game | T14.05, T14.08 |
 | `summary.map.world`, `summary.map.rooms`; repair kind `exit` | command-line documents | T14.10, T14.06 |
+| `summary.map.stages`; `summary.archetype` takes `shmup`, `run_and_gun`, `racing` | command-line documents | T16.16 |
 
 ---
 
@@ -598,7 +599,10 @@ and its keys are in the order below, not sorted. Every document starts with the 
   every other role that has an asset; `need` is `required`, `recommended` or `optional`.
   `placeholders` are the roles `--placeholder` would fill (those that have no asset).
   `map` is present when the requirement check passed. `godot` is the executable that was found
-  (never started), or `null`.
+  (never started), or `null`. For an arcade kind (M16) `map` has `size` `[0, 0]`, counts of 0
+  and `stages`: the plan a first run would make, in words (`3 stages, 24 waves, 3 bosses`;
+  `4 tracks of 3 laps, 3 rivals`), or `""` when the options make no plan (`warnings` then
+  says why).
 
 ### 11.2 `analyze`
 

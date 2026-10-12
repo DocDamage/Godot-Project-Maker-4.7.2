@@ -247,3 +247,43 @@ def test_the_options_page_fits_with_a_world_of_areas(
         QApplication.processEvents()
     assert not box.world.isHidden() and box.world.plan is not None
     assert layout_problems(options) == []
+
+
+@pytest.mark.parametrize("size", sorted(SIZES))
+@pytest.mark.parametrize("archetype", dev.LAYOUT_ARCADE)
+def test_the_pages_of_an_arcade_kind_fit(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, archetype: str, size: str
+) -> None:
+    """T16.16: six cards on the Archetype page, the kind's roles on the Mapping page and its
+    box with a preview on the Options page, at the minimum window and at the default one."""
+    from rpggen import features
+    from rpggen.gui.pages.archetype_page import ArchetypePage
+    from rpggen.gui.pages.mapping_page import MappingPage
+    from rpggen.gui.pages.options_page import OptionsPage
+
+    for flag in ("SHMUP_AVAILABLE", "RUN_AND_GUN_AVAILABLE", "RACING_AVAILABLE"):
+        monkeypatch.setattr(features, flag, True)
+    theme.apply_theme("dark", remember=False)
+    window = MainWindow(dev.layout_state(archetype, tmp_path), default_pages())
+    qtbot.addWidget(window)
+    window.resize(*SIZES[size])
+    window.show()
+    found: list[str] = []
+    for kind in (ArchetypePage, MappingPage, OptionsPage):
+        page = next(p for p in window.pages if isinstance(p, kind))
+        window.show_page(window.pages.index(page))
+        for _ in range(3):
+            QApplication.processEvents()
+        found.extend(f"{page.title}: {p}" for p in layout_problems(page))
+        if isinstance(page, ArchetypePage):
+            assert page.selected() == archetype
+            assert page.in_grid == (size == "default"), "two rows of three from 1000 px on"
+            if page.in_grid:  # both rows are in view at 720 px
+                assert page.cards_box.height() <= page.cards_scroll.viewport().height()
+            for card in page.cards.values():
+                assert card.height() >= card.minimumSizeHint().height(), card.key
+        if isinstance(page, OptionsPage):
+            box = page.arcade_box
+            assert box is not None and not box.isHidden() and box.plan is not None
+            assert not box.preview.pixmap().isNull()
+    assert not found, f"{archetype}/{size}:\n" + "\n".join(found)

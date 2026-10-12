@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import config as config_mod
-from rpggen.core import vcs
+from rpggen.core import options, vcs
 from rpggen.errors import Issue
 from rpggen.gui import icons, theme
 from rpggen.gui.dialogs.options_dialogs import ManagePresetsDialog, SolidValuesDialog
@@ -92,6 +92,14 @@ class OptionsPage(WizardPage):
         self.starter_box = sections.StarterMapBox()
         self.world_box = sections.StarterWorldBox()  # a metroidvania's, instead of the map's
         self.world_box.setVisible(False)
+        # the three arcade kinds (T16.16): each has its box, with a preview of its plan
+        self.arcade_boxes: dict[str, sections.ArcadeBox] = {
+            "shmup": sections.ShmupBox(),
+            "run_and_gun": sections.RunAndGunBox(),
+            "racing": sections.RacingBox(),
+        }
+        for arcade in self.arcade_boxes.values():
+            arcade.setVisible(False)
         self.imported_box = sections.ImportedMapsBox()
         self.screen_box = sections.ScreenBox()
         self.layers_box = sections.LayersBox()
@@ -102,6 +110,7 @@ class OptionsPage(WizardPage):
             self.features,
             self.starter_box,
             self.world_box,
+            *self.arcade_boxes.values(),
             self.imported_box,
             self.screen_box,
             self.layers_box,
@@ -150,6 +159,9 @@ class OptionsPage(WizardPage):
         self.starter_reset.clicked.connect(self._reset_starter)
         self.world_box.edited.connect(self._on_starter_edited)
         self.world_box.reset.clicked.connect(self._reset_starter)
+        for arcade in self.arcade_boxes.values():
+            arcade.edited.connect(self._on_starter_edited)
+            arcade.reset.clicked.connect(self._reset_starter)
         self.imported_box.edited.connect(self._on_imported_edited)
         self.solid_button.clicked.connect(self.edit_solid_values)
         for editor in (self.resolution, self.window_editor):
@@ -243,12 +255,25 @@ class OptionsPage(WizardPage):
         """A metroidvania has a starter world instead of a starter map, no imported maps, no
         pathfinding and the layers of a room (T14.10)."""
         side = self.model.is_side
-        self.starter_box.setVisible(not side)
+        arcade = self.arcade_box
+        self.starter_box.setVisible(not self.model.planned)
         self.world_box.setVisible(side)
-        if side:
+        for box in self.arcade_boxes.values():
+            box.setVisible(box is arcade)
+        if self.model.planned:
             self.imported_box.setVisible(False)
-        self.features.set_hidden({"navigation"} if side else set())
+        hidden = set(options.ARCADE_HIDDEN) if arcade is not None else set()
+        self.features.set_hidden({"navigation"} if side else hidden)
         self.layers_box.set_fixed(side)
+        # a stage is not a map of layers: an arcade kind builds its own
+        self.layers_box.setVisible(arcade is None)
+
+    @property
+    def arcade_box(self) -> sections.ArcadeBox | None:
+        """The box of the draft's arcade kind; None for the other kinds."""
+        if self.draft is None or not self.model.is_arcade:
+            return None
+        return self.arcade_boxes.get(self.draft.archetype)
 
     def _load_draft(self) -> None:
         """Shows the draft in the widgets."""
@@ -266,6 +291,9 @@ class OptionsPage(WizardPage):
             if self.model.is_side:
                 self.layers_box.fill(list(ROOM_LAYERS))
                 self.world_box.load(draft.starter_map_options(), self.model.built_added_rooms())
+            elif (arcade := self.arcade_box) is not None:
+                self.layers_box.fill(draft.map_layers)
+                arcade.load(draft.starter_map_options(), self.model.built_added_stages())
             else:
                 self.layers_box.fill(draft.map_layers)
                 self.starter_box.load(
@@ -354,14 +382,19 @@ class OptionsPage(WizardPage):
         if self.model.is_side:
             self.world_box.show_state(state)
             return
+        if (arcade := self.arcade_box) is not None:
+            arcade.show_state(state)
+            return
         self.starter_box.show_state(state)
         self.imported_starter.setEnabled(state.imported_enabled)
 
     def starter_values(self) -> dict[str, Any]:
         """The starter map options as the widgets show them (the starter world's for a
-        metroidvania)."""
+        metroidvania, the stages' or the tracks' for an arcade kind)."""
         if self.model.is_side:
             return self.world_box.values()
+        if (arcade := self.arcade_box) is not None:
+            return arcade.values()
         return self.starter_box.values()
 
     def _on_starter_edited(self, *_args: object) -> None:
@@ -379,6 +412,9 @@ class OptionsPage(WizardPage):
         if self.model.is_side:
             self.world_box.show_plan(*self.model.rooms_preview(self.starter_values()))
             return
+        if (arcade := self.arcade_box) is not None:
+            arcade.show_plan(*self.model.stages_preview(self.starter_values()))
+            return
         self.starter_box.show_world(self.model.world_preview(self.starter_values()))
 
     def _reset_starter(self) -> None:
@@ -388,6 +424,8 @@ class OptionsPage(WizardPage):
         try:
             if self.model.is_side:
                 self.world_box.load(self.model.starter_defaults())
+            elif (arcade := self.arcade_box) is not None:
+                arcade.load(self.model.starter_defaults())
             else:
                 self.starter_box.load(
                     self.model.starter_defaults(),
@@ -559,6 +597,9 @@ class OptionsPage(WizardPage):
         if self._loading or self.draft is None:
             return
         self._update_hint()
+        if self.arcade_box is not None and self.draft.resolution != self.resolution.value():
+            self.draft.resolution = self.resolution.value()  # a stage is as long as its screens
+            self._show_world()
         self.layers_box.update_buttons()
         self.refresh_summary()
         self.changed.emit()

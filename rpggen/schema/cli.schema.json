@@ -81,7 +81,10 @@
           "enum": [
             "turn_based",
             "arpg",
-            "metroidvania"
+            "metroidvania",
+            "shmup",
+            "run_and_gun",
+            "racing"
           ]
         },
         "regeneration": {
@@ -201,6 +204,9 @@
               }
             },
             "world": {
+              "type": "string"
+            },
+            "stages": {
               "type": "string"
             },
             "rooms": {

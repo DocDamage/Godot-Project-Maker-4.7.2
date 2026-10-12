@@ -101,7 +101,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | Card | Title | Size | Depends on | Status |
 |------|-------|:----:|------------|--------|
 | T16.01 | The arcade framework | L | — | done as a framework with its tests; played from the title to the credits only once a kind can be generated (T16.04), see the notes |
-| T16.02 | Detection for the three kinds | M | — | done, but for the grid editor's ring and the pack card's words (the wizard, T16.16); the notes have the deviations |
+| T16.02 | Detection for the three kinds | M | — | done, but for the grid editor's ring and the pack card's words (the Archetype page's hint came with T16.16); the notes have the deviations |
 | T16.03 | Drawn stand-ins and new roles | M | T16.02 | done; the kinds are not in the config's enum until they can be built, and the notes have the other deviations |
 | T16.04 | Shoot 'em up: ship, bullets, scrolling | M | T16.01, T16.03 | done; no auto-fire switch in the settings menu yet, and the stage has nothing to shoot at until T16.05 (the notes) |
 | T16.05 | Shoot 'em up: waves, enemies, power-ups | M | T16.04 | done; an enemy without a picture is a drawn shape with no note, and the waves are a fixed set until the stage planner (the notes) |
@@ -115,7 +115,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T16.13 | Racing: the track plan and the track recipe | L | T16.12 | done; the tracks are in the plan's section `stages` and in `stages.json` (a track is a stage of the game), the road is one plain tile of the pack or drawn, corners are square, pickups are places only, and the Options preview is the picture function without the page (the notes) |
 | T16.14 | Racing: rivals, laps, checkpoints, pickups | M | T16.13 | done; a rival without a picture of its own is the player's car tinted (not the variant pipeline), checkpoints are at the edge of their cell, a weapon has a button of its own (`fire`), and the standings are data until the results screen of T16.15 (the notes) |
 | T16.15 | Racing: championship, results and the HUD | S | T16.14 | done; the HUD stays `racing_hud.gd`, the track map is a subclass of the minimap that draws the track, elimination is off by default, and the overlay screens and the minimap of earlier milestones were found to be misplaced and fixed (the notes) |
-| T16.16 | Wizard: cards, roles, options and previews | L | T16.07, T16.11, T16.15 | open |
+| T16.16 | Wizard: cards, roles, options and previews | L | T16.07, T16.11, T16.15 | done; the grid is by the window's width, a card of the grid leaves its list out while two rows would not fit, *Arcade classic* has no *no continues* (nothing in the config counts them), the presets are in `options.py`, and the kinds stay behind their flags until the gate (the notes) |
 | T16.17 | Three sample packs and *Try the sample* | M | T16.16 | open |
 | T16.18 | Smoke sequences and integration tests | M | T16.17 | open |
 | T16.19 | Documentation, screenshots and changelogs | M | T16.18 | open |
