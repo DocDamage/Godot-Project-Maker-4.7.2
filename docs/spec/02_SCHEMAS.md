@@ -34,6 +34,7 @@ Location: `<project>/rpggen/generator_config.json`. Written by Python and read b
 | `sounds` | object | `{}` | Optional (T11.20). Sound slot → audio asset id. Slots: `music_map`, `music_battle`, `music_title`, `sfx_ui_move`, `sfx_ui_confirm`, `sfx_ui_cancel`, `sfx_hit`, `sfx_attack`, `sfx_pickup`, `sfx_chest`, `sfx_door`, `sfx_step`, `sfx_save`, `sfx_levelup`. A slot that is absent is silent. Omitted from the JSON when empty. Beyond the fixed list any key matching `^(music|sfx)_[a-z][a-z0-9_]{1,30}$` is a **custom slot** (T13.16): `sfx_step_<surface>` is the footstep on ground tagged `surface:<surface>`, any other is played by name. A key that does not match is `CAT-006`. |
 | `starter_map` | object | defaults | Optional (T11.25). `size` [w, h] tiles (24..96 each), `buildings` 0..4, `npcs` 0..6, `enemies` 0..8, `chests` 0..4, `decorations` 0..40, `ground_patches` 0..20, `ground` asset id or "". Omitted from the JSON when equal to the defaults. `areas` (T13.20, optional): a list of 1 to 12 `{ "name", "biome", "size"?, "enemies"?, "chests"?, "join"?, "reroll"? }` rows that make a **world of connected maps** (§12): `biome` is `village`, `field`, `forest`, `cave` or `shore`; `size` [w, h] is 16..96 tiles (default [32, 20]); `enemies` and `chests` are 0..12 (default 2 and 1); `join` names the area a row added to an existing world hangs on; `reroll` (0 or more) gives another arrangement of that area only. The first `village` row (else the first row) is the starter map, whose size and counts are the options above. Without `areas` the project gets the starter map and the field of 1.0. |
 | `repair_world` | bool | `true` | Optional (T13.24). After a build, mend the doors that lead nowhere and the unreachable maps among the maps rpggen made and nobody changed (`rpggen/world_repair.json` lists what was done). Omitted from the JSON when true. |
+| `projection` | enum `top_down`/`isometric` | `top_down` | Optional (T17.13, release 1.5). How the maps of the project are seen: from above on squares, or at an angle on the diamonds of an isometric pack. `isometric` is allowed for `turn_based`, `arpg`, `farm` and `racing` (`CAT-002` for another kind) and needs a pack with an isometric ground tile (`CAT-002` without one: no ground is drawn for this view). **A generated project cannot change its projection** (its maps are painted in one): a run over a project whose saved config has the other one is refused with `CAT-002`. Omitted from the JSON when it is `top_down`, so every config before 1.5 is what it was. |
 | `imported_maps` | object | `{}` | Optional (T12.49). `include`: ids of the catalog's `maps` to build into `game/maps/imported/<pack>/`; `starter`: the id of the map that becomes `game/maps/starter_map.tscn` (the layout planner is then skipped, and the map has none of the demo's villager, chest or enemy). The starter is built even when it is not in `include`. Omitted when empty. |
 | `git` | object | `{}` | Optional (T12.12). `pack_art`: `"commit"` (default), `"lfs"` (the pack art goes through Git LFS; falls back to `commit` with ENV-013 when git-lfs is missing) or `"ignore"` (`assets/packs/` is added to the generated `.gitignore`). Omitted when it holds the default. |
 | `export_targets` | array of strings | `["windows"]` | Optional (T12.52). The platforms that get a preset in `export_presets.cfg` and a test export: `windows`, `web`, `linux`, `macos` (at least one, no repeats; written in that order). Omitted when it is `["windows"]`. |
@@ -230,7 +231,7 @@ unknown licence.
 |-----|------|-----------|---------|
 | `role` | enum Role | always | Primary role. `NONE` means excluded. |
 | `roles_alt` | array of [Role, float] | detection only | Other candidate roles with confidence. |
-| `usage` | enum `tiles`/`sprite`/`growth_strip`/`iso_tile`/`object`/`ui`/`portrait`/`background`/`audio`/`font` | always | How the asset is consumed. `iso_tile` (T17.12, release 1.5) is one tile of an isometric pack, a picture a tile: it is in no tile set, fills no role of a game and is offered for none until a project can be isometric (T17.13). `growth_strip` (T17.01, release 1.5) is a crop's stages in one row of `frame` cells: not an animation, and nothing to the kinds before the farm. |
+| `usage` | enum `tiles`/`sprite`/`growth_strip`/`iso_tile`/`iso_atlas`/`object`/`ui`/`portrait`/`background`/`audio`/`font` | always | How the asset is consumed. `iso_tile` (T17.12, release 1.5) is one tile of an isometric pack, a picture a tile: it is a tile of the tile set `iso` of a project with `projection: isometric` and fills the roles a sheet of tiles fills in a top-down one (T17.13); a top-down project uses nothing whose `projection` is `isometric` (no such tile, object or car), and an isometric project fills no role from a sheet of square tiles (`usage: tiles`). `iso_atlas` (T17.13) is a picture rpggen packed the tiles of an isometric pack into: the source of that tile set, of the pack `rpggen_iso`, with the role `NONE`; nobody chooses it. `growth_strip` (T17.01, release 1.5) is a crop's stages in one row of `frame` cells: not an animation, and nothing to the kinds before the farm. |
 | `grid` | Grid | usage=tiles or sprite sheet | |
 | `tileset` | string | usage=tiles | Name of the TileSetDef this sheet belongs to. |
 | `collision` | CollisionSpec | usage=tiles/object | Default for the whole sheet. |
@@ -316,6 +317,19 @@ Standard animation names: `idle_down, idle_up, idle_left, idle_right, walk_*, at
 
 * The `mode` enum is `corners_and_sides`, `corners` or `sides`. These map to `TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES`, `TileSet.TERRAIN_MODE_MATCH_CORNERS` and `TileSet.TERRAIN_MODE_MATCH_SIDES`. ⚠ VERIFY the enum names.
 * TileSet assignment rules (T2.14): one TileSetDef per distinct tile size. A sheet whose role is INTERIOR goes into a separate `interior` set of the same size. Names are `overworld`, `overworld_32`, `interior`, `interior_32` and so on.
+* **The tile set of an isometric project** (T17.13, release 1.5) is one more definition, `iso`, which only a project with `projection: isometric` has. It carries two keys no other definition has:
+
+  ```json
+  { "name": "iso", "tile_size": [180, 104], "projection": "isometric",
+    "sources": [ { "asset": "rpggen_iso.roads_0", "source_id": 0 } ],
+    "tiles": { "roads.png.roadtile_001_0": { "source": 0, "coords": [0, 0], "at": [0, 0],
+                                             "of": "roads.png.roadtile_001_0" } },
+    "custom_data": [ …the three above…, { "name": "tillable", "type": "bool" },
+                     { "name": "water", "type": "bool" } ],
+    "patterns_from_objects": false, … }
+  ```
+
+  `tile_size` is the diamond of the project's ground (the footprint of the tile chosen as `starter.ground`, else of the first isometric ground tile; once the definition exists, its own: maps are painted with it), never assumed 2:1. `sources` are the atlas pictures rpggen packs the single tiles into (assets of the pack `rpggen_iso`, usage `iso_atlas`, in `generated/iso_atlases/<pack>_<n>.png`; each has `grid.cell`, the atlas cell, which is the pack's canvas or, for a pack of one width and several heights, its largest picture). `tiles` says where every tile is: the source, the atlas `coords`, and `at`, where the picture's top left lies in its cell (a picture stands on the bottom of its cell, in the middle); `of` is the id of the first turn of the tile's own set when the picture is one of several turns (a tile in two colours is two sets). Isometric tiles on another diamond than the project's are in no tile set (`TILE-012`). The builder gives the Godot TileSet the isometric shape with the layout *diamond down*, and every tile the texture origin `origin + at - cell / 2` (the catalog's `origin` is the middle of its diamond in its picture).
 
 ### 4.7 id_allocations
 
@@ -327,6 +341,15 @@ Standard animation names: `idle_down, idle_up, idle_left, idle_right, walk_*, at
 * `source_id` values are **never reused**. `allocate_source_id(tileset)` returns `next_source_id` and increments it.
 * Removing a source moves its id into `retired`.
 * Python is the only writer of `tilesets`. The editor dock (M8) is the only writer of `entities`.
+* `iso_atlases` (T17.13, release 1.5; only in the catalog of an isometric project) keeps the cell of every isometric tile, so that **no painted cell moves when the project is generated again**:
+
+  ```json
+  { "iso_atlases": { "roads": { "cell": [180, 184], "columns": 8, "rows": 8, "next_cell": 97,
+                                "cells": { "roads.png.roadtile_001_0": 0, "roads.png.roadtile_001_1": 1 },
+                                "sources": [0, 1] } } }
+  ```
+
+  One record a pack. `cells` gives every tile that was ever placed its number, in the order of the ids at the time it was placed: a new tile gets `next_cell`, a tile that left the pack keeps its number (its cell stays empty, and is given to nobody). Tile `n` lies in picture `n // (columns * rows)`, at column `n % columns` and row `(n // columns) % rows` of it; `columns` and `rows` are fixed when the pack's first tile is placed (at most 8 by 8 and about 2048 px a side), and `sources[i]` is the source id of picture `i` in the tile set `iso` (allocated from `tilesets.iso`, never reused). `cell` only ever grows; a picture grows downwards by rows and never shrinks.
 
 ### 4.8 FolderRule
 
@@ -605,6 +628,8 @@ Several task cards extend these schemas. Each card that adds a field must update
 | the tags `use_anim:<tool>`, `of:<asset id>` and `unused_because:use_anim` | asset_catalog | T17.10 |
 | `projection`, `canvas`, `footprint`, `rise`, `turn`, `joins`, `stands_on`, `heading_files`; the usage `iso_tile`; `headings` takes 4 | Facets, pack profile | T17.12 |
 | the tags `turn:<n>`, `slope:up` / `slope:down`, `unused_because:other_view`, `unused_because:atlas_copy`, `unused_because:slope`; the pack warnings `view:isometric` and `isometric:<w>x<h>:<source>` | asset_catalog | T17.12 |
+| `projection` (`top_down` / `isometric`) | generator_config | T17.13 |
+| the usage `iso_atlas`; `projection` and `tiles` of a TileSetDef; `id_allocations.iso_atlases`; the pack `rpggen_iso` | asset_catalog (an isometric project's) | T17.13 |
 
 ---
 

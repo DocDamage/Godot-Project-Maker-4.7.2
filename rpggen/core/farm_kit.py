@@ -448,12 +448,16 @@ def _name_words(asset: catalog_mod.Asset) -> set[str]:
     return set(classifier.tokens(f"x/{stem}")[1])
 
 
-def _own(catalog: catalog_mod.Catalog) -> list[catalog_mod.Asset]:
+def _own(catalog: catalog_mod.Catalog, projection: str = "top_down") -> list[catalog_mod.Asset]:
     """The pictures of the packs that are in use, by id: no stand-in of a last run."""
     return [
         a
         for a in sorted(catalog.assets, key=lambda a: a.id)
-        if a.status not in _INACTIVE and a.pack_id != KIT_PACK and a.kind == "image"
+        if a.status not in _INACTIVE
+        and a.pack_id != KIT_PACK
+        and a.kind == "image"
+        # what was drawn for the other view is not there for this one (T17.13)
+        and catalog_mod.fits_projection(a, projection)
     ]
 
 
@@ -476,16 +480,18 @@ def is_own(asset: catalog_mod.Asset, stand_in: StandIn) -> bool:
     return not stand_in.words or bool(_name_words(asset) & set(stand_in.words))
 
 
-def own_asset(catalog: catalog_mod.Catalog, stand_in: StandIn) -> catalog_mod.Asset | None:
+def own_asset(
+    catalog: catalog_mod.Catalog, stand_in: StandIn, projection: str = "top_down"
+) -> catalog_mod.Asset | None:
     """The asset of the packs that does what ``stand_in`` is for, the first by id, or None."""
-    return next((a for a in _own(catalog) if is_own(a, stand_in)), None)
+    return next((a for a in _own(catalog, projection) if is_own(a, stand_in)), None)
 
 
-def to_grow(catalog: catalog_mod.Catalog) -> list[catalog_mod.Asset]:
+def to_grow(catalog: catalog_mod.Catalog, projection: str = "top_down") -> list[catalog_mod.Asset]:
     """The crops the packs have as one picture (``ASSET-034``), by id: each gets a strip of
     drawn stages that ends in it. A colour variant made by rpggen is none."""
     found = []
-    for asset in _own(catalog):
+    for asset in _own(catalog, projection):
         facets = catalog_mod.effective(asset)
         if facets.get("role") != "CROP" or facets.get("usage") not in ("sprite", "object"):
             continue
@@ -495,25 +501,27 @@ def to_grow(catalog: catalog_mod.Catalog) -> list[catalog_mod.Asset]:
     return found
 
 
-def growing(catalog: catalog_mod.Catalog) -> int:
+def growing(catalog: catalog_mod.Catalog, projection: str = "top_down") -> int:
     """How many crops of the packs can grow: their growth strips with the role, and the single
     pictures that get drawn stages."""
     strips = [
         a
-        for a in _own(catalog)
+        for a in _own(catalog, projection)
         if catalog_mod.effective(a).get("role") == "CROP"
         and catalog_mod.effective(a).get("usage") == "growth_strip"
         and int(catalog_mod.effective(a).get("stages") or 0) >= 2
     ]
-    return len(strips) + len(to_grow(catalog))
+    return len(strips) + len(to_grow(catalog, projection))
 
 
-def lacking(catalog: catalog_mod.Catalog) -> list[StandIn]:
+def lacking(catalog: catalog_mod.Catalog, projection: str = "top_down") -> list[StandIn]:
     """What the kit has to draw for a farm with this catalog. The three crops are drawn
     together, when fewer than ``MIN_CROPS`` crops of the packs can grow."""
-    crops_lack = growing(catalog) < MIN_CROPS
+    crops_lack = growing(catalog, projection) < MIN_CROPS
     return [
-        s for s in STAND_INS if (crops_lack if s.role == "CROP" else own_asset(catalog, s) is None)
+        s
+        for s in STAND_INS
+        if (crops_lack if s.role == "CROP" else own_asset(catalog, s, projection) is None)
     ]
 
 
@@ -642,7 +650,9 @@ def _ripe_picture(source: catalog_mod.Asset, staging_root: Path) -> Image.Image 
     return picture
 
 
-def add(catalog: catalog_mod.Catalog, tile: int, staging_root: Path) -> tuple[list[str], IssueList]:
+def add(
+    catalog: catalog_mod.Catalog, tile: int, staging_root: Path, projection: str = "top_down"
+) -> tuple[list[str], IssueList]:
     """Draw what a farm needs and the packs lack into the staging copy, add it to the catalog
     and return the names with one ``ASSET-031`` note each; then the strip of every crop that is
     one picture (no note: ``ASSET-034`` has said it). The kit of the last run (a regeneration
@@ -651,13 +661,13 @@ def add(catalog: catalog_mod.Catalog, tile: int, staging_root: Path) -> tuple[li
     catalog.assets[:] = [a for a in catalog.assets if a.pack_id != KIT_PACK]
     t = _size(tile)
     added: list[str] = []
-    for stand_in in lacking(catalog):
+    for stand_in in lacking(catalog, projection):
         image = stand_in.draw(t)
         rel = f"{KIT_DIR}/{stand_in.name}.png"
         _append(catalog, staging_root, asset_id(stand_in), rel, image, _facets(stand_in, image, t))
         issues.add("ASSET-031", role=stand_in.role, thing=stand_in.thing, file=rel)
         added.append(stand_in.name)
-    sources = to_grow(catalog)
+    sources = to_grow(catalog, projection)
     for source in sources:
         ripe = _ripe_picture(source, staging_root)
         if ripe is None:

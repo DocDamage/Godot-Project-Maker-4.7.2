@@ -224,6 +224,14 @@ ARCADE_OFF = ("dialogue", "navigation")
 # A farm (M17) has nothing to fight until somebody switches combat on.
 FARM_OFF = ("combat", "navigation")
 
+# How the maps of a project are seen (T17.13): from above on squares, or at an angle on the
+# diamonds of an isometric pack. A config without the key is top-down.
+PROJECTION_TOP_DOWN = "top_down"
+PROJECTION_ISOMETRIC = "isometric"
+PROJECTIONS = (PROJECTION_TOP_DOWN, PROJECTION_ISOMETRIC)
+# The kinds that have an isometric view: the top-down ones and the racing game.
+ISOMETRIC_KINDS = ("turn_based", "arpg", "farm", "racing")
+
 
 def default_features(archetype: str = "turn_based") -> dict[str, bool]:
     off = ARCADE_OFF if archetype in ARCADE_KINDS else ("navigation",)
@@ -255,6 +263,8 @@ class GeneratorConfig:
     export_targets: list[str] = field(default_factory=lambda: list(EXPORT_TARGET_DEFAULT))
     # after a build, mend the doors and unreachable maps of the maps rpggen made (T13.24)
     repair_world: bool = True
+    # how the maps are seen (T17.13): "top_down" or "isometric"; fixed once a project is made
+    projection: str = PROJECTION_TOP_DOWN
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
     godot_version: str = GODOT_VERSION
@@ -280,6 +290,8 @@ class GeneratorConfig:
             out["export_targets"] = targets
         if not self.repair_world:
             out["repair_world"] = False
+        if self.projection != PROJECTION_TOP_DOWN:  # a top-down config is what it was
+            out["projection"] = self.projection
         imported = self.imported_map_selection()
         if imported["include"] or imported["starter"]:
             out["imported_maps"] = {
@@ -347,6 +359,7 @@ class GeneratorConfig:
             git=dict(data.get("git", {})),
             export_targets=list(data.get("export_targets", EXPORT_TARGET_DEFAULT)),
             repair_world=bool(data.get("repair_world", True)),
+            projection=str(data.get("projection", PROJECTION_TOP_DOWN)),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],
@@ -380,10 +393,50 @@ def check_sound_names(data: Any) -> None:
         raise RpgGenError("CAT-006", slot=bad[0])
 
 
+def check_projection(data: Any) -> None:
+    """CAT-002 for ``projection: isometric`` on a kind that has no isometric view (T17.13): a
+    metroidvania and the two arcade kinds that scroll are seen from the side or from above."""
+    if not isinstance(data, dict) or data.get("projection") != PROJECTION_ISOMETRIC:
+        return
+    archetype = data.get("archetype")
+    if archetype not in ISOMETRIC_KINDS:
+        raise RpgGenError(
+            "CAT-002",
+            file="config",
+            reason=f"/projection: a {archetype} game has no isometric view (the kinds that have "
+            f"one: {', '.join(ISOMETRIC_KINDS)})",
+        )
+
+
+def check_projection_kept(cfg: GeneratorConfig, project: Path) -> None:
+    """CAT-002 when ``project`` was generated in another projection than ``cfg`` asks for
+    (T17.13): its maps are painted on squares or on diamonds, and a painted map is never
+    painted again. A project whose saved config cannot be read says nothing here."""
+    from rpggen import paths
+
+    saved = paths.from_posix_rel(paths.CONFIG, Path(project))
+    if not saved.is_file():
+        return
+    try:
+        data = jsonio.read(saved)
+    except (OSError, ValueError, RpgGenError):
+        return
+    before = data.get("projection", PROJECTION_TOP_DOWN) if isinstance(data, dict) else None
+    if before in PROJECTIONS and before != cfg.projection:
+        raise RpgGenError(
+            "CAT-002",
+            file="config",
+            reason=f"/projection: this project was generated as {before}, and a generated "
+            f"project cannot change its projection (its maps are painted in one); make a new "
+            f"project for {cfg.projection}",
+        )
+
+
 def load(path: Path) -> GeneratorConfig:
     data = jsonio.read(path)
     check_sound_names(data)
     schema.validate("config", data)
+    check_projection(data)
     return GeneratorConfig.from_json(data)
 
 
@@ -391,6 +444,7 @@ def save(cfg: GeneratorConfig, path: Path) -> None:
     data = cfg.to_json()
     check_sound_names(data)
     schema.validate("config", data)
+    check_projection(data)
     jsonio.write(path, data)
 
 

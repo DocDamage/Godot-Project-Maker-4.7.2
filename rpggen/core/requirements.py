@@ -122,21 +122,28 @@ OBJECT_ROLES = {"BUILDING"}  # roles a sheet object (a house cut from a tile she
 _INACTIVE = {"UNUSED", "MISSING"}
 
 
-def _assets_with_role(catalog: catalog_mod.Catalog, role: str) -> list[catalog_mod.Asset]:
+TOP_DOWN = "top_down"
+ISOMETRIC = catalog_mod.PROJECTION_ISOMETRIC
+
+
+def _assets_with_role(
+    catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
+) -> list[catalog_mod.Asset]:
     return [
         a
         for a in sorted(catalog.assets, key=lambda a: a.id)
         if a.status not in _INACTIVE
         and catalog_mod.effective(a).get("role") == role
-        # an isometric tile fills no role until a project can be isometric (T17.13)
-        and not catalog_mod.is_iso_tile(a)
+        # what was drawn for the other view fills no role (T17.13): an isometric tile or
+        # object in a top-down project, a sheet of square tiles in an isometric one
+        and catalog_mod.fits_projection(a, projection)
     ]
 
 
-def _filled(catalog: catalog_mod.Catalog, role: str) -> bool:
+def _filled(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN) -> bool:
     # a drawn stand-in of the farm that a last run left in the catalog fills nothing: the check
     # says the same on every run, by what the packs have (``farm_kit.lacking``)
-    if any(a.pack_id != FARM_KIT_PACK for a in _assets_with_role(catalog, role)):
+    if any(a.pack_id != FARM_KIT_PACK for a in _assets_with_role(catalog, role, projection)):
         return True
     return role in OBJECT_ROLES and any(
         o.role == role and o.status not in _INACTIVE for o in catalog.objects
@@ -203,7 +210,7 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         # what a farm works with and a pack lacks is drawn (T17.02). The player and the ground
         # are not: a farm needs them from a pack. A bed or a bin is no scenery, and drawn soil
         # no ground, so those leave their roles as lacking as they were.
-        for farm_stand_in in farm_kit.lacking(catalog):
+        for farm_stand_in in farm_kit.lacking(catalog, cfg.projection):
             issues.add("ASSET-031", role=farm_stand_in.role, thing=farm_stand_in.thing, file="")
             if farm_stand_in.fills:
                 stood_in.add(farm_stand_in.role)
@@ -212,30 +219,46 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
 
         # what an arcade kind needs and a pack lacks is drawn (T16.03): a note, not an error
         drawn = arcade_kit.drawn_roles(cfg.archetype)
-        for stand_in in arcade_kit.lacking(catalog, cfg.archetype):
+        for stand_in in arcade_kit.lacking(catalog, cfg.archetype, cfg.projection):
             issues.add("ASSET-031", role=stand_in.role, thing=stand_in.thing, file="")
             stood_in.add(stand_in.role)
-        vehicles = _assets_with_role(catalog, "VEHICLE") if cfg.archetype == "racing" else []
+        racing = cfg.archetype == "racing"
+        vehicles = _assets_with_role(catalog, "VEHICLE", cfg.projection) if racing else []
         chosen = (cfg.starter or {}).get("vehicle")
         mine = next((v for v in vehicles if v.id == chosen), vehicles[0] if vehicles else None)
         if mine is not None and not catalog_mod.effective(mine).get("headings"):
             issues.add("ASSET-032", asset=mine.id)
+    view = cfg.projection
     mixed = mixed_ground(catalog)
     if mixed is not None:  # isometric and square ground in one project (T17.12)
-        issues.add("TILE-011", asset=mixed, file="")
+        # the project paints with the ground of its projection (T17.13): the other is left out
+        left_out = "square" if view == ISOMETRIC else "isometric"
+        issues.add("TILE-011", asset=mixed, left_out=left_out, file="")
+    if view == ISOMETRIC:
+        from rpggen.core import iso_atlas
+
+        # isometric tiles drawn on another diamond than the ground's cannot share its map
+        for pack_id, own, footprint in iso_atlas.other_footprints(catalog, cfg):
+            issues.add(
+                "TILE-012",
+                pack_id=pack_id,
+                found=f"{own[0]} x {own[1]}",
+                footprint=f"{footprint[0]} x {footprint[1]}",
+                file="",
+            )
     for role in REQUIRED.get(cfg.archetype, REQUIRED["turn_based"]):
-        if not _filled(catalog, role) and role not in drawn:
+        if not _filled(catalog, role, view) and role not in drawn:
             issue = issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
             issues[-1] = dataclasses.replace(issue, severity=Severity.ERROR)
     # what a kit draws for the kind is noted above (ASSET-031): it is not also missing
     for role in recommended(cfg.archetype):
-        if not _filled(catalog, role) and role not in stood_in:
+        if not _filled(catalog, role, view) and role not in stood_in:
             issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
     if not _assets_with_role(catalog, "AUDIO_MUSIC"):
         issues.add("ASSET-026")
     if not _assets_with_role(catalog, "AUDIO_SFX"):
         issues.add("ASSET-027")
-    players = _assets_with_role(catalog, "PLAYER")
+    players = _assets_with_role(catalog, "PLAYER", view)
     if len(players) > 1 and not any(p.status == "CONFIRMED" for p in players):
         issues.add("ASSET-014", role="PLAYER", candidates=", ".join(p.id for p in players))
     if cfg.archetype in ("metroidvania", "run_and_gun"):  # the kinds whose player jumps

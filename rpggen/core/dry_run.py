@@ -20,6 +20,7 @@ from rpggen import paths
 from rpggen.core import (
     archive,
     inventory,
+    iso_atlas,
     map_preview,
     orchestrator,
     preflight,
@@ -134,6 +135,7 @@ def run(
 
         phase, started = "catalog", time.monotonic()
         catalog = _analyse(state, derive_tile_size, is_cancelled)
+        iso_atlas.check_ground(catalog, cfg)  # as the catalog phase of a run refuses it
         state.issues.extend(_placeholder_issues(requirements.check(catalog, cfg), roles_to_fill))
         state.timings[phase] = round(time.monotonic() - started, 2)
         summary = _summary(state, catalog, roles_to_fill, derive_tile_size, godot_exe)

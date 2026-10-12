@@ -215,9 +215,16 @@ class TileSetDef:
     custom_data: list[dict[str, Any]] = field(default_factory=list)
     navigation: bool = False
     patterns_from_objects: bool = True
+    # T17.13: "isometric" for the tile set of an isometric project (its sources are the atlases
+    # ``iso_atlas.py`` packs the single tiles into, its ``tile_size`` the diamond); "" for
+    # every other, whose JSON has neither key
+    projection: str = ""
+    # ... and where every tile of it is: asset id -> {"source", "coords": [column, row],
+    # "at": [x, y]} (the atlas source, the atlas cell, and where in the cell its picture lies)
+    tiles: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        out = {
             "name": self.name,
             "tile_size": list(self.tile_size),
             "sources": [dict(s) for s in sorted(self.sources, key=lambda s: s["source_id"])],
@@ -227,6 +234,12 @@ class TileSetDef:
             "navigation": self.navigation,
             "patterns_from_objects": self.patterns_from_objects,
         }
+        if self.projection:
+            out["projection"] = self.projection
+            out["tiles"] = {
+                key: copy.deepcopy(self.tiles[key]) for key in sorted(self.tiles, key=_sort_key)
+            }
+        return out
 
     @classmethod
     def from_json(cls, d: dict[str, Any]) -> TileSetDef:
@@ -239,6 +252,8 @@ class TileSetDef:
             copy.deepcopy(d["custom_data"]),
             d.get("navigation", False),
             d.get("patterns_from_objects", True),
+            d.get("projection", ""),
+            copy.deepcopy(d.get("tiles", {})),
         )
 
 
@@ -473,7 +488,14 @@ def assign_tilesets(
     adapter_tilesets: list[dict[str, Any]] | None = None,
 ) -> None:
     """Group tile sheets into TileSetDefs and allocate source ids (never renumbered)."""
-    prev_defs = {t.name: t for t in previous.tilesets} if previous else {}
+    # the tile set of an isometric project is ``iso_atlas.add``'s (T17.13): it is kept as it
+    # is here, and no sheet of squares joins it
+    isometric = [
+        TileSetDef.from_json(t.to_json())
+        for t in (previous.tilesets if previous else catalog.tilesets)
+        if t.projection
+    ]
+    prev_defs = {t.name: t for t in previous.tilesets if not t.projection} if previous else {}
     # tile set definitions of a matched profile apply to tile sets the catalog has not seen yet
     profile_defs = {
         e["name"]: e for e in adapter_tilesets or [] if e.get("from_profile") and "name" in e
@@ -571,6 +593,8 @@ def assign_tilesets(
                         existing.add(terrain["name"])
     for tdef in defs.values():
         tdef.sources.sort(key=lambda s: s["source_id"])
+    for tdef in isometric:
+        defs.setdefault(tdef.name, tdef)
     catalog.tilesets = [defs[n] for n in sorted(defs, key=_sort_key)]
 
 
@@ -838,7 +862,7 @@ VIEW_SHMUP = "view:shmup"  # T16.02: the pack looks like one for a shoot 'em up
 VIEW_RACING = "view:racing"  # ... for a racing game
 VIEW_FARM = "view:farm"  # T17.01: ... for a farm
 VIEW_ISOMETRIC = "view:isometric"  # T17.12: the pack is one of isometric tiles
-ISO_TILE_USAGE = "iso_tile"  # one isometric tile a picture: no kind before T17.13 reads it
+ISO_TILE_USAGE = "iso_tile"  # one isometric tile a picture: a tile of an isometric project
 TURN_TAG = "turn:"
 # The readers whose one-row strips can be a crop's growth (T17.01): the ones that cut a strip
 # by its name's frame count or by the picture, and give it no action.
@@ -855,9 +879,30 @@ def pack_view(pack: CatalogPack) -> str:
 
 
 def is_iso_tile(asset: Asset) -> bool:
-    """True for a picture that is one isometric tile (T17.12). Until a project can be
-    isometric (T17.13) such a tile fills no role of a game: no map can be painted with it."""
+    """True for a picture that is one isometric tile (T17.12): a tile of the tile set of an
+    isometric project (T17.13), and nothing to a project that is seen from above."""
     return effective(asset).get("usage") == ISO_TILE_USAGE
+
+
+ISO_ATLAS_USAGE = "iso_atlas"  # a picture rpggen packed the tiles of an isometric pack into
+PROJECTION_ISOMETRIC = "isometric"
+
+
+def fits_projection(asset: Asset, projection: str = "top_down") -> bool:
+    """Whether ``asset`` can fill a role in a project that is seen in ``projection`` (T17.13).
+    One rule for the mapping, the requirements and (as ``CatalogReader.fits_projection``) the
+    builder's lookups by role: **a top-down project uses nothing that was drawn for the
+    isometric view** (no isometric tile, no tree or house or car drawn at that angle), and **an
+    isometric project paints with no sheet of square tiles**. A character, an item or a sound
+    drawn for a top-down game is used by both (the isometric packs that were listed have no
+    people: T17.14 lets a top-down hero walk an isometric map)."""
+    facets = effective(asset)
+    usage = facets.get("usage")
+    if usage == ISO_ATLAS_USAGE:
+        return False  # the atlas is the tile set's picture: nobody's ground, nobody's choice
+    if projection == PROJECTION_ISOMETRIC:
+        return usage != "tiles"
+    return facets.get("projection") != PROJECTION_ISOMETRIC
 
 
 def isometric_footprint(pack: CatalogPack) -> tuple[int, int, str] | None:
@@ -1012,6 +1057,32 @@ def mark_turns(catalog: Catalog) -> None:
             asset.detected["tags"] = sorted(tags)
 
 
+def turn_sets(assets: list[Asset]) -> dict[str, str]:
+    """``{asset id: id of the first turn of its set}`` for every picture of ``assets`` that is
+    one turn of a thing (T17.13), by the names ``mark_turns`` groups them by. A tile drawn in
+    two colours is two sets here, each with its own first turn: ``variant_of`` names the first
+    colour's, which is no help to somebody who wants *this* tile turned east."""
+    from rpggen.core.adapters import naming
+
+    groups: dict[tuple[str, str, str], list[Asset]] = {}
+    for asset in assets:
+        root = f"assets/packs/{asset.pack_id}/"
+        facets = effective(asset)
+        if "turn" not in facets or not asset.path.startswith(root):
+            continue
+        rel = asset.path[len(root) :]
+        turn = naming.split_turn(posixpath.splitext(posixpath.basename(rel))[0])
+        if turn is not None:
+            key = (asset.pack_id, posixpath.dirname(rel), turn.base.casefold())
+            groups.setdefault(key, []).append(asset)
+    out: dict[str, str] = {}
+    for members in groups.values():
+        members.sort(key=lambda a: (int(effective(a)["turn"]), _sort_key(a.id)))
+        for asset in members:
+            out[asset.id] = members[0].id
+    return out
+
+
 def turn_name(asset: Asset) -> str:
     """``turn_2`` for a picture that is a tile's second turn; empty for the first turn and for
     a picture that is no turn."""
@@ -1105,7 +1176,13 @@ ATTENTION_STATUSES = frozenset({"CONFLICT", "NEEDS_REVIEW", "MISSING"})
 # Packs whose assets a run makes itself, every time it needs them (``placeholders.py``,
 # ``side_kit.py``): no pack file is behind them, so one of them is never reported as vanished.
 RUN_MADE_PACKS = frozenset(
-    {"debug_placeholders", "rpggen_side_kit", "rpggen_arcade_kit", "rpggen_farm_kit"}
+    {
+        "debug_placeholders",
+        "rpggen_side_kit",
+        "rpggen_arcade_kit",
+        "rpggen_farm_kit",
+        "rpggen_iso",  # iso_atlas.ATLAS_PACK: the atlases of an isometric project (T17.13)
+    }
 )
 
 
@@ -1153,7 +1230,8 @@ def _tile_count(catalog: Catalog, tileset: TileSetDef) -> int:
 def dominant_tile_size(catalog: Catalog) -> int | None:
     """The tile size of a catalog's packs: the cell size of the ``overworld`` tile set, else of
     the tile set with the most tiles (a tie goes to the smaller size); None without tile sets."""
-    sets = [t for t in catalog.tilesets if t.tile_size and t.tile_size[0] > 0]
+    # the diamond of an isometric tile set (T17.13) is no tile size of square tiles
+    sets = [t for t in catalog.tilesets if t.tile_size and t.tile_size[0] > 0 and not t.projection]
     if not sets:
         return None
     overworld = next((t for t in sets if t.name == "overworld"), None)

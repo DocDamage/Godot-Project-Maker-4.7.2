@@ -14,3 +14,7 @@ RACING_AVAILABLE = True
 # The farm and life sim of M17, off until its gate (T17.20). The kind can be generated from the
 # command line and a config since T17.04; the wizard does not offer it.
 FARM_AVAILABLE = False
+# The isometric view of M17, off until its gate (T17.20). A config or `rpggen generate
+# --projection isometric` can ask for it since T17.13; the wizard does not offer it. Maps are
+# painted in it from T17.14 on.
+ISOMETRIC_AVAILABLE = False
