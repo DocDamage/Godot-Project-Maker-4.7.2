@@ -1125,6 +1125,40 @@ A third archetype, the **metroidvania**, shows what a new archetype costs and wh
 A fourth archetype follows the same list. Its integration suite gets a pytest marker and a CI
 job of its own.
 
+### v1.4 — the arcade kinds (M16)
+
+The fourth, fifth and sixth followed it: the **shoot 'em up** (`shmup`), the **run and gun**
+(`run_and_gun`) and the **racing game** (`racing`). What they added to the list:
+
+* **A folder that several archetypes share.** The three are arcade games (stages, lives, a
+  score, a scroller, spawners and waves, bosses, a continue screen, high scores), written once
+  in `archetypes/arcade/` and `recipes/arcade/`. The install filter installs it for the three
+  and for no older kind. An archetype can also borrow another's folder: the run and gun's
+  soldier extends the metroidvania's platform actor, so its projects get that runtime folder
+  and its recipes (`staging.BORROWED_FOLDERS`), not its smoke steps.
+* **A plan per kind, in pure Python, stored once.** `wave_plan.py`, `stage_plan.py` and
+  `track_plan.py` write the section `stages` of `rpggen/world_plan.json` (with its `kind`);
+  each has a `check` that says whether what it planned can be finished (VAL-029, VAL-030) and a
+  picture function in `map_preview.py` that the Options page and the report use. The game
+  reads `game/data/stages.json`, which is the user's once it exists.
+* **Arithmetic written twice and compared.** What the planner and the runtime must agree on is
+  one function in each language with a table of cases between them: the car
+  (`car_math.py` and `car_physics.gd`, `car_math_cases.json`), the pendulum of the grapple
+  (`stage_plan.swing_period` and `RpgPlatformMath.swing_period`), the jump's reach.
+* **Stand-ins.** `arcade_kit.py`, beside `side_kit.py`, draws what a pack lacks for the kind
+  (a bullet, an explosion, a ship, a car in sixteen headings, a road, a hook) in the pack's
+  tile size, deterministically, with the note ASSET-031. A kind therefore requires almost
+  nothing of a pack.
+* **Roles are labels.** `PROJECTILE`, `VEHICLE`, `EXPLOSION`, `POWERUP` and `HAZARD` are offered
+  in the audit for every kind; the kinds decide what they do with them, and the older kinds
+  ignore them.
+* **A flag per kind** (`features.py`) kept each card disabled and each sample out of the list
+  until the kind's row of the gate.
+
+The kinds sketched for a later release (a beat 'em up, a dungeon run, tactics, tower defense,
+a farm, a twin-stick arena, isometric tiles) are in Part F of `M16_arcade_archetypes.md`, each
+with what it reuses.
+
 ---
 
 ## 49. Development Order and Exit Criteria

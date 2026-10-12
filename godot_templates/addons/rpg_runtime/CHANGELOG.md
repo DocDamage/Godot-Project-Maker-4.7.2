@@ -1,5 +1,66 @@
 # Changelog
 
+## 1.4.0
+
+(There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)
+
+**Compatibility with 1.0 to 1.3.** The save version stays 1 and older saves load. One key is
+new and optional: `meta`, a section that the three slots and the autosave share, which holds
+the high-score table of an arcade game and loads as an empty table everywhere else.
+`rpggen/world_plan.json` may have a `stages` section. The folders `archetypes/arcade/`,
+`archetypes/shmup/`, `archetypes/run_and_gun/` and `archetypes/racing/` are installed only in
+projects of those kinds; a turn-based, action or metroidvania project has no new file from
+them, and its TileSets, maps and scenes are unchanged.
+
+**Two fixes that change what an older game shows** once it is regenerated:
+
+* The **minimap** (`RpgMinimap`) was placed 120 px left of the screen and was never seen. It is
+  in the top-right corner now. The *Minimap* setting turns it off.
+* The screens that lie over the game (the member picker, the equip picker) were 0 by 0 px with
+  their shade over nothing and their content hung from the top-left corner. They cover the
+  screen now.
+
+* **The arcade framework** (`archetypes/arcade/`), shared by the three kinds below:
+  * `RpgArcadeMode` (the run: stages in order, the save between stages, `run_data()` and
+    `restore_run_data()` for what a kind keeps of a run), `RpgArcadeStage`,
+    `RpgArcadeStageSequence` (reads `game/data/stages.json`, then the stages of
+    `generated/data/stages.json` that list does not have).
+  * `RpgArcadeScroller` (moves the camera along one axis, stops for a blocking wave or a boss,
+    `follow()` for a camera that is led), `RpgArcadeSpawner` and `RpgArcadeWave` (formations
+    `line`, `column`, `v`, `circle`, `sine`; triggers `progress`, `time`, `after`).
+  * `RpgArcadeLives`, `RpgArcadeScore` (a multiplier that grows without a hit),
+    `RpgArcadeBoss` and `RpgArcadeBossPhase` (phases at a fraction of the health, a telegraph
+    before every attack), `RpgArcadeBulletPool` (bullets that hit by distance; `wall_mask`,
+    `life_s`), `RpgArcadeExplosion`.
+  * `RpgArcadeStageClear` (the tally), `RpgArcadeContinueScreen`, `RpgArcadeHighScores` and the
+    table on the title screen, `RpgArcadeHud`.
+* **The shoot 'em up** (`archetypes/shmup/`): `RpgShmupMode`, `RpgShmupShip` (eight-way, a
+  focus speed, a hurtbox of one point, banking frames), `RpgShmupWeapon` (`straight`, `spread`,
+  `laser`, `homing`; levels 1 to 3), the bomb, enemy bullet patterns (`aimed`, `ring`, `fan`,
+  `spiral`), the enemies `popcorn`, `turret`, `asteroid` and `carrier` over `RpgShmupEnemy`,
+  power-ups, the boss, `RpgShmupHud` with side panels in a game that scrolls up. Actions:
+  `shoot`, `bomb`, `focus`.
+* **The run and gun** (`archetypes/run_and_gun/`): `RpgSoldier` over the metroidvania's
+  `RpgPlatformActor` (eight-way aim, crouch, aim lock, lives or health, `can_jump`), `RpgGun`
+  and the weapons `machine_gun`, `spread`, `laser` and `flame`, the grenade, the weapon pickup
+  on its carrier, the enemies `runner`, `sniper`, `turret`, `jumper` and `wall_cannon` over
+  `RpgGunEnemy`, the bosses `wall`, `walker` and `flyer`, and `RpgGrapple` (a hook along the
+  aim, a swing on a rope, a hoist). `RpgPlatformMath` gained `swing_step` and `swing_period`.
+  Actions: `shoot`, `grenade`, `aim_lock`, `grapple`.
+* **Racing** (`archetypes/racing/`): `RpgCar` on `RpgCarPhysics` (speed, a turn rate that falls
+  with speed, grip by surface, drift, bumps, boost, parts), `RpgCarInput` (relative or absolute
+  steering), `RpgHeadingSprite` (a sheet of headings, or one picture turned), `RpgRaceCamera`,
+  `RpgTrackSurfaces`, `RpgRace` (countdown, checkpoints, laps, places, wrong way),
+  `RpgRaceCheckpoint`, `RpgRival` (a driver with a skill on the player's physics), pickups and
+  weapons (boost, missile, bomb, shield, parts), `RpgChampionship`, `RpgRaceResults`,
+  `RpgRacingHud` and `RpgRaceMinimap`. Actions: `accelerate`, `brake`, `boost`, `fire`.
+* **The smoke runner** (`debug/smoke_runner.gd`): a step may name the error code its failure
+  is reported with (`code`); without one it is SMOKE-001 as before.
+* **Sound slots** of the kinds (`sfx_shoot`, `sfx_explosion`, `sfx_powerup`, `sfx_bomb`,
+  `sfx_grenade`, `sfx_weapon_pickup`, `sfx_grapple`, `sfx_skid`, `sfx_bump`, `sfx_pickup`,
+  `sfx_lap`, `sfx_countdown`, and the music slots `music_stage`, `music_boss`, `music_race`,
+  `music_results`); silent when empty.
+
 ## 1.2.0
 
 **Compatibility with 1.0 and 1.1.** The save version stays 1 and older saves load. Three keys

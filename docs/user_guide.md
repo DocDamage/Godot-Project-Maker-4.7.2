@@ -22,8 +22,9 @@ in `_console.exe` if you have it.
 2. Press **Try the sample**. rpggen fills in the bundled sample pack, a project name and an
    output folder in *Documents*, reads the pack and starts generating with the default options.
    A line at the top of the page says so; **Back** stops the run and returns to the options for
-   as long as nothing was written into your folder. (*Choose a sample* on the same card offers a
-   second sample, a side-view cave: see [Metroidvania](#3a-metroidvania).)
+   as long as nothing was written into your folder. (*Choose a sample* on the same card offers four
+   more: a side-view cave, see [Metroidvania](#3a-metroidvania), and a shoot 'em up, a run and
+   gun and a racing game, see [The arcade kinds](#3b-the-arcade-kinds).)
 3. Wait about a minute. The page ticks off what it does, from *Checking your setup* to *Writing
    the report*, with the percentage beside the bar; **Show details** opens the log.
 4. On **Results** press **Open in Godot** and then F5. You start on the title screen, begin a new
@@ -65,6 +66,20 @@ the format rpggen recognised (RPG Maker, LPC, Aseprite, Tiled, LDtk) and whether
 licence file. A pack that cannot be read shows the reason on its card; the cross removes it.
 
 ![A pack's card on the Project page](images/pack_cards.png)
+
+The card also says what the pack looks like when rpggen can tell: *Looks like a shooter pack*,
+*Looks like a racing pack*, or *art for 5 engines: Godot's is used* for a pack that ships the
+same pictures laid out for several engines (the copies are set aside in the audit).
+
+**A bundle of packs.** Some archives hold many packs: a folder for each, or a zip for each.
+Adding one opens **Choose packs** instead: a row for every pack with its pictures and its size,
+a search field, *Select all* and *Select none*, and what your choice comes to beside **Add**.
+Up to twenty packs are all ticked to begin with; a larger bundle starts with none. Each pack
+you tick becomes a pack of its own, named by its folder, and only those are unpacked. They
+stand under a row for the archive; **Choose packs…** there opens the list again to add more or
+to take one away (which asks first). The archive's licence is shown once, on that row. On the
+command line the same is `--pack <archive> --pack-folder <name>`, once for every pack you want;
+without `--pack-folder`, rpggen lists the packs of the bundle and stops.
 
 Rarely, a pack has a password or contains something unsafe (ARCH-002, ARCH-003, ARCH-004); extract
 it yourself and add the folder.
@@ -324,15 +339,15 @@ smoke-tested result replaces your folder, so a failure never leaves a half proje
 The third kind of game is seen **from the side**: you run and jump through rooms that are joined
 into one world, and some ways are closed until you have found the ability that opens them.
 
-**Trying it.** On the welcome view, **Choose a sample** on the *Try the sample* card lists two
-samples: the *Top-down village* (what a click on the card itself gives) and the *Side-view cave*. The cave
+**Trying it.** On the welcome view, **Choose a sample** on the *Try the sample* card lists the
+samples, among them the *Top-down village* (what a click on the card itself gives) and the *Side-view cave*. The cave
 is a small pack made for this kind of game (cave tiles, planks, ladders and spikes, a hero with
 run, jump, fall, climb, dash and attack animations, a crawler and a bat, a guardian, a hermit,
 two ability orbs, three background layers and sounds). Choosing it fills in the pack, chooses
 **Metroidvania** and starts generating; **Back** returns to the options while nothing was
 written yet.
 
-![The two samples](images/welcome_samples.png)
+![The samples](images/welcome_samples.png)
 
 **Choosing it for your own pack.** On the Archetype page pick the **Metroidvania** card. Under
 the cards rpggen says what it saw in your pack: *This pack looks side-view* (platform tiles,
@@ -425,6 +440,180 @@ new room is built and the room beside it gets its exit), or duplicate a room sce
 give it a new **Map Id** and set the **Target Room** and **Target Exit** of the exits on both
 sides. The validator reports an exit that leads nowhere (VAL-028) and can fix it; see
 [regeneration](regeneration.md#rooms-and-the-stored-plan).
+
+## 3b. The arcade kinds
+
+Three more kinds of game are **arcade games**: a run through stages (or races) with lives and a
+score, a boss at the end of each stage, a *Continue?* screen after the last life and a table of
+the ten best runs on the title screen. They have no village, no dialogue, no inventory and no
+party; those features start switched off for them and stay available.
+
+| Kind | Seen from | The game |
+|------|-----------|----------|
+| **Shoot 'em up** | the top (it scrolls up) or the side (it scrolls right) | a ship over a scrolling background, waves of enemies, power-ups, a boss |
+| **Run and gun** | the side | a soldier who runs, jumps, aims in eight directions and picks up weapons; with the grapple arm it swings and hoists |
+| **Racing** | the top | a car against rivals round a track, over laps with checkpoints and pickups, through a championship |
+
+![The six kinds of game](images/wizard_archetype.png)
+
+What is the same for the three:
+
+* **A sample of its own.** *Choose a sample* on the welcome view lists five: the village, the
+  cave, and *Star lane* (a shoot 'em up), *Jungle line* (a run and gun) and *Dirt cup*
+  (racing). Each fills in its pack, chooses its kind and starts generating.
+* **Any pack makes a game.** What a pack lacks is drawn by rpggen in the pack's tile size: a
+  bullet, a laser, a missile, an explosion, a power-up capsule, a ship, a car in sixteen
+  headings, a road, a hook. The report says so with a note (ASSET-031), never an error, so a
+  plain RPG pack chosen as a shoot 'em up plays, with its hero as the ship and its monsters as
+  the enemies.
+* **Roles.** The Audit and Mapping pages have five roles these kinds use: *Projectile*,
+  *Vehicle*, *Explosion*, *Power-up* and *Hazard*. The Mapping page lists the roles of the kind
+  you chose, with what each is used for, and the kind's own sound slots.
+* **The plan.** The stages, waves, bosses and tracks are planned from the seed, shown as a
+  picture on the Options page, and stored in the project (`rpggen/world_plan.json`). Once the
+  game has been generated the plan is fixed; a row under **Added stages** (or **Added tracks**)
+  is the one change it still takes. *Reroll* under *Advanced* gives another plan before that.
+* **Yours to change.** The game reads `game/data/stages.json`, which is written once and then
+  left alone. The project's `README.md` (section 22) explains every entry.
+* **Saving.** The game saves by itself when a stage or a race begins; *Continue* on the title
+  screen starts it again.
+
+On the Archetype page rpggen says what it saw: *This pack looks like a shooter pack* (ships,
+bullets, asteroids, a tall background) or a racing pack (cars, a road, a sheet of headings),
+and a side-view pack fits a run and gun as well as a metroidvania.
+
+### Shoot 'em up
+
+**The roles.** *Player* (the ship) is the only one required, and even that is drawn when the
+pack has none. *Enemy* pictures are shared out by size and by name: small ones are the
+*popcorn* that flies in formations, a turret sits on the background, a large one is the carrier
+that releases small ones; rocks and asteroids (*Hazard*) drift and split. *Boss*, *Projectile*,
+*Explosion*, *Power-up* and *Background* (the layers that scroll) are used when the pack has
+them. Sound slots: **Shoot**, **Explosion**, **Power-up**, **Bomb**, **Stage music**, **Boss
+music**.
+
+**The options.**
+
+* **Orientation**: *vertical* (the ship at the bottom, the game scrolls up, with the score and
+  the lives in panels at the sides) or *horizontal* (the ship at the left, the game scrolls
+  right).
+* **Stages** (1 to 8) and their **length** (short, medium, long), **lives**, **bombs**,
+  **auto-fire** (hold the button to keep shooting) and the **difficulty** (easy, normal, hard:
+  how many bullets come and how fast).
+* The picture is the **wave chart**: a column for each stage, read from the bottom up, a mark
+  for each wave as wide as it has enemies, and the boss as a block at the top.
+
+![The wave chart](images/options_shmup.png)
+
+**Playing.**
+
+| Action | Keyboard | Gamepad |
+|--------|----------|---------|
+| Fly | W A S D, arrow keys | D-pad, left stick |
+| Shoot (hold) | Z, J, left mouse button | A (cross) |
+| Bomb | X, K | B (circle) |
+| Fly slowly (focus) | Shift | left trigger |
+
+Only one point in the middle of the ship can be hit. A hit costs a life; the ship comes back
+blinking. A bomb clears every enemy bullet from the screen. Power-ups drift toward you: a
+weapon level (up to 3), another weapon (spread, laser, homing), a bomb, a life, a shield, or
+points. The multiplier of the score grows while you are not hit.
+
+![A shoot 'em up](images/game_shmup.png)
+
+### Run and gun
+
+**The roles.** *Player* (the soldier, seen from the side) and *Ground* (the tiles of the
+stages) are required; a pack without platforms, spikes or a hook gets drawn ones, as a
+metroidvania does. *Enemy* pictures become the runner, the sniper and the jumper in turn, and
+one named turret or cannon the turret and the wall cannon; *Boss* is the boss of every stage
+(a wall, a walker or a flyer). A soldier without `jump` or `fall` animations shows its idle
+frame in the air (ASSET-030). Sound slots: **Shoot**, **Explosion**, **Grenade**, **Weapon
+pickup**, **Grapple**, **Stage music**, **Boss music**.
+
+**The options.**
+
+* **Stages** (1 to 8), their **length**, **lives** and the **difficulty**.
+* **Health** (1 to 5): with 1, one hit is a death, as the genre has it.
+* **Keep the weapon** after a death, and **The left edge kills** (off: it is a wall).
+* **Grapple arm** and **Jump**. *Jump* can be switched off only while the arm is on; the preset
+  **Bionic** sets both, and the stages are then planned for the arm: a block to swing from
+  over every pit and bed of spikes, planks to be hoisted on to beside every step.
+* The picture is the **stage strip**: every stage from the side, with its ground, planks and
+  spikes, the arena at its end, dots for the enemies, the weapons and the boss, and, for a
+  soldier that does not jump, the tiles the arm can hold on to.
+
+![The stage strip](images/options_run_and_gun.png)
+
+**Playing.**
+
+| Action | Keyboard | Gamepad |
+|--------|----------|---------|
+| Run, aim | W A S D, arrow keys | D-pad, left stick |
+| Jump | Space, Z | A (cross) |
+| Shoot (hold) | J, X, left mouse button | X (square) |
+| Grenade | K, C | Y (triangle) |
+| Aim without moving | Shift | left trigger |
+| Grapple arm | L, V | B (circle) |
+
+You aim with the directions you hold. The camera follows you to the right and never goes back.
+Weapons fly in on a carrier: shoot it and take what falls (spread, laser, flame). With the arm,
+a hook that holds to the side makes the soldier swing (the button again lets go), and one that
+holds straight above hoists it up.
+
+![A run and gun](images/game_run_and_gun.png)
+
+### Racing
+
+**The roles.** *Vehicle* (your car) and *Ground* (the road) are required, and both are drawn
+when the pack has neither. The best picture of a car is a **sheet of headings**: the car seen
+from above in 16 directions (8 to 32 are read), the first pointing up and then clockwise. The
+Mapping page shows the count beside the picture. A car that is one picture is turned by the
+game (ASSET-032). Other *Vehicle* and *Enemy* pictures are the rivals; with too few, a rival is
+your car in another colour. *Hazard* (a tyre), *Power-up* (the pickups) and *Decoration*
+(trackside scenery) are used when the pack has them. Sound slots: **Engine**, **Skid**,
+**Bump**, **Pickup**, **Lap**, **Countdown**, **Race music**, **Results music**.
+
+**The options.**
+
+* **Tracks** (the races of the championship), **laps**, the **track size** (small, medium,
+  large) and the **difficulty** (longer tracks with more corners and more on the road).
+* **Rivals** (0 to 5; with none it is a race against the clock) and **Rubber band** (rivals far
+  ahead of you ease off).
+* **Steering**: *relative* (left and right turn the car) or *absolute* (the car turns to where
+  the stick points, which newcomers find easier). The preset **Sunday drive** is absolute
+  steering, two rivals and the rubber band.
+* **Camera**: *follow* (ahead of the car, zooming out with speed) or *fixed* (the whole track).
+* **Elimination**: a player who comes in last twice is out.
+* The picture shows every **track** from above: the road, the start line, the checkpoints, the
+  oil, dirt and boost arrows on it, the pickups, and the car on the grid.
+
+![The tracks](images/options_racing.png)
+
+**Playing.**
+
+| Action | Keyboard | Gamepad |
+|--------|----------|---------|
+| Accelerate | Up, W | A (cross), right trigger |
+| Brake, then reverse | Down, S | B (circle), left trigger |
+| Steer | Left and Right, A and D | D-pad, left stick |
+| Boost | Shift, Space | X (square) |
+| Use the weapon | X, K | Y (triangle) |
+
+A race begins with a countdown. A lap counts at the start line, and only when every checkpoint
+was passed in its order. The road is fastest; dirt and grass slow the car, oil takes the grip
+away, an arrow is a boost for free. Pickups on the road are a boost, a missile, a bomb, a
+shield, and one part a track (speed, tyres, acceleration) that stays on the car. After each
+race a screen shows the result and the table of the championship: 10, 6, 4, 3, 2 and 1 points
+for the first six.
+
+![A race](images/game_racing.png)
+
+### From the command line
+
+`rpggen generate --archetype shmup` (or `run_and_gun`, `racing`) makes the kind without the
+wizard; `--dry-run` says what would be planned (*3 stages, 30 waves, 3 bosses*; *4 tracks of 3
+laps, 3 rivals*). See [Running rpggen from a script](#7a-running-rpggen-from-a-script).
 
 ## 4. In Godot
 

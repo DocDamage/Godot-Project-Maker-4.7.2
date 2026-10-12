@@ -9,8 +9,9 @@ Read these files in order before writing any code:
 3. `02_SCHEMAS.md` — every JSON file format, field by field.
 4. `03_ERROR_CODES.md` — every error code the program may emit.
 5. `M01_walking_skeleton.md` … `M12_review_followups.md` — task cards, done strictly in order,
-   up to the `v1.0.0` tag. `M13_polish.md` (release 1.1.0) and `M14_metroidvania.md` (release
-   1.2.0) follow the tag, in that order.
+   up to the `v1.0.0` tag. `M13_polish.md` (release 1.1.0), `M14_metroidvania.md` (release
+   1.2.0), `M15_ui_polish.md` (release 1.3.0) and `M16_arcade_archetypes.md` (release 1.4.0)
+   follow the tag, in that order.
    What is finished and what is left is summed up in `docs/status.md`.
 
 ---
@@ -144,4 +145,4 @@ Each milestone ends with a **Milestone Gate** card. All its checks must pass bef
 | **Generated-owned** | Files under `generated/`, `addons/rpg_runtime/` and `addons/rpg_project_tools/`. The generator may rewrite them, subject to the ledger. |
 | **User-owned** | Files under `game/`. They are created once and never rewritten. |
 | **Smoke test** | Headless run of the generated game through a scripted scenario. |
-| **Archetype** | `turn_based` or `arpg`; `metroidvania` from M14 (release 1.2.0). |
+| **Archetype** | `turn_based` or `arpg`; `metroidvania` from M14 (release 1.2.0); `shmup`, `run_and_gun` and `racing` from M16 (release 1.4.0). The wizard calls it the *kind of game*. |

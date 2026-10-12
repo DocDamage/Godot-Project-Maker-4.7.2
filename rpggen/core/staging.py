@@ -383,6 +383,12 @@ KIND_NOTES = {
         "\nspeaks of the other kinds of game; start with section 22: the controls, the stages,"
         "\ntheir waves and bosses, and how to change them."
     ),
+    "run_and_gun": (
+        "\n\n**This game is a run and gun**, seen from the side: a run through stages with lives"
+        "\nand a score, not a village to walk. Where this file speaks of the starter map, doors,"
+        "\nshops or quests, it speaks of the other kinds of game; start with section 22: the"
+        "\ncontrols, the stages, their enemies and bosses, the grapple arm, and how to change them."
+    ),
     "racing": (
         "\n\n**This game is a racing game**: a championship of races on tracks seen from above,"
         "\nnot a village to walk. Where this file speaks of the starter map, doors, shops or"

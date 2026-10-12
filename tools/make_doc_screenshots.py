@@ -178,6 +178,95 @@ def _world_picture(out: Path, qapp) -> Path:  # type: ignore[no-untyped-def]
     return path
 
 
+KIND_PICTURES = {  # kind: (the sample of the kind, the picture of its options)
+    "shmup": ("sample_pack_shmup", "options_shmup"),
+    "run_and_gun": ("sample_pack_gun", "options_run_and_gun"),
+    "racing": ("sample_pack_race", "options_racing"),
+}
+
+
+def _kind_pictures(out: Path, qapp) -> list[Path]:  # type: ignore[no-untyped-def]
+    """The Options page's box of each arcade kind with the picture of its plan (T16.16): the
+    wave chart, the stage strip and the tracks, each of the kind's default options."""
+    from rpggen.core import config
+    from rpggen.gui import state as state_mod
+    from rpggen.gui.pages.options_page import OptionsPage
+
+    written: list[Path] = []
+    for kind, (pack, name) in KIND_PICTURES.items():
+        ref = config.PackRef(pack, pack, "0" * 64, "folder")
+        cfg = config.default_for("Sample", [ref], archetype=kind)
+        page = OptionsPage()
+        page.resize(760, 900)
+        page.show()
+        page.enter(state_mod.WizardState(config=cfg, archetype=kind))
+        _pump(qapp, 0.5)
+        page._show_world()  # once more at the shown width: the picture fits the box
+        _pump(qapp)
+        path = out / f"{name}.png"
+        page.arcade_boxes[kind].grab().save(str(path))
+        page.close()
+        written.append(path)
+    return written
+
+
+# kind: (the sample's key, the step of its smoke sequence that is on the picture, frames into
+# it, the picture)
+GAME_PICTURES = {
+    "shmup": ("shmup", "wave_is_fought", 45, "game_shmup"),
+    "run_and_gun": ("gun", "weapon_is_picked_up", 60, "game_run_and_gun"),
+    "racing": ("race", "race_is_driven_to_the_finish", 420, "game_racing"),
+}
+
+
+def _game_pictures(godot: Path, work: Path, out: Path) -> list[Path]:
+    """One picture of each arcade kind's game (T16.19): the sample of the kind is generated and
+    its smoke sequence plays it in a window, with tools/doc_shots/game_shot.gd taking the
+    picture. None for a kind whose game Godot could not show (a machine without a display)."""
+    import shutil
+    import subprocess
+
+    from rpggen.core import archive, catalog, config, inventory, mapping, orchestrator, profiles
+    from rpggen.core import godot as godot_mod
+    from rpggen.gui.models import project_model
+
+    written: list[Path] = []
+    for kind, (key, step, frames, name) in GAME_PICTURES.items():
+        sample = project_model.sample(key)
+        pack = REPO / sample.folder
+        profiles.install_profile(pack / sample.profile)
+        opened = archive.open_pack(pack, set(), pack_id=sample.folder)
+        cat, _issues, _generated = catalog.assemble(
+            [(opened, inventory.build_inventory(opened))], None, []
+        )
+        cfg = config.default_for(
+            sample.name, [config.pack_ref_from_source(pack, sample.folder)], archetype=kind
+        )
+        cfg.starter = mapping.default_starter(cat, kind)
+        cfg.validation = {**cfg.validation, "smoke_test": False, "export_check": False}
+        target = work / f"game_{kind}"
+        result = orchestrator.run_in_memory(cfg, None, target, godot)
+        if not result.ok:
+            continue
+        shot = REPO / "tools" / "doc_shots" / "game_shot.gd"
+        shutil.copyfile(shot, target / "rpggen/doc_shot.gd")
+        path = (out / f"{name}.png").resolve()  # Godot is given the whole path
+        path.unlink(missing_ok=True)
+        cmd = [
+            str(godot_mod.find_console_exe(godot)), "--path", str(target), "--",
+            "--rpg-smoke", "--rpg-smoke-steps=res://rpggen/doc_shot.gd",
+            f"--rpg-doc-steps={orchestrator.smoke_steps_for(kind)}",
+            f"--rpg-doc-step={step}", f"--rpg-doc-frames={frames}", f"--rpg-doc-out={path}",
+        ]  # fmt: skip
+        try:
+            subprocess.run(cmd, capture_output=True, timeout=600, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if path.is_file() and path.stat().st_size > 500:
+            written.append(path)
+    return written
+
+
 def _variant_dialog(window):  # type: ignore[no-untyped-def]
     """Audit → Make variant… for the sample pack's slime, turned to another colour (T13.18)."""
     from rpggen.gui.dialogs.variant_dialog import VariantDialog
@@ -319,7 +408,7 @@ def render(
         grab("wizard_project")
         page0 = window.pages[0]
         assert isinstance(page0, ProjectPage)
-        page0.sample_button.click()  # fills the inputs and presses Next to the options page
+        page0.sample_actions["top"].trigger()  # fills the inputs and presses Next to the options
         deadline = time.time() + 120
         while window.state.catalog is None and time.time() < deadline:
             _pump(qapp, 0.2)  # the pack is analyzed in the background
@@ -356,6 +445,7 @@ def render(
                 written.append(picture)
                 written.append(_areas_picture(window.current_page.starter_box, out, qapp))
                 written.append(_world_picture(out, qapp))
+                written.extend(_kind_pictures(out, qapp))
         if godot is not None:
             window.show_page(OPTIONS_INDEX)
             window.next_button.click()
@@ -370,6 +460,7 @@ def render(
             quests = _quests_picture(godot, window.state.target, out)
             if quests is not None:  # Godot needs a window for it: not on a machine without one
                 written.append(quests)
+            written.extend(_game_pictures(godot, tmp_path, out))
 
         # the Results page after a failed run: the cause, the end of the log and the buttons
         finished = window.state.run_result

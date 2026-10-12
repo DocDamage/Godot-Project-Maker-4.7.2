@@ -4,10 +4,13 @@ rpggen turns a 2D RPG asset pack (a folder, `.zip`, `.7z` or `.rar` you already 
 ready-to-edit **Godot 4.7.2** project: TileSets with collision and terrain, animated characters,
 a starter map with buildings you can walk into, or a whole world of connected areas with a
 locked cave and its key (or your own Tiled and LDtk maps), dialogue, inventory, equipment, shops,
-quests, cutscenes, saving, menus, lighting, a minimap and a combat system. It makes three kinds
-of game: a **turn-based RPG** with a party, an **action RPG** with followers who help, and a
+quests, cutscenes, saving, menus, lighting, a minimap and a combat system. It makes six kinds
+of game: a **turn-based RPG** with a party, an **action RPG** with followers who help, a
 side-view **metroidvania** of joined rooms, abilities that open new ways, a guardian and save
-stations. It checks the result by loading and playing it headless before it gives it to you,
+stations, and three arcade games with stages, lives, bosses and high scores: a **shoot 'em up**
+(scrolling up or to the right), a **run and gun** with an optional grapple arm, and a **racing
+game** with rivals, pickups and a championship. What a pack lacks for the kind you choose is
+drawn for it, so every pack makes a game. It checks the result by loading and playing it headless before it gives it to you,
 and it can regenerate the project later without touching your work.
 
 It is a desktop application for **Windows**, **Linux** and **macOS**, with a dark and a light

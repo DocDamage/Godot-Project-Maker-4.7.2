@@ -5,6 +5,57 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
 ## 1.4.0 (in work)
 
+Three more kinds of game, and what real packs needed to be read. Nothing changes for a project
+of the three older kinds: a 1.0 to 1.3 project regenerates without a prompt (but see the two
+fixes in the runtime's changelog: its minimap and two of its screens are now where they were
+meant to be).
+
+* **Shoot 'em up.** A ship over a scrolling background, vertical or horizontal: waves in
+  formations, four kinds of enemy, power-ups and weapons in three levels, bombs, a boss at the
+  end of every stage. The stages are planned from the seed and shown as a wave chart on the
+  Options page.
+* **Run and gun.** A soldier seen from the side who runs, jumps, aims in eight directions and
+  throws grenades; four weapons on carriers, five kinds of enemy, three kinds of boss, stages
+  planned in chunks that are checked to be passable. With the **grapple arm** the soldier
+  swings and hoists; the preset *Bionic* switches jumping off and plans every stage for the arm.
+* **Racing.** A car seen from above against up to five rivals who drive on the same physics:
+  tracks planned as closed loops with checkpoints, surfaces (road, dirt, grass, oil, boost
+  arrows), pickups (boost, missile, bomb, shield, parts that stay), laps, a results screen and
+  a championship table, a map of the track; relative or absolute steering.
+* **The arcade framework** the three share: stages in order, lives, a score with a multiplier,
+  a *Continue?* screen, the ten best runs on the title screen, a save between stages.
+* **Every pack makes a game.** What a pack lacks for the kind is drawn in its tile size (a
+  bullet, an explosion, a capsule, a ship, a car in sixteen headings, a road, a hook) and
+  reported as a note (ASSET-031).
+* **The wizard**: six cards on the Archetype page (two rows of three, or one column in a narrow
+  window), a hint that names the kind a pack looks made for, each kind's options with a picture
+  of its plan, the presets *Arcade classic*, *Bionic* and *Sunday drive*, and three more
+  samples under *Choose a sample*: *Star lane*, *Jungle line* and *Dirt cup*.
+* **Rotation sheets**: a picture of one object turned step by step (8 to 32 headings, as
+  top-down car packs ship them) is recognized and used as a vehicle.
+* **The command line** takes `--archetype shmup`, `run_and_gun` and `racing`, and a dry run
+  says what would be planned.
+* **What real packs needed.** Numbered frames without an action word are split into animations
+  at blank frames (ADAPT-005) and can be named in *Animations…*; binary `.aseprite` files give
+  the names and ranges of the animations; `_32x32_4frames` and `_9split` in a name are read;
+  a pack that ships its art for several engines is read from Godot's folder and the copies are
+  set aside; `__MACOSX`, previews, links and guide pictures are left out; names with number
+  prefixes, ampersands, emoji and small typos are read; sheets named only by a number take
+  their words from their folder; RPG Maker's sheet names are read wherever they lie; the list
+  a sprite cutter left in a pack gives its sheets their objects (ADAPT-007); colour variants a
+  pack ships as files are grouped; the 47-tile terrain sheet in the order packs ship it
+  (Godot's 3x3 minimal template) is a terrain.
+* **A bundle of packs.** An archive that holds many packs (a folder each, or a zip each) opens
+  *Choose packs*: tick the ones to add, search them, and see what the choice comes to. Each
+  becomes a pack of its own, only those are unpacked, and *Choose packs…* on the bundle's row
+  changes the choice later. On the command line: `--pack <archive> --pack-folder <name>`.
+* **Aseprite files without an export** are drawn from the file itself and their tags are the
+  animations (layers, opacity, indexed colour; blend modes other than *normal* are drawn as
+  normal and the asset is marked for review).
+* **Colour variants a pack ships** are one card in the audit, with a *Variants* row to see and
+  select them, and are offered together on the Mapping page.
+* **The pack card** says what a pack looks like: a shooter pack, a racing pack, art for several
+  engines. The grid editor shows a rotation sheet's views in a ring.
 * **LPC characters**: the universal sheet is read whole (cast, thrust, shoot, and the
   generator's climb, idle, jump, sit, emote, run and the other rows, where they are drawn), and
   the LPC collection's files are read: a picture per animation, or a folder per animation with
