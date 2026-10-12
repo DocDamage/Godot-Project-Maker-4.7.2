@@ -496,6 +496,18 @@ All three files share this shape:
   game has exactly the keys it had and `save_version` stays 1. A save without it loads on the
   first morning (6:00, day 1 of spring, year 1); numbers that are no date are read as the
   nearest one; a game without a calendar ignores the key.
+* One optional key of a farm (release 1.5, T17.09): `friendship`,
+  `{ "points": { "<person id>": n }, "met": [ "<person id>" ], "talked": [ "<person id>" ],
+  "gifts": { "<person id>": n }, "known": { "<person id>": [ "<item id>" ] } }`. `points` are
+  0 to 2500 (a heart every 250, ten hearts); `met` is who was talked to or given something, in
+  that order (the People page lists them); `talked` who was talked to today and `gifts` the
+  gifts of this week a person (a talk gives points once a day, a person takes two gifts a
+  week; the calendar's `day_began` empties the first every day and the second on weekday 0);
+  `known` the items that were given to a person, whose taste for them the People page shows.
+  It is **written only by a game that has friendships** (`RpgFriendship.current()` is not null:
+  the farm's mode makes them), so the save of every other game has exactly the keys it had and
+  `save_version` stays 1. A save without it loads with nobody met; what is no number or no
+  list in it is left out; a game without friendships ignores the key.
 
 ### 9.1 The shared section (`user://saves/meta.json`, meta_version 1)
 
@@ -555,6 +567,8 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `farm` | world_plan | T17.05 |
 | `farm.map` | world_plan | T17.06 |
 | `flags.farm` (`energy`, `held`, `water`), `flags.farm_field` | save game | T17.04, T17.05 |
+| `farm.people` | world_plan | T17.09 |
+| `friendship` | save game | T17.09 |
 
 ---
 
@@ -819,3 +833,45 @@ rock, a branch or a stump) to a cell of the plot, to a cell beside the water, to
 the bin, through every gate into its yard and to its door, and to the way out; the plot has
 twelve cells; nothing lies on something else (only a thing to clear on the plot); the farmer
 starts on the floor of the house beside the bed and can walk to its door.
+
+### 12.4 `farm.people` (the people of a farm's village, T17.09)
+
+Planned once by `rpggen/core/people_plan.py` from the `NPC` assets of the catalog, the seed and
+what the caller knows of the village (how many houses, whether there is a shop and a pond, the
+item ids of the game), and **stored and reused**: once the key is there the seed and the
+options no longer change it, and an NPC the packs gain later is appended. `people` is an
+optional key of the `farm` section, an array of Person in the order the seed gave; a village
+has at most twelve people unless the option `people` (1 to 40) says otherwise, and three
+without a picture of their own (`asset` is `""`) when the packs have no NPC.
+
+**Person:** `id` (the name in lower case, unique: the id of the friendship and of the dialogue
+atom `friendship:<id>>=N`), `name` (from a list in the planner, by the seed), `asset` (the NPC
+sprite), `home` (the number of a house of the village, from 1; the houses are shared out
+evenly), `job` (`shopkeeper` for one person of a village with a shop, else `""`), `pattern`
+(which day it has: `shopkeeper`, `villager`, `stroller`, `angler`), `loves`, `likes` and
+`dislikes` (item ids of the game, no item twice; never a tool or a seed; two, three and two,
+fewer in a game with few items) and `schedule`.
+
+**Schedule entry** (what `RpgSchedule` reads, `actors/schedule.gd`): `hour` (from which hour of
+the day it holds: 6 to 23, then 0 and 1 of the night), `days` (optional: the days of the week
+it holds on, 0 to 6; without it every day), `weather` (optional: the weather it holds in;
+the planner writes `rain`) and `place`. In the plan a place is one of `home`, `work`, `square`
+and `pond`. The entry in force is the last whose hour has come among those of the day and the
+weather; an entry with a `weather` wins over one without. Every planned schedule begins at home
+at 6:00, ends there in the evening and keeps the person at home when it rains (the shopkeeper
+works whatever the weather, from 8:00 to 18:00 on six days, and has weekday 6 off).
+
+`people_plan.check` finds: somebody without a home or with a home the village does not have, a
+schedule without an entry for every day, an entry that names another place than the four, work
+without a job, the pond or the shop of a village without one, a taste for an item the game
+does not have, an item in two tastes, two people of one id, two shopkeepers.
+
+**`game/data/people.json`** (`rpggen/schema/people.schema.json`) is what the game reads:
+`{ "people": [ Person ] }`, a Person as above without `asset` and `pattern`, with `scene` (its
+NPC scene) and with the places of its schedule turned into where they are for this person
+(`people_plan.people_file`): an entry has `map` (the id of the map, `RpgMapRoot.map_id`; none:
+the map the NPC is on) and either `place` (the name of a marker of that map, a `Marker2D` in
+the group `rpg_place`) or `cell` (`[x, y]`), and optionally `facing`. The builder writes the
+file **once**; it is the user's afterwards: a person's tastes, name and day are changed there,
+and `RpgFriendship` reads it when the game starts and gives each NPC that carries an
+`RpgSchedule` without entries of its own the schedule of its person.

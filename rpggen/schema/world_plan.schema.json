@@ -49,6 +49,7 @@
         "difficulty": {"enum": ["easy", "normal", "hard"]},
         "crops": {"type": "array", "items": {"$ref": "#/$defs/Crop"}},
         "map": {"$ref": "#/$defs/FarmMap"},
+        "people": {"type": "array", "items": {"$ref": "#/$defs/Person"}},
         "notes": {"type": "array", "items": {"type": "string"}}
       },
       "required": ["plan_version", "seed", "difficulty", "crops", "notes"],
@@ -212,6 +213,42 @@
         "id", "name", "seed", "produce", "seasons", "days", "stages", "regrow", "seed_price",
         "price", "energy"
       ],
+      "additionalProperties": false
+    },
+    "Person": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "asset": {"type": "string"},
+        "home": {"type": "integer", "minimum": 1},
+        "job": {"enum": ["", "shopkeeper"]},
+        "pattern": {"type": "string"},
+        "schedule": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/PersonEntry"},
+          "minItems": 1
+        },
+        "loves": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "likes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "required": ["id", "name", "asset", "home", "job", "schedule", "loves", "likes", "dislikes"],
+      "additionalProperties": false
+    },
+    "PersonEntry": {
+      "type": "object",
+      "properties": {
+        "hour": {"type": "integer", "minimum": 0, "maximum": 23},
+        "days": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 0, "maximum": 6},
+          "uniqueItems": true
+        },
+        "weather": {"type": "string"},
+        "place": {"enum": ["home", "work", "square", "pond"]}
+      },
+      "required": ["hour", "place"],
       "additionalProperties": false
     },
     "Stages": {

@@ -1085,3 +1085,94 @@ def render_stage_strip(stages: dict[str, Any], scale: int = 2) -> Image.Image:
             mx, my = float(position[0]) * k, top + float(position[1]) * k - size
             draw.ellipse([mx - size, my - size, mx + size, my + size], fill=STRIP_MARKERS[kind])
     return picture
+
+
+# --------------------------------------------------------------------------- a farm (T17.06)
+
+FARM_COLORS = {
+    "ground": (96, 150, 78),
+    "edge": (52, 76, 50),
+    "path": (190, 164, 112),
+    "tillable": (142, 98, 62),
+    "water": (70, 132, 206),
+    "building": (150, 84, 70),
+    "door": (250, 214, 90),
+    "yard": (168, 190, 110),
+    "fence": (104, 74, 48),
+    "gate": (232, 232, 222),
+    "bin": (224, 132, 44),
+    "tree": (30, 92, 48),
+    "scenery": (116, 124, 132),
+    "debris": (196, 206, 92),
+    "exit": (171, 71, 188),
+    "start": (255, 255, 255),
+}
+# the legend's order: what the farmer works with first, the scenery last
+FARM_ORDER = (
+    "start", "building", "door", "bin", "tillable", "water", "path", "yard", "fence", "gate",
+    "debris", "tree", "scenery", "exit",
+)  # fmt: skip
+
+
+def farm_cells(farm: dict[str, Any]) -> dict[tuple[int, int], str]:
+    """What the picture of a farm shows at every cell that is not plain ground: a key of
+    ``FARM_COLORS``. A thing to clear on the plot is shown, not the plot under it; where the
+    farmer starts is the middle of the house (the start is a cell of its room)."""
+    cols, rows = int(farm["size"][0]), int(farm["size"][1])
+    out: dict[tuple[int, int], str] = {}
+
+    def put(cells: Any, kind: str) -> None:
+        for cell in cells:
+            out[(int(cell[0]), int(cell[1]))] = kind
+
+    def rect(box: Any) -> list[tuple[int, int]]:
+        x0, y0, w, h = (int(v) for v in box)
+        return [(x, y) for y in range(y0, y0 + h) for x in range(x0, x0 + w)]
+
+    put([(x, y) for x in range(cols) for y in (0, rows - 1)], "edge")
+    put([(x, y) for y in range(rows) for x in (0, cols - 1)], "edge")
+    put(farm.get("paths", []), "path")
+    put(farm["tillable"], "tillable")
+    put(farm["water"]["cells"], "water")
+    for building in [farm["house"], *farm.get("animal_houses", [])]:
+        yard = building.get("yard") or {}
+        if yard.get("rect"):
+            put(rect(yard["rect"]), "yard")
+        put(yard.get("fence", []), "fence")
+        if yard.get("gate"):
+            put([yard["gate"]], "gate")
+        put(rect(building["rect"]), "building")
+        put([building["door"]], "door")
+    put([farm["bin"]["cell"]], "bin")
+    put(farm.get("trees", []), "tree")
+    put([thing["cell"] for thing in farm.get("scenery", [])], "scenery")
+    put([thing["cell"] for thing in farm.get("debris", [])], "debris")
+    if farm.get("exit"):
+        put([farm["exit"]["cell"]], "exit")
+    x0, y0, w, h = (int(v) for v in farm["house"]["rect"])
+    out[(x0 + w // 2, y0 + h // 2)] = "start"
+    return out
+
+
+def render_farm(farm: dict[str, Any], scale: int = 8) -> Image.Image:
+    """The map of a farm's plan (``farm_plan.plan``) at ``scale`` px a cell: the field and its
+    edge, the plot, the water, the paths, the buildings and their doors, the yards with their
+    fences and gates, the bin, the trees, the scenery, what there is to clear, the way out and
+    where the farmer starts."""
+    cols, rows = int(farm["size"][0]), int(farm["size"][1])
+    picture = Image.new("RGB", (cols, rows), FARM_COLORS["ground"])
+    pixels = picture.load()
+    assert pixels is not None
+    for (x, y), kind in farm_cells(farm).items():
+        if 0 <= x < cols and 0 <= y < rows:
+            pixels[x, y] = FARM_COLORS[kind]
+    return picture.resize((cols * scale, rows * scale), Image.Resampling.NEAREST)
+
+
+def farm_markers(farm: dict[str, Any]) -> dict[str, int]:
+    """How many cells of each kind the picture of a farm has (the legend lists what is there)."""
+    counts = dict.fromkeys(FARM_ORDER, 0)
+    for kind in farm_cells(farm).values():
+        if kind in counts:
+            counts[kind] += 1
+    return counts
