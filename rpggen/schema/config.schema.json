@@ -355,9 +355,28 @@
             "rar",
             "folder"
           ]
+        },
+        "folders": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
         }
       },
       "additionalProperties": false,
+      "not": {
+        "required": [
+          "folders"
+        ],
+        "properties": {
+          "kind": {
+            "const": "rar"
+          }
+        }
+      },
       "required": [
         "pack_id",
         "source",

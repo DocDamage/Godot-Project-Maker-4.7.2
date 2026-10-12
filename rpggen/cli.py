@@ -44,6 +44,14 @@ def _build_parser() -> argparse.ArgumentParser:
     gen = sub.add_parser("generate", help="generate a Godot project", allow_abbrev=False)
     gen.add_argument("--config", type=Path, help="generator_config.json")
     gen.add_argument("--pack", type=Path, help="asset pack folder (creates a default config)")
+    gen.add_argument(
+        "--pack-folder",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="take this pack folder of a --pack that is a bundle of packs (repeatable); "
+        "each folder is a pack of its own",
+    )
     gen.add_argument("--name", help="project name for --pack")
     gen.add_argument(
         "--tile-size",
@@ -278,14 +286,25 @@ def phase_estimate_line(history: dict[str, list[list[float]]], text: str) -> str
     return line + (f" (about {max(1, round(rest))} s left)" if rest is not None else "")
 
 
+def _bundle_needs_folders(pack: Path, folders: list[str]) -> str:
+    """What is said when ``--pack`` is a bundle and no ``--pack-folder`` chose from it."""
+    lines = [
+        f"{pack.name} is a bundle of {len(folders)} packs: name the ones to take with "
+        "--pack-folder NAME (repeatable). Its folders:"
+    ]
+    return "\n".join(lines + [f"  {name}" for name in folders])
+
+
 def _generate(args: argparse.Namespace) -> int:
     from rpggen import logging_setup, paths
     from rpggen.core import config as config_mod
-    from rpggen.core import orchestrator
+    from rpggen.core import orchestrator, pack_sniff
 
     out = Output("generate", args.json)
     if args.target is None or (args.config is None and args.pack is None):
         return out.usage("--target and one of --config / --pack are required")
+    if args.pack_folder and (args.pack is None or args.config is not None):
+        return out.usage("--pack-folder names a folder of the bundle given with --pack")
     exe = _resolve_godot(args.godot)
     if exe is None and not args.dry_run:
         issues = _not_found("Godot was not found; pass --godot or set RPGGEN_GODOT.", path="")
@@ -301,9 +320,18 @@ def _generate(args: argparse.Namespace) -> int:
                         "ARCH-001", path=str(args.pack), reason="no such file or folder"
                     )
                 name = args.name or args.pack.name
-                cfg = orchestrator.default_config_for_pack(
-                    args.pack, name, tile_size=args.tile_size or 16, archetype=args.archetype
-                )
+                if args.pack_folder:
+                    refs = config_mod.pack_refs_from_bundle(args.pack, args.pack_folder)
+                    cfg = config_mod.default_for(
+                        name, refs, archetype=args.archetype, base_tile_size=args.tile_size or 16
+                    )
+                else:
+                    folders = [p.name for p in pack_sniff.sniff(args.pack).bundle]
+                    if folders:
+                        return out.usage(_bundle_needs_folders(args.pack, folders))
+                    cfg = orchestrator.default_config_for_pack(
+                        args.pack, name, tile_size=args.tile_size or 16, archetype=args.archetype
+                    )
                 cfg_path = Path(tmp) / "generator_config.json"
                 config_mod.save(cfg, cfg_path)
             if args.preset:

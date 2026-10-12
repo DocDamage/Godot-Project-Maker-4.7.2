@@ -168,7 +168,7 @@ def _analyse(
     for ref in state.cfg.packs:
         if is_cancelled():
             raise _Cancelled
-        opened = archive.open_pack(Path(ref.source), used, pack_id=ref.pack_id)
+        opened = archive.open_pack(Path(ref.source), used, pack_id=ref.pack_id, folder=ref.folder)
         used.add(opened.pack_id)
         state.issues.extend(opened.issues)
         state.opened.append((opened, inventory.build_inventory(opened)))

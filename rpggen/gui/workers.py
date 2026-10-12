@@ -179,7 +179,7 @@ def analyze_packs(state: WizardState, *, callbacks: Callbacks) -> AnalysisResult
     # A project that is regenerated keeps its pack ids (also for a pack that was updated from
     # an archive with another name), or every asset id would change.
     wanted = {
-        str(Path(p.source).resolve()).casefold(): p.pack_id
+        str(p.path.resolve()).casefold(): p.pack_id
         for p in (state.config.packs if state.config else [])
     }
     wanted.update({str(Path(s).resolve()).casefold(): pid for s, pid in state.pack_updates.items()})

@@ -8,6 +8,7 @@ read for at most ``BUDGET_S`` seconds.
 
 from __future__ import annotations
 
+import difflib
 import json
 import os
 import re
@@ -17,10 +18,11 @@ import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 from rpggen.core import archive as archive_mod
 from rpggen.core import inventory
-from rpggen.errors import Issue, IssueList
+from rpggen.errors import Issue, IssueList, RpgGenError
 
 BUDGET_S = 1.0
 MAX_NAMES = 50_000
@@ -42,6 +44,10 @@ BUNDLE_PACK_WORDS = frozenset(
     {"pack", "packs", "tileset", "tilesets", "asset", "assets", "kit", "bundle", "collection"}
 )
 _WORDS = re.compile(r"[A-Za-z]+")
+# The checklist (T16.22) opens with every pack ticked up to this many, with none above.
+BUNDLE_TICK_ALL = 20
+BUNDLE_ARCHIVES = (".zip", ".7z")  # the archives that are listed, so a bundle is seen in them
+MARK_NAMES = 5_000  # the names the view of a pack is read from
 
 
 @dataclass(frozen=True)
@@ -64,6 +70,10 @@ class PackSniff:
     issues: tuple[Issue, ...] = field(default_factory=tuple)
     # the pack folders when this is a bundle of packs (empty: one pack)
     bundle: tuple[BundlePack, ...] = field(default_factory=tuple)
+    bundle_license: bool = False  # a licence file beside the pack folders: it is for them all
+    # what the names say about the pack, as the catalog's pack warnings do: ``view:shmup``,
+    # ``view:racing``, ``view:side``, ``engines:5:Godot``
+    marks: tuple[str, ...] = field(default_factory=tuple)
 
 
 class _Source:
@@ -179,11 +189,185 @@ def find_bundle(names: list[str], sizes: dict[str, int] | None = None) -> tuple[
     )
 
 
+def _top_license(names: list[str], bundle: tuple[BundlePack, ...]) -> bool:
+    """True when a licence file lies beside the pack folders of ``bundle``."""
+    top = bundle[0].path.rpartition("/")[0]
+    top = top + "/" if top else ""
+    for name in map(_norm, names):
+        rest = name[len(top) :] if name.startswith(top) else ""
+        if rest and "/" not in rest and inventory.classify_kind(rest) == "license":
+            return True
+    return False
+
+
+# A zip of zips (T16.21): an archive, or a folder, whose packs are archives of their own, side
+# by side with no picture beside them. Two are enough: an archive inside is a unit by itself.
+INNER_ARCHIVES = (".zip",)
+INNER_MIN_PACKS = 2
+
+
+def is_inner_archive(path: str) -> bool:
+    """True when the ``path`` of a ``BundlePack`` names an archive inside the bundle, not a
+    folder of it."""
+    return _norm(path).casefold().endswith(INNER_ARCHIVES)
+
+
+def _inner_pictures(source: _Source, name: str) -> tuple[int, int] | None:
+    """``(pictures, their bytes)`` of the zip ``name`` inside ``source``, from its listing: the
+    inner archive is read in place as far as its directory needs, and nothing is written.
+    None when it cannot be listed (no zip, a password, a container that is not read in place)."""
+    try:
+        if isinstance(source, _Zip):
+            stream = source.zf.open(name)
+        elif isinstance(source, _Folder):
+            stream = (source.root / name).open("rb")
+        else:
+            return None
+        with stream, zipfile.ZipFile(stream) as inner:
+            sizes = []
+            for info in inner.infolist():
+                entry = _norm(info.filename)
+                if info.is_dir() or archive_mod.is_junk(entry):
+                    continue
+                if info.flag_bits & 0x1:
+                    return None
+                if inventory.classify_kind(entry) == "image" and not entry.rsplit("/", 1)[
+                    -1
+                ].startswith("._"):
+                    sizes.append(info.file_size)
+            return len(sizes), sum(sizes)
+    except (zipfile.BadZipFile, KeyError, RuntimeError, NotImplementedError, OSError):
+        return None
+
+
+def find_archive_bundle(
+    source: _Source, names: list[str], deadline: float
+) -> tuple[BundlePack, ...]:
+    """The packs of a zip of zips, or ``()``: two or more zip archives in one folder of
+    ``source`` with no picture anywhere beside them, each with pictures in it. A pack is named
+    after its archive and its ``path`` is that archive's name inside ``source``
+    (``is_inner_archive``); the pictures are counted from the inner listings. An archive the
+    time did not reach (``deadline``) is listed with no picture and its own size."""
+    files = [n for n in names if not archive_mod.is_junk(_norm(n))]
+    if any(inventory.classify_kind(_norm(n)) == "image" for n in files):
+        return ()  # pictures of its own: one pack, whose inner archives are unpacked with it
+    archives = [n for n in files if is_inner_archive(n)]
+    if len(archives) < INNER_MIN_PACKS or len({_norm(n).rpartition("/")[0] for n in archives}) > 1:
+        return ()
+    sizes = source.sizes()
+    packs: list[BundlePack] = []
+    listed = 0
+    for name in sorted(archives, key=lambda n: (_norm(n).casefold(), n)):
+        path = _norm(name)
+        stem = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        if time.monotonic() > deadline:
+            packs.append(BundlePack(stem, path, 0, sizes.get(name, 0)))
+            continue
+        counted = _inner_pictures(source, name)
+        if counted is None or counted[0] == 0:
+            return ()  # an archive that is no pack: the whole is opened as before
+        listed += 1
+        packs.append(BundlePack(stem, path, counted[0], counted[1]))
+    return tuple(packs) if listed else ()
+
+
+def open_inner_archive(
+    source: Path | str,
+    inner: str,
+    existing_ids: set[str],
+    pack_id: str | None = None,
+    **options: object,
+) -> archive_mod.OpenedPack:
+    """Open the archive ``inner`` (a ``BundlePack.path`` of a zip of zips) of ``source`` as a
+    pack of its own. It is copied out to a temporary folder and opened like any archive, so
+    the limits, the cache and the pack's identity are those of the inner archive; ``options``
+    go to ``archive.open_pack`` (``progress``, ``is_cancelled``). ``ARCH-001`` when ``source``
+    has no such archive."""
+    import shutil
+    import tempfile
+
+    source = Path(source)
+    parts = [p for p in _norm(inner).split("/") if p]
+    if source.is_dir():
+        return archive_mod.open_pack(source.joinpath(*parts), existing_ids, pack_id, **options)  # type: ignore[arg-type]
+    with tempfile.TemporaryDirectory(prefix="rpggen_inner_") as tmp:
+        copy = Path(tmp) / parts[-1]
+        try:
+            with zipfile.ZipFile(source) as zf:
+                info = zf.getinfo("/".join(parts))
+                if info.flag_bits & 0x1:
+                    raise RpgGenError("ARCH-002")
+                if info.file_size > archive_mod.LIMITS["max_total_bytes"]:
+                    raise RpgGenError("ARCH-004", reason=f"{inner} is too large", path=str(source))
+                with zf.open(info) as src, copy.open("wb") as out:
+                    shutil.copyfileobj(src, out, 1024 * 1024)
+        except (KeyError, zipfile.BadZipFile, OSError) as exc:
+            reason = f'it has no archive "{inner}" that can be read ({exc})'
+            raise RpgGenError("ARCH-001", path=str(source), reason=reason) from exc
+        return archive_mod.open_pack(copy, existing_ids, pack_id, **options)  # type: ignore[arg-type]
+
+
+def member_path(bundle: Path | str, folder: str) -> Path:
+    """The path a pack taken from a bundle goes by in the wizard: ``<bundle>/<folder name>``.
+    For an archive nothing is there on the disk; ``archive.open_pack`` knows it."""
+    return Path(bundle) / folder
+
+
+def split_member(path: Path | str) -> tuple[Path, str] | None:
+    """``(archive, folder name)`` when ``path`` names a pack folder of a bundle archive."""
+    path = Path(path)
+    parent = path.parent
+    if parent.suffix.lower() in BUNDLE_ARCHIVES and parent.is_file():
+        return parent, path.name
+    return None
+
+
+def nearest_folder(name: str, bundle: tuple[BundlePack, ...]) -> str:
+    """The pack folder whose name is most like ``name`` ("" for an empty bundle)."""
+    names = {p.name.casefold(): p.name for p in bundle}
+    close = difflib.get_close_matches(name.casefold(), list(names), n=1, cutoff=0.0)
+    return names[close[0]] if close else ""
+
+
+def folder_in_bundle(source: Path | str, folder: str) -> BundlePack:
+    """The pack folder ``folder`` (its name, or its path inside) of the bundle ``source``.
+    ``ARCH-001`` when ``source`` is not a bundle, and when it has no such folder: the reason
+    names the nearest one."""
+    source = Path(source)
+    sniffed = sniff(source)
+    if sniffed.issues:
+        first = sniffed.issues[0]
+        raise RpgGenError(first.code, first.message)
+    if not sniffed.bundle:
+        raise RpgGenError(
+            "ARCH-001",
+            path=str(source),
+            reason=f'it is not a bundle of packs, so it has no pack folder "{folder}" '
+            "(folders, --pack-folder)",
+        )
+    wanted = _norm(folder).strip("/")
+    for pack in sniffed.bundle:
+        if wanted in (pack.name, pack.path):
+            return pack
+    for pack in sniffed.bundle:
+        if wanted.casefold() == pack.name.casefold():
+            return pack
+    raise RpgGenError(
+        "ARCH-001",
+        path=str(source),
+        reason=f'it has no pack folder "{folder}"; '
+        f'the nearest is "{nearest_folder(wanted, sniffed.bundle)}"',
+    )
+
+
 def stamp(path: Path | str) -> str | None:
     """A cheap fingerprint of a pack as it is on disk now (T13.08), without reading a file: an
     archive's size and modification time, or a folder's file count, total size and newest
     modification time. None when the pack is not there."""
     source = Path(path)
+    member = None if source.exists() else split_member(source)
+    if member is not None:  # a pack taken from a bundle changes when its archive does
+        source = member[0]
     try:
         if source.is_file():
             info = source.stat()
@@ -327,9 +511,37 @@ def sniff(path: Path | str) -> PackSniff:
     return PackSniff(issues=tuple(issues))
 
 
+def _marks(names: list[str]) -> tuple[str, ...]:
+    """What the names alone say about a pack: its point of view and the engines it ships its
+    art for. The analysis says the same later, with the pictures to go by."""
+    from rpggen.core import classifier
+
+    normed = [_norm(n) for n in names[:MARK_NAMES]]
+    marks: list[str] = []
+    listed = SimpleNamespace(files=[SimpleNamespace(path=n) for n in normed])
+    view = classifier.pack_view(listed)
+    if view != "top":
+        marks.append(f"view:{view}")
+    tops = {n.split("/", 1)[0] for n in normed}
+    wrapper = next(iter(tops)) if len(tops) == 1 and all("/" in n for n in normed) else ""
+    engines = classifier.engine_plan(sorted(normed), wrapper)
+    if engines is not None:
+        marks.append(engines.warning)
+    return tuple(marks)
+
+
 def _result(source: _Source, names: list[str], deadline: float) -> PackSniff:
     bundle = find_bundle(names, source.sizes())
+    if not bundle:  # ... or a zip of zips: its packs are the archives inside
+        bundle = find_archive_bundle(source, names, deadline)
     if bundle:  # many packs: what one of them is, is asked when it is added; nothing is read
-        return PackSniff(format="generic", has_license=_has_license(names), bundle=bundle)
+        return PackSniff(
+            format="generic",
+            has_license=_has_license(names),
+            bundle=bundle,
+            bundle_license=_top_license(names, bundle),
+        )
     fmt, tile = classify(source, names, deadline)
-    return PackSniff(format=fmt, tile_size=tile, has_license=_has_license(names))
+    return PackSniff(
+        format=fmt, tile_size=tile, has_license=_has_license(names), marks=_marks(names)
+    )

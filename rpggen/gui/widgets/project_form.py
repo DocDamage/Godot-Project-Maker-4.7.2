@@ -159,6 +159,12 @@ class ProjectForm(QWidget):
             self.tr("Replace a pack of this project with a newer release of it."),
         )
         self.update_pack_button.setVisible(False)
+        self.choose_packs_button = _button(
+            self.tr("Choose packs…"),
+            "choosePacksButton",
+            self.tr("Choose again which packs of a bundle are added."),
+        )
+        self.choose_packs_button.setVisible(False)
         self.sample_button = _button(
             self.tr("Try with sample pack"),
             "trySampleButton",
@@ -277,6 +283,7 @@ class ProjectForm(QWidget):
             self.add_folder_button,
             self.remove_button,
             self.update_pack_button,
+            self.choose_packs_button,
             self.sample_button,
             self.target_edit,
             self.browse_target_button,
@@ -304,6 +311,7 @@ class ProjectForm(QWidget):
                 self.sample_button,
                 self.remove_button,
                 self.update_pack_button,
+                self.choose_packs_button,
             ):
                 layout.removeWidget(widget)
             # the stretch at the end of the row of buttons
@@ -321,6 +329,7 @@ class ProjectForm(QWidget):
                 self.add_zip_button,
                 self.add_folder_button,
                 self.update_pack_button,
+                self.choose_packs_button,
                 self.or_label,
                 self.sample_button,
             ):
@@ -331,6 +340,7 @@ class ProjectForm(QWidget):
                 self.add_folder_button,
                 self.remove_button,
                 self.update_pack_button,
+                self.choose_packs_button,
             ):
                 self.pack_buttons.addWidget(widget)
             self.pack_buttons.addStretch(1)
@@ -344,6 +354,8 @@ class ProjectForm(QWidget):
         self.sample_button.setVisible(empty)
         self.remove_button.setVisible(not empty)
         self.update_pack_button.setVisible(self._update_shown)
+        # the packs of a bundle can be chosen again while one of them is in the list
+        self.choose_packs_button.setVisible(bool(self.pack_list.bundles()))
         shown = max(1, min(count, CARDS_SHOWN))
         self.pack_list.setFixedHeight(shown * (PackCardDelegate.HEIGHT + 2) + LIST_FRAME)
 

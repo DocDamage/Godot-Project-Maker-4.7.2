@@ -13,7 +13,7 @@ from rpggen import godot_target, ids, paths
 from rpggen.core import archive, godot, inventory, pack_diff, pack_sniff, preflight
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
-from rpggen.errors import Issue, Severity
+from rpggen.errors import Issue, IssueList, Severity
 from rpggen.gui import state as state_mod
 from rpggen.gui.models.forms import (
     FieldStatus,
@@ -138,7 +138,36 @@ class InputCheck:
     packs: list[Issue] = field(default_factory=list)
     pack_info: dict[str, tuple[str, int | None, int | None]] = field(default_factory=dict)
     pack_issues: dict[str, list[Issue]] = field(default_factory=dict)
+    # T16.22: the bundles the packs were taken from, by the archive's path
+    bundles: dict[str, pack_sniff.PackSniff] = field(default_factory=dict)
+    bundle_issues: dict[str, list[Issue]] = field(default_factory=dict)
     pack_sniff: dict[str, pack_sniff.PackSniff] = field(default_factory=dict)
+
+
+def member_source(bundle: Path, pack: pack_sniff.BundlePack) -> Path:
+    """The source a pack folder of a bundle is added as: ``<archive>/<folder name>`` for an
+    archive (``pack_sniff.member_path``), the folder itself for a bundle that is a folder."""
+    if Path(bundle).is_dir():
+        return Path(bundle).joinpath(*pack.path.split("/"))
+    return pack_sniff.member_path(bundle, pack.name)
+
+
+def _check_member(out: InputCheck, pack: Path, bundle: Path, folder: str) -> None:
+    """The checks of a pack taken from a bundle: the archive is looked at once for all its
+    packs, and the figures are those of the pack's folder in the listing."""
+    key = str(bundle)
+    if key not in out.bundles:
+        out.bundles[key] = pack_sniff.sniff(bundle)
+        out.bundle_issues[key] = preflight.check_pack(bundle)
+        out.packs.extend(out.bundle_issues[key])
+    found = IssueList()
+    listed = next((p for p in out.bundles[key].bundle if p.name == folder), None)
+    if listed is None and not out.bundle_issues[key]:
+        found.add("ARCH-001", path=key, reason=f'it has no pack folder "{folder}"')
+        out.packs.extend(found)
+    out.pack_issues[str(pack)] = [*out.bundle_issues[key], *found]
+    out.pack_info[str(pack)] = (bundle.name, None, listed.bytes if listed else None)
+    out.pack_sniff[str(pack)] = pack_sniff.PackSniff(format="generic")
 
 
 def check_inputs(
@@ -157,9 +186,15 @@ def check_inputs(
             out.godot.extend(godot.check_version(version))
         except Exception as exc:  # noqa: BLE001 - shown as a field message
             out.godot.append(getattr(exc, "issue", None) or form_error(str(exc)))
-    if target is not None:
-        out.target = preflight.check_target(target, packs)
+    members = {str(pack): pack_sniff.split_member(pack) for pack in packs}
+    if target is not None:  # a pack of a bundle is on the disk as its archive
+        on_disk = [m[0] if (m := members[str(pack)]) else pack for pack in packs]
+        out.target = preflight.check_target(target, list(dict.fromkeys(on_disk)))
     for pack in packs:
+        member = members[str(pack)]
+        if member is not None:
+            _check_member(out, pack, *member)
+            continue
         found = preflight.check_pack(pack)
         out.packs.extend(found)
         out.pack_issues[str(pack)] = found
@@ -249,6 +284,8 @@ class ProjectModel:
         self.name_touched = False
         self.pack_updates: dict[str, str] = {}  # new source -> pack_id it replaces
         self.update_changed: set[str] = set()  # asset paths added, resized or removed
+        # what the analysis said about each pack (the catalog's pack warnings), by its source
+        self.catalog_marks: dict[str, tuple[str, ...]] = {}
 
     # ------------------------------------------------------------------ checks
 
@@ -375,6 +412,21 @@ class ProjectModel:
             bits.append(format_size(size))
         return bits
 
+    def mark_words(self, marks: tuple[str, ...]) -> list[str]:
+        """The words of a pack card for what detection said about the pack (T16.02, T16.21):
+        the kind of game it looks made for, and the engines it ships its art for."""
+        words: list[str] = []
+        for mark in marks:
+            kind, _, rest = mark.partition(":")
+            if mark == catalog_mod.VIEW_SHMUP:
+                words.append(self.tr("Looks like a shooter pack"))
+            elif mark == catalog_mod.VIEW_RACING:
+                words.append(self.tr("Looks like a racing pack"))
+            elif kind == "engines":
+                count, _, kept = rest.partition(":")
+                words.append(self.tr("art for {0} engines: {1}'s is used").format(count, kept))
+        return words
+
     def card_for(self, path: str, check: InputCheck | None) -> dict[str, Any]:
         """What the pack card shows: name, kind/files/size, the chips and an inline error."""
         source = Path(path)
@@ -386,7 +438,11 @@ class ProjectModel:
         }
         if check is None or path not in check.pack_info:
             return card
-        card["detail"] = " · ".join(self._detail(check.pack_info[path]))
+        member = pack_sniff.split_member(source)
+        if member is not None:
+            return self._member_card(card, path, check, str(member[0]))
+        bits = self._detail(check.pack_info[path])
+        card["detail"] = " · ".join(bits)
         sniffed = check.pack_sniff.get(path)
         problems = [i for i in check.pack_issues.get(path, []) if i.code.startswith("ARCH-")]
         if sniffed is not None:
@@ -398,12 +454,67 @@ class ProjectModel:
             label = self.tr(FORMAT_NAMES.get(sniffed.format, sniffed.format))
             if sniffed.tile_size:
                 label += f" · {sniffed.tile_size} px"
+            if sniffed.bundle:  # a bundle that is in the list whole, as one pack
+                label = self.tr("Bundle of {0} packs").format(len(sniffed.bundle))
             card["chips"].append((label, "format"))
             if sniffed.has_license is True:
                 card["chips"].append((self.tr("Licence found"), "ok"))
             elif sniffed.has_license is False:
                 card["chips"].append((self.tr("No licence file"), "warn"))
+        marks = self.catalog_marks.get(path, sniffed.marks if sniffed is not None else ())
+        card["detail"] = " · ".join([*bits, *self.mark_words(marks)])
         return card
+
+    def _member_card(
+        self, card: dict[str, Any], path: str, check: InputCheck, bundle: str
+    ) -> dict[str, Any]:
+        """The card of a pack taken from a bundle: its folder's pictures and size. What is
+        known of its licence is said once, on the row of the bundle."""
+        sniffed = check.bundles.get(bundle)
+        packs = sniffed.bundle if sniffed is not None else ()
+        listed = next((p for p in packs if p.name == card["name"]), None)
+        problems = [i for i in check.pack_issues.get(path, []) if i.code.startswith("ARCH-")]
+        if sniffed is not None:
+            problems += [i for i in sniffed.issues if i not in problems]
+        if problems:
+            card["error"] = problems[0].message
+        if listed is not None:
+            bits = [self.tr("{0} images").format(listed.images), format_size(listed.bytes)]
+            marks = self.catalog_marks.get(path, ())
+            card["detail"] = " · ".join([*bits, *self.mark_words(marks)])
+        return card
+
+    def group_card(self, bundle: str, check: InputCheck | None, taken: int) -> dict[str, Any]:
+        """The row over the packs taken from a bundle (T16.22): the archive, how many of its
+        packs are taken, what is known of its licence, and *Choose packs…*."""
+        card: dict[str, Any] = {
+            "name": Path(bundle).name,
+            "detail": self.tr("{0} pack(s) taken").format(taken),
+            "chips": [],
+            "error": "",
+            "action": self.tr("Choose packs…"),
+        }
+        sniffed = check.bundles.get(bundle) if check is not None else None
+        if check is None or sniffed is None:
+            return card
+        problems = [*check.bundle_issues.get(bundle, []), *sniffed.issues]
+        if problems:
+            card["error"] = problems[0].message
+        elif sniffed.bundle:
+            card["detail"] = self.tr("{0} of {1} packs").format(taken, len(sniffed.bundle))
+            if sniffed.bundle_license:
+                card["chips"].append((self.tr("Licence found"), "ok"))
+            else:  # said once here, not on every pack of the bundle
+                card["chips"].append((self.tr("Licence: not found in the bundle"), "warn"))
+        return card
+
+    @staticmethod
+    def bundle_choice(
+        sources: list[Path], bundle: Path, packs: tuple[pack_sniff.BundlePack, ...]
+    ) -> list[str]:
+        """The names of the pack folders of ``bundle`` that are in the list now."""
+        listed = {str(source).casefold() for source in sources}
+        return [p.name for p in packs if str(member_source(bundle, p)).casefold() in listed]
 
     def row_text(self, path: str, check: InputCheck | None) -> tuple[str, str]:
         """The plain text of a pack row and its tooltip: the pack, its kind, file count and size
@@ -474,6 +585,12 @@ class ProjectModel:
         self.touched["target"] = state.target is not None
         self.touched["name"] = bool(state.project_name)
         self.name_touched = bool(state.project_name)
+        self.catalog_marks = {}
+        if state.catalog is not None and len(state.opened_packs) == len(state.pack_sources):
+            warnings = {pack.pack_id: tuple(pack.warnings) for pack in state.catalog.packs}
+            for source, opened in zip(state.pack_sources, state.opened_packs, strict=True):
+                if opened.pack_id in warnings:
+                    self.catalog_marks[str(source)] = warnings[opened.pack_id]
 
     def store(self, state: WizardState, inputs: Inputs) -> None:
         """Writes the fields into ``state`` (the analysis is the page's)."""
@@ -516,7 +633,7 @@ def config_with_packs(state: WizardState) -> config_mod.GeneratorConfig:
     """An existing project's config with its pack list brought up to date: packs that stay keep
     their ids, an updated pack keeps the id of the pack it replaces."""
     assert state.config is not None
-    old = {str(Path(p.source)).casefold(): p for p in state.config.packs}
+    old = {str(p.path).casefold(): p for p in state.config.packs}
     used = {p.pack_id for p in state.config.packs}
     refs = []
     for index, source in enumerate(state.pack_sources):
@@ -526,7 +643,8 @@ def config_with_packs(state: WizardState) -> config_mod.GeneratorConfig:
             continue
         pack_id = state.pack_updates.get(str(source))
         if pack_id is None:
-            stem = source.name if source.is_dir() else source.stem
+            whole = source.is_dir() or pack_sniff.split_member(source) is not None
+            stem = source.name if whole else source.stem  # a pack of a bundle: its folder
             pack_id = ids.pack_id_from_name(stem, used)
             used.add(pack_id)
         refs.append(config_mod.pack_ref_from_source(source, pack_id, analysed_hash(state, index)))
@@ -571,7 +689,7 @@ def needs_analysis(state: WizardState, key: tuple, previous: object) -> bool:
 def refresh_config(state: WizardState) -> None:
     """After an analysis: a config for the analysed packs, unless the state has one for them."""
     sources = [str(s) for s in state.pack_sources]
-    if state.config is not None and [p.source for p in state.config.packs] == sources:
+    if state.config is not None and [str(p.path) for p in state.config.packs] == sources:
         return
     if state.regenerating and state.config is not None:
         state.config = config_with_packs(state)

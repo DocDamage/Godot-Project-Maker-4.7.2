@@ -144,7 +144,7 @@ def make_window(qtbot, tmp_path, monkeypatch):
 
 def test_a_draft_resumes_after_closing_and_reopening(make_window) -> None:
     first = make_window()
-    first.pages[0].sample_button.click()
+    first.pages[0].sample_actions["top"].trigger()  # the list of the button (T16.17)
     assert first.current_index == OPTIONS_INDEX
     hero = next(a.id for a in first.state.catalog.assets if a.id.endswith("hero"))
     audit = first.pages[2]
@@ -161,7 +161,7 @@ def test_a_draft_resumes_after_closing_and_reopening(make_window) -> None:
     first.close()
 
     second = make_window()  # a new session of the app: nothing in memory
-    second.pages[0].sample_button.click()
+    second.pages[0].sample_actions["top"].trigger()
     assert second.current_index == OPTIONS_INDEX
     assert second.state.target == target
     assert catalog.effective(second.state.catalog.asset(hero))["tags"] == ["resumed"]

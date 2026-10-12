@@ -13,7 +13,7 @@ import time
 import unicodedata
 import zipfile
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
@@ -181,6 +181,27 @@ def _select_entries(
     return sorted(chosen.values(), key=lambda e: _sort_key(e.name))
 
 
+def _folder_entries(entries: list[_Entry], folder: str) -> list[_Entry]:
+    """The entries of one pack folder of a bundle (T16.22), named from that folder on, with
+    the licence files that lie beside the pack folders: a licence at the bundle's top level
+    applies to every pack taken from it. A file of the pack's own with the same name wins."""
+    if not folder:
+        return entries
+    from rpggen.core import inventory
+
+    prefix = unicodedata.normalize("NFC", folder).strip("/") + "/"
+    top = prefix[:-1].rpartition("/")[0]
+    top = top + "/" if top else ""
+    out = [replace(e, name=e.name[len(prefix) :]) for e in entries if e.name.startswith(prefix)]
+    own = {e.name.casefold() for e in out}
+    for entry in entries:
+        rest = entry.name[len(top) :] if entry.name.startswith(top) else ""
+        beside = bool(rest) and "/" not in rest and rest.casefold() not in own
+        if beside and inventory.classify_kind(rest) == "license":
+            out.append(replace(entry, name=rest))
+    return out
+
+
 def _inside(base: Path, target: Path) -> bool:
     try:
         target.resolve().relative_to(base.resolve())
@@ -204,13 +225,16 @@ def _zip_entries(zf: zipfile.ZipFile) -> list[_Entry]:
     return entries
 
 
-def _extract_zip(archive: Path, dest: Path, issues: IssueList, ctl: Control) -> None:
+def _extract_zip(
+    archive: Path, dest: Path, issues: IssueList, ctl: Control, folder: str = ""
+) -> None:
     try:
         zf = zipfile.ZipFile(archive)
     except (zipfile.BadZipFile, OSError) as exc:
         raise RpgGenError("ARCH-001", path=str(archive), reason=str(exc)) from exc
     with zf:
-        entries = _select_entries(_zip_entries(zf), issues, str(archive), ctl.budget)
+        wanted = _folder_entries(_zip_entries(zf), folder)
+        entries = _select_entries(wanted, issues, str(archive), ctl.budget)
         total = 0
         declared = sum(max(e.size, 0) for e in entries)
         label = f"Extracting {archive.name}"
@@ -319,7 +343,9 @@ def _seven_zip_factory_class() -> type:
     return Factory
 
 
-def _extract_7z(archive: Path, dest: Path, issues: IssueList, ctl: Control) -> None:
+def _extract_7z(
+    archive: Path, dest: Path, issues: IssueList, ctl: Control, folder: str = ""
+) -> None:
     import py7zr
 
     try:
@@ -346,7 +372,7 @@ def _extract_7z(archive: Path, dest: Path, issues: IssueList, ctl: Control) -> N
                 int(info.compressed or 0) if getattr(info, "compressed", None) else 0,
             )
         )
-    allowed = _select_entries(entries, issues, str(archive), ctl.budget)
+    allowed = _select_entries(_folder_entries(entries, folder), issues, str(archive), ctl.budget)
     by_raw = {str(e.raw): e for e in allowed}
     label = f"Extracting {archive.name}"
     factory = _seven_zip_factory_class()(dest, by_raw, ctl, label)
@@ -421,7 +447,15 @@ def _run_7z(command: list[str], ctl: Control) -> subprocess.CompletedProcess[str
         raise
 
 
-def _extract_rar(archive: Path, dest: Path, issues: IssueList, ctl: Control) -> None:
+def _extract_rar(
+    archive: Path, dest: Path, issues: IssueList, ctl: Control, folder: str = ""
+) -> None:
+    if folder:  # a rar is not listed by the sniff, so it is never offered as a bundle
+        raise RpgGenError(
+            "ARCH-001",
+            path=str(archive),
+            reason="a pack folder cannot be taken from a rar; extract it and add the folder",
+        )
     exe = find_7z()
     if exe is None:
         raise RpgGenError("ARCH-007")
@@ -532,11 +566,24 @@ def extracted_root(sha256: str) -> Path:
     return paths.cache_dir() / "extracted" / sha256
 
 
+_DIGESTS: dict[tuple[str, int, int], str] = {}  # of the bundles opened in this process
+
+
+def _bundle_digest(source: Path, ctl: Control) -> str:
+    """sha256 of a bundle archive, read once for all the packs taken from it."""
+    info = source.stat()
+    key = (str(source.resolve()), info.st_size, info.st_mtime_ns)
+    if key not in _DIGESTS:
+        _DIGESTS[key] = sha256_file(source, ctl, f"Reading {source.name}")
+    return _DIGESTS[key]
+
+
 def open_pack(
     source: Path,
     existing_ids: set[str],
     pack_id: str | None = None,
     *,
+    folder: str = "",
     progress: Progress | None = None,
     is_cancelled: Callable[[], bool] | None = None,
 ) -> OpenedPack:
@@ -546,19 +593,39 @@ def open_pack(
     receives ``(label, bytes done, bytes total)`` while an archive is hashed and extracted;
     ``is_cancelled`` is polled between chunks, and a cancel (``Cancelled``) removes the
     half-extracted folder.
+
+    ``folder`` names one pack folder of a bundle (T16.22): that folder alone is the pack. The
+    wizard names such a pack by a path that does not exist, ``<archive>/<folder>``
+    (``pack_sniff.member_path``); it is opened the same way.
     """
+    from rpggen.core import pack_sniff
+
     ctl = Control(progress, is_cancelled)
     source = Path(source)
+    member = None if folder or source.exists() else pack_sniff.split_member(source)
+    if member is not None:
+        source, folder = member
     if not source.exists():
         raise RpgGenError("ARCH-001", path=str(source), reason="does not exist")
     kind = _kind_of(source)
+    inner = pack_sniff.folder_in_bundle(source, folder).path if folder else ""
     pack_id = pack_id or ids.pack_id_from_name(
-        source.name if kind == "folder" else source.stem, existing_ids
+        folder or (source.name if kind == "folder" else source.stem), existing_ids
     )
-    if kind == "folder":
-        return OpenedPack(pack_id, "folder", source, "", [])  # never written to
+    if inner and pack_sniff.is_inner_archive(inner):
+        # a zip of zips (T16.21): the pack is an archive inside, opened as an archive is
+        return pack_sniff.open_inner_archive(
+            source, inner, existing_ids, pack_id, progress=progress, is_cancelled=is_cancelled
+        )
+    if kind == "folder":  # never written to
+        root = source.joinpath(*PurePosixPath(inner).parts) if inner else source
+        return OpenedPack(pack_id, "folder", root, "", [])
 
-    digest = sha256_file(source, ctl, f"Reading {source.name}")
+    if inner:  # the pack's own identity: the archive's and the folder's
+        whole = _bundle_digest(source, ctl)
+        digest = hashlib.sha256(f"{whole}:{inner}".encode()).hexdigest()
+    else:
+        digest = sha256_file(source, ctl, f"Reading {source.name}")
     target = extracted_root(digest)
     marker = target / COMPLETE_MARKER
     if marker.exists():
@@ -582,7 +649,7 @@ def open_pack(
     partial.mkdir(parents=True)
     issues = IssueList()
     try:
-        _EXTRACTORS[kind](source, partial, issues, ctl)
+        _EXTRACTORS[kind](source, partial, issues, ctl, inner)
         _extract_nested(partial, issues, ctl)
         _scrub_links(partial, issues)
         jsonio.write(partial / COMPLETE_MARKER, {"issues": issues.to_json()})

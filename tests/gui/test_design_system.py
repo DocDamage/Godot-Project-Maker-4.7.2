@@ -504,7 +504,9 @@ def _dialogs(window: MainWindow, tmp_path: Path) -> list[QDialog]:
         import make_doc_screenshots as shots
     finally:
         sys.path.pop(0)
+    from rpggen.core import pack_sniff
     from rpggen.gui.dialogs.about_dialog import AboutDialog, NoticesDialog
+    from rpggen.gui.dialogs.bundle_dialog import BundleDialog
     from rpggen.gui.dialogs.conflict_dialog import ConflictDialog
     from rpggen.gui.dialogs.error_lookup import ErrorLookupDialog
     from rpggen.gui.dialogs.promotion_dialog import PromotionDialog
@@ -518,6 +520,12 @@ def _dialogs(window: MainWindow, tmp_path: Path) -> list[QDialog]:
         PromotionDialog(shots.promotion_summary(), window),
         ConflictDialog(shots.conflict_project(tmp_path / "conflict"), None, window),
         gui_app.CrashDialog("Traceback (most recent call last):\nValueError: example"),
+        BundleDialog(
+            "bundle.zip",
+            pack_sniff.sniff(REPO / "test_packs" / "synthetic" / "bundle.zip").bundle,
+            None,
+            window,
+        ),
     ]
 
 
@@ -543,7 +551,7 @@ def test_every_dialog_opens_with_one_primary_button(qtbot, tmp_path, name: str) 
 def test_the_dialogs_details(qtbot, tmp_path) -> None:
     window = MainWindow(state_mod.WizardState(), stub_pages())
     qtbot.addWidget(window)
-    about, _notices, _lookup, storage, promotion, conflict, _crash = _dialogs(window, tmp_path)
+    about, _notices, _lookup, storage, promotion, conflict, *_rest = _dialogs(window, tmp_path)
     for dialog in (about, storage, promotion, conflict):
         qtbot.addWidget(dialog)
         dialog.show()

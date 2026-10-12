@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
     QInputDialog,
+    QListWidgetItem,
     QMenu,
     QMessageBox,
     QPushButton,
@@ -20,10 +21,11 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen import paths
-from rpggen.core import app_settings, godot_fetch, pack_diff, preflight, profiles
+from rpggen.core import app_settings, godot_fetch, pack_diff, pack_sniff, preflight, profiles
 from rpggen.core import config as config_mod
 from rpggen.errors import Issue, RpgGenError, Severity
 from rpggen.gui import workers
+from rpggen.gui.dialogs.bundle_dialog import BundleDialog
 from rpggen.gui.models import project_model as model_mod
 from rpggen.gui.models.project_model import (  # noqa: F401 - names the tests import from here
     ARCHIVE_SUFFIXES,
@@ -40,7 +42,12 @@ from rpggen.gui.models.project_model import (  # noqa: F401 - names the tests im
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
 from rpggen.gui.widgets import analysis_progress, godot_download
-from rpggen.gui.widgets.pack_list import CARD_ROLE, PackCardDelegate, PackList  # noqa: F401
+from rpggen.gui.widgets.pack_list import (  # noqa: F401
+    CARD_ROLE,
+    GROUP_ROLE,
+    PackCardDelegate,
+    PackList,
+)
 from rpggen.gui.widgets.project_form import ProjectForm, show_status
 
 log = logging.getLogger(__name__)
@@ -88,6 +95,10 @@ class ProjectPage(WizardPage):
         self.pack_list.on_paths_dropped = self.add_sources
         form.drop_zone.on_paths_dropped = self.add_sources
         self.pack_list.card_delegate.removeRequested.connect(self.remove_row)
+        self.pack_list.card_delegate.chooseRequested.connect(self.choose_packs_at)
+        self.pack_list.itemActivated.connect(self._on_item_activated)
+        self.choose_packs_button = form.choose_packs_button
+        self.choose_packs_button.clicked.connect(lambda: self.choose_packs_at())
         self.sample_button.clicked.connect(self._on_sample_button)
         self.sample_archetype = ""  # the kind of the sample that was chosen by name
         self.sample_actions: dict[str, QAction] = {}
@@ -217,23 +228,112 @@ class ProjectPage(WizardPage):
         )
 
     def add_sources(self, paths_: list[Path]) -> None:
+        """Add folders and archives. One that is a bundle of packs is not added: its
+        checklist opens, and what is ticked there is (T16.22)."""
         for path in self.model.new_sources(self.sources(), paths_):
-            self.pack_list.add_path(path)
+            sniffed = self.bundle_of(path)
+            if sniffed is None:
+                self.pack_list.add_path(path)
+            else:
+                self.choose_packs(path, sniffed)  # Cancel adds nothing
         self._suggest_from_first_pack()
         self._on_inputs_changed()
 
     def remove_row(self, row: int) -> None:
-        """The cross on a pack card."""
-        if 0 <= row < self.pack_list.count():
-            self.pack_list.takeItem(row)
-            self.model.touched["packs"] = True
-            self._on_inputs_changed()
-
-    def remove_selected(self) -> None:
-        for item in self.pack_list.selectedItems():
-            self.pack_list.takeItem(self.pack_list.row(item))
+        """The cross on a pack card. On the row of a bundle it takes all the bundle's packs,
+        after the confirmation."""
+        if not 0 <= row < self.pack_list.count():
+            return
+        bundle = self.pack_list.item(row).data(GROUP_ROLE)
+        if bundle:
+            taken = [self.pack_list.item(r) for r in self.pack_list.group_rows(bundle)[1:]]
+            names = [Path(item.data(Qt.ItemDataRole.UserRole)).name for item in taken]
+            if not self.confirm_remove_packs(names):
+                return
+        self.pack_list.remove_rows([row])
         self.model.touched["packs"] = True
         self._on_inputs_changed()
+
+    def remove_selected(self) -> None:
+        rows = [self.pack_list.row(item) for item in self.pack_list.selectedItems()]
+        self.pack_list.remove_rows(rows)
+        self.model.touched["packs"] = True
+        self._on_inputs_changed()
+
+    # ------------------------------------------------------------------ a bundle of packs
+
+    def bundle_of(self, path: Path) -> pack_sniff.PackSniff | None:
+        """What the listing of ``path`` says, when it is a bundle of packs; else None.
+        Nothing is unpacked, and the listing is read for a second at most."""
+        sniffed = pack_sniff.sniff(path)
+        return sniffed if sniffed.bundle else None
+
+    def run_bundle_dialog(self, dialog: BundleDialog) -> bool:  # overridden by tests
+        return dialog.exec() == BundleDialog.DialogCode.Accepted
+
+    def confirm_remove_packs(self, names: list[str]) -> bool:  # overridden by tests
+        """The confirmation before packs of a bundle leave the project."""
+        answer = QMessageBox.question(
+            self,
+            self.tr("Remove packs"),
+            self.tr(
+                "Remove {0} pack(s) from the project?\n\n{1}\n\nWhat you set for their assets "
+                "in the audit is not used any more."
+            ).format(len(names), "\n".join(names[:12]) + ("\n…" if len(names) > 12 else "")),
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def choose_packs(self, bundle: Path, sniffed: pack_sniff.PackSniff | None = None) -> bool:
+        """Open *Choose packs* for a bundle, with the packs the list has from it ticked.
+        Ticking adds a pack; clearing one removes it after the confirmation. False when the
+        dialog was cancelled, the removal declined, or ``bundle`` is not one."""
+        sniffed = sniffed or self.bundle_of(bundle)
+        if sniffed is None:
+            return False
+        present = self.model.bundle_choice(self.sources(), bundle, sniffed.bundle)
+        dialog = BundleDialog(bundle.name, sniffed.bundle, set(present) or None, self)
+        if not self.run_bundle_dialog(dialog):
+            return False
+        chosen = dialog.chosen()
+        removed = [name for name in present if name not in chosen]
+        if removed and not self.confirm_remove_packs(removed):
+            return False
+        by_name = {pack.name: model_mod.member_source(bundle, pack) for pack in sniffed.bundle}
+        doomed = {str(by_name[name]).casefold() for name in removed}
+        rows = [
+            self.pack_list.row(item)
+            for item in self.pack_list.pack_items()
+            if str(item.data(Qt.ItemDataRole.UserRole)).casefold() in doomed
+        ]
+        self.pack_list.remove_rows(rows)
+        for name in chosen:
+            if name not in present:
+                self.pack_list.add_path(by_name[name])
+        self.model.touched["packs"] = True
+        return True
+
+    def choose_packs_at(self, row: int | None = None) -> bool:
+        """*Choose packs…* on the row of a bundle, or the button under the list: the bundle
+        of the current row, else the first one in the list."""
+        if row is None:
+            row = self.pack_list.currentRow()
+        bundle = self.pack_list.bundle_at(row) if row >= 0 else None
+        if bundle is None:
+            bundles = self.pack_list.bundles()
+            if not bundles:
+                return False
+            bundle = bundles[0]
+        done = self.choose_packs(bundle)
+        if done:
+            self._suggest_from_first_pack()
+            self._on_inputs_changed()
+        return done
+
+    def _on_item_activated(self, item: QListWidgetItem) -> None:
+        """Enter or a double click on the row of a bundle opens its checklist."""
+        row = self.pack_list.row(item)
+        if row >= 0 and item.data(GROUP_ROLE):
+            self.choose_packs_at(row)
 
     def _browse_archives(self) -> None:
         files, _ = QFileDialog.getOpenFileNames(
@@ -376,10 +476,9 @@ class ProjectPage(WizardPage):
         old_source = self.model.old_source(target, pack_id)
         listed = [str(p).casefold() for p in self.sources()]
         if str(Path(old_source)).casefold() in listed:
-            item = self.pack_list.item(listed.index(str(Path(old_source)).casefold()))
-            if item is not None:
-                item.setText(str(new_source))
-                item.setData(Qt.ItemDataRole.UserRole, str(new_source))
+            item = self.pack_list.pack_items()[listed.index(str(Path(old_source)).casefold())]
+            item.setText(str(new_source))
+            item.setData(Qt.ItemDataRole.UserRole, str(new_source))
         else:
             self.pack_list.add_path(new_source)
         self.model.record_update(new_source, pack_id, d)
@@ -420,6 +519,13 @@ class ProjectPage(WizardPage):
     def _refresh_pack_rows(self, check: InputCheck | None) -> None:
         for row in range(self.pack_list.count()):
             item = self.pack_list.item(row)
+            bundle = item.data(GROUP_ROLE)
+            if bundle:  # the row over the packs taken from a bundle
+                taken = len(self.pack_list.group_rows(bundle)) - 1
+                card = self.model.group_card(str(bundle), check, taken)
+                item.setToolTip(card["error"] or str(bundle))
+                item.setData(CARD_ROLE, card)
+                continue
             path = str(item.data(Qt.ItemDataRole.UserRole) or item.text())
             text, tooltip = self.model.row_text(path, check)
             item.setText(text)

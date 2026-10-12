@@ -38,18 +38,60 @@ class PackRef:
     source: str  # absolute path as the user gave it; informational only
     source_sha256: str
     kind: str  # "zip" | "7z" | "folder"
+    # T16.22: ``source`` is a bundle of packs and this pack is one folder of it, by its name.
+    # A config may list several; loading makes one entry of each (``split_bundles``).
+    folders: tuple[str, ...] = ()
+
+    @property
+    def folder(self) -> str:
+        """The pack folder of the bundle this pack is ("" for a pack that is all of its
+        source)."""
+        return self.folders[0] if self.folders else ""
+
+    @property
+    def path(self) -> Path:
+        """The path the wizard knows the pack by: the source, or ``<bundle>/<folder>``."""
+        return Path(self.source) / self.folder if self.folders else Path(self.source)
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "pack_id": self.pack_id,
             "source": self.source,
             "source_sha256": self.source_sha256,
             "kind": self.kind,
         }
+        if self.folders:
+            data["folders"] = list(self.folders)
+        return data
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> PackRef:
-        return cls(data["pack_id"], data["source"], data["source_sha256"], data["kind"])
+        return cls(
+            data["pack_id"],
+            data["source"],
+            data["source_sha256"],
+            data["kind"],
+            tuple(data.get("folders", ())),
+        )
+
+
+def split_bundles(packs: list[PackRef]) -> list[PackRef]:
+    """One entry per pack (T16.22): an entry that lists several folders of a bundle becomes
+    an entry for each, in the order given, with an id made from the folder's name. An entry
+    with one folder keeps its id, so a config that was saved once reads the same ever after."""
+    from rpggen import ids
+
+    used = {p.pack_id for p in packs if len(p.folders) < 2}
+    out: list[PackRef] = []
+    for ref in packs:
+        if len(ref.folders) < 2:
+            out.append(ref)
+            continue
+        for folder in ref.folders:
+            pack_id = ids.pack_id_from_name(folder, used)
+            used.add(pack_id)
+            out.append(PackRef(pack_id, ref.source, ref.source_sha256, ref.kind, (folder,)))
+    return out
 
 
 def default_input(archetype: str) -> dict[str, dict[str, Any]]:
@@ -260,7 +302,7 @@ class GeneratorConfig:
     def from_json(cls, data: dict[str, Any]) -> GeneratorConfig:
         return cls(
             project_name=data["project_name"],
-            packs=[PackRef.from_json(p) for p in data["packs"]],
+            packs=split_bundles([PackRef.from_json(p) for p in data["packs"]]),
             archetype=data["archetype"],
             base_tile_size=data["base_tile_size"],
             resolution=(data["resolution"][0], data["resolution"][1]),
@@ -351,9 +393,15 @@ def pack_ref_from_source(source: Path, pack_id: str, known_sha256: str | None = 
     ``known_sha256`` is the identity the analysis already computed (``Inventory.source_sha256``);
     with it no pack file is read. Without it an archive is streamed, never read into memory.
     """
-    from rpggen.core import archive
+    from rpggen.core import archive, pack_sniff
 
     source = Path(source)
+    member = None if source.exists() else pack_sniff.split_member(source)
+    if member is not None:  # a pack folder of a bundle: the archive and the folder (T16.22)
+        bundle, folder = member
+        kind = bundle.suffix.lower().lstrip(".")
+        digest = known_sha256 or archive.sha256_file(bundle)
+        return PackRef(pack_id, str(bundle.resolve()), digest, kind, (folder,))
     if source.is_dir():
         return PackRef(
             pack_id, str(source.resolve()), known_sha256 or folder_sha256(source), "folder"
@@ -365,6 +413,25 @@ def pack_ref_from_source(source: Path, pack_id: str, known_sha256: str | None = 
         raise RpgGenError("ARCH-001", path=str(source), reason="unsupported file type")
     digest = known_sha256 or archive.sha256_file(source)
     return PackRef(pack_id, str(source.resolve()), digest, kind)
+
+
+def pack_refs_from_bundle(source: Path, folders: list[str]) -> list[PackRef]:
+    """One PackRef per folder of the bundle ``source`` (``--pack-folder``), named by its
+    folder. ``ARCH-001`` when ``source`` is not a bundle or has no such folder."""
+    from rpggen import ids
+    from rpggen.core import archive, pack_sniff
+
+    source = Path(source)
+    names = [pack_sniff.folder_in_bundle(source, folder).name for folder in folders]
+    kind = "folder" if source.is_dir() else source.suffix.lower().lstrip(".")
+    digest = "" if source.is_dir() else archive.sha256_file(source)
+    used: set[str] = set()
+    refs: list[PackRef] = []
+    for name in dict.fromkeys(names):
+        pack_id = ids.pack_id_from_name(name, used)
+        used.add(pack_id)
+        refs.append(PackRef(pack_id, str(source.resolve()), digest, kind, (name,)))
+    return refs
 
 
 def pack_ref_from_folder(folder: Path, pack_id: str) -> PackRef:
