@@ -39,6 +39,7 @@ from rpggen.core import (
 )
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import variants as variants_mod
+from rpggen.core.adapters import sequences
 from rpggen.core.analyzer import similarity
 from rpggen.core.inventory import Inventory
 from rpggen.errors import RpgGenError
@@ -108,6 +109,10 @@ def make_resolver(state: WizardState) -> PathResolver:
             cached = variants_mod.cached_file(asset.sha256)
             if cached.is_file():
                 return cached
+        if asset.path.startswith(sequences.FRAME_STRIP_DIR + "/"):  # a strip rpggen put together
+            strip = sequences.cached_strip(asset.path)
+            if strip.is_file():
+                return strip
         if generated_root is not None:
             candidate = generated_root / asset.path
             return candidate if candidate.exists() else None
@@ -255,6 +260,7 @@ class AuditPage(WizardPage):
         self.grid.thumbSizeChanged.connect(self._remember_thumb_size)
         self.grid.set_thumb_size(app_settings.get().thumb_size)
         self.grid.set_grouped(app_settings.get().group_by_folder)
+        self.grid.set_fold_colours(True)  # the colours a pack ships of one picture: one card
         self.grid.groupedChanged.connect(lambda on: app_settings.schedule(group_by_folder=on))
         self.grid.folderConfirmRequested.connect(self.confirm_folder)
         self.grid.folderRuleRequested.connect(self.make_folder_rule)
@@ -476,21 +482,22 @@ class AuditPage(WizardPage):
             self.grid.advance_after(order_before, edited[0])
 
     def _confirm_selection(self) -> None:
-        ids = self.grid.selected_ids()
-        if ids and self.session is not None:
+        cards = self.grid.selected_ids()
+        if cards and self.session is not None:
             order = self.grid.visible_ids()
-            if self.session.confirm(ids):
-                self._advance(order, ids)
+            # the card of a colour group stands for its colours (T16.21): they go with it
+            if self.session.confirm(self.grid.with_folded_colours(cards)):
+                self._advance(order, cards)
 
     def _exclude_selection(self) -> None:
-        ids = self.grid.selected_ids()
-        if ids and self.session is not None:
+        cards = self.grid.selected_ids()
+        if cards and self.session is not None:
             order = self.grid.visible_ids()
-            if self.session.bulk_edit(ids, {"role": "NONE"}):
-                self._advance(order, ids)
+            if self.session.bulk_edit(self.grid.with_folded_colours(cards), {"role": "NONE"}):
+                self._advance(order, cards)
 
     def _quick_role(self, number: int) -> None:
-        ids = self.grid.selected_ids()
+        ids = self.grid.with_folded_colours(self.grid.selected_ids())
         if ids and self.session is not None and number <= len(self.quick_roles):
             self.session.bulk_edit(ids, {"role": self.quick_roles[number - 1]})
 
@@ -539,6 +546,10 @@ class AuditPage(WizardPage):
             self.detail.gridEditRequested.connect(self.edit_grid)
             self.detail.animationsRequested.connect(self.edit_animations)
             self.detail.cutObjectsRequested.connect(self.cut_objects)
+            self.detail.edit_ids = lambda asset_id: self.grid.with_folded_colours([asset_id])
+            self.detail.colours_shown = self.grid.colours_shown
+            self.detail.coloursShowRequested.connect(self.grid.show_colours)
+            self.detail.coloursSelectRequested.connect(self.grid.select_colours)
             self.bulk = BulkPanel(self.session)
             self.bulk_scroll = self._scrolled(self.bulk)
             self.side.addWidget(self.bulk_scroll)
@@ -727,8 +738,17 @@ class AuditPage(WizardPage):
         path = self.resolver(asset) if asset else None
         if asset is None or path is None:
             return False
-        grid = catalog_mod.effective(asset).get("grid")
-        dialog = GridEditorDialog(path, grid, asset.path, self)
+        eff = catalog_mod.effective(asset)
+        grid = eff.get("grid")
+        headings = eff.get("headings")
+        dialog = GridEditorDialog(
+            path,
+            grid,
+            asset.path,
+            self,
+            headings=headings if isinstance(headings, int) and headings > 0 else 0,
+            heading_order=str(eff.get("heading_order") or "up_cw"),
+        )
         if not self.run_dialog(dialog):
             return False
         return self.session.set_override(asset_id, "grid", dialog.grid())

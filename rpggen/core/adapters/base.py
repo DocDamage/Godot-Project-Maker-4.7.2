@@ -36,6 +36,10 @@ class AdapterResult:
     consumed: list[str] = field(default_factory=list)
     # Files the adapter generated: project-relative target path -> absolute source file.
     generated: dict[str, str] = field(default_factory=dict)
+    # Sources rpggen drew because the pack ships no picture of them (a ``.aseprite`` with no
+    # export, T16.21): pack path of the source -> project-relative path of the picture, which
+    # is in ``generated`` too. The catalog makes the asset of the fragment with that picture.
+    rendered: dict[str, str] = field(default_factory=dict)
     # FolderRule dicts and the matched profile id: only the profile adapter sets them.
     folder_rules: list[dict[str, Any]] = field(default_factory=list)
     profile_id: str | None = None

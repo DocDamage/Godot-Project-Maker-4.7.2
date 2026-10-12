@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -147,6 +148,9 @@ class AssetDetail(QWidget):
     gridEditRequested = Signal(str)  # noqa: N815
     animationsRequested = Signal(str)  # noqa: N815
     cutObjectsRequested = Signal(str)  # noqa: N815
+    # the colour variants of the asset (T16.21), by the id of the group's first picture:
+    coloursShowRequested = Signal(str, bool)  # noqa: N815 - a card per colour, or one card
+    coloursSelectRequested = Signal(str)  # noqa: N815 - select them all
 
     def __init__(self, session: EditSession, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -155,6 +159,11 @@ class AssetDetail(QWidget):
         self.resolver: PathResolver = lambda asset: None
         self.asset_id: str | None = None
         self._loading = False
+        # The page says which assets the card of an asset stands for (the colours folded into
+        # it): Confirm, Exclude and a new role go to all of them, so the group stays one card.
+        self.edit_ids: Callable[[str], list[str]] = lambda asset_id: [asset_id]
+        self.colours_shown: Callable[[str], bool] = lambda first_id: False
+        self._colour_first: str | None = None
         # review mode (T13.01) shows the picture large beside the panel and turns this one off
         self.show_preview = True
         # ... and lends its own view, which then gets the picture, the marks and the playback
@@ -332,6 +341,36 @@ class AssetDetail(QWidget):
         role_box.addLayout(self.alt_row)
         role_box.addWidget(self.why_label)
         form.addRow(self.tr("Role"), role_box)
+        # the colours a pack ships of this picture: "Variants (8)", their names, two buttons
+        self.variants_label = QLabel(self.tr("Variants"))
+        self.variants_label.setObjectName("variantsLabel")
+        self.variants_names = QLabel()
+        self.variants_names.setObjectName("variantsNames")
+        self.variants_names.setWordWrap(True)
+        self.variants_names.setProperty("muted", True)
+        self.variants_show_button = QPushButton(self.tr("Show all"))
+        self.variants_show_button.setObjectName("variantsShowButton")
+        self.variants_show_button.setCheckable(True)
+        self.variants_show_button.setToolTip(
+            self.tr("Show every colour as a card of its own in the grid, or as one card again")
+        )
+        self.variants_select_button = QPushButton(self.tr("Select all"))
+        self.variants_select_button.setObjectName("variantsSelectButton")
+        self.variants_select_button.setToolTip(
+            self.tr("Select every colour of this picture, to change them together")
+        )
+        variants_buttons = FlowLayout()
+        variants_buttons.addWidget(self.variants_show_button)
+        variants_buttons.addWidget(self.variants_select_button)
+        self.variants_box = QWidget()
+        self.variants_box.setObjectName("variantsBox")
+        variants_layout = QVBoxLayout(self.variants_box)
+        variants_layout.setContentsMargins(0, 0, 0, 0)
+        variants_layout.addWidget(self.variants_names)
+        variants_layout.addLayout(variants_buttons)
+        form.addRow(self.variants_label, self.variants_box)
+        self.variants_label.setVisible(False)
+        self.variants_box.setVisible(False)
 
         layout.addWidget(self._section("how", self.tr("How it is used")))
         form = self._form()
@@ -402,6 +441,8 @@ class AssetDetail(QWidget):
         self.grid_button.clicked.connect(lambda: self._emit(self.gridEditRequested))
         self.anim_button.clicked.connect(lambda: self._emit(self.animationsRequested))
         self.cut_button.clicked.connect(lambda: self._emit(self.cutObjectsRequested))
+        self.variants_show_button.clicked.connect(self._on_variants_show)
+        self.variants_select_button.clicked.connect(self._on_variants_select)
         self.session.changed.connect(self._on_session_changed)
         self.setEnabled(False)
 
@@ -462,6 +503,7 @@ class AssetDetail(QWidget):
                 self.status_badge.setText("")
                 self.confidence_bar.setValue(0)
                 self.anim_box.setVisible(False)
+                self._show_variants(None)
                 for view in self.views():
                     view.set_image(None)
                 return
@@ -474,6 +516,7 @@ class AssetDetail(QWidget):
             self.role_help.setText(labels.role_help(str(eff.get("role", ""))))
             self.why_label.setText(self.tr("Why: ") + explain.why(asset))
             self._fill_alternatives(eff)
+            self._show_variants(asset)
             self.confidence_bar.setValue(round(asset.confidence * 100))
             self.status_badge.setText(asset.status)
             color = STATUS_COLORS.get(asset.status, STATUS_COLORS["UNUSED"])
@@ -497,6 +540,34 @@ class AssetDetail(QWidget):
                 self.render_picture()
         finally:
             self._loading = False
+
+    def _show_variants(self, asset: catalog_mod.Asset | None) -> None:
+        """The *Variants (8)* row: the colours a pack ships of this picture (T16.21)."""
+        group = catalog_mod.colour_group(self.session.catalog, asset.id) if asset else []
+        self._colour_first = group[0].id if group else None
+        self.variants_label.setVisible(bool(group))
+        self.variants_box.setVisible(bool(group))
+        if not group:
+            return
+        self.variants_label.setText(self.tr("Variants ({0})").format(len(group)))
+        names = [catalog_mod.colour_name(a).replace("_", " ") or self.tr("plain") for a in group]
+        self.variants_names.setText(", ".join(names))
+        self.variants_names.setToolTip("\n".join(a.path for a in group))
+        self.variants_show_button.setChecked(self.colours_shown(group[0].id))
+
+    def colour_variants(self) -> list[str]:
+        """The ids of the colours the *Variants* row lists, the group's first picture first."""
+        asset = self.asset()
+        group = catalog_mod.colour_group(self.session.catalog, asset.id) if asset else []
+        return [a.id for a in group]
+
+    def _on_variants_show(self, checked: bool) -> None:
+        if self._colour_first:
+            self.coloursShowRequested.emit(self._colour_first, checked)
+
+    def _on_variants_select(self) -> None:
+        if self._colour_first:
+            self.coloursSelectRequested.emit(self._colour_first)
 
     # ------------------------------------------------------------------ the picture (T13.03)
 
@@ -810,7 +881,11 @@ class AssetDetail(QWidget):
     def _edit(self, key: str, value: object) -> None:
         if self._loading or self.asset_id is None:
             return
-        self.session.set_override(self.asset_id, key, value)
+        ids = self.edit_ids(self.asset_id) if key == "role" else [self.asset_id]
+        if len(ids) > 1:  # the card of a colour group: every colour it stands for
+            self.session.bulk_edit(ids, {key: value})
+        else:
+            self.session.set_override(self.asset_id, key, value)
 
     def _on_usage(self) -> None:
         self._edit("usage", self.usage_combo.currentData())
@@ -852,7 +927,7 @@ class AssetDetail(QWidget):
 
     def _on_confirm(self) -> None:
         if self.asset_id:
-            self.session.confirm([self.asset_id])
+            self.session.confirm(self.edit_ids(self.asset_id))
 
     def _on_exclude(self) -> None:
         self._edit("role", "NONE")

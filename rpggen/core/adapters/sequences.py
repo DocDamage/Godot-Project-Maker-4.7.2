@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from PIL import Image
 
 from rpggen import paths
@@ -45,6 +46,13 @@ UNNAMED_CONFIDENCE = 0.5  # needs review: the animations have no names yet
 FRAME_STRIP_DIR = "generated/frame_strips"
 WORK_FOLDER = "frame_strips"
 MIN_FRAMES = 2
+# A source drawn by rpggen (a ``.aseprite`` with no export beside it): its strip is named after
+# the source's bytes and this number, which goes up when ``aseprite_file.render`` draws
+# something differently.
+RENDER_VERSION = 1
+RENDERED_CONFIDENCE = 0.85
+INEXACT_CONFIDENCE = 0.6  # needs review: something in the source is not drawn as Aseprite does
+_WORD = re.compile(r"[^0-9a-z]+")
 # A strip wider than this wraps into rows, so a long sequence stays a texture every GPU loads.
 MAX_STRIP_WIDTH = 4096
 MAX_LISTED_GAPS = 5
@@ -198,6 +206,44 @@ def find_frame_exports(inv: Inventory, claimed: set[str]) -> list[FrameExport]:
     return found
 
 
+def lone_sources(inv: Inventory) -> list[InventoryFile]:
+    """The ``.aseprite`` sources a pack ships no picture of, by path. A source has an export
+    when a picture anywhere in the pack has its name (``hero.png``, ``hero1.png`` ...), when a
+    picture of its own folder has all the words of its name (``player jump 48x48`` beside
+    ``player jump left 48x48-sheet.png``), or when its folder is a frame export."""
+    stems: set[str] = set()
+    words: dict[str, list[set[str]]] = {}
+    for f in inv.files:
+        if f.kind != "image":
+            continue
+        stem = posixpath.splitext(posixpath.basename(f.path))[0].strip().casefold()
+        stems.add(stem)
+        numbered = EXPORT_FRAME.match(stem)
+        if numbered:
+            stems.add(numbered.group("base").strip())
+        words.setdefault(posixpath.dirname(f.path), []).append(set(_WORD.split(stem)) - {""})
+    taken = {e.source for e in find_frame_exports(inv, set()) if e.source}
+    found: list[InventoryFile] = []
+    seen: set[tuple[str, str]] = set()
+    for f in sorted(inv.files, key=lambda f: (f.path.casefold(), f.path)):
+        if f.ext not in SOURCE_EXTENSIONS or f.path in taken:
+            continue
+        folder = posixpath.dirname(f.path)
+        stem = posixpath.splitext(posixpath.basename(f.path))[0].strip().casefold()
+        own = set(_WORD.split(stem)) - {""}
+        if stem in stems or (folder, stem) in seen or any(own <= w for w in words.get(folder, [])):
+            continue
+        seen.add((folder, stem))  # "hero.ase" beside "hero.aseprite" is the same sprite
+        found.append(f)
+    return found
+
+
+def rendered_name(f: InventoryFile, cols: int) -> str:
+    """The strip of a drawn source: named after the source, so the same file gives the same."""
+    text = f"aseprite/{RENDER_VERSION}/{cols}\n{f.sha256}"
+    return hashlib.sha256(text.encode("utf-8")).hexdigest() + ".png"
+
+
 def _is_blank(path: Path) -> bool:
     """A fully transparent picture: what some exporters write between two animations."""
     try:
@@ -222,6 +268,12 @@ def split_export(root: Path, export: FrameExport) -> tuple[list[Sequence], bool]
             runs[-1].append((number, f))
         previous = number
     return [Sequence(export.folder, export.base, run) for run in runs if run], bool(blank)
+
+
+def cached_strip(project_path: str) -> Path:
+    """Where the strip with this project path lies after an analysis that named no work
+    folder (the wizard's): in the cache."""
+    return paths.cache_dir() / WORK_FOLDER / posixpath.basename(project_path)
 
 
 def layout(count: int, frame_width: int) -> tuple[int, int]:
@@ -258,7 +310,7 @@ class SequencesAdapter:
         for export in find_frame_exports(inv, set()):
             if split_export(root, export)[1] or self._source(root, export, IssueList()):
                 return 1.0
-        return 0.0
+        return 1.0 if lone_sources(inv) else 0.0
 
     def extract(self, inv: Inventory, root: Path, ctx: AdapterContext) -> AdapterResult:
         result = AdapterResult(self.name)
@@ -273,8 +325,104 @@ class SequencesAdapter:
         taken = set(ctx.claimed) | {f.path for f in result.assets} | set(result.consumed)
         for export in find_frame_exports(inv, taken):
             self._export(root, export, work, result, issues)
+        for source in lone_sources(inv):
+            if source.path not in ctx.claimed:
+                self._lone(root, source, work, result, issues)
         result.issues = list(issues)
         return result
+
+    def _lone(
+        self,
+        root: Path,
+        f: InventoryFile,
+        work: Path,
+        result: AdapterResult,
+        issues: IssueList,
+    ) -> None:
+        """A ``.aseprite`` with no export beside it: its frames are drawn into one strip in the
+        work folder, as a GIF's are, and that strip is the sprite, with the tags as its
+        animations. A source nothing is drawn in (no cel) is no sprite; one that cannot be read
+        is a note (ADAPT-006)."""
+        try:
+            picture = aseprite_file.render_file(root / f.path)
+        except aseprite_file.AsepriteError as exc:
+            issues.add("ADAPT-006", file=f.path, reason=str(exc))
+            return
+        drawn = [i for i, im in enumerate(picture.frames) if im.getchannel("A").getextrema()[1] > 0]
+        if not drawn:
+            return
+        source = picture.file
+        w, h = source.width, source.height
+        cols, rows = layout(len(picture.frames), w)
+        strip = Image.new("RGBA", (cols * w, rows * h), (0, 0, 0, 0))
+        for i, im in enumerate(picture.frames):
+            strip.paste(im, ((i % cols) * w, (i // cols) * h))
+        file_name = rendered_name(f, cols)
+        dest = work / file_name
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            strip.save(dest, format="PNG", optimize=False, pnginfo=None)
+        except OSError as exc:
+            issues.add("ADAPT-001", adapter=self.name, file=f.path, reason=str(exc))
+            return
+
+        def speed(indexes: list[int]) -> float:
+            times = sorted(source.durations_ms[i] for i in indexes)
+            return round(1000.0 / (times[len(times) // 2] or 100), 6)
+
+        # (name or None, frames, loop): the tags, else everything that is drawn as one
+        plan: list[tuple[str | None, list[int], bool]] = []
+        for tag in source.tags:
+            frames = [i for i in tag.frames() if i in drawn]
+            norm = naming.normalize_name(tag.name)
+            known = norm.action in naming.CANONICAL_ACTIONS
+            if frames:
+                loop = tag.looped and (naming.is_looping(norm.action) if known else True)
+                plan.append((norm.name if known else None, frames, loop))
+        if not plan and len(drawn) > 1:
+            # no tag: the file's own name may say what it is ("player run 48x48.aseprite")
+            stem = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0]).stem
+            m = SEQUENCE_NAME.match(stem)
+            raw = m.group("action") + ("_" + m.group("dir") if m.group("dir") else "") if m else ""
+            norm = naming.normalize_name(raw)
+            named = bool(m) and norm.action in naming.CANONICAL_ACTIONS
+            plan.append(
+                (norm.name if named else "idle_down", drawn, naming.is_looping(norm.action))
+            )
+        if len(plan) == 1 and plan[0][0] is None:
+            plan = [("idle_down", *plan[0][1:])]  # what a prop does all the time
+        cell = [(i % cols, i // cols) for i in range(len(picture.frames))]
+        mask = image_facts.occupancy(np.asarray(strip, dtype=np.uint8))
+        rects = [(cell[i][0] * w, cell[i][1] * h, w, h) for i in (plan[0][1] if plan else drawn)]
+        facets: dict[str, Any] = {
+            "usage": "sprite",
+            "frame": [w, h],
+            "origin": [w // 2, frames_mod.baseline_y(mask, rects)],
+            "size": [strip.width, strip.height],
+        }
+        unnamed = 0
+        if plan:
+            animations: dict[str, Any] = {}
+            for index, (name, frames, loop) in enumerate(plan, start=1):
+                if name is None or name in animations:
+                    name = UNNAMED.format(index)
+                    unnamed += 1
+                animations[name] = {
+                    "frames": [list(cell[i]) for i in frames],
+                    "fps": speed(frames),
+                    "loop": loop,
+                }
+            facets["grid"] = {"cell": [w, h], "margin": [0, 0], "separation": [0, 0]}
+            facets["animations"] = animations
+        confidence = UNNAMED_CONFIDENCE if unnamed else RENDERED_CONFIDENCE
+        if picture.inexact:
+            confidence = min(confidence, INEXACT_CONFIDENCE)
+        project_path = f"{FRAME_STRIP_DIR}/{file_name}"
+        result.assets.append(AssetFragment(f.path, facets, confidence, "full"))
+        result.generated[project_path] = str(dest)
+        result.rendered[f.path] = project_path
+        if unnamed:
+            issues.add("ADAPT-005", count=unnamed, sequence=f.path, file=f.path)
 
     def _export(
         self,

@@ -56,6 +56,10 @@ FolderRole = Qt.ItemDataRole.UserRole + 9
 # A recolour variant (T13.18) has the id of its source here; every other asset None.
 VariantRole = Qt.ItemDataRole.UserRole + 10
 VARIANT_GLYPH = "⧉"
+# Colour variants a pack ships as files (T16.21): the first picture of a group has the number
+# of its colours under ColourCountRole, every other one the id of the first under ColourOfRole.
+ColourCountRole = Qt.ItemDataRole.UserRole + 11
+ColourOfRole = Qt.ItemDataRole.UserRole + 12
 HEADER_HEIGHT = 26
 HEADER_ACTIONS = ("confirm", "select", "rule")  # the buttons of a header, left to right
 
@@ -140,6 +144,8 @@ class AssetListModel(QAbstractListModel):
         self._headers: list[str] = []  # the folder keys, sorted: the header rows
         self._header_row: dict[str, int] = {}
         self._folder_rows: dict[str, list[int]] = {}
+        self._colours: dict[str, list[str]] = {}  # a group's first picture -> its other colours
+        self._colour_of: dict[str, str] = {}  # every other colour -> the group's first picture
 
     # ------------------------------------------------------------------ data
 
@@ -159,7 +165,17 @@ class AssetListModel(QAbstractListModel):
         self._keys.clear()
         self._by_key.clear()
         self._index_folders()
+        self._colours = catalog_mod.colour_groups(catalog) if catalog else {}
+        self._colour_of = {m: first for first, rest in self._colours.items() for m in rest}
         self.endResetModel()
+
+    def colour_first(self, asset_id: str) -> str | None:
+        """The first picture of the colour group ``asset_id`` is another colour of."""
+        return self._colour_of.get(asset_id)
+
+    def colour_members(self, asset_id: str) -> list[str]:
+        """The other colours of the group whose first picture ``asset_id`` is."""
+        return list(self._colours.get(asset_id, []))
 
     def _index_folders(self) -> None:
         catalog = self.catalog
@@ -273,6 +289,8 @@ class AssetListModel(QAbstractListModel):
             "" if role in ("", "NONE") else labels.role_label(role),
             asset.status.replace("_", " ").lower(),
         ]
+        if asset.id in self._colours:
+            parts.append(self.tr("{0} colour variants").format(len(self._colours[asset.id]) + 1))
         return ", ".join(p for p in parts if p)
 
     def row_of(self, asset_id: str) -> int | None:
@@ -311,6 +329,10 @@ class AssetListModel(QAbstractListModel):
             return self._variant_names.get(asset.id) or file_label(asset)
         if role == VariantRole:
             return facets.get("derived_from")
+        if role == ColourCountRole:
+            return len(self._colours[asset.id]) + 1 if asset.id in self._colours else None
+        if role == ColourOfRole:
+            return self._colour_of.get(asset.id)
         if role == Qt.ItemDataRole.DecorationRole:
             return self._pixmap_for(asset, facets)
         if role == Qt.ItemDataRole.ToolTipRole:
@@ -318,6 +340,12 @@ class AssetListModel(QAbstractListModel):
             tip = f"{asset.path}\n{asset.status}  {facets.get('role', '-')}{sure}"
             if facets.get("derived_from"):
                 tip += "\n" + f"{VARIANT_GLYPH} variant of {facets['derived_from']}"
+            if asset.id in self._colours:
+                count = len(self._colours[asset.id]) + 1
+                tip += "\n" + VARIANT_GLYPH + " " + self.tr("{0} colour variants").format(count)
+            elif asset.id in self._colour_of:
+                first = self._colour_of[asset.id]
+                tip += "\n" + VARIANT_GLYPH + " " + self.tr("a colour variant of {0}").format(first)
             return tip
         if role == Qt.ItemDataRole.AccessibleTextRole:
             return self.accessible_text(index.row())
@@ -392,6 +420,10 @@ class AssetFilterProxy(QSortFilterProxyModel):
         self.only_ids: set[str] | None = None  # "Changed in update": just these assets
         self.collapsed: set[str] = set()  # folder keys whose assets are folded away
         self.rank: dict[str, int] | None = None  # asset id -> place: this order, not the status'
+        # Colour variants (T16.21): with ``fold_colours`` the first picture of a group is the
+        # card of every colour that is in the same state; ``unfolded`` are the groups shown whole.
+        self.fold_colours = False
+        self.unfolded: set[str] = set()
         self._counts: dict[str, tuple[int, int, int]] = {}
         self.setDynamicSortFilter(True)
         self.sort(0)
@@ -399,11 +431,58 @@ class AssetFilterProxy(QSortFilterProxyModel):
     def setSourceModel(self, model: QAbstractItemModel) -> None:  # noqa: N802
         super().setSourceModel(model)
         model.dataChanged.connect(lambda *_: self._counts.clear())
+        model.dataChanged.connect(self._on_source_data)
         model.modelReset.connect(self._on_source_reset)
 
     def _on_source_reset(self) -> None:
         self._counts.clear()
         self.collapsed &= set(self.sourceModel().folder_keys())  # type: ignore[attr-defined]
+        self.unfolded = {i for i in self.unfolded if self.sourceModel().colour_members(i)}  # type: ignore[attr-defined]
+
+    def _on_source_data(self, top: QModelIndex, bottom: QModelIndex, roles=()) -> None:  # noqa: ANN001
+        """The card of a colour group changed its state: which colours it stands for is asked
+        again (Qt filters only the row that changed)."""
+        if not self.fold_colours or (roles and list(roles) == [Qt.ItemDataRole.DecorationRole]):
+            return
+        model = self.sourceModel()
+        rows = range(top.row(), bottom.row() + 1)
+        if any(model.data(model.index(r, 0), ColourCountRole) is not None for r in rows):
+            with self._filter_change():
+                pass
+
+    def set_fold_colours(self, on: bool) -> None:
+        with self._filter_change():
+            self.fold_colours = on
+
+    def set_unfolded(self, asset_id: str, shown: bool) -> None:
+        """Show every colour of a group as a card of its own, or fold them again."""
+        with self._filter_change():
+            (self.unfolded.add if shown else self.unfolded.discard)(asset_id)
+
+    def is_folded(
+        self, row: int, parent: QModelIndex | QPersistentModelIndex | None = None
+    ) -> bool:
+        """True for a colour variant its group's card stands for: the first picture of the
+        group is shown, and this one has its status and its role (and its folder, when the
+        grid is grouped). What differs from its card, or has no card with this filter, is a
+        card of its own, so nothing that needs a look is hidden. A list of assets and an order
+        of its own (the results' list, the picker) show every picture."""
+        if not self.fold_colours or self.only_ids is not None or self.rank is not None:
+            return False
+        parent = QModelIndex() if parent is None else parent
+        model = self.sourceModel()
+        index = model.index(row, 0, parent)
+        first = model.data(index, ColourOfRole)
+        if first is None or first in self.unfolded:
+            return False
+        first_row = model.row_of(first)  # type: ignore[attr-defined]
+        if first_row is None:
+            return False
+        card = model.index(first_row, 0, parent)
+        same = [StatusRole, RoleRole, *([FolderRole] if getattr(model, "grouped", False) else [])]
+        if any(model.data(index, r) != model.data(card, r) for r in same):
+            return False
+        return self._accepts_asset(first_row, parent)
 
     @contextlib.contextmanager
     def _filter_change(self) -> Iterator[None]:
@@ -469,6 +548,8 @@ class AssetFilterProxy(QSortFilterProxyModel):
         if key is not None:  # a header shows while one of its assets passes the filter
             return any(self._accepts_asset(r, parent) for r in model.folder_rows(key))  # type: ignore[attr-defined]
         if self.collapsed and model.data(model.index(row, 0, parent), FolderRole) in self.collapsed:
+            return False
+        if self.fold_colours and self.is_folded(row, parent):
             return False
         return self._accepts_asset(row, parent)
 
@@ -640,11 +721,13 @@ class AssetCardDelegate(QStyledItemDelegate):
                 Qt.AlignmentFlag.AlignCenter,
                 glyph,
             )
-        if index.data(VariantRole):  # a recolour variant: a glyph in the picture's corner
-            corner = QRect(rect.left() + self.STRIP + 4, rect.top() + 4, 14, 14)
+        badge = self.variant_badge(index)
+        if badge:  # a variant: a glyph in the picture's corner, with the number of colours
+            width = max(14, painter.fontMetrics().horizontalAdvance(badge) + 6)
+            corner = QRect(rect.left() + self.STRIP + 4, rect.top() + 4, width, 14)
             painter.fillRect(corner, palette.base())
             painter.setPen(palette.text().color())
-            painter.drawText(corner, Qt.AlignmentFlag.AlignCenter, VARIANT_GLYPH)
+            painter.drawText(corner, Qt.AlignmentFlag.AlignCenter, badge)
         text_rect = QRect(
             rect.left() + self.STRIP + 4, rect.top() + self.thumb + 10, self.thumb, 18
         )
@@ -661,6 +744,15 @@ class AssetCardDelegate(QStyledItemDelegate):
             palette.highlightedText().color() if selected else palette.text().color(),
         )
         painter.restore()
+
+    @staticmethod
+    def variant_badge(index) -> str:  # noqa: ANN001
+        """ "⧉" for a recolour variant (T13.18) and for one colour of a group a pack ships,
+        "⧉ 8" for the card of such a group of eight; "" for any other asset."""
+        count = index.data(ColourCountRole)
+        if count:
+            return f"{VARIANT_GLYPH} {count}"
+        return VARIANT_GLYPH if index.data(VariantRole) or index.data(ColourOfRole) else ""
 
     @staticmethod
     def chip_text(index) -> str:  # noqa: ANN001
@@ -1177,7 +1269,48 @@ class AssetGrid(QWidget):
         ids = (self.proxy.index(r, 0).data(AssetIdRole) for r in range(self.proxy.rowCount()))
         return [i for i in ids if i is not None]
 
+    # ------------------------------------------------------------------ colour variants
+
+    def set_fold_colours(self, on: bool) -> None:
+        """One card for the colours a pack ships of one picture (the audit; the picker of the
+        Mapping page shows every colour)."""
+        self.proxy.set_fold_colours(on)
+
+    def colours_shown(self, asset_id: str) -> bool:
+        """Whether the colour group with this first picture is shown as a card per colour."""
+        return asset_id in self.proxy.unfolded
+
+    def show_colours(self, asset_id: str, shown: bool) -> None:
+        selected = self.selected_ids()
+        self.proxy.set_unfolded(asset_id, shown)
+        self.select_ids([i for i in selected if i in set(self.visible_ids())] or [asset_id])
+
+    def folded_colours(self, asset_id: str) -> list[str]:
+        """The colours the card of ``asset_id`` stands for at the moment (not itself)."""
+        rows = ((m, self.model.row_of(m)) for m in self.model.colour_members(asset_id))
+        return [m for m, row in rows if row is not None and self.proxy.is_folded(row)]
+
+    def with_folded_colours(self, asset_ids: list[str]) -> list[str]:
+        """``asset_ids`` and, after each card of a colour group, the colours it stands for: what
+        Confirm, Exclude and a role key change, so that a group stays one card."""
+        out: list[str] = []
+        for asset_id in asset_ids:
+            out.extend(i for i in (asset_id, *self.folded_colours(asset_id)) if i not in out)
+        return out
+
+    def select_colours(self, asset_id: str) -> list[str]:
+        """Select every colour of a group (the bulk panel then edits them all); returns them."""
+        group = [asset_id, *self.model.colour_members(asset_id)]
+        self.proxy.set_unfolded(asset_id, True)
+        shown = set(self.visible_ids())
+        self.select_ids([i for i in group if i in shown])
+        return self.selected_ids()
+
     def select_ids(self, asset_ids: list[str]) -> None:
+        for asset_id in asset_ids:  # a colour its group's card stands for gets a card to select
+            first, row = self.model.colour_first(asset_id), self.model.row_of(asset_id)
+            if first is not None and row is not None and self.proxy.is_folded(row):
+                self.proxy.set_unfolded(first, True)
         selection = self.view.selectionModel()
         selection.clearSelection()
         wanted = set(asset_ids)

@@ -790,6 +790,45 @@ def colour_variants(catalog: Catalog, asset_id: str) -> list[Asset]:
     )
 
 
+def colour_groups(catalog: Catalog) -> dict[str, list[str]]:
+    """``{id of a group's first picture: the ids of its other colours, by id}`` for the colour
+    variants of a catalog (T16.21): what the audit shows as one card and the Mapping page
+    offers as the colours of a choice. A group whose first picture is not in the catalog (a
+    list of candidates that leaves it out) is no group."""
+    from rpggen.core import classifier
+
+    present = {a.id for a in catalog.assets}
+    groups: dict[str, list[str]] = {}
+    for asset in catalog.assets:
+        for tag in asset.detected.get("tags") or []:
+            if not str(tag).startswith(classifier.VARIANT_TAG):
+                continue
+            first = str(tag)[len(classifier.VARIANT_TAG) :]
+            if first in present and first != asset.id:
+                groups.setdefault(first, []).append(asset.id)
+            break
+    return {first: sorted(members, key=_sort_key) for first, members in groups.items()}
+
+
+def colour_group(catalog: Catalog, asset_id: str) -> list[Asset]:
+    """The colour variants ``asset_id`` is one of, the group's first picture first; empty for
+    a picture that comes in one colour."""
+    groups = colour_groups(catalog)
+    first = next((f for f, members in groups.items() if asset_id == f or asset_id in members), "")
+    found = [catalog.asset(i) for i in ([first, *groups[first]] if first else [])]
+    return [a for a in found if a is not None]
+
+
+def colour_name(asset: Asset) -> str:
+    """The colour a variant's name or folder says (``red``, ``black_white``); empty for the
+    picture of a group that has no colour word."""
+    from rpggen.core import classifier
+
+    tags = asset.detected.get("tags") or []
+    found = next((str(t) for t in tags if str(t).startswith(classifier.COLOUR_TAG)), "")
+    return found[len(classifier.COLOUR_TAG) :]
+
+
 def _license_files(inv: Inventory, root: str) -> list[str]:
     return sorted((f"{root}/{f.path}" for f in inv.files if f.kind == "license"), key=_sort_key)
 
@@ -1022,6 +1061,45 @@ def assemble(
                     )
                 )
                 present_ids.add(asset_id)
+
+        # a source rpggen drew for want of an export (a .aseprite, T16.21): the strip in the
+        # work folder is the asset's picture, as a terrain atlas is of the asset made from it
+        drawn = {p: rel for res in results for p, rel in res.rendered.items()}
+        for path in sorted(drawn, key=_sort_key):
+            if (path, "") not in by_key:
+                continue
+            facets, confidence, first = _merge_fragments(by_key[(path, "")])
+            if "role" not in facets:
+                role, role_conf, alt = classifier.classify(facets, path, None)
+                facets["role"] = role
+                if alt:
+                    facets["roles_alt"] = alt
+                confidence = min(confidence, role_conf)
+                reason = classifier.not_game_art(path, wrapper)
+                if reason:
+                    facets["role"] = "NONE"
+                    facets.pop("roles_alt", None)
+                    facets["tags"] = sorted(
+                        {*facets.get("tags", []), classifier.UNUSED_TAG + reason}
+                    )
+            _suggest_tags(facets, path)
+            asset_id = ids.asset_id(pack_id, path)
+            while asset_id in present_ids:  # "hero 1.aseprite" beside "hero_1.png"
+                asset_id += "_source"
+            catalog.assets.append(
+                Asset(
+                    id=asset_id,
+                    pack_id=pack_id,
+                    path=drawn[path],
+                    sha256=files[path].sha256,
+                    kind="image",
+                    status="AUTO_DETECTED",
+                    detected=facets,
+                    detected_by=results[first].adapter,
+                    confidence=round(confidence, 6),
+                )
+            )
+            present_ids.add(asset_id)
 
         for f in inv.files:
             if f.kind not in ("audio", "font"):

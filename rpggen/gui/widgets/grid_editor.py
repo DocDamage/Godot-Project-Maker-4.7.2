@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt
+from PySide6.QtGui import QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -19,13 +21,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpggen.core.analyzer import frames as frames_mod
 from rpggen.core.analyzer import grid as grid_mod
 from rpggen.core.analyzer import image_facts
 from rpggen.errors import IssueList
-from rpggen.gui import workers
+from rpggen.gui import theme, workers
 from rpggen.gui.widgets.image_view import ImageView
 
 Grid = dict[str, list[int]]
+RING_SIZE = 220  # the side of the heading ring, in the window's pixels
 
 
 def _spin(name: str, low: int, high: int, value: int) -> QSpinBox:
@@ -42,6 +46,81 @@ def detect_candidates(path: Path, *, callbacks) -> list[grid_mod.GridCandidate]:
     return grid_mod.detect_grid(a, image_facts.occupancy(a), square=False)
 
 
+class HeadingRing(QWidget):
+    """The views of a rotation sheet (T16.02) laid out in a ring, each where it points: the
+    first one up or right, the next ones a step on, clockwise or not, as the sheet's
+    ``heading_order`` says. A grid that cuts the sheet wrongly shows at once: the car does not
+    turn evenly round the ring."""
+
+    def __init__(self, sheet: QPixmap, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("headingRing")
+        self.sheet = sheet
+        self.headings = 0
+        self.order = "up_cw"
+        self.grid: Grid = {"cell": [16, 16], "margin": [0, 0], "separation": [0, 0]}
+        self.setMinimumSize(RING_SIZE, RING_SIZE)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
+        return QSize(RING_SIZE, RING_SIZE)
+
+    def set_ring(self, headings: int, order: str, grid: Grid) -> None:
+        self.headings, self.order, self.grid = max(0, headings), order, grid
+        self.setAccessibleName(self.tr("{0} headings in a ring").format(self.headings))
+        self.update()
+
+    def slot(self) -> float:
+        """The side of the square a view is drawn in: as large as the ring allows."""
+        radius = min(self.width(), self.height()) / 2
+        if self.headings < 2:
+            return radius
+        # neighbours on a circle of radius r - s / 2 are 2 (r - s / 2) sin(pi / n) apart
+        gap = math.sin(math.pi / self.headings)
+        return max(4.0, 2 * radius * gap / (1 + gap) * 0.95)
+
+    def positions(self) -> list[QPointF]:
+        """Where the middle of each view lies, in the order of the sheet."""
+        centre = QPointF(self.width() / 2, self.height() / 2)
+        reach = min(self.width(), self.height()) / 2 - self.slot() / 2
+        return [
+            QPointF(centre.x() + reach * math.cos(a), centre.y() + reach * math.sin(a))
+            for a in frames_mod.heading_angles(self.headings, self.order)
+        ]
+
+    def frame_rect(self, index: int) -> QRect:
+        """The cell of view ``index`` on the sheet, row by row with the grid's gaps."""
+        (cw, ch), (mx, my) = self.grid["cell"], self.grid.get("margin", [0, 0])
+        sx, sy = self.grid.get("separation", [0, 0])
+        cols = max(1, (self.sheet.width() - mx + sx) // max(1, cw + sx))
+        return QRect(mx + (index % cols) * (cw + sx), my + (index // cols) * (ch + sy), cw, ch)
+
+    def paintEvent(self, event) -> None:  # noqa: ANN001, N802 - Qt override
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        spots = self.positions()
+        slot = self.slot()
+        reach = min(self.width(), self.height()) / 2 - slot / 2
+        centre = QPointF(self.width() / 2, self.height() / 2)
+        painter.setPen(QPen(theme.color("border"), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(centre, reach, reach)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
+        for index, spot in enumerate(spots):
+            source = self.frame_rect(index)
+            if not self.sheet.rect().contains(source):
+                continue  # the grid has fewer cells than the sheet has headings
+            scale = min(slot / source.width(), slot / source.height())
+            if scale >= 1:
+                scale = float(int(scale))
+            width, height = source.width() * scale, source.height() * scale
+            target = QRectF(spot.x() - width / 2, spot.y() - height / 2, width, height)
+            painter.drawPixmap(target, self.sheet, QRectF(source))
+        if spots:  # the first view: where the ring starts
+            painter.setPen(QPen(theme.color("accent"), 2))
+            painter.drawEllipse(spots[0], slot / 2, slot / 2)
+        painter.end()
+
+
 class GridEditorDialog(QDialog):
     def __init__(
         self,
@@ -49,6 +128,9 @@ class GridEditorDialog(QDialog):
         grid: Grid | None,
         asset_label: str = "",
         parent: QWidget | None = None,
+        *,
+        headings: int = 0,
+        heading_order: str = "up_cw",
     ) -> None:
         super().__init__(parent)
         self.setObjectName("gridEditor")
@@ -99,6 +181,20 @@ class GridEditorDialog(QDialog):
         self.warning.setProperty("state", "warning")
         side.addWidget(self.readout)
         side.addWidget(self.warning)
+        # a rotation sheet shows its views as the ring they make (T16.02)
+        self.ring: HeadingRing | None = None
+        self.headings, self.heading_order = headings, heading_order
+        if headings > 0:
+            self.ring_label = QLabel(
+                self.tr("{0} headings, each where it points (the first is circled)").format(
+                    headings
+                )
+            )
+            self.ring_label.setObjectName("headingRingLabel")
+            self.ring_label.setWordWrap(True)
+            self.ring = HeadingRing(QPixmap(str(self.image_path)))
+            side.addWidget(self.ring_label)
+            side.addWidget(self.ring, 0, Qt.AlignmentFlag.AlignHCenter)
         side.addWidget(QLabel(self.tr("Detected candidates")))
         self.candidate_list = QListWidget()
         self.candidate_list.setObjectName("candidateList")
@@ -173,6 +269,8 @@ class GridEditorDialog(QDialog):
     def _refresh(self) -> None:
         grid = self.grid()
         self.view.draw_grid(grid)
+        if self.ring is not None:
+            self.ring.set_ring(self.headings, self.heading_order, grid)
         info = grid_mod.grid_readout(
             self.occupancy,
             (grid["cell"][0], grid["cell"][1]),

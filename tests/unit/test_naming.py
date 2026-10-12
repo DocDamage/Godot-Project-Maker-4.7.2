@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from rpggen.core import archive, catalog, classifier, explain, inventory
 from rpggen.core.adapters import AdapterContext, naming
@@ -265,6 +265,49 @@ def test_a_preview_is_unused_says_why_and_comes_back_with_one_choice(tmp_path: P
 _SHEETS = 0
 
 
+def _rows_of_frames(path: Path, cell: tuple[int, int], cols: int, rows: int) -> None:
+    """A character sheet: a figure in every cell, a little different from cell to cell."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    w, h = cell
+    img = Image.new("RGBA", (w * cols, h * rows), (0, 0, 0, 0))
+    for row in range(rows):
+        for col in range(cols):
+            body = Image.new("RGBA", (w - 6, h - 4 - col % 2), (40 + 20 * row, 90, 200, 255))
+            img.paste(body, (col * w + 3 + row % 2, row * h + 3 + col % 2))
+    img.save(path)
+
+
+def test_the_number_of_directions_in_a_name_gives_the_rows(tmp_path: Path) -> None:
+    pack = tmp_path / "pack"
+    _rows_of_frames(pack / "chars" / "hero_walk_4dir.png", (16, 16), 3, 4)
+    _rows_of_frames(pack / "chars" / "wolf_attack_24x16_8directions.png", (24, 16), 3, 8)
+    _rows_of_frames(pack / "chars" / "bat_4frames_4dirs.png", (12, 20), 4, 4)
+    _rows_of_frames(pack / "chars" / "crab_4dir.png", (15, 15), 2, 2)  # 30 px: no four rows
+    _rows_of_frames(pack / "chars" / "eel_20x10_4dir.png", (16, 16), 3, 4)  # another cell
+    cat = _catalog(pack)
+    hero = catalog.effective(_asset(cat, "hero_walk_4dir.png"))
+    assert (hero["usage"], hero["frame"], hero["directions"]) == ("sprite", [16, 16], 4)
+    assert sorted(hero["animations"]) == sorted(
+        f"{action}_{d}" for action in ("idle", "walk") for d in ("down", "left", "right", "up")
+    )
+    walks = {d: hero["animations"][f"walk_{d}"]["frames"] for d in ("down", "left", "right", "up")}
+    assert all(len(f) == 3 and len({row for _c, row in f}) == 1 for f in walks.values())
+    assert sorted(f[0][1] for f in walks.values()) == [0, 1, 2, 3], "a row a direction"
+    assert hero["animations"]["idle_up"]["frames"] == [walks["up"][0]]
+    assert _asset(cat, "hero_walk_4dir.png").confidence <= 0.85
+    wolf = catalog.effective(_asset(cat, "wolf_attack_24x16_8directions.png"))
+    assert (wolf["frame"], wolf["directions"], len(wolf["animations"])) == ([24, 16], 8, 8)
+    assert wolf["animations"]["attack_down_left"]["frames"] == [[0, 1], [1, 1], [2, 1]]
+    assert wolf["animations"]["attack_down_right"]["frames"][0] == [0, 7]
+    assert not wolf["animations"]["attack_up"]["loop"]
+    bat = catalog.effective(_asset(cat, "bat_4frames_4dirs.png"))
+    assert bat["frame"] == [12, 20] and len(bat["animations"]["walk_down"]["frames"]) == 4
+    # a name that does not fit the picture is no fact: the picture is read as without it
+    assert catalog.effective(_asset(cat, "crab_4dir.png")).get("directions") is None
+    assert catalog.effective(_asset(cat, "eel_20x10_4dir.png")).get("frame") != [20, 10]
+    assert _asset(cat, "eel_20x10_4dir.png").confidence < 0.85
+
+
 def _sheet(path: Path, size: tuple[int, int], cell: int) -> None:
     """A sheet of opaque tiles in two colours, so that its grid can be measured; every sheet
     in a colour of its own, so that none is taken for a copy of another."""
@@ -322,6 +365,38 @@ def test_a_folder_of_a_bundle_added_on_its_own_is_named_by_the_pack(tmp_path: Pa
     eff = catalog.effective(cat.assets[0])
     assert eff["usage"] == "tiles" and eff["grid"]["cell"] == [48, 48]
     assert eff["tags"] == ["center", "fitness", "gym", "modern"]
+
+
+def _props(path: Path, size: tuple[int, int] = (768, 768), opaque: bool = False) -> None:
+    """Things of many sizes at places no grid fits: what a sheet of props looks like."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img = Image.new("RGBA", size, (30, 30, 40, 255) if opaque else (0, 0, 0, 0))
+    spots = [(7, 11, 61, 83), (101, 35, 45, 29), (190, 5, 131, 77), (13, 207, 95, 143),
+             (240, 190, 37, 211), (420, 333, 173, 59), (333, 520, 219, 201), (615, 71, 97, 301)]  # fmt: skip
+    draw = ImageDraw.Draw(img)
+    for n, (x, y, w, h) in enumerate(spots):  # round things: no straight edge to measure by
+        draw.ellipse((x, y, x + w, y + h), fill=(60 + 20 * n, 200 - 15 * n, 90, 255))
+    img.save(path)
+
+
+def test_a_sheet_of_the_b_to_e_size_is_offered_as_one_when_nothing_names_its_grid(
+    tmp_path: Path,
+) -> None:
+    pack = tmp_path / "pack"
+    _props(pack / "furniture.png")  # no word for a tile set, no number, no grid to measure
+    _props(pack / "painting.png", opaque=True)  # no see-through pixel: a picture
+    _props(pack / "shelves_64x64.png")  # its name gives a cell: not ours to say
+    _props(pack / "plants.png", size=(640, 768))  # another size
+    _sheet(pack / "floors.png", (768, 768), 32)  # a grid that can be measured
+    cat = _catalog(pack)
+    offered = _asset(cat, "furniture.png")
+    eff = catalog.effective(offered)
+    assert eff["usage"] == "tiles" and eff["grid"]["cell"] == [48, 48]
+    assert offered.confidence <= 0.6 and offered.status == "NEEDS_REVIEW", "offered, for review"
+    assert catalog.effective(_asset(cat, "painting.png"))["usage"] == "background"
+    for name in ("shelves_64x64.png", "plants.png"):
+        assert catalog.effective(_asset(cat, name)).get("usage") != "tiles", name
+    assert catalog.effective(_asset(cat, "floors.png"))["grid"]["cell"] == [32, 32]
 
 
 def test_the_words_of_a_folder(tmp_path: Path) -> None:

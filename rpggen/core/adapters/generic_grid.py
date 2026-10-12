@@ -23,6 +23,14 @@ GENERIC_CONSTANTS = {
     "FOOTPRINT_FRACTION": 0.3,
     "RING_CONFIDENCE": 0.8,
     "NUMBERED_SHEET_CONFIDENCE": 0.6,  # needs review: what stands on the sheet is not known
+    "NAMED_DIRECTIONS_CONFIDENCE": 0.85,  # the name says the rows: more than a measured guess
+}
+# The rows of a sheet whose name gives its directions (``_4dir``, ``_8directions``, T16.21).
+# Four rows are in RPG Maker's order unless the picture says another; eight go round from
+# down by way of the left, as the eight-direction sheets of the packs that were seen do.
+DIRECTION_ROWS = {
+    4: ["down", "left", "right", "up"],
+    8: ["down", "down_left", "left", "up_left", "up", "up_right", "right", "down_right"],
 }
 # A numbered sheet (T16.21) has no name to read its grid from. 768 x 768 is the B-E sheet of
 # RPG Maker MV and MZ (16 x 16 tiles of 48 px), which a bundle of tile sets is mostly made of.
@@ -106,6 +114,13 @@ class GenericGridAdapter:
         if blob is not None:  # 0. a 12 x 4 autotile sheet in a folder of tile sets
             result.assets.append(
                 AssetFragment(f.path, blob, K["NUMBERED_SHEET_CONFIDENCE"], "partial")
+            )
+            return
+
+        directed = self._named_directions(f.path, a)
+        if directed is not None:  # 0a. "hero_walk_4dir": the name says the rows
+            result.assets.append(
+                AssetFragment(f.path, directed, K["NAMED_DIRECTIONS_CONFIDENCE"], "partial")
             )
             return
 
@@ -199,6 +214,20 @@ class GenericGridAdapter:
             result.objects.extend(self._objects(f.path, a))
             return
 
+        named = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0]).cell
+        if (w, h) in NUMBERED_SHEET_CELLS and not a["fully_opaque"] and named is None:
+            # 3a. the size of RPG Maker's B-E sheet, with see-through pixels and no grid that
+            # could be measured or that its name gives: offered as one (T16.21), for review
+            cell = NUMBERED_SHEET_CELLS[(w, h)]
+            offered = {
+                "usage": "tiles",
+                "grid": {"cell": [cell, cell], "margin": [0, 0], "separation": [0, 0]},
+            }
+            result.assets.append(
+                AssetFragment(f.path, offered, K["NUMBERED_SHEET_CONFIDENCE"], "partial")
+            )
+            return
+
         if w <= K["SMALL_SPRITE_MAX"] and h <= K["SMALL_SPRITE_MAX"] and a["has_alpha"]:  # 4.
             result.assets.append(
                 AssetFragment(
@@ -218,6 +247,55 @@ class GenericGridAdapter:
         result.assets.append(  # 6. unknown: a single frame that needs review
             AssetFragment(f.path, self._single_frame(w, h), K["FALLBACK_CONFIDENCE"], "partial")
         )
+
+    def _named_directions(self, path: str, a: dict[str, Any]) -> dict[str, Any] | None:
+        """The facets of a sheet whose name says how many directions it has (``hero_walk_4dir``,
+        ``wolf_32x32_8directions``): that many rows, each one direction of the action the name
+        gives (a walk when it gives none). The frame is the name's cell or frame count when it
+        has one, else what the picture's analysis found for rows of that height, else a
+        square. None when the name says no such thing or the picture does not fit it."""
+        facts = naming.name_facts(posixpath.splitext(posixpath.basename(path))[0])
+        rows = DIRECTION_ROWS.get(facts.directions or 0)
+        w, h = a["w"], a["h"]
+        if rows is None or h % len(rows):
+            return None
+        fh = h // len(rows)
+        sheet = a.get("character_sheet")
+        measured = sheet if sheet and sheet["rows"] == len(rows) else None
+        top = a["grid_candidates"][0] if a["grid_candidates"] else None
+        if facts.cell:
+            fw = facts.cell[0] if facts.cell[1] == fh else 0
+        elif facts.frames:
+            fw = w // facts.frames if w % facts.frames == 0 else 0
+        elif measured and measured["frame"][1] == fh:
+            fw = measured["frame"][0]
+        elif top and top["cell"][1] == fh:
+            fw = top["cell"][0]
+        else:
+            fw = fh
+        if fw <= 0 or w % fw:
+            return None
+        if measured and measured.get("row_directions") and len(rows) == 4:
+            rows = list(measured["row_directions"])  # the picture's mirror pairs say the order
+        words = naming.normalize_name(facts.stem).action.split("_")  # "hero_run" -> hero, walk
+        action = next((t for t in reversed(words) if t in naming.CANONICAL_ACTIONS), "walk")
+        animations: dict[str, Any] = {}
+        for row, direction in enumerate(rows):
+            animations[f"{action}_{direction}"] = {
+                "frames": [[c, row] for c in range(w // fw)],
+                "fps": naming.fps(action),
+                "loop": naming.is_looping(action),
+            }
+            if action == "walk":
+                animations[f"idle_{direction}"] = {"frames": [[0, row]], "fps": 1.0, "loop": True}
+        return {
+            "usage": "sprite",
+            "grid": {"cell": [fw, fh], "margin": [0, 0], "separation": [0, 0]},
+            "frame": [fw, fh],
+            "origin": [fw // 2, a["baseline_y"] if a.get("baseline_y") else fh - 1],
+            "directions": len(rows),
+            "animations": {k: animations[k] for k in sorted(animations)},
+        }
 
     def _autotile_sheet(self, path: str, a: dict[str, Any]) -> dict[str, Any] | None:
         """The facets of a sheet three times as wide as high (12 x 4 tiles: the 47-tile

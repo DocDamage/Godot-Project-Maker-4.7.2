@@ -370,6 +370,9 @@ class MappingPage(WizardPage):
                 if (headings := self.heading_count(ident)) > 0:
                     # a car is one picture in N headings (T16.16): said beside its thumbnail
                     text += " · " + self.tr("{0} headings").format(headings)
+                if colours := len(catalog_mod.colour_group(catalog, ident)):
+                    # ... and comes in several colours (T16.21): the list offers the others
+                    text += " · " + self.tr("{0} colours").format(colours)
                 self._show_current(widget, ident, text, tip)
                 widget.thumb_label.setPixmap(self._thumb(catalog, ident))
                 widget.fallback_box.setVisible(False)
@@ -440,8 +443,20 @@ class MappingPage(WizardPage):
                 text += f"  {round(current_asset.confidence * 100)}%"
             combo.addItem(QIcon(self._thumb(catalog, current)), text, current)
             combo.setItemData(0, tip, Qt.ItemDataRole.ToolTipRole)
+        offered = {current}
+        for other in self.colour_choices(role):
+            # the other colours the pack ships of the chosen picture (T16.21), before the rest
+            name, tip = self._display_name(catalog, other.id)
+            colour = catalog_mod.colour_name(other).replace("_", " ") or self.tr("plain")
+            combo.addItem(
+                QIcon(self._thumb(catalog, other.id)),
+                self.tr("{0}  (colour: {1})").format(name, colour),
+                other.id,
+            )
+            combo.setItemData(combo.count() - 1, tip, Qt.ItemDataRole.ToolTipRole)
+            offered.add(other.id)
         for asset in mapping.candidates(catalog, role)[:CANDIDATES]:
-            if asset.id == current:
+            if asset.id in offered:
                 continue
             name, tip = self._display_name(catalog, asset.id)
             combo.addItem(
@@ -455,6 +470,21 @@ class MappingPage(WizardPage):
         combo.addItem(self.tr("More…"), MORE_DATA)
         combo.setCurrentIndex(0 if current is not None else -1)
         combo.blockSignals(False)
+
+    def colour_choices(self, role: str) -> list[catalog_mod.Asset]:
+        """The other colours of the asset chosen for ``role``, when the pack ships it in
+        several: each can be chosen in its place. Unused ones are not offered."""
+        assert self.state is not None and self.state.catalog is not None
+        current = self.selection_for(role)
+        if current is None:
+            return []
+        group = catalog_mod.colour_group(self.state.catalog, current)
+        return [
+            a
+            for a in group
+            if a.id != current and a.status != "MISSING"
+            and catalog_mod.effective(a).get("role") != "NONE"
+        ]  # fmt: skip
 
     def candidate_ids(self, role: str) -> list[str]:
         """The asset ids the combo of ``role`` offers, in order (for tests and the keyboard)."""

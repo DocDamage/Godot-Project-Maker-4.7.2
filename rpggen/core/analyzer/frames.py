@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -127,6 +128,16 @@ def heading_ring(mask: np.ndarray) -> HeadingRing | None:
     # Pillow turns counter-clockwise for a positive angle: a view that must be turned that way
     # to cover the first was turned clockwise from it.
     return HeadingRing(count, (cell, height), "up" if tall else "right", sign == 1, round(mean, 4))
+
+
+def heading_angles(headings: int, order: str = "up_cw") -> list[float]:
+    """The way each view of a rotation sheet points, in radians on the screen (0 is right, a
+    quarter turn is down): the first view up or right, each next one a step on, clockwise or
+    not, as ``heading_order`` says. An order nobody knows is read as ``up_cw``."""
+    start, _, turn = order.partition("_")
+    first = 0.0 if start == "right" else -math.pi / 2
+    step = math.tau / max(1, headings) * (-1 if turn == "ccw" else 1)
+    return [first + i * step for i in range(max(0, headings))]
 
 
 def frame_rects(frame: tuple[int, int], cols: int, rows: int) -> list[Rect]:

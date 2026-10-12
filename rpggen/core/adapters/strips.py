@@ -27,8 +27,8 @@ def _named_strip(f: InventoryFile, facts: naming.NameFacts) -> frames_mod.StripI
     """The strip a file's name describes (``_32x32_4frames``), when the picture is that size:
     one row of ``frames`` cells. A name is a fact the artist wrote down and goes before what
     the picture's gaps suggest; a name that does not fit the picture is not believed."""
-    if f.image is None or facts.frames is None:
-        return None
+    if f.image is None or facts.frames is None or (facts.directions or 1) > 1:
+        return None  # "_4dir": rows of directions, which the generic reader cuts
     width, height = f.image["w"], f.image["h"]
     cell = facts.cell or (width // facts.frames, height)
     if cell[0] * facts.frames != width or cell[1] != height:
@@ -127,6 +127,8 @@ class StripsAdapter:
         for f, m in members:
             mask = image_facts.occupancy(image_facts.load_rgba(root / f.path))
             facts = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0])
+            if (facts.directions or 1) > 1:
+                continue  # one row a direction: no strip
             strip = _named_strip(f, facts) or frames_mod.detect_strip(mask)
             if strip is None or strip.axis != "x":
                 continue  # not a horizontal strip: leave it to the generic adapter
