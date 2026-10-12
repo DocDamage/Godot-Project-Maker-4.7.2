@@ -226,7 +226,7 @@ unknown licence.
 |-----|------|-----------|---------|
 | `role` | enum Role | always | Primary role. `NONE` means excluded. |
 | `roles_alt` | array of [Role, float] | detection only | Other candidate roles with confidence. |
-| `usage` | enum `tiles`/`sprite`/`object`/`ui`/`portrait`/`background`/`audio`/`font` | always | How the asset is consumed. |
+| `usage` | enum `tiles`/`sprite`/`growth_strip`/`object`/`ui`/`portrait`/`background`/`audio`/`font` | always | How the asset is consumed. `growth_strip` (T17.01, release 1.5) is a crop's stages in one row of `frame` cells: not an animation, and nothing to the kinds before the farm. |
 | `grid` | Grid | usage=tiles or sprite sheet | |
 | `tileset` | string | usage=tiles | Name of the TileSetDef this sheet belongs to. |
 | `collision` | CollisionSpec | usage=tiles/object | Default for the whole sheet. |
@@ -236,17 +236,18 @@ unknown licence.
 | `origin` | vec2i | usage=sprite/object | Pixel inside a frame/object that becomes the node origin (the feet). |
 | `directions` | int 1/4/8 | usage=sprite | |
 | `headings` | int 8/12/16/24/32 | usage=sprite | A **rotation sheet** (T16.02, release 1.4): one object in this many views in one row of `frame` cells, each turned by 360/N from the one before; it has no `animations`. The older kinds show its first view. |
+| `stages` | int ≥ 2 | usage=growth_strip | How many stages a **growth strip** has (T17.01): the cells of its row in order, the last the ripe one. It has no `animations`. How many days a stage takes is not in a pack: the farm's plan gives it. |
 | `heading_order` | `up_cw`, `up_ccw`, `right_cw`, `right_ccw` | with `headings` | The way the first view points (its long side: up or right) and the way the views turn from it. |
 | `character_index` | int | RPG Maker multi-character sheets | Which 3×4 block (0–7). |
 | `ysort` | bool | object/sprite | Default true. |
 | `audio` | `{ "type": "music"/"sfx", "loop": bool, "duration_s"?: number, "loop_start_ms"?: int, "loop_end_ms"?: int }` | usage=audio | `duration_s` is read from the file (WAV, OGG, MP3, FLAC) when it can be; optional. `loop_start_ms` and `loop_end_ms` (T13.17, optional, set on the Audit page) are where a looping track jumps back to and from; without them it loops as a whole. An override may set a part of `audio` (it merges) and `null` takes a loop point away. |
 | `nine_slice` | `[left, top, right, bottom]` | usage=ui | Margins in px. |
 | `import` | `{ "filter": "nearest"/"linear", "mipmaps": bool }` | images | Defaults: nearest, false. |
-| `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). Side-view tags detected from folder and file words (T14.02), read by the `metroidvania` archetype only: `platform`, `one_way`, `ladder`, `hazard`, `save_point`, `ability`, and `parallax:<n>` on a background (1 is the farthest layer). |
+| `tags` | array of string | any | Free tags such as `chest` or `door`, used for template selection (T4.03). Side-view tags detected from folder and file words (T14.02), read by the `metroidvania` archetype only: `platform`, `one_way`, `ladder`, `hazard`, `save_point`, `ability`, and `parallax:<n>` on a background (1 is the farthest layer). Farm tags detected the same way (T17.01), read by the `farm` archetype only: `crop`, `seed`, `soil`, `watered`, `tool`, `animal`, `product`, `coop`, `barn`, `fence`, `bin`, `weather` (an overlay, never on a tile sheet), `fish`, `forage`, `growth`, and `season:<name>` (`spring`, `summer`, `autumn`, `winter`; *fall* is read as `autumn`). Sheets of one pack, size and usage that differ only by their season are one group, as colour variants are: every member has its `season:` tag and every one but the first `variant_of:<id of the first>`. |
 | `derived_from` | string | a recolour variant | The id of the asset a variant was recoloured from (T13.18); detected facet only. |
 | `size` | vec2i | every image asset | Pixel size of the image file (T2.14); a change on a tile sheet used by a tileset raises CONFLICT. |
 | `region` | `[x, y, w, h]` | usage=portrait | Pixel rect of one face inside a face sheet (T2.11). |
-| `terrain_proposal` | object | usage=tiles | Blob/corner terrain recognized on a sheet (T8.06c): `{layout, confidence, mode, terrain_set, tile_overrides}`; `layout` is `blob47_godot_12x4` (Godot's 3x3 minimal template, M16), `blob47_12x4` (the masks in ascending order) or `corners16_4x4`. Not applied until the user accepts it in the audit's Terrain tab, which moves `tile_overrides` into the overrides and sets the override `terrain_proposal` to null. |
+| `terrain_proposal` | object | usage=tiles | Blob/corner terrain recognized on a sheet (T8.06c): `{layout, confidence, mode, terrain_set, tile_overrides}`; `layout` is `blob47_godot_12x4` (Godot's 3x3 minimal template, M16), `blob47_12x4` (the masks in ascending order), `corners16_4x4`, `corners16_drawn_4x4` (T17.01: the 16 corner tiles in the order the sheet has them, read off which corners of each tile are drawn; for art over nothing only), or `sides16_godot_12x4` (T17.01: a fence sheet, tiles that join at their sides only, in the cells of Godot's template; `mode` is `sides` and only one tile for each of the 16 combinations of sides gets a terrain). Not applied until the user accepts it in the audit's Terrain tab, which moves `tile_overrides` into the overrides and sets the override `terrain_proposal` to null. |
 
 **Role** enum: `GROUND, WALL, CLIFF, WATER, ROAD, AUTOTILE, DECORATION, BUILDING, INTERIOR, PLAYER, NPC, ENEMY, BOSS, WEAPON, ITEM, EFFECT, PROJECTILE, UI, PORTRAIT, BACKGROUND, AUDIO_MUSIC, AUDIO_SFX, FONT, NONE`. From release 1.4 (M16) also `VEHICLE` (the player's car), `EXPLOSION`, `POWERUP` (what the player picks up to get stronger; `ITEM` stays for chests and coins) and `HAZARD` (asteroids, tyres, oil, spikes); they are labels in the audit and rows on the Mapping page in every kind. An asset of the pack `rpggen_arcade_kit` (`generated/arcade_kit/`, `detected_by: "placeholder"`) is a stand-in rpggen drew for an arcade kind; like the side-view kit it is made again on every run.
 
@@ -473,6 +474,15 @@ All three files share this shape:
 * The run of an arcade game (release 1.4, T16.01) is kept in `flags` too, as the entry
   `arcade`: `{ "stage": <index>, "lives": <n>, "score": <n>, "weapon": "<id>" }`, written when a
   stage is entered and taken away when the run ends. No other kind writes it.
+* One optional key of a game with a calendar (release 1.5, T17.03): `calendar`,
+  `{ "minute": 915, "day": 12, "season": 2, "year": 3 }`. `minute` is the minute of the day
+  counted from the midnight before its morning (360, which is 6:00, to 1559, which is 1:59 of
+  the night); `day` the day of the season (1 to the game's `days_per_season`: 28, 14 or 7);
+  `season` 0 to 3 (spring, summer, autumn, winter); `year` from 1. It is **written only by a
+  game that has a calendar** (`RpgCalendar.current()` is not null), so the save of every other
+  game has exactly the keys it had and `save_version` stays 1. A save without it loads on the
+  first morning (6:00, day 1 of spring, year 1); numbers that are no date are read as the
+  nearest one; a game without a calendar ignores the key.
 
 ### 9.1 The shared section (`user://saves/meta.json`, meta_version 1)
 
@@ -527,6 +537,7 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `assets.<file>.headings`, `heading_order` | pack profile | T16.17 |
 | `starter.vehicle`, `starter.projectile`, `starter.explosion` | generator_config | T16.03, T16.17 |
 | `summary.map.stages`; `summary.archetype` takes `shmup`, `run_and_gun`, `racing` | command-line documents | T16.16 |
+| `calendar` | save game | T17.03 |
 
 ---
 

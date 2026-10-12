@@ -1,6 +1,6 @@
 """Recognizer for generic blob / corner terrain sheets (T8.06c). Best effort, confidence scored.
 
-Three layouts are recognized, all read row-major (left to right, top to bottom), tiles of
+Five layouts are recognized, all read row-major (left to right, top to bottom), tiles of
 ``cell`` pixels without margin or separation:
 
 * ``blob47_godot_12x4`` - the arrangement of Godot's "3x3 minimal" autotile template, which is
@@ -14,6 +14,16 @@ Three layouts are recognized, all read row-major (left to right, top to bottom),
   different order are not recognized (their borders do not match) and report TILE-006.
 * ``corners16_4x4`` - 16 corner-only tiles in a 4 x 4 grid. ASSUMED ORDER: tile index bits
   top_left=1, top_right=2, bottom_right=4, bottom_left=8.
+* ``corners16_drawn_4x4`` (T17.01) - the same 16 tiles in whatever order the pack ships them,
+  for art drawn over nothing: a corner of a tile belongs to the terrain when its corner pixel is
+  drawn. The 16 cells must show the 16 combinations once each, and the seams must fit as for
+  the fixed order. A sheet that is opaque all over says nothing this way and is not read.
+* ``sides16_godot_12x4`` (T17.01) - a fence sheet: tiles that join at their sides only, drawn
+  into some of the cells of Godot's template (a part of the 47, never nearly all). Each cell
+  has the sides of its mask in ``GODOT_3X3_MINIMAL``; for each of the 16 combinations of sides
+  the drawn cell with the fewest corners is the terrain's tile, the other drawn cells get no
+  terrain. Two tiles belong side by side when both join there; the seams of such pairs must
+  differ far less than those where only one of the two joins.
 
 Every pair of tiles that must meet in a seamless map (their shared edge describes the same
 neighbor states) is checked: the mean absolute difference of the touching pixel rows/columns
@@ -49,8 +59,19 @@ CONTRAST_LIMIT = 0.85
 BLOB47 = "blob47_12x4"
 BLOB47_GODOT = "blob47_godot_12x4"
 CORNERS16 = "corners16_4x4"
+CORNERS16_DRAWN = "corners16_drawn_4x4"
+SIDES16_GODOT = "sides16_godot_12x4"
 LAYOUT_SHAPES = {BLOB47_GODOT: (12, 4), BLOB47: (12, 4), CORNERS16: (4, 4)}
 BLOB_LAYOUTS = (BLOB47_GODOT, BLOB47)
+LAYOUT_MODES = {
+    BLOB47_GODOT: "corners_and_sides",
+    BLOB47: "corners_and_sides",
+    CORNERS16: "corners",
+    CORNERS16_DRAWN: "corners",
+    SIDES16_GODOT: "sides",
+}
+_SIDE_BITS = 1 | 4 | 16 | 64  # N, E, S, W of an 8-neighbour mask
+_SIDE_KEYS = (("top_side", 1), ("right_side", 4), ("bottom_side", 16), ("left_side", 64))
 # The 8-neighbour mask of each cell of Godot's 3x3 minimal template, row by row (bits N=1,
 # NE=2, E=4, SE=8, S=16, SW=32, W=64, NW=128; None: the one empty cell). The top-left tile has
 # a neighbour below only, the bottom-left one none: a single tile.
@@ -76,6 +97,9 @@ class Recognition:
     contrast: float = 1.0
     flat: bool = False  # every tile is the same picture: there is no layout to recognize
     tile_overrides: dict[str, Any] = field(default_factory=dict)
+    # the cells that are the terrain's tiles and what each is (corner bits, or the sides of a
+    # mask), for the layouts that are read off the sheet and not from a fixed table
+    cells: tuple[tuple[tuple[int, int], int], ...] = ()
 
 
 # --------------------------------------------------------------------------- tile semantics
@@ -110,16 +134,33 @@ def _tile_table(layout: str) -> list[tuple[tuple[int, int], _Edges]]:
     return [((i % 4, i // 4), _corner_edges(i)) for i in range(16)]
 
 
+def _side_edges(sides: int) -> _Edges:
+    """A fence tile's edges: whether it joins there. No side is outside the terrain."""
+    return {
+        "top": (bool(sides & 1),),
+        "right": (bool(sides & 4),),
+        "bottom": (bool(sides & 16),),
+        "left": (bool(sides & 64),),
+    }
+
+
 def _proposal_entry(layout: str, index: int, set_name: str) -> dict[str, Any]:
+    """The terrain of one tile: ``index`` is its place in a 47-tile layout, its corner bits in
+    a corner layout, the sides of its mask in the fence layout."""
     if layout in BLOB_LAYOUTS:
         return {"terrain": a2.peering_for_mask(_blob_cells(layout)[index][1], set_name)}
     peering = empty_peering()
-    for key, bit in (
-        ("top_left_corner", _TL),
-        ("top_right_corner", _TR),
-        ("bottom_right_corner", _BR),
-        ("bottom_left_corner", _BL),
-    ):
+    keys = (
+        _SIDE_KEYS
+        if layout == SIDES16_GODOT
+        else (
+            ("top_left_corner", _TL),
+            ("top_right_corner", _TR),
+            ("bottom_right_corner", _BR),
+            ("bottom_left_corner", _BL),
+        )
+    )
+    for key, bit in keys:
         if index & bit:
             peering[key] = 0
     return {"terrain": {"set": set_name, "terrain": 0, "peering": peering}}
@@ -163,11 +204,78 @@ def recognize(sheet: Image.Image, cell_w: int, cell_h: int | None = None) -> Rec
         # one fill all over (and perhaps an empty cell): a ground, not a terrain that failed
         return Recognition(layouts[0], 0.0, False, flat=True)
     judged = [_judge(pixels, layout, cell_w, cell_h) for layout in layouts]
-    return max(judged, key=lambda r: (r.accepted, -r.contrast, r.confidence))
+    best = max(judged, key=lambda r: (r.accepted, -r.contrast, r.confidence))
+    if best.accepted:
+        return best
+    # not one of the fixed orders: a sheet that says its own (T17.01)
+    read = _drawn_corners if shape == (4, 4) else _fence_sides
+    cells = read(pixels, cell_w, cell_h)
+    if cells is None:
+        return best
+    layout = CORNERS16_DRAWN if shape == (4, 4) else SIDES16_GODOT
+    edges = _corner_edges if shape == (4, 4) else _side_edges
+    table = [(cell, edges(what)) for cell, what in cells]
+    own = _judge(pixels, layout, cell_w, cell_h, table, by_contrast=layout == SIDES16_GODOT)
+    own.cells = tuple(cells)
+    return own if own.accepted else best
 
 
-def _judge(pixels: np.ndarray, layout: str, cell_w: int, cell_h: int) -> Recognition:
-    table = _tile_table(layout)
+def _drawn_corners(
+    pixels: np.ndarray, cell_w: int, cell_h: int
+) -> list[tuple[tuple[int, int], int]] | None:
+    """``((column, row), corner bits)`` of the 16 cells of a 4 x 4 sheet whose art is drawn over
+    nothing: a corner is the terrain's when its pixel is drawn. None unless the 16 cells show
+    the 16 combinations once each."""
+    cells: list[tuple[tuple[int, int], int]] = []
+    for index in range(16):
+        tile = _cut(pixels, (cell_w, cell_h), index % 4, index // 4)[..., 3]
+        bits = (
+            (_TL if tile[0, 0] else 0)
+            | (_TR if tile[0, -1] else 0)
+            | (_BR if tile[-1, -1] else 0)
+            | (_BL if tile[-1, 0] else 0)
+        )
+        cells.append(((index % 4, index // 4), bits))
+    return cells if len({bits for _c, bits in cells}) == 16 else None
+
+
+def _fence_sides(
+    pixels: np.ndarray, cell_w: int, cell_h: int
+) -> list[tuple[tuple[int, int], int]] | None:
+    """``((column, row), sides)`` of the 16 tiles of a fence sheet in the cells of Godot's
+    template: for each combination of sides the drawn cell whose mask has the fewest corners.
+    None for a sheet with nearly all 47 cells drawn (a blob sheet that failed is no fence) or
+    without a tile for every combination."""
+    drawn = [
+        (cell, mask)
+        for cell, mask in _blob_cells(BLOB47_GODOT)
+        if _cut(pixels, (cell_w, cell_h), *cell)[..., 3].any()
+    ]
+    if len(drawn) >= MIN_FILLED * 47:
+        return None
+    chosen: dict[int, tuple[int, tuple[int, int]]] = {}
+    for cell, mask in drawn:
+        corners = bin(mask & ~_SIDE_BITS).count("1")
+        sides = mask & _SIDE_BITS
+        if sides not in chosen or corners < chosen[sides][0]:
+            chosen[sides] = (corners, cell)
+    if len(chosen) < 16:
+        return None
+    return sorted(((cell, sides) for sides, (_n, cell) in chosen.items()), key=lambda c: c[0][::-1])
+
+
+def _judge(
+    pixels: np.ndarray,
+    layout: str,
+    cell_w: int,
+    cell_h: int,
+    table: list[tuple[tuple[int, int], _Edges]] | None = None,
+    by_contrast: bool = False,
+) -> Recognition:
+    """How well the seams of a sheet fit a layout. ``table`` is the layout's tiles when the
+    sheet says them itself; ``by_contrast`` asks that the seams that should not fit differ
+    (a fence is mostly nothing: its seams are near alike whatever the order)."""
+    table = table or _tile_table(layout)
     tiles = [_cut(pixels, (cell_w, cell_h), cx, cy) for (cx, cy), _e in table]
     filled = [bool(t[..., 3].any()) for t in tiles]
     distinct = sum(
@@ -205,6 +313,8 @@ def _judge(pixels: np.ndarray, layout: str, cell_w: int, cell_h: int) -> Recogni
     whole = sum(filled) >= MIN_FILLED * n and distinct >= MIN_DISTINCT * n
     exact = expected > 0 and confidence >= ACCEPT_RATIO
     accepted = whole and (exact or contrast <= CONTRAST_LIMIT)
+    if by_contrast:
+        accepted = distinct == n and contrast <= CONTRAST_LIMIT
     if accepted and not exact:
         confidence = max(confidence, 1.0 - contrast)
     return Recognition(
@@ -226,11 +336,14 @@ def propose(
     cell_h = cell_h or cell_w
     pixels = _load(sheet)
     overrides: dict[str, Any] = {}
-    for i, ((cx, cy), _edges) in enumerate(_tile_table(result.layout)):
+    cells = result.cells or tuple(
+        (cell, i) for i, (cell, _edges) in enumerate(_tile_table(result.layout))
+    )
+    for (cx, cy), what in cells:
         if not _cut(pixels, (cell_w, cell_h), cx, cy)[..., 3].any():
             continue  # an empty cell (e.g. the "no corners" tile) gets no terrain
-        overrides[f"{cx},{cy}"] = _proposal_entry(result.layout, i, set_name)
-    mode = "corners_and_sides" if result.layout in BLOB_LAYOUTS else "corners"
+        overrides[f"{cx},{cy}"] = _proposal_entry(result.layout, what, set_name)
+    mode = LAYOUT_MODES[result.layout]
     set_def = a2.terrain_set_def(set_name, 0)
     set_def["mode"] = mode
     facet = {

@@ -119,7 +119,13 @@ def why(asset: catalog_mod.Asset) -> str:
         parts.append(f"read by the {asset.detected_by} reader")
     for tag in eff.get("tags") or []:
         if isinstance(tag, str) and tag.startswith(classifier.VARIANT_TAG):
-            parts.append(f"a colour variant of {_named(tag[len(classifier.VARIANT_TAG) :])}")
+            other = _named(tag[len(classifier.VARIANT_TAG) :])
+            coloured = any(str(t).startswith(classifier.COLOUR_TAG) for t in eff.get("tags") or [])
+            seasonal = any(str(t).startswith(classifier.SEASON_TAG) for t in eff.get("tags") or [])
+            if seasonal and not coloured:
+                parts.append(f"{other} drawn for another season")
+            else:
+                parts.append(f"a colour variant of {other}")
     if classifier.is_numbered_name(asset.path) and eff.get("usage") == "tiles":
         parts.insert(0, "the file name is only a number: read by its folder's words")
     for written, read in sorted(classifier.folded_typos(asset.path).items()):

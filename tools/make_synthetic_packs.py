@@ -1470,12 +1470,12 @@ def make_multi_engine(out: Path) -> None:
     cows = "assets/animals/cows/cow_01"
     expected: dict[str, dict] = {
         "assets/tiles/ground_16x16.png": {"usage": "tiles", "role": "GROUND"},
-        "assets/crops/corn_16x32_8frames.png": {
-            "usage": "sprite",
+        # a crop's stages in a row are a growth strip, not an animation (T17.01)
+        "assets/crops/corn_16x32_8frames.png": {"usage": "growth_strip", "frame": [16, 32]},
+        "assets/crops/wheat_growth_16x32_5frames.png": {
+            "usage": "growth_strip",
             "frame": [16, 32],
-            "anims": ["idle_down"],
         },
-        "assets/crops/wheat_growth_16x32_5frames.png": {"usage": "sprite", "frame": [16, 32]},
         "engines/Godot/autotiles/3x3/01_grass.png": {"usage": "tiles"},
         "engines/Godot/autotiles/2x2/01_grass.png": {"role": "NONE"},
         "assets/autotiles/01_grass.png": {"role": "NONE"},
@@ -1763,6 +1763,215 @@ def make_racer(out: Path) -> None:
     _expected(out, "racer", expected)
 
 
+# ------------------------------------------------------------------------------------------
+# The farm (T17.01): a pack in the naming scheme of a farming pack, drawn from primitives.
+
+# the eight neighbours of a tile, as rpggen.core.terrain.blob counts them
+_N, _NE, _E, _SE, _S, _SW, _W, _NW = 1, 2, 4, 8, 16, 32, 64, 128
+
+
+def _soil_tile(mask: int, fill: Color, furrow: Color) -> Image.Image:
+    """One 16 px tile of a patch of soil over nothing, for the neighbours of ``mask``: the
+    middle is always there, a band of 4 px on each side that has a neighbour, and a corner
+    where both sides and the corner have one. The furrows lie on the same rows in every tile."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    spans = {0: (0, 3), 1: (4, 11), 2: (12, 15)}
+    there = {
+        (1, 1): True,
+        (1, 0): bool(mask & _N), (2, 1): bool(mask & _E), (1, 2): bool(mask & _S), (0, 1): bool(mask & _W),
+        (2, 0): mask & (_N | _E | _NE) == (_N | _E | _NE),
+        (2, 2): mask & (_S | _E | _SE) == (_S | _E | _SE),
+        (0, 2): mask & (_S | _W | _SW) == (_S | _W | _SW),
+        (0, 0): mask & (_N | _W | _NW) == (_N | _W | _NW),
+    }  # fmt: skip
+    for (cx, cy), drawn in there.items():
+        if not drawn:
+            continue
+        (x0, x1), (y0, y1) = spans[cx], spans[cy]
+        d.rectangle([x0, y0, x1, y1], fill=fill)
+        for y in range(y0, y1 + 1):
+            if y % 4 == 1:
+                d.line([(x0, y), (x1, y)], fill=furrow)
+    return img
+
+
+def _soil_sheet(fill: Color, furrow: Color) -> Image.Image:
+    """192 x 64: the 47 tiles of a patch of soil in the cells of Godot's 3x3 minimal template."""
+    from rpggen.core.terrain import blob
+
+    img = Image.new("RGBA", (192, 64), (0, 0, 0, 0))
+    for i, mask in enumerate(blob.GODOT_3X3_MINIMAL):
+        if mask is not None:
+            img.paste(_soil_tile(mask, fill, furrow), ((i % 12) * 16, (i // 12) * 16))
+    return img
+
+
+def _fence_tile(sides: int, post: Color) -> Image.Image:
+    """One 16 px tile of a fence: a post in the middle and a rail to each side that joins."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    rail = (150, 110, 70, 255)
+    if sides & _N:
+        d.rectangle([7, 0, 8, 7], fill=rail)
+    if sides & _S:
+        d.rectangle([7, 8, 8, 15], fill=rail)
+    if sides & _W:
+        d.rectangle([0, 7, 7, 8], fill=rail)
+    if sides & _E:
+        d.rectangle([8, 7, 15, 8], fill=rail)
+    d.rectangle([6, 6, 9, 9], fill=post, outline=BLACK)
+    return img
+
+
+# the cells of the template a fence sheet fills beside the sixteen of its first four columns:
+# six more posts (which six a real pack draws is not known; any cell is read by its sides)
+FENCE_EXTRA_CELLS = (4, 5, 6, 7, 16, 17)
+
+
+def _fence_sheet() -> Image.Image:
+    """192 x 64 in the shape of the 47-tile template with 22 cells drawn: tiles that join at
+    their sides only."""
+    from rpggen.core.terrain import blob
+
+    img = Image.new("RGBA", (192, 64), (0, 0, 0, 0))
+    sides_only = _N | _E | _S | _W
+    for i, mask in enumerate(blob.GODOT_3X3_MINIMAL):
+        if mask is None:
+            continue
+        if mask & ~sides_only == 0:
+            tile = _fence_tile(mask, (110, 78, 48, 255))
+        elif i in FENCE_EXTRA_CELLS:
+            tile = _fence_tile(mask & sides_only, (190, 190, 200, 255))
+        else:
+            continue
+        img.paste(tile, ((i % 12) * 16, (i // 12) * 16))
+    return img
+
+
+def _season_grass(season: int) -> Image.Image:
+    """128 x 64: a sheet of 16 px ground tiles in the colours of one season."""
+    base = ((96, 176, 80), (70, 150, 60), (190, 140, 60), (214, 222, 236))[season]
+    img = Image.new("RGBA", (128, 64), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for row in range(4):
+        for col in range(8):
+            i = row * 8 + col
+            tint = (base[0] - (i * 7) % 30, base[1] - (i * 11) % 30, base[2] + (i * 5) % 30)
+            for dx in range(16):  # a gradient that is smooth inside the tile, as _tile draws
+                colour = (min(255, tint[0] + dx * 2), min(255, tint[1] + dx), tint[2], 255)
+                d.line([(col * 16 + dx, row * 16), (col * 16 + dx, row * 16 + 15)], fill=colour)
+    return img
+
+
+def _crop_strip(stages: int, fw: int, fh: int, leaf: Color, fruit: Color) -> Image.Image:
+    """A crop's stages in a row: a stalk that grows from stage to stage, with fruit on the last."""
+    img = Image.new("RGBA", (stages * fw, fh), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for i in range(stages):
+        mid, foot = i * fw + fw // 2, fh - 1
+        height = 2 + i * (fh - 6) // max(1, stages - 1)
+        d.rectangle([mid - 1, foot - height, mid, foot], fill=leaf)
+        for k in range(1, height // 5 + 1):  # a pair of leaves every five pixels
+            y = foot - k * 5 + 1
+            d.line([(mid - 3 - (k + i) % 2, y), (mid + 2 + (k + i) % 2, y)], fill=leaf)
+        if i == stages - 1:
+            d.rectangle([mid - 3, foot - height, mid + 2, foot - height + 3], fill=fruit)
+    return img
+
+
+def _rain(frames: int, size: int) -> Image.Image:
+    """A rain overlay as a strip: thin slanted drops that move down from frame to frame."""
+    img = Image.new("RGBA", (frames * size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for f in range(frames):
+        for k in range(size // 2):
+            x = (k * 13) % (size - 2)
+            y = (k * 29 + f * 7) % (size - 5)
+            d.line([(f * size + x + 1, y), (f * size + x, y + 3)], fill=(150, 190, 240, 255))
+    return img
+
+
+def _building(w: int, h: int, wall: Color, roof: Color) -> Image.Image:
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([2, h // 3, w - 3, h - 1], fill=wall, outline=BLACK)
+    d.polygon([(0, h // 3), (w // 2, 1), (w - 1, h // 3)], fill=roof, outline=BLACK)
+    d.rectangle([w // 2 - 3, h - 10, w // 2 + 2, h - 1], fill=(70, 46, 30, 255))
+    return img
+
+
+def make_ranch(out: Path) -> None:
+    """What a farming pack holds, named the way one such pack names it:
+    ``<thing>_<nn>_<colour>_<action>_<direction>_<W>x<H>_<N>frames.png``."""
+    pack = out / "ranch"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    farmer = pack / "characters" / "farmer"
+    for n, direction in enumerate(("down", "up", "left", "right")):
+        _save_png(_strip(4, 20 + n), farmer / f"farmer_walk_{direction}_16x16_4frames.png")
+    for n, tool in enumerate(("hoe", "water")):  # the farmer using a tool: no action word
+        _save_png(_strip(3, 26 + n), farmer / f"farmer_{tool}_down_16x16_3frames.png")
+    animals = (("cows", "cow_01", 32), ("chickens", "hen_01", 16))
+    colours = ("brown", "black", "white")
+    for folder, name, size in animals:
+        for n, colour in enumerate(colours):
+            base = pack / "animals" / folder / name / colour
+            stem = f"{name}_{colour}"
+            shade = 70 + n + (0 if size == 32 else 5)
+            _save_png(_strip(4, shade, size, size), base / "move" / f"{stem}_move_down_{size}x{size}_4frames.png")  # fmt: skip
+            _save_png(_strip(2, shade, size, size), base / "sleep" / f"{stem}_sleep_{size}x{size}_2frames.png")  # fmt: skip
+    green = (70, 160, 70, 255)
+    crops = (("corn", 8, (240, 210, 70, 255)), ("wheat", 5, (220, 190, 110, 255)),
+             ("tomato", 12, (220, 60, 50, 255)))  # fmt: skip
+    for name, stages, fruit in crops:
+        _save_png(_crop_strip(stages, 16, 32, green, fruit), pack / "crops" / f"{name}_16x32_{stages}frames.png")  # fmt: skip
+    _save_png(_small((230, 130, 40, 255), 16, "round"), pack / "crops" / "pumpkin_16x16.png")
+    for n, tool in enumerate(("hoe", "shovel", "water", "sickle")):
+        _save_png(_small(pal(80 + n), 16, ("thin", "cone", "round", "box")[n]), pack / "tools" / f"{tool}_16x16.png")  # fmt: skip
+    tiles = pack / "tiles"
+    _save_png(_soil_sheet((134, 96, 62, 255), (112, 78, 50, 255)), pack / "autotiles" / "01_soil_tilled.png")  # fmt: skip
+    _save_png(_soil_sheet((92, 66, 48, 255), (74, 52, 40, 255)), pack / "autotiles" / "02_soil_watered.png")  # fmt: skip
+    _save_png(_fence_sheet(), pack / "autotiles" / "03_fence.png")
+    for n, season in enumerate(("spring", "summer", "autumn", "winter")):
+        _save_png(_season_grass(n), tiles / season / "grass_16x16.png")
+    _save_png(_rain(3, 64), pack / "weather" / "rain_64x64_3frames.png")
+    _save_png(_building(48, 48, (200, 170, 130, 255), (170, 60, 50, 255)), pack / "buildings" / "house.png")  # fmt: skip
+    _save_png(_building(32, 32, (220, 200, 150, 255), (120, 90, 60, 255)), pack / "buildings" / "coop.png")  # fmt: skip
+    _save_png(_small((150, 110, 70, 255), 16), pack / "props" / "shipping_bin.png")
+    expected: dict[str, dict] = {
+        "characters/farmer/farmer_walk_down_16x16_4frames.png": {
+            "usage": "sprite",
+            "role": "PLAYER",  # the farmer of a farming pack without another player
+            "frame": [16, 16],
+            "anims": ["walk_down", "walk_left", "walk_right", "walk_up"],
+        },
+        "crops/pumpkin_16x16.png": {"usage": "sprite"},
+        "autotiles/01_soil_tilled.png": {"usage": "tiles", "role": "GROUND"},
+        "autotiles/02_soil_watered.png": {"usage": "tiles", "role": "GROUND"},
+        "autotiles/03_fence.png": {"usage": "tiles", "role": "WALL"},
+        "weather/rain_64x64_3frames.png": {"usage": "sprite", "frame": [64, 64]},
+        "buildings/house.png": {"role": "BUILDING"},
+        "buildings/coop.png": {"role": "BUILDING"},
+    }
+    for name, stages, _fruit in crops:
+        expected[f"crops/{name}_16x32_{stages}frames.png"] = {"usage": "growth_strip", "frame": [16, 32]}  # fmt: skip
+    for season in ("spring", "summer", "autumn", "winter"):
+        expected[f"tiles/{season}/grass_16x16.png"] = {"usage": "tiles", "role": "GROUND"}
+    for folder, name, size in animals:
+        for colour in colours:
+            base = f"animals/{folder}/{name}/{colour}"
+            expected[f"{base}/move/{name}_{colour}_move_down_{size}x{size}_4frames.png"] = {
+                "usage": "sprite",
+                "frame": [size, size],
+                "anims": ["walk_down"],
+            }
+            expected[f"{base}/sleep/{name}_{colour}_sleep_{size}x{size}_2frames.png"] = {
+                "usage": "sprite",
+                "anims": ["sleep_down"],
+            }
+    _expected(out, "ranch", expected)
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -1787,6 +1996,7 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "shooter": make_shooter,
     "gunner": make_gunner,
     "racer": make_racer,
+    "ranch": make_ranch,
     "audio_basic": lambda out: make_audio_basic(out),
 }
 

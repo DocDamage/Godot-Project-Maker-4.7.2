@@ -271,3 +271,159 @@ def test_assemble_proposes_a_terrain_for_a_godot_sheet_in_a_tile_set_folder(
     accepted = blob.accept_in_catalog(cat, track.id)
     schema.validate("catalog", accepted.to_json())
     assert any(t.terrain_sets for t in accepted.tilesets)
+
+
+# --------------------------------------------------------------- T17.01: fences, any-order corners
+
+N, E, S, W = 1, 4, 16, 64
+
+
+def fence_tile(sides: int, post: tuple[int, int, int, int] = (110, 78, 48, 255)) -> Image.Image:
+    """A post in the middle and a rail to every side that joins: nothing at the corners."""
+    tile = Image.new("RGBA", (TILE, TILE))
+    rail = (150, 110, 70, 255)
+    mid = TILE // 2
+    for bit, box in (
+        (N, (mid - 1, 0, mid + 1, mid)),
+        (S, (mid - 1, mid, mid + 1, TILE)),
+        (W, (0, mid - 1, mid, mid + 1)),
+        (E, (mid, mid - 1, TILE, mid + 1)),
+    ):
+        if sides & bit:
+            tile.paste(rail, box)
+    tile.paste(post, (mid - 2, mid - 2, mid + 2, mid + 2))
+    return tile
+
+
+def fence_sheet(extra: tuple[int, ...] = (4, 5, 6, 7, 16, 17), leave: int = -1) -> Image.Image:
+    """A fence in the cells of Godot's template: the sixteen cells whose masks have no corner,
+    and ``extra`` cells drawn as other posts (22 tiles, as packs ship it). ``leave`` is one of
+    the sixteen that is left out."""
+    sheet = Image.new("RGBA", (12 * TILE, 4 * TILE))
+    for i, mask in enumerate(blob.GODOT_3X3_MINIMAL):
+        if mask is None or i == leave:
+            continue
+        if mask & ~(N | E | S | W) == 0:
+            tile = fence_tile(mask)
+        elif i in extra:
+            tile = fence_tile(mask & (N | E | S | W), (190, 190, 200, 255))
+        else:
+            continue
+        sheet.paste(tile, ((i % 12) * TILE, (i // 12) * TILE))
+    return sheet
+
+
+def test_a_fence_sheet_is_a_sides_only_terrain() -> None:
+    sheet = fence_sheet()
+    filled = sum(
+        1
+        for i in range(48)
+        if sheet.crop(
+            ((i % 12) * TILE, (i // 12) * TILE, (i % 12 + 1) * TILE, (i // 12 + 1) * TILE)
+        )
+        .getchannel("A")
+        .getbbox()
+    )
+    assert filled == 22
+    proposal, result = blob.propose(sheet, TILE, TILE, "fence_terrain")
+    assert result is not None and result.accepted and result.layout == blob.SIDES16_GODOT
+    assert proposal is not None and proposal["mode"] == "sides"
+    assert proposal["terrain_set"]["mode"] == "sides"
+    # the sixteen combinations of sides once each, in the template's first four columns
+    assert sorted(proposal["tile_overrides"]) == sorted(
+        f"{x},{y}" for x in range(4) for y in range(4)
+    )
+    joined = {
+        key: {k for k, v in entry["terrain"]["peering"].items() if v == 0}
+        for key, entry in proposal["tile_overrides"].items()
+    }
+    assert len({frozenset(v) for v in joined.values()}) == 16
+    assert joined["0,0"] == {"bottom_side"} and joined["0,3"] == set()  # masks 16 and 0
+    assert joined["2,1"] == {"top_side", "right_side", "bottom_side", "left_side"}  # mask 85
+    assert all(not k.endswith("_corner") for v in joined.values() for k in v)
+
+
+def test_a_fence_drawn_into_other_cells_is_read_by_the_sides_of_their_masks() -> None:
+    """Which cells a pack fills is its own business: a combination of sides that is missing
+    from the first four columns is taken from a cell whose mask has corners as well."""
+    index = blob.GODOT_3X3_MINIMAL.index(85)  # the crossing, mask N+E+S+W
+    sheet = fence_sheet(leave=index)
+    proposal, result = blob.propose(sheet, TILE, TILE, "f")
+    assert result is not None and result.accepted and proposal is not None
+    assert "2,1" not in proposal["tile_overrides"] and len(proposal["tile_overrides"]) == 15 + 1
+    crossing = [
+        k for k, e in proposal["tile_overrides"].items()
+        if sum(1 for v in e["terrain"]["peering"].values() if v == 0) == 4
+    ]  # fmt: skip
+    assert crossing == ["4,0"], "mask 213: all four sides and three corners"
+    assert not blob.recognize(fence_sheet(extra=(), leave=index), TILE).accepted, "15 of 16"
+
+
+def test_pictures_in_the_cells_of_the_template_are_no_fence() -> None:
+    icons = Image.new("RGBA", (12 * TILE, 4 * TILE))
+    for i in range(22):  # 22 things that touch no edge: nothing joins, nothing to tell
+        x, y = (i % 12) * TILE, (i // 12) * TILE
+        icons.paste((40 + i * 9, 90, 200 - i * 5, 255), (x + 3, y + 3, x + 12 - i % 4, y + 12))
+    result = blob.recognize(icons, TILE)
+    assert result is not None and not result.accepted
+    rng = random.Random(11)
+    order = [i for i, m in enumerate(blob.GODOT_3X3_MINIMAL) if m is not None][:22]
+    tiles = [fence_tile(blob.GODOT_3X3_MINIMAL[i] & (N | E | S | W)) for i in order]
+    rng.shuffle(tiles)
+    shuffled = Image.new("RGBA", (12 * TILE, 4 * TILE))
+    for i, tile in zip(order, tiles, strict=True):
+        shuffled.paste(tile, ((i % 12) * TILE, (i // 12) * TILE))
+    assert not blob.recognize(shuffled, TILE).accepted
+    # a 47-tile sheet that fails is not tried as a fence
+    assert blob.recognize(shuffled_sheet(), TILE).layout != blob.SIDES16_GODOT
+
+
+def drawn_corner_sheet(order: list[int], opaque: bool = False) -> Image.Image:
+    """The 16 corner tiles over nothing, tile ``order[k]`` in cell ``k``."""
+    on, off = (40, 200, 40, 255), ((120, 90, 60, 255) if opaque else (0, 0, 0, 0))
+    sheet = Image.new("RGBA", (4 * TILE, 4 * TILE))
+    for k, bits in enumerate(order):
+        for bit, dx, dy in ((1, 0, 0), (2, 1, 0), (4, 1, 1), (8, 0, 1)):
+            x, y = (k % 4) * TILE + dx * Q, (k // 4) * TILE + dy * Q
+            sheet.paste(on if bits & bit else off, (x, y, x + Q, y + Q))
+    return sheet
+
+
+def test_a_corner_set_in_another_order_is_read_off_its_drawn_corners() -> None:
+    order = list(range(16))
+    random.Random(4).shuffle(order)
+    assert order != list(range(16))
+    proposal, result = blob.propose(drawn_corner_sheet(order), TILE, TILE, "c")
+    assert result is not None and result.accepted and result.layout == blob.CORNERS16_DRAWN
+    assert proposal is not None and proposal["mode"] == "corners"
+    assert len(proposal["tile_overrides"]) == 15, "the tile without a corner is empty"
+    names = (("top_left_corner", 1), ("top_right_corner", 2), ("bottom_right_corner", 4),
+             ("bottom_left_corner", 8))  # fmt: skip
+    for k, bits in enumerate(order):
+        if not bits:
+            continue
+        peering = proposal["tile_overrides"][f"{k % 4},{k // 4}"]["terrain"]["peering"]
+        assert {n for n, bit in names if bits & bit} == {n for n, v in peering.items() if v == 0}
+    # the order the reader knew stays what it was called
+    assert blob.recognize(drawn_corner_sheet(list(range(16))), TILE).layout == blob.CORNERS16
+
+
+def test_an_opaque_corner_set_in_another_order_is_not_read() -> None:
+    order = list(range(16))
+    random.Random(4).shuffle(order)
+    result = blob.recognize(drawn_corner_sheet(order, opaque=True), TILE)
+    assert result is not None and not result.accepted, "its corners are all drawn: nothing to tell"
+
+
+def test_assemble_proposes_a_sides_terrain_for_a_fence_sheet(tmp_path: Path) -> None:
+    pack = tmp_path / "farm"
+    (pack / "autotiles").mkdir(parents=True)
+    fence_sheet().save(pack / "autotiles" / "03_fence.png")
+    cat, issues, _gen = _assemble(pack)
+    fence = next(a for a in cat.assets if a.path.endswith("03_fence.png"))
+    proposal = catalog.effective(fence)["terrain_proposal"]
+    assert proposal["layout"] == blob.SIDES16_GODOT and len(proposal["tile_overrides"]) == 16
+    assert not any(i.code == "TILE-006" for i in issues)
+    accepted = blob.accept_in_catalog(cat, fence.id)
+    schema.validate("catalog", accepted.to_json())
+    assert [t["mode"] for d in accepted.tilesets for t in d.terrain_sets] == ["sides"]

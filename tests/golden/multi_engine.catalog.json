@@ -62,6 +62,7 @@
           16
         ],
         "tags": [
+          "animal",
           "colour:black"
         ],
         "usage": "sprite"
@@ -129,6 +130,7 @@
           16
         ],
         "tags": [
+          "animal",
           "colour:black"
         ],
         "usage": "sprite"
@@ -204,6 +206,7 @@
           16
         ],
         "tags": [
+          "animal",
           "colour:black_white",
           "variant_of:multi_engine.assets.animals.cows.cow_01.black.move.cow_01_black_move_down_16x16_4frames"
         ],
@@ -272,6 +275,7 @@
           16
         ],
         "tags": [
+          "animal",
           "colour:black_white",
           "variant_of:multi_engine.assets.animals.cows.cow_01.black.sleep.cow_01_black_sleep_16x16_2frames"
         ],
@@ -348,6 +352,7 @@
           16
         ],
         "tags": [
+          "animal",
           "colour:brown",
           "variant_of:multi_engine.assets.animals.cows.cow_01.black.move.cow_01_black_move_down_16x16_4frames"
         ],
@@ -416,6 +421,7 @@
           16
         ],
         "tags": [
+          "animal",
           "colour:brown",
           "variant_of:multi_engine.assets.animals.cows.cow_01.black.sleep.cow_01_black_sleep_16x16_2frames"
         ],
@@ -461,48 +467,8 @@
       "status": "UNUSED"
     },
     {
-      "confidence": 0.454545,
+      "confidence": 0.9,
       "detected": {
-        "animations": {
-          "idle_down": {
-            "fps": 4.0,
-            "frames": [
-              [
-                0,
-                0
-              ],
-              [
-                1,
-                0
-              ],
-              [
-                2,
-                0
-              ],
-              [
-                3,
-                0
-              ],
-              [
-                4,
-                0
-              ],
-              [
-                5,
-                0
-              ],
-              [
-                6,
-                0
-              ],
-              [
-                7,
-                0
-              ]
-            ],
-            "loop": true
-          }
-        },
         "frame": [
           16,
           32
@@ -525,18 +491,16 @@
           8,
           31
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "DECORATION",
         "size": [
           128,
           32
         ],
-        "usage": "sprite"
+        "stages": 8,
+        "tags": [
+          "crop"
+        ],
+        "usage": "growth_strip"
       },
       "detected_by": "strips",
       "id": "multi_engine.assets.crops.corn_16x32_8frames",
@@ -545,39 +509,11 @@
       "pack_id": "multi_engine",
       "path": "assets/packs/multi_engine/assets/crops/corn_16x32_8frames.png",
       "sha256": "126afd2f5d58706057986940ac73c6e488e231349285371cd1ee3d26c303d9f9",
-      "status": "NEEDS_REVIEW"
+      "status": "AUTO_DETECTED"
     },
     {
-      "confidence": 0.454545,
+      "confidence": 0.9,
       "detected": {
-        "animations": {
-          "idle_down": {
-            "fps": 4.0,
-            "frames": [
-              [
-                0,
-                0
-              ],
-              [
-                1,
-                0
-              ],
-              [
-                2,
-                0
-              ],
-              [
-                3,
-                0
-              ],
-              [
-                4,
-                0
-              ]
-            ],
-            "loop": true
-          }
-        },
         "frame": [
           16,
           32
@@ -600,21 +536,17 @@
           8,
           31
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "DECORATION",
         "size": [
           80,
           32
         ],
+        "stages": 5,
         "tags": [
+          "crop",
           "growth"
         ],
-        "usage": "sprite"
+        "usage": "growth_strip"
       },
       "detected_by": "strips",
       "id": "multi_engine.assets.crops.wheat_growth_16x32_5frames",
@@ -623,7 +555,7 @@
       "pack_id": "multi_engine",
       "path": "assets/packs/multi_engine/assets/crops/wheat_growth_16x32_5frames.png",
       "sha256": "603fa493171ae2d1cfbc08f567500316481599b67d9ed144b9e5eaa2ddba2762",
-      "status": "NEEDS_REVIEW"
+      "status": "AUTO_DETECTED"
     },
     {
       "confidence": 0.4345,
@@ -931,7 +863,8 @@
         "engines:5:Godot",
         "strips_direction_assumed:assets/animals/cows/cow_01/black/sleep/cow_01_black_sleep_16x16_2frames.png",
         "strips_direction_assumed:assets/animals/cows/cow_01/black_white/sleep/cow_01_black_white_sleep_16x16_2frames.png",
-        "strips_direction_assumed:assets/animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_16x16_2frames.png"
+        "strips_direction_assumed:assets/animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_16x16_2frames.png",
+        "view:farm"
       ]
     }
   ],

@@ -536,5 +536,83 @@
    ]
   },
   "role": "DECORATION"
+ },
+ {
+  "path": "crops/corn_16x32_8frames.png",
+  "facets": {
+   "usage": "growth_strip",
+   "frame": [
+    16,
+    32
+   ]
+  },
+  "role": "DECORATION"
+ },
+ {
+  "path": "tools/hoe_16x16.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    16
+   ]
+  },
+  "role": "ITEM"
+ },
+ {
+  "path": "autotiles/03_fence.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "WALL"
+ },
+ {
+  "path": "tiles/winter/grass_16x16.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "autotiles/02_soil_watered.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "animals/cows/cow_01/brown/move/cow_01_brown_move_down_32x32_4frames.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    32,
+    32
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ]
+    }
+   }
+  },
+  "role": "NPC"
+ },
+ {
+  "path": "buildings/barn.png",
+  "facets": {
+   "usage": "object"
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "props/crate.png",
+  "facets": {
+   "usage": "object"
+  },
+  "role": "DECORATION"
  }
 ]

@@ -291,6 +291,202 @@ def arcade_tags(name: str) -> list[str]:
     return sorted(found)
 
 
+# What the words of a file or folder say for the farm (T17.01). A tag is a label; the other
+# kinds do nothing with these. The names of crops are a list of their own: a file with one in
+# its name is a crop, where ``plant`` and ``fruit`` say it of a folder as well as of a file.
+CROP_NAMES = frozenset(
+    {"corn", "wheat", "carrot", "carrots", "tomato", "tomatoes", "potato", "potatoes", "pumpkin",
+     "pumpkins", "turnip", "turnips", "strawberry", "strawberries", "cabbage", "onion", "onions",
+     "radish", "eggplant", "lettuce", "melon", "watermelon", "beet", "beetroot", "parsnip",
+     "cauliflower", "cucumber", "blueberry", "blueberries", "garlic", "rice", "sunflower",
+     "pepper", "peppers", "beans"}
+)  # fmt: skip
+CROP_WORDS = frozenset({"crop", "crops"})
+PLANT_WORDS = frozenset({"plant", "plants", "vegetable", "vegetables", "fruit", "fruits"})
+SEED_WORDS = frozenset({"seed", "seeds", "sapling", "saplings"})
+SOIL_WORDS = frozenset({"soil", "tilled", "farmland", "plowed", "ploughed"})
+WATERED_WORDS = frozenset({"watered"})
+FARM_ANIMAL_WORDS = frozenset(
+    {"cow", "cows", "chicken", "chickens", "hen", "hens", "sheep", "pig", "pigs", "goat", "goats",
+     "duck", "ducks"}
+)  # fmt: skip
+PRODUCT_WORDS = frozenset({"egg", "eggs", "milk", "wool"})
+GROWTH_WORDS = frozenset({"growth", "grow", "growing"})
+SEASONS = ("spring", "summer", "autumn", "winter")
+SEASON_WORDS = {"spring": "spring", "summer": "summer", "autumn": "autumn", "fall": "autumn",
+                "winter": "winter"}  # fmt: skip
+# "spring" is also what a platformer jumps on and "fall" what its hero does: in a file name the
+# two say a season only beside the same sheet in another season (``catalog.mark_season_variants``)
+SEASON_FOLDER_ONLY = frozenset({"spring", "fall"})
+SEASON_TAG = "season:"
+FARM_TAG_WORDS: tuple[tuple[str, frozenset[str]], ...] = (
+    ("crop", CROP_NAMES | CROP_WORDS | PLANT_WORDS),
+    ("seed", SEED_WORDS),
+    ("soil", SOIL_WORDS),
+    ("watered", WATERED_WORDS),
+    ("tool", frozenset({"tool", "tools", "hoe", "shovel", "sickle", "scythe", "axe", "pickaxe",
+                        "rod", "wateringcan"})),
+    ("animal", FARM_ANIMAL_WORDS | {"animal", "animals", "livestock", "horse", "horses"}),
+    ("product", PRODUCT_WORDS),
+    ("coop", frozenset({"coop", "coops"})),
+    ("barn", frozenset({"barn", "barns"})),
+    ("fence", frozenset({"fence", "fences"})),
+    ("bin", frozenset({"bin", "crate", "crates"})),
+    ("weather", frozenset({"weather", "rain", "snow", "storm"})),
+    ("fish", frozenset({"fish", "fishes", "fishing"})),
+    ("forage", frozenset({"forage", "foraging", "forageable", "forageables"})),
+    ("growth", GROWTH_WORDS),
+)  # fmt: skip
+FARM_TAG_PAIRS: tuple[tuple[str, tuple[str, str]], ...] = (
+    ("soil", ("dirt", "tilled")),
+    ("watered", ("wet", "soil")),
+    ("tool", ("watering", "can")),
+    ("bin", ("shipping", "bin")),
+)
+TOOL_FOLDER_WORDS = frozenset({"tool", "tools"})
+FARM_TAGS = frozenset(tag for tag, _words in FARM_TAG_WORDS)
+# what a farming pack is full of: named crops, worked soil, farm animals
+FARM_VIEW_WORDS: tuple[frozenset[str], ...] = (
+    CROP_NAMES | CROP_WORDS,
+    SOIL_WORDS | WATERED_WORDS,
+    FARM_ANIMAL_WORDS,
+)
+FARM_VIEW_MIN = 3  # this many names of a pack must say it, in two of the three ways
+# the folders a strip of crops lies in when its name does not say what it is
+GROWTH_FOLDER_WORDS = frozenset({"crop", "crops", "plants", "seeds", "farming"})
+GROWTH_MIN_STAGES_BY_SIZE = 3
+
+
+def season_of(name: str) -> str | None:
+    """The season the words of a path say: of the file (``grass_winter.png``) or of a folder
+    anywhere above it. *fall* is autumn. ``spring`` and ``fall`` count as a folder's word only:
+    a file called ``spring.png`` is something to jump on."""
+    path = name if "." in name.rsplit("/", 1)[-1] else name + ".png"
+    folders, stem = _path_parts(path)
+    for word in _all_words(stem):
+        if word in SEASON_WORDS and word not in SEASON_FOLDER_ONLY:
+            return SEASON_WORDS[word]
+    for folder in reversed(folders):
+        for word in _all_words(folder):
+            if word in SEASON_WORDS:
+                return SEASON_WORDS[word]
+    return None
+
+
+def season_key(path: str) -> tuple[str, str]:
+    """``(what the file is without its season, the season)`` for a path inside a pack, as
+    ``colour_key`` is for colours; the season is "" for a path that names none. Two files with
+    one key and two seasons are the same sheet in two seasons. Here ``spring`` and ``fall`` count
+    in a file name too: the caller asks for a second season beside them."""
+    folders, stem = _path_parts(path)
+    seasons: list[str] = []
+    kept_folders: list[str] = []
+    for folder in folders:
+        words = [w.lower() for w in _NAME_PARTS.findall(folder)]
+        found = [SEASON_WORDS[w] for w in words if w in SEASON_WORDS]
+        if not found:
+            kept_folders.append(folder.casefold())
+            continue
+        seasons.extend(s for s in found if s not in seasons)
+        rest = "_".join(w for w in words if w not in SEASON_WORDS)
+        if rest:
+            kept_folders.append(rest)
+    kept_words: list[str] = []
+    for word in (w.lower() for w in _NAME_PARTS.findall(stem)):
+        if word in SEASON_WORDS:
+            if SEASON_WORDS[word] not in seasons:
+                seasons.append(SEASON_WORDS[word])
+        else:
+            kept_words.append(word)
+    return "/".join([*kept_folders, "_".join(kept_words)]), (seasons[0] if seasons else "")
+
+
+def farm_tags(name: str) -> list[str]:
+    """The farm tags the words of a file suggest (T17.01), sorted: ``crop``, ``soil``,
+    ``animal``, ``tool`` and so on, and ``season:<name>``. The name's own words and those of its
+    nearest folder count. ``water`` is a tool in a folder of tools only (everywhere else it is
+    what a river is made of)."""
+    path = name if "." in name.rsplit("/", 1)[-1] else name + ".png"
+    folders, stem = _path_parts(path)
+    found: set[str] = set()
+    stem_words = _all_words(stem)
+    near_words = _all_words(folders[-1]) if folders else []
+    for words in (stem_words, near_words):
+        have = set(words)
+        for tag, tag_words in FARM_TAG_WORDS:
+            if have & tag_words:
+                found.add(tag)
+        for tag, pair in FARM_TAG_PAIRS:
+            if _has_pair(words, pair):
+                found.add(tag)
+    if "water" in stem_words and set(near_words) & TOOL_FOLDER_WORDS:
+        found.add("tool")
+    if "watered" in found:
+        found.discard("soil")  # wet soil is the watered kind
+    season = season_of(path)
+    if season is not None:
+        found.add(SEASON_TAG + season)
+    return sorted(found)
+
+
+def _plain_words(stem: str) -> list[str]:
+    """The words of a file stem without the size and the frame count some artists add."""
+    from rpggen.core.adapters import naming
+
+    return _all_words(naming.name_facts(stem).stem)
+
+
+def growth_evidence(path: str, frame: Any, stages: int) -> str | None:
+    """Why a strip of one row is a crop's growth and not an animation (T17.01), or None:
+    ``"name"`` when its name has the name of a crop or a growth word, ``"size"`` when only its
+    folder says crops and its cells are taller than wide (offered for review). A name with an
+    action or a direction is an animation whatever else it says."""
+    from rpggen.core.adapters import naming
+
+    folders, stem = _path_parts(path)
+    words = _plain_words(stem)
+    moving = set(naming.DIRECTIONS) | {"front", "back", "side"} | set(naming.ACTIONS)
+    if any(w in moving or naming.SYNONYMS.get(w, w) in moving for w in words):
+        return None
+    if set(words) & (CROP_NAMES | CROP_WORDS | GROWTH_WORDS):
+        return "name"
+    in_folder = any(set(_all_words(f)) & GROWTH_FOLDER_WORDS for f in folders)
+    tall = isinstance(frame, list | tuple) and len(frame) == 2 and frame[1] > frame[0]
+    return "size" if in_folder and tall and stages >= GROWTH_MIN_STAGES_BY_SIZE else None
+
+
+def is_single_crop(path: str) -> bool:
+    """True for a picture that is a crop by its name (``pumpkin.png``) or lies in a folder of
+    crops: with one picture it has no stages to grow through (``ASSET-034``)."""
+    folders, stem = _path_parts(path)
+    words = set(_plain_words(stem))
+    if words & (SEED_WORDS | PRODUCT_WORDS):
+        return False  # a bag of seeds, an egg
+    in_folder = bool(folders) and bool(set(_all_words(folders[-1])) & CROP_WORDS)
+    return in_folder or bool(words & (CROP_NAMES | CROP_WORDS))
+
+
+def farm_view(inventory: Any, sheets: Any = ()) -> bool:
+    """True for a pack made for a farm (T17.01): its folders and files name crops, worked soil
+    and farm animals (a name counts once, and two of the three must be there); a growth strip
+    among ``sheets`` counts for two names and as a way of its own."""
+    counts = [0, 0, 0]
+    seen: set[str] = set()
+    for f in getattr(inventory, "files", ()):
+        folders, stem = _path_parts(f.path)
+        for part in (*folders, stem):
+            if part.casefold() in seen:
+                continue
+            seen.add(part.casefold())
+            have = set(_all_words(part))
+            for index, words in enumerate(FARM_VIEW_WORDS):
+                counts[index] += bool(have & words)
+    total, ways = sum(counts), sum(1 for c in counts if c)
+    if any(isinstance(f, dict) and f.get("usage") == "growth_strip" for f in sheets):
+        total, ways = total + 2, ways + 1
+    return total >= FARM_VIEW_MIN and ways >= 2
+
+
 def side_view_tags(name: str) -> list[str]:
     """The side-view tags the words of a file or an object suggest (T14.02), sorted:
     ``platform``, ``one_way``, ``ladder``, ``hazard``, ``save_point``, ``ability`` and
@@ -329,7 +525,8 @@ def _is_top_sheet(animations: Any) -> bool:
 
 
 def pack_view(inventory: Any, sheets: Any = ()) -> str:
-    """``"side"`` or ``"top"``: how a pack looks at its world (T14.02). The words of its folders
+    """``"side"`` or ``"top"``, or the kind a pack was made for (``"shmup"``, ``"racing"``,
+    ``"farm"``): how a pack looks at its world (T14.02). The words of its folders
     and files count (platformer, sidescroller, metroidvania, jump against rpg, topdown,
     overworld; a name is counted once), and so does every character sheet in ``sheets``
     (detected facets): one with a jump or a fall and no walk up the screen is a side-view
@@ -359,6 +556,8 @@ def pack_view(inventory: Any, sheets: Any = ()) -> str:
     kind = arcade_view(inventory, sheets)
     if kind is not None and side <= top:
         return kind
+    if side <= top and farm_view(inventory, sheets):
+        return "farm"
     return "side" if side > top else "top"
 
 

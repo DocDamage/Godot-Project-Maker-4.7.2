@@ -72,7 +72,7 @@ class PackSniff:
     bundle: tuple[BundlePack, ...] = field(default_factory=tuple)
     bundle_license: bool = False  # a licence file beside the pack folders: it is for them all
     # what the names say about the pack, as the catalog's pack warnings do: ``view:shmup``,
-    # ``view:racing``, ``view:side``, ``engines:5:Godot``
+    # ``view:racing``, ``view:farm``, ``view:side``, ``engines:5:Godot``
     marks: tuple[str, ...] = field(default_factory=tuple)
 
 

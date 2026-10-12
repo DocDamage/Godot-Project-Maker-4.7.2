@@ -44,6 +44,7 @@ const CODES := {
 	"ASSET-031": {"severity": "info", "message": "The packs have no {thing}; a drawn one stands in for it (role {role}).", "fix": "Add your own to a pack and give it the role on the Audit page."},
 	"ASSET-032": {"severity": "info", "message": "The vehicle {asset} is one picture, not a sheet of headings: the game turns it.", "fix": "A sheet with the vehicle in 16 headings looks better."},
 	"ASSET-033": {"severity": "warning", "message": "The LPC character {character} was left out or is incomplete: {reason}.", "fix": "Put the part back into the pack, or choose the character's parts again on the Audit page."},
+	"ASSET-034": {"severity": "info", "message": "The crop {asset} is one picture: it has no stages to grow through.", "fix": "A strip with the crop's stages in a row grows by them; until then drawn stages stand in."},
 	"ASSET-028": {"severity": "warning", "message": "Pack {pack_id} needs attribution, but no author was found in its license files.", "fix": "Enter the author on the Audit page (pack information) so that the credits screen names them."},
 	"ADAPT-001": {"severity": "warning", "message": "Adapter {adapter} failed on {file}: {reason}.", "fix": "Report a bug with a diagnostic bundle."},
 	"ADAPT-002": {"severity": "warning", "message": "Tiled tileset {file} references missing image {image}.", "fix": "Fix the pack or map the image manually."},

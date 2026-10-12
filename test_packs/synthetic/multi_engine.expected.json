@@ -51,21 +51,18 @@
     "role": "NONE"
   },
   "assets/crops/corn_16x32_8frames.png": {
-    "anims": [
-      "idle_down"
-    ],
     "frame": [
       16,
       32
     ],
-    "usage": "sprite"
+    "usage": "growth_strip"
   },
   "assets/crops/wheat_growth_16x32_5frames.png": {
     "frame": [
       16,
       32
     ],
-    "usage": "sprite"
+    "usage": "growth_strip"
   },
   "assets/tiles/ground_16x16.png": {
     "role": "GROUND",

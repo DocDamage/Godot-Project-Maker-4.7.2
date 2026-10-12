@@ -36,6 +36,30 @@ def _named_strip(f: InventoryFile, facts: naming.NameFacts) -> frames_mod.StripI
     return frames_mod.StripInfo("x", facts.frames, (cell[0], cell[1]))
 
 
+def growth_stages(facets: dict[str, Any]) -> int:
+    """How many stages a sprite would have as a growth strip: the frames of its one animation,
+    when that is one row from its first cell on and no reader gave it an action. 0 for
+    anything else (a walk, a sheet of several rows, a rotation sheet, a single picture)."""
+    animations = facets.get("animations")
+    if facets.get("usage") != "sprite" or not isinstance(animations, dict):
+        return 0
+    if list(animations) != ["idle_down"] or facets.get("headings"):
+        return 0
+    spec = animations["idle_down"]
+    frames = spec.get("frames") or []
+    if spec.get("source") or frames != [[i, 0] for i in range(len(frames))]:
+        return 0
+    return len(frames) if len(frames) >= 2 else 0
+
+
+def as_growth_strip(facets: dict[str, Any]) -> None:
+    """Make a one-row sprite a growth strip (T17.01): its frames are a crop's stages in order,
+    the last the ripe one. It keeps its cell and its foot and has no animation."""
+    facets["stages"] = growth_stages(facets)
+    facets["usage"] = "growth_strip"
+    del facets["animations"]
+
+
 def _is_still_png(f: InventoryFile) -> bool:
     return f.kind == "image" and f.image is not None and f.ext != ".gif"
 

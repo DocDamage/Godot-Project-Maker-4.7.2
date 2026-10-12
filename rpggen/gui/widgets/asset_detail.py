@@ -34,7 +34,17 @@ from rpggen.gui.widgets.asset_grid import STATUS_COLORS, PathResolver
 from rpggen.gui.widgets.flow_layout import FlowLayout
 from rpggen.gui.widgets.image_view import ImageView
 
-USAGES = ["tiles", "sprite", "object", "ui", "portrait", "background", "audio", "font"]
+USAGES = [
+    "tiles",
+    "sprite",
+    "growth_strip",  # a crop's stages (T17.01)
+    "object",
+    "ui",
+    "portrait",
+    "background",
+    "audio",
+    "font",
+]
 ROLES = [
     "GROUND",
     "WALL",

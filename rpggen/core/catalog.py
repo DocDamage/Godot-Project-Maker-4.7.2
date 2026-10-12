@@ -635,7 +635,13 @@ def _suggest_tags(facets: dict[str, Any], path: str) -> None:
     side = classifier.side_view_tags(path)
     # an ability to find is the metroidvania's word for it: it is not also a power-up
     arcade = [t for t in classifier.arcade_tags(path) if not (t == "powerup" and "ability" in side)]
-    suggested = [*suggested, *side, *arcade]
+    # rain and snow are overlays over the whole screen (T17.01): a sheet of snow tiles is ground
+    farm = [
+        t
+        for t in classifier.farm_tags(path)
+        if not (t == "weather" and facets.get("usage") == "tiles")
+    ]
+    suggested = [*suggested, *side, *arcade, *farm]
     if suggested:
         facets["tags"] = sorted(set(facets.get("tags") or []) | set(suggested))
 
@@ -725,11 +731,36 @@ def _side_view_soldier(assets: list[Asset]) -> None:
             return
 
 
+def _farm_farmer(assets: list[Asset]) -> None:
+    """A farming pack whose hero is called a farmer (T17.01): the classifier takes a character
+    in a folder of characters for an NPC, which leaves the pack without a player. When no asset
+    of the pack is the player, the first farmer that walks is."""
+    from rpggen.core import classifier
+
+    if any(a.detected.get("role") == "PLAYER" for a in assets):
+        return
+    for asset in sorted(assets, key=lambda a: a.id):
+        facets = asset.detected
+        if asset.detected_by in ("profile", "learned") or facets.get("role") != "NPC":
+            continue
+        _folders, words = classifier.tokens(asset.path)
+        animations = facets.get("animations") or {}
+        if "farmer" in words and any(str(n).split("_", 1)[0] == "walk" for n in animations):
+            facets["role"] = "PLAYER"
+            facets.pop("roles_alt", None)
+            return
+
+
 ROTATION_SHEET_ROLES = frozenset({"DECORATION", "EFFECT", "PROJECTILE", "NONE"})
 # the roles the classifier gives the things of an arcade pack for want of a better one
 ARCADE_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "ENEMY", "NPC"})
 VIEW_SHMUP = "view:shmup"  # T16.02: the pack looks like one for a shoot 'em up
 VIEW_RACING = "view:racing"  # ... for a racing game
+VIEW_FARM = "view:farm"  # T17.01: ... for a farm
+# The readers whose one-row strips can be a crop's growth (T17.01): the ones that cut a strip
+# by its name's frame count or by the picture, and give it no action.
+GROWTH_READERS = frozenset({"strips", "generic_grid"})
+GROWTH_REVIEW_CONFIDENCE = 0.5  # a growth strip told by its folder and its size: needs review
 
 
 def pack_view(pack: CatalogPack) -> str:
@@ -779,6 +810,73 @@ def mark_colour_variants(catalog: Catalog) -> None:
             asset.detected["tags"] = sorted(tags)
 
 
+def mark_season_variants(catalog: Catalog) -> None:
+    """Group the sheets a pack ships once a season (T17.01), as ``mark_colour_variants`` groups
+    colours: pictures of one pack, one size and one usage that differ only by a season word
+    (a folder ``winter/`` or a word of the name) in two seasons or more. Every member gets
+    ``season:<name>`` and every one but the first ``variant_of:<id of the first>``; the first is
+    the sheet without a season when there is one, else the earliest season of the year. A
+    picture that is a colour variant already stays in its colour group."""
+    from rpggen.core import classifier
+
+    order = {name: index for index, name in enumerate(("", *classifier.SEASONS))}
+    groups: dict[tuple[Any, ...], list[tuple[str, Asset]]] = {}
+    for asset in catalog.assets:
+        if asset.kind != "image" or "#" in asset.id or asset.status == "MISSING":
+            continue
+        root = f"assets/packs/{asset.pack_id}/"
+        facets = asset.detected
+        if not asset.path.startswith(root) or facets.get("role") == "NONE":
+            continue
+        if any(str(t).startswith(classifier.VARIANT_TAG) for t in facets.get("tags") or []):
+            continue
+        key, season = classifier.season_key(asset.path[len(root) :])
+        size = tuple(facets.get("size") or ())
+        groups.setdefault((asset.pack_id, key, size, facets.get("usage")), []).append(
+            (season, asset)
+        )
+    for members in groups.values():
+        if len({season for season, _a in members if season}) < 2:
+            continue
+        members.sort(key=lambda m: (order[m[0]], _sort_key(m[1].id)))
+        first = members[0][1]
+        for season, asset in members:
+            tags = [
+                t
+                for t in asset.detected.get("tags", [])
+                if not str(t).startswith(classifier.SEASON_TAG)
+            ]
+            if season:
+                tags.append(classifier.SEASON_TAG + season)
+            if asset is not first:
+                tags.append(classifier.VARIANT_TAG + first.id)
+            asset.detected["tags"] = sorted(tags)
+
+
+def season_name(asset: Asset) -> str:
+    """The season a sheet is drawn for (``winter``); empty for one that is for the whole year."""
+    from rpggen.core import classifier
+
+    tags = asset.detected.get("tags") or []
+    found = next((str(t) for t in tags if str(t).startswith(classifier.SEASON_TAG)), "")
+    return found[len(classifier.SEASON_TAG) :]
+
+
+def season_groups(catalog: Catalog) -> dict[str, dict[str, str]]:
+    """``{id of a group's first sheet: {season: id of the sheet for it}}`` for the sheets a
+    catalog has once a season (T17.01): what the farm swaps the ground and the trees by. The
+    first sheet is in its own group, under its season or under ``""`` when it names none."""
+    groups: dict[str, dict[str, str]] = {}
+    for first, others in colour_groups(catalog).items():
+        members = [a for a in (catalog.asset(i) for i in (first, *others)) if a is not None]
+        if any(colour_name(a) != season_name(a) for a in members):
+            continue  # a group of colours
+        seasons = {season_name(a): a.id for a in reversed(members)}
+        if len([s for s in seasons if s]) >= 2:
+            groups[first] = {s: seasons[s] for s in sorted(seasons)}
+    return groups
+
+
 def colour_variants(catalog: Catalog, asset_id: str) -> list[Asset]:
     """The assets tagged as colour variants of ``asset_id``, by id."""
     from rpggen.core import classifier
@@ -820,13 +918,13 @@ def colour_group(catalog: Catalog, asset_id: str) -> list[Asset]:
 
 
 def colour_name(asset: Asset) -> str:
-    """The colour a variant's name or folder says (``red``, ``black_white``); empty for the
-    picture of a group that has no colour word."""
+    """The colour a variant's name or folder says (``red``, ``black_white``), or its season for
+    a sheet that comes once a season; empty for the picture of a group that names neither."""
     from rpggen.core import classifier
 
     tags = asset.detected.get("tags") or []
     found = next((str(t) for t in tags if str(t).startswith(classifier.COLOUR_TAG)), "")
-    return found[len(classifier.COLOUR_TAG) :]
+    return found[len(classifier.COLOUR_TAG) :] or season_name(asset)
 
 
 def _license_files(inv: Inventory, root: str) -> list[str]:
@@ -921,6 +1019,7 @@ def assemble(
     paths (GIF strips) to the absolute files the installer must copy.
     """
     from rpggen.core import adapters, classifier, terrain
+    from rpggen.core.adapters import strips
     from rpggen.core.analyzer import analyzer_for, prewarm
 
     adapters.register_defaults()
@@ -1010,11 +1109,24 @@ def assemble(
                 if _learned_decided(by_key[(path, variant)], facets):
                     detected_by = "learned"
                 role_conf = None
+                grown = None
+                if "role" not in facets and detected_by in GROWTH_READERS:
+                    stages = strips.growth_stages(facets)
+                    if stages:
+                        grown = classifier.growth_evidence(path, facets.get("frame"), stages)
+                    if grown:  # a crop's stages in a row (T17.01): no animation
+                        strips.as_growth_strip(facets)
                 if "role" not in facets:
                     role, role_conf, alt = classifier.classify(facets, path, None)
                     facets["role"] = role
                     if alt:
                         facets["roles_alt"] = alt
+                if grown:
+                    # a crop has no role of its own yet (T17.02): it is scenery, which no
+                    # older kind picks for anything; told by its name it needs no review
+                    facets["role"] = "DECORATION"
+                    facets.pop("roles_alt", None)
+                    role_conf = confidence if grown == "name" else GROWTH_REVIEW_CONFIDENCE
                 turning = role_conf is not None and bool(facets.get("headings"))
                 if turning and {"car", "bike"} & set(classifier.arcade_tags(path)):
                     # a car or a bike in N headings is a vehicle (T16.03): what a racing game
@@ -1163,8 +1275,22 @@ def assemble(
                     asset.detected.pop("roles_alt", None)
         if view == "side":
             _side_view_soldier([a for a in catalog.assets if a.pack_id == pack_id])
+        if view == "farm":
+            _farm_farmer([a for a in catalog.assets if a.pack_id == pack_id])
+            # a crop of one picture has no stages to grow through (T17.01): a note
+            for asset in catalog.assets:
+                facets = asset.detected
+                if asset.pack_id != pack_id or asset.kind != "image" or "#" in asset.id:
+                    continue
+                if facets.get("usage") not in ("sprite", "object") or facets.get("role") == "NONE":
+                    continue
+                if facets.get("animations") or facets.get("headings"):
+                    continue
+                if classifier.is_single_crop(asset.path[len(root) + 1 :]):
+                    issues.add("ASSET-034", asset=asset.id, file=asset.path)
         if view != "top":  # a top-down pack, the usual kind, gets no line
-            warnings.append({"side": VIEW_SIDE, "shmup": VIEW_SHMUP, "racing": VIEW_RACING}[view])
+            marks = {"side": VIEW_SIDE, "shmup": VIEW_SHMUP, "racing": VIEW_RACING}
+            warnings.append(marks.get(view, VIEW_FARM))
         if engines is not None:
             warnings.append(engines.warning)  # "art for 5 engines: Godot's is used"
         catalog.packs.append(
@@ -1187,6 +1313,7 @@ def assemble(
 
     similarity.mark_duplicates(catalog, picture_hashes)
     mark_colour_variants(catalog)
+    mark_season_variants(catalog)
 
     # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
     terrain.apply_tiled_wang(catalog, adapter_tilesets)

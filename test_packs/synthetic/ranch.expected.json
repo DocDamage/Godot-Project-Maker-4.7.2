@@ -1,0 +1,177 @@
+{
+  "animals/chickens/hen_01/black/move/hen_01_black_move_down_16x16_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "usage": "sprite"
+  },
+  "animals/chickens/hen_01/black/sleep/hen_01_black_sleep_16x16_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "animals/chickens/hen_01/brown/move/hen_01_brown_move_down_16x16_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "usage": "sprite"
+  },
+  "animals/chickens/hen_01/brown/sleep/hen_01_brown_sleep_16x16_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "animals/chickens/hen_01/white/move/hen_01_white_move_down_16x16_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "usage": "sprite"
+  },
+  "animals/chickens/hen_01/white/sleep/hen_01_white_sleep_16x16_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "animals/cows/cow_01/black/move/cow_01_black_move_down_32x32_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      32,
+      32
+    ],
+    "usage": "sprite"
+  },
+  "animals/cows/cow_01/black/sleep/cow_01_black_sleep_32x32_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "animals/cows/cow_01/brown/move/cow_01_brown_move_down_32x32_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      32,
+      32
+    ],
+    "usage": "sprite"
+  },
+  "animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_32x32_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "animals/cows/cow_01/white/move/cow_01_white_move_down_32x32_4frames.png": {
+    "anims": [
+      "walk_down"
+    ],
+    "frame": [
+      32,
+      32
+    ],
+    "usage": "sprite"
+  },
+  "animals/cows/cow_01/white/sleep/cow_01_white_sleep_32x32_2frames.png": {
+    "anims": [
+      "sleep_down"
+    ],
+    "usage": "sprite"
+  },
+  "autotiles/01_soil_tilled.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "autotiles/02_soil_watered.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "autotiles/03_fence.png": {
+    "role": "WALL",
+    "usage": "tiles"
+  },
+  "buildings/coop.png": {
+    "role": "BUILDING"
+  },
+  "buildings/house.png": {
+    "role": "BUILDING"
+  },
+  "characters/farmer/farmer_walk_down_16x16_4frames.png": {
+    "anims": [
+      "walk_down",
+      "walk_left",
+      "walk_right",
+      "walk_up"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "crops/corn_16x32_8frames.png": {
+    "frame": [
+      16,
+      32
+    ],
+    "usage": "growth_strip"
+  },
+  "crops/pumpkin_16x16.png": {
+    "usage": "sprite"
+  },
+  "crops/tomato_16x32_12frames.png": {
+    "frame": [
+      16,
+      32
+    ],
+    "usage": "growth_strip"
+  },
+  "crops/wheat_16x32_5frames.png": {
+    "frame": [
+      16,
+      32
+    ],
+    "usage": "growth_strip"
+  },
+  "tiles/autumn/grass_16x16.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "tiles/spring/grass_16x16.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "tiles/summer/grass_16x16.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "tiles/winter/grass_16x16.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "weather/rain_64x64_3frames.png": {
+    "frame": [
+      64,
+      64
+    ],
+    "usage": "sprite"
+  }
+}

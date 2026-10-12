@@ -359,6 +359,7 @@
           "enum": [
             "tiles",
             "sprite",
+            "growth_strip",
             "object",
             "ui",
             "portrait",
@@ -414,6 +415,7 @@
             8
           ]
         },
+        "stages": {"type": "integer", "minimum": 2},
         "headings": {"enum": [8, 12, 16, 24, 32]},
         "heading_order": {"enum": ["up_cw", "up_ccw", "right_cw", "right_ccw"]},
         "character_index": {

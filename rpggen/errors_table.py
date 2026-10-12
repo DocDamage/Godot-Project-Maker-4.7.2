@@ -55,6 +55,7 @@ CODES: dict[str, CodeInfo] = {
     "ASSET-031": CodeInfo("ASSET-031", "info", "The packs have no {thing}; a drawn one stands in for it (role {role}).", "Add your own to a pack and give it the role on the Audit page."),
     "ASSET-032": CodeInfo("ASSET-032", "info", "The vehicle {asset} is one picture, not a sheet of headings: the game turns it.", "A sheet with the vehicle in 16 headings looks better."),
     "ASSET-033": CodeInfo("ASSET-033", "warning", "The LPC character {character} was left out or is incomplete: {reason}.", "Put the part back into the pack, or choose the character's parts again on the Audit page."),
+    "ASSET-034": CodeInfo("ASSET-034", "info", "The crop {asset} is one picture: it has no stages to grow through.", "A strip with the crop's stages in a row grows by them; until then drawn stages stand in."),
     "ASSET-028": CodeInfo("ASSET-028", "warning", "Pack {pack_id} needs attribution, but no author was found in its license files.", "Enter the author on the Audit page (pack information) so that the credits screen names them."),
     "ADAPT-001": CodeInfo("ADAPT-001", "warning", "Adapter {adapter} failed on {file}: {reason}.", "Report a bug with a diagnostic bundle."),
     "ADAPT-002": CodeInfo("ADAPT-002", "warning", "Tiled tileset {file} references missing image {image}.", "Fix the pack or map the image manually."),
