@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791816124183,
+  "lastUpdate": 1791824871206,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -733,6 +733,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "racing game from the Dirt cup sample",
             "value": 59.73,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": true,
+          "id": "cef73612219fa9d81ca71366ff6117882a1bf26e",
+          "message": "CI: a tour the page started itself; a freed player in a waiting smoke step\n\nThe run on main of 02e6990 failed in two Windows jobs, both in older code and both by timing. The tour test asked to start a tour that the page had already started by its own timer. The metroidvania's smoke run logged a freed lambda capture: the step that waits for the player to stand asks the player there is now, not the one it captured. Which step it was is not known (the list of errors was shortened in the log), so a failed perf run now prints every error on a line of its own.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-12T12:57:44-04:00",
+          "tree_id": "63e436b866ebf3ad89e6dced6510c6b39d799793",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/cef73612219fa9d81ca71366ff6117882a1bf26e"
+        },
+        "date": 1791824867636,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 10.5,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 2.23,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 103.03,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 14.44,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, full",
+            "value": 83.05,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 11.82,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 10.05,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 7.07,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 6.31,
+            "unit": "s"
+          },
+          {
+            "name": "metroidvania from the side-view sample",
+            "value": 54.63,
+            "unit": "s"
+          },
+          {
+            "name": "shoot 'em up from the Star lane sample",
+            "value": 68.84,
+            "unit": "s"
+          },
+          {
+            "name": "run and gun from the Jungle line sample",
+            "value": 59.09,
+            "unit": "s"
+          },
+          {
+            "name": "racing game from the Dirt cup sample",
+            "value": 70.9,
             "unit": "s"
           }
         ]
