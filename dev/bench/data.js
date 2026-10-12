@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791587017147,
+  "lastUpdate": 1791816124183,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -644,6 +644,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "metroidvania from the side-view sample",
             "value": 32.06,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": false,
+          "id": "b610f905060ded376beff73c2b3d1d8a8e589e47",
+          "message": "CI: a late answer about the recent projects does not reach a closed welcome view\n\nThe worker that looks at the recent projects' folders answered after its view was deleted (the Windows job, at the teardown of a layout test).\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-12T08:56:19-04:00",
+          "tree_id": "d46397f4ce4a6fbbd9f64e255b3f4e9685b6fa15",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/b610f905060ded376beff73c2b3d1d8a8e589e47"
+        },
+        "date": 1791816118555,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 11.3,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 2.17,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 100.74,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 16.55,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, full",
+            "value": 88.61,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 12.51,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 10.37,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 7.05,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 6.3,
+            "unit": "s"
+          },
+          {
+            "name": "metroidvania from the side-view sample",
+            "value": 54.08,
+            "unit": "s"
+          },
+          {
+            "name": "shoot 'em up from the Star lane sample",
+            "value": 66.61,
+            "unit": "s"
+          },
+          {
+            "name": "run and gun from the Jungle line sample",
+            "value": 50.01,
+            "unit": "s"
+          },
+          {
+            "name": "racing game from the Dirt cup sample",
+            "value": 59.73,
             "unit": "s"
           }
         ]
