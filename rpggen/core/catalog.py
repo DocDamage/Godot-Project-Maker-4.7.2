@@ -751,6 +751,42 @@ def _farm_farmer(assets: list[Asset]) -> None:
             return
 
 
+# the roles the classifier gives the things of a farming pack for want of a better one
+FARM_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "NPC"})
+FARM_TOOL_REPLACED_ROLES = FARM_REPLACED_ROLES | {"WATER", "WEAPON"}  # tools/water.png, an axe
+
+
+def _farm_roles(assets: list[Asset], root: str) -> None:
+    """The roles of a farming pack's things (T17.02), where the words of a file say so and no
+    reader or rule has decided: an animal with an animation (it walks, or sleeps) is an
+    ``ANIMAL`` and not a villager, a picture tagged ``tool`` is a ``TOOL`` (``water`` in a
+    folder of tools is the watering can, not a pond), a crop of one picture is a ``CROP``, and
+    an animated overlay tagged ``weather`` is an ``EFFECT``, so that the rain is nobody to talk
+    to. A growth strip is a ``CROP`` in every pack, where it is read."""
+    from rpggen.core import classifier
+
+    for asset in assets:
+        facets = asset.detected
+        if asset.kind != "image" or asset.detected_by in ("profile", "learned"):
+            continue
+        if facets.get("usage") != "sprite" or facets.get("headings"):
+            continue
+        current, tags = facets.get("role"), set(facets.get("tags") or [])
+        role = None
+        if facets.get("animations"):
+            if current in FARM_REPLACED_ROLES and tags & {"animal", "weather"}:
+                role = "ANIMAL" if "animal" in tags else "EFFECT"
+        elif "tool" in tags:
+            role = "TOOL" if current in FARM_TOOL_REPLACED_ROLES else None
+        elif current in FARM_REPLACED_ROLES and classifier.is_single_crop(
+            asset.path[len(root) + 1 :]
+        ):
+            role = "CROP"
+        if role is not None and role != current:
+            facets["role"] = role
+            facets.pop("roles_alt", None)
+
+
 ROTATION_SHEET_ROLES = frozenset({"DECORATION", "EFFECT", "PROJECTILE", "NONE"})
 # the roles the classifier gives the things of an arcade pack for want of a better one
 ARCADE_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "ENEMY", "NPC"})
@@ -935,7 +971,9 @@ REVIEWED_STATUSES = frozenset({"CONFIRMED", "UNUSED"})
 ATTENTION_STATUSES = frozenset({"CONFLICT", "NEEDS_REVIEW", "MISSING"})
 # Packs whose assets a run makes itself, every time it needs them (``placeholders.py``,
 # ``side_kit.py``): no pack file is behind them, so one of them is never reported as vanished.
-RUN_MADE_PACKS = frozenset({"debug_placeholders", "rpggen_side_kit", "rpggen_arcade_kit"})
+RUN_MADE_PACKS = frozenset(
+    {"debug_placeholders", "rpggen_side_kit", "rpggen_arcade_kit", "rpggen_farm_kit"}
+)
 
 
 def folder_of(catalog: Catalog, asset: Asset) -> str:
@@ -1122,9 +1160,9 @@ def assemble(
                     if alt:
                         facets["roles_alt"] = alt
                 if grown:
-                    # a crop has no role of its own yet (T17.02): it is scenery, which no
-                    # older kind picks for anything; told by its name it needs no review
-                    facets["role"] = "DECORATION"
+                    # a crop (T17.02): a role only the farm reads, so no older kind picks it
+                    # for anything; told by its name it needs no review
+                    facets["role"] = "CROP"
                     facets.pop("roles_alt", None)
                     role_conf = confidence if grown == "name" else GROWTH_REVIEW_CONFIDENCE
                 turning = role_conf is not None and bool(facets.get("headings"))
@@ -1277,6 +1315,7 @@ def assemble(
             _side_view_soldier([a for a in catalog.assets if a.pack_id == pack_id])
         if view == "farm":
             _farm_farmer([a for a in catalog.assets if a.pack_id == pack_id])
+            _farm_roles([a for a in catalog.assets if a.pack_id == pack_id], root)
             # a crop of one picture has no stages to grow through (T17.01): a note
             for asset in catalog.assets:
                 facets = asset.detected

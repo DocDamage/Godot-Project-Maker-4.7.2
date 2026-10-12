@@ -7,12 +7,14 @@
       16,
       16
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/chickens/hen_01/black/sleep/hen_01_black_sleep_16x16_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/chickens/hen_01/brown/move/hen_01_brown_move_down_16x16_4frames.png": {
@@ -23,12 +25,14 @@
       16,
       16
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/chickens/hen_01/brown/sleep/hen_01_brown_sleep_16x16_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/chickens/hen_01/white/move/hen_01_white_move_down_16x16_4frames.png": {
@@ -39,12 +43,14 @@
       16,
       16
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/chickens/hen_01/white/sleep/hen_01_white_sleep_16x16_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/cows/cow_01/black/move/cow_01_black_move_down_32x32_4frames.png": {
@@ -55,12 +61,14 @@
       32,
       32
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/cows/cow_01/black/sleep/cow_01_black_sleep_32x32_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/cows/cow_01/brown/move/cow_01_brown_move_down_32x32_4frames.png": {
@@ -71,12 +79,14 @@
       32,
       32
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_32x32_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/cows/cow_01/white/move/cow_01_white_move_down_32x32_4frames.png": {
@@ -87,12 +97,14 @@
       32,
       32
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "animals/cows/cow_01/white/sleep/cow_01_white_sleep_32x32_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "autotiles/01_soil_tilled.png": {
@@ -132,9 +144,11 @@
       16,
       32
     ],
+    "role": "CROP",
     "usage": "growth_strip"
   },
   "crops/pumpkin_16x16.png": {
+    "role": "CROP",
     "usage": "sprite"
   },
   "crops/tomato_16x32_12frames.png": {
@@ -142,6 +156,7 @@
       16,
       32
     ],
+    "role": "CROP",
     "usage": "growth_strip"
   },
   "crops/wheat_16x32_5frames.png": {
@@ -149,6 +164,7 @@
       16,
       32
     ],
+    "role": "CROP",
     "usage": "growth_strip"
   },
   "tiles/autumn/grass_16x16.png": {
@@ -167,11 +183,28 @@
     "role": "GROUND",
     "usage": "tiles"
   },
+  "tools/hoe_16x16.png": {
+    "role": "TOOL",
+    "usage": "sprite"
+  },
+  "tools/shovel_16x16.png": {
+    "role": "TOOL",
+    "usage": "sprite"
+  },
+  "tools/sickle_16x16.png": {
+    "role": "TOOL",
+    "usage": "sprite"
+  },
+  "tools/water_16x16.png": {
+    "role": "TOOL",
+    "usage": "sprite"
+  },
   "weather/rain_64x64_3frames.png": {
     "frame": [
       64,
       64
     ],
+    "role": "EFFECT",
     "usage": "sprite"
   }
 }

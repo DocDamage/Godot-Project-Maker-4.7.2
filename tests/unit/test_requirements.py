@@ -52,6 +52,23 @@ def test_missing_required_roles_are_errors() -> None:
     assert "the starter map" in next(i.message for i in issues if i.severity is Severity.ERROR)
 
 
+def test_a_farm_needs_a_player_and_ground_and_gets_the_rest_drawn() -> None:
+    """T17.02. The kind is asked for by its name: the tables do not wait for the config's."""
+    issues = requirements.check(_catalog("basic16"), _cfg("farm"))
+    assert not issues.has_errors()
+    drawn = {i.detail["role"] for i in issues if i.code == "ASSET-031"}
+    assert {"CROP", "ANIMAL", "TOOL"} <= drawn
+    assert all(i.severity is Severity.INFO for i in issues if i.code == "ASSET-031")
+    missing = [role for code, _, role in _codes(issues) if code == "ASSET-010"]
+    assert missing == ["BUILDING", "NPC", "DECORATION", "WALL", "UI", "PORTRAIT"]
+    issues = requirements.check(_catalog("mixed"), _cfg("farm"))  # ground + items, no player
+    assert [(c, r) for c, s, r in _codes(issues) if s == "error"] == [("ASSET-010", "PLAYER")]
+    issues = requirements.check(_catalog("strips"), _cfg("farm"))  # player but no ground
+    assert [(c, r) for c, s, r in _codes(issues) if s == "error"] == [("ASSET-010", "GROUND")]
+    message = next(i.message for i in issues if i.severity is Severity.ERROR)
+    assert "the farmyard, the field and the village" in message
+
+
 def test_unused_and_missing_assets_do_not_count() -> None:
     cat = _catalog("basic16")
     cat.asset("basic16.characters.hero").overrides = {"role": "NONE"}

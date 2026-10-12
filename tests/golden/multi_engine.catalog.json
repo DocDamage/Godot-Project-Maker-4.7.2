@@ -50,13 +50,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           16
@@ -118,13 +112,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           32,
           16
@@ -194,13 +182,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           16
@@ -263,13 +245,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           32,
           16
@@ -340,13 +316,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           16
@@ -409,13 +379,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           32,
           16
@@ -491,7 +455,7 @@
           8,
           31
         ],
-        "role": "DECORATION",
+        "role": "CROP",
         "size": [
           128,
           32
@@ -536,7 +500,7 @@
           8,
           31
         ],
-        "role": "DECORATION",
+        "role": "CROP",
         "size": [
           80,
           32

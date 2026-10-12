@@ -126,6 +126,27 @@ ARCHETYPE_SLOTS: dict[str, tuple[Slot, ...]] = {
         Slot("music_results", MUSIC, "Results music", "Plays on the results screen.",
              ("results", "victory", "win")),
     ),
+    # the farm (T17.02)
+    "farm": (
+        Slot("sfx_hoe", SFX, "Hoe", "The hoe tills the ground.", ("hoe", "till", "dig")),
+        Slot("sfx_water", SFX, "Watering", "The watering can waters the soil.",
+             ("watering", "water", "splash", "pour")),
+        Slot("sfx_plant", SFX, "Plant", "A seed is planted.", ("plant", "seed", "sow")),
+        Slot("sfx_harvest", SFX, "Harvest", "A ripe crop is harvested.",
+             ("harvest", "pluck", "sickle", "cut")),
+        Slot("sfx_sell", SFX, "Sell", "What is in the shipping bin is sold.",
+             ("sell", "sold", "cash", "money")),
+        Slot("sfx_animal", SFX, "Animal", "An animal is petted or fed.",
+             ("animal", "cluck", "hen", "chicken", "moo", "cow")),
+        Slot("sfx_rooster", SFX, "Rooster", "A new day begins.", ("rooster", "crow", "morning")),
+        Slot("music_spring", MUSIC, "Spring music",
+             "Plays in spring. A season without music of its own plays the first that has.",
+             ("spring",)),
+        Slot("music_summer", MUSIC, "Summer music", "Plays in summer.", ("summer",)),
+        Slot("music_autumn", MUSIC, "Autumn music", "Plays in autumn.", ("autumn", "fall")),
+        Slot("music_winter", MUSIC, "Winter music", "Plays in winter.", ("winter", "snow")),
+        Slot("music_night", MUSIC, "Night music", "Plays after dark.", ("night", "evening")),
+    ),
 }  # fmt: skip
 _BY_KEY = {s.key: s for s in SLOTS}
 _ARCHETYPE_BY_KEY = {s.key: s for group in ARCHETYPE_SLOTS.values() for s in group}

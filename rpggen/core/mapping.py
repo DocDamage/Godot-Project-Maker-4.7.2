@@ -40,6 +40,9 @@ PLAUSIBLE_USAGE: dict[str, set[str]] = {
     "EXPLOSION": {"sprite"},
     "POWERUP": {"sprite", "object"},
     "HAZARD": {"sprite", "object", "tiles"},
+    "CROP": {"growth_strip", "sprite", "object"},  # the farm's (T17.02)
+    "ANIMAL": {"sprite"},
+    "TOOL": {"sprite", "object"},
 }
 OBJECT_ROLES = requirements.OBJECT_ROLES  # roles that can also be filled with a SheetObject
 _INACTIVE = {"UNUSED", "MISSING"}
@@ -100,7 +103,9 @@ def candidates(catalog: catalog_mod.Catalog, role: str) -> list[catalog_mod.Asse
 
 def best_for(catalog: catalog_mod.Catalog, role: str) -> str | None:
     """The asset (or object, for buildings) that fills a role by default."""
-    found = assets_with_role(catalog, role)
+    # a drawn stand-in of the farm (T17.02) is found by the farm's recipes, by its tag: it is
+    # never the chest or the scenery of a map by itself
+    found = [a for a in assets_with_role(catalog, role) if a.pack_id != requirements.FARM_KIT_PACK]
     if found:
         # a recolour variant (T13.18) never takes a role from the pack's own asset by itself
         ranked = sorted(

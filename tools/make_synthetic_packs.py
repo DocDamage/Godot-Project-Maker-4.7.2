@@ -1470,10 +1470,15 @@ def make_multi_engine(out: Path) -> None:
     cows = "assets/animals/cows/cow_01"
     expected: dict[str, dict] = {
         "assets/tiles/ground_16x16.png": {"usage": "tiles", "role": "GROUND"},
-        # a crop's stages in a row are a growth strip, not an animation (T17.01)
-        "assets/crops/corn_16x32_8frames.png": {"usage": "growth_strip", "frame": [16, 32]},
+        # a crop's stages in a row are a growth strip, not an animation (T17.01): a CROP
+        "assets/crops/corn_16x32_8frames.png": {
+            "usage": "growth_strip",
+            "role": "CROP",
+            "frame": [16, 32],
+        },
         "assets/crops/wheat_growth_16x32_5frames.png": {
             "usage": "growth_strip",
+            "role": "CROP",
             "frame": [16, 32],
         },
         "engines/Godot/autotiles/3x3/01_grass.png": {"usage": "tiles"},
@@ -1486,11 +1491,13 @@ def make_multi_engine(out: Path) -> None:
     for colour in ("brown", "black", "black_white"):
         expected[f"{cows}/{colour}/move/cow_01_{colour}_move_down_16x16_4frames.png"] = {
             "usage": "sprite",
+            "role": "ANIMAL",  # a farm animal, not a villager (T17.02)
             "frame": [16, 16],
             "anims": ["walk_down"],
         }
         expected[f"{cows}/{colour}/sleep/cow_01_{colour}_sleep_16x16_2frames.png"] = {
             "usage": "sprite",
+            "role": "ANIMAL",
             "anims": ["sleep_down"],
         }
     _expected(out, "multi_engine", expected)
@@ -1945,16 +1952,19 @@ def make_ranch(out: Path) -> None:
             "frame": [16, 16],
             "anims": ["walk_down", "walk_left", "walk_right", "walk_up"],
         },
-        "crops/pumpkin_16x16.png": {"usage": "sprite"},
+        "crops/pumpkin_16x16.png": {"usage": "sprite", "role": "CROP"},  # one picture
         "autotiles/01_soil_tilled.png": {"usage": "tiles", "role": "GROUND"},
         "autotiles/02_soil_watered.png": {"usage": "tiles", "role": "GROUND"},
         "autotiles/03_fence.png": {"usage": "tiles", "role": "WALL"},
-        "weather/rain_64x64_3frames.png": {"usage": "sprite", "frame": [64, 64]},
+        # an overlay, nobody to talk to
+        "weather/rain_64x64_3frames.png": {"usage": "sprite", "role": "EFFECT", "frame": [64, 64]},
         "buildings/house.png": {"role": "BUILDING"},
         "buildings/coop.png": {"role": "BUILDING"},
     }
     for name, stages, _fruit in crops:
-        expected[f"crops/{name}_16x32_{stages}frames.png"] = {"usage": "growth_strip", "frame": [16, 32]}  # fmt: skip
+        expected[f"crops/{name}_16x32_{stages}frames.png"] = {"usage": "growth_strip", "role": "CROP", "frame": [16, 32]}  # fmt: skip
+    for tool in ("hoe", "shovel", "water", "sickle"):  # water in a folder of tools is the can
+        expected[f"tools/{tool}_16x16.png"] = {"usage": "sprite", "role": "TOOL"}
     for season in ("spring", "summer", "autumn", "winter"):
         expected[f"tiles/{season}/grass_16x16.png"] = {"usage": "tiles", "role": "GROUND"}
     for folder, name, size in animals:
@@ -1962,11 +1972,13 @@ def make_ranch(out: Path) -> None:
             base = f"animals/{folder}/{name}/{colour}"
             expected[f"{base}/move/{name}_{colour}_move_down_{size}x{size}_4frames.png"] = {
                 "usage": "sprite",
+                "role": "ANIMAL",
                 "frame": [size, size],
                 "anims": ["walk_down"],
             }
             expected[f"{base}/sleep/{name}_{colour}_sleep_{size}x{size}_2frames.png"] = {
                 "usage": "sprite",
+                "role": "ANIMAL",
                 "anims": ["sleep_down"],
             }
     _expected(out, "ranch", expected)

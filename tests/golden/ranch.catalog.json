@@ -50,13 +50,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           16
@@ -118,13 +112,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           32,
           16
@@ -194,13 +182,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           16
@@ -263,13 +245,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           32,
           16
@@ -340,13 +316,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           16
@@ -409,13 +379,7 @@
           8,
           15
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           32,
           16
@@ -486,13 +450,7 @@
           16,
           31
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           128,
           32
@@ -554,13 +512,7 @@
           16,
           31
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           32
@@ -630,13 +582,7 @@
           16,
           31
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           128,
           32
@@ -699,13 +645,7 @@
           16,
           31
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           32
@@ -776,13 +716,7 @@
           16,
           31
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           128,
           32
@@ -845,13 +779,7 @@
           16,
           31
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "ANIMAL",
         "size": [
           64,
           32
@@ -3188,7 +3116,7 @@
           8,
           31
         ],
-        "role": "DECORATION",
+        "role": "CROP",
         "size": [
           128,
           32
@@ -3219,7 +3147,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "CROP",
         "size": [
           16,
           16
@@ -3263,7 +3191,7 @@
           8,
           31
         ],
-        "role": "DECORATION",
+        "role": "CROP",
         "size": [
           192,
           32
@@ -3308,7 +3236,7 @@
           8,
           31
         ],
-        "role": "DECORATION",
+        "role": "CROP",
         "size": [
           80,
           32
@@ -3570,7 +3498,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "TOOL",
         "size": [
           16,
           16
@@ -3600,7 +3528,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "TOOL",
         "size": [
           16,
           16
@@ -3630,7 +3558,7 @@
           8,
           15
         ],
-        "role": "ITEM",
+        "role": "TOOL",
         "size": [
           16,
           16
@@ -3660,13 +3588,7 @@
           8,
           15
         ],
-        "role": "WATER",
-        "roles_alt": [
-          [
-            "ITEM",
-            0.222222
-          ]
-        ],
+        "role": "TOOL",
         "size": [
           16,
           16
@@ -3730,13 +3652,7 @@
           32,
           63
         ],
-        "role": "NPC",
-        "roles_alt": [
-          [
-            "PLAYER",
-            0.090909
-          ]
-        ],
+        "role": "EFFECT",
         "size": [
           192,
           64

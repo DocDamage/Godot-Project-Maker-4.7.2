@@ -273,7 +273,7 @@ def test_a_growth_strip_against_an_idle_animation_of_the_same_size(tmp_path: Pat
     eff = catalog.effective(corn)
     assert eff["usage"] == "growth_strip" and eff["stages"] == 6 and "animations" not in eff
     assert eff["frame"] == [16, 32] and eff["grid"]["cell"] == [16, 32]
-    assert eff["role"] == "DECORATION" and "crop" in eff["tags"]
+    assert eff["role"] == "CROP" and "crop" in eff["tags"]
     assert corn.status == "AUTO_DETECTED", "its name says what it is: no review"
     for path in ("npc/scarecrow_idle_16x32_6frames.png", "crops/corn_idle_16x32_6frames.png"):
         idle = catalog.effective(assets[path])

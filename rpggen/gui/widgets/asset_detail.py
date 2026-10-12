@@ -67,6 +67,9 @@ ROLES = [
     "EXPLOSION",
     "POWERUP",
     "HAZARD",
+    "CROP",  # the farm's (T17.02)
+    "ANIMAL",
+    "TOOL",
     "UI",
     "PORTRAIT",
     "BACKGROUND",

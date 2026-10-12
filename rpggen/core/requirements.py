@@ -14,6 +14,7 @@ REQUIRED: dict[str, list[str]] = {
     "shmup": ["PLAYER"],
     "run_and_gun": ["PLAYER", "GROUND"],
     "racing": ["VEHICLE", "GROUND"],
+    "farm": ["PLAYER", "GROUND"],  # T17.02
 }
 RECOMMENDED = ["NPC", "ENEMY", "BUILDING", "WALL", "ITEM", "UI", "PORTRAIT"]
 # The roles an archetype uses beside the required ones (T14.02). The two top-down archetypes
@@ -26,6 +27,9 @@ OPTIONAL: dict[str, list[str]] = {
     "run_and_gun": ["ENEMY", "BOSS", "PROJECTILE", "EXPLOSION", "POWERUP", "HAZARD", "BACKGROUND",
                     "DECORATION", "UI"],
     "racing": ["ENEMY", "HAZARD", "POWERUP", "DECORATION", "UI"],
+    # a farm's village is the top-down starter map, so it has its walls and portraits too
+    "farm": ["BUILDING", "NPC", "CROP", "ANIMAL", "TOOL", "ITEM", "DECORATION", "WALL", "UI",
+             "PORTRAIT"],
 }  # fmt: skip
 
 # What needs each role (used in the ASSET-010 message).
@@ -85,8 +89,22 @@ REQUIRED_BY_ARCHETYPE: dict[str, dict[str, str]] = {
         "DECORATION": "trackside scenery",
         "UI": "the lap counter, the position and the menus",
     },
+    "farm": {
+        "PLAYER": "the farmer",
+        "GROUND": "the farmyard, the field and the village",
+        "BUILDING": "the house, the coop and the barn",
+        "NPC": "the people of the village",
+        "CROP": "what grows in the field",
+        "ANIMAL": "the animals of the coop and the barn",
+        "TOOL": "the hoe, the watering can, the sickle and the axe",
+        "ITEM": "seeds, produce and what the shop sells",
+        "DECORATION": "trees, fences and what is cleared from the field",
+        "UI": "the clock, the hotbar and the menus",
+    },
 }
 ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
+FARM_KIND = "farm"
+FARM_KIT_PACK = "rpggen_farm_kit"  # farm_kit.KIT_PACK: the farm's drawn stand-ins
 
 
 def recommended(archetype: str) -> list[str]:
@@ -113,7 +131,9 @@ def _assets_with_role(catalog: catalog_mod.Catalog, role: str) -> list[catalog_m
 
 
 def _filled(catalog: catalog_mod.Catalog, role: str) -> bool:
-    if _assets_with_role(catalog, role):
+    # a drawn stand-in of the farm that a last run left in the catalog fills nothing: the check
+    # says the same on every run, by what the packs have (``farm_kit.lacking``)
+    if any(a.pack_id != FARM_KIT_PACK for a in _assets_with_role(catalog, role)):
         return True
     return role in OBJECT_ROLES and any(
         o.role == role and o.status not in _INACTIVE for o in catalog.objects
@@ -152,9 +172,21 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     """ASSET-010 for missing required (error) and recommended (warning) roles; ASSET-014 when
     several PLAYER assets exist and none is CONFIRMED; ASSET-028 for a pack whose licence asks
     for credit but names no author (after the Audit page's corrections); ASSET-030 for a
-    metroidvania whose player has no jump or fall animation."""
+    metroidvania whose player has no jump or fall animation; ASSET-031 for what an arcade kind
+    or a farm gets drawn because the packs lack it."""
     issues = IssueList()
     drawn: frozenset[str] = frozenset()
+    stood_in: set[str] = set()  # the roles a drawn stand-in fills: noted, so not also missing
+    if cfg.archetype == FARM_KIND:
+        from rpggen.core import farm_kit
+
+        # what a farm works with and a pack lacks is drawn (T17.02). The player and the ground
+        # are not: a farm needs them from a pack. A bed or a bin is no scenery, and drawn soil
+        # no ground, so those leave their roles as lacking as they were.
+        for farm_stand_in in farm_kit.lacking(catalog):
+            issues.add("ASSET-031", role=farm_stand_in.role, thing=farm_stand_in.thing, file="")
+            if farm_stand_in.fills:
+                stood_in.add(farm_stand_in.role)
     if cfg.archetype in ARCADE_KINDS:
         from rpggen.core import arcade_kit
 
@@ -162,6 +194,7 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         drawn = arcade_kit.drawn_roles(cfg.archetype)
         for stand_in in arcade_kit.lacking(catalog, cfg.archetype):
             issues.add("ASSET-031", role=stand_in.role, thing=stand_in.thing, file="")
+            stood_in.add(stand_in.role)
         vehicles = _assets_with_role(catalog, "VEHICLE") if cfg.archetype == "racing" else []
         chosen = (cfg.starter or {}).get("vehicle")
         mine = next((v for v in vehicles if v.id == chosen), vehicles[0] if vehicles else None)
@@ -171,8 +204,7 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         if not _filled(catalog, role) and role not in drawn:
             issue = issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
             issues[-1] = dataclasses.replace(issue, severity=Severity.ERROR)
-    # what the arcade kit draws for the kind is noted above (ASSET-031): it is not also missing
-    stood_in = {i.detail.get("role") for i in issues if i.code == "ASSET-031"}
+    # what a kit draws for the kind is noted above (ASSET-031): it is not also missing
     for role in recommended(cfg.archetype):
         if not _filled(catalog, role) and role not in stood_in:
             issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))

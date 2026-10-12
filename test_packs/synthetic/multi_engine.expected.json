@@ -7,12 +7,14 @@
       16,
       16
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "assets/animals/cows/cow_01/black/sleep/cow_01_black_sleep_16x16_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "assets/animals/cows/cow_01/black_white/move/cow_01_black_white_move_down_16x16_4frames.png": {
@@ -23,12 +25,14 @@
       16,
       16
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "assets/animals/cows/cow_01/black_white/sleep/cow_01_black_white_sleep_16x16_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "assets/animals/cows/cow_01/brown/move/cow_01_brown_move_down_16x16_4frames.png": {
@@ -39,12 +43,14 @@
       16,
       16
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "assets/animals/cows/cow_01/brown/sleep/cow_01_brown_sleep_16x16_2frames.png": {
     "anims": [
       "sleep_down"
     ],
+    "role": "ANIMAL",
     "usage": "sprite"
   },
   "assets/autotiles/01_grass.png": {
@@ -55,6 +61,7 @@
       16,
       32
     ],
+    "role": "CROP",
     "usage": "growth_strip"
   },
   "assets/crops/wheat_growth_16x32_5frames.png": {
@@ -62,6 +69,7 @@
       16,
       32
     ],
+    "role": "CROP",
     "usage": "growth_strip"
   },
   "assets/tiles/ground_16x16.png": {
