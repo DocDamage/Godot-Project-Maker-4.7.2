@@ -39,14 +39,16 @@ them, and its TileSets, maps and scenes are unchanged.
   `laser`, `homing`; levels 1 to 3), the bomb, enemy bullet patterns (`aimed`, `ring`, `fan`,
   `spiral`), the enemies `popcorn`, `turret`, `asteroid` and `carrier` over `RpgShmupEnemy`,
   power-ups, the boss, `RpgShmupHud` with side panels in a game that scrolls up. Actions:
-  `shoot`, `bomb`, `focus`.
+  `shoot`, `bomb`, `focus`. The ship's weapon and its level go on to the next stage and are in
+  the saved run (`RpgArcadeMode.weapon`, as `spread:2`).
 * **The run and gun** (`archetypes/run_and_gun/`): `RpgSoldier` over the metroidvania's
   `RpgPlatformActor` (eight-way aim, crouch, aim lock, lives or health, `can_jump`), `RpgGun`
   and the weapons `machine_gun`, `spread`, `laser` and `flame`, the grenade, the weapon pickup
   on its carrier, the enemies `runner`, `sniper`, `turret`, `jumper` and `wall_cannon` over
   `RpgGunEnemy`, the bosses `wall`, `walker` and `flyer`, and `RpgGrapple` (a hook along the
   aim, a swing on a rope, a hoist). `RpgPlatformMath` gained `swing_step` and `swing_period`.
-  Actions: `shoot`, `grenade`, `aim_lock`, `grapple`.
+  Actions: `shoot`, `grenade`, `aim_lock`, `grapple`. The soldier's weapon goes on to the next
+  stage and is in the saved run.
 * **Racing** (`archetypes/racing/`): `RpgCar` on `RpgCarPhysics` (speed, a turn rate that falls
   with speed, grip by surface, drift, bumps, boost, parts), `RpgCarInput` (relative or absolute
   steering), `RpgHeadingSprite` (a sheet of headings, or one picture turned), `RpgRaceCamera`,

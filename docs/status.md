@@ -177,8 +177,6 @@ should know:
 * **Nobody has played the three kinds by hand.** What is known of them is what their smoke
   sequences and tests assert; the feel of the ship, the soldier, the arm and the car, and the
   difficulty of all three, are untuned.
-* *Continue* in a shoot 'em up or a run and gun begins the stage with the first weapon: the
-  saved run does not carry it.
 * The *Done when* of T16.21 on the six real packs was last measured on 2026-10-10 and was not
   met then; what was added since (the `.aseprite` pictures, colour variants as one card, a zip
   of zips as a bundle) has run on synthetic files only. The bundle chooser (T16.22) was not run

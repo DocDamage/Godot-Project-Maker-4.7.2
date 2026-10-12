@@ -647,3 +647,57 @@ func test_the_title_screen_gets_high_scores_and_the_table_closes_on_cancel(t) ->
 	for node: Node in [title, mode]:
 		_drop(node)
 	Fixtures.uninstall("SaveManager")
+
+# ---------------------------------------------------------------- the weapon of the run
+
+func _weapon_stage(index: int, plan: Array) -> RpgArcadeStage:
+	var stage := StageRecipes.build_stage(index, plan[index], VIEW, Vector2(160, 150)) as RpgArcadeStage
+	stage.auto_advance = false
+	stage.add_child(_ship("vertical"))
+	Fixtures.tree().root.add_child(stage)
+	return stage
+
+func test_the_weapon_goes_on_to_the_next_stage_and_into_the_saved_run(t) -> void:
+	await Fixtures.tree().process_frame
+	var state := Fixtures.install_state() as RpgGameState
+	_saves()
+	var plan := [{"exit": "custom", "waves": []}, {"exit": "custom", "waves": []}]
+	var mode := RpgShmupMode.new()
+	mode.auto_screens = true
+	mode.sequence = RpgArcadeStageSequence.from_array(plan)
+	Fixtures.tree().root.add_child(mode)
+	var first := _weapon_stage(0, plan)
+	mode.bind_stage(first)
+	t.eq([mode.weapon, mode.ship.weapon().kind, mode.ship.weapon().level], ["", "straight", 1])
+	mode.ship.weapon().set_kind("laser")
+	mode.ship.weapon().level_up()
+	first.cleared.emit()
+	t.eq(mode.weapon, "laser:2", "what the ship had when the stage was cleared")
+	var second := _weapon_stage(1, plan)
+	mode.bind_stage(second)
+	t.ok(mode.ship.get_parent() == second)
+	t.eq([mode.ship.weapon().kind, mode.ship.weapon().level], ["laser", 2], "the next ship has it")
+	var saved := JSON.stringify(state.to_dict())
+	# the saved game that is continued begins its stage with that weapon
+	state.new_game()
+	mode._on_game_loaded(0)
+	var fresh := _weapon_stage(0, plan)
+	mode.bind_stage(fresh)
+	t.eq([mode.weapon, mode.ship.weapon().kind, mode.ship.weapon().level], ["", "straight", 1], "a new game")
+	state.from_dict(RpgUtil.restore_numbers(JSON.parse_string(saved)))
+	mode._on_game_loaded(1)
+	var loaded := _weapon_stage(1, plan)
+	mode.bind_stage(loaded)
+	t.eq(mode.stages().index, 1)
+	t.eq([mode.ship.weapon().kind, mode.ship.weapon().level], ["laser", 2], "Continue has the weapon")
+	# a level the game does not have is brought into its range; a name that is no weapon is left out
+	mode.weapon = "plasma:9"
+	mode._give_weapon()
+	t.eq([mode.ship.weapon().kind, mode.ship.weapon().level], ["laser", RpgShmupWeapon.MAX_LEVEL])
+	# Continue after the last life: the first weapon, as after a death
+	mode.continued.emit()
+	t.eq(mode.weapon, "")
+	for node: Node in [first, second, fresh, loaded, mode]:
+		_drop(node)
+	Fixtures.uninstall("SaveManager")
+	Fixtures.uninstall_state()

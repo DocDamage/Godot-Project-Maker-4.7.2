@@ -33,8 +33,9 @@ maps, doors, shops and quests do not apply to it.
 - Some enemies hold the camera: the stage goes on when they are destroyed. The **boss** waits
   in the arena at the end of the stage.
 - After the last life you may **continue**: the stage starts again and your score stays.
+- The soldier takes its **weapon** along to the next stage.
 - The game **saves by itself** when a stage begins; *Continue* on the title screen starts that
-  stage again. The ten best runs are kept in the **High scores** of the title screen.
+  stage again, with the weapon the soldier had. The ten best runs are kept in the **High scores** of the title screen.
 
 ### The grapple arm
 

@@ -411,3 +411,47 @@ func test_the_hud_has_the_grenades_and_the_health_of_a_forgiving_soldier(t) -> v
 	soldier.free()
 	hud.get_parent().remove_child(hud)
 	hud.free()
+
+# ---------------------------------------------------------------- the weapon of the run
+
+func test_the_weapon_goes_on_to_the_next_stage_and_into_the_saved_run(t) -> void:
+	var state := Fixtures.install_state() as RpgGameState
+	var plan := [{"exit": "custom", "waves": []}, {"exit": "custom", "waves": []}]
+	var mode := RpgRunAndGunMode.new()
+	mode.auto_screens = true
+	mode.sequence = RpgArcadeStageSequence.from_array(plan)
+	Fixtures.tree().root.add_child(mode)
+	var first: Field = await _field()
+	mode.bind_stage(first.stage)
+	t.eq([mode.weapon, first.soldier.weapon()], ["", "machine_gun"])
+	t.ok(first.soldier.equip("spread"))
+	first.stage.cleared.emit()
+	t.eq(mode.weapon, "spread", "what the soldier had when the stage was cleared")
+	var second: Field = await _field()
+	second.stage.stage_index = 1
+	mode.bind_stage(second.stage)
+	t.eq(second.soldier.weapon(), "spread", "the soldier of the next stage has it")
+	var saved := JSON.stringify(state.to_dict())
+	state.new_game()
+	mode._on_game_loaded(0)
+	var fresh: Field = await _field()
+	mode.bind_stage(fresh.stage)
+	t.eq([mode.weapon, fresh.soldier.weapon()], ["", "machine_gun"], "a new game")
+	state.from_dict(RpgUtil.restore_numbers(JSON.parse_string(saved)))
+	mode._on_game_loaded(1)
+	var loaded: Field = await _field()
+	loaded.stage.stage_index = 1
+	mode.bind_stage(loaded.stage)
+	t.eq(loaded.soldier.weapon(), "spread", "Continue has the weapon")
+	# Continue after the last life: the machine gun, unless the soldier keeps its weapon
+	loaded.soldier.keep_weapon = true
+	mode.continued.emit()
+	t.eq(mode.weapon, "spread")
+	loaded.soldier.keep_weapon = false
+	mode.continued.emit()
+	t.eq(mode.weapon, "")
+	mode.get_parent().remove_child(mode)
+	mode.free()
+	for field: Field in [first, second, fresh, loaded]:
+		field.drop()
+	Fixtures.uninstall_state()

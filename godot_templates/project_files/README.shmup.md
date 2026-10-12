@@ -24,8 +24,9 @@ shops and quests do not apply to it.
 - The **multiplier** grows with every five kills without being hit and is back at x1 after a
   hit. A formation shot whole pays a bonus.
 - After the last life you may **continue**: the stage starts again and your score stays.
+- The ship takes its **weapon** and its level along to the next stage.
 - The game **saves by itself** when a stage begins; *Continue* on the title screen starts that
-  stage again. The ten best runs are kept in the **High scores** of the title screen.
+  stage again, with the weapon the ship had. The ten best runs are kept in the **High scores** of the title screen.
 
 ### Where things are
 
