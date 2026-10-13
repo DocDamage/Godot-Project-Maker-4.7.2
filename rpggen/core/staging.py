@@ -390,10 +390,11 @@ KIND_NOTES = {
         "\ncontrols, the stages, their enemies and bosses, the grapple arm, and how to change them."
     ),
     "racing": (
-        "\n\n**This game is a racing game**: a championship of races on tracks seen from above,"
-        "\nnot a village to walk. Where this file speaks of the starter map, doors, shops or"
-        "\nquests, it speaks of the other kinds of game; start with section 22: the controls,"
-        "\nthe races, the championship, and how to change the tracks."
+        "\n\n**This game is a racing game**: a championship of races on tracks seen from above"
+        "\n(at an angle in an isometric project), not a village to walk. Where this file speaks"
+        "\nof the starter map, doors, shops or quests, it speaks of the other kinds of game;"
+        "\nstart with section 22: the controls, the races, the championship, and how to change"
+        "\nthe tracks."
     ),
     "metroidvania": (
         "\n\n**This game is a metroidvania**, seen from the side: its world is the rooms in"
@@ -403,9 +404,11 @@ KIND_NOTES = {
     ),
     "farm": (
         "\n\n**This game is a farm**: a top-down game in which the days pass. What this file"
-        "\nsays of maps, doors, shops and saving holds for it; section 22 has what is its own:"
-        "\nthe controls, a day and how it ends, energy, crops, the shipping bin and the shop,"
-        "\nthe weather, the seasons and the people."
+        "\nsays of maps, doors, shops and saving holds for it, except where section 22 says"
+        "\notherwise (a farm saves when you sleep, its light follows its own clock, its shop"
+        "\npays the full price). Section 22 has what is its own: the controls, a day and how it"
+        "\nends, energy, crops, animals, the shipping bin and the shop, the weather, the seasons,"
+        "\nfishing and foraging, the people, and the isometric view."
     ),
 }
 

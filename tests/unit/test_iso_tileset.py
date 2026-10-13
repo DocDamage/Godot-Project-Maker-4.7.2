@@ -95,7 +95,7 @@ def test_a_config_without_the_key_is_top_down_and_what_it_was() -> None:
     assert "projection" not in data, "a top-down config has no key: it is byte for byte the old one"
     schema.validate("config", data)
     assert config.GeneratorConfig.from_json(data).projection == "top_down"
-    assert features.ISOMETRIC_AVAILABLE is False, "the wizard does not offer it until its gate"
+    assert features.ISOMETRIC_AVAILABLE is True, "the wizard offers it since the gate of 1.5"
 
 
 def test_the_projection_is_kept_through_a_save(tmp_path: Path) -> None:

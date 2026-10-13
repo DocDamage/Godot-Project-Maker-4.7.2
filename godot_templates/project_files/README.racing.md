@@ -71,8 +71,8 @@ is the same race:
 - East in the plan runs down and to the right of the screen, south down and to the left. With
   **Steering: absolute** the stick is a direction of the screen: hold it down and the car
   ends up driving down the screen.
-- A car drawn for this view has eight pictures (north is up on the screen) and turns in steps
-  of 45 degrees; it still steers smoothly underneath. A car drawn from straight above is
+- A car drawn for this view has four or eight pictures (north is up on the screen) and turns
+  in steps of 90 or 45 degrees; it still steers smoothly underneath. A car drawn from straight above is
   used too and looks flat.
 - The map in the corner stays the plan from above, so a turn to the right on the map is a
   turn to the right for the car.

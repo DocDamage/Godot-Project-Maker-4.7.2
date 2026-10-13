@@ -150,9 +150,9 @@ def _text(target: Path, rel: str) -> str:
 # ---------------------------------------------------------------- the top-down sample as a farm
 
 
-def test_the_kind_is_generated_but_not_offered(plain) -> None:
+def test_the_kind_is_generated_with_its_own_features_and_controls(plain) -> None:
     target, _result = plain
-    assert features.FARM_AVAILABLE is False, "the wizard does not offer it until its gate"
+    assert features.FARM_AVAILABLE is True, "the wizard offers it since the gate of 1.5"
     saved = jsonio.read(target / paths.CONFIG)
     assert saved["archetype"] == "farm" and "starter_map" not in saved
     assert saved["features"]["combat"] is False and saved["features"]["dialogue"] is True
@@ -565,6 +565,47 @@ def test_the_recipe_writes_the_farmer_for_the_ranch_pack(ranch) -> None:
     assert "archetypes/farm/farmer.gd" in player
     assert "sprite_frames/ranch.characters.farmer." in player
     assert 'name="TileFrame"' in player and 'name="ToolIcon"' in player
+
+
+def test_the_ranch_with_the_starter_the_wizard_chooses_passes_its_whole_sequence(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    """What a user gets who picks a farming pack in the wizard and changes nothing: the starter
+    the catalog suggests (the fixture above has none). With the pack's own house on the
+    village, one of the people is at home exactly three tiles above the middle of the map,
+    where the shared step `keys_and_switches` put its locked gate: the farmer talked to her
+    and the gate stayed shut, so the generation failed. The step now takes a place where
+    nobody answers. And the village is laid with the pack's grass, not with its tilled soil,
+    the sheet the reader is surest of."""
+    from rpggen.core import archive, catalog, inventory, mapping
+
+    opened = archive.open_pack(RANCH, set(), pack_id="ranch")
+    cat, _issues, _generated = catalog.assemble(
+        [(opened, inventory.build_inventory(opened))], None, []
+    )
+    cfg = _config(RANCH, "ranch")
+    cfg.starter = mapping.default_starter(cat, "farm")
+    assert cfg.starter == {
+        "player": "ranch.characters.farmer.farmer_walk_down_16x16_4frames",
+        "ground": "ranch.tiles.spring.grass_16x16",
+        "building": "ranch.buildings.house",
+    }
+    target = tmp_path / "out"
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    names = _smoke(target)
+    assert names[0] == "title_new_game" and names[1:4] == HOUSE_STEPS
+    assert "keys_and_switches" in names and names[-len(STEPS + TAIL) :] == STEPS + TAIL
+    assert "SCRIPT ERROR" not in _text(target, "rpggen/logs/godot_smoke.log")
+    # the case the step met: somebody of the plan stands where its gate always stood
+    village = _text(target, "game/maps/starter_map.tscn")
+    start = re.search(r'\[node name="Player" [^\]]*\]\nposition = Vector2\((\d+), (\d+)\)', village)
+    assert start is not None
+    gate = f"position = Vector2({start.group(1)}, {int(start.group(2)) - 48})"
+    people = re.findall(
+        r'\[node name="Person_\w+" [^\]]*\]\n(position = Vector2\(\d+, \d+\))', village
+    )
+    assert gate in people, "nobody stands at the gate's place any more: the test tests nothing"
 
 
 # ---------------------------------------------------------------- the weather and the HUD (T17.11)

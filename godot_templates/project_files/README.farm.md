@@ -4,7 +4,12 @@
 The game is a farm: you till the ground, plant seeds, water them and harvest what has grown,
 sell it, and buy more seeds, through days and seasons. It is a top-down game like the one the
 sections above describe, with maps, doors, a shop and people to talk to; what is different is
-below. There is nothing to fight unless you switch **Combat** on in the options.
+below. There is nothing to fight: a farm has no battles and no enemies.
+
+A new game begins in your **farmhouse**, by the bed. The farm is the map outside its door
+(`game/maps/farm.tscn`, with the house and the animal houses as rooms of their own beside it),
+and the way out at its edge leads to the **village** (`game/maps/starter_map.tscn`), where the
+shop and the people are.
 
 | Action | Keyboard | Gamepad |
 |--------|----------|---------|
@@ -20,7 +25,11 @@ below. There is nothing to fight unless you switch **Combat** on in the options.
 
 The **tile ahead** is the square in front of you with the white frame around it: what you hold
 is used there. A tool works, a seed is planted in tilled soil, food is eaten. A ripe crop ahead
-is picked whatever you hold.
+is picked whatever you hold. The frame is shown on the farm, where there is a field; the
+village has none.
+
+The **hotbar** is the first ten stacks of your bag: what lies further back in the bag cannot be
+held until it moves up.
 
 ### A day
 
@@ -34,7 +43,11 @@ is picked whatever you hold.
   offered the save screen in the morning), and you wake at 6:00 with all your energy.
 - If you are still up at **2:00** you pass out: you wake at your bed with half your energy and
   a tenth of your money gone. With **`starter_map.pass_out_loss`: false** in
-  `rpggen/generator_config.json` the money stays.
+  `rpggen/generator_config.json` the money stays. Passing out saves the game as sleeping does,
+  so the loss cannot be taken back by loading.
+- Sleeping is how a farm saves: these saves are made whatever *Settings → Autosave* says.
+- **The light** outdoors follows the clock of the game (dawn at 6:00, dark at night), whatever
+  the *Day and night* setting says; that setting is for the other kinds of game.
 - A new game starts with a hoe, a watering can, fifteen seeds of the first crop and a little
   money (`starter_map.starting_money`, 100).
 
@@ -42,18 +55,21 @@ is picked whatever you hold.
 
 The yellow bar over the hotbar is your energy, 100 when you are rested. A tool costs energy
 when it does something (the hoe, the can and the sickle 2, the axe 4, a cast of the rod 3)
-and none when it does not. At zero you walk at half your speed and no tool works. Eating restores it: hold what you
-harvested and `use` it. Sleeping fills it.
+and none when it does not. At zero you walk at half your speed and no tool works. Eating
+restores it: hold what you harvested and `use` it (away from a ripe crop, which would be picked
+instead; when you are rested nothing is eaten). Sleeping fills it.
 
 ### The tools
 
 | Tool | What it does |
 |------|--------------|
 | Hoe | Tills ground into soil. Only the ground of your plot can be tilled. |
-| Watering can | Waters tilled soil. It holds water for 20 squares; `use` it at water to fill it. |
+| Watering can | Waters tilled soil. It holds water for 20 squares; `use` it at water, or `interact` with the pond or the well, to fill it (that costs no energy). |
 | Sickle | Cuts a ripe crop, a withered one and grass. Sold at the shop. |
 | Axe | Clears stumps and branches. Sold at the shop. |
 | Fishing rod | Casts a line into the pond (see *Fishing and foraging*). Sold at the shop of a farm that has a pond. |
+
+A tool is not for sale again once you have it, and cannot be sold or shipped.
 
 ### Crops
 
@@ -63,8 +79,9 @@ harvested and `use` it. Sleeping fills it.
   watered waits. In the morning the soil is dry again.
 - After its days a crop is **ripe**: pick it with `interact` or `use`. Some crops grow again
   after the harvest and are ripe again a few days later.
-- When the season changes, a crop that does not grow in the new season **withers**. Cut it
-  away with the sickle.
+- When the season changes, a crop that does not grow in the new season **withers**, a ripe one
+  that was not picked too. Cut it away with the sickle.
+- A harvest is refused while your bag has no room for it; the crop stays standing.
 - Tilled soil with nothing on it that is not watered for three nights is ground again.
 
 The crops of the game are in **`game/data/crops.json`**, written once and then yours. One
@@ -88,7 +105,9 @@ entry is one crop:
 ```
 
 - `seed` and `produce` are item ids: the items are `game/data/items/seed_berry.tres` and
-  `crop_berry.tres`, where their names, icons and prices are.
+  `crop_berry.tres`, where their names, icons and prices are. `seed_price` and `price` are
+  what rpggen gave those two items when it made them: to change a price, change the item's
+  **Value**.
 - `seasons` is when it can be planted and does not wither; `days` is how many watered nights
   it takes; `regrow` is after how many days it is ripe again (0: it is gone when picked).
 - `stages` is how many pictures its scene has; they are spread evenly over its days.
@@ -99,7 +118,8 @@ one**, copy an entry, give it a new `id`, `seed` and `produce`, make the two ite
 `seed_berry.tres` and `crop_berry.tres` in the editor and change their `id`), and point
 `scene` at the scene of a crop you have (the pictures of another crop will do until you have
 drawn your own). A crop your packs gain later is added to `generated/data/crops.json` by the
-next generation; the game grows every crop of that list that your own list does not have.
+next generation; the game grows every crop of that list that your own list does not have. So
+a crop is not removed by deleting its entry: it comes back from that list.
 
 ### Animals
 
@@ -115,7 +135,8 @@ in its game.
   house and wander about in it. From 18:00 on, and all day when it rains, storms or snows, each
   is in its stall in the house; at night it sleeps.
 - **Feeding.** Hold hay and `interact` with the **trough** in the house: one portion feeds
-  every animal of that house for the day. Grass you cut with the sickle gives one hay.
+  every animal of that house for the day. Grass you cut with the sickle gives one hay (on a
+  farm with an animal house).
 - **Petting.** `interact` with an animal pets it, once a day (15 points of friendship).
 - **In the morning** an animal that was fed has its product. A hen's **egg lies in the coop**,
   a square below her stall: `interact` picks it up. A cow gives her **milk** when you
@@ -129,11 +150,13 @@ in its game.
 The animals of the game are in **`game/data/animals.json`**, written once and then yours:
 
 - `animals`: one entry a kind, with its `house` (`coop` or `barn`), what the shop asks for it
-  (`cost`, the `value` of the item `ticket`), what it gives (`product`, and `large` from five
+  (`cost`; the item `ticket` is the row the shop lists, and never reaches your bag), what it
+  gives (`product`, and `large` from five
   hearts on; their prices are the `value` of those two items in `game/data/items/`), how the
   product is taken (`collect`: `floor`, it lies in the house; `hand`, `interact` with the
   animal) and its pictures (`variants`: a `scene` for each colour).
-- `feed`: the item that goes into a trough. `names`: what the animals are called, in turn.
+- `feed`: its `item`, what goes into a trough, and its `price`, what the shop asks for it.
+  `names`: what the animals are called, in turn.
 - `houses`: for each house the scene of its room (`map`), the map its yard is on (`yard_map`)
   and its `stalls`. A room has the markers `Markers/Trough` and `Markers/Stall1` and so on;
   the yard is the node `Yards/Coop` (or `Barn`) of the farm's map, whose metadata `yard` is its
@@ -165,6 +188,7 @@ Whether a farm has a coop or a barn is decided when it is first generated, with 
   morning, and what you till that day is wet at once. Leave the can at home.
 - Outdoors rain and snow fall over the screen and the light is duller; indoors you see
   neither. People with a rainy-day entry in their schedule keep to it.
+- The **sign** beside the door of your house tells tomorrow's weather: `interact` with it.
 - When the packs have a sheet of ground or trees once a season, the outdoor maps change with
   the season. The table of those sheets is `generated/data/seasons.json`.
 - The **music** follows the season on outdoor maps when the sound slots *Spring music* to
@@ -188,6 +212,7 @@ Whether a farm has a coop or a barn is decided when it is first generated, with 
   sinks. While the zone is over the fish the meter beside the bar fills; when it is full the
   fish is yours, and when it runs empty the fish got away.
 - A cast costs 3 energy and ten minutes of the day; landing or losing a fish another twenty.
+  A fish that is landed while your bag is full is lost.
 - Which fish bites depends on the **season** and the **time of day**: the morning (before
   12:00), the day (before 18:00) and the evening.
 - Fish and what you forage are items like your harvest: sell them (the bin, the shop), eat
@@ -246,7 +271,13 @@ and what they love, like and dislike (`loves`, `likes`, `dislikes`: lists of ite
 - **Friendship** is counted in points, shown as hearts: ten hearts of 250 points each.
   Talking to somebody gives 20 points, once a day. A **gift** gives 80 points when it is
   loved, 45 when it is liked, 20 when the person does not care, and takes 20 when it is
-  disliked; a person takes two gifts a week.
+  disliked; a person takes two gifts a week, counted from Monday.
+- **To give a gift**, hold it and `interact` with the person: one of what you hold is given
+  instead of a talk. Tools and seeds are never given, so hold one of those to talk.
+- The pause menu has a **People** page: who you have met, their hearts, and what you know of
+  their taste.
+- A person whose schedule has them on another map is away from this one. This file is read
+  as it is: a person you delete from it is gone.
 
 ### The isometric view
 
@@ -266,21 +297,31 @@ the farm, the same crops, people and saves. What is different:
   makes. A ripe crop on the tile ahead is always picked with `use`.
 - Tilled and watered soil are the flat isometric tile your packs tagged `soil` or `watered`
   when they have one; else they are drawn as diamonds, as the plot and a pond without a water
-  tile of the packs always are (the `Soil` layer, `generated/tilesets/farm_soil.tres`). To use
-  tiles of your own, add them to that tile set and give the `Field` node of
-  `game/maps/farm.tscn` their source and cell (`tilled_source`, `tilled_tile`,
-  `watered_source`, `watered_tile`).
+  tile of the packs always are (the `Soil` layer, `generated/tilesets/farm_soil.tres`). That
+  tile set is made again when you regenerate, so tiles added to it are lost. To use tiles of
+  your own, tag them `soil` or `watered` in the audit and regenerate; or give the `Soil` layer
+  of `game/maps/farm.tscn` a tile set of your own under `game/` (a copy of that one, with its
+  custom data `tillable` and `water`) and the `Field` node the source and the cell of your
+  tiles (`tilled_source`, `tilled_tile`, `watered_source`, `watered_tile`).
 - A plant an isometric pack drew on a diamond and called a crop (`cornDouble_N.png`) is a
   crop: its picture is the ripe one, and the stages before it are drawn.
 - What your packs did not draw for this view is a stand-in made of boxes on its diamond: the
-  buildings, fences and gates, the well, trees, bushes, rocks, the bin, the bed, the trough.
-  They are ordinary nodes of the maps (`Polygon2D` under a body): replace them with your own
-  sprites, keeping the body and its shape. The tools, the crops, the hen and the things to
+  buildings, fences and gates, the well, trees, bushes, rocks, flowers, stumps, branches and
+  grass, the bin, the bed, the trough. All but the last three are ordinary nodes of the maps
+  (`Polygon2D` under a body): replace them with your own sprites, keeping the body and its
+  shape. The bin and the bed are the scenes `generated/scenes/farm/shipping_bin.tscn` and
+  `bed.tscn`, made again when you regenerate (put a scene of your own in their place on the
+  map), and the trough is drawn by the game at the marker `Markers/Trough` of an animal
+  house. The tools, the crops, the hen and the things to
   forage of the drawn farm kit are pictures seen from the front and stand on the middle of
   their diamond, as the people do.
 - A crop, a fence, a tree and everything else that stands on the map stands on the **middle
   of its diamond** and is sorted by it: you are drawn behind what is south or east of you and
   in front of what is north or west.
+- A room (the farmhouse, the coop, the barn) has walls only when your packs have isometric
+  wall pieces; without them it is a floor whose edge cannot be crossed.
+- The **RPG Project Tools** dock places what you drag from it on a grid of squares: on an
+  isometric map, move the thing onto its diamond by hand afterwards.
 
 ### Where things are
 

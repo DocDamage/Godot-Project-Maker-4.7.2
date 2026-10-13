@@ -289,6 +289,7 @@ func harvest(cell: Vector2i) -> bool:
 		entry["grown"] = 0
 		entry["idle"] = 0
 	_touched(cell)
+	RpgFarmSounds.play(RpgFarmSounds.HARVEST)
 	harvested.emit(crop_id, item, qty)
 	return true
 

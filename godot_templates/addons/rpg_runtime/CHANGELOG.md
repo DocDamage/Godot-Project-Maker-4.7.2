@@ -2,16 +2,34 @@
 
 ## 1.5.0
 
-**Compatibility with 1.0 to 1.4.** The save version stays 1 and older saves load. One key is
-new and optional: `calendar`, written only by a game that has a calendar; a save without it
-loads on the first morning. No autoload is new, and a game without a calendar has the light
-and the saves it had.
+**Compatibility with 1.0 to 1.4.** The save version stays 1 and older saves load. Two keys are
+new and optional, each written only by a game that has the part: `calendar` (a save without
+it loads on the first morning) and `friendship`. Everything else a farm keeps is in `flags`,
+which every save has. No autoload is new. Three scripts are new in every project and at work
+in none that does not ask for them: `world/calendar.gd` (nobody makes a calendar but a farm's
+mode), `actors/schedule.gd` (at work only with a calendar) and `world/iso.gd` (answers a map
+of squares with the arithmetic of squares). The folder `archetypes/farm/` is installed only in
+a farm's project. A turn-based, action, metroidvania or arcade project that is seen from above
+or from the side is built byte for byte as before: no `RECIPE_VERSION` moved, and the hashes
+of the recipes have new keys (`iso`, `iso_v`, `iso_controls`) only in an isometric project. A
+game without a calendar has the light and the saves it had.
 
-* **The calendar** (`world/calendar.gd`, `RpgCalendar`): the minute of the day, the day of the
-  season, the season and the year. A day runs from 6:00 to 2:00 of the night; a game minute is
-  `minute_s` real seconds (0.7: a day is 14 minutes); a season has `days_per_season` days (28,
-  or 14 or 7). Time stands still while the game is paused (every menu), in a dialogue, in a
-  cutscene, in a battle and while the map changes, and indoors with `stops_indoors`. Signals:
+**What an older game can notice**, all of it inert unless a farm or an isometric project uses
+it: `RpgInteraction.before` (a Callable, unset by default: asked before a target is interacted
+with, and when it answers true the target's own `interact` is not called; only the farmer sets
+it); `RpgShopDefinition.closed_reason()` ("" for every shop but a farm's;
+`RpgUiController.open_shop` shows a non-empty one as a toast and does not open the shop);
+`RpgNpc.schedule()` (null for an NPC without one); `RpgActor.look()`, `map_node()`,
+`map_cell()` and `cell_ahead()`; `RpgDayNight.weather_tint` (a static `Color`, white);
+`RpgWorldMapMenu` lists no *World* row for a plan file that holds nothing but a farm's plan.
+
+**The calendar.**
+
+* **`RpgCalendar`** (`world/calendar.gd`): the minute of the day, the day of the season, the
+  season and the year. A day runs from 6:00 to 2:00 of the night; a game minute is `minute_s`
+  real seconds (0.7: a day is 14 minutes); a season has `days_per_season` days (28, or 14 or
+  7). Time stands still while the game is paused (every menu), in a dialogue, in a cutscene, in
+  a battle and while the map changes, and indoors with `stops_indoors`. Signals:
   `minute_passed`, `hour_passed`, `day_ended`, `day_began`, `season_changed`. `end_day()` ends
   the day (sleeping; the clock calls it at 2:00). What happens overnight is added with
   `on_night(priority, callable)` and runs in the order of the priorities (`NIGHT_CROPS`,
@@ -22,402 +40,342 @@ and the saves it had.
 * `RpgDayNight` takes its hour from the calendar when the game has one whose `drives_light`
   is on (`RpgDayNight.current_hour`), and the outdoor maps follow it whatever the *Day and
   night* setting says. Without a calendar the cycle runs on the play time as before.
-* **The farm** (`archetypes/farm/`, a seventh kind; installed only into a farm's project).
-  `RpgFarmMode` is its mode (`SceneRouter.combat`): it asks for the calendar, makes the
-  farmer's `RpgEnergy` and `RpgHotbar`, knows the four tools (`tool_for`), what an item
-  restores when it is eaten (`food_energy`, `eat`), and runs the night of the fields from the
-  calendar's `on_night` (`NIGHT_CROPS`). Until sleeping and the farm's own map exist it fills
-  the energy and the watering can every morning.
-* `RpgFarmer` extends `RpgActor`, the top-down player: `cell()`, `tile_ahead()` (and the static
-  `ahead_of`, `step_of`), a frame on the ground at the tile ahead (the child `TileFrame`), and
-  `use_held()`: a ripe crop ahead is harvested whatever is held, a tool works, a seed is
-  planted in tilled soil, food is eaten. New input actions: `use`, `next_item`, `prev_item`,
-  `hotbar_1` to `hotbar_10`. A tool's use shows the sheet's animation of its name (`hoe`,
-  `water`, `sickle`, `axe`), else `attack`, else the tool's icon over the hands (`ToolIcon`).
-  At zero energy the farmer walks at half its speed and no tool works.
-* `RpgFarmTool` (an item id, an energy cost, a use time, the cell states it acts on, what it
-  clears) and the four tools in `tools/`: `RpgFarmHoe` (`hoe`: tills ground), `RpgFarmWateringCan`
-  (`watering_can`: waters soil, holds 20 cells' worth, is filled at a `water` tile for no
-  energy), `RpgFarmSickle` (`sickle`: a ripe crop, a withered one, grass) and `RpgFarmAxe`
-  (`farm_axe`: a stump, a branch). A use that changes nothing costs nothing.
+* **Schedules** (`actors/schedule.gd`, `RpgSchedule`). A child `Schedule` of an NPC with
+  `entries`: from which `hour`, on which `days` of the week, in which `weather`, on which
+  `map`, at which `place` (a marker made by `RpgSchedule.make_place`, a `Marker2D` in the group
+  `rpg_place`) or `cell`. `resolve(hour, weekday, weather)` gives the entry in force: the last
+  whose hour has come among those of the day and the weather, an entry with a weather before
+  one without. When its map is entered the NPC is put where the calendar says it is; one whose
+  place is on another map is away (hidden, not in the way, not talkable). When an hour passes
+  on the map that is shown it walks to its new place along the map's navigation
+  (`NavigationServer2D.map_get_path`), to the nearest door when the place is on another map,
+  and from the nearest door when it comes back; on a map without navigation it fades out, is
+  moved and fades in (`fade_s`). `RpgSchedule.set_weather` tells every schedule the weather of
+  the day; `RpgSchedule.source` gives a schedule without entries those of its `person`.
+
+**The farm (`archetypes/farm/`, a seventh kind).**
+
+* **The mode.** `RpgFarmMode` is the farm's mode (`SceneRouter.combat`; it has no encounters):
+  it asks for the calendar and gives it `days_per_season` (28) and `minute_s` (0.7), which the
+  mode's recipe sets from `starter_map.days_per_season` (7, 14, 28) and `starter_map.day_length`
+  (`short`, `normal`, `long`: 0.5, 0.7 or 1.0 seconds a game minute); it makes the farmer's
+  `RpgEnergy` and `RpgHotbar`, knows the five tools (`tool_for`) and what an item restores when
+  it is eaten (`food_energy`, `eat`), runs the night of the fields (`NIGHT_CROPS`), asks for
+  the friendships, and has the parts below as children (`day_end`, `weather`, `seasons`,
+  `forage`, `fishing`, `animals`). It gives the pause menu its People page each time the menu
+  opens. Neither the energy nor the watering can is filled by the morning: sleeping fills the
+  one, water the other.
+* **The farmer.** `RpgFarmer` extends `RpgActor`, the top-down player: `cell()`,
+  `tile_ahead()` (and the static `ahead_of`, `step_of`), a frame on the ground at the tile
+  ahead (the child `TileFrame`, on a map that has a field), and `use_held()`: a ripe crop
+  ahead is harvested whatever is held, a tool works, a seed is planted in tilled soil, food is
+  eaten. `give_held(target)`: `interact` on a person while an item that can be given is held
+  (`is_gift`: not a tool, not a bag of seeds) gives it; when nothing is given the farmer talks.
+  New input actions: `use`, `next_item`, `prev_item`, `hotbar_1` to `hotbar_10`. A tool's use
+  shows the sheet's animation of its name (`hoe`, `water`, `sickle`, `axe`, `rod`), else
+  `attack`, else the tool's icon over the hands (`ToolIcon`). At zero energy the farmer walks
+  at half its speed and no tool works. `fishing` keeps the farmer where it stands while a line
+  is out.
+* **Tools.** `RpgFarmTool` (an item id, an energy cost, a use time, the cell states it acts
+  on, what it clears, the sound of a use) and the five in `tools/`: `RpgFarmHoe` (`hoe`: tills
+  ground), `RpgFarmWateringCan` (`watering_can`: waters soil, holds 20 cells' worth, is filled
+  at a `water` tile for no energy), `RpgFarmSickle` (`sickle`: a ripe crop, a withered one,
+  grass), `RpgFarmAxe` (`farm_axe`: a stump, a branch) and `RpgFarmRod` (`fishing_rod`: a
+  cast). A use that changes nothing costs nothing.
 * `RpgHotbar`: the first ten stacks of the inventory, one of them held (`held`, `select`,
   `next`, `prev`, `item_at`, `qty_at`, `held_item`, `hold_item`; the signal `changed`).
   `RpgEnergy`: `value`, `max_energy` (100), `spend`, `restore`, `fill`, `is_exhausted`; the
-  signal `changed`. `RpgFarmHud` (`ui/farm_hud.gd`) shows both at the bottom of the screen.
-* `RpgField`, a node of a farm map: the state of every worked cell as data (`cells`), painted
-  on the map's `Soil` layer, with the crops as `RpgCrop` scenes among the Y-sorted entities.
-  What can be tilled is the bool custom data `tillable` of a tile, and `water` fills the can.
-  `till`, `water`, `water_all`, `plant`, `harvest`, `remove_crop`, `clear_obstacle`,
-  `state_of` (`ground`, `soil`, `crop`, `ripe`, `withered`), `is_watered`, `crop_at`,
-  `grown_at`; the signals `changed` and `harvested`. A night (`RpgField.grow`, `night_all`):
-  a watered crop grows a day, an unwatered one does not, soil dries, a crop that does not grow
-  in the season that begins withers, and bare soil is ground again after three dry nights. A
-  field grows whether its map is shown or not.
+  signal `changed`.
+* **The field.** `RpgField`, a node of a farm map: the state of every worked cell as data
+  (`cells`), painted on the map's `Soil` layer, with the crops as `RpgCrop` scenes among the
+  Y-sorted entities. What can be tilled is the bool custom data `tillable` of a tile, and
+  `water` fills the can. `till`, `water`, `water_all`, `plant`, `harvest`, `remove_crop`,
+  `clear_obstacle`, `state_of` (`ground`, `soil`, `crop`, `ripe`, `withered`), `is_watered`,
+  `crop_at`, `grown_at`; the signals `changed`, `harvested` and `cleared(cell, what)`. A night
+  (`RpgField.grow`, `night_all`): a watered crop grows a day, an unwatered one does not, soil
+  dries, a crop that does not grow in the season that begins withers, and bare soil is ground
+  again after three dry nights. A field grows whether its map is shown or not.
 * `RpgCropData`: the crops of `game/data/crops.json` (the user's; a crop only
   `generated/data/crops.json` has is added). `crop`, `crop_of_seed`, `crop_of_produce`, `days`,
   `stages`, `regrow`, `grows_in`, `of_season`, and the static `stage_of` and `is_ripe`.
-* **Saves.** A farm keeps its state in `flags`, so the save has no new key: `farm` (`energy`,
-  `held`, `water`) and `farm_field` (one key a field: its worked cells).
-* **Money** (a farm only). `RpgShippingBin` (`archetypes/farm/shipping_bin.gd`, a solid thing
-  of a map): `interact` while a thing with a price is held puts the whole held stack into it,
-  `interact` with a tool or nothing in the hand takes the last stack back out. What is in it
-  is in the flags (`farm_bin.items`), so the static `contents`, `count`, `put`, `take_back`,
-  `price_of` and `sell_all` need no node: the night sells the bin wherever the farmer is, each
-  thing at its item's `value`.
-* `RpgDayEnd` (`archetypes/farm/day_end.gd`, the mode's child `DayEnd`, `RpgFarmMode.day_end`,
+* **Water.** `RpgWaterSource` (`water_source.gd`): the pond or the well of a farm, a solid
+  thing that fills the watering can with `interact` (`fill_can`); `use` with the can held fills
+  it at a tile whose custom data `water` is true. Its `kind` says whether there are fish.
+* **Money.** `RpgShippingBin` (`shipping_bin.gd`, a solid thing of a map): `interact` while a
+  thing with a price is held puts the whole held stack into it, `interact` with a tool or
+  nothing in the hand takes the last stack back out. What is in it is in the flags, so the
+  static `contents`, `count`, `put`, `take_back`, `price_of` and `sell_all` need no node: the
+  night sells the bin wherever the farmer is, each thing at its item's `value`.
+* **The end of a day.** `RpgDayEnd` (`day_end.gd`, the mode's child `DayEnd`,
   `RpgDayEnd.current()`): its night listener (`NIGHT_SHOP`) sells the bin; `sleep()` ends the
   day once, and the morning after it the energy is full, the game is saved into the autosave
-  slot and into the slot the player last saved to or loaded from by hand (`chosen_slot()`,
-  the flag `farm.save_slot`; a game without one is offered the save screen), and the farmer
-  stands at the bed. A day the clock ends at 2:00 is passing out: half the energy
-  (`PASS_OUT_ENERGY`), a tenth of the money gone (`PASS_OUT_MONEY`) unless `pass_out_loss`
-  is off (`RpgFarmMode.pass_out_loss`), awake at the bed of the game on whatever map it is,
+  slot and into the slot the player last saved to or loaded from by hand (`chosen_slot()`; a
+  game without one is offered the save screen), whatever the autosave setting says, and the
+  farmer stands at the bed. A day the clock ends at 2:00 is passing out: half the energy
+  (`PASS_OUT_ENERGY`), a tenth of the money gone (`PASS_OUT_MONEY`) unless `pass_out_loss` is
+  off (`RpgFarmMode.pass_out_loss`), awake at the bed of the game on whatever map it is,
   saved. A day ended by `end_day()` from elsewhere is neither: rested, nothing saved. Signals
-  `woke(how)` (`slept`, `passed_out`, `ended`) and `summary_opened`. The mode no longer fills
-  the energy every morning; it still fills the watering can until a map has water.
-* `RpgBed` (`archetypes/farm/bed.gd`): `interact` sleeps. The first bed a game sees and every
-  bed slept in is where the farmer wakes (`RpgBed.home`, the flags `farm_bed`;
-  `wake_offset`, `wake_facing`, `footprint`).
-* `RpgDaySummary` (`archetypes/farm/ui/day_summary.gd`): what the night sold, what each thing
-  earned and the total, over the paused game, once, and only after a night that sold
-  something; `confirm`, `interact`, `cancel` or its button closes it (`lines`, `total_text`,
-  `worth_showing`, the signal `closed`).
-* `RpgFarmShop` (`archetypes/farm/farm_shop.gd`, an `RpgShopDefinition`): `opens`, `closes`,
+  `woke(how)` (`slept`, `passed_out`, `ended`) and `summary_opened`.
+* `RpgBed` (`bed.gd`): `interact` sleeps. The first bed a game sees and every bed slept in is
+  where the farmer wakes (`RpgBed.home`; `wake_offset`, `wake_facing`, `footprint`).
+* `RpgDaySummary` (`ui/day_summary.gd`): what the night sold, what each thing earned and the
+  total, over the paused game, once, and only after a night that sold something; `confirm`,
+  `interact`, `cancel` or its button closes it.
+* **The shop.** `RpgFarmShop` (`farm_shop.gd`, an `RpgShopDefinition`): `opens`, `closes`,
   `closed_weekday` and `is_open()`, `open_at`, `hours_text()`; its offer is its `stock`, then
   the seeds of the crops that grow in the season of the day (`seasonal`), then what
   `RpgFarmShop.add_stock_source(callable)` adds (the callable takes the season's name and
-  returns rows `{item_id, price}`); a tool the farmer has is not offered again.
-* `RpgShopDefinition.closed_reason()` is new and "" for every shop; `RpgUiController.open_shop`
-  shows a non-empty one as a toast and does not open the shop. Only `RpgFarmShop` gives one,
-  so every other shop opens as it did.
-* `RpgWorldMapMenu` lists no *World* row for a plan file that holds nothing but a farm's
-  crops (no areas). Every other game is what it was.
-* **Schedules** (`actors/schedule.gd`, `RpgSchedule`; installed in every project and at work
-  only in one with a calendar). A child `Schedule` of an NPC with `entries`: from which
-  `hour`, on which `days` of the week, in which `weather`, on which `map`, at which `place` (a
-  marker made by `RpgSchedule.make_place`, a `Marker2D` in the group `rpg_place`) or `cell`.
-  `resolve(hour, weekday, weather)` gives the entry in force: the last whose hour has come
-  among those of the day and the weather, an entry with a weather before one without. When
-  its map is entered the NPC is put where the calendar says it is; one whose place is on
-  another map is away (hidden, not in the way, not talkable). When an hour passes on the map
-  that is shown it walks to its new place along the map's navigation
-  (`NavigationServer2D.map_get_path`), to the nearest door when the place is on another map,
-  and from the nearest door when it comes back; on a map without navigation it fades out, is
-  moved and fades in (`fade_s`). `RpgSchedule.set_weather` tells every schedule the weather
-  of the day; `RpgSchedule.source` gives a schedule without entries those of its `person`.
-  New: `RpgNpc.schedule()` (null for an NPC without one, which is what it was).
-* **Friendship** (`archetypes/farm/friendship.gd`, `RpgFriendship`; a farm only): points a
-  person, ten hearts of 250. `talk(id)` gives 20 once a day; `gift(id, item_id)` gives by
-  taste (80 loved, 45 liked, 20 otherwise, -20 disliked) and is taken twice a week; the
-  calendar's `day_began` resets both counters. It reads `game/data/people.json` (the people,
-  their tastes and their schedules), counts a talk when the player interacts with the NPC of
-  a person, and is found with `RpgFriendship.current()` (made by `ensure()`, a child of
-  GameState). Saved under the new optional key `friendship`, written only by a game that has
-  it; the save version stays 1.
-* The dialogue condition `friendship:<id>>=N` (hearts); false in a game without friendships.
-* `RpgPeoplePage` (`archetypes/farm/ui/people_page.gd`): who was met, their hearts, and their
-  taste for the items that were given to them. `RpgPeoplePage.add_to(pause_menu)` adds its
-  button to a pause menu.
-* **The weather** (`archetypes/farm/weather.gd`, `RpgFarmWeather`, the mode's child `Weather`,
-  `RpgFarmMode.weather`; a farm only): `sun`, `rain`, a `storm` in summer, `snow` in winter.
-  The weather of a day follows from the game's seed (the flag `farm_weather.seed`, drawn once
-  a game) and the number of the day (`weather_of(seed, index, days_per_season)`), so it is the
-  same before and after a save; the first day is fair. It is decided at `NIGHT_WEATHER` and in
-  force from `day_began`; a new game and a loaded game take theirs when their map is entered.
-  `today`, `forecast()`, `is_wet()`, `keeps_animals_in()`, the signal `changed(kind)`, and the
-  debug hooks `force(kind)` and `force_tomorrow(kind)`. A wet day waters every tilled cell of
-  every field in the morning (`water_fields`), what is tilled later in the day at once, and
-  once more before the crops grow; it tells the schedules `"rain"` (`RpgSchedule.set_weather`).
-  `enabled` is false until the mode's scene sets it: a mode made by code, and the smoke run,
-  have fair weather unless a day is forced.
-* `RpgWeatherOverlay` (`archetypes/farm/weather_overlay.gd`): what falls over the screen on an
-  outdoor map, on a CanvasLayer (2) of the weather: a strip of cells repeated over the screen
-  (`fall`), twice over for a storm without a picture, or drawn snow (`flakes`).
-* `RpgDayNight.weather_tint` (a static `Color`, white): what the outdoor light is multiplied
-  by. Only a farm's weather sets it; interiors and a map's own ambient are not touched.
-* `RpgWeatherSign` (`archetypes/farm/weather_sign.gd`): `interact` shows tomorrow's weather as
-  a toast.
-* `RpgFarmSeasons` (`archetypes/farm/seasons.gd`, the mode's child `Seasons`,
-  `RpgFarmMode.seasons`): on entering an outdoor map and on `season_changed` it replaces the
-  textures that `generated/data/seasons.json` names by those of the season: the atlas sources
-  of the tile sets, `Sprite2D.texture`, the frames of `AnimatedSprite2D` (`apply(map,
-  season)`). It plays the music of the season on outdoor maps (`music_spring` to
-  `music_winter`; a season without its own plays the first that is filled) and `music_night`
-  from 20:00, in the place of the map's own music; a game with none of the slots keeps that.
-* `RpgFarmHud` shows the time (in steps of ten minutes), the weekday, the day and the season,
-  the weather (a word, or an icon of `weather_icons`) and the money, beside the hotbar and the
-  energy; it hides the basic HUD's line of money, and tells a harvest and what the shipping
-  bin paid by a toast (`watch_field`, `harvest_text`, `sale_text`). New text keys:
-  `FARM_WEATHER_SUN`, `_RAIN`, `_STORM`, `_SNOW`, `FARM_FORECAST`, `FARM_HUD_DATE`,
-  `FARM_HARVESTED`, `FARM_SOLD`.
-
-* **The length of a season and of a day are options of a farm** (T17.16). `RpgFarmMode` has
-  `days_per_season` (28) and `minute_s` (0.7) and gives both to the calendar it asks for
-  (`set_calendar`); the mode's recipe sets them from `starter_map.days_per_season` (7, 14, 28)
-  and `starter_map.day_length` (`short`, `normal`, `long`: 0.5, 0.7 or 1.0 seconds a game
-  minute). The mode of a farm with the default options is the scene it was.
-* **The farm's own map and the people in it** (T17.06, T17.09). `RpgWaterSource`
-  (`archetypes/farm/water_source.gd`): the pond or the well of a farm, a solid thing that
-  fills the watering can with `interact` (`fill_can`); `use` with the can held fills it at a
-  tile whose custom data `water` is true, as before. **The morning no longer fills the can**:
-  `RpgFarmMode` filled it as a stand-in while no map had water.
-* `RpgFarmMode` asks for the friendships (`RpgFriendship.ensure()`, after the calendar) and
-  gives the pause menu its People page each time the menu opens (`Events.game_paused`,
-  `RpgPeoplePage.add_to`).
-* `RpgFarmer.give_held(target)`: `interact` on a person while an item that can be given is
-  held (`is_gift`: not a tool, not a bag of seeds) gives it (`RpgFriendship.gift`); when
-  nothing is given the farmer talks as before.
-* `RpgInteraction.before` (a Callable, unset by default): asked before a target is interacted
-  with; when it answers true the target's own `interact` is not called. Only the farmer sets
-  it; every other kind interacts as it did.
-* New texts of the farm: `FARM_CAN_FILLED`, `FARM_CAN_FULL`, and the names of its maps
-  (`MAP_FARM`, `MAP_FARM_HOUSE`, `MAP_FARM_COOP`, `MAP_FARM_BARN`).
-* The door check of the project tools counts the farm of a farm's plan (`farm.map` in
+  returns rows `{item_id, price}`); a tool the farmer has is not offered again. A row that
+  names `deliver` (a callable `func(item_id, qty) -> String`) is paid for and delivered
+  instead of being put into the bag (`buy`): the animals' rows are such rows.
+* **Friendship** (`friendship.gd`, `RpgFriendship`): points a person, ten hearts of 250.
+  `talk(id)` gives 20 once a day; `gift(id, item_id)` gives by taste (80 loved, 45 liked, 20
+  otherwise, -20 disliked) and is taken twice a week; the calendar's `day_began` resets both
+  counters. It reads `game/data/people.json` (the people, their tastes and their schedules),
+  counts a talk when the player interacts with the NPC of a person, and is found with
+  `RpgFriendship.current()` (made by `ensure()`, a child of GameState). The dialogue condition
+  `friendship:<id>>=N` (hearts) is false in a game without friendships. `RpgPeoplePage`
+  (`ui/people_page.gd`): who was met, their hearts, and their taste for the items that were
+  given to them.
+* **The weather** (`weather.gd`, `RpgFarmWeather`, the mode's child `Weather`): `sun`, `rain`,
+  a `storm` in summer, `snow` in winter. The weather of a day follows from the game's seed
+  (drawn once a game) and the number of the day (`weather_of(seed, index, days_per_season)`),
+  so it is the same before and after a save; the first day is fair. It is decided at
+  `NIGHT_WEATHER` and in force from `day_began`; a new game and a loaded game take theirs when
+  their map is entered. `today`, `forecast()`, `is_wet()`, `keeps_animals_in()`, the signal
+  `changed(kind)`, and the debug hooks `force(kind)` and `force_tomorrow(kind)`. A wet day
+  waters every tilled cell of every field in the morning (`water_fields`), what is tilled
+  later in the day at once, and once more before the crops grow; it tells the schedules
+  `"rain"`. `enabled` is false until the mode's scene sets it: a mode made by code, and the
+  smoke run, have fair weather unless a day is forced.
+* `RpgWeatherOverlay` (`weather_overlay.gd`): what falls over the screen on an outdoor map, on
+  a CanvasLayer (2) of the weather: a strip of cells repeated over the screen (`fall`), twice
+  over for a storm without a picture, or drawn snow (`flakes`). The outdoor light is
+  multiplied by `RpgDayNight.weather_tint`; interiors and a map's own ambient are not touched.
+  `RpgWeatherSign` (`weather_sign.gd`): `interact` shows tomorrow's weather as a toast.
+* **The seasons.** `RpgFarmSeasons` (`seasons.gd`, the mode's child `Seasons`): on entering an
+  outdoor map and on `season_changed` it replaces the textures that
+  `generated/data/seasons.json` names by those of the season: the atlas sources of the tile
+  sets, `Sprite2D.texture`, the frames of `AnimatedSprite2D` (`apply(map, season)`). It plays
+  the music of the season on outdoor maps (`music_spring` to `music_winter`; a season without
+  its own plays the first that is filled) and `music_night` from 20:00, in the place of the
+  map's own music; a game with none of the slots keeps that.
+* **Foraging.** `RpgForage` (`forage.gd`, the mode's child `Forage`): every morning things of
+  the season lie at some of the places of a map (its markers `Forage/Spot<n>`; for a farm map
+  without markers the cells `spots` of `generated/data/forage.json`) and are picked up with
+  `interact` (`RpgForagePickup`, made by `refresh` among the entities of the map). What lies
+  where is not stored: `forage_of(entries, seed, day, season, places)` derives it from the
+  seed of the game (the weather's), the map (`map_seed`), the index of the day and the season,
+  45 in a hundred places and always at least one. The table is `game/data/forage.json`, then
+  what only `generated/data/forage.json` has (`things`, `fish`, `energy_of`).
+* **Fishing.** `RpgFarmRod` (3 energy a cast) casts at a tile whose custom data `water` is
+  true; `RpgFishing` (`fishing.gd`, the mode's child `Fishing`) does the rest: `cast(field,
+  cell)` (false with a toast at a well), a wait of 1 to 4 seconds of the running game that
+  follows from the seed and the number of the cast (`wait_of`), the bite (`bit`, the sound
+  `sfx_bite` when the game has such a slot), then the bar (`RpgFishingBar`,
+  `ui/fishing_bar.gd`, on a layer of its own): `mark`, `zone`, `meter`, the zone rising while
+  `use` is held; `caught(item)` when the meter is full, `lost(why)` when it is empty, when the
+  line is pulled in, when nothing bites, when the bag is full and when a new day or another
+  map ends the cast. A cast passes 10 minutes of the calendar and the bar 20 more. `fish_for`
+  chooses among the fish of the table that bite in the season, at the time of day (`time_of`)
+  and in the water. `advance(delta)` and `button` are for tests.
+* **Animals.** `RpgAnimalHouse` is a part of the mode (its child `Animals`; it does nothing in
+  a farm without an animal house). The herd is data in the flags (a row an animal with its
+  kind, name, house, stall, colour variant, friendship, `fed`, `petted` and the product it has
+  `ready`; and which troughs are full), so the night works on animals whose map is not shown.
+  `herd()`, `animal(id)`, `of_house(house)`, `friendship(id)`, `hearts(id)`,
+  `trough_full(house)` are static; `room_in`, `can_buy`, `buy`, `fill_trough`, `feed_with`,
+  `pet`, `take_product`, `touch`, `product_for`, `product_price`, `night`, `is_outside`,
+  `is_night`, `populate`, `show_room`, `show_yard`, `node_of`, `shown` and the signal `changed`
+  are the node's. One portion of the feed in the trough of a house feeds every animal of it
+  for the day; petting gives 15 points once a day; in the night (`NIGHT_ANIMALS`) a fed animal
+  gets its product and 5 points and an unfed one loses 20; from five hearts (of ten, 100
+  points each) the product is the kind's `large` item. Animals are out in their yard from 6:00
+  to 18:00 unless `RpgFarmWeather.keeps_animals_in()`, else in their stalls; the nodes of a
+  map are made from the data when it is entered and when the hour or the weather changes the
+  place. Cut grass is hay in a farm with animals (`RpgField.cleared`).
+* `RpgFarmAnimal` extends `RpgActor` (layer 5: found by `interact`, walked through): the node
+  of one animal, which wanders a rectangle (`roam`) or cells of a layer of diamonds
+  (`roam_cells`), sleeps (the `sleep` animation when the sheet has one) and is petted and
+  relieved of its product by `interact`. `RpgFarmTrough` (a `StaticBody2D`, made at
+  `Markers/Trough` by `make`) takes the held feed on `interact`; `RpgAnimalProduct` (an
+  `Area2D`) is what lies on the floor of a coop. `RpgAnimalData` reads
+  `game/data/animals.json`, then `generated/data/animals.json` for the kinds and houses the
+  first does not list.
+* **The HUD.** `RpgFarmHud` (`ui/farm_hud.gd`): the time (in steps of ten minutes), the
+  weekday, the day and the season, the weather (a word, or an icon of `weather_icons`) and the
+  money at the top left, the energy and the hotbar at the bottom; it hides the basic HUD's
+  line of money, and tells a harvest and what the shipping bin paid by a toast.
+* **Sounds.** `RpgFarmSounds` (`sounds.gd`) plays the slots of the kind where the thing
+  happens: `sfx_hoe` (a cell is tilled), `sfx_water` (the can waters or is filled; a cast),
+  `sfx_plant`, `sfx_harvest` (a crop is picked by hand or with the sickle, the sickle cuts, a
+  thing is foraged, a fish is landed), `sfx_animal` (an animal is petted, a trough is filled),
+  `sfx_rooster` (a morning) and `sfx_sell` (the morning's summary). The axe has no slot. A
+  slot without a sound is silent.
+* **What a farm saves.** In `flags`: `farm` (`energy`, `held`, `water`, `save_slot`),
+  `farm_field` (one key a field: its worked cells), `farm_bin`, `farm_bed`, `farm_weather`
+  (the seed), `farm_forage` (what was picked today), `farm_fishing` (the number of casts) and
+  `farm_animals` (`herd`, `trough`). Beside them the two optional keys `calendar` and
+  `friendship`.
+* **Texts.** The farm's keys begin with `FARM_` (the weather, the forecast, the date of the
+  HUD, a harvest, a sale, the can, fishing, foraging, the troughs); the names of its maps are
+  `MAP_FARM`, `MAP_FARM_HOUSE`, `MAP_FARM_COOP` and `MAP_FARM_BARN`.
+* **The project tools.** The door check counts the farm of a farm's plan (`farm.map` in
   `rpggen/world_plan.json`) among the maps of the world: a door of it that leads to a spawn
   point the village does not have is `VAL-028` (a warning that *Repair the world* mends), not
   `VAL-017`.
+* **The builder.** `recipes/farm/room_recipe.gd` draws `generated/tilesets/farm_room.tres`, a
+  floor of boards and a plastered wall; the farmhouse and the animal houses of a project
+  without interior tiles are painted with it, not with the grass and the hedge of the maps
+  outside, and no season changes it. This is for new maps: a map that exists is never built
+  again.
 
-* **Foraging** (a farm only, T17.10). `RpgForage` (`archetypes/farm/forage.gd`, the mode's
-  child `Forage`): every morning things of the season lie at some of the places of a map (its
-  markers `Forage/Spot<n>`; for a farm map without markers the cells `spots` of
-  `generated/data/forage.json`) and are picked up with `interact` (`RpgForagePickup`,
-  `archetypes/farm/forage_pickup.gd`, made by `refresh` among the entities of the map). What
-  lies where is not stored: `forage_of(entries, seed, day, season, places)` derives it from
-  the seed of the game (the weather's), the map (`map_seed`), the index of the day and the
-  season, 45 in a hundred places and always at least one. What was picked up today is the flag
-  `farm_forage.picked`. The table is `game/data/forage.json`, then what only
-  `generated/data/forage.json` has (`things`, `fish`, `energy_of`).
-* **Fishing** (a farm only, T17.10). `RpgFarmRod` (`archetypes/farm/tools/rod.gd`, the item
-  `fishing_rod`, 3 energy a cast) casts at a tile whose custom data `water` is true;
-  `RpgFishing` (`archetypes/farm/fishing.gd`, the mode's child `Fishing`) does the rest:
-  `cast(field, cell)` (false with a toast at a well: `water_kind` asks the map's
-  `RpgWaterSource`), a wait of 1 to 4 seconds of the running game that follows from the seed
-  and the number of the cast (`wait_of`; the flag `farm_fishing.casts`), the bite (`bit`, the
-  sound `sfx_bite` when the game has such a slot), then the bar (`RpgFishingBar`,
-  `archetypes/farm/ui/fishing_bar.gd`, on a layer of its own): `mark`, `zone`, `meter`, the
-  zone rising while `use` is held; `caught(item)` when the meter is full, `lost(why)` when it
-  is empty, when the line is pulled in, when nothing bites, when the bag is full and when a new
-  day or another map ends the cast. A cast passes 10 minutes of the calendar and the bar 20
-  more. `fish_for` chooses among the fish of the table that bite in the season, at the time of
-  day (`time_of`) and in the water. `advance(delta)` and `button` are for tests.
-* `RpgFarmMode` has the two parts (`forage`, `fishing`) and the rod among its tools;
-  `food_energy` knows what a fish and a thing to forage restore. `RpgFarmer.fishing` keeps the
-  farmer where it stands while a line is out. `RpgWaterSource.kind` is now read by the game.
-  New texts: `ITEM_FISHING_ROD_NAME`, `ITEM_FISHING_ROD_DESC`, `FARM_FORAGED`,
-  `FARM_FISH_WELL`, `FARM_FISH_PULLED`, `FARM_FISH_NOTHING`, `FARM_FISH_AWAY`,
-  `FARM_FISH_CAUGHT`. New flags of the saved game (no new key): `farm_forage`, `farm_fishing`.
-* **Animals** (T17.07; `archetypes/farm/`). `RpgAnimalHouse` is a part of the mode (its child
-  `Animals`, `RpgFarmMode.animals`; it does nothing in a farm without an animal house). The
-  herd is data in the flags of the game state (`farm_animals.herd`: a row an animal with its
-  kind, name, house, stall, colour variant, friendship, `fed`, `petted` and the product it has
-  `ready`; `farm_animals.trough`: house -> full), so the save has no new key and the night
-  works on animals whose map is not shown. `herd()`, `animal(id)`, `of_house(house)`,
-  `friendship(id)`, `hearts(id)`, `trough_full(house)` are static; `room_in`, `can_buy`, `buy`,
-  `fill_trough`, `feed_with`, `pet`, `take_product`, `touch`, `product_for`, `product_price`,
-  `night`, `is_outside`, `is_night`, `populate`, `show_room`, `show_yard`, `node_of`, `shown`
-  and the signal `changed` are the node's. One portion of the feed in the trough of a house
-  feeds every animal of it for the day; petting gives 15 points once a day; in the night
-  (`on_night`, `NIGHT_ANIMALS`) a fed animal gets its product and 5 points and an unfed one
-  loses 20; from five hearts (of ten, 100 points each) the product is the kind's `large` item.
-  Animals are out in their yard from 6:00 to 18:00 unless `RpgFarmWeather.keeps_animals_in()`,
-  else in their stalls; the nodes of a map are made from the data when it is entered and when
-  the hour or the weather changes the place.
-* `RpgFarmAnimal` extends `RpgActor` (layer 5: found by `interact`, walked through): the node of one animal (`animal_id`, `kind`),
-  which wanders a rectangle (`roam`, with random numbers of its own), sleeps (`sleep`: the
-  `sleep` animation when the sheet has one) and is petted and relieved of its product by
-  `interact`. `RpgFarmTrough` (a `StaticBody2D`, layers 1 and 5, made at `Markers/Trough` by
-  `make`) takes the held feed on `interact`; `RpgAnimalProduct` (an `Area2D`, layer 5) is what
-  lies on the floor of a coop and is picked up by `interact`. `RpgAnimalData` reads
-  `game/data/animals.json`, then `generated/data/animals.json` for the kinds and houses the
-  first does not list.
-* `RpgFarmShop.buy` (new, an override): a row of a stock source that names `deliver` (a callable
-  `func(item_id, qty) -> String`) is paid for and delivered instead of being put into the bag;
-  the animals' rows are such rows, and no other shop has any. `RpgField` has the signal
-  `cleared(cell, what)`, emitted by `clear_obstacle`: cut grass is hay in a farm with animals.
-* **The isometric tile set** (T17.13; the builder only: no script of the runtime changed, and a
-  project that is not isometric is built as it was). A project whose config says `projection:
-  isometric` gets `generated/tilesets/iso.tres` from the tile set recipe through the new
-  `builder/lib/iso_tileset.gd`: Godot's isometric tile shape with the layout *diamond down*
-  (a cell (x, y), x east and y south, has its middle at `((x - y + 1) * w / 2, (x + y + 1) * h
-  / 2)`), the tile size the diamond of the pack (180 x 104, never assumed 2:1), sources that
-  are atlas pictures of single tiles in `generated/iso_atlases/`, and for every tile its
-  texture origin (the middle of its diamond from the middle of its atlas cell), the custom
-  data `asset_id`, `footstep`, `tillable` and `water`, and a collision polygon that is its
-  diamond (a wall) or a profile laid on the diamond. A tile turned four ways is four tiles: an
-  alternative tile of Godot cannot show another picture. `IsoTileset.new(catalog)` answers
-  the map recipes: `tile_for(asset_id, turn)`, `piece_for(pack | tag | role, joins)`,
-  `paint(layer, cell, asset_id, turn)`, `cell_to_local`, `stand(sprite, facets, at)`. The merge
-  rules are the ones of every tile set: no source loses its id and no tile its atlas coords.
-  `RECIPE_VERSION` of the tile set recipe stays 5: its hash has a new key only for an
-  isometric tile set.
-* `CatalogReader.assets()` (and with it `assets_by_role` and every lookup built on them) leaves
-  out what was drawn for the other view (T17.13): nothing whose `projection` is `isometric` in
-  a project that is seen from above or from the side, no sheet of square tiles in an isometric
-  one. No catalog before 1.5 has such an asset, so nothing an older project is built from
-  changes. `asset(id)` still finds any asset by its id.
-* **Isometric maps and actors** (T17.14; `world/iso.gd`, `RpgIso`). The arithmetic of the
-  view, the same as `rpggen/core/iso_math.py` (one table of cases tests both): `cell_to_screen`,
+**The isometric view.**
+
+* **The tile set** (the builder only). A project whose config says `projection: isometric`
+  gets `generated/tilesets/iso.tres` from the tile set recipe through
+  `builder/lib/iso_tileset.gd`: Godot's isometric tile shape with the layout *diamond down* (a
+  cell (x, y), x east and y south, has its middle at `((x - y + 1) * w / 2, (x + y + 1) * h /
+  2)`), the tile size the diamond of the pack (180 x 104, never assumed 2:1), sources that are
+  atlas pictures of single tiles in `generated/iso_atlases/`, and for every tile its texture
+  origin (the middle of its diamond from the middle of its atlas cell), the custom data
+  `asset_id`, `footstep`, `tillable` and `water`, and a collision polygon that is its diamond
+  (a wall) or a profile laid on the diamond. A tile turned four ways is four tiles: an
+  alternative tile of Godot cannot show another picture. `IsoTileset.new(catalog)` answers the
+  map recipes: `tile_for(asset_id, turn)`, `piece_for(pack | tag | role, joins)`,
+  `paint(layer, cell, asset_id, turn)`, `cell_to_local`, `stand(sprite, facets, at)`. The
+  merge rules are the ones of every tile set: no source loses its id and no tile its atlas
+  coords.
+* `CatalogReader.assets()` (and with it `assets_by_role` and every lookup built on them)
+  leaves out what was drawn for the other view: nothing whose `projection` is `isometric` in a
+  project that is seen from above or from the side, no sheet of square tiles in an isometric
+  one. No catalog before 1.5 has such an asset. `asset(id)` still finds any asset by its id.
+* **`RpgIso`** (`world/iso.gd`): the arithmetic of the view, the same as
+  `rpggen/core/iso_math.py` (one table of cases tests both): `cell_to_screen`,
   `screen_to_cell`, `grid_point`, `depth` (the sort key of a cell: the y of its middle),
   `diamond`, `neighbours` and `step` (n the upper right, e the lower right, s the lower left, w
   the upper left), `unit` (the length of one step in px), `side_of`, `faced_side` and
   `faced_cell`, `pad_vector` and `pad_side`, `bounds`, and `sort_keys` / `in_front` for a thing
   that stands on several cells. And what asks a map, for squares and diamonds alike:
   `footprint_of(map)` (zero on squares), `map_unit`, `cell_at`, `cell_position`, `cell_ahead`,
-  `move_vector`, `reach_dir`, `used_rect`, `controls()`. A map of squares is answered with the
-  arithmetic of squares.
+  `move_vector`, `reach_dir`, `used_rect`, `controls()`.
 * On an isometric map `RpgUtil.map_tile_px(map)` is `RpgIso.unit` of its diamond (34 for 60 x
   34), not the width of the diamond: what a reach, a spacing or the step counter of the random
   encounters means by a tile there. On every other map it is what it was.
-* `RpgActor` has `look()` (the last direction of travel), `map_node()`, `map_cell()` and
-  `cell_ahead()`: the cell an actor stands on and the one it faces, asked of the map. On an
-  isometric map the cell ahead is the neighbour the actor last walked towards, else the one
-  its facing names (up n, right e, down s, left w).
-* `RpgPlayerInput.pad(input)`: on an isometric map whose project says `iso_controls: grid`
+* **Actors.** On an isometric map the cell ahead of an actor (`RpgActor.cell_ahead()`) is the
+  neighbour it last walked towards, else the one its facing names (up n, right e, down s, left
+  w). `RpgPlayerInput.pad(input)`: on an isometric map whose project says `iso_controls: grid`
   (the project setting `rpg/iso_controls`, written by the builder for an isometric project
   only) the four directions of the pad follow the axes of the diamond, and `RpgInteraction`
   reaches towards the neighbour the player faces. With the default (`screen`) and on every map
-  of squares the pad is the screen, as before. The facing of an actor is still one of four, by
-  where it goes on the screen; a sheet with diagonal animations shows them along the axes.
+  of squares the pad is the screen. The facing of an actor is still one of four, by where it
+  goes on the screen; a sheet with diagonal animations shows them along the axes.
 * `RpgMapRoot.used_rect_px()` (the limits of the camera) is the rectangle around the painted
   diamonds of an isometric map. `RpgMinimapData.cell_at` finds the cell of a position by the
   diamond for a minimap whose texture has the metadata `isometric`: the minimap of an
   isometric map is its plan from above, a pixel a cell, like every other.
-* The builder (T17.14). `builder/lib/map_geo.gd` (`MapGeo`) is the seam between a plan of cells
-  and the px of a map: `center`, `foot`, `bottom`, `step`, `cell_shape`, `cells_outline`,
+* **The builder.** `builder/lib/map_geo.gd` (`MapGeo`) is the seam between a plan of cells and
+  the px of a map: `center`, `foot`, `bottom`, `step`, `cell_shape`, `cells_outline`,
   `gate_position`, `building_info`, `building_position`, `find_tile`, `tile_of_asset`,
   `nth_tile_with_role`, `other_tiles`, `wall_tile`, `paint_joined` / `paint_runs` /
-  `fill_joined`, `paint_walls`, `border_collision`, `add_exit_door`, and the static
-  `tile_unit(ctx)`. The starter map, the interiors, the field, the areas of a world, the doors
-  and gates of a world plan, the actors and the object scenes take every position, shape and
-  tile through it; for a project seen from above it calls what they called before, with the
-  same numbers. For `projection: isometric` the maps are painted on `iso.tres`: ground from
+  `fill_joined`, `paint_sides`, `paint_walls`, `border_collision`, `add_exit_door`, and the
+  static `tile_unit(ctx)`. The starter map, the interiors, the field, the areas of a world, the
+  doors and gates of a world plan, the actors and the object scenes take every position, shape
+  and tile through it; for a project seen from above it calls what they called before, with
+  the same numbers. For `projection: isometric` the maps are painted on `iso.tres`: ground from
   the flat `GROUND` tiles (patches of the others by the seed), roads, water and walls from the
   pieces whose `joins` fit (`IsoTileset.nearest_piece`: the piece with the fewest wrong sides
   and one note a map when none fits exactly; the plain tile when none names its sides), a wall
   that rises on the Y-sorted `Props` layer, an invisible diamond a cell where the packs have no
-  wall. An isometric object stands on the middle of its diamond and blocks the cells it stands
-  on; one of several cells is drawn in two halves that sort apart (`Sprite`, `SpriteRight`,
-  the root `y_sort_enabled`); the `Entrance` of a building is a band along its south side and
-  its `ExitSpawn` the middle of the door cell. `RECIPE_VERSION` of no recipe moved: the hashes
-  of the map recipes and of the project settings have new keys (`iso`, `iso_v`,
-  `iso_controls`) only in an isometric project, so nothing of a project seen from above is
-  built again.
-* `builder/smoke/smoke_map.gd`: what a smoke step asks the map instead of the screen (`cells`,
-  `pad_toward`, `walk_toward`). The steps `collision_blocks`, `enter_building`,
-  `exit_building`, `decor_blocks`, `walk_to_field`, `return_from_field`, `world_doors` and
-  `encounter_start` walk to a place through it; on a map of squares they hold the key they
-  always held. The steps that talk to somebody or open something stand as far from it as the
-  player's interaction reaches (9 px with tiles of 16 px, as before), and `followers_trail`
-  walks at least a tile and a quarter (80 px, as before, up to a tile of 64 px).
+  wall. Roads, and the two far sides of a wall, are laid in the place of the ground of their
+  cells (`road_layer`): laid over it, the earth under a tile showed as a dark kerb along every
+  path and a footing along the far walls. An isometric object stands on the middle of its
+  diamond and blocks the cells it stands on; one of several cells is drawn in two halves that
+  sort apart (`Sprite`, `SpriteRight`, the root `y_sort_enabled`); the `Entrance` of a
+  building is a band along its south side and its `ExitSpawn` the middle of the door cell.
 * The text of the menus of an isometric project follows the config's `base_tile_size`, not the
   diamond (`theme_recipe.gd`), and the player's camera is drawn back when fewer than eight
   diamonds would fit across the screen (`MapGeo.camera_zoom`: 180 px diamonds on a screen of
   640 px are shown at 0.44).
-* **The farm in the isometric view** (T17.14). The plan of a farm is a grid of cells in both
-  views and a save has the same shape; what follows is how the game and the builder turn its
-  cells into places on diamonds. Nothing of a farm seen from above changes.
-  * `RpgField` asks its `Soil` layer for cells and places as before, so a layer of diamonds
-    carries over. New: `footprint()` (the diamond of its cells, zero on squares) and
-    `foot_of(cell)` (where a thing of a cell stands: a px above the lower edge of a square, the
-    middle of a diamond; crops are put there). `tile_px` is `RpgIso.unit` of the diamond on an
-    isometric layer.
+* **The farm on diamonds.** The plan of a farm is a grid of cells in both views and a save has
+  the same shape. Nothing of a farm seen from above changes.
+  * `RpgField` asks its `Soil` layer for cells and places, so a layer of diamonds carries
+    over. `footprint()` (the diamond of its cells, zero on squares) and `foot_of(cell)` (where
+    a thing of a cell stands: a px above the lower edge of a square, the middle of a diamond;
+    crops are put there). `tile_px` is `RpgIso.unit` of the diamond on an isometric layer.
   * `RpgFarmer.tile_ahead()` is the neighbour the farmer faces on diamonds
-    (`RpgIso.faced_cell`, what `RpgActor.cell_ahead()` answers), with either setting of
-    `iso_controls`; on squares it is what it was. New: `diamond()`, and `face_cell(cell)`,
-    which turns the farmer to a cell beside its own (the facing on squares; the facing and
-    where it looks on diamonds). The `TileFrame` takes the shape of the field's diamond when
-    the map has one, and keeps its width on the screen when the camera is drawn back. Without a field on a map of diamonds (the farmhouse) `cell()` asks the map.
-  * `RpgFarmAnimal.roam_cells(layer, cells, inset)`: an animal wanders over cells of a layer
-    of diamonds (`roaming_cells()`), where `roam(rect)` takes a rectangle of the screen.
-    `RpgAnimalHouse` uses it for a yard of an isometric farm and puts the trough, the animals
-    and what they leave on the middle of their cells.
-  * `RpgFarmTrough.make`, `RpgForagePickup.make` and `RpgAnimalProduct.make` take the diamond
-    of the map as a last, optional argument: the thing then lies on the middle of its cell and
-    its shape is that diamond (the trough a box on it).
-  * `archetypes/farm/farm_iso.gd` (`RpgFarmIso`): the diamond of a cell as points and as a
-    shape, `box` / `box_faces` (a box on a diamond: three `Polygon2D`, the south face, the
-    east face in shade, the top), `halves` / `add_face` / `add_box` (a thing of several cells
-    drawn in two halves that sort apart, as an isometric object of the packs is), `clip_x`,
-    and `grid_of` / `world_of` (a place of the world in the grid of a layer of diamonds).
-  * The builder. The farm's recipes take every position and every shape through `MapGeo`:
-    `farm_map_recipe.gd` (the farm and the rooms; `farm_root` and `room_root` give the nodes
-    of a map before it is saved), `home_recipe.gd`, `field_recipe.gd`, `crop_recipes.gd`,
-    `forage_recipe.gd` (`add_places(root, geo)`), `hud_recipe.gd` (the sign) and
-    `people_recipes.gd` (the village's door, the places and the people). For an isometric
-    farm: `farm_soil.tres` is an isometric tile set of the project's footprint whose five
-    tiles are drawn as diamonds (`FarmBuild.iso_soil_texture`), with the flat isometric tile
-    a pack tagged `soil` or `watered` as its source 1 or 2 when it has one
-    (`FarmBuild.iso_soil_asset`); a building of the packs
-    stands on the plan's footprint with its door before the plan's door cell
-    (`iso_building_offset`), else the building is a drawn box with a roof whose door is a band
-    along its south side; fences join the pieces beside them; the bin, the bed, the well,
-    trees and scenery are isometric pictures of the packs (one cell, by the same words) or
-    boxes on their diamond; what blocks blocks its diamond. `FarmBuild.tile` is one step on
-    the diamonds. `RECIPE_VERSION` of no recipe moved: the hashes have new keys (`iso`,
-    `iso_v`) only in an isometric project.
-  * `builder/smoke/smoke_steps_farm.gd` asks the map: walks through doors go to the door
-    (`SmokeMap.walk_toward`), the farmer is turned to the cell it works on (`face_cell`),
-    stands where its interaction reaches (`RpgIso.reach_dir`), and a yard is its cells. On a
-    farm of squares every step does what it did.
-* **The isometric race** (T17.15). A race is driven on the flat plan of its track whatever
-  the view: the position, the heading and the velocity of a car, the barriers, the checkpoints,
-  the waypoints, the pickups and the weapons are the plan's, and `RpgCarPhysics`, `RpgRace`,
+    (`RpgIso.faced_cell`), with either setting of `iso_controls`. `diamond()`, and
+    `face_cell(cell)`, which turns the farmer to a cell beside its own. The `TileFrame` takes
+    the shape of the field's diamond and keeps its width on the screen when the camera is
+    drawn back.
+  * `RpgAnimalHouse` puts the trough, the animals and what they leave on the middle of their
+    cells; `RpgFarmTrough.make`, `RpgForagePickup.make` and `RpgAnimalProduct.make` take the
+    diamond of the map as a last, optional argument.
+  * `farm_iso.gd` (`RpgFarmIso`): the diamond of a cell as points and as a shape, `box` /
+    `box_faces` (a box on a diamond: three `Polygon2D`), `halves` / `add_face` / `add_box` (a
+    thing of several cells drawn in two halves that sort apart), `clip_x`, and `grid_of` /
+    `world_of`.
+  * The builder: `farm_soil.tres` of an isometric farm is an isometric tile set of the
+    project's footprint whose five tiles are drawn as diamonds, with the flat isometric tile a
+    pack tagged `soil` or `watered` as its source 1 or 2 when it has one; a building of the
+    packs stands on the plan's footprint with its door before the plan's door cell, and the
+    cells of the footprint it does not stand on are blocked (`<Building>Ground`), else the
+    building is a drawn box with a roof; fences join the pieces beside them; the bin, the bed,
+    the well, trees and scenery are isometric pictures of the packs (one cell, by the same
+    words) or boxes on their diamond; what blocks blocks its diamond.
+* **The race on diamonds.** A race is driven on the flat plan of its track whatever the view:
+  the position, the heading and the velocity of a car, the barriers, the checkpoints, the
+  waypoints, the pickups and the weapons are the plan's, and `RpgCarPhysics`, `RpgRace`,
   `RpgRival`, `RpgRaceCheckpoint` and `RpgTrackSurfaces` are unchanged (a rival drives the
   same lap in both views, step for step). Only what is drawn is elsewhere.
-  * `RpgRaceView` (`archetypes/racing/race_view.gd`, new): the child `View` of a track that is
+  * `RpgRaceView` (`archetypes/racing/race_view.gd`): the child `View` of a track that is
     painted on diamonds; a track seen from above has none. `footprint`, `cell_px`, `origin`;
     `to_screen`, `to_plan`, `screen_vector`, `plan_vector`, `screen_heading`, `plan_heading`,
-    `scale_px`, `depth`, `screen_rect`, `screen_corners`, on `RpgIso`'s grid; `RpgRaceView.of(node)`
-    finds it from anything of the track (null from above).
-  * `RpgCar`: `view()`, `shown_position()`, `shown_heading()`, `shown_forward()`: where the car
-    is drawn and which way it points on the screen (its own place and heading from above). On
-    a track with a view its `Visual` is moved to that place, takes the row of diamonds as its
-    `z_index`, and shows the heading as it is seen; with `absolute_steering` the stick is a
-    direction of the screen. From above the car does what it did.
+    `scale_px`, `depth`, `screen_rect`, `screen_corners`; `RpgRaceView.of(node)` finds it from
+    anything of the track (null from above).
+  * `RpgCar`: `view()`, `shown_position()`, `shown_heading()`, `shown_forward()`: where the
+    car is drawn and which way it points on the screen. On a track with a view its `Visual` is
+    moved to that place, takes the row of diamonds as its `z_index`, and shows the heading as
+    it is seen; with `absolute_steering` the stick is a direction of the screen.
   * `RpgHeadingSprite` is given the heading on the screen. A car in eight headings as eight
     files (`car_N.png` to `car_NW.png`, N up on the screen, then clockwise) shows `SE` when it
     heads east in the plan; a sheet drawn from straight above is shown the same way and looks
-    flat; one picture is turned. Eight headings turn in steps of 45 degrees.
-  * `RpgRaceCamera`: follows where the car is drawn (`target_position()`) and leads it the way
-    it moves on the screen; `base_zoom` (1 by default: nothing changes from above) is the zoom
-    over a car that stands, and a fixed camera never comes nearer than that.
-  * `RpgRacePickup` and `RpgRaceWeapon` keep their place in the plan and draw themselves where
+    flat; one picture is turned.
+  * `RpgRaceCamera` follows where the car is drawn (`target_position()`) and leads it the way
+    it moves on the screen; `base_zoom` (1 by default) is the zoom over a car that stands.
+    `RpgRacePickup` and `RpgRaceWeapon` keep their place in the plan and draw themselves where
     the view has it (`shown_position()`).
   * The builder: `recipes/racing/iso_track.gd` builds the track of an isometric project (the
     ground on `iso.tres`, the road from the road pieces of the packs along the loop or drawn,
     the marks, the walls and the scenery on the diamonds; the barriers, the cars, the pickups
-    and the race in the plan); `MapGeo.paint_sides` lays pieces whose sides are known;
-    `RaceBuild.scale_for` chooses the scale for the picture of the car. The hashes of the
-    racing recipes have a key more only in an isometric project, and a race seen from above
-    is built byte for byte as before.
-  * `builder/smoke/smoke_steps_racing.gd` asks the car where it is drawn in the three places
-    that are about the picture (the car is on the screen, the frame of its picture, the
-    camera ahead of it), and holds the arrows of absolute steering the way the waypoint is
-    seen. Everything else already asked the plan.
-* **The tests of the milestone and nine faults (T17.18).**
-  * `debug/smoke_runner.gd`: a smoke run that is given a name (`--rpg-smoke-run=<id>`, the
-    generator's run id) saves into `user://smoke_saves_<id>`, emptied before the first step and
-    removed after the last (`save_dir()`, `save_dir_for(args)`, `clear_saves(dir)`). Godot keeps
-    `user://` by the project's name, so two smoke runs of projects of one name at one time read
-    and replaced each other's saves. A run without a name saves where every run did. Nothing of
-    a game that is played changes: the runner is inert without `--rpg-smoke`.
-  * `builder/smoke/*.gd`: every steps script asks the runner for the folder; the farm's
-    sequence ends with `save_and_load` (the game is saved, a night passes and the field, the
-    money, the bag, the energy, a friendship and the herd are changed, the game is loaded, and
-    the field is compared cell by cell with the date and the rest); the action RPG's steps ask
-    the bodies how far a swing reaches (`_strike_gap`), not the tile.
-  * `builder/validate.gd`: the copy of a map for the round trip carries the process's id.
-  * `builder/lib/map_geo.gd`: on diamonds the roads of a map are laid in the place of the
-    ground of their cells (`road_layer`), and so are the two far sides of its wall
-    (`paint_walls`), which keep their diamonds as unseen shapes: the earth under a tile laid
-    over the ground showed as a dark kerb along every path and a brown footing along the far
-    walls. A map seen from above is painted byte for byte as before.
-  * `builder/recipes/farm/room_recipe.gd` (new) draws `generated/tilesets/farm_room.tres`, a
-    floor of boards and a plastered wall; the farmhouse and the animal houses of a project
-    without interior tiles are painted with it instead of the grass and the hedge of the maps
-    outside, and no season changes it. `farm_map_recipe.gd` blocks the cells of a planned
-    footprint that a smaller isometric building of the packs does not stand on
-    (`<Building>Ground`). Both are for new maps: a map that exists is never built again.
+    and the race in the plan); `RaceBuild.scale_for` chooses the scale for the picture of the
+    car.
+
+**The smoke runner and the smoke steps.**
+
+* `debug/smoke_runner.gd`: a smoke run that is given a name (`--rpg-smoke-run=<id>`, the
+  generator's run id) saves into `user://smoke_saves_<id>`, emptied before the first step and
+  removed after the last (`save_dir()`, `save_dir_for(args)`, `clear_saves(dir)`). Godot keeps
+  `user://` by the project's name, so two smoke runs of projects of one name at one time read
+  and replaced each other's saves. A run without a name saves where every run did. Nothing of
+  a game that is played changes: the runner is inert without `--rpg-smoke`.
+* `builder/smoke/*.gd`: every steps script asks the runner for the folder.
+  `builder/smoke/smoke_map.gd` is what a step asks the map instead of the screen (`cells`,
+  `pad_toward`, `walk_toward`): the steps `collision_blocks`, `enter_building`,
+  `exit_building`, `decor_blocks`, `walk_to_field`, `return_from_field`, `world_doors` and
+  `encounter_start` walk to a place through it, and on a map of squares they hold the key they
+  always held. The steps that talk to somebody or open something stand as far from it as the
+  player's interaction reaches (9 px with tiles of 16 px, as before); the action RPG's steps
+  ask the bodies how far a swing reaches, not the tile; the racing steps ask the car where it
+  is drawn in the three places that are about the picture.
+* `keys_and_switches` puts its locked gate and its lever where nothing else answers
+  `interact` (the place it always used, when that is free): in a farm's village somebody may be
+  at home exactly there, and the farmer talked to them and the gate stayed shut.
+* The farm's own sequence (`smoke_steps_farm.gd`) runs the shared top-down steps in the
+  village between its own and ends with `save_and_load`: the game is saved, a night passes and
+  the field, the money, the bag, the energy, a friendship and the herd are changed, the game
+  is loaded, and the field is compared cell by cell with the date and the rest.
+* `builder/validate.gd`: the copy of a map for the round trip carries the process's id.
 
 ## 1.4.0
 

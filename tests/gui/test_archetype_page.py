@@ -338,8 +338,8 @@ def _farm_on(monkeypatch, farm: bool = True, isometric: bool = True) -> None:
     monkeypatch.setattr(features, "ISOMETRIC_AVAILABLE", isometric)
 
 
-def test_the_farm_and_the_isometric_view_stay_behind_their_flags_until_the_gate() -> None:
-    assert features.FARM_AVAILABLE is False and features.ISOMETRIC_AVAILABLE is False
+def test_the_farm_and_the_isometric_view_are_on_since_the_gate_of_1_5() -> None:
+    assert features.FARM_AVAILABLE and features.ISOMETRIC_AVAILABLE
 
 
 def test_the_farm_can_be_chosen_with_its_flag_on_and_what_follows_it(qtbot, monkeypatch) -> None:

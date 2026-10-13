@@ -5,6 +5,7 @@ extends RpgFarmTool
 func _init() -> void:
 	id = &"sickle"
 	animation = "sickle"
+	sound = RpgFarmSounds.HARVEST
 	acts_on = [RpgField.RIPE, RpgField.WITHERED]
 	clears = ["grass"]
 

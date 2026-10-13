@@ -38,7 +38,7 @@ rows (T14.13), below.
 | M14 Metroidvania (1.2.0) | The third archetype (below) | On the branch `m14` (not part of 1.0 or 1.1): every card is implemented; the manual rows of the gate (T14.13) are open. It was built before the 1.1 tag existed, on top of `m13` |
 | M15 Look, feel and ease of use (1.3.0) | A design system (tokens, one stylesheet, button kinds, icons, cards, a stepper sidebar, page headers), every page and dialog restyled, the Generate log without escape codes, actionable failures, a regeneration that skips what did not change, visual goldens (`docs/spec/M15_ui_polish.md`) | On the branch `m15` (on top of `main`, which holds M14): every card is implemented; the gate (T15.25) is open, below |
 | M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; a bundle of packs added folder by folder (`docs/spec/M16_arcade_archetypes.md`) | Merged into `main` on 2026-10-12 (`b610f90`, with M15 under it): every card but the gate is implemented and the three kinds are switched on. The gate (T16.20) is open, below |
-| M17 Farm and isometric (1.5.0) | A farm and life sim, the seventh kind, and isometric tiles as a second view of the top-down kinds and the racing game (`docs/spec/M17_farm_isometric.md`) | On the branch `m17`, begun 2026-10-12 before the 1.4 tag. T17.01 to T17.15 are implemented: the farm (behind `FARM_AVAILABLE`) and the isometric view of the turn-based game, the action RPG, the farm and the racing game (behind `ISOMETRIC_AVAILABLE`), both from the command line only. Nobody has played either; what is known is what tests, smoke runs and a few rendered pictures show, and the pictures of real packs show faults (the notes). Open: the wizard, the two samples, the smoke and integration card, documentation and the gate (T17.16 to T17.20) |
+| M17 Farm and isometric (1.5.0) | A farm and life sim, the seventh kind, and isometric tiles as a second view of the top-down kinds and the racing game (`docs/spec/M17_farm_isometric.md`) | On the branch `m17`, begun 2026-10-12 before the 1.4 tag: every card but the gate is implemented (T17.01 to T17.19) and both are switched on in the wizard (`FARM_AVAILABLE`, `ISOMETRIC_AVAILABLE`), with their two samples. Nobody has played either. The gate (T17.20) is open, below |
 
 ## M12 in detail
 
@@ -84,7 +84,7 @@ T12.66 (the gate) is open; see below.
 
 ## After 1.0: M13 and M14
 
-**M15** (the look, feel and ease of use, release 1.3.0, `docs/spec/M15_ui_polish.md`) is implemented on the branch `m15`; what its gate still needs is under *What is left before 1.3.0*. **M16** (three more kinds of game, release 1.4.0, `docs/spec/M16_arcade_archetypes.md`) is implemented and merged into `main`; what its gate still needs is under *What is left before 1.4.0*. **M17** (a farm and life sim, and isometric tiles, release 1.5.0, `docs/spec/M17_farm_isometric.md`) is specified and not started.
+**M15** (the look, feel and ease of use, release 1.3.0, `docs/spec/M15_ui_polish.md`) is implemented on the branch `m15`; what its gate still needs is under *What is left before 1.3.0*. **M16** (three more kinds of game, release 1.4.0, `docs/spec/M16_arcade_archetypes.md`) is implemented and merged into `main`; what its gate still needs is under *What is left before 1.4.0*. **M17** (a farm and life sim, and isometric tiles, release 1.5.0, `docs/spec/M17_farm_isometric.md`) is implemented on the branch `m17` and switched on in the wizard; what its gate still needs is under *What is left before 1.5.0*.
 
 Planned on 2026-10-08 from the second review. Neither blocks the 1.0 tag: 1.0 ships from M12, M13
 is release 1.1.0 (`docs/spec/M13_polish.md`) and M14 is release 1.2.0
@@ -168,6 +168,60 @@ M13 (release 1.1.0), so the list is empty on the branch `m13`; `main` (1.0) stil
 sell one item at a time, every house leads to the same interior, the validator does not check the
 ids a dialogue names, Zstandard map layers are not read, the action RPG has no followers, and the
 sound slots are a fixed list.
+
+## What is left before 1.5.0
+
+The cards T17.01 to T17.19 are implemented on the branch `m17` (2026-10-13); the detail, with
+every deviation from the spec, is in [the notes](dev/implementation_notes.md). What a reader
+should know:
+
+* **Nobody has played the farm or an isometric game by hand.** What is known of them is what
+  their unit tests and their smoke sequences assert, and a handful of pictures. The length of
+  a day, the prices, the energy and the feel of the tile ahead are untuned; natural weather and
+  the swap of the ground with the season ran in unit tests only.
+* **What the pictures of real packs showed** (the isometric packs of Kenney, CC0, on the
+  owner's machine; none is in the repository): *Medieval Town* with *Nature* passes the shared
+  sequence, with thin dark lines along diamond edges when the camera is drawn back, no house
+  (no building of the pack has the role) and no walls painted though the catalog has 60, causes
+  not found. *Miniature Farm* passes the farm's whole sequence, with an interaction prompt too
+  small to read and a drawn hero too large on its 256 px diamonds. *Vector Roads Base* with
+  *Tiles Vehicles* looks like an isometric racer, but a car is seen on the verge at the
+  outside of a corner (the pack's corner is round, the plan's square) and some sedans are
+  catalogued as decoration. Of the 23 packs, the 480 civilian cars of *Tiles Vehicles*, *Tiles
+  Buildings* (measured at 99 x 50, probably 132 x 66) and the characters of two *Miniature*
+  packs are read wrongly or not at all. *Super Retro Ranch*, the farming pack, was never
+  opened (its licence): its fence and 2 x 2 sheets were not run through the readers.
+* **Not built.** The maps added to a farm (`added_maps` are names kept with the plan); a cave
+  and combat on a farm (the feature is hidden for the kind); the editor dock and imported maps
+  on diamonds (both count squares); terrains on a diamond's sides; height (a raised ground
+  block does not block); the farmer's tool strips of a pack (set aside, not played); *working
+  at zero energy ends the day*; a pail; a naming screen for animals; an isometric car and
+  isometric people for a race; the diamond picture of an isometric race on the Options page
+  (it is shown from above). Marriage, festivals, cooking and crafting are left out by design
+  (Part E of the spec).
+* **Faults that are known and left.** A slime in a folder of characters is read as an NPC
+  without the sample's profile. The *Pad* choice is shown for an isometric race, which does
+  not use it. The reason under a *View* choice that cannot be isometric is the command line's
+  sentence (it names `GROUND` and `top_down`). The first paragraph of a generated README says
+  *a farm RPG starter* and *a racing RPG starter*. A coop on a pack that has only cows stays
+  empty. With a calendar the outdoor light follows it whatever the player's *Day and night*
+  setting says. A walking villager does not avoid the player. The second choice of a dialogue
+  is cut off at the bottom of the window in the picture of *Stone isle* (`game_isometric.png`);
+  whether that is the isometric project's alone was not looked into.
+* The French file has the new wizard texts of M17 unfinished.
+
+The gate (T17.20) is open:
+
+| Item | What to do |
+|------|------------|
+| The flags | Done on 2026-10-13: `FARM_AVAILABLE` and `ISOMETRIC_AVAILABLE` are on; the wizard offers seven kinds, seven samples and the *View* choice. |
+| Local suites | Done on 2026-10-13, on Windows only: lint, format, types, unit and GUI with the slow tests, GDScript, integration and perf (the numbers are in the notes). |
+| CI | **Not run at all on `m17`**: no job has run on Ubuntu or on either PySide6 leg, and the two new jobs (`farm`, `isometric`) have never run anywhere but as local test runs. M16's first CI run needed four attempts for what local runs on Windows had not shown. |
+| Frozen smoke test | `python tools/package.py --smoke` on the three systems: the two samples and the drawn kits must be in the bundle. Not done. |
+| Upgrade test | Over a 1.0, 1.1, 1.2, 1.3 and 1.4 project of each older kind: no prompt, nothing under `game/` changes, byte-identical TileSets and sprite frames. Not done. (One top-down sample was built before and after the last change to shared code and compared: tile sets, maps, scenes, catalog and build state are the same but for the ids Godot gives nodes.) |
+| Corpus | The private corpus (T12.26) unchanged on all four measures. It is not on the development machine. |
+| Manual rows | By the owner: *Green acre* through a season with a gamepad; *Stone isle* as a turn-based game and as an action RPG with both pad settings; *Dirt cup* in the isometric view with the cars of *Tiles Vehicles*; a farm from *Super Retro Ranch* and from a plain RPG pack; an isometric game from *Medieval Town*, *Nature* and *Modular Roads* together and an isometric farm from *Miniature Farm*; a 300-asset farming pack through the audit. None is done. |
+| The tag | `v1.5.0` is not made, and will not be until this gate and the gates before it are closed (the owner's decision). The versions in `pyproject.toml`, `rpggen/__init__.py` and the runtime's `VERSION` are still 1.2.0. **No tag exists for any release**, here or on GitHub. |
 
 ## What is left before 1.4.0
 

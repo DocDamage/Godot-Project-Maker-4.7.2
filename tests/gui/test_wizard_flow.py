@@ -344,7 +344,7 @@ def test_a_sample_path_of_m17_generates_a_project_that_passes_its_smoke_test(
     the project it makes has its kind and its view, passed its smoke sequence (the farm its
     own, to the save and the load at its end; the isometric one the shared and the turn-based
     steps as they are) and is shown on the Results page without an error. The farm and the
-    view are behind their feature flags until the gate (T17.20): the flags are turned on here.
+    view have their feature flags, on since the gate of 1.5 (T17.20) and set here all the same.
     Each walk runs in the CI job of its marker (`-m "integration and farm"`, `... isometric`)."""
     from rpggen import features, jsonio
 

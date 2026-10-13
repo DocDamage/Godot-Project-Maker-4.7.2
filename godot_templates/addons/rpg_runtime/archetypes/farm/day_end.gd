@@ -145,6 +145,7 @@ func _on_morning(_day: int) -> void:
 			state.gold -= money_lost
 	elif energy != null:
 		energy.fill()
+	RpgFarmSounds.play(RpgFarmSounds.ROOSTER)
 	_finish_morning(how)
 
 ## What follows the night, in its order: the farmer is at the bed, the game is saved, the

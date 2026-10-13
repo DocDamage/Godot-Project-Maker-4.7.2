@@ -330,12 +330,16 @@ def test_the_ranch_gets_its_roles_and_keeps_what_it_has(tmp_path: Path) -> None:
     assert [a.id for a in grass if not mapping._later_season(a)] == [
         "ranch.tiles.spring.grass_16x16"
     ]
-    for asset in cat.assets:  # with the soil sheets out of the way it is the ground
-        if ".autotiles." in asset.id:
-            asset.status = "UNUSED"
+    # and it is the ground a map is offered: the soil sheets, which the reader is surer of, are
+    # the field's, and the ground only of a pack that has no other
     assert mapping.best_for(cat, "GROUND") == "ranch.tiles.spring.grass_16x16"
+    assert mapping.default_starter(cat, "farm")["ground"] == "ranch.tiles.spring.grass_16x16"
     for asset in cat.assets:
-        if ".autotiles." in asset.id:
+        if ".tiles." in asset.id:
+            asset.status = "UNUSED"
+    assert mapping.best_for(cat, "GROUND") == "ranch.autotiles.n01_soil_tilled"
+    for asset in cat.assets:
+        if ".tiles." in asset.id:
             asset.status = "NEEDS_REVIEW"
     assert farm_kit.growing(cat) == 4 and [a.id for a in farm_kit.to_grow(cat)] == [
         "ranch.crops.pumpkin_16x16"

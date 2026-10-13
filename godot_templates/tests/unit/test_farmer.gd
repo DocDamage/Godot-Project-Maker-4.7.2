@@ -414,6 +414,43 @@ func test_use_harvests_a_ripe_crop_whatever_is_held(t) -> void:
 	t.eq(mode.energy.value, energy, "picking costs nothing")
 	_cleanup()
 
+func test_the_work_of_the_farm_asks_for_its_sound_slots(t) -> void:
+	var map := _map()
+	var farm := _farm(map)
+	var farmer: RpgFarmer = farm["farmer"]
+	var mode: RpgFarmMode = farm["mode"]
+	var field: RpgField = map["field"]
+	var before := RpgFarmSounds.count
+	mode.hotbar.hold_item(&"hoe")
+	t.ok(_use(farmer))
+	t.eq(RpgFarmSounds.last, &"sfx_hoe", "tilling")
+	t.ok(not _use(farmer), "a use that changes nothing")
+	t.eq(RpgFarmSounds.count, before + 1, "is silent")
+	mode.hotbar.hold_item(&"seed_corn")
+	t.ok(_use(farmer))
+	t.eq(RpgFarmSounds.last, &"sfx_plant", "planting")
+	mode.hotbar.hold_item(&"watering_can")
+	t.ok(_use(farmer))
+	t.eq(RpgFarmSounds.last, &"sfx_water", "watering")
+	field.cells[Vector2i(3, 2)]["grown"] = 3
+	mode.hotbar.hold_item(&"sickle")
+	t.ok(_use(farmer))
+	t.eq(RpgFarmSounds.last, &"sfx_harvest", "the sickle on a ripe crop")
+	t.eq(RpgFarmSounds.count, before + 4, "is one sound: the harvest's, not the tool's as well")
+	field.plant(Vector2i(3, 2), "corn")
+	field.cells[Vector2i(3, 2)]["grown"] = 3
+	mode.hotbar.hold_item(&"hoe")
+	t.ok(_use(farmer), "picked by hand")
+	t.eq(RpgFarmSounds.last, &"sfx_harvest")
+	t.eq(RpgFarmSounds.count, before + 5)
+	mode.hotbar.hold_item(&"farm_axe")
+	var stump := _clearable(map, "stump", Vector2i(4, 2))
+	_stand(farmer, Vector2i(4, 1), "down")
+	t.ok(_use(farmer), "the axe clears the stump")
+	t.ok(not is_instance_valid(stump) or stump.is_queued_for_deletion())
+	t.eq(RpgFarmSounds.count, before + 5, "and has no slot of its own")
+	_cleanup()
+
 # ---------------------------------------------------------------- the mode
 
 func test_a_mode_that_is_only_made_has_no_parts_and_one_that_is_ready_has_the_calendar(t) -> void:

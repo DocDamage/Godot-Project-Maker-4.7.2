@@ -59,7 +59,7 @@ def test_the_config_of_a_farm_is_valid_and_its_map_is_the_top_down_one() -> None
     for kind in ("orchard",):
         with pytest.raises(Exception):  # noqa: B017, PT011
             schema.validate("config", {**data, "archetype": kind})
-    assert features.FARM_AVAILABLE is False, "the wizard does not offer it until its gate"
+    assert features.FARM_AVAILABLE is True, "the wizard offers it since the gate of 1.5"
     assert "farm" in staging.ARCHETYPES
 
 

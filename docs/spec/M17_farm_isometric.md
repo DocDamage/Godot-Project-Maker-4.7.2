@@ -10,7 +10,11 @@ documentation and the gate. Part E keeps the kinds that were not chosen, for a l
 This file follows the format of M01–M16. It was written against `main` at `b610f90` (M16
 merged, its gate open, no release tagged) on 2026-10-12. The farm's cards (T17.01 to T17.11)
 and the isometric cards (T17.12 to T17.15) were implemented on the branch `m17` on that day
-and the next; Part D (the wizard, the samples, the tests, the documentation, the gate) is open.
+and the next, and Part D (the wizard, the samples, the tests, the documentation) on
+2026-10-13. Every card but the gate is implemented and both flags are on; the gate (T17.20)
+is open: nobody has played either, CI has not run on `m17`, and nothing is tagged. Where
+what was built differs from a card below, the notes (`docs/dev/implementation_notes.md`) say
+so and the index names it.
 This milestone starts after `v1.4.0` is tagged and ends with `v1.5.0`. Nothing in it changes
 an existing kind unless its project turns the isometric option on: a 1.0–1.4 project
 regenerates with 1.5 without a prompt.
@@ -151,11 +155,11 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.13 | The isometric TileSet | L | T17.12 | done; a raised ground block does not block, and no isometric terrain is read (the notes) |
 | T17.14 | Isometric maps and actors | XL | T17.13 | done for the turn-based game, the action RPG and the farm; imported maps and the editor dock count squares, and real packs show faults whose causes were not found (the notes) |
 | T17.15 | Isometric racing | M | T17.14 | done; a round corner piece on a square corner of the plan, and nobody has driven it (the notes) |
-| T17.16 | Wizard: the Farm card, the projection, options and previews | L | T17.11, T17.14 | open |
-| T17.17 | Two sample packs and *Try the sample* | M | T17.16 | open |
-| T17.18 | Smoke sequences and integration tests | M | T17.17 | open |
-| T17.19 | Documentation, screenshots and changelogs | M | T17.18 | open |
-| T17.20 | Gate (1.5.0) | M | T17.19 | open |
+| T17.16 | Wizard: the Farm card, the projection, options and previews | L | T17.11, T17.14 | done; the box has no combat option (nothing of a farm reads it), the picture of an isometric race is drawn from above, and the *Pad* choice is shown for a race that does not use it (the notes) |
+| T17.17 | Two sample packs and *Try the sample* | M | T17.16 | done; the buildings of *Green acre* are objects of one sheet, since that is what the farm's planner sees (the notes) |
+| T17.18 | Smoke sequences and integration tests | M | T17.17 | done locally on Windows; the two CI jobs have not run, and a slime in a folder of characters is still an NPC without the sample's profile (the notes) |
+| T17.19 | Documentation, screenshots and changelogs | M | T17.18 | done; all pictures were made again on Windows (the notes) |
+| T17.20 | Gate (1.5.0) | M | T17.19 | open: the flags are on and the suites pass locally on Windows; CI, the frozen build, the upgrade test, the corpus and every manual row are not done, and `v1.5.0` is not tagged |
 
 ---
 

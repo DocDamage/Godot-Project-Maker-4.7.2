@@ -11,7 +11,7 @@ Read these files in order before writing any code:
 5. `M01_walking_skeleton.md` … `M12_review_followups.md` — task cards, done strictly in order,
    up to the `v1.0.0` tag. `M13_polish.md` (release 1.1.0), `M14_metroidvania.md` (release
    1.2.0), `M15_ui_polish.md` (release 1.3.0), `M16_arcade_archetypes.md` (release 1.4.0)
-   and `M17_farm_isometric.md` (release 1.5.0, specified, not started) follow the tag, in that
+   and `M17_farm_isometric.md` (release 1.5.0) follow the tag, in that
    order.
    What is finished and what is left is summed up in `docs/status.md`.
 
@@ -122,7 +122,7 @@ If an API in a card does not exist in 4.7.2, find the closest equivalent. Record
 | `M14_metroidvania.md` | M14 | Release 1.2.0: the Metroidvania archetype (platform actor, abilities, rooms, guardian, save stations, a side-view sample pack). |
 | `M15_ui_polish.md` | M15 | Release 1.3.0: the look, feel and ease of use of the wizard (design tokens, one stylesheet, button kinds, icons, cards, the stepper sidebar, page headers, every page and dialog), the Generate log fix, actionable failures, regeneration that skips unchanged work, visual goldens. |
 | `M16_arcade_archetypes.md` | M16 | Release 1.4.0: three more kinds of game on a shared arcade framework (shoot 'em up, run and gun with a grapple, racing), three sample packs, and the kinds sketched for M17. |
-| `M17_farm_isometric.md` | M17 | Release 1.5.0, specified and not started: a farm and life sim (the calendar, tools, soil and crops, animals, the shop and the shipping bin, people with schedules and friendship, fishing, weather) and isometric tiles as a second view of the top-down kinds and the racing game; the kinds left for later. |
+| `M17_farm_isometric.md` | M17 | Release 1.5.0, implemented on the branch `m17` with its gate open: a farm and life sim (the calendar, tools, soil and crops, animals, the shop and the shipping bin, people with schedules and friendship, fishing, weather) and isometric tiles as a second view of the top-down kinds and the racing game; the kinds left for later. |
 
 Each milestone ends with a **Milestone Gate** card. All its checks must pass before the next milestone starts.
 
@@ -147,4 +147,4 @@ Each milestone ends with a **Milestone Gate** card. All its checks must pass bef
 | **Generated-owned** | Files under `generated/`, `addons/rpg_runtime/` and `addons/rpg_project_tools/`. The generator may rewrite them, subject to the ledger. |
 | **User-owned** | Files under `game/`. They are created once and never rewritten. |
 | **Smoke test** | Headless run of the generated game through a scripted scenario. |
-| **Archetype** | `turn_based` or `arpg`; `metroidvania` from M14 (release 1.2.0); `shmup`, `run_and_gun` and `racing` from M16 (release 1.4.0); `farm` is specified in M17. The wizard calls it the *kind of game*. |
+| **Archetype** | `turn_based` or `arpg`; `metroidvania` from M14 (release 1.2.0); `shmup`, `run_and_gun` and `racing` from M16 (release 1.4.0); `farm` from M17 (release 1.5.0). The wizard calls it the *kind of game*. The isometric view of M17 is not an archetype: it is the `projection` of a `turn_based`, `arpg`, `farm` or `racing` project. |

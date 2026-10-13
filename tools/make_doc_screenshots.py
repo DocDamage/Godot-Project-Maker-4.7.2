@@ -210,19 +210,76 @@ def _kind_pictures(out: Path, qapp) -> list[Path]:  # type: ignore[no-untyped-de
     return written
 
 
+def _sample_state(key: str):  # type: ignore[no-untyped-def]
+    """The wizard's state for a bundled sample on its way to its first generation: the pack
+    read with its profile, and the config of the sample's kind in the sample's view."""
+    from rpggen.core import config, mapping, profiles
+    from rpggen.core.orchestrator import Callbacks
+    from rpggen.gui import state as state_mod
+    from rpggen.gui import workers
+    from rpggen.gui.models import project_model
+
+    sample = project_model.sample(key)
+    pack = REPO / sample.folder
+    profiles.install_profile(pack / sample.profile)
+    state = state_mod.WizardState(
+        project_name=sample.name, pack_sources=[pack], archetype=sample.archetype
+    )
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    ref = config.PackRef(sample.folder, str(pack), "0" * 64, "folder")
+    cfg = config.default_for(sample.name, [ref], archetype=sample.archetype)
+    cfg.projection = sample.projection
+    cfg.starter = mapping.default_starter(state.catalog, sample.archetype, sample.projection)
+    state.config = cfg
+    state.view_chosen = True
+    return state
+
+
+def _m17_pictures(out: Path, qapp) -> list[Path]:  # type: ignore[no-untyped-def]
+    """The Options page of the two samples of M17 (T17.19): the *Farm* box of *Green acre* with
+    the planned farm, and the *Starter map* box of *Stone isle* with its View and Pad choices
+    beside the map as it is planned on the pack's diamonds."""
+    from PySide6.QtCore import QRect
+
+    from rpggen.gui.pages.options_page import OptionsPage
+
+    written: list[Path] = []
+    for key, name in (("farm", "options_farm"), ("iso", "options_isometric")):
+        state = _sample_state(key)
+        page = OptionsPage()
+        page.resize(760, 1100)
+        page.show()
+        page.enter(state)
+        _pump(qapp, 3.0)  # the map preview is rendered in the background
+        page._show_world()  # once more at the shown width: the picture fits the box
+        _pump(qapp, 0.5)
+        path = out / f"{name}.png"
+        if key == "farm":
+            page.farm_box.grab().save(str(path))
+        else:  # the box down to its layout options: the table of areas is another picture
+            box = page.starter_box
+            box.grab(QRect(0, 0, box.width(), box.areas.y())).save(str(path))
+        page.close()
+        written.append(path)
+    return written
+
+
 # kind: (the sample's key, the step of its smoke sequence that is on the picture, frames into
-# it, the picture)
+# it, the picture). The isometric game is the turn-based one of the isometric sample.
 GAME_PICTURES = {
     "shmup": ("shmup", "wave_is_fought", 45, "game_shmup"),
     "run_and_gun": ("gun", "weapon_is_picked_up", 60, "game_run_and_gun"),
     "racing": ("race", "race_is_driven_to_the_finish", 420, "game_racing"),
+    "farm": ("farm", "harvest", 30, "game_farm"),
+    "isometric": ("iso", "npc_dialogue", 12, "game_isometric"),
 }
 
 
 def _game_pictures(godot: Path, work: Path, out: Path) -> list[Path]:
-    """One picture of each arcade kind's game (T16.19): the sample of the kind is generated and
-    its smoke sequence plays it in a window, with tools/doc_shots/game_shot.gd taking the
-    picture. None for a kind whose game Godot could not show (a machine without a display)."""
+    """One picture of each arcade kind's game (T16.19), of the farm and of an isometric game
+    (T17.19): the sample is generated and its smoke sequence plays it in a window, with
+    tools/doc_shots/game_shot.gd taking the picture. None for a game Godot could not show (a
+    machine without a display)."""
     import shutil
     import subprocess
 
@@ -231,8 +288,9 @@ def _game_pictures(godot: Path, work: Path, out: Path) -> list[Path]:
     from rpggen.gui.models import project_model
 
     written: list[Path] = []
-    for kind, (key, step, frames, name) in GAME_PICTURES.items():
+    for label, (key, step, frames, name) in GAME_PICTURES.items():
         sample = project_model.sample(key)
+        kind = sample.archetype
         pack = REPO / sample.folder
         profiles.install_profile(pack / sample.profile)
         opened = archive.open_pack(pack, set(), pack_id=sample.folder)
@@ -242,9 +300,10 @@ def _game_pictures(godot: Path, work: Path, out: Path) -> list[Path]:
         cfg = config.default_for(
             sample.name, [config.pack_ref_from_source(pack, sample.folder)], archetype=kind
         )
-        cfg.starter = mapping.default_starter(cat, kind)
+        cfg.projection = sample.projection
+        cfg.starter = mapping.default_starter(cat, kind, sample.projection)
         cfg.validation = {**cfg.validation, "smoke_test": False, "export_check": False}
-        target = work / f"game_{kind}"
+        target = work / f"game_{label}"
         result = orchestrator.run_in_memory(cfg, None, target, godot)
         if not result.ok:
             continue
@@ -353,8 +412,8 @@ def render(
 ) -> list[Path]:
     """Write one PNG per wizard page (plus the crash dialog) and return the paths. ``size`` is
     the window's and ``font`` a family for every text (the machine's own when None); without
-    ``games`` the pictures of the three arcade games are left out (each is a generation and a
-    game played in a window)."""
+    ``games`` the pictures of the games (the three arcade kinds, the farm, an isometric game)
+    are left out (each is a generation and a game played in a window)."""
     from PySide6.QtGui import QFont
     from PySide6.QtWidgets import QApplication
 
@@ -449,6 +508,7 @@ def render(
                 written.append(_areas_picture(window.current_page.starter_box, out, qapp))
                 written.append(_world_picture(out, qapp))
                 written.extend(_kind_pictures(out, qapp))
+                written.extend(_m17_pictures(out, qapp))
         if godot is not None:
             window.show_page(OPTIONS_INDEX)
             window.next_button.click()

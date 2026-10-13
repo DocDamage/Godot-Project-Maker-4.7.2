@@ -22,9 +22,11 @@ in `_console.exe` if you have it.
 2. Press **Try the sample**. rpggen fills in the bundled sample pack, a project name and an
    output folder in *Documents*, reads the pack and starts generating with the default options.
    A line at the top of the page says so; **Back** stops the run and returns to the options for
-   as long as nothing was written into your folder. (*Choose a sample* on the same card offers four
-   more: a side-view cave, see [Metroidvania](#3a-metroidvania), and a shoot 'em up, a run and
-   gun and a racing game, see [The arcade kinds](#3b-the-arcade-kinds).)
+   as long as nothing was written into your folder. (*Choose a sample* on the same card offers six
+   more: a side-view cave, see [Metroidvania](#3a-metroidvania); a shoot 'em up, a run and
+   gun and a racing game, see [The arcade kinds](#3b-the-arcade-kinds); a farm, see
+   [Farm](#3c-farm); and an isometric village, see
+   [The isometric view](#3d-the-isometric-view).)
 3. Wait about a minute. The page ticks off what it does, from *Checking your setup* to *Writing
    the report*, with the percentage beside the bar; **Show details** opens the log.
 4. On **Results** press **Open in Godot** and then F5. You start on the title screen, begin a new
@@ -68,8 +70,10 @@ licence file. A pack that cannot be read shows the reason on its card; the cross
 ![A pack's card on the Project page](images/pack_cards.png)
 
 The card also says what the pack looks like when rpggen can tell: *Looks like a shooter pack*,
-*Looks like a racing pack*, or *art for 5 engines: Godot's is used* for a pack that ships the
-same pictures laid out for several engines (the copies are set aside in the audit).
+*Looks like a racing pack*, *Looks like a farming pack*, *Isometric tiles, 180 x 104* (the
+diamond its tiles stand on, see [The isometric view](#3d-the-isometric-view)), or *art for 5
+engines: Godot's is used* for a pack that ships the same pictures laid out for several engines
+(the copies are set aside in the audit).
 
 **A bundle of packs.** Some archives hold many packs: a folder for each, or a zip for each.
 Adding one opens **Choose packs** instead: a row for every pack with its pictures and its size,
@@ -95,6 +99,16 @@ it yourself and add the folder.
 * **Metroidvania**: seen from the side. You run, jump and climb through joined rooms, fight in
   real time, and find abilities (a double jump, a dash, …) that open new ways. It has its own
   section: [Metroidvania](#3a-metroidvania).
+* **Shoot 'em up**, **Run and gun** and **Racing**: three arcade games with stages, lives and
+  a score. See [The arcade kinds](#3b-the-arcade-kinds).
+* **Farm**: crops through days and seasons, a shop, animals and a village to get to know. See
+  [Farm](#3c-farm).
+
+There are seven cards: in rows of four in a wide window (1280 px and more), in rows of three
+below that, where the third row is reached by scrolling, and in one column in a narrow window.
+Under the cards rpggen says what it saw in your packs: that a pack looks made for one of the
+kinds, or that it *is isometric*, a view four of the kinds have (see
+[The isometric view](#3d-the-isometric-view)).
 
 You can generate another kind later in a new project; the shared systems (saving, dialogue,
 inventory, equipment, menus) are the same.
@@ -172,7 +186,12 @@ inventory, equipment, menus) are the same.
   *Rules* tab lists them; drag to reorder.
 * **Grid editor** (*Edit grid…*): cell size, margin and separation with a live readout
   (`12 × 4, 47 non-empty, remainder 0 px`) and the five best candidates. ASSET-003 appears here
-  when the sheet does not divide evenly.
+  when the sheet does not divide evenly. For a picture of an isometric pack it draws the
+  diamond the tile stands on, which you can change there.
+* **One card for several pictures.** A picture a pack ships in several colours is one card
+  with a **Variants (n)** row in its details; a tile turned several ways has **Turns (n)** and
+  a sheet that comes once a season **Seasons (n)**. The two buttons of the row show every
+  member as a card of its own, or select them all to change them together.
 * **Animations** (*Animations…*): a direction-grouped list of animations with playback, click the
   sheet to pick frames, mirror left from right, reverse, ping-pong, origin and baseline, and
   *active frames* (the hit frames) for the action RPG. An animation saved as one numbered image
@@ -243,6 +262,9 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
   one is off, with a line saying what it needs (the demo content needs tile sets, dialogue,
   combat and saving; enemy pathfinding needs combat). Switching the needed one back on
   restores what you had chosen.
+* **View.** The box of a turn-based RPG, an action RPG, a farm or a racing game has a **View**
+  choice, *From above* or *Isometric*. With packs of square tiles it stays *From above* and
+  the line under it says why; see [The isometric view](#3d-the-isometric-view).
 * **Starter map.** The *Starter map* box sets the size in tiles (24 to 96, with the names Small,
   Medium and Large), the ground set, how many buildings, villagers, enemies, chests,
   decorations and ground patches. The picture beside it is the real plan, drawn from your assets:
@@ -452,15 +474,15 @@ party; those features start switched off for them and stay available.
 |------|-----------|----------|
 | **Shoot 'em up** | the top (it scrolls up) or the side (it scrolls right) | a ship over a scrolling background, waves of enemies, power-ups, a boss |
 | **Run and gun** | the side | a soldier who runs, jumps, aims in eight directions and picks up weapons; with the grapple arm it swings and hoists |
-| **Racing** | the top | a car against rivals round a track, over laps with checkpoints and pickups, through a championship |
+| **Racing** | the top, or at an angle (see [The isometric view](#3d-the-isometric-view)) | a car against rivals round a track, over laps with checkpoints and pickups, through a championship |
 
-![The six kinds of game](images/wizard_archetype.png)
+![The Archetype page: six of the seven kinds, the Farm card is in the row below](images/wizard_archetype.png)
 
 What is the same for the three:
 
-* **A sample of its own.** *Choose a sample* on the welcome view lists five: the village, the
-  cave, and *Star lane* (a shoot 'em up), *Jungle line* (a run and gun) and *Dirt cup*
-  (racing). Each fills in its pack, chooses its kind and starts generating.
+* **A sample of its own.** *Choose a sample* on the welcome view lists seven, among them
+  *Star lane* (a shoot 'em up), *Jungle line* (a run and gun) and *Dirt cup* (racing). Each
+  fills in its pack, chooses its kind and starts generating.
 * **Any pack makes a game.** What a pack lacks is drawn by rpggen in the pack's tile size: a
   bullet, a laser, a missile, an explosion, a power-up capsule, a ship, a car in sixteen
   headings, a road, a hook. The report says so with a note (ASSET-031), never an error, so a
@@ -615,6 +637,285 @@ for the first six.
 wizard; `--dry-run` says what would be planned (*3 stages, 30 waves, 3 bosses*; *4 tracks of 3
 laps, 3 rivals*). See [Running rpggen from a script](#7a-running-rpggen-from-a-script).
 
+## 3c. Farm
+
+The seventh kind of game is a **farm**: you till the ground, plant, water and harvest through
+days and seasons, sell what you grow, keep animals if you like, fish, and get to know the
+people of a village. It is a top-down game like the turn-based RPG, with the same maps, doors,
+dialogue, inventory, shop and saving; it has no fights.
+
+**Trying it.** On the welcome view, **Choose a sample** lists *Green acre*, a small pack made
+for this kind: a farmer who walks and has a strip for each tool, four crops as growth strips,
+tilled and watered soil, grass once for each season, a hen and a cow, five tools, a house, a
+coop and a barn, three villagers, rain, music for the four seasons and eight sounds. Choosing
+it fills in the pack, chooses **Farm** and starts generating. The game begins in the
+farmhouse, by the bed.
+
+**Choosing it for your own pack.** On the Archetype page pick the **Farm** card (the seventh:
+in a window narrower than 1280 px it is in the third row, so scroll down). For a pack that has
+crops, soil and farm animals, rpggen says under the cards *This pack looks like a farming pack:
+a farm fits it*, and the pack's card on the Project page says *Looks like a farming pack*.
+What rpggen looks for:
+
+* **Growth strips.** A crop is one row of pictures, its stages from left to right, the last
+  one ripe: `corn_16x32_8frames.png`, `wheat_growth.png`. rpggen takes a strip for a crop when
+  its name is a crop's (corn, wheat, tomato, carrot, pumpkin, turnip, …) or says *crop* or
+  *growth*, and has no action word (walk, attack) and no direction. A strip of tall frames in
+  a folder named crops, plants, seeds or farming is offered as one and asks for your review.
+  How many days a crop takes is not in a pack: rpggen gives each crop its days from the
+  number of its stages. A crop that is a **single picture** grows through stages rpggen draws
+  up to it (the note ASSET-034).
+* **Words in folder and file names** give tags: soil (`soil`, `tilled`, `farmland`), watered
+  soil (`watered`, `wet_soil`), tools (`hoe`, `watering_can`, `sickle`, `axe`, `rod`; `water`
+  in a folder of tools is the can), animals (`cow`, `hen`, `chicken`, `sheep`, `pig`, …),
+  their products (`egg`, `milk`, `wool`), `coop`, `barn`, `fence`, a shipping bin, weather
+  (`rain`, `snow`: an overlay over the screen, never a tile), `fish`, `forage`.
+* **Seasons.** The same sheet in folders or with words *spring*, *summer*, *autumn* (or
+  *fall*) and *winter* is one card in the audit with a **Seasons (4)** row, as colour variants
+  are one card with *Variants*. The map is laid with the first season's sheet and the game
+  swaps the sheets with the calendar.
+* **The farmer's tool strips** (`farmer_hoe_down_…`) belong to the farmer and are set aside
+  in the audit, so they do not become villagers. They are not played yet: using a tool shows
+  the animation only when the player's own sheet has one named `hoe`, `water`, `sickle` or
+  `axe`; otherwise its attack animation, or the tool's icon over the farmer's hands.
+
+**What the roles are used for.** The Audit and Mapping pages have three roles for this kind:
+*Crop*, *Farm animal* and *Tool*.
+
+| Role | Used for |
+|------|----------|
+| Player * | the farmer |
+| Ground * | the farmyard, the field and the village |
+| Building | the house, the coop and the barn |
+| Villager (NPC) | the people of the village |
+| Crop | what grows in the field |
+| Farm animal | the animals of the coop and the barn |
+| Tool | the icons of the hoe, the watering can, the sickle, the axe and the rod |
+| Item | seeds, produce and what the shop sells; the chest |
+| Decoration | trees, fences and what is cleared from the field |
+| Wall | map borders |
+| UI, Portrait | the clock, the hotbar, the menus and dialogue |
+
+Only the two with a star are required. **What your pack lacks is drawn** in its tile size and
+said in the report (ASSET-031): three crops in five stages, tilled and watered soil, the
+tools, a bag of seeds, a hen and an egg, a shipping bin, a bed, rain, a fishing rod, three
+fish and four things to forage. So a plain RPG pack chosen as a farm plays; it gets a long
+list of such notes, and no errors. Tilled and watered soil have the role *Ground*, which is
+how the field finds them, but rpggen does not lay a map with them while the pack has another
+ground.
+
+The Sound section has the kind's slots: **Hoe**, **Watering**, **Plant**, **Harvest**,
+**Sell**, **Animal**, **Rooster** (a new day), the music of the four seasons (a season
+without its own plays the first that is filled) and **Night music** (from 20:00). The axe has
+no sound of its own.
+
+**The options.** The Options page has a **Farm** box above the **Village** box (the *Starter
+map* box of the other top-down kinds, without the counts of villagers and enemies: the people
+are planned, and nobody is fought). *Combat* is not among the features of a farm.
+
+* **Farm** (small 32 x 24, medium 40 x 30, large 48 x 36 tiles) and **Plot** (24, 96 or 160
+  cells that can be tilled). Only the plot can be tilled.
+* **Animals**: *None* (the default), *A coop*, or *A coop and a barn*, each a building with a
+  room inside and a fenced yard.
+* **Difficulty**: how much there is to clear from the field, and how many days the crops take.
+* **Days a season** (28, 14 or 7; a year is four seasons) and the **Length of a day** (10, 14
+  or 20 minutes for a day from 6:00 to 2:00).
+* **Starting money** (100), **Fishing** (the shop sells a rod when the farm has a pond) and
+  **Passing out costs money**.
+* The picture is the **planned farm**: the house, the plot, the pond or the well, the shipping
+  bin, the yards with their fences and gates, the paths, what is to be cleared, the trees and
+  the way to the village, with a legend; the line under it says it in words (*a farm of 40 x
+  30 with a plot of 96 cells, a pond, 4 crops, 3 people*). A pack with a water tile gets a
+  pond, one without a well; rpggen plans the farm so that the farmer can walk from the door
+  to the plot, the water, the bin, the yards and the way out, and reports VAL-031 if a plan
+  that was changed by hand cannot be worked.
+* **View**: see [The isometric view](#3d-the-isometric-view). With a pack of square tiles it
+  stays *From above* and says why.
+* The presets **Cosy** (days of 20 minutes, nothing lost for passing out, 500 to start with)
+  and **Short year** (7 days a season).
+* **Added maps** takes names (a beach, a forest). They are **names only for now**: they are
+  kept with the plan and no map is built for them.
+
+Once the farm has been generated its size, its plot, its animal houses, the difficulty and the
+starting money are fixed (the box says so): the farm's map exists and is yours. The other
+options are read on every generation.
+
+![The Farm box with the planned farm](images/options_farm.png)
+
+**Playing.**
+
+| Action | Keyboard | Gamepad |
+|--------|----------|---------|
+| Walk | W A S D, arrow keys | D-pad, left stick |
+| Use what you hold on the tile ahead | Space, J, left mouse button | A (cross) |
+| Talk, read, open, sleep, the shipping bin | E | X (square) |
+| Next / previous thing of the hotbar | R / Q | right / left shoulder |
+| Hold slot 1 to 10 of the hotbar | 1 to 9, 0 | |
+| Menu, pause | Escape, Tab | Start |
+
+* **The tile ahead** is the square in front of you with the white frame: what you hold is
+  used there. A tool works, a seed is planted in tilled soil, food is eaten, and a ripe crop
+  is picked whatever you hold. The **hotbar** at the bottom is the first ten stacks of your
+  bag.
+* **A day** runs from 6:00 to 2:00 of the night. Time stands still in menus and while
+  somebody talks. **Sleep** in your bed (interact with it; it does not ask) to end the day:
+  the game is saved, and you wake at 6:00 with all your energy. Sleeping is how a farm saves.
+  Still up at 2:00, you pass out: you wake at your bed with half your energy and a tenth of
+  your money gone, and that is saved too.
+* **Energy** is the yellow bar over the hotbar. A tool costs some when it does something. At
+  zero you walk slowly and no tool works; eating what you harvested restores it.
+* A new game starts with a **hoe**, a **watering can**, fifteen seeds of the first crop and
+  the starting money. The **sickle**, the **axe** and the **fishing rod** are bought at the
+  shop. The can holds water for 20 squares and is filled at the pond or the well.
+* **Crops.** A seed goes into tilled soil, in a season the crop grows in. Every night a crop
+  whose soil was watered that day grows by a day; one that was not waits. Some crops grow
+  again after a harvest. When the season changes, a crop that does not grow in the new season
+  withers.
+* **Money.** Put what you want to sell into the **shipping bin** beside your house: it is
+  sold overnight, and the morning begins with a list of what it earned. The **shop** in the
+  village sells the seeds of the season and the tools, and buys at the price the bin pays; it
+  is open from 9:00 to 17:00 and closed on Sunday.
+* **People** have a day of their own: at home, at work, on the square, indoors when it rains.
+  Talking to somebody once a day and giving gifts (hold the gift and interact; two a week)
+  earns hearts, by what the person loves, likes and dislikes. *Pause → People* lists who you
+  have met.
+* **Animals** (with the option): bought at the shop while their house has a free stall, out
+  in their yard by day and in their stalls from 18:00 and in bad weather. Put hay into the
+  trough, pet them, and collect the egg from the floor of the coop or milk the cow by
+  interacting with her; no pail is needed. Animals never die. A coop on a pack whose only
+  animal is a cow stays empty, since a cow lives in the barn.
+* **Fishing** (a farm with a pond): hold the rod, face the water and use it; after a bite,
+  hold the button to keep the green zone over the fish until the meter is full. **Foraging**:
+  every morning a few things of the season lie at the edges of the farm.
+* **Weather.** A day is sunny or rainy, with storms in summer and snow in winter. Rain waters
+  the whole field. The sign beside your door tells tomorrow's weather.
+
+![A farm](images/game_farm.png)
+
+**What is yours.** The game reads four lists that rpggen writes once and then leaves alone:
+`game/data/crops.json` (a crop's seasons, days, regrowth and items), `game/data/people.json`
+(homes, jobs, schedules, tastes), `game/data/animals.json` and `game/data/forage.json` (fish
+and things to forage). The farm is `game/maps/farm.tscn` with the farmhouse and the animal
+houses as rooms beside it, and the village is `game/maps/starter_map.tscn`; like every map
+they are built once. A crop, an animal or a fish your packs gain later is added to the plan
+and to the lists under `generated/data/`, and the game uses what your own lists do not have.
+The project's `README.md` (section 22) explains every entry, the numbers behind friendship
+and energy, and how to add a crop.
+
+**Known limits.** Nobody has played a whole season by hand yet: the length of a day, the
+prices and the energy are untuned. Added maps are names only. There is no cave and nothing to
+fight. The farmer's tool strips of a pack are not played. A field has no edge tiles: tilled
+soil is one tile of the pack's soil sheet. Marriage, festivals, cooking and crafting are not
+part of this kind.
+
+## 3d. The isometric view
+
+Some packs are drawn at an angle: every tile is a **diamond**, and houses and trees stand on
+it. rpggen makes four kinds of game in that view: the **turn-based RPG**, the **action RPG**,
+the **farm** and the **racing game**. It is the same game with the same plan of its map; only
+what you see, and where things are on the screen, is different. The metroidvania, the shoot
+'em up and the run and gun have no isometric view.
+
+**Trying it.** **Choose a sample** on the welcome view lists *Stone isle*: a small isometric
+pack (grass and stone ground, water with shore pieces, a path and walls in pieces that name
+their sides, a house on four diamonds, a block, trees, a hero, two villagers, a slime and a
+chest) that is generated as a turn-based RPG in the isometric view. With it the list has
+seven samples.
+
+**What an isometric pack looks like to rpggen.**
+
+* **One picture a tile.** The pack is a folder of single pictures, all of one size (or of one
+  width), each with see-through corners and the tile resting at the bottom: not a sheet cut on
+  a grid. rpggen takes it for isometric when its name or a text file says so, or when the
+  measured tiles agree.
+* **The diamond** (the footprint a tile stands on) is read from the pack's own text file when
+  it has one (`Tile information.txt`, `Tiled (settings).txt`: the *Map tile size* wins), and
+  measured from the flat tiles otherwise. It is never assumed to be twice as wide as high.
+  The pack's card says *Isometric tiles, 40 x 22*. A pack that says it is isometric and has no
+  flat tile to measure gets TILE-010, and its pictures stay pictures.
+* **Turns.** Names that differ only in a last `_0` to `_3` (or `_7`), or in a last compass
+  word (`_N`, `_E`, `_S`, `_W`), are one thing turned, not the frames of an animation: one
+  card in the audit with a **Turns (4)** row. Of a car or a boat they are its headings.
+* **Sides in a name.** `pathES.png`, `waterNW.png`, `wallEW.png`: the capitals say on which of
+  the diamond's four sides the piece joins. rpggen lays roads, shores and walls with the piece
+  that fits the neighbours of each cell, as terrains join for a top-down pack; where a pack
+  has no piece for a case the nearest is used and the report says so.
+* **Objects.** A picture whose base is narrower than the diamond (a tree, a sign) stands on
+  one; a house may stand on several.
+* **What is set aside**: a folder `Angle` beside `Isometric` (the same models in another
+  view), a sprite sheet with a `<TextureAtlas>` file beside the same loose pictures, previews
+  and samples. A pack that is a zip inside its folder is opened.
+* **People.** Most isometric packs have no characters. A hero, a villager or an enemy from
+  another pack of the project is used as it is, **seen from the front**, which is the usual
+  look of such games; when no pack has them, rpggen draws a hero, a villager and an enemy
+  (ASSET-031).
+
+**Choosing it.** On the Archetype page rpggen says *This pack is isometric (40 x 22 diamonds).
+The view is chosen on the Options page.* There, the box of each kind that has the view (the
+*Starter map*, the *Farm* box, the *Tracks* of a race) has a **View** choice:
+
+* *From above* or *Isometric*. For a new project rpggen chooses *Isometric* when your packs
+  have isometric ground and no ground of square tiles, and *From above* otherwise.
+* **Isometric needs isometric ground tiles.** No ground is drawn for this view: without one
+  the choice stays *From above* and the line under it says why (on the command line it is
+  CAT-002). One project has one ground: isometric and square ground tiles mapped in the same
+  project are TILE-011, and tiles of a pack whose diamond is another size are left out
+  (TILE-012).
+* **The view is fixed once the project has been generated**: its maps are painted in it.
+* **Pad** (shown with *Isometric*): *follows the screen* (up is up; the default) or *follows
+  the diamonds* (the four directions go along the edges of the tiles). It is for the games
+  you walk in; a race does not use it.
+
+An isometric project is offered, on the Mapping page, only what fits its view: isometric tiles
+and objects, and characters, items and sounds of any pack; a project seen from above is
+offered nothing isometric.
+
+![The Starter map box of an isometric project](images/options_isometric.png)
+
+The picture beside the options is the planned map on the pack's diamonds. The picture of a
+**farm** is drawn on diamonds too; the tracks of an isometric **race** are still shown from
+above.
+
+**In the audit.** *Edit grid…* on a picture of an isometric pack draws its diamond over it.
+For a tile you can change the **Diamond w / h** (every tile of a project stands on the same
+one); for an object, how many diamonds it **Stands on** (columns and rows: it blocks them, and
+a building has its door before the middle of its front).
+
+**What the game looks like.**
+
+* The map is the one the same options would plan from above: the same size, house, path,
+  villagers, chest and exits, laid on diamonds. The camera is drawn back when the diamonds are
+  large. The minimap stays the plan from above.
+* You are drawn behind what stands nearer to the bottom of the screen and in front of what
+  stands further up; a house of several diamonds is cut in two halves for that.
+* A raised block that has the role *Ground* does not block: height is not modelled.
+* A **farm** is the same farm: the tile ahead is the diamond you face (watch the white
+  frame), and what your packs did not draw for this view (buildings, fences, the well, trees)
+  is a box on its diamond. The project's `README.md` has the details.
+* A **race** is driven exactly as from above and only drawn at an angle. A car drawn for this
+  view has its headings as separate pictures (`car_N.png`, `car_NE.png`, …) and turns in
+  steps; a car drawn from straight above is used too and **looks flat**, which the Mapping
+  page says beside it. No isometric car is drawn for a pack without one.
+
+![An isometric game](images/game_isometric.png)
+
+**Known limits.** Nobody has played an isometric game by hand yet. The **RPG Project Tools**
+dock and **imported maps** (Tiled, LDtk) count squares, not diamonds: on an isometric map,
+place things by hand, and do not check imported maps. A room has walls only when the packs
+have isometric wall pieces. No terrain (autotile) is read from an isometric pack. Round road
+corners of a pack are laid on the square corners of a planned track, so a car can be seen on
+the verge at the outside of a corner. Some real packs are read wrongly: cars whose headings
+are numbered in no order, and characters that ship as single pictures a direction.
+
+### The farm and the isometric view from the command line
+
+`rpggen generate --archetype farm` makes a farm, and `--projection isometric` (with
+`turn_based`, `arpg`, `farm` or `racing`) the isometric view of a pack that has isometric
+ground; a config file carries both itself (`"archetype"`, `"projection"`, `"iso_controls"`).
+`--dry-run` says what would be planned, for a farm for example *village: 40 x 24 tiles* and
+*farm: a farm of 40 x 30 with a plot of 96 cells, a pond, 4 crops, 3 people*. See [Running
+rpggen from a script](#7a-running-rpggen-from-a-script).
+
 ## 4. In Godot
 
 The game's *Settings* have a **Language** choice: *System* and every language of the project's
@@ -710,6 +1011,10 @@ Every message has a code; [errors.md](errors.md) lists all of them with the fix.
 | ENV-009 | The output folder is not empty | Pick an empty folder or an existing rpggen project. |
 | ENV-010 | Export templates missing | Info only: install them from Godot (Editor → Manage Export Templates) to enable the export check for that platform. |
 | ASSET-010 | A required role has no asset | Assign one on the Mapping page or use a placeholder. |
+| ASSET-031 | Something the kind of game needs was drawn for your pack | Info only: the game plays; give an asset of your own the role to replace the drawing. |
+| CAT-002 with `/projection` | The isometric view was asked for and the packs have no isometric ground tile, or a generated project was asked for another view | Add a pack of isometric tiles, or leave the view as it is. |
+| TILE-010 / TILE-011 / TILE-012 | An isometric pack's diamond could not be read / isometric and square ground in one project / tiles on another diamond were left out | The pack's pictures stay plain pictures (a text file of the pack that gives the tile size of its map is read when there is one); leave one of the two grounds out; use packs drawn on one diamond. See [The isometric view](#3d-the-isometric-view). |
+| VAL-031 | A farm's plan cannot be worked (the plot, the bed or the bin cannot be reached) | Mend the farm's map in `rpggen/world_plan.json` (the section `farm.map`), or delete that section and `game/maps/farm.tscn` and regenerate to have the farm planned again. |
 | ASSET-001 / ASSET-003 | Tile size uncertain / grid does not divide | Fix the grid in the audit. |
 | REGEN-005 | The Godot editor has the project open | Close it, press Retry. |
 | REGEN-006 | A new major runtime version | Confirm the upgrade (`--accept-runtime-upgrade` on the CLI). |

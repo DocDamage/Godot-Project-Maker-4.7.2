@@ -1159,6 +1159,83 @@ The kinds sketched for a later release (a beat 'em up, a dungeon run, tactics, t
 a farm, a twin-stick arena, isometric tiles) are in Part F of `M16_arcade_archetypes.md`, each
 with what it reuses.
 
+### v1.5 — the farm, and a second view (M17)
+
+Two of those were built: the **farm and life sim** (`farm`), the seventh archetype, and
+**isometric tiles**, which are not an archetype but a second way of seeing four of them
+(`projection: isometric` for `turn_based`, `arpg`, `farm` and `racing`). The farm followed the
+list above. What the two added to it:
+
+* **A part a mode adds, not an autoload.** The calendar (`world/calendar.gd`, `RpgCalendar`:
+  the minute, the day, the season, the year) is in every project and at work in none until a
+  mode asks for it with `ensure()`; everything else finds it with `current()`, which is null in
+  a game without one. The day and night light takes its hour from it when there is one and
+  keeps its own clock otherwise. Schedules (`actors/schedule.gd`) are the same: installed
+  everywhere, at work only with a calendar. So a shared part can be new without any older game
+  changing. What happens overnight is registered with a priority (`on_night`: crops, animals,
+  the shop, the weather) and runs in that order before the date changes, so a night is the same
+  every time.
+* **State in `flags`, so a save has no new key for it.** The field (`farm_field`), the herd
+  (`farm_animals`), the shipping bin, the farmer's energy and held slot, the seed of the
+  weather and what was foraged today are flags of the game state. Only two keys are new and
+  optional (`calendar`, `friendship`); `save_version` stays 1. Because the field and the herd
+  are data and not nodes, a night works on a map that is not shown, and nothing is simulated
+  off screen: the nodes of a map are made from the data when it is entered. What can be derived
+  is not stored at all: the weather of day N and what lies where on a morning follow from one
+  seed and the date.
+* **Plans stored once, one a part.** The section `farm` of `rpggen/world_plan.json` holds the
+  crops (`crop_plan.py`), the farm's own map (`farm_plan.py`, with its check VAL-031), the
+  people (`people_plan.py`), the animals (`animal_plan.py`) and the forage places
+  (`forage_plan.py`): each pure Python, each planned once and kept, each growing only by what
+  the packs gain (a new crop is added, the old ones stay). The game reads `game/data/crops.json`,
+  `people.json`, `animals.json` and `forage.json`, which are the user's once they exist, with
+  the planned lists beside them under `generated/data/` for what the user's lists do not have.
+  The village is the starter map of the top-down kinds, unchanged; the farm is a map of its own.
+* **The plan does not change with the view.** Every planner counts cells on a grid of whole
+  numbers, and only the last step, from a cell to a place on the screen, knows the view. That
+  step is one seam on each side: `builder/lib/map_geo.gd` (`MapGeo`) for the recipes, which
+  calls what they called before for a project seen from above and `RpgIso` for an isometric
+  one, and `world/iso.gd` (`RpgIso`) for the runtime, with `rpggen/core/iso_math.py` as the
+  same arithmetic in Python and a table of cases between the two. No recipe turns a cell into
+  a pixel by itself. The planners, their checks and their tests therefore hold for both views,
+  and a top-down project is built byte for byte as it was (the hashes of the recipes have new
+  keys only in an isometric project, so no `RECIPE_VERSION` moved).
+* **One rule for what a view may use.** `catalog.fits_projection` (and `CatalogReader.fits` in
+  the builder) decides for every lookup: a project seen from above or from the side uses
+  nothing whose `projection` is `isometric`, and an isometric one fills no role from a sheet
+  of squares. Characters, items and sounds fit both. The mapping, the placeholders, the kits
+  and the recipes all ask it, so a view cannot be half applied.
+* **An isometric tile set is built from single pictures.** The packs ship one picture a tile,
+  so `iso_atlas.py` packs them into atlas pictures in the work folder; the cell of every tile
+  is kept in the catalog's `id_allocations` and never moves, which is what the TileSet merge
+  needs. The diamond is the pack's own (read from its text file or measured, never assumed
+  2:1); a tile turned four ways is four tiles; tiles on another diamond are left out
+  (TILE-012). Ground joins by whole pieces whose names say which sides join, chosen by the
+  neighbours of a cell, as terrains join for a top-down pack.
+* **Physics stay on the flat plan where they must.** Under a transform that shears squares into
+  diamonds Godot draws correctly and collides wrongly. So a race is driven on the flat plan of
+  its track in both views (the car, the barriers, the checkpoints, the rivals: nothing of
+  `car_math` knows the view) and only the pictures are put on the diamonds (`RpgRaceView`). A
+  walked map is different: its bodies are placed on the diamonds through the seam, and actors
+  move in screen space.
+* **Drawn kits, again.** `farm_kit.py` draws what a pack lacks for a farm (crops in five
+  stages, soil, tools, a hen, an egg, a bin, a bed, rain, a rod, fish and things to forage)
+  and `iso_kit.py` a hero, a villager and an enemy for the isometric view, each with the note
+  ASSET-031. **No ground is drawn for the isometric view**: without an isometric ground tile
+  the view is refused (CAT-002), since a drawn ground would decide the diamond of the project.
+* **A smoke run has a save folder of its own.** Godot keeps `user://` by the project's name,
+  so two smoke runs of projects of one name at one time read and replaced each other's saves.
+  The generator names a run on the command line (`--rpg-smoke-run=<id>`) and the runner saves
+  into `user://smoke_saves_<id>`, emptied before and removed after. Tests that run side by
+  side must not share anything a run can write.
+* **Two flags** (`FARM_AVAILABLE`, `ISOMETRIC_AVAILABLE`), since a view is switched on like a
+  kind: its choice is not shown and its sample not offered while it is off.
+
+Not built, and where it would go: maps added to a farm (`added_maps` are names kept with the
+plan), a cave with combat, imported maps and the editor dock on diamonds (both count squares),
+terrains on a diamond's sides (no pack that was read has one), height (a raised ground block
+does not block). The kinds that were not chosen are in Part E of `M17_farm_isometric.md`.
+
 ---
 
 ## 49. Development Order and Exit Criteria

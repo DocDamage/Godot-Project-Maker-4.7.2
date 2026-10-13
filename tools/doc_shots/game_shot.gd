@@ -1,5 +1,5 @@
 extends RefCounted
-## Takes a picture of a generated arcade game while its own smoke sequence plays it: the pictures
+## Takes a picture of a generated game while its own smoke sequence plays it: the pictures
 ## of the user guide (tools/make_doc_screenshots.py copies this file into a generated project and
 ## runs it). It is a steps script that hands on the steps of the kind and, a number of frames
 ## into one of them, saves what is on the screen. It needs a window, so the game is run without
@@ -8,7 +8,8 @@ extends RefCounted
 ##       --rpg-doc-steps=res://generated/builder/smoke/smoke_steps_shmup.gd
 ##       --rpg-doc-step=second_wave_is_survived --rpg-doc-frames=120 --rpg-doc-out=<out.png>
 
-var _kind: RefCounted = null  # the steps of the kind: kept, as its Callables are used
+var _taken := false
+var _kinds: Array[RefCounted] = []  # the steps of the kind: kept, as their Callables are used
 
 func _arg(arg_name: String, fallback: String) -> String:
 	var prefix := "--rpg-doc-%s=" % arg_name
@@ -18,13 +19,18 @@ func _arg(arg_name: String, fallback: String) -> String:
 	return fallback
 
 func steps() -> Array[Dictionary]:
-	var script := load(_arg("steps", "")) as GDScript
-	if script == null:
-		return []
-	_kind = script.new()
+	# one script, or several with commas between them (the shared steps, then the kind's own)
+	var provided: Array = []
+	for path in _arg("steps", "").split(",", false):
+		var script := load(path.strip_edges()) as GDScript
+		if script == null:
+			return []
+		var kind: RefCounted = script.new()
+		_kinds.append(kind)
+		var its: Array = kind.call("steps")
+		provided.append_array(its)
 	var wanted := _arg("step", "")
 	var out: Array[Dictionary] = []
-	var provided: Array = _kind.call("steps")
 	for step: Dictionary in provided:
 		if String(step.get("name", "")) == wanted:
 			var played: Callable = step["fn"]
@@ -36,6 +42,9 @@ func steps() -> Array[Dictionary]:
 	return out
 
 func _shoot(frames: int) -> void:
+	if _taken:  # a step that the sequence plays twice is on the picture the first time
+		return
+	_taken = true
 	var tree := Engine.get_main_loop() as SceneTree
 	for i in frames:
 		await tree.process_frame

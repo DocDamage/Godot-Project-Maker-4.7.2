@@ -11,6 +11,7 @@ const FLAG_KEY := "water"
 func _init() -> void:
 	id = &"watering_can"
 	animation = "water"
+	sound = RpgFarmSounds.WATER
 	acts_on = [RpgField.SOIL, RpgField.CROP, RpgField.RIPE, RpgField.WITHERED]
 
 ## How many cells the can still waters.

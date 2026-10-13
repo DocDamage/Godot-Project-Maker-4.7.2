@@ -713,10 +713,15 @@ func _keys_and_switches() -> String:
 	key.max_stack = 1
 	state.items[key.id] = key
 	var made: Array[Node] = []
-	var locked := _smoke_gate("smoke_gate_001", &"smoke_key", "", home + Vector2(0, -3.0 * tile), holder, made)
+	# the locked gate and the lever are interacted with, so each needs a place where nothing
+	# else answers `interact`: a person of a farm's village may stand at home exactly three
+	# tiles above the middle of the map (T17.09), and the farmer would talk to them instead
+	var locked_at := _spot_to_reach(p, home, tile, [Vector2(0, -3), Vector2(0, -4), Vector2(1, -3), Vector2(-1, -3), Vector2(0, -2), Vector2(0, -5), Vector2(1, -4), Vector2(-1, -4)])
+	var lever_at := _spot_to_reach(p, home, tile, [Vector2(3, 0), Vector2(3, 1), Vector2(3, -1), Vector2(2, 1), Vector2(4, 1), Vector2(2, -1), Vector2(4, -1)])
+	var locked := _smoke_gate("smoke_gate_001", &"smoke_key", "", locked_at, holder, made)
 	var by_lever := _smoke_gate("smoke_gate_002", &"", "flag:smoke_switch_001.on", home + Vector2(3.0 * tile, -3.0 * tile), holder, made)
 	var by_plate := _smoke_gate("smoke_gate_003", &"", "flag:smoke_switch_002.on", home + Vector2(-3.0 * tile, -3.0 * tile), holder, made)
-	var lever := _smoke_switch("smoke_switch_001", RpgSwitch.Kind.LEVER, home + Vector2(3.0 * tile, 0.0), holder, made)
+	var lever := _smoke_switch("smoke_switch_001", RpgSwitch.Kind.LEVER, lever_at, holder, made)
 	# the plate needs floor: on a map whose start is near a wall the usual place may be in it
 	var plate_at := home + Vector2(-3.0 * tile, 2.0 * tile)
 	for offset: Vector2 in [Vector2(-3, 2), Vector2(-3, 0), Vector2(-3, -1), Vector2(-2, 1), Vector2(2, 2), Vector2(0, 2), Vector2(0, -2)]:
@@ -792,6 +797,30 @@ func _smoke_switch(id: String, kind: RpgSwitch.Kind, at: Vector2, holder: Node, 
 	sw.global_position = at
 	made.append(sw)
 	return sw
+
+## The first of `offsets` (in tiles from `home`) where the player would reach nothing but what
+## the step puts there: no other node that answers `interact` within a tile and a quarter. The
+## first offset is the place the step always used, and it is the answer on every map where
+## nothing stands there, and when no place is free.
+func _spot_to_reach(player: RpgActor, home: Vector2, tile: float, offsets: Array[Vector2]) -> Vector2:
+	var others: Array[Vector2] = []
+	for node in _tree().current_scene.find_children("*", "", true, false):
+		if not node is Node2D or not node.has_method("interact") or node.is_queued_for_deletion():
+			continue
+		var thing: Node2D = node
+		if thing == player or player.is_ancestor_of(thing) or not thing.is_visible_in_tree():
+			continue
+		others.append(thing.global_position)
+	for offset in offsets:
+		var spot := home + offset * tile
+		var free := true
+		for other in others:
+			if other.distance_to(spot) < tile * 1.25:
+				free = false
+				break
+		if free:
+			return spot
+	return home + offsets[0] * tile
 
 ## True when a world-layer body is in the middle of the gate (after a physics frame).
 func _blocks(gate: RpgGate) -> bool:

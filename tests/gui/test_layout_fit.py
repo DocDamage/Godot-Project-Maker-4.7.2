@@ -353,7 +353,7 @@ def test_the_pages_of_a_farm_and_of_an_isometric_project_fit(
     """T17.16: seven cards on the Archetype page with its two hints, the roles of the view on
     the Mapping page, and on the Options page the farm's box over its village's and the View
     choice in the box of the kind, at the minimum window and at the default one, in both
-    themes. The two flags are on here; they are off in the wizard until the gate."""
+    themes. The two flags are set here; they are on in the wizard since the gate of 1.5."""
     from rpggen import features
     from rpggen.gui.pages.archetype_page import ArchetypePage
     from rpggen.gui.pages.mapping_page import MappingPage

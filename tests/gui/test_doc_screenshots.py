@@ -28,8 +28,9 @@ def test_every_page_screenshot_is_rendered(
     monkeypatch.setattr(ProjectPage, "documents_dir", ProjectPage.documents_dir)
     monkeypatch.setattr(godot, "auto_find_godot", godot.auto_find_godot)
     monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
-    # includes generate and results; not the pictures of the three arcade games, each of which
-    # is a generation of its own and a game that Godot plays in a window
+    # includes generate and results; not the pictures of the games (the three arcade kinds, the
+    # farm, an isometric game), each of which is a generation of its own and a game that Godot
+    # plays in a window
     written = module.render(tmp_path / "images", godot_exe, games=False)
     names = {p.name for p in written}
     if not features.METROIDVANIA_AVAILABLE:  # one sample, so no menu of samples to show
@@ -43,5 +44,6 @@ def test_every_page_screenshot_is_rendered(
         "review_mode.png", "areas_table.png", "variant_dialog.png",
         "welcome_samples.png", "world_preview.png", "results_failed.png",
         "options_shmup.png", "options_run_and_gun.png", "options_racing.png",
+        "options_farm.png", "options_isometric.png",
     }  # fmt: skip
     assert all(p.stat().st_size > 500 for p in written)

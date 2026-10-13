@@ -628,7 +628,15 @@ def test_the_samples_that_are_offered_follow_the_kinds_that_can_be_chosen(monkey
     from rpggen.gui.models import project_model
 
     monkeypatch.setattr(features, "METROIDVANIA_AVAILABLE", True)
-    assert [s.label for s in project_model.offered_samples()] == FIVE, "all are on since 1.4"
+    assert [s.label for s in project_model.offered_samples()] == [
+        *FIVE,
+        "Green acre",
+        "Stone isle",
+    ], "all are on since 1.5"
+    # the five of 1.4, without the two of M17 (their own test is below)
+    monkeypatch.setattr(features, "FARM_AVAILABLE", False)
+    monkeypatch.setattr(features, "ISOMETRIC_AVAILABLE", False)
+    assert [s.label for s in project_model.offered_samples()] == FIVE
     _all_kinds(monkeypatch, False)
     assert [s.label for s in project_model.offered_samples()] == FIVE[:2]
     monkeypatch.setattr(features, "RACING_AVAILABLE", True)
@@ -989,8 +997,12 @@ def test_the_two_samples_of_m17_are_offered_with_their_flags(monkeypatch) -> Non
 
     monkeypatch.setattr(features, "METROIDVANIA_AVAILABLE", True)
     _all_kinds(monkeypatch, True)
-    assert not features.FARM_AVAILABLE and not features.ISOMETRIC_AVAILABLE
-    assert [s.label for s in project_model.offered_samples()] == FIVE, "five, as today"
+    assert features.FARM_AVAILABLE and features.ISOMETRIC_AVAILABLE, "on since the gate of 1.5"
+    assert [s.label for s in project_model.offered_samples()] == SEVEN
+    # each sample is behind the flag of its kind or of its view
+    monkeypatch.setattr(features, "FARM_AVAILABLE", False)
+    monkeypatch.setattr(features, "ISOMETRIC_AVAILABLE", False)
+    assert [s.label for s in project_model.offered_samples()] == FIVE, "as before the gate"
     monkeypatch.setattr(features, "FARM_AVAILABLE", True)
     assert [s.label for s in project_model.offered_samples()] == [*FIVE, "Green acre"]
     monkeypatch.setattr(features, "FARM_AVAILABLE", False)

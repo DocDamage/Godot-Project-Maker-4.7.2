@@ -5,6 +5,7 @@ extends RpgFarmTool
 func _init() -> void:
 	id = &"hoe"
 	animation = "hoe"
+	sound = RpgFarmSounds.HOE
 	acts_on = [RpgField.GROUND]
 
 func can_use(field: RpgField, cell: Vector2i) -> bool:

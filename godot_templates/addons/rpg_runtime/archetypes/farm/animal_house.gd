@@ -316,6 +316,7 @@ func feed_with(house_id: String, item_id: StringName) -> bool:
 		return false
 	state.inventory.remove(item_id, 1)
 	fill_trough(house_id)
+	RpgFarmSounds.play(RpgFarmSounds.ANIMAL)
 	RpgUtil.notify(RpgFarmStrings.t("FARM_TROUGH_FILLED", [RpgFarmStrings.t("FARM_HOUSE_" + house_id.to_upper())]))
 	return true
 
@@ -325,6 +326,7 @@ func pet(id: int) -> bool:
 	if row.is_empty() or RpgUtil.to_bool(row["petted"]):
 		return false
 	_update(id, {"petted": true, "friendship": mini(MAX_POINTS, RpgUtil.to_int(row["friendship"]) + PET_POINTS)})
+	RpgFarmSounds.play(RpgFarmSounds.ANIMAL)
 	changed.emit()
 	return true
 

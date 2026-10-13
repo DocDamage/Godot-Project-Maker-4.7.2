@@ -251,9 +251,12 @@ func _use_tool(found: RpgFarmMode, plot: RpgField, tool: RpgFarmTool, target: Ve
 			RpgUtil.notify(RpgFarmStrings.t("FARM_CAN_EMPTY"))
 		return false
 	var cost := tool.cost(plot, target)
+	var sounds := RpgFarmSounds.count
 	if not tool.apply(plot, target):
 		return false
 	found.energy.spend(cost)
+	if RpgFarmSounds.count == sounds:  # a harvest with the sickle has sounded already
+		RpgFarmSounds.play(tool.sound)
 	_begin_use(tool, item)
 	return true
 
@@ -266,6 +269,7 @@ func _plant(found: RpgFarmMode, plot: RpgField, target: Vector2i, crop_id: Strin
 		RpgUtil.notify(RpgFarmStrings.t("FARM_WRONG_SEASON", [crop_name, RpgFarmStrings.season(RpgField.season_now())]))
 		return false
 	state.inventory.remove(item, 1)
+	RpgFarmSounds.play(RpgFarmSounds.PLANT)
 	return true
 
 ## The farmer stands still for the tool's use time and shows its use.

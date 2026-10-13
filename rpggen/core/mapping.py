@@ -118,6 +118,15 @@ def _later_season(asset: catalog_mod.Asset) -> bool:
     )
 
 
+def _worked_soil(asset: catalog_mod.Asset) -> bool:
+    """True for a sheet of tilled or watered soil (the tags of T17.01). It has the role of a
+    ground, which is how a farm's field finds it, and it is never the ground a map is laid
+    with while the packs have another: the village of a farming pack stood on tilled soil,
+    the sheet its reader was surest of."""
+    tags = {str(tag) for tag in asset.detected.get("tags") or []}
+    return bool(tags & {"soil", "watered"})
+
+
 def candidates(
     catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
 ) -> list[catalog_mod.Asset]:
@@ -152,10 +161,12 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
     if found:
         # a recolour variant (T13.18) never takes a role from the pack's own asset by itself,
         # of a tile turned four ways (T17.12) the first turn is the one that is named, and of
-        # a sheet that comes once a season (T17.01) the first season is
+        # a sheet that comes once a season (T17.01) the first season is; tilled and watered
+        # soil are the field's, and the ground of a map only when there is no other
         ranked = sorted(
             found,
             key=lambda a: (
+                role == "GROUND" and _worked_soil(a),
                 _is_variant(a),
                 _later_turn(a),
                 _later_season(a),

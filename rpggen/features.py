@@ -11,10 +11,10 @@ METROIDVANIA_AVAILABLE = True
 SHMUP_AVAILABLE = True
 RUN_AND_GUN_AVAILABLE = True
 RACING_AVAILABLE = True
-# The farm and life sim of M17, off until its gate (T17.20). The kind can be generated from the
-# command line and a config since T17.04; the wizard does not offer it.
-FARM_AVAILABLE = False
-# The isometric view of M17, off until its gate (T17.20). A config or `rpggen generate
-# --projection isometric` can ask for it since T17.13; the wizard does not offer it. Maps are
-# painted in it from T17.14 on.
-ISOMETRIC_AVAILABLE = False
+# The farm and life sim and the isometric view of M17, on since the gate of 1.5 (T17.20). When
+# FARM_AVAILABLE is False the wizard's seventh card is disabled, its sample is not offered and
+# the wizard cannot choose the kind. When ISOMETRIC_AVAILABLE is False the wizard shows no View
+# choice and no word about isometric packs, and the isometric sample is not offered. Neither
+# flag is asked by the command line or by a config, which can ask for both.
+FARM_AVAILABLE = True
+ISOMETRIC_AVAILABLE = True

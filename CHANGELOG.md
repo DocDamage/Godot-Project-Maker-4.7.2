@@ -5,21 +5,77 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
 ## 1.5.0 (in work)
 
-* **A farm and life sim**, the seventh kind of game (not yet offered by the wizard): a farmer
-  with tools, a hotbar and energy; soil that is tilled and watered and crops that grow by the
-  night and the season; a farm of its own with a house, a plot, a pond or a well, a shipping
-  bin and, if you want them, a coop and a barn; a village with a shop that keeps hours and
-  people who keep schedules and can be befriended; animals, fishing, foraging, weather and
-  seasons. On the command line: `--archetype farm`.
-* **An isometric view** (not yet offered by the wizard; `--projection isometric`) for the
-  turn-based game, the action RPG, the farm and the racing game, from packs that ship one
-  picture a tile: the diamond a pack stands on is read from its own text file or measured, a
-  tile turned four ways is one tile, pieces whose names say which sides join are laid along
-  roads, and cars drawn in eight headings are driven. The same planned map is painted as
-  diamonds; a top-down project is what it was.
+A seventh kind of game and a second way of seeing four of them. Nothing changes for a project
+of the six older kinds: a 1.0 to 1.4 project regenerates without a prompt, and a project that
+does not ask for the isometric view is built as it was.
+
+* **A farm and life sim**, the seventh kind of game: a farmer with tools, a hotbar and energy;
+  soil that is tilled and watered and crops that grow by the night and the season; a farm of
+  its own with a house, a plot, a pond or a well, a shipping bin and, if you want them, a coop
+  and a barn; a village with a shop that keeps hours and people who keep schedules and can be
+  befriended; animals, fishing, foraging, weather and seasons. The game reads
+  `game/data/crops.json`, `people.json`, `animals.json` and `forage.json`, each written once
+  and then yours.
+* **An isometric view** for the turn-based game, the action RPG, the farm and the racing game,
+  from packs that ship one picture a tile: the diamond a pack stands on is read from its own
+  text file or measured, a tile turned four ways is one tile, pieces whose names say which
+  sides join are laid along roads, shores and walls, and cars drawn in eight headings are
+  driven. The same planned map is painted as diamonds; a top-down project is what it was. The
+  view needs isometric ground tiles (none is drawn), and a project keeps the view it was first
+  generated with.
+* **Every pack makes a farm.** What a pack lacks is drawn in its tile size (crops in five
+  stages, tilled and watered soil, the tools, a seed bag, a hen and an egg, a shipping bin, a
+  bed, rain, a rod, fish and things to forage) and reported as a note (ASSET-031). For the
+  isometric view a hero, a villager and an enemy are drawn when no pack of the project has
+  them.
 * **Detection for farming packs**: growth strips (a crop's stages in a row), the roles *Crop*,
   *Farm animal* and *Tool*, seasonal variants of a sheet as one card, fence sheets and drawn
   2 x 2 corner sheets as terrains, and a farmer's tool strips kept apart from the villagers.
+  Tilled and watered soil are a field's ground and never the ground a map is laid with while
+  the packs have another.
+* **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
+  picture rises above it, turns by number or by compass letter as one tile (never as frames of
+  an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a
+  zip inside the pack's folder, a sprite atlas beside the same loose pictures.
+* **The wizard**: seven cards on the Archetype page (rows of four in a wide window, rows of
+  three below that, one column in a narrow one) with the **Farm** card; a line that says a
+  pack looks like a farming pack or is isometric, with its diamond; on the Options page a
+  **View** choice (*From above*, *Isometric*) and, for the isometric view, a **Pad** choice,
+  in the box of each kind that has the view: chosen for the packs, refused with the reason
+  when they have no isometric ground, and fixed once the project exists; the **Farm** box with
+  the planned farm as a picture (on squares or on diamonds), the days of a season and the
+  length of a day; the presets *Cosy* and *Short year*.
+* **Two more samples** under *Choose a sample*, which lists seven: *Green acre* (a farm) and
+  *Stone isle* (an isometric village, as a turn-based game).
+* **The audit** says *Turns* for a tile turned several ways and *Seasons* for a sheet that
+  comes once a season, where it says *Variants* for colours; *Edit grid…* on a picture of an
+  isometric pack draws its diamond and lets you change it (a tile) or how many diamonds an
+  object stands on. The pack card says *Looks like a farming pack* and *Isometric tiles,
+  40 x 22*; the Mapping page says when a car drawn from above will look flat on an isometric
+  track.
+* **The command line** takes `--archetype farm` and `--projection isometric`, and a dry run
+  says what would be planned (*a farm of 40 x 30 with a plot of 96 cells, a pond, 4 crops, 3
+  people*).
+* **New notes and errors**: ASSET-034 (a crop of one picture: its stages are drawn), TILE-010
+  (an isometric pack whose diamond could not be read), TILE-011 (isometric and square ground
+  in one project), TILE-012 (tiles on another diamond are left out), VAL-031 (a farm that
+  cannot be worked), SMOKE-013 (a step of the farm's own sequence).
+* **Mended while the milestone was tested**: two generations of projects with one name, run at
+  the same time, failed each other's save checks (each check run now saves into a folder of
+  its own); a dark kerb along isometric paths and a footing under far walls; a pack read
+  through its profile lost its diamond; a farm's planner did not see a pack's coop and barn
+  when another building was chosen for the village; the rooms of a farm were floored with
+  grass; the cells an isometric building left free of its planned footprint could be walked
+  into; small diamonds were measured too coarsely; a farm whose villager stood where a
+  check of the generation put its gate failed that check; and the farm's sound slots (hoe,
+  watering, plant, harvest, animal, rooster) were offered on the Mapping page and never played.
+
+**Known limits.** Nobody has played either the farm or an isometric game by hand yet: what is
+known is what their tests and check runs assert. Maps added to a farm are names only and are
+not built. The editor's dock and imported Tiled or LDtk maps count squares, not diamonds. A
+room of an isometric project has walls only when the packs have isometric wall pieces. An
+isometric race is shown from above on the Options page. The French file has the new texts
+unfinished.
 
 ## 1.4.0 (in work)
 
