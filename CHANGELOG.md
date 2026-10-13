@@ -11,6 +11,12 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
   bin and, if you want them, a coop and a barn; a village with a shop that keeps hours and
   people who keep schedules and can be befriended; animals, fishing, foraging, weather and
   seasons. On the command line: `--archetype farm`.
+* **An isometric view** (not yet offered by the wizard; `--projection isometric`) for the
+  turn-based game, the action RPG, the farm and the racing game, from packs that ship one
+  picture a tile: the diamond a pack stands on is read from its own text file or measured, a
+  tile turned four ways is one tile, pieces whose names say which sides join are laid along
+  roads, and cars drawn in eight headings are driven. The same planned map is painted as
+  diamonds; a top-down project is what it was.
 * **Detection for farming packs**: growth strips (a crop's stages in a row), the roles *Crop*,
   *Farm animal* and *Tool*, seasonal variants of a sheet as one card, fence sheets and drawn
   2 x 2 corner sheets as terrains, and a farmer's tool strips kept apart from the villagers.
