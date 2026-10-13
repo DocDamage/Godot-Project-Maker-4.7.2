@@ -163,20 +163,29 @@ def _mean_color(picture: Image.Image) -> Color:
     return (r, g, b, 255)
 
 
-def grown(picture: Image.Image, tile: int) -> Image.Image:
+def grown(picture: Image.Image, tile: int, foot: int | None = None) -> Image.Image:
     """The growth strip of a crop the packs have as one picture: the drawn stages, in bud in
     the picture's colour, and the picture itself as the ripe one. A cell is a tile wide and two
-    high, or as large as the picture when that is larger."""
+    high, or as large as the picture when that is larger. ``foot`` is the row of the picture
+    that stands on the ground when that is not its last (a picture drawn for the isometric
+    view has the lower half of its diamond below it): the drawn stages stand on that row."""
     t = _size(tile)
     ripe = picture.convert("RGBA")
     cw, ch = max(t, ripe.width), max(t * 2, ripe.height)
     img, d = _new(cw * CROP_STAGES, ch)
     fruit = _mean_color(ripe)
     for stage in range(CROP_STAGES - 1):
-        _plant(d, stage * cw + cw // 2, ch - 1, t, stage, fruit)
+        _plant(d, stage * cw + cw // 2, ch - 1 - _below(ripe, foot), t, stage, fruit)
     left = (CROP_STAGES - 1) * cw + (cw - ripe.width) // 2
     img.paste(ripe, (left, ch - ripe.height))
     return img
+
+
+def _below(picture: Image.Image, foot: int | None) -> int:
+    """How many rows of ``picture`` lie below the row it stands on (0: it stands on its last)."""
+    if foot is None:
+        return 0
+    return max(0, min(picture.height - 1, picture.height - 1 - int(foot)))
 
 
 def _soil(tile: int, ground: Color, furrow: Color) -> Image.Image:
@@ -441,6 +450,13 @@ STAND_INS: tuple[StandIn, ...] = (
 )  # fmt: skip
 
 
+# What the kit draws for the view from above only (T17.14): square tiles of soil, which an
+# isometric map cannot be painted with, and a bin and a bed that lie flat on squares. An
+# isometric farm's soil is drawn on diamonds by its field recipe and its bin and bed as boxes on
+# their diamonds by its home recipe, so the kit adds none of the four there.
+NOT_ISOMETRIC = frozenset({"soil", "watered", "shipping_bin", "bed"})
+
+
 def _name_words(asset: catalog_mod.Asset) -> set[str]:
     from rpggen.core import classifier
 
@@ -493,12 +509,49 @@ def to_grow(catalog: catalog_mod.Catalog, projection: str = "top_down") -> list[
     found = []
     for asset in _own(catalog, projection):
         facets = catalog_mod.effective(asset)
-        if facets.get("role") != "CROP" or facets.get("usage") not in ("sprite", "object"):
+        is_crop = facets.get("role") == "CROP" or _isometric_crop(facets, projection)
+        if not is_crop or facets.get("usage") not in ("sprite", "object"):
             continue
         if facets.get("animations") or facets.get("headings") or "#" in asset.id:
             continue
+        if _other_turn(facets):
+            continue  # one crop, drawn four ways: its first turn is the crop
         found.append(asset)
     return found
+
+
+def _other_turn(facets: dict[str, Any]) -> bool:
+    """True for a picture that is a later turn of a thing an isometric pack drew several ways
+    (``corn_E`` beside ``corn_N``): it has a ``turn`` and is a variant of the first."""
+    tags = [str(tag) for tag in facets.get("tags") or []]
+    return "turn" in facets and any(tag.startswith("variant_of:") for tag in tags)
+
+
+def _isometric_crop(facets: dict[str, Any], projection: str) -> bool:
+    """True, in an isometric farm (T17.14), for a plant an isometric pack drew on a diamond and
+    its name calls a crop (the tag ``crop``; ``cornDouble_N.png`` of the miniature packs). The
+    reader of such a pack gives everything that stands on a diamond the role ``DECORATION``, and
+    the farm's roles are given to packs seen from above only; so here the tag counts, for the
+    first of the picture's turns."""
+    tags = [str(tag) for tag in facets.get("tags") or []]
+    return (
+        projection == catalog_mod.PROJECTION_ISOMETRIC
+        and facets.get("projection") == catalog_mod.PROJECTION_ISOMETRIC
+        and facets.get("role") == "DECORATION"
+        and "crop" in tags
+    )
+
+
+def _foot_row(source: catalog_mod.Asset) -> int | None:
+    """The row of a single crop picture that stands on the ground when it is not its last: the
+    middle of the diamond of a picture drawn for the isometric view (its ``origin``)."""
+    facets = catalog_mod.effective(source)
+    origin = facets.get("origin")
+    if facets.get("projection") != catalog_mod.PROJECTION_ISOMETRIC:
+        return None
+    if not isinstance(origin, list) or len(origin) != 2:
+        return None
+    return int(origin[1])
 
 
 def growing(catalog: catalog_mod.Catalog, projection: str = "top_down") -> int:
@@ -522,6 +575,7 @@ def lacking(catalog: catalog_mod.Catalog, projection: str = "top_down") -> list[
         s
         for s in STAND_INS
         if (crops_lack if s.role == "CROP" else own_asset(catalog, s, projection) is None)
+        and not (projection == catalog_mod.PROJECTION_ISOMETRIC and s.name in NOT_ISOMETRIC)
     ]
 
 
@@ -536,6 +590,10 @@ def grown_names(sources: list[catalog_mod.Asset]) -> dict[str, str]:
     taken: set[str] = set()
     for source in sources:
         base = source.id.rsplit(".", 1)[-1].lower()
+        # a picture that is one turn of a thing (``cornDouble_N`` of an isometric pack) is
+        # called by the thing, not by the turn
+        if "turn" in catalog_mod.effective(source) and "_" in base:
+            base = base.rsplit("_", 1)[0]
         name, n = base, 1
         while name in taken:
             n += 1
@@ -600,15 +658,16 @@ def _facets(stand_in: StandIn, image: Image.Image, t: int) -> dict[str, Any]:
     return facets
 
 
-def _strip_facets(image: Image.Image) -> dict[str, Any]:
-    """A growth strip of ``CROP_STAGES`` cells, as detection writes one (T17.01)."""
+def _strip_facets(image: Image.Image, below: int = 0) -> dict[str, Any]:
+    """A growth strip of ``CROP_STAGES`` cells, as detection writes one (T17.01). ``below`` rows
+    of its cells lie below the row the crop stands on."""
     w, h = image.size
     cell = w // CROP_STAGES
     return {
         "usage": "growth_strip",
         "grid": {"cell": [cell, h], "margin": [0, 0], "separation": [0, 0]},
         "frame": [cell, h],
-        "origin": [cell // 2, h - 1],
+        "origin": [cell // 2, h - 1 - below],
         "stages": CROP_STAGES,
         "size": [w, h],
     }
@@ -673,8 +732,9 @@ def add(
         if ripe is None:
             continue
         name = grown_names(sources)[source.id]
-        image = grown(ripe, t)
-        facets = _strip_facets(image)
+        foot = _foot_row(source)
+        image = grown(ripe, t, foot)
+        facets = _strip_facets(image, _below(ripe, foot))
         facets["role"] = "CROP"
         facets["tags"] = sorted({KIT_TAG, "crop", GROWN_TAG + source.id})
         rel = f"{KIT_DIR}/{GROWN_DIR}/{name}.png"

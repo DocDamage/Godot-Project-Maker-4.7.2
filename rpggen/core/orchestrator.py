@@ -404,20 +404,37 @@ def add_run_made_assets(
         from rpggen.core import farm_kit
 
         # the crops, the soil and the tools the packs lack are drawn (T17.02); the notes are
-        # the requirement check's here too
-        farm_kit.add(catalog, cfg.base_tile_size, root, cfg.projection)
+        # the requirement check's here too. An isometric farm's are drawn as large as one
+        # step on its diamonds, the size its drawn people have (T17.14)
+        farm_kit.add(catalog, farm_kit_tile(catalog, cfg), root, cfg.projection)
     if iso_atlas.wanted(cfg):
         from rpggen.core import iso_kit
 
         # the isometric packs have no people (T17.14): a hero, a villager and an enemy are
         # drawn for the roles no pack of the project fills; the notes are the requirement
-        # check's here too
-        iso_kit.add(catalog, iso_atlas.project_footprint(catalog, cfg), root, cfg.projection)
+        # check's here too. A race has no people (T17.15): its drawn enemy would be a rival's
+        # picture, so nobody is drawn for it (the kit draws none for a view from above)
+        race = cfg.archetype in requirements.ARCADE_KINDS
+        people = config_mod.PROJECTION_TOP_DOWN if race else cfg.projection
+        iso_kit.add(catalog, iso_atlas.project_footprint(catalog, cfg), root, people)
         # last, after everything that assigns the tile sets again: the single tiles of the
         # isometric packs are packed into atlases, and the project's tile set is theirs
         # (T17.13). A project that is seen from above gets none of it.
         iso_atlas.add(catalog, cfg, root)
     return issues, stand_ins
+
+
+def farm_kit_tile(catalog: catalog_mod.Catalog, cfg: config_mod.GeneratorConfig) -> int:
+    """What the drawn farm kit takes for a tile: the config's tile size, and for an isometric
+    farm the length of one step on its diamonds (``iso_math.unit``: what the builder means by a
+    tile there, and how wide ``iso_kit`` draws its people)."""
+    if iso_atlas.wanted(cfg):
+        from rpggen.core import iso_math
+
+        footprint = iso_atlas.project_footprint(catalog, cfg)
+        if footprint is not None:
+            return iso_math.unit(int(footprint[0]), int(footprint[1]))
+    return cfg.base_tile_size
 
 
 # --------------------------------------------------------------------------- repeats (T15.20)
@@ -600,12 +617,55 @@ def _building_fact(catalog: catalog_mod.Catalog, obj: Any) -> dict[str, Any]:
     return {"size": list(size), "door": list(door)}
 
 
+def _iso_farm_facts(
+    cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog
+) -> dict[str, Any]:
+    """``farm_facts`` of an isometric farm (T17.14): its buildings are the pictures an isometric
+    pack drew as buildings, each on the cells its catalog entry says (``stands_on``), the door
+    before the middle of its south side (``map_preview.iso_building_geometry``); and its water
+    is a pond when a pack has an isometric water tile, else a well."""
+    from rpggen.core import farm_plan, map_preview
+
+    def tags(asset: Any) -> set[str]:
+        return {str(t) for t in catalog_mod.effective(asset).get("tags") or []}
+
+    def fact(asset: Any) -> dict[str, Any]:
+        size, door = map_preview.iso_building_geometry(
+            catalog_mod.effective(asset).get("stands_on")
+        )
+        return {"size": list(size), "door": list(door)}
+
+    chosen = cfg.starter.get("building", "")
+    buildings = map_preview.iso_buildings(catalog, chosen)
+    own: dict[str, Any] = {}
+    for kind in FARM_ANIMAL_HOUSES:
+        found = next((b for b in buildings if kind in tags(b)), None)
+        own[kind] = fact(found) if found is not None else None
+    houses = [b for b in buildings if b.id == chosen or not tags(b) & set(FARM_ANIMAL_HOUSES)]
+    water = any(
+        catalog_mod.effective(a).get("role") == "WATER"
+        and a.status not in ("UNUSED", "MISSING")
+        and catalog_mod.fits_projection(a, cfg.projection)
+        for a in catalog.assets
+    )
+    return farm_plan.facts_of(
+        house=fact((houses or buildings)[0]) if buildings else None,
+        water=water,
+        coop=own["coop"],
+        barn=own["barn"],
+    )
+
+
 def farm_facts(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict[str, Any]:
     """What the farm's planner needs to know of the packs (``farm_plan.facts_of``): the
     footprint of the farmhouse (the starter building, as the village has it; one tagged as a
     coop or a barn only when the packs have no other), of a coop and a barn of their own (a
-    ``BUILDING`` object tagged so), and whether they have water tiles: a pond, else a well."""
+    ``BUILDING`` object tagged so), and whether they have water tiles: a pond, else a well.
+    The plan is the same grid of cells in both views; only these facts are the view's."""
     from rpggen.core import farm_plan, map_preview
+
+    if cfg.projection == config_mod.PROJECTION_ISOMETRIC:
+        return _iso_farm_facts(cfg, catalog)
 
     def tags(obj: Any) -> set[str]:
         return {str(t) for t in (getattr(obj, "tags", None) or [])}
@@ -661,7 +721,9 @@ def people_facts(
     and the potion of the demo. The village has no water, so nobody goes to a pond."""
     from rpggen.core import map_preview, people_plan
 
-    building = map_preview.building_info_for(catalog, cfg.starter.get("building", ""))
+    building = map_preview.building_info_for(
+        catalog, cfg.starter.get("building", ""), cfg.projection
+    )
     village = map_preview.plan(cfg.starter_map_options(), cfg.seed, building, cfg.archetype)
     demo = bool(cfg.features.get("demo", True))
     items = [str(crop["produce"]) for crop in farm.get("crops", [])]

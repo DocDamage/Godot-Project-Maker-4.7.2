@@ -13,8 +13,9 @@ signal picked(item_id: StringName)
 var animal_id := 0
 var herd: RpgAnimalHouse = null
 
-## A product of the animal `id` that lies with its lower edge on the origin.
-static func make(id: int, item: StringName, tile: float) -> RpgAnimalProduct:
+## A product of the animal `id` that lies with its lower edge on the origin. On an isometric
+## map (`diamond` is the diamond of its cells, T17.14) its area is most of the cell it lies on.
+static func make(id: int, item: StringName, tile: float, diamond: Vector2i = Vector2i.ZERO) -> RpgAnimalProduct:
 	var product := RpgAnimalProduct.new()
 	product.name = "Product_%d" % id
 	product.animal_id = id
@@ -26,10 +27,13 @@ static func make(id: int, item: StringName, tile: float) -> RpgAnimalProduct:
 	product.monitorable = true
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(tile, tile) * 0.7
-	shape.shape = rect
-	shape.position = Vector2(0.0, -tile * 0.35)
+	if diamond != Vector2i.ZERO:
+		shape.shape = RpgFarmIso.diamond_shape(diamond, 0.7)
+	else:
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(tile, tile) * 0.7
+		shape.shape = rect
+		shape.position = Vector2(0.0, -tile * 0.35)
 	product.add_child(shape)
 	var state := RpgUtil.state()
 	var def: RpgItemDefinition = state.items.get(item) if state != null else null

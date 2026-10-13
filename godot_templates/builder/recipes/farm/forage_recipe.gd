@@ -19,6 +19,7 @@ const SceneUtil := preload("../../lib/scene_util.gd")
 const SeedUtil := preload("../../lib/seed_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const MapUtil := preload("../../lib/map_util.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
 const BuildContext := preload("../../lib/build_context.gd")
 const FarmBuild := preload("farm_build.gd")
 
@@ -52,15 +53,16 @@ static func spots() -> Array[Vector2i]:
 	return out
 
 ## Writes the places of the plan into a map that is being built: `Forage/Spot1` ... in the
-## middle of their cells. A plan without places adds nothing.
-static func add_places(root: Node2D, tile_px: int) -> void:
+## middle of their cells (squares or diamonds: `geo` says where that is). A plan without places
+## adds nothing.
+static func add_places(root: Node2D, geo: MapGeo) -> void:
 	var cells := spots()
 	if cells.is_empty():
 		return
 	var holder := Node2D.new()
 	SceneUtil.add(root, holder, root, HOLDER)
 	for i in cells.size():
-		MapUtil.add_marker(holder, root, "%s%d" % [SPOT_PREFIX, i + 1], MapUtil.tile_center(cells[i], tile_px))
+		MapUtil.add_marker(holder, root, "%s%d" % [SPOT_PREFIX, i + 1], geo.center(cells[i]))
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray([PLANNED_PATH])

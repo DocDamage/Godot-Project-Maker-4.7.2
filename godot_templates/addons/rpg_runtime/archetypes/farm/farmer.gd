@@ -10,6 +10,11 @@ extends RpgActor
 ## A tool's use shows the animation of the sheet named after it (`hoe_down`, ...), else the
 ## attack, else the idle frame with the tool's icon over the hands (the child `ToolIcon`).
 ## At zero energy the farmer walks at SLOW of its speed and no tool works.
+##
+## **On diamonds** (T17.14) the tile ahead is the neighbour the farmer faces, asked as
+## RpgActor.cell_ahead asks it (RpgIso.faced_cell): the one it last walked towards while that
+## still agrees with its facing, else the one its facing names (up n, right e, down s, left w),
+## with either setting of `iso_controls`. The frame on the ground is then that diamond.
 
 const FRAME_NODE := "TileFrame"
 const ICON_NODE := "ToolIcon"
@@ -30,10 +35,18 @@ var _busy := 0.0
 var _base_speed := -1.0
 var _frame: Node2D = null
 var _icon: Sprite2D = null
+## The frame as the player scene has it (a square and its width), and the diamond it was last
+## given.
+var _frame_square := PackedVector2Array()
+var _frame_width := 1.0
+var _frame_diamond := Vector2i.ZERO
 
 func _ready() -> void:
 	super._ready()
 	_frame = get_node_or_null(FRAME_NODE) as Node2D
+	if _frame is Line2D:
+		_frame_square = (_frame as Line2D).points
+		_frame_width = (_frame as Line2D).width
 	_icon = get_node_or_null(ICON_NODE) as Sprite2D
 	if _icon != null:
 		_icon.visible = false
@@ -92,11 +105,44 @@ func cell() -> Vector2i:
 	var found := the_field()
 	if found != null:
 		return found.cell_at(at)
+	if is_inside_tree() and RpgIso.footprint_of(map_node()) != Vector2i.ZERO:
+		return map_cell()  # a map of diamonds without a field (the farmhouse): the map is asked
 	return Vector2i(floori(at.x / tile_px), floori(at.y / tile_px))
 
-## The cell in front of the farmer: what a tool acts on.
+## The cell in front of the farmer: what a tool acts on. On squares it is the cell the facing
+## points to; on diamonds the neighbour the farmer faces (RpgIso.faced_cell).
 func tile_ahead() -> Vector2i:
-	return ahead_of(cell(), facing)
+	if diamond() == Vector2i.ZERO:
+		return ahead_of(cell(), facing)
+	return RpgIso.faced_cell(cell(), facing, look())
+
+## The diamond of the cells the farmer works on: of the field's `Soil` layer, else of the map;
+## Vector2i.ZERO on squares.
+func diamond() -> Vector2i:
+	var found := the_field()
+	if found != null:
+		return found.footprint()
+	return RpgIso.footprint_of(map_node()) if is_inside_tree() else Vector2i.ZERO
+
+## Turns the farmer to a cell beside the one it stands in, so that it is the tile ahead: the
+## facing on squares; on diamonds the facing and where the farmer looks, as if it had taken a
+## step towards that neighbour. False for a cell that is not one of the four neighbours.
+func face_cell(target: Vector2i) -> bool:
+	var by := target - cell()
+	var footprint := diamond()
+	for side in RpgIso.SIDES:
+		var step: Vector2i = RpgIso.STEPS[side]
+		if step != by:
+			continue
+		if footprint == Vector2i.ZERO:
+			for way: String in RpgIso.FACING_SIDES.keys():
+				if RpgIso.FACING_SIDES[way] == side:
+					set_facing(way)
+		else:
+			_look = RpgIso.step(side, footprint)
+			set_facing(RpgIso.facing_of(_look))
+		return true
+	return false
 
 func the_field() -> RpgField:
 	if field == null or not is_instance_valid(field):
@@ -144,7 +190,25 @@ func _place_frame() -> void:
 	var found := the_field()
 	_frame.visible = found != null and input_enabled
 	if found != null:
+		_shape_frame(found.footprint())
 		_frame.global_position = found.cell_center(tile_ahead())
+
+## The frame is the outline of a cell: the square of the scene, or the diamond of the field.
+func _shape_frame(footprint: Vector2i) -> void:
+	if footprint == _frame_diamond or not (_frame is Line2D):
+		return
+	_frame_diamond = footprint
+	var outline := _frame as Line2D
+	if footprint == Vector2i.ZERO:
+		outline.points = _frame_square
+		outline.width = _frame_width
+		return
+	var half := Vector2(footprint) / 2.0
+	outline.points = PackedVector2Array([Vector2(0.0, -half.y), Vector2(half.x, 0.0), Vector2(0.0, half.y), Vector2(-half.x, 0.0)])
+	# the camera of a game of large diamonds is drawn back: the line keeps its width on the screen
+	var camera := get_node_or_null("Camera") as Camera2D
+	var zoom := camera.zoom.x if camera != null else 1.0
+	outline.width = _frame_width / zoom if zoom > 0.0 and zoom < 1.0 else _frame_width
 
 ## A farmer without energy walks slowly.
 func _pace() -> void:

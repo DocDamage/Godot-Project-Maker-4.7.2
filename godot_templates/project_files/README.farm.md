@@ -246,6 +246,40 @@ and what they love, like and dislike (`loves`, `likes`, `dislikes`: lists of ite
   loved, 45 when it is liked, 20 when the person does not care, and takes 20 when it is
   disliked; a person takes two gifts a week.
 
+### The isometric view
+
+A farm made with **`projection: isometric`** is the same game on diamonds: the same plan of
+the farm, the same crops, people and saves. What is different:
+
+- The **tile ahead** is the diamond in front of you with the white frame around it. A diamond
+  has four neighbours: up and to the right (north), down and to the right (east), down and to
+  the left (south), up and to the left (west). The one you face is the one you last walked
+  towards; standing still after a map change it is the one your facing names (up is north,
+  right east, down south, left west). Watch the frame: what you hold is used there.
+- With the default controls **up is up on the screen**, so walking straight up crosses the
+  corners of the diamonds; walk up and to the right to go along a row of the field. With
+  `iso_controls: grid` in the config the four directions follow the rows instead.
+- **Talking, the bed, the bin, the trough** (`interact`) reach where you look on the screen
+  (with `grid` controls: towards the diamond you face), as in every isometric game rpggen
+  makes. A ripe crop on the tile ahead is always picked with `use`.
+- Tilled and watered soil are the flat isometric tile your packs tagged `soil` or `watered`
+  when they have one; else they are drawn as diamonds, as the plot and a pond without a water
+  tile of the packs always are (the `Soil` layer, `generated/tilesets/farm_soil.tres`). To use
+  tiles of your own, add them to that tile set and give the `Field` node of
+  `game/maps/farm.tscn` their source and cell (`tilled_source`, `tilled_tile`,
+  `watered_source`, `watered_tile`).
+- A plant an isometric pack drew on a diamond and called a crop (`cornDouble_N.png`) is a
+  crop: its picture is the ripe one, and the stages before it are drawn.
+- What your packs did not draw for this view is a stand-in made of boxes on its diamond: the
+  buildings, fences and gates, the well, trees, bushes, rocks, the bin, the bed, the trough.
+  They are ordinary nodes of the maps (`Polygon2D` under a body): replace them with your own
+  sprites, keeping the body and its shape. The tools, the crops, the hen and the things to
+  forage of the drawn farm kit are pictures seen from the front and stand on the middle of
+  their diamond, as the people do.
+- A crop, a fence, a tree and everything else that stands on the map stands on the **middle
+  of its diamond** and is sorted by it: you are drawn behind what is south or east of you and
+  in front of what is north or west.
+
 ### Where things are
 
 | What | Where |

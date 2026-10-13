@@ -24,18 +24,25 @@ extends RefCounted
 ##
 ## The nights of the growing are the calendar's `end_day()`, run in full (a day that nobody
 ## slept through); the night after the harvest is slept in the bed.
+##
+## **The map is asked, not the screen** (T17.14), so the same steps play a farm of squares and
+## an isometric one, with either setting of `iso_controls`: a walk through a door walks to the
+## door (SmokeMap.walk_toward; on squares that holds the one key the step used to hold), the
+## farmer is turned to the cell it works on (RpgFarmer.face_cell; on squares that is the facing
+## the step used to set), it stands where its interaction reaches what it talks to
+## (RpgIso.reach_dir; straight below it on squares), and "inside the yard" is asked of the
+## yard's cells.
 
 ## What a failed step of this sequence is reported as (docs/spec/03_ERROR_CODES.md).
 const CODE := "SMOKE-013"
 
 const JsonUtil := preload("../lib/json_util.gd")
+const SmokeMap := preload("smoke_map.gd")
 
 const HOUSE := "FarmHouse"
 const FARM := "Farm"
 const VILLAGE := "StarterMap"
 const PLAN_PATH := "res://rpggen/world_plan.json"
-## The action that walks against a facing: out of a map through the gap one came in by.
-const BACK := {"down": "move_up", "up": "move_down", "left": "move_right", "right": "move_left"}
 ## The hours a villager is looked for at: by day, and in the evening.
 const HOURS: Array[int] = [11, 21]
 
@@ -138,6 +145,7 @@ func _stand_at_cell() -> String:
 	var cell: Vector2i = _box["cell"]
 	farmer.global_position = field.cell_center(cell + Vector2i.UP)
 	farmer.set_facing("down")
+	farmer.face_cell(cell)  # down on squares; the neighbour to the south on diamonds
 	await _frames(3)
 	if not await _wait_for(func() -> bool: return not farmer.is_busy(), 120):
 		return "the farmer never finished using its tool"
@@ -192,9 +200,11 @@ func _door_to(file_name: String) -> RpgDoor:
 			return door
 	return null
 
-## Puts the farmer at `from` and holds `action` until another map is shown; the map must then
-## be `map_name`, and the farmer stand at its spawn `spawn_id`. "" when it does.
-func _walk_to_map(from: Vector2, action: String, map_name: String, spawn_id: String) -> String:
+## Puts the farmer at `from` and walks it to `to` (a door) until another map is shown; the map
+## must then be `map_name`, and the farmer stand at its spawn `spawn_id`. "" when it does. The
+## map is asked which way to hold the pad (T17.14): on squares, where `to` lies straight along
+## an axis from `from`, it is the one key this step always held.
+func _walk_to_map(from: Vector2, to: Vector2, map_name: String, spawn_id: String) -> String:
 	var tree := _tree()
 	var farmer := _farmer()
 	if farmer == null:
@@ -202,14 +212,10 @@ func _walk_to_map(from: Vector2, action: String, map_name: String, spawn_id: Str
 	var before := tree.current_scene
 	farmer.global_position = from
 	await _frames(2)
-	Input.action_press(action)
-	for i in 240:
-		await tree.physics_frame
-		if tree.current_scene != before or RpgUtil.router().is_busy():
-			break
-	Input.action_release(action)
+	var router := RpgUtil.router()
+	await SmokeMap.walk_toward(farmer, to, 240, func() -> bool: return tree.current_scene != before or router.is_busy())
 	if not await _wait_for_map(map_name, 600):
-		return "`%s` from %s did not lead to %s" % [action, from, map_name]
+		return "walking from %s to %s did not lead to %s" % [from, to, map_name]
 	var spawn := _spawn(spawn_id)
 	if spawn == null:
 		return "%s has no spawn point '%s'" % [map_name, spawn_id]
@@ -228,7 +234,7 @@ func _through_the_gap(door_name: String, spawn_id: String, map_name: String, arr
 		return "%s has no door '%s' with the spawn '%s' before it" % [scene.name if scene != null else "no map", door_name, spawn_id]
 	if door.target_map == "" or not ResourceLoader.exists(door.target_map):
 		return "the door '%s' leads to no map (%s)" % [door_name, door.target_map]
-	return await _walk_to_map(inside.global_position, str(BACK.get(inside.facing, "move_up")), map_name, arrive)
+	return await _walk_to_map(inside.global_position, door.global_position, map_name, arrive)
 
 # ---------------------------------------------------------------- the house and the way (T17.06)
 
@@ -262,11 +268,8 @@ func _walk_out_of_the_house() -> String:
 	var way_out := _door_to("farm.tscn")
 	if way_out == null:
 		return "the farmhouse has no door to the farm"
-	var tile := 16.0
-	var ground := _tree().current_scene.get_node_or_null("Ground") as TileMapLayer
-	if ground != null and ground.tile_set != null:
-		tile = float(ground.tile_set.tile_size.y)
-	var failure: String = await _walk_to_map(way_out.global_position + Vector2(0.0, -tile), "move_down", FARM, "farm_house_door")
+	# from the cell north of the way out (a tile above it on squares), down into it
+	var failure: String = await _walk_to_map(way_out.global_position + SmokeMap.cells(Vector2(0.0, -1.0)), way_out.global_position, FARM, "farm_house_door")
 	if failure != "":
 		return failure
 	if not str(_state().current_map).ends_with("farm.tscn"):
@@ -371,7 +374,7 @@ func _talk_and_give(friends: RpgFriendship, id: String, npc: RpgNpc, seen: Dicti
 	# with a tool in the hand `interact` talks: the first talk of a day counts
 	var failure: String = await _hold(&"hoe")
 	if failure == "":
-		failure = await _stand(npc.global_position + Vector2(0.0, 9.0), "up")
+		failure = await _stand(_below(npc, 9.0), "up")
 	if failure != "":
 		return failure
 	var before := friends.points_of(id)
@@ -395,7 +398,7 @@ func _talk_and_give(friends: RpgFriendship, id: String, npc: RpgNpc, seen: Dicti
 		state.inventory.add(gift, 1)
 	failure = await _hold(gift)
 	if failure == "":
-		failure = await _stand(npc.global_position + Vector2(0.0, 9.0), "up")
+		failure = await _stand(_below(npc, 9.0), "up")
 	if failure != "":
 		return failure
 	var had: int = state.inventory.count(gift)
@@ -517,17 +520,21 @@ func _fill_the_can() -> String:
 		return "the farm has no water, or no place to fill the can at"
 	var at := field.cell_at(marker.global_position)
 	var facing := ""
+	var wet := at
 	for entry: Array in [[Vector2i.UP, "up"], [Vector2i.LEFT, "left"], [Vector2i.RIGHT, "right"], [Vector2i.DOWN, "down"]]:
 		var step: Vector2i = entry[0]
 		if facing == "" and field.is_water(at + step):
 			facing = str(entry[1])
+			wet = at + step
 	if facing == "":
 		return "no cell beside %s says it is water" % at
-	var failure: String = await _stand(field.cell_center(at), facing)
+	var failure: String = await _stand_toward(field.cell_center(at), facing, wet)
 	if failure == "":
 		failure = await _hold(&"watering_can")
 	if failure != "":
 		return failure
+	if _farmer().tile_ahead() != wet:
+		return "the tile ahead is %s, the water is at %s" % [_farmer().tile_ahead(), wet]
 	# `use` with the can held, at the water ahead
 	RpgFarmWateringCan.set_charges(0)
 	var energy := mode.energy.value
@@ -536,7 +543,7 @@ func _fill_the_can() -> String:
 		return "`use` with the can at the water left it at %d of %d" % [RpgFarmWateringCan.charges(), RpgFarmWateringCan.SIZE]
 	if mode.energy.value != energy:
 		return "filling the can cost energy"
-	failure = await _stand(field.cell_center(at), facing)
+	failure = await _stand_toward(field.cell_center(at), facing, wet)
 	if failure != "":
 		return failure
 	# and `interact` with the water
@@ -623,7 +630,7 @@ func _use_on(thing: Node2D, kind: String, cell: Vector2i, stand: Vector2i, facin
 	var tool := mode.tool_for(tool_id)
 	var kinds: Array[String] = [kind]
 	var id := str(thing.get("entity_id"))
-	var failure: String = await _stand(field.cell_center(stand), facing)
+	var failure: String = await _stand_toward(field.cell_center(stand), facing, cell)
 	if failure == "":
 		failure = await _hold(tool_id)
 	if failure != "":
@@ -806,6 +813,41 @@ func _stand(at: Vector2, facing: String) -> String:
 		return "the farmer never finished using its tool"
 	return ""
 
+## Puts the farmer at `at`, looking `facing`, turned to the cell `toward` beside the one it
+## stands in (T17.14): on squares that is what `facing` says already; on diamonds the four
+## facings are not the four neighbours, and the farmer is told which one it faces.
+func _stand_toward(at: Vector2, facing: String, toward: Vector2i) -> String:
+	var failure: String = await _stand(at, facing)
+	if failure == "":
+		_farmer().face_cell(toward)
+		await _frames(2)
+	return failure
+
+## As `_stand_toward`, for a thing of the map at `thing_at`: on squares the farmer looks
+## `facing`, as the step always had it; on diamonds it is turned to the cell the thing stands
+## in, when that is a cell beside its own.
+func _stand_before(at: Vector2, facing: String, thing_at: Vector2) -> String:
+	var failure: String = await _stand(at, facing)
+	var scene := _tree().current_scene
+	if failure == "" and RpgIso.footprint_of(scene) != Vector2i.ZERO:
+		_farmer().face_cell(RpgIso.cell_at(scene, thing_at))
+		await _frames(2)
+	return failure
+
+## Where the farmer stands to reach `target` with `interact` while it looks up: `gap` px below
+## it on squares, as the steps always stood; on diamonds as far from it as its interaction
+## reaches, on the side a farmer that looks up reaches from (RpgIso.reach_dir: straight below
+## with the pad on the screen, down and to the left with the pad on the grid).
+func _below(target: Node2D, gap: float) -> Vector2:
+	var scene := _tree().current_scene
+	if RpgIso.footprint_of(scene) == Vector2i.ZERO:
+		return target.global_position + Vector2(0.0, gap)
+	var reach := floorf(RpgIso.map_unit(scene) * 0.6)
+	var area := _farmer().get_node_or_null("Interaction") as RpgInteraction if _farmer() != null else null
+	if area != null:
+		reach = floorf(area.tile_size * 0.6)
+	return target.global_position - RpgIso.reach_dir(scene, "up") * reach
+
 ## `interact` until `done` says so (the first press may come before the bodies are known).
 func _interact_until(done: Callable) -> bool:
 	for attempt in 3:
@@ -826,14 +868,16 @@ func _ship_the_crop() -> String:
 	var front := scene.get_node_or_null("Markers/BinFront") as Node2D
 	if front == null:
 		return "the farm does not say where to stand before the bin"
-	var bin_cell := field.cell_at(bin.global_position + Vector2(0.0, -field.tile_px * 0.5))
+	# (the bin's origin is the lower edge of its cell on squares, the middle of it on diamonds)
+	var bin_at := bin.global_position + (Vector2.ZERO if field.footprint() != Vector2i.ZERO else Vector2(0.0, -field.tile_px * 0.5))
+	var bin_cell := field.cell_at(bin_at)
 	var before_bin := field.cell_at(front.global_position)
 	var looks := "up"
 	if before_bin.x != bin_cell.x:
 		looks = "left" if bin_cell.x < before_bin.x else "right"
 	elif before_bin.y < bin_cell.y:
 		looks = "down"
-	var failure: String = await _stand(field.cell_center(before_bin), looks)
+	var failure: String = await _stand_before(field.cell_center(before_bin), looks, bin_at)
 	if failure != "":
 		return failure
 	var produce := StringName(str(_crop().get("produce", "")))
@@ -871,7 +915,13 @@ func _sleep_in_the_bed() -> String:
 	var way_in := _door_to("farm_house.tscn")
 	if way_in == null:
 		return "the farm has no door into the farmhouse"
-	var into: String = await _walk_to_map(way_in.global_position + Vector2(0.0, RpgField.current().tile_px * 0.8), "move_up", HOUSE, "default")
+	# from before the door (straight below it on squares; on diamonds the side the house lets
+	# people out, where its spawn is), into it
+	var front := Vector2(0.0, 1.0)
+	var out := _spawn("farm_house_door")
+	if out != null and RpgIso.footprint_of(_tree().current_scene) != Vector2i.ZERO and out.global_position.distance_to(way_in.global_position) > 0.5:
+		front = (out.global_position - way_in.global_position).normalized()
+	var into: String = await _walk_to_map(way_in.global_position + front * RpgField.current().tile_px * 0.8, way_in.global_position, HOUSE, "default")
 	if into != "":
 		return into
 	var scene := _tree().current_scene
@@ -890,7 +940,7 @@ func _sleep_in_the_bed() -> String:
 	var toward := "up"
 	if absf(bed.global_position.x - bed.wake_position().x) > 1.0:
 		toward = "left" if bed.global_position.x < bed.wake_position().x else "right"
-	var failure: String = await _stand(bed.wake_position(), toward)
+	var failure: String = await _stand_before(bed.wake_position(), toward, bed.global_position)
 	if failure != "":
 		return failure
 	mode.energy.value = 30
@@ -1410,12 +1460,15 @@ func _catch_a_fish() -> String:
 		return "the game has no fishing rod, or the farm no place at its water"
 	var at := field.cell_at(marker.global_position)
 	var facing := ""
+	var wet := at
 	for entry: Array in [[Vector2i.UP, "up"], [Vector2i.LEFT, "left"], [Vector2i.RIGHT, "right"], [Vector2i.DOWN, "down"]]:
 		var step: Vector2i = entry[0]
 		if facing == "" and field.is_water(at + step):
 			facing = str(entry[1])
+			wet = at + step
 	if facing == "":
 		return "no cell beside %s says it is water" % at
+	_box["fish_water"] = wet
 	var calendar := RpgCalendar.current()
 	var biting := RpgFishing.fish_of(mode.forage.fish, calendar.season_name(), RpgFishing.time_of(calendar.minute), RpgFishing.POND)
 	if biting.is_empty():
@@ -1441,6 +1494,9 @@ func _catch_a_fish() -> String:
 func _land_a_fish(stand: Vector2, facing: String, at: Vector2i, mode: RpgFarmMode, fishing: RpgFishing, rod: RpgFarmTool) -> String:
 	var failure: String = await _forage_stand(stand, facing)
 	if failure == "":
+		var wet: Vector2i = _box["fish_water"]
+		_farmer().face_cell(wet)  # what `facing` says on squares; the water's cell on diamonds
+		await _forage_frames(2)
 		failure = await _hold(&"fishing_rod")
 	if failure != "":
 		return failure
@@ -1552,9 +1608,10 @@ func _animals_hold(item_id: StringName) -> String:
 			break
 	return await _hold(item_id)
 
-## Puts the farmer below `thing`, looking up at it, `gap` px from its origin.
+## Puts the farmer below `thing`, looking up at it, `gap` px from its origin (on diamonds:
+## where its interaction reaches the thing from, `_below`).
 func _animals_face(thing: Node2D, gap: float) -> String:
-	return await _stand(thing.global_position + Vector2(0.0, gap), "up")
+	return await _stand(_below(thing, gap), "up")
 
 ## The first morning hour the shop is open on a fair day: the night passes when it is too late
 ## in the day, and the shop's closed day is slept through.
@@ -1687,19 +1744,19 @@ func _hen_in_the_coop() -> String:
 		var yard := scene.get_node_or_null("Yards/%s" % JsonUtil.to_str(animal["house"]).capitalize()) as Node2D
 		if yard == null or not (yard.get_meta(&"yard", null) is Rect2i):
 			return "the farm has no yard of the %s" % animal["house"]
+		# the yard is its cells (T17.14): the map says which cell the animal stands in, on
+		# squares and on diamonds
 		var cells: Rect2i = yard.get_meta(&"yard")
-		var tile := float(RpgUtil.map_tile_px(scene))
-		var ground := Rect2(yard.global_position, Vector2(cells.size) * tile)
 		var node := herd.node_of(id)
 		if node == null:
 			return "the %s is not in its yard by day" % animal["kind"]
-		if not node.is_roaming() or not ground.has_point(node.global_position):
-			return "the %s stands at %s, outside its yard %s" % [animal["kind"], node.global_position, ground]
+		if not node.is_roaming() or not cells.has_point(RpgIso.cell_at(scene, node.global_position)):
+			return "the %s stands at %s (cell %s), outside its yard %s" % [animal["kind"], node.global_position, RpgIso.cell_at(scene, node.global_position), cells]
 		if node.get_node_or_null("Visual") == null:
 			return "the %s has no picture" % animal["kind"]
 		await _animals_frames(30)
 		node = herd.node_of(id)
-		if node == null or not ground.has_point(node.global_position):
+		if node == null or not cells.has_point(RpgIso.cell_at(scene, node.global_position)):
 			return "the %s left its yard" % animal["kind"]
 		weather.force(RpgFarmWeather.RAIN)
 		await _animals_frames(2)
@@ -1924,13 +1981,15 @@ func _ship_the_egg() -> String:
 		return "the farm has no shipping bin with a place to stand before it"
 	# as the crop was shipped: from the cell before the bin, looking at it
 	var tile := float(RpgUtil.map_tile_px(scene))
-	var to_bin := bin.global_position + Vector2(0.0, -tile * 0.5) - front.global_position
+	# (the bin's origin is the lower edge of its cell on squares, the middle of it on diamonds)
+	var bin_at := bin.global_position + (Vector2.ZERO if RpgIso.footprint_of(scene) != Vector2i.ZERO else Vector2(0.0, -tile * 0.5))
+	var to_bin := bin_at - front.global_position
 	var looks := "up"
 	if absf(to_bin.x) > absf(to_bin.y):
 		looks = "left" if to_bin.x < 0.0 else "right"
 	elif to_bin.y > 0.0:
 		looks = "down"
-	failure = await _stand(front.global_position, looks)
+	failure = await _stand_before(front.global_position, looks, bin_at)
 	if failure != "":
 		return failure
 	var expected := 0

@@ -19,6 +19,11 @@ extends Node2D
 ## watered crop grows a day and an unwatered one does not; a crop that does not grow in the
 ## season that begins withers; soil dries; tilled soil that has had nothing on it and no water
 ## for IDLE_NIGHTS nights is ground again.
+##
+## **Squares or diamonds.** A cell is a cell of the `Soil` layer, whatever its shape: the layer
+## turns a place into a cell and back (`cell_at`, `cell_center`), so the field of an isometric
+## farm (T17.14) is the same data on a layer of diamonds. What differs is where a thing of a
+## cell stands (`foot_of`): on the lower edge of a square, on the middle of a diamond.
 
 ## A cell was tilled, watered, planted, harvested or cleared, or a night passed over it.
 signal changed(cell: Vector2i)
@@ -54,7 +59,8 @@ const WITHERED := "withered"
 @export var watered_source: int = 0
 @export var watered_tile: Vector2i = Vector2i(2, 0)
 @export var crop_scenes_dir: String = "res://generated/scenes/farm/crops/"
-## The size of a cell when the map has no `Soil` layer to ask.
+## The size of a cell when the map has no `Soil` layer to ask; with one it is the layer's: the
+## tile of a layer of squares, the length of one step on a layer of diamonds (RpgIso.unit).
 @export var tile_px: int = 16
 
 var cells: Dictionary = {}
@@ -90,7 +96,7 @@ func setup() -> void:
 	_base.clear()
 	if _soil != null:
 		if _soil.tile_set != null:
-			tile_px = _soil.tile_set.tile_size.x
+			tile_px = RpgIso.unit(_soil.tile_set.tile_size) if RpgIso.is_iso(_soil.tile_set) else _soil.tile_set.tile_size.x
 		for cell in _soil.get_used_cells():
 			_base[cell] = [_soil.get_cell_source_id(cell), _soil.get_cell_atlas_coords(cell)]
 	load_state()
@@ -119,6 +125,20 @@ func cell_center(cell: Vector2i) -> Vector2:
 		var local := _soil.map_to_local(cell)
 		return _soil.to_global(local) if _soil.is_inside_tree() else local + _soil.position
 	return (Vector2(cell) + Vector2(0.5, 0.5)) * tile_px
+
+## The diamond of an isometric field's cells; Vector2i.ZERO for a field of squares.
+func footprint() -> Vector2i:
+	if _soil != null and RpgIso.is_iso(_soil.tile_set):
+		return _soil.tile_set.tile_size
+	return Vector2i.ZERO
+
+## Where a thing that stands in a cell has its foot (a crop, something to forage): a px above
+## the lower edge of a square, so that it sorts with what stands there, and the middle of a
+## diamond, which is the line a diamond sorts by.
+func foot_of(cell: Vector2i) -> Vector2:
+	if footprint() != Vector2i.ZERO:
+		return cell_center(cell)
+	return cell_center(cell) + Vector2(0.0, tile_px * 0.5 - 1.0)
 
 ## True when the tile of a layer of the map at `cell` has the bool custom data `data_name`.
 func tile_says(cell: Vector2i, data_name: String) -> bool:
@@ -445,8 +465,9 @@ func _make_crop(crop_id: String, cell: Vector2i) -> RpgCrop:
 	if holder == null:
 		holder = self
 	holder.add_child(node)
-	# the foot of the crop is the bottom of its cell, so it sorts with what stands there
-	var foot := cell_center(cell) + Vector2(0.0, tile_px * 0.5 - 1.0)
+	# the foot of the crop is the bottom of its cell (the middle of a diamond), so it sorts
+	# with what stands there
+	var foot := foot_of(cell)
 	if node.is_inside_tree():
 		node.global_position = foot
 	else:

@@ -520,14 +520,18 @@ func _make_animal(row: Dictionary) -> RpgFarmAnimal:
 ## floor lies a cell below the stall of the animal that gave it, wherever the animal is.
 func show_room(map: Node, house_id: String) -> void:
 	var tile := float(RpgUtil.map_tile_px(map))
+	# on diamonds (T17.14) everything of the room stands on the middle of its cell, and "a cell
+	# below" is the next cell to the south
+	var diamond := RpgIso.footprint_of(map)
+	var iso := diamond != Vector2i.ZERO
 	var holder := _holder(map)
 	var markers := map.get_node_or_null(MARKERS)
 	var trough_at := markers.get_node_or_null("Trough") as Node2D if markers != null else null
 	var first := Vector2(tile * 3.5, tile * 1.5)
 	if trough_at != null:
-		var trough := RpgFarmTrough.make(house_id, tile)
+		var trough := RpgFarmTrough.make(house_id, tile, diamond)
 		trough.herd = self
-		_put(holder, trough, RpgUtil.world_position(trough_at) + Vector2(0.0, tile * 0.5))
+		_put(holder, trough, RpgUtil.world_position(trough_at) + (Vector2.ZERO if iso else Vector2(0.0, tile * 0.5)))
 		trough.refresh()
 		first = RpgUtil.world_position(trough_at) + Vector2(tile * 2.0, 0.0)
 	var indoors := not is_outside()
@@ -538,13 +542,16 @@ func show_room(map: Node, house_id: String) -> void:
 		var at := RpgUtil.world_position(marker) if marker != null else first + Vector2(tile * stall, 0.0)
 		if indoors:
 			var node := _make_animal(row)
-			_put(holder, node, at + Vector2(0.0, tile * 0.4))
+			_put(holder, node, at if iso else at + Vector2(0.0, tile * 0.4))
 			if asleep:
 				node.sleep()
 		if row["ready"] != "" and data.on_the_floor(RpgUtil.to_str(row["kind"])):
-			var product := RpgAnimalProduct.make(RpgUtil.to_int(row["id"]), StringName(RpgUtil.to_str(row["ready"])), tile)
+			var product := RpgAnimalProduct.make(RpgUtil.to_int(row["id"]), StringName(RpgUtil.to_str(row["ready"])), tile, diamond)
 			product.herd = self
-			_put(holder, product, at + Vector2(0.0, tile))
+			var below := at + Vector2(0.0, tile)
+			if iso:
+				below = RpgIso.cell_position(map, RpgIso.cell_at(map, at) + Vector2i.DOWN)
+			_put(holder, product, below)
 
 ## The yard of a house on `map` (`Yards/<House>`, whose metadata `yard` is its ground in
 ## cells): while the animals are out, each stands in it and wanders.
@@ -559,11 +566,18 @@ func show_yard(map: Node, house_id: String) -> void:
 		return
 	var tile := float(RpgUtil.map_tile_px(map))
 	var ground := Rect2(RpgUtil.world_position(yard), Vector2(cells.size) * tile)
+	var layer := RpgIso.ground_layer(map)
+	var iso := layer != null and RpgIso.is_iso(layer.tile_set)
 	var holder := _holder(map)
 	for row in of_house(house_id):
 		var stall := RpgUtil.to_int(row["stall"])
 		var cell := Vector2i((1 + stall * 2) % cells.size.x, (stall * 2 / cells.size.x + cells.size.y / 2) % cells.size.y)
 		var node := _make_animal(row)
+		if iso:
+			# on diamonds (T17.14) the yard is its cells, a quarter of a cell kept from its fence
+			_put(holder, node, RpgIso.cell_position(map, cells.position + cell))
+			node.roam_cells(layer, cells)
+			continue
 		_put(holder, node, ground.position + (Vector2(cell) + Vector2(0.5, 0.75)) * tile)
 		node.roam(ground.grow(-tile * 0.25))
 

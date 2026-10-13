@@ -34,6 +34,7 @@ const SeedUtil := preload("../../lib/seed_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const MapUtil := preload("../../lib/map_util.gd")
 const MapBuild := preload("../../lib/map_build.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
 const WorldPlan := preload("../../lib/world_plan.gd")
 const ObjectEntries := preload("../../lib/object_entries.gd")
 const BuildContext := preload("../../lib/build_context.gd")
@@ -167,7 +168,10 @@ static func houses(ctx: BuildContext) -> int:
 	var building := ObjectEntries.starter_building(ctx)
 	var overworld: Dictionary = ctx.catalog.tileset_def("overworld")
 	var tile_px := 16 if overworld.is_empty() else JsonUtil.to_int(overworld["tile_size"][0])
-	var layout := MapBuild.plan(ctx.section("starter_map"), JsonUtil.to_int(ctx.config.get("seed", 12345)), InteriorRecipe.building_info(building, tile_px), JsonUtil.to_str(ctx.config.get("archetype", "farm")))
+	# an isometric village's houses stand on the cells their pictures say (T17.14), as the
+	# starter map recipe plans them
+	var house := MapGeo.new(ctx).building_info(building) if MapGeo.is_isometric(ctx) else InteriorRecipe.building_info(building, tile_px)
+	var layout := MapBuild.plan(ctx.section("starter_map"), JsonUtil.to_int(ctx.config.get("seed", 12345)), house, JsonUtil.to_str(ctx.config.get("archetype", "farm")))
 	var built: Array = layout["buildings"]
 	return built.size()
 
@@ -381,13 +385,18 @@ static func augment_map(ctx: BuildContext, root: Node2D, nodes: Dictionary, layo
 	var triggers: Node2D = nodes["Triggers"]
 	var ground: TileMapLayer = nodes["Ground"]
 	var tile_px := ground.tile_set.tile_size.x if ground.tile_set != null else 16
+	# the seam between the village's cells and its px (T17.14): on squares it is the tile of the
+	# ground and the arithmetic this always was, on diamonds the project's
+	var geo := MapGeo.new(ctx)
+	if not geo.isometric:
+		geo.tile_px = tile_px
 	var kept: Array[Vector2i] = kept_free.duplicate()
 	var door := JsonUtil.to_dict(prepared.get("door", {}))
 	if not door.is_empty():
 		var gap: Vector2i = door["cell"]
 		var arrive: Vector2i = door["spawn"]
-		MapUtil.add_marker(spawns, root, FarmMapRecipe.FROM_FARM, MapUtil.tile_center(arrive, tile_px), true, JsonUtil.to_str(door["facing"]))
-		MapBuild.add_exit_door(triggers, root, DOOR_NAME, gap, tile_px, FarmMapRecipe.FARM_PATH, StringName(FarmMapRecipe.FROM_VILLAGE))
+		MapUtil.add_marker(spawns, root, FarmMapRecipe.FROM_FARM, geo.center(arrive), true, JsonUtil.to_str(door["facing"]))
+		geo.add_exit_door(triggers, root, DOOR_NAME, gap, FarmMapRecipe.FARM_PATH, StringName(FarmMapRecipe.FROM_VILLAGE))
 		kept.append(gap)
 		kept.append(arrive)
 		kept.append(WorldPlan.inside(JsonUtil.to_str(door["edge"]), arrive))
@@ -397,7 +406,7 @@ static func augment_map(ctx: BuildContext, root: Node2D, nodes: Dictionary, layo
 	for place: String in spots.keys():
 		var cell: Vector2i = spots[place]
 		var marker := RpgSchedule.make_place(place)
-		marker.position = MapUtil.tile_center(cell, tile_px)
+		marker.position = geo.center(cell)
 		places.add_child(marker)
 		marker.owner = root
 	var list := people()
@@ -411,7 +420,7 @@ static func augment_map(ctx: BuildContext, root: Node2D, nodes: Dictionary, layo
 		var homes: Array = places_for(i, built.size())["home"]
 		var home: Dictionary = homes[clampi(JsonUtil.to_int(person.get("home", 1), 1), 1, homes.size()) - 1]
 		var at: Vector2i = spots.get(JsonUtil.to_str(home["place"]), spots["home"])
-		var npc := MapUtil.place(scene, entities, root, MapUtil.tile_center(at, tile_px), "Person_%s" % id)
+		var npc := MapUtil.place(scene, entities, root, geo.center(at), "Person_%s" % id)
 		if npc == null:
 			continue
 		npc.set("entity_id", "person_%s" % id)

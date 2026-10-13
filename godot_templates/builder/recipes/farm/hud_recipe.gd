@@ -29,6 +29,7 @@ const UiUtil := preload("../../lib/ui_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const TextureUtil := preload("../../lib/texture_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
 const FarmBuild := preload("farm_build.gd")
 
 const SEASONS_PATH := "res://generated/data/seasons.json"
@@ -75,7 +76,11 @@ func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([SEASONS_PATH, SIGN_SCENE])
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "groups": season_table(ctx), "sign": sign_asset(ctx).get("id", ""), "tile": FarmBuild.tile(ctx)})
+	var hashed := {"v": RECIPE_VERSION, "groups": season_table(ctx), "sign": sign_asset(ctx).get("id", ""), "tile": FarmBuild.tile(ctx)}
+	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the key (T17.14)
+		var footprint := MapGeo.new(ctx).footprint
+		hashed["iso"] = [footprint.x, footprint.y]
+	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -393,7 +398,8 @@ static func sign_asset(ctx: BuildContext) -> Dictionary:
 
 ## The sign that tells tomorrow's weather (RpgWeatherSign), not yet on a map: its foot (the
 ## middle of its lower edge) is its origin, it blocks and is found by `interact` (the world, 1,
-## and the interactables, 5). A pack's own sign, else a drawn post with a board.
+## and the interactables, 5). A pack's own sign, else a drawn post with a board. On an isometric
+## farm (T17.14) its origin is the middle of its cell and it blocks the middle of that diamond.
 static func build_sign(ctx: BuildContext) -> StaticBody2D:
 	var tile := FarmBuild.tile(ctx)
 	var texture := FarmBuild.first_frame(ctx, sign_asset(ctx))
@@ -407,10 +413,13 @@ static func build_sign(ctx: BuildContext) -> StaticBody2D:
 	body.set_collision_layer_value(5, true)
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(minf(size.x, tile) * 0.8, minf(size.y, tile) * 0.5)
-	shape.shape = rect
-	shape.position = Vector2(0.0, -rect.size.y * 0.5)
+	if MapGeo.is_isometric(ctx):
+		shape.shape = RpgFarmIso.diamond_shape(MapGeo.new(ctx).footprint, 0.5)
+	else:
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(minf(size.x, tile) * 0.8, minf(size.y, tile) * 0.5)
+		shape.shape = rect
+		shape.position = Vector2(0.0, -rect.size.y * 0.5)
 	body.add_child(shape)
 	if texture != null:
 		var sprite := Sprite2D.new()

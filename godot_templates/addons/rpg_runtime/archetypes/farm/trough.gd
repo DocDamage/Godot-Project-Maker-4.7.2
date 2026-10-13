@@ -15,8 +15,10 @@ const HAY := Color(0.9, 0.78, 0.35)
 
 var herd: RpgAnimalHouse = null
 
-## A trough of a tile, its lower edge on the origin, drawn: a box, and the feed in it.
-static func make(house_id: String, tile: float) -> RpgFarmTrough:
+## A trough of a tile, its lower edge on the origin, drawn: a box, and the feed in it. On an
+## isometric map (`diamond` is the diamond of its cells, T17.14) it is a box on the middle of
+## its cell, and it blocks the cell.
+static func make(house_id: String, tile: float, diamond: Vector2i = Vector2i.ZERO) -> RpgFarmTrough:
 	var trough := RpgFarmTrough.new()
 	trough.name = "Trough"
 	trough.house = house_id
@@ -26,6 +28,15 @@ static func make(house_id: String, tile: float) -> RpgFarmTrough:
 	trough.set_collision_layer_value(5, true)
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
+	if diamond != Vector2i.ZERO:
+		shape.shape = RpgFarmIso.diamond_shape(diamond)
+		trough.add_child(shape)
+		trough.add_child(RpgFarmIso.box("Box", 0.12, 0.25, 0.88, 0.75, 0.0, tile * 0.3, WOOD, diamond))
+		trough.add_child(RpgFarmIso.box("Inside", 0.2, 0.33, 0.8, 0.67, tile * 0.3, 0.5, WOOD_DARK, diamond))
+		var hay := RpgFarmIso.box("Feed", 0.2, 0.33, 0.8, 0.67, tile * 0.3, tile * 0.08, HAY, diamond)
+		hay.visible = false
+		trough.add_child(hay)
+		return trough
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(tile * 0.9, tile * 0.6)
 	shape.shape = rect

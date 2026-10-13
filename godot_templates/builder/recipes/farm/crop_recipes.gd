@@ -15,6 +15,7 @@ const SceneUtil := preload("../../lib/scene_util.gd")
 const SeedUtil := preload("../../lib/seed_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
 const FarmBuild := preload("farm_build.gd")
 
 const PLANNED_PATH := "res://generated/data/crops.json"
@@ -43,7 +44,11 @@ func input_hash(ctx: BuildContext) -> String:
 	for crop in FarmBuild.crops():
 		var asset := _strip(ctx, crop)
 		strips[crop["id"]] = {"sha256": asset.get("sha256", ""), "eff": ctx.catalog.effective(asset) if not asset.is_empty() else {}}
-	return ctx.stable_hash({"v": RECIPE_VERSION, "crops": FarmBuild.crops(), "strips": strips, "tile": FarmBuild.tile(ctx)})
+	var hashed := {"v": RECIPE_VERSION, "crops": FarmBuild.crops(), "strips": strips, "tile": FarmBuild.tile(ctx)}
+	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the key (T17.14)
+		var footprint := MapGeo.new(ctx).footprint
+		hashed["iso"] = [footprint.x, footprint.y]
+	return ctx.stable_hash(hashed)
 
 ## The growth strip of a crop of the plan, or {} for a drawn crop or a strip that is gone.
 func _strip(ctx: BuildContext, crop: Dictionary) -> Dictionary:
@@ -58,11 +63,12 @@ func _strip(ctx: BuildContext, crop: Dictionary) -> Dictionary:
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var tile := FarmBuild.tile(ctx)
+	var diamond := MapGeo.new(ctx).footprint if MapGeo.is_isometric(ctx) else Vector2i.ZERO
 	var entries: Array = []
 	for crop in FarmBuild.crops():
 		var crop_id := JsonUtil.to_str(crop["id"])
 		var strip := _strip(ctx, crop)
-		var err := SceneUtil.save_scene(_scene(ctx, crop, strip, tile), scene_path(crop_id))
+		var err := SceneUtil.save_scene(_scene(ctx, crop, strip, tile, diamond), scene_path(crop_id))
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": scene_path(crop_id), "err": err}, scene_path(crop_id)))
 		_seed_item(ctx, _seeds(crop), item_path(JsonUtil.to_str(crop["seed"])), issues)
@@ -98,7 +104,10 @@ func _seed_item(ctx: BuildContext, item: Resource, path: String, issues: Array) 
 
 # ---------------------------------------------------------------- the scene
 
-func _scene(ctx: BuildContext, crop: Dictionary, strip: Dictionary, tile: int) -> Area2D:
+## The scene of a crop: its foot (the origin) is the lower edge of its cell, and what `interact`
+## finds is a square over it; on diamonds (`diamond` is the project's, T17.14) the crop stands
+## on the middle of its cell and what `interact` finds is most of that diamond.
+func _scene(ctx: BuildContext, crop: Dictionary, strip: Dictionary, tile: int, diamond: Vector2i = Vector2i.ZERO) -> Area2D:
 	var root := Area2D.new()
 	root.name = "Crop"
 	SceneUtil.attach_script(root, FarmBuild.CROP)
@@ -110,10 +119,13 @@ func _scene(ctx: BuildContext, crop: Dictionary, strip: Dictionary, tile: int) -
 	root.monitorable = true
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(tile, tile) * 0.8
-	shape.shape = rect
-	shape.position = Vector2(0.0, -tile * 0.5)
+	if diamond != Vector2i.ZERO:
+		shape.shape = RpgFarmIso.diamond_shape(diamond, 0.8)
+	else:
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(tile, tile) * 0.8
+		shape.shape = rect
+		shape.position = Vector2(0.0, -tile * 0.5)
 	shape.disabled = true
 	root.add_child(shape)
 	root.add_child(_strip_sprite(ctx, strip) if not strip.is_empty() else _drawn(crop, tile))

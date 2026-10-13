@@ -16,12 +16,25 @@ extends RefCounted
 ##
 ## Of a pack's soil terrain one tile is used, the one that joins on every side: a field has no
 ## edges of its own yet.
+##
+## **An isometric farm** (T17.14) gets the same tile set with diamonds: Godot's isometric shape
+## with the footprint of the project's ground (IsoTileset.shape), and source 0 drawn as five
+## diamonds (FarmBuild.iso_soil_texture). The `Soil` layer then lies on the same grid as the
+## ground, and RpgField asks it for cells and places as it asks a layer of squares. Sources 1
+## and 2 are there the isometric tile a pack tagged `soil` or `watered` (a flat tile of the
+## project's tile set of diamonds, with the origin it has there); a sheet of square soil cannot
+## lie on a diamond, so the kit's is not drawn for this view.
 
 const RECIPE_VERSION := 3
+## The version of what the recipe does for an isometric project only (T17.14): in the hash of
+## such a project and of no other.
+const ISO_VERSION := 1
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
+const IsoTileset := preload("../../lib/iso_tileset.gd")
 const FarmBuild := preload("farm_build.gd")
 
 const SOURCE_ID := 0
@@ -41,21 +54,35 @@ func outputs(_ctx: BuildContext) -> PackedStringArray:
 
 func input_hash(ctx: BuildContext) -> String:
 	var tile := FarmBuild.tile(ctx)
-	return ctx.stable_hash({"v": RECIPE_VERSION, "tile": tile, "soil": FarmBuild.soil_tile(ctx, "soil", tile), "watered": FarmBuild.soil_tile(ctx, "watered", tile)})
+	var hashed := {"v": RECIPE_VERSION, "tile": tile, "soil": FarmBuild.soil_tile(ctx, "soil", tile), "watered": FarmBuild.soil_tile(ctx, "watered", tile)}
+	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the keys (T17.14)
+		var footprint := MapGeo.new(ctx).footprint
+		hashed["iso"] = [footprint.x, footprint.y]
+		hashed["iso_v"] = ISO_VERSION
+		hashed["iso_soil"] = [FarmBuild.iso_soil_asset(ctx, "soil"), FarmBuild.iso_soil_asset(ctx, "watered")]
+	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var tile := FarmBuild.tile(ctx)
+	var diamond := MapGeo.new(ctx).footprint if MapGeo.is_isometric(ctx) else Vector2i.ZERO
 	var tile_set := TileSet.new()
-	tile_set.tile_size = Vector2i(tile, tile)
+	if diamond != Vector2i.ZERO:
+		IsoTileset.shape(tile_set, diamond)
+	else:
+		tile_set.tile_size = Vector2i(tile, tile)
 	for data_name in CUSTOM_DATA:
 		tile_set.add_custom_data_layer()
 		var index := tile_set.get_custom_data_layers_count() - 1
 		tile_set.set_custom_data_layer_name(index, data_name)
 		tile_set.set_custom_data_layer_type(index, TYPE_BOOL)
 	var source := TileSetAtlasSource.new()
-	source.texture = FarmBuild.soil_texture(tile)
-	source.texture_region_size = Vector2i(tile, tile)
+	if diamond != Vector2i.ZERO:
+		source.texture = FarmBuild.iso_soil_texture(diamond)
+		source.texture_region_size = diamond
+	else:
+		source.texture = FarmBuild.soil_texture(tile)
+		source.texture_region_size = Vector2i(tile, tile)
 	tile_set.add_source(source, SOURCE_ID)
 	for coords: Vector2i in [PLOT_TILE, TILLED_TILE, WATERED_TILE, WATER_TILE, WATER_MARK]:
 		source.create_tile(coords)
@@ -64,6 +91,10 @@ func build(ctx: BuildContext) -> Array:
 		source.get_tile_data(coords, 0).set_custom_data("water", true)
 	for entry: Array in [[TILLED_SOURCE, "soil"], [WATERED_SOURCE, "watered"]]:
 		var tag: String = entry[1]
+		if diamond != Vector2i.ZERO:
+			var iso_id: int = entry[0]
+			_add_iso_soil(ctx, tile_set, iso_id, tag)
+			continue
 		var found := FarmBuild.soil_tile(ctx, tag, tile)
 		if found.is_empty():
 			continue
@@ -82,6 +113,31 @@ func build(ctx: BuildContext) -> Array:
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": FarmBuild.SOIL_TILESET, "err": err}, FarmBuild.SOIL_TILESET))
 	return issues
+
+## Adds the isometric tile a pack tagged `tag` to the soil's tile set as the one tile of the
+## source `own_id`: the same picture of the same atlas, with the origin it has in the project's
+## tile set of diamonds. Nothing when the packs have no such tile.
+static func _add_iso_soil(ctx: BuildContext, tile_set: TileSet, own_id: int, tag: String) -> void:
+	var asset_id := FarmBuild.iso_soil_asset(ctx, tag)
+	if asset_id == "":
+		return
+	var geo := MapGeo.new(ctx)
+	var iso_set := geo.load_tile_set()
+	var found := geo.iso.tile_for(asset_id)
+	if iso_set == null or found.is_empty():
+		return
+	var coords: Vector2i = found["coords"]
+	var from := iso_set.get_source(JsonUtil.to_int(found["source"])) as TileSetAtlasSource
+	if from == null or not from.has_tile(coords):
+		return
+	var own := TileSetAtlasSource.new()
+	own.texture = from.texture
+	own.margins = from.margins
+	own.separation = from.separation
+	own.texture_region_size = from.texture_region_size
+	tile_set.add_source(own, own_id)
+	own.create_tile(coords)
+	own.get_tile_data(coords, 0).texture_origin = from.get_tile_data(coords, 0).texture_origin
 
 # ---------------------------------------------------------------- on a map
 
@@ -109,7 +165,7 @@ static func add_field(root: Node2D, nodes: Dictionary) -> TileMapLayer:
 	field.set("tilled_tile", tilled[1])
 	field.set("watered_source", watered[0])
 	field.set("watered_tile", watered[1])
-	field.set("tile_px", tile_set.tile_size.x)
+	field.set("tile_px", RpgIso.unit(tile_set.tile_size) if RpgIso.is_iso(tile_set) else tile_set.tile_size.x)
 	root.add_child(field)
 	root.move_child(field, soil.get_index() + 1)
 	return soil

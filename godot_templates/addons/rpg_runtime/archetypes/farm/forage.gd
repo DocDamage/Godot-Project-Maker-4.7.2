@@ -276,14 +276,17 @@ func refresh(map: Node = null) -> int:
 	if parent == null:
 		parent = map
 	var tile := RpgUtil.map_tile_px(map)
+	var diamond := RpgIso.footprint_of(map)
 	var there := lying(_positions.size())
 	for spot: int in there.keys():
 		var item: StringName = there[spot]
-		var node := RpgForagePickup.make(spot, item, tile)
+		var node := RpgForagePickup.make(spot, item, tile, RpgForagePickup.FALLBACK, diamond)
 		node.taken.connect(pick)
 		parent.add_child(node)
-		# its foot is the bottom of its cell
+		# its foot is the bottom of its cell, or the middle of its diamond
 		var foot := _positions[spot] + Vector2(0.0, tile * 0.5 - 1.0)
+		if diamond != Vector2i.ZERO:
+			foot = _positions[spot]
 		if node.is_inside_tree():
 			node.global_position = foot
 		else:

@@ -14,6 +14,7 @@ const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const TextureUtil := preload("../../lib/texture_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
 
 const DIR := "res://addons/rpg_runtime/archetypes/farm/"
 const FARMER := DIR + "farmer.gd"
@@ -73,7 +74,12 @@ const WATER := Color(0.27, 0.5, 0.78)
 
 # ---------------------------------------------------------------- the project
 
+## What the farm's recipes mean by a tile: the tile of the project's maps, and for an isometric
+## farm (T17.14) the length of one step on its diamonds (MapGeo.tile_unit), which is how large
+## its people and the things of the drawn kit are.
 static func tile(ctx: BuildContext) -> int:
+	if MapGeo.is_isometric(ctx):
+		return MapGeo.tile_unit(ctx)
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
 	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
 		def = ctx.catalog.tileset_defs()[0]
@@ -221,6 +227,22 @@ static func soil_tile(ctx: BuildContext, tag: String, size: int) -> Dictionary:
 			return {"path": path, "coords": Vector2i(int(parts[0]), int(parts[1]))}
 	return {}
 
+## The tile of tilled (`soil`) or watered (`watered`) soil of an isometric farm (T17.14): the id
+## of the first flat tile of the project's tile set of diamonds that a pack tagged so
+## (`dirtFarmland` of the miniature packs), or "" when the packs have none: the field recipe
+## then draws the diamond.
+static func iso_soil_asset(ctx: BuildContext, tag: String) -> String:
+	var reader := MapGeo.new(ctx).iso
+	if reader == null:
+		return ""
+	for asset_id in reader.tile_ids():
+		var eff := reader.facets(asset_id)
+		var tags: Array = eff.get("tags", [])
+		if not tags.has(tag) or (tag == "soil" and tags.has("watered")) or JsonUtil.to_int(eff.get("rise", 0)) > 0:
+			continue
+		return reader.turned(asset_id, 0)
+	return ""
+
 ## The first cell of a picture as a texture (an icon), or null.
 static func first_frame(ctx: BuildContext, asset: Dictionary) -> Texture2D:
 	return frame_texture(ctx, asset, 0)
@@ -324,6 +346,38 @@ static func soil_texture(size: int) -> ImageTexture:
 		_draw(image, Vector2i(size * i, 0), size, rects)
 	_draw(image, Vector2i(size * 3, 0), size, [[0, 0, 16, 16, WATER], [2, 4, 5, 1, WATER.lightened(0.25)], [9, 10, 5, 1, WATER.lightened(0.25)]])
 	return ImageTexture.create_from_image(image)
+
+## The five tiles of the `Soil` layer of an isometric farm (T17.14) side by side, each a diamond
+## of `footprint`: ground that can be tilled, tilled soil with its furrows, watered soil, water,
+## and a tile that shows nothing. They are drawn here because no isometric ground is drawn
+## anywhere else and the square soil of the farm kit cannot lie on a diamond: earth in the
+## colours of the square tiles, the furrows along the rows of the map (they run down to the
+## right on the screen).
+static func iso_soil_texture(footprint: Vector2i) -> ImageTexture:
+	var image := _blank(footprint.x * 5, footprint.y)
+	for index in 4:
+		for y in footprint.y:
+			for x in footprint.x:
+				var at := RpgIso.grid_point(Vector2(x + 0.5, y + 0.5), footprint)
+				if at.x < 0.0 or at.y < 0.0 or at.x >= 1.0 or at.y >= 1.0:
+					continue
+				image.set_pixel(footprint.x * index + x, y, _iso_soil_colour(index, at))
+	return ImageTexture.create_from_image(image)
+
+## The colour of a place (`at`, each coordinate from 0 to 1 across the cell) of a tile of
+## `iso_soil_texture`.
+static func _iso_soil_colour(index: int, at: Vector2) -> Color:
+	var stripe := int(at.y * 8.0) % 2 == 1
+	match index:
+		0:
+			var speck := (int(at.x * 7.0) + int(at.y * 5.0) * 3) % 11 == 0
+			return EARTH.darkened(0.15) if speck else EARTH
+		1:
+			return TILLED.darkened(0.25) if stripe else TILLED
+		2:
+			return WET.darkened(0.25) if stripe else WET
+	var ripple := int(at.x * 6.0 + at.y * 2.0) % 5 == 0
+	return WATER.lightened(0.25) if ripple else WATER
 
 ## The colour of a crop of the plan: its own (a drawn crop), else one that its name gives.
 static func crop_colour(crop: Dictionary) -> Color:

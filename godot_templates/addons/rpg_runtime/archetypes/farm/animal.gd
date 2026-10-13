@@ -31,6 +31,9 @@ var asleep := false
 
 var _roams := false
 var _ground := Rect2()
+## On an isometric map (T17.14): the layer of diamonds it roams on; `_ground` is then in the
+## grid's own coordinates (a cell is a square of 1), not in px of the world.
+var _layer: TileMapLayer = null
 var _goal := Vector2.ZERO
 var _walking := false
 var _timer := 0.0
@@ -85,8 +88,20 @@ func _show_sleep() -> void:
 
 ## The animal wanders over `ground` (a rectangle of the world) from now on.
 func roam(ground: Rect2) -> void:
+	_layer = null
 	_ground = ground
 	_roams = not asleep and ground.size.x > 0.0 and ground.size.y > 0.0
+
+## The animal wanders over the cells `cells` of a layer of diamonds from now on (T17.14), `inset`
+## of a cell kept from their edge: a yard of an isometric farm is no rectangle of the screen.
+func roam_cells(layer: TileMapLayer, cells: Rect2i, inset: float = 0.25) -> void:
+	_layer = layer
+	_ground = Rect2(cells).grow(-inset)
+	_roams = not asleep and layer != null and _ground.size.x > 0.0 and _ground.size.y > 0.0
+
+## The cells it wanders over on an isometric map (the grid's coordinates); Rect2() elsewhere.
+func roaming_cells() -> Rect2:
+	return _ground if _layer != null else Rect2()
 
 func is_roaming() -> bool:
 	return _roams
@@ -94,6 +109,9 @@ func is_roaming() -> bool:
 ## The rectangle it wanders over.
 func roaming_ground() -> Rect2:
 	return _ground
+
+func _on_diamonds() -> bool:
+	return _layer != null and is_instance_valid(_layer) and _layer.tile_set != null
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
@@ -115,10 +133,16 @@ func wander(delta: float) -> void:
 			move_dir(to.normalized())
 	elif _timer <= 0.0:
 		_goal = _ground.position + Vector2(_rng.randf(), _rng.randf()) * _ground.size
+		if _on_diamonds():
+			_goal = RpgFarmIso.world_of(_layer, _goal)
 		_walking = true
 		_timer = WALK_S
 	# never out of the yard, whatever pushed it (the gate of a yard is open)
 	var kept := here.clamp(_ground.position, _ground.end)
+	if _on_diamonds():
+		var at := RpgFarmIso.grid_of(_layer, here)
+		var inside := at.clamp(_ground.position, _ground.end)
+		kept = here if inside.is_equal_approx(at) else RpgFarmIso.world_of(_layer, inside)
 	if kept != here:
 		if is_inside_tree():
 			global_position = kept

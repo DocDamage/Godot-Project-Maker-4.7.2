@@ -8,13 +8,17 @@ extends Area2D
 ## Asked to be picked up (RpgForage does it: it knows the inventory and the day).
 signal taken(spot: int)
 
+## The colour of the small square an item without an icon is shown as.
+const FALLBACK := Color(0.85, 0.75, 0.3)
+
 ## Which place of the map it lies at (0 is `Spot1`), and what it is.
 var spot := 0
 var item_id: StringName = &""
 
 ## Makes the thing of a place: its area, and the icon of `item_id` with its foot on the origin
-## (a small square in `fallback` when the item has no icon).
-static func make(at_spot: int, of_item: StringName, tile_px: int, fallback: Color = Color(0.85, 0.75, 0.3)) -> RpgForagePickup:
+## (a small square in `fallback` when the item has no icon). On an isometric map (`diamond` is
+## the diamond of its cells, T17.14) it lies on the middle of its cell and its area is the cell.
+static func make(at_spot: int, of_item: StringName, tile_px: int, fallback: Color = FALLBACK, diamond: Vector2i = Vector2i.ZERO) -> RpgForagePickup:
 	var node := RpgForagePickup.new()
 	node.name = "Forage%d" % (at_spot + 1)
 	node.spot = at_spot
@@ -26,10 +30,13 @@ static func make(at_spot: int, of_item: StringName, tile_px: int, fallback: Colo
 	node.monitorable = true
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(tile_px, tile_px) * 0.8
-	shape.shape = rect
-	shape.position = Vector2(0.0, -tile_px * 0.5)
+	if diamond != Vector2i.ZERO:
+		shape.shape = RpgFarmIso.diamond_shape(diamond)
+	else:
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(tile_px, tile_px) * 0.8
+		shape.shape = rect
+		shape.position = Vector2(0.0, -tile_px * 0.5)
 	node.add_child(shape)
 	var state := RpgUtil.state()
 	var def: RpgItemDefinition = state.items.get(of_item) if state != null else null
