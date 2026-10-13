@@ -1182,6 +1182,7 @@ RUN_MADE_PACKS = frozenset(
         "rpggen_arcade_kit",
         "rpggen_farm_kit",
         "rpggen_iso",  # iso_atlas.ATLAS_PACK: the atlases of an isometric project (T17.13)
+        "rpggen_iso_kit",  # iso_kit.KIT_PACK: its drawn hero, villager and enemy (T17.14)
     }
 )
 

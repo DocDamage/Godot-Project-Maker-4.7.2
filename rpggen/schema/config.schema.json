@@ -299,6 +299,7 @@
     },
     "repair_world": {"type": "boolean"},
     "projection": {"enum": ["top_down", "isometric"]},
+    "iso_controls": {"enum": ["screen", "grid"]},
     "export_targets": {
       "type": "array",
       "items": {"enum": ["windows", "web", "linux", "macos"]},

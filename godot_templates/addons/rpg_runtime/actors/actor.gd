@@ -45,6 +45,29 @@ func components() -> Dictionary:
 func component(component_name: String) -> Node:
 	return components().get(component_name)
 
+## The last direction of travel on the screen (zero for an actor that has not moved).
+func look() -> Vector2:
+	return _look
+
+## The map this actor is on: its nearest RpgMapRoot ancestor, else the router's current map.
+func map_node() -> Node:
+	var node := get_parent()
+	while node != null:
+		if node is RpgMapRoot:
+			return node
+		node = node.get_parent()
+	var router := RpgUtil.router()
+	return router.current_map if router != null else null
+
+## The cell this actor stands on and the one in front of it (T17.14): asked of the map, so the
+## answer holds on squares and on diamonds. On an isometric map the cell ahead is the neighbour
+## the actor last walked towards, else the one its facing names (up n, right e, down s, left w).
+func map_cell() -> Vector2i:
+	return RpgIso.cell_at(map_node(), RpgUtil.world_position(self))
+
+func cell_ahead() -> Vector2i:
+	return RpgIso.cell_ahead(map_node(), RpgUtil.world_position(self), facing, _look)
+
 ## Forwards to the Movement component.
 func move_dir(dir: Vector2) -> void:
 	var movement := component("Movement")

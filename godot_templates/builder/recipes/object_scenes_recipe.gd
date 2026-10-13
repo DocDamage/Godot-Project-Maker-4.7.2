@@ -12,6 +12,7 @@ const ObjectEntries := preload("../lib/object_entries.gd")
 const ObjectIndex := preload("../lib/object_index.gd")
 const ActorBuild := preload("../lib/actor_build.gd")
 const BuildContext := preload("../lib/build_context.gd")
+const MapGeo := preload("../lib/map_geo.gd")
 
 const WORLD_OBJECT_SCRIPT := "res://addons/rpg_runtime/world/world_object.gd"
 const DOOR_SCRIPT := "res://addons/rpg_runtime/world/door.gd"
@@ -43,10 +44,7 @@ static func _side_view(ctx: BuildContext) -> bool:
 	return JsonUtil.to_str(ctx.config.get("archetype", "")) in ["metroidvania", "run_and_gun"]
 
 func _tile_size(ctx: BuildContext) -> int:
-	var def: Dictionary = ctx.catalog.tileset_def("overworld")
-	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
-		def = ctx.catalog.tileset_defs()[0]
-	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
+	return MapGeo.tile_unit(ctx)
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -149,6 +147,11 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		tags.append("chest_fallback")
 		root.set_meta("tags", tags)
 	root.set_meta("role", e["role"])
+	if ObjectEntries.is_iso(e):
+		# drawn for the isometric view: its origin is the middle of the diamond it stands on
+		# (the validation and the smoke steps ask), and `stands_on` the cells
+		root.set_meta("iso", JsonUtil.to_array(e["iso"]).duplicate())
+		root.set_meta("stands_on", JsonUtil.to_array(e["stands_on"]).duplicate())
 
 	var sprite := Sprite2D.new()
 	sprite.name = "Sprite"
@@ -156,6 +159,8 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 	sprite.centered = false
 	sprite.offset = -origin
 	root.add_child(sprite)
+	if ObjectEntries.is_iso(e) and ObjectEntries.iso_cells(e) != Vector2i.ONE:
+		_split_for_sorting(root, sprite, e, origin)
 	if template == "chest":
 		var open: Array = e.get("open_region", [])
 		if open.size() == 4:
@@ -177,7 +182,9 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		add_light(root, e, tile, origin)
 	if template == "chest":
 		ActorBuild.add_persistent(root)
-	if template == "building":
+	if template == "building" and ObjectEntries.is_iso(e):
+		_add_iso_door(root, e, tile)
+	elif template == "building":
 		var door := Vector2(JsonUtil.to_float(region[2]) / 2.0, JsonUtil.to_float(region[3]) - 1.0)
 		if door_info.size() == 2:
 			door = Vector2(JsonUtil.to_float(door_info[0]), JsonUtil.to_float(door_info[1]))
@@ -208,3 +215,71 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		exit_spawn.position = door - origin + Vector2(0, tile)
 		root.add_child(exit_spawn)
 	return SceneUtil.save_scene(root, path)
+
+# ---------------------------------------------------------------- isometric objects (T17.14)
+
+## An isometric object that stands on several cells is drawn in two halves that sort apart:
+## they meet at the x of its corner nearest the camera (the x of its origin), the left one sorts
+## by the y of the left corner of what it stands on and the right one by the y of the right
+## corner (RpgIso.sort_keys). The root sorts its children among the actors of the map, so an
+## actor north or west of the object is drawn before the half it stands behind and one south or
+## east of it after. On a square of cells the two lines are one and the picture stays whole.
+static func _split_for_sorting(root: Node2D, sprite: Sprite2D, e: Dictionary, origin: Vector2) -> void:
+	var cells := ObjectEntries.iso_cells(e)
+	var footprint := ObjectEntries.iso_footprint(e)
+	var region: Array = e["region"]
+	var texture_path: String = e["texture_path"]
+	var area := Rect2i(JsonUtil.to_int(region[0]), JsonUtil.to_int(region[1]), JsonUtil.to_int(region[2]), JsonUtil.to_int(region[3]))
+	# the keys of the two halves from the middle of the nearest cell, where the root stands
+	var left_y := (1 - cells.x) * footprint.y / 2.0
+	var right_y := (1 - cells.y) * footprint.y / 2.0
+	root.y_sort_enabled = true
+	var cut := clampi(roundi(origin.x), 0, area.size.x)
+	sprite.position = Vector2(0, left_y)
+	sprite.offset = -origin - sprite.position
+	if cells.x == cells.y or cut <= 0 or cut >= area.size.x:
+		return
+	sprite.texture = TextureUtil.region_texture(texture_path, Rect2i(area.position, Vector2i(cut, area.size.y)))
+	var right := Sprite2D.new()
+	right.name = "SpriteRight"
+	right.texture = TextureUtil.region_texture(texture_path, Rect2i(area.position + Vector2i(cut, 0), Vector2i(area.size.x - cut, area.size.y)))
+	right.centered = false
+	right.position = Vector2(0, right_y)
+	right.offset = Vector2(cut, 0) - origin - right.position
+	root.add_child(right)
+
+## The door of an isometric building: on the side that faces the camera to the left, the south
+## side by the grid, in front of the door cell of the plan. The trigger is a thin band along
+## that side of the diamond (walking against it anywhere near its middle enters), and who comes
+## out stands on the middle of the door cell.
+static func _add_iso_door(root: Node2D, e: Dictionary, tile: int) -> void:
+	var cells := ObjectEntries.iso_cells(e)
+	var footprint := ObjectEntries.iso_footprint(e)
+	var half := Vector2(footprint) / 2.0
+	# the column of the door from the cell nearest the camera, which is where the root stands
+	@warning_ignore("integer_division")
+	var column := float((cells.x - 1) / 2 - (cells.x - 1))
+	var south := Vector2(-half.x, half.y).normalized()
+	var entrance := Area2D.new()
+	entrance.name = "Entrance"
+	SceneUtil.attach_script(entrance, DOOR_SCRIPT)
+	entrance.collision_layer = 0
+	entrance.collision_mask = 0
+	entrance.set_collision_layer_value(6, true)  # triggers
+	entrance.set_collision_mask_value(2, true)  # player
+	entrance.position = Vector2((column - 0.5) * half.x, (column + 0.5) * half.y) + south * 2.0
+	root.add_child(entrance)
+	var area_shape := CollisionShape2D.new()
+	area_shape.name = "Shape"
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(tile * 0.6, 6.0)
+	area_shape.shape = rect
+	area_shape.rotation = Vector2(half.x, half.y).angle()
+	entrance.add_child(area_shape)
+	var exit_spawn := Marker2D.new()
+	exit_spawn.name = "ExitSpawn"
+	SceneUtil.attach_script(exit_spawn, SPAWN_SCRIPT)
+	exit_spawn.set("spawn_id", ObjectIndex.exit_spawn_id(JsonUtil.to_str(e["id"])))
+	exit_spawn.set("facing", "down")
+	exit_spawn.position = Vector2((column - 1.0) * half.x, (column + 1.0) * half.y)
+	root.add_child(exit_spawn)

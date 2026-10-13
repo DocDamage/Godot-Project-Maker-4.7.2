@@ -20,6 +20,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 from rpggen.core import config as config_mod
+from rpggen.core import iso_math
 
 Tile = tuple[int, int]
 
@@ -426,6 +427,11 @@ class Art:
     decorations: list[tuple[Image.Image, tuple[int, int]]] = dataclasses.field(
         default_factory=list
     )  # (picture, origin in pixels)
+    # An isometric project (T17.14): the diamond of its ground. ``render`` then draws the plan
+    # as diamonds, and the pictures of the tiles are single pictures that lie on a diamond by
+    # their origin (``origins``: the id of a picture of this art -> the middle of its diamond).
+    footprint: tuple[int, int] | None = None
+    origins: dict[int, tuple[int, int]] = dataclasses.field(default_factory=dict)
 
 
 def _tile_images(path: Path, grid: dict[str, Any], count: int) -> list[Image.Image]:
@@ -474,9 +480,46 @@ def starter_buildings(catalog: Any, building_id: str = "") -> list[Any]:
     return houses
 
 
-def building_info_for(catalog: Any, building_id: str = "") -> dict[str, Any]:
+def iso_buildings(catalog: Any, building_id: str = "") -> list[Any]:
+    """The pictures of an isometric pack that can be the starter building, the chosen one
+    first, then by id: what ``ObjectEntries.starter_building`` takes in the builder."""
+    from rpggen.core import catalog as catalog_mod
+
+    houses = [
+        a
+        for a in sorted(catalog.assets, key=lambda a: a.id)
+        if a.status not in ("UNUSED", "MISSING")
+        and catalog_mod.effective(a).get("role") == "BUILDING"
+        and catalog_mod.effective(a).get("usage") == "sprite"
+        and catalog_mod.effective(a).get("projection") == catalog_mod.PROJECTION_ISOMETRIC
+    ]
+    if building_id:
+        houses = [a for a in houses if a.id == building_id] or houses
+    return houses
+
+
+def iso_building_geometry(stands_on: Any) -> tuple[tuple[int, int], tuple[int, int]]:
+    """``(size, door)`` in cells of an isometric building that stands on ``stands_on``
+    ([columns, rows]): its door is in front of the middle of its south side, the side that
+    faces the camera to the left (``MapGeo.building_info``)."""
+    columns = max(1, int(stands_on[0])) if stands_on else 1
+    rows = max(1, int(stands_on[1])) if stands_on else 1
+    return (columns, rows), ((columns - 1) // 2, rows)
+
+
+def building_info_for(
+    catalog: Any, building_id: str = "", projection: str = "top_down"
+) -> dict[str, Any]:
     """``building_info`` from the catalog alone: no picture is opened, so the plan of a project
     that has not been generated yet (``rpggen generate --dry-run``) can be made."""
+    if projection == config_mod.PROJECTION_ISOMETRIC:
+        from rpggen.core import catalog as catalog_mod
+
+        found = iso_buildings(catalog, building_id)
+        if not found:
+            return {}
+        size, door = iso_building_geometry(catalog_mod.effective(found[0]).get("stands_on"))
+        return {"size": list(size), "door": list(door)}
     houses = starter_buildings(catalog, building_id)
     if not houses:
         return {}
@@ -487,11 +530,97 @@ def building_info_for(catalog: Any, building_id: str = "") -> dict[str, Any]:
     return {"size": list(size), "door": list(door)}
 
 
-def load_art(catalog: Any, resolver: Any, ground_id: str = "", building_id: str = "") -> Art:
+def _load_iso_art(catalog: Any, resolver: Any, ground_id: str, building_id: str) -> Art:
+    """The pictures of an isometric project: single tiles and objects of its isometric packs,
+    each with the middle of its diamond. No atlas is needed (a project that was never
+    generated has none): the pictures are the packs' own files."""
+    from rpggen.core import catalog as catalog_mod
+
+    art = Art()
+
+    def facets_of(asset: Any) -> dict[str, Any]:
+        return catalog_mod.effective(asset)
+
+    def picture(asset: Any) -> Image.Image | None:
+        path = resolver(asset)
+        if path is None:
+            return None
+        try:
+            with Image.open(path) as opened:
+                found = opened.convert("RGBA")
+        except (OSError, ValueError):
+            return None
+        origin = facets_of(asset).get("origin") or [found.width // 2, found.height - 1]
+        art.origins[id(found)] = (int(origin[0]), int(origin[1]))
+        return found
+
+    active = [
+        a
+        for a in sorted(catalog.assets, key=lambda a: a.id)
+        if a.status not in ("UNUSED", "MISSING")
+        and facets_of(a).get("projection") == catalog_mod.PROJECTION_ISOMETRIC
+    ]
+    tiles = [a for a in active if catalog_mod.is_iso_tile(a)]
+
+    def plain(role: str) -> list[Any]:
+        """The tiles of ``role`` a map is filled with: one a tile (its first turn), flat ones
+        before blocks (``IsoTileset.plain_tiles``)."""
+        found = [
+            a
+            for a in tiles
+            if facets_of(a).get("role") == role
+            and not facets_of(a).get("joins")
+            and int(facets_of(a).get("turn", 0) or 0) == 0
+        ]
+        flat = [a for a in found if not int(facets_of(a).get("rise", 0) or 0)]
+        return flat or found
+
+    ground = plain("GROUND")
+    if ground_id:
+        chosen = [a for a in tiles if a.id == ground_id]
+        ground = chosen + [a for a in ground if a.id != ground_id] if chosen else ground
+    if ground:
+        footprint = facets_of(ground[0]).get("footprint") or [0, 0]
+        if footprint[0] > 0 and footprint[1] > 0:
+            art.footprint = (int(footprint[0]), int(footprint[1]))
+        art.ground = picture(ground[0])
+        art.patches = [p for p in (picture(a) for a in ground[1:4]) if p is not None]
+    if art.footprint is None:
+        return art  # no isometric ground: nothing to lay a map with
+    art.tile_px = iso_math.unit(*art.footprint)
+    wall, road = plain("WALL"), plain("ROAD")
+    art.wall = picture(wall[0]) if wall else None
+    art.road = picture(road[0]) if road else None
+    houses = iso_buildings(catalog, building_id)
+    if houses:
+        art.building = picture(houses[0])
+        art.building_size, art.building_door = iso_building_geometry(
+            facets_of(houses[0]).get("stands_on")
+        )
+    for asset in active:
+        facets = facets_of(asset)
+        if facets.get("usage") == "sprite" and facets.get("role") == "DECORATION":
+            found = picture(asset)
+            if found is not None:
+                art.decorations.append((found, art.origins[id(found)]))
+    return art
+
+
+def load_art(
+    catalog: Any,
+    resolver: Any,
+    ground_id: str = "",
+    building_id: str = "",
+    projection: str = "top_down",
+) -> Art:
     """Pictures for the preview from a catalog: the ground set, wall, road, the starter building
-    and the decorations. ``resolver(asset)`` gives the file of an asset."""
+    and the decorations. ``resolver(asset)`` gives the file of an asset. With ``projection``
+    ``isometric`` they are the single tiles and objects of the isometric packs, and ``render``
+    draws the plan as diamonds."""
     from rpggen.core import catalog as catalog_mod  # imported late: the planner needs none of it
 
+    if projection == config_mod.PROJECTION_ISOMETRIC:
+        return _load_iso_art(catalog, resolver, ground_id, building_id)
     art = Art()
     overworld = _overworld(catalog)
     if overworld is not None:
@@ -566,7 +695,11 @@ def _scaled(picture: Image.Image, scale: int) -> Image.Image:
 def render(plan: dict[str, Any], art: Art, scale: int = 2) -> Image.Image:
     """A picture of the plan: ground, patches, the wall border and the exit gap, the road,
     buildings, decorations and coloured markers (start, villagers, enemies, chests). The legend
-    is the widget's (``MARKER_NAMES`` has the kinds). It is a preview, not a pixel-exact render."""
+    is the widget's (``MARKER_NAMES`` has the kinds). It is a preview, not a pixel-exact render.
+    The art of an isometric project (``load_art(..., projection="isometric")``) is drawn as
+    diamonds: the same plan, seen at the pack's angle."""
+    if art.footprint is not None:
+        return _render_iso(plan, art, scale)
     w, h = plan["size"]
     tile = art.tile_px
     px = tile * scale
@@ -652,6 +785,252 @@ def render(plan: dict[str, Any], art: Art, scale: int = 2) -> Image.Image:
     return canvas
 
 
+# ------------------------------------------------------------------- the isometric view (T17.14)
+# The plan does not change with the view: the same cells, laid out as diamonds by ``iso_math``.
+
+ISO_SIDE = (58, 96, 52)  # the edge of a flat diamond drawn without a picture
+ISO_HOUSE = (150, 90, 60)
+ISO_ROOF = (176, 70, 60)
+
+
+def _iso_frame(
+    cells: list[Tile], footprint: tuple[int, int], above: int, below: int
+) -> tuple[tuple[float, float], tuple[int, int]]:
+    """``(origin, size)`` of a picture that holds the diamonds of ``cells`` with ``above`` px
+    over the highest and ``below`` under the lowest: add ``origin`` to a point of the map to
+    get its pixel."""
+    w, h = footprint
+    xs = [iso_math.cell_to_screen(cx, cy, w, h)[0] for cx, cy in cells] or [0.0]
+    ys = [iso_math.cell_to_screen(cx, cy, w, h)[1] for cx, cy in cells] or [0.0]
+    left, right = min(xs) - w / 2.0, max(xs) + w / 2.0
+    top, bottom = min(ys) - h / 2.0 - above, max(ys) + h / 2.0 + below
+    return (-left, -top), (int(math.ceil(right - left)), int(math.ceil(bottom - top)))
+
+
+def _diamond_picture(footprint: tuple[int, int], colour: tuple[int, int, int]) -> Image.Image:
+    """A flat diamond of one colour with a darker edge: the tile of a pack without a picture
+    for it. Its origin is its middle."""
+    w, h = footprint
+    picture = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    edge = tuple(max(0, c - 28) for c in colour) + (255,)
+    ImageDraw.Draw(picture).polygon(
+        [(w // 2, 0), (w - 1, h // 2), (w // 2, h - 1), (0, h // 2)],
+        fill=colour + (255,),
+        outline=edge,
+    )
+    return picture
+
+
+def _render_iso(plan: dict[str, Any], art: Art, scale: int = 2) -> Image.Image:
+    """``render`` for an isometric project: every cell of the plan a diamond, back to front, so
+    that what stands nearer the camera covers what is behind it."""
+    assert art.footprint is not None
+    footprint = art.footprint
+    fw, fh = footprint
+    w, h = plan["size"]
+    all_cells = [(x, y) for y in range(h) for x in range(w)]
+    pictures = [art.ground, art.wall, art.road, art.building, *art.patches]
+    pictures += [picture for picture, _origin in art.decorations]
+    rise = max([0, *(art.origins.get(id(p), (0, 0))[1] - fh // 2 for p in pictures if p)])
+    feet = [p.height - art.origins.get(id(p), (0, 0))[1] for p in pictures if p]
+    drop = max([0, *(low - fh // 2 for low in feet)])
+    (ox, oy), size = _iso_frame(all_cells, footprint, above=rise + 4, below=drop + 2)
+    canvas = Image.new("RGBA", size, (24, 24, 30, 255))
+
+    def origin_of(picture: Image.Image) -> tuple[int, int]:
+        return art.origins.get(id(picture), (picture.width // 2, picture.height // 2))
+
+    def put(picture: Image.Image, cell: Tile) -> None:
+        x, y = iso_math.cell_to_screen(cell[0], cell[1], fw, fh)
+        px, py = origin_of(picture)
+        canvas.alpha_composite(picture, (round(ox + x - px), round(oy + y - py)))
+
+    def tile(picture: Image.Image | None, colour: tuple[int, int, int]) -> Image.Image:
+        return picture if picture is not None else _diamond_picture(footprint, colour)
+
+    def by_depth(cells: Any) -> list[Tile]:
+        return sorted({(int(c[0]), int(c[1])) for c in cells}, key=lambda c: (c[0] + c[1], c[0]))
+
+    ground = tile(art.ground, FLAT_GROUND)
+    patches = [tile(p, FLAT_PATCHES[i % 3]) for i, p in enumerate(art.patches)] or [
+        tile(None, c) for c in FLAT_PATCHES
+    ]
+    floor: dict[Tile, Image.Image] = dict.fromkeys(all_cells, ground)
+    for patch in plan["patches"]:
+        x0, y0, pw, ph = patch["rect"]
+        for y in range(y0, y0 + ph):
+            for x in range(x0, x0 + pw):
+                if (x, y) in floor:
+                    floor[(x, y)] = patches[patch["index"] % len(patches)]
+    for cell in by_depth(all_cells):
+        put(floor[cell], cell)
+    road = tile(art.road, FLAT_ROAD)
+    for cell in by_depth([*plan["path"], *plan.get("exit_path", [])]):
+        put(road, cell)
+    # what stands on the ground, back to front: the edge of the map, houses, decorations
+    gap = tuple(plan.get("exit_gap", (-1, -1)))
+    standing: list[tuple[float, int, Image.Image, Tile]] = []
+    wall = tile(art.wall, FLAT_WALL)
+    for x, y in all_cells:
+        if (x in (0, w - 1) or y in (0, h - 1)) and (x, y) != gap:
+            standing.append((iso_math.depth(x, y, fw, fh), 0, wall, (x, y)))
+    bw, bh = art.building_size if art.building_size != (0, 0) else (1, 1)
+    house = art.building
+    if house is None:
+        house = Image.new("RGBA", (fw, fh * 2), (0, 0, 0, 0))
+        draw_house = ImageDraw.Draw(house)
+        draw_house.polygon(
+            [(fw // 2, fh), (fw - 1, fh + fh // 2), (fw // 2, 2 * fh - 1), (0, fh + fh // 2)],
+            fill=ISO_HOUSE + (255,),
+        )
+        draw_house.polygon(
+            [(0, fh // 2), (fw // 2, 0), (fw - 1, fh // 2), (fw - 1, fh + fh // 2),
+             (fw // 2, fh), (0, fh + fh // 2)],
+            fill=ISO_ROOF + (255,), outline=(0, 0, 0, 255),
+        )  # fmt: skip
+        art.origins[id(house)] = (fw // 2, fh + fh // 2)
+    for bx, by in plan["buildings"]:
+        near = (bx + bw - 1, by + bh - 1)  # the cell of it nearest the camera carries it
+        standing.append((iso_math.depth(near[0], near[1], fw, fh), 1, house, near))
+    for i, (dx, dy) in enumerate(plan["decorations"]):
+        if art.decorations:
+            picture = art.decorations[i % len(art.decorations)][0]
+        else:
+            picture = Image.new("RGBA", (fw, fh + fh // 2), (0, 0, 0, 0))
+            ImageDraw.Draw(picture).ellipse(
+                [fw // 4, 0, 3 * fw // 4, fh], fill=(40, 110, 50, 255), outline=(0, 0, 0, 255)
+            )
+            art.origins[id(picture)] = (fw // 2, fh)
+        standing.append((iso_math.depth(dx, dy, fw, fh), 2, picture, (dx, dy)))
+    for _depth, _order, picture, cell in sorted(standing, key=lambda s: (s[0], s[1], s[3])):
+        put(picture, cell)
+    draw = ImageDraw.Draw(canvas)
+    marks = [("spawn", [tuple(plan["spawn"])])]
+    marks += [
+        (kind, [tuple(t) for t in plan[key]])
+        for kind, key in (("npc", "npcs"), ("enemy", "enemies"), ("chest", "chests"))
+    ]
+    if "exit_gap" in plan:
+        marks.append(("exit", [tuple(plan["exit_gap"])]))
+    radius = max(3, fh // 3)
+    for kind, tiles in marks:
+        for tx, ty in tiles:
+            mx, my = iso_math.cell_to_screen(tx, ty, fw, fh)
+            draw.ellipse(
+                [ox + mx - radius, oy + my - radius, ox + mx + radius, oy + my + radius],
+                fill=MARKER_COLORS[kind] + (255,),
+                outline=(0, 0, 0, 255),
+            )
+    return _scaled(canvas, scale)
+
+
+def iso_cell_at(plan: dict[str, Any], art: Art, x: float, y: float, scale: int = 2) -> Tile:
+    """The cell of the plan under the pixel ``(x, y)`` of ``render``'s picture of an isometric
+    project (a click on the preview)."""
+    assert art.footprint is not None
+    fw, fh = art.footprint
+    w, h = plan["size"]
+    pictures = [art.ground, art.wall, art.road, art.building, *art.patches]
+    pictures += [picture for picture, _origin in art.decorations]
+    rise = max([0, *(art.origins.get(id(p), (0, 0))[1] - fh // 2 for p in pictures if p)])
+    (ox, oy), _size = _iso_frame(
+        [(cx, cy) for cy in range(h) for cx in range(w)], art.footprint, above=rise + 4, below=0
+    )
+    return iso_math.screen_to_cell(x / scale - ox, y / scale - oy, fw, fh)
+
+
+def _render_iso_view(view: dict[str, Any], project_root: Path, scale: int = 2) -> Image.Image:
+    """``render_view`` for an isometric map: every painted cell's tile where Godot draws it
+    (the middle of its atlas cell on the middle of the diamond, moved back by the tile's
+    texture origin), back to front, then what stands on the map by the y of its feet."""
+    fw, fh = (int(v) for v in view.get("tile_size", [64, 32]))
+    cells = [(int(c[0]), int(c[1])) for layer in view["layers"] for c in layer["cells"]]
+    tall = max([fh, *(int(s["region_size"][1]) for s in view["sources"].values())])
+    (ox, oy), size = _iso_frame(cells, (fw, fh), above=tall, below=tall // 2)
+    canvas = Image.new("RGBA", size, (24, 24, 30, 255))
+    sheets: dict[str, Image.Image | None] = {}
+
+    def sheet(res_path: str) -> Image.Image | None:
+        if res_path not in sheets:
+            try:
+                with Image.open(_res_file(project_root, res_path)) as opened:
+                    sheets[res_path] = opened.convert("RGBA")
+            except (OSError, ValueError):
+                sheets[res_path] = None
+        return sheets[res_path]
+
+    def paste(picture: Image.Image, left: float, top: float) -> None:
+        # a picture that leaves the canvas is cut, not dropped
+        canvas.alpha_composite(
+            picture,
+            (max(0, round(left)), max(0, round(top))),
+            (max(0, -round(left)), max(0, -round(top))),
+        ) if round(left) < canvas.width and round(top) < canvas.height else None
+
+    flat: list[tuple[int, int, int, int, int]] = []
+    sorted_cells: list[tuple[int, int, int, int, int]] = []
+    ordered = sorted(enumerate(view["layers"]), key=lambda item: (item[1].get("z", 0), item[0]))
+    for _index, layer in ordered:
+        bucket = sorted_cells if layer.get("name") == "Props" else flat
+        row = [(int(c[0]), int(c[1]), int(c[2]), int(c[3]), int(c[4])) for c in layer["cells"]]
+        if bucket is flat:
+            row.sort(key=lambda c: (c[0] + c[1], c[0]))
+        bucket.extend(row)
+
+    def draw_cell(cell: tuple[int, int, int, int, int]) -> None:
+        x, y, source_id, ax, ay = cell
+        source = view["sources"].get(str(source_id))
+        image = sheet(source["path"]) if source else None
+        if source is None or image is None:
+            return
+        rw, rh = source["region_size"]
+        mx, my = source.get("margins", [0, 0])
+        sx, sy = source.get("separation", [0, 0])
+        left, top = mx + ax * (rw + sx), my + ay * (rh + sy)
+        origin = source.get("origins", {}).get(f"{ax},{ay}", [0, 0])
+        cx, cy = iso_math.cell_to_screen(x, y, fw, fh)
+        paste(
+            image.crop((left, top, left + rw, top + rh)),
+            ox + cx - rw / 2.0 - origin[0],
+            oy + cy - rh / 2.0 - origin[1],
+        )
+
+    for cell in flat:
+        draw_cell(cell)
+    # the Y-sorted part of the map: the tiles of the Props layer and the entities, by depth
+    standing: list[tuple[float, int, Any]] = [
+        (iso_math.depth(c[0], c[1], fw, fh), 0, c) for c in sorted_cells
+    ]
+    for entity in view.get("entities", []):
+        pictures = [entity.get("sprite") or {}, *entity.get("more", [])]
+        for sprite in pictures:
+            if sprite:
+                standing.append((float(entity["y"]), 1, (entity, sprite)))
+        if not any(pictures):
+            standing.append((float(entity["y"]), 1, (entity, {})))
+    draw = ImageDraw.Draw(canvas)
+    for _depth, kind, item in sorted(standing, key=lambda s: (s[0], s[1])):
+        if kind == 0:
+            draw_cell(item)
+            continue
+        entity, sprite = item
+        x, y = float(entity["x"]), float(entity["y"])
+        image = sheet(sprite["path"]) if sprite else None
+        if image is not None:
+            rx, ry, rw, rh = (int(v) for v in sprite["region"])
+            offset = sprite.get("offset", [0, 0])
+            paste(image.crop((rx, ry, rx + rw, ry + rh)), ox + x + offset[0], oy + y + offset[1])
+            continue
+        scene = entity.get("scene", "").lower()
+        colour = next((c for key, c in ENTITY_COLORS.items() if key in scene), (180, 180, 180))
+        draw.ellipse(
+            [ox + x - 4, oy + y - 10, ox + x + 4, oy + y - 2],
+            fill=colour + (255,),
+            outline=(0, 0, 0, 255),
+        )
+    return _scaled(canvas, scale)
+
+
 # --------------------------------------------------------------- the map that was really built
 
 ENTITY_COLORS = {
@@ -670,6 +1049,8 @@ def render_view(view: dict[str, Any], project_root: Path, scale: int = 2) -> Ima
     """The picture of a map from ``builder/tools/dump_map_view.gd``: the painted cells (their
     tiles are cut from the project's own atlas files), then the entities with the first picture
     they show (a plain marker when they have none)."""
+    if view.get("projection") == "isometric":
+        return _render_iso_view(view, project_root, scale)
     tile_w, tile_h = view.get("tile_size", [16, 16])
     cells = [c for layer in view["layers"] for c in layer["cells"]]
     width = max((c[0] for c in cells), default=0) + 1

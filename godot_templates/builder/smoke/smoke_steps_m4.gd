@@ -3,6 +3,7 @@ extends RefCounted
 ## bump into a decoration.
 
 const JsonUtil := preload("../lib/json_util.gd")
+const SmokeMap := preload("smoke_map.gd")
 
 func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
@@ -70,11 +71,20 @@ func _enter_building() -> String:
 	var ground := scene.get_node_or_null("Ground") as TileMapLayer
 	if ground != null and ground.tile_set != null:
 		tile = float(ground.tile_set.tile_size.y)
-	p.global_position = entrance.global_position + Vector2(0, tile)
+	# The map is asked where the front of the door is (T17.14): the player stands a tile from
+	# the entrance on the side its building lets people out (straight below it on squares, down
+	# and to the left of an isometric house), and walks at the entrance.
+	var front := Vector2(0, 1)
+	var out: Node2D = null
+	if entrance.get_parent() != null:
+		out = entrance.get_parent().get_node_or_null("ExitSpawn") as Node2D
+	if out != null and out.global_position.distance_to(entrance.global_position) > 0.5:
+		front = (out.global_position - entrance.global_position).normalized()
+	p.global_position = entrance.global_position + front * tile
 	await tree.physics_frame
-	Input.action_press("move_up")
+	var router := _router()
+	await SmokeMap.walk_toward(p, entrance.global_position, 240, func() -> bool: return tree.current_scene != scene or router.is_busy())
 	var arrived := await _wait_for_map("Interior1", 240)
-	Input.action_release("move_up")
 	return "" if arrived else "walking up into the entrance did not open interior_1"
 
 func _exit_building() -> String:
@@ -87,13 +97,16 @@ func _exit_building() -> String:
 	if p == null:
 		return "no player in the interior"
 	# let go as soon as the door takes over: a player still walking while the starter map fades
-	# in drifts from the spawn, by more than the tolerance on a slow machine
-	Input.action_press("move_down")
-	for i in 240:
-		await tree.physics_frame
-		if tree.current_scene != scene or _router().is_busy():
-			break
-	Input.action_release("move_down")
+	# in drifts from the spawn, by more than the tolerance on a slow machine.
+	# The map is asked where the way out is (T17.14): straight below the player on squares.
+	var doors: Array[Area2D] = []
+	_find_doors(scene, doors)
+	var way_out := p.global_position + Vector2(0, 240.0)
+	for d in doors:
+		if JsonUtil.to_str(d.get("target_map")).ends_with("starter_map.tscn"):
+			way_out = d.global_position
+	var router := _router()
+	await SmokeMap.walk_toward(p, way_out, 240, func() -> bool: return tree.current_scene != scene or router.is_busy())
 	var arrived := await _wait_for_map("StarterMap", 240)
 	if not arrived:
 		return "walking down to the exit did not return to the starter map"
@@ -115,21 +128,17 @@ func _tile_px(scene: Node) -> float:
 	var ground := scene.get_node_or_null("Ground") as TileMapLayer
 	return float(ground.tile_set.tile_size.x) if ground != null and ground.tile_set != null else 16.0
 
-## Stands the player `tiles` tiles from `door` on the `side` (-1 west, +1 east) and walks toward it
-## until the map changes (at most `frames` physics frames).
-func _walk_through(door: Area2D, side: int, action: String, frames: int) -> void:
+## Stands the player a cell and a half from `door` on the `side` (-1 west, +1 east) and walks
+## toward it until the map changes (at most `frames` physics frames). The map is asked where
+## west and east are (T17.14); on squares that is the key `action` names.
+func _walk_through(door: Area2D, side: int, _action: String, frames: int) -> void:
 	var tree := _tree()
 	var p := _player()
-	var tile := _tile_px(tree.current_scene)
-	p.global_position = door.global_position + Vector2(side * 1.5 * tile, 0.0)
+	p.global_position = door.global_position + SmokeMap.cells(Vector2(side * 1.5, 0.0))
 	await tree.physics_frame
 	var scene_before := tree.current_scene
-	Input.action_press(action)
-	for i in frames:
-		await tree.physics_frame
-		if tree.current_scene != scene_before or _router().is_busy():
-			break
-	Input.action_release(action)
+	var router := _router()
+	await SmokeMap.walk_toward(p, door.global_position, frames, func() -> bool: return tree.current_scene != scene_before or router.is_busy())
 
 ## The east exit of the starter map leads to the field, and the game knows where the player is.
 func _walk_to_field() -> String:
@@ -213,21 +222,17 @@ func _world_doors() -> String:
 	return ""
 
 ## Stands the player on the floor in front of a door in the wall on `edge` and walks into it.
-func _walk_into(door: Area2D, edge: String, action: String) -> void:
+## The map is asked where the inside of that wall is (T17.14).
+func _walk_into(door: Area2D, edge: String, _action: String) -> void:
 	var tree := _tree()
 	var p := _player()
-	var tile := _tile_px(tree.current_scene)
 	var inward := {"E": Vector2(-1, 0), "W": Vector2(1, 0), "N": Vector2(0, 1), "S": Vector2(0, -1)}
 	var step: Vector2 = inward[edge]
-	p.global_position = door.global_position + step * 1.5 * tile
+	p.global_position = door.global_position + SmokeMap.cells(step * 1.5)
 	await tree.physics_frame
 	var scene_before := tree.current_scene
-	Input.action_press(action)
-	for i in 180:
-		await tree.physics_frame
-		if tree.current_scene != scene_before or _router().is_busy():
-			break
-	Input.action_release(action)
+	var router := _router()
+	await SmokeMap.walk_toward(p, door.global_position, 180, func() -> bool: return tree.current_scene != scene_before or router.is_busy())
 
 func _return_from_field() -> String:
 	var tree := _tree()
@@ -276,8 +281,15 @@ func _decor_blocks() -> String:
 	var edge_x := obstacle.global_position.x + left
 	p.global_position = Vector2(edge_x - 24.0, middle_y + 3.0)
 	await tree.physics_frame
-	Input.action_press("move_right")
-	for i in 120:
-		await tree.physics_frame
-	Input.action_release("move_right")
-	return "" if p.global_position.x < edge_x else "player walked through the decoration (x=%.1f, edge at %.1f)" % [p.global_position.x, edge_x]
+	# The footprint is asked, not the screen (T17.14): the player walks at the middle of what the
+	# decoration stands on, from the left of it, and must end outside it and not past its middle.
+	# A rectangle stops the player at its left edge; a diamond lets it slide along a side.
+	var right := -1e9
+	for pt in poly:
+		right = maxf(right, pt.x)
+	var middle := Vector2(obstacle.global_position.x + (left + right) / 2.0, middle_y)
+	await SmokeMap.walk_toward(p, middle, 120)
+	var feet := p.global_position - obstacle.global_position
+	if Geometry2D.is_point_in_polygon(feet, poly) or p.global_position.x >= middle.x:
+		return "player walked through the decoration (at %s, its middle at %s)" % [p.global_position, middle]
+	return ""

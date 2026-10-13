@@ -4,10 +4,14 @@ extends RefCounted
 ##   id, name, role, tags (Array), texture_path, region [x, y, w, h], origin [x, y],
 ##   footprint ([x, y, w, h] or []), collision ({profile, polygon?}), door ([x, y] or []), sha256,
 ##   open_region ([x, y, w, h] of the "open" picture of a chest strip, or [])
+## An entry drawn for the isometric view (T17.14) has two more keys, and only such an entry has
+## them: iso ([w, h], the diamond of its pack) and stands_on ([columns, rows], the cells it
+## stands on). Its origin is the middle of the cell of those nearest the camera.
 
 const JsonUtil := preload("json_util.gd")
 const BuildContext := preload("build_context.gd")
 const Geometry := preload("geometry.gd")
+const IsoTileset := preload("iso_tileset.gd")
 
 const SPRITE_ROLES := ["DECORATION", "BUILDING", "INTERIOR", "ITEM"]
 
@@ -68,6 +72,11 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 			"sha256": a.get("sha256", ""),
 			"open_region": open_region(eff, region),
 		})
+		if JsonUtil.to_str(eff.get("projection", "")) == IsoTileset.PROJECTION and JsonUtil.to_array(eff.get("footprint", [])).size() == 2:
+			var made: Dictionary = out[out.size() - 1]
+			var stands := IsoTileset.stands_on(eff)
+			made["iso"] = [JsonUtil.to_int(eff["footprint"][0]), JsonUtil.to_int(eff["footprint"][1])]
+			made["stands_on"] = [stands.x, stands.y]
 	out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return JsonUtil.to_str(x["id"]) < JsonUtil.to_str(y["id"]))
 	return out
 
@@ -118,6 +127,13 @@ static func footprint_polygon(e: Dictionary) -> PackedVector2Array:
 	var polygon: Array = coll.get("polygon", [])
 	if profile == "CUSTOM" and polygon.size() >= 3:
 		return Geometry.profile_polygon("CUSTOM", Vector2i(w, h), polygon)
+	if is_iso(e):
+		# what stands on diamonds blocks its diamonds: the outline of its cells around its origin
+		var around := Vector2(JsonUtil.to_float(e["origin"][0]), JsonUtil.to_float(e["origin"][1]))
+		var outline := PackedVector2Array()
+		for corner in IsoTileset.outline(iso_cells(e), iso_footprint(e)):
+			outline.append(corner + around)
+		return outline
 	if ["FULL", "BOTTOM_HALF", "BOTTOM_EDGE", "TOP_EDGE", "LEFT_EDGE", "RIGHT_EDGE"].has(profile):
 		return Geometry.profile_polygon(profile, Vector2i(w, h))
 	var fp: Array = e["footprint"]
@@ -125,6 +141,22 @@ static func footprint_polygon(e: Dictionary) -> PackedVector2Array:
 		return Geometry.rect_poly(JsonUtil.to_float(fp[0]), JsonUtil.to_float(fp[1]), JsonUtil.to_float(fp[2]), JsonUtil.to_float(fp[3]))
 	var fh := maxi(1, roundi(h * 0.3))
 	return Geometry.rect_poly(1.0, float(h - fh), float(w - 2), float(fh))
+
+## True for an entry that was drawn for the isometric view.
+static func is_iso(e: Dictionary) -> bool:
+	return JsonUtil.to_array(e.get("iso", [])).size() == 2
+
+## The diamond of an isometric entry's pack.
+static func iso_footprint(e: Dictionary) -> Vector2i:
+	var pair := JsonUtil.to_array(e.get("iso", []))
+	return Vector2i(JsonUtil.to_int(pair[0]), JsonUtil.to_int(pair[1])) if pair.size() == 2 else Vector2i.ZERO
+
+## The cells an isometric entry stands on, [columns, rows].
+static func iso_cells(e: Dictionary) -> Vector2i:
+	var pair := JsonUtil.to_array(e.get("stands_on", []))
+	if pair.size() != 2:
+		return Vector2i.ONE
+	return Vector2i(maxi(1, JsonUtil.to_int(pair[0])), maxi(1, JsonUtil.to_int(pair[1])))
 
 static func footprint_area(e: Dictionary) -> float:
 	var pts := footprint_polygon(e)

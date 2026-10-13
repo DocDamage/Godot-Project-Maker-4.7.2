@@ -305,7 +305,9 @@ def _plan(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict
             "counts": {},
             "warnings": [],
         }
-    building = map_preview.building_info_for(catalog, cfg.starter.get("building", ""))
+    building = map_preview.building_info_for(
+        catalog, cfg.starter.get("building", ""), cfg.projection
+    )
     plan = map_preview.plan(cfg.starter_map_options(), cfg.seed, building, cfg.archetype)
     return {
         "size": list(plan["size"]),

@@ -14,6 +14,7 @@ const ArpgBuild := preload("arpg_build.gd")
 const Navigation := preload("navigation_recipe.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
 
 const DEFINITIONS_DIR := "res://game/data/enemies/"
 const SCENES_DIR := "res://generated/scenes/enemies/"
@@ -169,10 +170,7 @@ func entries(ctx: BuildContext) -> Array[Dictionary]:
 	return out
 
 func _tile(ctx: BuildContext) -> int:
-	var def: Dictionary = ctx.catalog.tileset_def("overworld")
-	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
-		def = ctx.catalog.tileset_defs()[0]
-	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
+	return MapGeo.tile_unit(ctx)
 
 ## The scene of the `index`-th enemy the starter map places: index 0 is the starter.enemy asset (else
 ## the first enemy), the next ones the following enemies (the same one again when there is only

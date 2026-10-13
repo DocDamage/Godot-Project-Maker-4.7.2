@@ -40,9 +40,11 @@ const FACING := {"N": "down", "S": "up", "E": "left", "W": "right"}
 
 ## What the repair needs to know of a map: {tile, rect (cells, Rect2i), solid ({Vector2i: true}),
 ## painted ({Vector2i: true})}. A cell is walkable when something is painted there and no layer
-## has a tile with a collision shape on it.
+## has a tile with a collision shape on it. An isometric map (T17.14) also has `iso`, the
+## diamond of its cells: `cell_of` and `center_of` then count by it, and `tile` is one step.
 static func survey(root: Node) -> Dictionary:
 	var tile := 16
+	var diamond := Vector2i.ZERO
 	var solid := {}
 	var painted := {}
 	var rect := Rect2i()
@@ -52,6 +54,9 @@ static func survey(root: Node) -> Dictionary:
 		if layer.tile_set == null:
 			continue
 		tile = layer.tile_set.tile_size.x
+		if RpgIso.is_iso(layer.tile_set):
+			diamond = layer.tile_set.tile_size
+			tile = RpgIso.unit(diamond)
 		for cell in layer.get_used_cells():
 			painted[cell] = true
 			rect = Rect2i(cell, Vector2i.ONE) if first else rect.merge(Rect2i(cell, Vector2i.ONE))
@@ -60,6 +65,8 @@ static func survey(root: Node) -> Dictionary:
 			if data != null and layer.tile_set.get_physics_layers_count() > 0 and data.get_collision_polygons_count(0) > 0:
 				solid[cell] = true
 	var info := {"tile": tile, "rect": rect, "solid": solid, "painted": painted, "side": JsonIo.to_bool(root.get("side_view"))}
+	if diamond != Vector2i.ZERO:
+		info["iso"] = diamond
 	if info["side"]:
 		# a room is as large as it says, not as large as what is painted (most of it is air)
 		var size: Variant = root.get("room_size")
@@ -83,10 +90,16 @@ static func walkable(info: Dictionary, cell: Vector2i) -> bool:
 	return painted.has(cell) and not solid.has(cell)
 
 static func cell_of(info: Dictionary, position: Vector2) -> Vector2i:
+	if info.get("iso") is Vector2i:
+		var diamond: Vector2i = info["iso"]
+		return RpgIso.screen_to_cell(position, diamond)
 	var tile := JsonIo.to_int(info["tile"])
 	return Vector2i(floori(position.x / tile), floori(position.y / tile))
 
 static func center_of(info: Dictionary, cell: Vector2i) -> Vector2:
+	if info.get("iso") is Vector2i:
+		var diamond: Vector2i = info["iso"]
+		return RpgIso.cell_to_screen(cell, diamond)
 	var tile := JsonIo.to_float(info["tile"])
 	return Vector2(cell) * tile + Vector2(tile, tile) / 2.0
 

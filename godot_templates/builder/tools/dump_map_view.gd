@@ -6,6 +6,11 @@ extends SceneTree
 # Output: {map, tile_size, sources: {id: {path, region_size, margins, separation}},
 #          layers: [{name, z, cells: [[x, y, source_id, atlas_x, atlas_y], ...]}],
 #          entities: [{name, scene, entity_id, x, y, sprite: {path, region, offset}}]}
+# An isometric map (T17.14) says so, and where each tile's picture lies on its diamond:
+#   projection: "isometric" (tile_size is then the diamond), and for each source
+#   origins: {"<atlas x>,<atlas y>": [x, y]} (the texture origin of that tile).
+# An entity drawn in several pictures (an isometric house cut in two for sorting) lists the
+# others in `more`, in the shape of `sprite`.
 
 func _initialize() -> void:
 	var map_path := "res://game/maps/starter_map.tscn"
@@ -64,6 +69,9 @@ func _add_layer(layer: TileMapLayer, view: Dictionary) -> void:
 	if tile_set == null:
 		return
 	view["tile_size"] = [tile_set.tile_size.x, tile_set.tile_size.y]
+	var isometric := RpgIso.is_iso(tile_set)
+	if isometric:
+		view["projection"] = "isometric"
 	for i in tile_set.get_source_count():
 		var id := tile_set.get_source_id(i)
 		var key := str(id)
@@ -79,6 +87,13 @@ func _add_layer(layer: TileMapLayer, view: Dictionary) -> void:
 			"margins": [source.margins.x, source.margins.y],
 			"separation": [source.separation.x, source.separation.y],
 		}
+		if isometric:
+			var origins := {}
+			for t in source.get_tiles_count():
+				var coords := source.get_tile_id(t)
+				var origin := source.get_tile_data(coords, 0).texture_origin
+				origins["%d,%d" % [coords.x, coords.y]] = [origin.x, origin.y]
+			view["sources"][key]["origins"] = origins
 
 ## The sum of the positions up to the map root (no rotation or scale is assumed).
 func _position_in(root: Node, node: Node2D) -> Vector2:
@@ -93,7 +108,7 @@ func _position_in(root: Node, node: Node2D) -> Vector2:
 func _entity(root: Node, node: Node2D) -> Dictionary:
 	var pos := _position_in(root, node)
 	var id: Variant = node.get("entity_id")
-	return {
+	var out := {
 		"name": String(node.name),
 		"scene": node.scene_file_path,
 		"entity_id": str(id) if id != null else "",
@@ -101,6 +116,23 @@ func _entity(root: Node, node: Node2D) -> Dictionary:
 		"y": pos.y,
 		"sprite": _sprite_of(node),
 	}
+	var more: Array = []
+	var seen := false
+	for child in node.get_children():
+		if not (child is Sprite2D):
+			continue
+		if seen:  # the pictures after the first
+			var holder := Node.new()
+			var copy := child.duplicate()
+			holder.add_child(copy)
+			var picture := _sprite_of(holder)
+			holder.free()
+			if not picture.is_empty():
+				more.append(picture)
+		seen = true
+	if not more.is_empty():
+		out["more"] = more
+	return out
 
 ## The first picture an entity shows: {path, region, offset} or {}.
 func _sprite_of(node: Node) -> Dictionary:

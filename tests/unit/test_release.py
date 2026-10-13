@@ -78,10 +78,10 @@ def test_main_ci_runs_the_full_ubuntu_job() -> None:
         assert needle in text
     # the integration suites are split per archetype (T14.11): the main jobs run the shared
     # ones, and a job per archetype and system runs the rest, so nothing is left out
-    shared = 'pytest -q -m "integration and not arpg and not metroidvania and not shmup and not run_and_gun and not racing and not farm"'
+    shared = 'pytest -q -m "integration and not arpg and not metroidvania and not shmup and not run_and_gun and not racing and not farm and not isometric"'
     assert shared in ubuntu and text.count(shared) == 2
     job = text[text.index("archetype-integration:") :]
-    assert "archetype: [arpg, metroidvania, shmup, run_and_gun, racing, farm]" in job
+    assert "archetype: [arpg, metroidvania, shmup, run_and_gun, racing, farm, isometric]" in job
     assert "os: [windows-latest, ubuntu-latest]" in job
     assert 'pytest -q -m "integration and ${{ matrix.archetype }}"' in job
 
@@ -96,6 +96,7 @@ def test_every_archetype_marker_of_ci_is_a_registered_marker_with_tests() -> Non
         ("run_and_gun", "tests/integration/test_m16_run_and_gun.py"),
         ("racing", "tests/integration/test_m16_racing.py"),
         ("farm", "tests/integration/test_m17_farm.py"),
+        ("isometric", "tests/integration/test_m17_isometric.py"),
     ):
         assert f'"{marker}: ' in pyproject, marker
         assert f"pytest.mark.{marker}" in _read(file), file

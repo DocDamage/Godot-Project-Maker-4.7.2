@@ -10,6 +10,9 @@ extends RefCounted
 ## and its exit goes to the spawn that house really has.
 
 const RECIPE_VERSION := 3
+## The version of what the recipe does for an isometric project only (T17.14): in the hash of
+## such a project and of no other.
+const ISO_VERSION := 1
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
@@ -19,6 +22,7 @@ const ObjectEntries := preload("../lib/object_entries.gd")
 const ObjectIndex := preload("../lib/object_index.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
+const MapGeo := preload("../lib/map_geo.gd")
 
 const MAPS_DIR := "res://game/maps/"
 const OUT_PATH := "res://game/maps/interior_1.tscn"  # the first house's (the only one before 1.1)
@@ -68,10 +72,8 @@ func _houses(ctx: BuildContext) -> Array[Dictionary]:
 	if FileAccess.file_exists(STARTER_MAP):
 		return _houses_of_map(building_id)
 	# a new project: the starter map is built later in this run, from the same plan
-	var overworld: Dictionary = ctx.catalog.tileset_def("overworld")
-	var tile_px := 16 if overworld.is_empty() else JsonUtil.to_int(overworld["tile_size"][0])
 	var options: Dictionary = ctx.config.get("starter_map", {})
-	var layout := MapBuild.plan(options, JsonUtil.to_int(ctx.config.get("seed", 12345)), building_info(building, tile_px), JsonUtil.to_str(ctx.config.get("archetype", "turn_based")))
+	var layout := MapBuild.plan(options, JsonUtil.to_int(ctx.config.get("seed", 12345)), MapGeo.new(ctx).building_info(building), JsonUtil.to_str(ctx.config.get("archetype", "turn_based")))
 	var planned: Array = layout["interiors"]
 	for i in planned.size():
 		out.append({"n": i + 1, "spawn": exit_spawn_for(building_id, i + 1)})
@@ -117,14 +119,18 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 func input_hash(ctx: BuildContext) -> String:
 	var interior: Dictionary = ctx.catalog.tileset_def("interior")
 	var overworld: Dictionary = ctx.catalog.tileset_def("overworld")
-	return ctx.stable_hash({
+	var hashed := {
 		"v": RECIPE_VERSION,
 		"building": ObjectEntries.starter_building(ctx).get("id", ""),
 		"houses": _houses(ctx),
 		"layers": ctx.config.get("map_layers", []),
 		"interior": interior,
 		"overworld": overworld,
-	})
+	}
+	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the keys (T17.14)
+		hashed["iso"] = MapGeo.new(ctx).def
+		hashed["iso_v"] = ISO_VERSION
+	return ctx.stable_hash(hashed)
 
 func _tileset_for_interior(ctx: BuildContext) -> Dictionary:
 	var interior: Dictionary = ctx.catalog.tileset_def("interior")
@@ -139,19 +145,24 @@ func build(ctx: BuildContext) -> Array:
 		return issues
 	var building := ObjectEntries.starter_building(ctx)
 	var def := _tileset_for_interior(ctx)
-	if def.is_empty():
+	# the seam between the room's cells and its px (T17.14): an isometric project's rooms are
+	# painted with its tile set of diamonds (the same ground as outside: the packs that were
+	# listed have no floor of their own), every other project's with the interior tile set
+	var geo := MapGeo.new(ctx, JsonUtil.to_str(def.get("name", "")))
+	if geo.def.is_empty():
 		issues.append(ctx.make_issue("TILE-001", {"tileset": "overworld"}, OUT_PATH))
 		return issues
-	var tile_path: String = Paths.TILESETS_DIR + "%s.tres" % def["name"]
-	var tile_set := load(tile_path) as TileSet
+	var tile_path := geo.tileset_path()
+	var tile_set := geo.load_tile_set()
 	if tile_set == null:
 		issues.append(ctx.make_issue("VAL-002", {"file": tile_path}, tile_path))
 		return issues
-	var tile_px: int = JsonUtil.to_int(def["tile_size"][0])
+	var tile_px := geo.tile_px
 	var overworld: Dictionary = ctx.catalog.tileset_def("overworld")
 	var world_px := tile_px if overworld.is_empty() else JsonUtil.to_int(overworld["tile_size"][0])
 	# the planner says how large an interior is and where its exit is (the preview counts them)
-	var spec: Dictionary = MapBuild.interiors_for(1, building_info(building, world_px))[0]
+	var house_info := geo.building_info(building) if geo.isometric else building_info(building, world_px)
+	var spec: Dictionary = MapBuild.interiors_for(1, house_info)[0]
 	var size := Vector2i(JsonUtil.to_int(spec["size"][0]), JsonUtil.to_int(spec["size"][1]))
 	var exit_cell := Vector2i(JsonUtil.to_int(spec["door"]), size.y - 1)
 	for house in houses:
@@ -159,10 +170,10 @@ func build(ctx: BuildContext) -> Array:
 		var path := interior_path(n)
 		if FileAccess.file_exists(path):
 			continue  # the user's by now: never rewritten
-		_build_one(ctx, issues, n, path, StringName(JsonUtil.to_str(house["spawn"])), def, tile_set, tile_px, size, exit_cell)
+		_build_one(ctx, issues, n, path, StringName(JsonUtil.to_str(house["spawn"])), geo, tile_set, size, exit_cell)
 	return issues
 
-func _build_one(ctx: BuildContext, issues: Array, n: int, path: String, exit_spawn: StringName, def: Dictionary, tile_set: TileSet, tile_px: int, size: Vector2i, exit_cell: Vector2i) -> void:
+func _build_one(ctx: BuildContext, issues: Array, n: int, path: String, exit_spawn: StringName, geo: MapGeo, tile_set: TileSet, size: Vector2i, exit_cell: Vector2i) -> void:
 	var root := MapUtil.new_map_root("Interior%d" % n, interior_id(n))
 	root.set("is_interior", true)  # a dimmer ambient (T12.62)
 	var layer_names: Array = ctx.config.get("map_layers", MapUtil.DEFAULT_LAYERS)
@@ -172,16 +183,18 @@ func _build_one(ctx: BuildContext, issues: Array, n: int, path: String, exit_spa
 	var triggers: Node2D = nodes["Triggers"]
 	var entities: Node2D = nodes["Entities"]
 
-	MapUtil.fill(ground, Rect2i(Vector2i.ZERO, size), MapUtil.find_tile(ctx, def, tile_set, "GROUND"))
-	var wall := MapUtil.wall_tile(ctx, def, tile_set)
-	if not wall.is_empty() and nodes.has("Walls"):
+	MapUtil.fill(ground, Rect2i(Vector2i.ZERO, size), geo.find_tile("GROUND"))
+	var wall := geo.wall_tile()
+	if geo.isometric:
+		geo.paint_walls(root, nodes, size, [exit_cell])
+	elif not wall.is_empty() and nodes.has("Walls"):
 		var walls: TileMapLayer = nodes["Walls"]
 		MapUtil.border(walls, Rect2i(Vector2i.ZERO, size), wall, [exit_cell])
 	else:
-		MapUtil.border_collision(root, size, tile_px, [exit_cell])
+		geo.border_collision(root, size, [exit_cell])
 
 	var spawn_cell := exit_cell + Vector2i(0, -1)
-	MapUtil.add_marker(spawns, root, "default", MapUtil.tile_center(spawn_cell, tile_px), true, "up")
+	MapUtil.add_marker(spawns, root, "default", geo.center(spawn_cell), true, "up")
 
 	var exit_door := Area2D.new()
 	SceneUtil.attach_script(exit_door, MapUtil.DOOR_SCRIPT)
@@ -189,19 +202,17 @@ func _build_one(ctx: BuildContext, issues: Array, n: int, path: String, exit_spa
 	exit_door.collision_mask = 0
 	exit_door.set_collision_layer_value(6, true)  # triggers
 	exit_door.set_collision_mask_value(2, true)  # player
-	exit_door.position = MapUtil.tile_center(exit_cell, tile_px)
+	exit_door.position = geo.center(exit_cell)
 	exit_door.set("target_map", STARTER_MAP)
 	exit_door.set("target_spawn", exit_spawn)
 	SceneUtil.add(triggers, exit_door, root, "Exit")
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(tile_px, tile_px)
-	shape.shape = rect
+	shape.shape = geo.cell_shape()
 	exit_door.add_child(shape)
 
-	_place_furniture(ctx, root, entities, tile_px, size, exit_cell)
-	var player := MapUtil.place(PLAYER_SCENE, entities, root, MapUtil.tile_center(spawn_cell, tile_px))
+	_place_furniture(ctx, root, entities, geo, size, exit_cell)
+	var player := MapUtil.place(PLAYER_SCENE, entities, root, geo.center(spawn_cell))
 	if player == null:
 		issues.append(ctx.make_issue("VAL-002", {"file": PLAYER_SCENE}, PLAYER_SCENE))
 		root.free()
@@ -212,7 +223,7 @@ func _build_one(ctx: BuildContext, issues: Array, n: int, path: String, exit_spa
 
 ## A bed in the top-left corner and a table in the top-right one, when the packs have an object
 ## whose name says so (a pack without them gives an empty room).
-func _place_furniture(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px: int, size: Vector2i, exit_cell: Vector2i) -> void:
+func _place_furniture(ctx: BuildContext, root: Node2D, entities: Node2D, geo: MapGeo, size: Vector2i, exit_cell: Vector2i) -> void:
 	var cells := {"bed": Vector2i(2, 2), "table": Vector2i(size.x - 3, 2)}
 	for word in FURNITURE:
 		var entry := furniture_entry(ObjectEntries.entries(ctx), word)
@@ -223,7 +234,7 @@ func _place_furniture(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px
 		var cell: Vector2i = cells[word]
 		if not ResourceLoader.exists(scene) or cell.x == exit_cell.x:
 			continue
-		MapUtil.place(scene, entities, root, MapUtil.tile_center(cell, tile_px) + Vector2(0, tile_px / 2.0), word.capitalize())
+		MapUtil.place(scene, entities, root, geo.bottom(cell), word.capitalize())
 
 ## The first object entry (not the starter building, not a character) whose name or tags say
 ## `word`; {} when the packs have none.

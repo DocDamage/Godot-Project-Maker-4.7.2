@@ -1,5 +1,6 @@
 extends RefCounted
-## One minimap per map of res://game/maps (T12.64): a pixel per cell, the average colour of the
+## One minimap per map of res://game/maps (T12.64; of an isometric map too, as its plan from
+## above): a pixel per cell, the average colour of the
 ## cell's tile computed here from the tile set's pictures, saved with ResourceSaver as an
 ## ImageTexture in res://generated/minimaps/<key>.tres (no second import pass). The input hash
 ## covers the map files and the tile sets, so a map you painted gets a new minimap on the next
@@ -88,6 +89,7 @@ static func render_layers(layers: Array[TileMapLayer]) -> ImageTexture:
 	var used := Rect2i()
 	var first := true
 	var tile := Vector2i(16, 16)
+	var isometric := false
 	for layer in layers:
 		if layer.tile_set == null:
 			continue
@@ -97,6 +99,7 @@ static func render_layers(layers: Array[TileMapLayer]) -> ImageTexture:
 		used = rect if first else used.merge(rect)
 		if first:
 			tile = layer.tile_set.tile_size
+			isometric = RpgIso.is_iso(layer.tile_set)
 		first = false
 	if first:
 		return null
@@ -114,6 +117,10 @@ static func render_layers(layers: Array[TileMapLayer]) -> ImageTexture:
 	var texture := ImageTexture.create_from_image(image)
 	texture.set_meta("origin_cell", used.position)
 	texture.set_meta("tile_size", tile)
+	if isometric:
+		# the plan from above, a pixel a cell, whatever the view (T17.14): the cell of a
+		# position is found by the diamond, which `tile_size` then is
+		texture.set_meta("isometric", true)
 	return texture
 
 ## The average colour of one tile (its transparent pixels left out), cached by source and atlas.

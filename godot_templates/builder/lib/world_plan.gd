@@ -7,6 +7,7 @@ const JsonUtil := preload("json_util.gd")
 const MapUtil := preload("map_util.gd")
 const MapBuild := preload("map_build.gd")
 const SceneUtil := preload("scene_util.gd")
+const MapGeo := preload("map_geo.gd")
 
 const PATH := "res://rpggen/world_plan.json"
 const VILLAGE_ID := "starter_map"
@@ -72,16 +73,17 @@ static func free_edge_cell(wanted: Vector2i, edge: String, size: Vector2i, block
 
 ## One door of the plan in a map: the gap is the caller's (paint_walls' `skip`); this adds the spawn
 ## point where a player arrives, the door trigger, and the gate when the door needs a key.
-static func add_door(door: Dictionary, door_cell: Vector2i, spawn_cell: Vector2i, root: Node2D, nodes: Dictionary, tile_px: int) -> void:
+static func add_door(door: Dictionary, door_cell: Vector2i, spawn_cell: Vector2i, root: Node2D, nodes: Dictionary, geo: MapGeo) -> void:
 	var spawns: Node2D = nodes["SpawnPoints"]
 	var triggers: Node2D = nodes["Triggers"]
 	var spawn_id := JsonUtil.to_str(door.get("spawn_id", ""))
-	MapUtil.add_marker(spawns, root, spawn_id, MapUtil.tile_center(spawn_cell, tile_px), true, JsonUtil.to_str(door.get("facing", "down")))
-	MapBuild.add_exit_door(triggers, root, JsonUtil.to_str(door.get("id", "")), door_cell, tile_px, "res://" + JsonUtil.to_str(door.get("to_map", "")), StringName(JsonUtil.to_str(door.get("to_spawn", ""))))
+	MapUtil.add_marker(spawns, root, spawn_id, geo.center(spawn_cell), true, JsonUtil.to_str(door.get("facing", "down")))
+	geo.add_exit_door(triggers, root, JsonUtil.to_str(door.get("id", "")), door_cell, "res://" + JsonUtil.to_str(door.get("to_map", "")), StringName(JsonUtil.to_str(door.get("to_spawn", ""))))
 
 ## The gate in front of a locked door: on the door's cell, opened for good by the key item (the
 ## key is kept, so one key opens every gate of its kind).
-static func add_gate(gate: Dictionary, door_cell: Vector2i, root: Node2D, entities: Node2D, tile_px: int) -> void:
+static func add_gate(gate: Dictionary, door_cell: Vector2i, root: Node2D, entities: Node2D, geo: MapGeo) -> void:
+	var tile_px := geo.tile_px
 	var node := StaticBody2D.new()
 	SceneUtil.attach_script(node, GATE_SCRIPT)
 	var id := JsonUtil.to_str(gate.get("id", ""))
@@ -89,8 +91,13 @@ static func add_gate(gate: Dictionary, door_cell: Vector2i, root: Node2D, entiti
 	node.set("key_item", StringName(JsonUtil.to_str(gate.get("key_item", ""))))
 	node.set("consume_key", false)
 	node.set("size", Vector2(tile_px, tile_px))
-	node.position = Vector2(door_cell.x * tile_px + tile_px / 2.0, (door_cell.y + 1) * tile_px)
+	node.position = geo.gate_position(door_cell)
 	SceneUtil.add(entities, node, root, "Gate_%s" % id.get_slice("_", id.get_slice_count("_") - 1))
+	if geo.isometric:
+		# a gate closes its diamond (it makes a rectangle of `size` only without a shape)
+		var shape := CollisionShape2D.new()
+		shape.shape = geo.cell_shape()
+		SceneUtil.add(node, shape, root, "Shape")
 
 ## The gate of a door of `entry`, or {}.
 static func gate_of(entry: Dictionary, door_id: String) -> Dictionary:

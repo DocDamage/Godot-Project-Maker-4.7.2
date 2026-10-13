@@ -155,15 +155,28 @@ static func stand(sprite: Sprite2D, eff: Dictionary, at: Vector2) -> void:
 	sprite.position = at
 
 ## The cells an object stands on when it is put on `cell`: `stands_on` [columns, rows] of the
-## catalog, `cell` being the one of them nearest the camera (the highest x and y), which is the
-## cell an actor in front of the object is compared with.
+## catalog, `cell` being the one of them nearest the camera (the highest x and y): the middle of
+## that cell is where `stand` puts the picture's `origin`, and the corner of it that points down
+## is where an object of several cells is cut in two for sorting (RpgIso.sort_keys).
 static func cells_under(cell: Vector2i, eff: Dictionary) -> Array[Vector2i]:
-	var size := _vec(eff.get("stands_on"), Vector2i.ONE)
+	var size := stands_on(eff)
 	var out: Array[Vector2i] = []
-	for dy in maxi(1, size.y):
-		for dx in maxi(1, size.x):
+	for dy in size.y:
+		for dx in size.x:
 			out.append(cell - Vector2i(dx, dy))
 	return out
+
+## How many cells an object stands on, [columns, rows]: at least one each way.
+static func stands_on(eff: Dictionary) -> Vector2i:
+	var size := _vec(eff.get("stands_on"), Vector2i.ONE)
+	return Vector2i(maxi(1, size.x), maxi(1, size.y))
+
+## The outline of the cells an object of `size` cells stands on, around the middle of the cell
+## nearest the camera: the top, the right, the bottom and the left corner.
+static func outline(size: Vector2i, footprint: Vector2i) -> PackedVector2Array:
+	var a := maxi(1, size.x)
+	var b := maxi(1, size.y)
+	return PackedVector2Array([on_diamond(1 - a, 1 - b, footprint), on_diamond(1, 1 - b, footprint), on_diamond(1, 1, footprint), on_diamond(1 - a, 1, footprint)])
 
 # --------------------------------------------------------------------------- the recipe's part
 
@@ -398,3 +411,80 @@ func piece_for(what: String, joins: Array) -> Dictionary:
 			if turned_joins(JsonUtil.to_array(eff["joins"]), turn - own) == want:
 				return {"asset_id": other, "turn": turn}
 	return {}
+
+## Every way the pieces of `what` can be laid: [{asset_id, turn, joins}], a picture with its own
+## `joins` and, for a tile turned four ways of which one turn says its sides, each other turn
+## with the sides the turn brings them to (`piece_for`'s two rules). In the order of the ids.
+func laid_pieces(what: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for asset_id in pieces(what):
+		var eff := facets(asset_id)
+		if not eff.has("joins"):
+			continue
+		var own_joins := normalized_joins(JsonUtil.to_array(eff["joins"]))
+		var own := JsonUtil.to_int(eff.get("turn", 0))
+		out.append({"asset_id": asset_id, "turn": own, "joins": own_joins})
+		if not _group_of.has(asset_id):
+			continue
+		var turns: Dictionary = _groups[_group_of[asset_id]]
+		if turns.size() != 4:
+			continue
+		for turn in turns_of(asset_id):
+			var other := JsonUtil.to_str(turns[turn])
+			if other == asset_id or facets(other).has("joins"):
+				continue
+			out.append({"asset_id": other, "turn": turn, "joins": turned_joins(own_joins, turn - own)})
+	return out
+
+## How many sides differ between two lists of sides.
+static func wrong_sides(have: Array, want: Array) -> int:
+	var wrong := 0
+	for side in SIDES:
+		if have.has(side) != want.has(side):
+			wrong += 1
+	return wrong
+
+## The piece of `what` for the sides `joins` when the packs have no piece for exactly those:
+## the one with the fewest wrong sides (the first of them by id), as `{asset_id, turn, wrong}`;
+## {} when no piece of `what` says its sides at all. `wrong` is 0 for an exact piece.
+func nearest_piece(what: String, joins: Array) -> Dictionary:
+	var want := normalized_joins(joins)
+	var exact := piece_for(what, want)
+	if not exact.is_empty():
+		exact["wrong"] = 0
+		return exact
+	var best := {}
+	var best_wrong := SIDES.size() + 1
+	for piece in laid_pieces(what):
+		var wrong := wrong_sides(JsonUtil.to_array(piece["joins"]), want)
+		if wrong < best_wrong:
+			best_wrong = wrong
+			best = {"asset_id": piece["asset_id"], "turn": piece["turn"], "wrong": wrong}
+	return best
+
+## The tiles of `role` a map is filled with, one per tile (the first turn of each), flat ones
+## first: a block that rises is ground too, but a floor of blocks hides who stands behind them.
+## A piece that says its sides (a road's corner, a shore) is not one of them.
+func plain_tiles(role: String) -> Array[String]:
+	var flat: Array[String] = []
+	var raised: Array[String] = []
+	for asset_id in _ids:
+		var eff := facets(asset_id)
+		if JsonUtil.to_str(eff.get("role", "")) != role or eff.has("joins"):
+			continue
+		if _group_of.has(asset_id) and _group_of[asset_id] != asset_id:
+			continue  # a turn of a tile that is listed by its first
+		if JsonUtil.to_int(eff.get("rise", 0)) > 0:
+			raised.append(asset_id)
+		else:
+			flat.append(asset_id)
+	return flat if not flat.is_empty() else raised
+
+## The tile of `role` the maps paint when they need one and no piece is asked for: the first
+## plain one, else the first piece that says its sides. "" when the packs have none.
+func plain_tile(role: String) -> String:
+	var plain := plain_tiles(role)
+	if not plain.is_empty():
+		return plain[0]
+	var any := pieces(role)
+	return any[0] if not any.is_empty() else ""

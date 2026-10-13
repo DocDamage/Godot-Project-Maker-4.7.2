@@ -396,6 +396,9 @@ func _collect_visuals(node: Node, out: Array) -> void:
 	for child in node.get_children():
 		_collect_visuals(child, out)
 
+## The meta of an object scene that was drawn for the isometric view (object_scenes_recipe.gd).
+const ISO_META := &"iso"
+
 func _check_ysort_origins() -> void:
 	for dir_path in ENTITY_DIRS:
 		for path in _list_files(dir_path.trim_suffix("/"), ["tscn"]):
@@ -404,7 +407,10 @@ func _check_ysort_origins() -> void:
 				continue
 			var inst := packed.instantiate()
 			var visuals: Array[Node2D] = []
-			_collect_visuals(inst, visuals)
+			# an isometric object (T17.14) stands on the middle of its diamond, not on the
+			# bottom of its picture: it is sorted by the line through the diamond's corners
+			if not inst.has_meta(ISO_META):
+				_collect_visuals(inst, visuals)
 			var ok := true
 			for v in visuals:
 				var bottom := visual_bottom(v, inst)

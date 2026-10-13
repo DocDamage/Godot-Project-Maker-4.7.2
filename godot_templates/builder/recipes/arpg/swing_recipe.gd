@@ -9,6 +9,7 @@ const RECIPE_VERSION := 1
 const Paths := preload("../../lib/paths.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
 
 const OUT_PATH := "res://generated/effects/swing_frames.tres"
 const ANIMATION := "swing"
@@ -21,10 +22,7 @@ const SWEEP_START := -1.0471976  # -60 degrees
 const SWEEP_END := 1.0471976  # 60 degrees
 
 func _tile(ctx: BuildContext) -> int:
-	var def: Dictionary = ctx.catalog.tileset_def("overworld")
-	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
-		def = ctx.catalog.tileset_defs()[0]
-	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
+	return MapGeo.tile_unit(ctx)
 
 ## The pack's slash / swing EFFECT asset with animations, or {}.
 func pack_effect(ctx: BuildContext) -> Dictionary:

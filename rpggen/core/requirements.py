@@ -105,6 +105,9 @@ REQUIRED_BY_ARCHETYPE: dict[str, dict[str, str]] = {
 ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
 FARM_KIND = "farm"
 FARM_KIT_PACK = "rpggen_farm_kit"  # farm_kit.KIT_PACK: the farm's drawn stand-ins
+ISO_KIT_PACK = "rpggen_iso_kit"  # iso_kit.KIT_PACK: the people drawn for the isometric view
+# the kits whose stand-ins of a last run fill nothing: the check goes by what the packs have
+DRAWN_PACKS = frozenset({FARM_KIT_PACK, ISO_KIT_PACK})
 
 
 def recommended(archetype: str) -> list[str]:
@@ -143,7 +146,7 @@ def _assets_with_role(
 def _filled(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN) -> bool:
     # a drawn stand-in of the farm that a last run left in the catalog fills nothing: the check
     # says the same on every run, by what the packs have (``farm_kit.lacking``)
-    if any(a.pack_id != FARM_KIT_PACK for a in _assets_with_role(catalog, role, projection)):
+    if any(a.pack_id not in DRAWN_PACKS for a in _assets_with_role(catalog, role, projection)):
         return True
     return role in OBJECT_ROLES and any(
         o.role == role and o.status not in _INACTIVE for o in catalog.objects
@@ -229,6 +232,15 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         if mine is not None and not catalog_mod.effective(mine).get("headings"):
             issues.add("ASSET-032", asset=mine.id)
     view = cfg.projection
+    if view == ISOMETRIC:
+        from rpggen.core import iso_kit
+
+        # the isometric packs have no people: the hero, the villager and the enemy no pack of
+        # the project has are drawn (T17.14): a note each, and the roles are not missing
+        for person in iso_kit.lacking(catalog, view):
+            issues.add("ASSET-031", role=person.role, thing=person.thing, file="")
+            stood_in.add(person.role)
+        drawn = drawn | iso_kit.drawn_roles(catalog, view)
     mixed = mixed_ground(catalog)
     if mixed is not None:  # isometric and square ground in one project (T17.12)
         # the project paints with the ground of its projection (T17.13): the other is left out
@@ -258,7 +270,7 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         issues.add("ASSET-026")
     if not _assets_with_role(catalog, "AUDIO_SFX"):
         issues.add("ASSET-027")
-    players = _assets_with_role(catalog, "PLAYER", view)
+    players = [p for p in _assets_with_role(catalog, "PLAYER", view) if p.pack_id != ISO_KIT_PACK]
     if len(players) > 1 and not any(p.status == "CONFIRMED" for p in players):
         issues.add("ASSET-014", role="PLAYER", candidates=", ".join(p.id for p in players))
     if cfg.archetype in ("metroidvania", "run_and_gun"):  # the kinds whose player jumps

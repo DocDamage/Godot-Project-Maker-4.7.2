@@ -44,6 +44,7 @@ markers = [
     "run_and_gun: integration tests of the run and gun (a CI job of their own)",
     "racing: integration tests of the racing game (a CI job of their own)",
     "farm: integration tests of the farm (a CI job of their own)",
+    "isometric: integration tests of the isometric view (a CI job of their own)",
 ]
 testpaths = ["tests"]
 [tool.ruff.lint.per-file-ignores]

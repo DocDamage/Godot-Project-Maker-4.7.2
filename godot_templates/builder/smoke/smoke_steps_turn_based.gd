@@ -9,6 +9,7 @@ extends RefCounted
 
 const JsonUtil := preload("../lib/json_util.gd")
 const ImportedStarter := preload("imported_starter.gd")
+const SmokeMap := preload("smoke_map.gd")
 
 const ENEMY_ID := "starter_map_enemy_001"
 const STARTER_MAP := "res://game/maps/starter_map.tscn"
@@ -250,14 +251,17 @@ func _encounter_start() -> String:
 	p.global_position = enemy.global_position + Vector2(-2.0 * tile, 0.0)
 	p.set_facing("right")
 	await _frames(3)
-	Input.action_press("move_right")
+	# the map is asked which way the enemy is (T17.14): to the right, the key the step always
+	# held, unless the pad of an isometric map follows its diamonds
+	var enemy_at: Vector2 = enemy.global_position
 	var entered := false
 	for i in 180:
+		SmokeMap.hold(SmokeMap.pad_toward(p.global_position, enemy_at))
 		await tree.physics_frame
 		if tree.current_scene != null and tree.current_scene.name == "Battle":
 			entered = true
 			break
-	Input.action_release("move_right")
+	SmokeMap.release()
 	if not entered:
 		return "walking into the enemy did not open the battle scene within 3 s"
 	_before["pre_pos"] = state.get("player_position")

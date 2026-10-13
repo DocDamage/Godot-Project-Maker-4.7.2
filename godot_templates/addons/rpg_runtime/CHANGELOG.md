@@ -250,6 +250,64 @@ and the saves it had.
   a project that is seen from above or from the side, no sheet of square tiles in an isometric
   one. No catalog before 1.5 has such an asset, so nothing an older project is built from
   changes. `asset(id)` still finds any asset by its id.
+* **Isometric maps and actors** (T17.14; `world/iso.gd`, `RpgIso`). The arithmetic of the
+  view, the same as `rpggen/core/iso_math.py` (one table of cases tests both): `cell_to_screen`,
+  `screen_to_cell`, `grid_point`, `depth` (the sort key of a cell: the y of its middle),
+  `diamond`, `neighbours` and `step` (n the upper right, e the lower right, s the lower left, w
+  the upper left), `unit` (the length of one step in px), `side_of`, `faced_side` and
+  `faced_cell`, `pad_vector` and `pad_side`, `bounds`, and `sort_keys` / `in_front` for a thing
+  that stands on several cells. And what asks a map, for squares and diamonds alike:
+  `footprint_of(map)` (zero on squares), `map_unit`, `cell_at`, `cell_position`, `cell_ahead`,
+  `move_vector`, `reach_dir`, `used_rect`, `controls()`. A map of squares is answered with the
+  arithmetic of squares.
+* On an isometric map `RpgUtil.map_tile_px(map)` is `RpgIso.unit` of its diamond (34 for 60 x
+  34), not the width of the diamond: what a reach, a spacing or the step counter of the random
+  encounters means by a tile there. On every other map it is what it was.
+* `RpgActor` has `look()` (the last direction of travel), `map_node()`, `map_cell()` and
+  `cell_ahead()`: the cell an actor stands on and the one it faces, asked of the map. On an
+  isometric map the cell ahead is the neighbour the actor last walked towards, else the one
+  its facing names (up n, right e, down s, left w).
+* `RpgPlayerInput.pad(input)`: on an isometric map whose project says `iso_controls: grid`
+  (the project setting `rpg/iso_controls`, written by the builder for an isometric project
+  only) the four directions of the pad follow the axes of the diamond, and `RpgInteraction`
+  reaches towards the neighbour the player faces. With the default (`screen`) and on every map
+  of squares the pad is the screen, as before. The facing of an actor is still one of four, by
+  where it goes on the screen; a sheet with diagonal animations shows them along the axes.
+* `RpgMapRoot.used_rect_px()` (the limits of the camera) is the rectangle around the painted
+  diamonds of an isometric map. `RpgMinimapData.cell_at` finds the cell of a position by the
+  diamond for a minimap whose texture has the metadata `isometric`: the minimap of an
+  isometric map is its plan from above, a pixel a cell, like every other.
+* The builder (T17.14). `builder/lib/map_geo.gd` (`MapGeo`) is the seam between a plan of cells
+  and the px of a map: `center`, `foot`, `bottom`, `step`, `cell_shape`, `cells_outline`,
+  `gate_position`, `building_info`, `building_position`, `find_tile`, `tile_of_asset`,
+  `nth_tile_with_role`, `other_tiles`, `wall_tile`, `paint_joined` / `paint_runs` /
+  `fill_joined`, `paint_walls`, `border_collision`, `add_exit_door`, and the static
+  `tile_unit(ctx)`. The starter map, the interiors, the field, the areas of a world, the doors
+  and gates of a world plan, the actors and the object scenes take every position, shape and
+  tile through it; for a project seen from above it calls what they called before, with the
+  same numbers. For `projection: isometric` the maps are painted on `iso.tres`: ground from
+  the flat `GROUND` tiles (patches of the others by the seed), roads, water and walls from the
+  pieces whose `joins` fit (`IsoTileset.nearest_piece`: the piece with the fewest wrong sides
+  and one note a map when none fits exactly; the plain tile when none names its sides), a wall
+  that rises on the Y-sorted `Props` layer, an invisible diamond a cell where the packs have no
+  wall. An isometric object stands on the middle of its diamond and blocks the cells it stands
+  on; one of several cells is drawn in two halves that sort apart (`Sprite`, `SpriteRight`,
+  the root `y_sort_enabled`); the `Entrance` of a building is a band along its south side and
+  its `ExitSpawn` the middle of the door cell. `RECIPE_VERSION` of no recipe moved: the hashes
+  of the map recipes and of the project settings have new keys (`iso`, `iso_v`,
+  `iso_controls`) only in an isometric project, so nothing of a project seen from above is
+  built again.
+* `builder/smoke/smoke_map.gd`: what a smoke step asks the map instead of the screen (`cells`,
+  `pad_toward`, `walk_toward`). The steps `collision_blocks`, `enter_building`,
+  `exit_building`, `decor_blocks`, `walk_to_field`, `return_from_field`, `world_doors` and
+  `encounter_start` walk to a place through it; on a map of squares they hold the key they
+  always held. The steps that talk to somebody or open something stand as far from it as the
+  player's interaction reaches (9 px with tiles of 16 px, as before), and `followers_trail`
+  walks at least a tile and a quarter (80 px, as before, up to a tile of 64 px).
+* The text of the menus of an isometric project follows the config's `base_tile_size`, not the
+  diamond (`theme_recipe.gd`), and the player's camera is drawn back when fewer than eight
+  diamonds would fit across the screen (`MapGeo.camera_zoom`: 180 px diamonds on a screen of
+  640 px are shown at 0.44).
 
 ## 1.4.0
 

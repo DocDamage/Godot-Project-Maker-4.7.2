@@ -96,9 +96,17 @@ func _find_entity(scene: Node, entity_id: String) -> Node2D:
 	return null
 
 ## Puts the player just below `target` facing up, so its interaction area overlaps the target.
+## How far below is asked of the player (T17.14): as far as its interaction area reaches, which
+## is 9 px with tiles of 16 px, the number this step always had, and more on a larger tile or
+## diamond; and "below" is where a player facing up reaches from, which is not straight down
+## when the pad of an isometric map follows its diamonds.
 func _stand_below(target: Node2D) -> void:
 	var p := _player()
-	p.global_position = target.global_position + Vector2(0, 9)
+	var reach := 9.0
+	var area := p.get_node_or_null("Interaction") as RpgInteraction
+	if area != null:
+		reach = floorf(area.tile_size * 0.6)
+	p.global_position = target.global_position - RpgIso.reach_dir(_tree().current_scene, "up") * reach
 	p.set_facing("up")
 	await _frames(3)
 
@@ -658,7 +666,9 @@ func _followers_trail() -> String:
 			var tile := float(RpgUtil.map_tile_px(router.current_map))
 			var mask := p.collision_mask
 			p.collision_mask = 0  # walls on the right must not push the player back
-			for i in 40:  # 80 px to the right, 2 px a frame
+			# 80 px to the right, 2 px a frame; further on a map whose tile (or step from
+			# diamond to diamond, T17.14) is longer than that: a tile has to lie behind
+			for i in maxi(40, ceili(tile * 1.25 / 2.0)):
 				p.global_position += Vector2(2, 0)
 				await _tree().physics_frame
 			p.collision_mask = mask

@@ -79,7 +79,8 @@ func get_player() -> Node2D:
 			return node
 	return null
 
-## Union of every TileMapLayer's used rectangle, in pixels (map-local), or an empty Rect2.
+## Union of every TileMapLayer's used rectangle, in pixels (map-local), or an empty Rect2. On an
+## isometric map (T17.14) it is the rectangle around the diamonds that are painted.
 func used_rect_px() -> Rect2:
 	var result := Rect2()
 	var first := true
@@ -89,8 +90,7 @@ func used_rect_px() -> Rect2:
 		var cells := layer.get_used_rect()
 		if cells.size == Vector2i.ZERO:
 			continue
-		var tile := Vector2(layer.tile_set.tile_size)
-		var rect := Rect2(Vector2(cells.position) * tile, Vector2(cells.size) * tile)
+		var rect := RpgIso.used_rect(layer, cells)
 		rect.position += layer.position
 		result = rect if first else result.merge(rect)
 		first = false

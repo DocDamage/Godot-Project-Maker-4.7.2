@@ -66,11 +66,15 @@ static func world_position(node: Node2D) -> Vector2:
 	return xf.origin
 
 ## The tile size of a map in pixels (its first TileMapLayer with a tile set), 16 when it has none.
+## An isometric map (T17.14) answers with the length of one step from a diamond to the next
+## (RpgIso.unit): what a reach, a spacing or a step counter means by a tile there.
 static func map_tile_px(map: Node) -> int:
 	if map != null:
 		for layer in map.find_children("*", "TileMapLayer", true, false):
 			var tiles := layer as TileMapLayer
 			if tiles.tile_set != null:
+				if RpgIso.is_iso(tiles.tile_set):
+					return RpgIso.unit(tiles.tile_set.tile_size)
 				return tiles.tile_set.tile_size.x
 	return 16
 

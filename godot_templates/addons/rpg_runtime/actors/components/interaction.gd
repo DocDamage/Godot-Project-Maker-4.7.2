@@ -38,6 +38,7 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	if actor == null:
 		return
+	_follow_grid()
 	var target: Node = find_target() if actor.input_enabled and not RpgSequenceRunner.running() else null
 	if target == null or not target is Node2D:
 		if _prompt != null:
@@ -86,6 +87,17 @@ func _reposition(f: String) -> void:
 		"right":
 			dir = Vector2.RIGHT
 	position = dir * tile_size * 0.6
+
+## On an isometric map with `iso_controls: grid` (T17.14) the player walks along the diamond's
+## axes, and what it reaches for lies along them too: towards the neighbour it faces. Everywhere
+## else the four facings are the four directions of the screen, as `_reposition` has them.
+func _follow_grid() -> void:
+	if RpgIso.controls() != RpgIso.CONTROLS_GRID:
+		return
+	var footprint := RpgIso.footprint_of(actor.map_node())
+	if footprint == Vector2i.ZERO:
+		return
+	position = RpgIso.step(RpgIso.faced_side(actor.facing, actor.look()), footprint).normalized() * tile_size * 0.6
 
 func _has_interact(node: Node) -> bool:
 	return node != actor and node.has_method("interact")

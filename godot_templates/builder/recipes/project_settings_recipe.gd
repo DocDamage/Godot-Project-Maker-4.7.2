@@ -36,7 +36,7 @@ func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray(["res://project.godot"])
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({
+	var hashed := {
 		"v": RECIPE_VERSION,
 		"name": ctx.config.get("project_name", ""),
 		"resolution": ctx.config.get("resolution", []),
@@ -45,7 +45,19 @@ func input_hash(ctx: BuildContext) -> String:
 		"seed": ctx.config.get("seed", 12345),
 		"debug": JsonUtil.to_bool(ctx.section("features").get("debug_tools", false)),
 		"tools_plugin": _wants_tools_plugin(ctx.config),
-	})
+	}
+	if _isometric(ctx.config):  # only an isometric project's hash has the key (T17.14)
+		hashed["iso_controls"] = _iso_controls(ctx.config)
+	return ctx.stable_hash(hashed)
+
+## An isometric project (T17.14) says how the pad moves the player on its diamonds: the
+## setting RpgIso.controls() reads. No other project has the setting.
+static func _isometric(cfg: Dictionary) -> bool:
+	return JsonUtil.to_str(cfg.get("projection", "")) == "isometric"
+
+static func _iso_controls(cfg: Dictionary) -> String:
+	var wanted := JsonUtil.to_str(cfg.get("iso_controls", RpgIso.CONTROLS_SCREEN))
+	return RpgIso.CONTROLS_GRID if wanted == RpgIso.CONTROLS_GRID else RpgIso.CONTROLS_SCREEN
 
 func _wants_tools_plugin(cfg: Dictionary) -> bool:
 	var features: Dictionary = cfg.get("features", {})
@@ -78,6 +90,8 @@ func build(ctx: BuildContext) -> Array:
 	_apply_tools_plugin(cfg)
 	# The seed of the smoke test (used only with --rpg-smoke).
 	ProjectSettings.set_setting("rpg/seed", JsonUtil.to_int(cfg.get("seed", 12345)))
+	if _isometric(cfg):
+		ProjectSettings.set_setting(RpgIso.CONTROLS_SETTING, _iso_controls(cfg))
 	ProjectSettings.set_setting("gui/theme/custom", THEME_PATH)
 	ProjectSettings.set_setting("audio/buses/default_bus_layout", BUS_LAYOUT_PATH)
 	var configured_input: Dictionary = cfg.get("input", {})

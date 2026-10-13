@@ -257,6 +257,13 @@ def check_target(state: _State) -> None:
     if state.cfg is None:
         assert state.cfg_path is not None
         state.cfg = config_mod.load(state.cfg_path)
+    else:
+        # a config that was made in memory (the wizard's, a test's) was never read from a file:
+        # what reading one refuses is refused here, before anything is built (T17.14: the
+        # isometric view of a kind that has none, or whose maps are not made yet)
+        config_mod.check_projection(
+            {"projection": state.cfg.projection, "archetype": state.cfg.archetype}
+        )
     sources = [Path(p.source) for p in state.cfg.packs]
     state.issues.extend(preflight.check_target(state.target, sources))
     if preflight.is_rpggen_project(state.target):
@@ -400,6 +407,12 @@ def add_run_made_assets(
         # the requirement check's here too
         farm_kit.add(catalog, cfg.base_tile_size, root, cfg.projection)
     if iso_atlas.wanted(cfg):
+        from rpggen.core import iso_kit
+
+        # the isometric packs have no people (T17.14): a hero, a villager and an enemy are
+        # drawn for the roles no pack of the project fills; the notes are the requirement
+        # check's here too
+        iso_kit.add(catalog, iso_atlas.project_footprint(catalog, cfg), root, cfg.projection)
         # last, after everything that assigns the tile sets again: the single tiles of the
         # isometric packs are packed into atlases, and the project's tile set is theirs
         # (T17.13). A project that is seen from above gets none of it.

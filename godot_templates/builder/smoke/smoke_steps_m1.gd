@@ -1,6 +1,8 @@
 extends RefCounted
 ## M1 smoke scenario: boot into the starter map, find the player, walk, and bump into a wall.
 
+const SmokeMap := preload("smoke_map.gd")
+
 func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
 
@@ -47,10 +49,13 @@ func _collision_blocks() -> String:
 	var tree := _tree()
 	var p := _player()
 	var scene := tree.current_scene
-	# Walls live on their own layer in M4 maps; older maps painted them on Ground.
+	# Walls live on their own layer in M4 maps; older maps painted them on Ground; an isometric
+	# map paints a wall that rises on the Y-sorted Props layer (T17.14).
 	var layer: TileMapLayer = null
 	if scene != null:
 		layer = scene.get_node_or_null("Walls") as TileMapLayer
+		if (layer == null or layer.get_used_cells().is_empty()) and RpgIso.footprint_of(scene) != Vector2i.ZERO:
+			layer = scene.get_node_or_null("YSorted/Props") as TileMapLayer
 		if layer == null or layer.get_used_cells().is_empty():
 			layer = scene.get_node_or_null("Ground") as TileMapLayer
 	if p == null or layer == null or layer.tile_set == null:
@@ -77,13 +82,11 @@ func _collision_blocks() -> String:
 				best_y = c.y
 	if best_y < 0:
 		return "no wall cell with open floor to its left"
-	var tile := layer.tile_set.tile_size
-	var wall_left := float(wall_x * tile.x)
-	p.global_position = layer.to_global(Vector2((wall_x - 2) * tile.x + tile.x / 2.0, best_y * tile.y + tile.y / 2.0))
+	# The map is asked, not the screen (T17.14): the player stands two cells west of the wall
+	# cell, walks at it, and must not be in the wall's column or past it afterwards. On squares
+	# that is the middle of a tile, the right key, and x left of the wall's left edge.
+	p.global_position = layer.to_global(layer.map_to_local(Vector2i(wall_x - 2, best_y)))
 	await tree.physics_frame
-	Input.action_press("move_right")
-	for i in 120:
-		await tree.physics_frame
-	Input.action_release("move_right")
-	var x := layer.to_local(p.global_position).x
-	return "" if x < wall_left else "player passed through the wall (x=%.1f, wall at %.1f)" % [x, wall_left]
+	await SmokeMap.walk_toward(p, layer.to_global(layer.map_to_local(Vector2i(wall_x, best_y))), 120)
+	var at := layer.local_to_map(layer.to_local(p.global_position))
+	return "" if at.x < wall_x else "player passed through the wall (cell %s, wall in column %d)" % [at, wall_x]

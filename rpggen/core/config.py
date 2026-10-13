@@ -231,6 +231,14 @@ PROJECTION_ISOMETRIC = "isometric"
 PROJECTIONS = (PROJECTION_TOP_DOWN, PROJECTION_ISOMETRIC)
 # The kinds that have an isometric view: the top-down ones and the racing game.
 ISOMETRIC_KINDS = ("turn_based", "arpg", "farm", "racing")
+# ... and those of them whose isometric maps are not made yet (T17.14 made the turn-based game
+# and the action RPG): asked for, they are refused before anything is built
+ISOMETRIC_NOT_YET = ("farm", "racing")
+# How the pad moves the player on an isometric map (T17.14): up is up on the screen, or the
+# four directions follow the diamond's axes. ``iso_math.CONTROLS``.
+ISO_CONTROLS_SCREEN = "screen"
+ISO_CONTROLS_GRID = "grid"
+ISO_CONTROLS = (ISO_CONTROLS_SCREEN, ISO_CONTROLS_GRID)
 
 
 def default_features(archetype: str = "turn_based") -> dict[str, bool]:
@@ -265,6 +273,8 @@ class GeneratorConfig:
     repair_world: bool = True
     # how the maps are seen (T17.13): "top_down" or "isometric"; fixed once a project is made
     projection: str = PROJECTION_TOP_DOWN
+    # how the pad moves the player on an isometric map (T17.14): "screen" or "grid"
+    iso_controls: str = ISO_CONTROLS_SCREEN
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
     godot_version: str = GODOT_VERSION
@@ -292,6 +302,8 @@ class GeneratorConfig:
             out["repair_world"] = False
         if self.projection != PROJECTION_TOP_DOWN:  # a top-down config is what it was
             out["projection"] = self.projection
+        if self.iso_controls != ISO_CONTROLS_SCREEN:  # the default is not written
+            out["iso_controls"] = self.iso_controls
         imported = self.imported_map_selection()
         if imported["include"] or imported["starter"]:
             out["imported_maps"] = {
@@ -360,6 +372,7 @@ class GeneratorConfig:
             export_targets=list(data.get("export_targets", EXPORT_TARGET_DEFAULT)),
             repair_world=bool(data.get("repair_world", True)),
             projection=str(data.get("projection", PROJECTION_TOP_DOWN)),
+            iso_controls=str(data.get("iso_controls", ISO_CONTROLS_SCREEN)),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],
@@ -405,6 +418,14 @@ def check_projection(data: Any) -> None:
             file="config",
             reason=f"/projection: a {archetype} game has no isometric view (the kinds that have "
             f"one: {', '.join(ISOMETRIC_KINDS)})",
+        )
+    if archetype in ISOMETRIC_NOT_YET:
+        made = ", ".join(k for k in ISOMETRIC_KINDS if k not in ISOMETRIC_NOT_YET)
+        raise RpgGenError(
+            "CAT-002",
+            file="config",
+            reason=f"/projection: the isometric view of a {archetype} game is not made yet (it "
+            f"is made for: {made}); generate it with projection top_down",
         )
 
 

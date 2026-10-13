@@ -21,6 +21,10 @@ func _base_tile(ctx: BuildContext) -> int:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
 	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
 		def = ctx.catalog.tileset_defs()[0]
+	if not def.is_empty() and JsonUtil.to_str(def.get("projection", "")) == "isometric":
+		# the diamond of an isometric pack says how large the world is drawn, not how large the
+		# text of the menus should be (T17.14): that follows the config's base tile size
+		return JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
 	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
 
 func _ui_asset(ctx: BuildContext) -> Dictionary:

@@ -13,6 +13,9 @@ extends RefCounted
 ## An area whose map exists is never rebuilt, whatever the plan says now.
 
 const RECIPE_VERSION := 3
+## The version of what the recipe does for an isometric project only (T17.14): in the hash of
+## such a project and of no other.
+const ISO_VERSION := 1
 
 const Paths := preload("../lib/paths.gd")
 const JsonUtil := preload("../lib/json_util.gd")
@@ -25,6 +28,7 @@ const SeedUtil := preload("../lib/seed_util.gd")
 const StarterMap := preload("starter_map_recipe.gd")
 const BuildContext := preload("../lib/build_context.gd")
 const WorldPlan := preload("../lib/world_plan.gd")
+const MapGeo := preload("../lib/map_geo.gd")
 
 const OUT_PATH := "res://game/maps/field_1.tscn"
 const TILESET_PATH := "res://generated/tilesets/overworld.tres"
@@ -71,7 +75,7 @@ func _encounters_wanted(ctx: BuildContext) -> bool:
 	return JsonUtil.to_str(ctx.config.get("archetype", "")) == "turn_based"
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({
+	var hashed := {
 		"v": RECIPE_VERSION,
 		"wanted": _wanted(ctx),
 		"world": WorldPlan.areas(WorldPlan.read()),
@@ -81,7 +85,11 @@ func input_hash(ctx: BuildContext) -> String:
 		"entries": ObjectEntries.entries(ctx),
 		"chest": ObjectEntries.chest_entry(ctx).get("id", ""),
 		"archetype": ctx.config.get("archetype", ""),
-	})
+	}
+	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the keys (T17.14)
+		hashed["iso"] = MapGeo.new(ctx).def
+		hashed["iso_v"] = ISO_VERSION
+	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -91,11 +99,10 @@ func build(ctx: BuildContext) -> Array:
 		return issues
 	if FileAccess.file_exists(OUT_PATH) or not _wanted(ctx):
 		return issues
-	var def: Dictionary = ctx.catalog.tileset_def("overworld")
-	var tile_set := load(TILESET_PATH) as TileSet
-	if def.is_empty() or tile_set == null or not ResourceLoader.exists(PLAYER_SCENE):
+	var geo := MapGeo.new(ctx)  # squares, or diamonds (T17.14)
+	var tile_set := geo.load_tile_set()
+	if geo.def.is_empty() or tile_set == null or not ResourceLoader.exists(PLAYER_SCENE):
 		return issues  # the starter map reports what is missing
-	var tile_px: int = JsonUtil.to_int(def["tile_size"][0])
 	var rng := MapBuild.Lcg.new(MapBuild.stream_seed(JsonUtil.to_int(ctx.config.get("seed", 12345)), "field_1"))
 
 	var root := MapUtil.new_map_root("Field1", "field_1")
@@ -106,15 +113,17 @@ func build(ctx: BuildContext) -> Array:
 	var triggers: Node2D = nodes["Triggers"]
 	var gap := Vector2i(0, SIZE.y >> 1)
 	var entry := Vector2i(2, gap.y)
-	_paint_ground(ctx, def, tile_set, ground, rng)
-	MapBuild.paint_walls(root, nodes, SIZE, MapUtil.wall_tile(ctx, def, tile_set), tile_px, [gap])
-	var road := MapUtil.find_tile(ctx, def, tile_set, "ROAD")
+	_paint_ground(geo, ground, rng)
+	geo.paint_walls(root, nodes, SIZE, [gap])
+	var road := geo.find_tile("ROAD")
 	if nodes.has("GroundDetails"):
 		var cells: Array[Vector2i] = []
 		for x in range(1, 9):
 			cells.append(Vector2i(x, gap.y))
 		var details: TileMapLayer = nodes["GroundDetails"]
-		MapBuild.paint_path(details, cells, road)
+		geo.paint_joined(details, cells, "ROAD", road)
+	for note in geo.take_notes():
+		print("[rpggen] INFO field_1: ", note)
 
 	var taken := {gap: true}
 	for x in range(0, 10):
@@ -123,16 +132,16 @@ func build(ctx: BuildContext) -> Array:
 		taken[Vector2i(x, gap.y + 1)] = true
 	var entities: Node2D = nodes["Entities"]
 	var placed: Array = []
-	_place_decorations(ctx, root, entities, tile_px, rng, taken)
-	_place_chest(ctx, root, entities, tile_px, rng, taken, issues, placed)
-	var enemy_slugs := _place_enemies(ctx, root, entities, tile_px, rng, taken, placed)
+	_place_decorations(ctx, root, entities, geo, rng, taken)
+	_place_chest(ctx, root, entities, geo, rng, taken, issues, placed)
+	var enemy_slugs := _place_enemies(ctx, root, entities, geo, rng, taken, placed)
 	if _encounters_wanted(ctx):
-		_add_encounter_zone(root, triggers, tile_px, enemy_slugs, issues, ctx)
+		_add_encounter_zone(root, triggers, geo, enemy_slugs, issues, ctx)
 
-	MapUtil.add_marker(spawns, root, "default", MapUtil.tile_center(entry, tile_px), true, "right")
-	MapUtil.add_marker(spawns, root, "west_entry", MapUtil.tile_center(entry, tile_px), true, "right")
-	MapUtil.place(PLAYER_SCENE, entities, root, MapUtil.tile_center(entry, tile_px))
-	MapBuild.add_exit_door(triggers, root, "field_1_west_exit", gap, tile_px, StarterMap.OUT_PATH, StringName(StarterMap.EAST_ENTRY))
+	MapUtil.add_marker(spawns, root, "default", geo.center(entry), true, "right")
+	MapUtil.add_marker(spawns, root, "west_entry", geo.center(entry), true, "right")
+	MapUtil.place(PLAYER_SCENE, entities, root, geo.center(entry))
+	geo.add_exit_door(triggers, root, "field_1_west_exit", gap, StarterMap.OUT_PATH, StringName(StarterMap.EAST_ENTRY))
 
 	var err := SceneUtil.save_scene(root, OUT_PATH)
 	if err != OK:
@@ -143,14 +152,14 @@ func build(ctx: BuildContext) -> Array:
 
 ## The second ground variant of the packs when there is one, else the first; a few patches of
 ## other tiles of that sheet.
-func _paint_ground(ctx: BuildContext, def: Dictionary, tile_set: TileSet, ground: TileMapLayer, rng: MapBuild.Lcg) -> void:
-	var base := MapBuild.nth_tile_with_role(ctx, def, tile_set, "GROUND", 1)
+func _paint_ground(geo: MapGeo, ground: TileMapLayer, rng: MapBuild.Lcg) -> void:
+	var base := geo.nth_tile_with_role("GROUND", 1)
 	if base.is_empty():
-		base = MapBuild.nth_tile_with_role(ctx, def, tile_set, "GROUND", 0)
+		base = geo.nth_tile_with_role("GROUND", 0)
 	if base.is_empty():
 		return
 	MapBuild.fill_ground(ground, SIZE, base)
-	var others := MapUtil.other_tiles(tile_set, base, 3)
+	var others := geo.other_tiles(base, 3)
 	if others.is_empty():
 		return
 	var patches: Array = []
@@ -170,7 +179,7 @@ func _free_tile(rng: MapBuild.Lcg, taken: Dictionary) -> Vector2i:
 			return tile
 	return Vector2i.ZERO
 
-func _place_decorations(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px: int, rng: MapBuild.Lcg, taken: Dictionary) -> void:
+func _place_decorations(ctx: BuildContext, root: Node2D, entities: Node2D, geo: MapGeo, rng: MapBuild.Lcg, taken: Dictionary) -> void:
 	var decor: Array[Dictionary] = []
 	for e in ObjectEntries.entries(ctx):
 		var decor_id: String = e["id"]
@@ -183,11 +192,11 @@ func _place_decorations(ctx: BuildContext, root: Node2D, entities: Node2D, tile_
 		if tile == Vector2i.ZERO:
 			return
 		var e: Dictionary = decor[i % decor.size()]
-		var pos := Vector2(tile) * tile_px + Vector2(tile_px / 2.0, tile_px - 1)
+		var pos := geo.foot(tile)
 		var scene_id: String = e["id"]
 		MapUtil.place(ObjectIndex.scene_path(scene_id), entities, root, pos, "Decor%d" % (i + 1))
 
-func _place_chest(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px: int, rng: MapBuild.Lcg, taken: Dictionary, issues: Array, placed: Array) -> void:
+func _place_chest(ctx: BuildContext, root: Node2D, entities: Node2D, geo: MapGeo, rng: MapBuild.Lcg, taken: Dictionary, issues: Array, placed: Array) -> void:
 	var entry := ObjectEntries.chest_entry(ctx)
 	if entry.is_empty():
 		return
@@ -195,7 +204,7 @@ func _place_chest(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px: in
 	if tile == Vector2i.ZERO:
 		return
 	var chest_scene_id: String = entry["id"]
-	var chest := MapUtil.place(ObjectIndex.scene_path(chest_scene_id), entities, root, MapUtil.tile_center(tile, tile_px), "Chest1")
+	var chest := MapUtil.place(ObjectIndex.scene_path(chest_scene_id), entities, root, geo.center(tile), "Chest1")
 	if chest == null:
 		return
 	chest.set("entity_id", CHEST_ID)
@@ -204,7 +213,7 @@ func _place_chest(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px: in
 	placed.append(CHEST_ID)
 
 ## Places the field's enemies; returns the slugs of their scenes (= their definition ids).
-func _place_enemies(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px: int, rng: MapBuild.Lcg, taken: Dictionary, placed: Array) -> Array[String]:
+func _place_enemies(ctx: BuildContext, root: Node2D, entities: Node2D, geo: MapGeo, rng: MapBuild.Lcg, taken: Dictionary, placed: Array) -> Array[String]:
 	var recipe := StarterMap.new()
 	var slugs: Array[String] = []
 	for i in ENEMIES:
@@ -222,7 +231,7 @@ func _place_enemies(ctx: BuildContext, root: Node2D, entities: Node2D, tile_px: 
 				break
 		if tile == Vector2i.ZERO:
 			return slugs
-		var enemy := MapUtil.place(scene, entities, root, MapUtil.tile_center(tile, tile_px), "Enemy%d" % (i + 1))
+		var enemy := MapUtil.place(scene, entities, root, geo.center(tile), "Enemy%d" % (i + 1))
 		if enemy != null:
 			var id := "field_1_enemy_%03d" % (i + 1)
 			enemy.set("entity_id", id)
@@ -241,7 +250,7 @@ func _use_arpg_variant(ctx: BuildContext, enemy: Node, first_scene: String, inde
 
 ## A random-encounter zone over the east half of the field (inside the walls) with the table
 ## game/data/encounters/field_1.tres: each enemy alone (weights 3 and 2) and the first one twice.
-func _add_encounter_zone(root: Node2D, triggers: Node2D, tile_px: int, slugs: Array[String], issues: Array, ctx: BuildContext) -> void:
+func _add_encounter_zone(root: Node2D, triggers: Node2D, geo: MapGeo, slugs: Array[String], issues: Array, ctx: BuildContext) -> void:
 	if slugs.is_empty():
 		return
 	if not FileAccess.file_exists(TABLE_PATH):
@@ -263,11 +272,7 @@ func _add_encounter_zone(root: Node2D, triggers: Node2D, tile_px: int, slugs: Ar
 	zone.set("steps_per_encounter", STEPS_PER_ENCOUNTER)
 	var shape := CollisionPolygon2D.new()
 	shape.name = "Shape"
-	var left := float(ZONE_FROM_X * tile_px)
-	var top := float(tile_px)
-	var right := float((SIZE.x - 1) * tile_px)
-	var bottom := float((SIZE.y - 1) * tile_px)
-	shape.polygon = PackedVector2Array([Vector2(left, top), Vector2(right, top), Vector2(right, bottom), Vector2(left, bottom)])
+	shape.polygon = geo.cells_outline(Rect2i(ZONE_FROM_X, 1, SIZE.x - 1 - ZONE_FROM_X, SIZE.y - 2))
 	zone.add_child(shape)
 	triggers.add_child(zone)
 	zone.owner = root
@@ -307,9 +312,9 @@ static func _key_item(plan: Dictionary) -> String:
 	return JsonUtil.to_str(JsonUtil.to_dict(plan.get("key", {})).get("item", ""))
 
 func _build_areas(ctx: BuildContext, plan: Dictionary, issues: Array) -> void:
-	var def: Dictionary = ctx.catalog.tileset_def("overworld")
-	var tile_set := load(TILESET_PATH) as TileSet
-	if def.is_empty() or tile_set == null or not ResourceLoader.exists(PLAYER_SCENE):
+	var geo := MapGeo.new(ctx)  # squares, or diamonds (T17.14)
+	var tile_set := geo.load_tile_set()
+	if geo.def.is_empty() or tile_set == null or not ResourceLoader.exists(PLAYER_SCENE):
 		return  # the starter map reports what is missing
 	var key := _key_item(plan)
 	if key != "" and not FileAccess.file_exists(KEY_ITEM_DIR + key + ".tres"):
@@ -318,7 +323,9 @@ func _build_areas(ctx: BuildContext, plan: Dictionary, issues: Array) -> void:
 		var path := WorldPlan.map_path(area)
 		if area["id"] == WorldPlan.VILLAGE_ID or FileAccess.file_exists(path):
 			continue
-		var root := _build_area(ctx, area, def, tile_set)
+		var root := _build_area(ctx, area, geo, tile_set)
+		for note in geo.take_notes():
+			print("[rpggen] INFO %s: " % JsonUtil.to_str(area["id"]), note)
 		var err := SceneUtil.save_scene(root, path)
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
@@ -342,10 +349,9 @@ func _save_key_item(ctx: BuildContext, plan: Dictionary, key: String, issues: Ar
 static func _root_name(area_id: String) -> String:
 	return area_id.to_pascal_case()
 
-func _build_area(ctx: BuildContext, area: Dictionary, def: Dictionary, tile_set: TileSet) -> Node2D:
+func _build_area(ctx: BuildContext, area: Dictionary, geo: MapGeo, tile_set: TileSet) -> Node2D:
 	var area_id := JsonUtil.to_str(area["id"])
 	var size := WorldPlan.cell(area["size"])
-	var tile_px: int = JsonUtil.to_int(def["tile_size"][0])
 	var rng := MapBuild.Lcg.new(MapBuild.stream_seed(JsonUtil.to_int(ctx.config.get("seed", 12345)), area_id))
 	var root := MapUtil.new_map_root(_root_name(area_id), area_id)
 	root.set("music_asset_id", JsonUtil.to_str(ctx.section("sounds").get("music_map", "")))
@@ -354,46 +360,46 @@ func _build_area(ctx: BuildContext, area: Dictionary, def: Dictionary, tile_set:
 	var entities: Node2D = nodes["Entities"]
 	var spawns: Node2D = nodes["SpawnPoints"]
 	var ground: TileMapLayer = nodes["Ground"]
-	_paint_area_ground(ctx, area, def, tile_set, ground, size, rng)
+	_paint_area_ground(area, geo, ground, size, rng)
 	var doors := WorldPlan.list_of(area, "doors")
 	var gaps: Array[Vector2i] = []
 	for door in doors:
 		gaps.append(WorldPlan.cell(door["cell"]))
-	MapBuild.paint_walls(root, nodes, size, MapUtil.wall_tile(ctx, def, tile_set), tile_px, gaps)
-	_place_area_decorations(ctx, area, root, entities, tile_px)
-	_place_area_chests(ctx, area, root, entities, tile_px)
-	_place_area_enemies(ctx, area, root, entities, tile_px)
+	geo.paint_walls(root, nodes, size, gaps)
+	_place_area_decorations(ctx, area, root, entities, geo)
+	_place_area_chests(ctx, area, root, entities, geo)
+	_place_area_enemies(ctx, area, root, entities, geo)
 	var arrive := Vector2i(size.x >> 1, size.y >> 1)
 	var facing := "down"
 	if not doors.is_empty():
 		arrive = WorldPlan.cell(doors[0]["spawn"])
 		facing = JsonUtil.to_str(doors[0].get("facing", "down"))
-	MapUtil.add_marker(spawns, root, "default", MapUtil.tile_center(arrive, tile_px), true, facing)
-	MapUtil.place(PLAYER_SCENE, entities, root, MapUtil.tile_center(arrive, tile_px))
+	MapUtil.add_marker(spawns, root, "default", geo.center(arrive), true, facing)
+	MapUtil.place(PLAYER_SCENE, entities, root, geo.center(arrive))
 	for door in doors:
 		var door_cell := WorldPlan.cell(door["cell"])
-		WorldPlan.add_door(door, door_cell, WorldPlan.cell(door["spawn"]), root, nodes, tile_px)
+		WorldPlan.add_door(door, door_cell, WorldPlan.cell(door["spawn"]), root, nodes, geo)
 		var gate := WorldPlan.gate_of(area, JsonUtil.to_str(door.get("id", "")))
 		if not gate.is_empty():
-			WorldPlan.add_gate(gate, door_cell, root, entities, tile_px)
+			WorldPlan.add_gate(gate, door_cell, root, entities, geo)
 	return root
 
 ## The ground of an area: the plan's ground asset when the tile set has it, else the second ground
 ## variant for a field and the first one for the rest; a few patches of other tiles; and the water
 ## of a shore.
-func _paint_area_ground(ctx: BuildContext, area: Dictionary, def: Dictionary, tile_set: TileSet, ground: TileMapLayer, size: Vector2i, rng: MapBuild.Lcg) -> void:
+func _paint_area_ground(area: Dictionary, geo: MapGeo, ground: TileMapLayer, size: Vector2i, rng: MapBuild.Lcg) -> void:
 	var base := {}
 	var wanted := JsonUtil.to_str(area.get("ground", ""))
 	if wanted != "":
-		base = MapUtil.tile_of_asset(ctx, def, tile_set, wanted)
+		base = geo.tile_of_asset(wanted)
 	if base.is_empty() and JsonUtil.to_str(area.get("biome", "")) == "field":
-		base = MapBuild.nth_tile_with_role(ctx, def, tile_set, "GROUND", 1)
+		base = geo.nth_tile_with_role("GROUND", 1)
 	if base.is_empty():
-		base = MapBuild.nth_tile_with_role(ctx, def, tile_set, "GROUND", 0)
+		base = geo.nth_tile_with_role("GROUND", 0)
 	if base.is_empty():
 		return
 	MapBuild.fill_ground(ground, size, base)
-	var others := MapUtil.other_tiles(tile_set, base, 3)
+	var others := geo.other_tiles(base, 3)
 	if not others.is_empty():
 		var patches: Array = []
 		for i in PATCHES:
@@ -402,9 +408,9 @@ func _paint_area_ground(ctx: BuildContext, area: Dictionary, def: Dictionary, ti
 			patches.append({"rect": Rect2i(pos, patch), "index": i})
 		MapBuild.paint_planned_patches(ground, patches, others)
 	var water := JsonUtil.to_array(area.get("water", []))
-	var water_tile := MapUtil.find_tile(ctx, def, tile_set, "WATER")
+	var water_tile := geo.find_tile("WATER")
 	if water.size() == 4 and not water_tile.is_empty():
-		MapUtil.fill(ground, Rect2i(JsonUtil.to_int(water[0]), JsonUtil.to_int(water[1]), JsonUtil.to_int(water[2]), JsonUtil.to_int(water[3])), water_tile)
+		geo.fill_joined(ground, Rect2i(JsonUtil.to_int(water[0]), JsonUtil.to_int(water[1]), JsonUtil.to_int(water[2]), JsonUtil.to_int(water[3])), "WATER", water_tile)
 
 ## The decoration objects an area uses: those whose name has one of the biome's words (trees in a
 ## forest), else every decoration.
@@ -424,7 +430,7 @@ func _area_decor(ctx: BuildContext, area: Dictionary) -> Array[Dictionary]:
 				break
 	return fitting if not fitting.is_empty() else all
 
-func _place_area_decorations(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, tile_px: int) -> void:
+func _place_area_decorations(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo) -> void:
 	var decor := _area_decor(ctx, area)
 	if decor.is_empty():
 		return
@@ -433,10 +439,10 @@ func _place_area_decorations(ctx: BuildContext, area: Dictionary, root: Node2D, 
 		var tile := WorldPlan.cell(cells[i])
 		var e: Dictionary = decor[i % decor.size()]
 		var scene_id: String = e["id"]
-		var pos := Vector2(tile) * tile_px + Vector2(tile_px / 2.0, tile_px - 1)
+		var pos := geo.foot(tile)
 		MapUtil.place(ObjectIndex.scene_path(scene_id), entities, root, pos, "Decor%d" % (i + 1))
 
-func _place_area_chests(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, tile_px: int) -> void:
+func _place_area_chests(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo) -> void:
 	var entry := ObjectEntries.chest_entry(ctx)
 	if entry.is_empty():
 		return
@@ -444,14 +450,14 @@ func _place_area_chests(ctx: BuildContext, area: Dictionary, root: Node2D, entit
 	var chests := WorldPlan.list_of(area, "chests")
 	for i in chests.size():
 		var tile := WorldPlan.cell(chests[i]["cell"])
-		var chest := MapUtil.place(ObjectIndex.scene_path(chest_scene_id), entities, root, MapUtil.tile_center(tile, tile_px), "Chest%d" % (i + 1))
+		var chest := MapUtil.place(ObjectIndex.scene_path(chest_scene_id), entities, root, geo.center(tile), "Chest%d" % (i + 1))
 		if chest == null:
 			continue
 		chest.set("entity_id", JsonUtil.to_str(chests[i]["id"]))
 		chest.set("loot", SeedUtil.dict_array(JsonUtil.to_array(chests[i].get("items", []))))
 		chest.set("gold", JsonUtil.to_int(chests[i].get("gold", 0)))
 
-func _place_area_enemies(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, tile_px: int) -> void:
+func _place_area_enemies(ctx: BuildContext, area: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo) -> void:
 	var recipe := StarterMap.new()
 	var enemies := WorldPlan.list_of(area, "enemies")
 	for i in enemies.size():
@@ -461,7 +467,7 @@ func _place_area_enemies(ctx: BuildContext, area: Dictionary, root: Node2D, enti
 		if scene == "":
 			return
 		var tile := WorldPlan.cell(enemies[i]["cell"])
-		var enemy := MapUtil.place(scene, entities, root, MapUtil.tile_center(tile, tile_px), "Enemy%d" % (i + 1))
+		var enemy := MapUtil.place(scene, entities, root, geo.center(tile), "Enemy%d" % (i + 1))
 		if enemy != null:
 			enemy.set("entity_id", JsonUtil.to_str(enemies[i]["id"]))
 			enemy.set("facing", "down")

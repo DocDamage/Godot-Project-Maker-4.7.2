@@ -3,7 +3,9 @@ extends RefCounted
 ## The minimap of a map (T12.64): one pixel per cell, the average colour of the cell's tile, made
 ## by the builder's minimap recipe from the map's TileMapLayers and saved as an ImageTexture in
 ## res://generated/minimaps/<key>.tres. The texture's metadata says where it sits:
-## "origin_cell" (Vector2i, the map cell of pixel 0,0) and "tile_size" (Vector2i).
+## "origin_cell" (Vector2i, the map cell of pixel 0,0) and "tile_size" (Vector2i). The minimap
+## of an isometric map (T17.14) is the plan from above too, a pixel per cell: its metadata has
+## "isometric" (true), and "tile_size" is the diamond the cells are found by.
 
 const DIR := "res://generated/minimaps/"
 
@@ -35,8 +37,14 @@ static func tile_of(texture: Texture2D) -> Vector2i:
 ## The minimap pixel (cell from the origin) of a map-local position.
 static func cell_at(texture: Texture2D, local_position: Vector2) -> Vector2i:
 	var tile := tile_of(texture)
+	if is_isometric(texture) and tile.x > 0 and tile.y > 0:
+		return RpgIso.screen_to_cell(local_position, tile) - origin_of(texture)
 	var cell := Vector2i(floori(local_position.x / maxf(tile.x, 1.0)), floori(local_position.y / maxf(tile.y, 1.0)))
 	return cell - origin_of(texture)
+
+## True for the minimap of an isometric map.
+static func is_isometric(texture: Texture2D) -> bool:
+	return texture != null and RpgUtil.to_bool(texture.get_meta("isometric", false))
 
 ## What the minimap marks in `map`: doors, unopened chests and the entities quest stages point
 ## at. [{kind: "door" | "chest" | "quest", position: map-local Vector2}].

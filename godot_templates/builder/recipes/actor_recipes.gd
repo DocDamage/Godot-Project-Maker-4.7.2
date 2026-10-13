@@ -9,6 +9,7 @@ const SceneUtil := preload("../lib/scene_util.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const ActorBuild := preload("../lib/actor_build.gd")
 const BuildContext := preload("../lib/build_context.gd")
+const MapGeo := preload("../lib/map_geo.gd")
 
 const ACTORS_DIR := "res://generated/scenes/actors/"
 const BASE_PATH := ACTORS_DIR + "actor_base.tscn"
@@ -61,10 +62,7 @@ func _player_asset(ctx: BuildContext) -> Dictionary:
 	return {}
 
 func _tile(ctx: BuildContext) -> int:
-	var def: Dictionary = ctx.catalog.tileset_def("overworld")
-	if def.is_empty() and not ctx.catalog.tileset_defs().is_empty():
-		def = ctx.catalog.tileset_defs()[0]
-	return JsonUtil.to_int(def["tile_size"][0]) if not def.is_empty() else JsonUtil.to_int(ctx.config.get("base_tile_size", 16))
+	return MapGeo.tile_unit(ctx)
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray([BASE_PATH, PLAYER_PATH, NPC_PATH, INDEX_PATH])
@@ -78,7 +76,10 @@ func input_hash(ctx: BuildContext) -> String:
 	for c in _characters(ctx):
 		var a: Dictionary = c["asset"]
 		parts.append({"id": a["id"], "kind": c["kind"], "path": c["path"], "sha256": a.get("sha256", ""), "eff": ctx.catalog.effective(a)})
-	return ctx.stable_hash({"v": RECIPE_VERSION, "chars": parts, "tile": _tile(ctx), "archetype": ctx.config.get("archetype", "")})
+	var hashed := {"v": RECIPE_VERSION, "chars": parts, "tile": _tile(ctx), "archetype": ctx.config.get("archetype", "")}
+	if MapGeo.camera_zoom(ctx) != 1.0:  # only an isometric project of large diamonds has the key
+		hashed["zoom"] = MapGeo.camera_zoom(ctx)
+	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -143,6 +144,11 @@ func _augment_player(ctx: BuildContext, node: Node, fo: Dictionary, tile: int) -
 		script.call("augment_player", node, fo["frame"], fo["origin"], tile)
 
 func _save(ctx: BuildContext, node: Node, path: String, issues: Array) -> void:
+	# the camera of an isometric game of large diamonds is drawn back (T17.14)
+	var camera := node.get_node_or_null("Camera") as Camera2D
+	var zoom := MapGeo.camera_zoom(ctx)
+	if camera != null and zoom != 1.0:
+		camera.zoom = Vector2(zoom, zoom)
 	var err := SceneUtil.save_scene(node, path)
 	if err != OK:
 		issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))

@@ -106,9 +106,12 @@ def test_the_projection_is_kept_through_a_save(tmp_path: Path) -> None:
     assert config.load(tmp_path / "cfg.json").to_json() == cfg.to_json()
 
 
-@pytest.mark.parametrize("archetype", ["turn_based", "arpg", "farm", "racing"])
+@pytest.mark.parametrize("archetype", ["turn_based", "arpg"])
 def test_the_kinds_that_have_an_isometric_view(archetype: str, tmp_path: Path) -> None:
-    assert archetype in config.ISOMETRIC_KINDS
+    # the four kinds have the view; the maps of two of them are made (T17.14), and the farm and
+    # the race say "not yet" until theirs are (tests/unit/test_iso_maps.py)
+    assert config.ISOMETRIC_KINDS == ("turn_based", "arpg", "farm", "racing")
+    assert archetype in config.ISOMETRIC_KINDS and archetype not in config.ISOMETRIC_NOT_YET
     config.save(_cfg(archetype), tmp_path / "cfg.json")
     assert config.load(tmp_path / "cfg.json").projection == "isometric"
 
