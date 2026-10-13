@@ -25,8 +25,10 @@ is picked whatever you hold.
 ### A day
 
 - A day runs from **6:00** to **2:00** of the night; a minute of the game is 0.7 seconds, so a
-  day is about 14 minutes. Time stands still in menus and while somebody talks.
-- A season has **28 days**, a week seven. The seasons are spring, summer, autumn and winter.
+  day is about 14 minutes (`starter_map.day_length` in `rpggen/generator_config.json`:
+  `short` is 10 minutes, `long` 20). Time stands still in menus and while somebody talks.
+- A season has **28 days**, a week seven (`starter_map.days_per_season`: 14 or 7 make a
+  shorter year). The seasons are spring, summer, autumn and winter.
 - **Sleep** in your bed (`interact`) to end the day: the game is **saved** (into the autosave
   slot, and into the slot you saved or loaded by hand last; a game that has none yet is
   offered the save screen in the morning), and you wake at 6:00 with all your energy.

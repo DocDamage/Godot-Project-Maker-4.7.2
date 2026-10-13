@@ -686,6 +686,56 @@ def building_info(art: Art) -> dict[str, Any]:
     return {"size": list(art.building_size), "door": list(art.building_door)}
 
 
+def fitted_art(art: Art, size: Any, width: int) -> Art:
+    """The art of an isometric project with its pictures made smaller, so that ``render``'s
+    picture of a map of ``size`` cells is no wider than ``width`` px (a pack of 180 px diamonds
+    makes a map of 40 by 24 cells 5,760 px wide). Art that fits, and the art of a project seen
+    from above, is returned as it is."""
+    if art.footprint is None:
+        return art
+    fw, fh = art.footprint
+    full = (int(size[0]) + int(size[1])) * fw / 2.0
+    if full <= width:
+        return art
+    factor = width / full
+    new_fw, new_fh = max(4, 2 * round(fw * factor / 2)), max(2, 2 * round(fh * factor / 2))
+    kx, ky = new_fw / fw, new_fh / fh
+    origins: dict[int, tuple[int, int]] = {}
+    made: dict[int, Image.Image] = {}
+
+    def small(picture: Image.Image | None) -> Image.Image | None:
+        if picture is None:
+            return None
+        if id(picture) not in made:
+            shrunk = picture.resize(
+                (max(1, round(picture.width * kx)), max(1, round(picture.height * ky))),
+                Image.Resampling.BOX,
+            )
+            made[id(picture)] = shrunk
+            if id(picture) in art.origins:
+                ox, oy = art.origins[id(picture)]
+                origins[id(shrunk)] = (round(ox * kx), round(oy * ky))
+        return made[id(picture)]
+
+    decorations = []
+    for picture, origin in art.decorations:
+        shrunk = small(picture)
+        assert shrunk is not None
+        decorations.append((shrunk, (round(origin[0] * kx), round(origin[1] * ky))))
+    return dataclasses.replace(
+        art,
+        tile_px=iso_math.unit(new_fw, new_fh),
+        ground=small(art.ground),
+        patches=[p for p in (small(p) for p in art.patches) if p is not None],
+        wall=small(art.wall),
+        road=small(art.road),
+        building=small(art.building),
+        decorations=decorations,
+        footprint=(new_fw, new_fh),
+        origins=origins,
+    )
+
+
 def _scaled(picture: Image.Image, scale: int) -> Image.Image:
     if scale == 1:
         return picture
@@ -791,6 +841,23 @@ def render(plan: dict[str, Any], art: Art, scale: int = 2) -> Image.Image:
 ISO_SIDE = (58, 96, 52)  # the edge of a flat diamond drawn without a picture
 ISO_HOUSE = (150, 90, 60)
 ISO_ROOF = (176, 70, 60)
+
+
+def standing_diamonds(
+    origin: tuple[float, float], w: int, h: int, columns: int = 1, rows: int = 1
+) -> list[list[list[float]]]:
+    """The diamonds a picture stands on, as corners in the px of the picture (the top, the
+    right, the bottom, the left of each): ``origin`` is the middle of the diamond nearest the
+    camera (the cell with the highest x and y), and the others lie up and back from it, as
+    ``stands_on`` says (``[columns, rows]``). One diamond for a tile; back to front."""
+    out: list[list[list[float]]] = []
+    for cy in range(max(1, rows)):
+        for cx in range(max(1, columns)):
+            dx, dy = cx - (max(1, columns) - 1), cy - (max(1, rows) - 1)
+            x = origin[0] + (dx - dy) * w / 2.0
+            y = origin[1] + (dx + dy) * h / 2.0
+            out.append([[x, y - h / 2.0], [x + w / 2.0, y], [x, y + h / 2.0], [x - w / 2.0, y]])
+    return out
 
 
 def _iso_frame(
@@ -1550,11 +1617,63 @@ def farm_cells(farm: dict[str, Any]) -> dict[tuple[int, int], str]:
     return out
 
 
-def render_farm(farm: dict[str, Any], scale: int = 8) -> Image.Image:
+FARM_ISO_DIAMOND = (2, 1)  # the diamond of a pack that says none: twice as wide as high
+FARM_ISO_BACKGROUND = (24, 24, 30)
+FARM_RAISED = frozenset({"building", "tree", "fence", "bin"})  # what stands up on its diamond
+
+
+def farm_diamond(scale: int, footprint: tuple[int, int] | None = None) -> tuple[int, int]:
+    """The diamond a cell of a farm is drawn as in the isometric picture at ``scale``: as wide
+    as two cells of the flat picture and as high as the packs' diamond makes it (``footprint``:
+    180 x 104 gives 16 x 10 at scale 8), both even so that the corners fall on whole px."""
+    fw, fh = footprint if footprint and footprint[0] > 0 and footprint[1] > 0 else FARM_ISO_DIAMOND
+    wide = max(4, 2 * int(scale))
+    high = max(2, 2 * round(wide * fh / fw / 2))
+    return wide, high
+
+
+def _render_farm_iso(farm: dict[str, Any], scale: int, footprint: tuple[int, int]) -> Image.Image:
+    """``render_farm`` on diamonds: the same cells in the same colours, back to front. What
+    stands up (a building, a tree, a fence, the bin) is a block half a diamond high with darker
+    sides, so that the house reads as a house."""
+    cols, rows = int(farm["size"][0]), int(farm["size"][1])
+    w, h = farm_diamond(scale, footprint)
+    lift = max(2, h // 2)
+    all_cells = [(x, y) for y in range(rows) for x in range(cols)]
+    (ox, oy), size = _iso_frame(all_cells, (w, h), above=lift + 1, below=1)
+    picture = Image.new("RGB", size, FARM_ISO_BACKGROUND)
+    draw = ImageDraw.Draw(picture)
+    kinds = farm_cells(farm)
+
+    def corners(cell: Tile, up: int = 0) -> list[tuple[float, float]]:
+        return [(ox + x, oy + y - up) for x, y in iso_math.diamond(cell[0], cell[1], w, h)]
+
+    for cell in sorted(all_cells, key=lambda c: (c[0] + c[1], c[0])):
+        kind = kinds.get(cell, "ground")
+        colour = FARM_COLORS[kind]
+        if kind not in FARM_RAISED:
+            draw.polygon(corners(cell), fill=colour)
+            continue
+        dark = tuple(max(0, c - 44) for c in colour)
+        darker = tuple(max(0, c - 70) for c in colour)
+        _top, right, bottom, left = corners(cell)
+        _t, right_up, bottom_up, left_up = corners(cell, lift)
+        draw.polygon([left_up, bottom_up, bottom, left], fill=dark)
+        draw.polygon([bottom_up, right_up, right, bottom], fill=darker)
+        draw.polygon(corners(cell, lift), fill=colour)
+    return picture
+
+
+def render_farm(
+    farm: dict[str, Any], scale: int = 8, footprint: tuple[int, int] | None = None
+) -> Image.Image:
     """The map of a farm's plan (``farm_plan.plan``) at ``scale`` px a cell: the field and its
     edge, the plot, the water, the paths, the buildings and their doors, the yards with their
     fences and gates, the bin, the trees, the scenery, what there is to clear, the way out and
-    where the farmer starts."""
+    where the farmer starts. With ``footprint`` (the diamond of an isometric project, T17.16)
+    the same plan is drawn as diamonds, as the game shows it."""
+    if footprint is not None:
+        return _render_farm_iso(farm, scale, footprint)
     cols, rows = int(farm["size"][0]), int(farm["size"][1])
     picture = Image.new("RGB", (cols, rows), FARM_COLORS["ground"])
     pixels = picture.load()
@@ -1563,6 +1682,31 @@ def render_farm(farm: dict[str, Any], scale: int = 8) -> Image.Image:
         if 0 <= x < cols and 0 <= y < rows:
             pixels[x, y] = FARM_COLORS[kind]
     return picture.resize((cols * scale, rows * scale), Image.Resampling.NEAREST)
+
+
+def farm_cell_at(
+    farm: dict[str, Any], x: float, y: float, scale: int = 8,
+    footprint: tuple[int, int] | None = None,
+) -> Tile:  # fmt: skip
+    """The cell of a farm under the pixel ``(x, y)`` of ``render_farm``'s picture."""
+    if footprint is None:
+        return int(x // scale), int(y // scale)
+    cols, rows = int(farm["size"][0]), int(farm["size"][1])
+    w, h = farm_diamond(scale, footprint)
+    (ox, oy), _size = _iso_frame(
+        [(cx, cy) for cy in range(rows) for cx in range(cols)], (w, h), max(2, h // 2) + 1, 1
+    )
+    return iso_math.screen_to_cell(x - ox, y - oy, w, h)
+
+
+VILLAGE_NPCS = 1  # people_recipes.DEMO_NPCS: the villager of the demo stays in a farm's village
+
+
+def village_of_farm(plan: dict[str, Any]) -> dict[str, Any]:
+    """The plan of a starter map as the village of a farm is built from it (T17.09): the same
+    map without its enemies (a farm's village has none) and with the demo's villager alone
+    (the people of the village are planned by ``people_plan``). Nothing else moves."""
+    return {**plan, "enemies": [], "npcs": list(plan["npcs"])[:VILLAGE_NPCS]}
 
 
 def farm_markers(farm: dict[str, Any]) -> dict[str, int]:

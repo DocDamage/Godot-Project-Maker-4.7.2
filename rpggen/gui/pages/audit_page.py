@@ -92,6 +92,21 @@ def learn_from_fixes(edits: list[learned_rules.Edit], weight: int) -> None:
         log.warning("learned rules could not be saved", exc_info=True)
 
 
+def iso_facts(eff: dict) -> dict | None:
+    """What the grid editor needs of a picture of an isometric pack (T17.16): its diamond, the
+    middle of it in the picture, how many diamonds an object stands on (None for a tile) and
+    whether it has a grid of cells at all (a tile is one picture). None for any other asset."""
+    if eff.get("projection") != catalog_mod.PROJECTION_ISOMETRIC or not eff.get("footprint"):
+        return None
+    tile = eff.get("usage") == catalog_mod.ISO_TILE_USAGE
+    return {
+        "footprint": list(eff["footprint"]),
+        "origin": list(eff["origin"]) if eff.get("origin") else None,
+        "stands_on": None if tile else list(eff.get("stands_on") or (1, 1)),
+        "has_grid": not tile and bool(eff.get("grid")),
+    }
+
+
 def make_resolver(state: WizardState) -> PathResolver:
     """Absolute file of an asset: the extracted/opened root of its pack plus the pack-relative
     path (generated assets such as placeholders have no file here)."""
@@ -732,7 +747,9 @@ class AuditPage(WizardPage):
         return bool(dialog.exec())
 
     def edit_grid(self, asset_id: str) -> bool:
-        """Open the grid editor; Apply writes a ``grid`` override."""
+        """Open the grid editor; Apply writes a ``grid`` override. A picture of an isometric
+        pack (T17.16) has its diamond drawn over it and can have ``footprint`` (a tile) or
+        ``stands_on`` (an object) changed: one undo step with the grid."""
         assert self.session is not None
         asset = self.session.catalog.asset(asset_id)
         path = self.resolver(asset) if asset else None
@@ -748,10 +765,16 @@ class AuditPage(WizardPage):
             self,
             headings=headings if isinstance(headings, int) and headings > 0 else 0,
             heading_order=str(eff.get("heading_order") or "up_cw"),
+            iso=iso_facts(eff),
         )
         if not self.run_dialog(dialog):
             return False
-        return self.session.set_override(asset_id, "grid", dialog.grid())
+        if dialog.iso is None:
+            return self.session.set_override(asset_id, "grid", dialog.grid())
+        values: dict = dict(dialog.iso_values())
+        if dialog.has_grid:
+            values["grid"] = dialog.grid()
+        return bool(values) and self.session.set_overrides([asset_id], values, "Edit grid")
 
     def edit_animations(self, asset_id: str) -> bool:
         """Open the animation editor; Apply writes ``animations``/``origin``/``frame``."""

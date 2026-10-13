@@ -204,3 +204,131 @@ def test_the_audit_opens_the_ring_for_a_rotation_sheet(qtbot) -> None:
     assert dialog.ring.order == eff["heading_order"] and len(dialog.ring.positions()) == 16
     tiles = next(a for a in state.catalog.assets if catalog.effective(a).get("usage") == "tiles")
     assert not page.edit_grid(tiles.id) and seen[-1].ring is None
+
+
+# ------------------------------------------------------------------ T17.16: the diamond grid
+
+
+def _iso_audit(qtbot) -> tuple[AuditPage, WizardState]:
+    state = WizardState(pack_sources=[SYNTH / "iso_tiles"])
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    page = AuditPage()
+    qtbot.addWidget(page)
+    page.show()
+    page.enter(state)
+    page.grid.chips["chipAll"].click()
+    return page, state
+
+
+def test_the_diamonds_a_picture_stands_on() -> None:
+    from rpggen.core import iso_math, map_preview
+
+    (one,) = map_preview.standing_diamonds((30, 39), 60, 34)
+    assert one == [[30, 22], [60, 39], [30, 56], [0, 39]], "the top, right, bottom, left"
+    # two columns and three rows: the origin is the middle of the cell nearest the camera
+    found = map_preview.standing_diamonds((100, 200), 60, 34, 2, 3)
+    assert len(found) == 6
+    middles = [((d[1][0] + d[3][0]) / 2, (d[0][1] + d[2][1]) / 2) for d in found]
+    assert middles[-1] == (100, 200), "drawn last: in front"
+    assert middles[0] == (100 + (-1 + 2) * 30, 200 + (-1 - 2) * 17), "the far corner"
+    assert all(y <= 200 for _x, y in middles), "the others lie up and back from it"
+    for cx, cy in ((0, 0), (1, 2)):  # the same place as a cell of a map laid from the far corner
+        x, y = iso_math.cell_to_screen(cx, cy, 60, 34)
+        fx, fy = iso_math.cell_to_screen(1, 2, 60, 34)
+        assert middles[cy * 2 + cx] == (100 + x - fx, 200 + y - fy)
+
+
+def test_the_grid_editor_draws_the_diamond_of_an_isometric_tile(qtbot) -> None:
+    page, state = _iso_audit(qtbot)
+    tile = state.catalog.asset("iso_tiles.png.isotile_001_0")
+    eff = catalog.effective(tile)
+    assert eff["usage"] == "iso_tile" and eff["footprint"] == [60, 34]
+    page.grid.select_ids([tile.id])
+    assert page.detail.grid_button.isEnabled(), "an isometric tile has its diamond to look at"
+    seen: list[GridEditorDialog] = []
+    page.run_dialog = lambda dialog: bool(seen.append(dialog))  # type: ignore[method-assign]
+    assert not page.edit_grid(tile.id)
+    (dialog,) = seen
+    qtbot.addWidget(dialog)
+    dialog.show()
+    assert dialog.iso is not None and dialog.is_tile and not dialog.has_grid
+    assert (dialog.diamond_w.value(), dialog.diamond_h.value()) == (60, 34)
+    assert dialog.diamond_w.isEnabled() and dialog.findChild(QSpinBox, "standsColumns") is None
+    # a tile is one picture: the square grid, its read-out and the candidates are not shown
+    assert dialog.cell_w.isHidden() and dialog.margin_x.isHidden() and dialog.sep_x.isHidden()
+    assert dialog.candidate_list.isHidden() and dialog.readout.isHidden()
+    assert dialog.view.grid_items == []
+    assert dialog.iso_label.text() == "A diamond of 60 × 34 px"
+    # the diamond is drawn over the picture, its middle on the tile's origin
+    (corners,) = dialog.view.diamonds
+    origin = eff["origin"]
+    assert corners == [
+        [origin[0], origin[1] - 17],
+        [origin[0] + 30, origin[1]],
+        [origin[0], origin[1] + 17],
+        [origin[0] - 30, origin[1]],
+    ]
+    assert len(dialog.view.diamond_items) == 1
+    (item,) = dialog.view.diamond_items
+    assert item.scene() is dialog.view.scene() and item.isVisible()
+    assert item.polygon().count() == 4 and item.boundingRect().width() >= 60
+    with_diamond = dialog.view.grab().toImage()
+    dialog.view.draw_diamonds([])
+    assert dialog.view.diamond_items == [] and dialog.view.grab().toImage() != with_diamond
+    dialog._refresh()
+    assert len(dialog.view.diamond_items) == 1
+    for box in (dialog.diamond_w, dialog.diamond_h):
+        assert box.toolTip() and box.accessibleName()
+    assert dialog.iso_values() == {}, "nothing was changed: nothing is written"
+    dialog.diamond_h.setValue(30)
+    assert dialog.view.diamonds[0][0] == [origin[0], origin[1] - 15]
+    assert dialog.iso_values() == {"footprint": [60, 30]}
+
+
+def test_the_grid_editor_edits_how_many_diamonds_an_object_stands_on(qtbot) -> None:
+    page, state = _iso_audit(qtbot)
+    house = state.catalog.asset("iso_tiles.png.house_01_0")
+    eff = catalog.effective(house)
+    assert eff["usage"] == "sprite" and eff["stands_on"] == [1, 1]
+
+    def run(dialog: GridEditorDialog) -> bool:
+        assert dialog.iso is not None and not dialog.is_tile
+        assert not dialog.diamond_w.isEnabled(), "an object stands on the diamond of its pack"
+        assert (dialog.stands_columns.value(), dialog.stands_rows.value()) == (1, 1)
+        assert len(dialog.view.diamonds) == 1
+        dialog.stands_columns.setValue(2)
+        dialog.stands_rows.setValue(3)
+        assert len(dialog.view.diamonds) == 6 and len(dialog.view.diamond_items) == 6
+        assert dialog.iso_label.text() == "Stands on 2 × 3 diamonds of 60 × 34 px"
+        for box in (dialog.stands_columns, dialog.stands_rows):
+            assert box.toolTip() and box.accessibleName()
+        assert dialog.iso_values() == {"stands_on": [2, 3]}
+        return True
+
+    page.run_dialog = run  # type: ignore[method-assign]
+    assert page.edit_grid(house.id)
+    new = page.session.catalog.asset(house.id)
+    assert new.overrides == {"stands_on": [2, 3]}
+    assert catalog.effective(new)["stands_on"] == [2, 3] and new.status == "CONFIRMED"
+    page.session.undo_stack.undo()
+    assert page.session.catalog.asset(house.id).overrides == {}
+    # Apply with nothing changed writes nothing; a tile's diamond is one override
+    page.run_dialog = lambda dialog: True  # type: ignore[method-assign]
+    assert not page.edit_grid(house.id) and page.session.undo_stack.count() == 1
+
+    def narrower(dialog: GridEditorDialog) -> bool:
+        dialog.diamond_w.setValue(56)
+        return True
+
+    page.run_dialog = narrower  # type: ignore[method-assign]
+    assert page.edit_grid("iso_tiles.png.isotile_001_0")
+    tile = page.session.catalog.asset("iso_tiles.png.isotile_001_0")
+    assert tile.overrides == {"footprint": [56, 34]}
+
+
+def test_a_picture_that_is_not_isometric_has_no_diamond(qtbot) -> None:
+    dialog = GridEditorDialog(_sheet(), None)
+    qtbot.addWidget(dialog)
+    assert dialog.iso is None and dialog.has_grid and dialog.diamonds() == []
+    assert dialog.view.diamond_items == [] and dialog.iso_values() == {}
+    assert dialog.findChild(QSpinBox, "diamondW") is None

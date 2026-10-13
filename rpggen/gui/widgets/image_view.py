@@ -5,8 +5,8 @@ from __future__ import annotations
 import contextlib
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QMouseEvent, QPen, QPixmap, QWheelEvent
+from PySide6.QtCore import QPoint, QPointF, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QMouseEvent, QPen, QPixmap, QPolygonF, QWheelEvent
 from PySide6.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QWidget
 
 from rpggen.gui import theme
@@ -50,6 +50,8 @@ class ImageView(QGraphicsView):
         self.grid_items: list = []
         self.mark_items: list = []
         self.marks: list[Mark] = []
+        self.diamond_items: list = []
+        self.diamonds: list[list[list[float]]] = []
 
     def set_image(self, path: Path | None, grid: dict | None = None, fit: bool = True) -> None:
         if path is None or not Path(path).exists():
@@ -66,6 +68,8 @@ class ImageView(QGraphicsView):
         self.grid_items = []
         self.mark_items = []
         self.marks = []
+        self.diamond_items = []
+        self.diamonds = []
         self._grid = None
         self.pixmap_item = None
         self.image_size = (0, 0)
@@ -113,6 +117,25 @@ class ImageView(QGraphicsView):
                 pen.setWidth(2)
                 brush = QBrush(FOOTPRINT_TINT) if kind == MARK_FOOTPRINT else QBrush()
                 self.mark_items.append(scene.addRect(x, y, w, h, pen, brush))
+
+    def draw_diamonds(self, diamonds: list[list[list[float]]]) -> None:
+        """Replace the diamond grid over an isometric picture (T17.16): each diamond is its
+        four corners in image pixels (``map_preview.standing_diamonds``), drawn with the line of
+        the square grid and a light tint, so that the tile under it stays visible."""
+        scene = self.scene()
+        for item in self.diamond_items:
+            scene.removeItem(item)
+        self.diamond_items = []
+        self.diamonds = [list(d) for d in diamonds]
+        if self.pixmap_item is None:
+            return
+        line = QPen(theme.token("grid_line"))
+        line.setCosmetic(True)
+        line.setWidth(2)
+        tint = QBrush(FOOTPRINT_TINT)
+        for corners in self.diamonds:
+            polygon = QPolygonF([QPointF(float(x), float(y)) for x, y in corners])
+            self.diamond_items.append(scene.addPolygon(polygon, line, tint))
 
     def clear_grid(self) -> None:
         for item in self.grid_items:

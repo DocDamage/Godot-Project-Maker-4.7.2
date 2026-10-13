@@ -315,6 +315,22 @@ func test_the_option_turns_the_loss_of_money_off(t) -> void:
 	t.eq(mode.energy.value, 50, "the energy still is")
 	_cleanup()
 
+func test_the_mode_gives_the_calendar_its_season_and_the_length_of_its_day(t) -> void:
+	var game := _game()
+	var mode: RpgFarmMode = game["mode"]
+	var calendar: RpgCalendar = game["calendar"]
+	t.eq([calendar.days_per_season, calendar.minute_s], [RpgCalendar.DAYS_PER_SEASON, RpgCalendar.MINUTE_S], "a mode with its defaults leaves the calendar what it was")
+	mode.days_per_season = 7  # the options starter_map.days_per_season and day_length (T17.16)
+	mode.minute_s = 1.0
+	mode.set_calendar(calendar)
+	t.eq([calendar.days_per_season, calendar.minute_s], [7, 1.0], "the mode hands both on")
+	var next := RpgCalendar.date_after(7, 0, 1, 1, calendar.days_per_season)
+	t.eq([next[0], next[1]], [1, 1], "the eighth morning is the first of summer")
+	mode.days_per_season = 10
+	mode.set_calendar(calendar)
+	t.eq(calendar.days_per_season, RpgCalendar.DAYS_PER_SEASON, "a length no season has is 28")
+	_cleanup()
+
 func test_a_bed_is_remembered_and_a_new_game_has_none(t) -> void:
 	var game := _game()
 	var state: RpgGameState = game["state"]

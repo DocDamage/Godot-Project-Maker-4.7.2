@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from rpggen import features
 from rpggen.core import app_settings, options, preflight
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
@@ -58,6 +59,13 @@ EXISTING_TRACKS_TEXT = (
     "This project has its tracks: the ones that exist are kept as they are. "
     "You can still add a track below; it comes after the last."
 )
+EXISTING_FARM_TEXT = (
+    "This project has its farm: the field, the plot and the buildings are kept as they are. "
+    "The days, fishing and what passing out costs can still change, and you can add a map below."
+)
+# a farm's options that are read on every generation (the rest is fixed once the farm exists)
+FARM_LIVE = ("days_per_season", "day_length", "fishing", "pass_out_loss", "added_maps")
+VIEW_FIXED_TEXT = "the view of a generated project cannot be changed"
 IMPORTED_STARTER_TEXT = (
     "The starter map is an imported map, so the layout options are not used. "
     "Set the starter map under Imported maps back to the layout options to use them."
@@ -95,6 +103,49 @@ class StarterState:
     note_visible: bool  # also: the preview shows the note instead of a map
 
 
+@dataclass(frozen=True)
+class ViewState:
+    """The *View* choice of a kind that can be isometric (T17.16)."""
+
+    shown: bool  # the kind has the view and the wizard offers it
+    projection: str = config_mod.PROJECTION_TOP_DOWN
+    controls: str = config_mod.ISO_CONTROLS_SCREEN
+    can_choose: bool = False  # False: the packs have no isometric ground, or the project exists
+    reason: str = ""  # why not, for the tooltip and the line under the choice
+
+
+def view_offered(archetype: str) -> bool:
+    """True when the wizard offers the isometric view for this kind of game (its flag)."""
+    return features.ISOMETRIC_AVAILABLE and archetype in config_mod.ISOMETRIC_KINDS
+
+
+def project_exists(state: WizardState | None) -> bool:
+    """True when the state's target is a project rpggen has generated: one that was opened
+    to be generated again, or one this session has just made."""
+    if state is None:
+        return False
+    return state.regenerating or (
+        state.target is not None and preflight.is_rpggen_project(state.target)
+    )
+
+
+def apply_default_view(state: WizardState) -> None:
+    """The view of a new project is the one its packs are drawn for (``options.
+    default_projection``) until somebody chooses on the Options page; a kind without the
+    isometric view is seen as it always was. A project that exists keeps its view, and with
+    the flag off nothing is decided here."""
+    cfg = state.config
+    if cfg is None:
+        return
+    if cfg.archetype not in config_mod.ISOMETRIC_KINDS:
+        cfg.projection = config_mod.PROJECTION_TOP_DOWN
+        cfg.iso_controls = config_mod.ISO_CONTROLS_SCREEN
+        return
+    if not features.ISOMETRIC_AVAILABLE or project_exists(state) or state.view_chosen:
+        return
+    cfg.projection = options.default_projection(state.catalog, cfg.archetype)
+
+
 @dataclass
 class OptionValues:
     """Everything the widgets show, read back in one go."""
@@ -120,6 +171,7 @@ class OptionsModel:
         self.input_errors: list[str] = []
         self.wishes: dict[str, bool] = {}  # what the user wants of each dependent feature
         self.starter_locked = False
+        self.farm_locked = False  # the project has its farm (a farm's own map and its plan)
         self._pack_bytes_key: tuple | None = None
         self._pack_bytes = 0
 
@@ -144,6 +196,14 @@ class OptionsModel:
             export_targets=cfg.selected_export_targets(),
         )
         self.starter_locked = self.starter_exists()
+        self.farm_locked = self.farm_exists()
+        if (
+            self.draft.projection == config_mod.PROJECTION_ISOMETRIC
+            and view_offered(self.draft.archetype)
+            and not project_exists(state)
+            and options.isometric_problem(self.catalog)
+        ):  # the audit took the isometric ground away: the view goes with it
+            self.draft.projection = config_mod.PROJECTION_TOP_DOWN
 
     def loaded(self) -> None:
         """The draft is about to be shown: the wishes start from it."""
@@ -166,7 +226,18 @@ class OptionsModel:
         cfg.git = dict(self.draft.git)
         cfg.export_targets = self.draft.selected_export_targets()
         cfg.repair_world = self.draft.repair_world
-        if not self.starter_locked:
+        cfg.iso_controls = self.draft.iso_controls
+        if cfg.projection != self.draft.projection:
+            # what was chosen on the Mapping page for the other view may not fit this one
+            from rpggen.core import mapping
+
+            cfg.projection = self.draft.projection
+            if self.catalog is not None:
+                cfg.starter = mapping.resolve_starter(
+                    self.catalog, cfg.archetype, cfg.starter, cfg.projection
+                )
+        if self.is_farm or not self.starter_locked:
+            # (a farm's draft already holds what a farm that exists keeps: ``store_starter``)
             cfg.starter_map = copy.deepcopy(self.draft.starter_map)
         else:  # the map is the user's, but a world may still get a new area (or a new room)
             key = self.kept_key
@@ -231,12 +302,16 @@ class OptionsModel:
     def demo_wish(self) -> bool:  # the name before 1.1, when the demo was the only one
         return self.wishes.get("demo", True)
 
+    @property
+    def kind(self) -> str:
+        return self.draft.archetype if self.draft is not None else ""
+
     def dependent_features(self, current: dict[str, bool]) -> dict[str, FeatureState]:
         """A feature whose dependencies are off is unchecked and disabled and says what it needs;
         it returns to the user's choice once they are on again."""
         out = {}
         for key in options.DEPENDENCIES:
-            missing = options.missing_deps(current, key)
+            missing = options.missing_deps(current, key, self.kind)
             if missing:
                 names = ", ".join(self.tr(options.feature_label(m)) for m in missing)
                 out[key] = FeatureState(
@@ -247,12 +322,16 @@ class OptionsModel:
                 )
             else:
                 out[key] = FeatureState(
-                    True, self.wishes.get(key, False), self.tr(options.FEATURE_INFO[key][2]), ""
+                    True,
+                    self.wishes.get(key, False),
+                    self.tr(options.feature_text(key, self.kind)),
+                    "",
                 )
         return out
 
     def default_features(self) -> dict[str, bool]:
-        defaults = config_mod.default_features()
+        # a farm's own defaults: the page would otherwise switch on what a farm has off
+        defaults = config_mod.default_features(self.kind if self.is_farm else "turn_based")
         self.wishes = {key: bool(defaults.get(key, False)) for key in options.DEPENDENCIES}
         return defaults
 
@@ -301,6 +380,12 @@ class OptionsModel:
         return self.draft is not None and self.draft.archetype in config_mod.ARCADE_KINDS
 
     @property
+    def is_farm(self) -> bool:
+        """A farm (M17): the starter map is its village, and it has a map of its own, planned
+        as a whole, with a box of its own above the village's."""
+        return self.draft is not None and self.draft.archetype == "farm"
+
+    @property
     def planned(self) -> bool:
         """The kinds whose world is planned as a whole (rooms, stages, tracks): they have a
         box of their own in place of the starter map, and no imported maps."""
@@ -328,6 +413,28 @@ class OptionsModel:
 
             return wave_plan.exists(state.target)
         return (state.target / "game" / "maps" / "starter_map.tscn").is_file()
+
+    def farm_exists(self) -> bool:
+        """True when the project is a farm that has its own map already."""
+        from rpggen.core import farm_plan
+
+        state = self.state
+        if not self.is_farm or state is None or not state.regenerating or state.target is None:
+            return False
+        return farm_plan.exists(state.target)
+
+    def frozen_keys(self) -> set[str]:
+        """The options of a farm that are kept as the config has them: the village's once its
+        map exists (but its areas: one can be added), and what the stored plan of the farm
+        fixes once the farm exists."""
+        from rpggen.core import farm_plan
+
+        frozen: set[str] = set()
+        if self.starter_locked:
+            frozen |= set(config_mod.starter_map_defaults("turn_based"))
+        if self.farm_locked:
+            frozen |= {*farm_plan.defaults(), "starting_money"} - set(FARM_LIVE)
+        return frozen
 
     def imported_starter(self) -> str:
         return str((self.draft.imported_maps if self.draft else {}).get("starter", ""))
@@ -366,6 +473,9 @@ class OptionsModel:
         project that exists keeps its options; only the areas table still counts (a new area)."""
         if self.draft is None:
             return
+        if self.is_farm:
+            self.draft.starter_map = self.merged_farm(self.draft.starter_map, values)
+            return
         key = self.kept_key
         if self.starter_locked:
             kept = {k: v for k, v in self.draft.starter_map.items() if k != key}
@@ -377,6 +487,115 @@ class OptionsModel:
         self.draft.starter_map = {
             k: v for k, v in values.items() if k not in defaults or v != defaults[k]
         }
+
+    def merged_farm(self, old: dict[str, Any], values: dict[str, Any]) -> dict[str, Any]:
+        """The ``starter_map`` of a farm from what the widgets show: only what differs from the
+        defaults, with the frozen options (``frozen_keys``) as ``old`` has them."""
+        defaults = self.starter_defaults()
+        frozen = self.frozen_keys()
+        out = {k: copy.deepcopy(v) for k, v in old.items() if k in frozen}
+        for key, value in values.items():
+            if key not in frozen and (key not in defaults or value != defaults[key]):
+                out[key] = copy.deepcopy(value)
+        return out
+
+    def farm_state(self) -> StarterState:
+        """Which options of the farm's box can change: all of them until the farm exists, then
+        the ones that are read on every generation."""
+        return StarterState(
+            layout_enabled=not self.farm_locked,
+            imported_enabled=False,
+            note=self.tr(EXISTING_FARM_TEXT),
+            note_visible=self.farm_locked,
+        )
+
+    def farm_preview(self, values: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
+        """What the options of a farm plan now (``options.plan_farm``: the farm's map, how many
+        crops and people), for the box's preview: the stored plan with the maps that were
+        added once the project has its farm, else a fresh one from the seed and the packs.
+        ``(None, why)`` when the options make no farm."""
+        if self.draft is None or not self.is_farm:
+            return None, ""
+        state = self.state
+        target = state.target if state is not None and self.farm_locked else None
+        cfg = dataclasses.replace(self.draft, starter_map=copy.deepcopy(values))
+        try:
+            return options.plan_farm(cfg, self.catalog, target), ""
+        except ValueError as error:  # FarmPlanError, PeoplePlanError
+            return None, str(error)
+
+    def farm_footprint(self) -> tuple[int, int] | None:
+        """The diamond the farm's preview is drawn on: the project's when it is isometric
+        (its tile set's, else its ground's), None for a farm seen from above."""
+        from rpggen.core import iso_atlas
+
+        if self.draft is None or self.draft.projection != config_mod.PROJECTION_ISOMETRIC:
+            return None
+        if self.catalog is None:
+            return None
+        found = iso_atlas.project_footprint(self.catalog, self.draft)
+        return found or options.pack_footprint(self.catalog)
+
+    def built_added_maps(self) -> int:
+        """How many rows of the draft's ``added_maps`` the stored plan of the farm has."""
+        from rpggen.core import farm_plan, world_plan
+
+        state = self.state
+        if self.draft is None or state is None or not self.farm_locked or state.target is None:
+            return 0
+        stored = farm_plan.stored_in(world_plan.load(state.target)) or {}
+        have = {str(name).casefold() for name in stored.get("added_maps", [])}
+        built = 0
+        for row in self.draft.starter_map.get("added_maps", []):
+            if str(row.get("name", "")).strip().casefold() not in have:
+                break
+            built += 1
+        return built
+
+    def farm_error(self) -> str:
+        """Why the draft's options make no farm ("" when they do)."""
+        from rpggen.core import farm_plan
+
+        if self.draft is None or not self.is_farm:
+            return ""
+        try:
+            farm_plan.normalized(self.draft.starter_map_options())
+        except farm_plan.FarmPlanError as error:
+            return str(error)
+        return ""
+
+    # ------------------------------------------------------------------ the view (T17.16)
+
+    def view_state(self) -> ViewState:
+        """The *View* choice: shown for a kind that has the isometric view while the wizard
+        offers it; preselected (the draft's); fixed once the project exists; and without
+        isometric ground it stays *From above*, with the reason the run would give."""
+        if self.draft is None or not view_offered(self.draft.archetype):
+            return ViewState(False)
+        draft = self.draft
+        if project_exists(self.state):
+            return ViewState(
+                True, draft.projection, draft.iso_controls, False, self.tr(VIEW_FIXED_TEXT)
+            )
+        problem = options.isometric_problem(self.catalog)
+        return ViewState(True, draft.projection, draft.iso_controls, not problem, problem)
+
+    def set_view(self, projection: str, controls: str) -> bool:
+        """The view and the pad as the user chose them; False when nothing changed. A view
+        that cannot be chosen is not taken (the widget is disabled then)."""
+        state = self.view_state()
+        if self.draft is None or not state.shown:
+            return False
+        if not state.can_choose or projection not in config_mod.PROJECTIONS:
+            projection = self.draft.projection
+        if controls not in config_mod.ISO_CONTROLS:
+            controls = self.draft.iso_controls
+        if (projection, controls) == (self.draft.projection, self.draft.iso_controls):
+            return False
+        if projection != self.draft.projection and self.state is not None:
+            self.state.view_chosen = True
+        self.draft.projection, self.draft.iso_controls = projection, controls
+        return True
 
     def rooms_preview(self, values: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
         """The rooms the *Starter world* options give now, for the side-view preview: the
@@ -586,12 +805,10 @@ class OptionsModel:
     def collect(self, values: OptionValues) -> None:
         if self.draft is None:
             return
-        kept = (  # what the page does not show for an arcade kind stays as it was
-            {key: bool(self.draft.features.get(key, False)) for key in options.ARCADE_HIDDEN}
-            if self.is_arcade
-            else {}
-        )
-        self.draft.features = {**options.effective_features(values.features), **kept}
+        hidden = options.hidden_features(self.kind) if self.is_arcade or self.is_farm else ()
+        # what the page does not show for an arcade kind or a farm stays as it was
+        kept = {key: bool(self.draft.features.get(key, False)) for key in hidden}
+        self.draft.features = {**options.effective_features(values.features, self.kind), **kept}
         self.draft.resolution = values.resolution
         self.draft.window_size = values.window_size
         if self.is_side:
@@ -620,6 +837,8 @@ class OptionsModel:
             racing = self.draft.archetype == "racing"
             what = self.tr("Tracks") if racing else self.tr("Stages")
             return [self.tr("{0}: {1}.").format(what, why), *self.input_errors]
+        if why := self.farm_error():
+            layer_problems.append(self.tr("{0}: {1}.").format(self.tr("Farm"), why))
         return [*layer_problems, *self.input_errors, *options.config_errors(self.draft)]
 
     # ------------------------------------------------------------------ summary
@@ -636,6 +855,7 @@ class OptionsModel:
             self.draft.base_tile_size,
             resolution,
             self.draft.imported_maps,
+            options.farm_crop_count(self.catalog, self.draft.projection) if self.is_farm else None,
         )
         settings = app_settings.get()
         assets = len(self.catalog.assets) if self.catalog else 0
@@ -700,9 +920,12 @@ class OptionsModel:
             preset = app_settings.get().option_presets.get(name)
         if preset is None:
             return False
+        old = self.draft.starter_map
         new = options.apply_preset(self.draft, preset)
         self.draft = dataclasses.replace(new, seed=self.draft.seed)  # a preset keeps the seed
-        if self.starter_locked:  # the starter map is the user's: only the other options change
+        if self.is_farm:  # what a farm that exists keeps is kept; the rest is the preset's
+            self.draft.starter_map = self.merged_farm(old, new.starter_map_options())
+        elif self.starter_locked:  # the starter map is the user's: only the other options change
             self.draft.starter_map = {}
         return True
 

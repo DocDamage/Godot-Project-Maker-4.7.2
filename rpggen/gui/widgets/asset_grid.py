@@ -146,6 +146,7 @@ class AssetListModel(QAbstractListModel):
         self._folder_rows: dict[str, list[int]] = {}
         self._colours: dict[str, list[str]] = {}  # a group's first picture -> its other colours
         self._colour_of: dict[str, str] = {}  # every other colour -> the group's first picture
+        self._group_kinds: dict[str, str] = {}  # a group's first picture -> ``group_kind``
 
     # ------------------------------------------------------------------ data
 
@@ -167,7 +168,31 @@ class AssetListModel(QAbstractListModel):
         self._index_folders()
         self._colours = catalog_mod.colour_groups(catalog) if catalog else {}
         self._colour_of = {m: first for first, rest in self._colours.items() for m in rest}
+        # what the pictures of a group are to each other (T17.16): colours, turns or seasons
+        self._group_kinds = {}
+        for first, rest in self._colours.items():
+            members = [catalog.asset(i) for i in (first, *rest)] if catalog else []
+            self._group_kinds[first] = catalog_mod.group_kind([a for a in members if a])
         self.endResetModel()
+
+    def group_words(self, first_id: str) -> str:
+        """ "4 colour variants", "4 turns" or "4 seasons" for the group of ``first_id``."""
+        count = len(self._colours.get(first_id, [])) + 1
+        kind = self._group_kinds.get(first_id, catalog_mod.GROUP_COLOURS)
+        if kind == catalog_mod.GROUP_TURNS:
+            return self.tr("{0} turns").format(count)
+        if kind == catalog_mod.GROUP_SEASONS:
+            return self.tr("{0} seasons").format(count)
+        return self.tr("{0} colour variants").format(count)
+
+    def member_words(self, first_id: str) -> str:
+        """ "a colour variant of x", "a turn of x" or "a season of x" for a member of a group."""
+        kind = self._group_kinds.get(first_id, catalog_mod.GROUP_COLOURS)
+        if kind == catalog_mod.GROUP_TURNS:
+            return self.tr("a turn of {0}").format(first_id)
+        if kind == catalog_mod.GROUP_SEASONS:
+            return self.tr("a season of {0}").format(first_id)
+        return self.tr("a colour variant of {0}").format(first_id)
 
     def colour_first(self, asset_id: str) -> str | None:
         """The first picture of the colour group ``asset_id`` is another colour of."""
@@ -290,7 +315,7 @@ class AssetListModel(QAbstractListModel):
             asset.status.replace("_", " ").lower(),
         ]
         if asset.id in self._colours:
-            parts.append(self.tr("{0} colour variants").format(len(self._colours[asset.id]) + 1))
+            parts.append(self.group_words(asset.id))
         return ", ".join(p for p in parts if p)
 
     def row_of(self, asset_id: str) -> int | None:
@@ -341,11 +366,9 @@ class AssetListModel(QAbstractListModel):
             if facets.get("derived_from"):
                 tip += "\n" + f"{VARIANT_GLYPH} variant of {facets['derived_from']}"
             if asset.id in self._colours:
-                count = len(self._colours[asset.id]) + 1
-                tip += "\n" + VARIANT_GLYPH + " " + self.tr("{0} colour variants").format(count)
+                tip += "\n" + VARIANT_GLYPH + " " + self.group_words(asset.id)
             elif asset.id in self._colour_of:
-                first = self._colour_of[asset.id]
-                tip += "\n" + VARIANT_GLYPH + " " + self.tr("a colour variant of {0}").format(first)
+                tip += "\n" + VARIANT_GLYPH + " " + self.member_words(self._colour_of[asset.id])
             return tip
         if role == Qt.ItemDataRole.AccessibleTextRole:
             return self.accessible_text(index.row())

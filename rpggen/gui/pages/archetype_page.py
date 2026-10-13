@@ -1,11 +1,11 @@
 """Page 2: choose the kind of game: a turn-based RPG, an action RPG, a metroidvania, a
-shoot 'em up, a run and gun or a racing game."""
+shoot 'em up, a run and gun, a racing game or a farm."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QPointF, QRectF, QSize, Qt
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QObject, QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import (
     QColor,
     QImage,
@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
 from rpggen import features
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import config as config_mod
-from rpggen.core import mapping, requirements
+from rpggen.core import mapping, options, requirements
 from rpggen.gui import theme, thumbnails
 from rpggen.gui.pages.base import WizardPage
 from rpggen.gui.state import WizardState
@@ -57,10 +57,21 @@ AIR_WARNING_GUN = (
 )
 SHMUP_HINT = "This pack looks like a shooter pack: a shoot 'em up fits it."
 RACING_HINT = "This pack looks like a racing pack: a racing game fits it."
+FARM_HINT = "This pack looks like a farming pack: a farm fits it."  # T17.01, T17.16
+# an isometric pack (T17.12), with the diamond of its tiles when the pack says or shows it
+ISO_HINT = "This pack is isometric. The view is chosen on the Options page."
+ISO_SIZE_HINT = (
+    "This pack is isometric ({0} x {1} diamonds). The view is chosen on the Options page."
+)
 # the kinds in the order of their cards, and the switch of each
-KINDS = ("turn_based", "arpg", "metroidvania", *config_mod.ARCADE_KINDS)
-GRID_WIDTH = 1000  # a window this wide has two rows of three cards; a narrower one a column
+KINDS = ("turn_based", "arpg", "metroidvania", *config_mod.ARCADE_KINDS, "farm")
+# The kinds that are walked from above: their starter map is the same map with the same options
+# (an area table among them).
+TOP_DOWN_KINDS = ("turn_based", "arpg", "farm")
+GRID_WIDTH = 1000  # a window this wide has rows of three cards; a narrower one a column
 GRID_COLUMNS = 3
+WIDE_GRID_WIDTH = 1280  # ... and one this wide rows of four: seven cards in two rows (T17.16)
+WIDE_GRID_COLUMNS = 4
 MOCK_GRID_HEIGHT = 160  # the drawing of a card in the grid is no higher than this
 MOCK_ROW_SIZE = (200, 112)  # ... and at the left of a card of the column it is this
 FULL_CARD_HEIGHT = 380  # a card of the grid with its list; two rows of them need twice this
@@ -74,6 +85,7 @@ def kind_available(kind: str) -> bool:
         "shmup": features.SHMUP_AVAILABLE,
         "run_and_gun": features.RUN_AND_GUN_AVAILABLE,
         "racing": features.RACING_AVAILABLE,
+        "farm": features.FARM_AVAILABLE,
     }.get(kind, True)
 
 
@@ -89,6 +101,11 @@ class FlowDiagram(QWidget):
         super().__init__(parent)
         self.steps = steps
         self.setMinimumSize(QSize(200, 44))
+        # as high as its rows at the width it is given: the layouts ask ``heightForWidth``,
+        # so a card knows its height at a width before it has that width (T17.16)
+        policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
     def rows_for(self, width: int) -> list[list[str]]:
@@ -115,11 +132,14 @@ class FlowDiagram(QWidget):
         count = len(self.rows_for(width))
         return int(count * self.BOX_H + (count - 1) * self.ROW_GAP + 10)
 
-    def resizeEvent(self, event) -> None:  # noqa: ANN001, N802 - Qt override
-        super().resizeEvent(event)
-        need = max(44, self.height_for(self.width()))
-        if need != self.minimumHeight():
-            self.setMinimumHeight(need)
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 - Qt override
+        return True
+
+    def heightForWidth(self, width: int) -> int:  # noqa: N802 - Qt override
+        return max(44, self.height_for(width))
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
+        return QSize(max(200, self.width()), self.heightForWidth(max(200, self.width())))
 
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
@@ -247,7 +267,8 @@ class MockScreen(QWidget):
     command box and HP rows for the turn-based game; a room, a swing and a HUD bar for the action
     game; a cave seen from the side with a gap, a plank, an orb and health pips for the
     metroidvania; a ship over stars for the shoot 'em up, a soldier on a ledge that aims up
-    for the run and gun, a car on a curve for the racing game."""
+    for the run and gun, a car on a curve for the racing game; a farmer by a row of crops, a
+    house and the clock for the farm."""
 
     BACKGROUNDS = {
         "turn_based": QColor(38, 44, 60),
@@ -256,6 +277,7 @@ class MockScreen(QWidget):
         "shmup": QColor(14, 16, 36),
         "run_and_gun": QColor(40, 58, 74),
         "racing": QColor(76, 150, 70),
+        "farm": QColor(104, 158, 84),
     }
     # where the stars of the shoot 'em up are, as parts of the drawing (fixed: no randomness)
     STARS = (
@@ -501,6 +523,104 @@ class MockScreen(QWidget):
             painter.drawRect(QRectF(x0 + w * (0.75 + 0.06 * i), y0 + h * 0.78, w * 0.04, h * 0.06))
         painter.restore()
 
+    def _paint_farm(self, painter: QPainter, rect) -> None:  # noqa: ANN001
+        """The farm, from above: a house in a corner, a bed of tilled soil with a row of crops
+        that are further on the further right they stand, the last of them watered, the farmer
+        beside the row, and the clock of the day in the other corner. With the pack's art the
+        farmer is its player."""
+        art = self.art
+        w, h = rect.width(), rect.height()
+        x0, y0 = rect.left(), rect.top()
+        painter.save()
+        painter.setClipRect(rect)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(Qt.PenStyle.NoPen)
+        u = min(w, h * 2.2)  # what is as wide as it is high keeps its shape in a low drawing
+        # the house: its wall, its roof and its door
+        house = QRectF(x0 + w * 0.06, y0 + h * 0.14, u * 0.22, h * 0.34)
+        painter.setBrush(QColor(206, 178, 132))
+        painter.drawRect(house)
+        painter.setBrush(QColor(176, 70, 60))
+        painter.drawPolygon(
+            [
+                QPointF(house.left() - u * 0.02, house.top() + house.height() * 0.45),
+                QPointF(house.center().x(), house.top() - h * 0.08),
+                QPointF(house.right() + u * 0.02, house.top() + house.height() * 0.45),
+            ]
+        )
+        painter.setBrush(QColor(96, 64, 44))
+        painter.drawRect(
+            QRectF(house.center().x() - u * 0.025, house.bottom() - h * 0.16, u * 0.05, h * 0.16)
+        )
+        # the bed: dry soil, and wet soil under the plants that were watered
+        bed = QRectF(x0 + w * 0.12, y0 + h * 0.66, w * 0.76, h * 0.20)
+        painter.setBrush(QColor(142, 98, 62))
+        painter.drawRect(bed)
+        painter.setBrush(QColor(98, 66, 44))
+        painter.drawRect(
+            QRectF(bed.left() + bed.width() * 0.6, bed.top(), bed.width() * 0.4, bed.height())
+        )
+        plants = 5
+        for i in range(plants):  # a seedling at the left, a ripe plant at the right
+            cx = bed.left() + bed.width() * (i + 0.5) / plants
+            tall = h * (0.05 + 0.035 * i)
+            painter.setBrush(QColor(60, 150, 66))
+            painter.drawRoundedRect(
+                QRectF(cx - u * 0.008, bed.center().y() - tall, u * 0.016, tall), 1, 1
+            )
+            leaf = u * (0.010 + 0.004 * i)
+            painter.drawEllipse(
+                QPointF(cx - leaf * 0.8, bed.center().y() - tall * 0.6), leaf, leaf * 0.6
+            )
+            painter.drawEllipse(
+                QPointF(cx + leaf * 0.8, bed.center().y() - tall * 0.8), leaf, leaf * 0.6
+            )
+            if i == plants - 1:  # what is ripe
+                painter.setBrush(QColor(232, 134, 46))
+                painter.drawEllipse(QPointF(cx, bed.center().y() - tall), u * 0.018, u * 0.018)
+        farmer_x, farmer_y = x0 + w * 0.52, bed.top() - h * 0.02
+        if art is not None:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+            self._figure(painter, art.player, farmer_x, farmer_y, min(h * 0.32, w * 0.22))
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        else:
+            painter.setBrush(QColor(96, 160, 232))  # the farmer
+            painter.drawRoundedRect(
+                QRectF(farmer_x - u * 0.035, farmer_y - h * 0.24, u * 0.07, h * 0.24), 3, 3
+            )
+            painter.setBrush(QColor(236, 204, 120))  # and the hat
+            painter.drawRect(QRectF(farmer_x - u * 0.05, farmer_y - h * 0.26, u * 0.10, h * 0.035))
+        # the can: drops over the wet soil
+        painter.setBrush(QColor(120, 190, 240))
+        for i in range(3):
+            painter.drawEllipse(
+                QPointF(farmer_x + u * (0.07 + 0.03 * i), farmer_y - h * (0.10 - 0.03 * i)),
+                2.0,
+                2.0,
+            )
+        # the clock: a dial with its hand, and the day of the season beside it
+        box = QRectF(x0 + w * 0.94 - u * 0.26, y0 + h * 0.08, u * 0.26, h * 0.22)
+        painter.setBrush(QColor(20, 24, 36, 220))
+        painter.drawRoundedRect(box, 3, 3)
+        radius = min(box.height() * 0.34, box.width() * 0.18)
+        dial = QPointF(box.left() + radius * 1.5, box.center().y())
+        painter.setBrush(QColor(250, 214, 90))
+        painter.drawEllipse(dial, radius, radius)
+        painter.setPen(QPen(QColor(20, 24, 36), 2))
+        painter.drawLine(dial, QPointF(dial.x() + radius * 0.6, dial.y() - radius * 0.5))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(230, 230, 240))
+        for i in range(2):  # the date and the money: two lines
+            painter.drawRect(
+                QRectF(
+                    dial.x() + radius * 1.6,
+                    box.top() + box.height() * (0.26 + 0.30 * i),
+                    box.right() - dial.x() - radius * 2.2,
+                    box.height() * 0.14,
+                )
+            )
+        painter.restore()
+
     def _paint_art(self, painter: QPainter, rect) -> None:  # noqa: ANN001
         """The scene with the pack's pictures; the layout is the drawing's, the pieces are art."""
         art = self.art
@@ -563,6 +683,8 @@ class MockScreen(QWidget):
             self._paint_gun(painter, rect)
         elif self.kind == "racing":
             self._paint_race(painter, rect)
+        elif self.kind == "farm":
+            self._paint_farm(painter, rect)
         elif self.art is not None:
             self._paint_art(painter, rect)
         elif self.kind == "turn_based":
@@ -656,6 +778,11 @@ class ArchetypeCard(QToolButton):
         self.check_label.setProperty("accentGlyph", True)
         self.check_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.check_label.setVisible(False)
+        # the mark keeps its room while it is hidden: a card is as high chosen as not, so the
+        # rows of the grid do not move when another card is chosen (T17.16)
+        keep = self.check_label.sizePolicy()
+        keep.setRetainSizeWhenHidden(True)
+        self.check_label.setSizePolicy(keep)
         head.addWidget(heading, 1)
         head.addWidget(self.check_label)
         body = QLabel(text)
@@ -722,9 +849,17 @@ class ArchetypeCard(QToolButton):
     # window. The generated README lists the controls in full.
     CONTROLS_WIDTH = 280
 
-    def _show_controls(self) -> None:
-        roomy = not self.compact and self.width() >= self.CONTROLS_WIDTH
-        self.controls_label.setVisible(roomy)
+    def _show_controls(self, width: int | None = None) -> None:
+        wide = self.width() if width is None else width
+        roomy = not self.compact and wide >= self.CONTROLS_WIDTH
+        if roomy == self.controls_label.isHidden():
+            self.controls_label.setVisible(roomy)
+
+    def height_at(self, width: int) -> int:
+        """How high the card has to be when it is ``width`` wide, with what it shows at that
+        width (the controls line comes and goes with it)."""
+        self._show_controls(width)
+        return self.grid.heightForWidth(width)
 
     def resizeEvent(self, event) -> None:  # noqa: ANN001, N802 - Qt override
         super().resizeEvent(event)
@@ -838,6 +973,26 @@ class ArchetypePage(WizardPage):
             ],
             self.tr("Controls: Up to accelerate, Down to brake, Left and Right to steer."),
         )
+        self.farm_card = ArchetypeCard(
+            "farm",
+            self.tr("Farm"),
+            self.tr("Grow crops through days and seasons.\nSell them and get to know a village."),
+            [
+                self.tr("Till"),
+                self.tr("Plant"),
+                self.tr("Water"),
+                self.tr("Harvest"),
+                self.tr("Sell"),
+            ],
+            [
+                self.tr("A farmer with tools, energy and a hotbar"),
+                self.tr("Crops that grow by the day, seasons, weather and animals"),
+                self.tr("A shipping bin, a shop and villagers with days of their own"),
+            ],
+            self.tr(
+                "Controls: WASD to walk, Space to use what you hold, E to talk, 1 to 0 to choose."
+            ),
+        )
         self.cards = {
             "turn_based": self.turn_card,
             "arpg": self.arpg_card,
@@ -845,10 +1000,12 @@ class ArchetypePage(WizardPage):
             "shmup": self.shmup_card,
             "run_and_gun": self.run_and_gun_card,
             "racing": self.racing_card,
+            "farm": self.farm_card,
         }
         self.group = QButtonGroup(self)
         self.group.setExclusive(True)
-        # six cards (T16.16): two rows of three in a wide window, else a column that scrolls
+        # seven cards (T16.16, T17.16): rows of four in a very wide window, rows of three in a
+        # wide one (the third row scrolls), else a column that scrolls
         self.cards_scroll = QScrollArea()
         self.cards_scroll.setObjectName("archetypeScroll")
         self.cards_scroll.setWidgetResizable(True)
@@ -862,8 +1019,12 @@ class ArchetypePage(WizardPage):
         for card in self.cards.values():
             self.group.addButton(card)
         self.cards_scroll.setWidget(self.cards_box)
+        self.cards_scroll.installEventFilter(self)
+        self.cards_scroll.viewport().installEventFilter(self)
         layout.addWidget(self.cards_scroll, 1)
-        self._grid_shape: tuple[bool, bool] | None = None
+        self._grid_shape: tuple[int, bool] | None = None
+        # (columns, the width of a card) -> the heights of the rows of whole cards
+        self._whole_rows: dict[tuple[int, int], list[int]] = {}
         self._apply_shape()
         self.same_label = QLabel(
             self.tr(
@@ -886,6 +1047,13 @@ class ArchetypePage(WizardPage):
         self.view_hint.setProperty("muted", True)
         self.view_hint.setVisible(False)
         layout.addWidget(self.view_hint)
+        # an isometric pack (T17.16): said under the cards while the view can be chosen
+        self.iso_hint = QLabel()
+        self.iso_hint.setObjectName("isoHint")
+        self.iso_hint.setWordWrap(True)
+        self.iso_hint.setProperty("muted", True)
+        self.iso_hint.setVisible(False)
+        layout.addWidget(self.iso_hint)
         self.warning_label = QLabel(self.tr(ARPG_WARNING))
         self.warning_label.setObjectName("arpgWarning")
         self.warning_label.setProperty("state", "warning")
@@ -908,31 +1076,116 @@ class ArchetypePage(WizardPage):
 
     @property
     def in_grid(self) -> bool:
-        """True when the cards are two rows of three (else one column)."""
-        return bool(self._grid_shape and self._grid_shape[0])
+        """True when the cards are rows of three or four (else one column)."""
+        return self.columns > 1
 
-    def _apply_shape(self) -> None:
-        """Two rows of three cards in a window ``GRID_WIDTH`` wide and more, with the list
-        of each card left out while two rows of whole cards would not fit; below that width
-        one column of cards, each with its drawing at the left."""
-        window = self.window()
-        wide = (window.width() if window is not None else self.width()) >= GRID_WIDTH
-        compact = wide and self.cards_scroll.viewport().height() < 2 * FULL_CARD_HEIGHT
-        if (wide, compact) == self._grid_shape:
+    @property
+    def columns(self) -> int:
+        """How many cards share a row: 4, 3 or 1."""
+        return self._grid_shape[0] if self._grid_shape else 1
+
+    def _card_width(self, columns: int) -> int:
+        """How wide a card of the grid is. Three rows scroll, so the bar is counted in whether
+        it is there yet or not: what is decided from this width must not change when it comes."""
+        margins = self.cards_grid.contentsMargins()
+        room = self.cards_scroll.width() - margins.left() - margins.right()
+        if -(-len(self.cards) // columns) > 2:
+            room -= self.cards_scroll.verticalScrollBar().sizeHint().width()
+        return max(1, (room - (columns - 1) * self.cards_grid.horizontalSpacing()) // columns)
+
+    def _row_needs(self, columns: int) -> list[int]:
+        """How high every row of the grid has to be for its cards as they are shaped now."""
+        width = self._card_width(columns)
+        cards = list(self.cards.values())
+        return [
+            max(card.height_at(width) for card in cards[first : first + columns])
+            for first in range(0, len(cards), columns)
+        ]
+
+    def _fit(self, needs: list[int], room: int, rows: int = 2) -> bool:
+        """True when the first ``rows`` rows of these heights are in view together."""
+        shown = needs[:rows]
+        return sum(shown) + (len(shown) - 1) * self.cards_grid.verticalSpacing() <= room
+
+    def _lay_out(self, columns: int, compact: bool) -> None:
+        if (columns, compact) == self._grid_shape:
             return
-        self._grid_shape = (wide, compact)
-        columns = GRID_COLUMNS if wide else 1
+        self._grid_shape = (columns, compact)
+        wide = columns > 1
         for card in self.cards.values():
             self.cards_grid.removeWidget(card)
         for index, card in enumerate(self.cards.values()):
             card.set_shape("grid" if wide else "row", compact)
             self.cards_grid.addWidget(card, index // columns, index % columns)
-        for column in range(GRID_COLUMNS):
+        for column in range(WIDE_GRID_COLUMNS):
             self.cards_grid.setColumnStretch(column, 1 if column < columns else 0)
         rows = -(-len(self.cards) // columns)
         for row in range(len(self.cards) + 1):
             # the rows of the grid share the height; under a column the room that is left
             self.cards_grid.setRowStretch(row, int(row < rows if wide else row == rows))
+
+    def _apply_shape(self) -> None:
+        """Rows of four cards in a window ``WIDE_GRID_WIDTH`` wide and more (seven cards in
+        two rows), rows of three from ``GRID_WIDTH`` on (two rows are in view and the third
+        scrolls), with the list of each card left out while two rows of whole cards would not
+        fit; below that width one column of cards, each with its drawing at the left. Whether
+        two rows of whole cards fit is measured on the cards (a card of four in a row is
+        narrower and higher than one of three), once for every width they have."""
+        window = self.window()
+        width = window.width() if window is not None else self.width()
+        columns = 1
+        if width >= GRID_WIDTH:
+            columns = WIDE_GRID_COLUMNS if width >= WIDE_GRID_WIDTH else GRID_COLUMNS
+        wide = columns > 1
+        room = self.cards_scroll.viewport().height()
+        key = (columns, self._card_width(columns))
+        compact = wide and room < 2 * FULL_CARD_HEIGHT
+        if wide and not compact and key in self._whole_rows:
+            compact = not self._fit(self._whole_rows[key], room)
+        self._lay_out(columns, compact)
+        if wide and not compact and key not in self._whole_rows and self.isVisible():
+            self._whole_rows[key] = self._row_needs(columns)  # the cards are whole: measured
+            if not self._fit(self._whole_rows[key], room):
+                self._lay_out(columns, True)
+        self._apply_rows()
+
+    def _apply_rows(self) -> None:
+        """A grid whose rows are not all in view (three rows of three in a window of the
+        default height) keeps two rows in view, which fill the room as the two rows of six
+        cards did (each as high as its cards need, and what is left shared out), and the rest
+        scrolls. Where not even two rows fit, every row is as high as its cards need."""
+        columns = self.columns
+        rows = -(-len(self.cards) // columns)
+        room = self.cards_scroll.viewport().height()
+        gap = self.cards_grid.verticalSpacing()
+        high = [0] * (len(self.cards) + 1)
+        if columns > 1 and rows > 2:
+            needs = self._row_needs(columns)
+            if not self._fit(needs, room, rows) and self._fit(needs, room):
+                spare = room - gap - needs[0] - needs[1]
+                high[0] = needs[0] + spare // 2
+                high[1] = room - gap - high[0]
+                for row in range(2, rows):
+                    high[row] = max(needs[row], (room - gap) // 2)
+        for row, least in enumerate(high):
+            if self.cards_grid.rowMinimumHeight(row) != least:
+                self.cards_grid.setRowMinimumHeight(row, least)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt override
+        if event.type() == QEvent.Type.Resize:
+            # The room of the cards changed: the shape and the rows follow. The scroll area is
+            # as large as the page's layout makes it (the window was resized); its viewport is
+            # lower when a hint under the cards came, and narrower only by the scroll bar,
+            # which must change nothing (the bar comes and goes with what is decided here).
+            if watched is self.cards_scroll:
+                self._apply_shape()
+            elif watched is self.cards_scroll.viewport():
+                self._room_changed(event.oldSize().height(), event.size().height())  # type: ignore[attr-defined]
+        return super().eventFilter(watched, event)
+
+    def _room_changed(self, before: int, now: int) -> None:
+        if before != now:
+            self._apply_shape()
 
     def resizeEvent(self, event) -> None:  # noqa: ANN001, N802 - Qt override
         super().resizeEvent(event)
@@ -940,7 +1193,13 @@ class ArchetypePage(WizardPage):
 
     def showEvent(self, event) -> None:  # noqa: ANN001, N802 - Qt override
         super().showEvent(event)
+        self._whole_rows.clear()  # measured before the page had its font and its style
         self._apply_shape()  # the window is known now
+
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802 - Qt override
+        super().changeEvent(event)
+        if event.type() in (QEvent.Type.FontChange, QEvent.Type.StyleChange):
+            self._whole_rows.clear()  # another font: the cards are measured again
 
     def _update_art(self, state: WizardState) -> None:
         """Draw the cards with the pack's art; one build per catalog."""
@@ -969,8 +1228,10 @@ class ArchetypePage(WizardPage):
         side = self.metroidvania_card.isChecked() or gun
         self.air_warning.setText(self.tr(AIR_WARNING_GUN if gun else AIR_WARNING))
         self.air_warning.setVisible(side and self._no_air)
+        self.iso_hint.setVisible(bool(self._iso_hint) and features.ISOMETRIC_AVAILABLE)
         # what a pack is made for points at its card (T16.02), when the card can be chosen
-        made_for = {"shmup": SHMUP_HINT, "racing": RACING_HINT}.get(self._pack_kind, "")
+        hints = {"shmup": SHMUP_HINT, "racing": RACING_HINT, "farm": FARM_HINT}
+        made_for = hints.get(self._pack_kind, "")
         if made_for and kind_available(self._pack_kind):
             self.view_hint.setText(self.tr(made_for))
             self.view_hint.setVisible(True)
@@ -992,6 +1253,8 @@ class ArchetypePage(WizardPage):
         self._view = pack_view_of(state.catalog)
         self._pack_kind = pack_kind_of(state.catalog)
         self._no_air = bool(missing_air(state.catalog))
+        self._iso_hint = self._isometric_text(state.catalog)
+        self.iso_hint.setText(self._iso_hint)
         self._view_hint = {"side": self.tr(SIDE_HINT), "top": self.tr(TOP_DOWN_HINT)}.get(
             self._view, ""
         )
@@ -1001,9 +1264,22 @@ class ArchetypePage(WizardPage):
         self.cards[archetype].setChecked(True)
         self._update_warning()
         self._apply_shape()
-        self.cards_scroll.ensureWidgetVisible(self.cards[archetype])
+        if self.in_grid:  # the card's row, and no more: the rows of a grid are whole
+            self.cards_scroll.ensureWidgetVisible(self.cards[archetype], 0, 0)
+        else:
+            self.cards_scroll.ensureWidgetVisible(self.cards[archetype])
+
+    def _isometric_text(self, catalog: catalog_mod.Catalog | None) -> str:
+        """*This pack is isometric*, with the diamond of its tiles, when a pack is; else ""."""
+        packs = catalog.packs if catalog is not None else []
+        if not any(catalog_mod.pack_view(pack) == "isometric" for pack in packs):
+            return ""
+        size = options.pack_footprint(catalog)
+        return self.tr(ISO_SIZE_HINT).format(*size) if size else self.tr(ISO_HINT)
 
     def leave(self, state: WizardState) -> bool | None:
+        from rpggen.gui.models.options_model import apply_default_view
+
         state.archetype = self.selected()
         cfg = state.config
         if cfg is not None and cfg.archetype != state.archetype:
@@ -1012,19 +1288,24 @@ class ArchetypePage(WizardPage):
                 cfg.input = config_mod.default_input(new)  # untouched bindings follow
             if cfg.features == config_mod.default_features(old):
                 cfg.features = config_mod.default_features(new)  # and untouched features
-            planned = ("metroidvania", *config_mod.ARCADE_KINDS)
+            planned = ("metroidvania", *config_mod.ARCADE_KINDS, "farm")
             if old in planned or new in planned:
-                # rooms, stages and tracks have options of their own: another kind's are not
-                # taken along
-                fits = config_mod.starter_map_defaults(new)
+                # rooms, stages, tracks and a farm have options of their own: another kind's
+                # are not taken along (the areas of a map seen from above are no default and
+                # stay with such a map)
+                fits = set(config_mod.starter_map_defaults(new))
+                if old in TOP_DOWN_KINDS and new in TOP_DOWN_KINDS:
+                    fits.add("areas")
                 cfg.starter_map = {k: v for k, v in cfg.starter_map.items() if k in fits}
             cfg.archetype = new
+        apply_default_view(state)  # the view of the packs, until somebody chooses (T17.16)
         return None
 
     _has_attack = False
     _no_air = False
     _view = ""
     _view_hint = ""
+    _iso_hint = ""
     _pack_kind = ""
 
 
@@ -1042,14 +1323,17 @@ def pack_view_of(catalog: catalog_mod.Catalog | None) -> str:
 
 
 def pack_kind_of(catalog: catalog_mod.Catalog | None) -> str:
-    """``"shmup"`` or ``"racing"`` when an analysed pack looks made for one (T16.02), else
-    ``""``. Racing wins when the packs say both: a car in sixteen headings is rarer."""
+    """``"shmup"``, ``"racing"`` or ``"farm"`` when an analysed pack looks made for one (T16.02,
+    T17.01), else ``""``. Racing wins when the packs say several: a car in sixteen headings is
+    rarer; a farm comes last, because crops and hens are in many packs."""
     if catalog is None:
         return ""
     found = {mark for pack in catalog.packs for mark in pack.warnings}
     if catalog_mod.VIEW_RACING in found:
         return "racing"
-    return "shmup" if catalog_mod.VIEW_SHMUP in found else ""
+    if catalog_mod.VIEW_SHMUP in found:
+        return "shmup"
+    return "farm" if catalog_mod.VIEW_FARM in found else ""
 
 
 def missing_air(catalog: catalog_mod.Catalog | None) -> list[str]:

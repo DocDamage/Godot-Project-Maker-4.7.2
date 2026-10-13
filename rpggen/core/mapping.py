@@ -106,6 +106,18 @@ def _later_turn(asset: catalog_mod.Asset) -> bool:
     return bool(catalog_mod.turn_name(asset))
 
 
+def _later_season(asset: catalog_mod.Asset) -> bool:
+    """True for a sheet that comes once a season and is not the first of its group (T17.01):
+    the first stands for all, since the game swaps them with the calendar. Without this the
+    ground of a farming pack was its autumn (the first by name), not its spring."""
+    from rpggen.core import classifier
+
+    tags = [str(tag) for tag in asset.detected.get("tags") or []]
+    return bool(catalog_mod.season_name(asset)) and any(
+        tag.startswith(classifier.VARIANT_TAG) for tag in tags
+    )
+
+
 def candidates(
     catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
 ) -> list[catalog_mod.Asset]:
@@ -139,12 +151,14 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
     ]
     if found:
         # a recolour variant (T13.18) never takes a role from the pack's own asset by itself,
-        # and of a tile turned four ways (T17.12) the first turn is the one that is named
+        # of a tile turned four ways (T17.12) the first turn is the one that is named, and of
+        # a sheet that comes once a season (T17.01) the first season is
         ranked = sorted(
             found,
             key=lambda a: (
                 _is_variant(a),
                 _later_turn(a),
+                _later_season(a),
                 a.status != "CONFIRMED",
                 -a.confidence,
                 a.id,

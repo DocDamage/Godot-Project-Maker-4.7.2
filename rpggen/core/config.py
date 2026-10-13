@@ -153,6 +153,13 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
 
 FARM_HOTBAR_SLOTS = 10  # RpgHotbar.SLOTS
 FARM_STARTING_MONEY = 100  # FarmBuild.START_MONEY: five bags of the cheapest seeds, or a sickle
+# The calendar of a farm (T17.16): the days of a season (RpgCalendar.SEASON_LENGTHS) and how
+# long a day is, as the real seconds of a game minute (RpgCalendar.minute_s; a day has 1200
+# of them, so 10, 14 or 20 minutes).
+FARM_SEASON_DAYS = (7, 14, 28)
+FARM_DAYS_PER_SEASON = 28  # RpgCalendar.DAYS_PER_SEASON
+FARM_DAY_LENGTHS = {"short": 0.5, "normal": 0.7, "long": 1.0}
+FARM_DAY_LENGTH = "normal"  # RpgCalendar.MINUTE_S
 STARTER_MAP_SIZE_RANGE = (24, 96)
 STARTER_MAP_COUNTS = {  # key -> (minimum, maximum)
     "buildings": (0, 4),
@@ -204,6 +211,10 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         options["pass_out_loss"] = True
         # fishing (T17.10): false keeps the rod out of the shop of a farm that has a pond
         options["fishing"] = True
+        # the calendar (T17.03, an option since T17.16): the days of a season and of what
+        # length a day is
+        options["days_per_season"] = FARM_DAYS_PER_SEASON
+        options["day_length"] = FARM_DAY_LENGTH
         # the farm's own map (T17.06) beside the village's: how large the field and the plot
         # are, which animal houses stand on it, how much there is to clear, and the added maps
         from rpggen.core import farm_plan

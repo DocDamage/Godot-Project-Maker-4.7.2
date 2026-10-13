@@ -165,9 +165,22 @@ def test_a_long_flow_wraps_instead_of_squeezing_its_steps(qtbot) -> None:
     narrow = diagram.rows_for(240)
     assert len(narrow) >= 2 and [s for row in narrow for s in row] == diagram.steps
     assert diagram.height_for(240) > diagram.height_for(2000)
-    diagram.resize(240, 44)
-    diagram.show()
-    assert diagram.minimumHeight() >= diagram.height_for(240)
+    # a layout asks the diagram how high it is at a width (T17.16: its height no longer
+    # follows its last size), and gives it that height
+    from PySide6.QtWidgets import QVBoxLayout, QWidget
+
+    assert diagram.hasHeightForWidth()
+    assert diagram.heightForWidth(240) == diagram.height_for(240)
+    assert diagram.heightForWidth(2000) == 44
+    holder = QWidget()
+    qtbot.addWidget(holder)
+    box = QVBoxLayout(holder)
+    box.setContentsMargins(0, 0, 0, 0)
+    box.addWidget(diagram)
+    box.addStretch(1)
+    holder.resize(240, 300)
+    holder.show()
+    assert diagram.width() == 240 and diagram.height() >= diagram.height_for(240)
     diagram.grab()
 
 

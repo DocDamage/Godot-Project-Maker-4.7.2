@@ -100,9 +100,49 @@ LAYER_EMPTY = "Layer names cannot be empty."
 LAYER_DUPLICATE = "Layer names must be unique."
 
 
-def missing_deps(features: dict[str, bool], key: str) -> list[str]:
+# What a farm (M17) does not show among its features: nothing of a farm reads ``combat`` (its
+# village has no enemy and its mode no encounter), so the Options page leaves the value as the
+# config has it. And what its demo and its navigation layer need is what they need without it:
+# the village is built and its people walk whether or not anybody fights.
+FARM_HIDDEN = ("combat",)
+# The sentences of the features that mean something else on a farm.
+FARM_FEATURE_TEXT = {
+    "navigation": "Adds a navigation layer to the TileSet so the people of the village walk "
+    "round walls to where their day takes them. Off by default: they appear where they are due.",
+    "demo": "The village with a villager who keeps the shop, a chest, a house and a second "
+    "area. You can remove it later.",
+}
+
+
+def dependencies(archetype: str = "") -> dict[str, tuple[str, ...]]:
+    """``DEPENDENCIES`` as they are for a kind of game: a farm's do not name ``combat``."""
+    if archetype == "farm":
+        return {
+            key: tuple(dep for dep in deps if dep not in FARM_HIDDEN)
+            for key, deps in DEPENDENCIES.items()
+        }
+    return DEPENDENCIES
+
+
+def hidden_features(archetype: str) -> tuple[str, ...]:
+    """The features the Options page does not show for a kind (their values stay)."""
+    if archetype in config_mod.ARCADE_KINDS:
+        return ARCADE_HIDDEN
+    if archetype == "metroidvania":
+        return ("navigation",)
+    return FARM_HIDDEN if archetype == "farm" else ()
+
+
+def feature_text(key: str, archetype: str = "") -> str:
+    """The sentence of a feature, as it is true for the kind."""
+    if archetype == "farm" and key in FARM_FEATURE_TEXT:
+        return FARM_FEATURE_TEXT[key]
+    return FEATURE_INFO[key][2]
+
+
+def missing_deps(features: dict[str, bool], key: str, archetype: str = "") -> list[str]:
     """Features ``key`` needs that are currently switched off."""
-    return [dep for dep in FEATURE_DEPS.get(key, ()) if not features.get(dep, False)]
+    return [dep for dep in dependencies(archetype).get(key, ()) if not features.get(dep, False)]
 
 
 def stages_text(archetype: str, starter_map: dict[str, Any]) -> str:
@@ -192,13 +232,135 @@ def plan_text(archetype: str, stages: dict[str, Any], starter_map: dict[str, Any
     )
 
 
-def effective_features(wanted: dict[str, bool]) -> dict[str, bool]:
+def effective_features(wanted: dict[str, bool], archetype: str = "") -> dict[str, bool]:
     """``wanted`` with every feature whose dependencies are off forced off."""
     out = dict(wanted)
     for key in DEPENDENCIES:
-        if missing_deps(out, key):
+        if missing_deps(out, key, archetype):
             out[key] = False
     return out
+
+
+# ------------------------------------------------------------------------- a farm (T17.16)
+
+FARM_NAME = "Farm"
+
+
+def farm_crop_count(catalog: Any, projection: str = config_mod.PROJECTION_TOP_DOWN) -> int:
+    """How many crops a farm of these packs will have: the ones of the packs that can grow,
+    and the three drawn ones when there are fewer than two (``farm_kit.lacking``)."""
+    from rpggen.core import farm_kit
+
+    own = farm_kit.growing(catalog, projection) if catalog is not None else 0
+    return own + (len(farm_kit.CROP_STAND_INS) if own < farm_kit.MIN_CROPS else 0)
+
+
+def plan_farm(cfg: config_mod.GeneratorConfig, catalog: Any, project: Any = None) -> dict[str, Any]:
+    """What a generation would plan for a farm, without building anything: ``map`` (the farm's
+    own map, ``farm_plan``: the stored one when ``project`` has its farm, with the added maps
+    it does not have yet), ``crops`` and ``people`` (how many), ``stored`` and ``notes``. Raises
+    a ``ValueError`` (the planners' errors) when the options make no farm."""
+    from rpggen.core import farm_plan, orchestrator, people_plan, world_plan
+
+    chosen = cfg.starter_map_options()
+    facts = orchestrator.farm_facts(cfg, catalog) if catalog is not None else farm_plan.facts_of()
+    stored = bool(project) and farm_plan.exists(project)
+    section, notes = farm_plan.for_project(project if stored else None, chosen, cfg.seed, facts)
+    kept = ((world_plan.load(project) or {}).get("farm") or {}) if stored else {}
+    crops = len(kept.get("crops") or []) or farm_crop_count(catalog, cfg.projection)
+    if kept.get("people"):
+        people = len(kept["people"])
+    elif catalog is not None:
+        who = people_plan.plan(chosen, cfg.seed, orchestrator.people_facts(cfg, catalog, {}))
+        people = len(who["people"])
+    else:
+        people = people_plan.DRAWN_PEOPLE
+    return {"map": section, "crops": crops, "people": people, "stored": stored, "notes": notes}
+
+
+def farm_numbers(starter_map: dict[str, Any], crops: int | None = None) -> list[str]:
+    """What the summary says of a farm beside its name: "28 days a season", "a coop", "6
+    crops" (the crops when somebody counted them). Nothing when the options do not fit."""
+    from rpggen.core import farm_plan
+
+    try:
+        opts = farm_plan.normalized(starter_map)
+    except farm_plan.FarmPlanError:
+        return []
+    days = starter_map.get("days_per_season", config_mod.FARM_DAYS_PER_SEASON)
+    houses = farm_plan.ANIMALS[opts["animals"]]
+    out = [f"{days} days a season"]
+    out.append(" and ".join(f"a {house}" for house in houses) if houses else "no animals")
+    if crops is not None:
+        out.append(_count(crops, "crop"))
+    return out
+
+
+def farm_text(plans: dict[str, Any]) -> str:
+    """A planned farm in words, for a dry run: "a farm of 40 x 30 with a plot of 96 cells, a
+    pond, 6 crops, 5 people" (``plans`` is ``plan_farm``'s)."""
+    from rpggen.core import farm_plan
+
+    people = plans["people"]
+    return (
+        f"{farm_plan.summary(plans['map'])}, {_count(plans['crops'], 'crop')}, "
+        f"{people} {'person' if people == 1 else 'people'}"
+    )
+
+
+def default_projection(catalog: Any, archetype: str) -> str:
+    """The view a new project of these packs starts with (T17.16): isometric when the kind
+    has the view, the packs have isometric ground and no ground that is seen from above; from
+    above otherwise."""
+    from rpggen.core import iso_atlas, mapping
+
+    top_down = config_mod.PROJECTION_TOP_DOWN
+    if archetype not in config_mod.ISOMETRIC_KINDS or catalog is None:
+        return top_down
+    if iso_atlas.ground_problem(catalog):
+        return top_down
+    if mapping.assets_with_role(catalog, "GROUND", top_down):
+        return top_down
+    return config_mod.PROJECTION_ISOMETRIC
+
+
+def isometric_problem(catalog: Any) -> str:
+    """Why a project of these packs cannot be isometric ("" when it can): what the run would
+    say (``iso_atlas.check_ground``)."""
+    from rpggen.core import iso_atlas
+
+    return iso_atlas.ground_problem(catalog)
+
+
+def pack_footprint(catalog: Any) -> tuple[int, int] | None:
+    """The diamond of the first isometric pack of a catalog (``catalog.isometric_footprint``),
+    or None when no pack is isometric."""
+    from rpggen.core import catalog as catalog_mod
+
+    for pack in catalog.packs if catalog is not None else []:
+        found = catalog_mod.isometric_footprint(pack)
+        if found is not None:
+            return found[0], found[1]
+    return None
+
+
+FLAT_VEHICLE_NOTE = "drawn from above: it will look flat on an isometric track"
+
+
+def flat_vehicle(catalog: Any, ident: str | None, archetype: str, projection: str) -> bool:
+    """True for the car of an isometric race that is a rotation sheet drawn from above (the
+    sixteen headings of T16.02): it is driven all the same, and looks flat (T17.15)."""
+    from rpggen.core import catalog as catalog_mod
+
+    if archetype != "racing" or projection != config_mod.PROJECTION_ISOMETRIC:
+        return False
+    asset = catalog.asset(ident) if catalog is not None and ident else None
+    if asset is None:
+        return False
+    facets = catalog_mod.effective(asset)
+    headings = facets.get("headings")
+    turned = isinstance(headings, int) and not isinstance(headings, bool) and headings > 0
+    return turned and facets.get("projection") != catalog_mod.PROJECTION_ISOMETRIC
 
 
 def _tiles(value: float) -> str:
@@ -236,10 +398,13 @@ def summarize(
     tile_size: int,
     resolution: tuple[int, int],
     imported_maps: dict[str, Any] | None = None,
+    crops: int | None = None,
 ) -> Summary:
     """The summary of the current (unsaved) options. The demo feature makes the starter map and
     its second area; each building of the starter map has an interior. An imported map chosen as
-    the starter map replaces the starter map and its second area (T12.49)."""
+    the starter map replaces the starter map and its second area (T12.49). A farm (T17.16) has
+    its village as the maps, its own map in words as ``world`` and its numbers (``crops``: how
+    many crops its packs make, when the caller counted them)."""
     if archetype in config_mod.ARCADE_KINDS:
         # a run through stages (M16): no starter map, no imported maps
         on = {**effective_features(features), **dict.fromkeys(ARCADE_HIDDEN, False)}
@@ -278,10 +443,20 @@ def summarize(
             maps.append(f"{buildings} interior" + ("s" if buildings != 1 else ""))
     if extra:
         maps.append(f"{len(extra)} imported map" + ("s" if len(extra) != 1 else ""))
-    systems = [
-        FEATURE_INFO[key][1] for key in FEATURE_INFO if effective_features(features).get(key)
-    ]
-    return Summary(archetype, maps, systems, tile_size, tiles_hint(resolution, tile_size))
+    hidden = hidden_features(archetype)
+    on = effective_features(features, archetype)
+    systems = [FEATURE_INFO[key][1] for key in FEATURE_INFO if on.get(key) and key not in hidden]
+    hint = tiles_hint(resolution, tile_size)
+    if archetype == "farm":
+        from rpggen.core import farm_plan
+
+        try:
+            farm = farm_plan.describe(starter_map)
+        except farm_plan.FarmPlanError:
+            farm = ""
+        numbers = tuple(farm_numbers(starter_map, crops))
+        return Summary(archetype, maps, systems, tile_size, hint, farm, numbers)
+    return Summary(archetype, maps, systems, tile_size, hint)
 
 
 def imported_map_label(imported_map: dict[str, Any]) -> str:
@@ -482,6 +657,14 @@ KIND_PRESETS: dict[str, tuple[str, tuple[str, ...], dict[str, Any]]] = {
         ("racing",),
         {"steering": "absolute", "rivals": 2, "rubber_band": True},
     ),
+    # a farm's (T17.16): days of 20 minutes, no money lost at 2:00 and five times the money
+    "cosy": (
+        "Cosy",
+        ("farm",),
+        {"day_length": "long", "pass_out_loss": False, "starting_money": 500},
+    ),
+    # a season of a week: a year is 28 days
+    "short_year": ("Short year", ("farm",), {"days_per_season": 7}),
 }
 
 
@@ -535,7 +718,7 @@ def apply_preset(
     if isinstance(preset.get("features"), dict):
         merged = dict(cfg.features)
         merged.update({k: bool(v) for k, v in preset["features"].items() if k in merged})
-        changes["features"] = effective_features(merged)
+        changes["features"] = effective_features(merged, cfg.archetype)
     for key in ("resolution", "window_size"):
         value = preset.get(key)
         if isinstance(value, (list, tuple)) and len(value) == 2:

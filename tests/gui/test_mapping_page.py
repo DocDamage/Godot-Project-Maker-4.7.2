@@ -537,3 +537,91 @@ def test_a_custom_slot_is_added_and_removed_as_one_undo_step_each(qtbot) -> None
     page.leave(state)
     page.enter(state)
     assert "music_cave" in page.sound_section.rows
+
+
+# ------------------------------------------------------------------ T17.16: the isometric view
+
+
+def _two_packs(qtbot, packs: tuple[str, ...], archetype: str, projection: str):  # noqa: ANN001, ANN202
+    sources = [SYNTH / pack for pack in packs]
+    state = WizardState(pack_sources=sources, target=None, archetype=archetype)
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    refs = [
+        config.PackRef(opened.pack_id, str(source), "0" * 64, "folder")
+        for opened, source in zip(state.opened_packs, sources, strict=True)
+    ]
+    state.config = config.default_for("T", refs, archetype=archetype)
+    state.config.projection = projection
+    page = MappingPage()
+    qtbot.addWidget(page)
+    page.show()
+    page.enter(state)
+    return page, state
+
+
+def _offered(page: MappingPage, role: str) -> list[str]:
+    page.fill_candidates(role)
+    return [i for i in page.candidate_ids(role) if i not in (NONE_DATA, MORE_DATA)]
+
+
+def test_an_isometric_project_is_offered_only_what_fits_its_view(qtbot) -> None:
+    packs = ("basic16", "iso_tiles")
+    flat, state = _two_packs(qtbot, packs, "turn_based", "top_down")
+    cat = state.catalog
+
+    def isometric(ident: str) -> bool:
+        asset = cat.asset(ident)
+        return asset is not None and catalog.effective(asset).get("projection") == "isometric"
+
+    assert flat.projection == "top_down"
+    ground = _offered(flat, "GROUND")
+    assert ground and not any(isometric(i) for i in ground), "squares for a map seen from above"
+    assert flat.selection_for("GROUND").startswith("basic16.")
+    iso, state = _two_packs(qtbot, packs, "turn_based", "isometric")
+    assert iso.projection == "isometric"
+    ground = _offered(iso, "GROUND")
+    assert ground and all(isometric(i) for i in ground), "diamonds for an isometric one"
+    assert iso.selection_for("GROUND").startswith("iso_tiles.")
+    assert iso.selection_for("BUILDING").startswith("iso_tiles."), "the house drawn at the angle"
+    # a hero drawn for a top-down game walks an isometric map: the packs of diamonds have none
+    assert iso.selection_for("PLAYER") == flat.selection_for("PLAYER")
+    assert iso.selection_for("PLAYER").startswith("basic16.")
+    iso.leave(state)
+    assert state.config.starter["ground"].startswith("iso_tiles.")
+    assert iso.validate(state) == [] and iso.status(state) == ("ok", 0)
+    # More...: the gallery of an isometric project has the same candidates
+    dialog = AssetPickerDialog(
+        state.catalog, "GROUND", lambda asset: None, iso, projection="isometric"
+    )
+    qtbot.addWidget(dialog)
+    assert dialog.candidates and all(isometric(a.id) for a in dialog.candidates)
+    seen: list[AssetPickerDialog] = []
+    iso.run_picker = lambda dialog: bool(seen.append(dialog))  # type: ignore[method-assign]
+    assert not iso.choose("GROUND")
+    assert [a.id for a in seen[0].candidates] == [a.id for a in dialog.candidates]
+
+
+def test_a_car_drawn_from_above_is_said_to_look_flat_on_an_isometric_track(qtbot) -> None:
+    from rpggen.core import options
+
+    page, state = _two_packs(qtbot, ("racer", "iso_tiles"), "racing", "isometric")
+    row = page.rows["VEHICLE"]
+    car = page.selection_for("VEHICLE")
+    assert car is not None and car.startswith("racer."), "sixteen headings, drawn from above"
+    assert not row.note_label.isHidden()
+    assert row.note_label.text() == options.FLAT_VEHICLE_NOTE
+    assert row.note_label.text() == "drawn from above: it will look flat on an isometric track"
+    assert "16 headings" in row.asset_combo.currentText()
+    for other in page.rows.values():
+        assert other is row or other.note_label.isHidden()
+    # the same car on a track seen from above is what it always was
+    flat, _state = _two_packs(qtbot, ("racer", "iso_tiles"), "racing", "top_down")
+    assert flat.rows["VEHICLE"].note_label.isHidden()
+    # ... and a car drawn at the angle (eight turns of it) needs no note
+    own, state = _two_packs(qtbot, ("iso_miniature",), "racing", "isometric")
+    car = own.selection_for("VEHICLE")
+    assert car is not None and catalog.effective(state.catalog.asset(car))["headings"] == 8
+    assert own.rows["VEHICLE"].note_label.isHidden()
+    assert not options.flat_vehicle(state.catalog, car, "racing", "isometric")
+    assert not options.flat_vehicle(state.catalog, None, "racing", "isometric")
+    assert not options.flat_vehicle(None, "x", "racing", "isometric")

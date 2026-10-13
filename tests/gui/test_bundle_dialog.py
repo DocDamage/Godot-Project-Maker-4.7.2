@@ -401,7 +401,10 @@ def test_the_pack_card_says_what_detection_found(qtbot, fake_godot, tmp_path) ->
     workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
     page.model.load(state)
     assert page.model.catalog_marks[str(shooter)] == ("view:shmup",)
-    assert _cards(page)[0]["detail"].endswith("art for 5 engines: Godot's is used")
+    # (the pack of five engines has crops: since T17.16 its card says what T17.01 found)
+    assert _cards(page)[0]["detail"].endswith(
+        "art for 5 engines: Godot's is used · Looks like a farming pack"
+    )
 
 
 def test_a_bundle_that_is_in_the_list_whole_says_it_is_one(qtbot, fake_godot, tmp_path) -> None:

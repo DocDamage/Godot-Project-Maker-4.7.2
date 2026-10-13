@@ -26,6 +26,7 @@ from rpggen.errors import IssueList
 MONEY = ("starting_money", "pass_out_loss")  # T17.08
 FIELD = ("farm_size", "plot", "animals", "difficulty", "added_maps")  # T17.06
 FISHING = ("fishing",)  # T17.10
+CALENDAR = ("days_per_season", "day_length")  # T17.16
 FARM_RECIPES = paths.templates_root() / "builder" / "recipes" / "farm"
 FARM_RUNTIME = paths.templates_root() / "addons" / "rpg_runtime" / "archetypes" / "farm"
 
@@ -47,11 +48,12 @@ def test_the_config_of_a_farm_is_valid_and_its_map_is_the_top_down_one() -> None
     # its own map (T17.06) are keys of their own in the same section
     defaults = config.starter_map_defaults("farm")
     assert {
-        k: v for k, v in defaults.items() if k not in (*MONEY, *FIELD, *FISHING)
+        k: v for k, v in defaults.items() if k not in (*MONEY, *FIELD, *FISHING, *CALENDAR)
     } == config.starter_map_defaults("turn_based")
     assert {k: defaults[k] for k in MONEY} == {"starting_money": 100, "pass_out_loss": True}
     assert {k: defaults[k] for k in FIELD} == farm_plan.defaults()
     assert {k: defaults[k] for k in FISHING} == {"fishing": True}
+    assert {k: defaults[k] for k in CALENDAR} == {"days_per_season": 28, "day_length": "normal"}
     again = config.GeneratorConfig.from_json(data)
     assert again.to_json() == data
     for kind in ("orchard",):
@@ -325,6 +327,35 @@ def test_the_money_options_of_a_farm() -> None:
     # the builder's own default is the config's (a project without the section)
     build = (FARM_RECIPES / "farm_build.gd").read_text(encoding="utf-8")
     assert f"const START_MONEY := {config.FARM_STARTING_MONEY}\n" in build
+
+
+def test_the_calendar_options_of_a_farm() -> None:
+    """T17.16: ``days_per_season`` and ``day_length`` are keys of ``starter_map``; the mode's
+    recipe sets them on the mode, which gives them to the calendar."""
+    cfg = _cfg(starter_map={"days_per_season": 7, "day_length": "long"})
+    data = cfg.to_json()
+    schema.validate("config", data)
+    assert data["starter_map"]["days_per_season"] == 7
+    assert data["starter_map"]["day_length"] == "long"
+    assert config.GeneratorConfig.from_json(data).to_json() == data
+    for wrong in ({"days_per_season": 10}, {"days_per_season": "7"}, {"day_length": "endless"}):
+        with pytest.raises(Exception):  # noqa: B017, PT011
+            schema.validate("config", {**data, "starter_map": {**data["starter_map"], **wrong}})
+    for older in ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing"):
+        assert not set(CALENDAR) & set(config.starter_map_defaults(older)), older
+    # one table in the config, the builder and the runtime
+    from rpggen.core import calendar_math
+
+    assert config.FARM_SEASON_DAYS == calendar_math.SEASON_LENGTHS
+    assert config.FARM_DAYS_PER_SEASON == calendar_math.DAYS_PER_SEASON
+    build = (FARM_RECIPES / "farm_build.gd").read_text(encoding="utf-8")
+    lengths = ", ".join(f'"{k}": {v}' for k, v in config.FARM_DAY_LENGTHS.items())
+    assert f"const DAY_LENGTHS := {{{lengths}}}" in build
+    assert config.FARM_DAY_LENGTHS[config.FARM_DAY_LENGTH] == 0.7  # RpgCalendar.MINUTE_S
+    recipe = (FARM_RECIPES / "mode_recipe.gd").read_text(encoding="utf-8")
+    for name in ("days_per_season", "minute_s"):
+        assert f'root.set("{name}", FarmBuild.{name}(ctx))' in recipe
+        assert f"@export var {name}:" in (FARM_RUNTIME / "farm_mode.gd").read_text("utf-8")
 
 
 def test_the_shop_is_closed_on_the_day_the_shopkeeper_has_off() -> None:

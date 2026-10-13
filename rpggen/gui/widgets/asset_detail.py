@@ -178,6 +178,7 @@ class AssetDetail(QWidget):
         self.edit_ids: Callable[[str], list[str]] = lambda asset_id: [asset_id]
         self.colours_shown: Callable[[str], bool] = lambda first_id: False
         self._colour_first: str | None = None
+        self.variants_kind = catalog_mod.GROUP_COLOURS  # what the row lists: ``group_kind``
         # review mode (T13.01) shows the picture large beside the panel and turns this one off
         self.show_preview = True
         # ... and lends its own view, which then gets the picture, the marks and the playback
@@ -546,7 +547,11 @@ class AssetDetail(QWidget):
             self.collision_combo.setCurrentIndex(max(0, self.collision_combo.findData(profile)))
             self._fill_tilesets(eff.get("tileset"), usage == "tiles")
             self.tags_edit.setText(", ".join(eff.get("tags") or []))
-            self.grid_button.setEnabled(usage in GRID_USAGES)
+            # ... and a picture of an isometric pack has its diamond there (T17.16)
+            isometric = eff.get("projection") == catalog_mod.PROJECTION_ISOMETRIC
+            self.grid_button.setEnabled(
+                usage in GRID_USAGES or (isometric and bool(eff.get("footprint")))
+            )
             self.anim_button.setEnabled(usage == "sprite")
             self.cut_button.setEnabled(usage in ("tiles", "object", "sprite", "ui"))
             self._fill_animations(eff)
@@ -563,8 +568,29 @@ class AssetDetail(QWidget):
         self.variants_box.setVisible(bool(group))
         if not group:
             return
-        self.variants_label.setText(self.tr("Variants ({0})").format(len(group)))
-        names = [catalog_mod.colour_name(a).replace("_", " ") or self.tr("plain") for a in group]
+        # colours are *Variants*; one tile turned is *Turns*, a sheet a season *Seasons* (T17.16)
+        kind = catalog_mod.group_kind(group)
+        self.variants_kind = kind
+        if kind == catalog_mod.GROUP_TURNS:
+            title = self.tr("Turns ({0})")
+            show = self.tr("Show every turn as a card of its own in the grid, or as one card again")
+            select = self.tr("Select every turn of this picture, to change them together")
+        elif kind == catalog_mod.GROUP_SEASONS:
+            title = self.tr("Seasons ({0})")
+            show = self.tr(
+                "Show every season as a card of its own in the grid, or as one card again"
+            )
+            select = self.tr("Select the sheet of every season, to change them together")
+        else:
+            title = self.tr("Variants ({0})")
+            show = self.tr(
+                "Show every colour as a card of its own in the grid, or as one card again"
+            )
+            select = self.tr("Select every colour of this picture, to change them together")
+        self.variants_label.setText(title.format(len(group)))
+        self.variants_show_button.setToolTip(show)
+        self.variants_select_button.setToolTip(select)
+        names = [catalog_mod.member_name(a, kind) or self.tr("plain") for a in group]
         self.variants_names.setText(", ".join(names))
         self.variants_names.setToolTip("\n".join(a.path for a in group))
         self.variants_show_button.setChecked(self.colours_shown(group[0].id))

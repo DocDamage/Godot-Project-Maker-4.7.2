@@ -249,6 +249,28 @@ def test_the_options_page_fits_with_a_world_of_areas(
     assert layout_problems(options) == []
 
 
+def _two_rows_in_view(page) -> None:  # noqa: ANN001 - an ArchetypePage in rows of three
+    """T17.16: seven cards in rows of three. Two rows are whole in the page's room and fill
+    it, wherever the page has scrolled to (the chosen card is brought into view), and the rest
+    scrolls. Under two lines of hints the room is too low for two rows of cards: every row is
+    then as high as its cards need, and the page scrolls a little more."""
+    cards = list(page.cards.values())
+    room = page.cards_scroll.viewport().height()
+    gap = page.cards_grid.verticalSpacing()
+    assert page.columns == 3 and page.cards_box.height() > room
+    tops = sorted({card.geometry().top() for card in cards})
+    assert len(tops) == 3, "three rows"
+    needs = page._row_needs(3)
+    if needs[0] + gap + needs[1] <= room:
+        assert tops[2] - tops[0] == room + gap, "two rows fill the room"
+        assert max(card.geometry().bottom() for card in cards[:6]) < tops[0] + room
+    else:
+        assert [tops[1] - tops[0], tops[2] - tops[1]] == [needs[0] + gap, needs[1] + gap]
+    at = page.cards_scroll.verticalScrollBar().value()
+    chosen = page.cards[page.selected()].geometry()
+    assert at <= chosen.top() and chosen.bottom() <= at + max(room, chosen.height())
+
+
 @pytest.mark.parametrize("size", sorted(SIZES))
 @pytest.mark.parametrize("archetype", dev.LAYOUT_ARCADE)
 def test_the_pages_of_an_arcade_kind_fit(
@@ -277,9 +299,9 @@ def test_the_pages_of_an_arcade_kind_fit(
         found.extend(f"{page.title}: {p}" for p in layout_problems(page))
         if isinstance(page, ArchetypePage):
             assert page.selected() == archetype
-            assert page.in_grid == (size == "default"), "two rows of three from 1000 px on"
-            if page.in_grid:  # both rows are in view at 720 px
-                assert page.cards_box.height() <= page.cards_scroll.viewport().height()
+            assert page.in_grid == (size == "default"), "rows of three from 1000 px on"
+            if page.in_grid:  # two rows are in view at 720 px; the seventh card scrolls
+                _two_rows_in_view(page)
             for card in page.cards.values():
                 assert card.height() >= card.minimumSizeHint().height(), card.key
         if isinstance(page, OptionsPage):
@@ -287,3 +309,169 @@ def test_the_pages_of_an_arcade_kind_fit(
             assert box is not None and not box.isHidden() and box.plan is not None
             assert not box.preview.pixmap().isNull()
     assert not found, f"{archetype}/{size}:\n" + "\n".join(found)
+
+
+# (packs, the kind of game, how its maps are seen): a farm of each view, and the two other
+# kinds of the wizard's isometric paths. The two sample packs of T17.17 are not what these
+# pages are laid out with: the synthetic packs of the tests are.
+M17_CASES = {
+    "farm": (("ranch",), "farm", "top_down"),
+    "farm_iso": (("iso_miniature",), "farm", "isometric"),
+    "rpg_iso": (("iso_tiles",), "turn_based", "isometric"),
+    "race_iso": (("racer", "iso_tiles"), "racing", "isometric"),
+}
+
+
+def _synthetic_state(packs: tuple[str, ...], archetype: str, projection: str, scratch: Path):  # noqa: ANN202
+    """A wizard state analysed from synthetic packs, on the way to its first generation."""
+    from rpggen.core import config
+    from rpggen.core.orchestrator import Callbacks
+    from rpggen.gui import workers
+    from rpggen.gui.state import WizardState
+
+    sources = [dev.REPO_ROOT / "test_packs" / "synthetic" / pack for pack in packs]
+    state = WizardState(project_name="Layout check", pack_sources=sources, archetype=archetype)
+    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
+    refs = [
+        config.PackRef(opened.pack_id, str(source), "0" * 64, "folder")
+        for opened, source in zip(state.opened_packs, sources, strict=True)
+    ]
+    state.config = config.default_for("Layout check", refs, archetype=archetype)
+    state.config.projection = projection
+    state.view_chosen = True
+    state.target = scratch / "layout_project"
+    state.godot_exe = scratch / "godot.exe"
+    return state
+
+
+@pytest.mark.parametrize("size", sorted(SIZES))
+@pytest.mark.parametrize("theme_name", dev.LAYOUT_THEMES)
+@pytest.mark.parametrize("case", sorted(M17_CASES))
+def test_the_pages_of_a_farm_and_of_an_isometric_project_fit(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str, theme_name: str, size: str
+) -> None:
+    """T17.16: seven cards on the Archetype page with its two hints, the roles of the view on
+    the Mapping page, and on the Options page the farm's box over its village's and the View
+    choice in the box of the kind, at the minimum window and at the default one, in both
+    themes. The two flags are on here; they are off in the wizard until the gate."""
+    from rpggen import features
+    from rpggen.gui.pages.archetype_page import ArchetypePage
+    from rpggen.gui.pages.mapping_page import MappingPage
+    from rpggen.gui.pages.options_page import OptionsPage
+
+    monkeypatch.setattr(features, "FARM_AVAILABLE", True)
+    monkeypatch.setattr(features, "ISOMETRIC_AVAILABLE", True)
+    packs, archetype, projection = M17_CASES[case]
+    theme.apply_theme(theme_name, remember=False)
+    state = _synthetic_state(packs, archetype, projection, tmp_path)
+    window = MainWindow(state, default_pages())
+    qtbot.addWidget(window)
+    window.resize(*SIZES[size])
+    window.show()
+    found: list[str] = []
+    for kind in (ArchetypePage, MappingPage, OptionsPage):
+        page = next(p for p in window.pages if isinstance(p, kind))
+        window.show_page(window.pages.index(page))
+        for _ in range(3):
+            QApplication.processEvents()
+        found.extend(f"{page.title}: {p}" for p in layout_problems(page))
+        if isinstance(page, ArchetypePage):
+            assert page.selected() == archetype and len(page.cards) == 7
+            assert page.farm_card.isEnabled()
+            assert page.iso_hint.isHidden() == (projection != "isometric")
+            # (the miniature pack has cars: detection says a racing game fits it too)
+            assert page.view_hint.isHidden() == (case == "rpg_iso")
+            assert page.in_grid == (size == "default"), "rows of three from 1000 px on"
+            if page.in_grid:
+                _two_rows_in_view(page)
+            for card in page.cards.values():
+                assert card.height() >= card.minimumSizeHint().height(), card.key
+                assert card.width() <= page.cards_scroll.viewport().width(), card.key
+        if isinstance(page, MappingPage):
+            assert page.projection == projection
+            flat = [r.row.role for r in page.rows.values() if not r.note_label.isHidden()]
+            assert flat == (["VEHICLE"] if case == "race_iso" else [])
+        if isinstance(page, OptionsPage):
+            assert state.config.projection == projection, "the pages left it as it was"
+            view = page.view_choice
+            assert view is not None and not view.isHidden()
+            assert view.projection() == projection
+            assert view.pad_combo.isHidden() == (projection != "isometric")
+            if archetype == "farm":
+                box = page.farm_box
+                assert not box.isHidden() and box.plan is not None
+                assert not box.preview.pixmap().isNull()
+                assert not page.starter_box.isHidden(), "the village under the farm"
+                assert (box.footprint is None) == (projection != "isometric")
+            elif archetype == "racing":
+                assert page.arcade_box is not None and page.arcade_box.plan is not None
+            else:
+                assert page.farm_box.isHidden() and not page.starter_box.isHidden()
+    assert not found, f"{case}/{theme_name}/{size}:\n" + "\n".join(found)
+
+
+@pytest.mark.parametrize("size", [(1280, 720), (1400, 1000), (1600, 1000)])
+def test_seven_cards_are_two_rows_of_four_in_a_window_1280_wide_and_more(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, size: tuple[int, int]
+) -> None:
+    """T17.16: from 1280 px on the seven cards are in view together, at every height: with
+    their lists when two rows of whole cards fit, without them when they do not."""
+    from rpggen import features
+    from rpggen.gui.pages.archetype_page import ArchetypePage
+
+    monkeypatch.setattr(features, "FARM_AVAILABLE", True)
+    theme.apply_theme("dark", remember=False)
+    state = _synthetic_state(("ranch",), "farm", "top_down", tmp_path)
+    window = MainWindow(state, default_pages())
+    qtbot.addWidget(window)
+    window.resize(*size)
+    window.show()
+    page = next(p for p in window.pages if isinstance(p, ArchetypePage))
+    window.show_page(window.pages.index(page))
+    for _ in range(3):
+        QApplication.processEvents()
+    assert layout_problems(page) == []
+    cards = list(page.cards.values())
+    assert page.columns == 4 and page.selected() == "farm"
+    assert page.cards_box.height() <= page.cards_scroll.viewport().height(), "nothing scrolls"
+    assert not page.cards_scroll.verticalScrollBar().isVisible()
+    assert len({card.geometry().top() for card in cards}) == 2
+    assert len({card.width() for card in cards}) <= 2, "the cards are as wide as each other"
+    for card in cards:
+        assert card.width() >= card.minimumWidth(), card.key
+        assert card.height() >= card.heightForWidth(card.width()), f"{card.key} is clipped"
+
+
+@pytest.mark.parametrize("size", sorted(SIZES))
+@pytest.mark.parametrize("layout", ["farm", dev.ISO_LAYOUT])
+def test_the_pages_fit_with_the_two_samples_of_m17(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, layout: str, size: str
+) -> None:
+    """T17.17: ``dev.layout_state`` lays a farm out with *Green acre* and a turn-based game in
+    the isometric view with *Stone isle*, the packs these games are tried with: every page
+    fits at the minimum window and at the default one."""
+    from rpggen import features, paths
+
+    monkeypatch.setattr(features, "FARM_AVAILABLE", True)
+    monkeypatch.setattr(features, "ISOMETRIC_AVAILABLE", True)
+    theme.apply_theme("dark", remember=False)
+    state = dev.layout_state(layout, tmp_path)
+    kind, _, view = layout.partition(":")
+    assert state.pack_sources == [paths.sample_pack_dir(dev.KIND_SAMPLES[layout])]
+    assert state.archetype == kind and state.config.archetype == kind
+    assert state.config.projection == (view or "top_down")
+    state.view_chosen = True  # the pages leave the view as it was laid out
+    window = MainWindow(state, default_pages())
+    qtbot.addWidget(window)
+    window.resize(*SIZES[size])
+    window.show()
+    QApplication.processEvents()
+    found: list[str] = []
+
+    def check(page_name: str, win: MainWindow) -> None:
+        current = win.welcome if win.welcome_visible else win.current_page
+        found.extend(f"{page_name}: {p}" for p in layout_problems(current))
+
+    dev.show_each_page(window, check)
+    assert not found, f"{layout}/{size}:\n" + "\n".join(found)
+    assert state.config.projection == (view or "top_down"), "the pages left the view as it was"

@@ -1155,6 +1155,44 @@ def colour_group(catalog: Catalog, asset_id: str) -> list[Asset]:
     return [a for a in found if a is not None]
 
 
+GROUP_COLOURS = "colours"
+GROUP_TURNS = "turns"
+GROUP_SEASONS = "seasons"
+
+
+def group_kind(group: list[Asset]) -> str:
+    """What the pictures of a ``colour_group`` are to each other (T17.16): ``"turns"`` when
+    they are one thing turned (``roadTile_001_0`` to ``_3``) and nothing else tells them apart,
+    ``"seasons"`` when they are one sheet a season, else ``"colours"`` (a group that is turned
+    *and* drawn in several colours is one of colours: the audit lists ``red turn 2``)."""
+    from rpggen.core import classifier
+
+    def tags(asset: Asset, prefix: str) -> list[str]:
+        return [str(t) for t in asset.detected.get("tags") or [] if str(t).startswith(prefix)]
+
+    if not group:
+        return GROUP_COLOURS
+    if any(tags(a, classifier.COLOUR_TAG) for a in group):
+        return GROUP_COLOURS
+    seasons = {season_name(a) for a in group} - {""}
+    if len(seasons) >= 2 and not any(turn_name(a) for a in group):
+        return GROUP_SEASONS
+    if all(tags(a, TURN_TAG) for a in group) and not seasons:
+        return GROUP_TURNS
+    return GROUP_COLOURS
+
+
+def member_name(asset: Asset, kind: str = GROUP_COLOURS) -> str:
+    """How a picture of a group is called beside the others, in the words of the group's kind:
+    ``turn 2`` (the first turn is ``turn 0``), ``winter``, ``red`` or ``red turn 2``; empty for
+    the picture of a group of colours that names none."""
+    if kind == GROUP_TURNS:
+        tags = asset.detected.get("tags") or []
+        found = next((str(t)[len(TURN_TAG) :] for t in tags if str(t).startswith(TURN_TAG)), "0")
+        return f"turn {found}"
+    return colour_name(asset).replace("_", " ")
+
+
 def colour_name(asset: Asset) -> str:
     """The colour a variant's name or folder says (``red``, ``black_white``), or its season for
     a sheet that comes once a season, and its turn for a tile turned (``turn_2``,

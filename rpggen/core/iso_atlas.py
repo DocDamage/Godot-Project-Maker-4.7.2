@@ -116,18 +116,26 @@ def project_footprint(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> tup
     return footprint_of(ground) if ground is not None else None
 
 
+# Why a project cannot be isometric (``check_ground``): the wizard says the same of its View
+# choice (T17.16).
+NO_GROUND_REASON = (
+    "the packs have no isometric ground tile, and an isometric project needs one (no ground "
+    "is drawn for this view); add a pack of isometric tiles, give one of its tiles the role "
+    "GROUND in the audit, or leave the projection top_down"
+)
+
+
+def ground_problem(catalog: catalog_mod.Catalog | None) -> str:
+    """Why the packs of ``catalog`` cannot make an isometric project (``NO_GROUND_REASON``), or
+    nothing when they have an isometric ground tile."""
+    return "" if catalog is not None and ground_tiles(catalog) else NO_GROUND_REASON
+
+
 def check_ground(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> None:
     """CAT-002 for an isometric project whose packs have no isometric ground tile: no ground is
     drawn for this view, so there is nothing to lay a map with."""
-    if wanted(cfg) and not ground_tiles(catalog):
-        raise RpgGenError(
-            "CAT-002",
-            file="config",
-            reason="/projection: the packs have no isometric ground tile, and an isometric "
-            "project needs one (no ground is drawn for this view); add a pack of isometric "
-            "tiles, give one of its tiles the role GROUND in the audit, or leave the "
-            "projection top_down",
-        )
+    if wanted(cfg) and ground_problem(catalog):
+        raise RpgGenError("CAT-002", file="config", reason=f"/projection: {NO_GROUND_REASON}")
 
 
 def other_footprints(

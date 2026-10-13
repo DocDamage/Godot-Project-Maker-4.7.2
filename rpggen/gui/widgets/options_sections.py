@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 
 from rpggen.core import config as config_mod
 from rpggen.core import (
+    farm_plan,
     map_preview,
     options,
     room_plan,
@@ -49,6 +50,7 @@ from rpggen.gui.models.options_model import (
     STARTER_SIZE_NAMES,
     FeatureState,
     StarterState,
+    ViewState,
 )
 from rpggen.gui.widgets.areas_table import AreasTable, WorldPreview
 from rpggen.gui.widgets.binding_table import BindingTable
@@ -176,6 +178,14 @@ class FeatureGroups(QWidget):
         for column in range(2):
             self.grid.setColumnStretch(column, 1 if column < columns else 0)
 
+    def set_kind(self, archetype: str) -> None:
+        """The sentence of every feature as it is true for the kind (on a farm the navigation
+        layer is for the people of the village, not for enemies)."""
+        for key, box in self.boxes.items():
+            text = self.tr(options.feature_text(key, archetype))
+            self.descriptions[key].setText(text)
+            box.setToolTip(text)
+
     def set_hidden(self, keys: set[str]) -> None:
         """Features the chosen kind of game does not have (a metroidvania has no pathfinding):
         their check box, sentence and note are not shown."""
@@ -207,10 +217,109 @@ class FeatureGroups(QWidget):
             needs.setVisible(bool(state.needs) and key not in self.hidden)
 
 
+VIEW_CHOICES = (
+    (config_mod.PROJECTION_TOP_DOWN, "From above"),
+    (config_mod.PROJECTION_ISOMETRIC, "Isometric"),
+)
+PAD_CHOICES = (
+    (config_mod.ISO_CONTROLS_SCREEN, "follows the screen"),
+    (config_mod.ISO_CONTROLS_GRID, "follows the diamonds"),
+)
+
+
+class ViewChoice(QWidget):
+    """How the maps of the project are seen (T17.16): *From above* or *Isometric*, and with
+    the isometric view how the pad moves the player. The box of a kind that has the view holds
+    one; it is hidden until ``show_state`` says the view can be chosen. ``prefix`` names its
+    widgets (``starterView``, ``farmView``, ``raceView``)."""
+
+    edited = Signal()
+
+    def __init__(self, prefix: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName(f"{prefix}Choice")
+        self._loading = False
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(2)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        self.view_label = QLabel(self.tr("View"))
+        self.view_combo = QComboBox()
+        self.view_combo.setObjectName(f"{prefix}Combo")
+        self.view_combo.setAccessibleName(self.tr("View"))
+        for value, text in VIEW_CHOICES:
+            self.view_combo.addItem(self.tr(text), value)
+        self.view_label.setBuddy(self.view_combo)
+        self.pad_label = QLabel(self.tr("Pad"))
+        self.pad_combo = QComboBox()
+        self.pad_combo.setObjectName(f"{prefix}Pad")
+        self.pad_combo.setAccessibleName(self.tr("Pad"))
+        for value, text in PAD_CHOICES:
+            self.pad_combo.addItem(self.tr(text), value)
+        self.pad_combo.setToolTip(
+            self.tr(
+                "Follows the screen: up is up. Follows the diamonds: the four directions go "
+                "along the edges of the tiles"
+            )
+        )
+        self.pad_label.setBuddy(self.pad_combo)
+        row.setSpacing(theme.px("space_8"))
+        row.addWidget(self.view_label)
+        row.addWidget(self.view_combo)
+        row.addSpacing(theme.px("space_12"))
+        row.addWidget(self.pad_label)
+        row.addWidget(self.pad_combo)
+        row.addStretch(1)
+        outer.addLayout(row)
+        self.note = _muted("", f"{prefix}Note")
+        self.note.setVisible(False)
+        outer.addWidget(self.note)
+        self.setVisible(False)
+        self.view_combo.currentIndexChanged.connect(self._changed)
+        self.pad_combo.currentIndexChanged.connect(self._changed)
+
+    def projection(self) -> str:
+        return str(self.view_combo.currentData())
+
+    def controls(self) -> str:
+        return str(self.pad_combo.currentData())
+
+    def _changed(self, *_args: object) -> None:
+        self._show_pad()
+        if not self._loading:
+            self.edited.emit()
+
+    def _show_pad(self) -> None:
+        isometric = self.projection() == config_mod.PROJECTION_ISOMETRIC
+        self.pad_label.setVisible(isometric)
+        self.pad_combo.setVisible(isometric)
+
+    def show_state(self, state: ViewState) -> None:
+        """The choice as the model has it: shown or not, what is chosen, whether it can be
+        changed, and why not (the tooltip of the combo and the line under it)."""
+        self._loading = True
+        try:
+            self.setVisible(state.shown)
+            self.view_combo.setCurrentIndex(max(0, self.view_combo.findData(state.projection)))
+            self.pad_combo.setCurrentIndex(max(0, self.pad_combo.findData(state.controls)))
+            self.view_combo.setEnabled(state.can_choose)
+            self.view_combo.setToolTip(
+                state.reason or self.tr("How the maps are seen: on squares, or on diamonds")
+            )
+            self.note.setText(state.reason)
+            self.note.setVisible(bool(state.reason) and state.shown)
+            self._show_pad()
+        finally:
+            self._loading = False
+
+
 class StarterMapBox(QGroupBox):
     """Size, counts and ground set of the generated starter map, and its preview."""
 
     edited = Signal()
+    viewEdited = Signal()  # noqa: N815 - the View or the Pad was chosen
+    VILLAGE_UNUSED = ("npcs", "enemies")  # what a farm's village does not take from its options
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -233,14 +342,16 @@ class StarterMapBox(QGroupBox):
         layout.addWidget(self.size_editor)
         counts = QHBoxLayout()
         self.counts: dict[str, QSpinBox] = {}
+        self.count_labels: dict[str, QLabel] = {}
         for key, label in STARTER_COUNTS:
             low, high = config_mod.STARTER_MAP_COUNTS[key]
             box = spin(low, high)
             box.setObjectName(f"starter_{key}")
             box.setToolTip(self.tr("{0}: {1} to {2}").format(self.tr(label), low, high))
             self.counts[key] = box
+            self.count_labels[key] = QLabel(self.tr(label))
             column = QVBoxLayout()
-            column.addWidget(QLabel(self.tr(label)))
+            column.addWidget(self.count_labels[key])
             column.addWidget(box)
             counts.addLayout(column)
         layout.addLayout(counts)
@@ -252,6 +363,9 @@ class StarterMapBox(QGroupBox):
         ground_row.addWidget(self.ground_label)
         ground_row.addWidget(self.ground_combo, 1)
         layout.addLayout(ground_row)
+        self.view = ViewChoice("starterView")  # T17.16: hidden unless the view can be chosen
+        self.view.edited.connect(self.viewEdited)
+        layout.addWidget(self.view)
         self.reset = reset_button("resetStarter")
         layout.addWidget(self.reset, 0, Qt.AlignmentFlag.AlignRight)
         self.preview = MapPreviewWidget()
@@ -278,6 +392,15 @@ class StarterMapBox(QGroupBox):
         for box in self.counts.values():
             box.valueChanged.connect(self.edited)
         self.ground_combo.currentIndexChanged.connect(self.edited)
+
+    def set_village(self, village: bool) -> None:
+        """A farm's starter map is its village (T17.16): the box says so, and the two counts
+        its builder does not read (the people are planned, and nobody is fought) are not
+        shown; their values stay as the config has them."""
+        self.setTitle(self.tr("Village") if village else self.tr("Starter map"))
+        for key in self.VILLAGE_UNUSED:
+            self.counts[key].setVisible(not village)
+            self.count_labels[key].setVisible(not village)
 
     def fill_ground(self, choices: list[tuple[str, str]]) -> None:
         """The ground set combo lists the GROUND tile sheets; hidden when there is one."""
@@ -670,8 +793,10 @@ class ArcadeBox(QGroupBox):
     the plan in words, and the table of the stages (or tracks) added to a game that exists."""
 
     edited = Signal()
+    viewEdited = Signal()  # noqa: N815 - the View or the Pad was chosen
     PREVIEW_HEIGHT = 150
     PREFIX = ""  # of the widgets' object names: "shmup_stages"
+    FIXED_ONLY: tuple[str, ...] | None = None  # the fields a game that exists fixes (None: all)
     KIND = ""
     FIELDS: tuple[Field, ...] = ()
     ADDED_KEY = "added_stages"
@@ -739,6 +864,10 @@ class ArcadeBox(QGroupBox):
             numbers.addWidget(holder)
         layout.addWidget(number_box)
         layout.addWidget(check_box)
+        # the view (T17.16): hidden unless the kind has one and it can be chosen
+        self.view = ViewChoice(f"{self.PREFIX}View")
+        self.view.edited.connect(self.viewEdited)
+        layout.addWidget(self.view)
         self.reset = reset_button(f"reset_{self.PREFIX}")
         layout.addWidget(self.reset, 0, Qt.AlignmentFlag.AlignRight)
 
@@ -864,7 +993,8 @@ class ArcadeBox(QGroupBox):
             return False
         if not isinstance(name, str) or not name:
             taken = {row["name"] for row in self.added_rows()}
-            number = self.spins[self.COUNT_KEY].value() + self.added.rowCount() + 1
+            first = self.spins[self.COUNT_KEY].value() if self.COUNT_KEY in self.spins else 0
+            number = first + self.added.rowCount() + 1
             while f"{self.ADDED_NOUN} {number}" in taken:
                 number += 1
             name = f"{self.ADDED_NOUN} {number}"
@@ -934,8 +1064,10 @@ class ArcadeBox(QGroupBox):
         self._fit()
 
     def show_state(self, state: StarterState) -> None:
-        for widget in (*self.spins.values(), *self.combos.values(), *self.checks.values()):
-            widget.setEnabled(state.layout_enabled)
+        fields = {**self.spins, **self.combos, **self.checks}
+        for key, widget in fields.items():
+            fixed = self.FIXED_ONLY is None or key in self.FIXED_ONLY
+            widget.setEnabled(state.layout_enabled or not fixed)
         self.reset.setEnabled(state.layout_enabled)
         self.note.setText(state.note)
         self.note.setVisible(state.note_visible)
@@ -1132,6 +1264,159 @@ class RacingBox(ArcadeBox):
 
     def words(self, stages: dict[str, Any]) -> str:
         return track_plan.summary(stages)
+
+
+FARM_LEGEND_NAMES = {
+    "start": "farmer",
+    "building": "building",
+    "door": "door",
+    "bin": "shipping bin",
+    "tillable": "plot",
+    "water": "water",
+    "path": "path",
+    "yard": "yard",
+    "fence": "fence",
+    "gate": "gate",
+    "debris": "to clear",
+    "tree": "tree",
+    "scenery": "scenery",
+    "exit": "way to the village",
+}
+
+
+def _sizes(table: dict[str, tuple[int, int]], cells: bool) -> tuple[tuple[str, str], ...]:
+    """The three sizes of a farm's table as combo choices: "Medium (40 x 30)" for a field,
+    "Medium (96 cells)" for a plot."""
+    out = []
+    for key, (wide, high) in table.items():
+        size = f"{wide * high} cells" if cells else f"{wide} x {high}"
+        out.append((key, f"{key.capitalize()} ({size})"))
+    return tuple(out)
+
+
+class FarmBox(ArcadeBox):
+    """A farm's own map and its days (T17.16): how large the field and the plot are, which
+    animal houses stand on it, how much there is to clear, the days of a season and the length
+    of a day, the money, fishing; the planned farm as a picture (on squares, or on diamonds
+    when the project is isometric) with a legend of what is on it; the plan in words; and the
+    names of the maps added to it. The village is the starter map's box, under this one."""
+
+    PREFIX = "farm"
+    KIND = "farm"
+    PREVIEW_HEIGHT = 190
+    ADDED_KEY = "added_maps"
+    ADDED_NOUN = "Map"
+    COUNT_KEY = ""
+    MAX_ADDED = farm_plan.MAX_ADDED
+    # what the stored plan and the game that was started fix; the rest is read on every run
+    FIXED_ONLY = ("farm_size", "plot", "animals", "difficulty", "starting_money")
+    FIELDS = (
+        (
+            "combo",
+            "farm_size",
+            "Farm",
+            "How large the field of the farm is, in tiles",
+            _sizes(farm_plan.SIZES, cells=False),
+        ),
+        (
+            "combo",
+            "plot",
+            "Plot",
+            "How much of the field can be tilled at the start",
+            _sizes(farm_plan.PLOTS, cells=True),
+        ),
+        (
+            "combo",
+            "animals",
+            "Animals",
+            "The animal houses on the farm, each with its yard",
+            (("none", "None"), ("coop", "A coop"), ("coop_and_barn", "A coop and a barn")),
+        ),
+        (
+            "combo",
+            "difficulty",
+            "Difficulty",
+            "How much there is to clear, and how many days the crops take",
+            DIFFICULTY_CHOICES,
+        ),
+        (
+            "combo",
+            "days_per_season",
+            "Days a season",
+            "How many days a season has: a year is four seasons",
+            tuple((days, str(days)) for days in reversed(config_mod.FARM_SEASON_DAYS)),
+        ),
+        (
+            "combo",
+            "day_length",
+            "Length of a day",
+            "How long a day from 6:00 to 2:00 lasts",
+            (
+                ("short", "Short (10 minutes)"),
+                ("normal", "Normal (14 minutes)"),
+                ("long", "Long (20 minutes)"),
+            ),
+        ),
+        ("spin", "starting_money", "Starting money", "The money of a new game", (0, 99999)),
+        ("check", "fishing", "Fishing", "A rod is sold where the farm has a pond", None),
+        (
+            "check",
+            "pass_out_loss",
+            "Passing out costs money",
+            "Staying up to 2:00 costs a tenth of the money as well as half the energy",
+            None,
+        ),
+    )
+    LEGEND = tuple(
+        (key, FARM_LEGEND_NAMES[key], map_preview.FARM_COLORS[key])
+        for key in map_preview.FARM_ORDER
+    )
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setTitle(self.tr("Farm"))
+        self.setObjectName("farmBox")
+        self.plans: dict[str, Any] | None = None
+        self.footprint: tuple[int, int] | None = None  # the diamond of an isometric project
+        self.added_label.setText(self.tr("Added maps"))
+        self.add_button.setText(self.tr("Add a map"))
+        self.added.setToolTip(self.tr("The name of a map beside the farm: a beach, a forest"))
+        self.added_note = _muted(
+            self.tr(
+                "Added maps are names for now: they are kept with the plan of the farm, and "
+                "the maps themselves are not built yet."
+            ),
+            "farmAddedNote",
+        )
+        box = self.layout()
+        assert box is not None
+        box.addWidget(self.added_note)
+        self.preview.setAccessibleName(
+            self.tr("The planned farm: its house, its plot, its water and the way to the village")
+        )
+
+    def set_footprint(self, footprint: tuple[int, int] | None) -> None:
+        """The diamond the picture is drawn on (None: squares, a farm seen from above)."""
+        self.footprint = footprint
+
+    def picture(self, stages: dict[str, Any]):  # noqa: ANN201
+        return map_preview.render_farm(stages, scale=6, footprint=self.footprint)
+
+    def words(self, stages: dict[str, Any]) -> str:
+        return farm_plan.summary(stages)
+
+    def show_farm(self, plans: dict[str, Any] | None, error: str = "") -> None:
+        """The planned farm (``options.plan_farm``) as its picture and in words, or why there
+        is none. The legend lists what the picture has."""
+        self.plans = plans
+        self.show_plan(plans["map"] if plans else None, error)
+        if plans is None:
+            return
+        words = [options.farm_text(plans), *(str(note) for note in plans.get("notes", []))]
+        self.summary.setText("  ".join(words))
+        counts = map_preview.farm_markers(plans["map"])
+        for key, item in self.legend_items.items():
+            item.setVisible(counts.get(key, 0) > 0)
 
 
 class ImportedMapsBox(QGroupBox):

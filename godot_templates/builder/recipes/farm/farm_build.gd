@@ -56,6 +56,9 @@ const START_SEEDS := 15
 ## The money of a new game unless `starter_map.starting_money` says otherwise
 ## (config.FARM_STARTING_MONEY).
 const START_MONEY := 100
+## `starter_map.day_length` -> the real seconds of a game minute (`config.FARM_DAY_LENGTHS`): a
+## day of 1200 minutes lasts 10, 14 or 20 minutes.
+const DAY_LENGTHS := {"short": 0.5, "normal": 0.7, "long": 1.0}
 ## The bin and the bed: a pack's own is known by these (farm_kit.BIN, farm_kit.BED).
 const BIN_ROLES: Array[String] = ["DECORATION", "ITEM", "BUILDING"]
 const BIN_TAG := "bin"
@@ -119,6 +122,16 @@ static func starting_money(ctx: BuildContext) -> int:
 ## False when staying up to 2:00 costs no money (`starter_map.pass_out_loss`).
 static func pass_out_loss(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(option(ctx, "pass_out_loss", true), true)
+
+## The days of a season (`starter_map.days_per_season`: 7, 14 or 28; anything else is 28).
+static func days_per_season(ctx: BuildContext) -> int:
+	var days := JsonUtil.to_int(option(ctx, "days_per_season", RpgCalendar.DAYS_PER_SEASON), RpgCalendar.DAYS_PER_SEASON)
+	return RpgCalendar.season_length(days)
+
+## The real seconds of a game minute (`starter_map.day_length`: `short`, `normal` or `long`).
+static func minute_s(ctx: BuildContext) -> float:
+	var length := JsonUtil.to_str(option(ctx, "day_length", "normal"))
+	return JsonUtil.to_float(DAY_LENGTHS.get(length, RpgCalendar.MINUTE_S), RpgCalendar.MINUTE_S)
 
 ## What a new game of a farm starts with, before what every game starts with: a hoe, a can and
 ## fifteen seeds of the first crop of the plan (it grows in spring).

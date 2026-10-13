@@ -210,6 +210,9 @@
             "stages": {
               "type": "string"
             },
+            "farm": {
+              "type": "string"
+            },
             "rooms": {
               "type": "array",
               "items": {

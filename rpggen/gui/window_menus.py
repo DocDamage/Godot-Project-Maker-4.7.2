@@ -278,8 +278,8 @@ class WindowMenus:
             from rpggen.gui.models import project_model
 
             # the Archetype page starts on the state's kind when the walk reaches it, and the
-            # walk goes on as soon as the page has its pack
-            self.state.archetype = project_model.sample(key).archetype  # type: ignore[attr-defined]
+            # walk goes on as soon as the page has its pack; the sample's view goes with it
+            project_model.try_as(self.state, project_model.sample(key))  # type: ignore[attr-defined]
         self.state.sample_run = True  # type: ignore[attr-defined]
         self._walk_to_generate = True  # the walk goes on when the pack has been read
         if not (page.try_sample(key=key) if key else page.try_sample()):

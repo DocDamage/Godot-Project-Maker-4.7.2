@@ -613,3 +613,524 @@ def test_the_stages_of_a_game_that_exists_are_kept_but_one_can_be_added(
     assert box.add_row("Encore") and len(box.plan["list"]) == 5
     page.leave(state)
     assert state.config.starter_map == {"added_stages": [{"name": "Finale"}, {"name": "Encore"}]}
+
+
+# ------------------------------------------------------------------ T17.16: a farm, and the view
+
+SYNTH = Path(__file__).resolve().parents[2] / "test_packs" / "synthetic"
+
+
+def _cat(pack: str):  # noqa: ANN202 - a catalog
+    from rpggen.core import archive, catalog, inventory
+
+    opened = archive.open_pack(SYNTH / pack, set())
+    return catalog.assemble([(opened, inventory.build_inventory(opened))], None, [])[0]
+
+
+def _flags(monkeypatch, farm: bool = True, isometric: bool = True) -> None:
+    from rpggen import features
+
+    monkeypatch.setattr(features, "FARM_AVAILABLE", farm)
+    monkeypatch.setattr(features, "ISOMETRIC_AVAILABLE", isometric)
+
+
+def _kind_page(
+    qtbot, kind: str, pack: str = "", projection: str = "top_down", **starter
+) -> tuple[OptionsPage, WizardState]:
+    cfg = config.default_for("T", [REF], archetype=kind)
+    cfg.starter_map = dict(starter)
+    cfg.projection = projection
+    state = WizardState(config=cfg, archetype=kind, catalog=_cat(pack) if pack else None)
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.resize(828, 900)
+    page.show()
+    page.enter(state)
+    return page, state
+
+
+def test_what_a_farm_needs_of_its_features_and_what_it_says_of_itself() -> None:
+    """The demo of a farm does not need combat (T17.04 left the contradiction to this card):
+    nothing of a farm reads the feature, so it is hidden and its value kept."""
+    farm = config.default_features("farm")
+    assert farm["combat"] is False and farm["demo"] is True
+    assert options.missing_deps(farm, "demo") == ["combat"], "the rule of the other kinds"
+    assert options.missing_deps(farm, "demo", "farm") == []
+    assert options.effective_features(farm, "farm") == farm
+    assert options.effective_features(farm)["demo"] is False
+    assert options.dependencies("farm")["demo"] == ("tilesets", "dialogue", "save")
+    assert options.dependencies("farm")["navigation"] == ()
+    assert options.dependencies("arpg") is options.DEPENDENCIES
+    assert options.hidden_features("farm") == ("combat",)
+    assert options.hidden_features("racing") == options.ARCADE_HIDDEN
+    assert options.hidden_features("metroidvania") == ("navigation",)
+    assert options.hidden_features("turn_based") == ()
+    assert "people of the village" in options.feature_text("navigation", "farm")
+    assert options.feature_text("navigation", "arpg") == options.FEATURE_INFO["navigation"][2]
+    # the numbers of the summary and the sentence of a dry run
+    defaults = config.starter_map_defaults("farm")
+    assert options.farm_numbers(defaults, 6) == ["28 days a season", "no animals", "6 crops"]
+    chosen = {**defaults, "days_per_season": 7, "animals": "coop_and_barn"}
+    assert options.farm_numbers(chosen) == ["7 days a season", "a coop and a barn"]
+    assert options.farm_numbers({**defaults, "animals": "coop"}, 1)[1:] == ["a coop", "1 crop"]
+    assert options.farm_numbers({"plot": "huge"}) == []
+    summary = options.summarize("farm", farm, defaults, 16, (640, 360), None, 6)
+    assert summary.numbers == ("28 days a season", "no animals", "6 crops")
+    assert summary.world == "a medium farm with a medium plot"
+    assert summary.maps == ["Starter map", "Second area", "1 interior"], "its village"
+    assert "Combat" not in summary.systems and "Demo scene" in summary.systems
+    cfg = config.default_for("T", [REF], archetype="farm")
+    plans = options.plan_farm(cfg, None)
+    text = options.farm_text(plans)
+    assert text == "a farm of 40 x 30 with a plot of 96 cells, a pond, 3 crops, 3 people"
+    assert options.farm_text({**plans, "people": 1}).endswith("3 crops, 1 person")
+
+
+def test_a_farm_has_its_box_over_the_box_of_its_village(qtbot, monkeypatch) -> None:
+    _flags(monkeypatch)
+    page, state = _kind_page(qtbot, "farm")
+    before = state.config.to_json()
+    farm, village = page.farm_box, page.starter_box
+    assert not farm.isHidden() and not village.isHidden()
+    assert farm.title() == "Farm" and village.title() == "Village"
+    body = farm.parentWidget().layout()
+    assert body.indexOf(farm) < body.indexOf(village), "the farm first, its village under it"
+    assert page.world_box.isHidden() and page.arcade_box is None
+    assert not page.layers_box.isHidden(), "the village is a map of layers"
+    # the village: the two counts its builder does not read are not shown
+    for key in ("npcs", "enemies"):
+        assert village.counts[key].isHidden() and village.count_labels[key].isHidden()
+    for key in ("buildings", "chests", "decorations", "ground_patches"):
+        assert not village.counts[key].isHidden()
+    # the farm: every option of the config has its widget, with a name and a tooltip
+    fields = {**farm.spins, **farm.combos, **farm.checks}
+    own = set(config.starter_map_defaults("farm")) - set(config.starter_map_defaults())
+    assert set(fields) | {"added_maps"} == own
+    for key, widget in fields.items():
+        assert widget.objectName() == f"farm_{key}" and widget.toolTip(), key
+    assert farm.combos["farm_size"].currentText() == "Medium (40 x 30)"
+    assert farm.combos["plot"].currentText() == "Medium (96 cells)"
+    assert farm.combos["days_per_season"].currentData() == 28
+    assert farm.combos["day_length"].currentText() == "Normal (14 minutes)"
+    assert farm.spins["starting_money"].value() == 100
+    assert farm.checks["fishing"].isChecked() and farm.checks["pass_out_loss"].isChecked()
+    # combat is not shown, and the demo does not need it: the page changes nothing by itself
+    assert page.feature_boxes["combat"].isHidden()
+    demo = page.feature_boxes["demo"]
+    assert not demo.isHidden() and demo.isEnabled() and demo.isChecked()
+    assert page.feature_needs["demo"].isHidden()
+    assert "keeps the shop" in page.features.descriptions["demo"].text()
+    assert not page.feature_boxes["navigation"].isHidden()
+    assert page.feature_boxes["navigation"].isEnabled()
+    assert page.validate(state) == []
+    page.leave(state)
+    assert state.config.to_json() == before, "a farm that is only looked at stays what it was"
+    assert state.config.features["combat"] is False and state.config.features["demo"] is True
+    # the summary names the kind with its numbers, the farm in words and the village's maps
+    assert page.summary.archetype_label.text() == (
+        "<b>Farm</b> · 28 days a season · no animals · 3 crops"
+    )
+    assert page.summary.farm_label.text() == "Farm: a medium farm with a medium plot"
+    assert page.summary.maps_label.text() == "Village: Starter map, Second area, 1 interior"
+    assert "Combat" not in [chip.text() for chip in page.summary.chips]
+    # the features go back to a farm's own defaults, not to those of a game with battles
+    page.feature_boxes["demo"].setChecked(False)
+    page.features_reset.click()
+    assert page.feature_boxes["demo"].isChecked()
+    page.leave(state)
+    assert state.config.features == config.default_features("farm")
+    # another kind has the box of the starter map as it always was
+    other, _state = _kind_page(qtbot, "turn_based")
+    assert other.farm_box.isHidden() and other.starter_box.title() == "Starter map"
+    assert not other.starter_box.counts["enemies"].isHidden()
+    assert not other.feature_boxes["combat"].isHidden() and other.summary.farm_label.isHidden()
+
+
+def test_the_options_of_a_farm_follow_its_box(qtbot, monkeypatch) -> None:
+    from rpggen.core import farm_plan, map_preview
+
+    _flags(monkeypatch)
+    page, state = _kind_page(qtbot, "farm")
+    box = page.farm_box
+    plans = box.plans
+    assert plans is not None and box.plan == plans["map"]
+    assert plans["map"] == farm_plan.plan({}, state.config.seed), "the plan a run would make"
+    assert not box.preview.pixmap().isNull()
+    assert box.summary.text() == options.farm_text(plans)
+    assert box.summary.text().startswith("a farm of 40 x 30 with a plot of 96 cells, a pond")
+    # the legend names what the picture has, in the picture's colours
+    assert list(box.legend_labels) == list(map_preview.FARM_ORDER)
+    assert box.legend_labels["tillable"].text() == "plot"
+    assert box.legend_labels["exit"].text() == "way to the village"
+    assert not box.legend_items["water"].isHidden() and box.legend_items["fence"].isHidden()
+    box.combos["animals"].setCurrentIndex(box.combos["animals"].findData("coop_and_barn"))
+    assert [b["kind"] for b in box.plan["animal_houses"]] == ["coop", "barn"]
+    assert not box.legend_items["fence"].isHidden() and not box.legend_items["gate"].isHidden()
+    assert "a coop, a barn" in box.summary.text()
+    assert page.summary.archetype_label.text().endswith("· a coop and a barn · 3 crops")
+    box.combos["days_per_season"].setCurrentIndex(box.combos["days_per_season"].findData(14))
+    box.combos["day_length"].setCurrentIndex(box.combos["day_length"].findData("short"))
+    box.combos["farm_size"].setCurrentIndex(box.combos["farm_size"].findData("large"))
+    box.spins["starting_money"].setValue(40)
+    box.checks["fishing"].setChecked(False)
+    assert box.plan["size"] == [48, 36]
+    assert "14 days a season" in page.summary.archetype_label.text()
+    assert page.summary.farm_label.text() == "Farm: a large farm with a medium plot, a coop, a barn"
+    # the village beside it is still the starter map's
+    page.starter_box.counts["buildings"].setValue(3)
+    assert page.summary.maps_label.text().endswith("3 interiors")
+    # added maps: names, with a note that says they are not built
+    assert box.added_label.text() == "Added maps" and "not built yet" in box.added_note.text()
+    assert box.add_row() and box.add_row("Beach")
+    assert box.added_rows() == [{"name": "Map 1"}, {"name": "Beach"}]
+    assert box.plan["added_maps"] == ["Map 1", "Beach"]
+    assert page.validate(state) == []
+    page.leave(state)
+    assert state.config.starter_map == {
+        "animals": "coop_and_barn",
+        "days_per_season": 14,
+        "day_length": "short",
+        "farm_size": "large",
+        "starting_money": 40,
+        "fishing": False,
+        "buildings": 3,
+        "added_maps": [{"name": "Map 1"}, {"name": "Beach"}],
+    }
+    config.GeneratorConfig.from_json(state.config.to_json())
+    # the farm's reset leaves the village alone, and the village's the farm
+    page.enter(state)
+    assert page.farm_box.combos["animals"].currentData() == "coop_and_barn"
+    page.farm_box.reset.click()
+    page.leave(state)
+    assert state.config.starter_map == {"buildings": 3}
+    page.enter(state)
+    page.farm_box.combos["plot"].setCurrentIndex(0)
+    page.starter_reset.click()
+    page.leave(state)
+    assert state.config.starter_map == {"plot": "small"}
+    # two maps of one name are no farm: said on the page, and Next waits
+    page.enter(state)
+    page.farm_box.add_row("Beach")
+    page.farm_box.add_row("beach")
+    assert page.farm_box.plan is None and "two added maps" in page.farm_box.preview.text()
+    assert [i.message for i in page.validate(state)] == ["Farm: two added maps are called beach."]
+
+
+def test_the_presets_of_a_farm(qtbot, monkeypatch) -> None:
+    _flags(monkeypatch)
+    assert options.kind_preset_keys("farm") == ["cosy", "short_year"]
+    assert options.kind_preset_keys("turn_based") == [] and "cosy" in options.KIND_PRESETS
+    assert {"Cosy", "Short year"} <= set(options.builtin_labels())
+    page, state = _kind_page(qtbot, "farm", animals="coop", buildings=2)
+    items = [page.preset_combo.itemText(i) for i in range(page.preset_combo.count())]
+    assert items[1:6] == ["Everything", "Minimal", "Just the tilesets", "Cosy", "Short year"]
+    assert page.apply_preset_named("__builtin__:cosy")
+    box = page.farm_box
+    assert box.combos["day_length"].currentData() == "long"
+    assert not box.checks["pass_out_loss"].isChecked()
+    assert box.spins["starting_money"].value() == 500
+    assert box.combos["animals"].currentData() == "coop", "the rest of the page stays"
+    assert page.apply_preset_named("__builtin__:short_year")
+    assert box.combos["days_per_season"].currentData() == 7
+    assert "7 days a season" in page.summary.archetype_label.text()
+    page.leave(state)
+    assert state.config.starter_map == {
+        "animals": "coop",
+        "buildings": 2,
+        "day_length": "long",
+        "pass_out_loss": False,
+        "starting_money": 500,
+        "days_per_season": 7,
+    }
+    assert not page.apply_preset_named("__builtin__:bionic"), "a preset of another kind"
+    other, _state = _kind_page(qtbot, "arpg")
+    labels = [other.preset_combo.itemText(i) for i in range(other.preset_combo.count())]
+    assert "Cosy" not in labels and not other.apply_preset_named("__builtin__:cosy")
+
+
+def test_the_view_is_offered_only_with_the_flag_and_for_a_kind_that_has_it(
+    qtbot, monkeypatch
+) -> None:
+    _flags(monkeypatch, isometric=False)
+    page, state = _kind_page(qtbot, "turn_based", "iso_tiles")
+    assert all(choice.isHidden() for choice in page.view_choices.values())
+    before = state.config.to_json()
+    page.leave(state)
+    assert state.config.to_json() == before
+    _flags(monkeypatch)
+    for kind, holder in (
+        ("turn_based", "starterMap"),
+        ("arpg", "starterMap"),
+        ("farm", "farmBox"),
+        ("racing", "racingBox"),
+    ):
+        page, _state = _kind_page(qtbot, kind, "iso_tiles")
+        mine = page.view_choice
+        assert mine is not None and not mine.isHidden(), kind
+        assert mine.parentWidget().objectName() == holder, "in the box of the kind"
+        others = [c for c in set(page.view_choices.values()) if c is not mine]
+        assert all(choice.isHidden() for choice in others)
+        texts = [mine.view_combo.itemText(i) for i in range(mine.view_combo.count())]
+        assert texts == ["From above", "Isometric"]
+        assert mine.view_combo.accessibleName() == "View" and mine.view_combo.toolTip()
+        assert mine.view_label.buddy() is mine.view_combo
+    for kind in ("metroidvania", "shmup", "run_and_gun"):
+        page, _state = _kind_page(qtbot, kind, "iso_tiles")
+        assert page.view_choice is None
+        assert all(choice.isHidden() for choice in page.view_choices.values()), kind
+
+
+def test_the_view_sets_the_projection_and_the_pad(qtbot, monkeypatch) -> None:
+    from rpggen.core import iso_atlas
+    from rpggen.gui.pages.archetype_page import ArchetypePage
+
+    _flags(monkeypatch)
+    # chosen for the pack: the Archetype page leaves an isometric pack isometric
+    cfg = config.default_for("T", [REF])
+    state = WizardState(config=cfg, catalog=_cat("iso_tiles"))
+    kinds = ArchetypePage()
+    qtbot.addWidget(kinds)
+    kinds.enter(state)
+    kinds.leave(state)
+    assert state.config.projection == "isometric" and not state.view_chosen
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.resize(828, 900)
+    page.show()
+    page.enter(state)
+    view = page.view_choice
+    assert view.projection() == "isometric" and view.view_combo.isEnabled()
+    assert not view.pad_combo.isHidden() and view.controls() == "screen"
+    pads = [view.pad_combo.itemText(i) for i in range(view.pad_combo.count())]
+    assert pads == ["follows the screen", "follows the diamonds"]
+    assert view.pad_combo.accessibleName() == "Pad" and view.pad_combo.toolTip()
+    assert view.note.isHidden()
+    view.pad_combo.setCurrentIndex(1)
+    page.leave(state)
+    assert state.config.projection == "isometric" and state.config.iso_controls == "grid"
+    assert state.config.to_json()["iso_controls"] == "grid"
+    assert not state.view_chosen, "the pad is no choice of the view"
+    page.enter(state)
+    view.view_combo.setCurrentIndex(0)  # From above: the pad has nothing to follow
+    assert view.pad_combo.isHidden() and view.pad_label.isHidden()
+    page.leave(state)
+    assert state.config.projection == "top_down" and state.view_chosen
+    assert "projection" not in state.config.to_json()
+    kinds.enter(state)
+    kinds.leave(state)
+    assert state.config.projection == "top_down", "what was chosen by hand stays"
+    page.enter(state)
+    view.view_combo.setCurrentIndex(1)
+    page.leave(state)
+    assert state.config.projection == "isometric"
+    # a pack of squares: the view stays From above, with the reason the run would give
+    page, state = _kind_page(qtbot, "turn_based", "basic16")
+    view = page.view_choice
+    assert not view.isHidden() and view.projection() == "top_down"
+    assert not view.view_combo.isEnabled()
+    assert view.view_combo.toolTip() == iso_atlas.NO_GROUND_REASON
+    assert not view.note.isHidden() and view.note.text() == iso_atlas.NO_GROUND_REASON
+    assert "no isometric ground tile" in view.note.text()
+    assert not page.model.set_view("isometric", "screen"), "and it cannot be set"
+    assert page.model.draft.projection == "top_down"
+    page.leave(state)
+    assert state.config.projection == "top_down"
+    # a config that asks for the view its packs no longer have goes back to squares
+    page, state = _kind_page(qtbot, "turn_based", "basic16", projection="isometric")
+    assert page.view_choice.projection() == "top_down"
+    page.leave(state)
+    assert state.config.projection == "top_down"
+
+
+def test_the_view_is_fixed_once_the_project_exists(qtbot, monkeypatch, tmp_path: Path) -> None:
+    from rpggen import paths
+    from rpggen.gui.models.options_model import VIEW_FIXED_TEXT
+
+    _flags(monkeypatch)
+    target = tmp_path / "game"
+    page, state = _kind_page(qtbot, "turn_based", "iso_tiles", projection="isometric")
+    state.target = target
+    page.enter(state)
+    assert page.view_choice.view_combo.isEnabled(), "no project yet: the view can be chosen"
+    saved = paths.from_posix_rel(paths.CONFIG, target)  # a generation wrote the project
+    saved.parent.mkdir(parents=True)
+    saved.write_text("{}", encoding="utf-8")
+    page.enter(state)
+    view = page.view_choice
+    assert not view.isHidden() and view.projection() == "isometric"
+    assert not view.view_combo.isEnabled()
+    assert view.view_combo.toolTip() == VIEW_FIXED_TEXT
+    assert view.note.text() == "the view of a generated project cannot be changed"
+    assert view.pad_combo.isEnabled(), "the pad is read on every run"
+    view.pad_combo.setCurrentIndex(1)
+    assert not page.model.set_view("top_down", "grid")
+    page.leave(state)
+    assert state.config.projection == "isometric" and state.config.iso_controls == "grid"
+    # the same for a project that was opened to be generated again, seen from above
+    other, opened = _kind_page(qtbot, "farm", "iso_tiles")
+    opened.regenerating = True
+    other.enter(opened)
+    assert not other.view_choice.view_combo.isEnabled()
+    assert other.view_choice.projection() == "top_down"
+
+
+def test_the_preview_of_a_farm_is_drawn_from_its_plan_in_both_views(qtbot, monkeypatch) -> None:
+    from rpggen.core import farm_plan, map_preview
+
+    farm = farm_plan.plan({"animals": "coop"}, 7)
+    flat = map_preview.render_farm(farm, scale=6)
+    assert flat.size == (40 * 6, 30 * 6)
+    diamond = map_preview.farm_diamond(6, (180, 104))
+    assert diamond == (12, 6) and map_preview.farm_diamond(8) == (16, 8)
+    iso = map_preview.render_farm(farm, scale=6, footprint=(180, 104))
+    assert iso.width == (40 + 30) * diamond[0] // 2 and iso.height > (40 + 30) * diamond[1] // 2
+
+    def colours(picture) -> set:  # noqa: ANN001
+        return {colour for _count, colour in picture.getcolors(maxcolors=100000)}
+
+    for kind in ("tillable", "water", "path", "building", "door", "bin", "yard", "exit", "start"):
+        colour = map_preview.FARM_COLORS[kind]
+        assert colour in colours(flat) and colour in colours(iso), kind
+    assert map_preview.FARM_ISO_BACKGROUND in colours(iso), "the corners beside the diamond"
+    # a cell is where its diamond is: the house, the plot and the way out
+    cells = map_preview.farm_cells(farm)
+    for cell in (tuple(farm["tillable"][0]), tuple(farm["exit"]["cell"]), (0, 0), (39, 29)):
+        (ox, oy), _size = map_preview._iso_frame(
+            [(x, y) for y in range(30) for x in range(40)], diamond, diamond[1] // 2 + 1, 1
+        )
+        x, y = map_preview.iso_math.cell_to_screen(cell[0], cell[1], *diamond)
+        assert map_preview.farm_cell_at(farm, ox + x, oy + y, 6, (180, 104)) == cell
+        front = [(cell[0] + dx, cell[1] + dy) for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1))]
+        if not any(cells.get(c) in map_preview.FARM_RAISED for c in front):
+            # nothing that stands up is on it or before it: its own colour is in its middle
+            assert (
+                iso.getpixel((int(ox + x), int(oy + y)))
+                == map_preview.FARM_COLORS[cells.get(cell, "ground")]
+            )
+    assert map_preview.farm_cell_at(farm, 13, 20, 6) == (2, 3)
+    # the box draws the one or the other by the view of the project
+    _flags(monkeypatch)
+    page, state = _kind_page(qtbot, "farm", "iso_miniature", projection="isometric")
+    box = page.farm_box
+    assert page.view_choice.projection() == "isometric"
+    assert box.footprint == (64, 32) and box.plan is not None
+    on_diamonds = box._pixmap.toImage()
+    assert on_diamonds.width() > on_diamonds.height() * 1.5
+    page.view_choice.view_combo.setCurrentIndex(0)
+    assert box.footprint is None
+    on_squares = box._pixmap.toImage()
+    assert (on_squares.width(), on_squares.height()) == (40 * 6, 30 * 6)
+    assert box.plan["size"] == [40, 30], "the same plan in both"
+    page.leave(state)
+    assert state.config.projection == "top_down"
+
+
+def test_the_village_of_a_farm_and_an_isometric_map_in_the_starter_preview() -> None:
+    import io
+
+    from PIL import Image
+
+    from rpggen.core import map_preview
+    from rpggen.core.orchestrator import Callbacks
+    from rpggen.gui.widgets import map_preview as widget
+
+    chosen = {**config.starter_map_defaults("farm"), "enemies": 3, "npcs": 4}
+    plan = map_preview.plan(chosen, 5, {}, "farm")
+    village = map_preview.village_of_farm(plan)
+    assert len(plan["enemies"]) == 3 and village["enemies"] == []
+    assert village["npcs"] == plan["npcs"][:1] and village["chests"] == plan["chests"]
+    # the preview of an isometric project is its map on diamonds, made to fit
+    cat = _cat("iso_tiles")
+    root = SYNTH / "iso_tiles"
+
+    def resolver(asset):  # noqa: ANN001, ANN202
+        return root / asset.path.split("/", 3)[3]
+
+    def picture(projection: str, archetype: str = "turn_based") -> Image.Image:
+        png, _warnings, _interiors = widget.render_png(
+            cat, resolver, chosen, 5, archetype, "", "", 2, projection, callbacks=Callbacks()
+        )
+        return Image.open(io.BytesIO(png))
+
+    iso = picture("isometric")
+    art = map_preview.load_art(cat, resolver, projection="isometric")
+    assert art.footprint == (60, 34) and art.ground is not None
+    # (64 cells across of 30 px each are 1,920 px: the pictures were made smaller first)
+    assert 0.9 * widget.ISO_PREVIEW_WIDTH <= iso.width <= widget.ISO_PREVIEW_WIDTH
+    assert iso.height < iso.width, "a diamond, wider than high"
+    flat = picture("top_down")
+    assert flat.size == (40 * 16 * 2, 24 * 16 * 2), "squares, as it was"
+    # a pack of large diamonds is made smaller, with its origins
+    small = map_preview.fitted_art(art, (40, 24), 600)
+    assert small.footprint is not None and small.footprint[0] <= 20
+    assert small.ground is not None and small.ground.width < art.ground.width
+    assert id(small.ground) in small.origins and len(small.decorations) == len(art.decorations)
+    shown = map_preview.render(village, small, 1)
+    assert shown.width <= 660
+    assert map_preview.fitted_art(art, (40, 24), 100000) is art
+    assert map_preview.fitted_art(map_preview.Art(), (40, 24), 10).footprint is None
+
+
+def test_a_farm_that_exists_shows_its_stored_plan_with_what_is_then_fixed(
+    qtbot, monkeypatch, tmp_path: Path
+) -> None:
+    from rpggen import paths
+    from rpggen.core import crop_plan, farm_plan, people_plan, world_plan
+
+    _flags(monkeypatch)
+    target = tmp_path / "game"
+    crops = crop_plan.plan({}, 9, {})
+    crops["people"] = people_plan.plan({"people": 2}, 9, {})["people"]
+    assert len(crops["people"]) == 2
+    world = crop_plan.world(crops, 9)
+    stored = farm_plan.plan({"animals": "coop", "added_maps": [{"name": "Beach"}]}, 9)
+    world_plan.save(target, farm_plan.attach(world, stored))
+    for rel in (farm_plan.MAP_FILE, "game/maps/starter_map.tscn"):
+        (target / rel).parent.mkdir(parents=True, exist_ok=True)
+        (target / rel).write_text("", encoding="utf-8")
+    saved = paths.from_posix_rel(paths.CONFIG, target)
+    saved.parent.mkdir(parents=True, exist_ok=True)
+    saved.write_text("{}", encoding="utf-8")
+    assert farm_plan.exists(target)
+    cfg = config.default_for("T", [REF], archetype="farm")
+    cfg.seed = 1234  # another seed than the farm was planned with: the stored plan is shown
+    cfg.starter_map = {"animals": "coop", "added_maps": [{"name": "Beach"}], "buildings": 2}
+    state = WizardState(config=cfg, archetype="farm", target=target, regenerating=True)
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.resize(828, 900)
+    page.show()
+    page.enter(state)
+    box = page.farm_box
+    assert page.model.farm_locked and page.model.starter_locked
+    assert not box.note.isHidden() and "This project has its farm" in box.note.text()
+    assert box.plan == stored and box.plans["stored"], "the plan of the project, not a new one"
+    assert (box.plans["crops"], box.plans["people"]) == (len(crops["crops"]), 2)
+    assert not box.preview.pixmap().isNull()
+    for key in ("farm_size", "plot", "animals", "difficulty"):
+        assert not box.combos[key].isEnabled(), f"{key} is fixed"
+    assert not box.spins["starting_money"].isEnabled() and not box.reset.isEnabled()
+    for key in ("days_per_season", "day_length"):
+        assert box.combos[key].isEnabled(), f"{key} is read on every run"
+    assert box.checks["fishing"].isEnabled() and box.checks["pass_out_loss"].isEnabled()
+    assert not page.starter_box.counts["buildings"].isEnabled(), "the village exists too"
+    assert not box.remove_row(), "a map the plan has stays"
+    assert box.add_row("Forest") and box.plan["added_maps"] == ["Beach", "Forest"]
+    box.combos["days_per_season"].setCurrentIndex(box.combos["days_per_season"].findData(7))
+    box.checks["pass_out_loss"].setChecked(False)
+    page.leave(state)
+    assert state.config.starter_map == {
+        "animals": "coop",
+        "buildings": 2,
+        "added_maps": [{"name": "Beach"}, {"name": "Forest"}],
+        "days_per_season": 7,
+        "pass_out_loss": False,
+    }
+    # a preset of the kind sets what can still change and leaves what is fixed
+    page.enter(state)
+    assert page.apply_preset_named("__builtin__:cosy")
+    page.leave(state)
+    assert state.config.starter_map["day_length"] == "long"
+    assert "starting_money" not in state.config.starter_map, "the game was started with 100"
+    assert state.config.starter_map["animals"] == "coop"
+    assert state.config.starter_map["buildings"] == 2

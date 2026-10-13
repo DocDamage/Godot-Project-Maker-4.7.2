@@ -151,6 +151,11 @@ and the saves it had.
   `FARM_WEATHER_SUN`, `_RAIN`, `_STORM`, `_SNOW`, `FARM_FORECAST`, `FARM_HUD_DATE`,
   `FARM_HARVESTED`, `FARM_SOLD`.
 
+* **The length of a season and of a day are options of a farm** (T17.16). `RpgFarmMode` has
+  `days_per_season` (28) and `minute_s` (0.7) and gives both to the calendar it asks for
+  (`set_calendar`); the mode's recipe sets them from `starter_map.days_per_season` (7, 14, 28)
+  and `starter_map.day_length` (`short`, `normal`, `long`: 0.5, 0.7 or 1.0 seconds a game
+  minute). The mode of a farm with the default options is the scene it was.
 * **The farm's own map and the people in it** (T17.06, T17.09). `RpgWaterSource`
   (`archetypes/farm/water_source.gd`): the pond or the well of a farm, a solid thing that
   fills the watering can with `interact` (`fill_can`); `use` with the can held fills it at a

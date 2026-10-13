@@ -29,6 +29,7 @@ from rpggen.gui.models.options_model import (  # noqa: F401 - tests import DEFAU
     SEED_MAX,
     OptionsModel,
     OptionValues,
+    ViewState,
 )
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
@@ -100,6 +101,9 @@ class OptionsPage(WizardPage):
         }
         for arcade in self.arcade_boxes.values():
             arcade.setVisible(False)
+        # a farm (T17.16): its own map above its village, which is the starter map's box
+        self.farm_box = sections.FarmBox()
+        self.farm_box.setVisible(False)
         self.imported_box = sections.ImportedMapsBox()
         self.screen_box = sections.ScreenBox()
         self.layers_box = sections.LayersBox()
@@ -108,6 +112,7 @@ class OptionsPage(WizardPage):
         self.advanced = sections.AdvancedOptions()
         column: tuple[QWidget, ...] = (
             self.features,
+            self.farm_box,
             self.starter_box,
             self.world_box,
             *self.arcade_boxes.values(),
@@ -162,6 +167,17 @@ class OptionsPage(WizardPage):
         for arcade in self.arcade_boxes.values():
             arcade.edited.connect(self._on_starter_edited)
             arcade.reset.clicked.connect(self._reset_starter)
+        self.farm_box.edited.connect(self._on_starter_edited)
+        self.farm_box.reset.clicked.connect(self._reset_farm)
+        # the View of the kinds that can be isometric: in the box of the kind (T17.16)
+        self.view_choices: dict[str, sections.ViewChoice] = {
+            "turn_based": self.starter_box.view,
+            "arpg": self.starter_box.view,
+            "farm": self.farm_box.view,
+            "racing": self.arcade_boxes["racing"].view,
+        }
+        for holder in (self.starter_box, self.farm_box, self.arcade_boxes["racing"]):
+            holder.viewEdited.connect(self._on_view_edited)
         self.imported_box.edited.connect(self._on_imported_edited)
         self.solid_button.clicked.connect(self.edit_solid_values)
         for editor in (self.resolution, self.window_editor):
@@ -257,13 +273,17 @@ class OptionsPage(WizardPage):
         side = self.model.is_side
         arcade = self.arcade_box
         self.starter_box.setVisible(not self.model.planned)
+        self.starter_box.set_village(self.model.is_farm)
+        self.farm_box.setVisible(self.model.is_farm)
         self.world_box.setVisible(side)
         for box in self.arcade_boxes.values():
             box.setVisible(box is arcade)
         if self.model.planned:
             self.imported_box.setVisible(False)
-        hidden = set(options.ARCADE_HIDDEN) if arcade is not None else set()
-        self.features.set_hidden({"navigation"} if side else hidden)
+        # what the kind's builders do not read is not shown: pathfinding in rooms, the demo
+        # and pathfinding in stages, combat on a farm
+        self.features.set_kind(self.model.kind)
+        self.features.set_hidden(set(options.hidden_features(self.model.kind)))
         self.layers_box.set_fixed(side)
         # a stage is not a map of layers: an arcade kind builds its own
         self.layers_box.setVisible(arcade is None)
@@ -274,6 +294,31 @@ class OptionsPage(WizardPage):
         if self.draft is None or not self.model.is_arcade:
             return None
         return self.arcade_boxes.get(self.draft.archetype)
+
+    @property
+    def view_choice(self) -> sections.ViewChoice | None:
+        """The View choice of the draft's kind (in the kind's own box); None for a kind that
+        is never isometric."""
+        return self.view_choices.get(self.model.kind) if self.draft is not None else None
+
+    def _show_view(self) -> None:
+        """Shows the View choice of the kind as the model has it, and hides the others."""
+        mine = self.view_choice
+        state = self.model.view_state()
+        for choice in set(self.view_choices.values()):
+            choice.show_state(state if choice is mine else ViewState(False))
+
+    def _on_view_edited(self) -> None:
+        mine = self.view_choice
+        if self._loading or self.draft is None or mine is None:
+            return
+        if not self.model.set_view(mine.projection(), mine.controls()):
+            return
+        self._show_view()
+        self._schedule_preview()
+        self._show_world()
+        self.refresh_summary()
+        self.changed.emit()
 
     def _load_draft(self) -> None:
         """Shows the draft in the widgets."""
@@ -301,6 +346,9 @@ class OptionsPage(WizardPage):
                     self.model.starter_locked,
                     self.model.world_names(),
                 )
+                if self.model.is_farm:
+                    self.farm_box.load(draft.starter_map_options(), self.model.built_added_maps())
+            self._show_view()
             chosen = self.model.chosen_imported()
             if chosen is not None:
                 self.imported_box.load(chosen)
@@ -387,14 +435,19 @@ class OptionsPage(WizardPage):
             return
         self.starter_box.show_state(state)
         self.imported_starter.setEnabled(state.imported_enabled)
+        if self.model.is_farm:
+            self.farm_box.show_state(self.model.farm_state())
 
     def starter_values(self) -> dict[str, Any]:
         """The starter map options as the widgets show them (the starter world's for a
-        metroidvania, the stages' or the tracks' for an arcade kind)."""
+        metroidvania, the stages' or the tracks' for an arcade kind, the village's and the
+        farm's own for a farm)."""
         if self.model.is_side:
             return self.world_box.values()
         if (arcade := self.arcade_box) is not None:
             return arcade.values()
+        if self.model.is_farm:
+            return {**self.starter_box.values(), **self.farm_box.values()}
         return self.starter_box.values()
 
     def _on_starter_edited(self, *_args: object) -> None:
@@ -416,6 +469,20 @@ class OptionsPage(WizardPage):
             arcade.show_plan(*self.model.stages_preview(self.starter_values()))
             return
         self.starter_box.show_world(self.model.world_preview(self.starter_values()))
+        if self.model.is_farm:  # the farm's own map, on squares or on the project's diamonds
+            self.farm_box.set_footprint(self.model.farm_footprint())
+            self.farm_box.show_farm(*self.model.farm_preview(self.starter_values()))
+
+    def _reset_farm(self) -> None:
+        """The farm's own options back to the defaults; the village's stay."""
+        if self.draft is None:
+            return
+        self._loading = True
+        try:
+            self.farm_box.load(self.model.starter_defaults())
+        finally:
+            self._loading = False
+        self._on_starter_edited()
 
     def _reset_starter(self) -> None:
         if self.draft is None:
@@ -451,6 +518,7 @@ class OptionsPage(WizardPage):
             self.draft.archetype,
             values["ground"],
             "",
+            self.draft.projection,
         )
 
     def reroll(self) -> None:

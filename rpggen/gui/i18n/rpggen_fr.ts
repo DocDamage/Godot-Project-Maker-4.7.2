@@ -398,6 +398,51 @@ A championship of tracks.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Farm</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Grow crops through days and seasons.
+Sell them and get to know a village.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Till</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Plant</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Water</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Harvest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sell</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A farmer with tools, energy and a hotbar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Crops that grow by the day, seasons, weather and animals</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A shipping bin, a shop and villagers with days of their own</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Controls: WASD to walk, Space to use what you hold, E to talk, 1 to 0 to choose.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>You can generate the other kind later into a new project; saving, dialogue, inventory and menus are the same.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -663,6 +708,30 @@ A championship of tracks.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Turns ({0})</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show every turn as a card of its own in the grid, or as one card again</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select every turn of this picture, to change them together</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Seasons ({0})</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show every season as a card of its own in the grid, or as one card again</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select the sheet of every season, to change them together</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Variants ({0})</source>
         <translation type="unfinished"></translation>
     </message>
@@ -781,7 +850,23 @@ A championship of tracks.</source>
 <context>
     <name>AssetListModel</name>
     <message>
+        <source>{0} turns</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0} seasons</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>{0} colour variants</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>a turn of {0}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>a season of {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1499,6 +1584,33 @@ Details: {0}</source>
     </message>
 </context>
 <context>
+    <name>FarmBox</name>
+    <message>
+        <source>Farm</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Added maps</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a map</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The name of a map beside the farm: a beach, a forest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Added maps are names for now: they are kept with the plan of the farm, and the maps themselves are not built yet.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The planned farm: its house, its plot, its water and the way to the village</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>FindProfileDialog</name>
     <message>
         <source>Find profile online</source>
@@ -1683,6 +1795,46 @@ Details: {0}</source>
     </message>
     <message>
         <source>Detected candidates</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The diamond a tile of this pack stands on, in pixels (wide, high). Every tile of a project stands on the same one: a tile on another is left out of the tile set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Diamond width</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Diamond height</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Diamond w / h</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>How many diamonds this object stands on (columns, rows): it blocks them, and a building has its door before the middle of its front</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stands on: columns</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stands on: rows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stands on</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A diamond of {0} × {1} px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stands on {0} × {1} diamonds of {2} × {3} px</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2041,6 +2193,14 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>{0} turns</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0} seasons</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>(no asset)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2050,6 +2210,14 @@ Details: {0}</source>
     </message>
     <message>
         <source>plain</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0}  ({1})</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>{0}  (season: {1})</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2178,6 +2346,10 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Farm</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>{0} (yours)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2220,6 +2392,14 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Farm: {0}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The options of the farm do not fit together</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>The options do not fit together</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2233,6 +2413,10 @@ Details: {0}</source>
     </message>
     <message>
         <source>Maps: {0}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Village: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2578,6 +2762,14 @@ Details: {0}</source>
     </message>
     <message>
         <source>Looks like a racing pack</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Looks like a farming pack</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Isometric tiles, {0} x {1}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3288,6 +3480,10 @@ What you set for their assets in the audit is not used any more.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Village</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Automatic (the first ground set)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3586,6 +3782,25 @@ What you set for their assets in the audit is not used any more.</source>
     </message>
     <message>
         <source>Most pack licences do not allow the art to be public: if you will push this project to a public site, leave the pack art out.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ViewChoice</name>
+    <message>
+        <source>View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pad</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Follows the screen: up is up. Follows the diamonds: the four directions go along the edges of the tiles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>How the maps are seen: on squares, or on diamonds</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

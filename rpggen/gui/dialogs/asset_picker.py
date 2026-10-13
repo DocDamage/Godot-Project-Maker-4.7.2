@@ -31,13 +31,16 @@ class AssetPickerDialog(QDialog):
         role: str,
         resolver: PathResolver,
         parent: QWidget | None = None,
+        *,
+        projection: str = mapping.TOP_DOWN,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("assetPicker")
         self.setWindowTitle(self.tr("Choose an asset for {0}").format(labels.role_label(role)))
         self.resize(760, 520)
         self.picked: str | None = None
-        self.candidates = mapping.candidates(catalog, role)
+        # an isometric project is shown what fits its view (T17.16)
+        self.candidates = mapping.candidates(catalog, role, projection)
         subset = dataclasses.replace(catalog, assets=self.candidates, objects=catalog.objects)
         layout = QVBoxLayout(self)
         self.grid = AssetGrid()

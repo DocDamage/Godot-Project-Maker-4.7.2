@@ -17,6 +17,7 @@ from rpggen.gui import theme, thumbnails, workers
 from rpggen.gui.widgets.flow_layout import FlowLayout
 
 DEBOUNCE_MS = 200
+ISO_PREVIEW_WIDTH = 1600  # px: the picture of an isometric map is no wider (180 px diamonds)
 
 
 def render_png(
@@ -28,13 +29,21 @@ def render_png(
     ground_id: str,
     building_id: str,
     scale: int,
+    projection: str = "top_down",
     *,
     callbacks: Callbacks,
 ) -> tuple[bytes, list[str], int]:
     """Worker function: (PNG bytes of the preview, the planner's warnings, how many interiors
-    the houses of the plan get)."""
-    art = map_preview.load_art(catalog, resolver, ground_id, building_id)
+    the houses of the plan get). An isometric project (T17.16) is drawn as diamonds, with its
+    pictures made smaller first when the map would be wider than ``ISO_PREVIEW_WIDTH``; the
+    village of a farm is drawn as it is built, without enemies."""
+    art = map_preview.load_art(catalog, resolver, ground_id, building_id, projection)
     plan = map_preview.plan(options, seed, map_preview.building_info(art), archetype)
+    if archetype == "farm":
+        plan = map_preview.village_of_farm(plan)
+    if art.footprint is not None:
+        art = map_preview.fitted_art(art, plan["size"], ISO_PREVIEW_WIDTH)
+        scale = 1
     image = map_preview.render(plan, art, scale)
     out = io.BytesIO()
     image.save(out, format="PNG")
@@ -135,7 +144,8 @@ class MapPreviewWidget(QWidget):
         self.image_label.setEnabled(False)
 
     def request(self, *job: Any) -> None:
-        """Render soon: (catalog, resolver, options, seed, archetype, ground_id, building_id)."""
+        """Render soon: (catalog, resolver, options, seed, archetype, ground_id, building_id)
+        and, for a project that is not seen from above, its projection."""
         self.reroll_button.setEnabled(True)
         self.image_label.setEnabled(True)
         self._job = job
@@ -152,7 +162,8 @@ class MapPreviewWidget(QWidget):
             return
         self._generation += 1
         generation = self._generation
-        catalog, resolver, options, seed, archetype, ground_id, building_id = self._job
+        catalog, resolver, options, seed, archetype, ground_id, building_id = self._job[:7]
+        projection = self._job[7] if len(self._job) > 7 else "top_down"
         worker = workers.Worker(
             render_png,
             catalog,
@@ -163,6 +174,7 @@ class MapPreviewWidget(QWidget):
             ground_id,
             building_id,
             2,
+            projection,
         )
 
         def done(result: tuple[bytes, list[str], int]) -> None:

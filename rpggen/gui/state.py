@@ -41,6 +41,9 @@ class WizardState:
     # the welcome view's Try the sample (T15.22): the run started with the default options,
     # without the user having seen the pages in between (not drafted)
     sample_run: bool = False
+    # the View of the Options page (T17.16) was chosen by hand, or came with a draft: a new
+    # project otherwise starts in the view its packs are drawn for (not drafted)
+    view_chosen: bool = False
 
 
 def draft_path(target: Path) -> Path:
@@ -88,6 +91,7 @@ def apply_draft(state: WizardState, data: dict[str, Any]) -> catalog_mod.Catalog
     state.placeholders = set(data.get("placeholders", []))
     if data.get("config"):
         state.config = config_mod.GeneratorConfig.from_json(data["config"])
+        state.view_chosen = True  # the view of the draft is what was decided then
     previous = catalog_mod.Catalog.from_json(data["catalog"]) if data.get("catalog") else None
     return previous
 

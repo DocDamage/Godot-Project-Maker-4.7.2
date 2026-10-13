@@ -621,3 +621,69 @@ def test_an_unknown_archetype_is_a_usage_error(capsys) -> None:
         cli.main(["generate", "--pack", str(SYNTH / "shooter"), "--archetype", "pinball"])
     assert raised.value.code == 2
     assert "--archetype" in capsys.readouterr().err
+
+
+# ------------------------------------------------------------------------ a farm (T17.16)
+
+
+@pytest.mark.parametrize(
+    ("pack", "projection"),
+    [("ranch", "top_down"), ("iso_miniature", "isometric")],
+)
+def test_a_dry_run_of_a_farm_describes_its_plan(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys, pack: str, projection: str
+) -> None:
+    """T17.16: ``--archetype farm`` and ``--projection isometric``, and the dry run says what
+    farm would be planned beside its village."""
+    import re
+
+    _no_godot_no_staging(monkeypatch)
+    code, doc, err = _call(
+        capsys,
+        "generate",
+        "--pack",
+        str(SYNTH / pack),
+        "--archetype",
+        "farm",
+        "--projection",
+        projection,
+        "--target",
+        str(tmp_path / "game"),
+        "--dry-run",
+    )
+    assert code == 0, err
+    summary = doc["summary"]
+    assert summary["archetype"] == "farm"
+    text = r"a farm of 40 x 30 with a plot of 96 cells, a (pond|well), \d+ crops, \d+ people"
+    assert re.fullmatch(text, summary["map"]["farm"]), summary["map"]
+    # the starter map is the village: nobody to fight, and the demo's villager alone
+    assert summary["map"]["counts"]["enemies"] == 0 and summary["map"]["counts"]["npcs"] == 1
+    assert re.search(r"^farm:\s+" + text + "$", err, re.MULTILINE), err
+    assert re.search(r"^village:\s+40 x 24 tiles; ", err, re.MULTILINE), err
+    assert not (tmp_path / "game").exists()
+
+
+def test_the_crops_and_the_people_of_a_dry_run_are_those_of_the_packs() -> None:
+    """Four crops of the ``ranch`` can grow; a pack without one gets the three drawn ones, and
+    a village without an NPC three people who share the stand-in."""
+    from rpggen.core import archive, catalog, config, inventory, options
+
+    def plans(pack: str) -> dict:
+        opened = archive.open_pack(SYNTH / pack, set())
+        cat = catalog.assemble([(opened, inventory.build_inventory(opened))], None, [])[0]
+        ref = config.PackRef(pack, pack, "0" * 64, "folder")
+        return options.plan_farm(config.default_for("F", [ref], archetype="farm"), cat)
+
+    ranch = plans("ranch")
+    assert ranch["crops"] == 4 and ranch["people"] == 3 and not ranch["stored"]
+    assert options.farm_text(ranch).endswith(", 4 crops, 3 people")
+    assert plans("basic16")["crops"] == 3, "the drawn turnip, carrot and berry"
+    none = options.plan_farm(config.default_for("F", [], archetype="farm"), None)
+    assert (none["crops"], none["people"]) == (3, 3)
+
+
+def test_an_unknown_projection_is_a_usage_error(capsys) -> None:
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["generate", "--pack", str(SYNTH / "ranch"), "--projection", "sideways"])
+    assert raised.value.code == 2
+    assert "--projection" in capsys.readouterr().err

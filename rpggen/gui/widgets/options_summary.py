@@ -31,6 +31,7 @@ ARCHETYPE_NAMES = {
     "arpg": "Action RPG",
     "metroidvania": "Metroidvania",
     **options.ARCADE_NAMES,
+    "farm": options.FARM_NAME,
 }
 # an arcade kind's numbers are words of the plan: each is translated as a whole
 PLAN_NOUN = {"racing": "Tracks: {0}"}
@@ -46,7 +47,11 @@ class OptionsSummary(QGroupBox):
         self.archetype_label = self._line("summaryArchetype")
         self.maps_label = self._line("summaryMaps")
         self.tiles_label = self._line("summaryTiles")
-        for label in (self.archetype_label, self.maps_label, self.tiles_label):
+        # a farm's own map in words, over the maps of its village (T17.16)
+        self.farm_label = self._line("summaryFarm")
+        self.farm_label.setVisible(False)
+        labels = (self.archetype_label, self.farm_label, self.maps_label, self.tiles_label)
+        for label in labels:
             outer.addWidget(label)
         self.chip_box = QWidget()
         self.chip_box.setObjectName("summaryChips")
@@ -74,6 +79,14 @@ class OptionsSummary(QGroupBox):
         # an arcade kind with its numbers: Shoot 'em up · vertical · 3 stages · 3 lives
         self.archetype_label.setText(" · ".join([name, *summary.numbers]))
         maps = [self.tr(m) if not m[0].isdigit() else self._interiors(m) for m in summary.maps]
+        farm = summary.archetype == "farm"
+        self.farm_label.setVisible(farm)
+        if farm:
+            self.farm_label.setText(
+                self.tr("Farm: {0}").format(summary.world)
+                if summary.world
+                else self.tr("The options of the farm do not fit together")
+            )
         if summary.archetype in options.ARCADE_NAMES:
             noun = PLAN_NOUN.get(summary.archetype, "Stages: {0}")
             self.maps_label.setText(
@@ -88,8 +101,9 @@ class OptionsSummary(QGroupBox):
                 else self.tr("The world options do not fit together")
             )
         else:
+            text = self.tr("Village: {0}") if farm else self.tr("Maps: {0}")
             self.maps_label.setText(
-                self.tr("Maps: {0}").format(", ".join(maps)) if maps else self.tr("No starter maps")
+                text.format(", ".join(maps)) if maps else self.tr("No starter maps")
             )
         self.tiles_label.setText(
             self.tr("{0} px tiles, {1}").format(summary.tile_size, summary.tiles.lstrip("≈ "))

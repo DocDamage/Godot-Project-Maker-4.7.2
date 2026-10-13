@@ -1,4 +1,5 @@
-"""Modal grid editor: edit cell, margin and separation over a zoomable overlay."""
+"""Modal grid editor: edit cell, margin and separation over a zoomable overlay; for a
+picture of an isometric pack, the diamond it stands on and how many of them (T17.16)."""
 
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpggen.core import map_preview
 from rpggen.core.analyzer import frames as frames_mod
 from rpggen.core.analyzer import grid as grid_mod
 from rpggen.core.analyzer import image_facts
@@ -131,7 +133,12 @@ class GridEditorDialog(QDialog):
         *,
         headings: int = 0,
         heading_order: str = "up_cw",
+        iso: dict | None = None,
     ) -> None:
+        """``iso`` for a picture of an isometric pack (T17.16): ``footprint`` ([w, h], the
+        diamond it stands on), ``origin`` ([x, y], the middle of that diamond in the picture),
+        ``stands_on`` ([columns, rows] of an object; None for a tile) and ``has_grid`` (False
+        for a single tile: it is one picture, and the square grid is not shown)."""
         super().__init__(parent)
         self.setObjectName("gridEditor")
         self.setWindowTitle(self.tr("Edit grid"))
@@ -195,7 +202,13 @@ class GridEditorDialog(QDialog):
             self.ring = HeadingRing(QPixmap(str(self.image_path)))
             side.addWidget(self.ring_label)
             side.addWidget(self.ring, 0, Qt.AlignmentFlag.AlignHCenter)
-        side.addWidget(QLabel(self.tr("Detected candidates")))
+        # a picture of an isometric pack: the diamond it stands on, drawn over it (T17.16)
+        self.iso = dict(iso) if iso else None
+        self.has_grid = not self.iso or bool(self.iso.get("has_grid", True))
+        if self.iso is not None:
+            self._build_iso(form, side)
+        self.candidates_label = QLabel(self.tr("Detected candidates"))
+        side.addWidget(self.candidates_label)
         self.candidate_list = QListWidget()
         self.candidate_list.setObjectName("candidateList")
         side.addWidget(self.candidate_list, 1)
@@ -217,8 +230,106 @@ class GridEditorDialog(QDialog):
         self.candidate_list.itemClicked.connect(self._on_candidate)
         self._candidates: list[grid_mod.GridCandidate] = []
         self._worker: workers.Worker | None = None
+        if not self.has_grid:  # one tile a picture: there is no grid of cells to edit
+            for index in range(form.rowCount()):
+                form.setRowVisible(index, index in self._iso_rows)
+            for widget in (self.readout, self.candidates_label, self.candidate_list):
+                widget.setVisible(False)
         self._refresh()
-        self._start_detection()
+        if self.has_grid:
+            self._start_detection()
+
+    # ------------------------------------------------------------------ isometric
+
+    _iso_rows: tuple[int, ...] = ()
+
+    def _build_iso(self, form: QFormLayout, side: QVBoxLayout) -> None:
+        """The rows of an isometric picture: the diamond (a tile's can be edited; an object
+        stands on its pack's) and, for an object, how many diamonds it stands on."""
+        assert self.iso is not None
+        fw, fh = (int(v) for v in self.iso.get("footprint") or (64, 32))
+        stands = self.iso.get("stands_on")
+        self.is_tile = stands is None
+        self.diamond_w = _spin("diamondW", 2, 2048, fw)
+        self.diamond_h = _spin("diamondH", 1, 2048, fh)
+        tip = self.tr(
+            "The diamond a tile of this pack stands on, in pixels (wide, high). Every tile of "
+            "a project stands on the same one: a tile on another is left out of the tile set"
+        )
+        for box, name in (
+            (self.diamond_w, self.tr("Diamond width")),
+            (self.diamond_h, self.tr("Diamond height")),
+        ):
+            box.setToolTip(tip)
+            box.setAccessibleName(name)
+            box.setEnabled(self.is_tile)
+            box.valueChanged.connect(self._refresh)
+        row = QHBoxLayout()
+        row.addWidget(self.diamond_w)
+        row.addWidget(self.diamond_h)
+        first = form.rowCount()
+        form.addRow(self.tr("Diamond w / h"), row)
+        columns, rows = (int(v) for v in (stands or (1, 1)))
+        self.stands_columns = _spin("standsColumns", 1, 16, columns)
+        self.stands_rows = _spin("standsRows", 1, 16, rows)
+        stands_tip = self.tr(
+            "How many diamonds this object stands on (columns, rows): it blocks them, and a "
+            "building has its door before the middle of its front"
+        )
+        for box, name in (
+            (self.stands_columns, self.tr("Stands on: columns")),
+            (self.stands_rows, self.tr("Stands on: rows")),
+        ):
+            box.setToolTip(stands_tip)
+            box.setAccessibleName(name)
+            box.valueChanged.connect(self._refresh)
+        if self.is_tile:
+            self._iso_rows = (first,)
+        else:
+            stand_row = QHBoxLayout()
+            stand_row.addWidget(self.stands_columns)
+            stand_row.addWidget(self.stands_rows)
+            form.addRow(self.tr("Stands on"), stand_row)
+            self._iso_rows = (first, first + 1)
+        self.iso_label = QLabel()
+        self.iso_label.setObjectName("isoReadout")
+        self.iso_label.setWordWrap(True)
+        side.addWidget(self.iso_label)
+
+    def iso_origin(self) -> tuple[float, float]:
+        """The middle of the diamond nearest the camera, in the picture: the asset's origin,
+        or the middle of the bottom of the picture less half a diamond when it has none."""
+        assert self.iso is not None
+        origin = self.iso.get("origin")
+        if origin:
+            return float(origin[0]), float(origin[1])
+        width, height = self.view.image_size
+        return width / 2.0, height - self.diamond_h.value() / 2.0
+
+    def diamonds(self) -> list[list[list[float]]]:
+        """The diamonds drawn over the picture (``map_preview.standing_diamonds``); empty for a
+        picture that is not isometric."""
+        if self.iso is None:
+            return []
+        columns = 1 if self.is_tile else self.stands_columns.value()
+        rows = 1 if self.is_tile else self.stands_rows.value()
+        return map_preview.standing_diamonds(
+            self.iso_origin(), self.diamond_w.value(), self.diamond_h.value(), columns, rows
+        )
+
+    def iso_values(self) -> dict[str, list[int]]:
+        """The overrides of an isometric picture that Apply writes: ``footprint`` of a tile
+        and ``stands_on`` of an object, each only when it was changed."""
+        if self.iso is None:
+            return {}
+        out: dict[str, list[int]] = {}
+        footprint = [self.diamond_w.value(), self.diamond_h.value()]
+        if self.is_tile and footprint != [int(v) for v in self.iso.get("footprint") or ()]:
+            out["footprint"] = footprint
+        stands = [self.stands_columns.value(), self.stands_rows.value()]
+        if not self.is_tile and stands != [int(v) for v in self.iso.get("stands_on") or ()]:
+            out["stands_on"] = stands
+        return out
 
     # ------------------------------------------------------------------ values
 
@@ -266,9 +377,25 @@ class GridEditorDialog(QDialog):
     def _on_changed(self) -> None:
         self._refresh()
 
-    def _refresh(self) -> None:
+    def _refresh(self, *_args: object) -> None:
         grid = self.grid()
-        self.view.draw_grid(grid)
+        if self.has_grid:
+            self.view.draw_grid(grid)
+        if self.iso is not None:
+            found = self.diamonds()
+            self.view.draw_diamonds(found)
+            self.iso_label.setText(
+                self.tr("A diamond of {0} × {1} px").format(
+                    self.diamond_w.value(), self.diamond_h.value()
+                )
+                if self.is_tile
+                else self.tr("Stands on {0} × {1} diamonds of {2} × {3} px").format(
+                    self.stands_columns.value(),
+                    self.stands_rows.value(),
+                    self.diamond_w.value(),
+                    self.diamond_h.value(),
+                )
+            )
         if self.ring is not None:
             self.ring.set_ring(self.headings, self.heading_order, grid)
         info = grid_mod.grid_readout(

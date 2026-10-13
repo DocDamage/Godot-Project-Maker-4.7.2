@@ -25,6 +25,7 @@ from rpggen.core import app_settings
 from rpggen.errors import Issue, Severity
 from rpggen.gui import state as state_mod
 from rpggen.gui import theme
+from rpggen.gui.models import project_model
 from rpggen.gui.pages.base import EMPTY_CODE, WizardPage, form_error
 from rpggen.gui.pages.project_page import ProjectPage
 from rpggen.gui.pages.welcome_page import WelcomePage
@@ -307,7 +308,10 @@ class MainWindow(WindowMenus, QMainWindow):
         its name is tried as the kind of game it is made for (the Archetype page starts on
         the state's kind when the walk reaches it)."""
         kind = getattr(page, "sample_archetype", "")
-        if kind:
+        key = getattr(page, "sample_key", "")
+        if key:  # ... and in the view it is made for (T17.17)
+            project_model.try_as(self.state, project_model.sample(key))
+        elif kind:
             self.state.archetype = kind
         self.continue_to(OPTIONS_INDEX)
 

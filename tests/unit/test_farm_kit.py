@@ -324,6 +324,19 @@ def test_the_ranch_gets_its_roles_and_keeps_what_it_has(tmp_path: Path) -> None:
     assert own["watered"].id == "ranch.autotiles.n02_soil_watered"
     assert own["shipping_bin"].id == "ranch.props.shipping_bin"
     assert own["rain"].id == "ranch.weather.rain_64x64_3frames"
+    # of the grass that comes once a season, the first season is the one a map is offered
+    grass = [a for a in mapping.assets_with_role(cat, "GROUND") if ".grass_" in a.id]
+    assert len(grass) == 4
+    assert [a.id for a in grass if not mapping._later_season(a)] == [
+        "ranch.tiles.spring.grass_16x16"
+    ]
+    for asset in cat.assets:  # with the soil sheets out of the way it is the ground
+        if ".autotiles." in asset.id:
+            asset.status = "UNUSED"
+    assert mapping.best_for(cat, "GROUND") == "ranch.tiles.spring.grass_16x16"
+    for asset in cat.assets:
+        if ".autotiles." in asset.id:
+            asset.status = "NEEDS_REVIEW"
     assert farm_kit.growing(cat) == 4 and [a.id for a in farm_kit.to_grow(cat)] == [
         "ranch.crops.pumpkin_16x16"
     ]

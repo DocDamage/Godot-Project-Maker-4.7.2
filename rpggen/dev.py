@@ -76,13 +76,25 @@ def synthetic_packs() -> list[Path]:
 
 SIDE_SAMPLE = "sample_pack_side"
 # the sample packs that have a golden catalog
-SAMPLE_GOLDENS = (SIDE_SAMPLE, "sample_pack_shmup", "sample_pack_gun", "sample_pack_race")
+SAMPLE_GOLDENS = (
+    SIDE_SAMPLE,
+    "sample_pack_shmup",
+    "sample_pack_gun",
+    "sample_pack_race",
+    "sample_pack_farm",
+    "sample_pack_iso",
+)
+# what ``layout_state`` takes for a kind to lay a turn-based game out in the isometric view
+# (T17.17): a kind and a view, since the view is no kind of its own
+ISO_LAYOUT = "turn_based:isometric"
 # the sample a kind of game is laid out (and tried) with; the others take the first
 KIND_SAMPLES = {
     "metroidvania": SIDE_SAMPLE,
     "shmup": "sample_pack_shmup",
     "run_and_gun": "sample_pack_gun",
     "racing": "sample_pack_race",
+    "farm": "sample_pack_farm",
+    ISO_LAYOUT: "sample_pack_iso",
 }
 
 
@@ -104,7 +116,7 @@ def update_goldens() -> int:
                 fh.write(jsonio.dumps(cat.to_json()))
             print(f"wrote {pack_path.stem}.catalog.json")
         # the side-view sample pack has its own golden (T14.09), and so have the three of the
-        # arcade kinds (T16.17); the top-down one never had
+        # arcade kinds (T16.17) and the two of M17 (T17.17); the top-down one never had
         for name in SAMPLE_GOLDENS:
             opened = archive.open_pack(REPO_ROOT / name, set(), pack_id=name)
             inv = inventory.build_inventory(opened)
@@ -174,12 +186,16 @@ def layout_state(archetype: str, scratch: Path):  # noqa: ANN201 - WizardState, 
     from rpggen.gui import workers
     from rpggen.gui.state import WizardState
 
-    # a kind is laid out with the pack that is made for it: its sample
+    # a kind is laid out with the pack that is made for it: its sample; ``kind:view`` is the
+    # kind seen in that view, with the sample of the view
     sample = paths.sample_pack_dir(KIND_SAMPLES.get(archetype, "sample_pack"))
+    archetype, _, projection = archetype.partition(":")
     state = WizardState(project_name="Layout check", pack_sources=[sample], archetype=archetype)
     workers.apply_analysis(state, workers.analyze_packs(state, callbacks=Callbacks()))
     ref = config.PackRef(sample.name, str(sample), "0" * 64, "folder")
     state.config = config.default_for("Layout check", [ref], archetype=archetype)
+    if projection:
+        state.config.projection = projection
     state.target = scratch / "layout_project"
     state.godot_exe = scratch / "godot.exe"
     (state.target / "generated").mkdir(parents=True, exist_ok=True)

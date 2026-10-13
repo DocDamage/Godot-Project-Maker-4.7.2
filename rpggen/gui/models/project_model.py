@@ -45,9 +45,11 @@ class Sample:
     profile: str  # the audit of the pack, in its folder
     name: str  # of the project
     archetype: str
+    projection: str = config_mod.PROJECTION_TOP_DOWN  # the view it is tried in (T17.17)
 
 
-# The five samples, in the order of the kinds' cards (T16.17). The first two are older.
+# The seven samples, in the order of the kinds' cards (T16.17, T17.17), the one that is a view
+# and no kind last. The first two are older.
 SAMPLES: tuple[Sample, ...] = (
     Sample(
         "top",
@@ -94,6 +96,25 @@ SAMPLES: tuple[Sample, ...] = (
         "Dirt Cup",
         "racing",
     ),
+    Sample(
+        "farm",
+        "Green acre",
+        "A farm from the Green acre pack",
+        "sample_pack_farm",
+        "sample_farm.rpgprofile.json",
+        "Green Acre",
+        "farm",
+    ),
+    Sample(
+        "iso",
+        "Stone isle",
+        "An isometric turn-based RPG from the Stone isle pack",
+        "sample_pack_iso",
+        "sample_iso.rpgprofile.json",
+        "Stone Isle",
+        "turn_based",
+        config_mod.PROJECTION_ISOMETRIC,
+    ),
 )
 
 
@@ -104,7 +125,8 @@ def sample(key: str) -> Sample:
 
 def offered_samples() -> list[Sample]:
     """The samples whose kind of game can be chosen (its feature flag): the sample of a kind
-    that is not offered yet is not offered either."""
+    that is not offered yet is not offered either, and neither is the isometric sample while
+    the isometric view is not."""
     from rpggen import features
 
     on = {
@@ -112,8 +134,38 @@ def offered_samples() -> list[Sample]:
         "shmup": features.SHMUP_AVAILABLE,
         "run_and_gun": features.RUN_AND_GUN_AVAILABLE,
         "racing": features.RACING_AVAILABLE,
+        "farm": features.FARM_AVAILABLE,
     }
-    return [s for s in SAMPLES if on.get(s.archetype, True)]
+    views = {config_mod.PROJECTION_ISOMETRIC: features.ISOMETRIC_AVAILABLE}
+    return [s for s in SAMPLES if on.get(s.archetype, True) and views.get(s.projection, True)]
+
+
+def sample_of(sources: list[Path]) -> Sample | None:
+    """The bundled sample that ``sources`` are: one pack, the folder of a sample; else None."""
+    if len(sources) != 1:
+        return None
+    return next((s for s in SAMPLES if paths.sample_pack_dir(s.folder) == sources[0]), None)
+
+
+def sample_view(chosen: Sample | None, archetype: str) -> str:
+    """The view a project of the sample ``chosen`` starts in as a game of ``archetype``: the
+    one the sample is made for (*Stone isle* is isometric), when the kind has that view; from
+    above for every other pack and kind."""
+    if chosen is None or archetype not in config_mod.ISOMETRIC_KINDS:
+        return config_mod.PROJECTION_TOP_DOWN
+    return chosen.projection
+
+
+def try_as(state: WizardState, chosen: Sample) -> None:
+    """``state`` becomes the game the sample ``chosen`` is tried as (T17.17): its kind, and its
+    view. The view is the config's: a state that has a config for the sample's pack already
+    takes it here (a config for other packs is somebody else's, and is replaced when the pack
+    has been read), and a state that has none gets it with its config (``default_config``).
+    The config's kind follows on the Archetype page, as it always did."""
+    state.archetype = chosen.archetype
+    cfg = state.config
+    if cfg is not None and sample_of([ref.path for ref in cfg.packs]) is chosen:
+        cfg.projection = sample_view(chosen, chosen.archetype)
 
 
 NAME_MAX = 64
@@ -422,6 +474,12 @@ class ProjectModel:
                 words.append(self.tr("Looks like a shooter pack"))
             elif mark == catalog_mod.VIEW_RACING:
                 words.append(self.tr("Looks like a racing pack"))
+            elif mark == catalog_mod.VIEW_FARM:  # T17.01
+                words.append(self.tr("Looks like a farming pack"))
+            elif kind == "isometric":  # T17.12: ``isometric:180x104:measured``
+                width, _, height = rest.partition(":")[0].partition("x")
+                if width.isdigit() and height.isdigit():
+                    words.append(self.tr("Isometric tiles, {0} x {1}").format(width, height))
             elif kind == "engines":
                 count, _, kept = rest.partition(":")
                 words.append(self.tr("art for {0} engines: {1}'s is used").format(count, kept))
@@ -660,9 +718,12 @@ def default_config(state: WizardState) -> config_mod.GeneratorConfig:
         )
     ]
     tile = catalog_mod.dominant_tile_size(state.catalog) if state.catalog else None
-    return config_mod.default_for(
+    cfg = config_mod.default_for(
         state.project_name, refs, archetype=state.archetype, base_tile_size=tile or 16
     )
+    # a bundled sample is tried in the view it is made for (T17.17)
+    cfg.projection = sample_view(sample_of(state.pack_sources), state.archetype)
+    return cfg
 
 
 def load_previous(

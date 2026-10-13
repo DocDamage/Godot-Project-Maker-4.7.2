@@ -14,6 +14,11 @@ const HOTBAR_NODE := "Hotbar"
 ## False: staying up to 2:00 costs no money (the option `starter_map.pass_out_loss`; the mode's
 ## recipe sets it).
 @export var pass_out_loss: bool = true
+## The days of a season and the real seconds of a game minute (the options
+## `starter_map.days_per_season` and `starter_map.day_length`; the mode's recipe sets them). The
+## mode gives both to the calendar it asks for.
+@export var days_per_season: int = RpgCalendar.DAYS_PER_SEASON
+@export var minute_s: float = RpgCalendar.MINUTE_S
 ## The folder of the game's own data files (`crops.json`, `people.json`, ...), set by the
 ## recipe. Empty in a mode that is made by code: the game then has the planned files only.
 @export var data_dir: String = ""
@@ -47,6 +52,7 @@ func _ready() -> void:
 	ensure_parts()
 	var calendar := RpgCalendar.ensure()
 	if calendar != null:
+		set_calendar(calendar)
 		calendar.on_night(RpgCalendar.NIGHT_CROPS, _on_night)
 	# the people of the village (T17.09): who they are, how well the farmer knows them, and
 	# their schedules for the NPCs that carry one
@@ -62,6 +68,11 @@ func _ready() -> void:
 	day_end.attach()  # after the fields: its night (NIGHT_SHOP) and its morning follow theirs
 	forage.attach()
 	fishing.attach()
+
+## Gives `calendar` the season and the day this farm has (`days_per_season`, `minute_s`).
+func set_calendar(calendar: RpgCalendar) -> void:
+	calendar.days_per_season = RpgCalendar.season_length(days_per_season)
+	calendar.minute_s = minute_s
 
 ## Tells the data classes where the game's own files are, before any of them reads.
 func _name_data_files() -> void:

@@ -309,11 +309,26 @@ def _plan(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict
         catalog, cfg.starter.get("building", ""), cfg.projection
     )
     plan = map_preview.plan(cfg.starter_map_options(), cfg.seed, building, cfg.archetype)
-    return {
+    out: dict[str, Any] = {
         "size": list(plan["size"]),
         "counts": {name: len(plan[name]) for name in PLAN_COUNTS},
         "warnings": list(plan["warnings"]),
     }
+    if cfg.archetype == "farm":
+        # the starter map is the village (no enemy, the demo's villager); the farm is a map
+        # of its own: "a farm of 40 x 30 with a plot of 96 cells, a pond, 6 crops, 5 people"
+        from rpggen.core import options
+
+        village = map_preview.village_of_farm(plan)
+        out["counts"] = {name: len(village[name]) for name in PLAN_COUNTS}
+        try:
+            plans = options.plan_farm(cfg, catalog)
+            out["farm"] = options.farm_text(plans)
+            out["warnings"] += [str(note) for note in plans["notes"]]
+        except ValueError as error:  # FarmPlanError, PeoplePlanError
+            out["farm"] = ""
+            out["warnings"].append(str(error))
+    return out
 
 
 def format_summary(summary: dict[str, Any]) -> list[str]:
@@ -369,6 +384,9 @@ def format_summary(summary: dict[str, Any]) -> list[str]:
             )
             return lines
         counts = ", ".join(f"{plan['counts'][n]} {n}" for n in PLAN_COUNTS)
-        lines.append(row("starter map", f"{plan['size'][0]} x {plan['size'][1]} tiles; {counts}"))
+        name = "village" if "farm" in plan else "starter map"
+        lines.append(row(name, f"{plan['size'][0]} x {plan['size'][1]} tiles; {counts}"))
+        if "farm" in plan:
+            lines.append(row("farm", plan["farm"] or "none: the options make no farm"))
         lines.extend(row("", f"note: {w}") for w in plan["warnings"])
     return lines

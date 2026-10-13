@@ -101,6 +101,7 @@ class ProjectPage(WizardPage):
         self.choose_packs_button.clicked.connect(lambda: self.choose_packs_at())
         self.sample_button.clicked.connect(self._on_sample_button)
         self.sample_archetype = ""  # the kind of the sample that was chosen by name
+        self.sample_key = ""  # ... and which one it was: its view goes with its kind (T17.17)
         self.sample_actions: dict[str, QAction] = {}
         self._add_sample_menu()
 
@@ -173,6 +174,7 @@ class ProjectPage(WizardPage):
         chosen = model_mod.sample(key or ("side" if side else "top"))
         # the plain button is today's path: the kind of game stays what it was
         self.sample_archetype = chosen.archetype if key else ""
+        self.sample_key = key
         sample = paths.sample_pack_dir(chosen.folder)
         if not sample.is_dir():
             QMessageBox.warning(

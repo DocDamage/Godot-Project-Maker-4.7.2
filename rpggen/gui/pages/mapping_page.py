@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import catalog as catalog_mod
-from rpggen.core import labels, mapping, requirements
+from rpggen.core import labels, mapping, options, requirements
 from rpggen.errors import Issue
 from rpggen.gui import edits, icons, theme, thumbnails
 from rpggen.gui.dialogs.asset_picker import AssetPickerDialog
@@ -167,6 +167,14 @@ class RoleRowWidget(QFrame):
         grid.addWidget(self.clear_button, 0, 5)
         grid.addWidget(self.audit_button, 0, 6)
         grid.addWidget(self.fallback_box, 1, 3, 1, 4)
+        # what is to be said of the chosen asset (T17.16: a car drawn from above on an
+        # isometric track); hidden while there is nothing to say
+        self.note_label = QLabel()
+        self.note_label.setObjectName(f"note_{row.role}")
+        self.note_label.setWordWrap(True)
+        self.note_label.setProperty("state", "warning")
+        self.note_label.setVisible(False)
+        grid.addWidget(self.note_label, 2, 3, 1, 4)
         grid.setColumnStretch(3, 1)
         self.choose_button.clicked.connect(lambda: page.choose(row.role))
         self.asset_combo.popupOpening.connect(lambda: page.fill_candidates(row.role))
@@ -209,6 +217,7 @@ def checkerboard(size: int) -> QPixmap:
 
 class MappingPage(WizardPage):
     showInAudit = Signal(str, str)  # noqa: N815 - asset id, the role whose row asked
+    projection = mapping.TOP_DOWN  # of the project: what is offered fits it (``enter``)
 
     title = "Mapping"
     purpose = str(
@@ -275,7 +284,9 @@ class MappingPage(WizardPage):
             return
         archetype = state.config.archetype if state.config else state.archetype
         current = dict(state.config.starter) if state.config else {}
-        self.starter = mapping.resolve_starter(state.catalog, archetype, current)
+        # an isometric project is offered only what fits its view (T17.13, T17.16)
+        self.projection = state.config.projection if state.config else mapping.TOP_DOWN
+        self.starter = mapping.resolve_starter(state.catalog, archetype, current, self.projection)
         self.placeholders = set(state.placeholders)
         self.without = set()
         self._history.clear()
@@ -334,7 +345,7 @@ class MappingPage(WizardPage):
         key = mapping.ROLE_KEYS.get(role)
         if key:
             return self.starter.get(key) or None
-        return mapping.best_for(self.state.catalog, role)
+        return mapping.best_for(self.state.catalog, role, self.projection)
 
     def _display_name(self, catalog: catalog_mod.Catalog, ident: str) -> tuple[str, str]:
         """("meadow_a2.png · sample_pack", the id for the tooltip) of an asset or object."""
@@ -370,14 +381,18 @@ class MappingPage(WizardPage):
                 if (headings := self.heading_count(ident)) > 0:
                     # a car is one picture in N headings (T16.16): said beside its thumbnail
                     text += " · " + self.tr("{0} headings").format(headings)
-                if colours := len(catalog_mod.colour_group(catalog, ident)):
-                    # ... and comes in several colours (T16.21): the list offers the others
-                    text += " · " + self.tr("{0} colours").format(colours)
+                if group := catalog_mod.colour_group(catalog, ident):
+                    # ... and comes in several colours (T16.21), turned several ways or once
+                    # a season (T17.16): the list offers the others
+                    text += " · " + self._group_count(group)
                 self._show_current(widget, ident, text, tip)
+                flat = options.flat_vehicle(catalog, ident, self._archetype(), self.projection)
+                widget.note_label.setText(self.tr(options.FLAT_VEHICLE_NOTE) if flat else "")
+                widget.note_label.setVisible(flat)
                 widget.thumb_label.setPixmap(self._thumb(catalog, ident))
                 widget.fallback_box.setVisible(False)
                 key = mapping.ROLE_KEYS.get(role)
-                automatic = mapping.best_for(catalog, role)
+                automatic = mapping.best_for(catalog, role, self.projection)
                 widget.clear_button.setVisible(key is not None)
                 widget.clear_button.setEnabled(key is not None and ident != automatic)
                 widget.audit_button.setVisible(True)
@@ -395,6 +410,7 @@ class MappingPage(WizardPage):
                 state = "ok" if placeholder else ("error" if widget.row.required else "warning")
                 self._set_status(widget, state, text)
                 self._show_current(widget, None, "", "")
+                widget.note_label.setVisible(False)
                 widget.thumb_label.clear()
                 widget.fallback_box.setVisible(True)
                 widget.clear_button.setVisible(False)
@@ -408,6 +424,15 @@ class MappingPage(WizardPage):
         archetype = self._archetype()
         self.summary_label.setText(self._summary(archetype, assigned))
         self.changed.emit()
+
+    def _group_count(self, group: list[catalog_mod.Asset]) -> str:
+        """ "4 colours", "4 turns" or "4 seasons": what the pictures of a group are."""
+        kind = catalog_mod.group_kind(group)
+        if kind == catalog_mod.GROUP_TURNS:
+            return self.tr("{0} turns").format(len(group))
+        if kind == catalog_mod.GROUP_SEASONS:
+            return self.tr("{0} seasons").format(len(group))
+        return self.tr("{0} colours").format(len(group))
 
     def _show_current(self, widget: RoleRowWidget, ident: str | None, text: str, tip: str) -> None:
         """The combo holds the current choice (or nothing); the candidates come with the popup."""
@@ -444,18 +469,27 @@ class MappingPage(WizardPage):
             combo.addItem(QIcon(self._thumb(catalog, current)), text, current)
             combo.setItemData(0, tip, Qt.ItemDataRole.ToolTipRole)
         offered = {current}
+        group = catalog_mod.colour_group(catalog, current) if current is not None else []
+        kind = catalog_mod.group_kind(group)
         for other in self.colour_choices(role):
-            # the other colours the pack ships of the chosen picture (T16.21), before the rest
+            # the other colours the pack ships of the chosen picture (T16.21), before the rest;
+            # a tile turned another way or the sheet of another season is called that (T17.16)
             name, tip = self._display_name(catalog, other.id)
-            colour = catalog_mod.colour_name(other).replace("_", " ") or self.tr("plain")
+            colour = catalog_mod.member_name(other, kind) or self.tr("plain")
+            if kind == catalog_mod.GROUP_TURNS:
+                label = self.tr("{0}  ({1})").format(name, colour)
+            elif kind == catalog_mod.GROUP_SEASONS:
+                label = self.tr("{0}  (season: {1})").format(name, colour)
+            else:
+                label = self.tr("{0}  (colour: {1})").format(name, colour)
             combo.addItem(
                 QIcon(self._thumb(catalog, other.id)),
-                self.tr("{0}  (colour: {1})").format(name, colour),
+                label,
                 other.id,
             )
             combo.setItemData(combo.count() - 1, tip, Qt.ItemDataRole.ToolTipRole)
             offered.add(other.id)
-        for asset in mapping.candidates(catalog, role)[:CANDIDATES]:
+        for asset in mapping.candidates(catalog, role, self.projection)[:CANDIDATES]:
             if asset.id in offered:
                 continue
             name, tip = self._display_name(catalog, asset.id)
@@ -484,6 +518,7 @@ class MappingPage(WizardPage):
             for a in group
             if a.id != current and a.status != "MISSING"
             and catalog_mod.effective(a).get("role") != "NONE"
+            and catalog_mod.fits_projection(a, self.projection)
         ]  # fmt: skip
 
     def candidate_ids(self, role: str) -> list[str]:
@@ -629,7 +664,9 @@ class MappingPage(WizardPage):
         """Open the picker for ``role``; picking an asset without the role assigns it."""
         assert self.state is not None and self.state.catalog is not None
         resolver = make_resolver(self.state)
-        dialog = AssetPickerDialog(self.state.catalog, role, resolver, self)
+        dialog = AssetPickerDialog(
+            self.state.catalog, role, resolver, self, projection=self.projection
+        )
         if not self.run_picker(dialog) or dialog.picked is None:
             return False
         self.assign(role, dialog.picked)
@@ -657,7 +694,7 @@ class MappingPage(WizardPage):
         if not key:
             return
         self._push_history()
-        automatic = mapping.best_for(self.state.catalog, role)
+        automatic = mapping.best_for(self.state.catalog, role, self.projection)
         if automatic is not None:
             self.starter[key] = automatic
         else:
@@ -688,7 +725,9 @@ class MappingPage(WizardPage):
         """Scrolls the first required role that has neither an asset nor a placeholder into view."""
         if state.catalog is None:
             return
-        missing = mapping.missing_required(state.catalog, self._archetype(), self.placeholders)
+        missing = mapping.missing_required(
+            state.catalog, self._archetype(), self.placeholders, self.projection
+        )
         widget = self.rows.get(missing[0]) if missing else None
         if widget is not None:
             self.scroll_area.ensureWidgetVisible(widget)
@@ -699,13 +738,18 @@ class MappingPage(WizardPage):
         if state.catalog is None:
             return ("none", 0)
         archetype = state.archetype or "turn_based"
-        missing = mapping.missing_required(state.catalog, archetype, set(state.placeholders))
+        projection = state.config.projection if state.config else mapping.TOP_DOWN
+        missing = mapping.missing_required(
+            state.catalog, archetype, set(state.placeholders), projection
+        )
         return ("error", len(missing)) if missing else ("ok", 0)
 
     def validate(self, state: WizardState) -> list[Issue]:
         if state.catalog is None:
             return []
-        missing = mapping.missing_required(state.catalog, self._archetype(), self.placeholders)
+        missing = mapping.missing_required(
+            state.catalog, self._archetype(), self.placeholders, self.projection
+        )
         archetype = self._archetype()
         return [
             form_error(
