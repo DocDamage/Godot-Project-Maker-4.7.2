@@ -5,6 +5,8 @@ extends RefCounted
 const JsonUtil := preload("../../lib/json_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
 const ArcadeBuild := preload("../arcade/arcade_build.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
+const WorldPlan := preload("../../lib/world_plan.gd")
 
 const DIR := "res://addons/rpg_runtime/archetypes/racing/"
 const MODE_SCRIPT := DIR + "racing_mode.gd"
@@ -17,6 +19,7 @@ const RACE_SCRIPT := DIR + "race.gd"
 const RIVAL_SCRIPT := DIR + "rival.gd"
 const PICKUP_SCRIPT := DIR + "pickup.gd"
 const HUD_SCRIPT := DIR + "ui/racing_hud.gd"
+const VIEW_SCRIPT := DIR + "race_view.gd"
 
 const SCENES := "res://generated/scenes/racing/"
 const CAR_PATH := SCENES + "car.tscn"
@@ -105,3 +108,109 @@ static func tagged(ctx: BuildContext, role: String, tag: String) -> Dictionary:
 static func is_drawn(ctx: BuildContext, asset: Dictionary) -> bool:
 	return JsonUtil.to_array(ctx.catalog.effective(asset).get("tags", [])).has("arcade_kit")
 
+
+# ---------------------------------------------------------------- the isometric view (T17.15)
+
+## The plan of a track (rpggen/core/track_plan.py): a cell of its loop is a block of this many
+## tiles, behind a wall this many tiles thick round the field.
+const BLOCK := 9
+const BORDER := 1
+## How many tiles of the plan a diamond is wide when nothing says more (a game without a car's
+## picture): a third of a block.
+const DRAWN_TILES := 3
+## How long the picture of the player's car is to be on the road, in tiles of the plan: the
+## scale of an isometric track is chosen for it, since the picture of a car is as large as its
+## pack drew it and a diamond as large as its own pack did.
+const CAR_TILES := 1.6
+## The most a diamond of road pieces is enlarged, and the fewest and most tiles a diamond of a
+## drawn road is wide.
+const MAX_SCALE := 4
+const TILES_RANGE := Vector2i(2, 9)
+## What a tile of the plan is to be on the screen, in px, when a car stands: the camera's zoom
+## makes it so when the scale leaves it much more or much less.
+const TILE_ON_SCREEN := 13.0
+const TILE_ON_SCREEN_RANGE := Vector2(9.0, 22.0)
+const ZOOM_RANGE := Vector2(0.4, 4.0)
+## The body of a car on an isometric track, in tiles: what its picture measures, kept between
+## a car that can be seen to touch and one of which two fit side by side on the grid.
+const BODY_RANGE := Vector2(0.4, 0.65)
+
+## True for a racing game whose tracks are painted on diamonds.
+static func isometric(ctx: BuildContext) -> bool:
+	return MapGeo.is_isometric(ctx)
+
+## The tracks rpggen planned and stored (the section `stages` of the world plan), [] without.
+static func stored_tracks() -> Array:
+	var stages := JsonUtil.to_dict(WorldPlan.read().get("stages", {}))
+	if JsonUtil.to_str(stages.get("kind", "")) != "racing":
+		return []
+	return JsonUtil.to_array(stages.get("list", []))
+
+## True when the road of an isometric track is laid from the road pieces of the packs (their
+## `joins`): the packs have such pieces and the tracks have a loop to lay them along. A cell
+## of the loop is then one diamond. Else the road is drawn.
+static func road_pieces(geo: MapGeo) -> bool:
+	if not geo.isometric or geo.iso.laid_pieces("ROAD").is_empty():
+		return false
+	var tracks := stored_tracks()
+	return not tracks.is_empty() and not JsonUtil.to_array(JsonUtil.to_dict(tracks[0]).get("loop", [])).is_empty()
+
+## How long the picture of the player's car is, in px: the longer side of a frame of it. 0 for
+## a game without one.
+static func car_px(ctx: BuildContext) -> float:
+	var asset := car_asset(ctx)
+	if asset.is_empty():
+		return 0.0
+	var frame := ArcadeBuild.frame_size(ctx, asset)
+	return float(maxi(frame.x, frame.y))
+
+## The zoom of the camera over a car that stands, for a tile of the plan that is `shown` px on
+## the screen: 1 while that is between 9 and 22 px, else what makes it 13.
+static func zoom_for(shown: float) -> float:
+	if shown <= 0.0 or (shown >= TILE_ON_SCREEN_RANGE.x and shown <= TILE_ON_SCREEN_RANGE.y):
+		return 1.0
+	return snappedf(clampf(TILE_ON_SCREEN / shown, ZOOM_RANGE.x, ZOOM_RANGE.y), 0.05)
+
+## The scale of an isometric track, for a car whose picture is `car` px long (0: none) on the
+## diamonds of `geo`, the road laid from pieces of the packs or drawn (`pieces`):
+## `tiles`: how many tiles of the plan a diamond of the track is wide (a whole block with
+## pieces: a cell of the loop is one diamond); `scale`: how many times the diamonds of the
+## packs are enlarged (1 for a drawn road; with pieces what brings the car nearest to
+## CAR_TILES of the road); `shown`: how many px of the screen a tile of the plan then is,
+## along the axes of the map; `zoom`: the camera's over a car that stands. The scale is kept
+## where the camera needs no zoom while the diamonds allow it: a picture that is not zoomed is
+## the sharper one.
+static func scale_for(geo: MapGeo, car: float, pieces: bool) -> Dictionary:
+	# how many tiles a diamond of the packs would be wide for the car to be CAR_TILES long
+	var wanted := float(DRAWN_TILES) if car <= 0.0 else geo.tile_px * CAR_TILES / car
+	# ... and the fewest that leave a tile no larger on the screen than the camera shows as it is
+	var fewest := geo.tile_px / TILE_ON_SCREEN_RANGE.y
+	var scale := 1
+	var tiles := BLOCK
+	if pieces:
+		scale = clampi(mini(roundi(BLOCK / wanted), floori(BLOCK / fewest)), 1, MAX_SCALE)
+	else:
+		tiles = clampi(maxi(roundi(wanted), ceili(fewest)), TILES_RANGE.x, TILES_RANGE.y)
+	var shown := float(geo.tile_px) * scale / tiles
+	return {"pieces": pieces, "tiles": tiles, "scale": scale, "shown": shown, "zoom": zoom_for(shown)}
+
+## The scale of the project's isometric tracks (`scale_for` its car and its road pieces).
+static func iso_view(ctx: BuildContext, geo: MapGeo) -> Dictionary:
+	return scale_for(geo, car_px(ctx), road_pieces(geo))
+
+## The radius of the body of a car on an isometric track, in px of the plan: its picture is
+## `frame` px of the screen, of which a tile of the plan is `shown`.
+static func body_radius(shown: float, frame: Vector2, tile: int) -> float:
+	if shown <= 0.0:
+		return tile * BODY_RANGE.x
+	return clampf(minf(frame.x, frame.y) * 0.36 / shown, BODY_RANGE.x, BODY_RANGE.y) * tile
+
+## What of the view a car's scene is built with, for the hash of its recipe: {} for a game seen
+## from above, so that its hash is what it was.
+static func view_facts(ctx: BuildContext) -> Dictionary:
+	if not isometric(ctx):
+		return {}
+	var geo := MapGeo.new(ctx)
+	var facts := iso_view(ctx, geo)
+	facts["footprint"] = [geo.footprint.x, geo.footprint.y]
+	return facts

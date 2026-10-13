@@ -16,6 +16,12 @@ extends CharacterBody2D
 ## (`weapon`: a missile or a bomb, used with press_fire), may have a shield that takes one hit,
 ## and spins out of control for a moment when it is hit (`hit`). The parts a player has won
 ## make it better: `top_mul`, `accel_mul`, `grip_mul`.
+##
+## The car drives on the flat plan of its track: its position, its heading and its velocity
+## are the plan's, whatever the view. On a track that is seen at an angle (RpgRaceView, T17.15)
+## only its picture is somewhere else: `shown_position()` and `shown_heading()` say where it is
+## drawn and which way it points on the screen, and the stick of *absolute* steering is a
+## direction of the screen.
 
 signal bumped(lost_tiles: float)
 signal boosted
@@ -72,6 +78,8 @@ var _boost_asked := false
 var _fire_asked := false
 var _surfaces: RpgTrackSurfaces = null
 var _surfaces_known := false
+var _view: RpgRaceView = null
+var _view_known := false
 
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
@@ -151,6 +159,27 @@ func place(at: Vector2, rad: float) -> void:
 	drifting = false
 	_show()
 
+## How the track is seen: null from above, where the picture is where the car is.
+func view() -> RpgRaceView:
+	if not _view_known or (_view != null and not is_instance_valid(_view)):
+		_view_known = is_inside_tree()
+		_view = RpgRaceView.of(get_parent())
+	return _view
+
+## Where the car is drawn, in the coordinates it is in: its place in the plan seen from above.
+func shown_position() -> Vector2:
+	var seen := view()
+	return seen.to_screen(position) if seen != null else position
+
+## The way the car points on the screen: its heading seen from above.
+func shown_heading() -> float:
+	var seen := view()
+	return seen.screen_heading(heading) if seen != null else heading
+
+## The way the car points on the screen, a unit vector.
+func shown_forward() -> Vector2:
+	return Vector2.from_angle(shown_heading())
+
 func _map_root() -> Node:
 	var node := get_parent()
 	var top := node
@@ -229,7 +258,11 @@ func step(delta: float) -> void:
 			start_boost()
 	var wheel := clampf(steer, -1.0, 1.0)
 	if absolute_steering:
-		wheel = RpgCarPhysics.steer_toward(heading, stick.angle()) if stick.length() > 0.35 else 0.0
+		# the stick is a direction of the screen: on a track seen at an angle that is another
+		# heading of the plan
+		var seen := view()
+		var wanted := seen.plan_vector(stick).angle() if seen != null else stick.angle()
+		wheel = RpgCarPhysics.steer_toward(heading, wanted) if stick.length() > 0.35 else 0.0
 	var state := RpgCarPhysics.step({
 		"x": 0.0, "y": 0.0, "heading": heading,
 		"vx": velocity.x / tile_size, "vy": velocity.y / tile_size, "boost": boost_left,
@@ -255,9 +288,26 @@ func step(delta: float) -> void:
 	_show()
 
 func _show() -> void:
+	var seen := view()
+	if seen != null:
+		_show_on(seen)
+		return
 	var visual := get_node_or_null("Visual") as RpgHeadingSprite
 	if visual != null:
 		visual.show_heading(heading)
+
+## The picture on a track seen at an angle: where the plan's place is on the screen, pointing
+## the way the heading looks there, and in front of what stands behind it.
+func _show_on(seen: RpgRaceView) -> void:
+	var picture := get_node_or_null("Visual") as Node2D
+	if picture == null:
+		return
+	picture.position = seen.to_screen(position) - position
+	picture.z_index = seen.depth(position)
+	if picture is RpgHeadingSprite:
+		(picture as RpgHeadingSprite).show_heading(seen.screen_heading(heading))
+	else:
+		picture.rotation = seen.screen_heading(heading) + PI * 0.5
 
 ## Plays a sound slot through the game audio service (silent when the slot is unset).
 func play_sound(slot: StringName) -> void:

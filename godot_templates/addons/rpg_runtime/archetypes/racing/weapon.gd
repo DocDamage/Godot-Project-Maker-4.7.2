@@ -3,6 +3,10 @@ extends Node2D
 ## What a car fires in a race. A **missile** flies the way the car pointed and makes the first
 ## other car it meets spin; a **bomb** is dropped behind the car and waits for a car to drive
 ## over it. A shield takes either. The race moves them (`advance`) and gives them the cars.
+##
+## It flies and lies in the plan of the track, as the cars drive there. On a track seen at an
+## angle (RpgRaceView, T17.15) it is drawn where its place is on the screen, a missile pointing
+## the way it flies there.
 
 const MISSILE := "missile"
 const BOMB := "bomb"
@@ -49,6 +53,8 @@ func advance(delta: float, cars: Array) -> void:
 		return
 	age_s += delta
 	position += velocity * delta
+	if velocity != Vector2.ZERO and RpgRaceView.of(get_parent()) != null:
+		queue_redraw()  # its picture is not where it is: it is drawn again where it is seen
 	if age_s >= life_s:
 		done = true
 		return
@@ -65,7 +71,17 @@ func advance(delta: float, cars: Array) -> void:
 			done = true
 			return
 
+## Where it is drawn, in the coordinates it is in.
+func shown_position() -> Vector2:
+	var seen := RpgRaceView.of(get_parent())
+	return seen.to_screen(position) if seen != null else position
+
 func _draw() -> void:
+	var seen := RpgRaceView.of(get_parent())
+	if seen != null:
+		# the node keeps the plan's place and turn: the picture is moved and turned to the screen's
+		var way := seen.screen_vector(velocity).angle() if velocity != Vector2.ZERO else 0.0
+		draw_set_transform_matrix(Transform2D(-rotation, Vector2.ZERO) * Transform2D(way, seen.to_screen(position) - position))
 	if kind == BOMB:
 		draw_circle(Vector2.ZERO, tile * 0.3, Color(0.1, 0.1, 0.12))
 		draw_circle(Vector2.ZERO, tile * 0.12, Color(0.9, 0.3, 0.2))

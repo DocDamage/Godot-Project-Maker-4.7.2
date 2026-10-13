@@ -232,7 +232,7 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         if mine is not None and not catalog_mod.effective(mine).get("headings"):
             issues.add("ASSET-032", asset=mine.id)
     view = cfg.projection
-    if view == ISOMETRIC:
+    if view == ISOMETRIC and cfg.archetype not in ARCADE_KINDS:  # a race has no people (T17.15)
         from rpggen.core import iso_kit
 
         # the isometric packs have no people: the hero, the villager and the enemy no pack of

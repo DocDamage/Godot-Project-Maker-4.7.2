@@ -290,6 +290,26 @@ func paint_joined(layer: TileMapLayer, cells: Array[Vector2i], what: String, pla
 		if not tile.is_empty():
 			MapUtil.put(layer, cell, tile)
 
+## Paints cells of `what` whose sides are known and not read off their neighbours (T17.15: the
+## loop of a race track, where two cells that lie side by side need not be joined): `sides` is
+## cell (Vector2i) -> the sides it joins on (of n, e, s, w). Seen from above every cell gets
+## `plain`. On diamonds a cell gets the piece for exactly its sides, as `paint_joined` chooses
+## it: the nearest one when the packs have none (counted in `notes[what]`), and `plain` when no
+## piece of `what` says its sides. The cells are painted in the order of the dictionary.
+func paint_sides(layer: TileMapLayer, sides: Dictionary, what: String, plain: Dictionary) -> void:
+	var has_pieces := isometric and not iso.laid_pieces(what).is_empty()
+	for key: Variant in sides:
+		var cell: Vector2i = key
+		var tile := plain
+		if has_pieces:
+			var piece := iso.nearest_piece(what, JsonUtil.to_array(sides[key]))
+			if not piece.is_empty():
+				tile = _iso_tile(JsonUtil.to_str(piece["asset_id"]), JsonUtil.to_int(piece["turn"]))
+				if JsonUtil.to_int(piece["wrong"]) > 0:
+					notes[what] = JsonUtil.to_int(notes.get(what, 0)) + 1
+		if not tile.is_empty():
+			MapUtil.put(layer, cell, tile)
+
 ## Paints several runs of `what` (the roads of a map). Seen from above each run is painted
 ## in its turn, as `paint_joined` paints one; on diamonds they are one run, so that two roads
 ## that meet join.

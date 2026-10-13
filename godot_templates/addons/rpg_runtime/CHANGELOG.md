@@ -308,6 +308,87 @@ and the saves it had.
   diamond (`theme_recipe.gd`), and the player's camera is drawn back when fewer than eight
   diamonds would fit across the screen (`MapGeo.camera_zoom`: 180 px diamonds on a screen of
   640 px are shown at 0.44).
+* **The farm in the isometric view** (T17.14). The plan of a farm is a grid of cells in both
+  views and a save has the same shape; what follows is how the game and the builder turn its
+  cells into places on diamonds. Nothing of a farm seen from above changes.
+  * `RpgField` asks its `Soil` layer for cells and places as before, so a layer of diamonds
+    carries over. New: `footprint()` (the diamond of its cells, zero on squares) and
+    `foot_of(cell)` (where a thing of a cell stands: a px above the lower edge of a square, the
+    middle of a diamond; crops are put there). `tile_px` is `RpgIso.unit` of the diamond on an
+    isometric layer.
+  * `RpgFarmer.tile_ahead()` is the neighbour the farmer faces on diamonds
+    (`RpgIso.faced_cell`, what `RpgActor.cell_ahead()` answers), with either setting of
+    `iso_controls`; on squares it is what it was. New: `diamond()`, and `face_cell(cell)`,
+    which turns the farmer to a cell beside its own (the facing on squares; the facing and
+    where it looks on diamonds). The `TileFrame` takes the shape of the field's diamond when
+    the map has one, and keeps its width on the screen when the camera is drawn back. Without a field on a map of diamonds (the farmhouse) `cell()` asks the map.
+  * `RpgFarmAnimal.roam_cells(layer, cells, inset)`: an animal wanders over cells of a layer
+    of diamonds (`roaming_cells()`), where `roam(rect)` takes a rectangle of the screen.
+    `RpgAnimalHouse` uses it for a yard of an isometric farm and puts the trough, the animals
+    and what they leave on the middle of their cells.
+  * `RpgFarmTrough.make`, `RpgForagePickup.make` and `RpgAnimalProduct.make` take the diamond
+    of the map as a last, optional argument: the thing then lies on the middle of its cell and
+    its shape is that diamond (the trough a box on it).
+  * `archetypes/farm/farm_iso.gd` (`RpgFarmIso`): the diamond of a cell as points and as a
+    shape, `box` / `box_faces` (a box on a diamond: three `Polygon2D`, the south face, the
+    east face in shade, the top), `halves` / `add_face` / `add_box` (a thing of several cells
+    drawn in two halves that sort apart, as an isometric object of the packs is), `clip_x`,
+    and `grid_of` / `world_of` (a place of the world in the grid of a layer of diamonds).
+  * The builder. The farm's recipes take every position and every shape through `MapGeo`:
+    `farm_map_recipe.gd` (the farm and the rooms; `farm_root` and `room_root` give the nodes
+    of a map before it is saved), `home_recipe.gd`, `field_recipe.gd`, `crop_recipes.gd`,
+    `forage_recipe.gd` (`add_places(root, geo)`), `hud_recipe.gd` (the sign) and
+    `people_recipes.gd` (the village's door, the places and the people). For an isometric
+    farm: `farm_soil.tres` is an isometric tile set of the project's footprint whose five
+    tiles are drawn as diamonds (`FarmBuild.iso_soil_texture`), with the flat isometric tile
+    a pack tagged `soil` or `watered` as its source 1 or 2 when it has one
+    (`FarmBuild.iso_soil_asset`); a building of the packs
+    stands on the plan's footprint with its door before the plan's door cell
+    (`iso_building_offset`), else the building is a drawn box with a roof whose door is a band
+    along its south side; fences join the pieces beside them; the bin, the bed, the well,
+    trees and scenery are isometric pictures of the packs (one cell, by the same words) or
+    boxes on their diamond; what blocks blocks its diamond. `FarmBuild.tile` is one step on
+    the diamonds. `RECIPE_VERSION` of no recipe moved: the hashes have new keys (`iso`,
+    `iso_v`) only in an isometric project.
+  * `builder/smoke/smoke_steps_farm.gd` asks the map: walks through doors go to the door
+    (`SmokeMap.walk_toward`), the farmer is turned to the cell it works on (`face_cell`),
+    stands where its interaction reaches (`RpgIso.reach_dir`), and a yard is its cells. On a
+    farm of squares every step does what it did.
+* **The isometric race** (T17.15). A race is driven on the flat plan of its track whatever
+  the view: the position, the heading and the velocity of a car, the barriers, the checkpoints,
+  the waypoints, the pickups and the weapons are the plan's, and `RpgCarPhysics`, `RpgRace`,
+  `RpgRival`, `RpgRaceCheckpoint` and `RpgTrackSurfaces` are unchanged (a rival drives the
+  same lap in both views, step for step). Only what is drawn is elsewhere.
+  * `RpgRaceView` (`archetypes/racing/race_view.gd`, new): the child `View` of a track that is
+    painted on diamonds; a track seen from above has none. `footprint`, `cell_px`, `origin`;
+    `to_screen`, `to_plan`, `screen_vector`, `plan_vector`, `screen_heading`, `plan_heading`,
+    `scale_px`, `depth`, `screen_rect`, `screen_corners`, on `RpgIso`'s grid; `RpgRaceView.of(node)`
+    finds it from anything of the track (null from above).
+  * `RpgCar`: `view()`, `shown_position()`, `shown_heading()`, `shown_forward()`: where the car
+    is drawn and which way it points on the screen (its own place and heading from above). On
+    a track with a view its `Visual` is moved to that place, takes the row of diamonds as its
+    `z_index`, and shows the heading as it is seen; with `absolute_steering` the stick is a
+    direction of the screen. From above the car does what it did.
+  * `RpgHeadingSprite` is given the heading on the screen. A car in eight headings as eight
+    files (`car_N.png` to `car_NW.png`, N up on the screen, then clockwise) shows `SE` when it
+    heads east in the plan; a sheet drawn from straight above is shown the same way and looks
+    flat; one picture is turned. Eight headings turn in steps of 45 degrees.
+  * `RpgRaceCamera`: follows where the car is drawn (`target_position()`) and leads it the way
+    it moves on the screen; `base_zoom` (1 by default: nothing changes from above) is the zoom
+    over a car that stands, and a fixed camera never comes nearer than that.
+  * `RpgRacePickup` and `RpgRaceWeapon` keep their place in the plan and draw themselves where
+    the view has it (`shown_position()`).
+  * The builder: `recipes/racing/iso_track.gd` builds the track of an isometric project (the
+    ground on `iso.tres`, the road from the road pieces of the packs along the loop or drawn,
+    the marks, the walls and the scenery on the diamonds; the barriers, the cars, the pickups
+    and the race in the plan); `MapGeo.paint_sides` lays pieces whose sides are known;
+    `RaceBuild.scale_for` chooses the scale for the picture of the car. The hashes of the
+    racing recipes have a key more only in an isometric project, and a race seen from above
+    is built byte for byte as before.
+  * `builder/smoke/smoke_steps_racing.gd` asks the car where it is drawn in the three places
+    that are about the picture (the car is on the screen, the frame of its picture, the
+    camera ahead of it), and holds the arrows of absolute steering the way the waypoint is
+    seen. Everything else already asked the plan.
 
 ## 1.4.0
 

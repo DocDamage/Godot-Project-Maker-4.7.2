@@ -13,6 +13,13 @@ extends RefCounted
 ## of the race and is in the save of the run, and the HUD of the next track has its sign, its
 ## rows and its map with a dot for every car. The other tracks are each seen counting down and
 ## starting, and ended by hand, to the credits.
+##
+## The steps ask the plan of the track, not the screen: where a car is, what it drives on, the
+## checkpoints and the waypoints are the plan's in both views, since a race is driven on the
+## flat plan whatever it looks like (T17.15). The three things that are about the picture ask
+## the car where it is drawn (`shown_position`, `shown_heading`): that it is on the screen,
+## which frame of its picture shows, and where the camera is. With *absolute* steering the
+## arrows the driver holds are the way to the waypoint as it is seen on the screen.
 
 const SAVE_DIR := "user://smoke_saves"
 const ACTIONS: Array[StringName] = [&"accelerate", &"brake", &"boost", &"fire", &"move_left", &"move_right", &"move_up", &"move_down"]
@@ -102,6 +109,18 @@ func _release_all() -> void:
 ## Where the car begins, and the way it points there.
 var _start := Vector2.ZERO
 var _start_heading := 0.0
+
+## Where the picture of the car is on the screen, in px of the window: its place in a track
+## seen from above, and where the view puts it in one seen at an angle.
+func _on_screen(car: RpgCar) -> Vector2:
+	var parent := car.get_parent() as Node2D
+	var drawn := car.shown_position()
+	return car.get_canvas_transform() * (parent.to_global(drawn) if parent != null else drawn)
+
+## How long a tile of the plan is where the car is drawn, in px of the track's scene.
+func _tile_seen(car: RpgCar) -> float:
+	var seen := car.view()
+	return car.tile_size * (seen.scale_px() if seen != null else 1.0)
 
 ## Puts the car back at the start, standing.
 func _back_to_start() -> void:
@@ -200,8 +219,8 @@ func _title_new_game() -> String:
 	race.park_rivals(true)
 	await _frames(5)
 	var view := Rect2(Vector2.ZERO, tree.root.get_visible_rect().size)
-	if not view.has_point(car.get_global_transform_with_canvas().origin):
-		return "the car is not on the screen (%s)" % car.get_global_transform_with_canvas().origin
+	if not view.has_point(_on_screen(car)):
+		return "the car is not on the screen (%s)" % _on_screen(car)
 	if _mode().phase != RpgArcadeMode.Phase.PLAYING:
 		return "the run did not start (phase %d)" % _mode().phase
 	_start = car.position
@@ -249,9 +268,10 @@ func _car_steers() -> String:
 		Input.action_release(&"accelerate")
 		return "holding move_right turned the car %.2f rad" % turned
 	var visual := car.get_node_or_null("Visual") as RpgHeadingSprite
-	if visual != null and visual.headings > 1 and visual.frame != visual.frame_for(car.heading):
+	# the frame of the heading as it is seen: the car's own from above
+	if visual != null and visual.headings > 1 and visual.frame != visual.frame_for(car.shown_heading()):
 		Input.action_release(&"accelerate")
-		return "the picture of the car shows frame %d for the heading %.2f" % [visual.frame, car.heading]
+		return "the picture of the car shows frame %d for the heading %.2f (%.2f on the screen)" % [visual.frame, car.heading, car.shown_heading()]
 	Input.action_press(&"move_left")
 	await _frames(25)
 	Input.action_release(&"move_left")
@@ -275,16 +295,17 @@ func _camera_looks_ahead() -> String:
 		return ""
 	Input.action_press(&"accelerate")
 	await _frames(70)
-	var ahead := (camera.position - car.position).dot(car.forward())
+	# ahead of where the car is drawn, the way it points there
+	var ahead := (camera.position - car.shown_position()).dot(car.shown_forward())
 	var zoom := camera.zoom.x
 	Input.action_release(&"accelerate")
-	if ahead <= car.tile_size:
+	if ahead <= _tile_seen(car):
 		return "the camera is %.1f px ahead of a car at speed" % ahead
-	if zoom >= 1.0:
-		return "the camera did not zoom out with the speed (zoom %.2f)" % zoom
+	if zoom >= camera.base_zoom:
+		return "the camera did not zoom out with the speed (zoom %.2f of %.2f)" % [zoom, camera.base_zoom]
 	await _back_to_start()
 	await _frames(90)
-	if camera.position.distance_to(car.position) > car.tile_size:
+	if camera.position.distance_to(car.shown_position()) > _tile_seen(car):
 		return "the camera did not come back to a car that stands"
 	return ""
 
@@ -466,8 +487,9 @@ func _drive_toward(car: RpgCar, goal: Vector2, limit: float, stuck: int) -> int:
 	var slow := speed > limit and to.length() < room * tile
 	var turning := absf(RpgCarPhysics.angle_difference(car.heading, to.angle())) > 0.45 and speed > 6.0
 	if car.absolute_steering:
-		# the arrows are the heading: those of the way to the waypoint
-		var way := to.normalized()
+		# the arrows are the heading: those of the way to the waypoint, as it is seen
+		var seen := car.view()
+		var way := seen.screen_vector(to).normalized() if seen != null else to.normalized()
 		_hold(&"move_right", way.x > 0.35)
 		_hold(&"move_left", way.x < -0.35)
 		_hold(&"move_down", way.y > 0.35)

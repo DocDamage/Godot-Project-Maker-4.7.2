@@ -409,3 +409,290 @@ def test_the_same_pack_seen_from_above_still_makes_what_it_made(
     assert not [a for a in cat.assets if a.pack_id in ("rpggen_iso", "rpggen_iso_kit")]
     view = _view(target)
     assert "projection" not in view and view["tile_size"] == [16, 16]
+
+
+# --------------------------------------------------------------------------- the farm (T17.14)
+#
+# The seventh kind on the same pack: its plan is the grid of cells a farm seen from above has,
+# painted on diamonds. The farm's own sequence (tests/integration/test_m17_farm.py has the same
+# lists) is played with the pad on the screen on a farm with a well and no animals, and with
+# the pad on the grid on a farm with a pond and a coop.
+
+FARM_HOUSE_STEPS = ["wake_in_the_house", "walk_out_of_the_house", "go_to_the_village"]
+FARM_STEPS = [
+    "villager_by_the_clock",
+    "give_a_gift",
+    "back_to_the_farm",
+    "farm_is_there",
+    "fill_the_can",
+    "clear_debris",
+    "till_a_cell",
+    "plant_a_seed",
+    "water_it",
+    "a_night_grows_it",
+    "crop_ripens",
+    "harvest",
+    "ship_the_crop",
+    "sleep_in_the_bed",
+    "morning_summary",
+    "buy_seeds_at_the_shop",
+    "rain_waters_the_field",
+    "hud_shows_the_day",
+    "season_turns",
+    "forage_on_the_farm",
+    "catch_a_fish",
+]
+FARM_ANIMAL_STEPS = [
+    "buy_a_hen",
+    "hen_in_the_coop",
+    "feed_at_the_trough",
+    "pet_the_hen",
+    "egg_in_the_morning",
+    "ship_the_egg",
+]
+# a new game starts in the farmhouse; the shared steps are played in the village
+FARM_SEQUENCE = [
+    SHARED_STEPS[0],
+    *FARM_HOUSE_STEPS,
+    *SHARED_STEPS[1:],
+    *FARM_STEPS,
+    *FARM_ANIMAL_STEPS,
+]
+FARM_MAPS = ["game/maps/farm.tscn", "game/maps/farm_house.tscn", "game/maps/starter_map.tscn"]
+FARM_SOIL = "generated/tilesets/farm_soil.tres"
+POND_TILE = "iso_tiles.png.isotile_007_"  # a flat tile that is given the role of water
+# the cells of the tiles the field recipe draws (field_recipe.gd): source 0
+PLOT_TILE = (0, 0, 0)
+WATER_MARK = (0, 4, 0)
+
+
+def _farm_config(controls: str = "screen", animals: str = "none") -> config.GeneratorConfig:
+    cfg = config.default_for(
+        "Diamond Acre" if animals == "none" else "Diamond Coop",
+        [config.pack_ref_from_source(PACK, "iso_tiles")],
+        archetype="farm",
+    )
+    cfg.projection = "isometric"
+    cfg.iso_controls = controls
+    cfg.starter_map["animals"] = animals
+    return cfg
+
+
+@pytest.fixture(scope="module")
+def iso_farm(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):  # noqa: ANN201
+    return _generated(godot_exe, tmp_path_factory.mktemp("iso_farm"), _farm_config())
+
+
+@pytest.fixture(scope="module")
+def iso_coop(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):  # noqa: ANN201
+    """A farm with a coop and a pond, the pad on the diamond's axes. The pack names no water,
+    so one of its flat tiles is given the role as the audit would give it."""
+    opened = archive.open_pack(PACK, set(), pack_id="iso_tiles")
+    cat, _issues, _made = catalog.assemble([(opened, inventory.build_inventory(opened))], None, [])
+    for asset in cat.assets:
+        if asset.id.startswith(POND_TILE):
+            asset.overrides = {"role": "WATER"}
+            asset.status = "CONFIRMED"
+    target = tmp_path_factory.mktemp("iso_coop") / "out"
+    result = orchestrator.run_in_memory(_farm_config("grid", "coop"), cat, target, godot_exe)
+    assert result.ok, _errors(result)
+    return target, result
+
+
+def _farm_plan(target: Path) -> dict:
+    return jsonio.read(target / "rpggen/world_plan.json")["farm"]["map"]
+
+
+def _map_view(target: Path, godot_exe: Path, rel: str) -> dict:
+    """The cells and the entities of one map of a generated project, dumped by the builder's
+    own tool (what the picture of the starter map is drawn from)."""
+    from rpggen.core import godot
+
+    out = target / "rpggen/results" / (Path(rel).stem + "_cells.json")
+    run = godot.run_godot(
+        godot.find_console_exe(godot_exe),
+        target,
+        [
+            "--script",
+            "res://generated/builder/tools/dump_map_view.gd",
+            "--",
+            f"--map=res://{rel}",
+            f"--out={out}",
+        ],
+        timeout_s=120,
+        log_name="farm_view",
+        log_dir=target / "rpggen/logs",
+    )
+    assert run.returncode == 0 and out.is_file(), run.stdout[-2000:]
+    return jsonio.read(out)
+
+
+def _cells(view: dict, layer: str) -> dict[tuple[int, int], tuple[int, int, int]]:
+    found = next(entry for entry in view["layers"] if entry["name"] == layer)
+    return {(c[0], c[1]): (c[2], c[3], c[4]) for c in found["cells"]}
+
+
+def test_the_pack_makes_an_isometric_farm_that_passes_its_smoke_run(iso_farm) -> None:  # noqa: ANN001
+    target, result = iso_farm
+    assert not _errors(result)
+    assert _smoke(target) == FARM_SEQUENCE, "the farm's usual steps, all of them"
+    # what this farm does not have says so: no music, wall or chest in the pack, a well where
+    # the pack has no water, no animal house
+    _passed_for_real(target, (*ABSENT, "catch_a_fish", *FARM_ANIMAL_STEPS))
+    for rel in [*FARM_MAPS, FARM_SOIL, "generated/tilesets/iso.tres", "generated/data/crops.json"]:
+        assert (target / rel).is_file(), rel
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == ["farm"]
+    assert (archetypes / "farm/farm_iso.gd").is_file()
+    # the people of the view and the farm's own stand-ins are drawn; what lies flat on squares
+    # (soil tiles, the bin, the bed) is not: the recipes draw those on their diamonds
+    notes = sorted(i.detail["thing"] for i in result.issues if i.code == "ASSET-031")
+    assert {"hero", "villager", "hoe", "farm animal"} <= set(notes)
+    assert not {"tilled soil", "watered soil", "shipping bin", "bed"} & set(notes)
+    kit = sorted(p.name for p in (target / "generated/farm_kit").glob("*.png"))
+    assert "hoe.png" in kit and "turnip.png" in kit
+    assert not {"soil.png", "watered.png", "shipping_bin.png", "bed.png"} & set(kit)
+    cat = catalog.Catalog.from_json(jsonio.read(paths.from_posix_rel(paths.CATALOG, target)))
+    assert [t.name for t in cat.tilesets] == ["iso"], "no tile set of squares"
+    hoe = next(a for a in cat.assets if a.id == "rpggen_farm_kit.hoe")
+    unit = iso_math.unit(*FOOT)
+    assert catalog.effective(hoe)["size"] == [unit, unit], "the kit is a step on the diamonds large"
+    saved = jsonio.read(paths.from_posix_rel(paths.CONFIG, target))
+    assert saved["projection"] == "isometric" and saved["archetype"] == "farm"
+
+
+def test_the_farm_is_painted_on_diamonds_where_its_plan_says(iso_farm, godot_exe: Path) -> None:  # noqa: ANN001
+    target, _result = iso_farm
+    tilesets = sorted(p.name for p in (target / "generated/tilesets").glob("*.tres"))
+    assert tilesets == ["farm_soil.tres", "iso.tres"]
+    soil_set = (target / FARM_SOIL).read_text(encoding="utf-8")
+    assert "tile_shape = 1" in soil_set and "tile_layout = 5" in soil_set
+    assert "tile_size = Vector2i(60, 34)" in soil_set, "the soil lies on the diamonds of the ground"
+    for rel in FARM_MAPS:
+        scene = (target / rel).read_text(encoding="utf-8")
+        assert 'path="res://generated/tilesets/iso.tres"' in scene, rel
+        assert "overworld.tres" not in scene and "RectangleShape2D" not in scene, rel
+    farm_scene = (target / FARM_MAPS[0]).read_text(encoding="utf-8")
+    assert 'path="res://generated/tilesets/farm_soil.tres"' in farm_scene
+    assert "ConvexPolygonShape2D" in farm_scene
+    # the plan: the one the planner makes of the view's facts, stored, and a grid of cells
+    plan = _farm_plan(target)
+    cat = catalog.Catalog.from_json(jsonio.read(paths.from_posix_rel(paths.CATALOG, target)))
+    cfg = _farm_config()
+    facts = orchestrator.farm_facts(cfg, cat)
+    assert facts == {"water": False, "house": {"size": [1, 1], "door": [0, 1]}}
+    from rpggen.core import farm_plan
+
+    planned = farm_plan.plan(cfg.starter_map_options(), cfg.seed, facts)
+    for key in ("size", "house", "tillable", "water", "bin", "exit", "paths", "trees", "debris"):
+        assert plan[key] == planned[key], key
+    assert farm_plan.check(plan) == []
+    w, h = plan["size"]
+    view = _map_view(target, godot_exe, FARM_MAPS[0])
+    assert view["projection"] == "isometric" and view["tile_size"] == list(FOOT)
+    assert set(_cells(view, "Ground")) == {(x, y) for x in range(w) for y in range(h)}
+    # the field: what can be tilled in the scene is what the plan lists, and the can is filled
+    # where the plan has its water
+    soil = _cells(view, "Soil")
+    assert {c for c, tile in soil.items() if tile == PLOT_TILE} == {
+        tuple(c) for c in plan["tillable"]
+    }
+    assert {c for c, tile in soil.items() if tile == WATER_MARK} == {
+        tuple(c) for c in plan["water"]["cells"]
+    }
+    assert len(soil) == len(plan["tillable"]) + len(plan["water"]["cells"])
+    # what stands on the farm stands on the middle of its diamond
+    where = {e["name"]: (e["x"], e["y"]) for e in view["entities"]}
+    door = plan["house"]["door"]
+    assert where["Player"] == _at(door), "a farmer who comes out of the house is on the door cell"
+    assert where["ShippingBin"] == _at(plan["bin"]["cell"])
+    # the pack's house is drawn on one diamond: it stands in the last row of the plan's
+    # footprint, over the door cell
+    x, y, wide, high = plan["house"]["rect"]
+    assert (wide, high) == (2, 2) and door == [x, y + high]
+    assert where["House"] == _at([door[0], door[1] - 1])
+    house = next(e for e in view["entities"] if e["name"] == "House")
+    assert "house_01" in house["scene"]
+    for i, cell in enumerate(plan["trees"][:3]):
+        assert f'[node name="Tree{i + 1}"' in farm_scene, cell
+    assert farm_scene.count('[node name="Debris_') == len(plan["debris"])
+    # the room of the house: the farmer by the bed, on the plan's cell
+    room = _map_view(target, godot_exe, FARM_MAPS[1])
+    inside = {e["name"]: (e["x"], e["y"]) for e in room["entities"]}
+    start = plan["house"]["interior"]["start"]
+    assert inside["Player"] == _at(start)
+    bed = plan["house"]["interior"]["bed"]["cell"]
+    assert inside["Bed"] == _at([bed[0], bed[1] + 1]), "the bed's origin is the cell of its foot"
+
+
+def test_a_second_run_of_the_farm_changes_nothing(iso_farm, godot_exe: Path) -> None:  # noqa: ANN001
+    target, _result = iso_farm
+    kept = {
+        rel: (target / rel).read_bytes()
+        for rel in [
+            *FARM_MAPS,
+            FARM_SOIL,
+            "generated/tilesets/iso.tres",
+            "generated/scenes/actors/player.tscn",
+            "generated/scenes/farm/bed.tscn",
+            "generated/scenes/farm/shipping_bin.tscn",
+            "generated/scenes/farm/crops/turnip.tscn",
+            "generated/farm_kit/hoe.png",
+            "game/data/new_game.tres",
+            "rpggen/world_plan.json",
+            "project.godot",
+            paths.CATALOG,
+            paths.CONFIG,
+            paths.LEDGER,
+        ]
+    }
+    again = orchestrator.run_in_memory(_farm_config(), None, target, godot_exe)
+    assert again.ok, _errors(again)
+    assert [i.code for i in again.issues if i.code == orchestrator.REPEAT_CODE], (
+        "nothing changed: the build and the checks are not repeated"
+    )
+    for rel, data in kept.items():
+        assert (target / rel).read_bytes() == data, rel
+
+
+def test_an_isometric_farm_with_a_coop_and_a_pond(iso_coop, godot_exe: Path) -> None:  # noqa: ANN001
+    """The steps of the animals and the fishing step are played, with the pad on the grid: the
+    hen is bought, wanders the cells of its yard, is fed at the trough and gives an egg; the
+    rod is cast at the pond ahead and a fish is landed."""
+    target, result = iso_coop
+    assert not _errors(result)
+    assert _smoke(target) == FARM_SEQUENCE
+    _passed_for_real(target)  # nothing of the farm passes with a note
+    settings = (target / "project.godot").read_text(encoding="utf-8")
+    assert 'iso_controls="grid"' in settings
+    plan = _farm_plan(target)
+    assert plan["animals"] == "coop" and plan["water"]["kind"] == "pond"
+    coop = plan["animal_houses"][0]
+    yard = coop["yard"]
+    scene = (target / FARM_MAPS[0]).read_text(encoding="utf-8")
+    assert scene.count('[node name="Fence_coop_') == len(yard["fence"])
+    assert (
+        '[node name="Gate_coop"' in scene
+        and '[node name="Coop" type="Node2D" parent="Yards"' in scene
+    )
+    assert (target / "game/maps/farm_coop.tscn").is_file()
+    assert "iso.tres" in (target / "game/maps/farm_coop.tscn").read_text(encoding="utf-8")
+    assert (target / "generated/scenes/farm/animals/hen__hen.tscn").is_file()
+    # the pond: the pack's water tile on the ground at the plan's cells, and those cells fill
+    # the can
+    view = _map_view(target, godot_exe, FARM_MAPS[0])
+    ground = _cells(view, "Ground")
+    tiles = sorted(set(ground.values()), key=lambda tile: -list(ground.values()).count(tile))
+    assert len(tiles) == 2, "the ground, and the water"
+    water = {tuple(c) for c in plan["water"]["cells"]}
+    assert {c for c, tile in ground.items() if tile == tiles[1]} == water
+    assert {c for c, tile in _cells(view, "Soil").items() if tile == WATER_MARK} == water
+    where = {e["name"]: (e["x"], e["y"]) for e in view["entities"]}
+    assert where["ShippingBin"] == _at(plan["bin"]["cell"])
+    assert "Coop" not in where, "the pack has no coop: it is drawn in the map itself"
+    x, y, wide, high = coop["rect"]
+    assert '[node name="Coop" type="StaticBody2D" parent="YSorted/Entities"' in scene
+    middle = _at([x + wide - 1, y + high - 1])
+    assert f"position = Vector2({middle[0]:g}, {middle[1]:g})" in scene, (
+        "the drawn coop stands on the cell of its footprint nearest the camera"
+    )

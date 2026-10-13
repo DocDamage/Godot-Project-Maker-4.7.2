@@ -3,6 +3,11 @@ extends Camera2D
 ## The camera of a race: it follows the car, looks ahead along the way the car moves and zooms
 ## out a little with its speed. `fixed` keeps it still over the whole track instead (a small
 ## track fits on the screen).
+##
+## The camera is where the picture is. On a track seen at an angle (RpgRaceView, T17.15) the
+## car is drawn somewhere else than its place in the plan: the camera follows where it is
+## drawn and looks ahead the way it moves on the screen, and `fixed` shows the diamond the
+## whole track is there. `base_zoom` is the zoom of a car that stands (1 seen from above).
 
 ## The car that is followed.
 @export var target_path: NodePath = NodePath("")
@@ -13,6 +18,9 @@ extends Camera2D
 @export var view: Vector2 = Vector2(640, 360)
 ## How quickly the camera catches up with where it wants to be, a second.
 @export var catch_up: float = 5.0
+## The zoom of a car that stands: 1 for a track seen from above. An isometric track whose
+## diamonds are much larger or smaller than a car has another (the track recipe sets it).
+@export var base_zoom: float = 1.0
 ## Turned off by a test that steps the camera itself.
 var auto_advance := true
 
@@ -41,15 +49,35 @@ func _velocity_tiles() -> Vector2:
 		return moving / tile
 	return Vector2.ZERO
 
-## Where the camera wants to be: ahead of the car along its velocity.
-func wanted() -> Vector2:
+## Where the car is drawn: its position, or what it says of a track seen at an angle.
+func target_position() -> Vector2:
 	var car := target()
 	if car == null:
 		return position
-	return car.position + RpgCarPhysics.look_ahead(_velocity_tiles(), minf(view.x, view.y))
+	if car.has_method(&"shown_position"):
+		var shown: Vector2 = car.call(&"shown_position")
+		return shown
+	return car.position
+
+## The velocity of the car as it is seen: the same speed, the way it moves on the screen.
+func _shown_velocity() -> Vector2:
+	var moving := _velocity_tiles()
+	var seen := RpgRaceView.of(self)
+	if seen == null or moving == Vector2.ZERO:
+		return moving
+	return seen.screen_vector(moving).normalized() * moving.length()
+
+## Where the camera wants to be: ahead of the car along its velocity. The zoom is taken out
+## of the lead of a zoomed camera, so that it is the same part of the screen.
+func wanted() -> Vector2:
+	if target() == null:
+		return position
+	var lead := RpgCarPhysics.look_ahead(_shown_velocity(), minf(view.x, view.y))
+	return target_position() + (lead / base_zoom if base_zoom != 1.0 and base_zoom > 0.0 else lead)
 
 func wanted_zoom() -> float:
-	return RpgCarPhysics.zoom_for(_velocity_tiles().length())
+	var zoomed := RpgCarPhysics.zoom_for(_velocity_tiles().length())
+	return zoomed * base_zoom if base_zoom != 1.0 else zoomed
 
 ## Puts the camera where it wants to be at once (the start of a race).
 func snap() -> void:
@@ -63,7 +91,8 @@ func look_at_track() -> void:
 	if track.size.x <= 0.0 or track.size.y <= 0.0:
 		return
 	position = track.get_center()
-	zoom = Vector2.ONE * minf(1.0, minf(view.x / track.size.x, view.y / track.size.y))
+	# never nearer than a car that stands is seen
+	zoom = Vector2.ONE * minf(maxf(1.0, base_zoom), minf(view.x / track.size.x, view.y / track.size.y))
 
 func advance(delta: float) -> void:
 	if fixed:

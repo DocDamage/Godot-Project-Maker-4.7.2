@@ -8,6 +8,10 @@ extends RefCounted
 ## the start and the race camera. There is a scene for every track of the plan rpggen stored
 ## (rpggen/world_plan.json, the section `stages`); a project without one gets a flat test
 ## track, a ring of road.
+##
+## With `projection: isometric` (T17.15) the same plan is painted on the diamonds of the
+## isometric tile set (iso_track.gd): the race is still driven on the flat plan, and only what
+## is seen is laid out at an angle.
 
 const RECIPE_VERSION := 3
 
@@ -20,6 +24,9 @@ const WorldPlan := preload("../../lib/world_plan.gd")
 const ArcadeBuild := preload("../arcade/arcade_build.gd")
 const StageRecipes := preload("../arcade/stage_recipes.gd")
 const RaceBuild := preload("racing_build.gd")
+const MapGeo := preload("../../lib/map_geo.gd")
+const IsoTileset := preload("../../lib/iso_tileset.gd")
+const IsoTrack := preload("iso_track.gd")
 
 const GRASS := Color(0.3, 0.59, 0.27)
 const WALL := Color(0.78, 0.16, 0.16)
@@ -43,7 +50,7 @@ func outputs(_ctx: BuildContext) -> PackedStringArray:
 
 func input_hash(ctx: BuildContext) -> String:
 	var def := tileset_def(ctx)
-	return ctx.stable_hash({
+	var inputs := {
 		"v": RECIPE_VERSION,
 		"tracks": stored_plan() if not stored_plan().is_empty() else plan(ctx),
 		"tileset": def.get("name", ""),
@@ -56,7 +63,17 @@ func input_hash(ctx: BuildContext) -> String:
 		"fixed": RaceBuild.fixed_camera(ctx),
 		"rivals": RaceBuild.rivals(ctx),
 		"rubber_band": RaceBuild.rubber_band(ctx),
-	})
+	}
+	if RaceBuild.isometric(ctx):  # a game seen from above has no such key: its hash is what it was
+		var geo := MapGeo.new(ctx)
+		inputs["iso"] = {
+			"version": IsoTrack.VERSION,
+			"view": RaceBuild.view_facts(ctx),
+			"tiles": IsoTileset.inputs(ctx.catalog),
+			"ground": IsoTrack.field_tile(geo).get("asset_id", ""),
+			"pieces": geo.iso.laid_pieces("ROAD"),
+		}
+	return ctx.stable_hash(inputs)
 
 static func tileset_def(ctx: BuildContext) -> Dictionary:
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
@@ -380,6 +397,16 @@ static func _barriers_of(track: Dictionary, cells: Vector2i) -> Array[Rect2i]:
 		out = test_barriers(cells)
 	return out
 
+## The point of a picture that stands on the middle of a diamond (its `origin` in the catalog)
+## when it was drawn for the diamonds of this project (a tree or a house of the pack of the
+## ground: its `footprint` is the project's), or null for any other picture.
+static func _iso_origin(eff: Dictionary, geo: MapGeo) -> Variant:
+	var origin := JsonUtil.to_array(eff.get("origin", []))
+	var stands := JsonUtil.to_array(eff.get("footprint", []))
+	if geo == null or origin.size() != 2 or stands.size() != 2 or BuildContext.vec2i(stands) != geo.footprint:
+		return null
+	return Vector2(JsonUtil.to_float(origin[0]), JsonUtil.to_float(origin[1]))
+
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var tracks := plan(ctx)
@@ -389,7 +416,12 @@ func build(ctx: BuildContext) -> Array:
 	var tile_set: TileSet = null
 	var road := {}
 	var finish := {}
-	if not def.is_empty():
+	# a project seen at an angle paints its tracks on diamonds (T17.15)
+	var geo: MapGeo = MapGeo.new(ctx) if RaceBuild.isometric(ctx) else null
+	if geo != null and geo.load_tile_set() == null:
+		issues.append(ctx.make_issue("BUILD-002", {"recipe": "track_recipe", "reason": "the isometric tile set is missing"}, geo.tileset_path()))
+		return issues
+	if geo == null and not def.is_empty():
 		tile_set = load(Paths.TILESETS_DIR + "%s.tres" % def["name"]) as TileSet
 		var asset := RaceBuild.road_asset(ctx)
 		if tile_set != null and not asset.is_empty():
@@ -405,11 +437,16 @@ func build(ctx: BuildContext) -> Array:
 		return issues
 	var look := {"finish": finish, "tyre_texture": ArcadeBuild.first_frame(ctx, RaceBuild.tagged(ctx, "HAZARD", "tyre"))}
 	var scenery: Array = []
+	var origins: Array = []
 	for asset in ArcadeBuild.assets(ctx, "DECORATION"):
 		var texture := ArcadeBuild.first_frame(ctx, asset)
 		if texture != null and scenery.size() < 6:
 			scenery.append(texture)
+			origins.append(_iso_origin(ctx.catalog.effective(asset), geo))
 	look["decoration_textures"] = scenery
+	if geo != null:
+		look["decoration_origins"] = origins
+		look.merge(RaceBuild.iso_view(ctx, geo))  # pieces, tiles, scale, shown, zoom
 	var rival_scenes: Array = []
 	for i in RaceBuild.rivals(ctx):
 		if ResourceLoader.exists(RaceBuild.rival_path(i + 1)):
@@ -436,7 +473,15 @@ func build(ctx: BuildContext) -> Array:
 			own["heading"] = JsonUtil.to_float(begin.get("heading", -PI * 0.5))
 			for key: String in ["tyres", "decoration", "pickups"]:
 				own[key] = JsonUtil.to_array(track.get(key, []))
-		var scene := build_track(i, entry, ArcadeBuild.view(ctx), tile, rows, barriers, start, tile_set, road, car, RaceBuild.fixed_camera(ctx), own)
+			if geo != null:
+				own["loop"] = JsonUtil.to_array(track.get("loop", []))
+		var scene: Node2D = null
+		if geo != null:
+			scene = IsoTrack.build_track(i, entry, ArcadeBuild.view(ctx), tile, rows, barriers, start, geo, car, RaceBuild.fixed_camera(ctx), own)
+			for note in geo.take_notes():
+				print("[rpggen] INFO track_recipe: %s: %s" % [ArcadeBuild.stage_id(i), note])
+		else:
+			scene = build_track(i, entry, ArcadeBuild.view(ctx), tile, rows, barriers, start, tile_set, road, car, RaceBuild.fixed_camera(ctx), own)
 		var err := SceneUtil.save_scene(scene, path)
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))

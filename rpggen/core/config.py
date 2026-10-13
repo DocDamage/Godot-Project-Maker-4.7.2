@@ -233,7 +233,7 @@ PROJECTIONS = (PROJECTION_TOP_DOWN, PROJECTION_ISOMETRIC)
 ISOMETRIC_KINDS = ("turn_based", "arpg", "farm", "racing")
 # ... and those of them whose isometric maps are not made yet (T17.14 made the turn-based game
 # and the action RPG): asked for, they are refused before anything is built
-ISOMETRIC_NOT_YET = ("farm", "racing")
+ISOMETRIC_NOT_YET: tuple[str, ...] = ()  # the race was the last (T17.15)
 # How the pad moves the player on an isometric map (T17.14): up is up on the screen, or the
 # four directions follow the diamond's axes. ``iso_math.CONTROLS``.
 ISO_CONTROLS_SCREEN = "screen"

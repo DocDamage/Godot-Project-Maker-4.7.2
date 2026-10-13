@@ -113,12 +113,16 @@ def test_the_pad_follows_the_screen_unless_the_config_says_grid(tmp_path: Path) 
     assert 'const CONTROLS_SETTING := "rpg/iso_controls"' in runtime.read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("archetype", ["farm", "racing"])
+@pytest.mark.parametrize("archetype", ["racing"])  # the farm's is made (T17.14)
 def test_the_isometric_view_of_a_farm_and_of_a_race_is_not_made_yet(
     archetype: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     assert archetype in config.ISOMETRIC_KINDS, "the kind has the view: it is only not made"
-    assert archetype in config.ISOMETRIC_NOT_YET
+    # the race's is made too (T17.15): no kind is refused any more. What a kind that is not
+    # made yet is told is still tried, with the race put back on the list
+    assert config.ISOMETRIC_NOT_YET == ()
+    config.save(_cfg(archetype), tmp_path / "made.json")
+    monkeypatch.setattr(config, "ISOMETRIC_NOT_YET", (archetype,))
     cfg = _cfg(archetype)
     with pytest.raises(RpgGenError) as saved:
         config.save(cfg, tmp_path / "cfg.json")

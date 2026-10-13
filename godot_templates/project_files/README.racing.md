@@ -1,9 +1,10 @@
 ## 22. Tracks, rivals and the championship (racing)
 
 The game is a championship: a race on each track, one after the other. Your car is seen from
-above; you race the rivals for a number of laps, and your place in each race is worth points.
-There is no village, no inventory and no party, so the sections above about maps, doors, shops
-and quests do not apply to it.
+above (or at an angle in an isometric project: see *A race seen at an angle* below); you race
+the rivals for a number of laps, and your place in each race is worth points. There is no
+village, no inventory and no party, so the sections above about maps, doors, shops and quests
+do not apply to it.
 
 | Action | Keyboard | Gamepad |
 |--------|----------|---------|
@@ -56,6 +57,33 @@ carry, and your points once a race has been driven. In the bottom-right corner: 
 whole track with a dot for every car (yours is the red one); the **Minimap** setting turns it
 off. In the middle of the screen: the countdown, *Go!*, *Wrong way!* when you drive against
 the track, and your place at the finish.
+
+### A race seen at an angle
+
+If the game was generated with the **isometric** projection, the tracks are painted on the
+diamonds of your isometric pack and everything is seen at an angle, as in RC Pro-Am. The game
+is the same race:
+
+- The cars drive on the flat plan of the track, exactly as in a race seen from above; only
+  their pictures are put where that is on the screen. So the numbers in
+  `game/data/stages.json` (`start`, `checkpoints`, `waypoints`, `pickups`) are **places of
+  the plan**, in px with x to the east and y to the south, not places of the screen.
+- East in the plan runs down and to the right of the screen, south down and to the left. With
+  **Steering: absolute** the stick is a direction of the screen: hold it down and the car
+  ends up driving down the screen.
+- A car drawn for this view has eight pictures (north is up on the screen) and turns in steps
+  of 45 degrees; it still steers smoothly underneath. A car drawn from straight above is
+  used too and looks flat.
+- The map in the corner stays the plan from above, so a turn to the right on the map is a
+  turn to the right for the car.
+- In the scene of a track, the node **View** says how the plan is seen (the diamond, and how
+  many px of the plan one diamond is wide). **Barriers**, **Surfaces**, the cars and the
+  **Pickups** are where the plan has them, which is not where you see them in the editor;
+  **Ground**, **Road**, **Marks**, **Walls** and **Scenery** are what is seen.
+- When your pack has road pieces that name their sides (`roadNS`, `roadES`, …), the road is
+  laid from them, one piece for each cell of the loop, and the corners of the track are its
+  corner pieces. The car still drives the square corner of the plan, so at the outside of a
+  round corner it can be seen on the verge. Without such pieces the road is drawn.
 
 ### Where things are
 

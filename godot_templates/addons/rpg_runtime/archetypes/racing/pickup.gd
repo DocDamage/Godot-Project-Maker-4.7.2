@@ -5,6 +5,9 @@ extends Node2D
 ## the championship: `speed`, `tyres`, `acceleration` (only the player takes those, and a part
 ## is taken once). The others come back after `respawn_s`. The race asks which car is on it
 ## (`reaches`) and says when it was taken (`take`).
+##
+## Its `position` is its place in the plan of the track. On a track seen at an angle
+## (RpgRaceView, T17.15) it is drawn where that place is on the screen.
 
 const KINDS: Array[String] = ["boost", "missile", "bomb", "shield"]
 const PARTS: Array[String] = ["speed", "tyres", "acceleration"]
@@ -52,7 +55,15 @@ func advance(delta: float) -> void:
 		active = true
 		visible = true
 
+## Where it is drawn, in the coordinates it is in.
+func shown_position() -> Vector2:
+	var seen := RpgRaceView.of(get_parent())
+	return seen.to_screen(position) if seen != null else position
+
 func _draw() -> void:
+	var seen := RpgRaceView.of(get_parent())
+	if seen != null:
+		draw_set_transform(seen.to_screen(position) - position)
 	var color: Color = COLORS.get(kind, Color.WHITE)
 	if texture != null:
 		draw_texture(texture, -Vector2(texture.get_size()) * 0.5, color.lightened(0.5))
