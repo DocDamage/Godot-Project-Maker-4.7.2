@@ -1,0 +1,2175 @@
+{
+  "assets": {
+    "PNG/grass.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "GROUND",
+      "size": [
+        80,
+        96
+      ],
+      "tags": [
+        "surface:grass"
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/grassFlowers.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "GROUND",
+      "size": [
+        80,
+        96
+      ],
+      "tags": [
+        "surface:grass"
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/groundStone.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "GROUND",
+      "size": [
+        80,
+        96
+      ],
+      "tags": [
+        "surface:stone"
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/house_0.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        80,
+        96
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 36,
+      "role": "BUILDING",
+      "size": [
+        80,
+        96
+      ],
+      "stands_on": [
+        2,
+        2
+      ],
+      "tags": [
+        "turn:0"
+      ],
+      "turn": 0,
+      "usage": "sprite"
+    },
+    "PNG/house_1.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        80,
+        96
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 36,
+      "role": "BUILDING",
+      "size": [
+        80,
+        96
+      ],
+      "stands_on": [
+        2,
+        2
+      ],
+      "tags": [
+        "turn:1",
+        "variant_of:sample_pack_iso.png.house_0"
+      ],
+      "turn": 1,
+      "usage": "sprite"
+    },
+    "PNG/house_2.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        80,
+        96
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 36,
+      "role": "BUILDING",
+      "size": [
+        80,
+        96
+      ],
+      "stands_on": [
+        2,
+        2
+      ],
+      "tags": [
+        "turn:2",
+        "variant_of:sample_pack_iso.png.house_0"
+      ],
+      "turn": 2,
+      "usage": "sprite"
+    },
+    "PNG/house_3.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        80,
+        96
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 41,
+      "role": "BUILDING",
+      "size": [
+        80,
+        96
+      ],
+      "stands_on": [
+        2,
+        2
+      ],
+      "tags": [
+        "turn:3",
+        "variant_of:sample_pack_iso.png.house_0"
+      ],
+      "turn": 3,
+      "usage": "sprite"
+    },
+    "PNG/pathE.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathES.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e",
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathESW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e",
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathEW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathN.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathNE.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathNES.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e",
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathNESW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e",
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathNEW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathNS.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathNSW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathNW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathS.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathSW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/pathW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "ROAD",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/rock.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        80,
+        96
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "DECORATION",
+      "size": [
+        80,
+        96
+      ],
+      "stands_on": [
+        1,
+        1
+      ],
+      "usage": "sprite"
+    },
+    "PNG/stoneBlock_0.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 14,
+      "role": "DECORATION",
+      "size": [
+        80,
+        96
+      ],
+      "tags": [
+        "turn:0"
+      ],
+      "turn": 0,
+      "usage": "iso_tile"
+    },
+    "PNG/stoneBlock_1.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 14,
+      "role": "DECORATION",
+      "size": [
+        80,
+        96
+      ],
+      "tags": [
+        "turn:1",
+        "variant_of:sample_pack_iso.png.stoneblock_0"
+      ],
+      "turn": 1,
+      "usage": "iso_tile"
+    },
+    "PNG/stoneBlock_2.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 14,
+      "role": "DECORATION",
+      "size": [
+        80,
+        96
+      ],
+      "tags": [
+        "turn:2",
+        "variant_of:sample_pack_iso.png.stoneblock_0"
+      ],
+      "turn": 2,
+      "usage": "iso_tile"
+    },
+    "PNG/stoneBlock_3.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 14,
+      "role": "DECORATION",
+      "size": [
+        80,
+        96
+      ],
+      "tags": [
+        "turn:3",
+        "variant_of:sample_pack_iso.png.stoneblock_0"
+      ],
+      "turn": 3,
+      "usage": "iso_tile"
+    },
+    "PNG/treeOak.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        80,
+        96
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 28,
+      "role": "DECORATION",
+      "size": [
+        80,
+        96
+      ],
+      "stands_on": [
+        1,
+        1
+      ],
+      "usage": "sprite"
+    },
+    "PNG/treePine.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        80,
+        96
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 41,
+      "role": "DECORATION",
+      "size": [
+        80,
+        96
+      ],
+      "stands_on": [
+        1,
+        1
+      ],
+      "usage": "sprite"
+    },
+    "PNG/wallE.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 4,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallES.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e",
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 4,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallEW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 8,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallN.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 8,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallNE.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 8,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallNS.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 8,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallNW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 8,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallS.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 4,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallSW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 8,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/wallW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 8,
+      "role": "WALL",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/water.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterES.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e",
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterESW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "e",
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterNE.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterNES.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e",
+        "s"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterNESW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e",
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterNEW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "e",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterNSW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterNW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "n",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "PNG/waterSW.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "joins": [
+        "s",
+        "w"
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 0,
+      "role": "WATER",
+      "size": [
+        80,
+        96
+      ],
+      "usage": "iso_tile"
+    },
+    "characters/hero.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        22
+      ],
+      "role": "PLAYER",
+      "size": [
+        64,
+        96
+      ],
+      "usage": "sprite"
+    },
+    "characters/slime.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        16
+      ],
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ENEMY",
+      "size": [
+        64,
+        64
+      ],
+      "usage": "sprite"
+    },
+    "characters/villager_fisher.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        22
+      ],
+      "role": "NPC",
+      "size": [
+        64,
+        96
+      ],
+      "usage": "sprite"
+    },
+    "characters/villager_mason.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        22
+      ],
+      "role": "NPC",
+      "size": [
+        64,
+        96
+      ],
+      "usage": "sprite"
+    },
+    "items/chest.png": {
+      "canvas": [
+        80,
+        96
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        80,
+        96
+      ],
+      "origin": [
+        40,
+        79
+      ],
+      "projection": "isometric",
+      "rise": 3,
+      "role": "ITEM",
+      "size": [
+        80,
+        96
+      ],
+      "stands_on": [
+        1,
+        1
+      ],
+      "tags": [
+        "chest"
+      ],
+      "usage": "sprite"
+    },
+    "music/battle_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/town_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "portraits/elder.png": {
+      "canvas": [
+        48,
+        48
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "projection": "isometric",
+      "rise": 36,
+      "role": "PORTRAIT",
+      "size": [
+        48,
+        48
+      ],
+      "stands_on": [
+        1,
+        1
+      ],
+      "usage": "sprite"
+    },
+    "sfx/cancel.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/chest_open.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/coin.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/confirm.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/cursor_blip.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/hit.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/step.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/swing.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "ui/panel.png": {
+      "canvas": [
+        48,
+        48
+      ],
+      "footprint": [
+        40,
+        22
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "projection": "isometric",
+      "rise": 36,
+      "role": "UI",
+      "size": [
+        48,
+        48
+      ],
+      "stands_on": [
+        1,
+        1
+      ],
+      "usage": "sprite"
+    }
+  },
+  "author": "rpggen",
+  "fingerprint": {
+    "min_match": 0.8,
+    "required_files": {
+      "PNG/grass.png": "266e8ce96d2fef9cfb66d3c2d583d7c3534c752a48402166f2382b271dfd54de",
+      "PNG/grassFlowers.png": "e2b576a887250bd721743e04d4aa02e1480f271d90fdaebbc4a94c82a799a052",
+      "PNG/groundStone.png": "f6fd893b9eb7e2a9ed77e7ca4c796e2ed67c762080a1605414625b0b1b55e2fb",
+      "PNG/house_0.png": "0206847b098686f5b334e0390887eeb4cfdb03e2c44d8434e7ebb176005c0b42",
+      "PNG/house_1.png": "99361f8e9ff2b220153b1d6df1710f3fb5bbaf97822dd9e9fe582e9a40353e03",
+      "PNG/house_2.png": "4a457bdf8bb3f4140b033b942033361a2ead3dfbe45e077fcfe7c67b08430fbe",
+      "PNG/house_3.png": "d16a81fd7730cf0fd6c165061044da69e3c539dcb13ce3aac07441c66ee3fc7d",
+      "PNG/pathE.png": "7ba9a1cac84dc21eb99188aec317dcd41f06ba4780822550657d3b5ac37d4035",
+      "PNG/pathES.png": "04b9944592c389509075386521c23eadde2be260b671ef2af298b440f1f354f3",
+      "PNG/pathESW.png": "5520a17e0b1ae81f837ee0c6771299da9dd2d4737f515d5d25e2702fc448fe96",
+      "PNG/pathEW.png": "6c0aacd61513bda2d4e356ec621e189d210ee20eaf653ebe420c952aff7ca4d2",
+      "PNG/pathN.png": "279fba92155a24db4cb05fb31da0f3a5b174f52e4fd0e079fd38889fd24a793e",
+      "PNG/pathNE.png": "c0a4727519db3261ae11469ae3a886527c65e4118588077474a8d3ca04a90d35",
+      "PNG/pathNES.png": "864e33dfc5516c773a18626f95e717a5b34d8535a078d89991344b646c0c6efe",
+      "PNG/pathNESW.png": "3f1ec7529c8f1754fd65c94355f82ae2f0692253d4ef7aee724a8cb0b5beffb7",
+      "PNG/pathNEW.png": "87ea7a4467888e6adea41acbeade5fc4e6481da7975631d3bca050412e0c4793",
+      "PNG/pathNS.png": "624bd30141e49120d0761e993528a36d491417856d60699dc06d78b29ed28f65",
+      "PNG/pathNSW.png": "d1a50d15fde5089e9e0d8fc9d70ff053a6c69916997a6faa2f77ce22b115168b",
+      "PNG/pathNW.png": "7279b091de40bd400b5255ea20a2f5c2e62e25dd892564593f74c6ce58498a75",
+      "PNG/pathS.png": "dd7c2b73bd6c85f02d49de02f4b9351769f1460a2a29e8faa512b8225b41ebf8"
+    }
+  },
+  "folder_rules": [],
+  "license": "CC0-1.0",
+  "objects": [],
+  "profile_id": "rpggen_sample_pack_iso",
+  "profile_version": 1,
+  "tilesets": [],
+  "title": "Stone isle (rpggen sample pack)"
+}

@@ -1,0 +1,2146 @@
+{
+  "assets": {
+    "animals/cow_move_down_24x24_4frames.png": {
+      "animations": {
+        "sleep_down": {
+          "fps": 2.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/cow_sleep_24x24_2frames.png"
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/cow_move_down_24x24_4frames.png"
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/cow_move_left_24x24_4frames.png"
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/cow_move_right_24x24_4frames.png"
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/cow_move_up_24x24_4frames.png"
+        }
+      },
+      "frame": [
+        24,
+        24
+      ],
+      "grid": {
+        "cell": [
+          24,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        12,
+        22
+      ],
+      "role": "ANIMAL",
+      "size": [
+        96,
+        24
+      ],
+      "tags": [
+        "animal"
+      ],
+      "usage": "sprite"
+    },
+    "animals/hen_move_down_16x16_4frames.png": {
+      "animations": {
+        "sleep_down": {
+          "fps": 2.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/hen_sleep_16x16_2frames.png"
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/hen_move_down_16x16_4frames.png"
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/hen_move_left_16x16_4frames.png"
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/hen_move_right_16x16_4frames.png"
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/animals/hen_move_up_16x16_4frames.png"
+        }
+      },
+      "frame": [
+        16,
+        16
+      ],
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ANIMAL",
+      "size": [
+        64,
+        16
+      ],
+      "tags": [
+        "animal"
+      ],
+      "usage": "sprite"
+    },
+    "characters/farmer/farmer_walk_down_16x24_4frames.png": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_down_16x24_4frames.png"
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_left_16x24_4frames.png"
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_right_16x24_4frames.png"
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true,
+          "source": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_up_16x24_4frames.png"
+        }
+      },
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        22
+      ],
+      "role": "PLAYER",
+      "size": [
+        64,
+        24
+      ],
+      "usage": "sprite"
+    },
+    "crops/corn_16x32_6frames.png": {
+      "frame": [
+        16,
+        32
+      ],
+      "grid": {
+        "cell": [
+          16,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        31
+      ],
+      "role": "CROP",
+      "size": [
+        96,
+        32
+      ],
+      "stages": 6,
+      "tags": [
+        "crop"
+      ],
+      "usage": "growth_strip"
+    },
+    "crops/tomato_16x32_7frames.png": {
+      "frame": [
+        16,
+        32
+      ],
+      "grid": {
+        "cell": [
+          16,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        31
+      ],
+      "role": "CROP",
+      "size": [
+        112,
+        32
+      ],
+      "stages": 7,
+      "tags": [
+        "crop"
+      ],
+      "usage": "growth_strip"
+    },
+    "crops/turnip_16x16_4frames.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        15
+      ],
+      "role": "CROP",
+      "size": [
+        64,
+        16
+      ],
+      "stages": 4,
+      "tags": [
+        "crop"
+      ],
+      "usage": "growth_strip"
+    },
+    "crops/wheat_16x32_5frames.png": {
+      "frame": [
+        16,
+        32
+      ],
+      "grid": {
+        "cell": [
+          16,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        31
+      ],
+      "role": "CROP",
+      "size": [
+        80,
+        32
+      ],
+      "stages": 5,
+      "tags": [
+        "crop"
+      ],
+      "usage": "growth_strip"
+    },
+    "items/chest.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        16,
+        16
+      ],
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        14
+      ],
+      "role": "ITEM",
+      "size": [
+        32,
+        16
+      ],
+      "tags": [
+        "chest"
+      ],
+      "usage": "sprite"
+    },
+    "items/egg.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "product"
+      ],
+      "usage": "sprite"
+    },
+    "items/fish/perch.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "fish"
+      ],
+      "usage": "sprite"
+    },
+    "items/forage/mushroom.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "forage"
+      ],
+      "usage": "sprite"
+    },
+    "items/forage/wild_berries.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "forage"
+      ],
+      "usage": "sprite"
+    },
+    "items/milk.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "product"
+      ],
+      "usage": "sprite"
+    },
+    "items/seed_bag.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "ITEM",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "seed"
+      ],
+      "usage": "sprite"
+    },
+    "music/autumn_leaves.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/spring_theme.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/summer_days.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "music/winter_snow.wav": {
+      "audio": {
+        "loop": true,
+        "type": "music"
+      },
+      "role": "AUDIO_MUSIC",
+      "usage": "audio"
+    },
+    "npc/villager_baker.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        22
+      ],
+      "role": "NPC",
+      "size": [
+        64,
+        96
+      ],
+      "usage": "sprite"
+    },
+    "npc/villager_elder.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        22
+      ],
+      "role": "NPC",
+      "size": [
+        64,
+        96
+      ],
+      "usage": "sprite"
+    },
+    "npc/villager_smith.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              3
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              3,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "directions": 4,
+      "frame": [
+        16,
+        24
+      ],
+      "grid": {
+        "cell": [
+          16,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        8,
+        22
+      ],
+      "role": "NPC",
+      "size": [
+        64,
+        96
+      ],
+      "usage": "sprite"
+    },
+    "objects/farmyard.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "DECORATION",
+      "size": [
+        240,
+        160
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "portraits/elder.png": {
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "role": "PORTRAIT",
+      "size": [
+        48,
+        48
+      ],
+      "usage": "sprite"
+    },
+    "props/bed.png": {
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        32
+      ],
+      "usage": "sprite"
+    },
+    "props/branch.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "props/bush.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "props/fence.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "fence"
+      ],
+      "usage": "sprite"
+    },
+    "props/flowers.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "props/rock.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "props/shipping_bin.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "bin"
+      ],
+      "usage": "sprite"
+    },
+    "props/stump.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "props/tree.png": {
+      "frame": [
+        32,
+        48
+      ],
+      "origin": [
+        16,
+        47
+      ],
+      "role": "DECORATION",
+      "size": [
+        32,
+        48
+      ],
+      "usage": "sprite"
+    },
+    "props/weeds.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "usage": "sprite"
+    },
+    "sfx/confirm.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/harvest.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/hen_cluck.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/hoe.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/plant.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/rooster.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/sell.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "sfx/watering.wav": {
+      "audio": {
+        "loop": false,
+        "type": "sfx"
+      },
+      "role": "AUDIO_SFX",
+      "usage": "audio"
+    },
+    "tilesets/autumn/grass.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "size": [
+        64,
+        32
+      ],
+      "tags": [
+        "season:autumn",
+        "surface:grass",
+        "variant_of:sample_pack_farm.tilesets.spring.grass"
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/hedge_wall.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "WALL",
+      "size": [
+        32,
+        32
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/path.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ROAD",
+      "size": [
+        64,
+        32
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/soil_tilled.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "soil"
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/soil_watered.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "DECORATION",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "watered"
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/spring/grass.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "size": [
+        64,
+        32
+      ],
+      "tags": [
+        "season:spring",
+        "surface:grass"
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/summer/grass.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "size": [
+        64,
+        32
+      ],
+      "tags": [
+        "season:summer",
+        "surface:grass",
+        "variant_of:sample_pack_farm.tilesets.spring.grass"
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/water.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "WATER",
+      "size": [
+        64,
+        32
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tilesets/winter/grass.png": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "size": [
+        64,
+        32
+      ],
+      "tags": [
+        "season:winter",
+        "surface:grass",
+        "variant_of:sample_pack_farm.tilesets.spring.grass"
+      ],
+      "tileset": "overworld",
+      "usage": "tiles"
+    },
+    "tools/axe.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "TOOL",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "tool"
+      ],
+      "usage": "sprite"
+    },
+    "tools/fishing_rod.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "TOOL",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "fish",
+        "tool"
+      ],
+      "usage": "sprite"
+    },
+    "tools/hoe.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "TOOL",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "tool"
+      ],
+      "usage": "sprite"
+    },
+    "tools/sickle.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "TOOL",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "tool"
+      ],
+      "usage": "sprite"
+    },
+    "tools/watering_can.png": {
+      "frame": [
+        16,
+        16
+      ],
+      "origin": [
+        8,
+        15
+      ],
+      "role": "TOOL",
+      "size": [
+        16,
+        16
+      ],
+      "tags": [
+        "tool"
+      ],
+      "usage": "sprite"
+    },
+    "ui/panel.png": {
+      "frame": [
+        48,
+        48
+      ],
+      "origin": [
+        24,
+        47
+      ],
+      "role": "UI",
+      "size": [
+        48,
+        48
+      ],
+      "usage": "sprite"
+    },
+    "weather/rain_64x64_3frames.png": {
+      "animations": {
+        "idle_down": {
+          "fps": 4.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        64,
+        64
+      ],
+      "grid": {
+        "cell": [
+          64,
+          64
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        32,
+        63
+      ],
+      "role": "EFFECT",
+      "size": [
+        192,
+        64
+      ],
+      "tags": [
+        "weather"
+      ],
+      "usage": "sprite"
+    }
+  },
+  "author": "rpggen",
+  "fingerprint": {
+    "min_match": 0.8,
+    "required_files": {
+      "animals/cow_move_down_24x24_4frames.png": "bb81cab9fe9bbfac53cdc10935db3c0faaf57a4ee64f76edf73255addb52ad4e",
+      "animals/cow_move_left_24x24_4frames.png": "9b7289bea35f0ae022cdb1da5bb971ac2f83e84697387d1887a9c3dc36e97285",
+      "animals/cow_move_right_24x24_4frames.png": "733a53c40be829a9cedde6c1e0d08c4e1824941128fb989c199a0d464e002712",
+      "animals/cow_move_up_24x24_4frames.png": "551c3f52a7a096c38cc6afbd399fead137b4309720f1c233ec474fdca2881b19",
+      "crops/corn_16x32_6frames.png": "06c6ad6a773f5a4667e8d93803f4e9e7abaa2d9c765344d7e4f24b1fa4b4e914",
+      "crops/tomato_16x32_7frames.png": "7d65a618e2577d1f702d65ad29e20177d0d738b32bc5e492194cd8e9a2c762ad",
+      "crops/wheat_16x32_5frames.png": "6dd160e65075fafe24f52cd05f9c3c80c4c1448c8e815217f5644bc1e6bec5f0",
+      "npc/villager_baker.png": "572f15f4d8ae7b4077ce817af6dda9994d1fb22ac88a633fd7dff4dbcadfc71a",
+      "npc/villager_elder.png": "3c18a68faec2afb90b82bb6b09b66a3cc7b7151ebcc7d2eda05397b8292efa1e",
+      "npc/villager_smith.png": "c6dcb30c3249614021611d316d738ba9279522d8b864de73fc934c47be5b6f77",
+      "objects/farmyard.png": "308e218fcbcbfceb8b2076a5e230312c4d5e8661c931b272dae98736d5378d0d",
+      "portraits/elder.png": "98caca5169ca69e318594a7a367e850658d47b08a759cace0dd6d9bace391794",
+      "tilesets/autumn/grass.png": "1e98ac6d73952edd8bdd882c66327e9dee003a56443a488b22f16b2ff0738591",
+      "tilesets/path.png": "59d54d8224582d8c2abce3b4fdbbc18c7f75477c33caf654b64c84bb178a4d3d",
+      "tilesets/spring/grass.png": "672ecb33428faa68b3a4811dec20a6abcd96ec952869e6a123e3ea5a7caa162a",
+      "tilesets/summer/grass.png": "5821e75dd7e4bf156e65c25c01ee8be0b055ea09363086d37fd4662792c0357b",
+      "tilesets/water.png": "526e078bcbed0040e379eb9d61c4ee55b312e60c096ef9d424b417cd9919899e",
+      "tilesets/winter/grass.png": "c064721d808f32798f3c7943eb1c70d96f855c8255644bf148939dc8546485f4",
+      "ui/panel.png": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7",
+      "weather/rain_64x64_3frames.png": "8324ee54e8d3be38f7e37f15f1ec67f15315ac53b5b19c65dcda9b1ab925b06d"
+    }
+  },
+  "folder_rules": [],
+  "license": "CC0-1.0",
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            45
+          ],
+          [
+            96,
+            45
+          ],
+          [
+            96,
+            64
+          ],
+          [
+            0,
+            64
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "door": [
+        40,
+        63
+      ],
+      "footprint": [
+        0,
+        45,
+        96,
+        19
+      ],
+      "name": "house",
+      "origin": [
+        48,
+        63
+      ],
+      "region": [
+        16,
+        16,
+        96,
+        64
+      ],
+      "role": "BUILDING",
+      "sheet_path": "objects/farmyard.png",
+      "source": "auto",
+      "status": "CONFIRMED",
+      "tags": [
+        "house",
+        "door"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            45
+          ],
+          [
+            96,
+            45
+          ],
+          [
+            96,
+            64
+          ],
+          [
+            0,
+            64
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "door": [
+        40,
+        63
+      ],
+      "footprint": [
+        0,
+        45,
+        96,
+        19
+      ],
+      "name": "yard_barn",
+      "origin": [
+        48,
+        63
+      ],
+      "region": [
+        128,
+        16,
+        96,
+        64
+      ],
+      "role": "BUILDING",
+      "sheet_path": "objects/farmyard.png",
+      "source": "auto",
+      "status": "CONFIRMED",
+      "tags": [
+        "barn",
+        "door"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            34
+          ],
+          [
+            64,
+            34
+          ],
+          [
+            64,
+            48
+          ],
+          [
+            0,
+            48
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "door": [
+        24,
+        47
+      ],
+      "footprint": [
+        0,
+        34,
+        64,
+        14
+      ],
+      "name": "yard_coop",
+      "origin": [
+        32,
+        47
+      ],
+      "region": [
+        16,
+        96,
+        64,
+        48
+      ],
+      "role": "BUILDING",
+      "sheet_path": "objects/farmyard.png",
+      "source": "auto",
+      "status": "CONFIRMED",
+      "tags": [
+        "coop",
+        "door"
+      ]
+    }
+  ],
+  "profile_id": "rpggen_sample_pack_farm",
+  "profile_version": 1,
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "objects/farmyard.png"
+        },
+        {
+          "asset": "tilesets/autumn/grass.png"
+        },
+        {
+          "asset": "tilesets/hedge_wall.png"
+        },
+        {
+          "asset": "tilesets/path.png"
+        },
+        {
+          "asset": "tilesets/spring/grass.png"
+        },
+        {
+          "asset": "tilesets/summer/grass.png"
+        },
+        {
+          "asset": "tilesets/water.png"
+        },
+        {
+          "asset": "tilesets/winter/grass.png"
+        },
+        {
+          "asset": "tilesets/soil_tilled.png"
+        },
+        {
+          "asset": "tilesets/soil_watered.png"
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ],
+  "title": "Green acre (rpggen sample pack)"
+}

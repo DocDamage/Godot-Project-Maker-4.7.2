@@ -696,3 +696,186 @@ def test_an_isometric_farm_with_a_coop_and_a_pond(iso_coop, godot_exe: Path) -> 
     assert f"position = Vector2({middle[0]:g}, {middle[1]:g})" in scene, (
         "the drawn coop stands on the cell of its footprint nearest the camera"
     )
+
+
+# --------------------------------------------------------------------------- Stone isle (T17.17)
+#
+# The isometric sample pack as a turn-based game, made the way *Try the sample* makes it: the
+# bundled profile, the starter the catalog suggests, the default options. It is the first
+# isometric pack of the repository whose names say on which sides its pieces join, so its map
+# lays its path and its wall from them, and its house stands on four diamonds.
+
+ISLE = REPO / "sample_pack_iso"
+ISLE_FOOT = (40, 22)
+ISLE_NOTES = {"ADAPT-003"}  # what a sample may say: that its profile was found
+SIDES = {"n": (0, -1), "e": (1, 0), "s": (0, 1), "w": (-1, 0)}
+
+
+def _isle_config() -> config.GeneratorConfig:
+    from rpggen.core import mapping, profiles
+    from rpggen.gui.models import project_model
+
+    sample = project_model.sample("iso")
+    assert (sample.key, sample.archetype, sample.projection) == ("iso", "turn_based", "isometric")
+    pack = REPO / sample.folder
+    assert pack == ISLE
+    profiles.install_profile(pack / sample.profile)
+    opened = archive.open_pack(pack, set(), pack_id=sample.folder)
+    cat, _issues, _made = catalog.assemble([(opened, inventory.build_inventory(opened))], None, [])
+    cfg = config.default_for(
+        sample.name,
+        [config.pack_ref_from_source(pack, sample.folder)],
+        archetype=sample.archetype,
+    )
+    cfg.projection = sample.projection
+    cfg.starter = mapping.default_starter(cat, sample.archetype, sample.projection)
+    return cfg
+
+
+@pytest.fixture(scope="module")
+def isle(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):  # noqa: ANN201
+    return _generated(godot_exe, tmp_path_factory.mktemp("iso_isle"), _isle_config())
+
+
+def _isle_plan(target: Path) -> dict:
+    cat = catalog.Catalog.from_json(jsonio.read(paths.from_posix_rel(paths.CATALOG, target)))
+    cfg = _isle_config()
+    house = map_preview.building_info_for(cat, cfg.starter["building"], "isometric")
+    assert house == {"size": [2, 2], "door": [0, 2]}, "the planner sees the house of four cells"
+    return map_preview.plan(cfg.starter_map_options(), cfg.seed, house, "turn_based")
+
+
+def _isle_tiles(target: Path) -> dict[tuple[int, int, int], tuple[str, list[str]]]:
+    """(source, column, row) of a tile of the project's tile set -> (its asset, its joins)."""
+    data = jsonio.read(paths.from_posix_rel(paths.CATALOG, target))
+    cat = catalog.Catalog.from_json(data)
+    (definition,) = [t for t in data["tilesets"] if t.get("projection") == "isometric"]
+    out = {}
+    for asset_id, at in definition["tiles"].items():
+        joins = catalog.effective(cat.asset(asset_id)).get("joins") or []
+        out[(at["source"], *at["coords"])] = (asset_id, sorted(joins))
+    return out
+
+
+def _joined(cells: dict, tiles: dict) -> dict[tuple[int, int], tuple[str, list[str], list[str]]]:
+    """cell -> (the asset of its tile, the sides that tile says it joins on, the sides on which
+    the cell has a neighbour among ``cells``)."""
+    out = {}
+    for cell, tile in cells.items():
+        asset_id, joins = tiles[tile]
+        beside = sorted(s for s, (dx, dy) in SIDES.items() if (cell[0] + dx, cell[1] + dy) in cells)
+        out[cell] = (asset_id, joins, beside)
+    return out
+
+
+def test_stone_isle_is_an_isometric_turn_based_game_that_passes_its_smoke_run(isle) -> None:  # noqa: ANN001
+    target, result = isle
+    assert not _errors(result)
+    assert _smoke(target) == SHARED_STEPS + TURN_BASED_STEPS, "the kind's usual steps, all of them"
+    _passed_for_real(target, ())  # the pack has music, a wall, a chest: no step passes with a note
+    notes = sorted(
+        f"{i.code}: {i.message}"
+        for i in result.issues
+        if not i.code.startswith("ENV-")
+        and (i.severity.value != "info" or i.code not in ISLE_NOTES)
+    )
+    assert notes == [], "nothing is missing, and nobody is drawn: the pack has its people"
+    assert not (target / "generated/iso_kit").exists()
+    saved = jsonio.read(paths.from_posix_rel(paths.CONFIG, target))
+    assert saved["archetype"] == "turn_based" and saved["projection"] == "isometric"
+    tile_set = (target / "generated/tilesets/iso.tres").read_text(encoding="utf-8")
+    assert "tile_size = Vector2i(40, 22)" in tile_set, "the diamond that was measured"
+    assert sorted(p.name for p in (target / "generated/tilesets").glob("*.tres")) == ["iso.tres"]
+    player = (target / "generated/scenes/actors/player.tscn").read_text(encoding="utf-8")
+    assert "sample_pack_iso.characters.hero" in player, "the hero of the pack, seen from the front"
+
+
+def test_the_path_of_stone_isle_is_laid_from_the_pieces_that_name_their_sides(isle) -> None:  # noqa: ANN001
+    target, _result = isle
+    view = _view(target)
+    plan = _isle_plan(target)
+    assert view["projection"] == "isometric" and view["tile_size"] == list(ISLE_FOOT)
+    roads = {tuple(c) for c in [*plan["path"], *plan["exit_path"]]}
+    laid = _joined(_cells(view, "GroundDetails"), _isle_tiles(target))
+    assert set(laid) == roads and len(roads) > 30, "every cell of the plan's paths"
+    for cell, (asset_id, joins, beside) in laid.items():
+        assert ".png.path" in asset_id, (cell, asset_id)
+        assert joins == beside, f"{cell}: {asset_id} joins on {joins}, the path goes on at {beside}"
+    kinds = {len(joins) for _asset, joins, _beside in laid.values()}
+    assert {1, 2} <= kinds, "ends and pieces between them"
+    assert len({asset for asset, _j, _b in laid.values()}) >= 4, "straights, corners and ends"
+    corners = [a for a, joins, _b in laid.values() if "".join(joins) in ("en", "es", "sw", "nw")]
+    assert corners, "the path turns, and a corner piece is laid where it does"
+    log = (target / "rpggen/logs/godot_build.log").read_text(encoding="utf-8", errors="replace")
+    assert "were laid with the nearest piece" not in log, "the pack has a piece for every cell"
+
+
+def test_the_walls_of_stone_isle_are_painted_and_join(isle) -> None:  # noqa: ANN001
+    target, _result = isle
+    view = _view(target)
+    plan = _isle_plan(target)
+    w, h = plan["size"]
+    ring = {(x, y) for x in range(w) for y in range(h) if x in (0, w - 1) or y in (0, h - 1)}
+    walls = _joined(_cells(view, "Props"), _isle_tiles(target))
+    assert set(walls) == ring - {tuple(plan["exit_gap"])}, "the edge of the map, less its way out"
+    assert not _cells(view, "Walls"), "a wall rises: it is sorted with who stands by it"
+    for cell, (asset_id, joins, beside) in walls.items():
+        assert ".png.wall" in asset_id, (cell, asset_id)
+        assert joins == beside, f"{cell}: {asset_id} joins on {joins}, the wall goes on at {beside}"
+    pieces = {"".join(joins) for _asset, joins, _beside in walls.values()}
+    assert {"ns", "ew", "es", "sw", "en", "nw"} <= pieces, "straights and the four corners"
+    assert len([p for p in pieces if len(p) == 1]) == 2, "an end on each side of the way out"
+    starter = (target / MAPS[0]).read_text(encoding="utf-8")
+    assert "BorderCollision" not in starter, "the wall tiles block by their own diamonds"
+
+
+def test_the_house_of_stone_isle_stands_on_its_four_cells(isle) -> None:  # noqa: ANN001
+    target, _result = isle
+    view = _view(target)
+    plan = _isle_plan(target)
+    (first,) = plan["buildings"]
+    cells = {(first[0] + dx, first[1] + dy) for dx in range(2) for dy in range(2)}
+    house = next(e for e in view["entities"] if e["name"] == "house_0")
+    # the picture's diamond is the one of its four cells nearest the camera
+    nearest = (first[0] + 1, first[1] + 1)
+    assert (house["x"], house["y"]) == iso_math.cell_to_screen(*nearest, *ISLE_FOOT)
+    scene = (target / "generated/scenes/objects/sample_pack_iso__png__house_0.tscn").read_text(
+        encoding="utf-8"
+    )
+    assert "metadata/stands_on = [2, 2]" in scene
+    # what blocks is the outline of the four diamonds around that cell: 80 x 44
+    assert "polygon = PackedVector2Array(0, -33, 40, -11, 0, 11, -40, -11)" in scene
+    # nothing else of the plan stands on them, and the path ends at the cell before the door
+    taken = [
+        tuple(c)
+        for key in ("decorations", "npcs", "chests", "enemies", "path", "exit_path")
+        for c in plan[key]
+    ]
+    assert not cells & {*taken, tuple(plan["spawn"])}
+    door = tuple(plan["doors"][0])
+    assert door == (first[0], first[1] + 2) and door in {tuple(c) for c in plan["path"]}
+    where = {e["name"]: (e["x"], e["y"]) for e in view["entities"]}
+    assert where["Player"] == iso_math.cell_to_screen(*plan["spawn"], *ISLE_FOOT)
+    assert where["Chest1"] == iso_math.cell_to_screen(*plan["chests"][0], *ISLE_FOOT)
+    for i, cell in enumerate(plan["decorations"]):
+        assert where[f"Decor{i + 1}"] == iso_math.cell_to_screen(*cell, *ISLE_FOOT)
+
+
+def test_a_second_run_of_stone_isle_changes_nothing(isle, godot_exe: Path) -> None:  # noqa: ANN001
+    target, _result = isle
+    kept = {
+        p.relative_to(target).as_posix(): p.read_bytes()
+        for folder in ("generated/scenes", "game/data", "game/maps", "generated/tilesets")
+        for p in sorted((target / folder).rglob("*"))
+        if p.is_file() and not p.name.endswith(".import")
+    }
+    for rel in ("project.godot", paths.CATALOG, paths.CONFIG, paths.LEDGER):
+        kept[rel] = (target / rel).read_bytes()
+    assert len(kept) > 30
+    again = orchestrator.run_in_memory(_isle_config(), None, target, godot_exe)
+    assert again.ok, _errors(again)
+    assert [i.code for i in again.issues if i.code == orchestrator.REPEAT_CODE], (
+        "nothing changed: the build and the checks are not repeated"
+    )
+    for rel, data in kept.items():
+        assert (target / rel).read_bytes() == data, rel

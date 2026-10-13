@@ -872,3 +872,197 @@ def test_a_farm_without_animals_has_nothing_of_them(plain, ranch) -> None:
         assert (target / "addons/rpg_runtime/archetypes/farm/animal_house.gd").is_file()
         assert "FARM_TROUGH_FULL\t" in _text(target, "game/i18n/strings.tsv")
         assert "### Animals" in _text(target, "README.md")
+
+
+# ---------------------------------------------------------------- Green acre, the sample (T17.17)
+#
+# The farm's own sample pack, made the way *Try the sample* makes it: the bundled profile, the
+# starter the catalog suggests, the default options. It has what a farm works with, so nothing
+# is drawn for it and the report has no note; and with a coop and a barn its own hen and cow.
+
+GREEN_ACRE = REPO / "sample_pack_farm"
+SAMPLE_NOTES = {"ADAPT-003"}  # what a sample may say: that its profile was found
+PACK_CROPS = ("corn", "tomato", "turnip", "wheat")
+
+
+def _sample_config(**starter_map) -> config.GeneratorConfig:
+    from rpggen.core import archive, catalog, inventory, mapping
+    from rpggen.gui.models import project_model
+
+    sample = project_model.sample("farm")
+    assert (sample.key, sample.archetype, sample.projection) == ("farm", "farm", "top_down")
+    pack = REPO / sample.folder
+    assert pack == GREEN_ACRE
+    profiles.install_profile(pack / sample.profile)
+    opened = archive.open_pack(pack, set(), pack_id=sample.folder)
+    cat, _issues, _generated = catalog.assemble(
+        [(opened, inventory.build_inventory(opened))], None, []
+    )
+    cfg = config.default_for(
+        sample.name, [config.pack_ref_from_source(pack, sample.folder)], archetype="farm"
+    )
+    cfg.starter = mapping.default_starter(cat, sample.archetype, sample.projection)
+    cfg.starter_map = dict(starter_map)
+    return cfg
+
+
+@pytest.fixture(scope="module")
+def green_acre(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):
+    target = tmp_path_factory.mktemp("m17_acre") / "out"
+    result = orchestrator.run_in_memory(_sample_config(), None, target, godot_exe)
+    assert result.ok, _errors(result)
+    return target, result
+
+
+@pytest.fixture(scope="module")
+def green_acre_animals(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):
+    target = tmp_path_factory.mktemp("m17_acre_animals") / "out"
+    cfg = _sample_config(animals="coop_and_barn")
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    return target, result
+
+
+def _sample_notes(result) -> list[str]:
+    """What the report says that a sample may not say (what the computer lacks is not its)."""
+    return sorted(
+        f"{i.code}: {i.message}"
+        for i in result.issues
+        if not i.code.startswith("ENV-")
+        and (i.severity.value != "info" or i.code not in SAMPLE_NOTES)
+    )
+
+
+def _vacuous(target: Path) -> list[str]:
+    """The steps that passed only because the game had nothing of theirs."""
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    return [
+        line.split("INFO ", 1)[1].split(":", 1)[0]
+        for line in log.splitlines()
+        if "step passes" in line and "INFO " in line
+    ]
+
+
+def test_green_acre_is_a_farm_that_is_worked_from_seed_to_sale(green_acre) -> None:
+    target, result = green_acre
+    names = _smoke(target)
+    assert names[0] == "title_new_game" and names[1:4] == HOUSE_STEPS
+    assert names[-len(STEPS + ANIMAL_STEPS) :] == STEPS + ANIMAL_STEPS
+    assert "npc_dialogue" in names and "chest_open" in names and "enter_building" in names
+    # every step is played: only the animals' pass with a note, in a farm without their houses
+    assert _vacuous(target) == ANIMAL_STEPS
+    assert "SCRIPT ERROR" not in _text(target, "rpggen/logs/godot_smoke.log")
+    assert _sample_notes(result) == [], "nothing is missing, and nothing is drawn"
+    assert not [i for i in result.issues if i.code == "ASSET-031"]
+    assert not (target / "generated/farm_kit").exists(), "the kit drew nothing"
+    saved = jsonio.read(target / paths.CONFIG)
+    assert saved["archetype"] == "farm" and "projection" not in saved
+
+
+def test_green_acre_is_made_of_its_own_pictures(green_acre) -> None:
+    target, _result = green_acre
+    pack = "res://assets/packs/sample_pack_farm/"
+    # the four crops of the pack, each from its strip, two in every season
+    farm = world_plan.load(target)["farm"]
+    assert sorted(c["id"] for c in farm["crops"]) == list(PACK_CROPS)
+    assert crop_plan.per_season(farm) == {"spring": 2, "summer": 2, "autumn": 2, "winter": 2}
+    stages = {"corn": "6frames", "tomato": "7frames", "turnip": "4frames", "wheat": "5frames"}
+    for crop, frames in stages.items():
+        scene = _text(target, f"generated/scenes/farm/crops/{crop}.tscn")
+        assert f"{pack}crops/{crop}_16x" in scene and f"_{frames}.png" in scene, crop
+    # its soil, dry and watered; its tools; its bin and its bed
+    soil = _text(target, "generated/tilesets/farm_soil.tres")
+    assert f"{pack}tilesets/soil_tilled.png" in soil and f"{pack}tilesets/soil_watered.png" in soil
+    icons = {"hoe": "hoe", "watering_can": "watering_can", "sickle": "sickle", "farm_axe": "axe",
+             "fishing_rod": "fishing_rod"}  # fmt: skip
+    for item, picture in icons.items():
+        assert f"{pack}tools/{picture}.png" in _text(target, f"game/data/items/{item}.tres"), item
+    assert f"{pack}props/shipping_bin.png" in _text(
+        target, "generated/scenes/farm/shipping_bin.tscn"
+    )
+    assert f"{pack}props/bed.png" in _text(target, "generated/scenes/farm/bed.tscn")
+    # the farmhouse is the house of the pack's sheet, which the planner saw: six cells by four
+    plan = farm["map"]
+    assert plan["house"]["rect"][2:] == [6, 4] and plan["water"]["kind"] == "pond"
+    scene = _text(target, "game/maps/farm.tscn")
+    house = "generated/scenes/objects/sample_pack_farm__objects__farmyard__house.tscn"
+    assert f'path="res://{house}"' in scene, "the pack's house, not a drawn one"
+    for prop in ("tree", "bush", "rock", "stump", "branch", "flowers", "weeds"):
+        assert f"{pack}props/{prop}.png" in scene, prop
+    # the grass once a season, the fish of the pond and what lies about
+    seasons = jsonio.read(target / "generated/data/seasons.json")["groups"]
+    assert seasons == {
+        "sample_pack_farm.tilesets.spring.grass": {
+            season: f"{pack}tilesets/{season}/grass.png"
+            for season in ("spring", "summer", "autumn", "winter")
+        }
+    }
+    found = jsonio.read(target / forage_plan.FORAGE_FILE)
+    assert [f["id"] for f in found["fish"]] == ["fish_perch"]
+    assert sorted(f["id"] for f in found["forage"]) == ["forage_mushroom", "forage_wild_berries"]
+    assert f"{pack}items/fish/perch.png" in _text(target, "game/data/items/fish_perch.tres")
+    # three villagers of the pack live in the village
+    people = jsonio.read(target / people_plan.PEOPLE_FILE)["people"]
+    sheets = sorted({p["scene"].rsplit("__", 1)[-1].removesuffix(".tscn") for p in people})
+    assert sheets == ["villager_baker", "villager_elder", "villager_smith"]
+
+
+def test_a_second_run_of_green_acre_changes_nothing(green_acre, godot_exe: Path) -> None:
+    target, _result = green_acre
+    kept = {
+        p.relative_to(target).as_posix(): p.read_bytes()
+        for folder in ("generated/scenes", "game/data", "generated/data", "game/maps")
+        for p in sorted((target / folder).rglob("*"))
+        if p.is_file() and not p.name.endswith(".import")
+    }
+    kept[world_plan.PLAN_FILE] = (target / world_plan.PLAN_FILE).read_bytes()
+    kept[paths.LEDGER] = (target / paths.LEDGER).read_bytes()
+    assert len(kept) > 40
+    again = orchestrator.run_in_memory(_sample_config(), None, target, godot_exe)
+    assert again.ok, _errors(again)
+    assert [i.code for i in again.issues if i.code == orchestrator.REPEAT_CODE]
+    for rel, data in kept.items():
+        assert (target / rel).read_bytes() == data, rel
+
+
+def test_green_acre_with_a_coop_and_a_barn_keeps_its_hen_and_its_cow(green_acre_animals) -> None:
+    target, result = green_acre_animals
+    names = _smoke(target)
+    assert names[-len(STEPS + ANIMAL_STEPS) :] == STEPS + ANIMAL_STEPS
+    assert _vacuous(target) == [], "every step of the farm is played, the animals' too"
+    assert _animal_notes(target) == []
+    assert _sample_notes(result) == []
+    animals, farm_map, listed = _animal_files(target)
+    assert [b["kind"] for b in farm_map["animal_houses"]] == ["coop", "barn"]
+    _house_rooms(target, farm_map)
+    assert [(k["id"], k["house"], k["collect"]) for k in animals["kinds"]] == [
+        ("hen", "coop", "floor"),
+        ("cow", "barn", "hand"),
+    ]
+    assert [h["kind"] for h in listed["houses"]] == ["coop", "barn"]
+    pack = "res://assets/packs/sample_pack_farm/"
+    for kind, cell in (("hen", "16x16"), ("cow", "24x24")):
+        entry = next(k for k in animals["kinds"] if k["id"] == kind)
+        (variant,) = entry["variants"]
+        # one sheet of strips: the walk in four directions and the sleep
+        assert variant["asset"].endswith(f"animals.{kind}_move_down_{cell}_4frames")
+        assert variant["sleep"] == "", "it sleeps in an animation of the same sheet"
+        scene = _text(target, f"generated/scenes/farm/animals/{kind}__{variant['id']}.tscn")
+        assert f'kind = "{kind}"' in scene
+        frames = f"generated/sprite_frames/{variant['asset']}.tres"
+        assert f'path="res://{frames}"' in scene, "the animal shows the frames of its own sheet"
+        sheet = _text(target, frames)
+        for anim in ("walk_down", "walk_left", "walk_right", "walk_up", "sleep_down"):
+            assert f'&"{anim}"' in sheet, (kind, anim)
+        assert f"{pack}animals/{kind}_sleep_{cell}_2frames.png" in sheet
+    # the egg and the milk are the pack's pictures
+    assert f"{pack}items/egg.png" in _text(target, "game/data/items/egg.tres")
+    assert f"{pack}items/milk.png" in _text(target, "game/data/items/milk.tres")
+    # the coop and the barn of the pack's sheet stand on the farm, each with its fenced yard
+    scene = _text(target, "game/maps/farm.tscn")
+    for name in ("house", "yard_coop", "yard_barn"):
+        rel = f"generated/scenes/objects/sample_pack_farm__objects__farmyard__{name}.tscn"
+        assert f'path="res://{rel}"' in scene, name
+    assert f"{pack}props/fence.png" in scene
+    sizes = {b["kind"]: b["rect"][2:] for b in farm_map["animal_houses"]}
+    assert sizes == {"coop": [4, 3], "barn": [6, 4]}

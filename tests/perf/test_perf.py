@@ -33,6 +33,7 @@ REGENERATE_S = 60 * TOLERANCE  # section 45: a regeneration with every check, un
 REGENERATE_UNCHANGED_S = 45.0
 SIDE_SAMPLE_S = 90 * TOLERANCE  # T14.11: the side-view sample as a metroidvania, played through
 ARCADE_SAMPLE_S = 60 * TOLERANCE  # T16.18: a sample of an arcade kind as that kind, played through
+M17_SAMPLE_S = 120.0  # T17.17: the farm sample, and the isometric one, each played through
 
 
 def _analyze(pack: Path) -> tuple[float, WizardState]:
@@ -228,3 +229,44 @@ def test_an_arcade_sample_generates_as_its_kind_in_time(
     record(what, elapsed)
     assert result.ok, _errors(result)
     assert elapsed < ARCADE_SAMPLE_S, f"took {elapsed:.0f}s (limit {ARCADE_SAMPLE_S:.0f}s)"
+
+
+@pytest.mark.parametrize(
+    ("key", "what"),
+    [
+        ("farm", "farm from the Green acre sample"),
+        ("iso", "isometric turn-based game from the Stone isle sample"),
+    ],
+)
+def test_a_sample_of_m17_generates_as_its_kind_in_time(
+    godot_exe: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, key: str, what: str
+) -> None:
+    """The whole run on each of the two sample packs of M17 (T17.17): analysis, the plans, the
+    maps, validation and the kind's own smoke sequence, from a cold cache. The farm in the view
+    from above, the isle as a turn-based game in the isometric view."""
+    from rpggen.core import archive, catalog, config, inventory, mapping, profiles
+    from rpggen.gui.models import project_model
+
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    sample = project_model.sample(key)
+    assert sample.key == key
+    pack = paths.sample_pack_dir(sample.folder)
+    profiles.install_profile(pack / sample.profile)
+    started = time.perf_counter()
+    opened = archive.open_pack(pack, set(), pack_id=sample.folder)
+    cat, _issues, _generated = catalog.assemble(
+        [(opened, inventory.build_inventory(opened))], None, []
+    )
+    cfg = config.default_for(
+        sample.name,
+        [config.pack_ref_from_source(pack, sample.folder)],
+        archetype=sample.archetype,
+    )
+    cfg.projection = sample.projection
+    cfg.starter = mapping.default_starter(cat, sample.archetype, sample.projection)
+    result = orchestrator.run_in_memory(cfg, None, tmp_path / "game", godot_exe)
+    elapsed = time.perf_counter() - started
+    print(f"\n{what}: {elapsed:.1f}s")
+    record(what, elapsed)
+    assert result.ok, _errors(result)
+    assert elapsed < M17_SAMPLE_S, f"took {elapsed:.0f}s (limit {M17_SAMPLE_S:.0f}s)"

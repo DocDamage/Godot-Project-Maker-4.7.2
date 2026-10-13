@@ -1,0 +1,3212 @@
+{
+  "assets": [
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "sleep_down": {
+            "fps": 2.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/cow_sleep_24x24_2frames.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/cow_move_down_24x24_4frames.png"
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/cow_move_left_24x24_4frames.png"
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/cow_move_right_24x24_4frames.png"
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/cow_move_up_24x24_4frames.png"
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          22
+        ],
+        "role": "ANIMAL",
+        "size": [
+          96,
+          24
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.animals.cow_move_down_24x24_4frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/animals/cow_move_down_24x24_4frames.png",
+      "sha256": "bb81cab9fe9bbfac53cdc10935db3c0faaf57a4ee64f76edf73255addb52ad4e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "sleep_down": {
+            "fps": 2.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/hen_sleep_16x16_2frames.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/hen_move_down_16x16_4frames.png"
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/hen_move_left_16x16_4frames.png"
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/hen_move_right_16x16_4frames.png"
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/animals/hen_move_up_16x16_4frames.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ANIMAL",
+        "size": [
+          64,
+          16
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.animals.hen_move_down_16x16_4frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/animals/hen_move_down_16x16_4frames.png",
+      "sha256": "f4dfdab5feabe8ef2a7dbe00eb3b01f62253c7eb32babfa80adc31c35c7dcf26",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.416667,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          23
+        ],
+        "role": "NONE",
+        "size": [
+          48,
+          24
+        ],
+        "tags": [
+          "of:sample_pack_farm.characters.farmer.farmer_walk_down_16x24_4frames",
+          "tool",
+          "unused_because:use_anim",
+          "use_anim:axe"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.characters.farmer.farmer_axe_down_16x24_3frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/characters/farmer/farmer_axe_down_16x24_3frames.png",
+      "sha256": "b6211126231a7fbc078d514db9e37c1e13f49f5732eac80c6d63fcedc0ca1ed2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.625,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          23
+        ],
+        "role": "NONE",
+        "size": [
+          48,
+          24
+        ],
+        "tags": [
+          "of:sample_pack_farm.characters.farmer.farmer_walk_down_16x24_4frames",
+          "tool",
+          "unused_because:use_anim",
+          "use_anim:hoe"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.characters.farmer.farmer_hoe_down_16x24_3frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/characters/farmer/farmer_hoe_down_16x24_3frames.png",
+      "sha256": "e2a228a628a2b883961f0be638273641e036c9787aab634a5e1477d38e5880ef",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.625,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          23
+        ],
+        "role": "NONE",
+        "size": [
+          48,
+          24
+        ],
+        "tags": [
+          "of:sample_pack_farm.characters.farmer.farmer_walk_down_16x24_4frames",
+          "tool",
+          "unused_because:use_anim",
+          "use_anim:sickle"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.characters.farmer.farmer_sickle_down_16x24_3frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/characters/farmer/farmer_sickle_down_16x24_3frames.png",
+      "sha256": "3d01cf9bde33e4bc1b376b8b91a83e40059fa387aa56bec4a30edc8c996cd782",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.625,
+      "detected": {
+        "animations": {
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_down_16x24_4frames.png"
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_left_16x24_4frames.png"
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_right_16x24_4frames.png"
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_up_16x24_4frames.png"
+          }
+        },
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          22
+        ],
+        "role": "PLAYER",
+        "size": [
+          64,
+          24
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.characters.farmer.farmer_walk_down_16x24_4frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/characters/farmer/farmer_walk_down_16x24_4frames.png",
+      "sha256": "c116d409c243a07d68db6c93d65de39f9166432529b4efc81677ca201605548d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.416667,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          23
+        ],
+        "role": "NONE",
+        "size": [
+          48,
+          24
+        ],
+        "tags": [
+          "of:sample_pack_farm.characters.farmer.farmer_walk_down_16x24_4frames",
+          "unused_because:use_anim",
+          "use_anim:water"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.characters.farmer.farmer_water_down_16x24_3frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/characters/farmer/farmer_water_down_16x24_3frames.png",
+      "sha256": "3f8bbbded1bf1433a779a07b27e4896984b09deb69bbb74bedcaec5b226d2823",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          16,
+          32
+        ],
+        "grid": {
+          "cell": [
+            16,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          31
+        ],
+        "role": "CROP",
+        "size": [
+          96,
+          32
+        ],
+        "stages": 6,
+        "tags": [
+          "crop"
+        ],
+        "usage": "growth_strip"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.crops.corn_16x32_6frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/crops/corn_16x32_6frames.png",
+      "sha256": "06c6ad6a773f5a4667e8d93803f4e9e7abaa2d9c765344d7e4f24b1fa4b4e914",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          16,
+          32
+        ],
+        "grid": {
+          "cell": [
+            16,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          31
+        ],
+        "role": "CROP",
+        "size": [
+          112,
+          32
+        ],
+        "stages": 7,
+        "tags": [
+          "crop"
+        ],
+        "usage": "growth_strip"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.crops.tomato_16x32_7frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/crops/tomato_16x32_7frames.png",
+      "sha256": "7d65a618e2577d1f702d65ad29e20177d0d738b32bc5e492194cd8e9a2c762ad",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "CROP",
+        "size": [
+          64,
+          16
+        ],
+        "stages": 4,
+        "tags": [
+          "crop"
+        ],
+        "usage": "growth_strip"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.crops.turnip_16x16_4frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/crops/turnip_16x16_4frames.png",
+      "sha256": "14eb5b88f8a3ea9b9e535866e2353d252c5c099ea72ebc8ea8b46ed1eea0ce12",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          16,
+          32
+        ],
+        "grid": {
+          "cell": [
+            16,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          31
+        ],
+        "role": "CROP",
+        "size": [
+          80,
+          32
+        ],
+        "stages": 5,
+        "tags": [
+          "crop"
+        ],
+        "usage": "growth_strip"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.crops.wheat_16x32_5frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/crops/wheat_16x32_5frames.png",
+      "sha256": "6dd160e65075fafe24f52cd05f9c3c80c4c1448c8e815217f5644bc1e6bec5f0",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          14
+        ],
+        "role": "ITEM",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ],
+          [
+            "PLAYER",
+            0.05
+          ]
+        ],
+        "size": [
+          32,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.items.chest",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/items/chest.png",
+      "sha256": "710ed02a78521d4ad3cac2ac51d78a99abff12b79ce84639bee0ee21c508ceea",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "product"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.items.egg",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/items/egg.png",
+      "sha256": "32fc78b2d0e7720b3de9ef280380ac2ef2f94600e090a0e632fd05ee9c320b74",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "fish"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.items.fish.perch",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/items/fish/perch.png",
+      "sha256": "f8e1289c7e16d0f7c0460eb1ff77f1a999748d72788b56d8a8b8de36ffd84c16",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "forage"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.items.forage.mushroom",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/items/forage/mushroom.png",
+      "sha256": "3f688d2ca432e4011eb1b5d0600566808cbd6644967e06d39ab3f07b24e6b642",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "forage"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.items.forage.wild_berries",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/items/forage/wild_berries.png",
+      "sha256": "8ed7c710a18926b2da9b40a6fc42ecba8b3a07f410c93f4b2f17b77c848acd47",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "product"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.items.milk",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/items/milk.png",
+      "sha256": "3a5d77e8e75e2f6c9a74e395a00d94692ab2c3a9cadecbc54a59018ca3709f8f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "seed"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.items.seed_bag",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/items/seed_bag.png",
+      "sha256": "c2d16702456aed364f4647b53671e1d1505ba1516ee218a4a5f99732121e15c2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 1.92,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.music.autumn_leaves",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/music/autumn_leaves.wav",
+      "sha256": "9dff06507ec5c6c0c0765876f1f821afa0efceb42baaead97d56a9249eeae94a",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 1.92,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.music.spring_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/music/spring_theme.wav",
+      "sha256": "dc38174fe13a5a3b5d85a755e525f2f3ff23ad59b20f08a98ce1d188263d5c44",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 1.92,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.music.summer_days",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/music/summer_days.wav",
+      "sha256": "86c7e4a6cf14b75329be337333d44f623ebbbacdba17fd8c932bb9008642454a",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 1.92,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.music.winter_snow",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/music/winter_snow.wav",
+      "sha256": "b5b954192ab596dc032fd2c150e95f58f1e9de8f9fe3479f0f3aee822d5aea07",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.65,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          22
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.033333
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.npc.villager_baker",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/npc/villager_baker.png",
+      "sha256": "572f15f4d8ae7b4077ce817af6dda9994d1fb22ac88a633fd7dff4dbcadfc71a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.65,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          22
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.033333
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.npc.villager_elder",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/npc/villager_elder.png",
+      "sha256": "3c18a68faec2afb90b82bb6b09b66a3cc7b7151ebcc7d2eda05397b8292efa1e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.65,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          22
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.033333
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.npc.villager_smith",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/npc/villager_smith.png",
+      "sha256": "c6dcb30c3249614021611d316d738ba9279522d8b864de73fc934c47be5b6f77",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.43804,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.26087
+          ],
+          [
+            "WALL",
+            0.043478
+          ]
+        ],
+        "size": [
+          240,
+          160
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.objects.farmyard",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/objects/farmyard.png",
+      "sha256": "308e218fcbcbfceb8b2076a5e230312c4d5e8661c931b272dae98736d5378d0d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          48,
+          48
+        ],
+        "origin": [
+          24,
+          47
+        ],
+        "role": "PORTRAIT",
+        "size": [
+          48,
+          48
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.portraits.elder",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/portraits/elder.png",
+      "sha256": "98caca5169ca69e318594a7a367e850658d47b08a759cace0dd6d9bace391794",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          32
+        ],
+        "origin": [
+          8,
+          31
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          32
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.bed",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/bed.png",
+      "sha256": "f495a2dc84f2dc70d2026129cbab2858b845c132c6863927029c6602ccc20f26",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.branch",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/branch.png",
+      "sha256": "2f94721c6151eb4b474663cfc14ac0fb00176fbbf9e3c5b6929981fab3cc4660",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.bush",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/bush.png",
+      "sha256": "ace27ffb21c6ed67d8561fff8b3b77aba6796267154b079a0b82515cfd926041",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.416667,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "WALL",
+            0.375
+          ],
+          [
+            "ITEM",
+            0.166667
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "fence"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.fence",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/fence.png",
+      "sha256": "39ab13bbb325b28119285c78b3669a014745878f84fbfb883548dd51a99aa438",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.flowers",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/flowers.png",
+      "sha256": "3d47e4fc14ec8c3104980ce66de062da17e6ce1cf25d994cd1e1c2d5978f1e2b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.142857
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.rock",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/rock.png",
+      "sha256": "104025746059bbb3da728a0a10097f3f2e06c5c422717e41872b7b601c575e7c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "bin"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.shipping_bin",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/shipping_bin.png",
+      "sha256": "7884cd391877e2fc8d2dd3836e9a2e93af15828a07ad33a89eedaa5b503b3305",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.stump",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/stump.png",
+      "sha256": "800fd40d14c03a15e1f17fff1f048ef7e6c82bfb3651f21de24427ca1d8fe90b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          32,
+          48
+        ],
+        "origin": [
+          16,
+          47
+        ],
+        "role": "DECORATION",
+        "size": [
+          32,
+          48
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.tree",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/tree.png",
+      "sha256": "a500ae47f873a020060babbd144c5f975406c3cacdfdccb16854224c81080dab",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.526316,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.210526
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.props.weeds",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/props/weeds.png",
+      "sha256": "ce5c5a911ed7678b4797598537baef8091b727005cbd33c4fdd58ffbf3c8ec95",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.16,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.sfx.confirm",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/sfx/confirm.wav",
+      "sha256": "766e7c5d9ac826f86aac2c7cbcf9fc82eb0da599fdcd4538e6fdaae170087c7d",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.18,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.sfx.harvest",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/sfx/harvest.wav",
+      "sha256": "a14fc0908424a5567ea5f073dd47035c8557da8a4542378975040914e727ced6",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.16,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.sfx.hen_cluck",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/sfx/hen_cluck.wav",
+      "sha256": "4acb2f8e1c397761ae6019143ed9524b6cb7b7d2f515ca07291aa4b6b143b6bd",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.09,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.sfx.hoe",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/sfx/hoe.wav",
+      "sha256": "206da80f89d646640d3941faafd3057cce3d7df7eb205c85376cc2a54b1e6c65",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.12,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.sfx.plant",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/sfx/plant.wav",
+      "sha256": "b3868018c9010251959214f9a4d36d87f30be8d97d9e353e0dd127f57c2856e5",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.56,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.sfx.rooster",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/sfx/rooster.wav",
+      "sha256": "02ed69cca6a5cce634b698bd37378a9eb784ddfd16dfc9481cbdde3f0fea6d5c",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.24,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.sfx.sell",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/sfx/sell.wav",
+      "sha256": "8356d4a7a40faf346e969ede54a4890cd648f0ea69f8499346641e57caca344f",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.26,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_farm.sfx.watering",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/sfx/watering.wav",
+      "sha256": "70c3ec083f8a6dfb49fd62a7548ad1fa17c828e23e4ff3d637ee1f85524807ea",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.48675,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "season:autumn",
+          "surface:grass",
+          "variant_of:sample_pack_farm.tilesets.spring.grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.autumn.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/autumn/grass.png",
+      "sha256": "1e98ac6d73952edd8bdd882c66327e9dee003a56443a488b22f16b2ff0738591",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          32,
+          32
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.hedge_wall",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/hedge_wall.png",
+      "sha256": "1ebd9007d0133b70f619b1627fbce064fd1846e2b894184ce37889af89c8503a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.path",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/path.png",
+      "sha256": "59d54d8224582d8c2abce3b4fdbbc18c7f75477c33caf654b64c84bb178a4d3d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "soil"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.soil_tilled",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/soil_tilled.png",
+      "sha256": "a4760c9e9b7006eba614a72a87c56e2b465e1fe45b1887d1682275cae6297d0c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "watered"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.soil_watered",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/soil_watered.png",
+      "sha256": "3ea8e9338e745765e90aa41b7126d12c9ab78cdaaf182d27248f815cf392fd46",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.587287,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "season:spring",
+          "surface:grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.spring.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/spring/grass.png",
+      "sha256": "672ecb33428faa68b3a4811dec20a6abcd96ec952869e6a123e3ea5a7caa162a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.52748,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "season:summer",
+          "surface:grass",
+          "variant_of:sample_pack_farm.tilesets.spring.grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.summer.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/summer/grass.png",
+      "sha256": "5821e75dd7e4bf156e65c25c01ee8be0b055ea09363086d37fd4662792c0357b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.373441,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.water",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/water.png",
+      "sha256": "526e078bcbed0040e379eb9d61c4ee55b312e60c096ef9d424b417cd9919899e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.552712,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "season:winter",
+          "surface:grass",
+          "variant_of:sample_pack_farm.tilesets.spring.grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tilesets.winter.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tilesets/winter/grass.png",
+      "sha256": "c064721d808f32798f3c7943eb1c70d96f855c8255644bf148939dc8546485f4",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "TOOL",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "tool"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tools.axe",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tools/axe.png",
+      "sha256": "66a8727066869389dc7a9b8888aefba8be50d2cddc32f5d5a0ce43ff5f7ce00b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "TOOL",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "fish",
+          "tool"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tools.fishing_rod",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tools/fishing_rod.png",
+      "sha256": "5bdabff679f08cf8dbf8228cb6889d1a6019d714d2ded90bcf56a0b00dddf2b9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "TOOL",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "tool"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tools.hoe",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tools/hoe.png",
+      "sha256": "b7b3febd8f7de1610c717ef682649b4c53508036c7ae88c887906a015ae55941",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "TOOL",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "tool"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tools.sickle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tools/sickle.png",
+      "sha256": "5a453a6e8f0d6bacf7da0188e69e174dc5c958acc86509e08da468ac58ffbe70",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.444444,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "TOOL",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "tool"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.tools.watering_can",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/tools/watering_can.png",
+      "sha256": "0d5ac409904fdba88bb80cb036017a61e8d02936133190e3a65eea6966390cfc",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          48,
+          48
+        ],
+        "origin": [
+          24,
+          47
+        ],
+        "role": "UI",
+        "size": [
+          48,
+          48
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_farm.ui.panel",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/ui/panel.png",
+      "sha256": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          64,
+          64
+        ],
+        "grid": {
+          "cell": [
+            64,
+            64
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          32,
+          63
+        ],
+        "role": "EFFECT",
+        "size": [
+          192,
+          64
+        ],
+        "tags": [
+          "weather"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "sample_pack_farm.weather.rain_64x64_3frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_farm",
+      "path": "assets/packs/sample_pack_farm/weather/rain_64x64_3frames.png",
+      "sha256": "8324ee54e8d3be38f7e37f15f1ec67f15315ac53b5b19c65dcda9b1ab925b06d",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 8,
+        "retired": []
+      }
+    }
+  },
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            45
+          ],
+          [
+            96,
+            45
+          ],
+          [
+            96,
+            64
+          ],
+          [
+            0,
+            64
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        45,
+        96,
+        19
+      ],
+      "id": "sample_pack_farm.objects.farmyard#object_1",
+      "name": "object_1",
+      "origin": [
+        48,
+        63
+      ],
+      "region": [
+        16,
+        16,
+        96,
+        64
+      ],
+      "role": "BUILDING",
+      "sheet": "sample_pack_farm.objects.farmyard",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": []
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            45
+          ],
+          [
+            96,
+            45
+          ],
+          [
+            96,
+            64
+          ],
+          [
+            0,
+            64
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        45,
+        96,
+        19
+      ],
+      "id": "sample_pack_farm.objects.farmyard#object_2",
+      "name": "object_2",
+      "origin": [
+        48,
+        63
+      ],
+      "region": [
+        128,
+        16,
+        96,
+        64
+      ],
+      "role": "BUILDING",
+      "sheet": "sample_pack_farm.objects.farmyard",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": []
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            34
+          ],
+          [
+            64,
+            34
+          ],
+          [
+            64,
+            48
+          ],
+          [
+            0,
+            48
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        34,
+        64,
+        14
+      ],
+      "id": "sample_pack_farm.objects.farmyard#object_3",
+      "name": "object_3",
+      "origin": [
+        32,
+        47
+      ],
+      "region": [
+        16,
+        96,
+        64,
+        48
+      ],
+      "role": "DECORATION",
+      "sheet": "sample_pack_farm.objects.farmyard",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": []
+    }
+  ],
+  "packs": [
+    {
+      "adapters_matched": [
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/sample_pack_farm/LICENSE.txt"
+      ],
+      "pack_id": "sample_pack_farm",
+      "profile_id": null,
+      "root": "assets/packs/sample_pack_farm",
+      "source_sha256": "37f26bbd75c070e0471963c0ed7c907cdc1f48d7d656ab5b7952b55c541c702c",
+      "warnings": [
+        "strips_direction_assumed:animals/cow_sleep_24x24_2frames.png",
+        "strips_direction_assumed:animals/hen_sleep_16x16_2frames.png",
+        "view:farm"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "sample_pack_farm.objects.farmyard",
+          "source_id": 0
+        },
+        {
+          "asset": "sample_pack_farm.tilesets.autumn.grass",
+          "source_id": 1
+        },
+        {
+          "asset": "sample_pack_farm.tilesets.hedge_wall",
+          "source_id": 2
+        },
+        {
+          "asset": "sample_pack_farm.tilesets.path",
+          "source_id": 3
+        },
+        {
+          "asset": "sample_pack_farm.tilesets.spring.grass",
+          "source_id": 4
+        },
+        {
+          "asset": "sample_pack_farm.tilesets.summer.grass",
+          "source_id": 5
+        },
+        {
+          "asset": "sample_pack_farm.tilesets.water",
+          "source_id": 6
+        },
+        {
+          "asset": "sample_pack_farm.tilesets.winter.grass",
+          "source_id": 7
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

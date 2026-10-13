@@ -1528,16 +1528,26 @@ func _land_a_fish(stand: Vector2, facing: String, at: Vector2i, mode: RpgFarmMod
 		return "the farmer can walk away while the line is out"
 	if fishing.bar() == null or not fishing.bar().visible:
 		return "the bar is not shown"
-	# the bar: the real action, held while the fish is above the middle of the zone
+	# the bar: the real action, held while the fish is above the middle of the zone. The button
+	# goes down once for as long as it is held: Input.action_press on every frame is a new press
+	# on every frame, and a press is a cast as soon as the line is in
+	var held := false
 	for frame in 2400:
 		if fishing.state != RpgFishing.REELING:
 			break
-		if fishing.mark > fishing.zone:
+		var above := fishing.mark > fishing.zone
+		if above and not held:
 			Input.action_press("use")
-		else:
+		elif held and not above:
 			Input.action_release("use")
+		held = above
 		await _tree().physics_frame
 	Input.action_release("use")
+	# the button may still go down in the frame the fish is landed in, and that press casts
+	# again: the second cast is ended here, and the catch is what the bag says below
+	if fishing.state != RpgFishing.IDLE and fishing.casts() == casts + 2:
+		fishing.cancel()
+		await _forage_frames(2)
 	if fishing.state != RpgFishing.IDLE:
 		return "the fish was neither landed nor lost within forty seconds (the meter stands at %.2f)" % fishing.meter
 	await _forage_frames(3)

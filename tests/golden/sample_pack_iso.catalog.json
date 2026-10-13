@@ -1,0 +1,3457 @@
+{
+  "assets": [
+    {
+      "confidence": 0.4,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          22
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.4
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_iso.characters.hero",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/characters/hero.png",
+      "sha256": "4af0df78db5b7a0633d53ef2480108b1693a3b10fedd7cbeb7667f04ede5e319",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.416667,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "ENEMY",
+            0.375
+          ],
+          [
+            "PLAYER",
+            0.041667
+          ]
+        ],
+        "size": [
+          64,
+          64
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_iso.characters.slime",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/characters/slime.png",
+      "sha256": "95521af5e8b10bfb4761353494015b80d2dfb1d12dbd1e09a852e6d9379d274a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.65,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          22
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.04
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_iso.characters.villager_fisher",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/characters/villager_fisher.png",
+      "sha256": "164db78f83a4f04fa865c83865be968d37f26ecb2fbdabeb60abe14f6ae55cb6",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.65,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          24
+        ],
+        "grid": {
+          "cell": [
+            16,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          22
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.04
+          ]
+        ],
+        "size": [
+          64,
+          96
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "sample_pack_iso.characters.villager_mason",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/characters/villager_mason.png",
+      "sha256": "7c9bcda1ef6dfac55f5822f0b0d5a12f2a23824606e0b8ffe631261ab3aeaf73",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.666667,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          80,
+          96
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 3,
+        "role": "ITEM",
+        "size": [
+          80,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.items.chest",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/items/chest.png",
+      "sha256": "b6b8c1ff294ce007c57c9fd0fe7e0af2bb9693e38c8a62a4b5318471c65f9e40",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.music.battle_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/music/battle_theme.wav",
+      "sha256": "35a27dfd1a6d7024a39ad03918d8a54a7744c158df9226961505b1ff9a90681b",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 2.56,
+          "loop": true,
+          "type": "music"
+        },
+        "role": "AUDIO_MUSIC",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.music.town_theme",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/music/town_theme.wav",
+      "sha256": "1385a992699f962d363b95e46318ef0f6c4b2b367b54de3cfa35c69369216bb7",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/grass.png",
+      "sha256": "266e8ce96d2fef9cfb66d3c2d583d7c3534c752a48402166f2382b271dfd54de",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.grassflowers",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/grassFlowers.png",
+      "sha256": "e2b576a887250bd721743e04d4aa02e1480f271d90fdaebbc4a94c82a799a052",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.483871,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.354839
+          ],
+          [
+            "WALL",
+            0.032258
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "tags": [
+          "surface:stone"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.groundstone",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/groundStone.png",
+      "sha256": "f6fd893b9eb7e2a9ed77e7ca4c796e2ed67c762080a1605414625b0b1b55e2fb",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          80,
+          96
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 36,
+        "role": "BUILDING",
+        "size": [
+          80,
+          96
+        ],
+        "stands_on": [
+          2,
+          2
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.house_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/house_0.png",
+      "sha256": "0206847b098686f5b334e0390887eeb4cfdb03e2c44d8434e7ebb176005c0b42",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          80,
+          96
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 36,
+        "role": "BUILDING",
+        "size": [
+          80,
+          96
+        ],
+        "stands_on": [
+          2,
+          2
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:sample_pack_iso.png.house_0"
+        ],
+        "turn": 1,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.house_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/house_1.png",
+      "sha256": "99361f8e9ff2b220153b1d6df1710f3fb5bbaf97822dd9e9fe582e9a40353e03",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          80,
+          96
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 36,
+        "role": "BUILDING",
+        "size": [
+          80,
+          96
+        ],
+        "stands_on": [
+          2,
+          2
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:sample_pack_iso.png.house_0"
+        ],
+        "turn": 2,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.house_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/house_2.png",
+      "sha256": "4a457bdf8bb3f4140b033b942033361a2ead3dfbe45e077fcfe7c67b08430fbe",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          80,
+          96
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 41,
+        "role": "BUILDING",
+        "size": [
+          80,
+          96
+        ],
+        "stands_on": [
+          2,
+          2
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:sample_pack_iso.png.house_0"
+        ],
+        "turn": 3,
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.house_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/house_3.png",
+      "sha256": "d16a81fd7730cf0fd6c165061044da69e3c539dcb13ce3aac07441c66ee3fc7d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathe",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathE.png",
+      "sha256": "7ba9a1cac84dc21eb99188aec317dcd41f06ba4780822550657d3b5ac37d4035",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e",
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathes",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathES.png",
+      "sha256": "04b9944592c389509075386521c23eadde2be260b671ef2af298b440f1f354f3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e",
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathesw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathESW.png",
+      "sha256": "5520a17e0b1ae81f837ee0c6771299da9dd2d4737f515d5d25e2702fc448fe96",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathew",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathEW.png",
+      "sha256": "6c0aacd61513bda2d4e356ec621e189d210ee20eaf653ebe420c952aff7ca4d2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathn",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathN.png",
+      "sha256": "279fba92155a24db4cb05fb31da0f3a5b174f52e4fd0e079fd38889fd24a793e",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathne",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathNE.png",
+      "sha256": "c0a4727519db3261ae11469ae3a886527c65e4118588077474a8d3ca04a90d35",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e",
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathnes",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathNES.png",
+      "sha256": "864e33dfc5516c773a18626f95e717a5b34d8535a078d89991344b646c0c6efe",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e",
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathnesw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathNESW.png",
+      "sha256": "3f1ec7529c8f1754fd65c94355f82ae2f0692253d4ef7aee724a8cb0b5beffb7",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathnew",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathNEW.png",
+      "sha256": "87ea7a4467888e6adea41acbeade5fc4e6481da7975631d3bca050412e0c4793",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathns",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathNS.png",
+      "sha256": "624bd30141e49120d0761e993528a36d491417856d60699dc06d78b29ed28f65",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathnsw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathNSW.png",
+      "sha256": "d1a50d15fde5089e9e0d8fc9d70ff053a6c69916997a6faa2f77ce22b115168b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathnw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathNW.png",
+      "sha256": "7279b091de40bd400b5255ea20a2f5c2e62e25dd892564593f74c6ce58498a75",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.paths",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathS.png",
+      "sha256": "dd7c2b73bd6c85f02d49de02f4b9351769f1460a2a29e8faa512b8225b41ebf8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathsw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathSW.png",
+      "sha256": "70b66867498fdf4cb798ab68bd0f59ad1df7f3b97cbfaaec33983199d0f1cd39",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "ROAD",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.pathw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/pathW.png",
+      "sha256": "4df3abbb4c7d3fdfe9e3f9434efc21f1fbcb44b2d36c3b41cea0da271ee433ea",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          80,
+          96
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "DECORATION",
+        "size": [
+          80,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.rock",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/rock.png",
+      "sha256": "626fdeae9c4e263463709b0932147c666ca8e5297775560d1f6946a67a149941",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 14,
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.272727
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "tags": [
+          "turn:0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.stoneblock_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/stoneBlock_0.png",
+      "sha256": "28302185ce53a063ee558f55a28148e83660f1b4ef1868b443538a9efc429ca8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 14,
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.272727
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "tags": [
+          "turn:1",
+          "variant_of:sample_pack_iso.png.stoneblock_0"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.stoneblock_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/stoneBlock_1.png",
+      "sha256": "68190fc929a2be7871109af9ea9b137dbe9b33ba191124edf606de29e6829559",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 14,
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.272727
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "tags": [
+          "turn:2",
+          "variant_of:sample_pack_iso.png.stoneblock_0"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.stoneblock_2",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/stoneBlock_2.png",
+      "sha256": "aa3a516fcd57941429270ac8c93159435accd867a5ba191e5449dbdac191f9a8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 14,
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.272727
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "tags": [
+          "turn:3",
+          "variant_of:sample_pack_iso.png.stoneblock_0"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.stoneblock_3",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/stoneBlock_3.png",
+      "sha256": "31031640a944ce9a46d4f3d955b3ba6313fc86fffa489e00dff663afba43c2fd",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          80,
+          96
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 28,
+        "role": "DECORATION",
+        "size": [
+          80,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.treeoak",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/treeOak.png",
+      "sha256": "2e62f01d68fa06e2d80331e946946e7fa8324887faad60209f90a61825fb5042",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.642857,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          80,
+          96
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 41,
+        "role": "DECORATION",
+        "size": [
+          80,
+          96
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.treepine",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/treePine.png",
+      "sha256": "737c370c1091ece6e367452fe8bfbac921f05ee5d84c79ced2cde405b47eb74a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 4,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.walle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallE.png",
+      "sha256": "3fab1cdadef579732489fd1cc83008dde1274cebb4b7fcd8b6926837f630b6b9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e",
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 4,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.walles",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallES.png",
+      "sha256": "6506678800646d062539eaae83f6b9a10c2171ff345ddf86f6543e381d651e58",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.wallew",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallEW.png",
+      "sha256": "ea23bb848083e07ce26cd98e6a7c53ce3e60b8ed46f61935b71cc69476eb6d91",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.walln",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallN.png",
+      "sha256": "d24f7eb0b6bf8574944fa33819540dfd9d423c1893699ec47d18bbf39f7a10fc",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.wallne",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallNE.png",
+      "sha256": "ed05edee76944bfb11c73eb99802acf687137d73c5045a4fc6c1af2b0f0b5dc9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.wallns",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallNS.png",
+      "sha256": "33c6d32a3b2e13a37efc04a87becb7e3b019e8271f272da2076c4d163a4fe923",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.wallnw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallNW.png",
+      "sha256": "027715ceb9b5c38fe232d9701ab6aeb17aed4943f39c013a0d1bc7e011ac2d91",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 4,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.walls",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallS.png",
+      "sha256": "ecaffdd04a25810c682dc27be8cc040f1daf3af8d67e65b4bdb52b90a885458b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.wallsw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallSW.png",
+      "sha256": "a1562bbaac1f1bf3c635d1e77509ae6a5c9f06927aa1423bebf6861a67997f30",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.285714
+          ],
+          [
+            "DECORATION",
+            0.095238
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.wallw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/wallW.png",
+      "sha256": "b33c348fb702dc9debd37d21067432f78a76e32beb91ce47d63f855a1b594d7f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.water",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/water.png",
+      "sha256": "fc2684ce6f7814d4b58a6097403c500fec58ab3a3b56c925ba790204e43fcd98",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e",
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.wateres",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterES.png",
+      "sha256": "a7fb2d58865e6932852bc5eb25f19ddd2d47fa34744e5e245d7f2b6366338b47",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "e",
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.wateresw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterESW.png",
+      "sha256": "46845ca59c864af3714b62f88e278fcdc08022addfc3a8211d079fd1f1647fd2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.waterne",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterNE.png",
+      "sha256": "ebed69b1a9baccefb70702c09569c7085e4cea87a9eddcc5297ed6ed6829ae04",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e",
+          "s"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.waternes",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterNES.png",
+      "sha256": "76fe91b4b0f099723719df00420c24faadcd3e606e2c43f2113e78b33c11614c",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e",
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.waternesw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterNESW.png",
+      "sha256": "55bf01925cebcf24a77a6100ee7a3f4b1628480f41f9100d461f155aff9c5bd2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "e",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.waternew",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterNEW.png",
+      "sha256": "efe4d5c649d3e1dc0fbc15d3b7717824b540abca61abe57f8f1c2c882a24a636",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.waternsw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterNSW.png",
+      "sha256": "ae61e1da4daeb3eddb886ae72a0a532eec816cf27e72819237e456451ddb36c2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "n",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.waternw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterNW.png",
+      "sha256": "67d713d2ac6181b0334c69705c35d1da0579eb37018cb0a63c0f7e445f31fe83",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.45,
+      "detected": {
+        "canvas": [
+          80,
+          96
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "joins": [
+          "s",
+          "w"
+        ],
+        "origin": [
+          40,
+          79
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "WATER",
+        "roles_alt": [
+          [
+            "GROUND",
+            0.3
+          ],
+          [
+            "DECORATION",
+            0.1
+          ],
+          [
+            "WALL",
+            0.05
+          ]
+        ],
+        "size": [
+          80,
+          96
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.png.watersw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/PNG/waterSW.png",
+      "sha256": "11283f916e810f9d0011934338889389f354542f4486399874f4f736bd5aaeb0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.666667,
+      "detected": {
+        "canvas": [
+          48,
+          48
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "origin": [
+          24,
+          47
+        ],
+        "projection": "isometric",
+        "rise": 36,
+        "role": "PORTRAIT",
+        "size": [
+          48,
+          48
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.portraits.elder",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/portraits/elder.png",
+      "sha256": "98caca5169ca69e318594a7a367e850658d47b08a759cace0dd6d9bace391794",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.17,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.sfx.cancel",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/sfx/cancel.wav",
+      "sha256": "1fd2bf0e2fc63ad30a8d2d388eeb4c0e920312c90e72d6eb499ec55dbbf57edf",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.36,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.sfx.chest_open",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/sfx/chest_open.wav",
+      "sha256": "f140ccac9be0d4080518abcbe753a460e0e1a2fd5bc146160a13bf6849bd0ecb",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.24,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.sfx.coin",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/sfx/coin.wav",
+      "sha256": "8356d4a7a40faf346e969ede54a4890cd648f0ea69f8499346641e57caca344f",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.16,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.sfx.confirm",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/sfx/confirm.wav",
+      "sha256": "766e7c5d9ac826f86aac2c7cbcf9fc82eb0da599fdcd4538e6fdaae170087c7d",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.06,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.sfx.cursor_blip",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/sfx/cursor_blip.wav",
+      "sha256": "edae1afbb167be9bcf40aac15121b1da5933835aa20bddafd0c0bf400ee727a5",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.14,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.sfx.hit",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/sfx/hit.wav",
+      "sha256": "bedaa060e9204c1e50ab60f8be09c65a2e691a98ae2a344bb82937df7654c192",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.05,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.sfx.step",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/sfx/step.wav",
+      "sha256": "e4c46677f4a8cef63e9f599efd42fb9c564d89bbe1867ef81321667146a5552b",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "audio": {
+          "duration_s": 0.2,
+          "loop": false,
+          "type": "sfx"
+        },
+        "role": "AUDIO_SFX",
+        "usage": "audio"
+      },
+      "detected_by": "inventory",
+      "id": "sample_pack_iso.sfx.swing",
+      "kind": "audio",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/sfx/swing.wav",
+      "sha256": "fd62d0e2a24d503b42a1ef855231e917d775651f65e508aa040dbe2dc29e518e",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.791667,
+      "detected": {
+        "canvas": [
+          48,
+          48
+        ],
+        "footprint": [
+          40,
+          22
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "origin": [
+          24,
+          47
+        ],
+        "projection": "isometric",
+        "rise": 36,
+        "role": "UI",
+        "size": [
+          48,
+          48
+        ],
+        "stands_on": [
+          1,
+          1
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "isometric",
+      "id": "sample_pack_iso.ui.panel",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sample_pack_iso",
+      "path": "assets/packs/sample_pack_iso/ui/panel.png",
+      "sha256": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7",
+      "status": "AUTO_DETECTED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "isometric",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/sample_pack_iso/LICENSE.txt"
+      ],
+      "pack_id": "sample_pack_iso",
+      "profile_id": null,
+      "root": "assets/packs/sample_pack_iso",
+      "source_sha256": "0fcf92ad437f715b080afbb825db7da37027fb7b8a3b4e3f1dd128c8408f3fb4",
+      "warnings": [
+        "isometric:40x22:tile_information",
+        "view:isometric"
+      ]
+    }
+  ],
+  "tilesets": []
+}

@@ -353,3 +353,105 @@ RACE_FILES = {
     "sfx/lap.wav": lap,
     "sfx/countdown.wav": countdown,
 }
+
+
+# ---------------------------------------------------------- the samples of M17 (T17.17)
+# *Green acre* (a farm) has more pictures than the arcade packs and four loops, one a season,
+# so its loops are shorter: eight notes over two, 1.92 s. *Stone isle* (an isometric village)
+# has the two loops and the eight sounds of the top-down sample, made small.
+
+
+def _short_loop(melody: list[int], bass: list[int]) -> bytes:
+    """A bar of eight melody notes of 24 hundredths over two bass notes; 0 is a rest."""
+    lead = _voice("tri", [(freq, 24) for freq in melody], 52, 1)
+    low = _voice("sq", [(freq, 96) for freq in bass], 20, 1)
+    n = min(len(lead), len(low))
+    return to_wav_small(lead[:n] + low[:n])
+
+
+def spring_theme() -> bytes:  # C major, rising
+    return _short_loop([392, 440, 523, 587, 659, 587, 523, 0], [131, 196])
+
+
+def summer_theme() -> bytes:  # G major, bright
+    return _short_loop([587, 494, 392, 494, 587, 784, 659, 0], [196, 147])
+
+
+def autumn_theme() -> bytes:  # A minor, falling
+    return _short_loop([659, 587, 523, 440, 523, 440, 392, 0], [110, 165])
+
+
+def winter_theme() -> bytes:  # D minor, slow steps
+    return _short_loop([294, 349, 440, 349, 294, 262, 294, 0], [147, 110])
+
+
+def hoe() -> bytes:
+    n = RATE * 9 // 100
+    return to_wav_small(
+        _shaped(noise(n, 41), 52, 10, 1) // 2 + _shaped(square(96, n), 36, 10, 1) // 3
+    )
+
+
+def watering() -> bytes:
+    pour = _sweep("tri", 900, -60, 6, 26)
+    n = len(pour)
+    return to_wav_small(_shaped(noise(n, 43), 34, 400, 2) // 2 + _shaped(pour, 14, 400, 2))
+
+
+def plant() -> bytes:
+    return to_wav_small(np.concatenate([note("tri", 392, 5, 44), note("tri", 587, 7, 44)]))
+
+
+def harvest() -> bytes:
+    return to_wav_small(np.concatenate([note("tri", f, 6, 48) for f in (523, 659, 784)]))
+
+
+def cluck() -> bytes:
+    one = _shaped(_sweep("sq", 760, -70, 4, 6), 24, 20, 1)
+    rest = np.zeros(RATE * 4 // 100, dtype=np.int64)
+    return to_wav_small(np.concatenate([one, rest, one]))
+
+
+def rooster() -> bytes:
+    crow = [(587, 8), (784, 8), (784, 14), (988, 26)]
+    return to_wav_small(np.concatenate([note("sq", f, length, 24) for f, length in crow]))
+
+
+FARM_FILES = {
+    "music/spring_theme.wav": spring_theme,
+    "music/summer_days.wav": summer_theme,
+    "music/autumn_leaves.wav": autumn_theme,
+    "music/winter_snow.wav": winter_theme,
+    "sfx/hoe.wav": hoe,
+    "sfx/watering.wav": watering,
+    "sfx/plant.wav": plant,
+    "sfx/harvest.wav": harvest,
+    "sfx/sell.wav": lambda: _small(coin),
+    "sfx/hen_cluck.wav": cluck,
+    "sfx/rooster.wav": rooster,
+    "sfx/confirm.wav": lambda: _small(confirm),
+}
+
+
+def village_theme() -> bytes:  # C major pentatonic: the tune of the top-down sample, one bar
+    melody = [523, 440, 392, 330, 392, 440, 523, 392, 330, 294, 262, 294, 330, 392, 440, 0]
+    return _loop(melody, [131, 196, 110, 147])
+
+
+def fight_theme() -> bytes:  # A minor: the battle of the top-down sample, one bar
+    melody = [440, 440, 523, 440, 392, 330, 392, 440, 587, 523, 440, 392, 330, 392, 330, 0]
+    return _loop(melody, [110, 110, 131, 98])
+
+
+ISO_FILES = {
+    "music/town_theme.wav": village_theme,
+    "music/battle_theme.wav": fight_theme,
+    "sfx/cursor_blip.wav": lambda: _small(blip),
+    "sfx/confirm.wav": lambda: _small(confirm),
+    "sfx/cancel.wav": lambda: _small(cancel),
+    "sfx/hit.wav": lambda: _small(hit),
+    "sfx/swing.wav": lambda: _small(swing),
+    "sfx/coin.wav": lambda: _small(coin),
+    "sfx/chest_open.wav": lambda: _small(chest_open),
+    "sfx/step.wav": lambda: _small(step),
+}

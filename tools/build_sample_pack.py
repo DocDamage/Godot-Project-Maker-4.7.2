@@ -7,6 +7,9 @@ Usage:
     python tools/build_sample_pack.py --side     # the side-view pack, sample_pack_side/ (T14.09)
     python tools/build_sample_pack.py --kind shmup | gun | race   # an arcade pack (T16.17):
                                                  # sample_pack_shmup/, _gun/, _race/
+    python tools/build_sample_pack.py --kind farm | iso   # the packs of M17 (T17.17): a farm,
+                                                 # sample_pack_farm/, and an isometric
+                                                 # village, sample_pack_iso/
 
 Every pixel is drawn from integer arithmetic (no randomness, no antialiasing), so the images are
 the same on every machine. The pack is original work released under CC0-1.0: nothing is copied
@@ -20,6 +23,7 @@ from __future__ import annotations
 import argparse
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -1592,7 +1596,943 @@ the sample opens with every asset confirmed.
 """
 
 
-# ---------------------------------------------------------------- building the three
+# ---------------------------------------------------------------- Green acre (the farm, T17.17)
+# A small pack for the seventh kind (M17): a farm seen from above, in the names a farming pack
+# uses, so that it is read without its profile.
+
+FARM_PACK_NAME = "sample_pack_farm"
+SEASONS = ("spring", "summer", "autumn", "winter")
+SEASON_GRASS: tuple[Px, ...] = ((104, 178, 84), (78, 156, 66), (176, 150, 70), (226, 232, 240))
+SOIL: Px = (124, 88, 56)
+WET_SOIL: Px = (82, 60, 46)
+STRAW: Px = (232, 204, 110)
+WOOD: Px = (146, 100, 58)
+# what the farm's planner takes a building for when a pack says nothing (farm_plan.BUILDINGS):
+# cells wide, cells high, the column of the door
+FARM_BUILDINGS = {"house": (6, 4, 2), "coop": (4, 3, 1), "barn": (6, 4, 2)}
+# where the three lie in objects/farmyard.png, in cells: (column, row)
+FARMYARD_CELLS = {"house": (1, 1), "barn": (8, 1), "coop": (1, 6)}
+# their names in the profile: the house is the first by name, so it is the building a map
+# takes when nothing is chosen
+FARMYARD_NAMES = {"house": "house", "barn": "yard_barn", "coop": "yard_coop"}
+
+
+def season_grass_sheet(season: int) -> Image.Image:
+    """4 x 2 tiles of 16 px: the grass of one season, plain and with what the season brings
+    (flowers, tufts, fallen leaves, snow)."""
+    img, _d = canvas(64, 32)
+    base = SEASON_GRASS[season]
+    marks: tuple[Px, Px] = (
+        ((250, 190, 220), (250, 240, 150)),
+        ((250, 236, 150), (58, 128, 52)),
+        ((204, 96, 44), (150, 74, 40)),
+        ((196, 206, 226), (250, 250, 255)),
+    )[season]
+    for col in range(4):
+        for row in range(2):
+            x0, y0 = col * 16, row * 16
+            seed = 60 + season * 8 + col * 2 + row
+            # every tile a tone of its own: the grid of a sheet is read from where tiles meet
+            _speckled(img, x0, y0, shade(base, (-16, 8, -8, 16)[col] - row * 12), seed, 3)
+            if season < 3 and (col + row) % 4 == 1:
+                _tuft(img, x0, y0, base, seed)
+            for k in range((col + row) % 3):
+                x = 2 + noise(k, 3, seed) % 12
+                y = 2 + noise(k, 4, seed) % 12
+                img.putpixel((x0 + x, y0 + y), rgba(marks[k % 2]))
+    # an opaque sheet's corner is taken for its background: no other pixel has its colour
+    img.putpixel((0, 0), rgba(shade(marks[0], -20)))
+    return img
+
+
+def path_sheet() -> Image.Image:
+    """4 x 2 tiles of 16 px: a trodden path, with small stones."""
+    img, _d = canvas(64, 32)
+    for col in range(4):
+        for row in range(2):
+            tone = shade((176, 146, 100), (-10, 8, -2, 14)[col] - row * 9)
+            _speckled(img, col * 16, row * 16, tone, 90 + col + row * 4, 5)
+            for k in range(2):
+                x, y = 2 + noise(k, 5, col + row * 4) % 12, 2 + noise(k, 6, col + row * 4) % 12
+                img.putpixel((col * 16 + x, row * 16 + y), rgba((206, 190, 160)))
+    img.putpixel((0, 0), rgba((224, 212, 190)))  # the corner: see season_grass_sheet
+    return img
+
+
+def soil_tile(wet: bool) -> Image.Image:
+    """One 16 px tile of tilled soil, dry or watered: furrows across it."""
+    img, d = canvas(16, 16)
+    base = WET_SOIL if wet else SOIL
+    _speckled(img, 0, 0, base, 97 if wet else 96, 6)
+    for y in (2, 6, 10, 14):
+        d.line([(0, y), (15, y)], fill=rgba(shade(base, -26)))
+        d.line([(0, y - 1), (15, y - 1)], fill=rgba(shade(base, 14)))
+    if wet:
+        d.point([(3, 4), (10, 8), (6, 12), (13, 4)], fill=rgba((120, 150, 200)))
+    return img
+
+
+def hedge_sheet() -> Image.Image:
+    """2 x 2 tiles of 16 px: a clipped hedge, the edge of the maps."""
+    img, d = canvas(32, 32)
+    leaf: Px = (44, 110, 56)
+    for col in range(2):
+        for row in range(2):
+            x0, y0 = col * 16, row * 16
+            _speckled(img, x0, y0, shade(leaf, col * 20 - row * 10), 110 + col + row * 2, 4)
+            d.line([(x0, y0 + 15), (x0 + 15, y0 + 15)], fill=rgba(shade(leaf, -30 - col * 12)))
+            d.line([(x0, y0), (x0 + 15, y0)], fill=rgba(shade(leaf, 34)))
+    d.point([(5, 6), (22, 9), (9, 25)], fill=rgba((230, 120, 150)))
+    img.putpixel((0, 0), rgba((250, 240, 150)))  # the corner: see season_grass_sheet
+    return img
+
+
+def _farm_building(d: ImageDraw.ImageDraw, x0: int, y0: int, kind: str, wall: Px, roof: Px) -> None:
+    """A building of ``FARM_BUILDINGS`` whose top-left cell is (x0, y0): a roof over the upper
+    part, a wall, and a door in the bottom row, in the column the plan expects."""
+    wide, high, door = FARM_BUILDINGS[kind]
+    w, h = wide * 16, high * 16
+    eave = h * 3 // 8
+    dark = rgba((70, 46, 26))
+    d.rectangle([x0, y0 + eave, x0 + w - 1, y0 + h - 1], fill=rgba(wall))
+    d.rectangle([x0, y0 + eave, x0 + w - 1, y0 + h - 1], outline=rgba(shade(wall, -70)))
+    for y in range(y0, y0 + eave):
+        inset = (y0 + eave - 1 - y) // 2
+        tone = shade(roof, -22 if (y - y0) % 4 == 0 else 0)
+        d.line([(x0 + inset, y), (x0 + w - 1 - inset, y)], fill=rgba(tone))
+    d.line([(x0, y0 + eave), (x0 + w - 1, y0 + eave)], fill=rgba(shade(roof, -60)))
+    door_w = 32 if kind == "barn" else 16
+    dx = x0 + door * 16 - (door_w - 16) // 2
+    top = y0 + h - 22
+    d.rectangle([dx, top, dx + door_w - 1, y0 + h - 1], fill=rgba((104, 70, 40)), outline=dark)
+    if kind == "barn":  # the cross of a barn door, and the hatch of the loft
+        d.line([(dx, top), (dx + 31, y0 + h - 1)], fill=dark)
+        d.line([(dx + 31, top), (dx, y0 + h - 1)], fill=dark)
+        d.rectangle([x0 + w // 2 - 5, y0 + 6, x0 + w // 2 + 4, y0 + 13], fill=rgba((60, 40, 30)))
+    elif kind == "coop":  # a hatch for the hens under a perch
+        d.rectangle([x0 + 44, y0 + h - 9, x0 + 53, y0 + h - 1], fill=rgba((60, 40, 30)))
+        d.line([(x0 + 40, y0 + h - 12), (x0 + 58, y0 + h - 12)], fill=rgba(WOOD))
+    else:  # a knob, two windows and a chimney
+        d.point([(dx + 12, y0 + h - 11)], fill=rgba((240, 210, 90)))
+        for wx in (x0 + 8, x0 + w - 28):
+            sill = y0 + eave + 8
+            d.rectangle([wx, sill, wx + 11, sill + 11], fill=rgba((150, 210, 240)), outline=dark)
+            d.line([(wx + 5, sill), (wx + 5, sill + 11)], fill=dark)
+        d.rectangle([x0 + w - 22, y0 + 2, x0 + w - 15, y0 + 12], fill=rgba((150, 110, 100)))
+
+
+def farmyard_sheet() -> Image.Image:
+    """Objects in a tile sheet, as a farming pack ships its buildings: the farmhouse, the barn
+    and the coop among a few loose ground tiles. The planner sees a building that is cut from
+    a sheet; a building that is a picture of its own it does not see."""
+    img, d = canvas(240, 160)
+    paint: dict[str, tuple[Px, Px]] = {
+        "house": ((232, 204, 160), (176, 66, 56)),
+        "barn": ((178, 70, 58), (96, 78, 70)),
+        "coop": ((222, 190, 128), (120, 90, 60)),
+    }
+    for kind, (cx, cy) in FARMYARD_CELLS.items():
+        _farm_building(d, cx * 16, cy * 16, kind, *paint[kind])
+    loose = [(0, 0), (14, 6), (6, 6), (8, 8), (10, 6), (12, 9), (6, 9), (14, 9)]
+    for n, (cx, cy) in enumerate(loose):
+        base = SEASON_GRASS[0] if n % 2 else SOIL
+        _speckled(img, cx * 16, cy * 16, shade(base, -6 * (n % 3)), 120 + n)
+    return img
+
+
+FARMER_CLOTH: Px = (70, 110, 190)
+FARMER_HAIR: Px = (110, 70, 40)
+
+
+def _hat(d: ImageDraw.ImageDraw, ox: int, bob: int) -> None:
+    d.rectangle([ox + 2, 4 - bob, ox + 13, 5 - bob], fill=rgba(STRAW))
+    d.rectangle([ox + 5, 1 - bob, ox + 10, 4 - bob], fill=rgba(STRAW))
+    d.line([(ox + 5, 4 - bob), (ox + 10, 4 - bob)], fill=rgba((170, 80, 60)))
+
+
+def farmer_walk(direction: str) -> Image.Image:
+    """Four frames of 16 x 24: the farmer, in a straw hat, walking one way."""
+    img, d = canvas(64, 24)
+    for step in range(4):
+        _person(d, step * 16, 0, direction, step, FARMER_CLOTH, FARMER_HAIR)
+        _hat(d, step * 16, 1 if step in (1, 3) else 0)
+    return img
+
+
+def farmer_tool(tool: str) -> Image.Image:
+    """Three frames of 16 x 24: the farmer, facing down, using a tool: raised, half way, down."""
+    img, d = canvas(48, 24)
+    can: Px = (110, 146, 186)
+    for i in range(3):
+        ox = i * 16
+        _person(d, ox, 0, "down", 0, FARMER_CLOTH, FARMER_HAIR)
+        _hat(d, ox, 0)
+        hx, hy = ox + 12, 13 + i
+        if tool == "water":
+            d.rectangle([hx, hy - 2, hx + 2, hy + 1], fill=rgba(can))
+            d.point([(hx + 3, hy - 1 + i)], fill=rgba(can))
+            for k in range(i):
+                d.point([(ox + 15, hy + 1 + k * 2)], fill=rgba((150, 190, 240)))
+            continue
+        tx, ty = ((ox + 14, 3), (ox + 15, 9), (ox + 14, 19))[i]
+        d.line([(hx, hy), (tx, ty)], fill=rgba(WOOD))
+        if tool == "hoe":
+            d.line([(tx, ty), (tx - 3, ty + (1 if i < 2 else 0))], fill=rgba(STEEL))
+        elif tool == "sickle":
+            d.arc([tx - 5, ty - 3, tx + 1, ty + 3], 180, 20, fill=rgba(STEEL))
+        else:  # the axe
+            d.rectangle([tx - 2, ty - 1, tx, ty + 1], fill=rgba(STEEL))
+    return img
+
+
+# crop -> (stages, the height of a frame, the colour of what is harvested)
+FARM_CROPS: dict[str, tuple[int, int, Px]] = {
+    "corn": (6, 32, (240, 208, 70)),
+    "wheat": (5, 32, (226, 196, 110)),
+    "tomato": (7, 32, (220, 60, 50)),
+    "turnip": (4, 16, (236, 228, 244)),
+}
+
+
+def crop_strip(kind: str) -> Image.Image:
+    """A crop's growth in one row of 16 px frames, a frame a stage, the first the seed and the
+    last the ripe plant."""
+    stages, fh, fruit = FARM_CROPS[kind]
+    leaf: Px = (70, 150, 66)
+    img, d = canvas(stages * 16, fh)
+    for i in range(stages):
+        mid, foot = i * 16 + 8, fh - 2
+        d.line([(mid - 3, foot + 1), (mid + 2, foot + 1)], fill=rgba(shade(SOIL, -30)))
+        if i == 0:
+            d.point([(mid - 1, foot), (mid, foot)], fill=rgba((226, 208, 150)))
+            continue
+        ripe = i == stages - 1
+        if kind == "turnip":
+            if i >= 2:
+                d.ellipse([mid - i, foot - i, mid + i - 1, foot], fill=rgba(fruit))
+                d.point([(mid - 1, foot)], fill=rgba((190, 110, 180)))
+            for k in (-1, 0, 1):
+                tip = (mid - 1 + k * 3, foot - i * 3 - 2)
+                d.line([(mid - 1 + k, foot - i - 1), tip], fill=rgba(leaf))
+            continue
+        height = 2 + i * (fh - 8) // (stages - 1) * (3 if kind == "tomato" else 4) // 4
+        tone = shade(fruit, -20) if kind == "wheat" and i >= stages - 2 else leaf
+        d.rectangle([mid - 1, foot - height, mid, foot], fill=rgba(tone))
+        for k in range(1, height // 5 + 1):  # a pair of leaves every five pixels
+            y = foot - k * 5 + 1
+            reach = 2 + (k + i) % 2 + (1 if kind == "tomato" else 0)
+            d.line([(mid - 1 - reach, y - 1), (mid - 1, y)], fill=rgba(tone))
+            d.line([(mid, y), (mid + reach, y - 1)], fill=rgba(tone))
+        top = foot - height
+        if kind == "wheat" and i >= 2:
+            d.rectangle([mid - 2, top - 4, mid + 1, top], fill=rgba(fruit if ripe else tone))
+        elif kind == "corn" and i >= stages - 2:
+            cob = fruit if ripe else shade(leaf, 30)
+            d.rectangle([mid + 1, top + 6, mid + 3, top + 12], fill=rgba(cob))
+        elif kind == "tomato" and i >= stages - 3:
+            tone = fruit if ripe else shade(leaf, 40) if i == stages - 3 else (236, 150, 60)
+            for fx, fy in ((-4, 5), (3, 9), (-3, 13)):
+                d.ellipse([mid + fx - 1, top + fy, mid + fx + 2, top + fy + 3], fill=rgba(tone))
+    return img
+
+
+def _hen(d: ImageDraw.ImageDraw, ox: int, direction: str, step: int, asleep: bool) -> None:
+    white: Px = (246, 240, 228)
+    line = rgba(shade(white, -80))
+    gold = rgba((240, 170, 50))
+    if asleep:
+        d.ellipse([ox + 3, 8, ox + 12, 14], fill=rgba(white), outline=line)
+        d.line([(ox + 6, 10), (ox + 9, 10)], fill=line)
+        if step:
+            d.point([(ox + 12, 5), (ox + 13, 3)], fill=rgba((150, 170, 220)))
+        return
+    bob = step % 2
+    d.ellipse([ox + 3, 6 - bob, ox + 12, 13], fill=rgba(white), outline=line)
+    hx = {"left": ox + 2, "right": ox + 10}.get(direction, ox + 6)
+    d.rectangle([hx, 3 - bob, hx + 3, 7 - bob], fill=rgba(white), outline=line)
+    d.rectangle([hx + 1, 2 - bob, hx + 2, 2 - bob], fill=rgba((214, 60, 52)))
+    if direction != "up":
+        d.point([({"left": hx - 1, "right": hx + 4}.get(direction, hx + 1), 6 - bob)], fill=gold)
+        d.point([({"right": hx + 2}.get(direction, hx + 1), 4 - bob)], fill=rgba(BLACK))
+        if direction == "down":
+            d.point([(hx + 2, 4 - bob)], fill=rgba(BLACK))
+    swing = (0, 1, 0, -1)[step]
+    for y in (14, 15):
+        d.point([(ox + 6 + swing, y), (ox + 9 - swing, y)], fill=gold)
+
+
+def _cow(d: ImageDraw.ImageDraw, ox: int, direction: str, step: int, asleep: bool) -> None:
+    hide: Px = (244, 240, 232)
+    patch: Px = (60, 50, 50)
+    line = rgba(shade(hide, -90))
+    low = 4 if asleep else 0
+    x0, x1 = (ox + 3, ox + 20) if direction in ("left", "right") else (ox + 6, ox + 17)
+    if not asleep:
+        swing = (0, 1, 0, -1)[step]
+        for lx in (x0 + 2 + swing, x1 - 3 - swing):
+            d.rectangle([lx, 18, lx + 1, 22], fill=rgba(patch))
+    d.rounded_rectangle([x0, 9 + low, x1, 19 + low // 2], 3, fill=rgba(hide), outline=line)
+    d.ellipse([x0 + 3, 11 + low, x0 + 7, 15 + low // 2], fill=rgba(patch))
+    d.ellipse([x1 - 6, 13 + low, x1 - 3, 17 + low // 2], fill=rgba(patch))
+    if direction == "up" and not asleep:
+        d.line([(ox + 11, 9), (ox + 12, 5)], fill=rgba(patch))  # the tail
+        return
+    hx = {"left": ox + 1, "right": ox + 15}.get(direction, ox + 8)
+    hy = 5 + low + (0 if asleep else step % 2)
+    d.rounded_rectangle([hx, hy, hx + 7, hy + 7], 2, fill=rgba(hide), outline=line)
+    d.rectangle([hx + 1, hy + 5, hx + 6, hy + 7], fill=rgba((238, 170, 170)))
+    d.point([(hx, hy - 1), (hx + 7, hy - 1)], fill=rgba((200, 190, 170)))
+    if asleep:
+        d.line([(hx + 2, hy + 3), (hx + 5, hy + 3)], fill=rgba(BLACK))
+        if step:
+            d.point([(ox + 20, 4), (ox + 22, 2)], fill=rgba((150, 170, 220)))
+    else:
+        d.point([(hx + 2, hy + 3), (hx + 5, hy + 3)], fill=rgba(BLACK))
+
+
+def animal_strip(kind: str, direction: str) -> Image.Image:
+    """A hen (16 x 16) or a cow (24 x 24) walking one way in four frames, or, for ``sleep``,
+    asleep in two."""
+    size, draw = (16, _hen) if kind == "hen" else (24, _cow)
+    asleep = direction == "sleep"
+    frames = 2 if asleep else 4
+    img, d = canvas(frames * size, size)
+    for i in range(frames):
+        draw(d, i * size, "down" if asleep else direction, i, asleep)
+    return img
+
+
+def farm_tool(kind: str) -> Image.Image:
+    """A 16 x 16 icon: hoe, watering can, sickle, axe or fishing rod."""
+    img, d = _icon()
+    if kind == "watering_can":
+        can: Px = (110, 146, 186)
+        d.rectangle([4, 7, 10, 13], fill=rgba(can), outline=rgba(BLACK))
+        d.line([(10, 9), (14, 5)], fill=rgba(can), width=2)
+        d.arc([1, 6, 6, 12], 90, 270, fill=rgba(BLACK))
+        d.point([(14, 3), (15, 5), (13, 3)], fill=rgba((150, 190, 240)))
+        return img
+    if kind == "fishing_rod":
+        d.line([(2, 14), (12, 2)], fill=rgba(WOOD), width=2)
+        d.line([(12, 2), (13, 10)], fill=rgba((230, 232, 236)))
+        d.point([(13, 11), (12, 12)], fill=rgba((214, 60, 52)))
+        return img
+    d.line([(3, 13), (11, 4)], fill=rgba(WOOD), width=2)
+    if kind == "hoe":
+        d.polygon([(10, 3), (14, 6), (13, 8), (9, 5)], fill=rgba(STEEL), outline=rgba(BLACK))
+    elif kind == "sickle":
+        d.arc([6, 1, 14, 9], 150, 30, fill=rgba(STEEL), width=2)
+    else:  # the axe
+        d.polygon([(9, 2), (14, 3), (14, 8), (11, 7)], fill=rgba(STEEL), outline=rgba(BLACK))
+    return img
+
+
+def farm_item(kind: str) -> Image.Image:
+    """A 16 x 16 icon: a bag of seeds, an egg, a bottle of milk, a fish, a mushroom, berries."""
+    img, d = _icon()
+    if kind == "seed_bag":
+        bag: Px = (204, 173, 115)
+        d.polygon([(4, 5), (11, 5), (13, 14), (2, 14)], fill=rgba(bag), outline=rgba(BLACK))
+        d.rectangle([6, 3, 9, 5], fill=rgba(bag), outline=rgba(BLACK))
+        d.point([(6, 9), (8, 11), (9, 8)], fill=rgba((70, 150, 66)))
+    elif kind == "egg":
+        d.ellipse([4, 3, 11, 13], fill=rgba((246, 236, 212)), outline=rgba((150, 130, 100)))
+        d.point([(6, 6)], fill=rgba(WHITE))
+    elif kind == "milk":
+        d.rectangle([5, 6, 10, 14], fill=rgba(WHITE), outline=rgba(BLACK))
+        d.rectangle([6, 2, 9, 6], fill=rgba((200, 220, 240)), outline=rgba(BLACK))
+        d.rectangle([6, 9, 9, 11], fill=rgba((110, 160, 220)))
+    elif kind == "fish":
+        scale: Px = (126, 168, 192)
+        d.ellipse([2, 5, 11, 11], fill=rgba(scale), outline=rgba(BLACK))
+        d.polygon([(11, 8), (14, 5), (14, 11)], fill=rgba(scale), outline=rgba(BLACK))
+        d.point([(4, 7)], fill=rgba(BLACK))
+    elif kind == "mushroom":
+        d.rectangle([6, 9, 9, 14], fill=rgba((236, 226, 204)), outline=rgba(BLACK))
+        d.pieslice([2, 3, 13, 15], 180, 360, fill=rgba((190, 70, 56)), outline=rgba(BLACK))
+        d.point([(5, 7), (9, 6)], fill=rgba(WHITE))
+    else:  # berries
+        for bx, by in ((4, 8), (8, 6), (8, 10)):
+            d.ellipse([bx, by, bx + 4, by + 4], fill=rgba((112, 72, 168)), outline=rgba(BLACK))
+        d.line([(7, 3), (9, 6)], fill=rgba((70, 150, 66)))
+    return img
+
+
+FARM_PROPS = ("tree", "bush", "rock", "stump", "branch", "flowers", "weeds", "fence",
+              "shipping_bin", "bed")  # fmt: skip
+
+
+def farm_prop(kind: str) -> Image.Image:
+    """What stands on a farm: an apple tree (32 x 48); on one tile a bush, a rock, a stump, a
+    branch, flowers, weeds, a piece of fence and the shipping bin; a bed (16 x 32)."""
+    leaf: Px = (52, 142, 62)
+    if kind == "tree":
+        img, d = canvas(32, 48)
+        _tree(d, 0, 0)
+        d.point([(9, 12), (20, 9), (14, 20), (23, 18)], fill=rgba((230, 80, 70)))
+        return img
+    if kind == "bed":
+        img, d = canvas(16, 32)
+        d.rectangle([1, 2, 14, 30], fill=rgba(WOOD), outline=rgba(BLACK))
+        d.rectangle([3, 4, 12, 10], fill=rgba(WHITE))
+        d.rectangle([2, 12, 13, 29], fill=rgba((70, 110, 180)))
+        d.line([(2, 12), (13, 12)], fill=rgba((230, 234, 244)))
+        return img
+    img, d = canvas(16, 16)
+    if kind == "bush":
+        d.ellipse([1, 4, 14, 15], fill=rgba(leaf), outline=rgba(shade(leaf, -50)))
+        d.point([(5, 8), (9, 6), (10, 11)], fill=rgba((214, 60, 92)))
+    elif kind == "rock":
+        outline = [(2, 14), (3, 7), (8, 4), (13, 8), (14, 14)]
+        d.polygon(outline, fill=rgba(STONE), outline=rgba(shade(STONE, -80)))
+        d.line([(5, 8), (8, 6)], fill=rgba(shade(STONE, 40)))
+    elif kind == "stump":
+        d.rectangle([4, 8, 11, 14], fill=rgba(WOOD), outline=rgba(shade(WOOD, -60)))
+        d.ellipse([3, 5, 12, 10], fill=rgba(shade(WOOD, 40)), outline=rgba(shade(WOOD, -60)))
+    elif kind == "branch":
+        d.line([(2, 12), (13, 6)], fill=rgba(WOOD), width=2)
+        d.line([(7, 9), (9, 4)], fill=rgba(WOOD))
+        d.point([(10, 3), (13, 4)], fill=rgba(leaf))
+    elif kind == "flowers":
+        for fx, fy, tone in ((4, 6, (250, 190, 220)), (10, 4, (250, 240, 150)), (8, 10, WHITE)):
+            d.line([(fx, fy + 1), (fx, fy + 4)], fill=rgba(leaf))
+            d.rectangle([fx - 1, fy - 1, fx + 1, fy + 1], fill=rgba(tone))
+    elif kind == "weeds":
+        for k in range(5):
+            d.line([(3 + k * 2, 14), (2 + k * 3, 7 + (k % 2) * 2)], fill=rgba(shade(leaf, k * 8)))
+    elif kind == "fence":
+        for px in (2, 12):
+            d.rectangle([px, 3, px + 1, 14], fill=rgba(WOOD), outline=rgba(shade(WOOD, -50)))
+        for py in (6, 10):
+            d.rectangle([0, py, 15, py + 1], fill=rgba(shade(WOOD, 30)))
+    else:  # the shipping bin
+        lid = [(1, 5), (3, 2), (12, 2), (14, 5)]
+        d.rectangle([1, 5, 14, 14], fill=rgba(WOOD), outline=rgba(BLACK))
+        d.polygon(lid, fill=rgba(shade(WOOD, 34)), outline=rgba(BLACK))
+        d.line([(1, 9), (14, 9)], fill=rgba(shade(WOOD, -50)))
+        d.rectangle([6, 6, 9, 8], fill=rgba((240, 200, 60)))
+    return img
+
+
+def rain_strip() -> Image.Image:
+    """Three frames of 64 x 64: slanted drops that fall from frame to frame, laid over the
+    whole screen."""
+    img, d = canvas(192, 64)
+    for f in range(3):
+        for k in range(26):
+            x = (k * 13 + 5) % 60
+            y = (k * 29 + f * 21) % 58
+            d.line([(f * 64 + x + 2, y), (f * 64 + x, y + 5)], fill=(170, 200, 255, 190))
+    return img
+
+
+FARM_IMAGES = {
+    **{
+        f"tilesets/{s}/grass.png": (lambda n=n: season_grass_sheet(n))
+        for n, s in enumerate(SEASONS)
+    },
+    "tilesets/path.png": path_sheet,
+    "tilesets/water.png": water_sheet,
+    "tilesets/hedge_wall.png": hedge_sheet,
+    "tilesets/soil_tilled.png": lambda: soil_tile(False),
+    "tilesets/soil_watered.png": lambda: soil_tile(True),
+    "objects/farmyard.png": farmyard_sheet,
+    **{
+        f"characters/farmer/farmer_walk_{way}_16x24_4frames.png": (lambda way=way: farmer_walk(way))
+        for way in ("down", "left", "right", "up")
+    },
+    **{
+        f"characters/farmer/farmer_{tool}_down_16x24_3frames.png": (
+            lambda tool=tool: farmer_tool(tool)
+        )
+        for tool in ("hoe", "water", "sickle", "axe")
+    },
+    "npc/villager_baker.png": lambda: character_sheet((230, 226, 214), (150, 90, 50)),
+    "npc/villager_smith.png": lambda: character_sheet((96, 96, 110), (40, 36, 40)),
+    "npc/villager_elder.png": lambda: character_sheet((150, 70, 130), (220, 220, 226)),
+    "portraits/elder.png": portrait,
+    **{
+        f"crops/{crop}_16x{fh}_{stages}frames.png": (lambda crop=crop: crop_strip(crop))
+        for crop, (stages, fh, _fruit) in FARM_CROPS.items()
+    },
+    **{
+        f"animals/{kind}_move_{way}_{px}x{px}_4frames.png": (
+            lambda kind=kind, way=way: animal_strip(kind, way)
+        )
+        for kind, px in (("hen", 16), ("cow", 24))
+        for way in ("down", "left", "right", "up")
+    },
+    "animals/hen_sleep_16x16_2frames.png": lambda: animal_strip("hen", "sleep"),
+    "animals/cow_sleep_24x24_2frames.png": lambda: animal_strip("cow", "sleep"),
+    **{
+        f"tools/{kind}.png": (lambda kind=kind: farm_tool(kind))
+        for kind in ("hoe", "watering_can", "sickle", "axe", "fishing_rod")
+    },
+    "items/seed_bag.png": lambda: farm_item("seed_bag"),
+    "items/egg.png": lambda: farm_item("egg"),
+    "items/milk.png": lambda: farm_item("milk"),
+    "items/fish/perch.png": lambda: farm_item("fish"),
+    "items/forage/mushroom.png": lambda: farm_item("mushroom"),
+    "items/forage/wild_berries.png": lambda: farm_item("berries"),
+    "items/chest.png": chest,
+    **{f"props/{kind}.png": (lambda kind=kind: farm_prop(kind)) for kind in FARM_PROPS},
+    "weather/rain_64x64_3frames.png": rain_strip,
+    "ui/panel.png": panel,
+}
+
+FARM_SOURCE_TEXT = """\
+Green acre, the rpggen sample pack for a farm: sources
+
+This pack has no outside sources. Every file is generated by
+`tools/build_sample_pack.py --kind farm` (deterministic integer drawing with Pillow; the sounds
+by `tools/sample_audio.py`) and released under CC0-1.0.
+
+tilesets/spring/grass.png      4 x 2 tiles of 16 px: the grass of spring; the same sheet in
+tilesets/summer/grass.png      the three other seasons (one sheet a season: the game swaps
+tilesets/autumn/grass.png      them with the calendar)
+tilesets/winter/grass.png
+tilesets/path.png              4 x 2 tiles: a trodden path
+tilesets/water.png             4 x 2 tiles: the water of the pond
+tilesets/hedge_wall.png        2 x 2 tiles: a clipped hedge, the edge of the maps
+tilesets/soil_tilled.png       One tile of tilled soil
+tilesets/soil_watered.png      One tile of watered soil
+objects/farmyard.png           The farmhouse (6 x 4 tiles), the barn (6 x 4) and the coop (4 x 3)
+                               among a few loose tiles: objects in a sheet
+characters/farmer/farmer_walk_*.png    The farmer: 4 walk frames of 16 x 24, a strip a direction
+characters/farmer/farmer_hoe_*.png     The farmer using the hoe: 3 frames, facing down; and the
+characters/farmer/farmer_water_*.png   same with the watering can, the sickle and the axe (the
+characters/farmer/farmer_sickle_*.png  game does not play these four yet: they are read as the
+characters/farmer/farmer_axe_*.png     farmer's and left unused)
+npc/villager_*.png             Three villagers: 4 walk frames in 4 directions, 16 x 24 a frame
+portraits/elder.png            A face portrait
+crops/*.png                    Four crops, a frame a stage of growth: corn (6 stages), wheat (5)
+                               and tomato (7) of 16 x 32, turnip (4) of 16 x 16
+animals/hen_*.png              A hen of 16 x 16: 4 walk frames a direction, 2 frames asleep
+animals/cow_*.png              A cow of 24 x 24, drawn the same way
+tools/*.png                    Hoe, watering can, sickle, axe and fishing rod (16 x 16 each)
+items/*.png                    A bag of seeds, an egg and milk (16 x 16 each) and a chest
+                               (32 x 16: closed, open)
+items/fish/perch.png           A fish to catch in the pond (16 x 16)
+items/forage/*.png             A mushroom and wild berries to find on the farm (16 x 16 each)
+props/*.png                    An apple tree (32 x 48); a bush, a rock, a stump, a branch,
+                               flowers, weeds, a piece of fence and the shipping bin (16 x 16
+                               each); a bed (16 x 32)
+weather/rain_64x64_3frames.png Rain over the whole screen: 3 frames of 64 x 64
+ui/panel.png                   A window panel with a nine-slice border
+music/*.wav                    Four loops of 1.92 s, one a season: spring_theme, summer_days,
+                               autumn_leaves, winter_snow
+sfx/*.wav                      Eight sounds: hoe, watering, plant, harvest, sell, hen_cluck,
+                               rooster, confirm
+
+The sounds are mono, 8-bit, 11025 Hz, so that the whole pack is under 200 KB.
+`sample_farm.rpgprofile.json` is the audit of this pack (made with the normal audit pipeline), so
+the sample opens with every asset confirmed.
+"""
+
+
+# ---------------------------------------------------------------- Stone isle (isometric, T17.17)
+# A small pack for the isometric view (M17): one picture a tile, every picture one canvas, the
+# tile at the bottom of it, with a text file that says the sizes, as the rendered isometric
+# packs are made. The people are sheets seen from the front, in a folder of their own.
+
+ISO_PACK_NAME = "sample_pack_iso"
+ISO_CANVAS = (80, 96)
+ISO_FOOT = (40, 22)  # the diamond: nearly the 30 degree angle, not twice as wide as high
+ISO_SIDE = 6  # rows of earth under a ground tile
+ISO_TILE_INFORMATION = (
+    f"\n\tImage size : {ISO_CANVAS[0]} x {ISO_CANVAS[1]} px\n"
+    f"\tTile size  : {ISO_FOOT[0]} x {ISO_FOOT[1] + ISO_SIDE} px\n"
+)
+# where the diamond a picture stands on begins in the canvas: its left column, its top row
+ISO_AT = ((ISO_CANVAS[0] - ISO_FOOT[0]) // 2, ISO_CANVAS[1] - ISO_SIDE - ISO_FOOT[1])
+ISO_GRASS: Px = (104, 170, 84)
+ISO_EARTH: tuple[Px, Px] = ((116, 82, 56), (146, 104, 70))  # the left and the right side
+ISO_STONE: Px = (164, 164, 172)
+ISO_WATER: Px = (62, 130, 206)
+ISO_DIRT: Px = (184, 152, 104)
+ISO_SIDES = ("n", "e", "s", "w")  # of a diamond: upper right, lower right, lower left, upper left
+Texture = Callable[[int, int], Px]
+
+
+def _iso_columns(w: int, h: int) -> list[tuple[int, int]]:
+    """The first and the last row of every column of a diamond ``w`` wide and ``h`` high."""
+    tops = [(abs(2 * x + 1 - w) * h) // (2 * w) for x in range(w)]
+    return [(top, h - 1 - top) for top in tops]
+
+
+def _iso_texel(x: int, y: int, w: int, h: int, n: int) -> tuple[int, int]:
+    """The cell of an ``n`` x ``n`` texture the pixel (x, y) of a ``w`` x ``h`` diamond shows:
+    ``u`` runs east (down and to the right on the screen), ``v`` south (down and to the left),
+    so (0, 0) is the top corner and the side ``n`` is the row ``v == 0``."""
+    dx, dy = 2 * x + 1 - w, 2 * y + 1 - h
+    u = (dx * h + dy * w + w * h) * n // (2 * w * h)
+    v = (dy * w - dx * h + w * h) * n // (2 * w * h)
+    return max(0, min(n - 1, u)), max(0, min(n - 1, v))
+
+
+def _iso_canvas() -> Image.Image:
+    return Image.new("RGBA", ISO_CANVAS, (0, 0, 0, 0))
+
+
+def iso_ground(texture: Texture) -> Image.Image:
+    """A flat tile: the diamond painted with ``texture`` (16 x 16), earth under it."""
+    img = _iso_canvas()
+    (x0, y0), (w, h) = ISO_AT, ISO_FOOT
+    for x, (top, low) in enumerate(_iso_columns(w, h)):
+        for y in range(top, low + 1):
+            img.putpixel((x0 + x, y0 + y), rgba(texture(*_iso_texel(x, y, w, h, 16))))
+        for y in range(low + 1, low + 1 + ISO_SIDE):
+            img.putpixel((x0 + x, y0 + y), rgba(ISO_EARTH[0 if x < w // 2 else 1]))
+    return img
+
+
+def _iso_raise(
+    img: Image.Image,
+    cells: int,
+    inside: Callable[[int, int], bool],
+    lift: int,
+    height: int,
+    top: Texture,
+    sides: tuple[Px, Px],
+    paint: Callable[[str, int, int, int], Px | None] | None = None,
+) -> None:
+    """Draw what stands on the texels ``inside`` says, ``height`` px high, its underside
+    ``lift`` px above the ground: on the diamond of the canvas (``cells`` 1, a texture of
+    16 x 16) or on the four diamonds whose nearest is that one (``cells`` 2, 32 x 32). Painted
+    from the far rows to the near ones, so what is nearer covers what is behind it. ``paint``
+    may give a pixel of a side its own colour: the side (``s`` or ``e``), the texel along it,
+    and how far above the underside it is."""
+    w, h, n = ISO_FOOT[0] * cells, ISO_FOOT[1] * cells, 16 * cells
+    x0 = ISO_AT[0] - (w - ISO_FOOT[0]) // 2
+    y0 = ISO_AT[1] - (h - ISO_FOOT[1])
+    for y in range(h):
+        for x, (first, last) in enumerate(_iso_columns(w, h)):
+            if not first <= y <= last:
+                continue
+            u, v = _iso_texel(x, y, w, h, n)
+            if not inside(u, v):
+                continue
+            south = v + 1 >= n or not inside(u, v + 1)
+            east = u + 1 >= n or not inside(u + 1, v)
+            face = "s" if south and (not east or x < w // 2) else "e"
+            for k in range(height):
+                given = paint(face, u if face == "s" else v, k, height) if paint else None
+                tone = given or sides[0 if face == "s" else 1]
+                img.putpixel((x0 + x, y0 + y - lift - k), rgba(tone))
+            img.putpixel((x0 + x, y0 + y - lift - height), rgba(top(u, v)))
+
+
+def _grass_texture(flowers: bool = False) -> Texture:
+    def texture(u: int, v: int) -> Px:
+        n = noise(u, v, 151)
+        if flowers and n % 23 == 0:
+            return (250, 236, 150) if n % 2 else (250, 190, 220)
+        return shade(ISO_GRASS, (n % 15) - 7 if n % 3 == 0 else 0)
+
+    return texture
+
+
+def _stone_texture(u: int, v: int) -> Px:
+    if u % 8 == 7 or v % 8 == 7:
+        return shade(ISO_STONE, -44)
+    return shade(ISO_STONE, ((u // 8 + v // 8 * 2) % 3) * 9 - 9)
+
+
+def _arm(u: int, v: int, sides: str, lo: int, hi: int) -> bool:
+    """True for a texel of a band through the middle of a tile (``lo`` to ``hi`` across) that
+    reaches every side of ``sides``."""
+    if lo <= u <= hi and lo <= v <= hi:
+        return True
+    return (
+        ("n" in sides and lo <= u <= hi and v < lo)
+        or ("s" in sides and lo <= u <= hi and v > hi)
+        or ("w" in sides and lo <= v <= hi and u < lo)
+        or ("e" in sides and lo <= v <= hi and u > hi)
+    )
+
+
+def _road_texture(sides: str) -> Texture:
+    """A dirt road on grass that leaves the tile on the sides it names."""
+    grass = _grass_texture()
+
+    def texture(u: int, v: int) -> Px:
+        if not _arm(u, v, sides, 4, 11):
+            return grass(u, v)
+        edge = not _arm(u, v, sides, 5, 10)
+        return shade(ISO_DIRT, -26 if edge else (noise(u, v, 157) % 11) - 5)
+
+    return texture
+
+
+def _water_texture(sides: str) -> Texture:
+    """Water that goes on over the sides it names, with a beach on the others."""
+
+    def texture(u: int, v: int) -> Px:
+        beach = (
+            ("n" not in sides and v < 4)
+            or ("s" not in sides and v > 11)
+            or ("w" not in sides and u < 4)
+            or ("e" not in sides and u > 11)
+        )
+        if beach:
+            return shade(SAND, (noise(u, v, 163) % 9) - 4)
+        wave = (u * 3 + v * 5 + len(sides)) % 11 == 0
+        return shade(ISO_WATER, 40 if wave else (noise(u, v, 167) % 7) - 3)
+
+    return texture
+
+
+def iso_wall(sides: str) -> Image.Image:
+    """A paved tile with a low wall of stone across it that reaches the sides it names."""
+    img = iso_ground(_stone_texture)
+    stone: Px = (128, 126, 138)
+
+    def inside(u: int, v: int) -> bool:
+        return _arm(u, v, sides, 5, 10)
+
+    def course(_face: str, along: int, k: int, _height: int) -> Px | None:
+        joint = k % 4 == 3 or (along + (k // 4) * 3) % 6 == 0
+        return shade(stone, -58) if joint else None
+
+    faces = (shade(stone, -34), shade(stone, -8))
+    _iso_raise(img, 1, inside, 0, 11, lambda u, v: shade(stone, 30), faces, course)
+    return img
+
+
+def iso_block(turn: int) -> Image.Image:
+    """A block of stone as high as it is deep, turned ``turn`` quarter turns clockwise: moss on
+    one side, a carved ring on the next, a crack on the third."""
+    img = iso_ground(_stone_texture)
+    stone: Px = (150, 150, 160)
+    marks = ("crack", "ring", "moss", "plain")  # on the sides n, e, s, w before it is turned
+    shown = {face: marks[("nesw".index(face) - turn) % 4] for face in ("s", "e")}
+
+    def mark(face: str, along: int, k: int, _height: int) -> Px | None:
+        what = shown[face]
+        if what == "moss" and k < 4 + (along * 5) % 4:
+            return (88, 146, 82)
+        if what == "ring" and (abs(along - 8) + abs(k - 7) in (3, 4)):
+            return shade(stone, -70)
+        if what == "crack" and along == 6 + k // 3 and k < 12:
+            return shade(stone, -80)
+        return None
+
+    def top(u: int, v: int) -> Px:
+        # a notch at the corner between the sides that had the moss and the ring
+        corner = ((13, 13), (2, 13), (2, 2), (13, 2))[turn]
+        near = abs(u - corner[0]) <= 1 and abs(v - corner[1]) <= 1
+        return shade(stone, -40 if near else 26)
+
+    faces = (shade(stone, -30), shade(stone, -4))
+    _iso_raise(img, 1, lambda u, v: True, 0, 14, top, faces, mark)
+    return img
+
+
+def iso_house(turn: int) -> Image.Image:
+    """A house on four diamonds, on a paved plinth that shows them: plastered walls under a
+    hipped roof, turned ``turn`` quarter turns clockwise. Its sides before it is turned: the
+    door and a window on the south, a window on the east, nothing on the north, two windows on
+    the west."""
+    img = _iso_canvas()
+    wall: Px = (232, 214, 176)
+    roof: Px = (178, 70, 58)
+    wood: Px = (104, 70, 40)
+    glass: Px = (150, 210, 240)
+    walls = ("blank", "window", "door", "windows")
+    shown = {face: walls[("nesw".index(face) - turn) % 4] for face in ("s", "e")}
+
+    def plinth(u: int, v: int) -> Px:
+        return _stone_texture(u // 2 * 2, v // 2 * 2)
+
+    def body(u: int, v: int) -> bool:
+        return 3 <= u <= 28 and 3 <= v <= 28
+
+    def openings(face: str, along: int, k: int, _height: int) -> Px | None:
+        what = shown[face]
+        # the door is before the first of the two cells of its side: a map leads its path to
+        # the cell in front of that one
+        if what == "door" and 5 <= along <= 10 and k < 11:
+            return (240, 210, 90) if (along, k) == (9, 5) else wood
+        spans = {"window": ((13, 18),), "windows": ((7, 11), (20, 24)), "door": ((19, 24),)}
+        if any(lo <= along <= hi for lo, hi in spans.get(what, ())) and 6 <= k <= 11:
+            return shade(wall, -90) if k in (6, 11) else glass
+        return shade(wall, -70) if k == 0 else None
+
+    _iso_raise(img, 2, lambda u, v: True, 0, 1, plinth, (shade(ISO_STONE, -50),) * 2)
+    faces = (shade(wall, -38), shade(wall, -6))
+    _iso_raise(img, 2, body, 1, 15, lambda u, v: roof, faces, openings)
+    for level in range(13):  # the roof: a smaller floor on every row, up to the ridge
+
+        def floor(u: int, v: int, inset: int = level) -> bool:
+            return 2 + inset <= u <= 29 - inset and 2 + inset <= v <= 29 - inset
+
+        tiles = (shade(roof, -40 if level % 3 == 2 else -22), shade(roof, 12 - level % 3 * 8))
+        _iso_raise(img, 2, floor, 16 + level, 1, lambda u, v: shade(roof, 30), tiles)
+    # the chimney stands at the corner that was the north-east one before the turn
+    cu, cv = ((22, 7), (22, 22), (7, 22), (7, 7))[turn]
+    brick: Px = (150, 110, 100)
+
+    def chimney(u: int, v: int) -> bool:
+        return abs(u - cu) <= 1 and abs(v - cv) <= 1
+
+    lift = 17 + min(cu - 2, 29 - cu, cv - 2, 29 - cv)
+    _iso_raise(img, 2, chimney, lift, 6, lambda u, v: (70, 60, 60), (shade(brick, -30), brick))
+    return img
+
+
+def iso_tree(kind: str) -> Image.Image:
+    """A tree on the middle of a diamond: an oak or a pine."""
+    img = _iso_canvas()
+    d = ImageDraw.Draw(img)
+    cx, foot = ISO_CANVAS[0] // 2, ISO_AT[1] + ISO_FOOT[1] // 2 + 1
+    d.rectangle([cx - 2, foot - 14, cx + 1, foot], fill=rgba((110, 74, 46)))
+    d.line([(cx - 2, foot - 14), (cx - 2, foot)], fill=rgba((80, 52, 30)))
+    if kind == "oak":
+        leaf: Px = (58, 136, 66)
+        d.ellipse([cx - 13, foot - 40, cx + 12, foot - 10], fill=rgba(leaf))
+        d.ellipse([cx - 13, foot - 40, cx + 12, foot - 10], outline=rgba(shade(leaf, -50)))
+        d.ellipse([cx - 8, foot - 36, cx + 1, foot - 27], fill=rgba(shade(leaf, 28)))
+        d.ellipse([cx + 1, foot - 24, cx + 8, foot - 17], fill=rgba(shade(leaf, -22)))
+    else:
+        leaf = (40, 108, 76)
+        for tier in range(4):
+            y = foot - 12 - tier * 9
+            half = 12 - tier * 3
+            d.polygon([(cx - half, y), (cx - 1, y - 14), (cx, y - 14), (cx + half - 1, y)],
+                      fill=rgba(shade(leaf, tier * 8)), outline=rgba(shade(leaf, -40)))  # fmt: skip
+    return img
+
+
+def iso_rock() -> Image.Image:
+    """A boulder on the middle of a diamond."""
+    img = _iso_canvas()
+    d = ImageDraw.Draw(img)
+    cx, foot = ISO_CANVAS[0] // 2, ISO_AT[1] + ISO_FOOT[1] // 2 + 2
+    shape = [(cx - 9, foot), (cx - 10, foot - 6), (cx - 4, foot - 12), (cx + 5, foot - 11),
+             (cx + 9, foot - 5), (cx + 8, foot)]  # fmt: skip
+    d.polygon(shape, fill=rgba(ISO_STONE), outline=rgba(shade(ISO_STONE, -80)))
+    d.polygon([(cx - 4, foot - 11), (cx + 4, foot - 10), (cx, foot - 5), (cx - 8, foot - 6)],
+              fill=rgba(shade(ISO_STONE, 34)))  # fmt: skip
+    return img
+
+
+def iso_chest() -> Image.Image:
+    """A chest on the middle of a diamond, its lock to the south."""
+    img = _iso_canvas()
+    wood: Px = (150, 98, 50)
+
+    def lock(face: str, along: int, k: int, _height: int) -> Px | None:
+        if face == "s" and along in (7, 8) and 3 <= k <= 5:
+            return (240, 200, 60)
+        return BLACK if k in (0, 6) else None
+
+    def box(u: int, v: int) -> bool:
+        return 4 <= u <= 11 and 5 <= v <= 10
+
+    def lid(u: int, v: int) -> Px:
+        return shade(wood, 10 if u in (4, 11) or v in (5, 10) else 44)
+
+    _iso_raise(img, 1, box, 0, 9, lid, (shade(wood, -24), shade(wood, 8)), lock)
+    return img
+
+
+def slime_sheet() -> Image.Image:
+    """4 columns (frames) x 4 rows (down, left, right, up) of 16 x 16: a slime that squashes
+    and stretches as it hops, its eyes where it looks."""
+    img, d = canvas(64, 64)
+    body: Px = (96, 200, 96)
+    for row, direction in enumerate(("down", "left", "right", "up")):
+        for i in range(4):
+            ox, oy = i * 16, row * 16
+            top = oy + 5 + (0, 1, 2, 1)[i]
+            d.ellipse(
+                [ox + 1, top, ox + 14, oy + 15], fill=rgba(body), outline=rgba(shade(body, -70))
+            )
+            d.ellipse([ox + 3, top + 2, ox + 6, top + 4], fill=rgba(shade(body, 60)))
+            if direction != "up":
+                look = {"left": -2, "right": 2}.get(direction, 0)
+                d.point([(ox + 5 + look, top + 6), (ox + 10 + look, top + 6)], fill=rgba(BLACK))
+    return img
+
+
+ISO_ROADS = ("N", "E", "S", "W", "NS", "EW", "NE", "ES", "SW", "NW", "NES", "ESW", "NSW",
+             "NEW", "NESW")  # fmt: skip
+ISO_WATERS = ("NE", "ES", "SW", "NW", "NES", "ESW", "NSW", "NEW", "NESW")
+ISO_WALLS = ("N", "E", "S", "W", "NS", "EW", "NE", "ES", "SW", "NW")
+
+ISO_IMAGES = {
+    "PNG/grass.png": lambda: iso_ground(_grass_texture()),
+    "PNG/grassFlowers.png": lambda: iso_ground(_grass_texture(True)),
+    "PNG/groundStone.png": lambda: iso_ground(_stone_texture),
+    # open water, as waterNESW is: the fifth letter only moves its waves
+    "PNG/water.png": lambda: iso_ground(_water_texture("nesw+")),
+    **{
+        f"PNG/water{s}.png": (lambda s=s: iso_ground(_water_texture(s.lower()))) for s in ISO_WATERS
+    },
+    **{f"PNG/path{s}.png": (lambda s=s: iso_ground(_road_texture(s.lower()))) for s in ISO_ROADS},
+    **{f"PNG/wall{s}.png": (lambda s=s: iso_wall(s.lower())) for s in ISO_WALLS},
+    **{f"PNG/stoneBlock_{turn}.png": (lambda turn=turn: iso_block(turn)) for turn in range(4)},
+    **{f"PNG/house_{turn}.png": (lambda turn=turn: iso_house(turn)) for turn in range(4)},
+    "PNG/treeOak.png": lambda: iso_tree("oak"),
+    "PNG/treePine.png": lambda: iso_tree("pine"),
+    "PNG/rock.png": iso_rock,
+    "items/chest.png": iso_chest,
+    "characters/hero.png": lambda: character_sheet((60, 110, 200), (90, 52, 30)),
+    "characters/villager_fisher.png": lambda: character_sheet((70, 150, 150), (60, 44, 36)),
+    "characters/villager_mason.png": lambda: character_sheet((170, 120, 80), (200, 200, 210)),
+    "characters/slime.png": slime_sheet,
+    "portraits/elder.png": portrait,
+    "ui/panel.png": panel,
+}
+
+ISO_SOURCE_TEXT = """\
+Stone isle, the rpggen sample pack for the isometric view: sources
+
+This pack has no outside sources. Every file is generated by
+`tools/build_sample_pack.py --kind iso` (deterministic integer drawing with Pillow; the sounds
+by `tools/sample_audio.py`) and released under CC0-1.0.
+
+One picture a tile, every picture 80 x 96 px, the tile at the bottom of it. The diamond a tile
+stands on is 40 x 22 px (not twice as wide as high); `Tile information.txt` says 40 x 28, which
+is the diamond with the 6 px of earth under it, as the text files of such packs do. A name
+that ends in capitals says on which sides of its diamond a piece joins the next one: N is the
+upper right side, E the lower right, S the lower left, W the upper left. A name that ends in
+_0 to _3 is one thing turned a quarter turn clockwise each time.
+
+PNG/grass.png                  Grass
+PNG/grassFlowers.png           Grass with flowers
+PNG/groundStone.png            A pavement of four slabs
+PNG/water.png                  Open water
+PNG/water*.png                 Water with a beach on the sides it does not name: 4 corners
+                               (NE, ES, SW, NW), 4 shores (NES, ESW, NSW, NEW), and NESW
+PNG/path*.png                  A dirt path on grass that leaves on the sides it names: 4 ends,
+                               2 straights (NS, EW), 4 corners, 4 forks and the crossing
+PNG/wall*.png                  A low stone wall on pavement that reaches the sides it names:
+                               4 ends, 2 straights and 4 corners
+PNG/stoneBlock_*.png           A block of stone as high as it is deep, turned four ways
+PNG/house_*.png                A house on four diamonds (2 x 2), turned four ways; _0 has its
+                               door on the south side, before the first of its two cells
+PNG/treeOak.png                An oak
+PNG/treePine.png               A pine
+PNG/rock.png                   A boulder
+items/chest.png                A chest
+characters/hero.png            The hero: 4 walk frames in 4 directions (down, left, right, up
+                               on the screen), 16 x 24 a frame, seen from the front
+characters/villager_*.png      Two villagers, drawn the same way
+characters/slime.png           A slime of 16 x 16: 4 frames in 4 directions
+portraits/elder.png            A face portrait
+ui/panel.png                   A window panel with a nine-slice border
+music/*.wav                    Two loops of 2.56 s: the village, the battle
+sfx/*.wav                      Eight sounds: cursor blip, confirm, cancel, hit, swing, coin,
+                               chest, step
+
+The sounds are mono, 8-bit, 11025 Hz, so that the whole pack is under 200 KB.
+`sample_iso.rpgprofile.json` is the audit of this pack (made with the normal audit pipeline), so
+the sample opens with every asset confirmed.
+"""
+
+
+# ---------------------------------------------------------------- building the kinds' packs
 
 
 def _gun_overrides(cat, edits, name):  # noqa: ANN001, ANN202 - imported lazily with the pipeline
@@ -1619,6 +2559,43 @@ def _race_overrides(cat, edits, name):  # noqa: ANN001, ANN202
     return cat
 
 
+def _farm_overrides(cat, edits, name):  # noqa: ANN001, ANN202
+    """The buildings of the farmyard sheet get their names, their doors and what they are for
+    (a coop and a barn are found by their tags); the two soil tiles are tiles, not pictures."""
+    sheet = f"{name}.objects.farmyard"
+    at = {(cx * 16, cy * 16): kind for kind, (cx, cy) in FARMYARD_CELLS.items()}
+    for obj in sorted(cat.objects, key=lambda o: (o.region[1], o.region[0])):
+        kind = at.get((obj.region[0], obj.region[1]))
+        if obj.sheet != sheet or kind is None:
+            continue
+        _wide, high, door = FARM_BUILDINGS[kind]
+        cat = edits.update_object(
+            cat,
+            obj.id,
+            id=f"{sheet}#{FARMYARD_NAMES[kind]}",
+            name=FARMYARD_NAMES[kind],
+            role="BUILDING",
+            door=[door * 16 + 8, high * 16 - 1],
+            tags=[kind, "door"],
+            status="CONFIRMED",
+        )
+    grid = {"cell": [16, 16], "margin": [0, 0], "separation": [0, 0]}
+    for soil in ("soil_tilled", "soil_watered"):  # one tile each: no grid to measure
+        cat = edits.set_overrides(
+            cat,
+            [f"{name}.tilesets.{soil}"],
+            {"usage": "tiles", "grid": grid, "role": "DECORATION", "frame": None, "origin": None},
+        )
+    return edits.set_override(cat, f"{name}.items.chest", "tags", ["chest"])
+
+
+def _iso_overrides(cat, edits, name):  # noqa: ANN001, ANN202
+    """The slime is who the hero fights (a sheet in a folder of characters is read as a
+    villager), and the chest is a chest."""
+    cat = edits.set_override(cat, f"{name}.characters.slime", "role", "ENEMY")
+    return edits.set_override(cat, f"{name}.items.chest", "tags", ["chest"])
+
+
 # kind -> (folder, title, profile file, profile id, images, sounds, SOURCE.txt, the audit's edits)
 ARCADE_PACKS: dict[str, tuple] = {
     "shmup": (SHMUP_PACK_NAME, "Star lane", "sample_shmup.rpgprofile.json",
@@ -1630,7 +2607,16 @@ ARCADE_PACKS: dict[str, tuple] = {
     "race": (RACE_PACK_NAME, "Dirt cup", "sample_race.rpgprofile.json",
              "rpggen_sample_pack_race", RACE_IMAGES, sample_audio.RACE_FILES, RACE_SOURCE_TEXT,
              _race_overrides),
+    # the two packs of M17 (T17.17), built the same way
+    "farm": (FARM_PACK_NAME, "Green acre", "sample_farm.rpgprofile.json",
+             "rpggen_sample_pack_farm", FARM_IMAGES, sample_audio.FARM_FILES, FARM_SOURCE_TEXT,
+             _farm_overrides),
+    "iso": (ISO_PACK_NAME, "Stone isle", "sample_iso.rpgprofile.json",
+            "rpggen_sample_pack_iso", ISO_IMAGES, sample_audio.ISO_FILES, ISO_SOURCE_TEXT,
+            _iso_overrides),
 }  # fmt: skip
+# kind -> the other text files of its pack: what an isometric pack says of its tiles
+PACK_TEXTS: dict[str, dict[str, str]] = {"iso": {"Tile information.txt": ISO_TILE_INFORMATION}}
 
 
 def build_arcade_pack(kind: str, out: Path) -> Path:
@@ -1646,6 +2632,8 @@ def build_arcade_pack(kind: str, out: Path) -> Path:
     licence = LICENSE_TEXT.replace("rpggen sample pack", f"{title}, an rpggen sample pack", 1)
     (out / "LICENSE.txt").write_text(licence, encoding="utf-8", newline="\n")
     (out / "SOURCE.txt").write_text(source, encoding="utf-8", newline="\n")
+    for rel, text in PACK_TEXTS.get(kind, {}).items():
+        (out / rel).write_text(text, encoding="utf-8", newline="\n")
     return out
 
 
@@ -1697,7 +2685,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--kind",
         choices=sorted(ARCADE_PACKS),
-        help="build the sample pack of an arcade kind (sample_pack_shmup/, _gun/, _race/)",
+        help="build the sample pack of a kind: an arcade kind (sample_pack_shmup/, _gun/, "
+        "_race/), the farm (sample_pack_farm/) or the isometric view (sample_pack_iso/)",
     )
     args = parser.parse_args(argv)
     if args.kind:

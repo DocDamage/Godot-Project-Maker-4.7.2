@@ -271,14 +271,19 @@ def test_the_side_profile_confirms_the_audit_and_names_the_special_tiles() -> No
 # ------------------------------------------------------------------------ the two entries
 
 
-def _window_with(qtbot, tmp_path, monkeypatch, available: bool, arcade: bool = False) -> MainWindow:
-    """A window with the side-view sample on offer or not, and the three arcade samples of
-    M16 (on since the gate of 1.4) only when ``arcade``."""
+def _window_with(
+    qtbot, tmp_path, monkeypatch, available: bool, arcade: bool = False, m17: bool = False
+) -> MainWindow:
+    """A window with the side-view sample on offer or not, the three arcade samples of M16
+    (on since the gate of 1.4) only when ``arcade``, and the farm and the isometric view of
+    M17 with their two samples only when ``m17``."""
     from rpggen import features
 
     monkeypatch.setattr(features, "METROIDVANIA_AVAILABLE", available)
     for flag in ("SHMUP_AVAILABLE", "RUN_AND_GUN_AVAILABLE", "RACING_AVAILABLE"):
         monkeypatch.setattr(features, flag, arcade)
+    for flag in ("FARM_AVAILABLE", "ISOMETRIC_AVAILABLE"):
+        monkeypatch.setattr(features, flag, m17)
     exe = tmp_path / "godot.exe"
     exe.write_text("x")
     monkeypatch.setattr(godot, "detect_version", lambda p: (4, 7, 2, "stable"))
@@ -631,7 +636,7 @@ def test_the_samples_that_are_offered_follow_the_kinds_that_can_be_chosen(monkey
     _all_kinds(monkeypatch, True)
     assert [s.label for s in project_model.offered_samples()] == FIVE
     assert [s.archetype for s in project_model.SAMPLES] == [
-        "turn_based", "metroidvania", "shmup", "run_and_gun", "racing",
+        "turn_based", "metroidvania", "shmup", "run_and_gun", "racing", "farm", "turn_based",
     ]  # fmt: skip
     for sample in project_model.SAMPLES:
         pack = paths.sample_pack_dir(sample.folder)
@@ -684,3 +689,388 @@ def test_the_project_pages_sample_button_offers_the_same_list(qtbot, tmp_path, m
     assert win.state.pack_sources == [ROOT / "sample_pack_race"]
     assert win.current_page.arcade_box is not None
     assert win.current_page.arcade_box.objectName() == "racingBox"
+
+
+# ------------------------------------------------------------------------ the samples of M17 (T17.17)
+
+ISOMETRIC = config.PROJECTION_ISOMETRIC
+# kind of the tool -> (folder, profile, the kind of game, its view, the roles it must fill, the
+# sound slots it must fill)
+M17_SAMPLES = {
+    "farm": (
+        "sample_pack_farm",
+        "sample_farm.rpgprofile.json",
+        "farm",
+        config.PROJECTION_TOP_DOWN,
+        {"PLAYER", "GROUND", "ROAD", "WATER", "WALL", "NPC", "CROP", "ANIMAL", "TOOL", "ITEM",
+         "DECORATION", "EFFECT", "UI", "PORTRAIT"},
+        {"music_spring", "music_summer", "music_autumn", "music_winter", "music_map", "sfx_hoe",
+         "sfx_water", "sfx_plant", "sfx_harvest", "sfx_sell", "sfx_animal", "sfx_rooster",
+         "sfx_ui_confirm"},
+    ),
+    "iso": (
+        "sample_pack_iso",
+        "sample_iso.rpgprofile.json",
+        "turn_based",
+        ISOMETRIC,
+        {"PLAYER", "GROUND", "ROAD", "WATER", "WALL", "BUILDING", "DECORATION", "NPC", "ENEMY",
+         "ITEM", "UI", "PORTRAIT"},
+        {"music_map", "music_battle", "sfx_ui_move", "sfx_ui_confirm", "sfx_ui_cancel", "sfx_hit",
+         "sfx_attack", "sfx_pickup", "sfx_chest", "sfx_step"},
+    ),
+}  # fmt: skip
+
+
+def _documented(rel: str, source: str) -> bool:
+    """True when ``SOURCE.txt`` lists the file: by its path, or by a line whose first word is a
+    pattern for it (``PNG/path*.png``, ``sfx/*.wav``)."""
+    import fnmatch
+
+    firsts = [line.split()[0] for line in source.splitlines() if line[:1].strip()]
+    return any(fnmatch.fnmatchcase(rel, first) for first in firsts)
+
+
+@pytest.mark.parametrize("kind", sorted(M17_SAMPLES))
+def test_a_sample_of_m17_is_cc0_documented_small_and_what_the_tool_makes(
+    tmp_path: Path, kind: str
+) -> None:
+    from rpggen import jsonio
+
+    folder, profile, _archetype, _view, _roles, _slots = M17_SAMPLES[kind]
+    pack = ROOT / folder
+    assert paths.sample_pack_dir(folder) == pack and pack.is_dir()
+    assert "CC0" in (pack / "LICENSE.txt").read_text(encoding="utf-8")
+    source = (pack / "SOURCE.txt").read_text(encoding="utf-8")
+    files = sorted(p.relative_to(pack).as_posix() for p in pack.rglob("*") if p.is_file())
+    for rel in files:
+        if rel.endswith((".png", ".wav")):
+            assert _documented(rel, source), rel
+    size = sum((pack / rel).stat().st_size for rel in files)
+    assert size < 200_000, f"{folder} is {size} bytes"
+    tool = _build_tool()
+    name, _title, profile_name, _id, images, sounds, _source, _edit = tool.ARCADE_PACKS[kind]
+    texts = ["LICENSE.txt", "SOURCE.txt", *tool.PACK_TEXTS.get(kind, {})]
+    assert (name, profile_name) == (folder, profile)
+    # nothing is in the folder that the tool does not write
+    assert files == sorted([*images, *sounds, *texts, profile])
+    tool.build_arcade_pack(kind, tmp_path / "fresh")
+    tool.build_arcade_pack(kind, tmp_path / "again")
+    for rel in images:
+        a = Image.open(pack / rel).convert("RGBA")
+        b = Image.open(tmp_path / "fresh" / rel).convert("RGBA")
+        assert a.size == b.size and ImageChops.difference(a, b).getbbox() is None, rel
+        assert (tmp_path / "fresh" / rel).read_bytes() == (tmp_path / "again" / rel).read_bytes()
+    for rel in [*sounds, *texts]:
+        assert (pack / rel).read_bytes() == (tmp_path / "fresh" / rel).read_bytes(), rel
+        assert (pack / rel).read_bytes() == (tmp_path / "again" / rel).read_bytes(), rel
+    # the profile is the audit of the pack, made by the tool: twice the same, and what is kept
+    # (compared without the hashes of the pictures, which are those of the PNG files)
+    made = [
+        tool.build_arcade_profile(kind, tmp_path / again, tmp_path / again / profile)
+        for again in ("fresh", "again")
+    ]
+    kept = jsonio.read(pack / profile)
+    assert made[0] == made[1]
+    for data in (made[0], kept):
+        data["fingerprint"] = sorted(data["fingerprint"]["required_files"])
+    assert made[0] == kept
+
+
+@pytest.mark.parametrize("kind", sorted(M17_SAMPLES))
+def test_a_sample_of_m17_is_catalogued_without_an_edit(kind: str) -> None:
+    """The golden holds; without the profile nothing stops a run; and with the pack's own
+    profile (what *Try the sample* installs) the audit is confirmed and the kind, in the view of
+    the sample, has nothing to draw and nothing to ask for."""
+    from rpggen import jsonio
+    from rpggen.core import farm_kit, iso_kit, sound_slots
+
+    folder, profile, archetype, view, roles, slots = M17_SAMPLES[kind]
+    cat, _issues = _assemble(folder)
+    golden = ROOT / "tests" / "golden" / f"{folder}.catalog.json"
+    assert jsonio.dumps(cat.to_json()) == golden.read_text(encoding="utf-8")
+    ref = config.PackRef(folder, str(ROOT / folder), "0" * 64, "folder")
+    cfg = config.default_for("Sample", [ref], archetype=archetype)
+    cfg.projection = view
+    plain = requirements.check(cat, cfg)
+    assert [i.code for i in plain if i.severity is not Severity.INFO] == []
+    # what the names alone do not say is drawn, and said: the two soil tiles of the farm are
+    # one tile each (no grid to measure, so they are read as pictures), and the slime of the
+    # isle is a sheet in a folder of characters (read as a villager)
+    assert (
+        sorted(i.detail["thing"] for i in plain)
+        == {
+            "farm": ["tilled soil", "watered soil"],
+            "iso": ["enemy"],
+        }[kind]
+    )
+    assert {i.code for i in plain} == {"ASSET-031"}
+
+    profiles.install_profile(ROOT / folder / profile)
+    cat, issues = _assemble(folder)
+    # the farmer's four strips with a tool are read as the farmer's and left unused (T17.10)
+    unused = {"farm": {"UNUSED"}, "iso": set()}[kind]
+    assert {a.status for a in cat.assets} == {"CONFIRMED"} | unused
+    assert cat.packs[0].profile_id == f"rpggen_{folder}"
+    assert [i.code for i in issues if i.severity is not Severity.INFO] == []
+    assert roles <= {catalog.effective(a)["role"] for a in cat.assets}
+    assert requirements.check(cat, cfg) == [], "no note at all: nothing is missing or drawn"
+    drawn = farm_kit.lacking(cat, view) if kind == "farm" else iso_kit.lacking(cat, view)
+    assert drawn == []
+    assert mapping.missing_required(cat, archetype, set(), view) == []
+    filled = sound_slots.default_sounds(cat, archetype)
+    assert slots <= set(filled), sorted(slots - set(filled))
+
+
+def test_what_green_acre_is_made_of() -> None:
+    from rpggen.core import animal_plan, crop_plan, farm_kit, forage_plan, orchestrator
+
+    name = "sample_pack_farm"
+    plain, _i = _assemble(name)
+    assert catalog.VIEW_FARM in plain.packs[0].warnings, "the names say it is a farming pack"
+    farmer = plain.asset(f"{name}.characters.farmer.farmer_walk_down_16x24_4frames")
+    assert catalog.effective(farmer)["role"] == "PLAYER", "read without the profile"
+    profiles.install_profile(ROOT / name / "sample_farm.rpgprofile.json")
+    cat, _i = _assemble(name)
+    farmer = catalog.effective(cat.asset(farmer.id))
+    assert farmer["role"] == "PLAYER" and farmer["frame"] == [16, 24]
+    assert sorted(farmer["animations"]) == ["walk_down", "walk_left", "walk_right", "walk_up"]
+    # the four strips of the farmer with a tool: the farmer's, unused (nothing plays them yet)
+    strips = {
+        tag.split(":", 1)[1]: a
+        for a in cat.assets
+        for tag in catalog.effective(a).get("tags", [])
+        if tag.startswith("use_anim:")
+    }
+    assert sorted(strips) == ["axe", "hoe", "sickle", "water"]
+    for strip in strips.values():
+        assert strip.status == "UNUSED" and catalog.effective(strip)["role"] == "NONE"
+        assert (
+            f"of:{name}.characters.farmer.farmer_walk_down_16x24_4frames" in strip.detected["tags"]
+        )
+    # four crops that grow, by their names, two in every season
+    crops = {
+        a.id.rsplit(".", 1)[-1].split("_")[0]: catalog.effective(a)
+        for a in cat.assets
+        if catalog.effective(a).get("role") == "CROP"
+    }
+    assert {k: v["stages"] for k, v in crops.items()} == {
+        "corn": 6, "wheat": 5, "tomato": 7, "turnip": 4,
+    }  # fmt: skip
+    assert {v["usage"] for v in crops.values()} == {"growth_strip"}
+    section = crop_plan.plan({}, 12345, crop_plan.facts_of(cat))
+    assert crop_plan.per_season(section) == {"spring": 2, "summer": 2, "autumn": 2, "winter": 2}
+    # soil and watered soil of its own, one tile each; the grass once a season
+    for stand_in in (farm_kit.SOIL, farm_kit.WATERED):
+        own = farm_kit.own_asset(cat, stand_in)
+        assert own is not None and catalog.effective(own)["size"] == [16, 16]
+    assert catalog.season_groups(cat) == {
+        f"{name}.tilesets.spring.grass": {
+            season: f"{name}.tilesets.{season}.grass"
+            for season in ("spring", "summer", "autumn", "winter")
+        }
+    }
+    # a hen and a cow that walk and sleep; five tools; a fish and two things to find
+    animals = animal_plan.facts_of(cat, ("coop", "barn"))["animals"]
+    assert [(a["kind"], a["walk"], a["sleep"]) for a in animals] == [
+        ("cow", True, True), ("hen", True, True),
+    ]  # fmt: skip
+    tools = [a.id.rsplit(".", 1)[-1] for a in cat.assets if catalog.effective(a)["role"] == "TOOL"]
+    assert sorted(tools) == ["axe", "fishing_rod", "hoe", "sickle", "watering_can"]
+    found = forage_plan.facts_of(cat)
+    assert [f["name"] for f in found["fish"]] == ["perch"]
+    assert [f["name"] for f in found["forage"]] == ["mushroom", "wild_berries"]
+    assert len([a for a in cat.assets if catalog.effective(a)["role"] == "NPC"]) == 3
+    rain = catalog.effective(cat.asset(f"{name}.weather.rain_64x64_3frames"))
+    assert rain["role"] == "EFFECT" and "weather" in rain["tags"] and rain["frame"] == [64, 64]
+    # the three buildings are objects of a sheet, which is what the planner sees: the house is
+    # the one a map takes, and it is as large as the plan takes a farmhouse to be
+    buildings = {o.name: o for o in cat.objects if o.role == "BUILDING"}
+    assert sorted(buildings) == ["house", "yard_barn", "yard_coop"]
+    assert "barn" in buildings["yard_barn"].tags and "coop" in buildings["yard_coop"].tags
+    starter = mapping.default_starter(cat, "farm")
+    assert starter["building"] == f"{name}.objects.farmyard#house"
+    assert starter["ground"] == f"{name}.tilesets.spring.grass", "the first season of the four"
+    assert starter["chest"] == f"{name}.items.chest"
+    assert starter["player"] == f"{name}.characters.farmer.farmer_walk_down_16x24_4frames"
+    ref = config.PackRef(name, str(ROOT / name), "0" * 64, "folder")
+    cfg = config.default_for("Sample", [ref], archetype="farm")
+    cfg.starter = starter
+    facts = orchestrator.farm_facts(cfg, cat)
+    assert facts["house"] == {"size": [6, 4], "door": [2, 4]} and facts["water"] is True
+
+
+def test_what_stone_isle_is_made_of() -> None:
+    from rpggen.core import map_preview
+
+    name = "sample_pack_iso"
+    said = (ROOT / name / "Tile information.txt").read_text(encoding="utf-8")
+    assert "Image size : 80 x 96 px" in said and "Tile size  : 40 x 28 px" in said
+    plain, _i = _assemble(name)
+    # the diamond is measured, and it is not twice as wide as high: 28 is the diamond with the
+    # 6 px of earth under it, as the text files of such packs say it
+    assert catalog.isometric_footprint(plain.packs[0]) == (40, 22, "tile_information")
+    assert catalog.pack_view(plain.packs[0]) == "isometric"
+    assert catalog.VIEW_RACING not in plain.packs[0].warnings
+    profiles.install_profile(ROOT / name / "sample_iso.rpgprofile.json")
+    cat, _i = _assemble(name)
+    facets = {a.id.split(".", 1)[1]: catalog.effective(a) for a in cat.assets}
+    tiles = {k: v for k, v in facets.items() if v.get("usage") == "iso_tile"}
+    assert len(tiles) == 42
+    for key, tile in tiles.items():
+        assert tile["footprint"] == [40, 22] and tile["canvas"] == [80, 96], key
+        assert tile["origin"] == [40, 79] and tile["projection"] == ISOMETRIC, key
+    flat = sorted(k for k, v in tiles.items() if v["role"] == "GROUND")
+    assert flat == ["png.grass", "png.grassflowers", "png.groundstone"]
+    assert all(tiles[k]["rise"] == 0 and "joins" not in tiles[k] for k in flat)
+
+    def joins(prefix: str, role: str) -> list[str]:
+        found = {k: v for k, v in tiles.items() if k.startswith(prefix) and "joins" in v}
+        assert {v["role"] for v in found.values()} == {role}, prefix
+        return sorted("".join(v["joins"]) for v in found.values())
+
+    # a path that can be laid any way: its ends, straights, corners, forks and its crossing
+    assert joins("png.path", "ROAD") == sorted(
+        ["n", "e", "s", "w", "ns", "ew", "ne", "es", "sw", "nw", "nes", "esw", "nsw", "new",
+         "nesw"]
+    )  # fmt: skip
+    assert joins("png.water", "WATER") == sorted(
+        ["ne", "es", "sw", "nw", "nes", "esw", "nsw", "new", "nesw"]
+    )
+    assert tiles["png.water"]["role"] == "WATER" and "joins" not in tiles["png.water"]
+    assert joins("png.wall", "WALL") == sorted(
+        ["n", "e", "s", "w", "ns", "ew", "ne", "es", "sw", "nw"]
+    )
+    assert all(v["rise"] > 0 for k, v in tiles.items() if k.startswith("png.wall"))
+    # a block that rises, turned four ways: four pictures of one tile
+    blocks = [tiles[f"png.stoneblock_{turn}"] for turn in range(4)]
+    assert [b["turn"] for b in blocks] == [0, 1, 2, 3] and {b["rise"] for b in blocks} == {14}
+    assert all(f"variant_of:{name}.png.stoneblock_0" in b["tags"] for b in blocks[1:])
+    # the house stands on four diamonds, and the planner sees it; trees and a rock on one
+    houses = [facets[f"png.house_{turn}"] for turn in range(4)]
+    assert all(h["role"] == "BUILDING" and h["stands_on"] == [2, 2] for h in houses)
+    assert [h["turn"] for h in houses] == [0, 1, 2, 3]
+    assert map_preview.building_info_for(cat, "", ISOMETRIC) == {"size": [2, 2], "door": [0, 2]}
+    for key in ("png.treeoak", "png.treepine", "png.rock"):
+        assert facets[key]["role"] == "DECORATION" and facets[key]["stands_on"] == [1, 1], key
+    chest = facets["items.chest"]
+    assert chest["role"] == "ITEM" and "chest" in chest["tags"] and chest["stands_on"] == [1, 1]
+    # the people are seen from the front and walk the four ways of the screen, which is what
+    # an isometric game shows of them (its facing is one of four, by the screen)
+    roles = {"hero": "PLAYER", "villager_fisher": "NPC", "villager_mason": "NPC", "slime": "ENEMY"}
+    for who, role in roles.items():
+        sheet = facets[f"characters.{who}"]
+        assert sheet["role"] == role and sheet["directions"] == 4, who
+        assert "projection" not in sheet, "a sheet of a character is no isometric picture"
+        for way in ("down", "left", "right", "up"):
+            assert f"walk_{way}" in sheet["animations"], (who, way)
+    starter = mapping.default_starter(cat, "turn_based", ISOMETRIC)
+    assert starter["ground"] == f"{name}.png.grass"
+    assert starter["building"] == f"{name}.png.house_0", "the turn with its door to the south"
+    assert starter["enemy"] == f"{name}.characters.slime"
+
+
+SEVEN = [*FIVE, "Green acre", "Stone isle"]
+
+
+def test_the_two_samples_of_m17_are_offered_with_their_flags(monkeypatch) -> None:
+    from rpggen import features
+    from rpggen.gui.models import project_model
+
+    monkeypatch.setattr(features, "METROIDVANIA_AVAILABLE", True)
+    _all_kinds(monkeypatch, True)
+    assert not features.FARM_AVAILABLE and not features.ISOMETRIC_AVAILABLE
+    assert [s.label for s in project_model.offered_samples()] == FIVE, "five, as today"
+    monkeypatch.setattr(features, "FARM_AVAILABLE", True)
+    assert [s.label for s in project_model.offered_samples()] == [*FIVE, "Green acre"]
+    monkeypatch.setattr(features, "FARM_AVAILABLE", False)
+    monkeypatch.setattr(features, "ISOMETRIC_AVAILABLE", True)
+    assert [s.label for s in project_model.offered_samples()] == [*FIVE, "Stone isle"]
+    monkeypatch.setattr(features, "FARM_AVAILABLE", True)
+    assert [s.label for s in project_model.offered_samples()] == SEVEN
+    assert [s.label for s in project_model.SAMPLES] == SEVEN
+    views = {s.key: s.projection for s in project_model.SAMPLES}
+    assert views.pop("iso") == ISOMETRIC and set(views.values()) == {config.PROJECTION_TOP_DOWN}
+    assert [s.key for s in project_model.SAMPLES if s.archetype == "farm"] == ["farm"]
+    # a sample is known by its folder, and its view is for the kinds that have it
+    isle = project_model.sample("iso")
+    assert project_model.sample_of([paths.sample_pack_dir(isle.folder)]) is isle
+    assert project_model.sample_of([ROOT / "test_packs"]) is None
+    assert project_model.sample_of([ROOT / isle.folder, SAMPLE]) is None
+    assert project_model.sample_view(isle, "turn_based") == ISOMETRIC
+    assert project_model.sample_view(isle, "metroidvania") == config.PROJECTION_TOP_DOWN
+    assert project_model.sample_view(None, "turn_based") == config.PROJECTION_TOP_DOWN
+    # a config the state already has takes the view when it is one of the sample's pack; a
+    # config of other packs is left as it is (the pages replace it when the pack has been read)
+    state = state_mod.WizardState(archetype="arpg")
+    mine = config.PackRef("isle", str(paths.sample_pack_dir(isle.folder)), "0" * 64, "folder")
+    state.config = config.default_for("Mine", [mine])
+    project_model.try_as(state, isle)
+    assert state.archetype == "turn_based" and state.config.projection == ISOMETRIC
+    other = config.default_for("Other", [config.PackRef("top", str(SAMPLE), "0" * 64, "folder")])
+    state.config = other
+    project_model.try_as(state, isle)
+    assert other.projection == config.PROJECTION_TOP_DOWN
+
+
+@pytest.mark.parametrize(
+    ("key", "folder", "name", "archetype", "view"),
+    [
+        ("farm", "sample_pack_farm", "Green Acre", "farm", config.PROJECTION_TOP_DOWN),
+        ("iso", "sample_pack_iso", "Stone Isle", "turn_based", ISOMETRIC),
+    ],
+)
+def test_the_welcome_menu_lists_seven_and_each_lands_on_its_kind_and_its_view(
+    qtbot, tmp_path, monkeypatch, key: str, folder: str, name: str, archetype: str, view: str
+) -> None:
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True, arcade=True, m17=True)
+    welcome = win.welcome
+    menu = welcome.sample_card.menu()
+    assert menu is not None and [a.text() for a in menu.actions()] == SEVEN
+    welcome.sample_actions[key].trigger()
+    assert not win.welcome_visible and win.current_index == GENERATE_INDEX
+    state = win.state
+    assert [state] == STARTED and state.sample_run
+    assert state.pack_sources == [ROOT / folder] and state.project_name == name
+    assert state.archetype == archetype
+    assert state.config is not None and state.config.archetype == archetype
+    assert state.config.projection == view
+    assert state.config.to_json().get("projection", config.PROJECTION_TOP_DOWN) == view
+    assert state.config.input == config.default_input(archetype)
+    assert state.catalog is not None
+    assert {a.status for a in state.catalog.assets} <= {"CONFIRMED", "UNUSED"}
+    assert mapping.missing_required(state.catalog, archetype, set(state.placeholders), view) == []
+    assert requirements.check(state.catalog, state.config) == []
+
+
+def test_the_top_down_sample_after_the_isometric_one_is_seen_from_above(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    """The view goes with the sample, not with the window: the village that is tried after the
+    isle is the village it always was."""
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True, arcade=True, m17=True)
+    # the samples share an output folder: the second one is asked whether the first is resumed
+    monkeypatch.setattr(ProjectPage, "ask_resume", lambda self: False)
+    win.welcome.sample_actions["iso"].trigger()
+    assert win.state.config.projection == ISOMETRIC
+    win.show_welcome_view()
+    win.welcome.sample_actions["top"].trigger()
+    assert win.current_index == GENERATE_INDEX
+    assert win.state.pack_sources == [SAMPLE] and win.state.config.archetype == "turn_based"
+    assert win.state.config.projection == config.PROJECTION_TOP_DOWN
+    assert "projection" not in win.state.config.to_json()
+
+
+def test_the_project_pages_list_offers_seven_and_the_isle_comes_with_its_view(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    win = _window_with(qtbot, tmp_path, monkeypatch, available=True, arcade=True, m17=True)
+    win.welcome.own_card.click()
+    page = win.pages[0]
+    assert page.sample_menu is not None
+    assert [a.text() for a in page.sample_menu.actions()] == SEVEN
+    page.sample_actions["iso"].trigger()
+    assert win.current_index == OPTIONS_INDEX and STARTED == []
+    assert not win.state.sample_run
+    assert win.state.archetype == "turn_based" and win.state.config.archetype == "turn_based"
+    assert win.state.config.projection == ISOMETRIC
+    assert win.state.pack_sources == [ROOT / "sample_pack_iso"]
