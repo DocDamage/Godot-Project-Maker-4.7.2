@@ -16,7 +16,8 @@ const STARTER_MAP := "res://game/maps/starter_map.tscn"
 const INTERIOR_MAP := "res://game/maps/interior_1.tscn"
 const FIELD_MAP := "res://game/maps/field_1.tscn"
 const ENEMIES_DIR := "res://game/data/enemies"
-const SAVE_DIR := "user://smoke_saves"
+## The addon's smoke runner: it knows the folder this run saves into (a run's own).
+const SmokeRunner := preload("res://addons/rpg_runtime/debug/smoke_runner.gd")
 const SAVE_SLOT := 2
 const VICTORY := 0  # RpgEncounterResult.Outcome
 const DEFEAT := 1
@@ -316,7 +317,7 @@ func _enemy_stays_defeated() -> String:
 	var state: RpgGameState = _autoload("GameState") as RpgGameState
 	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
-	save.set("dir", SAVE_DIR)
+	save.set("dir", SmokeRunner.save_dir())
 	await _frames(3)  # the freed node leaves the tree
 	if _find_entity(tree.current_scene, ENEMY_ID) != null:
 		return "the defeated enemy is still on the map"
@@ -454,7 +455,7 @@ func _defeat_policy() -> String:
 	var state: RpgGameState = _autoload("GameState") as RpgGameState
 	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	var combat := _combat()
-	save.set("dir", SAVE_DIR)
+	save.set("dir", SmokeRunner.save_dir())
 	for slot in range(JsonUtil.to_int(save.get("AUTOSAVE_SLOT")), 4):
 		save.delete(slot)
 

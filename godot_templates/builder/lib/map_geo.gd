@@ -258,6 +258,22 @@ func wall_tile() -> Dictionary:
 
 # ---------------------------------------------------------------- painting
 
+## The layer the roads of a map are painted on, or null when the map has none for them. Seen
+## from above it is `GroundDetails`, over the ground, as it always was: a road tile is a flat
+## picture and what it does not cover is the ground under it. On diamonds it is the `Ground`
+## layer itself (T17.18): a tile of an isometric pack is a whole block, the diamond with the
+## earth under it, and one layer draws its cells from the back to the front, so the earth of a
+## tile is covered by the tiles before it. A road piece laid on a layer above the ground kept
+## its earth in sight over the grass before it, a dark kerb along the lower edges of every
+## path. Laid in the place of the ground tile of its cell it is covered as the ground is. (The
+## map must still have `GroundDetails` among its layers to get roads at all, in both views:
+## which maps have roads is not the view's to change.)
+func road_layer(nodes: Dictionary) -> TileMapLayer:
+	if not nodes.has("GroundDetails"):
+		return null
+	var layer: TileMapLayer = nodes["Ground"] if isometric and nodes.has("Ground") else nodes["GroundDetails"]
+	return layer
+
 ## Paints `cells` as one run of `what` (a role: ROAD, WATER, WALL). Seen from above every cell
 ## gets `plain`. On diamonds a cell gets the piece that joins on exactly the sides where its
 ## neighbours are cells of the run too, turned as it must be (the packs' `joins`); when the
@@ -360,8 +376,9 @@ static func border_cells(size: Vector2i, skip: Array = []) -> Array[Vector2i]:
 ## The blocked edge of a map. Seen from above: MapBuild.paint_walls (wall tiles on the Walls
 ## layer, else invisible rectangles). On diamonds: the wall tiles of the packs, joined by their
 ## sides where they say them, on the Y-sorted Props layer (a wall rises: who stands behind it
-## is drawn behind it) or the Walls layer when the map has no Props; without a wall tile, or
-## when the wall tile blocks nothing, an invisible diamond a cell.
+## is drawn behind it) or the Walls layer when the map has no Props, and the two far sides on
+## the Ground layer; without a wall tile, or when a wall tile blocks nothing, an invisible
+## diamond a cell.
 func paint_walls(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Array = []) -> void:
 	if not isometric:
 		MapBuild.paint_walls(root, nodes, size, wall_tile(), tile_px, skip)
@@ -373,9 +390,29 @@ func paint_walls(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Array = 
 			layer = nodes[layer_name]
 	var blocks := false
 	if not wall.is_empty() and layer != null:
-		paint_joined(layer, border_cells(size, skip), "WALL", wall)
-		var data := layer.get_cell_tile_data(border_cells(size, skip)[0]) if not border_cells(size, skip).is_empty() else null
-		blocks = data != null and data.get_collision_polygons_count(0) > 0
+		var cells := border_cells(size, skip)
+		# The far sides of the edge (the first row and the first column) are laid in the place
+		# of the ground of their cells (T17.18): nobody can stand behind them, and on a layer
+		# above the ground the earth under a wall lay over the grass before it, a brown footing
+		# all along the two far walls. On the ground's layer the tiles before a wall cover its
+		# earth as they cover the ground's. The near sides stay where they sort with who walks
+		# behind them; their earth looks out of the map.
+		var back: TileMapLayer = nodes.get("Ground")
+		paint_joined(layer, cells, "WALL", wall)
+		var first := layer.get_cell_tile_data(cells[0]) if not cells.is_empty() else null
+		blocks = first != null and first.get_collision_polygons_count(0) > 0 and layer.collision_enabled
+		var far: Array[Vector2i] = []
+		if back != null and back != layer:
+			for cell in cells:
+				if cell.x != 0 and cell.y != 0:
+					continue
+				back.set_cell(cell, layer.get_cell_source_id(cell), layer.get_cell_atlas_coords(cell), layer.get_cell_alternative_tile(cell))
+				layer.erase_cell(cell)
+				far.append(cell)
+		# the ground's layer blocks nothing (MapUtil.COLLIDING_LAYERS): what was moved onto it
+		# keeps its diamond as an unseen shape
+		if blocks and not far.is_empty() and not back.collision_enabled:
+			_blocked_cells(root, far)
 	if not blocks:
 		border_collision(root, size, skip)
 
@@ -384,6 +421,10 @@ func paint_walls(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Array = 
 func border_collision(root: Node2D, size: Vector2i, skip: Array = []) -> StaticBody2D:
 	if not isometric:
 		return MapUtil.border_collision(root, size, tile_px, skip)
+	return _blocked_cells(root, border_cells(size, skip))
+
+## An unseen body (`BorderCollision`) that blocks `cells`, a shape of the cell each.
+func _blocked_cells(root: Node2D, cells: Array[Vector2i]) -> StaticBody2D:
 	var body := StaticBody2D.new()
 	body.name = "BorderCollision"
 	body.collision_layer = 0
@@ -392,7 +433,7 @@ func border_collision(root: Node2D, size: Vector2i, skip: Array = []) -> StaticB
 	root.add_child(body)
 	body.owner = root
 	var diamond := cell_shape()
-	for cell in border_cells(size, skip):
+	for cell in cells:
 		var shape := CollisionShape2D.new()
 		shape.name = "Wall_%d_%d" % [cell.x, cell.y]
 		shape.shape = diamond

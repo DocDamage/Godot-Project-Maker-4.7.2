@@ -897,6 +897,14 @@ def test_what_green_acre_is_made_of() -> None:
     cfg.starter = starter
     facts = orchestrator.farm_facts(cfg, cat)
     assert facts["house"] == {"size": [6, 4], "door": [2, 4]} and facts["water"] is True
+    # the pack's own coop and barn reach the planner although the starter names the house
+    # (T17.18: with a building chosen, which the wizard always does, only that one was seen)
+    assert facts["coop"] == {"size": [4, 3], "door": [1, 3]}
+    assert facts["barn"] == {"size": [6, 4], "door": [2, 4]}
+    cfg.starter = {}
+    assert orchestrator.farm_facts(cfg, cat) == facts, "and the same when nothing is chosen"
+    cfg.starter = {"building": f"{name}.objects.farmyard#yard_coop"}
+    assert orchestrator.farm_facts(cfg, cat)["house"] == facts["coop"], "a coop chosen as the house"
 
 
 def test_what_stone_isle_is_made_of() -> None:
@@ -913,6 +921,9 @@ def test_what_stone_isle_is_made_of() -> None:
     assert catalog.VIEW_RACING not in plain.packs[0].warnings
     profiles.install_profile(ROOT / name / "sample_iso.rpgprofile.json")
     cat, _i = _assemble(name)
+    # read through its profile the pack still says its diamond (the pack card's words)
+    assert catalog.isometric_footprint(cat.packs[0]) == (40, 22, "profile")
+    assert catalog.pack_view(cat.packs[0]) == "isometric"
     facets = {a.id.split(".", 1)[1]: catalog.effective(a) for a in cat.assets}
     tiles = {k: v for k, v in facets.items() if v.get("usage") == "iso_tile"}
     assert len(tiles) == 42

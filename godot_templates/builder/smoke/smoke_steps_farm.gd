@@ -20,7 +20,10 @@ extends RefCounted
 ## day, and sells the seeds of the season in its hours -> the weather and the HUD (T17.11) ->
 ## a thing that lies at one of the farm's forage places is picked up with `interact`, and on a
 ## farm with a pond the rod is cast with `use` and the fish landed with `use` held as the bar
-## asks (T17.10).
+## asks (T17.10) -> the animals (T17.07) -> the game is saved, everything a save holds of a farm
+## is changed (a night passes, soil is tilled, a crop is cut, money, the bag, a friendship, the
+## herd), and the game is loaded: the field is what it was cell by cell, and the date, the
+## money, the bag, the herd, the friendships and the energy with it (T17.18).
 ##
 ## The nights of the growing are the calendar's `end_day()`, run in full (a day that nobody
 ## slept through); the night after the harvest is slept in the bed.
@@ -38,6 +41,8 @@ const CODE := "SMOKE-013"
 
 const JsonUtil := preload("../lib/json_util.gd")
 const SmokeMap := preload("smoke_map.gd")
+## The addon's smoke runner: it knows the folder this run saves into (a run's own).
+const SmokeRunner := preload("res://addons/rpg_runtime/debug/smoke_runner.gd")
 
 const HOUSE := "FarmHouse"
 const FARM := "Farm"
@@ -93,6 +98,8 @@ func steps() -> Array[Dictionary]:
 		_step("pet_the_hen", _pet_the_hen, 40.0),
 		_step("egg_in_the_morning", _egg_in_the_morning, 60.0),
 		_step("ship_the_egg", _ship_the_egg, 40.0),
+		# the last (T17.18): by now the field, the bag, the friendships and the herd hold something
+		_step("save_and_load", _save_and_load, 90.0),
 	])
 	return list
 
@@ -1199,7 +1206,8 @@ func _rain_waters_the_field() -> String:
 	if field.grown_at(cell) != 0:
 		return "the crop grew in the dry night before the rain"
 	var soil := field.get_node_or_null(field.soil_path) as TileMapLayer
-	if soil != null and soil.get_cell_atlas_coords(cell) != field.watered_tile:
+	# (the source too: a pack's wet soil may be the same cell of another source as its dry soil)
+	if soil != null and (soil.get_cell_atlas_coords(cell) != field.watered_tile or soil.get_cell_source_id(cell) != field.watered_source):
 		return "the Soil layer does not show watered soil at %s" % cell
 	var map := RpgUtil.router().current_map
 	if weather.overlay_visible() != weather.shows_on(map) or weather.overlay_visible() == map.interior():
@@ -2031,3 +2039,188 @@ func _ship_the_egg() -> String:
 	if not RpgShippingBin.is_empty():
 		return "the bin is not empty in the morning"
 	return ""
+
+# ---------------------------------------------------------------- saving and loading (T17.18)
+#
+# This step stands on its own too: it goes to the farm when another map is shown and works
+# cells of its own through the field. It is the game's own save and load (SaveManager, into the
+# folder of this smoke run), and it is the last step: nothing after it counts on the day.
+
+## The slot of this step: the last one (the shared steps use the first and empty all three).
+const SAVE_SLOT := RpgSaveManager.SLOTS
+
+## True when two saved values are the same: dictionaries and lists piece by piece, numbers as
+## numbers (a number that went through a save file may come back as a float).
+static func _save_same(a: Variant, b: Variant) -> bool:
+	if a is Dictionary and b is Dictionary:
+		var da: Dictionary = a
+		var db: Dictionary = b
+		if da.size() != db.size():
+			return false
+		for key: Variant in da.keys():
+			if not db.has(key) or not _save_same(da[key], db[key]):
+				return false
+		return true
+	if a is Array and b is Array:
+		var aa: Array = a
+		var ab: Array = b
+		if aa.size() != ab.size():
+			return false
+		for i in aa.size():
+			if not _save_same(aa[i], ab[i]):
+				return false
+		return true
+	if (a is int or a is float) and (b is int or b is float):
+		return is_equal_approx(JsonUtil.to_float(a), JsonUtil.to_float(b))
+	if (a is String or a is StringName) and (b is String or b is StringName):
+		return str(a) == str(b)
+	return typeof(a) == typeof(b) and a == b
+
+## What a save holds of a farm, besides its field: {date, gold, bag, herd, friends, energy}.
+func _save_snapshot() -> Dictionary:
+	var friends := RpgFriendship.current()
+	var herd: Array = []
+	for row in RpgAnimalHouse.herd():
+		herd.append(row.duplicate(true))
+	return {
+		"date": RpgCalendar.current().to_dict(),
+		"gold": _state().gold,
+		"bag": _state().inventory.to_array(),
+		"herd": herd,
+		"friends": friends.to_dict() if friends != null else {},
+		"energy": RpgFarmMode.current().energy.value,
+	}
+
+## The field of the map that is shown against what it was, cell by cell: the saved state of
+## every cell, what the field answers for it, the crop that stands on it and the tile of wet
+## soil. "" when it is what it was.
+func _save_field_differs(field: RpgField, before: Dictionary) -> String:
+	var after := field.to_dict()
+	if after.size() != before.size():
+		return "the field has %d worked cells after loading, it had %d" % [after.size(), before.size()]
+	var soil := field.get_node_or_null(field.soil_path) as TileMapLayer
+	for key: Variant in before.keys():
+		var cell := RpgField.cell_of(JsonUtil.to_str(key))
+		if not after.has(key):
+			return "the cell %s is no longer worked after loading" % cell
+		var was := JsonUtil.to_dict(before[key])
+		var now := JsonUtil.to_dict(after[key])
+		for part: String in ["w", "crop", "grown", "dead", "idle"]:
+			if not _save_same(was.get(part), now.get(part)):
+				return "the cell %s has %s = %s after loading, it had %s" % [cell, part, now.get(part), was.get(part)]
+		var crop := JsonUtil.to_str(was.get("crop", ""))
+		var was_wet := JsonUtil.to_bool(was.get("w", false))
+		if field.is_watered(cell) != was_wet or field.crop_at(cell) != crop or field.grown_at(cell) != JsonUtil.to_int(was.get("grown", 0)):
+			return "the field answers for %s: wet %s, crop '%s', grown %d; it was %s" % [cell, field.is_watered(cell), field.crop_at(cell), field.grown_at(cell), was]
+		if (field.crop_node(cell) != null) != (crop != ""):
+			return "the cell %s %s after loading" % [cell, "shows no crop" if crop != "" else "shows a crop it has not"]
+		if soil != null:
+			var want_source := field.watered_source if was_wet else field.tilled_source
+			var want_tile := field.watered_tile if was_wet else field.tilled_tile
+			if soil.get_cell_source_id(cell) != want_source or soil.get_cell_atlas_coords(cell) != want_tile:
+				return "the Soil layer shows the tile %s of source %d at %s after loading, expected %s of %d (%s soil)" % [soil.get_cell_atlas_coords(cell), soil.get_cell_source_id(cell), cell, want_tile, want_source, "wet" if was_wet else "dry"]
+	return ""
+
+func _save_and_load() -> String:
+	var mode := RpgFarmMode.current()
+	var calendar := RpgCalendar.current()
+	var save := RpgUtil.save_manager()
+	var router := RpgUtil.router()
+	if mode == null or calendar == null or save == null or router == null or _state() == null:
+		return "the game has no farm's mode, calendar, SaveManager or SceneRouter"
+	var field: RpgField = await _weather_field()
+	if field == null:
+		return "no map of the game has a field"
+	# the field gets something of every kind a save has to keep: wet soil with a crop of the
+	# season on it, and dry soil with nothing
+	var in_season := mode.crops.of_season(calendar.season_name())
+	if in_season.is_empty():
+		return "no crop grows in %s" % calendar.season_name()
+	var crop := in_season[0]
+	var found: Variant = _weather_free_cell(field)
+	if found == null:
+		return "the plot has no free cell to till"
+	var wet: Vector2i = found
+	if not field.till(wet) or not field.plant(wet, crop):
+		return "%s could not be planted in %s" % [crop, wet]
+	if not field.is_watered(wet) and not field.water(wet):
+		return "the cell %s could not be watered" % wet
+	found = _weather_free_cell(field)
+	if found == null:
+		return "the plot has no second free cell to till"
+	var dry: Vector2i = found
+	if not field.till(dry):
+		return "the cell %s could not be tilled" % dry
+	await _weather_frames(3)
+	var map_path := _tree().current_scene.scene_file_path
+	var cells := field.to_dict()
+	var kept := _save_snapshot()
+	if not cells.has(RpgField.cell_name(wet)) or not cells.has(RpgField.cell_name(dry)) or field.crop_at(wet) != crop or not field.is_watered(wet):
+		return "the field does not hold the two cells that were worked: %s" % cells
+	save.set("dir", SmokeRunner.save_dir())
+	save.delete(SAVE_SLOT)
+	if not save.save(SAVE_SLOT):
+		return "SaveManager.save(%d) returned false" % SAVE_SLOT
+	var header := save.header(SAVE_SLOT)
+	if JsonUtil.to_int(header.get("gold", -1)) != JsonUtil.to_int(kept["gold"]):
+		return "the header of the save names %s coins, the farmer has %s" % [header.get("gold"), kept["gold"]]
+	# everything is changed: the crop is cut and a third cell tilled, a night passes (the date,
+	# the wet soil, the herd), and the money, the bag, the energy and a friendship
+	if not field.remove_crop(wet):
+		return "the crop in %s could not be cut" % wet
+	found = _weather_free_cell(field)
+	if found != null:
+		var third: Vector2i = found
+		field.till(third)
+	await _weather_end_day()
+	_state().gold = JsonUtil.to_int(kept["gold"]) + 321
+	_state().inventory.add(StringName(JsonUtil.to_str(mode.crops.crop(crop).get("seed", ""))), 2)
+	mode.energy.value = 7 if JsonUtil.to_int(kept["energy"]) != 7 else 9
+	var friends := RpgFriendship.current()
+	if friends != null and not friends.order.is_empty():
+		friends.add_points(friends.order[0], 40)
+	var herd := RpgAnimalHouse.current()
+	for row in RpgAnimalHouse.herd():
+		if herd != null:
+			herd.pet(JsonUtil.to_int(row["id"]))
+	await _weather_frames(2)
+	var changed := _save_snapshot()
+	for part: String in ["date", "gold", "bag", "energy"]:
+		if _save_same(changed[part], kept[part]):
+			return "the %s did not change before the load: the comparison would prove nothing" % part
+	if _save_same(field.to_dict(), cells):
+		return "the field did not change before the load: the comparison would prove nothing"
+	if not JsonUtil.to_array(kept["herd"]).is_empty() and _save_same(changed["herd"], kept["herd"]):
+		return "the herd did not change before the load: the comparison would prove nothing"
+	# the game's own load
+	var old_field := field.get_instance_id()
+	if not save.load(SAVE_SLOT):
+		return "SaveManager.load(%d) returned false" % SAVE_SLOT
+	var back: bool = await _weather_wait(func() -> bool: return _save_is_back(map_path, old_field), 900)
+	if not back:
+		return "the map %s did not come back after loading" % map_path
+	await _weather_frames(5)
+	_tree().paused = false
+	if _farmer() == null:
+		return "no farmer after loading"
+	field = RpgField.current()
+	var failure := _save_field_differs(field, cells)
+	if failure != "":
+		return failure
+	var loaded := _save_snapshot()
+	var date := JsonUtil.to_dict(kept["date"])
+	if calendar.day != JsonUtil.to_int(date["day"]) or calendar.season != JsonUtil.to_int(date["season"]) or calendar.year != JsonUtil.to_int(date["year"]) or calendar.minute != JsonUtil.to_int(date["minute"]):
+		return "the date after loading is %s, it was %s" % [calendar.to_dict(), date]
+	for part: String in ["gold", "bag", "herd", "friends", "energy"]:
+		if not _save_same(loaded[part], kept[part]):
+			return "the %s after loading: %s, it was %s" % [part, loaded[part], kept[part]]
+	save.delete(SAVE_SLOT)
+	return ""
+
+## True when the map `map_path` is shown anew (its field is not the one that was there), and the
+## router is idle.
+func _save_is_back(map_path: String, old_field: int) -> bool:
+	var router := RpgUtil.router()
+	var scene := _tree().current_scene
+	var field := RpgField.current()
+	return router != null and not router.is_busy() and scene != null and scene.scene_file_path == map_path and field != null and field.is_inside_tree() and field.get_instance_id() != old_field

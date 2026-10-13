@@ -394,6 +394,30 @@ and the saves it had.
     that are about the picture (the car is on the screen, the frame of its picture, the
     camera ahead of it), and holds the arrows of absolute steering the way the waypoint is
     seen. Everything else already asked the plan.
+* **The tests of the milestone and nine faults (T17.18).**
+  * `debug/smoke_runner.gd`: a smoke run that is given a name (`--rpg-smoke-run=<id>`, the
+    generator's run id) saves into `user://smoke_saves_<id>`, emptied before the first step and
+    removed after the last (`save_dir()`, `save_dir_for(args)`, `clear_saves(dir)`). Godot keeps
+    `user://` by the project's name, so two smoke runs of projects of one name at one time read
+    and replaced each other's saves. A run without a name saves where every run did. Nothing of
+    a game that is played changes: the runner is inert without `--rpg-smoke`.
+  * `builder/smoke/*.gd`: every steps script asks the runner for the folder; the farm's
+    sequence ends with `save_and_load` (the game is saved, a night passes and the field, the
+    money, the bag, the energy, a friendship and the herd are changed, the game is loaded, and
+    the field is compared cell by cell with the date and the rest); the action RPG's steps ask
+    the bodies how far a swing reaches (`_strike_gap`), not the tile.
+  * `builder/validate.gd`: the copy of a map for the round trip carries the process's id.
+  * `builder/lib/map_geo.gd`: on diamonds the roads of a map are laid in the place of the
+    ground of their cells (`road_layer`), and so are the two far sides of its wall
+    (`paint_walls`), which keep their diamonds as unseen shapes: the earth under a tile laid
+    over the ground showed as a dark kerb along every path and a brown footing along the far
+    walls. A map seen from above is painted byte for byte as before.
+  * `builder/recipes/farm/room_recipe.gd` (new) draws `generated/tilesets/farm_room.tres`, a
+    floor of boards and a plastered wall; the farmhouse and the animal houses of a project
+    without interior tiles are painted with it instead of the grass and the hedge of the maps
+    outside, and no season changes it. `farm_map_recipe.gd` blocks the cells of a planned
+    footprint that a smaller isometric building of the packs does not stand on
+    (`<Building>Ground`). Both are for new maps: a map that exists is never built again.
 
 ## 1.4.0
 

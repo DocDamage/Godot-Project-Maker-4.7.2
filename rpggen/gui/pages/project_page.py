@@ -163,8 +163,8 @@ class ProjectPage(WizardPage):
         found = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
         return Path(found) if found else Path.home() / "Documents"
 
-    def sample_target(self) -> Path:
-        return model_mod.sample_target(self.documents_dir())
+    def sample_target(self, sources: list[Path] | None = None) -> Path:
+        return model_mod.sample_target(self.documents_dir(), sources)
 
     def try_sample(self, side: bool = False, key: str = "") -> bool:
         """Fill the page with a bundled sample pack; emits ``sampleReady`` when every input
@@ -193,7 +193,7 @@ class ProjectPage(WizardPage):
         try:
             self.pack_list.clear()
             self.pack_list.add_path(sample)
-            self.target_edit.setText(str(self.sample_target()))
+            self.target_edit.setText(str(self.sample_target([sample])))
             self.name_edit.setText(chosen.name)
             self.model.name_touched = True
             self.model.touch_all()

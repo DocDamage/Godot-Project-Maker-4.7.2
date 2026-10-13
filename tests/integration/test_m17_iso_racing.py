@@ -235,3 +235,76 @@ def test_a_pack_without_a_car_races_the_drawn_one_with_the_stick_and_a_fixed_cam
     assert "cell_px = 32.0" in _node(track, "View")
     assert not (target / "generated/scenes/stages/stage_03.tscn").exists()
     assert not (target / "generated/scenes/racing/rival_3.tscn").exists()
+
+
+# ------------------------------------------------- Dirt cup on Stone isle (T17.18)
+#
+# The racing sample's plan on isometric tiles, as far as the two sample packs allow: the
+# ground and the road pieces are *Stone isle*'s, the car, the rivals, the pickups and the
+# hazards *Dirt cup*'s (drawn from above: they look flat on diamonds, which the Mapping page
+# says). The square tiles of *Dirt cup* are left out, which is said (`TILE-011`).
+
+ISLE = REPO / "sample_pack_iso"
+CUP = REPO / "sample_pack_race"
+ISLE_FOOT = (40, 22)
+
+
+def _cup_config() -> config.GeneratorConfig:
+    from rpggen.core import archive, catalog, inventory, mapping, profiles
+
+    profiles.install_profile(ISLE / "sample_iso.rpgprofile.json")
+    profiles.install_profile(CUP / "sample_race.rpgprofile.json")
+    opened = [archive.open_pack(pack, set(), pack_id=pack.name) for pack in (ISLE, CUP)]
+    cat, _issues, _made = catalog.assemble(
+        [(pack, inventory.build_inventory(pack)) for pack in opened], None, []
+    )
+    cfg = config.default_for(
+        "Dirt Cup",
+        [config.pack_ref_from_source(pack, pack.name) for pack in (ISLE, CUP)],
+        archetype="racing",
+    )
+    cfg.projection = "isometric"
+    cfg.starter = mapping.default_starter(cat, "racing", "isometric")
+    return cfg
+
+
+def test_dirt_cup_is_raced_on_the_diamonds_of_stone_isle(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    from rpggen.core import track_plan, world_plan
+
+    cfg = _cup_config()
+    assert cfg.starter["vehicle"] == "sample_pack_race.cars.player_car"
+    assert cfg.starter["ground"] == "sample_pack_iso.png.grass"
+    target = tmp_path / "out"
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    assert _smoke(target) == STEPS, "the eleven steps of every racing game, as they are"
+    left_out = [i for i in result.issues if i.code == "TILE-011"]
+    assert len(left_out) == 1 and "sample_pack_iso.png.grass" in left_out[0].message
+    saved = jsonio.read(target / paths.CONFIG)
+    assert (saved["archetype"], saved["projection"]) == ("racing", "isometric")
+    # the plan is the one the sample has seen from above: it knows no view
+    stored = world_plan.load(target)["stages"]
+    facts = track_plan.facts_of(saved["resolution"], saved["base_tile_size"])
+    assert stored == track_plan.plan({}, saved["seed"], facts)
+    assert track_plan.check(stored) == [] and len(stored["list"]) == 4
+    tracks = jsonio.read(target / "game/data/stages.json")["stages"]
+    for planned, listed in zip(stored["list"], tracks, strict=True):
+        for key in ("start", "checkpoints", "waypoints", "laps"):
+            assert listed[key] == planned[key], f"{key} of {planned['id']} is the plan's"
+    car = _text(target, "generated/scenes/racing/car.tscn")
+    assert "sample_pack_race" in car and "racing/heading_sprite.gd" in car
+    for index in range(len(stored["list"])):
+        scene = _text(target, f"generated/scenes/stages/stage_{index + 1:02d}.tscn")
+        assert "generated/tilesets/iso.tres" in scene and "racing/race_view.gd" in scene
+        # the diamond of the pack, as many times larger as the car's picture asks (T17.15)
+        said = re.search(r"footprint = Vector2i\((\d+), (\d+)\)", _node(scene, "View"))
+        assert said is not None
+        wide, high = int(said[1]), int(said[2])
+        assert wide % ISLE_FOOT[0] == 0 and wide * ISLE_FOOT[1] == high * ISLE_FOOT[0], (wide, high)
+    # the lap of the sequence went through every checkpoint of the first track
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    lap = [line for line in log.splitlines() if "INFO race_is_driven" in line]
+    found = re.search(r"(\d+) checkpoints", lap[0]) if lap else None
+    assert found is not None and int(found[1]) == len(tracks[0]["checkpoints"]), lap

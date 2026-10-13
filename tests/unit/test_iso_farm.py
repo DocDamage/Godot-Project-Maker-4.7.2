@@ -82,6 +82,14 @@ def test_the_facts_of_the_plan_are_the_views() -> None:
     assert facts["coop"] == {"size": [3, 2], "door": [1, 2]}
     assert facts["house"] == {"size": [1, 1], "door": [0, 1]}
     assert "barn" not in facts
+    # and so it is when the starter names the house, which the wizard always does (T17.18: the
+    # chosen building was then the only one the facts saw, and the coop was drawn)
+    cfg = _cfg()
+    cfg.starter = {"building": houses[0].id}
+    assert orchestrator.farm_facts(cfg, cat) == facts
+    cfg.starter = {"building": houses[1].id}
+    chosen = orchestrator.farm_facts(cfg, cat)
+    assert chosen["house"] == chosen["coop"] == {"size": [3, 2], "door": [1, 2]}
 
 
 def test_the_plan_is_the_same_grid_of_cells() -> None:

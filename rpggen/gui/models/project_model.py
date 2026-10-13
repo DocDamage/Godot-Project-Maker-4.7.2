@@ -277,12 +277,23 @@ def format_size(size: int | None) -> str:
     return ""
 
 
-def sample_target(documents: Path) -> Path:
-    """The first free ``rpggen-sample-<n>`` folder under ``documents``."""
+def sample_target(documents: Path, sources: list[Path] | None = None) -> Path:
+    """The first free ``rpggen-sample-<n>`` folder under ``documents``. With ``sources`` (the
+    sample that is being tried) a folder that has the saved work of *other* packs is not free
+    either: a second sample tried after a first that was never generated took the first's
+    folder, and the page asked whether to resume the session of another sample (T17.17)."""
+
+    def same(paths_: list[Any]) -> list[str]:
+        return [str(Path(str(p)).resolve()).casefold() for p in paths_]
+
     n = 1
-    while (documents / f"rpggen-sample-{n}").exists():
+    while True:
+        folder = documents / f"rpggen-sample-{n}"
+        draft = state_mod.load_draft(folder) if sources is not None else None
+        others = draft is not None and same(draft.get("pack_sources") or []) != same(sources or [])
+        if not folder.exists() and not others:
+            return folder
         n += 1
-    return documents / f"rpggen-sample-{n}"
 
 
 def update_summary(pack_id: str, d: pack_diff.PackDiff) -> str:

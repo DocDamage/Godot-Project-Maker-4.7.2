@@ -239,3 +239,26 @@ def test_needs_analysis(tmp_path) -> None:
     state.analyzed_key = ("a",)
     assert not pm.needs_analysis(state, ("a",), None)
     assert pm.needs_analysis(state, ("a",), object())  # a resumed draft is analysed again
+
+
+def test_a_sample_does_not_take_the_folder_of_another_samples_saved_work(
+    tmp_path, monkeypatch
+) -> None:
+    """T17.17 saw it: every sample went to the first free folder, a sample that was tried and
+    not generated left a draft for it, and the next sample was asked *Resume previous
+    session?* for the first one's work."""
+    from rpggen import paths
+    from rpggen.gui import state as state_mod
+
+    monkeypatch.setattr(paths, "data_dir", lambda: tmp_path / "data")
+    docs = tmp_path / "Documents"
+    docs.mkdir()
+    farm, iso = tmp_path / "sample_pack_farm", tmp_path / "sample_pack_iso"
+    first = pm.sample_target(docs, [farm])
+    assert first == docs / "rpggen-sample-1"
+    state = state_mod.WizardState()
+    state.target, state.pack_sources, state.project_name = first, [farm], "Green acre"
+    state_mod.save_draft(state)
+    assert pm.sample_target(docs, [iso]) == docs / "rpggen-sample-2", "another sample's work"
+    assert pm.sample_target(docs, [farm]) == first, "its own work is offered again"
+    assert pm.sample_target(docs) == first, "asked without a sample, it is the first free folder"

@@ -95,6 +95,16 @@ def smoke_steps_for(archetype: str) -> str:
     return f"{SMOKE_STEPS},{extra}" if extra else SMOKE_STEPS
 
 
+def smoke_args(archetype: str, run_id: str) -> list[str]:
+    """The arguments of a smoke run, after Godot's own. ``run_id`` names the run: its steps save
+    into a folder of their own under ``user://``, which Godot keeps by the project's *name*, so
+    two runs of projects of one name at one time no longer read each other's saves."""
+    args = ["--", "--rpg-smoke", f"--rpg-smoke-steps={smoke_steps_for(archetype)}"]
+    if run_id:
+        args.append(f"--rpg-smoke-run={run_id}")
+    return args
+
+
 @dataclass
 class Callbacks:
     on_phase: Callable[[str, int, int], None] = lambda name, i, n: None  # phase i of n
@@ -617,6 +627,19 @@ def _building_fact(catalog: catalog_mod.Catalog, obj: Any) -> dict[str, Any]:
     return {"size": list(size), "door": list(door)}
 
 
+def _farm_buildings(
+    every: list[Any], chosen: str, tags: Callable[[Any], set[str]]
+) -> tuple[list[Any], list[Any]]:
+    """``(every building, the ones that can be the farmhouse, the best first)``. ``every`` is
+    all the buildings of the packs, not the starter's choice alone: once ``starter.building``
+    was set (the wizard always sets it) the list was that one building, and a pack's own coop
+    and barn never reached the planner (T17.18). The farmhouse is the chosen building when the
+    packs have it, else the first that is no coop and no barn, else the first."""
+    picked = [b for b in every if b.id == chosen] if chosen else []
+    plain = [b for b in every if not tags(b) & set(FARM_ANIMAL_HOUSES)]
+    return every, picked or plain or every
+
+
 def _iso_farm_facts(
     cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog
 ) -> dict[str, Any]:
@@ -636,12 +659,13 @@ def _iso_farm_facts(
         return {"size": list(size), "door": list(door)}
 
     chosen = cfg.starter.get("building", "")
-    buildings = map_preview.iso_buildings(catalog, chosen)
+    # every building of the packs: the chosen one is the farmhouse, and a coop and a barn are
+    # found by their tags among all of them whatever was chosen (``_farm_buildings``)
+    buildings, houses = _farm_buildings(map_preview.iso_buildings(catalog), chosen, tags)
     own: dict[str, Any] = {}
     for kind in FARM_ANIMAL_HOUSES:
         found = next((b for b in buildings if kind in tags(b)), None)
         own[kind] = fact(found) if found is not None else None
-    houses = [b for b in buildings if b.id == chosen or not tags(b) & set(FARM_ANIMAL_HOUSES)]
     water = any(
         catalog_mod.effective(a).get("role") == "WATER"
         and a.status not in ("UNUSED", "MISSING")
@@ -671,12 +695,11 @@ def farm_facts(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) ->
         return {str(t) for t in (getattr(obj, "tags", None) or [])}
 
     chosen = cfg.starter.get("building", "")
-    buildings = map_preview.starter_buildings(catalog, chosen)
+    buildings, houses = _farm_buildings(map_preview.starter_buildings(catalog), chosen, tags)
     own: dict[str, Any] = {}
     for kind in FARM_ANIMAL_HOUSES:
         found = next((b for b in buildings if kind in tags(b)), None)
         own[kind] = _building_fact(catalog, found) if found is not None else None
-    houses = [b for b in buildings if b.id == chosen or not tags(b) & set(FARM_ANIMAL_HOUSES)]
     house = _building_fact(catalog, (houses or buildings)[0]) if buildings else None
     return farm_plan.facts_of(
         house=house,
@@ -1076,7 +1099,7 @@ def _run_smoke(state: _State) -> None:
         return
     run = _run_phase_godot(
         state,
-        ["--", "--rpg-smoke", f"--rpg-smoke-steps={smoke_steps_for(state.cfg.archetype)}"],
+        smoke_args(state.cfg.archetype, state.run_id),
         godot.SMOKE_TIMEOUT_S,
         "smoke",
         "smoke",

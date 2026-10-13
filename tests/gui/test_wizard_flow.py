@@ -298,3 +298,112 @@ def test_an_arcade_sample_path_generates_a_project_that_passes_its_smoke_test(
     assert "generated" in results.header.text()
     assert results.count_labels["errors"].text() == "0"
     assert int(results.count_labels["scenes"].text()) >= 1
+
+
+@pytest.mark.parametrize(
+    ("key", "label", "archetype", "projection", "last_step", "must_have", "readme"),
+    [
+        pytest.param(
+            "farm",
+            "Green acre",
+            "farm",
+            "top_down",
+            "save_and_load",
+            ["wake_in_the_house", "harvest", "sleep_in_the_bed", "season_turns", "npc_dialogue"],
+            "**This game is a farm**",
+            marks=[pytest.mark.integration, pytest.mark.farm],
+        ),
+        pytest.param(
+            "iso",
+            "Stone isle",
+            "turn_based",
+            "isometric",
+            "game_over_screen",
+            ["enter_building", "npc_dialogue", "encounter_start", "battle_victory"],
+            "",
+            marks=[pytest.mark.integration, pytest.mark.isometric],
+        ),
+    ],
+)
+def test_a_sample_path_of_m17_generates_a_project_that_passes_its_smoke_test(
+    qtbot,
+    godot_exe: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    key: str,
+    label: str,
+    archetype: str,
+    projection: str,
+    last_step: str,
+    must_have: list[str],
+    readme: str,
+) -> None:
+    """The two wizard paths of 1.5 (T17.18), each from its sample on the welcome view: *Green
+    acre* lands on the farm seen from above, *Stone isle* on the turn-based game in the
+    isometric view. The sample walks to the Generate page and starts with the default options;
+    the project it makes has its kind and its view, passed its smoke sequence (the farm its
+    own, to the save and the load at its end; the isometric one the shared and the turn-based
+    steps as they are) and is shown on the Results page without an error. The farm and the
+    view are behind their feature flags until the gate (T17.20): the flags are turned on here.
+    Each walk runs in the CI job of its marker (`-m "integration and farm"`, `... isometric`)."""
+    from rpggen import features, jsonio
+
+    for flag in ("FARM_AVAILABLE", "ISOMETRIC_AVAILABLE"):
+        monkeypatch.setattr(features, flag, True)
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(godot, "auto_find_godot", lambda: [godot_exe])
+    monkeypatch.setattr(ProjectPage, "documents_dir", lambda self: tmp_path / "Documents")
+    (tmp_path / "Documents").mkdir()
+    window = MainWindow(state_mod.WizardState(), default_pages())
+    qtbot.addWidget(window)
+    window.show()
+
+    window.show_welcome_view()
+    action = window.welcome.sample_actions.get(key)
+    assert action is not None and action.text() == label
+    action.trigger()
+    qtbot.waitUntil(lambda: window.current_index == OPTIONS_INDEX + 1, timeout=120_000)
+    generate = window.current_page
+    assert isinstance(generate, GeneratePage)
+    qtbot.waitUntil(lambda: generate.running, timeout=30_000)
+    assert window.state.archetype == archetype
+    cfg = window.state.config
+    assert cfg is not None and (cfg.archetype, cfg.projection) == (archetype, projection)
+    assert cfg.starter, "the sample's own pictures are mapped"
+    qtbot.waitUntil(lambda: not generate.running, timeout=300_000)
+    result = window.state.run_result
+    assert result is not None
+    assert result.ok, [(i.code, i.message) for i in result.issues]
+    assert not [i for i in result.issues if i.severity.value == "error"]
+
+    target = window.state.target
+    smoke = jsonio.read(target / "rpggen/results/smoke_results.json")
+    names = [item["name"] for item in smoke["items"]]
+    assert smoke["ok"] is True and all(item["ok"] for item in smoke["items"])
+    assert names[0] == "title_new_game" and names[-1] == last_step
+    assert set(must_have) <= set(names), sorted(set(must_have) - set(names))
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == [archetype]
+    assert (target / "game/maps/starter_map.tscn").is_file()
+    saved = jsonio.read(target / "rpggen/generator_config.json")
+    assert saved["archetype"] == archetype
+    assert saved.get("projection", "top_down") == projection
+    tilesets = sorted(p.name for p in (target / "generated/tilesets").glob("*.tres"))
+    if projection == "isometric":
+        assert tilesets == ["iso.tres"], "one tile set, of diamonds"
+        starter = (target / "game/maps/starter_map.tscn").read_text(encoding="utf-8")
+        assert "generated/tilesets/iso.tres" in starter
+    else:
+        assert "overworld.tres" in tilesets and "iso.tres" not in tilesets
+        assert (target / "game/maps/farm.tscn").is_file()
+        assert (target / "game/maps/farm_house.tscn").is_file()
+    if readme:
+        assert readme in (target / "README.md").read_text(encoding="utf-8")
+
+    if window.current_page is generate:
+        window.next_button.click()  # Show results
+    results = window.current_page
+    assert isinstance(results, ResultsPage)
+    assert "generated" in results.header.text()
+    assert results.count_labels["errors"].text() == "0"
+    assert int(results.count_labels["scenes"].text()) >= 1

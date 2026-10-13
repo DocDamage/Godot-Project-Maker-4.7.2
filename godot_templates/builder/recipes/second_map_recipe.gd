@@ -15,7 +15,7 @@ extends RefCounted
 const RECIPE_VERSION := 3
 ## The version of what the recipe does for an isometric project only (T17.14): in the hash of
 ## such a project and of no other.
-const ISO_VERSION := 1
+const ISO_VERSION := 2
 
 const Paths := preload("../lib/paths.gd")
 const JsonUtil := preload("../lib/json_util.gd")
@@ -116,11 +116,11 @@ func build(ctx: BuildContext) -> Array:
 	_paint_ground(geo, ground, rng)
 	geo.paint_walls(root, nodes, SIZE, [gap])
 	var road := geo.find_tile("ROAD")
-	if nodes.has("GroundDetails"):
+	var details := geo.road_layer(nodes)  # GroundDetails; the ground itself on diamonds
+	if details != null:
 		var cells: Array[Vector2i] = []
 		for x in range(1, 9):
 			cells.append(Vector2i(x, gap.y))
-		var details: TileMapLayer = nodes["GroundDetails"]
 		geo.paint_joined(details, cells, "ROAD", road)
 	for note in geo.take_notes():
 		print("[rpggen] INFO field_1: ", note)

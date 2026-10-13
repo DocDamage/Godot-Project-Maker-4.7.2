@@ -7,7 +7,8 @@ extends RefCounted
 
 const JsonUtil := preload("../lib/json_util.gd")
 
-const SAVE_DIR := "user://smoke_saves"
+## The addon's smoke runner: it knows the folder this run saves into (a run's own).
+const SmokeRunner := preload("res://addons/rpg_runtime/debug/smoke_runner.gd")
 const NPC_ID := "starter_map_npc_001"
 const CHEST_ID := "starter_map_chest_001"
 
@@ -129,7 +130,7 @@ func _title_new_game() -> String:
 	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	if save == null or _autoload("GameState") == null:
 		return "SaveManager or GameState autoload is missing"
-	save.set("dir", SAVE_DIR)  # never touch the player's real saves
+	save.set("dir", SmokeRunner.save_dir())  # never touch the player's real saves
 	for slot in range(1, 4):
 		save.delete(slot)
 	var title: Control = null
@@ -274,7 +275,7 @@ func _autosave() -> String:
 	if save == null or router == null or map == null:
 		return "no SaveManager, SceneRouter or map"
 	var map_path := map.scene_file_path
-	save.set("dir", SAVE_DIR)
+	save.set("dir", SmokeRunner.save_dir())
 	var was_on: bool = settings == null or JsonUtil.to_bool(settings.get("autosave"))
 	# 1. on: the autosave appears
 	if settings != null:

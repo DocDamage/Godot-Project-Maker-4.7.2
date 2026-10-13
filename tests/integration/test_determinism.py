@@ -135,3 +135,46 @@ def test_determinism_of_a_racing_game(godot_exe: Path, tmp_path: Path) -> None:
     files = _same_twice(godot_exe, tmp_path, cfg)
     assert "rpggen/world_plan.json" in files and "game/data/stages.json" in files
     assert _stages(files) == [f"generated/scenes/stages/stage_0{n}.tscn" for n in (1, 2, 3, 4)]
+
+
+# The two of M17 (T17.18). A farm: the plans of its crops, its map, its people, its forage places
+# and its animals come from their planners (Python, seeded) and are stored; the pictures the
+# pack lacks from the farm kit; the drawn soil and the drawn floor of its rooms from the
+# recipes, pixel by pixel. An isometric project: the atlas its tiles are packed into, the tile
+# set of diamonds and the maps painted on them, with the hero, the villager and the enemy the
+# isometric kit draws.
+RANCH_PACK = REPO / "test_packs" / "synthetic" / "ranch"
+ISO_PACK = REPO / "test_packs" / "synthetic" / "iso_tiles"
+
+
+@pytest.mark.farm
+def test_determinism_of_a_farm(godot_exe: Path, tmp_path: Path) -> None:
+    cfg = orchestrator.default_config_for_pack(RANCH_PACK, "Determinism", archetype="farm")
+    cfg.starter_map["animals"] = "coop_and_barn"
+    files = _same_twice(godot_exe, tmp_path, cfg)
+    assert "rpggen/world_plan.json" in files
+    for rel in (
+        "game/maps/farm.tscn",
+        "game/maps/farm_house.tscn",
+        "game/maps/farm_coop.tscn",
+        "game/maps/farm_barn.tscn",
+        "game/maps/starter_map.tscn",
+        "generated/tilesets/farm_soil.tres",
+        "generated/tilesets/farm_room.tres",
+        "game/data/crops.json",
+        "game/data/people.json",
+        "game/data/animals.json",
+        "game/data/forage.json",
+    ):
+        assert rel in files, rel
+    assert any(rel.startswith("generated/scenes/farm/animals/") for rel in files)
+
+
+@pytest.mark.isometric
+def test_determinism_of_an_isometric_project(godot_exe: Path, tmp_path: Path) -> None:
+    cfg = orchestrator.default_config_for_pack(ISO_PACK, "Determinism", archetype="turn_based")
+    cfg.projection = "isometric"
+    files = _same_twice(godot_exe, tmp_path, cfg)
+    assert "generated/tilesets/iso.tres" in files and "game/maps/starter_map.tscn" in files
+    assert not any(rel.endswith("overworld.tres") for rel in files)
+    assert any(rel.startswith("generated/iso_kit/") for rel in files), "the drawn hero"

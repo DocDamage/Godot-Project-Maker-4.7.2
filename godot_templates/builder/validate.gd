@@ -14,7 +14,9 @@ const CHECK_ROOTS: Array[String] = ["res://addons", "res://generated", "res://ga
 const RESOURCE_ROOTS: Array[String] = ["res://generated", "res://game"]
 const CONTENT_CHECKS := "res://addons/rpg_project_tools/tools/content_checks.gd"
 const DEMO_DIALOGUE: Array[String] = ["res://game/data/dialogue/npc_greeting.tres"]  # data_recipe seeds it
-const ROUND_TRIP_TMP := "user://rt_test.tscn"
+## The round trip's copy of a map. `user://` is one folder for every project of one name, so the
+## file carries the process's id: two validations at one time each have their own.
+const ROUND_TRIP_TMP := "user://rt_test_%d.tscn"
 const MENU_SCENES: Array[String] = [
 	"res://generated/scenes/ui/title_screen.tscn",
 	"res://generated/scenes/ui/pause_menu.tscn",
@@ -278,10 +280,11 @@ func _check_map_round_trip(map_path: String) -> void:
 		before[inst.get_path_to(layer)] = _cell_set(layer)
 		layer.set_cell(test_cell, ts.get_source_id(0), src.get_tile_id(0), 0)
 	var copy := PackedScene.new()
-	var ok := copy.pack(inst) == OK and ResourceSaver.save(copy, ROUND_TRIP_TMP) == OK
+	var tmp_path := ROUND_TRIP_TMP % OS.get_process_id()
+	var ok := copy.pack(inst) == OK and ResourceSaver.save(copy, tmp_path) == OK
 	var failed_layer := ""
 	if ok:
-		var reloaded := (ResourceLoader.load(ROUND_TRIP_TMP, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
+		var reloaded := (ResourceLoader.load(tmp_path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
 		for layer_path: NodePath in before.keys():
 			var layer := reloaded.get_node_or_null(layer_path) as TileMapLayer
 			var original: Dictionary = before[layer_path]
@@ -307,8 +310,8 @@ func _check_map_round_trip(map_path: String) -> void:
 	else:
 		failed_layer = "(pack/save)"
 	inst.free()
-	if FileAccess.file_exists(ROUND_TRIP_TMP):
-		DirAccess.remove_absolute(ROUND_TRIP_TMP)
+	if FileAccess.file_exists(tmp_path):
+		DirAccess.remove_absolute(tmp_path)
 	if not ok:
 		_fail("VAL-010", {"layer": failed_layer}, map_path)
 	_item("map_round_trip", map_path, ok)

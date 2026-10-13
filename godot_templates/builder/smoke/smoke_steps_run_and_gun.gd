@@ -13,7 +13,8 @@ extends RefCounted
 ## jump, on the rope. It is the first gap that lies ahead when the trap of the first stage is
 ## done; a first stage without one leaves it to the first later stage that has one.
 
-const SAVE_DIR := "user://smoke_saves"
+## The addon's smoke runner: it knows the folder this run saves into (a run's own).
+const SmokeRunner := preload("res://addons/rpg_runtime/debug/smoke_runner.gd")
 ## What a failed step of this sequence is reported as (docs/spec/03_ERROR_CODES.md).
 const CODE := "SMOKE-011"
 ## What _cross_what_is_ahead answers when the stage has nothing more to cross.
@@ -91,7 +92,7 @@ func _title_new_game() -> String:
 	var save := _autoload("SaveManager") as RpgSaveManager
 	if save == null or _autoload("GameState") == null:
 		return "SaveManager or GameState autoload is missing"
-	save.set("dir", SAVE_DIR)  # never touch the player's real saves
+	save.set("dir", SmokeRunner.save_dir())  # never touch the player's real saves
 	for slot in range(RpgSaveManager.AUTOSAVE_SLOT, RpgSaveManager.SLOTS + 1):
 		save.delete(slot)
 	var title: Control = null

@@ -38,10 +38,10 @@ extends RefCounted
 ## a well. The door of a drawn building is a band along its south side, as the door of an
 ## isometric building of the packs is. The rooms are painted with the same tile set.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3
 ## The version of what the recipe does for an isometric project only (T17.14): it is in the hash
 ## of such a project and of no other.
-const ISO_VERSION := 1
+const ISO_VERSION := 2
 
 const Paths := preload("../../lib/paths.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -56,6 +56,7 @@ const InteriorRecipe := preload("../interior_recipe.gd")
 const MapGeo := preload("../../lib/map_geo.gd")
 const FarmBuild := preload("farm_build.gd")
 const FieldRecipe := preload("field_recipe.gd")
+const RoomRecipe := preload("room_recipe.gd")
 const HomeRecipe := preload("home_recipe.gd")
 const HudRecipe := preload("hud_recipe.gd")
 const ForageRecipe := preload("forage_recipe.gd")
@@ -353,6 +354,7 @@ func input_hash(ctx: BuildContext) -> String:
 		"bed": FarmBuild.bed_asset(ctx).get("id", ""),
 		"sign": HudRecipe.sign_asset(ctx).get("id", ""),
 		"field": FieldRecipe.RECIPE_VERSION,
+		"room": RoomRecipe.RECIPE_VERSION,
 		"forage": ForageRecipe.spots(),
 	}
 	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the keys (T17.14)
@@ -428,8 +430,8 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 
 	# the ground, the paths on it, the water of a pond, and the edge with its one gap
 	MapBuild.fill_ground(ground, size, _ground_tile(ctx, geo))
-	if nodes.has("GroundDetails"):
-		var details: TileMapLayer = nodes["GroundDetails"]
+	var details := geo.road_layer(nodes)  # GroundDetails; the ground itself on diamonds
+	if details != null:
 		geo.paint_joined(details, cells_of(farm.get("paths")), "ROAD", geo.find_tile("ROAD"))
 	var water := JsonUtil.to_dict(farm.get("water", {}))
 	var water_cells := cells_of(water.get("cells"))
@@ -503,6 +505,8 @@ func _add_building(building: Dictionary, root: Node2D, nodes: Dictionary, geo: M
 		# an isometric building may be smaller than the plan's footprint: it stands at its door
 		var first := rect.position + iso_building_offset(entry, rect.size, column) if geo.isometric else rect.position
 		placed = MapUtil.place(scene, entities, root, geo.building_position(entry, first), node_name)
+		if placed != null and geo.isometric:
+			_block_rest(root, node_name, uncovered_cells(rect, Rect2i(first, MapGeo.entry_cells(entry))), geo)
 	if placed != null:
 		# properties of nodes inside an instanced scene are saved only when it is editable
 		root.set_editable_instance(placed, true)
@@ -536,6 +540,39 @@ func _add_building(building: Dictionary, root: Node2D, nodes: Dictionary, geo: M
 		MapUtil.add_marker(spawns, root, spawn_id, geo.center(door), true)
 	else:
 		MapUtil.add_marker(spawns, root, spawn_id, Vector2((door.x + 0.5) * tile_px, (door.y + 1) * tile_px - 1.0), true)
+
+## The cells of a footprint of the plan (`rect`) that a building standing on `own` leaves
+## open, row by row.
+static func uncovered_cells(rect: Rect2i, own: Rect2i) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for y in range(rect.position.y, rect.end.y):
+		for x in range(rect.position.x, rect.end.x):
+			if not own.has_point(Vector2i(x, y)):
+				out.append(Vector2i(x, y))
+	return out
+
+## Blocks `cells` (T17.18): the cells of a planned footprint that a smaller building of the packs
+## does not stand on. The planner gives no building less than two cells each way and counts
+## the whole footprint as blocked (its paths, its forage places, the check that everything can
+## be reached), so a house drawn on one diamond left three cells one could walk on that the
+## plan knew nothing of. They stay ground to look at and are solid, a diamond each, in a body
+## of their own (`<Building>Ground`) so that nothing of the building's scene is changed.
+func _block_rest(root: Node2D, node_name: String, cells: Array[Vector2i], geo: MapGeo) -> void:
+	if cells.is_empty():
+		return
+	var body := StaticBody2D.new()
+	body.collision_layer = 0
+	body.collision_mask = 0
+	body.set_collision_layer_value(1, true)  # world
+	SceneUtil.add(root, body, root, node_name + "Ground")
+	var diamond := geo.cell_shape()
+	for cell in cells:
+		var shape := CollisionShape2D.new()
+		shape.name = "Cell_%d_%d" % [cell.x, cell.y]
+		shape.shape = diamond
+		shape.position = geo.center(cell)
+		body.add_child(shape)
+		shape.owner = root
 
 ## A door (RpgDoor) of `size` px at `at`: walked into, it sends the player to another map.
 static func add_door(parent: Node, root: Node, node_name: String, at: Vector2, size: Vector2) -> Area2D:
@@ -969,14 +1006,28 @@ func room_root(ctx: BuildContext, building: Dictionary, issues: Array) -> Node2D
 	var spawns: Node2D = nodes["SpawnPoints"]
 	var triggers: Node2D = nodes["Triggers"]
 	var entities: Node2D = nodes["Entities"]
-	MapUtil.fill(ground, Rect2i(Vector2i.ZERO, size), geo.find_tile("GROUND"))
-	var wall := geo.wall_tile()
+	# A room reads as indoors (T17.18). Its floor and its walls are the interior tiles of the
+	# packs when the project has an interior tile set with them (as the houses of a village
+	# choose theirs, interior_recipe.gd); what that leaves is drawn: boards and plaster
+	# (room_recipe.gd), a tile set of the rooms alone that no season changes. Never the ground
+	# and the wall of the maps outside, which floored a room with grass and walled it with a
+	# hedge. (Should the drawn tile set be missing, the room is painted as it was.)
+	var rect := Rect2i(Vector2i.ZERO, size)
+	var indoors := not geo.isometric and JsonUtil.to_str(def.get("name", "")) == "interior"
+	var floor_tile := geo.find_tile("GROUND") if indoors else {}
+	var wall := geo.wall_tile() if indoors else {}
+	if not floor_tile.is_empty():
+		MapUtil.fill(ground, rect, floor_tile)
+	elif not RoomRecipe.use_floor(ground, rect):
+		MapUtil.fill(ground, rect, geo.find_tile("GROUND"))
 	if geo.isometric:
 		geo.paint_walls(root, nodes, size, [way_out])
 	elif not wall.is_empty() and nodes.has("Walls"):
 		var walls: TileMapLayer = nodes["Walls"]
-		MapUtil.border(walls, Rect2i(Vector2i.ZERO, size), wall, [way_out])
+		MapUtil.border(walls, rect, wall, [way_out])
 	else:
+		var drawn_walls: TileMapLayer = nodes.get("Walls")
+		RoomRecipe.use_wall(drawn_walls, rect, [way_out])
 		geo.border_collision(root, size, [way_out])
 	MapUtil.add_marker(spawns, root, "default", geo.center(arrive), true, "up")
 	geo.add_exit_door(triggers, root, "Exit", way_out, FARM_PATH, StringName(door_spawn(JsonUtil.to_str(building.get("id", "")))))

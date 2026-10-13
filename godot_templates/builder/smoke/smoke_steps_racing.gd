@@ -21,7 +21,8 @@ extends RefCounted
 ## which frame of its picture shows, and where the camera is. With *absolute* steering the
 ## arrows the driver holds are the way to the waypoint as it is seen on the screen.
 
-const SAVE_DIR := "user://smoke_saves"
+## The addon's smoke runner: it knows the folder this run saves into (a run's own).
+const SmokeRunner := preload("res://addons/rpg_runtime/debug/smoke_runner.gd")
 const ACTIONS: Array[StringName] = [&"accelerate", &"brake", &"boost", &"fire", &"move_left", &"move_right", &"move_up", &"move_down"]
 ## What a failed step of this sequence is reported as (docs/spec/03_ERROR_CODES.md).
 const CODE := "SMOKE-012"
@@ -136,7 +137,7 @@ func _title_new_game() -> String:
 	var save := _autoload("SaveManager") as RpgSaveManager
 	if save == null or _autoload("GameState") == null:
 		return "SaveManager or GameState autoload is missing"
-	save.set("dir", SAVE_DIR)  # never touch the player's real saves
+	save.set("dir", SmokeRunner.save_dir())  # never touch the player's real saves
 	for slot in range(RpgSaveManager.AUTOSAVE_SLOT, RpgSaveManager.SLOTS + 1):
 		save.delete(slot)
 	var title: Control = null

@@ -10,6 +10,14 @@ extends Node
 
 const RESULTS_PATH := "res://rpggen/results/smoke_results.json"
 const ERROR_CODES_PATH := "res://generated/builder/lib/error_codes.gd"
+## Where the steps save when the run was given no name: `user://` is one folder for every
+## project of one name, so two runs at one time that both saved here read and replaced each
+## other's files (a save that "was not replaced", a `.tmp` that could not be moved into place).
+const SAVE_ROOT := "user://smoke_saves"
+## The argument that names a run (`--rpg-smoke-run=3fa9c2d1`, the generator's run id): its
+## saves go into a folder of its own, which is emptied before the first step and removed after
+## the last.
+const RUN_ARG := "--rpg-smoke-run="
 
 var _items: Array = []
 var _providers: Array = []  # keeps the steps objects (and their Callables) alive
@@ -26,7 +34,38 @@ func _ready() -> void:
 			steps_path = String(a).trim_prefix("--rpg-smoke-steps=")
 	_run(steps_path)
 
+## The folder the steps of this run save into: never the player's saves, and never another
+## run's. Every steps script sets `SaveManager.dir` to it.
+static func save_dir() -> String:
+	return save_dir_for(OS.get_cmdline_user_args())
+
+## `save_dir()` for a list of arguments. A name is kept to letters, digits, `-` and `_` (it
+## becomes part of a folder's name); a run without one saves into SAVE_ROOT, as every run did.
+static func save_dir_for(args: PackedStringArray) -> String:
+	for a in args:
+		if not a.begins_with(RUN_ARG):
+			continue
+		var run := ""
+		for ch: String in a.trim_prefix(RUN_ARG):
+			if (ch >= "a" and ch <= "z") or (ch >= "A" and ch <= "Z") or (ch >= "0" and ch <= "9") or ch == "-" or ch == "_":
+				run += ch
+		if run != "":
+			return "%s_%s" % [SAVE_ROOT, run.left(40)]
+	return SAVE_ROOT
+
+## Removes the files of `dir` and, when it is a run's own folder, the folder too (SAVE_ROOT is
+## kept: it is shared, and was never removed).
+static func clear_saves(dir: String) -> void:
+	if not DirAccess.dir_exists_absolute(dir):
+		return
+	for file: String in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(file))
+	if dir != SAVE_ROOT:
+		DirAccess.remove_absolute(dir)
+
 func _run(steps_path: String) -> void:
+	if save_dir() != SAVE_ROOT:
+		clear_saves(save_dir())  # a run that was killed left its folder behind
 	var steps: Array = _load_steps(steps_path)
 	var index := 0
 	for step: Dictionary in steps:
@@ -116,6 +155,10 @@ func _finish() -> void:
 	f.close()
 	print("[rpggen] INFO smoke finished ok=%s" % str(ok))
 	await _silence_audio()
+	# last of all: the game runs on while the sound is let go, and a map that is entered then
+	# writes its autosave
+	if save_dir() != SAVE_ROOT:
+		clear_saves(save_dir())
 	get_tree().quit(0 if ok else 1)
 
 ## Stops every audio player and gives the mixer a moment to let go of the playbacks; a stream that is

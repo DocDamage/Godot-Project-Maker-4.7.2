@@ -41,6 +41,7 @@ AGREE_SHARE = 0.5
 WIDTH_SHARE = 0.25  # a width this share of the commonest one's flat tiles have is a ground's
 TILE_BASE_MIN = 0.9  # a tile's base is as wide as the diamond, within these
 TILE_BASE_MAX = 1.1
+BOUND_SLACK = 1e-6  # a height on the very end of what a staircase allows is not taken
 
 
 def _tolerance(width: int) -> int:
@@ -150,19 +151,62 @@ def lay(tile: FlatTile, height: int) -> tuple[int, int]:
     return int(np.clip(gap, 0, None).sum()), int(np.clip(-gap, 0, None).sum())
 
 
-def edge_slope(tile: FlatTile) -> float:
-    """How steeply the two upper edges of a flat tile fall, in rows a column: half the
-    diamond's height over half its width. The outer tenth of an edge is left out (a rounded
-    corner, the single pixel of the tip)."""
+def _upper_edges(tile: FlatTile) -> tuple[float, list[np.ndarray]]:
+    """``(apex, edges)`` of a flat tile: the column its highest point lies in, and the columns
+    of its two upper edges. The outer tenth of an edge is left out (a rounded corner, the
+    single pixel of the tip)."""
     w = tile.width
     apex = float(np.nonzero(tile.top == tile.top.min())[0].mean())
-    slopes: list[float] = []
+    edges: list[np.ndarray] = []
     for first, last in ((0, int(apex)), (int(np.ceil(apex)), w - 1)):
         cut = max(1, (last - first) // 10)
         columns = np.arange(first + cut, last - cut + 1)
         if columns.size >= 2:
-            slopes.append(abs(float(np.polyfit(columns, tile.top[columns], 1)[0])))
-    return sum(slopes) / len(slopes) if slopes else tile.face_height / w
+            edges.append(columns)
+    return apex, edges
+
+
+def slope_bounds(tile: FlatTile) -> tuple[float, float]:
+    """``(above, below)``: the slopes the upper edges of a flat tile can have as pixels, both
+    ends left out. An edge is a staircase, and a staircase is the picture of a straight line
+    only when no two of its steps lie a whole row further apart or nearer than the line puts
+    them; the apex counts as a step, since the two edges meet in the tile's top row. The first
+    is not less than the second when the edges are no such staircase (a rendered tile's soft
+    edge, a blunt tip): then the pixels say nothing sure."""
+    apex, edges = _upper_edges(tile)
+    above, below = 0.0, float("inf")
+    for columns in edges:
+        run = np.concatenate(([0.0], np.abs(columns - apex)))
+        fall = np.concatenate(([0.0], (tile.top[columns] - tile.top.min()).astype(np.float64)))
+        runs = run[None, :] - run[:, None]
+        falls = fall[None, :] - fall[:, None]
+        apart = runs > 0
+        above = max(above, float(((falls[apart] - 1.0) / runs[apart]).max()))
+        below = min(below, float(((falls[apart] + 1.0) / runs[apart]).min()))
+    return above, below
+
+
+def edge_slope(tile: FlatTile) -> float:
+    """How steeply the two upper edges of a flat tile fall, in rows a column: half the
+    diamond's height over half its width. A line is fitted to each edge. On a short edge the
+    fit can be a slope the staircase cannot have (``slope_bounds``; its few steps weigh on the
+    fit: a diamond 32 x 18 is fitted as 18.85 high, where its pixels allow 17.8 to 18.3), and
+    then the slope of the nearest whole height they do allow is taken instead."""
+    w = tile.width
+    _apex, edges = _upper_edges(tile)
+    slopes = [abs(float(np.polyfit(columns, tile.top[columns], 1)[0])) for columns in edges]
+    if not slopes:
+        return tile.face_height / w
+    fitted = sum(slopes) / len(slopes)
+    above, below = slope_bounds(tile)
+    if not above < below or above < fitted < below:
+        return fitted
+    possible = [
+        h
+        for h in range(int(np.floor(w * above)), int(np.ceil(w * below)) + 1)
+        if w * above + BOUND_SLACK < h < w * below - BOUND_SLACK
+    ]
+    return min(possible, key=lambda h: (abs(h - w * fitted), h)) / w if possible else fitted
 
 
 def diamond_height(tile: FlatTile) -> tuple[int, float] | None:

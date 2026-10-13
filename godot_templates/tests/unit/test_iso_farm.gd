@@ -277,9 +277,14 @@ func test_the_farm_is_built_on_diamonds_from_its_plan(t) -> void:
 	t.eq(way_out.position, geo.center(Vector2i(0, 6)))
 	t.ok((way_out.get_node("Shape") as CollisionShape2D).shape is ConvexPolygonShape2D)
 	var props := root.get_node("YSorted/Props") as TileMapLayer
-	t.ok(props.get_cell_source_id(Vector2i(0, 5)) != -1, "the edge is the pack's wall, on the layer that sorts with the actors")
+	t.ok(props.get_cell_source_id(Vector2i(17, 5)) != -1, "the near edge is the pack's wall, on the layer that sorts with the actors")
+	# the far edge lies in the place of the ground (T17.18), with an unseen diamond a cell
+	t.eq(props.get_cell_source_id(Vector2i(0, 5)), -1)
+	t.ok(ground.get_cell_tile_data(Vector2i(0, 5)).get_collision_polygons_count(0) > 0, "the far edge is the pack's wall, on the ground's layer")
 	t.eq(props.get_cell_source_id(Vector2i(0, 6)), -1, "the gap is open")
-	t.ok(root.get_node_or_null("BorderCollision") == null, "a wall that blocks needs no unseen edge")
+	t.ok(ground.get_cell_tile_data(Vector2i(0, 6)).get_collision_polygons_count(0) == 0, "and its ground stays ground")
+	var unseen := root.get_node_or_null("BorderCollision") as StaticBody2D
+	t.ok(unseen != null and unseen.get_node_or_null("Wall_0_5") != null and unseen.get_node_or_null("Wall_0_6") == null and unseen.get_node_or_null("Wall_17_5") == null, "the far walls block by unseen diamonds, the near ones by their tiles")
 	# the house: the pack's own is drawn on one cell and has no scene here, so it is drawn as a
 	# box over the plan's footprint, in two halves, with the door as a band on its south side
 	var house := root.get_node("YSorted/Entities/House") as StaticBody2D
@@ -328,6 +333,11 @@ func test_a_building_of_the_packs_stands_at_the_plans_door(t) -> void:
 	t.eq(FarmMap.iso_building_offset(wide, Vector2i(3, 2), 1), Vector2i(0, 0), "one that is the footprint")
 	t.eq(FarmMap.iso_building_offset(wide, Vector2i(3, 2), 2), Vector2i(-1, -1), "its door is not before the plan's cell")
 	t.eq(FarmMap.iso_building_offset(wide, Vector2i(2, 2), 0), Vector2i(-1, -1), "too large")
+	# what a smaller building leaves of the plan's footprint is blocked (T17.18): the plan
+	# counts the whole footprint as a building
+	var rest := FarmMap.uncovered_cells(Rect2i(6, 2, 2, 2), Rect2i(Vector2i(6, 2) + FarmMap.iso_building_offset(house, Vector2i(2, 2), 0), MapGeo.entry_cells(house)))
+	t.eq(rest, [Vector2i(6, 2), Vector2i(7, 2), Vector2i(7, 3)] as Array[Vector2i], "three of the four cells of a house on one diamond")
+	t.eq(FarmMap.uncovered_cells(Rect2i(6, 2, 3, 2), Rect2i(6, 2, 3, 2)), [] as Array[Vector2i], "none of a building that is the footprint")
 	t.eq(FarmMap.building_entry(entries, "coop", Vector2i(3, 2), 1, UNIT, "", true), {}, "a house is no coop: drawn")
 	t.eq(FarmMap.building_entry(entries, "house", Vector2i(2, 2), 0, UNIT), {}, "seen from above nothing drawn for the other view is taken")
 	var trees := FarmMap.thing_entries(entries, "tree", UNIT)

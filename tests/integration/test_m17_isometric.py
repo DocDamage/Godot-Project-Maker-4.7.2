@@ -309,17 +309,28 @@ def test_the_steps_hold_when_the_pad_follows_the_grid(on_the_grid) -> None:  # n
     settings = (target / "project.godot").read_text(encoding="utf-8")
     assert 'iso_controls="grid"' in settings
     assert jsonio.read(paths.from_posix_rel(paths.CONFIG, target))["iso_controls"] == "grid"
-    # the wall rises, so it is painted where it is sorted with who stands by it: the Y-sorted
-    # Props layer, a ring of the plan's size with a gap for the way to the field
+    # the wall rises, so its near sides are painted where they are sorted with who stands by
+    # them: the Y-sorted Props layer. Its far sides (the first row and the first column, behind
+    # which nobody stands) lie in the place of the ground of their cells, where the tiles
+    # before them cover the earth under them (T17.18): a ring of the plan's size in all, with
+    # a gap for the way to the field
     view = _view(target)
     plan = _plan(target, "turn_based")
     w, h = plan["size"]
     props = next(layer for layer in view["layers"] if layer["name"] == "Props")
+    ground = next(layer for layer in view["layers"] if layer["name"] == "Ground")
     ring = {(x, y) for x in range(w) for y in range(h) if x in (0, w - 1) or y in (0, h - 1)}
-    assert {(c[0], c[1]) for c in props["cells"]} == ring - {tuple(plan["exit_gap"])}
+    ring -= {tuple(plan["exit_gap"])}
+    far = {cell for cell in ring if 0 in cell}
+    assert {(c[0], c[1]) for c in props["cells"]} == ring - far
+    wall_tiles = {(c[2], c[3], c[4]) for c in props["cells"]}
+    on_ground = {(c[0], c[1]) for c in ground["cells"] if (c[2], c[3], c[4]) in wall_tiles}
+    assert on_ground == far, "the far walls, and no other cell of the ground"
     assert not next(layer for layer in view["layers"] if layer["name"] == "Walls")["cells"]
+    # the near walls block by their own diamonds; the ground's layer blocks nothing, so the far
+    # ones keep theirs as unseen shapes
     starter = (target / MAPS[0]).read_text(encoding="utf-8")
-    assert "BorderCollision" not in starter, "the wall tiles block by their own diamonds"
+    assert starter.count('parent="BorderCollision"') == len(far)
 
 
 def test_a_world_of_areas_on_diamonds(
@@ -457,6 +468,7 @@ FARM_SEQUENCE = [
     *SHARED_STEPS[1:],
     *FARM_STEPS,
     *FARM_ANIMAL_STEPS,
+    "save_and_load",  # T17.18: saved, changed and loaded, the field compared cell by cell
 ]
 FARM_MAPS = ["game/maps/farm.tscn", "game/maps/farm_house.tscn", "game/maps/starter_map.tscn"]
 FARM_SOIL = "generated/tilesets/farm_soil.tres"
@@ -564,7 +576,14 @@ def test_the_pack_makes_an_isometric_farm_that_passes_its_smoke_run(iso_farm) ->
 def test_the_farm_is_painted_on_diamonds_where_its_plan_says(iso_farm, godot_exe: Path) -> None:  # noqa: ANN001
     target, _result = iso_farm
     tilesets = sorted(p.name for p in (target / "generated/tilesets").glob("*.tres"))
-    assert tilesets == ["farm_soil.tres", "iso.tres"]
+    assert tilesets == ["farm_room.tres", "farm_soil.tres", "iso.tres"]
+    # the drawn floor of the rooms (T17.18) is a diamond on the grid of the ground
+    room_set = (target / "generated/tilesets/farm_room.tres").read_text(encoding="utf-8")
+    assert (
+        "tile_shape = 1" in room_set and f"tile_size = Vector2i({FOOT[0]}, {FOOT[1]})" in room_set
+    )
+    house = (target / "game/maps/farm_house.tscn").read_text(encoding="utf-8")
+    assert "generated/tilesets/farm_room.tres" in house and "generated/tilesets/iso.tres" in house
     soil_set = (target / FARM_SOIL).read_text(encoding="utf-8")
     assert "tile_shape = 1" in soil_set and "tile_layout = 5" in soil_set
     assert "tile_size = Vector2i(60, 34)" in soil_set, "the soil lies on the diamonds of the ground"
@@ -711,7 +730,7 @@ ISLE_NOTES = {"ADAPT-003"}  # what a sample may say: that its profile was found
 SIDES = {"n": (0, -1), "e": (1, 0), "s": (0, 1), "w": (-1, 0)}
 
 
-def _isle_config() -> config.GeneratorConfig:
+def _isle_config(archetype: str = "turn_based") -> config.GeneratorConfig:
     from rpggen.core import mapping, profiles
     from rpggen.gui.models import project_model
 
@@ -725,10 +744,10 @@ def _isle_config() -> config.GeneratorConfig:
     cfg = config.default_for(
         sample.name,
         [config.pack_ref_from_source(pack, sample.folder)],
-        archetype=sample.archetype,
+        archetype=archetype,
     )
     cfg.projection = sample.projection
-    cfg.starter = mapping.default_starter(cat, sample.archetype, sample.projection)
+    cfg.starter = mapping.default_starter(cat, archetype, sample.projection)
     return cfg
 
 
@@ -796,7 +815,13 @@ def test_the_path_of_stone_isle_is_laid_from_the_pieces_that_name_their_sides(is
     plan = _isle_plan(target)
     assert view["projection"] == "isometric" and view["tile_size"] == list(ISLE_FOOT)
     roads = {tuple(c) for c in [*plan["path"], *plan["exit_path"]]}
-    laid = _joined(_cells(view, "GroundDetails"), _isle_tiles(target))
+    # a path piece is a whole tile, the diamond with the earth under it: it lies in the place
+    # of the ground of its cell, on the ground's own layer, where the tiles before it cover its
+    # earth (T17.18: on the layer above it showed as a dark kerb along every path)
+    assert not _cells(view, "GroundDetails")
+    tiles = _isle_tiles(target)
+    paved = {c: t for c, t in _cells(view, "Ground").items() if ".png.path" in tiles[t][0]}
+    laid = _joined(paved, tiles)
     assert set(laid) == roads and len(roads) > 30, "every cell of the plan's paths"
     for cell, (asset_id, joins, beside) in laid.items():
         assert ".png.path" in asset_id, (cell, asset_id)
@@ -816,7 +841,15 @@ def test_the_walls_of_stone_isle_are_painted_and_join(isle) -> None:  # noqa: AN
     plan = _isle_plan(target)
     w, h = plan["size"]
     ring = {(x, y) for x in range(w) for y in range(h) if x in (0, w - 1) or y in (0, h - 1)}
-    walls = _joined(_cells(view, "Props"), _isle_tiles(target))
+    # the near sides on the layer that sorts with who stands by them, the far sides (the first
+    # row and the first column) in the place of the ground, where nothing shows of the earth
+    # under them (T17.18: over the ground it was a brown footing along the two far walls)
+    tiles = _isle_tiles(target)
+    near = _cells(view, "Props")
+    far = {c: t for c, t in _cells(view, "Ground").items() if ".png.wall" in tiles[t][0]}
+    assert set(far) == {c for c in ring if 0 in c} - {tuple(plan["exit_gap"])}
+    assert not set(near) & set(far) and all(0 not in c for c in near)
+    walls = _joined({**near, **far}, tiles)
     assert set(walls) == ring - {tuple(plan["exit_gap"])}, "the edge of the map, less its way out"
     assert not _cells(view, "Walls"), "a wall rises: it is sorted with who stands by it"
     for cell, (asset_id, joins, beside) in walls.items():
@@ -826,7 +859,9 @@ def test_the_walls_of_stone_isle_are_painted_and_join(isle) -> None:  # noqa: AN
     assert {"ns", "ew", "es", "sw", "en", "nw"} <= pieces, "straights and the four corners"
     assert len([p for p in pieces if len(p) == 1]) == 2, "an end on each side of the way out"
     starter = (target / MAPS[0]).read_text(encoding="utf-8")
-    assert "BorderCollision" not in starter, "the wall tiles block by their own diamonds"
+    assert starter.count('parent="BorderCollision"') == len(far), (
+        "the near walls block by their own diamonds, the far ones by an unseen diamond each"
+    )
 
 
 def test_the_house_of_stone_isle_stands_on_its_four_cells(isle) -> None:  # noqa: ANN001
@@ -879,3 +914,81 @@ def test_a_second_run_of_stone_isle_changes_nothing(isle, godot_exe: Path) -> No
     )
     for rel, data in kept.items():
         assert (target / rel).read_bytes() == data, rel
+
+
+# ------------------------------------------------- Stone isle: the other sequences (T17.18)
+#
+# Isometric has no sequence of its own: the shared one and the action RPG's run over the sample
+# as they are (the racing one in test_m17_iso_racing.py). And what a run writes follows the
+# schemas, as the arcade samples' does (test_m16_samples.py).
+
+
+@pytest.fixture(scope="module")
+def isle_arpg(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):  # noqa: ANN201
+    return _generated(godot_exe, tmp_path_factory.mktemp("iso_isle_arpg"), _isle_config("arpg"))
+
+
+def test_stone_isle_is_an_isometric_action_rpg_that_passes_its_smoke_run(isle_arpg) -> None:  # noqa: ANN001
+    """The pack's own hero is 16 px wide on diamonds of 23 px a step: the steps that put an
+    enemy "a tile away" to be struck asked the tile where they should have asked the bodies,
+    and the swing ended 5 px short of it (`player_attack_hits`). They ask the bodies now."""
+    target, result = isle_arpg
+    assert not _errors(result)
+    assert _smoke(target) == SHARED_STEPS + ARPG_STEPS, "the kind's usual steps, all of them"
+    assert "SCRIPT ERROR" not in (target / "rpggen/logs/godot_smoke.log").read_text(
+        encoding="utf-8", errors="replace"
+    )
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == ["arpg"]
+    saved = jsonio.read(paths.from_posix_rel(paths.CONFIG, target))
+    assert (saved["archetype"], saved["projection"]) == ("arpg", "isometric")
+    player = (target / "generated/scenes/actors/player.tscn").read_text(encoding="utf-8")
+    assert "sample_pack_iso.characters.hero" in player, "the pack's own hero, not the drawn one"
+    assert "tile_size = 23.0" in player, "one step on diamonds of 40 x 22"
+    assert not (target / "generated/iso_kit").exists()
+    for rel in MAPS:
+        assert 'path="res://generated/tilesets/iso.tres"' in (target / rel).read_text(
+            encoding="utf-8"
+        )
+
+
+def test_stone_isle_follows_the_schemas(
+    isle,  # noqa: ANN001
+    godot_exe: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """What the run wrote, and the document of `rpggen generate --json` on the project (a run
+    that finds nothing changed), each against its schema: what test_m16_samples.py checks of
+    the arcade samples, less the world plan, which a village without areas does not have."""
+    import json
+
+    from rpggen import cli, schema
+
+    target, _result = isle
+    for rel in (paths.RESULTS_BUILD, paths.RESULTS_VALIDATE, paths.RESULTS_SMOKE):
+        doc = jsonio.read(target / rel)
+        schema.validate("results", doc)
+        assert doc["ok"] is True, rel
+    saved = jsonio.read(target / paths.CONFIG)
+    schema.validate("config", saved)
+    assert (saved["archetype"], saved["projection"]) == ("turn_based", "isometric")
+    schema.validate("ledger", jsonio.read(target / paths.LEDGER))
+    schema.validate("catalog", jsonio.read(target / paths.CATALOG))
+    capsys.readouterr()
+    code = cli.main(
+        [
+            "generate",
+            "--config",
+            str(target / paths.CONFIG),
+            "--target",
+            str(target),
+            "--godot",
+            str(godot_exe),
+            "--json",
+        ]
+    )
+    document = json.loads(capsys.readouterr().out)
+    schema.validate("cli", document)
+    assert code == 0 and document["ok"] is True and document["failed_phase"] is None
+    assert not [i for i in document["issues"] if i["severity"] != "info"], document["issues"]
+    assert orchestrator.REPEAT_CODE in {i["code"] for i in document["issues"]}

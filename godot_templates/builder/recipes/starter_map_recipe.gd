@@ -11,7 +11,7 @@ const RECIPE_VERSION := 8
 ## The version of what the recipe does for an isometric project only (T17.14): it is in the hash
 ## of such a project and of no other, so a change of the isometric painting rebuilds nothing of
 ## a project seen from above.
-const ISO_VERSION := 1
+const ISO_VERSION := 2
 
 const Paths := preload("../lib/paths.gd")
 const JsonUtil := preload("../lib/json_util.gd")
@@ -216,8 +216,8 @@ func build(ctx: BuildContext) -> Array:
 		var gate := WorldPlan.gate_of(village, JsonUtil.to_str(door.get("id", "")))
 		if not gate.is_empty():
 			WorldPlan.add_gate(gate, door_cell, root, entities, geo)
-	if nodes.has("GroundDetails"):
-		var details: TileMapLayer = nodes["GroundDetails"]
+	var details := geo.road_layer(nodes)  # GroundDetails; the ground itself on diamonds
+	if details != null:
 		geo.paint_runs(details, roads, "ROAD", road)
 	for note in geo.take_notes():
 		print("[rpggen] INFO starter_map: ", note)

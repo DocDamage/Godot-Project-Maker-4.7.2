@@ -393,12 +393,28 @@ func test_the_blocked_edge_of_a_map(t) -> void:
 	var gap := Vector2i(5, 2)
 	geo.paint_walls(root, nodes, Vector2i(6, 5), [gap])
 	var props: TileMapLayer = nodes["Props"]
-	t.eq(props.get_used_cells().size(), 6 * 2 + 3 * 2 - 1, "the ring without the gap")
+	var ground: TileMapLayer = nodes["Ground"]
+	# the near sides (the last row and the last column) sort with who walks behind them; the far
+	# sides lie in the place of the ground, whose tiles before them cover the earth under them
+	# (T17.18: over the ground it was a brown footing along the two far walls)
+	t.eq(props.get_used_cells().size(), 5 + 3 - 1, "the near sides, without the gap")
+	t.eq(ground.get_used_cells().size(), 6 + 4, "the far sides: the first row and the first column")
 	t.eq(props.get_cell_source_id(gap), -1)
-	t.eq(props.get_cell_tile_data(Vector2i(0, 0)).get_custom_data("asset_id"), WALL)
-	t.eq(props.get_cell_tile_data(Vector2i(0, 0)).get_collision_polygons_count(0), 1)
+	t.eq(ground.get_cell_source_id(gap), -1)
+	for cell: Vector2i in [Vector2i(0, 0), Vector2i(5, 0), Vector2i(0, 4), Vector2i(0, 2), Vector2i(3, 0)]:
+		t.eq(ground.get_cell_tile_data(cell).get_custom_data("asset_id"), WALL, "%s is a far wall" % cell)
+		t.eq(props.get_cell_source_id(cell), -1)
+	for cell: Vector2i in [Vector2i(5, 4), Vector2i(1, 4), Vector2i(5, 1), Vector2i(5, 3)]:
+		t.eq(props.get_cell_tile_data(cell).get_custom_data("asset_id"), WALL, "%s is a near wall" % cell)
+		t.eq(props.get_cell_tile_data(cell).get_collision_polygons_count(0), 1)
+		t.eq(ground.get_cell_source_id(cell), -1)
 	t.ok(props.y_sort_enabled and props.collision_enabled, "a wall rises: it is sorted with who stands by it")
-	t.ok(root.get_node_or_null("BorderCollision") == null, "the tiles block")
+	# the tiles of the near sides block; the ground's layer blocks nothing, so the far walls
+	# keep their diamonds as unseen shapes
+	var unseen := root.get_node_or_null("BorderCollision") as StaticBody2D
+	t.ok(unseen != null and not ground.collision_enabled)
+	t.eq(unseen.get_child_count(), 6 + 4, "a diamond for every far wall, and for no other")
+	t.ok(unseen.get_node_or_null("Wall_0_0") != null and unseen.get_node_or_null("Wall_0_4") != null and unseen.get_node_or_null("Wall_5_4") == null)
 	root.free()
 	# without one: an invisible diamond a cell
 	var bare_ctx := _context(_no_wall())

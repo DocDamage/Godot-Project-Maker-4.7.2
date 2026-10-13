@@ -109,6 +109,75 @@ def test_the_diamond_of_a_flat_tile_is_measured_whatever_its_shape(tool, foot, s
     assert (diamond.width, diamond.height, diamond.side) == (*foot, side)
 
 
+@pytest.mark.parametrize("side", [0, 6])
+@pytest.mark.parametrize("foot", [(28, 16), (32, 18), (34, 18), (36, 20), (40, 22)])
+def test_a_small_diamond_is_not_measured_a_pixel_too_high(tool, foot, side) -> None:  # noqa: ANN001
+    """An edge 16 columns long is a staircase of nine steps, and a line fitted to it is 18.85
+    high for a diamond 32 x 18: the height is one the staircase can have."""
+    canvas = (foot[0] + 8, foot[1] + side + 30)
+    tile = measure.flat_tile(_mask(tool._iso_block(canvas, foot, side, tool.pal(3))))
+    assert tile is not None and tile.width == foot[0]
+    above, below = measure.slope_bounds(tile)
+    assert above < foot[1] / foot[0] < below
+    assert above < measure.edge_slope(tile) < below
+    found = measure.diamond_height(tile)
+    assert found is not None and found[0] == foot[1], found
+    diamond = measure.measure([tile] * 3)
+    assert diamond is not None
+    assert (diamond.width, diamond.height, diamond.side) == (*foot, side)
+
+
+def _drawn(foot: tuple[int, int], lift: float, side: int = 0) -> np.ndarray:
+    """The painted pixels of a diamond drawn by hand: ``lift`` 0.0 gives the top a row of four
+    pixels (every step of the edge is cut where it begins), 0.5 a row of two (where its
+    middle is), as the two habits of pixel art are."""
+    w, h = foot
+    tops = [int(abs(2 * x + 1 - w) * h / (2 * w) + lift) for x in range(w)]
+    rows = h if lift == 0.0 else h + 1  # the widest row is drawn twice, or once
+    mask = np.zeros((rows + side + 2, w + 4), dtype=bool)
+    for x, top in enumerate(tops):
+        mask[top : rows - top + side, 2 + x] = True
+    return mask
+
+
+@pytest.mark.parametrize("lift", [0.0, 0.5])
+@pytest.mark.parametrize("foot", [(32, 16), (32, 18), (36, 20), (40, 22), (48, 24), (64, 32)])
+def test_a_diamond_is_measured_whichever_way_its_tip_is_drawn(foot, lift) -> None:  # noqa: ANN001
+    mask = _drawn(foot, lift)
+    assert int(mask[mask.any(axis=1).argmax()].sum()) == (4 if lift == 0.0 else 2)
+    tile = measure.flat_tile(mask)
+    assert tile is not None and tile.width == foot[0]
+    diamond = measure.measure([tile] * 3)
+    assert diamond is not None and (diamond.width, diamond.height) == foot
+
+
+def test_a_fitted_slope_the_staircase_can_have_is_left_as_it_is(tool) -> None:  # noqa: ANN001
+    """Only a fit that the pixels rule out is replaced, and where they say nothing sure (a
+    tip cut off: no staircase of one line) the fit stands."""
+    kept = 0
+    for foot in ((64, 32), (100, 50), (120, 69), (180, 104), (256, 128)):
+        block = tool._iso_block((foot[0] + 8, foot[1] + 40), foot, 9, tool.pal(2))
+        tile = measure.flat_tile(_mask(block))
+        assert tile is not None
+        above, below = measure.slope_bounds(tile)
+        edges = measure._upper_edges(tile)[1]
+        fitted = sum(abs(float(np.polyfit(c, tile.top[c], 1)[0])) for c in edges) / len(edges)
+        assert above < foot[1] / foot[0] < below
+        if above < fitted < below:
+            kept += 1
+            assert measure.edge_slope(tile) == fitted
+        assert round(foot[0] * measure.edge_slope(tile)) == round(foot[0] * fitted) == foot[1]
+    assert kept >= 3
+    blunt = _drawn((64, 32), 0.0)
+    blunt[: blunt.any(axis=1).argmax() + 1] = False
+    tile = measure.flat_tile(blunt)
+    assert tile is not None
+    above, below = measure.slope_bounds(tile)
+    edges = measure._upper_edges(tile)[1]
+    fitted = sum(abs(float(np.polyfit(c, tile.top[c], 1)[0])) for c in edges) / len(edges)
+    assert not above < below and measure.edge_slope(tile) == fitted
+
+
 def test_laying_two_whole_blocks_shows_no_gap_until_the_side_is_used_up(tool) -> None:  # noqa: ANN001
     """What was measured on the real packs, and why the side is taken off before laying: a
     block 180 x 104 on a side of 21 opens no gap from 104 up to 104 + 2 * 21."""

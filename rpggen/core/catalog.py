@@ -905,10 +905,26 @@ def fits_projection(asset: Asset, projection: str = "top_down") -> bool:
     return facets.get("projection") != PROJECTION_ISOMETRIC
 
 
+def _diamond_of_tiles(sheets: list[dict[str, Any]]) -> tuple[int, int] | None:
+    """The diamond most isometric tiles among ``sheets`` (detected facets) stand on, or None
+    when none says one. Of two that as many tiles stand on, the smaller."""
+    counts: dict[tuple[int, int], int] = {}
+    for facets in sheets:
+        foot = facets.get("footprint")
+        if facets.get("usage") != "iso_tile" or not isinstance(foot, list | tuple):
+            continue
+        if len(foot) == 2 and all(isinstance(n, int) and n > 0 for n in foot):
+            counts[(foot[0], foot[1])] = counts.get((foot[0], foot[1]), 0) + 1
+    if not counts:
+        return None
+    return min(counts, key=lambda foot: (-counts[foot], foot))
+
+
 def isometric_footprint(pack: CatalogPack) -> tuple[int, int, str] | None:
     """``(width, height, where it came from)`` of the diamond of an isometric pack, from its
     warning ``isometric:180x104:measured`` (the source is ``tiled``, ``tile_information`` or
-    ``measured``); None for a pack that is not one."""
+    ``measured``, or ``profile`` for a pack whose installed profile said its tiles); None for
+    a pack that is not one."""
     from rpggen.core import classifier
 
     for mark in pack.warnings:
@@ -1546,6 +1562,12 @@ def assemble(
         if classifier.isometric_view(inv, sheets):
             # how the pack is seen (T17.12); what it was made for is said beside it
             warnings.append(VIEW_ISOMETRIC)
+            if not any(w.startswith(classifier.ISOMETRIC_MARK) for w in warnings):
+                # a pack read through its profile: the profile claims every picture, so the
+                # isometric reader looked at none and said no diamond. The tiles say it.
+                said = _diamond_of_tiles(sheets)
+                if said is not None:
+                    warnings.append(f"{classifier.ISOMETRIC_MARK}{said[0]}x{said[1]}:profile")
         if view in ("shmup", "racing"):
             # what such a pack calls a power-up is one: "ability" is the metroidvania's word
             for asset in catalog.assets:

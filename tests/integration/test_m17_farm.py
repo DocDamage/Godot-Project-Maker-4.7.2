@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -69,6 +70,10 @@ ANIMAL_STEPS = [
     "egg_in_the_morning",
     "ship_the_egg",
 ]
+# the last step (T17.18): the game is saved, changed and loaded, and the field, the date, the
+# money, the bag, the herd and the friendships are what they were
+SAVE_STEPS = ["save_and_load"]
+TAIL = ANIMAL_STEPS + SAVE_STEPS
 TOOLS = ("hoe", "watering_can", "sickle", "farm_axe", "fishing_rod")
 START_TOOLS = ("hoe", "watering_can")  # the others are bought at the shop (T17.08, T17.10)
 FILES = [
@@ -160,7 +165,7 @@ def test_the_kind_is_generated_but_not_offered(plain) -> None:
 def test_the_sample_pack_is_a_farm_that_passes_its_smoke_run(plain) -> None:
     target, _result = plain
     names = _smoke(target)
-    assert names[-len(STEPS + ANIMAL_STEPS) :] == STEPS + ANIMAL_STEPS
+    assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
     # the shared top-down sequence ran before them, as it does for the other top-down kinds
     assert names[0] == "title_new_game" and names[1:4] == HOUSE_STEPS
     assert names.index("go_to_the_village") < names.index("map_music"), "then the village's steps"
@@ -503,7 +508,7 @@ def test_a_stored_plan_that_was_broken_by_hand_is_reported(plain, godot_exe: Pat
 
 def test_the_growth_strips_of_the_ranch_pack_are_its_crops(ranch) -> None:
     target, _result = ranch
-    assert _smoke(target)[-len(STEPS + ANIMAL_STEPS) :] == STEPS + ANIMAL_STEPS
+    assert _smoke(target)[-len(STEPS + TAIL) :] == STEPS + TAIL
     section = world_plan.load(target)["farm"]
     assert sorted(c["id"] for c in section["crops"]) == ["corn", "pumpkin", "tomato", "wheat"]
     # the pack has nobody but the farmer (its strips of the farmer hoeing and watering are
@@ -773,7 +778,7 @@ def _house_rooms(target: Path, farm_map: dict) -> None:
 def test_a_farm_with_a_coop_keeps_the_drawn_hen(coop) -> None:
     target, _result = coop
     names = _smoke(target)
-    assert names[-len(ANIMAL_STEPS) :] == ANIMAL_STEPS
+    assert names[-len(TAIL) :] == TAIL
     assert _animal_notes(target) == [], "every step of the animals did its work"
     animals, farm_map, listed = _animal_files(target)
     assert farm_map["animals"] == "coop"
@@ -814,7 +819,7 @@ def test_a_farm_with_a_coop_keeps_the_drawn_hen(coop) -> None:
 def test_a_ranch_with_a_coop_and_a_barn_keeps_its_hens_and_cows(barn) -> None:
     target, _result = barn
     names = _smoke(target)
-    assert names[-len(ANIMAL_STEPS) :] == ANIMAL_STEPS
+    assert names[-len(TAIL) :] == TAIL
     assert _animal_notes(target) == [], "a hen and a cow were bought, fed, petted and gave"
     animals, farm_map, listed = _animal_files(target)
     assert [b["kind"] for b in farm_map["animal_houses"]] == ["coop", "barn"]
@@ -947,7 +952,7 @@ def test_green_acre_is_a_farm_that_is_worked_from_seed_to_sale(green_acre) -> No
     target, result = green_acre
     names = _smoke(target)
     assert names[0] == "title_new_game" and names[1:4] == HOUSE_STEPS
-    assert names[-len(STEPS + ANIMAL_STEPS) :] == STEPS + ANIMAL_STEPS
+    assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
     assert "npc_dialogue" in names and "chest_open" in names and "enter_building" in names
     # every step is played: only the animals' pass with a note, in a farm without their houses
     assert _vacuous(target) == ANIMAL_STEPS
@@ -1028,7 +1033,7 @@ def test_a_second_run_of_green_acre_changes_nothing(green_acre, godot_exe: Path)
 def test_green_acre_with_a_coop_and_a_barn_keeps_its_hen_and_its_cow(green_acre_animals) -> None:
     target, result = green_acre_animals
     names = _smoke(target)
-    assert names[-len(STEPS + ANIMAL_STEPS) :] == STEPS + ANIMAL_STEPS
+    assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
     assert _vacuous(target) == [], "every step of the farm is played, the animals' too"
     assert _animal_notes(target) == []
     assert _sample_notes(result) == []
@@ -1066,3 +1071,154 @@ def test_green_acre_with_a_coop_and_a_barn_keeps_its_hen_and_its_cow(green_acre_
     assert f"{pack}props/fence.png" in scene
     sizes = {b["kind"]: b["rect"][2:] for b in farm_map["animal_houses"]}
     assert sizes == {"coop": [4, 3], "barn": [6, 4]}
+
+
+# ---------------------------------------------------------------- schemas and regeneration (T17.18)
+
+
+def test_green_acre_follows_the_schemas(green_acre, godot_exe: Path, capsys) -> None:
+    """What the run wrote and the document of `rpggen generate --json` on the project, each
+    against its schema, as the arcade samples are checked (test_m16_samples.py); and the files
+    of the farm against theirs."""
+    from test_m16_samples import _follows_the_schemas
+
+    target, _result = green_acre
+    _follows_the_schemas(target, godot_exe, capsys, "farm")
+    schema.validate("crops", jsonio.read(target / "game/data/crops.json"))
+    schema.validate("people", jsonio.read(target / "game/data/people.json"))
+    smoke = jsonio.read(target / "rpggen/results/smoke_results.json")
+    assert smoke["items"][-1]["name"] == "save_and_load" and smoke["items"][-1]["ok"] is True
+
+
+def _recoloured(source: Path, target: Path) -> None:
+    """A copy of a picture in other colours: a new picture, not a second copy of the first."""
+    from PIL import Image
+
+    with Image.open(source) as opened:
+        picture = opened.convert("RGBA")
+    red, green, blue, alpha = picture.split()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    Image.merge("RGBA", (blue, red, green, alpha)).save(target, format="PNG")
+
+
+@pytest.fixture(scope="module")
+def grown(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):
+    """A farm of a copy of the ranch pack with a coop and a barn, and then the same project
+    generated again after the pack gained a crop and a kind of animal and the options asked
+    for a larger farm. (before, after, target, the second result)"""
+    import shutil
+
+    folder = tmp_path_factory.mktemp("m17_grown")
+    pack, target = folder / "ranch", folder / "out"
+    shutil.copytree(RANCH, pack)
+    cfg = _config(pack, "ranch")
+    cfg.starter_map["animals"] = "coop_and_barn"
+    first = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert first.ok, _errors(first)
+    before = {
+        "plan": world_plan.load(target)["farm"],
+        "farm": (target / "game/maps/farm.tscn").read_bytes(),
+        "house": (target / "game/maps/farm_house.tscn").read_bytes(),
+        "crops": jsonio.read(target / "generated/data/crops.json"),
+    }
+    _recoloured(pack / "crops/wheat_16x32_5frames.png", pack / "crops/turnip_16x32_5frames.png")
+    hen = pack / "animals/chickens/hen_01/white"
+    duck = pack / "animals/ducks/duck_01/white"
+    _recoloured(
+        hen / "move/hen_01_white_move_down_16x16_4frames.png",
+        duck / "move/duck_01_white_move_down_16x16_4frames.png",
+    )
+    _recoloured(
+        hen / "sleep/hen_01_white_sleep_16x16_2frames.png",
+        duck / "sleep/duck_01_white_sleep_16x16_2frames.png",
+    )
+    again = _config(pack, "ranch")
+    again.starter_map["animals"] = "coop_and_barn"
+    again.starter_map["farm_size"] = "large"
+    second = orchestrator.run_in_memory(again, None, target, godot_exe)
+    assert second.ok, _errors(second)
+    return before, world_plan.load(target)["farm"], target, second
+
+
+def test_a_crop_added_to_the_pack_is_added_to_the_plan_and_the_old_crops_stay(grown) -> None:
+    before, after, target, _result = grown
+    old = {crop["id"]: crop for crop in before["plan"]["crops"]}
+    new = {crop["id"]: crop for crop in after["crops"]}
+    assert set(new) - set(old) == {"turnip"}, "the crop the pack gained, and no other"
+    for crop_id, crop in old.items():
+        assert new[crop_id] == crop, f"{crop_id} is what it was: its days, its seasons, its prices"
+    assert [c["id"] for c in after["crops"]][: len(old)] == [
+        c["id"] for c in before["plan"]["crops"]
+    ]
+    assert crop_plan.check(after) == []
+    # the builder made the new crop: its scene, its seed and its produce, and the planned file
+    assert (target / "generated/scenes/farm/crops/turnip.tscn").is_file()
+    planned = {crop["id"] for crop in jsonio.read(target / "generated/data/crops.json")["crops"]}
+    assert planned == set(new)
+    turnip = new["turnip"]
+    for item in (turnip["seed"], turnip["produce"]):
+        assert (target / f"game/data/items/{item}.tres").is_file(), item
+    assert _smoke(target)[-len(STEPS + TAIL) :] == STEPS + TAIL, "the farm is still worked"
+
+
+def test_an_animal_kind_added_to_the_pack_is_added_to_the_plan_and_the_old_kinds_stay(
+    grown,
+) -> None:
+    before, after, target, _result = grown
+    old = {kind["id"]: kind for kind in before["plan"]["animals"]["kinds"]}
+    new = {kind["id"]: kind for kind in after["animals"]["kinds"]}
+    assert sorted(old) == ["cow", "hen"]
+    assert set(new) - set(old) == {"duck"}, "the kind the pack gained"
+    for kind_id, kind in old.items():
+        assert new[kind_id] == kind, f"{kind_id} is what it was"
+    assert new["duck"]["house"] == "coop" and new["duck"]["product"] == "duck_egg"
+    assert animal_plan.check(after["animals"]) == []
+    listed = jsonio.read(target / animal_plan.PLANNED_FILE)
+    schema.validate("animals", listed)
+    assert (target / "game/data/items/duck_egg.tres").is_file()
+    scenes = sorted(p.name for p in (target / "generated/scenes/farm/animals").glob("duck__*.tscn"))
+    assert len(scenes) == 1, scenes
+
+
+def test_the_stored_map_of_a_farm_is_not_planned_again_when_the_options_change(grown) -> None:
+    """The second run asked for a larger farm: the farm that exists is the one that was planned
+    and built, cell for cell and byte for byte (the rule of T14.06: a map that exists is the
+    user's)."""
+    before, after, target, _result = grown
+    assert after["map"] == before["plan"]["map"], "the stored plan of the farm is kept"
+    assert (target / "game/maps/farm.tscn").read_bytes() == before["farm"]
+    assert (target / "game/maps/farm_house.tscn").read_bytes() == before["house"]
+    saved = jsonio.read(target / paths.CONFIG)
+    assert saved["starter_map"]["farm_size"] == "large", "the option is kept as it was asked"
+
+
+def test_the_rooms_of_a_farm_read_as_indoors(ranch, plain) -> None:
+    """T17.18: the ranch pack has no interior tiles, so its farmhouse was floored with its
+    grass (which changes with the season) and walled with its hedge. It has the drawn boards
+    and plaster now, a tile set of the rooms alone. (A project with an interior tile set takes
+    its floor and its wall from that, by the rule of the village's houses: no pack of the
+    repository makes one, so that branch is not played here.)"""
+    target, _result = ranch
+    assert (target / "generated/tilesets/farm_room.tres").is_file()
+    room = _text(target, "game/maps/farm_house.tscn")
+    drawn = re.search(r'path="res://generated/tilesets/farm_room.tres" id="([^"]+)"', room)
+    assert drawn is not None
+    for layer in ("Ground", "Walls"):
+        node = re.search(
+            rf'\[node name="{layer}" type="TileMapLayer"[^\n]*\n(.*?)(?=\n\[)', room, re.S
+        )
+        assert node is not None and f'tile_set = ExtResource("{drawn[1]}")' in node[1], layer
+        assert "tile_map_data" in node[1], f"{layer} is painted"
+    assert '[node name="BorderCollision" type="StaticBody2D"' in room, "the drawn wall is a picture"
+    # no season changes it: the table of the seasons names the pack's sheets, never this one
+    seasons = _text(target, "generated/data/seasons.json")
+    assert "tiles/spring/grass" in seasons and "farm_room" not in seasons
+    assert "ImageTexture" in _text(target, "generated/tilesets/farm_room.tres")
+    # the top-down sample has no interior tiles either (the houses of its village are floored
+    # with its grass, the shared interior recipe's rule since M4): its farmhouse is drawn too
+    target, _result = plain
+    room = _text(target, "game/maps/farm_house.tscn")
+    assert "generated/tilesets/farm_room.tres" in room
+    assert (
+        "interior.tres" not in room and not (target / "generated/tilesets/interior.tres").exists()
+    )

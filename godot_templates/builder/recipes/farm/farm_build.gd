@@ -74,6 +74,10 @@ const EARTH := Color(0.58, 0.44, 0.28)
 const TILLED := Color(0.42, 0.29, 0.18)
 const WET := Color(0.27, 0.2, 0.16)
 const WATER := Color(0.27, 0.5, 0.78)
+## The boards of the floor of a room and the plaster of its walls (room_texture).
+const BOARD := Color(0.72, 0.56, 0.36)
+const PLASTER := Color(0.85, 0.78, 0.62)
+const ROOM_TILESET := "res://generated/tilesets/farm_room.tres"
 
 # ---------------------------------------------------------------- the project
 
@@ -391,6 +395,38 @@ static func _iso_soil_colour(index: int, at: Vector2) -> Color:
 			return WET.darkened(0.25) if stripe else WET
 	var ripple := int(at.x * 6.0 + at.y * 2.0) % 5 == 0
 	return WATER.lightened(0.25) if ripple else WATER
+
+## The floor and the wall of a room of the farm (T17.18), two tiles of `size` px side by side:
+## boards with their seams and a knot or two, and a plastered wall with a rail along its foot.
+## Drawn for the farmhouse and the animal houses of a project whose packs have no interior
+## tiles: such a room was floored with the grass of the pack and walled with its hedge.
+static func room_texture(size: int) -> ImageTexture:
+	var image := _blank(size * 2, size)
+	var boards: Array = [[0, 0, 16, 16, BOARD]]
+	for row: int in [3, 7, 11, 15]:
+		boards.append([0, row, 16, 1, BOARD.darkened(0.22)])
+	for seam: Array in [[5, 0], [11, 4], [3, 8], [9, 12]]:
+		boards.append([seam[0], seam[1], 1, 3, BOARD.darkened(0.22)])
+	boards.append([13, 1, 1, 1, BOARD.darkened(0.35)])
+	boards.append([6, 9, 1, 1, BOARD.darkened(0.35)])
+	_draw(image, Vector2i.ZERO, size, boards)
+	_draw(image, Vector2i(size, 0), size, [[0, 0, 16, 16, PLASTER], [0, 0, 16, 1, PLASTER.lightened(0.2)], [0, 12, 16, 4, BOARD.darkened(0.3)], [0, 12, 16, 1, BOARD.darkened(0.45)]])
+	return ImageTexture.create_from_image(image)
+
+## The floor of a room of an isometric farm: one diamond of `footprint` of the same boards,
+## which run along the rows of the map. (The walls of an isometric room are the pieces of the
+## packs, or none: MapGeo.paint_walls.)
+static func iso_room_texture(footprint: Vector2i) -> ImageTexture:
+	var image := _blank(footprint.x, footprint.y)
+	for y in footprint.y:
+		for x in footprint.x:
+			var at := RpgIso.grid_point(Vector2(x + 0.5, y + 0.5), footprint)
+			if at.x < 0.0 or at.y < 0.0 or at.x >= 1.0 or at.y >= 1.0:
+				continue
+			var row := int(at.y * 16.0)
+			var seam := row % 4 == 3 or int(at.x * 16.0) == 3 + 4 * (int(at.y * 4.0) % 3)
+			image.set_pixel(x, y, BOARD.darkened(0.22) if seam else BOARD)
+	return ImageTexture.create_from_image(image)
 
 ## The colour of a crop of the plan: its own (a drawn crop), else one that its name gives.
 static func crop_colour(crop: Dictionary) -> Color:

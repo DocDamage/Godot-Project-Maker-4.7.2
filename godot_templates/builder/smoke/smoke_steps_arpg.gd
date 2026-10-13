@@ -12,7 +12,8 @@ const ImportedStarter := preload("imported_starter.gd")
 
 const ENEMY_1 := "starter_map_enemy_001"
 const ENEMY_2 := "starter_map_enemy_002"
-const SAVE_DIR := "user://smoke_saves"
+## The addon's smoke runner: it knows the folder this run saves into (a run's own).
+const SmokeRunner := preload("res://addons/rpg_runtime/debug/smoke_runner.gd")
 const SAVE_SLOT := 3
 const DODGE_DISTANCE := 44.0
 const DODGE_TOLERANCE := 8.0
@@ -97,6 +98,28 @@ func _freeze(enemy: RpgEnemyAi) -> void:
 	enemy.machine.enabled = false
 	enemy.move_dir(Vector2.ZERO)
 
+## How far to the right of the player an enemy is put to be struck: one tile, as these steps
+## always had it, unless the swing ends before the enemy begins there. A swing reaches half the
+## hero's picture and the width of its area, an enemy begins half its own area before its
+## middle: a hero narrower than a tile (a pack's hero of 16 px on diamonds of 23 px a step,
+## the isometric sample as an action RPG) swings 18 px and never touched an enemy put 23 px
+## away. The enemy is then put where the swing ends. (The distance was a tile because a tile
+## was taken for the width of a body: the bodies are asked now.)
+func _strike_gap(player: Node2D, enemy: RpgEnemyAi) -> float:
+	var hitbox := player.get_node_or_null("AttackHitbox") as RpgHitbox
+	var swing := _width_of(hitbox)
+	if hitbox == null or swing <= 0.0:
+		return enemy.tile_size
+	var far := absf(hitbox.reach.x) + swing * 0.5
+	var near := enemy.tile_size - _width_of(enemy.hurtbox) * 0.5
+	return enemy.tile_size if far >= near + 1.0 else far
+
+## The width of the rectangle of an area (its child `Shape`), or 0.
+func _width_of(area: Area2D) -> float:
+	var shape := area.get_node_or_null("Shape") as CollisionShape2D if area != null else null
+	var rect := shape.shape as RectangleShape2D if shape != null else null
+	return rect.size.x if rect != null else 0.0
+
 ## The player stands `tiles` tiles left of the enemy, facing it; waits until the player can act.
 func _stand_next_to(player: Node2D, enemy: RpgEnemyAi, tiles: float) -> void:
 	var combat := _combat_of(player)
@@ -176,7 +199,7 @@ func _player_attack_hits() -> String:
 	e1.health.changed.connect(func(_hp: int, _max: int) -> void: box["hit"] = true)
 	await _stand_next_to(p, e1, 1.0)
 	_freeze(e1)
-	e1.global_position = p.global_position + Vector2(e1.tile_size, 0.0)
+	e1.global_position = p.global_position + Vector2(_strike_gap(p, e1), 0.0)
 	await _frames(2)
 	await _tap("attack")
 	for i in 30:  # 0.5 s
@@ -251,7 +274,7 @@ func _heavy_attack_hits() -> String:
 			seen["last"] = null
 			await _stand_next_to(p, e1, 1.0)
 			_freeze(e1)
-			e1.global_position = p.global_position + Vector2(e1.tile_size, 0.0)
+			e1.global_position = p.global_position + Vector2(_strike_gap(p, e1), 0.0)
 			await _frames(2)
 			await _tap(action)
 			for i in 75:
@@ -392,7 +415,7 @@ func _enemy_dies() -> String:
 	while not died["v"] and Time.get_ticks_msec() - start < 5000:
 		if combat.state() == RpgPlayerCombat.IDLE and e1.hurtbox.is_inside_tree():
 			e1.hurtbox.invulnerable_until_ms = 0
-			p.global_position = e1.global_position + Vector2(-e1.tile_size, 0.0)
+			p.global_position = e1.global_position + Vector2(-_strike_gap(p, e1), 0.0)
 			p.call("set_facing", "right")
 			await _frames(2)
 			await _tap("attack")
@@ -667,7 +690,7 @@ func _persist() -> String:
 	var tree := _tree()
 	var state: RpgGameState = _autoload("GameState") as RpgGameState
 	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
-	save.set("dir", SAVE_DIR)
+	save.set("dir", SmokeRunner.save_dir())
 	await _seconds(0.8)  # a dead enemy frees itself 0.6 s after dying
 	if _find_enemy(ENEMY_1) != null:
 		return "the dead enemy is still on the map"
@@ -692,7 +715,7 @@ func _death_policy() -> String:
 	var state: RpgGameState = _autoload("GameState") as RpgGameState
 	var save: RpgSaveManager = _autoload("SaveManager") as RpgSaveManager
 	var router: RpgSceneRouter = _autoload("SceneRouter") as RpgSceneRouter
-	save.set("dir", SAVE_DIR)
+	save.set("dir", SmokeRunner.save_dir())
 	for slot in range(JsonUtil.to_int(save.get("AUTOSAVE_SLOT")), 4):
 		save.delete(slot)  # no save, the autosave included: the player wakes up at the default spawn
 	var p := _player()
