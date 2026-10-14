@@ -30,7 +30,7 @@ KNOWN_IDS = (
     COMMERCIAL,
     RPG_MAKER,
 )
-KEYS = ("license_id", "author", "url", "attribution_required")
+KEYS = ("license_id", "author", "url", "attribution_required", "credit", "ai_generated")
 MAX_BYTES = 64 * 1024  # a readme longer than this is read in part
 TEXT_SUFFIXES = {"", ".txt", ".text", ".md", ".markdown", ".nfo", ".html", ".htm", ".rtf"}
 
@@ -41,8 +41,15 @@ class PackLicense:
     author: str = ""
     url: str = ""
     attribution_required: bool = False
+    # the line the game credits the pack with, as the user wrote it (T17.30: a licence stated by
+    # hand for a pack that has no file); never read from a file
+    credit: str = ""
+    # the pack is AI-generated art, as its user marked it (T17.30): a store page declares it
+    ai_generated: bool = False
 
     def to_json(self) -> dict[str, Any]:
+        """The detected licence's keys (``credit`` and ``ai_generated`` are a correction's only:
+        they are left out)."""
         return {
             "license_id": self.license_id,
             "author": self.author,
@@ -58,6 +65,8 @@ class PackLicense:
             str(d.get("author", "")),
             str(d.get("url", "")),
             bool(d.get("attribution_required", False)),
+            str(d.get("credit", "")),
+            bool(d.get("ai_generated", False)),
         )
 
 

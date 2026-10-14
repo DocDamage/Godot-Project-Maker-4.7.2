@@ -115,6 +115,47 @@ text speaks of a licence, credit or commercial use. When the licence asks for cr
 generated `README.md` has a **Credits** section that names the pack, its author, its licence
 and its page, besides the game's Credits screen.
 
+**A licence you state yourself.** A pack that has no licence file at all (many packs bought on a
+store keep the licence on the store's page) gets the note ASSET-021. On the Audit page's
+**Packs** tab, the card of such a pack has a **Credit line** beside the licence: choose the
+licence and write the line the game should credit the pack with. rpggen keeps both with the
+pack (and in the pack's profile when you export one), says ASSET-036 instead of ASSET-021, and
+writes the pack into the README's **Credits** section, marked as your own statement and not
+the pack's.
+
+**AI-generated art.** On the same card, **AI-generated art** marks a pack whose pictures were
+made with a generator (CuteSCKR's tile sets, for one: they need no licence recorded). The mark
+is kept with the pack and in its profile. A game whose catalog uses any asset of such a pack
+gets a section **AI-generated content** in its README: it names those packs and says that a
+store page must declare them (Steam's AI disclosure, for one). It also suggests cleaning their
+pictures up in Aseprite, by hand or with an AI assistant driving Aseprite, so that the art
+becomes your own work on top of what was generated, and says that edited art still came from a
+generator and is still declared. A game that uses none of them has no such section.
+
+**Sheets of many things.** Some packs draw everything on a few large sheets:
+
+* **Object sheets** (SakPix's stage packs: *13. Farm animals*, *6. Barns and silos*): the
+  things lie loose on transparency under a banner with the sheet's name. Each is cut out as an
+  asset of its own, named by where it lies on the sheet (`#o364_618`), with the role the
+  sheet's name gives it: an animal, a building (when it is large enough to be one), a fence,
+  a tool, a decoration. A sheet whose name says nothing gives things that need review. A sheet
+  whose name says *tiles* holds loose squares of ground: each is cut to the square all of them
+  hold, and large squares are cut into quarters (never scaled) to make a tile set.
+* **Mixed tile sheets** (CuteSCKR's tile sets: sheets of 48 px cells mixing ground, fences,
+  crops, buildings and things): a pack that calls itself a tile set has its sheets sorted cell
+  by cell. A patch of whole cells that tiles is ground; a thing drawn over several cells is
+  kept as one object; a cell alone is a decoration. Most of these things need review: their
+  sheets name nothing. A house of such a sheet is a building once you give it the role.
+
+In both cases the sheet itself is set aside, with the reason, and its parts are the assets.
+
+**Characters in a folder of facings.** A folder whose pictures or sub-folders are named by a
+direction (`rotations/east.png`, `north-east.png`; or `NE`, `NEE` as *Lords Of Pain* names its
+sixteen) is one character: an animation a facing for every action folder beside it (`walk`,
+`attack`, ...). Of sixteen facings the eight the game turns by are used (ADAPT-008 says so and
+the card is tagged *facings:16*); a character with nothing but its still pictures walks in
+them. A prop drawn the same way is one decoration.
+
 **Archetype page.** Choose the kind of game:
 
 * **Turn-based**: encounters on the map start a battle screen with attack, defend, item and run.
@@ -958,6 +999,21 @@ seven samples.
   measured from the flat tiles otherwise. It is never assumed to be twice as wide as high.
   The pack's card says *Isometric tiles, 40 x 22*. A pack that says it is isometric and has no
   flat tile to measure gets TILE-010, and its pictures stay pictures.
+* **Sheets named by their cell** (Screaming Brain's packs: `Floor_Dry_01-256x128.png`, a sheet
+  of diamonds on magenta; `Flat_Brick_01-SE-128x192.png`, a sheet of wall faces) are cut cell
+  by cell, the background made see-through, the cell taken from the name or from the Tiled
+  tile set beside the sheet. A cell twice as wide as high is the pack's diamond. Two wall
+  faces side by side, one slanting each way, are one wall in four pieces, one for each side of
+  a diamond: the builder lays the edge of a map and a house from them. *Doorway* and *Window*
+  in a name mark the pieces with a door and with a window. A *Small* and a *Large* copy are one
+  pack in two sizes: the smallest is used unless you choose the other on the Packs tab. A
+  piece of another shape (Screaming Brain's thick walls and corners) stays unread, with the
+  reason. TILE-014 says when a pack's flat tiles measure another diamond than its names give.
+* **A large ground picture** (*Lords Of Pain*'s `ground_stone1.png`, 256 x 256) in a pack that
+  says it is isometric and gives no diamond otherwise is cut on a diamond of the classic 2 : 1
+  angle when it tiles: as wide as the picture, halved while the pack's own characters still
+  fit (a figure of 100 px stands on diamonds of 128 x 64). A picture of one colour all over is
+  no ground. The other pictures of such a pack (its props) stand on that diamond.
 * **Turns.** Names that differ only in a last `_0` to `_3` (or `_7`), or in a last compass
   word (`_N`, `_E`, `_S`, `_W`), are one thing turned, not the frames of an animation: one
   card in the audit with a **Turns (4)** row. Of a car or a boat they are its headings.

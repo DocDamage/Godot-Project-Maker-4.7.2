@@ -25,6 +25,12 @@ def _find_asset(catalog: catalog_mod.Catalog, key: str) -> catalog_mod.Asset | N
             return asset
         if not variant and not has_variant:
             return asset
+    if variant:
+        # a part of a sheet drawn into a picture of its own (T17.30): its path is the picture's,
+        # its id the sheet's with the variant
+        sheet = _find_asset(catalog, rel)
+        if sheet is not None:
+            return catalog.asset(f"{sheet.id}#{variant}")
     return None
 
 

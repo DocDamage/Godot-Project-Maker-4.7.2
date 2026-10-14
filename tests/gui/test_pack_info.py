@@ -70,3 +70,28 @@ def test_the_audit_page_has_a_packs_tab(qtbot) -> None:
     titles = [page.tabs.tabText(i) for i in range(page.tabs.count())]
     assert "Packs" in titles
     assert page.packs_panel is not None and set(page.packs_panel.boxes) == {"forest", "sounds"}
+
+
+def test_a_pack_without_a_licence_file_takes_a_licence_and_a_credit_by_hand(qtbot) -> None:
+    """T17.30: the card of a pack with no licence file has a credit line; what is stated there
+    is a correction of the pack's licence, its user's own statement."""
+    session = EditSession(_catalog())
+    panel = PackInfoPanel(session)
+    qtbot.addWidget(panel)
+    with_file, without = panel.boxes["forest"], panel.boxes["sounds"]
+    assert with_file.credit_edit.isHidden() and with_file.stated_note.isHidden()
+    assert not without.credit_edit.isHidden() and not without.stated_note.isHidden()
+    without.license_combo.setCurrentIndex(without.license_combo.findData("commercial"))
+    without.license_combo.activated.emit(without.license_combo.currentIndex())
+    without.credit_edit.setText("Sounds by Jane")
+    without.credit_edit.editingFinished.emit()
+    pack = session.catalog.packs[1]
+    assert pack.license_overrides["credit"] == "Sounds by Jane"
+    assert pack.licence_stated() and pack.effective_license().credit == "Sounds by Jane"
+    session.undo_stack.undo()
+    assert "credit" not in session.catalog.packs[1].license_overrides
+    # the mark of AI-generated art, on any pack
+    with_file.ai_box.setChecked(True)
+    assert session.catalog.packs[0].effective_license().ai_generated
+    with_file.ai_box.setChecked(False)
+    assert "ai_generated" not in session.catalog.packs[0].license_overrides

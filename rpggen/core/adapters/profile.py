@@ -56,4 +56,5 @@ class ProfileAdapter:
             {**copy.deepcopy(rule), "pack_id": ctx.pack_id} for rule in profile["folder_rules"]
         ]
         result.tilesets = [{**copy.deepcopy(t), "from_profile": True} for t in profile["tilesets"]]
+        result.pack_license = copy.deepcopy(profile.get("pack_license") or {})
         return result

@@ -1,0 +1,131 @@
+{
+  "Isometric Named - Large/Floors/Floor_Grass_01-64x32.png": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Floors/Floor_Grass_01-64x32.png#c0_0": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Floors/Floor_Grass_01-64x32.png#c1_0": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Floors/Floor_Grass_01-64x32.png#c3_0": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01-SE-32x48.png": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01-SE-32x48.png#c0_0_e": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01-SE-32x48.png#c0_0_n": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01-SE-32x48.png#c0_0_s": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01-SE-32x48.png#c0_0_w": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01_WindowA-SE-32x48.png": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01_WindowA-SE-32x48.png#c0_0_e": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01_WindowA-SE-32x48.png#c0_0_n": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01_WindowA-SE-32x48.png#c0_0_s": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_01_WindowA-SE-32x48.png#c0_0_w": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_Doorway_01-SE-32x48.png": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_Doorway_01-SE-32x48.png#c0_0_e": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_Doorway_01-SE-32x48.png#c0_0_n": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_Doorway_01-SE-32x48.png#c0_0_s": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Flat_Stone_Doorway_01-SE-32x48.png#c0_0_w": {
+    "role": "NONE"
+  },
+  "Isometric Named - Small/Floors/Floor_Grass_01-32x16.png": {
+    "role": "NONE"
+  },
+  "Isometric Named - Small/Floors/Floor_Grass_01-32x16.png#c0_0": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Floors/Floor_Grass_01-32x16.png#c1_0": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Floors/Floor_Grass_01-32x16.png#c3_0": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01-SE-16x24.png": {
+    "role": "NONE"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01-SE-16x24.png#c0_0_e": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01-SE-16x24.png#c0_0_n": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01-SE-16x24.png#c0_0_s": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01-SE-16x24.png#c0_0_w": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01_WindowA-SE-16x24.png": {
+    "role": "NONE"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01_WindowA-SE-16x24.png#c0_0_e": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01_WindowA-SE-16x24.png#c0_0_n": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01_WindowA-SE-16x24.png#c0_0_s": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_01_WindowA-SE-16x24.png#c0_0_w": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_Doorway_01-SE-16x24.png": {
+    "role": "NONE"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_Doorway_01-SE-16x24.png#c0_0_e": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_Doorway_01-SE-16x24.png#c0_0_n": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_Doorway_01-SE-16x24.png#c0_0_s": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Flat_Stone_Doorway_01-SE-16x24.png#c0_0_w": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  }
+}

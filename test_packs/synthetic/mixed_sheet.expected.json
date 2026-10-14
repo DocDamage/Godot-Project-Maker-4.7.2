@@ -1,0 +1,25 @@
+{
+  "Synthetic Farm Tileset/farm/1.png": {
+    "role": "NONE"
+  },
+  "Synthetic Farm Tileset/farm/1.png#g0_96": {
+    "cell": [
+      48,
+      48
+    ],
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "Synthetic Farm Tileset/farm/1.png#o10_300": {
+    "role": "DECORATION",
+    "usage": "object"
+  },
+  "Synthetic Farm Tileset/farm/1.png#o192_10": {
+    "role": "DECORATION",
+    "usage": "object"
+  },
+  "Synthetic Farm Tileset/farm/1.png#o336_24": {
+    "role": "DECORATION",
+    "usage": "object"
+  }
+}

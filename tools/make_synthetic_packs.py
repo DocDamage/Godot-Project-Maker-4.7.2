@@ -2741,6 +2741,272 @@ def make_farm_layered(out: Path) -> None:
     _expected(out, "farm_layered", expected)
 
 
+# ------------------------------------------------------------------------------------------
+# Packs of other shapes (T17.30): isometric sheets named by their cells, characters in a folder
+# of facings, an object sheet beside a sheet of loose tiles, a mixed tile sheet. Drawn in the
+# shapes of Screaming Brain's, *Lords Of Pain*'s, SakPix's and CuteSCKR's packs; nothing of
+# them is copied.
+
+MAGENTA: Color = (255, 0, 255, 255)
+NAMED_GRASS: Color = (88, 160, 64, 255)
+NAMED_DIRT: Color = (150, 110, 70, 255)
+NAMED_STONE: Color = (150, 150, 158, 255)
+NAMED_STONE_DARK: Color = (110, 110, 118, 255)
+
+
+def _named_floor(cell: tuple[int, int], colours: list[Color | None]) -> Image.Image:
+    """A sheet of flat diamonds on magenta, one cell a colour (None: an empty cell), in a row."""
+    w, h = cell
+    img = Image.new("RGBA", (w * len(colours), h), MAGENTA)
+    for i, colour in enumerate(colours):
+        if colour is None:
+            continue
+        for x, (top, bottom) in enumerate(_diamond_columns(w, h)):
+            for y in range(top, bottom + 1):
+                shade = (
+                    colour if (x + y) % 7 else tuple(max(0, c - 18) for c in colour[:3]) + (255,)
+                )
+                img.putpixel((i * w + x, y), shade)  # type: ignore[arg-type]
+    return img
+
+
+def _named_wall(cell: tuple[int, int], opening: str, lit: Color, shaded: Color) -> Image.Image:
+    """Two wall faces on magenta, the first slanting up to the right (``/``), the second down;
+    ``opening`` cuts a doorway or a window into both."""
+    cw, ch = cell
+    drop = cw // 2
+    img = Image.new("RGBA", (2 * cw, ch), MAGENTA)
+    for face in range(2):
+        for x in range(cw):
+            rise = (
+                (drop * (cw - 1 - x)) // max(1, cw - 1)
+                if face == 0
+                else (drop * x) // max(1, cw - 1)
+            )
+            top, bottom = rise, rise + ch - drop - 1
+            for y in range(top, bottom + 1):
+                colour = lit if face == 0 else shaded
+                if (
+                    opening == "door"
+                    and cw // 3 <= x < 2 * cw // 3
+                    and y > bottom - (ch - drop) * 2 // 3
+                ):
+                    continue
+                if opening == "window" and cw // 3 <= x < 2 * cw // 3 and top + 6 <= y < top + 14:
+                    colour = (60, 90, 130, 255)
+                img.putpixel((face * cw + x, y), colour)
+    return img
+
+
+def make_iso_named(out: Path) -> None:
+    """Screaming Brain's shapes: an isometric pack whose files are sheets on magenta named by
+    their cell (``Floor_Grass_01-64x32.png``, wall faces ``Flat_Stone_01-SE-32x48.png`` with a
+    doorway and a window beside them), in a *Small* and a *Large* copy; a thick piece the
+    reader does not read."""
+    pack = out / "iso_named"
+    _write_text(pack / "License.txt", "CC0-1.0 synthetic test pack\n")
+    expected: dict[str, dict] = {}
+    for size, (dw, dh) in (("Large", (64, 32)), ("Small", (32, 16))):
+        top = pack / f"Isometric Named - {size}"
+        floor = f"Isometric Named - {size}/Floors/Floor_Grass_01-{dw}x{dh}.png"
+        _save_png(
+            _named_floor((dw, dh), [NAMED_GRASS, NAMED_DIRT, None, NAMED_GRASS]), pack / floor
+        )
+        cell = (dw // 2, dw * 3 // 4)
+        for name, opening in (("Flat_Stone_01", ""), ("Flat_Stone_Doorway_01", "door"),
+                              ("Flat_Stone_01_WindowA", "window")):  # fmt: skip
+            wall = f"Isometric Named - {size}/Walls/{name}-SE-{cell[0]}x{cell[1]}.png"
+            _save_png(_named_wall(cell, opening, NAMED_STONE, NAMED_STONE_DARK), pack / wall)
+            used = size == "Small"  # a pack of two sizes uses the smallest by default
+            for side in "nesw":
+                expected[f"{wall}#c0_0_{side}"] = (
+                    {"usage": "iso_tile", "role": "WALL"} if used else {"role": "NONE"}
+                )
+            expected[wall] = {"role": "NONE"}
+        thick = Image.new("RGBA", (dw // 2 + 4, dw * 3 // 4 + 2), MAGENTA)
+        ImageDraw.Draw(thick).rectangle([2, 2, dw // 2, dw * 3 // 4 - 2], fill=NAMED_STONE)
+        _save_png(thick, top / "Walls" / f"Thick_Stone_01-SE-{dw // 2 + 4}x{dw * 3 // 4 + 2}.png")
+        used = size == "Small"
+        for col in (0, 1, 3):
+            expected[f"{floor}#c{col}_0"] = (
+                {"usage": "iso_tile", "role": "GROUND"} if used else {"role": "NONE"}
+            )
+        expected[floor] = {"role": "NONE"}
+    _expected(out, "iso_named", expected)
+
+
+FACING_ANGLES = (
+    ("E", "0.0"), ("NEE", "22.5"), ("NE", "45.0"), ("NNE", "67.5"), ("N", "90.0"),
+    ("NNW", "112.5"), ("NW", "135.0"), ("NWW", "157.5"), ("W", "180.0"), ("SWW", "202.5"),
+    ("SW", "225.0"), ("SSW", "247.5"), ("S", "270.0"), ("SSE", "292.5"), ("SE", "315.0"),
+    ("SEE", "337.5"),
+)  # fmt: skip
+ROTATION_NAMES = ("east", "north-east", "north", "north-west", "west", "south-west", "south",
+                  "south-east")  # fmt: skip
+
+
+def _facing_figure(size: tuple[int, int], angle: float, frame: int, colour: Color) -> Image.Image:
+    """A figure in the middle of a large see-through canvas, its eye towards ``angle`` (degrees
+    counter-clockwise from east), its feet stepping with ``frame``."""
+    w, h = size
+    img = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    cx, base = w // 2, h * 3 // 4
+    d.rectangle([cx - 4, base - 14, cx + 3, base - 1], fill=colour)
+    ex = cx + int(round(3 * math.cos(math.radians(angle))))
+    ey = base - 10 - int(round(2 * math.sin(math.radians(angle))))
+    d.rectangle([ex - 1, ey, ex, ey + 1], fill=EYE)
+    d.line([cx - 4 + frame % 2, base, cx - 2 + frame % 2, base], fill=BLACK)
+    return img
+
+
+def make_facings(out: Path) -> None:
+    """Characters in a folder of facings: SakPix's eight still pictures named by a direction
+    (``Villager/rotations/north-east.png``) beside a preview GIF, and *Lords Of Pain*'s sixteen
+    facings a folder each, a file a frame (``playable character/knight/knight_default_walk/NEE/
+    knight_default_walk_NEE_22.5_0.png``), and a prop in sixteen facings."""
+    pack = out / "facings"
+    _write_text(pack / "license.txt", "CC0-1.0 synthetic test pack\n")
+    for i, name in enumerate(ROTATION_NAMES):
+        img = _facing_figure((24, 32), i * 45.0, 0, (180, 90, 60, 255))
+        _save_png(img, pack / "Villagers" / "1._Villager" / "rotations" / f"{name}.png")
+    gif = [_facing_figure((24, 32), i * 45.0, 0, (180, 90, 60, 255)) for i in range(8)]
+    gif[0].save(pack / "Villagers" / "1._Villager_showcase.gif", save_all=True,
+                append_images=gif[1:], duration=100, loop=0)  # fmt: skip
+    knight = pack / "playable character" / "knight"
+    for action, frames in (("default_idle", 1), ("default_walk", 4), ("armed_attack", 2),
+                           ("armed_walk", 4), ("armed_idle", 1)):  # fmt: skip
+        for word, angle in FACING_ANGLES:
+            for n in range(frames):
+                img = _facing_figure((48, 48), float(angle), n, (70, 90, 160, 255))
+                stem = f"knight_{action}_{word}_{angle}_{n}"
+                _save_png(img, knight / f"knight_{action}" / word / f"{stem}.png")
+    for word, angle in FACING_ANGLES:
+        img = Image.new("RGBA", (48, 48), (0, 0, 0, 0))
+        ImageDraw.Draw(img).rectangle([20, 26, 27, 33], fill=(140, 100, 60, 255))
+        _save_png(img, pack / "prop" / "crate" / word / f"crate_{word}_{angle}_0.png")
+    walks = [f"walk_{d}" for d in ("down", "down_left", "down_right", "left", "right", "up",
+                                   "up_left", "up_right")]  # fmt: skip
+    idles = [w.replace("walk", "idle") for w in walks]
+    expected = {
+        "Villagers/1._Villager/rotations/south.png": {
+            "usage": "sprite", "anims": sorted(idles + walks),
+        },
+        "Villagers/1._Villager_showcase.gif": {"role": "NONE"},
+        "playable character/knight/knight_armed_idle/S/knight_armed_idle_S_270.0_0.png": {
+            "usage": "sprite", "role": "PLAYER",
+            "anims": sorted(idles + walks + [w.replace("walk", "attack") for w in walks]),
+        },
+        "prop/crate/S/crate_S_270.0_0.png": {"usage": "sprite", "role": "DECORATION"},
+    }  # fmt: skip
+    _expected(out, "facings", expected)
+
+
+def _blob(img: Image.Image, box: tuple[int, int, int, int], colour: Color) -> None:
+    d = ImageDraw.Draw(img)
+    d.ellipse(box, fill=colour)
+    x0, y0, x1, y1 = box
+    d.rectangle([x0 + (x1 - x0) // 3, y0 + 2, x0 + (x1 - x0) // 3 + 2, y0 + 4], fill=BLACK)
+
+
+def _banner(img: Image.Image, colour: Color = (220, 190, 140, 255)) -> None:
+    w = img.width
+    ImageDraw.Draw(img).rectangle([w // 6, 8, w * 5 // 6, 40], fill=colour)
+
+
+def make_object_sheet(out: Path) -> None:
+    """SakPix's shapes: sheets of 512 x 512 of things lying loose on transparency under a
+    banner with the sheet's name, named by what they hold (*1. Farm animals*, *2. Barns and
+    silos*), and a sheet of loose squares of ground with a rough rim (*3. Grass tiles*)."""
+    pack = out / "object_sheet" / "Cozy Synthetic Asset Pack"
+    _write_text(out / "object_sheet" / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    expected: dict[str, dict] = {}
+    animals = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    _banner(animals)
+    for i in range(6):
+        x, y = 40 + (i % 3) * 150, 120 + (i // 3) * 180
+        _blob(
+            animals, (x, y, x + 60, y + 90), (230, 230, 220, 255) if i % 2 else (160, 110, 70, 255)
+        )
+        expected[f"Cozy Synthetic Asset Pack/1. Farm animals.png#o{x}_{y}"] = {
+            "usage": "sprite", "role": "ANIMAL", "anims": ["idle_down", "walk_down"],
+        }  # fmt: skip
+    expected["Cozy Synthetic Asset Pack/1. Farm animals.png"] = {"role": "NONE"}
+    _save_png(animals, pack / "1. Farm animals.png")
+    barns = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    _banner(barns)
+    d = ImageDraw.Draw(barns)
+    for x in (40, 280):
+        d.polygon([(x, 220), (x + 90, 140), (x + 180, 220)], fill=(150, 40, 40, 255))
+        d.rectangle([x + 10, 220, x + 170, 380], fill=(190, 60, 50, 255))
+        d.rectangle([x + 70, 300, x + 110, 380], fill=(90, 50, 30, 255))
+        expected[f"Cozy Synthetic Asset Pack/2. Barns and silos.png#o{x}_140"] = {
+            "usage": "object", "role": "BUILDING",
+        }  # fmt: skip
+    d.rectangle([200, 440, 230, 470], fill=(120, 90, 60, 255))  # a sack beside them
+    d.rectangle([470, 260, 500, 400], fill=(170, 170, 180, 255))  # a silo: too narrow for a house
+    expected["Cozy Synthetic Asset Pack/2. Barns and silos.png#o470_260"] = {
+        "usage": "object", "role": "DECORATION",
+    }  # fmt: skip
+    expected["Cozy Synthetic Asset Pack/2. Barns and silos.png#o200_440"] = {
+        "usage": "object", "role": "DECORATION",
+    }  # fmt: skip
+    _save_png(barns, pack / "2. Barns and silos.png")
+    grass = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    _banner(grass)
+    for i in range(4):
+        x, y = 40 + (i % 2) * 230, 100 + (i // 2) * 200
+        g = ImageDraw.Draw(grass)
+        g.rectangle([x, y, x + 111, y + 111], fill=(80, 150 + i * 10, 60, 255))
+        for k in range(0, 112, 8):  # the rough rim
+            g.rectangle([x + k, y, x + k + 3, y + 5], fill=(0, 0, 0, 0))
+            g.rectangle([x, y + k, x + 5, y + k + 3], fill=(0, 0, 0, 0))
+    _save_png(grass, pack / "3. Grass tiles.png")
+    expected["Cozy Synthetic Asset Pack/3. Grass tiles.png#tiles"] = {
+        "usage": "tiles", "role": "GROUND", "cell": [48, 48],
+    }  # fmt: skip
+    _expected(out, "object_sheet", expected)
+
+
+def _tiling_grass(x: int, y: int) -> Color:
+    """Grass that repeats every 48 px each way, so that a block of its cells tiles."""
+    k = ((x % 48) * 7 + (y % 48) * 13) % 11
+    return (70 + k, 140 + 2 * k, 60, 255)
+
+
+def make_mixed_sheet(out: Path) -> None:
+    """CuteSCKR's shapes: a tile set of one sheet of 576 x 576 in 48 px cells mixing a patch of
+    grass that tiles, a house over several cells, a fence along a row and single things."""
+    pack = out / "mixed_sheet" / "Synthetic Farm Tileset"
+    _write_text(out / "mixed_sheet" / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    img = Image.new("RGBA", (576, 576), (0, 0, 0, 0))
+    for y in range(96, 192):
+        for x in range(0, 96):
+            img.putpixel((x, y), _tiling_grass(x, y))
+    d = ImageDraw.Draw(img)
+    # a house over two by three cells, its roof slanting: not whole cells
+    d.polygon([(192, 60), (240, 10), (288, 60)], fill=(150, 50, 40, 255))
+    d.rectangle([196, 60, 284, 140], fill=(200, 170, 120, 255))
+    d.rectangle([228, 100, 252, 140], fill=(90, 60, 40, 255))
+    # a fence along a row, three cells joined
+    d.rectangle([336, 28, 479, 41], fill=(140, 100, 60, 255))
+    for x in range(336, 480, 16):
+        d.rectangle([x, 24, x + 3, 47], fill=(120, 85, 50, 255))
+    # single things, a cell each
+    for i, colour in enumerate([(200, 60, 60, 255), (220, 200, 60, 255), (90, 90, 200, 255)]):
+        d.ellipse([10 + i * 48, 300, 36 + i * 48, 326], fill=colour)
+    _save_png(img, pack / "farm" / "1.png")
+    prefix = "Synthetic Farm Tileset/farm/1.png"
+    expected = {
+        prefix: {"role": "NONE"},
+        f"{prefix}#g0_96": {"usage": "tiles", "role": "GROUND", "cell": [48, 48]},
+        f"{prefix}#o192_10": {"usage": "object", "role": "DECORATION"},
+        f"{prefix}#o336_24": {"usage": "object", "role": "DECORATION"},
+        f"{prefix}#o10_300": {"usage": "object", "role": "DECORATION"},
+    }
+    _expected(out, "mixed_sheet", expected)
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -2775,6 +3041,10 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "farm_sizes": make_farm_sizes,
     "farm_crops": make_farm_crops,
     "farm_layered": make_farm_layered,
+    "iso_named": make_iso_named,
+    "facings": make_facings,
+    "object_sheet": make_object_sheet,
+    "mixed_sheet": make_mixed_sheet,
 }
 
 

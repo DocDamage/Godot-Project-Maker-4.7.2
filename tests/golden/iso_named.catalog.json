@@ -1,0 +1,1571 @@
+{
+  "assets": [
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          256,
+          32
+        ],
+        "origin": [
+          128,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          256,
+          32
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.floors.floor_grass_01_64x32",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Large/Floors/Floor_Grass_01-64x32.png",
+      "sha256": "2ca1cdc8f824d8a80ca05ae6948abfc7c47f80ce8c880560e76f61d89d74e3e0",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "NONE",
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "size_form:64",
+          "surface:grass",
+          "unused_because:other_size"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.floors.floor_grass_01_64x32#c0_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/3bd8333fd159801ad0bc65a2247a22c21dffdd8b16d4796f2f4893b3db79493b.png",
+      "sha256": "2ca1cdc8f824d8a80ca05ae6948abfc7c47f80ce8c880560e76f61d89d74e3e0",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "NONE",
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "size_form:64",
+          "surface:grass",
+          "unused_because:other_size"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.floors.floor_grass_01_64x32#c1_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/ccf1dd5b6e48d01a1184c21fda1b00909e08597500cd2f0665b173d68e16e22c.png",
+      "sha256": "2ca1cdc8f824d8a80ca05ae6948abfc7c47f80ce8c880560e76f61d89d74e3e0",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "NONE",
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "size_form:64",
+          "surface:grass",
+          "unused_because:other_size"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.floors.floor_grass_01_64x32#c3_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/064f5b885a2cefab7399276d78355d481481bb0b97293d4697df436e60c7b83a.png",
+      "sha256": "2ca1cdc8f824d8a80ca05ae6948abfc7c47f80ce8c880560e76f61d89d74e3e0",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          48
+        ],
+        "origin": [
+          32,
+          47
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          48
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_se_32x48",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Large/Walls/Flat_Stone_01-SE-32x48.png",
+      "sha256": "e1548c4948a3c2c0e1beedf4c749dd5e5befc5e9cf03d5f4da04312661500e38",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "e",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:1",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_01_se_32x48#c0_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_se_32x48#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/23deafb7edffe48a5b1a250171366e73e2a4ac6fa5124fb8a93b3facf692346a.png",
+      "sha256": "e1548c4948a3c2c0e1beedf4c749dd5e5befc5e9cf03d5f4da04312661500e38",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "n",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:0",
+          "turn_group:c0_0",
+          "unused_because:other_size"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_se_32x48#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/cf9628f808aded2ecfe8c94a1a61c102f04f3bc32809c46843cf02ff4aee8fee.png",
+      "sha256": "e1548c4948a3c2c0e1beedf4c749dd5e5befc5e9cf03d5f4da04312661500e38",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "s",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:2",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_01_se_32x48#c0_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_se_32x48#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/be3297a4949e6bfbf4427c336fa5bc24745fe22ac6e8f1501d3087fb3e0edcca.png",
+      "sha256": "e1548c4948a3c2c0e1beedf4c749dd5e5befc5e9cf03d5f4da04312661500e38",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "w",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:3",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_01_se_32x48#c0_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_se_32x48#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/283e08de71aa9f3ca45aff3bc5fbe7379e8031c3cd15f571b608a0c0b42265a3.png",
+      "sha256": "e1548c4948a3c2c0e1beedf4c749dd5e5befc5e9cf03d5f4da04312661500e38",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          48
+        ],
+        "origin": [
+          32,
+          47
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          48
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_windowa_se_32x48",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Large/Walls/Flat_Stone_01_WindowA-SE-32x48.png",
+      "sha256": "1b7b94189d162ecd96d5a471ce6984a279dec241d9d7508df7d373bc84fb2cb9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "e",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:1",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_01_windowa_se_32x48#c0_0_n",
+          "window"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_windowa_se_32x48#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/30477b634022713cc107565a5564cb546dd1567208a8b247d2fbc1d75752e641.png",
+      "sha256": "1b7b94189d162ecd96d5a471ce6984a279dec241d9d7508df7d373bc84fb2cb9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "n",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:0",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "window"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_windowa_se_32x48#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/f1a5370c1c64b23e21898680c06208771dcc5cf485d1a63ea53caa8268e54270.png",
+      "sha256": "1b7b94189d162ecd96d5a471ce6984a279dec241d9d7508df7d373bc84fb2cb9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "s",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:2",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_01_windowa_se_32x48#c0_0_n",
+          "window"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_windowa_se_32x48#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/2648dd70cb070c1a427c65c48c1c4957e7ab700012925fa924a092d4e1b9988e.png",
+      "sha256": "1b7b94189d162ecd96d5a471ce6984a279dec241d9d7508df7d373bc84fb2cb9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "w",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:3",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_01_windowa_se_32x48#c0_0_n",
+          "window"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_01_windowa_se_32x48#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/109fa4b92a976471b71930f3d7ea98a86a510c6c4aaf6bd034bdbb68c0d4f7ec.png",
+      "sha256": "1b7b94189d162ecd96d5a471ce6984a279dec241d9d7508df7d373bc84fb2cb9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          48
+        ],
+        "origin": [
+          32,
+          47
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          48
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_doorway_01_se_32x48",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Large/Walls/Flat_Stone_Doorway_01-SE-32x48.png",
+      "sha256": "9a083740a540e2b7020831e07ae982f0b2261dd972241eaf681f9ab59a68a7ce",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "e",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "door",
+          "size_form:64",
+          "turn:1",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_doorway_01_se_32x48#c0_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_doorway_01_se_32x48#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/e2e812ce54957c7c6c65dc2ad03a64466c834ed0496e7bc5bf2c55e6f0a85537.png",
+      "sha256": "9a083740a540e2b7020831e07ae982f0b2261dd972241eaf681f9ab59a68a7ce",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "n",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "door",
+          "size_form:64",
+          "turn:0",
+          "turn_group:c0_0",
+          "unused_because:other_size"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_doorway_01_se_32x48#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/efd02b42cb5bba364cceed762608617128b28639244c33b0f20d52f18705c36f.png",
+      "sha256": "9a083740a540e2b7020831e07ae982f0b2261dd972241eaf681f9ab59a68a7ce",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "s",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "door",
+          "size_form:64",
+          "turn:2",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_doorway_01_se_32x48#c0_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_doorway_01_se_32x48#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/98750f86a0671d004b5e6e512833c98d03dbed0e755fd5923e7de94851bde939.png",
+      "sha256": "9a083740a540e2b7020831e07ae982f0b2261dd972241eaf681f9ab59a68a7ce",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "w",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "door",
+          "size_form:64",
+          "turn:3",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.flat_stone_doorway_01_se_32x48#c0_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.flat_stone_doorway_01_se_32x48#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/221828a888c961127de3c929df48454b2c67c00d167a7fc2ca5754ca5eea7c77.png",
+      "sha256": "9a083740a540e2b7020831e07ae982f0b2261dd972241eaf681f9ab59a68a7ce",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          36,
+          50
+        ],
+        "origin": [
+          18,
+          49
+        ],
+        "role": "NONE",
+        "size": [
+          36,
+          50
+        ],
+        "tags": [
+          "unused_because:iso_piece_not_read"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.thick_stone_01_se_36x50",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Large/Walls/Thick_Stone_01-SE-36x50.png",
+      "sha256": "99d0a26032480bd67703ee2b8a0f1184d3553ad9f74cf2ef83fb929ecf41afc9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          128,
+          16
+        ],
+        "origin": [
+          64,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          128,
+          16
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.floors.floor_grass_01_32x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Small/Floors/Floor_Grass_01-32x16.png",
+      "sha256": "bd8dee312a60901d90f5fc629f3a05ef17073211f7dc4ed74b102a343ee84bd5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          16
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          8
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "size_form:32",
+          "surface:grass"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.floors.floor_grass_01_32x16#c0_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/aab9305f1454c64c086a7d25066e8a087764402988e91c5e51f46253dddc9947.png",
+      "sha256": "bd8dee312a60901d90f5fc629f3a05ef17073211f7dc4ed74b102a343ee84bd5",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          16
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          8
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "size_form:32",
+          "surface:grass"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.floors.floor_grass_01_32x16#c1_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/c647e98d0e5a83e4ad0976f0717a779372625f668ddb97ed52eb515d6ea2f83d.png",
+      "sha256": "bd8dee312a60901d90f5fc629f3a05ef17073211f7dc4ed74b102a343ee84bd5",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          16
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          8
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "size_form:32",
+          "surface:grass"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.floors.floor_grass_01_32x16#c3_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/eadfae851e8008743ef273e6059b13f1a2511106ac445498353684dbda496e81.png",
+      "sha256": "bd8dee312a60901d90f5fc629f3a05ef17073211f7dc4ed74b102a343ee84bd5",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          32,
+          24
+        ],
+        "origin": [
+          16,
+          23
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          24
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_se_16x24",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Small/Walls/Flat_Stone_01-SE-16x24.png",
+      "sha256": "fafbcb1da15b8b40d95f83ac442fd06067bfab1380e909c39ce623d6357a2ac9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "e",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:1",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_01_se_16x24#c0_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_se_16x24#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/151ec15304f2d3a5e49643fc2583a2cde971f4d57c71eb7350811e8552de33dc.png",
+      "sha256": "fafbcb1da15b8b40d95f83ac442fd06067bfab1380e909c39ce623d6357a2ac9",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "n",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:0",
+          "turn_group:c0_0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_se_16x24#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/51e089af8f85da4470b7eb1e9b78e109609692c2b9c09adc7ae81b255080a0c6.png",
+      "sha256": "fafbcb1da15b8b40d95f83ac442fd06067bfab1380e909c39ce623d6357a2ac9",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "s",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:2",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_01_se_16x24#c0_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_se_16x24#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/2643b82813dda608e5ab8847dcf56f5a8f29804e79c74f288c5eed7c12303e23.png",
+      "sha256": "fafbcb1da15b8b40d95f83ac442fd06067bfab1380e909c39ce623d6357a2ac9",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "w",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:3",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_01_se_16x24#c0_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_se_16x24#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/b642fd640a3c2d7d4f97a69a654d3475b37ec91f5c6dca3f51770a5dc6f374ad.png",
+      "sha256": "fafbcb1da15b8b40d95f83ac442fd06067bfab1380e909c39ce623d6357a2ac9",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          32,
+          24
+        ],
+        "origin": [
+          16,
+          23
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          24
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_windowa_se_16x24",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Small/Walls/Flat_Stone_01_WindowA-SE-16x24.png",
+      "sha256": "41dc2489d80a8e1fd05b6c096437db993f3db1fc0b38686f40b8e84c0e080d9f",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "e",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:1",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_01_windowa_se_16x24#c0_0_n",
+          "window"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_windowa_se_16x24#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/4d389616b821a6a041aa7b30171e7e4ac3a62f95a64b98adb4891f264e82a396.png",
+      "sha256": "41dc2489d80a8e1fd05b6c096437db993f3db1fc0b38686f40b8e84c0e080d9f",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "n",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:0",
+          "turn_group:c0_0",
+          "window"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_windowa_se_16x24#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/e8cb96412a0f1dabad9d40a50d1659dc8f2218a2b8c5770e05aed1cd4a6d3dfa.png",
+      "sha256": "41dc2489d80a8e1fd05b6c096437db993f3db1fc0b38686f40b8e84c0e080d9f",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "s",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:2",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_01_windowa_se_16x24#c0_0_n",
+          "window"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_windowa_se_16x24#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/51a8a995420803fe70238d262c7eb463c275f96d1c2db306641772cecea4ae9e.png",
+      "sha256": "41dc2489d80a8e1fd05b6c096437db993f3db1fc0b38686f40b8e84c0e080d9f",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "w",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:3",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_01_windowa_se_16x24#c0_0_n",
+          "window"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_01_windowa_se_16x24#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/ea36c212c9647b65b15a534cde1eaaac472ec330ecd9007ae558b672c9ccf920.png",
+      "sha256": "41dc2489d80a8e1fd05b6c096437db993f3db1fc0b38686f40b8e84c0e080d9f",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          32,
+          24
+        ],
+        "origin": [
+          16,
+          23
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          24
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_doorway_01_se_16x24",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Small/Walls/Flat_Stone_Doorway_01-SE-16x24.png",
+      "sha256": "980da89927aaf2a5c53550c1d242bc3038fd1d980738c69607d1223ee4b898f8",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "e",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "door",
+          "size_form:32",
+          "turn:1",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_doorway_01_se_16x24#c0_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_doorway_01_se_16x24#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/a000d6a502213b3da85d52f6bd339b5e57c903804548b25edeb74f2a7f77ce54.png",
+      "sha256": "980da89927aaf2a5c53550c1d242bc3038fd1d980738c69607d1223ee4b898f8",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "n",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "door",
+          "size_form:32",
+          "turn:0",
+          "turn_group:c0_0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_doorway_01_se_16x24#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/5bcb6abde9915f6f147187629dc8a649e76c7a62cf4f43fadb8f8f466c3237be.png",
+      "sha256": "980da89927aaf2a5c53550c1d242bc3038fd1d980738c69607d1223ee4b898f8",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "s",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "door",
+          "size_form:32",
+          "turn:2",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_doorway_01_se_16x24#c0_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_doorway_01_se_16x24#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/b61c2271b4a2ddb09952db1d45e9c3b34b1450ac3dad0f1141c161a0cad07788.png",
+      "sha256": "980da89927aaf2a5c53550c1d242bc3038fd1d980738c69607d1223ee4b898f8",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "w",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "door",
+          "size_form:32",
+          "turn:3",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.flat_stone_doorway_01_se_16x24#c0_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.flat_stone_doorway_01_se_16x24#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/2cb6c30facbaddcdc18d3c9150290fe02a788448b29c3478378f415a1d4f3430.png",
+      "sha256": "980da89927aaf2a5c53550c1d242bc3038fd1d980738c69607d1223ee4b898f8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          20,
+          26
+        ],
+        "origin": [
+          10,
+          25
+        ],
+        "role": "NONE",
+        "size": [
+          20,
+          26
+        ],
+        "tags": [
+          "unused_because:iso_piece_not_read"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.thick_stone_01_se_20x26",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Small/Walls/Thick_Stone_01-SE-20x26.png",
+      "sha256": "59673890d404e27a24241ea0fbeaeae6ea7bbae16b3c05e34b28a030121aa6f9",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "pack_sizes": {
+    "iso_named": 32
+  },
+  "packs": [
+    {
+      "adapters_matched": [
+        "iso_sheets"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/iso_named/License.txt"
+      ],
+      "pack_id": "iso_named",
+      "profile_id": null,
+      "root": "assets/packs/iso_named",
+      "source_sha256": "bc38595306812c29bdbd5228dee36a33dd3aad13f630480a40a9bc4dcea90cbf",
+      "warnings": [
+        "isometric:32x16:named",
+        "view:isometric"
+      ]
+    }
+  ],
+  "tilesets": []
+}

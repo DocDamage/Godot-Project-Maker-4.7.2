@@ -4,7 +4,7 @@ extends RefCounted
 ## sprite stands in (ASSET-025), tinted red. The scene holds the combat parts of arpg_build.gd and
 ## the enemy_ai.gd state machine; the numbers live in the definition's `behavior`.
 
-const RECIPE_VERSION := 2
+const RECIPE_VERSION := 3  # 3: an enemy stands on its feet (T17.30)
 
 const Paths := preload("../../lib/paths.gd")
 const SceneUtil := preload("../../lib/scene_util.gd")
@@ -264,6 +264,8 @@ func build(ctx: BuildContext) -> Array:
 			continue
 		var fo := ActorBuild.frame_and_origin(ctx.catalog.effective(a))
 		var node := _build_scene(frames, fo, tile, def, JsonUtil.to_bool(e["fallback"]), Navigation.enabled(ctx))
+		# a figure drawn in a frame as wide as its widest swing stands on its own feet (T17.30)
+		ActorBuild.set_feet(node, ctx.catalog.effective(a))
 		var err := SceneUtil.save_scene(node, scene_path(slug))
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": scene_path(slug), "err": err}, scene_path(slug)))

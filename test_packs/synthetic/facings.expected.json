@@ -1,0 +1,60 @@
+{
+  "Villagers/1._Villager/rotations/south.png": {
+    "anims": [
+      "idle_down",
+      "idle_down_left",
+      "idle_down_right",
+      "idle_left",
+      "idle_right",
+      "idle_up",
+      "idle_up_left",
+      "idle_up_right",
+      "walk_down",
+      "walk_down_left",
+      "walk_down_right",
+      "walk_left",
+      "walk_right",
+      "walk_up",
+      "walk_up_left",
+      "walk_up_right"
+    ],
+    "usage": "sprite"
+  },
+  "Villagers/1._Villager_showcase.gif": {
+    "role": "NONE"
+  },
+  "playable character/knight/knight_armed_idle/S/knight_armed_idle_S_270.0_0.png": {
+    "anims": [
+      "attack_down",
+      "attack_down_left",
+      "attack_down_right",
+      "attack_left",
+      "attack_right",
+      "attack_up",
+      "attack_up_left",
+      "attack_up_right",
+      "idle_down",
+      "idle_down_left",
+      "idle_down_right",
+      "idle_left",
+      "idle_right",
+      "idle_up",
+      "idle_up_left",
+      "idle_up_right",
+      "walk_down",
+      "walk_down_left",
+      "walk_down_right",
+      "walk_left",
+      "walk_right",
+      "walk_up",
+      "walk_up_left",
+      "walk_up_right"
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "prop/crate/S/crate_S_270.0_0.png": {
+    "role": "DECORATION",
+    "usage": "sprite"
+  }
+}

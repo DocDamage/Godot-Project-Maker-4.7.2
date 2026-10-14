@@ -195,6 +195,66 @@ def split_joins(stem: str) -> tuple[str, list[str]] | None:
     return m.group("base"), [side for side in SIDES if side in sides]
 
 
+# The cell a name states (T17.30): ``Floor_Dry_01-256x128``, ``Overworld - Water - Flat
+# 128x64``, ``Flat_Brick_01-SE-128x192``, a folder ``Large 256x128``. The last such size of the
+# stem is the one.
+_NAMED_CELL = re.compile(r"(?<![0-9])([0-9]{1,4})x([0-9]{1,4})(?![0-9])", re.IGNORECASE)
+# A facing written into a name as a word of its own: ``Flat_Brick_01-SE-128x192``.
+_FACING_WORD = re.compile(r"(?:^|[_\- ])(NE|NW|SE|SW|N|E|S|W)(?=$|[_\- ])")
+
+
+def named_cell(text: str) -> tuple[int, int] | None:
+    """The ``W x H`` a file or folder name states, or None (a size of 0 states nothing)."""
+    found = _NAMED_CELL.findall(text)
+    if not found:
+        return None
+    w, h = int(found[-1][0]), int(found[-1][1])
+    return (w, h) if w > 0 and h > 0 else None
+
+
+def named_facing(stem: str) -> str:
+    """The compass word a stem carries as a word of its own (``SE`` of
+    ``Flat_Brick_01-SE-128x192``), or "". Capitals only, as the packs write them."""
+    found = _FACING_WORD.findall(stem)
+    return found[-1] if found else ""
+
+
+# The directions a folder or a file of one facing is named by (T17.30): SakPix's
+# ``rotations/north-east.png``, *Lords Of Pain*'s folders ``NE`` and ``NEE`` (22.5 degrees, between
+# east and north-east). Degrees counter-clockwise from east, as *Lords Of Pain* numbers them.
+DIRECTION_ANGLES: dict[str, float] = {
+    "e": 0.0, "east": 0.0, "right": 0.0,
+    "nee": 22.5, "ene": 22.5, "eastnortheast": 22.5,
+    "ne": 45.0, "northeast": 45.0, "upright": 45.0,
+    "nne": 67.5, "northnortheast": 67.5,
+    "n": 90.0, "north": 90.0, "up": 90.0, "back": 90.0,
+    "nnw": 112.5, "northnorthwest": 112.5,
+    "nw": 135.0, "northwest": 135.0, "upleft": 135.0,
+    "nww": 157.5, "wnw": 157.5, "westnorthwest": 157.5,
+    "w": 180.0, "west": 180.0, "left": 180.0,
+    "sww": 202.5, "wsw": 202.5, "westsouthwest": 202.5,
+    "sw": 225.0, "southwest": 225.0, "downleft": 225.0,
+    "ssw": 247.5, "southsouthwest": 247.5,
+    "s": 270.0, "south": 270.0, "down": 270.0, "front": 270.0,
+    "sse": 292.5, "southsoutheast": 292.5,
+    "se": 315.0, "southeast": 315.0, "downright": 315.0,
+    "see": 337.5, "ese": 337.5, "eastsoutheast": 337.5,
+}  # fmt: skip
+# the runtime's name of each of the eight directions it turns by, by angle
+ANGLE_DIRECTIONS = {
+    0.0: "right", 45.0: "up_right", 90.0: "up", 135.0: "up_left",
+    180.0: "left", 225.0: "down_left", 270.0: "down", 315.0: "down_right",
+}  # fmt: skip
+_DIRECTION_JOIN = re.compile(r"[\s_\-]+")
+
+
+def direction_angle(name: str) -> float | None:
+    """The direction a folder or a file stem is named by, in degrees counter-clockwise from
+    east, or None: ``north-east`` 45, ``NEE`` 22.5, ``S`` 270, ``down`` 270."""
+    word = _DIRECTION_JOIN.sub("", name.strip()).casefold()
+    return DIRECTION_ANGLES.get(word)
+
+
 @dataclass(frozen=True)
 class NormalizedName:
     action: str

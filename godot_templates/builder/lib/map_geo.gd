@@ -66,6 +66,11 @@ func _init(ctx: BuildContext, tileset_name: String = "") -> void:
 ## tile of the outdoor tile set, else of the first one, else the config's `base_tile_size`; and
 ## for an isometric project the length of one step on its diamonds.
 static func tile_unit(ctx: BuildContext) -> int:
+	# an isometric project measures by its diamond, whatever sheets of squares its packs also
+	# have (T17.30: *Lords Of Pain*'s effects are cut into a tile set of 16 px squares)
+	for def: Dictionary in ctx.catalog.tileset_defs():
+		if IsoTileset.wanted(def):
+			return RpgIso.unit(BuildContext.vec2i(def["tile_size"]))
 	var found: Dictionary = ctx.catalog.tileset_def(OVERWORLD)
 	if found.is_empty() and not ctx.catalog.tileset_defs().is_empty():
 		found = ctx.catalog.tileset_defs()[0]

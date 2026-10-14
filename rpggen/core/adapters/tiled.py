@@ -795,11 +795,16 @@ class TiledAdapter:
         by_lower = {f.path.casefold(): f.path for f in inv.files}
         ignored: set[str] = set()
         hulled = False
+        # the isometric sheets cut by the cell their tile sets state (T17.30) are no tile sets
+        # of squares
+        cut = {f.path for r in ctx.results if r.adapter == "iso_sheets" for f in r.assets}
         for ts in tilesets:
             image = _resolve_image(ts)
             image = by_lower.get(image.casefold()) if image else None
             if image is None:
                 issues.add("ADAPT-002", file=ts.source_file, image=ts.image)
+                continue
+            if image in cut:
                 continue
             if ts.columns <= 0 or ts.tile_w <= 0 or ts.tile_h <= 0:
                 issues.add(

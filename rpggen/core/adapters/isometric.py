@@ -36,7 +36,7 @@ from PIL import Image
 
 from rpggen import paths
 from rpggen.core import classifier
-from rpggen.core.adapters import naming, sequences, tiled
+from rpggen.core.adapters import iso_sheets, naming, sequences, tiled
 from rpggen.core.adapters.base import AdapterContext, AdapterResult, AssetFragment
 from rpggen.core.adapters.kenney_atlas import UNUSED_ATLAS_COPY
 from rpggen.core.analyzer import image_facts, views
@@ -88,6 +88,12 @@ COMPASS_SHARE = 2 / 3  # ... when this share of them fit their pictures at one t
 VIEWS_MIN = 4  # numbered pictures of one name are views of a thing from this many on
 VIEWS_LIKENESS_MIN = 0.6  # a numbered set is read from a named one it is this alike (0 to 1)
 VIEWS_ALIKE_SHARE = 0.9  # ... and every named set this near the best has to agree with it
+FIGURE_ROLES = frozenset({"PLAYER", "NPC", "ENEMY"})  # whose frames give a ground picture its scale
+# the folders of a pack read by its ground pictures whose pictures stand on no diamond (T17.30)
+NOT_STANDING_FOLDERS = frozenset(
+    {"ui", "interface", "hud", "menu", "menus", "vfx", "fx", "effect", "effects", "cursor",
+     "cursors", "filter", "filters", "icon", "icons"}
+)  # fmt: skip
 
 
 def says_isometric(words: set[str]) -> bool:
@@ -491,6 +497,18 @@ def _turn_number(turn: naming.Turn, count: int) -> int:
     return turn.number * count // len(naming.COMPASS)
 
 
+def _named_diamond(results: list[AdapterResult]) -> tuple[int, int] | None:
+    """The diamond an earlier reader took from the pack's names (``isometric:WxH:named``)."""
+    for res in results:
+        for mark in res.pack_warnings:
+            size, _, source = mark.removeprefix(classifier.ISOMETRIC_MARK).partition(":")
+            width, _, height = size.partition("x")
+            said = mark.startswith(classifier.ISOMETRIC_MARK) and source == "named"
+            if said and width.isdigit() and height.isdigit():
+                return int(width), int(height)
+    return None
+
+
 def strip_name(files: list[InventoryFile], cols: int) -> str:
     """Named after the pictures it is made of, so that the same pictures give the same file."""
     text = "\n".join([f"headings/{cols}", *(f.sha256 for f in files)])
@@ -631,6 +649,53 @@ class IsometricAdapter:
         pictures = [p for p in (_look(root, f) for f in stills) if p is not None]
         own = [p for p in pictures if p.f.path not in only_painted]
         ground = find_ground(own or pictures, words) if pictures else None
+        by_name = _named_diamond(ctx.results)
+        if by_name is not None and (ground is None or (ground.width, ground.height) != by_name):
+            # the names gave the diamond (T17.30): the flat tiles that are there are checked
+            # against it, and what is left of the pack is no reason for TILE-010
+            if ground is not None:
+                issues.add(
+                    "TILE-014",
+                    pack_id=inv.pack_id,
+                    named=f"{by_name[0]}x{by_name[1]}",
+                    measured=f"{ground.width}x{ground.height}",
+                    file=f"({inv.pack_id})",
+                )
+            result.issues = list(issues)
+            return result
+        if ground is None and words.isometric:
+            # no flat tile, no size in a name: a large ground picture that tiles on its diamond
+            # says it (T17.30)
+            said = iso_sheets.ground_pictures(
+                root,
+                stills,
+                (ctx.work_dir or paths.cache_dir()) / iso_sheets.WORK_FOLDER,
+                result,
+                ctx,
+                [
+                    int(frag.facets["frame"][0])
+                    for res in ctx.results
+                    for frag in res.assets
+                    if frag.facets.get("animations")
+                    and frag.facets.get("role") in FIGURE_ROLES
+                    and frag.facets.get("frame")
+                ],
+            )
+            if said is not None:
+                # the other pictures are things standing on that diamond, each on its own foot
+                # (their canvases are no tile's: *Lords Of Pain* draws a crate in the middle of
+                # 256 x 256)
+                ground = Ground(said[0], said[1], 0, 0, 0, iso_sheets.SOURCE_GROUND)
+                read_ground = {f.path for f in result.assets}
+                # ... but the pictures of its menus and its effects are none (a vignette over the
+                # whole screen stood on 30 diamonds and walled an enemy in)
+                read_ground |= {
+                    p.f.path
+                    for p in pictures
+                    if set(classifier.tokens(p.f.path)[0]) & NOT_STANDING_FOLDERS
+                }
+                pictures = [p for p in pictures if p.f.path not in read_ground]
+                stills = [f for f in stills if f.path not in read_ground]
         if ground is None:
             if pictures:
                 reason = (

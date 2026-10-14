@@ -73,6 +73,11 @@ class CatalogPack:
     def effective_license(self) -> licenses.PackLicense:
         return licenses.effective(self.license, self.license_overrides)
 
+    def licence_stated(self) -> bool:
+        """True when the pack has no licence file and the user stated its licence (T17.30):
+        the README names it as the user's own statement."""
+        return not self.license_files and bool(self.license_overrides.get("license_id"))
+
     def to_json(self) -> dict[str, Any]:
         out = {
             "pack_id": self.pack_id,
@@ -1196,7 +1201,13 @@ def mark_turns(catalog: Catalog) -> None:
 
     groups: dict[tuple[str, str, str], list[Asset]] = {}
     for asset in catalog.assets:
-        if asset.kind != "image" or "#" in asset.id or asset.status == "MISSING":
+        if asset.kind != "image" or asset.status == "MISSING":
+            continue
+        cut = _cut_turn_key(asset, asset.detected)
+        if cut is not None:  # the pieces of a wall cut from a sheet (T17.30)
+            groups.setdefault(cut, []).append(asset)
+            continue
+        if "#" in asset.id:
             continue
         root = f"assets/packs/{asset.pack_id}/"
         if "turn" not in asset.detected or not asset.path.startswith(root):
@@ -1230,6 +1241,20 @@ def mark_turns(catalog: Catalog) -> None:
             asset.detected["tags"] = sorted(tags)
 
 
+TURN_GROUP_TAG = "turn_group:"  # adapters.iso_sheets: the pieces of one wall cut from a sheet
+
+
+def _cut_turn_key(asset: Asset, facets: dict[str, Any]) -> tuple[str, str, str] | None:
+    """The group of a turn that is a part of a sheet (T17.30: the four pieces of a wall put
+    together from two faces of a sheet), by the tag the reader gave it; None for any other."""
+    if "turn" not in facets or "#" not in asset.id:
+        return None
+    for tag in facets.get("tags") or []:
+        if str(tag).startswith(TURN_GROUP_TAG):
+            return (asset.pack_id, asset.id.split("#", 1)[0], str(tag)[len(TURN_GROUP_TAG) :])
+    return None
+
+
 def turn_sets(assets: list[Asset]) -> dict[str, str]:
     """``{asset id: id of the first turn of its set}`` for every picture of ``assets`` that is
     one turn of a thing (T17.13), by the names ``mark_turns`` groups them by. A tile drawn in
@@ -1241,6 +1266,10 @@ def turn_sets(assets: list[Asset]) -> dict[str, str]:
     for asset in assets:
         root = f"assets/packs/{asset.pack_id}/"
         facets = effective(asset)
+        cut = _cut_turn_key(asset, facets)
+        if cut is not None:
+            groups.setdefault(cut, []).append(asset)
+            continue
         if "turn" not in facets or not asset.path.startswith(root):
             continue
         rel = asset.path[len(root) :]
@@ -1376,6 +1405,24 @@ def colour_name(asset: Asset) -> str:
     found = next((str(t) for t in tags if str(t).startswith(classifier.COLOUR_TAG)), "")
     name = found[len(classifier.COLOUR_TAG) :] or season_name(asset)
     return "_".join(part for part in (name, turn_name(asset)) if part)
+
+
+def _profile_licence(results: list[Any]) -> dict[str, Any]:
+    """The licence an installed profile of the pack states for it (T17.30), as corrections of
+    the Audit page; {} when none does."""
+    for res in results:
+        if res.pack_license:
+            return {k: v for k, v in res.pack_license.items() if k in licenses.KEYS}
+    return {}
+
+
+def _stated_licence(pack_id: str, previous: Catalog | None, results: list[Any]) -> dict[str, Any]:
+    """The licence the user stated for a pack (the previous catalog's corrections, else the
+    profile's), {} when there is none with a licence id."""
+    old = next((p for p in previous.packs if p.pack_id == pack_id), None) if previous else None
+    stated = dict(old.license_overrides) if old is not None and old.license_overrides else {}
+    stated = stated or _profile_licence(results)
+    return stated if stated.get("license_id") else {}
 
 
 def _licence_paths(inv: Inventory, folder: Path) -> list[str]:
@@ -1533,6 +1580,7 @@ def assemble(
                 ),
                 work_dir=work_dir,
                 learned=list(learned or []),
+                is_cancelled=is_cancelled,
             )
             results = adapters.run_adapters(inv, opened.root, ctx)
         except Cancelled as exc:
@@ -1738,7 +1786,16 @@ def assemble(
 
         licence_paths = _licence_paths(inv, opened.root)
         license_files = _license_files(licence_paths, root)
-        if not license_files:
+        stated = _stated_licence(pack_id, previous, results)
+        if not license_files and stated:
+            # the user stated it on the Audit page or in the pack's profile (T17.30)
+            issues.add(
+                "ASSET-036",
+                pack_id=pack_id,
+                license=licenses.label(str(stated.get("license_id", ""))),
+                file=root,
+            )
+        elif not license_files:
             issues.add("ASSET-021", pack_id=pack_id, file=root)
         _side_view_usage([a for a in catalog.assets if a.pack_id == pack_id])
         sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
@@ -1787,6 +1844,25 @@ def assemble(
                     asset.detected.pop("roles_alt", None)
         if VIEW_ISOMETRIC in warnings:
             _iso_roles([a for a in catalog.assets if a.pack_id == pack_id], root)
+            # a thing an earlier reader drew for the view (T17.30: a prop in its facings)
+            # stands on the pack's diamond, which only the isometric reader said
+            diamond_said = (
+                next((w for w in warnings if w.startswith(classifier.ISOMETRIC_MARK)), "")[
+                    len(classifier.ISOMETRIC_MARK) :
+                ]
+                .partition(":")[0]
+                .partition("x")
+            )
+            if diamond_said[0].isdigit() and diamond_said[2].isdigit():
+                for asset in catalog.assets:
+                    facets = asset.detected
+                    if (
+                        asset.pack_id == pack_id
+                        and asset.detected_by == "facings"
+                        and facets.get("projection") == PROJECTION_ISOMETRIC
+                        and "footprint" not in facets
+                    ):
+                        facets["footprint"] = [int(diamond_said[0]), int(diamond_said[2])]
         if view == "side":
             _side_view_soldier([a for a in catalog.assets if a.pack_id == pack_id])
         if view == "farm":
@@ -1821,6 +1897,7 @@ def assemble(
                 next((r.profile_id for r in results if r.profile_id), None),
                 sorted(set(warnings)),
                 licenses.detect_files(opened.root, licence_paths).to_json(),
+                _profile_licence(results),
             )
         )
 
@@ -2221,8 +2298,9 @@ def _carry_previous(
         return
     old_packs = {p.pack_id: p for p in previous.packs}
     for pack in catalog.packs:
-        if pack.pack_id in old_packs:  # the licence corrections of the Audit page stay
-            pack.license_overrides = dict(old_packs[pack.pack_id].license_overrides)
+        old_pack = old_packs.get(pack.pack_id)
+        if old_pack is not None and old_pack.license_overrides:  # the Audit page's stay
+            pack.license_overrides = dict(old_pack.license_overrides)
     prev_tile_assets = {src["asset"] for tdef in previous.tilesets for src in tdef.sources}
     for asset in catalog.assets:
         old = previous.asset(asset.id)
