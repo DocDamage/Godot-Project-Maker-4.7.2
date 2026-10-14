@@ -1248,6 +1248,11 @@ characters, and CuteSCKR's 80 tile sets. Almost nothing of them is read usefully
   profile; a generated project whose catalog uses any asset of such a pack gets a section of its
   README, *AI-generated content*, listing those packs and saying that a store page (Steam's AI
   disclosure, for one) must declare it. A project that uses none of them has no such section.
+  The section also suggests cleaning those pictures up in Aseprite, by hand or with an AI
+  assistant (Claude, or the one the user has) driving Aseprite: fixing stray pixels, outlines,
+  palettes and the frames of animations, so the art is the user's own work on top of what was
+  generated. It says plainly that edited art still came from a generator, so the store page
+  still declares it.
 
 **Done when**
 * SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset* give a farm each; a Screaming
