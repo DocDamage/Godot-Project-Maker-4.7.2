@@ -105,6 +105,128 @@ func test_an_invulnerable_target_still_stops_a_shot(t) -> void:
 	for node: Node in [shot, shooter, target]:
 		node.free()
 
+# ---------------------------------------------------------------- shots on the ground
+
+## A body standing with its feet at `feet`, `height` tall in its picture: a hurtbox as the action
+## RPG's builder makes it (arpg_build.gd: the middle of the picture, 60 % of its height, half its
+## width), the picture as wide as it is tall.
+func _body(team: String, feet: Vector2, height: float) -> Node2D:
+	var holder := Node2D.new()
+	holder.name = "Body"
+	holder.position = feet
+	var hurtbox := RpgHurtbox.new()
+	hurtbox.name = "Hurtbox"
+	hurtbox.team = StringName(team)
+	hurtbox.collision_layer = 0
+	hurtbox.set_collision_layer_value(10 if team == "enemy" else 9, true)
+	hurtbox.position = Vector2(0.0, -height * 0.5)
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(maxf(6.0, height * 0.5), maxf(8.0, height * 0.6))
+	shape.shape = rect
+	hurtbox.add_child(shape)
+	holder.add_child(hurtbox)
+	return holder
+
+func _hurtbox_of(body: Node2D) -> RpgHurtbox:
+	return body.get_node("Hurtbox") as RpgHurtbox
+
+## Whether the line a shot fired at the middle of a 64-px shooter flew along (y = -32, radius 3)
+## crosses `body`'s hurtbox: how the arrow flew before it flew on the ground.
+func _old_flight_meets(body: Node2D) -> bool:
+	var hurtbox := _hurtbox_of(body)
+	var rect := (hurtbox.get_child(0) as CollisionShape2D).shape as RectangleShape2D
+	var middle := body.position.y + hurtbox.position.y
+	return absf(middle - (-32.0)) <= rect.size.y * 0.5 + RpgProjectile.RADIUS
+
+func test_a_shot_on_the_ground_meets_short_and_tall_bodies_from_above(t) -> void:
+	var shot := RpgProjectile.create(null, Vector2.ZERO, Vector2.RIGHT, &"player", 600.0, 400.0, "arrow")
+	shot.set_on_ground(Vector2(0, -32))  # a shooter 64 px tall
+	t.ok(shot.on_ground and shot.lift == Vector2(0, -32))
+	t.ok(not shot.get_collision_mask_value(10) and not shot.get_collision_mask_value(9), "it meets footprints, not hurtboxes")
+	t.ok(shot.get_collision_mask_value(1), "walls still stop it")
+	t.eq(shot.drawn_lift(), Vector2(0, -32), "drawn at the hand when loosed")
+	shot.travelled = 300.0
+	t.eq(shot.drawn_lift(), Vector2(0, -8), "and lower as it flies (3/4 of its range)")
+	shot.travelled = 0.0
+	var way := Vector2(300, 0)
+	for height: float in [8.0, 24.0, 30.0, 64.0, 128.0]:
+		var body := _body("enemy", Vector2(96, 0), height)
+		t.eq(shot.first_on_path(Vector2.ZERO, way, [_hurtbox_of(body)]), _hurtbox_of(body), "a body %d px tall in its way is hit" % int(height))
+		var nearer := _body("enemy", Vector2(96, maxf(6.0, height * 0.5) * 0.4), height)
+		t.eq(shot.first_on_path(Vector2.ZERO, way, [_hurtbox_of(nearer)]), _hurtbox_of(nearer), "and one standing a little nearer (%d px)" % int(height))
+		body.free()
+		nearer.free()
+	var slime := _body("enemy", Vector2(96, 0), 24.0)
+	t.ok(not _old_flight_meets(slime), "a body shorter than half the shooter: the flight at the middle of the shooter passed over it")
+	slime.free()
+	# a tall body standing 40 px nearer the camera: its picture covers the line, its feet do not
+	var giant := _body("enemy", Vector2(96, 40), 128.0)
+	t.ok(_old_flight_meets(giant), "the old flight met its body")
+	t.ok(shot.first_on_path(Vector2.ZERO, way, [_hurtbox_of(giant)]) == null, "on the ground the shot passes behind it")
+	giant.free()
+	# straight down the screen
+	var below := _body("enemy", Vector2(0, 96), 16.0)
+	var aside := _body("enemy", Vector2(30, 96), 16.0)
+	t.eq(shot.first_on_path(Vector2.ZERO, Vector2(0, 300), [_hurtbox_of(aside), _hurtbox_of(below)]), _hurtbox_of(below), "a short body below is hit, one aside is not")
+	# the first footprint on the way, not the first in the list
+	var far := _body("enemy", Vector2(200, 0), 128.0)
+	var close := _body("enemy", Vector2(100, 0), 10.0)
+	t.eq(shot.first_on_path(Vector2.ZERO, way, [_hurtbox_of(far), _hurtbox_of(close)]), _hurtbox_of(close))
+	for node: Node in [below, aside, far, close, shot]:
+		node.free()
+
+func test_a_shot_on_the_ground_meets_short_and_tall_bodies_on_diamonds(t) -> void:
+	# diamonds of 64 x 32: a step along a side of a diamond goes 32 across and 16 down
+	var axis := Vector2(2, 1).normalized()
+	var shot := RpgProjectile.create(null, Vector2.ZERO, axis, &"enemy", 600.0, 400.0)
+	shot.set_on_ground(Vector2(0, -12))  # a short shooter (24 px) at a tall player
+	var way := axis * 300.0
+	for height: float in [10.0, 24.0, 48.0, 96.0]:
+		var on_line := _body("player", Vector2(128, 64), height)
+		var off_line := _body("player", Vector2(128, 0), height)
+		t.eq(shot.first_on_path(Vector2.ZERO, way, [_hurtbox_of(on_line)]), _hurtbox_of(on_line), "a body %d px tall two diamonds along is hit" % int(height))
+		t.ok(shot.first_on_path(Vector2.ZERO, way, [_hurtbox_of(off_line)]) == null, "one on the next row is not (%d px)" % int(height))
+		on_line.free()
+		off_line.free()
+	shot.free()
+
+func test_a_shot_on_the_ground_flies_into_a_short_body_in_the_tree(t) -> void:
+	var state := Fixtures.install_state()
+	var tree := Engine.get_main_loop() as SceneTree
+	var map := Node2D.new()
+	map.name = "ShotMap"
+	tree.root.add_child(map)
+	var shooter := _fighter("player", 10, 0, 10)
+	map.add_child(shooter)
+	var target := _fighter("enemy", 1, 0, 30)
+	target.position = Vector2(150, 0)
+	var hurtbox := target.get_node("Hurtbox") as RpgHurtbox
+	hurtbox.collision_layer = 0
+	hurtbox.set_collision_layer_value(10, true)
+	hurtbox.position = Vector2(0, -6)  # 12 px tall, the shooter 64
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(6, 8)
+	shape.shape = rect
+	hurtbox.add_child(shape)
+	map.add_child(target)
+	t.ok(hurtbox.is_in_group(RpgHurtbox.GROUP), "a hurtbox in the tree is in the group")
+	var shot := RpgProjectile.create(shooter, Vector2.ZERO, Vector2.RIGHT, &"player", 900.0, 400.0, "arrow")
+	shot.set_on_ground(Vector2(0, -32))
+	map.add_child(shot)
+	var targets := shot.targets()
+	t.ok(targets.size() == 1 and targets[0] == hurtbox, "the other team's hurtboxes")
+	for i in 30:
+		if shot.done:
+			break
+		shot.advance(1.0 / 60.0)  # 15 px a step: more than the body is wide
+	t.ok(shot.done, "the shot stopped")
+	t.eq(_health(target).hp(), 30 - 10, "it hurt the short body")
+	t.ok(shot.position.x < 150.0 and shot.position.x > 140.0, "where its footprint begins (%.1f)" % shot.position.x)
+	map.free()
+	Fixtures.uninstall_state()
+
 # ---------------------------------------------------------------- enemy kinds
 
 func test_the_kind_comes_from_the_behavior_or_the_asset_name(t) -> void:
@@ -139,6 +261,8 @@ func test_the_shooter_aims_waits_fires_and_cools_down(t) -> void:
 	t.ok(shot != null and shot.get_parent() == map, "the shot flies in the map, beside the shooter")
 	t.eq(shot.velocity.normalized(), Vector2.DOWN)
 	t.eq(shot.team, &"enemy")
+	t.ok(shot.on_ground, "it flies on the ground")
+	t.eq(shot.position, actor.position, "from the shooter's feet")
 	t.ok(not shoot.can_start(), "cooling down")
 	shoot._physics_process(1.0)
 	t.ok(shoot.can_start())
@@ -224,6 +348,9 @@ func test_a_ranged_weapon_fires_arrows(t) -> void:
 	t.eq(shot.team, &"player")
 	t.eq(shot.style, "arrow")
 	t.eq(shot.velocity.normalized(), Vector2.LEFT)
+	t.ok(shot.on_ground, "the arrow flies on the ground")
+	t.eq(shot.position, player.position, "from the player's feet")
+	t.eq(shot.lift, (player.get_node("Hurtbox") as Node2D).position, "drawn at the middle of the body")
 	var arrows := map.get_children().filter(func(n: Node) -> bool: return n is RpgProjectile)
 	t.eq(arrows.size(), 1, "one arrow per attack")
 	map.free()

@@ -241,13 +241,15 @@ should know:
   RPG and a farm each of SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset* were
   generated on this machine, played through their smoke sequences and looked at in pictures.
   Short of it: the farms take their player from SakPix's villagers and CuteSCKR's buildings
-  were given their role in the audit; *Lords Of Pain*'s slime was set aside, because an arrow
-  flies at the middle of the shooter's body and over a small enemy; Screaming Brain's thick
+  were given their role in the audit; Screaming Brain's thick
   walls, corners, roofs, paths and roads are not read; things cut from a mixed sheet need
   review. A pack with no licence file can be given its licence and a credit line on the Audit
   page's *Packs* tab: the README credits it as its user's own statement. A pack can be marked
   there as AI-generated art (CuteSCKR's): the README of a game that uses it has a section
-  *AI-generated content* for the store page's declaration.
+  *AI-generated content* for the store page's declaration. *Lords Of Pain*'s slime, set
+  aside at first because an arrow flew at the middle of the shooter's body and over an enemy
+  shorter than half of it, is back in its game: the action RPG's shots fly on the ground and
+  hit the footprint of what they are aimed at, short or tall.
 * **Not built.** Dropping onto diamonds with a mouse (the
   editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working

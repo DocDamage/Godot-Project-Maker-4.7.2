@@ -58,6 +58,27 @@ reach the player); `arpg/enemy_recipes.gd` is at `RECIPE_VERSION` 3, so the enem
 action RPG are built again once, the same scenes where no enemy has the facet. `error_codes.gd`
 has the three new codes.
 
+**A fix of the action RPG's shots: they fly on the ground.** The player's arrows and the
+enemies' shots flew at the middle of the shooter's body and hurt a hurtbox they overlapped;
+seen from above or on diamonds the screen's y is depth and height at once, so an arrow passed
+over an enemy shorter than half the player (*Lords Of Pain*'s slime) and an enemy's shot over
+a player taller than it by as much. `RpgProjectile.set_on_ground(lift)`, called by
+`RpgPlayerCombat.fire_arrow` and `RpgEnemyShoot.fire`: the shot starts at the shooter's feet and
+flies there; it hurts the first body of the other team whose footprint its way crosses
+(`RpgHurtbox.ground_rect()`: around the feet of the hurtbox's holder, as wide as its shape and as
+deep as it is wide, whatever its height), walked in steps of its radius so a fast arrow does
+not jump over a narrow body; its masks 9 and 10 are off (walls, mask 1, still stop it, at the
+height of the feet); its picture is drawn `lift` above when it is loosed (the middle of the
+shooter's body) and comes down evenly to the ground at the end of its range (`drawn_lift()`),
+with a small shadow on the ground. New and inert elsewhere: `RpgHurtbox.GROUP` (every hurtbox
+joins `rpg_hurtboxes` in `_ready`), `RpgProjectile.on_ground`, `lift`, `drawn_lift()`,
+`targets()` and `first_on_path()`. A shot that nobody puts on the ground (the metroidvania's
+shooter and the guardian's rock, seen from the side, where height is height) flies and hits as
+before. No recipe changes what it builds and no `RECIPE_VERSION` moved. The smoke step
+`player_bow_shoots` shoots a second enemy, made 2/5 of the player's height, and looks at the
+arrow every frame while it waits (it read the player's last shot once afterwards, when an
+arrow that had hit was already freed, and said the bow fired no arrow).
+
 **Real farming packs in the builder (T17.29).** Nothing of the runtime changes but the line
 above. The builder: `ActorBuild.set_feet` makes an actor's feet as wide as the facet `feet`
 says, where a sheet says it (a character drawn 14 px wide in frames of 32 walked through no

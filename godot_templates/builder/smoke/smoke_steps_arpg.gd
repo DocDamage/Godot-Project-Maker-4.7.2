@@ -640,7 +640,9 @@ func _charger_charges() -> String:
 	stats.hp = stats.max_hp
 	return failure
 
-## With a bow (a weapon marked ranged) the attack fires an arrow that hurts an enemy 4 tiles away.
+## With a bow (a weapon marked ranged) the attack fires an arrow that hurts an enemy 4 tiles away,
+## and then one that is shorter than half the player (enemy 2 made small: its picture and its
+## hurtbox; an arrow flew at the middle of the shooter's body and passed over such an enemy).
 func _player_bow_shoots() -> String:
 	var state: RpgGameState = _autoload("GameState") as RpgGameState
 	var p := _player()
@@ -656,27 +658,10 @@ func _player_bow_shoots() -> String:
 	state.inventory.add(bow.id)
 	if not state.equip(state.player_actor_id, bow.id):
 		return "the test bow could not be equipped"
-	var target := _spawn_kind("melee", 4.0)
-	var failure := ""
-	if target == null:
-		failure = "could not make a target from enemy 2's scene"
-	else:
-		await _frames(3)
-		_freeze(target)
-		var hp_before := target.health.hp()
-		p.call("set_facing", "right")
-		await _frames(2)
-		await _tap("attack")
-		var start := Time.get_ticks_msec()
-		while target.health.hp() == hp_before and Time.get_ticks_msec() - start < 3000:
-			await _tree().physics_frame
-		if combat.last_shot == null or combat.last_shot.style != "arrow":
-			failure = "the attack with a bow fired no arrow"
-		elif target.health.hp() == hp_before:
-			failure = "the arrow did not hurt the enemy 4 tiles away"
-		elif (p.get_node("AttackHitbox") as RpgHitbox).active:
-			failure = "the bow swung the melee hitbox"
-		target.queue_free()
+	var failure := await _shoot_at_target(p, combat, false)
+	if failure == "":
+		await _wait_idle(combat, 120)
+		failure = await _shoot_at_target(p, combat, true)
 	await _wait_idle(combat, 120)
 	state.unequip(state.player_actor_id, &"weapon")
 	state.inventory.remove(bow.id, 1)
@@ -685,6 +670,55 @@ func _player_bow_shoots() -> String:
 	state.items.erase(bow.id)
 	await _frames(2)
 	return failure
+
+## One arrow at an enemy of enemy 2's scene 4 tiles right of the player; `short` makes it 2/5 of
+## the player's height (by the middles of the two hurtboxes). "" when the arrow hurt it.
+func _shoot_at_target(p: Node2D, combat: RpgPlayerCombat, short: bool) -> String:
+	var target := _spawn_kind("melee", 4.0)
+	if target == null:
+		return "could not make a target from enemy 2's scene"
+	var what := "the enemy 4 tiles away"
+	await _frames(3)
+	_freeze(target)
+	if short:
+		var mine := p.get_node_or_null("Hurtbox") as Node2D
+		var its := target.get_node_or_null("Hurtbox") as Node2D
+		if mine != null and its != null and its.position.y < 0.0:
+			var k := minf(1.0, 0.4 * mine.position.y / its.position.y)
+			for part: String in ["Visual", "Hurtbox"]:
+				var node := target.get_node_or_null(part) as Node2D
+				if node != null:
+					node.position *= k
+					node.scale *= k
+			what = "an enemy %.0f%% of the player's height 4 tiles away" % (k * its.position.y / mine.position.y * 100.0)
+	var hp_before := target.health.hp()
+	p.call("set_facing", "right")
+	await _frames(2)
+	await _tap("attack")
+	var start := Time.get_ticks_msec()
+	var arrow := false
+	while target.health.hp() == hp_before and Time.get_ticks_msec() - start < 3000:
+		arrow = arrow or _is_arrow(combat.last_shot)
+		await _tree().physics_frame
+	arrow = arrow or _is_arrow(combat.last_shot)
+	var failure := ""
+	if not arrow:
+		failure = "the attack with a bow fired no arrow"
+	elif target.health.hp() == hp_before:
+		failure = "the arrow did not hurt %s" % what
+	elif (p.get_node("AttackHitbox") as RpgHitbox).active:
+		failure = "the bow swung the melee hitbox"
+	target.queue_free()
+	return failure
+
+## Whether `shot` is a live arrow. An arrow that hit or flew its range is freed by the end of its
+## frame, so the step looks at the player's last shot every frame while it waits (it read the
+## shot once afterwards and took an arrow that had hit for no arrow at all).
+func _is_arrow(shot: Variant) -> bool:
+	if not is_instance_valid(shot):
+		return false
+	var projectile: RpgProjectile = shot
+	return projectile.style == "arrow"
 
 func _persist() -> String:
 	var tree := _tree()
