@@ -1,0 +1,948 @@
+{
+  "assets": [
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            1,
+            1
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          101,
+          67
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tilemap.tilemap",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tilemap/tilemap.png",
+      "sha256": "fce354c0b009cc3271909a3820ac9c7a8a1a40e46feaed10134b5d7f1b3917f2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "CROP",
+        "size": [
+          48,
+          16
+        ],
+        "stages": 3,
+        "tags": [
+          "cells:2:2:3",
+          "crop",
+          "duplicate_of:farm_forms.tilemap.tilemap",
+          "growth_by:grid",
+          "produce:crop_1"
+        ],
+        "usage": "growth_strip"
+      },
+      "detected_by": "farm_pack",
+      "id": "farm_forms.tilemap.tilemap#crop_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "generated/farm_crops/farm_forms__tilemap_tilemap__crop_1.png",
+      "sha256": "fce354c0b009cc3271909a3820ac9c7a8a1a40e46feaed10134b5d7f1b3917f2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.1,
+      "detected": {
+        "frame": [
+          96,
+          64
+        ],
+        "origin": [
+          48,
+          63
+        ],
+        "role": "NONE",
+        "size": [
+          96,
+          64
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tilemap.tilemap_packed",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tilemap/tilemap_packed.png",
+      "sha256": "5ec2b011e02917a6a004efaf619e500cf1405130f95ae5f4612344d071786061",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0000",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0000.png",
+      "sha256": "56d8880ba60e3835e7a9575125a651a6e0e485894f501bd7bddd70f6c41c08ba",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0001",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0001.png",
+      "sha256": "afd7cb1373f82ed858f7973f2f4ff330bd4ce76cf21298e1542ad7b242274486",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0002",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0002.png",
+      "sha256": "225ea1ac4969e2f59e3474cd7e3368976a1ffa89be355fc68f71ac2cc33cc994",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0003",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0003.png",
+      "sha256": "cba1b59969f316d5b43e413872bf1d966a33c76571c861e5d513f4e01fe4861a",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0004",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0004.png",
+      "sha256": "45b6df37d12894241833065e451b26d33ee26b029df92fec004e046d2599cf9e",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0005",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0005.png",
+      "sha256": "68ef1cc9c3b1808a4790d6b9a4ad57ae30facc3fc9a07c74cc1b9ff3b04cd572",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0006",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0006.png",
+      "sha256": "e26668a3ef4d06993c9fa1d62d4db4c5216c0d2aa4312956944c98299a500e0f",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0007",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0007.png",
+      "sha256": "547952135f5d0f556d61589123eba35f3ac5ddbf3b119c7b9f81003be84b689e",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0008",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0008.png",
+      "sha256": "7057a290c90f366048d454976f5f8a8a9b5551d7be541fd216aabba3c00bef25",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0009",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0009.png",
+      "sha256": "373630da15cae28e35e80e60e5d2a7eb6e7e3fdb42d5ff7866ca54ae61552e92",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0010",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0010.png",
+      "sha256": "656f843fb8e39ad11896b7bd178594284f9d72e458bc557b0e3bd64bf5f9d60a",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0011",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0011.png",
+      "sha256": "1c8ab76aa6158ccd7a9ab4163bec418f7e66ec8db159723450bec6711f2203b1",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0012",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0012.png",
+      "sha256": "1dfc37181844ac126b57e9b6b0565ebf45918538b243c0bc5c7bc00ad28844fb",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0013",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0013.png",
+      "sha256": "be98c49c7d5bf400be38befd3903dac2229bb5129952da6ec8b151953756bdd2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0014",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0014.png",
+      "sha256": "6bee5ee4b4041efcc89dc99047a1491389b04507ea07d64465067bbd15c6e87d",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0015",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0015.png",
+      "sha256": "01a0a07b90cbf9de320d42319be05535bbd9b80cf9a86442df7fa9a1dcca8ea7",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0016",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0016.png",
+      "sha256": "3c6d1f5916f3c595913841b23b994e4c8ed11179740f1f06884c92daece16e31",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0017",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0017.png",
+      "sha256": "e7189a56fbc59177454357e02e6761fdcbc3ba0b669fa616b1415dcabb225271",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0018",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0018.png",
+      "sha256": "910dc1ce5377c9fab53ca2f9a6845793392afc0e94274beab0e0768c9818b7c1",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0019",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0019.png",
+      "sha256": "16f3c7725a85a13952ccd31829b8a6ad077c6a7f96660146e2960161f0249f66",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0020",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0020.png",
+      "sha256": "a8c5a511d1d1b5e1e1d9cf863f811087626d09eadb8311d51f946cc2615cb01e",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0021",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0021.png",
+      "sha256": "c3c02f5777a8e5d8852388cd4235d7594928cc033fc4e0e0419b629ec462c248",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0022",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0022.png",
+      "sha256": "5ea077b6c16f6cfc68a367564d5984e439740253dcfb1a0668fe600280fee475",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_forms.tiles.tile_0023",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_forms",
+      "path": "assets/packs/farm_forms/Tiles/tile_0023.png",
+      "sha256": "7728d1c743cd6c32b06930c2e6b7ad2d8ae18bcae5585a2c3f47e71c6c45cd60",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "farm_pack",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/farm_forms/License.txt"
+      ],
+      "pack_id": "farm_forms",
+      "profile_id": null,
+      "root": "assets/packs/farm_forms",
+      "source_sha256": "c237f734a9d1ca0ec9517e0d823edd94732302dac7e78b113bef64b9a59c3346",
+      "warnings": [
+        "view:farm"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "farm_forms.tilemap.tilemap",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

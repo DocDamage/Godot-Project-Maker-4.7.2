@@ -1,0 +1,41 @@
+{
+  "Character/PNG/1. Idle/Acc/Hat.png": {
+    "role": "NONE"
+  },
+  "Character/PNG/1. Idle/Clothes/Farm/Blue.png": {
+    "role": "NONE"
+  },
+  "Character/PNG/1. Idle/Clothes/Farm/Red.png": {
+    "role": "NONE"
+  },
+  "Character/PNG/1. Idle/Eyes/Blue.png": {
+    "role": "NONE"
+  },
+  "Character/PNG/1. Idle/Hair/Short/Black.png": {
+    "role": "NONE"
+  },
+  "Character/PNG/1. Idle/Skins/1.png": {
+    "role": "NONE"
+  },
+  "Character/PNG/1. Idle/Skins/2.png": {
+    "role": "NONE"
+  },
+  "generated/lpc_characters/farm_layered__lpc_character__character.png": {
+    "anims": [
+      "idle_down",
+      "idle_left",
+      "idle_right",
+      "idle_up",
+      "walk_down",
+      "walk_left",
+      "walk_right",
+      "walk_up"
+    ],
+    "frame": [
+      8,
+      16
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  }
+}

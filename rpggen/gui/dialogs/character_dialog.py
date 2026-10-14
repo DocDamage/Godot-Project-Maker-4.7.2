@@ -50,7 +50,10 @@ class CharacterDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("characterDialog")
-        self.setWindowTitle(self.tr("Compose LPC character"))
+        layered = lpc_compose.is_layered(body)
+        self.setWindowTitle(
+            self.tr("Compose character") if layered else self.tr("Compose LPC character")
+        )
         self.catalog, self.body, self.pack_roots = catalog, body, pack_roots
         self.existing = definition
         chosen = set(definition["layers"]) if definition else set()
@@ -69,6 +72,12 @@ class CharacterDialog(QDialog):
         right = QVBoxLayout()
         intro = QLabel(
             self.tr(
+                "This pack draws its character in pieces: a body with eyes, clothes, hair and "
+                "accessories drawn over it, in that order. Choose one of each part, or none; "
+                "the character is one asset."
+            )
+            if layered
+            else self.tr(
                 "An LPC character is a body with layers drawn over it. Choose one of each part, "
                 "or none; the character becomes an asset of its own."
             )
@@ -81,6 +90,26 @@ class CharacterDialog(QDialog):
         self.name_edit.setObjectName("characterName")
         self.name_edit.setToolTip(self.tr("The name of the character in the audit"))
         form.addRow(self.tr("Name"), self.name_edit)
+        # a pack's layered character (T17.29): its bodies are a choice too
+        self.body_combo: QComboBox | None = None
+        if layered:
+            bodies = sorted(
+                (
+                    b
+                    for b in lpc_compose.bodies(catalog, body.pack_id)
+                    if lpc_compose.layered_set(b) == lpc_compose.layered_set(body)
+                ),
+                key=lambda b: (b.id.casefold(), b.id),
+            )
+            if len(bodies) > 1:
+                self.body_combo = QComboBox()
+                self.body_combo.setObjectName("part_body")
+                self.body_combo.setToolTip(self.tr("The body the layers are drawn over"))
+                for candidate in bodies:
+                    self.body_combo.addItem(_short(candidate, body.pack_id), candidate.id)
+                self.body_combo.setCurrentIndex(max(0, self.body_combo.findData(body.id)))
+                self.body_combo.currentIndexChanged.connect(self._body_changed)
+                form.addRow(self.tr("Body"), self.body_combo)
         self.combos: dict[str, QComboBox] = {}
         for part, layers in lpc_compose.layers_for(catalog, body).items():
             combo = QComboBox()
@@ -113,6 +142,13 @@ class CharacterDialog(QDialog):
         self.name_edit.textChanged.connect(self._refresh)
         self._refresh()
 
+    def _body_changed(self, _index: int) -> None:
+        assert self.body_combo is not None
+        chosen = self.catalog.asset(str(self.body_combo.currentData()))
+        if chosen is not None:
+            self.body = chosen
+        self._refresh()
+
     def _default_name(self) -> str:
         return (lpc_compose.build_of(self.body) or "character").capitalize()
 
@@ -135,17 +171,13 @@ class CharacterDialog(QDialog):
         parts = [self.body, *(a for a in map(self.catalog.asset, self.layers()) if a is not None)]
         ok = self.buttons.button(QDialogButtonBox.StandardButton.Ok)
         try:
-            sheet = lpc_compose.render(parts, self.pack_roots)
+            frame = lpc_compose.preview(parts, self.pack_roots)
         except (lpc_compose.CharacterError, OSError, ValueError) as exc:
             self.preview.clear()
             self.note.setText(self.tr("This character cannot be drawn: {0}").format(str(exc)))
             ok.setEnabled(False)
             return
         ok.setEnabled(bool(self.name_edit.text().strip()))
-        top = PREVIEW_ROW * lpc.FRAME
-        if sheet.height < top + lpc.FRAME:
-            top = 0
-        frame = sheet.crop((0, top, lpc.FRAME, top + lpc.FRAME))
         image = QImage(
             frame.tobytes("raw", "RGBA"), frame.width, frame.height, QImage.Format.Format_RGBA8888
         ).copy()

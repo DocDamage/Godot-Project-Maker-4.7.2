@@ -39,6 +39,24 @@ the picture of *Stone isle*, whose text is 16 px; with 8 px the second of two ch
 too). A line without choices is where it was. The scene `dialogue_box.tscn` is the one the
 recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with the runtime.
 
+**A fix of the Credits screen (T17.29).** `ui/credits_menu.gd`, `pack_lines`: a pack whose
+author is known was written `tr("UI_CREDITS_BY") % [title, author]`; where no translation has
+the key (the validator, a test: `tr` gives the key back) that was a runtime error, *not all
+arguments converted*, first met when a real farming pack named its author in its documentation
+file. The English text of `RpgStrings` stands in for a missing translation, and a translation
+without two `%s` gives "Name — Author". A game whose packs named their authors shows the same
+line as before.
+
+**Real farming packs in the builder (T17.29).** Nothing of the runtime changes but the line
+above. The builder: `ActorBuild.set_feet` makes an actor's feet as wide as the facet `feet`
+says, where a sheet says it (a character drawn 14 px wide in frames of 32 walked through no
+door of a 16 px map with feet of 0.6 of its frame); every actor without the facet is built
+as before. `FarmBuild.bed_asset` and `bin_asset` take a pack's bed or bin only when its frame
+is at most three tiles wide and four high (*Farm RPG*'s `Beds.png`, a sheet of thirty beds,
+filled the farmhouse). The farm's smoke step `season_turns` passes when every crop grows all
+the year (a pack of two crops: nothing can wither). No `RECIPE_VERSION` moved: the inputs of
+the recipes that read the facet have it in their hash only where an asset has it.
+
 **The calendar.**
 
 * **`RpgCalendar`** (`world/calendar.gd`): the minute of the day, the day of the season, the

@@ -30,9 +30,10 @@
 | ARCH-004 | error | Archive exceeds limits ({reason}). | Extract manually if you trust the archive. |
 | ARCH-005 | warning | Case-insensitive name collision: {a} vs {b}; kept {kept}. | Rename one file in a copy of the pack if both are needed. |
 | ARCH-006 | info | Nested archive {entry} extracted. | — |
-| ARCH-007 | warning | RAR archives need 7-Zip or UnRAR installed. | Install 7-Zip, or extract manually. |
+| ARCH-007 | warning | RAR archives need 7-Zip, or a system tar that reads RAR (bsdtar, as Windows 10 and later have). | Install 7-Zip, or extract manually. |
 | ARCH-008 | info | Skipped OS junk file {entry}. | — |
 | ARCH-009 | warning | {entry} is a link and was skipped. | Put the real file into the pack (or into a copy of it); links are never followed. |
+| ARCH-010 | warning | {count} files of {path} have names the system's tar cannot read; they were left out. | Install 7-Zip, which reads every name, or extract the archive yourself and select the folder. |
 
 ## Assets (ASSET)
 
@@ -58,6 +59,7 @@
 | ASSET-032 | info | The vehicle {asset} is one picture, not a sheet of headings: the game turns it. | A sheet with the vehicle in 16 headings looks better. |
 | ASSET-033 | warning | The LPC character {character} was left out or is incomplete: {reason}. | Put the part back into the pack, or choose the character's parts again on the Audit page. |
 | ASSET-034 | info | The crop {asset} is one picture: it has no stages to grow through. | A strip with the crop's stages in a row grows by them; until then drawn stages stand in. |
+| ASSET-035 | info | {file} lies among the crops, but its pictures do not grow from one cell to the next: it is not read as a crop. | If it is a crop, give it the role CROP and the usage growth strip on the Audit page. |
 | ASSET-028 | warning | Pack {pack_id} needs attribution, but no author was found in its license files. | Enter the author on the Audit page (pack information) so that the credits screen names them. |
 
 ## Adapters (ADAPT)

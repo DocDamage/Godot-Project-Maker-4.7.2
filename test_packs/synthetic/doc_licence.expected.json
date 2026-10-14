@@ -1,0 +1,18 @@
+{
+  "Doc Licence Pack/Tiles/terrain.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "nonempty": 18,
+    "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ]
+  }
+}

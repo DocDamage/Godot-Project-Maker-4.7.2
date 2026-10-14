@@ -184,6 +184,19 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
         if a.pack_id != requirements.FARM_KIT_PACK
     ]
     if found:
+        # a farming pack's ground is chosen as an isometric map's is (T17.29): grass before a
+        # shadow, a path or a bridge (*Farm RPG* was laid with its sheet of shadows)
+        farms = {p.pack_id for p in catalog.packs if catalog_mod.VIEW_FARM in p.warnings}
+
+        def ground_rank(a: catalog_mod.Asset) -> int:
+            if role == "BUILDING" and a.pack_id in farms:
+                # ... and its house the largest building, not a market stall
+                w, h = (catalog_mod.effective(a).get("frame") or [0, 0])[:2]
+                return -int(w) * int(h)
+            if role != "GROUND" or (projection == TOP_DOWN and a.pack_id not in farms):
+                return 0
+            return open_ground_rank(a)
+
         # a recolour variant (T13.18) never takes a role from the pack's own asset by itself,
         # of a tile turned four ways (T17.12) the first turn is the one that is named, and of
         # a sheet that comes once a season (T17.01) the first season is; tilled and watered
@@ -191,8 +204,12 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
         ranked = sorted(
             found,
             key=lambda a: (
+                # a ground a map can be laid with before a single picture with the role
+                # (T17.29: *Modern Farm*'s village was laid with one 16 px birch, so not at all)
+                role == "GROUND"
+                and catalog_mod.effective(a).get("usage") not in plausible_usage(role, projection),
                 role == "GROUND" and _worked_soil(a),
-                open_ground_rank(a) if role == "GROUND" and projection != TOP_DOWN else 0,
+                ground_rank(a),
                 _is_variant(a),
                 _later_turn(a),
                 _later_season(a),

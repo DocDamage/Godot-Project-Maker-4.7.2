@@ -1335,7 +1335,9 @@ func _season_turns() -> String:
 			if not mode.crops.grows_in(crop_id, season_name) and crop == "":
 				crop = crop_id
 	if crop == "":
-		return "every crop of %s grows all the year: none can wither" % calendar.season_name()
+		# a pack of two crops: both grow all the year (crop_plan.seasons_for), and nothing can
+		# wither; that is the plan, not a fault of the farm (T17.29)
+		return ""
 	var found: Variant = _weather_free_cell(field)
 	if found == null:
 		return "the plot has no free cell to till"

@@ -1,0 +1,121 @@
+{
+  "assets": [
+    {
+      "confidence": 0.4345,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.0625
+          ],
+          [
+            "WALL",
+            0.03125
+          ]
+        ],
+        "size": [
+          128,
+          64
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "doc_licence.doc_licence_pack.tiles.terrain",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "doc_licence",
+      "path": "assets/packs/doc_licence/Doc Licence Pack/Tiles/terrain.png",
+      "sha256": "b0722cbbe8365b85a6b955ea53425f8253fe97bca34ff795ab2097ada5b8f817",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": true,
+        "author": "Synth Artist",
+        "license_id": "commercial",
+        "url": "https://synthartist.itch.io"
+      },
+      "license_files": [
+        "assets/packs/doc_licence/Doc Licence Pack/Documentation.txt"
+      ],
+      "pack_id": "doc_licence",
+      "profile_id": null,
+      "root": "assets/packs/doc_licence",
+      "source_sha256": "c7010f686847591a24baead67ca00f59f608d8e2aef1cc738db0216a98bf89fa",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "doc_licence.doc_licence_pack.tiles.terrain",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

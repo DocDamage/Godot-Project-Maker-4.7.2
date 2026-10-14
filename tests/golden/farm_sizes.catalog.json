@@ -1,0 +1,426 @@
+{
+  "assets": [
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:16"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_sizes.n16x16.n1_terrains_16x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_sizes",
+      "path": "assets/packs/farm_sizes/16x16/1_Terrains_16x16.png",
+      "sha256": "43da3890095a181f581695db8050592a0bc84663a2c8e97be6d8a63ae2e83b6b",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          32,
+          32
+        ],
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          16,
+          30
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "fence",
+          "size_form:16"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_sizes.n16x16.n2_fences_16x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_sizes",
+      "path": "assets/packs/farm_sizes/16x16/2_Fences_16x16.png",
+      "sha256": "42b7e7309aa5be14d65efdf93c15dc8c09c0e81d89ea2b6014bbf107f6be219d",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.473684,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          32,
+          32
+        ],
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          16,
+          29
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "NPC",
+            0.263158
+          ],
+          [
+            "PLAYER",
+            0.052632
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "size_form:16"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_sizes.n16x16.n3_props_16x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_sizes",
+      "path": "assets/packs/farm_sizes/16x16/3_Props_16x16.png",
+      "sha256": "1bd9918c39447581dba830c3b5e02ff24d150cb49c2f5c590013ae6fbfbf3f3f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.40784,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "NONE",
+        "size": [
+          128,
+          128
+        ],
+        "tags": [
+          "size_form:32",
+          "unused_because:other_size"
+        ],
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_sizes.n32x32.n1_terrains_32x32",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_sizes",
+      "path": "assets/packs/farm_sizes/32x32/1_Terrains_32x32.png",
+      "sha256": "f46522f44640c05ccb1fd2e7cc36c5824c0c4749680601a8d18d5ed2826a1351",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          64,
+          64
+        ],
+        "grid": {
+          "cell": [
+            64,
+            64
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          32,
+          61
+        ],
+        "role": "NONE",
+        "size": [
+          128,
+          64
+        ],
+        "tags": [
+          "fence",
+          "size_form:32",
+          "unused_because:other_size"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_sizes.n32x32.n2_fences_32x32",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_sizes",
+      "path": "assets/packs/farm_sizes/32x32/2_Fences_32x32.png",
+      "sha256": "09b6333175fc48dc894415d3daea8d0d9dea72ee1ba574cb0b489bb761232aa6",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.473684,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          64,
+          64
+        ],
+        "grid": {
+          "cell": [
+            64,
+            64
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          32,
+          60
+        ],
+        "role": "NONE",
+        "size": [
+          128,
+          64
+        ],
+        "tags": [
+          "size_form:32",
+          "unused_because:other_size"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_sizes.n32x32.n3_props_32x32",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_sizes",
+      "path": "assets/packs/farm_sizes/32x32/3_Props_32x32.png",
+      "sha256": "3637c6e507f71b0fc68c8b76b7a34c7fe24d8465c731291f514d3fd2568c6404",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "pack_sizes": {
+    "farm_sizes": 16
+  },
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/farm_sizes/LICENSE.txt"
+      ],
+      "pack_id": "farm_sizes",
+      "profile_id": null,
+      "root": "assets/packs/farm_sizes",
+      "source_sha256": "c9080613994234947ebf6f2d1b7e46523d978bbc1d1c92ba9df9a770e0c10312",
+      "warnings": [
+        "view:farm"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "farm_sizes.n16x16.n1_terrains_16x16",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

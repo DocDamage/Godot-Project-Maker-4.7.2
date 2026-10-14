@@ -19,6 +19,19 @@ const PERSISTENT_SCRIPT := "res://addons/rpg_runtime/world/persistent.gd"
 
 const DEFAULT_FRAME := Vector2i(16, 24)
 
+## The feet of an actor `width` pixels wide, where its sheet says how wide they are (the facet
+## `feet`, T17.29: a character drawn in frames much wider than it walks through no door with feet
+## of 0.6 of its frame). An actor whose sheet says nothing keeps the feet `build` gave it.
+static func set_feet(root: Node, eff: Dictionary) -> void:
+	if not eff.has("feet"):
+		return
+	var feet := root.get_node_or_null("Feet") as CollisionShape2D
+	if feet == null:
+		return
+	var shape := feet.shape as RectangleShape2D
+	if shape != null:
+		shape.size = Vector2(maxf(4.0, JsonUtil.to_float(eff["feet"])), shape.size.y)
+
 ## kind: "base", "player" or "npc". `frames` may be null (base and npc templates). `frame` is the
 ## frame size and `origin` the feet pixel inside it.
 static func build(kind: String, root_name: String, frames: SpriteFrames, frame: Vector2i, origin: Vector2i, tile: int) -> CharacterBody2D:

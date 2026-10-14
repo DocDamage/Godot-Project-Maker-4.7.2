@@ -25,9 +25,10 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | ARCH-004 | E | Archive exceeds limits ({reason}). | Extract manually if you trust the archive. |
 | ARCH-005 | W | Case-insensitive name collision: {a} vs {b}; kept {kept}. | Rename one file in a copy of the pack if both are needed. |
 | ARCH-006 | I | Nested archive {entry} extracted. | — |
-| ARCH-007 | W | RAR archives need 7-Zip or UnRAR installed. | Install 7-Zip, or extract manually. |
+| ARCH-007 | W | RAR archives need 7-Zip, or a system tar that reads RAR (bsdtar, as Windows 10 and later have). | Install 7-Zip, or extract manually. |
 | ARCH-008 | I | Skipped OS junk file {entry}. | — |
 | ARCH-009 | W | {entry} is a link and was skipped. | Put the real file into the pack (or into a copy of it); links are never followed. |
+| ARCH-010 | W | {count} files of {path} have names the system's tar cannot read; they were left out. | Install 7-Zip, which reads every name, or extract the archive yourself and select the folder. |
 | ASSET-001 | W | Tile size could not be confidently determined for {file} (best {cell} at {score}). | Confirm the grid in the audit. |
 | ASSET-002 | W | Image {file} could not be decoded. | Replace or exclude the file. |
 | ASSET-003 | W | Grid for {file} does not divide the image evenly; {remainder} px ignored. | Check margin/separation in the grid editor. |
@@ -48,6 +49,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | ASSET-032 | I | The vehicle {asset} is one picture, not a sheet of headings: the game turns it. | A sheet with the vehicle in 16 headings looks better. |
 | ASSET-033 | W | The LPC character {character} was left out or is incomplete: {reason}. | Put the part back into the pack, or choose the character's parts again on the Audit page. |
 | ASSET-034 | I | The crop {asset} is one picture: it has no stages to grow through. | A strip with the crop's stages in a row grows by them; until then drawn stages stand in. |
+| ASSET-035 | I | {file} lies among the crops, but its pictures do not grow from one cell to the next: it is not read as a crop. | If it is a crop, give it the role CROP and the usage growth strip on the Audit page. |
 | ASSET-028 | W | Pack {pack_id} needs attribution, but no author was found in its license files. | Enter the author on the Audit page (pack information) so that the credits screen names them. |
 | ADAPT-001 | W | Adapter {adapter} failed on {file}: {reason}. | Report a bug with a diagnostic bundle. |
 | ADAPT-002 | W | Tiled tileset {file} references missing image {image}. | Fix the pack or map the image manually. |

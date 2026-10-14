@@ -229,7 +229,7 @@ static func bin_asset(ctx: BuildContext) -> Dictionary:
 	for asset in ctx.catalog.assets():
 		var eff: Dictionary = ctx.catalog.effective(asset)
 		var tags: Array = eff.get("tags", [])
-		if _own_object(asset, eff, BIN_ROLES) and tags.has(BIN_TAG):
+		if _own_object(asset, eff, BIN_ROLES) and tags.has(BIN_TAG) and _fits_a_room(ctx, eff):
 			return asset
 	return kit_asset(ctx, "shipping_bin")
 
@@ -238,13 +238,23 @@ static func bin_asset(ctx: BuildContext) -> Dictionary:
 static func bed_asset(ctx: BuildContext) -> Dictionary:
 	for asset in ctx.catalog.assets():
 		var eff: Dictionary = ctx.catalog.effective(asset)
-		if not _own_object(asset, eff, BED_ROLES):
+		if not _own_object(asset, eff, BED_ROLES) or not _fits_a_room(ctx, eff):
 			continue
 		var file := JsonUtil.to_str(asset.get("path", "")).get_file().get_basename().to_lower()
 		for word in BED_WORDS:
 			if file.split("_", false).has(word):
 				return asset
 	return kit_asset(ctx, "bed")
+
+## True for a picture whose frame is at most three tiles wide and four high: a bed or a bin, not
+## a sheet of thirty beds read as one picture (*Farm RPG*'s `Beds.png`, 384 x 512, which filled
+## the farmhouse and walled the farmer in, T17.29).
+static func _fits_a_room(ctx: BuildContext, eff: Dictionary) -> bool:
+	var size: Array = eff.get("frame", eff.get("size", []))
+	if size.size() < 2:
+		return true
+	var t := tile(ctx)
+	return JsonUtil.to_int(size[0]) <= t * 3 and JsonUtil.to_int(size[1]) <= t * 4
 
 ## True for a picture of the packs (not the kit's) that is in use, stands on a map (an object
 ## or a sprite) and has one of `roles`.
