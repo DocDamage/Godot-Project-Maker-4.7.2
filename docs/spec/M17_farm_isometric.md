@@ -169,7 +169,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.27 | The editor dock on diamonds | M | T17.14 | done locally on Windows: run by tests, one of them in an editor without a window, and looked at in a picture of the game; nobody dropped anything with a mouse, and drop-to-floor has no meaning on diamonds. Three old faults of the dock's placement, on any map, were found and left; mended since (the notes) |
 | T17.28 | Imported maps in the isometric view | L | T17.14 | done locally on Windows: the Tiled sample of *Isometric Miniature Farm* is the starter map of a generated isometric turn-based game that passes its smoke sequence, looked at against Tiled's drawing of the map (the pack's `Sample.png` is a picture of another scene); a picture of a pack's samples joins the tile set for its map alone and stays unused, walls block by role or (unused) by name, a second floor is only drawn higher and flips are dropped; TILE-013 for a map of the other view (the notes) |
 | T17.29 | Real farming packs: one tile set in several forms, crops, farm animals and layered characters | L | T17.21 | done locally on Windows: the three packs each give a farm with their own ground, crops that grow in their pictures and a player of the pack, played by the farm's smoke sequence and looked at in pictures; *Tiny Farm*'s player and hen are numbered tiles nothing names, chosen in the audit as a user would; the size choice is on the Audit page's *Packs* tab, not the Project page (the notes) |
-| T17.30 | Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand | L | T17.29 | open |
+| T17.30 | Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand, AI-generated art marked | L | T17.29 | open |
 
 ---
 
@@ -1242,6 +1242,12 @@ characters, and CuteSCKR's 80 tile sets. Almost nothing of them is read usefully
   identifier and a credit line) when the pack has no file; it is kept in the pack's profile
   and written into the generated README as a file's would be, marked as the user's own
   statement.
+* **AI-generated art, marked by hand.** On the same page the user can mark a pack as
+  AI-generated art (added 2026-10-14: CuteSCKR's packs are, and need no licence file, but a game
+  made from them that is sold must declare it on its store page). The mark is kept in the pack's
+  profile; a generated project whose catalog uses any asset of such a pack gets a section of its
+  README, *AI-generated content*, listing those packs and saying that a store page (Steam's AI
+  disclosure, for one) must declare it. A project that uses none of them has no such section.
 
 **Done when**
 * SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset* give a farm each; a Screaming
@@ -1254,6 +1260,8 @@ characters, and CuteSCKR's 80 tile sets. Almost nothing of them is read usefully
   holds it in the tests, with expected files for the accuracy corpus, and the share of the
   real packs' pictures read with confidence is measured before and after and written in the
   notes.
+* A farm made from a CuteSCKR pack marked as AI-generated has the README section naming it, and a
+  farm from the same packs with the mark taken off has none; a test holds both.
 
 ---
 
