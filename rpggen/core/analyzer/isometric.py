@@ -271,6 +271,177 @@ def measure(tiles: list[FlatTile], width: int | None = None) -> Diamond | None:
     return Diamond(width, height, round(slope, 6), side, len(agreeing))
 
 
+@dataclass(frozen=True)
+class Base:
+    """The foot of a picture that stands on a whole block of ground, whatever is on it."""
+
+    width: int  # of the painted part
+    slope: float  # rows a column of the two lower edges
+    side: int  # rows of the outermost columns: the block's side
+
+
+def block_base(mask: np.ndarray) -> Base | None:
+    """The foot of a picture whose lower outline is the lower half of a diamond, as wide as
+    the picture: two straight edges from the side corners down to a lowest point in the
+    middle, the outermost columns equally high. What stands on the block (a house, a tree) is
+    not looked at; a flat tile has such a foot too. None for a picture that has none (a tree
+    on its trunk, a wall on one edge of its diamond)."""
+    found = outline(mask)
+    if found is None:
+        return None
+    box, top, bottom = found
+    _x, _y, w, h = box
+    if w < MIN_WIDTH:
+        return None
+    tolerance = _tolerance(w)
+    low = float(np.nonzero(bottom == bottom.max())[0].mean())
+    if abs(low - (w - 1) / 2) > w * CENTRE_TOLERANCE:
+        return None
+    if abs(int(bottom[0]) - int(bottom[-1])) > tolerance:
+        return None
+    drop = (h - 1) - (int(bottom[0]) + int(bottom[-1])) / 2
+    if not w * MIN_DROP <= drop <= w * MAX_DROP:
+        return None
+    middle = int(round(low))
+    straight = max(STRAIGHT_MIN, w / STRAIGHT_WIDTH)
+    if not (
+        _straight(bottom[: middle + 1], float(bottom[0]), h - 1.0, straight)
+        and _straight(bottom[middle:], h - 1.0, float(bottom[-1]), straight)
+    ):
+        return None
+    sides = (int(bottom[0] - top[0]) + 1, int(bottom[-1] - top[-1]) + 1)
+    if abs(sides[0] - sides[1]) > tolerance + 1:
+        return None
+    slopes = []
+    for first, last in ((0, int(low)), (int(np.ceil(low)), w - 1)):
+        cut = max(1, (last - first) // 10)
+        columns = np.arange(first + cut, last - cut + 1)
+        if columns.size >= 2:
+            slopes.append(abs(float(np.polyfit(columns, bottom[columns], 1)[0])))
+    if not slopes:
+        return None
+    return Base(w, sum(slopes) / len(slopes), int(round(sum(sides) / 2)))
+
+
+EDGE_SIDES = ("n", "e", "s", "w")  # by the grid: upper right, lower right, lower left, upper left
+EDGE_NEAR = 0.25  # a foot this far from the middle of its diamond, of a whole diamond ...
+EDGE_FAR = 0.6  # ... and no further than this, lies along that side
+EDGE_SHARE = 0.5  # this share of a piece's columns must stand along one side ...
+EDGE_LENGTH = 0.7  # ... over this much of the side's length
+
+
+def edge_side(
+    columns: np.ndarray, foot: np.ndarray, middle: tuple[float, float], diamond: tuple[int, int]
+) -> str | None:
+    """The side of its diamond a thin piece stands along (a wall segment, a fence), or None.
+    ``foot`` is the lowest painted row of each of ``columns``, ``middle`` the middle of the
+    diamond the piece stands on, as deep as the foot of the pack's ground block, and
+    ``diamond`` its size. The foot is counted in the grid's own coordinates (east and south,
+    the diamond a square from -0.5 to 0.5): a piece along a side keeps to a narrow band at
+    that side for most of its columns and runs most of the side's length. A flat tile's foot
+    is two sides at once, a tree's is in the middle, a wall with a doorway has its foot
+    wherever the doorway is not."""
+    if columns.size < 2 or min(diamond) <= 0:
+        return None
+    u = (columns - middle[0]) / (diamond[0] / 2.0)
+    v = (foot - middle[1]) / (diamond[1] / 2.0)
+    east, south = (u + v) / 2.0, (v - u) / 2.0
+    found: list[str] = []
+    for side, across, along in (
+        ("n", -south, east),
+        ("e", east, south),
+        ("s", south, east),
+        ("w", -east, south),
+    ):
+        on = (across >= EDGE_NEAR) & (across <= EDGE_FAR) & (np.abs(along) <= EDGE_FAR)
+        length = float(np.ptp(along[on])) if on.any() else 0.0
+        share = float(on.mean())
+        if share >= EDGE_SHARE and length >= EDGE_LENGTH:
+            found.append(side)
+    # the end of a wall is at two sides, and the arch of a doorway may lie over a third: a
+    # foot that runs the length of two sides (a flat tile, a corner of walls) is none
+    return found[0] if len(found) == 1 else None
+
+
+FACE_SHARE = 0.8  # the part of a diamond, from its middle, that is looked at for its colour
+FACE_STEP = 24  # a pixel this near the face's usual colour, in every channel, is of that colour
+FACE_PLAIN = 0.995  # a face is plain when this share of it is of one colour: nothing is drawn on it
+GRASS_HUES = (60.0, 170.0)  # from yellow green to blue green, in degrees ...
+GRASS_SATURATION = 0.15  # ... and not grey
+WATER_HUES = (170.0, 260.0)
+FACE_PLAIN_TAG = "plain"
+FACE_GRASS = "grass"
+
+
+def face_colour(
+    rgba: np.ndarray, middle: tuple[float, float], diamond: tuple[int, int]
+) -> str | None:
+    """What the top of a flat tile is by its colour: ``"grass"`` for a face of one green,
+    ``"plain"`` for a face of one other colour that is not the blue of water, None for a face
+    with something drawn on it (a road, a river, a pattern of slabs) or none at all. The face
+    is the diamond round ``middle`` without its rim."""
+    ys, xs = np.mgrid[0 : rgba.shape[0], 0 : rgba.shape[1]]
+    inside = (
+        np.abs(xs - middle[0]) / (diamond[0] / 2.0) + np.abs(ys - middle[1]) / (diamond[1] / 2.0)
+        <= FACE_SHARE
+    ) & (rgba[..., 3] >= PAINTED_ALPHA)
+    face = rgba[inside][:, :3].astype(np.int16)
+    if face.shape[0] < MIN_WIDTH:
+        return None
+    usual = np.median(face, axis=0)
+    if float((np.abs(face - usual).max(axis=1) <= FACE_STEP).mean()) < FACE_PLAIN:
+        return None
+    r, g, b = (float(v) / 255.0 for v in usual)
+    high, low = max(r, g, b), min(r, g, b)
+    if high - low < 1e-6:
+        return FACE_PLAIN_TAG
+    if high == r:
+        hue = 60.0 * (((g - b) / (high - low)) % 6)
+    elif high == g:
+        hue = 60.0 * ((b - r) / (high - low) + 2)
+    else:
+        hue = 60.0 * ((r - g) / (high - low) + 4)
+    saturation = (high - low) / high
+    if saturation >= GRASS_SATURATION and GRASS_HUES[0] <= hue <= GRASS_HUES[1]:
+        return FACE_GRASS
+    if saturation >= GRASS_SATURATION and WATER_HUES[0] < hue <= WATER_HUES[1]:
+        return None
+    return FACE_PLAIN_TAG
+
+
+SIDE_REACH = 0.42  # how far from the middle of a diamond, of a whole one, a side is sampled
+SIDE_STEPS = ((0, -1), (1, 0), (0, 1), (-1, 0))  # n, e, s, w by the grid: east and south
+
+
+def open_sides(
+    rgba: np.ndarray, middle: tuple[float, float], diamond: tuple[int, int]
+) -> list[str] | None:
+    """The sides of a flat tile on which its own surface runs out to the edge: the sides
+    whose middle, a little inside, has the colour of the tile's middle (a road that goes on,
+    where the other sides are verge). None when a point to look at is not painted."""
+    points = [(0.0, 0.0), *((dx * SIDE_REACH, dy * SIDE_REACH) for dx, dy in SIDE_STEPS)]
+    colours = []
+    for east, south in points:
+        x = int(round(middle[0] + (east - south) * diamond[0] / 2.0))
+        y = int(round(middle[1] + (east + south) * diamond[1] / 2.0))
+        if not (0 <= y < rgba.shape[0] and 0 <= x < rgba.shape[1]):
+            return None
+        if rgba[y, x, 3] < PAINTED_ALPHA:
+            return None
+        colours.append(rgba[y, x, :3].astype(np.int16))
+    return [
+        side
+        for side, colour in zip(EDGE_SIDES, colours[1:], strict=True)
+        if int(np.abs(colour - colours[0]).max()) <= FACE_STEP
+    ]
+
+
+def turned_sides(sides: list[str], quarters: int) -> list[str]:
+    """``sides`` a number of quarter turns clockwise round the diamond, in the order n, e, s, w."""
+    moved = {EDGE_SIDES[(EDGE_SIDES.index(side) + quarters) % 4] for side in sides}
+    return [side for side in EDGE_SIDES if side in moved]
+
+
 def base_width(mask: np.ndarray, rows: int) -> int:
     """How wide the painted part of ``mask`` is in its lowest ``rows`` rows: what a picture
     stands on. 0 for an empty picture."""

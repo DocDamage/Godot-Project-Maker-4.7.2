@@ -592,6 +592,19 @@ def pack_view(inventory: Any, sheets: Any = ()) -> str:
     return made_for(inventory, sheets)
 
 
+def _one_name(stem: str, isometric: bool) -> str:
+    """The name a file counts under when the names of a pack are counted. The pictures of an
+    isometric pack are one thing turned four or eight ways (``plate_road_01_0`` to ``_3``,
+    ``woodenSupportsBeam_N`` to ``_W``): they are one name, not four, so that one road piece
+    does not make a town a racing pack, nor one beam a dungeon a shooter's."""
+    if not isometric:
+        return stem
+    from rpggen.core.adapters import naming
+
+    turn = naming.split_turn(stem)
+    return turn.base if turn is not None else stem
+
+
 def made_for(inventory: Any, sheets: Any = ()) -> str:
     """``"side"`` or ``"top"``, or the kind a pack was made for (``"shmup"``, ``"racing"``,
     ``"farm"``): how a pack looks at its world (T14.02). The words of its folders
@@ -603,9 +616,10 @@ def made_for(inventory: Any, sheets: Any = ()) -> str:
     side = 0
     top = 0
     seen: set[str] = set()
+    isometric = isometric_view(inventory, sheets)
     for f in getattr(inventory, "files", ()):
         folders, stem = _path_parts(f.path)
-        for part in (*folders, stem):
+        for part in (*folders, _one_name(stem, isometric)):
             if part.casefold() in seen:
                 continue
             seen.add(part.casefold())
@@ -621,6 +635,8 @@ def made_for(inventory: Any, sheets: Any = ()) -> str:
             side += 2
         elif _is_top_sheet(animations):
             top += 2
+    if isometric:
+        side = 0  # seen at an angle, whatever its files are called (*platformerTile_01*)
     kind = arcade_view(inventory, sheets)
     if kind is not None and side <= top:
         return kind
@@ -635,12 +651,14 @@ ARCADE_VIEW_MIN = 3  # this many names of a pack must say it before the pack is 
 def arcade_view(inventory: Any, sheets: Any = ()) -> str | None:
     """``"shmup"`` or ``"racing"`` for a pack made for one (T16.02), else None: its folders and
     files name ships, bullets and asteroids, or cars, roads and tyres (a name counts once), and
-    a rotation sheet among ``sheets`` (one vehicle in N headings) counts for racing."""
+    a rotation sheet among ``sheets`` (one vehicle in N headings) counts for racing. In an
+    isometric pack one thing turned four ways is one name (``_one_name``)."""
     shmup = racing = 0
     seen: set[str] = set()
+    isometric = isometric_view(inventory, sheets)
     for f in getattr(inventory, "files", ()):
         folders, stem = _path_parts(f.path)
-        for part in (*folders, stem):
+        for part in (*folders, _one_name(stem, isometric)):
             if part.casefold() in seen:
                 continue
             seen.add(part.casefold())
@@ -798,7 +816,7 @@ def copy_of(path: str, stems: set[tuple[str, str]]) -> str | None:
 # ``Classic_Bug.png``, ``cow_01/brown/...`` beside ``cow_01/black_white/...``.
 COLOUR_WORDS = frozenset(
     {"black", "white", "red", "green", "blue", "yellow", "pink", "purple", "orange", "brown",
-     "grey", "gray", "cyan", "lime", "beige"}
+     "grey", "gray", "cyan", "lime", "beige", "silver"}
 )  # fmt: skip
 VARIANT_TAG = "variant_of:"
 COLOUR_TAG = "colour:"

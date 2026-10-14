@@ -482,6 +482,7 @@
         "rise": {"type": "integer", "minimum": 0},
         "turn": {"type": "integer", "minimum": 0, "maximum": 7},
         "joins": {"type": "array", "items": {"enum": ["n", "e", "s", "w"]}, "minItems": 1, "maxItems": 4, "uniqueItems": true},
+        "edge": {"enum": ["n", "e", "s", "w"]},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",
@@ -814,6 +815,7 @@
         "rise": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 0}]},
         "turn": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 0, "maximum": 7}]},
         "joins": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"enum": ["n", "e", "s", "w"]}, "minItems": 1, "maxItems": 4, "uniqueItems": true}]},
+        "edge": {"anyOf": [{"type": "null"}, {"enum": ["n", "e", "s", "w"]}]},
         "stands_on": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2}]},
         "character_index": {
           "anyOf": [
@@ -1545,6 +1547,7 @@
         "rise": {"type": "integer", "minimum": 0},
         "turn": {"type": "integer", "minimum": 0, "maximum": 7},
         "joins": {"type": "array", "items": {"enum": ["n", "e", "s", "w"]}, "minItems": 1, "maxItems": 4, "uniqueItems": true},
+        "edge": {"enum": ["n", "e", "s", "w"]},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",

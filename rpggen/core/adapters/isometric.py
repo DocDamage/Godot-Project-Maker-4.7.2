@@ -39,7 +39,7 @@ from rpggen.core import classifier
 from rpggen.core.adapters import naming, sequences
 from rpggen.core.adapters.base import AdapterContext, AdapterResult, AssetFragment
 from rpggen.core.adapters.kenney_atlas import UNUSED_ATLAS_COPY
-from rpggen.core.analyzer import image_facts
+from rpggen.core.analyzer import image_facts, views
 from rpggen.core.analyzer import isometric as measure
 from rpggen.core.inventory import Inventory, InventoryFile
 from rpggen.errors import IssueList
@@ -48,6 +48,7 @@ PROJECTION = "isometric"
 USAGE_TILE = "iso_tile"
 UNUSED_OTHER_VIEW = "other_view"
 UNUSED_SLOPE = "slope"
+UNUSED_VIEWS = "views_not_told"  # numbered views of a car that no named car says the order of
 SLOPE_TAG = "slope:"
 KEPT_VIEW, DROPPED_VIEW = "isometric", "angle"
 VIEW_SHARE = 0.5  # this share of a dropped view's names in the kept one: the same models
@@ -78,8 +79,15 @@ MEASURED_SAMPLE = 12  # ... and this many of them are looked at
 MEASURED_MIN_FLAT = 4  # ... of which this many must be flat tiles that agree
 TILE_CONFIDENCE = 0.85
 OBJECT_CONFIDENCE = 0.8
+EDGE_CONFIDENCE = 0.8  # a thin piece along one side of its diamond
 HEADINGS_CONFIDENCE = 0.9
 NUMBERED_HEADINGS_CONFIDENCE = 0.7  # needs review: which number points up is a guess
+WIDER_SLOPE_SHARE = 0.1  # a wider block is the ground when its edges fall as the flat pieces'
+COMPASS_MIN_PIECES = 4  # this many flat pieces with sides in their names say where north is
+COMPASS_SHARE = 2 / 3  # ... when this share of them fit their pictures at one turn
+VIEWS_MIN = 4  # numbered pictures of one name are views of a thing from this many on
+VIEWS_LIKENESS_MIN = 0.6  # a numbered set is read from a named one it is this alike (0 to 1)
+VIEWS_ALIKE_SHARE = 0.9  # ... and every named set this near the best has to agree with it
 
 
 def says_isometric(words: set[str]) -> bool:
@@ -170,6 +178,8 @@ class _Picture:
     left: np.ndarray  # the first and the last painted column of every row of the box
     right: np.ndarray
     flat: measure.FlatTile | None
+    foot: measure.Base | None = None  # its lower outline, when that is a block of ground
+    low: np.ndarray | None = None  # the last painted row of every column of the box
 
     @property
     def free(self) -> int:
@@ -191,12 +201,15 @@ def _look(root: Path, f: InventoryFile) -> _Picture | None:
     found = measure.outline(mask)
     if found is None:
         return None
-    box = found[0]
+    box, low = found[0], found[2]
     part = mask[box[1] : box[1] + box[3], box[0] : box[0] + box[2]]
     painted_rows = part.any(axis=1)
     left = np.where(painted_rows, part.argmax(axis=1), box[2])
     right = np.where(painted_rows, box[2] - 1 - part[:, ::-1].argmax(axis=1), -1)
-    return _Picture(f, (mask.shape[1], mask.shape[0]), box, left, right, measure.flat_tile(mask))
+    size = (mask.shape[1], mask.shape[0])
+    return _Picture(
+        f, size, box, left, right, measure.flat_tile(mask), measure.block_base(mask), low
+    )
 
 
 @dataclass(frozen=True)
@@ -243,12 +256,50 @@ def find_ground(pictures: list[_Picture], words: PackWords) -> Ground | None:
             width = canvas  # a picture cut to its tile: the soft edge is part of the diamond
         height = int(round(width * found.slope))
         source, side = SOURCE_MEASURED, max(0, _mode([p.box[3] for p in on]) - height)
+        wider = _wider_ground(pictures, found)
+        if wider is not None:
+            return wider
     if found is not None:
         on = [p for p in flats if p.flat is not None and abs(p.flat.width - found.width) <= 1]
     else:
         on = pictures
     return Ground(
         width, height, side, _mode([p.free for p in on]), _mode([p.size[0] for p in on]), source
+    )
+
+
+def _wider_ground(pictures: list[_Picture], found: measure.Diamond) -> Ground | None:
+    """The diamond of a pack whose flat pieces are not its ground (*Tiles Buildings*: the
+    flat pieces are roofs and upper storeys 99 wide, and the ground is the block 132 wide
+    that every ground floor stands on). Pictures that are wider than the flat pieces and stand
+    on a whole block of ground (``measure.block_base``), a fair share of them of one width and
+    at the angle of the flat pieces, say the diamond: a pack's ground is its widest."""
+    wide = [
+        p
+        for p in pictures
+        if p.foot is not None
+        and p.foot.width > found.width * measure.TILE_BASE_MAX
+        and abs(p.foot.slope - found.slope) <= found.slope * WIDER_SLOPE_SHARE
+    ]
+    counts: dict[int, int] = {}
+    for p in wide:
+        if p.foot is not None:
+            counts[p.foot.width] = counts.get(p.foot.width, 0) + 1
+    near = {w: counts[w] + counts.get(w - 1, 0) + counts.get(w + 1, 0) for w in counts}
+    fair = max(MEASURED_MIN_FLAT, int(found.tiles * measure.WIDTH_SHARE))
+    widths = [w for w in near if near[w] >= fair]
+    if not widths:
+        return None
+    width = max(widths, key=lambda w: (near[w], w))
+    on = [p for p in wide if p.foot is not None and abs(p.foot.width - width) <= 1]
+    canvas = _mode([p.size[0] for p in on])
+    if 0 <= canvas - width <= 2:
+        width = canvas
+    slopes = sorted(p.foot.slope for p in on if p.foot is not None)
+    slope = (slopes[(len(slopes) - 1) // 2] + found.slope) / 2
+    side = max(0, _mode([p.foot.side for p in on if p.foot is not None]) - 1)
+    return Ground(
+        width, int(round(width * slope)), side, _mode([p.free for p in on]), canvas, SOURCE_MEASURED
     )
 
 
@@ -366,6 +417,72 @@ def turn_sets(stills: list[InventoryFile]) -> list[_TurnSet]:
     return found
 
 
+def numbered_sets(stills: list[InventoryFile]) -> list[tuple[str, str, list[InventoryFile]]]:
+    """``(folder, name, files in the order of their numbers)`` for the pictures of one folder
+    that share a name and are numbered without a gap from 0 or 1 (``carBlack2_000`` to
+    ``_015``): the views of one thing, when a set whose names say its views has as many."""
+    groups: dict[tuple[str, str], list[tuple[int, InventoryFile]]] = {}
+    for f in stills:
+        split = sequences.split_number(_stem(f.path))
+        if split is not None and split[0]:
+            key = (posixpath.dirname(f.path), split[0])
+            groups.setdefault(key, []).append((split[1], f))
+    found = []
+    for key in sorted(groups):
+        members = sorted(groups[key], key=lambda m: (m[0], m[1].path))
+        numbers = [number for number, _f in members]
+        whole = numbers == list(range(numbers[0], numbers[0] + len(numbers)))
+        if len(members) >= VIEWS_MIN and numbers[0] in (0, 1) and whole:
+            found.append((key[0], key[1], [f for _n, f in members]))
+    return found
+
+
+def _views(root: Path, files: list[InventoryFile]) -> list[views.View] | None:
+    """What the pictures show, or None when one of them cannot be read or is empty."""
+    found = []
+    for f in files:
+        try:
+            shown = views.view(image_facts.load_rgba(root / f.path))
+        except (OSError, ValueError):
+            return None
+        if shown is None:
+            return None
+        found.append(shown)
+    return found
+
+
+@dataclass
+class _Named:
+    """A car or a boat whose file names say its views, and what the pictures show."""
+
+    group: _TurnSet
+    kind: str
+    shown: list[views.View] | None
+
+    @property
+    def names(self) -> tuple[tuple[str, str], ...]:
+        return tuple((turn.word, turn.slope) for turn, _f in self.group.members)
+
+
+def renamed(named: list[_Named]) -> None:
+    """Give the views of a named set that the pack names wrongly (``views.misnamed``) the
+    names their pictures belong under: the files change places among the names."""
+    by_names: dict[tuple[tuple[str, str], ...], list[_Named]] = {}
+    for one in named:
+        if one.shown is not None and one.group.members[0][0].word:
+            by_names.setdefault(one.names, []).append(one)
+    for sets in by_names.values():
+        moves = views.misnamed([one.shown for one in sets if one.shown is not None])
+        for one, moved in zip(sets, moves, strict=True):
+            if not moved or one.shown is None:
+                continue
+            members, shown = list(one.group.members), list(one.shown)
+            for place, target in moved.items():
+                members[target] = (one.group.members[target][0], one.group.members[place][1])
+                shown[target] = one.shown[place]
+            one.group.members, one.shown = members, shown
+
+
 def _turn_number(turn: naming.Turn, count: int) -> int:
     """The turn of a file among ``count``: its number, or its compass word's place going
     round clockwise from N."""
@@ -432,6 +549,8 @@ class IsometricAdapter:
         animated = {
             f.path for seq in sequences.find_sequences(inv, ctx.claimed) for _n, f in seq.frames
         }
+        for character in sequences.find_facings(inv, ctx.claimed):
+            animated.update(f.path for f in character.files)  # "Male_3_Run7": a person
         stills = [
             f
             for f in inv.files
@@ -463,19 +582,38 @@ class IsometricAdapter:
         pack = set(classifier.name_words(inv.pack_id))
         turned: dict[str, tuple[int, int]] = {}  # path -> (its turn, of how many)
         work = (ctx.work_dir or paths.cache_dir()) / sequences.WORK_FOLDER
-        for group in turn_sets(stills):
-            said = pack | set(classifier.name_words(group.base))
-            for folder in _folders(group.members[0][1].path):
+
+        def kind_of(name: str, path: str) -> str:
+            said = pack | set(classifier.name_words(name))
+            for folder in _folders(path):
                 said.update(classifier.name_words(folder))
-            kind = "car" if said & CAR_WORDS else "boat" if said & BOAT_WORDS else ""
+            return "car" if said & CAR_WORDS else "boat" if said & BOAT_WORDS else ""
+
+        named: list[_Named] = []
+        turn_groups: list[set[str]] = []
+        for group in turn_sets(stills):
+            kind = kind_of(group.base, group.members[0][1].path)
             if kind:
-                done = self._headings(root, group, kind, work, result, issues)
-                taken.update(done)
+                named.append(_Named(group, kind, _views(root, [f for _t, f in group.members])))
                 continue
             if len({_size(f) for _turn, f in group.members}) != 1:
                 continue  # turns of a tile are all of one size: these are something else
             for turn, f in group.members:
                 turned[f.path] = (_turn_number(turn, group.count), group.count)
+            turn_groups.append({f.path for _turn, f in group.members})
+        renamed(named)
+        for one in named:
+            taken.update(self._headings(root, one.group, one.kind, work, result, issues))
+        # the cars whose names are numbers: which view a picture is, the named cars say
+        told = [one for one in named if one.shown is not None and one.group.members[0][0].word]
+        for folder, name, files in numbered_sets([f for f in stills if f.path not in taken]):
+            kind = kind_of(name, files[0].path)
+            if kind and any(one.kind == kind and len(one.names) == len(files) for one in told):
+                taken.update(
+                    self._numbered_views(
+                        root, _TurnSet(folder, name, 0, []), files, kind, told, work, result, issues
+                    )
+                )
         stills = [f for f in stills if f.path not in taken]
 
         pictures = [p for p in (_look(root, f) for f in stills) if p is not None]
@@ -494,19 +632,36 @@ class IsometricAdapter:
             f"{classifier.ISOMETRIC_MARK}{ground.width}x{ground.height}:{ground.source}"
         )
         joins = joins_of(stills)
+        read = {p.f.path: self._facets(p, ground) for p in pictures}
+        for members in turn_groups:
+            # a wall turned four ways stands along four sides: a set of which only some turns
+            # seem to stand along one (the corner of a roof, a carpet) is no set of walls
+            sides = [read[path][0].get("edge") for path in members if path in read]
+            if len(sides) != len(members) or None in sides or len(set(sides)) != len(sides):
+                for picture in pictures:
+                    if picture.f.path in members and "edge" in read[picture.f.path][0]:
+                        read[picture.f.path] = self._facets(picture, ground, edges=False)
+        quarters = self._compass(root, pictures, read, joins)
+        if quarters:
+            joins = {path: measure.turned_sides(sides, quarters) for path, sides in joins.items()}
         for picture in pictures:
-            facets, confidence = self._facets(picture, ground)
+            facets, confidence = read[picture.f.path]
             path = picture.f.path
             if path in turned:
                 facets["turn"] = turned[path][0]
             if path in joins:
                 facets["joins"] = joins[path]
+            face = self._face(root, picture, facets)
+            if face:
+                facets["tags"] = [face]
             result.assets.append(AssetFragment(path, facets, confidence, "full"))
         result.issues = list(issues)
         return result
 
     @staticmethod
-    def _facets(picture: _Picture, ground: Ground) -> tuple[dict[str, Any], float]:
+    def _facets(
+        picture: _Picture, ground: Ground, edges: bool = True
+    ) -> tuple[dict[str, Any], float]:
         """The facets of one picture of the pack: a tile when it stands on the ground and its
         base is as wide as the diamond, else an object standing on one or several."""
         w, h = picture.size
@@ -530,6 +685,17 @@ class IsometricAdapter:
         }
         if grounded and fills:
             return {"usage": USAGE_TILE, **facets}, TILE_CONFIDENCE
+        if edges and shared and picture.low is not None:
+            # a wall segment, a fence: it fills no diamond and is a tile all the same, the
+            # piece of one side of its cell, as a road piece is the piece of the sides it joins
+            edge = measure.edge_side(
+                bx + np.arange(bw),
+                by + picture.low,
+                (origin[0], origin[1] + ground.side),
+                (ground.width, ground.height),
+            )
+            if edge is not None:
+                return {"usage": USAGE_TILE, **facets, "edge": edge}, EDGE_CONFIDENCE
         stands = measure.stands_on(base, ground.width)
         for _again in range(2):
             if stands == (1, 1):
@@ -541,6 +707,116 @@ class IsometricAdapter:
             OBJECT_CONFIDENCE
         )
 
+    @staticmethod
+    def _compass(
+        root: Path,
+        pictures: list[_Picture],
+        read: dict[str, tuple[dict[str, Any], float]],
+        joins: dict[str, list[str]],
+    ) -> int:
+        """How many quarter turns clockwise the compass of a pack's names lies from the
+        grid's (``n`` the upper right side of a diamond). The names say which sides a piece
+        joins on and not where their north is: in *Vector Roads* ``N`` is the upper left, a
+        quarter turn back. The pictures say it: of every flat piece with sides in its name
+        the sides are looked up on which its own surface runs out (``measure.open_sides``),
+        and the turn is taken at which most names fit their pictures (the sides named, or the
+        sides not named: ``lotE`` names the side its kerb is on). 0 when no turn fits two
+        thirds of the pieces, or when another fits as many: then the names stand."""
+        found: list[tuple[list[str], list[str]]] = []
+        for picture in pictures:
+            path = picture.f.path
+            facets = read[path][0]
+            if path not in joins or facets.get("usage") != USAGE_TILE or facets.get("rise"):
+                continue
+            try:
+                rgba = image_facts.load_rgba(root / path)
+            except (OSError, ValueError):
+                continue
+            origin, foot = facets["origin"], facets["footprint"]
+            shown = measure.open_sides(rgba, (origin[0], origin[1]), (foot[0], foot[1]))
+            if shown is not None and 0 < len(shown) < len(measure.EDGE_SIDES):
+                found.append((joins[path], shown))
+        if len(found) < COMPASS_MIN_PIECES:
+            return 0
+        fits = []
+        for quarters in range(len(measure.EDGE_SIDES)):
+            count = 0
+            for named, shown in found:
+                turned = set(measure.turned_sides(named, quarters))
+                count += turned == set(shown) or turned == set(measure.EDGE_SIDES) - set(shown)
+            fits.append(count)
+        best = max(range(len(fits)), key=lambda q: (fits[q], -q))
+        clear = fits[best] >= len(found) * COMPASS_SHARE and sorted(fits)[-2] < fits[best]
+        return best if clear else 0
+
+    @staticmethod
+    def _face(root: Path, picture: _Picture, facets: dict[str, Any]) -> str:
+        """The tag the colour of a flat tile's top gives it (``measure.face_colour``):
+        ``surface:grass`` for a plain green one whose name says no surface, "" for any other
+        picture. What a map's ground is chosen by when no name says *grass* (*Nature* calls
+        its meadow ``naturePack_001``)."""
+        if facets.get("usage") != USAGE_TILE or facets.get("rise") or facets.get("edge"):
+            return ""
+        try:
+            rgba = image_facts.load_rgba(root / picture.f.path)
+        except (OSError, ValueError):
+            return ""
+        origin, foot = facets["origin"], facets["footprint"]
+        found = measure.face_colour(rgba, (origin[0], origin[1]), (foot[0], foot[1]))
+        if found != measure.FACE_GRASS or classifier.suggested_surface(picture.f.path):
+            return ""
+        return f"surface:{found}"
+
+    def _numbered_views(
+        self,
+        root: Path,
+        group: _TurnSet,
+        files: list[InventoryFile],
+        kind: str,
+        named: list[_Named],
+        work: Path,
+        result: AdapterResult,
+        issues: IssueList,
+    ) -> set[str]:
+        """A car whose pictures are numbered in no order (``carBlack2_000`` to ``_015``): every
+        picture takes the view of the named car it is most like (``analyzer.views``), and the
+        set is then read as a named one is. The named car that is most alike says the views;
+        when another that is nearly as alike says other headings, the car needs review. A set
+        that is like no named car stays unread, with the reason: a car driving sideways is
+        worse than a car that is not offered."""
+        paths_ = {f.path for f in files}
+        shown = _views(root, files)
+        found: list[tuple[float, int, list[int]]] = []
+        for index, one in enumerate(named):
+            if shown is None or one.shown is None:
+                break
+            if one.kind == kind and len(one.shown) == len(shown):
+                order, alike = views.lay(shown, one.shown)
+                found.append((alike, -index, order))
+        found.sort(reverse=True)
+        if not found or found[0][0] < VIEWS_LIKENESS_MIN:
+            result.assets.extend(_unused(f, UNUSED_VIEWS, kind) for f in files)
+            return paths_
+        alike, index, order = found[0]
+        best = named[-index]
+        flat = {place for place, (_word, slope) in enumerate(best.names) if not slope}
+        headings = {place: i for i, place in enumerate(order) if place in flat}
+        sure = all(
+            {place: i for i, place in enumerate(other) if place in flat} == headings
+            for nearly, _index, other in found[1:]
+            if nearly >= alike * VIEWS_ALIKE_SHARE
+        )
+        members = sorted(
+            ((best.group.members[place][0], files[i]) for i, place in enumerate(order)),
+            key=lambda m: (m[0].slope != "", m[0].number, m[0].slope, m[1].path),
+        )
+        group = _TurnSet(group.folder, group.base, best.group.count, members)
+        confidence = HEADINGS_CONFIDENCE if sure else NUMBERED_HEADINGS_CONFIDENCE
+        done = self._headings(root, group, kind, work, result, issues, confidence)
+        if not done:
+            result.assets.extend(_unused(f, UNUSED_VIEWS, kind) for f in files)
+        return paths_
+
     def _headings(
         self,
         root: Path,
@@ -549,6 +825,7 @@ class IsometricAdapter:
         work: Path,
         result: AdapterResult,
         issues: IssueList,
+        confidence: float = HEADINGS_CONFIDENCE,
     ) -> set[str]:
         """A car or a boat in four or eight headings, a picture each: the pictures are put
         into one strip, the first pointing up and each next one a step clockwise, which is the
@@ -567,7 +844,6 @@ class IsometricAdapter:
             return set()
         count = group.count
         order = sorted(range(count), key=lambda i: _turn_number(flat[i][0], count))
-        confidence = HEADINGS_CONFIDENCE
         boxes = [im.getchannel("A").getbbox() for im in images]
         if any(box is None for box in boxes):
             return set()  # an empty picture among them: no sheet of headings
