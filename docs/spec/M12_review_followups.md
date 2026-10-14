@@ -783,7 +783,9 @@ parallelized across processes.
 * The catalog is identical with and without prewarm on every synthetic pack.
 * Cancel stops the pool.
 * The perf test prints the speed-up. It asserts cold analysis of the 1,000-image pack at least 2×
-  faster only when `os.cpu_count() >= 4`.
+  faster only when `os.cpu_count() >= 4`. (Since 2026-10-14: 2× from 8 cpus and 1.5× from 4. The
+  4 cpus of a CI runner are two cores with two threads each and gave 1.6× to 1.9× on a day when
+  the same code gave 3× on a 20-cpu machine; see the implementation notes.)
 
 **Done when**
 * The tests pass and `docs/coverage.md` has the new timings.
