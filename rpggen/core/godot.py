@@ -386,6 +386,16 @@ def auto_find_godot(platform: str | None = None) -> list[Path]:
     )
 
 
+def crashed(run: GodotRun) -> bool:
+    """Godot was killed rather than exiting: by a signal on Linux and macOS (a negative code,
+    -6 an abort) or by an exception on Windows (an NTSTATUS code, 0xC0000005 an access
+    violation). Not a timeout or a cancel, which have their own flags and the code -1."""
+    if run.timed_out or run.cancelled:
+        return False
+    code = run.returncode
+    return code < -1 or code >= 0xC0000000
+
+
 def import_project(
     exe: Path,
     project: Path,

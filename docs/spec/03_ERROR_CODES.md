@@ -84,6 +84,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | BUILD-003 | E | Godot {phase} timed out after {seconds}s. | Retry; if it repeats, file a bug with diagnostics. |
 | BUILD-004 | E | Could not save {file}: Godot error {err}. | Check disk space and permissions. |
 | BUILD-005 | E | Unexpected error in phase {phase}: {reason}. | Export a diagnostic bundle and report it. |
+| BUILD-006 | I | Godot crashed while importing (exit {code}) and the import was run again. | Nothing to do if the generation succeeded; if Godot crashes again, see the godot_import log. |
 | VAL-001 | E | Script failed to parse: {file}. | Fix the script (see log). |
 | VAL-002 | E | Resource failed to load: {file}. | See the validate log. |
 | VAL-003 | E | Missing dependency {dep} of {file}. | Regenerate, or restore the missing file. |

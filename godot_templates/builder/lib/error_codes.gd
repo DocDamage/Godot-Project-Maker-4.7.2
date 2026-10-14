@@ -81,6 +81,7 @@ const CODES := {
 	"BUILD-003": {"severity": "error", "message": "Godot {phase} timed out after {seconds}s.", "fix": "Retry; if it repeats, file a bug with diagnostics."},
 	"BUILD-004": {"severity": "error", "message": "Could not save {file}: Godot error {err}.", "fix": "Check disk space and permissions."},
 	"BUILD-005": {"severity": "error", "message": "Unexpected error in phase {phase}: {reason}.", "fix": "Export a diagnostic bundle and report it."},
+	"BUILD-006": {"severity": "info", "message": "Godot crashed while importing (exit {code}) and the import was run again.", "fix": "Nothing to do if the generation succeeded; if Godot crashes again, see the godot_import log."},
 	"VAL-001": {"severity": "error", "message": "Script failed to parse: {file}.", "fix": "Fix the script (see log)."},
 	"VAL-002": {"severity": "error", "message": "Resource failed to load: {file}.", "fix": "See the validate log."},
 	"VAL-003": {"severity": "error", "message": "Missing dependency {dep} of {file}.", "fix": "Regenerate, or restore the missing file."},

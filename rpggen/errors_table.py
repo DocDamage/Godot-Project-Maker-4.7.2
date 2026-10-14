@@ -92,6 +92,7 @@ CODES: dict[str, CodeInfo] = {
     "BUILD-003": CodeInfo("BUILD-003", "error", "Godot {phase} timed out after {seconds}s.", "Retry; if it repeats, file a bug with diagnostics."),
     "BUILD-004": CodeInfo("BUILD-004", "error", "Could not save {file}: Godot error {err}.", "Check disk space and permissions."),
     "BUILD-005": CodeInfo("BUILD-005", "error", "Unexpected error in phase {phase}: {reason}.", "Export a diagnostic bundle and report it."),
+    "BUILD-006": CodeInfo("BUILD-006", "info", "Godot crashed while importing (exit {code}) and the import was run again.", "Nothing to do if the generation succeeded; if Godot crashes again, see the godot_import log."),
     "VAL-001": CodeInfo("VAL-001", "error", "Script failed to parse: {file}.", "Fix the script (see log)."),
     "VAL-002": CodeInfo("VAL-002", "error", "Resource failed to load: {file}.", "See the validate log."),
     "VAL-003": CodeInfo("VAL-003", "error", "Missing dependency {dep} of {file}.", "Regenerate, or restore the missing file."),

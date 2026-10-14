@@ -119,6 +119,7 @@
 | BUILD-003 | error | Godot {phase} timed out after {seconds}s. | Retry; if it repeats, file a bug with diagnostics. |
 | BUILD-004 | error | Could not save {file}: Godot error {err}. | Check disk space and permissions. |
 | BUILD-005 | error | Unexpected error in phase {phase}: {reason}. | Export a diagnostic bundle and report it. |
+| BUILD-006 | info | Godot crashed while importing (exit {code}) and the import was run again. | Nothing to do if the generation succeeded; if Godot crashes again, see the godot_import log. |
 
 ## Validation (VAL)
 

@@ -1045,11 +1045,16 @@ def _record_world_hashes(state: _State) -> None:
         world_plan.save(root, plan)
 
 
-def phase_import(state: _State) -> None:
+# a Godot that crashes while importing is run once more (BUILD-006): an import that has
+# started is picked up where it stopped, and the crash seen on CI runners did not repeat
+IMPORT_ATTEMPTS = 2
+
+
+def _import_once(state: _State) -> godot.GodotRun:
     assert state.staging is not None and state.log_dir is not None
     forwarder = godot.LineForwarder("import", state.cb.on_log, state.cb.on_step)
     try:
-        run = godot.run_godot(
+        return godot.run_godot(
             godot.find_console_exe(state.godot_exe),
             state.staging.staging,
             ["--import"],
@@ -1061,6 +1066,15 @@ def phase_import(state: _State) -> None:
         )
     finally:
         forwarder.close()
+
+
+def phase_import(state: _State) -> None:
+    run = _import_once(state)
+    for _again in range(IMPORT_ATTEMPTS - 1):
+        if not godot.crashed(run) or state.cb.is_cancelled():
+            break
+        state.issues.add("BUILD-006", code=run.returncode)
+        run = _import_once(state)
     if run.cancelled or state.cb.is_cancelled():
         raise _Cancelled
     if run.timed_out:
