@@ -60,8 +60,8 @@ def test_the_options_have_defaults_and_say_what_is_wrong() -> None:
     # a row is a name and a kind (T17.23); the kind is the row's, else the name's words
     assert farm_plan.normalized({"added_maps": ["Beach", {"name": " Cave "}]})["added_maps"] == [
         {"name": "Beach", "kind": "beach"},
-        {"name": "Cave", "kind": "forest"},
-    ]
+        {"name": "Cave", "kind": "cave"},
+    ], "a cave by its name since T17.24"
     for key in ("farm_size", "plot", "animals", "difficulty"):
         with pytest.raises(farm_plan.FarmPlanError, match=f"{key} must be one of"):
             farm_plan.normalized({key: "huge"})
@@ -104,7 +104,9 @@ def test_what_stands_on_a_farm_is_where_the_card_says() -> None:
     room = house["interior"]
     assert room["id"] == "farm_house" and room["door"][1] == room["size"][1] - 1
     assert room["arrive"] == [room["door"][0], room["door"][1] - 1]
-    assert room["bed"] == {"cell": [1, 1], "size": [1, 2]}
+    # a bed for two (T17.26), planned whether or not anybody marries: two cells wide
+    assert room["bed"] == {"cell": [1, 1], "size": [2, 2], "sleepers": 2}
+    assert room["start"] == [3, 2], "beside the bed"
     assert section["start"] == {"map": "farm_house", "cell": room["start"], "facing": "down"}
     # the water and where the can is filled
     assert section["water"]["kind"] == "pond" and len(section["water"]["cells"]) >= 4

@@ -8,7 +8,8 @@ extends RpgCombatMode
 ## morning's summary), the weather (its child `Weather`, T17.11) and what a season changes
 ## beside the crops (its child `Seasons`, T17.11: the pictures of the ground and the music), and
 ## the days of the year that are not like the others (its child `Events`, T17.25: festivals and
-## birthdays, with `festivals` on).
+## birthdays, with `festivals` on), and marriage (its child `Marriage`, T17.26, with `courting`
+## on).
 
 const ENERGY_NODE := "Energy"
 const HOTBAR_NODE := "Hotbar"
@@ -24,9 +25,18 @@ const HOTBAR_NODE := "Hotbar"
 ## The folder of the game's own data files (`crops.json`, `people.json`, ...), set by the
 ## recipe. Empty in a mode that is made by code: the game then has the planned files only.
 @export var data_dir: String = ""
+## True: the farm fights (T17.24: the feature *Combat*, or a cave among its added maps; the
+## mode's recipe sets it, and a mode that is made by code does not fight). Its child `Fight`
+## (RpgFarmFight) is switched on: the weapon in the shop, the farmer's health, the enemies of the
+## cave, passing out when defeated.
+@export var fights: bool = false
 ## True: the year has festivals and the people have birthdays (the option
 ## `starter_map.festivals`; the mode's recipe sets it, and a mode that is made by code has none).
 @export var festivals: bool = false
+## True: some people of the village can be courted and married (the option
+## `starter_map.courtable` above 0; the mode's recipe sets it, and a mode that is made by code
+## has none).
+@export var courting: bool = false
 
 var energy: RpgEnergy = null
 var hotbar: RpgHotbar = null
@@ -45,8 +55,14 @@ var fishing: RpgFishing = null
 ## The festivals and the birthdays (RpgFarmEvents, T17.25: its child `Events`, which does
 ## nothing in a farm without `festivals`).
 var events: RpgFarmEvents = null
+## Courting, the wedding and the spouse (RpgMarriage, T17.26: its child `Marriage`, which does
+## nothing in a farm without `courting`).
+var marriage: RpgMarriage = null
 ## The crops of the game (game/data/crops.json).
 var crops: RpgCropData = null
+## Fighting (RpgFarmFight, T17.24: its child `Fight`, which does nothing in a farm without
+## `fights`).
+var fight: RpgFarmFight = null
 
 var _tools: Dictionary = {}  # item id -> RpgFarmTool
 
@@ -73,10 +89,13 @@ func _ready() -> void:
 	weather.attach()
 	seasons.attach()
 	animals.attach()  # after the weather: it says whether the animals go out
+	marriage.attach()  # after the animals and before the day's end: the spouse's morning help is saved
 	day_end.attach()  # after the fields: its night (NIGHT_SHOP) and its morning follow theirs
 	forage.attach()
 	fishing.attach()
+	fight.attach()  # after the day's end: the morning heals after the farmer is put at the bed
 	events.attach()  # after the friendships and the fishing: it asks the one and hears the other
+	marriage.bind_schedules()  # after the events: a festival's place wins over the spouse's own
 
 ## Gives `calendar` the season and the day this farm has (`days_per_season`, `minute_s`).
 func set_calendar(calendar: RpgCalendar) -> void:
@@ -151,7 +170,16 @@ func ensure_parts() -> void:
 		events = RpgFarmEvents.new()
 		events.name = RpgFarmEvents.NODE_NAME
 		add_child(events)
-	events.enabled = festivals
+	# a farm with marriage and without festivals has the events too, for its wedding (T17.26)
+	events.enabled = festivals or courting
+	events.with_files = festivals
+	if marriage == null:
+		marriage = get_node_or_null(RpgMarriage.NODE_NAME) as RpgMarriage
+	if marriage == null:
+		marriage = RpgMarriage.new()
+		marriage.name = RpgMarriage.NODE_NAME
+		add_child(marriage)
+	marriage.enabled = courting
 	if crops == null:
 		crops = RpgCropData.load_default()
 	if _tools.is_empty():
@@ -162,6 +190,13 @@ func ensure_parts() -> void:
 		var rod := RpgFarmRod.new()  # the rod of T17.10: it casts through the mode's `Fishing`
 		rod.fishing = fishing
 		_tools[rod.id] = rod
+	if fight == null:
+		fight = get_node_or_null(RpgFarmFight.NODE_NAME) as RpgFarmFight
+	if fight == null:
+		fight = RpgFarmFight.new()
+		fight.name = RpgFarmFight.NODE_NAME
+		add_child(fight)
+	fight.enabled = fights
 
 func is_in_combat() -> bool:
 	return false

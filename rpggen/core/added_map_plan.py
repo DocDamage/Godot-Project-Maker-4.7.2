@@ -12,9 +12,11 @@ map); a later row plans one more map and leaves the stored ones as they are.
 * A **beach**: sand, the sea along one side (its cells carry the ``water`` data of the ``Soil``
   layer, so the rod is cast there), a place to fish from, driftwood and beach grass to clear,
   rocks, a few trees at the far side, and places where the things of a beach lie.
-* A **cave** is a kind that is known and **not built by this module**: it is T17.24's, which
-  adds its planner to ``PLANNERS`` (and its name words and its size beside the others). Until
-  then a row of the kind is refused with a sentence that says so, and no name chooses it.
+* A **cave** (T17.24): rock, chambers hollowed out of it and joined by tunnels to the way in,
+  enemies in the chambers away from the way in, and places where the things of a cave lie
+  (ore, a crystal, a mushroom of the dark). A cave is where a farm fights: a farm has one when
+  the feature *Combat* is on (``with_cave``: the cave is added to the rows by itself, unless a
+  row is a cave already), and a cave row without *Combat* is refused with a sentence.
 
 **The door pair.** An added map has one way in: a gap in its edge (``door``), which leads back
 to the farm. The farm's side is one of the farm's **trails** (``farm.map.trails``, reserved by
@@ -38,16 +40,19 @@ FOREST = "forest"
 BEACH = "beach"
 CAVE = "cave"
 # what a row may be, in the order a choice lists it; RESERVED are known and not built yet
-BUILT = (FOREST, BEACH)
-RESERVED = (CAVE,)
+BUILT = (FOREST, BEACH, CAVE)
+RESERVED: tuple[str, ...] = ()
 KNOWN = (*BUILT, *RESERVED)
 DEFAULT_KIND = FOREST
 # the words of a name that choose a kind, the first kind that has one of them
 NAME_WORDS: dict[str, tuple[str, ...]] = {
     BEACH: ("beach", "shore", "coast", "seaside", "sea", "bay", "strand"),
     FOREST: ("forest", "wood", "woods", "grove"),
+    CAVE: ("cave", "cavern", "caves", "mine", "mines", "grotto", "tunnel", "tunnels"),
 }
-SIZES: dict[str, tuple[int, int]] = {FOREST: (28, 22), BEACH: (30, 20)}
+SIZES: dict[str, tuple[int, int]] = {FOREST: (28, 22), BEACH: (30, 20), CAVE: (26, 20)}
+# the name of the cave a farm gets with *Combat* on and no row of the kind (``with_cave``)
+CAVE_NAME = "Cave"
 MAP_DIR = "game/maps"
 SEA = "sea"  # the water of a beach (forage_plan: the fish of the sea bite there)
 REROLLS = 12
@@ -67,6 +72,11 @@ BEACH_DEBRIS = 6
 BEACH_SCENERY = 5
 SEA_DEPTH = (3, 5)  # cells of sea from the edge, the edge's own row among them
 SPOTS_APART = 3
+CAVE_CHAMBERS = 3  # hollowed out of the rock away from the way in
+CAVE_SPOTS = 6
+CAVE_ENEMIES = 3
+CAVE_BOULDERS = 3
+ENEMY_AWAY = 6  # the cells (along the axes) an enemy stands at least from where the farmer arrives
 
 Cell = tuple[int, int]
 STEPS: tuple[Cell, ...] = ((0, 1), (1, 0), (-1, 0), (0, -1))
@@ -107,6 +117,48 @@ def row(raw: Any) -> dict[str, str]:
     return {"name": name, "kind": kind}
 
 
+class CaveNeedsCombat(AddedMapError):
+    """A cave row in a farm without the feature *Combat*."""
+
+
+def with_cave(rows: Any, combat: bool, stored: Any = None) -> list[Any]:
+    """The rows of *Added maps* as a farm plans them (T17.24). With *Combat* on the farm has a
+    cave: a row of the kind (by its ``kind``, else by its name) is that cave, and without one a
+    row ``{"name": CAVE_NAME, "kind": "cave"}`` is added at the end. With *Combat* off a row of
+    the kind is refused (``CaveNeedsCombat``): a cave is the place a farm fights in, and a farm
+    that does not fight has none. ``stored`` are the entries the farm's plan has
+    (``farm.map.added``): a row whose name is among them is not read again, whatever it says
+    now, and a farm that has its cave gets no second one. A row that cannot be read is left as
+    it is (the planner says what is wrong with it)."""
+    given = list(rows) if isinstance(rows, list) else []
+    have = {str(e.get("name", "")).casefold() for e in stored or [] if isinstance(e, dict)}
+    has_one = any(isinstance(e, dict) and e.get("kind") == CAVE for e in stored or [])
+    new: list[Any] = []
+    for raw in given:
+        named = str(raw.get("name", "") if isinstance(raw, dict) else raw).strip()
+        if named.casefold() in have:
+            continue
+        try:
+            if row(raw)["kind"] == CAVE:
+                new.append(raw)
+        except AddedMapError:
+            continue
+    if new and not combat:
+        name = row(new[0])["name"]
+        raise CaveNeedsCombat(
+            f"{name}: a cave is where a farm fights; switch on the feature Combat to have one"
+        )
+    if combat and not new and not has_one:
+        names = have | {
+            str(r.get("name", "") if isinstance(r, dict) else r).strip().casefold() for r in given
+        }
+        name, n = CAVE_NAME, 2
+        while name.casefold() in names:
+            name, n = f"{CAVE_NAME} {n}", n + 1
+        given.append({"name": name, "kind": CAVE})
+    return given
+
+
 def kinds_of(rows: Any) -> list[str]:
     """The kinds of the rows of an options table that can be read, in their order (a row that
     cannot is left out: the planner says what is wrong with it)."""
@@ -117,6 +169,21 @@ def kinds_of(rows: Any) -> list[str]:
         except AddedMapError:
             continue
     return out
+
+
+def fights(combat: Any, stored: Any = None) -> bool:
+    """True when a farm fights (T17.24): the feature *Combat* is on, or its plan has a cave
+    (``stored``: ``farm.map.added``), which is never taken away again."""
+    return bool(combat) or has_cave(stored)
+
+
+def kinds_for(rows: Any, combat: Any, stored: Any = None) -> list[str]:
+    """``kinds_of`` the rows, with the cave of a farm that fights: what the kit draws for and
+    the requirement check notes."""
+    kinds = kinds_of(rows)
+    if fights(combat, stored) and CAVE not in kinds:
+        kinds.append(CAVE)
+    return kinds
 
 
 def map_id(index: int) -> str:
@@ -418,10 +485,104 @@ def _beach(index: int, name: str, facts: dict[str, Any], rng: Random) -> dict[st
     return out
 
 
+# --------------------------------------------------------------------------- a cave
+
+
+def _tunnel(cells: set[Cell], start: Cell, goal: Cell, x_first: bool) -> list[Cell]:
+    """A tunnel two cells wide from ``start`` to ``goal`` (``_walk``, and the cell to the right
+    of and below each step), added to ``cells``; returns its middle line."""
+    line = _walk(start, goal, x_first)
+    for x, y in line:
+        cells.update({(x, y), (x + 1, y), (x, y + 1)})
+    return line
+
+
+def _apart_rects(rect: tuple[int, int, int, int], others: list[tuple[int, int, int, int]]) -> bool:
+    """True when ``rect`` keeps a cell of rock to every rect of ``others``."""
+    x0, y0, w, h = rect
+    return all(
+        x0 + w + 1 < ox or ox + ow + 1 < x0 or y0 + h + 1 < oy or oy + oh + 1 < y0
+        for ox, oy, ow, oh in others
+    )
+
+
+def _cave(index: int, name: str, facts: dict[str, Any], rng: Random) -> dict[str, Any] | None:
+    size = SIZES[CAVE]
+    cols, rows = size
+    out = _entry(CAVE, index, name, size, facts)
+    door = _door(rng.choice(EDGES), size, rng)
+    spawn = _cell(door["spawn"])
+    gap = _cell(door["cell"])
+    hollow: set[Cell] = {(spawn[0] + dx, spawn[1] + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)}
+    # the chambers: rooms hollowed out of the rock, apart from one another and from the way in
+    chambers: list[tuple[int, int, int, int]] = []
+    for _ in range(60):
+        if len(chambers) >= CAVE_CHAMBERS:
+            break
+        wide, high = rng.randint(5, 7), rng.randint(4, 5)
+        rect = (rng.randint(2, cols - 2 - wide), rng.randint(2, rows - 2 - high), wide, high)
+        middle = (rect[0] + wide // 2, rect[1] + high // 2)
+        if abs(middle[0] - spawn[0]) + abs(middle[1] - spawn[1]) < ENEMY_AWAY + 2:
+            continue
+        if _apart_rects(rect, chambers):
+            chambers.append(rect)
+    if len(chambers) < 2:
+        return None
+    # the nearest first: a tunnel leads from the way in to the first and on from each to the next
+    chambers.sort(
+        key=lambda c: (abs(c[0] + c[2] // 2 - spawn[0]) + abs(c[1] + c[3] // 2 - spawn[1]), c)
+    )
+    paths: list[Cell] = []
+    at = spawn
+    for chamber in chambers:
+        hollow.update(_rect_cells(chamber))
+        middle = (chamber[0] + chamber[2] // 2, chamber[1] + chamber[3] // 2)
+        paths += _tunnel(hollow, at, middle, rng.random() < 0.5)
+        at = middle
+    inside = {(x, y) for y in range(1, rows - 1) for x in range(1, cols - 1)}
+    hollow &= inside
+    walls = sorted(inside - hollow, key=lambda c: (c[1], c[0]))
+    edge = _edge_cells(size) - {gap}
+    keep = set(paths) | {spawn, gap}
+    keep.update((spawn[0] + dx, spawn[1] + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1))
+    things = _Things(rng, keep, edge | set(walls))
+    in_chambers = sorted({c for ch in chambers for c in _rect_cells(ch)} - keep)
+    # a few boulders where they block nothing (one that would touch the rock is not set down)
+    scenery = things.scatter(in_chambers, CAVE_BOULDERS, ("rock",))
+    reached = _flood(spawn, size, edge | set(walls) | things.blockers)
+    free = [c for c in in_chambers if c in reached and c not in things.used]
+    far = [c for c in free if abs(c[0] - spawn[0]) + abs(c[1] - spawn[1]) >= ENEMY_AWAY]
+    rng.shuffle(far)
+    enemies = _apart(far, CAVE_ENEMIES, SPOTS_APART)
+    if not enemies:
+        return None
+    things.used.update(enemies)
+    left = sorted(c for c in reached if c not in things.used and c not in keep)
+    rng.shuffle(left)
+    spots = _apart(left, CAVE_SPOTS, SPOTS_APART)
+    if len(spots) < CAVE_SPOTS // 2:
+        return None
+    out.update(
+        {
+            "door": door,
+            "chambers": [list(c) for c in chambers],
+            "walls": _lists(walls),
+            "enemies": [{"cell": list(c)} for c in sorted(enemies, key=lambda c: (c[1], c[0]))],
+            "paths": _lists(dict.fromkeys(c for c in paths if c in inside)),
+            "trees": [],
+            "scenery": scenery,
+            "debris": [],
+            "spots": _lists(sorted(spots, key=lambda c: (c[1], c[0]))),
+            "notes": [],
+        }
+    )
+    return out
+
+
 # What plans a kind: (the map's number from 1, its name, the facts of the packs, the dice) ->
-# the entry, or None when this arrangement did not work out. T17.24 adds the cave here.
+# the entry, or None when this arrangement did not work out.
 Planner = Callable[[int, str, dict[str, Any], Random], "dict[str, Any] | None"]
-PLANNERS: dict[str, Planner] = {FOREST: _forest, BEACH: _beach}
+PLANNERS: dict[str, Planner] = {FOREST: _forest, BEACH: _beach, CAVE: _cave}
 
 
 # --------------------------------------------------------------------------- the check
@@ -438,6 +599,7 @@ def blocked_cells(entry: dict[str, Any]) -> set[Cell]:
     out = _edge_cells(size) - {_cell(entry["door"]["cell"])}
     out |= water_cells(entry)
     out.update(_cell(c) for c in entry.get("trees", []))
+    out.update(_cell(c) for c in entry.get("walls", []))
     for thing in [*entry.get("scenery", []), *entry.get("debris", [])]:
         if thing["kind"] in BLOCKING:
             out.add(_cell(thing["cell"]))
@@ -488,11 +650,13 @@ def check(entry: dict[str, Any]) -> list[str]:
     claim([spawn], "where the farmer arrives")
     claim(entry.get("paths", []), "a path", on=("where the farmer arrives",))
     claim(entry.get("trees", []), "a tree")
+    claim(entry.get("walls", []), "the rock")
     for thing in entry.get("scenery", []):
         claim([thing["cell"]], f"scenery ({thing['kind']})")
     for thing in entry.get("debris", []):
         claim([thing["cell"]], f"a thing to clear ({thing['kind']})")
     claim(entry.get("spots", []), "a forage place")
+    claim([e["cell"] for e in entry.get("enemies", [])], "an enemy")
     reached = reached_cells(entry)
     if not reached:
         return [*problems, "the way in is blocked"]
@@ -501,6 +665,15 @@ def check(entry: dict[str, Any]) -> list[str]:
             problems.append(f"the forage place {list(spot)} cannot be reached from the way in")
     if entry.get("clearing") and not set(_rect_cells(entry["clearing"])) & reached:
         problems.append("the clearing cannot be reached from the way in")
+    if entry.get("kind") == CAVE:
+        enemies = [_cell(e["cell"]) for e in entry.get("enemies", [])]
+        if not enemies:
+            problems.append("the cave has no enemy")
+        for cell in enemies:
+            if cell not in reached:
+                problems.append(f"the enemy at {list(cell)} cannot be reached from the way in")
+            elif abs(cell[0] - spawn[0]) + abs(cell[1] - spawn[1]) < ENEMY_AWAY:
+                problems.append(f"the enemy at {list(cell)} stands at the way in")
     if entry.get("kind") == BEACH:
         fish = entry.get("fish") or {}
         if not wet:
@@ -537,6 +710,11 @@ def plan(kind: str, index: int, seed: int, name: str, facts: Any = None) -> dict
                 out["notes"].append(f"{name} was planned at the {attempt + 1}. try.")
             return out
     raise AddedMapError(f"{name}: no {kind} that can be walked: " + "; ".join(found[:3]))
+
+
+def has_cave(entries: Any) -> bool:
+    """True when one of the added maps is a cave (T17.24): the farm fights."""
+    return any(str(entry.get("kind", "")) == CAVE for entry in entries or [])
 
 
 def has_sea(entries: Any) -> bool:

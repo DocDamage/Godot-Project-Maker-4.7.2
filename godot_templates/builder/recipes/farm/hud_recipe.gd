@@ -60,6 +60,8 @@ const BAR_PX := 5
 const MARGIN_PX := 4
 const BAR_BACK := Color(0.08, 0.08, 0.1, 0.85)
 const ENERGY_COLOR := Color(0.95, 0.8, 0.25)
+## The farmer's health over the energy, in a farm that fights (T17.24).
+const HEALTH_COLOR := Color(0.86, 0.24, 0.22)
 # the calendar and the money, in the top-left corner
 const STATUS_AT := Vector2(6, 4)
 const STATUS_BACK := Color(0.08, 0.08, 0.1, 0.6)
@@ -241,8 +243,9 @@ static func _small(ctx: BuildContext) -> bool:
 	var res: Array = JsonUtil.to_array(ctx.config.get("resolution", [640, 360]))
 	return res.size() == 2 and JsonUtil.to_int(res[1]) < SMALL_BELOW
 
-## The farm's HUD (RpgFarmHud), a child of the mode.
-static func build_hud(ctx: BuildContext) -> CanvasLayer:
+## The farm's HUD (RpgFarmHud), a child of the mode. `health`: the farmer's health as a red bar
+## over the energy (`%HealthBar`, a farm that fights, T17.24); without it the scene is as before.
+static func build_hud(ctx: BuildContext, health: bool = false) -> CanvasLayer:
 	var hud := CanvasLayer.new()
 	hud.name = "Hud"
 	hud.layer = 5  # RpgFarmHud.LAYER: under the dialogue box and the menus
@@ -253,14 +256,17 @@ static func build_hud(ctx: BuildContext) -> CanvasLayer:
 		if texture != null:
 			icons[kind] = texture
 	hud.set("weather_icons", icons)
-	hud.add_child(_bottom())
+	hud.add_child(_bottom(health))
 	hud.add_child(_status(_small(ctx)))
 	return hud
 
-## The energy bar over the ten slots, in the middle of the bottom edge of the screen.
-static func _bottom() -> VBoxContainer:
+## The energy bar over the ten slots, in the middle of the bottom edge of the screen, and with
+## `health` the health bar over the energy.
+static func _bottom(health: bool = false) -> VBoxContainer:
 	var width := FarmBuild.HOTBAR_SLOTS * SLOT_PX + (FarmBuild.HOTBAR_SLOTS - 1) * GAP_PX
 	var height := SLOT_PX + GAP_PX + BAR_PX
+	if health:
+		height += BAR_PX + GAP_PX
 	var column := VBoxContainer.new()
 	column.name = "Column"
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -274,22 +280,9 @@ static func _bottom() -> VBoxContainer:
 	column.offset_top = -(height + MARGIN_PX)
 	column.offset_bottom = -MARGIN_PX
 
-	var bar := ProgressBar.new()
-	bar.name = "EnergyBar"
-	bar.custom_minimum_size = Vector2(width, BAR_PX)
-	bar.show_percentage = false
-	bar.min_value = 0.0
-	bar.max_value = 100.0
-	bar.value = 100.0
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var back := StyleBoxFlat.new()
-	back.bg_color = BAR_BACK
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = ENERGY_COLOR
-	bar.add_theme_stylebox_override("background", back)
-	bar.add_theme_stylebox_override("fill", fill)
-	UiUtil.unique(bar)
-	column.add_child(bar)
+	if health:
+		column.add_child(_bar("HealthBar", width, HEALTH_COLOR))
+	column.add_child(_bar("EnergyBar", width, ENERGY_COLOR))
 
 	var slots := HBoxContainer.new()
 	slots.name = "Slots"
@@ -300,6 +293,25 @@ static func _bottom() -> VBoxContainer:
 	for i in FarmBuild.HOTBAR_SLOTS:
 		slots.add_child(_slot(i))
 	return column
+
+## A bar of the HUD: `%<node_name>`, full, in `colour` on the dark ground.
+static func _bar(node_name: String, width: int, colour: Color) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.name = node_name
+	bar.custom_minimum_size = Vector2(width, BAR_PX)
+	bar.show_percentage = false
+	bar.min_value = 0.0
+	bar.max_value = 100.0
+	bar.value = 100.0
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var back := StyleBoxFlat.new()
+	back.bg_color = BAR_BACK
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = colour
+	bar.add_theme_stylebox_override("background", back)
+	bar.add_theme_stylebox_override("fill", fill)
+	UiUtil.unique(bar)
+	return bar
 
 static func _slot(index: int) -> PanelContainer:
 	var slot := PanelContainer.new()

@@ -220,10 +220,22 @@ def test_a_layer_whose_tile_sheet_is_missing_is_skipped(tmp_path: Path) -> None:
     assert codes == ["ADAPT-002", "TILE-009"]
 
 
-def test_a_map_that_is_not_orthogonal_is_skipped(tmp_path: Path) -> None:
-    text = _tmx('<data encoding="csv">1,2,3,4</data>').replace("orthogonal", "isometric")
+@pytest.mark.parametrize(
+    ("orientation", "reason"),
+    [
+        ("staggered", "staggered maps are not imported"),
+        ("hexagonal", "hexagonal maps are not imported"),
+        ("oblique", "only orthogonal and isometric maps are imported"),
+    ],
+)
+def test_a_map_that_is_neither_orthogonal_nor_isometric_is_skipped(
+    tmp_path: Path, orientation: str, reason: str
+) -> None:
+    # an isometric map is read since T17.28 (tests/unit/test_iso_import.py)
+    text = _tmx('<data encoding="csv">1,2,3,4</data>').replace("orthogonal", orientation)
     res = _extract(TiledAdapter(), _pack(tmp_path, {"a.tmx": text}))
     assert res.maps == [] and [i.code for i in res.issues] == ["TILE-009"]
+    assert res.issues[0].detail["reason"] == reason
 
 
 def test_gids_of_a_second_tileset_use_its_own_image(tmp_path: Path) -> None:

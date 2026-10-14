@@ -27,6 +27,11 @@ and no picture, and the builder draws a plain icon.
   ``water`` is ``sea`` bites at a beach and nowhere else. The things and the fish of a beach are
   the packs' (an ``ITEM`` tagged ``forage`` and ``beach``, or ``fish`` and ``sea``), else the
   kit's drawn ones; they are appended when the farm gets its first beach.
+* **A cave** (T17.24) has things of its own the same way: the packs' (an ``ITEM`` tagged
+  ``forage`` and ``cave``), else the kit's drawn ore, crystal and mushroom of the dark, dearer
+  than what lies on the farm, every season; only what is food (a mushroom, a root, a berry, a
+  herb by its name) restores energy. They are appended when the farm gets its cave, and what
+  an enemy of the cave leaves when it is defeated is one of them.
 
 The plan is deterministic for a seed and is **stored** in the project (``rpggen/world_plan.json``,
 ``farm.forage``) and reused: once it is there the seed no longer changes it, and a fish or a
@@ -71,6 +76,16 @@ DRAWN_BEACH_FORAGE = (
     ("seaweed", ("spring", "summer", "autumn"), "#3f8f6a"),
 )
 DRAWN_SEA_FISH = (("sardine", "#96b4d2"), ("sea_bass", "#5a7896"))
+# ... and for a cave (T17.24): (name, its colour). ``farm_kit.CAVE_FORAGE`` draws the same ones.
+CAVE = "cave"
+CAVE_TAG = "cave"
+DRAWN_CAVE_FORAGE = (
+    ("copper_ore", "#c8784a"),
+    ("amethyst", "#9a64d2"),
+    ("cave_mushroom", "#8ab4c8"),
+)
+CAVE_PRICES = (40, 60, 90)  # what a thing of a cave is worth: more than what lies on the farm
+FOOD_WORDS = ("mushroom", "fungus", "root", "berry", "berries", "herb")
 # how many places a farm of a size has, how near the edge they lie (cells), how far apart
 SPOTS = {"small": 6, "medium": 8, "large": 10}
 EDGE = 5
@@ -103,6 +118,7 @@ def facts_of(catalog: Any) -> dict[str, Any]:
     out: dict[str, list[dict[str, Any]]] = {"forage": [], "fish": []}
     beach: list[dict[str, Any]] = []
     sea: list[dict[str, Any]] = []
+    cave: list[dict[str, Any]] = []
     for asset in sorted(getattr(catalog, "assets", []), key=lambda a: a.id):
         facets = catalog_mod.effective(asset)
         if asset.kind != "image" or asset.status in ("UNUSED", "MISSING") or "#" in asset.id:
@@ -115,7 +131,8 @@ def facts_of(catalog: Any) -> dict[str, Any]:
             (sea if SEA_TAG in tags else out["fish"]).append({"asset": str(asset.id), "name": name})
         elif "forage" in tags:
             seasons = [t[len(SEASON_TAG) :] for t in tags if t.startswith(SEASON_TAG)]
-            (beach if BEACH_TAG in tags else out["forage"]).append(
+            into = cave if CAVE_TAG in tags else beach if BEACH_TAG in tags else out["forage"]
+            into.append(
                 {
                     "asset": str(asset.id),
                     "name": name,
@@ -126,6 +143,8 @@ def facts_of(catalog: Any) -> dict[str, Any]:
         out["beach"] = beach
     if sea:
         out["sea"] = sea
+    if cave:
+        out["cave"] = cave
     return out
 
 
@@ -308,8 +327,43 @@ def has_fish(farm_map: dict[str, Any] | None) -> bool:
     return has_pond(farm_map) or has_sea(farm_map)
 
 
+def has_cave(farm_map: dict[str, Any] | None) -> bool:
+    """True when one of the farm's added maps is a cave (T17.24)."""
+    from rpggen.core import added_map_plan
+
+    return added_map_plan.has_cave((farm_map or {}).get("added"))
+
+
 def _of_beach(row: dict[str, Any]) -> bool:
     return BEACH in (row.get("maps") or []) or SEA in (row.get("water") or [])
+
+
+def _of_cave(row: dict[str, Any]) -> bool:
+    return CAVE in (row.get("maps") or [])
+
+
+def with_cave(section: dict[str, Any], facts: Any) -> list[str]:
+    """Appends the things of a cave to a plan that has none yet (in place): the packs'
+    (``facts["cave"]``), else the drawn ones, every season, at ``CAVE_PRICES``; one is food when
+    its name says so (``FOOD_WORDS``). Returns the names that were added; nothing when the plan
+    has them already."""
+    if any(_of_cave(row) for row in section.get("forage", [])):
+        return []
+    used = {str(row["id"]) for key in ("forage", "fish") for row in section.get(key, [])}
+    things = [dict(f) for f in (facts or {}).get("cave", [])] or [
+        {"asset": "", "name": name, "color": color} for name, color in DRAWN_CAVE_FORAGE
+    ]
+    things.sort(key=lambda f: (str(f.get("asset", "")), str(f["name"])))
+    rows: list[dict[str, Any]] = []
+    for i, fact in enumerate(things):
+        entry = {**_forage_entry(fact, i, used), "maps": [CAVE]}
+        entry["seasons"] = list(SEASONS)
+        entry["price"] = CAVE_PRICES[i % len(CAVE_PRICES)]
+        food = any(word in str(fact["name"]).lower() for word in FOOD_WORDS)
+        entry["energy"] = FORAGE_ENERGY if food else 0
+        rows.append(entry)
+    section.setdefault("forage", []).extend(rows)
+    return [str(row["name"]) for row in rows]
 
 
 def with_beach(section: dict[str, Any], facts: Any) -> list[str]:
@@ -373,6 +427,8 @@ def plan(
     }
     if has_sea(farm_map):
         with_beach(section, facts)
+    if has_cave(farm_map):
+        with_cave(section, facts)
     return section
 
 
@@ -397,7 +453,7 @@ def check(section: dict[str, Any]) -> list[str]:
     """What is wrong with a plan (an empty list for a good one): a season with nothing to
     forage, a time of a season at which no fish bites, two things of one id."""
     problems: list[str] = []
-    forage = [f for f in section.get("forage", []) if not _of_beach(f)]
+    forage = [f for f in section.get("forage", []) if not _of_beach(f) and not _of_cave(f)]
     fish = [f for f in section.get("fish", []) if not _of_beach(f)]
     for season in SEASONS:
         if not any(season in f["seasons"] for f in forage):
@@ -470,6 +526,8 @@ def for_project(
         section["fishing"] = opts["fishing"] and has_fish(farm_map)
         if has_sea(farm_map):
             added += with_beach(section, facts)
+        if has_cave(farm_map):
+            added += with_cave(section, facts)
         notes = [f"The farm kept its fish and forage; added: {', '.join(added)}."] if added else []
         return section, notes
     fresh = plan(opts, seed, facts, farm_map)

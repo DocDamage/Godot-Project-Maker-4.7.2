@@ -26,6 +26,14 @@ or on the first day of spring (the first morning of a game, when the farmer know
 two on one day while the year has days enough. Somebody who has a birthday keeps it, so
 the people a project stored before it had birthdays get theirs without anything else of them
 changing. A project with ``festivals`` off has no birthdays.
+
+**Who can be courted** (T17.26) is added by ``with_courtable``: while nobody of the village has
+the key ``courtable``, ``count`` of them are chosen by the seed (not the shopkeeper while there
+are others) and every person gets ``courtable`` true or false. Once anybody has the key the
+choice is made and stays: a person the packs add later is not courtable, and a changed count
+changes nobody. So the people a project stored before it had marriage get the key without
+anything else of them changing. ``courtable`` 0 (the option ``starter_map.courtable``) chooses
+nobody and writes no key, so the people of a farm that switches it on later are chosen then.
 """
 
 from __future__ import annotations
@@ -53,6 +61,10 @@ MAX_PEOPLE = 12
 PEOPLE_RANGE = (1, 40)
 # the people of a village whose packs have no NPC
 DRAWN_PEOPLE = 3
+# how many people can be courted (T17.26: ``starter_map.courtable``; 0 turns marriage off)
+COURTABLE_DEFAULT = 2
+COURTABLE_RANGE = (0, 6)
+COURTABLE_KEY = "courtable"
 PATTERNS = ("villager", "stroller", "angler")
 # what nobody is given: the tools, and seeds
 NOT_GIFTS = frozenset({"hoe", "watering_can", "sickle", "farm_axe"})
@@ -341,6 +353,45 @@ def with_birthdays(
     return out
 
 
+def courtable_count(options: Any) -> int:
+    """How many people can be courted by the options (``starter_map.courtable``; 2 when it is
+    not given). Raises a ``PeoplePlanError`` for a value that is no number of the range."""
+    raw = options if isinstance(options, dict) else {}
+    count = raw.get(COURTABLE_KEY, COURTABLE_DEFAULT)
+    lo, hi = COURTABLE_RANGE
+    if isinstance(count, bool) or not isinstance(count, int) or not lo <= count <= hi:
+        raise PeoplePlanError(f"courtable: {count!r} is not a number from {lo} to {hi}")
+    return count
+
+
+def with_courtable(people: list[dict[str, Any]], seed: int, count: int) -> list[dict[str, Any]]:
+    """The people, each with ``courtable`` true or false (a copy). While nobody has the key,
+    ``count`` people are chosen by the seed (the shopkeeper last: only when there are too few
+    others); once somebody has it, whoever lacks it (a person added later) is not courtable and
+    nobody else changes. ``count`` 0 chooses nobody and adds no key."""
+    out = copy.deepcopy(people)
+    if any(COURTABLE_KEY in p for p in out):
+        for person in out:
+            person.setdefault(COURTABLE_KEY, False)
+        return out
+    if count <= 0:
+        return out
+    ids = sorted(str(p.get("id", "")) for p in out)
+    rng = Random(f"{int(seed)}:courtable")
+    rng.shuffle(ids)
+    keepers = {str(p.get("id", "")) for p in out if p.get("job") == SHOPKEEPER}
+    ordered = [i for i in ids if i not in keepers] + [i for i in ids if i in keepers]
+    chosen = set(ordered[:count])
+    for person in out:
+        person[COURTABLE_KEY] = str(person.get("id", "")) in chosen
+    return out
+
+
+def courtable(people: list[dict[str, Any]]) -> list[str]:
+    """The ids of the people who can be courted, in the order of the list."""
+    return [str(p["id"]) for p in people if p.get(COURTABLE_KEY) is True]
+
+
 def store(farm: dict[str, Any], people: list[dict[str, Any]], notes: Any = ()) -> dict[str, Any]:
     """The ``farm`` section of the world plan with the people beside its crops (a copy)."""
     out = copy.deepcopy(farm)
@@ -393,6 +444,8 @@ def check(people: list[dict[str, Any]], facts: Any = None) -> list[str]:
                 problems.append(f"{who}: a birthday in the unknown season {born.get('season')!r}")
             if isinstance(day, bool) or not isinstance(day, int) or not 1 <= day <= 28:
                 problems.append(f"{who}: a birthday on the day {day!r}")
+        if COURTABLE_KEY in person and not isinstance(person[COURTABLE_KEY], bool):
+            problems.append(f"{who}: courtable is {person[COURTABLE_KEY]!r}, not true or false")
         listed = [item for taste in TASTES for item in person.get(taste, [])]
         if len(listed) != len(set(listed)):
             problems.append(f"{who}: an item in two tastes")

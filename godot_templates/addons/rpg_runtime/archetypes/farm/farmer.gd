@@ -232,6 +232,9 @@ func use_held() -> bool:
 	var plot := the_field()
 	var target := tile_ahead()
 	var item := found.hotbar.held_item()
+	# a farm that fights (T17.24): the weapon is swung at what stands ahead, whatever lies there
+	if found.fight != null and found.fight.is_weapon(item):
+		return found.fight.swing(self, item)
 	if plot != null and plot.state_of(target) == RpgField.RIPE:
 		return plot.harvest(target)
 	var tool := found.tool_for(item)
@@ -271,6 +274,11 @@ func _plant(found: RpgFarmMode, plot: RpgField, target: Vector2i, crop_id: Strin
 	state.inventory.remove(item, 1)
 	RpgFarmSounds.play(RpgFarmSounds.PLANT)
 	return true
+
+## Shows the use of `tool` (the item `item`) as a tool's use is shown, without working a cell:
+## what a swing of the weapon looks like (T17.24, RpgFarmFight.swing).
+func show_use(tool: RpgFarmTool, item: StringName) -> void:
+	_begin_use(tool, item)
 
 ## The farmer stands still for the tool's use time and shows its use.
 func _begin_use(tool: RpgFarmTool, item: StringName) -> void:

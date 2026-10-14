@@ -168,7 +168,7 @@
         "index": {"type": "integer", "minimum": 1, "maximum": 8},
         "id": {"type": "string", "pattern": "^farm_map_[1-8]$"},
         "name": {"type": "string", "minLength": 1},
-        "kind": {"enum": ["forest", "beach"]},
+        "kind": {"enum": ["forest", "beach", "cave"]},
         "map": {"type": "string", "pattern": "^game/maps/farm_map_[1-8]\\.tscn$"},
         "size": {"$ref": "#/$defs/Cell"},
         "ground": {"type": "string"},
@@ -186,6 +186,20 @@
           "additionalProperties": false
         },
         "clearing": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4},
+        "chambers": {
+          "type": "array",
+          "items": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4}
+        },
+        "walls": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "enemies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {"cell": {"$ref": "#/$defs/Cell"}},
+            "required": ["cell"],
+            "additionalProperties": false
+          }
+        },
         "water": {
           "type": "object",
           "properties": {
@@ -253,7 +267,11 @@
             "arrive": {"$ref": "#/$defs/Cell"},
             "bed": {
               "type": "object",
-              "properties": {"cell": {"$ref": "#/$defs/Cell"}, "size": {"$ref": "#/$defs/Cell"}},
+              "properties": {
+                "cell": {"$ref": "#/$defs/Cell"},
+                "size": {"$ref": "#/$defs/Cell"},
+                "sleepers": {"description": "T17.26: 2 for a bed for two (two beds side by side); a bed without it sleeps one.", "enum": [1, 2]}
+              },
               "required": ["cell", "size"],
               "additionalProperties": false
             },
@@ -325,6 +343,7 @@
         "loves": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "likes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "courtable": {"description": "T17.26: the person can be courted and married.", "type": "boolean"},
         "birthday": {
           "type": "object",
           "properties": {
@@ -414,7 +433,7 @@
         },
         "price": {"type": "integer", "minimum": 0},
         "energy": {"type": "integer", "minimum": 0},
-        "maps": {"type": "array", "items": {"enum": ["beach"]}, "minItems": 1, "uniqueItems": true},
+        "maps": {"type": "array", "items": {"enum": ["beach", "cave"]}, "minItems": 1, "uniqueItems": true},
         "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"}
       },
       "required": ["id", "name", "asset", "item", "seasons", "price", "energy"],

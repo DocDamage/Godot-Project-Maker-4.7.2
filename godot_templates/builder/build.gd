@@ -75,7 +75,15 @@ const ARCHETYPE_RECIPES := {
 	# of its coop and its barn (T17.07: nothing in a farm without either)
 	# the maps added to it and the farm's side of their doors (T17.23), before the farm's map,
 	# which instances that side; the festivals of its year (T17.25: nothing in a farm without them)
-	"farm": ["farm/farmer_recipe", "farm/crop_recipes", "farm/forage_recipe", "farm/field_recipe", "farm/room_recipe", "farm/home_recipe", "farm/added_maps_recipe", "farm/farm_map_recipe", "farm/people_recipes", "farm/events_recipe", "farm/animal_recipes", "farm/hud_recipe", "farm/mode_recipe"],
+	"farm": ["farm/farmer_recipe", "farm/crop_recipes", "farm/forage_recipe", "farm/field_recipe", "farm/room_recipe", "farm/home_recipe", "farm/added_maps_recipe", "farm/farm_map_recipe", "farm/people_recipes", "farm/events_recipe", "farm/marriage_recipe", "farm/animal_recipes", "farm/hud_recipe", "farm/mode_recipe"],
+}
+## Recipes of another kind's folder that a kind runs only when the project asks for them (the
+## generator installs that folder then: staging.OPTIONAL_FOLDERS): [the recipe, the recipe it
+## runs before, the kind's script and its static function that says whether it is wanted]. A
+## farm that fights (T17.24) has the action RPG's enemies in its cave, built before its added
+## maps.
+const OPTIONAL_RECIPES := {
+	"farm": [["arpg/enemy_recipes", "farm/added_maps_recipe", "farm/farm_build.gd", "fights"]],
 }
 ## The shared recipes an archetype does without, and what it runs in the place of the first of
 ## them: a metroidvania has rooms (T14.06), not a starter map with houses and a field.
@@ -142,6 +150,11 @@ static func _recipe_list(ctx: BuildContext) -> Array:
 				out.append_array(maps)  # the archetype's own maps, where the starter map would be
 			continue
 		out.append(recipe_name)
+	for optional: Array in OPTIONAL_RECIPES.get(archetype, []):
+		var script := load("%s/recipes/%s" % [ctx.builder_dir, optional[2]]) as GDScript
+		if script != null and JsonUtil.to_bool(script.call(StringName(str(optional[3])), ctx)):
+			var before := out.find(optional[1])
+			out.insert(before if before >= 0 else out.size(), optional[0])
 	return out
 
 func _run_recipe(ctx: BuildContext, builder_dir: String, recipe_name: String) -> void:

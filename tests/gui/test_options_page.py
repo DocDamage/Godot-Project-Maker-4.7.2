@@ -651,8 +651,8 @@ def _kind_page(
 
 
 def test_what_a_farm_needs_of_its_features_and_what_it_says_of_itself() -> None:
-    """The demo of a farm does not need combat (T17.04 left the contradiction to this card):
-    nothing of a farm reads the feature, so it is hidden and its value kept."""
+    """The demo of a farm does not need combat (T17.04 left the contradiction to this card),
+    and since T17.24 the feature is shown: with it a farm has a cave to fight in."""
     farm = config.default_features("farm")
     assert farm["combat"] is False and farm["demo"] is True
     assert options.missing_deps(farm, "demo") == ["combat"], "the rule of the other kinds"
@@ -662,7 +662,7 @@ def test_what_a_farm_needs_of_its_features_and_what_it_says_of_itself() -> None:
     assert options.dependencies("farm")["demo"] == ("tilesets", "dialogue", "save")
     assert options.dependencies("farm")["navigation"] == ()
     assert options.dependencies("arpg") is options.DEPENDENCIES
-    assert options.hidden_features("farm") == ("combat",)
+    assert options.hidden_features("farm") == (), "combat is shown since T17.24: it gives a cave"
     assert options.hidden_features("racing") == options.ARCADE_HIDDEN
     assert options.hidden_features("metroidvania") == ("navigation",)
     assert options.hidden_features("turn_based") == ()
@@ -717,9 +717,16 @@ def test_a_farm_has_its_box_over_the_box_of_its_village(qtbot, monkeypatch) -> N
     assert farm.combos["days_per_season"].currentData() == 28
     assert farm.combos["day_length"].currentText() == "Normal (14 minutes)"
     assert farm.spins["starting_money"].value() == 100
+    # marriage (T17.26): how many can be courted, 2 unless changed, 0 to 6
+    courtable = farm.spins["courtable"]
+    assert courtable.value() == 2 and (courtable.minimum(), courtable.maximum()) == (0, 6)
+    assert courtable.toolTip()
     assert farm.checks["fishing"].isChecked() and farm.checks["pass_out_loss"].isChecked()
-    # combat is not shown, and the demo does not need it: the page changes nothing by itself
-    assert page.feature_boxes["combat"].isHidden()
+    # combat is shown since T17.24 (it gives the farm a cave), off; the demo does not need it:
+    # the page changes nothing by itself
+    combat = page.feature_boxes["combat"]
+    assert not combat.isHidden() and not combat.isChecked()
+    assert "cave" in page.features.descriptions["combat"].text()
     demo = page.feature_boxes["demo"]
     assert not demo.isHidden() and demo.isEnabled() and demo.isChecked()
     assert page.feature_needs["demo"].isHidden()
@@ -791,8 +798,8 @@ def test_the_options_of_a_farm_follow_its_box(qtbot, monkeypatch) -> None:
     alone = box._pixmap.toImage().width()
     assert box.add_row() and box.add_row("Beach")
     first, second = box.kind_combo(0), box.kind_combo(1)
-    assert [first.itemData(i) for i in range(first.count())] == ["forest", "beach"], "no cave yet"
-    assert [first.itemText(i) for i in range(first.count())] == ["Forest", "Beach"]
+    assert [first.itemData(i) for i in range(first.count())] == ["forest", "beach", "cave"]
+    assert [first.itemText(i) for i in range(first.count())] == ["Forest", "Beach", "Cave"]
     assert first.toolTip() and first.accessibleName()
     # the kind is the name's words until somebody chooses it
     assert (first.currentData(), second.currentData()) == ("forest", "beach")

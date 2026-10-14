@@ -100,13 +100,16 @@ LAYER_EMPTY = "Layer names cannot be empty."
 LAYER_DUPLICATE = "Layer names must be unique."
 
 
-# What a farm (M17) does not show among its features: nothing of a farm reads ``combat`` (its
-# village has no enemy and its mode no encounter), so the Options page leaves the value as the
-# config has it. And what its demo and its navigation layer need is what they need without it:
-# the village is built and its people walk whether or not anybody fights.
-FARM_HIDDEN = ("combat",)
+# What a farm (M17) does not show among its features: nothing since T17.24, which gave
+# ``combat`` a meaning on a farm (a cave with enemies, a weapon in the shop, health on the HUD).
+FARM_HIDDEN: tuple[str, ...] = ()
+# What the demo and the navigation layer of a farm do not need: the village is built and its
+# people walk whether or not anybody fights.
+FARM_NOT_NEEDED = ("combat",)
 # The sentences of the features that mean something else on a farm.
 FARM_FEATURE_TEXT = {
+    "combat": "A cave beside the farm with enemies to fight, a weapon in the shop and health on "
+    "the HUD. Being defeated is passing out: you wake at home.",
     "navigation": "Adds a navigation layer to the TileSet so the people of the village walk "
     "round walls to where their day takes them. Off by default: they appear where they are due.",
     "demo": "The village with a villager who keeps the shop, a chest, a house and a second "
@@ -118,7 +121,7 @@ def dependencies(archetype: str = "") -> dict[str, tuple[str, ...]]:
     """``DEPENDENCIES`` as they are for a kind of game: a farm's do not name ``combat``."""
     if archetype == "farm":
         return {
-            key: tuple(dep for dep in deps if dep not in FARM_HIDDEN)
+            key: tuple(dep for dep in deps if dep not in FARM_NOT_NEEDED)
             for key, deps in DEPENDENCIES.items()
         }
     return DEPENDENCIES
@@ -181,6 +184,8 @@ ARCADE_HIDDEN = ("demo", "navigation")
 def _count(number: int, noun: str) -> str:
     if noun == "life":
         return f"{number} {'life' if number == 1 else 'lives'}"
+    if noun == "enemy":
+        return f"{number} {'enemy' if number == 1 else 'enemies'}"
     return f"{number} {noun}{'' if number == 1 else 's'}"
 
 
@@ -265,7 +270,12 @@ def plan_farm(cfg: config_mod.GeneratorConfig, catalog: Any, project: Any = None
     chosen = cfg.starter_map_options()
     facts = orchestrator.farm_facts(cfg, catalog) if catalog is not None else farm_plan.facts_of()
     stored = bool(project) and farm_plan.exists(project)
-    section, notes = farm_plan.for_project(project if stored else None, chosen, cfg.seed, facts)
+    # the cave of Combat is among the added maps (T17.24)
+    try:
+        rows = orchestrator.farm_map_options(cfg, project if stored else None)
+    except ValueError as exc:
+        raise farm_plan.FarmPlanError(str(exc)) from None
+    section, notes = farm_plan.for_project(project if stored else None, rows, cfg.seed, facts)
     kept = ((world_plan.load(project) or {}).get("farm") or {}) if stored else {}
     crops = len(kept.get("crops") or []) or farm_crop_count(catalog, cfg.projection)
     if kept.get("people"):
@@ -338,6 +348,8 @@ def added_maps_text(farm_map: dict[str, Any]) -> list[str]:
             f"{entry['name']}: a {entry['kind']} of {cols} x {rows} with "
             f"{_count(len(entry.get('spots', [])), 'place')} to forage"
         )
+        if entry.get("enemies"):
+            text += f" and {_count(len(entry['enemies']), 'enemy')} to fight"
         out.append(text + (" and the sea to fish in" if entry.get("water") else ""))
     out += [f"{name}: a name only (the farm was made before added maps were built)"
             for name in farm_plan.names_only(farm_map)]  # fmt: skip

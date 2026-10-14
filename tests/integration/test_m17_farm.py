@@ -75,9 +75,18 @@ ANIMAL_STEPS = [
 # the last step (T17.18): the game is saved, changed and loaded, and the field, the date, the
 # money, the bag, the herd and the friendships are what they were
 SAVE_STEPS = ["save_and_load"]
-# the steps of the added maps (T17.23), before the last: in a farm without a forest or a beach
+# the steps of the cave (T17.24), after the forest and the beach: in a farm that does not fight
 # each passes with a note
-ADDED_STEPS = ["visit_the_forest", "fish_at_the_beach"]
+CAVE_STEPS = [
+    "buy_a_weapon",
+    "enter_the_cave",
+    "defeat_an_enemy",
+    "bring_back_what_it_left",
+    "defeated_and_wake_at_home",
+]
+# the steps of the added maps (T17.23), before the last: in a farm without a forest or a beach
+# each passes with a note, and the cave's (T17.24) after them
+ADDED_STEPS = ["visit_the_forest", "fish_at_the_beach", *CAVE_STEPS]
 # the steps of the festivals and the birthdays (T17.25), before the last: in a farm with
 # `festivals` off each passes with a note
 EVENT_STEPS = [
@@ -87,7 +96,16 @@ EVENT_STEPS = [
     "a_year_of_festivals",
     "egg_hunt",
 ]
-TAIL = ANIMAL_STEPS + ADDED_STEPS + EVENT_STEPS + SAVE_STEPS
+# the steps of marriage (T17.26), before the last: in a farm with `courtable` 0 each passes with
+# a note
+MARRIAGE_STEPS = [
+    "buy_a_bouquet",
+    "court_with_a_bouquet",
+    "propose_with_a_pendant",
+    "the_wedding",
+    "spouse_at_home",
+]
+TAIL = ANIMAL_STEPS + ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS
 TOOLS = ("hoe", "watering_can", "sickle", "farm_axe", "fishing_rod")
 START_TOOLS = ("hoe", "watering_can")  # the others are bought at the shop (T17.08, T17.10)
 FILES = [
@@ -1328,12 +1346,13 @@ def test_green_acre_with_a_forest_and_a_beach_is_walked_to_both(green_acre_added
     target, result = green_acre_added
     names = _smoke(target)
     assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
-    assert names[-len(ADDED_STEPS + EVENT_STEPS) - 1 :] == [
+    assert names[-len(ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS) - 1 :] == [
         *ADDED_STEPS,
         *EVENT_STEPS,
+        *MARRIAGE_STEPS,
         "save_and_load",
     ]
-    assert _vacuous(target) == ANIMAL_STEPS, "the steps of the added maps are played"
+    assert _vacuous(target) == ANIMAL_STEPS + CAVE_STEPS, "the steps of the added maps are played"
     assert "SCRIPT ERROR" not in _text(target, "rpggen/logs/godot_smoke.log")
     assert not [i for i in result.issues if i.code in ("VAL-027", "VAL-028", "VAL-031")]
     # the sample has no shell and no fish of the sea: four drawn things, and nothing else
@@ -1478,7 +1497,7 @@ def test_a_forest_added_to_a_farm_that_exists_builds_one_map_and_nothing_else(
     # saved and loaded with what was picked up there
     names = _smoke(target)
     assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
-    assert _vacuous(target) == [*ANIMAL_STEPS, "fish_at_the_beach"]
+    assert _vacuous(target) == [*ANIMAL_STEPS, "fish_at_the_beach", *CAVE_STEPS]
     assert "SCRIPT ERROR" not in _text(target, "rpggen/logs/godot_smoke.log")
 
     # the same options again: nothing is built and nothing changes
@@ -1569,7 +1588,9 @@ def test_green_acre_has_a_festival_a_season_and_a_birthday_for_everybody(green_a
     assert "game/data/events.json" in readme and '"birthday"' in readme
     # the steps are played, none with a note
     names = _smoke(target)
-    assert names[-len(EVENT_STEPS + SAVE_STEPS) :] == EVENT_STEPS + SAVE_STEPS
+    assert names[-len(EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS) :] == (
+        EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS
+    )
     assert not set(_vacuous(target)) & set(EVENT_STEPS)
     log = _text(target, "rpggen/logs/godot_smoke.log")
     year = [line for line in log.splitlines() if "INFO a_year_of_festivals:" in line]
@@ -1628,3 +1649,194 @@ def test_a_farm_without_festivals_and_the_same_farm_when_they_are_switched_on(
     assert "SCRIPT ERROR" not in log
     assert "INFO read_the_calendar: the farmhouse has no calendar on its wall" in log
     assert "INFO egg_hunt: the village has no marker festival_egg_1" in log
+
+
+# ---------------------------------------------------------------- marriage (T17.26)
+
+
+def test_green_acre_courts_and_marries_a_villager(green_acre) -> None:
+    """Two people of the sample can be courted (the default), the plan says who and the files
+    the game reads say so too, their dialogues have the lines of the three stages, the shop's
+    two things are items of the game, the farmhouse has a bed for two, and the steps of
+    marriage are played: the bouquet and the pendant are bought and given, the wedding is a day
+    on the square, and the next morning the spouse is at home and part of the plot is watered."""
+    target, _result = green_acre
+    farm = world_plan.load(target)["farm"]
+    people = farm["people"]
+    assert people_plan.check(people) == []
+    chosen = people_plan.courtable(people)
+    assert len(chosen) == people_plan.COURTABLE_DEFAULT
+    assert all(isinstance(p["courtable"], bool) for p in people)
+    assert people_plan.with_courtable(people, 1, 5) == people, "the choice is made once"
+    for rel in ("game/data/people.json", "generated/data/people.json"):
+        listed = jsonio.read(target / rel)
+        schema.validate("people", listed)
+        assert [p["courtable"] for p in listed["people"]] == [p["courtable"] for p in people]
+    for person in people:
+        talk = _text(target, f"game/data/dialogue/person_{person['id']}.tres")
+        for atom in ("courting", "engaged", "spouse"):
+            assert (f'condition = "{atom}:{person["id"]}"' in talk) == person["courtable"]
+    for item in ("bouquet", "pendant"):
+        tres = _text(target, f"game/data/items/{item}.tres")
+        assert f'display_name = "ITEM_{item.upper()}_NAME"' in tres
+        assert f"ITEM_{item.upper()}_NAME\t" in _text(target, "game/i18n/strings.tsv")
+    room = farm["map"]["house"]["interior"]
+    assert room["bed"] == {"cell": [1, 1], "size": [2, 2], "sleepers": 2}
+    house = _text(target, "game/maps/farm_house.tscn")
+    assert '[node name="Bed" parent="YSorted/Entities"' in house
+    assert '[node name="Bed2" parent="YSorted/Entities"' in house
+    assert "courting = true" in _text(target, "generated/scenes/combat/combat_mode.tscn")
+    # the steps are played, none with a note
+    names = _smoke(target)
+    assert names[-len(MARRIAGE_STEPS + SAVE_STEPS) :] == MARRIAGE_STEPS + SAVE_STEPS
+    assert not set(_vacuous(target)) & set(MARRIAGE_STEPS)
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    assert "INFO court_with_a_bouquet:" in log
+    home = [line for line in log.splitlines() if "INFO spouse_at_home:" in line]
+    assert len(home) == 1 and '"kind": "water"' in home[0], home
+
+
+def test_a_farm_without_courting_and_the_same_farm_when_it_is_switched_on(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    """With ``courtable`` 0 nobody can be courted: the people have no key, the shop's things
+    are not made, and the steps pass with a note. Switched on afterwards (what a farm from
+    before the card is when it is generated again): the people gain their key and nothing else
+    of them changes, no map is built again, none of the user's files is written again (their
+    people.json has no key: the game reads the planned one's), the two items are new files, and
+    the steps are played: the spouse lives in the room that was built before."""
+    target = tmp_path / "out"
+    result = orchestrator.run_in_memory(_sample_config(courtable=0), None, target, godot_exe)
+    assert result.ok, _errors(result)
+    farm = world_plan.load(target)["farm"]
+    assert all("courtable" not in p for p in farm["people"])
+    assert not (target / "game/data/items/bouquet.tres").exists()
+    assert "courting" not in _text(target, "generated/scenes/combat/combat_mode.tscn")
+    talk = _text(target, f"game/data/dialogue/person_{farm['people'][0]['id']}.tres")
+    assert "spouse:" not in talk and "courting:" not in talk
+    assert _vacuous(target) == ANIMAL_STEPS + ADDED_STEPS + MARRIAGE_STEPS
+    kept = _world_files(target)
+    # switched on
+    again = orchestrator.run_in_memory(_sample_config(), None, target, godot_exe)
+    assert again.ok, _errors(again)
+    after = world_plan.load(target)["farm"]
+    assert [{k: v for k, v in p.items() if k != "courtable"} for p in after["people"]] == farm[
+        "people"
+    ], "the people are who they were, each with the key"
+    assert len(people_plan.courtable(after["people"])) == people_plan.COURTABLE_DEFAULT
+    for key in ("crops", "map", "forage", "events"):
+        assert after[key] == farm[key], f"the {key} are what they were"
+    now = _world_files(target)
+    assert set(now) - set(kept) == {
+        "game/data/items/bouquet.tres",
+        "game/data/items/pendant.tres",
+    }, "two files more, the shop's things"
+    for rel, data in kept.items():
+        assert now[rel] == data, f"{rel} was written again"
+    planned = jsonio.read(target / "generated/data/people.json")["people"]
+    assert [p["courtable"] for p in planned] == [p["courtable"] for p in after["people"]]
+    assert all(
+        "courtable" not in p for p in jsonio.read(target / "game/data/people.json")["people"]
+    )
+    assert "courting = true" in _text(target, "generated/scenes/combat/combat_mode.tscn")
+    # the steps are played with the user's old files and in the old room
+    names = _smoke(target)
+    assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
+    assert _vacuous(target) == ANIMAL_STEPS + ADDED_STEPS
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    assert "SCRIPT ERROR" not in log
+    assert "INFO spouse_at_home:" in log
+
+
+# ---------------------------------------------------------------- the cave (T17.24)
+
+CAVE_KIT = ("amethyst", "cave_mushroom", "copper_ore", "slime")  # what the kit draws for a cave
+
+
+@pytest.fixture(scope="module")
+def green_acre_cave(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):
+    """*Green acre* with Combat on: it has a cave."""
+    target = tmp_path_factory.mktemp("m17_acre_cave") / "out"
+    cfg = _sample_config()
+    cfg.features["combat"] = True
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    return target, result
+
+
+def test_green_acre_with_combat_has_a_cave_and_fights_in_it(green_acre_cave) -> None:
+    """The whole sequence passes and the cave's steps are played: the sword is bought and held,
+    the farmer walks into the cave, defeats an enemy with `use`, walks over what it left and
+    carries it home with a thing of the cave it picked up, and is defeated once: the day ends
+    and it wakes at the bed with its health full."""
+    target, result = green_acre_cave
+    names = _smoke(target)
+    assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
+    assert _vacuous(target) == [*ANIMAL_STEPS, "visit_the_forest", "fish_at_the_beach"]
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    assert "SCRIPT ERROR" not in log
+    assert "INFO defeat_an_enemy: farm_map_1_enemy_" in log
+    # the sample has no enemy and nothing of a cave: the kit draws them, and says so
+    drawn = sorted(i.message for i in result.issues if i.code == "ASSET-031")
+    assert len(drawn) == 4 and all("cave" in m for m in drawn), drawn
+    kit = sorted(p.stem for p in (target / "generated/farm_kit").glob("*.png"))
+    assert kit == sorted(CAVE_KIT)
+    assert not [i for i in result.issues if i.code in ("ASSET-025", "VAL-031")]
+
+    farm = world_plan.load(target)["farm"]
+    schema.validate("world_plan", world_plan.load(target))
+    plan = farm["map"]
+    assert farm_plan.check(plan) == []
+    assert [(e["id"], e["kind"], e["name"]) for e in plan["added"]] == [
+        ("farm_map_1", "cave", "Cave")
+    ]
+    assert jsonio.read(target / paths.CONFIG)["features"]["combat"] is True
+    cave = plan["added"][0]
+    scene = _text(target, cave["map"])
+    assert 'metadata/farm_kind = "cave"' in scene and "is_interior = true" in scene
+    assert (
+        '[node name="Rock" type="Node2D"' in scene and '[node name="Gloom" type="Node2D"' in scene
+    )
+    assert '[node name="RockWall" type="StaticBody2D"' in scene
+    assert scene.count('entity_id = "farm_map_1_enemy_') == len(cave["enemies"]) > 0
+    assert 'path="res://generated/scenes/enemies/slime.tscn"' in scene
+    assert _spots_of(target, cave["map"]) == [tuple(c) for c in cave["spots"]]
+    # the action RPG's runtime and its enemy recipes, and nothing else of another kind
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == ["arpg", "farm"]
+    assert (target / "generated/builder/recipes/arpg/enemy_recipes.gd").is_file()
+    assert not (target / "generated/builder/smoke/smoke_steps_arpg.gd").exists()
+    assert (target / "generated/scenes/enemies/slime.tscn").is_file()
+    assert (target / "game/data/enemies/slime.tres").is_file()
+    # the sword, the mode that fights, the health bar, the cave's things and their strings
+    assert (target / "game/data/items/farm_sword.tres").is_file()
+    mode = _text(target, "generated/scenes/combat/combat_mode.tscn")
+    assert "fights = true" in mode and '[node name="HealthBar" type="ProgressBar"' in mode
+    things = [row for row in farm["forage"]["forage"] if row.get("maps") == ["cave"]]
+    assert sorted(r["asset"] for r in things) == sorted(
+        f"rpggen_farm_kit.{n}" for n in CAVE_KIT if n != "slime"
+    )
+    for row in things:
+        assert (target / f"game/data/items/{row['item']}.tres").is_file(), row["item"]
+    strings = _text(target, "game/i18n/strings.tsv")
+    assert "ITEM_FARM_SWORD_NAME\tSword" in strings and "FARM_KNOCKED_OUT\t" in strings
+
+
+def test_green_acre_without_combat_has_nothing_of_the_cave(green_acre) -> None:
+    """With Combat off (the default) nothing of T17.24 is in the project but code that does
+    nothing: no cave, no sword, no enemy, no health bar, no action RPG."""
+    target, result = green_acre
+    plan = world_plan.load(target)["farm"]["map"]
+    assert not [e for e in plan["added"] if e["kind"] == "cave"]
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == ["farm"]
+    assert not (target / "generated/builder/recipes/arpg").exists()
+    assert not (target / "game/data/items/farm_sword.tres").exists()
+    assert not (target / "generated/scenes/enemies").exists()
+    mode = _text(target, "generated/scenes/combat/combat_mode.tscn")
+    assert "fights" not in mode and "HealthBar" not in mode
+    assert "FARM_KNOCKED_OUT" not in _text(target, "game/i18n/strings.tsv")
+    assert not [i for i in result.issues if "cave" in i.message]
+    assert "INFO buy_a_weapon: the farm does not fight" in _text(
+        target, "rpggen/logs/godot_smoke.log"
+    )

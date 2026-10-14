@@ -91,6 +91,10 @@ static var user_path := ""
 
 ## False: the farm has no festivals and no birthdays (see the top of the file).
 @export var enabled: bool = false
+## False: the events of the files and the birthdays are left out, and only what `add_event`
+## adds is a day for everybody. A farm with marriage and without festivals (T17.26) has its
+## wedding this way: the mode turns `enabled` on for it and this off.
+@export var with_files: bool = true
 
 ## The events of the files, in their order, and the ids the user's file took away.
 var events: Array[Dictionary] = []
@@ -176,6 +180,8 @@ func table() -> void:
 	if _loaded:
 		return
 	_loaded = true
+	if not with_files:
+		return
 	add_file(user_path)
 	add_file(PLANNED_PATH)
 	add_birthdays(PLANNED_PEOPLE)
@@ -420,6 +426,8 @@ func _friends() -> RpgFriendship:
 ## has no `birthday` at all has the planned one.
 func birthday_of(id: String) -> Dictionary:
 	table()
+	if not with_files:
+		return {}
 	var friends := _friends()
 	var entry := friends.person(id) if friends != null else {}
 	var born := RpgUtil.to_dict(entry.get("birthday", {})) if entry.has("birthday") else RpgUtil.to_dict(planned_birthdays.get(id, {}))

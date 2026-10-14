@@ -132,6 +132,25 @@ static func events() -> Array[Dictionary]:
 static func festivals(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(option(ctx, "festivals", true), true) and not events().is_empty()
 
+## How many people can be courted when the config does not say (rpggen/core/people_plan.py,
+## COURTABLE_DEFAULT; a test holds the two to each other).
+const COURTABLE_DEFAULT := 2
+
+## The ids of the people of the plan who can be courted (T17.26: `courtable` of a person,
+## chosen by people_plan.with_courtable), in its order.
+static func courtable() -> Array[String]:
+	var out: Array[String] = []
+	for raw: Variant in JsonUtil.to_array(plan().get("people", [])):
+		var person := JsonUtil.to_dict(raw)
+		if JsonUtil.to_bool(person.get("courtable", false)):
+			out.append(JsonUtil.to_str(person.get("id", "")))
+	return out
+
+## True when the farm has marriage (T17.26): the option `starter_map.courtable` is above 0 (2
+## when the config does not say) and somebody of the plan can be courted.
+static func courting(ctx: BuildContext) -> bool:
+	return JsonUtil.to_int(option(ctx, "courtable", COURTABLE_DEFAULT), COURTABLE_DEFAULT) > 0 and not courtable().is_empty()
+
 ## One of the farm's options (a key of the config's `starter_map`), or `fallback`.
 static func option(ctx: BuildContext, key: String, fallback: Variant) -> Variant:
 	return ctx.section("starter_map").get(key, fallback)
@@ -143,6 +162,25 @@ static func starting_money(ctx: BuildContext) -> int:
 ## False when staying up to 2:00 costs no money (`starter_map.pass_out_loss`).
 static func pass_out_loss(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(option(ctx, "pass_out_loss", true), true)
+
+## The weapon of a farm that fights (T17.24): an item of its own (`game/data/items/farm_sword.tres`,
+## written once), sold at the shop, held in the hotbar and swung with `use`. Not `sword`: that
+## is the starter gear a pack's picture may give every kind, which a farm does not swing.
+const WEAPON := "farm_sword"
+const WEAPON_PRICE := 200
+## What the weapon adds to the farmer's attack (RpgFarmBlade.bonus reads the item's modifiers).
+const WEAPON_BONUS := 4
+
+## True when the farm fights (T17.24): the feature `combat` is on, or the plan has a cave among
+## its added maps (a map that exists is never taken away, nor what is in it). The Python side
+## is `added_map_plan.fights`.
+static func fights(ctx: BuildContext) -> bool:
+	if JsonUtil.to_bool(ctx.section("features").get("combat", false)):
+		return true
+	for raw: Variant in JsonUtil.to_array(JsonUtil.to_dict(plan().get("map", {})).get("added", [])):
+		if JsonUtil.to_str(JsonUtil.to_dict(raw).get("kind", "")) == "cave":
+			return true
+	return false
 
 ## The days of a season (`starter_map.days_per_season`: 7, 14 or 28; anything else is 28).
 static func days_per_season(ctx: BuildContext) -> int:
@@ -352,6 +390,8 @@ static func _icon_rects(kind: String, colour: Color) -> Array:
 			return [[7, 3, 2, 12, WOOD], [9, 3, 4, 5, METAL]]
 		"fishing_rod":
 			return [[3, 12, 3, 2, WOOD], [6, 9, 3, 3, WOOD], [9, 6, 3, 3, WOOD], [12, 3, 2, 3, WOOD], [13, 5, 1, 6, METAL], [12, 11, 3, 2, Color(0.84, 0.24, 0.2)]]
+		"farm_sword":  # T17.24: a blade up to the right, a guard and a grip
+			return [[10, 2, 3, 2, METAL], [9, 4, 3, 2, METAL], [8, 5, 2, 2, METAL], [7, 6, 2, 2, METAL], [6, 7, 2, 2, METAL], [3, 8, 5, 2, Color(0.84, 0.66, 0.2)], [5, 10, 2, 2, WOOD], [3, 12, 2, 2, WOOD]]
 		"fish":
 			return [[2, 6, 9, 5, colour], [3, 5, 7, 7, colour], [11, 7, 2, 3, colour], [13, 5, 2, 7, colour], [4, 7, 1, 1, Color(0.17, 0.13, 0.12)]]
 		"seed":

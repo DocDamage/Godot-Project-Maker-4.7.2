@@ -10,7 +10,9 @@ extends RefCounted
 ## * game/data/dialogue/person_<id>.tres, once: what a person says, and what it says from two
 ##   hearts on (`friendship:<id>>=2`); in a farm that was planned with festivals (T17.25) also,
 ##   before either, what it says on a festival (`festival`), on the day before one
-##   (`festival_tomorrow`) and on its birthday (`birthday:<id>`).
+##   (`festival_tomorrow`) and on its birthday (`birthday:<id>`); and a person who can be courted
+##   (T17.26: `courtable` of the plan), before all of them, what it says while courted
+##   (`courting:<id>`), engaged (`engaged:<id>`) and married (`spouse:<id>`).
 ##
 ## As the farm's part of the village (starter_map_recipe calls `prepare` before it paints the
 ## walls and `augment_map` before it saves the map; see MAP_AUGMENTERS there):
@@ -68,6 +70,13 @@ const FRIEND_HEARTS := 2
 ## The version of what the recipe does for a farm with festivals only (T17.25): in the hashes of
 ## such a farm and of no other.
 const EVENTS_VERSION := 1
+## The version of what the recipe does for a farm with somebody to court only (T17.26): in the
+## hash of such a farm and of no other.
+const MARRIAGE_VERSION := 1
+## What a person who can be courted says while courted, engaged and married (T17.26).
+const COURTING_LINE := "I put your flowers by the window. I think of you when I see them."
+const ENGAGED_LINE := "Only a few more days until the wedding! I can hardly wait."
+const SPOUSE_LINE := "There you are! Do not work too hard today, dear."
 ## What the people say on a festival, in turn.
 const FESTIVAL_LINES: Array[String] = [
 	"What a day! The whole village is on the square.",
@@ -206,6 +215,8 @@ func input_hash(ctx: BuildContext) -> String:
 	var hashed := {"v": RECIPE_VERSION, "people": people(), "scenes": scenes, "houses": houses(ctx), "spots": [HOME_SPOTS, SQUARE_SPOTS]}
 	if festive():  # only a farm with festivals has the key (T17.25)
 		hashed["events_v"] = EVENTS_VERSION
+	if not FarmBuild.courtable().is_empty():  # only a farm with marriage has the key (T17.26)
+		hashed["marriage_v"] = MARRIAGE_VERSION
 	return ctx.stable_hash(hashed)
 
 ## True in a farm that was planned with festivals: its people say so, and its village has the
@@ -238,7 +249,8 @@ func build(ctx: BuildContext) -> Array:
 ## first line whose condition holds is said; the other is passed over. In a farm with festivals
 ## (T17.25) three lines come before them, each said on its day and passed over on every other:
 ## on a festival, on the day before one, and on the person's birthday (a line by an atom of
-## RpgCondition: marriage, T17.26, adds its own the same way).
+## RpgCondition). A person who can be courted (T17.26) has three more before all of them: while
+## courted, engaged and married.
 func _dialogue(person: Dictionary, index: int = 0) -> Resource:
 	var id := JsonUtil.to_str(person["id"])
 	var speaker := JsonUtil.to_str(person.get("name", id.capitalize()))
@@ -257,6 +269,12 @@ func _dialogue(person: Dictionary, index: int = 0) -> Resource:
 		if not JsonUtil.to_dict(person.get("birthday", {})).is_empty():
 			special.append(_line("birthday", speaker, "It is my birthday today! You remembered?", "birthday:%s" % id))
 		lines = special + lines
+	if JsonUtil.to_bool(person.get("courtable", false)):
+		lines = [
+			_line("spouse", speaker, SPOUSE_LINE, "spouse:%s" % id),
+			_line("engaged", speaker, ENGAGED_LINE, "engaged:%s" % id),
+			_line("courting", speaker, COURTING_LINE, "courting:%s" % id),
+		] + lines
 	var res_lines: Array = res.get("lines")
 	res_lines.assign(lines)
 	return res

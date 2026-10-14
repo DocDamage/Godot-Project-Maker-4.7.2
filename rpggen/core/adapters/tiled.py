@@ -6,6 +6,7 @@ import importlib
 import io
 import json
 import posixpath
+import re
 import struct
 import xml.etree.ElementTree as ET  # noqa: S405 - local pack files; size-limited below
 import zlib
@@ -53,6 +54,17 @@ class _Tileset:
     wangsets: list[_Wang]
     base_dir: str  # pack-relative folder of the defining file
     source_file: str
+    # A collection of images (T17.28): tile id -> the picture of that tile, as the file names
+    # it. Read only for an isometric map; a sheet's tile set leaves it empty.
+    images: dict[int, str] = field(default_factory=dict)
+
+
+ISOMETRIC = "isometric"
+# Why a map of another shape is not imported (TILE-009).
+REFUSED_ORIENTATIONS = {
+    "staggered": "staggered maps are not imported",
+    "hexagonal": "hexagonal maps are not imported",
+}
 
 
 def _num(value: Any) -> float | int:
@@ -75,10 +87,13 @@ def _parse_points(text: str) -> list[list[float]]:
     return pts
 
 
-def _xml_tileset(el: ET.Element, base_dir: str, source_file: str) -> _Tileset | None:
+def _xml_tileset(
+    el: ET.Element, base_dir: str, source_file: str, collections: bool = False
+) -> _Tileset | None:
+    """A tile set of a sheet; with ``collections``, a collection of images too (T17.28)."""
     image = el.find("image")
     if image is None or not image.get("source"):
-        return None
+        return _xml_collection(el, base_dir, source_file) if collections else None
     tw, th = int(el.get("tilewidth", 0)), int(el.get("tileheight", 0))
     spacing, margin = int(el.get("spacing", 0)), int(el.get("margin", 0))
     columns = int(el.get("columns", 0))
@@ -134,9 +149,43 @@ def _prop_value(ptype: str | None, value: Any) -> Any:
     return value
 
 
-def _json_tileset(d: dict[str, Any], base_dir: str, source_file: str) -> _Tileset | None:
-    if not d.get("image"):
+def _xml_collection(el: ET.Element, base_dir: str, source_file: str) -> _Tileset | None:
+    """A tile set that is a collection of images (one picture a tile, as the isometric packs
+    ship theirs): None when no tile of it names a picture."""
+    images: dict[int, str] = {}
+    for t in el.findall("tile"):
+        image = t.find("image")
+        if image is not None and image.get("source"):
+            images[int(t.get("id", -1))] = image.get("source", "")
+    if not images:
         return None
+    return _Tileset(
+        el.get("name", "tileset"), int(el.get("tilewidth", 0)), int(el.get("tileheight", 0)),
+        0, 0, 0, "", {}, [], base_dir, source_file, images,
+    )  # fmt: skip
+
+
+def _json_collection(d: dict[str, Any], base_dir: str, source_file: str) -> _Tileset | None:
+    """``_xml_collection`` of a JSON tile set."""
+    images = {
+        int(t.get("id", -1)): str(t["image"])
+        for t in d.get("tiles", [])
+        if isinstance(t, dict) and t.get("image")
+    }
+    if not images:
+        return None
+    return _Tileset(
+        str(d.get("name", "tileset")), int(d.get("tilewidth", 0)), int(d.get("tileheight", 0)),
+        0, 0, 0, "", {}, [], base_dir, source_file, images,
+    )  # fmt: skip
+
+
+def _json_tileset(
+    d: dict[str, Any], base_dir: str, source_file: str, collections: bool = False
+) -> _Tileset | None:
+    """A tile set of a sheet; with ``collections``, a collection of images too (T17.28)."""
+    if not d.get("image"):
+        return _json_collection(d, base_dir, source_file) if collections else None
     tw, th = int(d.get("tilewidth", 0)), int(d.get("tileheight", 0))
     spacing, margin = int(d.get("spacing", 0)), int(d.get("margin", 0))
     columns = int(d.get("columns", 0))
@@ -273,6 +322,9 @@ class _Layer:
     cells: dict[tuple[int, int], int] = field(default_factory=dict)
     objects: list[dict[str, Any]] = field(default_factory=list)
     error: str = ""
+    # how far Tiled draws the layer from its place, in px (its own and its groups' offsets);
+    # only an isometric map keeps it (T17.28: a second floor is drawn higher)
+    offset: tuple[float, float] = (0.0, 0.0)
 
 
 @dataclass
@@ -391,12 +443,28 @@ def _object(
     }
 
 
-def _xml_layers(parent: ET.Element, out: list[_Layer]) -> None:
+def _xml_offset(el: ET.Element, at: tuple[float, float]) -> tuple[float, float]:
+    try:
+        return at[0] + float(el.get("offsetx", 0)), at[1] + float(el.get("offsety", 0))
+    except ValueError:
+        return at
+
+
+def _json_offset(item: dict[str, Any], at: tuple[float, float]) -> tuple[float, float]:
+    try:
+        return at[0] + float(item.get("offsetx", 0)), at[1] + float(item.get("offsety", 0))
+    except (TypeError, ValueError):
+        return at
+
+
+def _xml_layers(
+    parent: ET.Element, out: list[_Layer], at: tuple[float, float] = (0.0, 0.0)
+) -> None:
     for el in parent:
         if el.tag == "group":
-            _xml_layers(el, out)
+            _xml_layers(el, out, _xml_offset(el, at))
         elif el.tag == "layer":
-            layer = _Layer(el.get("name", "layer"), "tiles")
+            layer = _Layer(el.get("name", "layer"), "tiles", offset=_xml_offset(el, at))
             data = el.find("data")
             try:
                 if data is not None:
@@ -441,15 +509,15 @@ def _xml_layers(parent: ET.Element, out: list[_Layer]) -> None:
             out.append(layer)
 
 
-def _json_layers(items: Any, out: list[_Layer]) -> None:
+def _json_layers(items: Any, out: list[_Layer], at: tuple[float, float] = (0.0, 0.0)) -> None:
     for item in items or []:
         if not isinstance(item, dict):
             continue
         kind = item.get("type")
         if kind == "group":
-            _json_layers(item.get("layers"), out)
+            _json_layers(item.get("layers"), out, _json_offset(item, at))
         elif kind == "tilelayer":
-            layer = _Layer(str(item.get("name", "layer")), "tiles")
+            layer = _Layer(str(item.get("name", "layer")), "tiles", offset=_json_offset(item, at))
             enc, comp = item.get("encoding"), item.get("compression")
             try:
                 if item.get("chunks"):
@@ -488,7 +556,7 @@ def _json_layers(items: Any, out: list[_Layer]) -> None:
 
 
 def _external_tileset(
-    map_dir: str, source: str, root: Path, by_lower: dict[str, str]
+    map_dir: str, source: str, root: Path, by_lower: dict[str, str], collections: bool = False
 ) -> _Tileset | None:
     joined = posixpath.normpath(posixpath.join(map_dir, source.replace("\\", "/")))
     path = by_lower.get(joined.casefold())
@@ -499,8 +567,8 @@ def _external_tileset(
         return None
     base = posixpath.dirname(path)
     if path.casefold().endswith(".tsx"):
-        return _xml_tileset(ET.fromstring(text), base, path)  # noqa: S314
-    return _json_tileset(json.loads(text), base, path)
+        return _xml_tileset(ET.fromstring(text), base, path, collections)  # noqa: S314
+    return _json_tileset(json.loads(text), base, path, collections)
 
 
 def _read_tiled_map(
@@ -514,9 +582,15 @@ def _read_tiled_map(
             int(el.get("width", 0)), int(el.get("height", 0)),
             el.get("infinite", "0") == "1", el.get("orientation", "orthogonal"),
         )  # fmt: skip
+        # the tiles of an isometric map are pictures of their own (T17.28)
+        iso = tm.orientation == ISOMETRIC
         for t in el.findall("tileset"):
             src = t.get("source")
-            ts = _external_tileset(base, src, root, by_lower) if src else _xml_tileset(t, base, rel)
+            ts = (
+                _external_tileset(base, src, root, by_lower, iso)
+                if src
+                else _xml_tileset(t, base, rel, iso)
+            )
             tm.refs.append(_Ref(int(t.get("firstgid", 1)), ts))
         _xml_layers(el, tm.layers)
     else:
@@ -526,12 +600,15 @@ def _read_tiled_map(
             int(d.get("width", 0)), int(d.get("height", 0)),
             bool(d.get("infinite", False)), str(d.get("orientation", "orthogonal")),
         )  # fmt: skip
+        iso = tm.orientation == ISOMETRIC
         for t in d.get("tilesets", []):
             if not isinstance(t, dict):
                 continue
             src = t.get("source")
             ts = (
-                _external_tileset(base, src, root, by_lower) if src else _json_tileset(t, base, rel)
+                _external_tileset(base, src, root, by_lower, iso)
+                if src
+                else _json_tileset(t, base, rel, iso)
             )
             tm.refs.append(_Ref(int(t.get("firstgid", 1)), ts))
         _json_layers(d.get("layers"), tm.layers)
@@ -544,10 +621,13 @@ def _raw_map(
 ) -> dict[str, Any] | None:
     """The raw map (adapters.maps) of one Tiled map; None when nothing in it can be imported."""
     stem = posixpath.splitext(posixpath.basename(rel))[0]
-    if tm.orientation != "orthogonal" or tm.tile_w <= 0 or tm.tile_h <= 0:
+    iso = tm.orientation == ISOMETRIC
+    if (tm.orientation != "orthogonal" and not iso) or tm.tile_w <= 0 or tm.tile_h <= 0:
+        reason = REFUSED_ORIENTATIONS.get(
+            tm.orientation, "only orthogonal and isometric maps are imported"
+        )
         issues.add(
-            "TILE-009", file=rel, layer="(all layers)", map=rel,
-            reason="only orthogonal maps are imported",
+            "TILE-009", file=rel, layer="(all layers)", map=rel, reason=reason,
         )  # fmt: skip
         return None
     if tm.infinite:  # flattened to the bounds of the tiles
@@ -578,7 +658,21 @@ def _raw_map(
             images[id(ref)] = by_lower.get(found.casefold()) if found else None
         return images[id(ref)]
 
+    def picture_of(ts: _Tileset, tid: int) -> str | None:
+        """The pack path of the picture of tile ``tid`` of a collection of images."""
+        source = ts.images.get(tid)
+        if not source:
+            return None
+        joined = posixpath.normpath(posixpath.join(ts.base_dir, source.replace("\\", "/")))
+        if joined.startswith("..") or joined.startswith("/"):
+            return None
+        return by_lower.get(joined.casefold())
+
+    # Objects of an isometric map are placed in a space whose two axes are the map's rows and
+    # columns, each counted in the height of a diamond (Tiled's isometric object coordinates).
+    step_x, step_y = (tm.tile_h, tm.tile_h) if iso else (tm.tile_w, tm.tile_h)
     layers: list[dict[str, Any]] = []
+    pictures: set[str] = set()  # of an isometric map's collections of images
     for layer in tm.layers:
         if layer.kind == "tiles":
             if layer.error:
@@ -589,7 +683,17 @@ def _raw_map(
             for (x, y), raw in sorted(layer.cells.items(), key=lambda kv: (kv[0][1], kv[0][0])):
                 gid = raw & GID_MASK
                 ref = next((r for r in reversed(tm.refs) if r.firstgid <= gid), None)
-                image = image_of(ref) if ref else None
+                tid = gid - ref.firstgid if ref else 0
+                collection = (
+                    iso and ref is not None and ref.tileset is not None and ref.tileset.images
+                )
+                if collection and ref is not None and ref.tileset is not None:
+                    # one picture a tile: the picture is the tile (its column and row are 0)
+                    image = picture_of(ref.tileset, tid)
+                    if image is not None:
+                        pictures.add(image)
+                else:
+                    image = image_of(ref) if ref else None
                 if ref is None or ref.tileset is None or image is None:
                     lost += 1
                     continue
@@ -598,7 +702,9 @@ def _raw_map(
                     | (maps_mod.FLIP_V if raw & GID_FLIP_V else 0)
                     | (maps_mod.FLIP_D if raw & GID_FLIP_D else 0)
                 )
-                tid = gid - ref.firstgid
+                if collection:
+                    tiles.append([x - ox, y - oy, image, 0, 0, alt])
+                    continue
                 columns = ref.tileset.columns
                 tiles.append([x - ox, y - oy, image, tid % columns, tid // columns, alt])
             if not tiles and lost:
@@ -607,7 +713,10 @@ def _raw_map(
                     reason="its tile sheet was not found in the pack",
                 )  # fmt: skip
             if tiles:
-                layers.append(maps_mod.tile_layer(layer.name, tiles))
+                found = maps_mod.tile_layer(layer.name, tiles)
+                if iso and layer.offset != (0.0, 0.0):
+                    found["offset"] = [_num(layer.offset[0]), _num(layer.offset[1])]
+                layers.append(found)
         else:
             objects = []
             for o in layer.objects:
@@ -615,14 +724,14 @@ def _raw_map(
                 if kind is None:
                     continue
                 marker = dict(o, type=kind)
-                marker["x"] = _num(o["x"] - ox * tm.tile_w)
-                marker["y"] = _num(o["y"] - oy * tm.tile_h)
+                marker["x"] = _num(o["x"] - ox * step_x)
+                marker["y"] = _num(o["y"] - oy * step_y)
                 objects.append(marker)
             if objects:
                 layers.append(maps_mod.objects_layer(layer.name, objects))
     if not layers:
         return None
-    return {
+    out: dict[str, Any] = {
         "name": stem,
         "source": rel,
         "format": "tiled",
@@ -630,6 +739,40 @@ def _raw_map(
         "size": [width, height],
         "layers": layers,
     }
+    if iso:  # a map of squares says nothing of its view, as before (T17.28)
+        out["projection"] = ISOMETRIC
+        out["pictures"] = sorted(pictures)
+    return out
+
+
+_ORIENTATION_XML = re.compile(r"<map\b[^>]*\borientation\s*=\s*\"isometric\"", re.IGNORECASE)
+_ORIENTATION_JSON = re.compile(r"\"orientation\"\s*:\s*\"isometric\"")
+MAP_HEAD_BYTES = 64 * 1024
+
+
+def _says_isometric(root: Path, rel: str, ext: str) -> bool:
+    """True for a Tiled map whose head says it is isometric."""
+    if ext not in (".tmx", ".tmj"):
+        return False
+    try:
+        with open(root / rel, "rb") as fh:
+            head = fh.read(MAP_HEAD_BYTES).decode("utf-8", errors="replace")
+    except OSError:
+        return False
+    found = _ORIENTATION_XML if ext == ".tmx" else _ORIENTATION_JSON
+    return found.search(head) is not None
+
+
+def map_pictures(results: list[AdapterResult]) -> set[str]:
+    """The pack paths of the pictures that the isometric Tiled maps among ``results`` paint
+    with (T17.28): pictures, wherever they lie, that the isometric reader must measure."""
+    found: set[str] = set()
+    for res in results:
+        for raw in res.maps:
+            if raw.get("projection") != ISOMETRIC:
+                continue
+            found.update(str(p) for p in raw.get("pictures", []))
+    return found
 
 
 class TiledAdapter:
@@ -640,7 +783,10 @@ class TiledAdapter:
         tilesets, standalone = _collect(inv, root, IssueList())
         if standalone:
             return 1.0
-        return 0.6 if tilesets else 0.0
+        if tilesets:
+            return 0.6
+        # an isometric map whose tile set is a collection of images in the map itself (T17.28)
+        return 0.6 if any(_says_isometric(root, f.path, f.ext) for f in inv.files) else 0.0
 
     def extract(self, inv: Inventory, root: Path, ctx: AdapterContext) -> AdapterResult:
         result = AdapterResult(self.name)

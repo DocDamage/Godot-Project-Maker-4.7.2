@@ -1696,6 +1696,131 @@ def _previous_solid(previous: Catalog | None) -> dict[tuple[str, str, int], bool
     return out
 
 
+ISO_MAP_EMPTY = (-1, 0)  # an isometric map's cell: picture index, transform bits
+
+
+def map_projection(imported_map: dict[str, Any]) -> str:
+    """How an imported map is drawn: ``isometric`` for a Tiled map of diamonds (T17.28), else
+    ``top_down`` (a map of squares says nothing of its view)."""
+    found = imported_map.get("projection")
+    return PROJECTION_ISOMETRIC if found == PROJECTION_ISOMETRIC else "top_down"
+
+
+def map_fits(imported_map: dict[str, Any], projection: str) -> bool:
+    """Whether an imported map can be a map of a project seen in ``projection`` (T17.28): an
+    isometric map only of an isometric project, a map of squares only of one seen from above."""
+    wanted = PROJECTION_ISOMETRIC if projection == PROJECTION_ISOMETRIC else "top_down"
+    return map_projection(imported_map) == wanted
+
+
+def _iso_picture(
+    catalog: Catalog, pack_id: str, image: str, by_path: dict[str, Asset]
+) -> Asset | None:
+    """The isometric picture of the catalog a Tiled tile shows (T17.28): the asset of its own
+    file when that was read as isometric, else one of the same bytes that was (a sample that
+    ships copies of the pack's pictures), the first by id; None when neither."""
+    own = by_path.get(f"assets/packs/{pack_id}/{image}")
+    if own is not None and effective(own).get("projection") == PROJECTION_ISOMETRIC:
+        return own
+    if own is None:
+        return None
+    twins = [
+        a
+        for a in catalog.assets
+        if a.sha256 == own.sha256
+        and a.kind == "image"
+        and "#" not in a.id
+        and effective(a).get("projection") == PROJECTION_ISOMETRIC
+    ]
+    return min(twins, key=lambda a: _sort_key(a.id)) if twins else None
+
+
+def _blocks(asset: Asset, image: str) -> bool:
+    """Whether a picture an isometric map paints blocks its diamond: its role is WALL, or it is
+    unused (a picture of a pack's samples, T17.28) and its name and shape say WALL."""
+    from rpggen.core import classifier
+
+    facets = effective(asset)
+    role = facets.get("role")
+    if role == "WALL":
+        return True
+    if role != "NONE":
+        return False
+    plain = {k: v for k, v in asset.detected.items() if k not in ("role", "roles_alt", "tags")}
+    return classifier.classify(plain, image, None)[0] == "WALL"
+
+
+def _iso_map(
+    catalog: Catalog,
+    pack_id: str,
+    raw: dict[str, Any],
+    map_id: str,
+    source: str,
+    issues: IssueList,
+) -> dict[str, Any] | None:
+    """The catalog map of an isometric Tiled map (T17.28). Its tile layers are ``iso_tiles``:
+    ``pictures`` lists the asset ids of the isometric pictures it paints, and ``cells`` is
+    run-length encoded row by row as ``[count, picture index, transform]`` (index -1 for an
+    empty cell); ``offset`` is how far Tiled draws the layer from its place, when it does. The
+    map says ``projection: isometric`` and lists the pictures that block (``walls``). A layer
+    none of whose tiles is an isometric picture is skipped with TILE-009."""
+    from rpggen.core.adapters import maps as maps_mod
+
+    width, height = int(raw["size"][0]), int(raw["size"][1])
+    by_path = {a.path: a for a in catalog.assets if "#" not in a.id}
+    chosen: dict[str, Asset | None] = {}
+    layers: list[dict[str, Any]] = []
+    walls: set[str] = set()
+    for layer in raw["layers"]:
+        if layer["kind"] != "tiles":
+            layers.append({"name": layer["name"], "kind": "objects", "objects": layer["objects"]})
+            continue
+        cells: dict[tuple[int, int], tuple[str, int]] = {}
+        for x, y, image, _col, _row, alt in layer["tiles"]:
+            if image not in chosen:
+                chosen[image] = _iso_picture(catalog, pack_id, image, by_path)
+            asset = chosen[image]
+            if asset is not None and 0 <= x < width and 0 <= y < height:
+                cells[(x, y)] = (asset.id, int(alt))
+                if _blocks(asset, image):
+                    walls.add(asset.id)
+        if not cells:
+            issues.add(
+                "TILE-009", file=source, layer=layer["name"], map=map_id,
+                reason="its tiles are not isometric pictures of the packs",
+            )  # fmt: skip
+            continue
+        pictures = sorted({asset_id for asset_id, _alt in cells.values()}, key=_sort_key)
+        index = {asset_id: i for i, asset_id in enumerate(pictures)}
+        grid = [
+            (index[cells[(x, y)][0]], cells[(x, y)][1]) if (x, y) in cells else ISO_MAP_EMPTY
+            for y in range(height)
+            for x in range(width)
+        ]
+        found: dict[str, Any] = {
+            "name": layer["name"],
+            "kind": "iso_tiles",
+            "pictures": pictures,
+            "cells": maps_mod.rle(grid),
+        }
+        if layer.get("offset"):
+            found["offset"] = list(layer["offset"])
+        layers.append(found)
+    if not any(layer["kind"] == "iso_tiles" for layer in layers):
+        return None
+    return {
+        "id": map_id,
+        "pack_id": pack_id,
+        "source": source,
+        "format": raw["format"],
+        "tile_size": list(raw["tile_size"]),
+        "size": [width, height],
+        "layers": layers,
+        "projection": PROJECTION_ISOMETRIC,
+        "walls": sorted(walls, key=_sort_key),
+    }
+
+
 def resolve_maps(
     catalog: Catalog,
     maps_raw: list[tuple[str, dict[str, Any]]],
@@ -1734,6 +1859,11 @@ def resolve_maps(
         seen.add(map_id)
         width, height = int(raw["size"][0]), int(raw["size"][1])
         source = f"assets/packs/{pack_id}/{raw['source']}"
+        if raw.get("projection") == PROJECTION_ISOMETRIC:
+            found = _iso_map(catalog, pack_id, raw, map_id, source, issues)
+            if found is not None:
+                out.append(found)
+            continue
         layers: list[dict[str, Any]] = []
         for layer in raw["layers"]:
             kind = layer["kind"]

@@ -28,6 +28,7 @@ FIELD = ("farm_size", "plot", "animals", "difficulty", "added_maps")  # T17.06
 FISHING = ("fishing",)  # T17.10
 CALENDAR = ("days_per_season", "day_length")  # T17.16
 FESTIVALS = ("festivals",)  # T17.25
+MARRIAGE = ("courtable",)  # T17.26
 FARM_RECIPES = paths.templates_root() / "builder" / "recipes" / "farm"
 FARM_RUNTIME = paths.templates_root() / "addons" / "rpg_runtime" / "archetypes" / "farm"
 
@@ -51,13 +52,14 @@ def test_the_config_of_a_farm_is_valid_and_its_map_is_the_top_down_one() -> None
     assert {
         k: v
         for k, v in defaults.items()
-        if k not in (*MONEY, *FIELD, *FISHING, *CALENDAR, *FESTIVALS)
+        if k not in (*MONEY, *FIELD, *FISHING, *CALENDAR, *FESTIVALS, *MARRIAGE)
     } == config.starter_map_defaults("turn_based")
     assert {k: defaults[k] for k in MONEY} == {"starting_money": 100, "pass_out_loss": True}
     assert {k: defaults[k] for k in FIELD} == farm_plan.defaults()
     assert {k: defaults[k] for k in FISHING} == {"fishing": True}
     assert {k: defaults[k] for k in CALENDAR} == {"days_per_season": 28, "day_length": "normal"}
     assert {k: defaults[k] for k in FESTIVALS} == {"festivals": True}
+    assert {k: defaults[k] for k in MARRIAGE} == {"courtable": 2}
     again = config.GeneratorConfig.from_json(data)
     assert again.to_json() == data
     for kind in ("orchard",):
@@ -373,6 +375,18 @@ def test_the_shop_is_closed_on_the_day_the_shopkeeper_has_off() -> None:
     shop = (FARM_RUNTIME / "farm_shop.gd").read_text(encoding="utf-8")
     assert f"@export var closed_weekday: int = {day}\n" in shop
     assert "const OPENS := 9\n" in recipe and "const CLOSES := 17\n" in recipe
+
+
+def test_how_many_can_be_courted_when_the_config_does_not_say() -> None:
+    """T17.26: one number, ``people_plan.COURTABLE_DEFAULT``: the config's default and the
+    builder's fallback are held to it, and a farm's defaults have it."""
+    from rpggen.core import people_plan
+
+    count = people_plan.COURTABLE_DEFAULT
+    build = (FARM_RECIPES / "farm_build.gd").read_text(encoding="utf-8")
+    assert f"const COURTABLE_DEFAULT := {count}\n" in build
+    assert config.starter_map_defaults("farm")["courtable"] == count
+    assert "courtable" not in config.starter_map_defaults("turn_based")
 
 
 def test_the_orchestrator_plans_the_fish_and_the_forage_after_the_map(tmp_path: Path) -> None:

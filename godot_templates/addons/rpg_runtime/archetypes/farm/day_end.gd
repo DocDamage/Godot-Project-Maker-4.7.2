@@ -13,6 +13,9 @@ extends Node
 ## * **Staying up to 2:00** (the clock ends the day itself): the farmer wakes at the bed
 ##   (RpgBed.home) with PASS_OUT_ENERGY of the energy and, with `pass_out_loss`, PASS_OUT_MONEY
 ##   of the money gone. The game is saved into the autosave slot and the chosen one.
+## * **Being defeated** (T17.24, `pass_out()`, which RpgFarmFight calls) ends the day as staying
+##   up to 2:00 does, whatever the hour: the farmer wakes at the bed, with what that costs; the
+##   toast says it was knocked out.
 ## * A day that something else ends (`end_day()` called by a test, by a cutscene) is neither: the
 ##   farmer wakes rested where it stands and nothing is saved. The bin is sold all the same.
 ## * **The summary** (RpgDaySummary) is shown once when the day begins, over the paused game,
@@ -48,6 +51,9 @@ var saved := false
 var farmer: Node2D = null
 
 var _sleeping := false
+## True while a defeat ends the day (`pass_out`), and for the morning after it (`knocked_out`).
+var _fainting := false
+var knocked_out := false
 var _how := ENDED
 var _summary: RpgDaySummary = null
 var _layer: CanvasLayer = null
@@ -106,6 +112,17 @@ func sleep(bed: RpgBed = null) -> bool:
 	_sleeping = false
 	return true
 
+## Ends the day as staying up to 2:00 does, at any hour (T17.24: the farmer was defeated). False
+## when it cannot (no calendar, a night that is still running, the summary still open).
+func pass_out() -> bool:
+	var calendar := RpgCalendar.current()
+	if calendar == null or _sleeping or _fainting or is_summary_open():
+		return false
+	_fainting = true
+	calendar.end_day()
+	_fainting = false
+	return true
+
 func is_summary_open() -> bool:
 	return _summary != null and is_instance_valid(_summary)
 
@@ -117,9 +134,10 @@ func summary() -> RpgDaySummary:
 ## the clock ended it (2:00) or somebody else did.
 func _on_night(_day: int) -> void:
 	var calendar := RpgCalendar.current()
+	knocked_out = _fainting
 	if _sleeping:
 		_how = SLEPT
-	elif calendar != null and calendar.minute >= RpgCalendar.DAY_END:
+	elif _fainting or (calendar != null and calendar.minute >= RpgCalendar.DAY_END):
 		_how = PASSED_OUT
 	else:
 		_how = ENDED
@@ -155,7 +173,10 @@ func _finish_morning(how: String) -> void:
 	if how != ENDED:
 		await _wake_at_bed()
 		save_night()
-	if how == PASSED_OUT:
+	if how == PASSED_OUT and knocked_out:
+		var short := RpgRealtimeText.t("UI_GOLD_SHORT", [], RpgStrings.KEYS)
+		RpgUtil.notify(RpgFarmCaveStrings.t("FARM_KNOCKED_OUT_LOST", [money_lost, short]) if money_lost > 0 else RpgFarmCaveStrings.t("FARM_KNOCKED_OUT"))
+	elif how == PASSED_OUT:
 		var short := RpgRealtimeText.t("UI_GOLD_SHORT", [], RpgStrings.KEYS)
 		RpgUtil.notify(RpgFarmStrings.t("FARM_PASSED_OUT_LOST", [money_lost, short]) if money_lost > 0 else RpgFarmStrings.t("FARM_PASSED_OUT"))
 	if RpgDaySummary.worth_showing(last_sale):

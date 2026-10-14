@@ -34,6 +34,7 @@ from rpggen.core import (
     farm_plan,
     map_preview,
     options,
+    people_plan,
     room_plan,
     stage_plan,
     track_plan,
@@ -1372,6 +1373,13 @@ class FarmBox(ArcadeBox):
             None,
         ),
         (
+            "spin",
+            "courtable",
+            "People to court",
+            "How many people of the village can be courted and married; 0: nobody",
+            people_plan.COURTABLE_RANGE,
+        ),
+        (
             "check",
             "pass_out_loss",
             "Passing out costs money",
@@ -1423,8 +1431,9 @@ class FarmBox(ArcadeBox):
     # ------------------------------------------------------------------ added maps (T17.23)
 
     def kind_choices(self) -> tuple[tuple[str, str], ...]:
-        """The kinds a row may be, as a combo lists them: the ones that are built."""
-        names = {"forest": self.tr("Forest"), "beach": self.tr("Beach")}
+        """The kinds a row may be, as a combo lists them: the ones that are built. A cave
+        (T17.24) needs the feature Combat, which adds one by itself; a row of it names it."""
+        names = {"forest": self.tr("Forest"), "beach": self.tr("Beach"), "cave": self.tr("Cave")}
         return tuple((kind, names.get(kind, kind.capitalize())) for kind in added_map_plan.BUILT)
 
     def kind_combo(self, row: int) -> QComboBox | None:

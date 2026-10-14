@@ -163,11 +163,12 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.21 | Real packs: cars by their pictures, the buildings' diamond, wall pieces, characters in eight facings | L | T17.12 | open |
 | T17.22 | Real packs in the builder: walls along an edge, a house of pieces, round road corners | L | T17.21 | open |
 | T17.23 | Added maps are built | L | T17.06 | done for a forest and a beach; they are maps of the farm's own recipe and not areas of T13.20, the farm's door to one is a mark beside its edge in a scene that is written on every build, a farm from before the card keeps names, and no person goes there (the notes) |
-| T17.24 | The cave: combat on a farm | L | T17.23 | open |
+| T17.24 | The cave: combat on a farm | L | T17.23 | done: *Combat* on adds a cave and a cave row needs *Combat*; the enemies are the action RPG's (its folder is installed only in a farm that fights), the farmer's health, hurtbox and blade are made at run time, and the rock is drawn flat; nobody fought by hand (the notes) |
 | T17.25 | Festivals and birthdays | M | T17.09 | done; the eggs and the table are drawn shapes of the game and the table can be walked through, a farm from before the card has its calendar in the pause menu only, its eggs round the square and no festival lines in its dialogues, and nobody has played a festival by hand (the notes) |
-| T17.26 | Marriage | L | T17.25 | open |
+| T17.26 | Marriage | L | T17.25 | done; the smoke run is given the hearts it courts with, the spouse is not seen at night and never walks onto the farm, a farmhouse from before the card keeps its one bed and its people's dialogues have no lines for courting, and nobody has courted anybody by hand (the notes) |
 | T17.27 | The editor dock on diamonds | M | T17.14 | done locally on Windows: run by tests, one of them in an editor without a window, and looked at in a picture of the game; nobody dropped anything with a mouse, and drop-to-floor has no meaning on diamonds. Three old faults of the dock's placement, on any map, were found and left (the notes) |
-| T17.28 | Imported maps in the isometric view | L | T17.14 | open |
+| T17.28 | Imported maps in the isometric view | L | T17.14 | done locally on Windows: the Tiled sample of *Isometric Miniature Farm* is the starter map of a generated isometric turn-based game that passes its smoke sequence, looked at against Tiled's drawing of the map (the pack's `Sample.png` is a picture of another scene); a picture of a pack's samples joins the tile set for its map alone and stays unused, walls block by role or (unused) by name, a second floor is only drawn higher and flips are dropped; TILE-013 for a map of the other view (the notes) |
+| T17.29 | Real farming packs: one tile set in several forms, crops, farm animals and layered characters | L | T17.21 | open |
 
 ---
 
@@ -1104,6 +1105,77 @@ and the LDtk reader
 **Done when**
 * The sample map of *Isometric Miniature Farm* is a map of a generated project on the owner's
   machine, and a synthetic isometric Tiled map holds it in the tests.
+
+## T17.29 — Real farming packs: one tile set in several forms, crops, farm animals and layered characters
+
+**Depends on:** T17.21
+**Files:** `rpggen/core/archive.py`, `rpggen/core/inventory.py`, `rpggen/core/classifier.py`,
+`rpggen/core/adapters/` (a farm adapter or the generic ones), `rpggen/core/analyzer/`,
+`rpggen/core/licenses.py` (or wherever licence files are found), `rpggen/core/catalog.py`,
+`rpggen/core/mapping.py`, `rpggen/core/crop_plan.py` and `animal_plan.py` (only what they read),
+the catalog and profile schemas, the wizard's pack and mapping pages, `tests/unit/`,
+`test_packs/synthetic/`
+
+The farm was built and tested on a drawn sample and on Kenney's isometric farm. On
+2026-10-13 the analyzer was run on the first three real top-down farming packs on the owner's
+drives (read where they lie; none is in the repository): Kenney's *Tiny Farm* (CC0, 136
+pictures), EmanuelleDev's *Farm RPG - Tiny Asset Pack* (5,803 pictures, credit mandatory) and
+LimeZu's *Modern Farm* (8,090 pictures, credit appreciated). None of them would give a farm
+with its own crops, and nothing was confirmed without review but 15 RPG Maker autotiles.
+
+**What they showed**
+* **One tile set in several forms.** *Tiny Farm* ships the same 132 tiles as a spaced sheet, a
+  packed sheet and 132 single files: the packed sheet is one 192 x 176 decoration and the
+  single files are ground a second time. *Modern Farm* ships one pack at 16, 32 and 48 px in
+  folders named so; the three are taken together, and the main tile set is 12 px with 1,728
+  sources, a size the pack does not have. *Farm RPG* (16 px) gets tile sets of 8, 24, 32 and
+  64 px from pictures that are not tiles.
+* **Crops.** *Tiny Farm*'s tiles are numbered, with no name to go by. *Farm RPG*: 2 of the
+  crop folders' files are read as growth strips; the other 18 "crops" are food icons, a
+  butterfly called *Cabbage White*, a sea cucumber and a horse eating a carrot; 31 files of
+  the season folders (`Crops/Spring`, ...) are decorations. *Modern Farm*: no crop at all;
+  `Crops_Growth_*` folders are ground or decoration.
+* **Farm animals** are decorations (*Farm RPG*'s 23 chickens, 64 x 112 sheets) or ground
+  (*Modern Farm*'s chickens).
+* **Characters of layered pieces.** *Farm RPG*'s player is a body, eyes, hair and clothes a
+  file each for every animation: 3,998 files read as as many NPCs. *Modern Farm*'s farmer
+  generator's bodies and outfits are ground.
+* **Previews.** *Modern Farm*'s 243 GIFs beside the sheets they preview are read as art.
+* **Licences.** *Farm RPG*'s is in `Documentation.txt` and *Modern Farm*'s is `LICENSE.txt` at
+  the root of its zip; neither is found (`ASSET-021`), so a mandatory credit is lost.
+* **Archives.** A `.rar` is not opened.
+
+**Spec**
+* **One tile set, several forms.** Pictures that are the same tiles (a sheet with spacing, a
+  packed sheet, single files; or one folder a size) are found by their content, not their
+  names, and are one tile set: one form is used and the others are set aside with the reason
+  on their cards. A pack in several sizes offers its sizes, and the project's tile size is the
+  user's choice, by default the one the other packs use, else the smallest. No tile set is made
+  in a size the pack does not draw.
+* **Crops** are found by the evidence a farming pack has: a folder of crops or of a season, a
+  strip or a grid whose frames grow (each frame covers more of its cell than the one before,
+  from the bottom), and the name of the produce beside it. An icon of a food is an item, not a
+  crop. A crop that cannot be read with confidence stays unread with the reason on its card.
+* **Farm animals** (chicken, cow, sheep, goat, pig, duck, horse by folder or name) are
+  characters with their animations, of the role the farm's animals ask for.
+* **Layered characters**: a folder of pieces of one character (body, eyes, hair, clothes, a
+  file each for an action) is one character whose layers are put together in a stated order
+  (the pack's own order when it gives one, else body, clothes, hair, accessories); the
+  wizard shows it as one character with its choices.
+* **Previews**: a GIF or a picture called preview or sample beside the sheets it shows is unused.
+* **Licences**: a licence is also read from `Documentation.txt`, `Readme`, `Terms` and the like
+  when the text says *licence*, *credit* or *commercial*, at the pack's root or one folder down,
+  and inside an archive. A credit the licence asks for is written into the generated README.
+* **Archives**: `.rar` is opened when the system can (Windows' own `tar` reads it), else
+  refused with its reason, as `.7z` is.
+
+**Done when**
+* The three packs give a farm each, generated on the owner's machine, with the packs' own
+  ground, crops that grow in the packs' pictures (where a pack draws growth), a chicken of the
+  pack where it has one, and a player of the pack; each is played through the farm's smoke sequence and looked at in a picture.
+* A synthetic pack in each shape (one set in three forms, a pack in two sizes, a crop folder
+  of growth strips beside food icons, a layered character, a licence in a documentation file)
+  holds it in the tests, and the accuracy corpus has an expected file for each.
 
 ---
 

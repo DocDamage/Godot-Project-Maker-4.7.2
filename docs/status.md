@@ -199,14 +199,31 @@ should know:
   stands before the mark hides it (the first door of a farm in 4 of 900 plans, the fourth in
   281); a drawn beach is sand in bands; the people never go to an added map; a farm planned
   before the card keeps its rows as names.
-* **Not built.** A cave
-  and combat on a farm (the feature is hidden for the kind); imported maps on diamonds (they
-  count squares; the editor dock counts diamonds since T17.27, run by a test in an editor
-  without a window, never with a mouse); terrains on a diamond's sides; height (a raised ground
+* **Isometric Tiled maps are imported since T17.28** into an isometric project, by the
+  pictures of their tiles (a picture of a pack's samples joins the tile set for the map alone
+  and stays unused); a map of the other view is not built and the run says so (TILE-013). Done
+  on a drawn pack in the tests and on the Tiled sample of *Isometric Miniature Farm*, generated
+  as an isometric turn-based game on this machine, played by its smoke sequence and looked at
+  in a picture against Tiled's own drawing of the map. Not done: height (stairs are pictures
+  walked across, a second floor is only drawn higher), flipped tiles (drawn unflipped), and a
+  door whose `target_map` differs from the map's name in case (as on squares, it stays a
+  marker).
+* **The cave, combat on a farm, since T17.24**: *Combat* is shown for a farm and gives it a
+  cave among its added maps (the action RPG's enemies, the packs' or a drawn slime; ore, a
+  crystal and a mushroom to find), a sword at the shop, a health bar, and being defeated as
+  passing out. Generated and played by the smoke run on *Green acre* and on the synthetic
+  isometric pack (the sword bought, an enemy defeated with `use`, what it left carried home,
+  the farmer defeated by an enemy's blow and woken at the bed), and looked at in pictures.
+  Short of it: nobody fought by hand, the numbers are untuned, the rock and the edge of a cave
+  are flat dark shapes (on diamonds too), and the farmer's swing is the tool's icon over its
+  hands when its sheet has no attack. With *Combat* off a farm is what it was (an A/B against
+  `HEAD`: the maps, the data and the scenes the same but for `unique_id`s).
+* **Not built.** Dropping onto diamonds with a mouse (the
+  editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working
   at zero energy ends the day*; a pail; a naming screen for animals; an isometric car and
   isometric people for a race; the diamond picture of an isometric race on the Options page
-  (it is shown from above). Festivals and birthdays are in (T17.25: nobody has played one by hand, and a farm from before them has its calendar in the pause menu only and its eggs round the square). Marriage, cooking and crafting are left out by design
+  (it is shown from above). Festivals and birthdays are in (T17.25: nobody has played one by hand, and a farm from before them has its calendar in the pause menu only and its eggs round the square). Marriage is in (T17.26: nobody has courted anybody by hand, the smoke run is given the hearts, and a farmhouse from before it keeps its one bed). Children, cooking and crafting are left out by design
   (Part E of the spec).
 * **Faults that are known and left.** A coop on a pack that has only cows stays empty. With
   a calendar the outdoor light follows it whatever the player's *Day and night* setting says.

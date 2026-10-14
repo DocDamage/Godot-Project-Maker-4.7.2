@@ -214,7 +214,10 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         # are not: a farm needs them from a pack. A bed or a bin is no scenery, and drawn soil
         # no ground, so those leave their roles as lacking as they were. And what a beach among
         # its added maps has (T17.23).
-        kinds = added_map_plan.kinds_of(cfg.starter_map_options().get("added_maps"))
+        # and, for a farm with Combat on, what its cave has (T17.24)
+        kinds = added_map_plan.kinds_for(
+            cfg.starter_map_options().get("added_maps"), cfg.features.get("combat", False)
+        )
         for farm_stand_in in farm_kit.lacking(catalog, cfg.projection, kinds):
             issues.add("ASSET-031", role=farm_stand_in.role, thing=farm_stand_in.thing, file="")
             if farm_stand_in.fills:
@@ -259,6 +262,18 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
                 found=f"{own[0]} x {own[1]}",
                 footprint=f"{footprint[0]} x {footprint[1]}",
                 file="",
+            )
+    # an imported map is a map of a project seen as it is drawn (T17.28)
+    imported_ids = set(cfg.imported_map_selection()["include"])
+    for imported in catalog.maps:
+        if imported["id"] in imported_ids and not catalog_mod.map_fits(imported, view):
+            iso_map = catalog_mod.map_projection(imported) == ISOMETRIC
+            issues.add(
+                "TILE-013",
+                map=imported["id"],
+                drawn="on diamonds" if iso_map else "on squares",
+                view="isometric" if view == ISOMETRIC else "seen from above",
+                file=imported["source"],
             )
     for role in REQUIRED.get(cfg.archetype, REQUIRED["turn_based"]):
         if not _filled(catalog, role, view) and role not in drawn:

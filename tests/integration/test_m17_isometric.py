@@ -461,9 +461,17 @@ FARM_ANIMAL_STEPS = [
     "egg_in_the_morning",
     "ship_the_egg",
 ]
+# the steps of the cave (T17.24): in a farm that does not fight each passes with a note
+FARM_CAVE_STEPS = [
+    "buy_a_weapon",
+    "enter_the_cave",
+    "defeat_an_enemy",
+    "bring_back_what_it_left",
+    "defeated_and_wake_at_home",
+]
 # the steps of the added maps (T17.23): in a farm without a forest or a beach each passes
-# with a note
-FARM_ADDED_STEPS = ["visit_the_forest", "fish_at_the_beach"]
+# with a note; the cave's (T17.24) after them
+FARM_ADDED_STEPS = ["visit_the_forest", "fish_at_the_beach", *FARM_CAVE_STEPS]
 # the steps of the festivals and the birthdays (T17.25): played on diamonds as on squares
 FARM_EVENT_STEPS = [
     "read_the_calendar",
@@ -471,6 +479,14 @@ FARM_EVENT_STEPS = [
     "festival_is_announced",
     "a_year_of_festivals",
     "egg_hunt",
+]
+# the steps of marriage (T17.26): played on diamonds as on squares
+FARM_MARRIAGE_STEPS = [
+    "buy_a_bouquet",
+    "court_with_a_bouquet",
+    "propose_with_a_pendant",
+    "the_wedding",
+    "spouse_at_home",
 ]
 # a new game starts in the farmhouse; the shared steps are played in the village
 FARM_SEQUENCE = [
@@ -481,6 +497,7 @@ FARM_SEQUENCE = [
     *FARM_ANIMAL_STEPS,
     *FARM_ADDED_STEPS,
     *FARM_EVENT_STEPS,
+    *FARM_MARRIAGE_STEPS,
     "save_and_load",  # T17.18: saved, changed and loaded, the field compared cell by cell
 ]
 FARM_MAPS = ["game/maps/farm.tscn", "game/maps/farm_house.tscn", "game/maps/starter_map.tscn"]
@@ -1220,3 +1237,38 @@ def test_an_isometric_farm_with_a_forest_and_a_beach(iso_forest, godot_exe: Path
     wet = {tuple(c) for c in beach["water"]["cells"]}
     assert set(soil) == wet, "the cells of the sea say they are water, and no other cell does"
     assert 'metadata/farm_water = "sea"' in beach_scene and '[node name="Sand"' in beach_scene
+
+
+@pytest.fixture(scope="module")
+def iso_cave(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):  # noqa: ANN201
+    """The isometric farm with Combat on (T17.24): it has a cave."""
+    cfg = _farm_config()
+    cfg.features["combat"] = True
+    return _generated(godot_exe, tmp_path_factory.mktemp("iso_cave"), cfg)
+
+
+def test_an_isometric_farm_that_fights_has_a_cave_on_diamonds(iso_cave) -> None:  # noqa: ANN001
+    """The cave on diamonds: the farmer buys the sword, walks into the cave, defeats an enemy,
+    picks up what it left and carries it home, and is defeated once and wakes at the bed."""
+    target, result = iso_cave
+    assert not _errors(result)
+    assert _smoke(target) == FARM_SEQUENCE
+    # the cave's steps are played; the forest's and the beach's are not (there are none)
+    _passed_for_real(
+        target,
+        (*ABSENT, "catch_a_fish", *FARM_ANIMAL_STEPS, "visit_the_forest", "fish_at_the_beach"),
+    )
+    plan = _farm_plan(target)
+    assert [(e["id"], e["kind"], e["name"]) for e in plan["added"]] == [
+        ("farm_map_1", "cave", "Cave")
+    ]
+    cave = plan["added"][0]
+    scene = (target / cave["map"]).read_text(encoding="utf-8")
+    assert 'path="res://generated/tilesets/iso.tres"' in scene
+    assert 'metadata/farm_kind = "cave"' in scene and "is_interior = true" in scene
+    assert '[node name="RockWall" type="StaticBody2D"' in scene
+    assert "ConvexPolygonShape2D" in scene, "the rock blocks diamonds"
+    assert scene.count('entity_id = "farm_map_1_enemy_') == len(cave["enemies"])
+    archetypes = target / "addons/rpg_runtime/archetypes"
+    assert sorted(p.name for p in archetypes.iterdir()) == ["arpg", "farm"]
+    assert (target / "game/data/items/farm_sword.tres").is_file()

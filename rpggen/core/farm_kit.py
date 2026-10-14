@@ -97,6 +97,16 @@ SEA_FISH: tuple[tuple[str, Color], ...] = (
     ("sea_bass", (90, 120, 150, 255)),
 )
 BEACH_KIND = "beach"
+# what a cave has (T17.24), as ``forage_plan.DRAWN_CAVE_FORAGE`` names them, and its enemy:
+# drawn only for a farm that fights (it has a cave) and whose packs lack them
+CAVE_FORAGE = ("copper_ore", "amethyst", "cave_mushroom")
+CAVE_KIND = "cave"
+ORE: Color = (200, 120, 74, 255)
+STONE: Color = (112, 108, 116, 255)
+CRYSTAL: Color = (154, 100, 210, 255)
+GLOW: Color = (138, 180, 200, 255)
+SLIME: Color = (110, 190, 90, 255)
+SLIME_DARK: Color = (52, 110, 48, 255)
 PEARL: Color = (242, 226, 196, 255)
 WEED: Color = (63, 143, 106, 255)
 BERRY: Color = (112, 72, 168, 255)
@@ -296,6 +306,20 @@ def forage(tile: int, kind: str) -> Image.Image:
         for x0, top in ((3, 5), (7, 2), (11, 6)):
             d.rectangle(_box(t, x0, top, x0 + 2, 15), fill=WEED, outline=STEM)
             d.ellipse(_box(t, x0 - 1, top - 1, x0 + 3, top + 3), fill=WEED, outline=STEM)
+    elif kind == "copper_ore":
+        d.ellipse(_box(t, 1, 5, 15, 15), fill=STONE, outline=DARK)
+        for x0, y0 in ((4, 7), (9, 9), (6, 11)):
+            d.rectangle(_box(t, x0, y0, x0 + 2, y0 + 1), fill=ORE)
+    elif kind == "amethyst":
+        for x0, top in ((3, 6), (6, 2), (10, 5)):
+            spike = [(_q(t, x0), _q(t, 15)), (_q(t, x0 + 1) + _q(t, 1), _q(t, top)),
+                     (_q(t, x0 + 3), _q(t, 15))]  # fmt: skip
+            d.polygon(spike, fill=CRYSTAL, outline=DARK)
+        d.rectangle(_box(t, 7, 5, 8, 9), fill=WHITE)
+    elif kind == "cave_mushroom":
+        for x0, top, wide in ((2, 7, 6), (8, 4, 7)):
+            d.rectangle(_box(t, x0 + wide // 2 - 1, top + 3, x0 + wide // 2 + 1, 15), fill=SHELL)
+            d.ellipse(_box(t, x0, top, x0 + wide, top + 5), fill=GLOW, outline=DARK)
     else:
         raise ValueError(f"no such thing to forage: {kind}")
     return img
@@ -383,6 +407,33 @@ def hen(tile: int) -> Image.Image:
     return img
 
 
+def _slime_cell(t: int, direction: str, frame: int) -> Image.Image:
+    """One frame of a slime's hop: low and wide in frames 1 and 3, tall in 0 and 2. Its eyes
+    look the way it goes (none from behind)."""
+    cell, d = _new(t, t)
+    squash = frame % 2 == 1
+    top = 6 if squash else 3
+    d.ellipse(_box(t, 1 if squash else 2, top, 15 if squash else 14, 16), fill=SLIME,
+              outline=SLIME_DARK)  # fmt: skip
+    d.rectangle(_box(t, 5, top + 2, 7, top + 3), fill=WHITE)  # a shine
+    eyes = {"down": (5, 9), "left": (3, 6), "right": (8, 11)}.get(direction)
+    if eyes is not None:
+        for x in eyes:
+            d.rectangle(_box(t, x, top + 5, x + 1, top + 7), fill=DARK)
+    return cell
+
+
+def slime(tile: int) -> Image.Image:
+    """The enemy of a cave (T17.24): a slime's hop, ``HEN_FRAMES`` columns and a row for each
+    of ``HEN_ROWS``, a tile a cell, as the hen's sheet is laid out."""
+    t = _size(tile)
+    img, _d = _new(t * HEN_FRAMES, t * len(HEN_ROWS))
+    for row, direction in enumerate(HEN_ROWS):
+        for frame in range(HEN_FRAMES):
+            img.paste(_slime_cell(t, direction, frame), (frame * t, row * t))
+    return img
+
+
 def rain(tile: int) -> Image.Image:
     """Rain to lay over the screen: ``RAIN_FRAMES`` cells in a row, each ``RAIN_TILES`` tiles a
     side and mostly clear. The streaks fall a third of their spacing from frame to frame, so
@@ -448,6 +499,12 @@ def _beach_stand_in(name: str) -> StandIn:
                    usage="object")  # fmt: skip
 
 
+def _cave_stand_in(name: str) -> StandIn:
+    thing = f"thing to find in a cave ({name.replace('_', ' ')})"
+    return StandIn(name, "ITEM", thing, partial(forage, kind=name), ("forage", "cave"), "cave",
+                   usage="object")  # fmt: skip
+
+
 def _sea_fish_stand_in(name: str, body: Color) -> StandIn:
     return StandIn(name, "ITEM", f"fish of the sea ({name.replace('_', ' ')})",
                    partial(fish, body=body), ("fish", "sea"), "sea", usage="object")  # fmt: skip
@@ -487,6 +544,11 @@ KIND_STAND_INS: dict[str, tuple[StandIn, ...]] = {
     BEACH_KIND: (
         *(_beach_stand_in(name) for name in BEACH_FORAGE),
         *(_sea_fish_stand_in(name, body) for name, body in SEA_FISH),
+    ),
+    # a cave (T17.24): its things, and an enemy for a farm whose packs have none
+    CAVE_KIND: (
+        *(_cave_stand_in(name) for name in CAVE_FORAGE),
+        StandIn("slime", "ENEMY", "enemy of the cave", slime, ("enemy",)),
     ),
 }
 
@@ -662,7 +724,7 @@ def _facets(stand_in: StandIn, image: Image.Image, t: int) -> dict[str, Any]:
             "collision": {"profile": "NONE"},
             "size": [w, h],
         }
-    elif stand_in.name == "hen":
+    elif stand_in.name in ("hen", "slime"):
         animations: dict[str, Any] = {}
         for row, direction in enumerate(HEN_ROWS):
             animations[f"walk_{direction}"] = {

@@ -32,9 +32,16 @@ extends RefCounted
 ## (builder/lib/map_geo.gd), as the farm's map does: the same plan is painted with square tiles
 ## or with the project's diamonds.
 ##
-## **What T17.24 finds here.** `build_map` is one function for every kind; what a kind has of
-## its own is in `_add_ground` (the `match` on the kind) and nowhere else. A cave adds its
-## branch there (and its enemies after `_add_common`); nothing of the trails changes.
+## `build_map` is one function for every kind; what a kind has of its own is in `_add_ground`
+## (the `match` on the kind) and, for a cave, `_add_enemies` after `_add_common`.
+##   - a **cave** (T17.24, a farm that fights): the farm's ground in the gloom (`Gloom`), the
+##     rock the plan names (`walls`) and the edge drawn over it (`Rock`; the edge blocks as
+##     every edge does, the rock where it meets the floor: the body `RockWall`), no path and no
+##     wall tile, boulders, the places where the things of a cave lie, and the
+##     action RPG's enemies (recipes/arpg/enemy_recipes.gd, which a farm that fights has: the
+##     packs' ENEMY, else the drawn slime of the farm kit) at the cells the plan names, each
+##     remembered as `<id>_enemy_<n>` (RpgFarmFight brings them back every morning). Its root
+##     is an interior (`is_interior`): no rain falls there and the light is dim.
 
 const RECIPE_VERSION := 1
 ## The version of what the recipe does for an isometric project only: in the hash of such a
@@ -64,6 +71,11 @@ const KIND_META := &"farm_kind"
 const WATER_META := &"farm_water"
 const FOREST := "forest"
 const BEACH := "beach"
+const CAVE := "cave"
+## The action RPG's enemies (a farm that fights has the folder: staging.OPTIONAL_FOLDERS).
+const ENEMY_RECIPES := "../arpg/enemy_recipes.gd"
+const GLOOM := Color(0.04, 0.03, 0.06, 0.55)
+const ROCK := Color(0.2, 0.18, 0.19)
 
 const SAND := Color(0.89, 0.82, 0.59)
 const SAND_DARK := Color(0.86, 0.79, 0.56)
@@ -267,7 +279,10 @@ func build_map(ctx: BuildContext, entry: Dictionary, issues: Array) -> Node2D:
 	# the edge, open at the way in and where the sea is
 	var skip: Array[Vector2i] = [gap]
 	skip.append_array(water)
-	geo.paint_walls(root, nodes, size, skip)
+	if kind == CAVE:
+		geo.border_collision(root, size, skip)  # the edge of a cave is its rock (`_add_ground`)
+	else:
+		geo.paint_walls(root, nodes, size, skip)
 	for note in geo.take_notes():
 		print("[rpggen] INFO added_maps (%s): %s" % [id, note])
 
@@ -282,6 +297,8 @@ func build_map(ctx: BuildContext, entry: Dictionary, issues: Array) -> Node2D:
 	for cell in water:
 		soil.set_cell(cell, FieldRecipe.SOURCE_ID, water_mark)
 	_add_common(ctx, entry, id, root, nodes, geo, water, size)
+	if kind == CAVE:
+		_add_enemies(ctx, entry, id, root, entities, geo)
 
 	MapUtil.add_marker(spawns, root, FROM_FARM, geo.center(arrive), true, JsonUtil.to_str(door.get("facing", "down")))
 	MapUtil.add_marker(spawns, root, "default", geo.center(arrive), true, JsonUtil.to_str(door.get("facing", "down")))
@@ -298,7 +315,7 @@ func _add_ground(ctx: BuildContext, entry: Dictionary, kind: String, root: Node2
 	var own := geo.tile_of_asset(JsonUtil.to_str(entry.get("ground", ""))) if JsonUtil.to_str(entry.get("ground", "")) != "" else {}
 	MapBuild.fill_ground(ground, size, own if not own.is_empty() else base)
 	var details := geo.road_layer(nodes)
-	if details != null:
+	if details != null and kind != CAVE:  # the tunnels of a cave are its floor, not roads
 		geo.paint_joined(details, FarmMapRecipe.cells_of(entry.get("paths")), "ROAD", geo.find_tile("ROAD"))
 	var water_tile := {}
 	match kind:
@@ -314,7 +331,83 @@ func _add_ground(ctx: BuildContext, entry: Dictionary, kind: String, root: Node2
 			if own.is_empty():
 				# the floor of a wood is the farm's ground in the shade of its trees
 				_add_cover(root, ground, geo, "Shade", row_runs(size, []), SHADE, SHADE)
+		CAVE:
+			# the floor of a cave is the ground in the gloom; the rock is drawn over it, and it
+			# blocks where it meets the floor. Underground: no rain and a dim light.
+			root.set("is_interior", true)
+			var rock := FarmMapRecipe.cells_of(entry.get("walls"))
+			if own.is_empty():
+				_add_cover(root, ground, geo, "Gloom", row_runs(size, rock), GLOOM, GLOOM)
+			# the rock, the edge's among it (no wall tile of the packs stands round a cave)
+			var drawn: Array[Vector2i] = []
+			drawn.append_array(rock)
+			drawn.append_array(MapGeo.border_cells(size, [FarmMapRecipe.cell_of(JsonUtil.to_dict(entry.get("door", {})).get("cell"))]))
+			_add_cover(root, ground, geo, "Rock", cell_runs(drawn), ROCK, ROCK)
+			var body := StaticBody2D.new()
+			body.collision_layer = 0
+			body.collision_mask = 0
+			body.set_collision_layer_value(1, true)  # world
+			SceneUtil.add(root, body, root, "RockWall")
+			var shape_of_cell := geo.cell_shape()
+			for cell in shore_cells(rock, size):
+				var shape := CollisionShape2D.new()
+				shape.name = "Cell_%d_%d" % [cell.x, cell.y]
+				shape.shape = shape_of_cell
+				shape.position = geo.center(cell)
+				body.add_child(shape)
 	return water_tile
+
+## `cells` as runs along a row (Rect2i one row high), row by row: what a drawn cover of some
+## cells of a map is laid as.
+static func cell_runs(cells: Array[Vector2i]) -> Array[Rect2i]:
+	var by_row := {}
+	for cell in cells:
+		if not by_row.has(cell.y):
+			by_row[cell.y] = []
+		var row: Array = by_row[cell.y]
+		row.append(cell.x)
+	var rows: Array = by_row.keys()
+	rows.sort()
+	var out: Array[Rect2i] = []
+	for y: int in rows:
+		var xs: Array = by_row[y]
+		xs.sort()
+		var start: int = xs[0]
+		var last: int = xs[0]
+		for i in range(1, xs.size() + 1):
+			var x: int = xs[i] if i < xs.size() else -2
+			if x == last + 1:
+				last = x
+				continue
+			out.append(Rect2i(start, y, last - start + 1, 1))
+			start = x
+			last = x
+	return out
+
+## The enemies of a cave (T17.24) at the cells of its plan: the action RPG's enemy scenes in
+## turn (enemy_recipes.starter_scene_at), each remembered as `<id>_enemy_<n>`. None, with a
+## line in the log, when the project has no enemy scene (a farm that does not fight).
+func _add_enemies(ctx: BuildContext, entry: Dictionary, id: String, root: Node2D, entities: Node2D, geo: MapGeo) -> void:
+	var here: Script = get_script()
+	var path := here.resource_path.get_base_dir().path_join(ENEMY_RECIPES)
+	var script: GDScript = null
+	if ResourceLoader.exists(path):
+		script = load(path) as GDScript
+	if script == null:
+		print("[rpggen] INFO added_maps (%s): the project has no enemies to put into the cave" % id)
+		return
+	var recipe: RefCounted = script.new()
+	var cells: Array = JsonUtil.to_array(entry.get("enemies", []))
+	for i in cells.size():
+		var scene := JsonUtil.to_str(recipe.call("starter_scene_at", ctx, i))
+		if scene == "":
+			print("[rpggen] INFO added_maps (%s): no enemy scene was built" % id)
+			return
+		var cell := FarmMapRecipe.cell_of(JsonUtil.to_dict(cells[i]).get("cell"))
+		var enemy := MapUtil.place(scene, entities, root, geo.center(cell), "Enemy%d" % (i + 1))
+		if enemy != null:
+			enemy.set("entity_id", "%s_enemy_%d" % [id, i + 1])
+			enemy.set("facing", "down")
 
 ## The ground tile of the farm (farm_map_recipe.gd chooses the same).
 func _farm_ground(ctx: BuildContext, geo: MapGeo) -> Dictionary:

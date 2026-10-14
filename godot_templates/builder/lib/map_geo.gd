@@ -425,8 +425,13 @@ func border_collision(root: Node2D, size: Vector2i, skip: Array = []) -> StaticB
 
 ## An unseen body (`BorderCollision`) that blocks `cells`, a shape of the cell each.
 func _blocked_cells(root: Node2D, cells: Array[Vector2i]) -> StaticBody2D:
+	return block_cells(root, cells, "BorderCollision")
+
+## An unseen body named `body_name` that blocks `cells`, a shape of the cell each (a square or
+## a diamond), in the order given.
+func block_cells(root: Node2D, cells: Array[Vector2i], body_name: String) -> StaticBody2D:
 	var body := StaticBody2D.new()
-	body.name = "BorderCollision"
+	body.name = body_name
 	body.collision_layer = 0
 	body.collision_mask = 0
 	body.set_collision_layer_value(1, true)

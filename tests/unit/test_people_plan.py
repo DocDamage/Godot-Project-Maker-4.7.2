@@ -288,3 +288,64 @@ def test_the_facts_are_the_npcs_of_the_catalog() -> None:
     assert facts["items"] == ["crop_corn", "egg"]
     people = people_plan.plan({}, 1, facts)["people"]
     assert people and people_plan.check(people, facts) == []
+
+
+# ---------------------------------------------------------------- who can be courted (T17.26)
+
+
+def test_who_can_be_courted_is_chosen_once_by_the_seed() -> None:
+    """``count`` people are chosen by the seed, the shopkeeper last; everybody gets the key; a
+    second call changes nobody, whatever the count; a person added later is not courtable."""
+    people = people_plan.plan({}, 7, _facts(5))["people"]
+    chosen = people_plan.with_courtable(people, 7, 2)
+    assert chosen == people_plan.with_courtable(people, 7, 2), "deterministic"
+    assert people_plan.courtable(chosen) and len(people_plan.courtable(chosen)) == 2
+    assert all(isinstance(p["courtable"], bool) for p in chosen)
+    keeper = next(p for p in chosen if p["job"] == people_plan.SHOPKEEPER)
+    assert keeper["courtable"] is False, "the shopkeeper while there are others"
+    assert [{k: v for k, v in p.items() if k != "courtable"} for p in chosen] == people
+    assert people == people_plan.plan({}, 7, _facts(5))["people"], "the input is not changed"
+    # once made, the choice stays
+    assert people_plan.with_courtable(chosen, 99, 5) == chosen
+    assert people_plan.with_courtable(chosen, 7, 0) == chosen
+    grown, _added = people_plan.extend(chosen, 7, _facts(6))
+    later = people_plan.with_courtable(grown, 7, 2)
+    assert later[:-1] == chosen and later[-1]["courtable"] is False
+    # other seeds choose others, now and then
+    picks = {
+        tuple(people_plan.courtable(people_plan.with_courtable(people, seed, 2)))
+        for seed in range(12)
+    }
+    assert len(picks) > 1
+    assert people_plan.check(chosen) == []
+
+
+def test_none_to_court_writes_no_key_and_a_village_of_few_shares_out_what_it_has() -> None:
+    people = people_plan.plan({}, 3, _facts(5))["people"]
+    assert people_plan.with_courtable(people, 3, 0) == people, "0: nobody, and no key"
+    alone = people_plan.plan({}, 3, _facts(1))["people"]
+    assert [p["courtable"] for p in people_plan.with_courtable(alone, 3, 2)] == [True], (
+        "the shopkeeper when there is nobody else"
+    )
+    assert len(people_plan.courtable(people_plan.with_courtable(people, 3, 6))) == 5
+
+
+def test_the_option_says_how_many() -> None:
+    assert people_plan.courtable_count({}) == people_plan.COURTABLE_DEFAULT == 2
+    assert people_plan.courtable_count({"courtable": 0}) == 0
+    assert people_plan.courtable_count({"courtable": 6}) == 6
+    for bad in (-1, 7, True, "2", 1.5):
+        with pytest.raises(people_plan.PeoplePlanError, match="courtable"):
+            people_plan.courtable_count({"courtable": bad})
+
+
+def test_a_courtable_flag_is_checked_and_fits_the_schemas() -> None:
+    people = people_plan.with_courtable(people_plan.plan({}, 5, _facts(3))["people"], 5, 1)
+    assert people_plan.check(people) == []
+    broken = copy.deepcopy(people)
+    broken[0]["courtable"] = "yes"
+    assert any("courtable" in p for p in people_plan.check(broken))
+    schema.validate("people", people_plan.people_file(people))
+    assert schema.errors("people", people_plan.people_file(broken))
+    farm = people_plan.store(_world(people)["farm"], people)
+    schema.validate("world_plan", {**_world(people), "farm": farm})

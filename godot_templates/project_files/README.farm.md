@@ -301,6 +301,36 @@ rows. A row without a `kind` is a beach when its name has a word like *beach*, *
 - A farm that was generated before added maps were built has no node `Trails`: its rows stay
   names, and the report says so.
 
+### The cave (Combat)
+
+With the feature *Combat* on, the farm has a **cave** among its added maps (a row of the kind
+`cave`, or one called *Cave* that rpggen adds by itself). Without *Combat* there is no cave,
+no sword and nothing to fight, and a cave row is refused.
+
+- The cave is rock with chambers hollowed out of it and tunnels between them, dim and dry (its
+  root is an interior: no rain falls there). The rock is the shapes `Rock` and the body
+  `RockWall` of `game/maps/farm_map_<n>.tscn`.
+- **The enemies** are the action RPG's (`addons/rpg_runtime/archetypes/arpg/`, which only a farm
+  that fights has): the scenes under `generated/scenes/enemies/` with their definitions in
+  `game/data/enemies/` (hit points, attack, how far they see, how they fight). Each in the
+  cave is remembered as `farm_map_<n>_enemy_<m>`: a defeated one stays away for the rest of the
+  day and is back the next morning. Move them, add more (a copy of one, with an `entity_id` of
+  that form) or take them away in the editor.
+- **The sword** (`game/data/items/farm_sword.tres`) is sold at the shop for 200. Hold it in the
+  hotbar and press `use` to swing it: it hits what stands ahead, and adds the `attack` of its
+  `modifiers` (4) to the farmer's own. A swing costs no energy.
+- **Health** is the red bar over the energy bar. The farmer's hit points are the hero's
+  (`game/data/actors/hero.tres`), full again every morning.
+- **What an enemy leaves**: one of the things of the cave (the entries of `forage.json` whose
+  `maps` say `cave`: ore, a crystal, a mushroom), where it fell; walk over it. The same things
+  lie at the cave's places in the morning. Sell them in the bin or at the counter; the mushroom
+  can be eaten.
+- **Being defeated is passing out**: the day ends at once, and you wake at the bed as after
+  2:00 (half the energy, and with `pass_out_loss` a tenth of the money gone).
+- Switching *Combat* off later keeps the cave, its enemies and the sword: a map that is
+  planned is not taken away (the report says so). To empty the cave, take its enemies out of
+  its map in the editor.
+
 ### The screen
 
 In the top-left corner: the time (in steps of ten minutes), the weekday, the day and the
@@ -432,6 +462,49 @@ has an event of that kind, such as `event:egg_hunt`). A line whose condition doe
 passed over. The dialogues of a project from before it had festivals have no such lines: add
 them in the dialogue tab of the dock.
 
+### Marriage
+
+A farm made with **People to court** above 0 (`starter_map.courtable`, 2 unless you change
+it; 0 turns marriage off) has that many people who can be courted and married. Who they are
+is chosen once, when the people are planned, and kept: `"courtable": true` in their entry of
+`game/data/people.json`. Change it there to court somebody else (a person whose entry has no
+`courtable` at all, a file from before your project had marriage, has the one rpggen planned,
+in `generated/data/people.json`).
+
+- **Eight hearts, then a bouquet.** Somebody you can court has at most **eight hearts** until
+  you court them. From eight, give them a **bouquet** from the shop (hold it and `interact`):
+  the courting begins and the two last hearts open. Below eight hearts, or to somebody who
+  cannot be courted, the bouquet is not taken and stays in your bag.
+- **Ten hearts, then a pendant.** At ten hearts a **pendant** from the shop, given to the one
+  you court, is a yes. The **wedding** is three days later (the next day that is no festival,
+  if that one is): a day for everybody on the village square, on the calendar, the shop
+  closed. At the end of that day you are married, whether you went or not. Only one pendant is
+  ever taken.
+- **The spouse** lives in your farmhouse: in the morning beside the place you wake, on two
+  afternoons a week (Tuesday and Thursday, when it is dry) on their own spot of the square,
+  home again from 17:00, and asleep (not seen) from 22:00. On a festival they are on the
+  square with everybody. In the farmhouse they say what they did that morning.
+- **They help** on some mornings: they **water** part of the plot (the dry cells with a crop
+  first, at most eight, about half), **feed** the animals (every empty trough), or **leave
+  something on the table** of the farmhouse (a crop of the season; `interact` with the table).
+  The first morning after the wedding is always a watering one. A rainy morning needs no
+  watering, and a farm without animals no feeding: such a morning is a quiet one.
+- **Neglect.** Every night, everybody you have met and did not talk to that day loses 2
+  points. Nothing worse happens: a courting, an engagement or a marriage is never undone.
+  There are no children.
+
+The bouquet (200) and the pendant (2000) are `game/data/items/bouquet.tres` and `pendant.tres`
+(yours; change their price there). The shop sells them until you are married. A person you
+can court has three more lines in their dialogue, each said at one stage only: `courting:<id>`,
+`engaged:<id>` and `spouse:<id>` (conditions you can use in any dialogue). The dialogue of a
+person from a project made before it had marriage has no such lines.
+
+**The bed is for two.** A farmhouse planned with marriage has two beds side by side, both
+of which end the day. A farmhouse that was built before your project had marriage keeps its
+one bed, since a room that exists is never built again: the spouse sleeps there all the same
+(at night they are not seen) and stands beside it in the morning. The save keeps everything in
+the flags of the game (`farm_marriage`).
+
 ### The isometric view
 
 A farm made with **`projection: isometric`** is the same game on diamonds: the same plan of
@@ -487,6 +560,9 @@ the farm, the same crops, people and saves. What is different:
 | The same list as rpggen planned it | `generated/data/events.json` (rewritten on every build) |
 | Where the eggs lie and the table stands on a festival | the markers `festival_egg_<n>` and `festival_table` under `Places` of `game/maps/starter_map.tscn` (yours) |
 | The calendar on the wall | the node `WallCalendar` of `game/maps/farm_house.tscn` (yours) |
+| Who can be courted | `courtable` of a person in `game/data/people.json` (yours) |
+| The bouquet and the pendant | `game/data/items/bouquet.tres` and `pendant.tres` (yours) |
+| The bed for two | the nodes `Bed` and `Bed2` of `game/maps/farm_house.tscn` (yours) |
 | The animals, the feed and the animal houses | `game/data/animals.json` (yours) |
 | The same list as rpggen planned it | `generated/data/animals.json` (rewritten on every build) |
 | The scenes of the animals | `generated/scenes/farm/animals/` |
@@ -495,6 +571,8 @@ the farm, the same crops, people and saves. What is different:
 | The places where things to forage lie | the markers `Forage/Spot<n>` of `game/maps/farm.tscn` and of every added map (yours) |
 | The maps added to the farm | `game/maps/farm_map_<n>.tscn` (yours) |
 | The farm's doors to them | `generated/scenes/farm/trails.tscn` (rewritten on every build), shown by the farm's node `Trails` |
+| The enemies of the cave (Combat) | `game/data/enemies/` (yours) and `generated/scenes/enemies/` |
+| The sword (Combat) | `game/data/items/farm_sword.tres` (yours) |
 | The shop | `game/data/shops/village_shop.tres` (yours) |
 | What a new game starts with | `game/data/new_game.tres` (yours) |
 | The seeds, the produce, the fish, the forage and the tools as items | `game/data/items/` (yours) |

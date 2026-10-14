@@ -171,14 +171,19 @@ SHARED_FOLDERS: dict[str, tuple[str, ...]] = {"arcade": ("shmup", "run_and_gun",
 # platform actor on the metroidvania's side-view tiles (T16.08), so it gets that kind's runtime
 # folder and recipes (not its smoke steps).
 BORROWED_FOLDERS: dict[str, tuple[str, ...]] = {"run_and_gun": ("metroidvania",)}
+# The folders a kind borrows only when a choice of the project asks for them (``borrowed`` of
+# ``install_templates``): a farm that fights (T17.24) has the action RPG's enemies in its cave,
+# so it gets that kind's runtime folder and recipes; a farm that does not fight gets neither.
+OPTIONAL_FOLDERS: dict[str, tuple[str, ...]] = {"farm": ("arpg",)}
 
 
-def _other_archetype(rel: str, archetype: str | None) -> bool:
+def _other_archetype(rel: str, archetype: str | None, borrowed: tuple[str, ...] = ()) -> bool:
     """True for a template file that belongs to an archetype other than the chosen one.
 
     The runtime keeps each archetype in ``addons/rpg_runtime/archetypes/<name>/``, its recipes in
     ``builder/recipes/<name>/`` and its smoke steps in ``builder/smoke/smoke_steps_<name>.gd``.
     A shared folder (``SHARED_FOLDERS``) is kept in the same places under its own name.
+    ``borrowed`` are folders of other kinds the project asks for (``OPTIONAL_FOLDERS``).
     """
     if archetype is None:
         return False
@@ -186,10 +191,10 @@ def _other_archetype(rel: str, archetype: str | None) -> bool:
     for other in (*ARCHETYPES, *SHARED_FOLDERS):
         if other == archetype or archetype in SHARED_FOLDERS.get(other, ()):
             continue
-        borrowed = other in BORROWED_FOLDERS.get(archetype, ())
-        if parts[:4] == ["addons", "rpg_runtime", "archetypes", other] and not borrowed:
+        lent = other in BORROWED_FOLDERS.get(archetype, ()) or other in borrowed
+        if parts[:4] == ["addons", "rpg_runtime", "archetypes", other] and not lent:
             return True
-        if parts[:3] == ["builder", "recipes", other] and not borrowed:
+        if parts[:3] == ["builder", "recipes", other] and not lent:
             return True
         if (
             len(parts) == 3
@@ -205,6 +210,7 @@ def install_templates(
     templates_root: Path,
     archetype: str | None = None,
     editor_tools: bool = True,
+    borrowed: tuple[str, ...] = (),
 ) -> list[str]:
     """Copy the runtime addon, the editor tools addon and the builder into staging. Tests and
     probes are not copied. ``editor_tools=False`` (feature off) leaves the tools addon out; the
@@ -212,8 +218,10 @@ def install_templates(
 
     With an ``archetype`` only that archetype's runtime folder, recipes and smoke steps are
     copied (the template project holds all of them so each is tested). Files whose content is
-    unchanged are left alone (they keep their modification time).
+    unchanged are left alone (they keep their modification time). ``borrowed`` are the folders
+    of other kinds the project asks for (``OPTIONAL_FOLDERS``: a farm that fights).
     """
+    borrowed = tuple(b for b in borrowed if b in OPTIONAL_FOLDERS.get(archetype or "", ()))
     templates_root = Path(templates_root)
     written: list[str] = []
     for src_rel, dst_rel in (
@@ -228,7 +236,7 @@ def install_templates(
             if not p.is_file() or "__pycache__" in p.parts:
                 continue
             rel_in_templates = p.relative_to(templates_root).as_posix()
-            if _other_archetype(rel_in_templates, archetype):
+            if _other_archetype(rel_in_templates, archetype, borrowed):
                 continue
             out = stg.staging / dst_rel / p.relative_to(src)
             _place(p, out)

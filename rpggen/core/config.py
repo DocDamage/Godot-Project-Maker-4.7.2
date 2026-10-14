@@ -217,6 +217,10 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         options["day_length"] = FARM_DAY_LENGTH
         # festivals and birthdays (T17.25): false plans neither
         options["festivals"] = True
+        # marriage (T17.26): how many people of the village can be courted; 0 turns it off
+        from rpggen.core import people_plan
+
+        options["courtable"] = people_plan.COURTABLE_DEFAULT
         # the farm's own map (T17.06) beside the village's: how large the field and the plot
         # are, which animal houses stand on it, how much there is to clear, and the added maps
         from rpggen.core import farm_plan

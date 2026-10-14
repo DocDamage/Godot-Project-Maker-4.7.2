@@ -1292,7 +1292,8 @@
               "source": {"type": "integer", "minimum": 0},
               "coords": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
               "at": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
-              "of": {"type": "string"}
+              "of": {"type": "string"},
+              "maps_only": {"type": "boolean", "description": "T17.28: in the set only for an imported map that paints it"}
             },
             "additionalProperties": false,
             "required": ["source", "coords", "at"]
@@ -1720,6 +1721,19 @@
           "items": {
             "$ref": "#/$defs/MapLayer"
           }
+        },
+        "projection": {
+          "description": "T17.28: an isometric Tiled map; a map of squares has no key",
+          "enum": [
+            "isometric"
+          ]
+        },
+        "walls": {
+          "description": "T17.28: the pictures of an isometric map that block their diamond",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false,
@@ -1743,11 +1757,28 @@
           "enum": [
             "tiles",
             "intgrid",
-            "objects"
+            "objects",
+            "iso_tiles"
           ]
         },
         "tileset": {
           "type": "string"
+        },
+        "pictures": {
+          "description": "T17.28: the asset ids an iso_tiles layer paints; its cells are [count, index, transform]",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "offset": {
+          "description": "T17.28: how far Tiled draws an iso_tiles layer from its place, in px of the map",
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
         },
         "cells": {
           "type": "array",
@@ -1874,6 +1905,21 @@
           "then": {
             "required": [
               "objects"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "iso_tiles"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "pictures",
+              "cells"
             ]
           }
         }

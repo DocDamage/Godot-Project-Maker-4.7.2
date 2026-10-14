@@ -26,7 +26,9 @@ it); `RpgShopDefinition.closed_reason()` ("" for every shop but a farm's;
 else for a day; `pick` and `resolve` do not ask it, `entry_in_force` does); the condition
 atoms `birthday:<id>`, `festival`, `festival_tomorrow` and `event:<kind>` (false, not unknown,
 in every game without a farm's festivals: `RpgCondition` finds them through a meta of the game
-state that only `RpgFarmEvents` sets).
+state that only `RpgFarmEvents` sets); the condition atoms `courting:<id>`, `engaged:<id>` and
+`spouse:<id>` (false in every game without a farm's marriage: they read flags only a farm
+writes).
 
 **A fix that changes what every game with a dialogue shows.** `ui/dialogue_box.gd`: the panel
 of the dialogue box grows **upward** (`grow_vertical = GROW_DIRECTION_BEGIN`, set in `_ready`
@@ -202,6 +204,25 @@ recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with 
   fish whose `water` names it bite there; only a well takes no cast (it was: only a pond takes
   one). What was picked up is kept by map, as before. Nothing of this is at work on a map that
   has neither metadata: the farm's own map is what it was.
+* **Fighting** (T17.24: a farm with *Combat*, or a cave). `RpgFarmFight` (`fight.gd`, the
+  mode's child `Fight`; it does nothing unless the mode's `fights` is true, which only the
+  recipe of a farm that fights sets): when a map is entered it gives the farmer an
+  `RpgHealth` (the hit points of the game's player stats), an `RpgHurtbox` (layer 9) and an
+  `RpgFarmBlade` (`blade.gd`, an `RpgHitbox` on layer 7 that adds the `attack` modifiers of
+  the item swung), made at run time so that the player scene of a farm that does not fight is
+  what it was. `RpgFarmer.use_held` swings the weapon `farm_sword` when it is held
+  (`RpgFarmFight.swing`, no energy; `RpgFarmer.show_use` shows it as a tool's use is shown),
+  and the shop sells it through a stock source. The enemies of a cave are the action RPG's
+  (`archetypes/arpg/`, installed in a farm that fights and in no other); one called
+  `farm_map_<n>_enemy_<m>` that is defeated leaves one of the things of a cave (forage entries
+  with `maps: ["cave"]`) as an `RpgPickup`, and every morning their flags `defeated` are
+  cleared and the farmer's hit points are full. At 0 hit points the farmer lies down
+  (`begin_down`) and the day ends as at 2:00: `RpgDayEnd.pass_out()` (new) ends it at any hour,
+  the night is `PASSED_OUT`, and `knocked_out` says it was a defeat (its toast says so). The
+  HUD has a health bar (`%HealthBar`, only in the scene of a farm that fights;
+  `RpgFarmHud.refresh_health`, `RpgFarmFight.health_changed`). Texts in `cave_strings.gd`
+  (`RpgFarmCaveStrings`), added to `strings.tsv` only for a farm that fights. Nothing new is
+  saved but the flags.
 * **Animals.** `RpgAnimalHouse` is a part of the mode (its child `Animals`; it does nothing in
   a farm without an animal house). The herd is data in the flags (a row an animal with its
   kind, name, house, stall, colour variant, friendship, `fed`, `petted` and the product it has
@@ -305,6 +326,38 @@ recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with 
   * `RpgFarmWeather.forecast_text()` has a second line on the day before a festival
     (`tomorrow_text()`). The state is in `flags.farm_events` (`added`, `today`,
     `birthday_gifts`): the save has no new key.
+* **Marriage** (T17.26). `marriage.gd`, **`RpgMarriage`**: a child `Marriage` of the mode,
+  which does nothing unless `enabled` (the mode's new `courting`, from the option
+  `starter_map.courtable` above 0; the mode's recipe sets it); otherwise
+  `RpgMarriage.current()` (a meta of the game state) is null.
+  * Who can be courted is `courtable` of a person's entry of `people.json` (the planned file's
+    for an entry without the key). `RpgFriendship.cap_of`, a new static Callable (unset by
+    default: everybody has ten hearts), holds such a person at eight hearts until courted.
+    `RpgFriendship.gift` hands a **bouquet** or a **pendant** to `RpgMarriage.give`: from
+    eight hearts the bouquet begins the courting; at ten the pendant to the one courted is a
+    yes, and the wedding is `RpgFarmEvents.add_event` of kind `wedding` three days on (the
+    next day that is no festival). The wedding's night makes the spouse.
+  * The spouse's day wins over the person's own (`RpgSchedule.override`, chained after the
+    events' own, so a festival wins over both): at home in the farmhouse from 6:00 on the cell
+    beside the one the farmer wakes on, on its own spot of the square from 12:00 to 17:00 on
+    Tuesday and Thursday when dry, at home again, asleep (on no map) from 22:00. In the
+    farmhouse it is an NPC made at run time of the person's scene (`Spouse`, with a schedule
+    and a line of its own); its NPC of the village is away while it is at home.
+  * The morning's help (`help_on`, `do_help`): water part of the farm's field (`water_part`,
+    the dry cells with a crop first, at most 8, about half), fill every empty trough
+    (`feed_animals`), or leave a produce of the season on a table of the farmhouse
+    (`spouse_table.gd`, **`RpgSpouseTable`**, taken with `interact`). The first morning after
+    the wedding waters. The night takes `DECAY_POINTS` (2) from everybody who was met and not
+    talked to that day.
+  * The shop sells the bouquet and the pendant (a stock source) until the farmer is married.
+    The condition atoms `courting:<id>`, `engaged:<id>` and `spouse:<id>` (`RpgCondition`,
+    read from `flags.farm_marriage`: false in every game without a farm's marriage).
+  * `RpgFarmEvents.with_files` (true by default): false, the events of the files and the
+    birthdays are left out, which is how a farm with marriage and without festivals has its
+    wedding. The builder: `recipes/farm/marriage_recipe.gd` seeds `game/data/items/bouquet.tres`
+    and `pendant.tres` once; a farmhouse planned since T17.26 has two beds (`Bed`, `Bed2`)
+    that wake the farmer on one cell. The state is in `flags.farm_marriage` (`courting`,
+    `engaged`, `wedding`, `spouse`, `wed`, `home`, `help`, `table`): the save has no new key.
 
 **The isometric view.**
 
@@ -443,6 +496,20 @@ recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with 
   * The world repair and the validator's *Fix* (`tools/world_repair.gd`): the actions of an
     isometric map carry its diamond (`iso`), and a door added there has the diamond's shape on
     the middle of its cell, as `MapGeo.add_exit_door` builds one.
+* **Imported isometric maps** (T17.28; the builder only, no script of the runtime changed). An
+  isometric Tiled map of an isometric project is built by `recipes/imported_maps_recipe.gd` on
+  `iso.tres`: its first layer in its place is the `Ground`, every other one a `TileMapLayer`
+  with `y_sort_enabled` and `collision_enabled` under `YSorted` before `Entities` (moved by
+  Tiled's offset), each cell the tile of its picture at the picture's own turn; the cells of
+  the map's walls are blocked by an unseen `ImportedWalls` body of diamonds; spawns, doors and
+  signs stand on the middle of their diamonds (doors as `MapGeo.add_exit_door` builds them). A
+  map of the other view is not built. `MapGeo.block_cells(root, cells, name)` is new
+  (`border_collision` now calls it; its scenes are what they were). The tile set may hold
+  pictures with `maps_only` (an object of a pack, a picture of its samples, painted by such a
+  map): `IsoTileset.maps_only(id)` is true for them and `pieces` and `plain_tiles` leave them
+  out, so no planned map paints them. The runtime finds such a map isometric as it finds any
+  (`RpgIso.footprint_of`: its `Ground` has the tile set of diamonds). The hash of the recipe
+  has a new key (`iso_v`) only in an isometric project.
 
 **The smoke runner and the smoke steps.**
 

@@ -28,6 +28,8 @@ const ARCHETYPE_STRINGS := {
 	"racing": "res://addons/rpg_runtime/archetypes/arcade/arcade_strings.gd",
 	"farm": "res://addons/rpg_runtime/archetypes/farm/farm_strings.gd",
 }
+## The strings of a farm that fights (T17.24), beside the farm's.
+const CAVE_STRINGS := "res://addons/rpg_runtime/archetypes/farm/cave_strings.gd"
 
 ## [[locale, path]] for the locales in the CSV header (every column after `keys`).
 func _locales() -> Array:
@@ -71,6 +73,14 @@ func _archetype_keys(ctx: BuildContext) -> Dictionary:
 		var script := load(path) as GDScript
 		if script != null:
 			var found: Dictionary = script.get_script_constant_map().get("KEYS", {})
+			keys.merge(found)
+	# what only some projects of a kind have: the cave of a farm that fights (T17.24)
+	if archetype == "farm" and ResourceLoader.exists(CAVE_STRINGS):
+		var here: Script = get_script()
+		var farm := load(here.resource_path.get_base_dir().path_join("farm/farm_build.gd")) as GDScript
+		var cave := load(CAVE_STRINGS) as GDScript
+		if farm != null and cave != null and JsonUtil.to_bool(farm.call("fights", ctx)):
+			var found: Dictionary = cave.get_script_constant_map().get("KEYS", {})
 			keys.merge(found)
 	return keys
 

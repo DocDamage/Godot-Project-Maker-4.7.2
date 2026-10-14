@@ -16,6 +16,10 @@ extends RefCounted
 ##                         another day for everybody; today has an event of the kind, such as
 ##                         event:egg_hunt or event:wedding. The farm, T17.25. False in a game
 ##                         without festivals)
+##   courting:<id>   engaged:<id>   spouse:<id>
+##                        (the farmer courts the person, is engaged to it, is married to it;
+##                         each is true at one stage only. The farm, T17.26: read from the flags
+##                         of the game, `farm_marriage`. False in a game without marriage)
 ## Unknown atoms are false and log "[RPG-DLG] unknown condition atom".
 
 ## The comparison operators of var:, longest first so that ">=" is not read as ">".
@@ -75,8 +79,12 @@ static func _tokens(expr: String) -> PackedStringArray:
 const ATOMS: Array[String] = [
 	"flag:", "item:", "gold>=", "level>=", "party:", "var:", "quest_active:", "quest_done:",
 	"quest_stage:", "quest:", "ability:", "friendship:", "birthday:", "festival",
-	"festival_tomorrow", "event:",
+	"festival_tomorrow", "event:", "courting:", "engaged:", "spouse:",
 ]
+## The atoms of a farm's marriage (T17.26), each with the id of a person.
+const MARRIAGE_ATOMS: Array[String] = ["courting:", "engaged:", "spouse:"]
+## The flags of the game a farm's marriage keeps its state in (RpgMarriage.FLAG_ENTITY).
+const MARRIAGE_FLAGS := "farm_marriage"
 ## The atoms of a farm's events (T17.25) that are a word and no more.
 const EVENT_WORDS: Array[String] = ["festival", "festival_tomorrow"]
 
@@ -121,7 +129,7 @@ static func atom_problem(atom: String) -> String:
 		return "" if atom.get_slice(":", 1) != "" else "'%s' needs an id" % atom
 	if EVENT_WORDS.has(atom):
 		return ""
-	if atom.begins_with("birthday:") or atom.begins_with("event:"):
+	if atom.begins_with("birthday:") or atom.begins_with("event:") or _is_marriage(atom):
 		return "" if atom.get_slice(":", 1) != "" else "'%s' needs an id" % atom
 	if atom.begins_with("var:"):
 		var body := atom.trim_prefix("var:")
@@ -171,6 +179,8 @@ static func _atom(atom: String, state: RpgGameState) -> bool:
 		return _friendship(state, atom)
 	if EVENT_WORDS.has(atom) or atom.begins_with("birthday:") or atom.begins_with("event:"):
 		return _farm_event(state, atom)
+	if _is_marriage(atom):
+		return _marriage(state, atom)
 	if atom.begins_with("quest_active:"):
 		return state.quest_is_active(StringName(atom.trim_prefix("quest_active:")))
 	if atom.begins_with("quest_done:"):
@@ -248,6 +258,29 @@ static func _farm_event(state: RpgGameState, atom: String) -> bool:
 	if atom.begins_with("birthday:"):
 		return node.has_method(&"is_birthday") and RpgUtil.to_bool(node.call(&"is_birthday", id))
 	return node.has_method(&"has_kind") and RpgUtil.to_bool(node.call(&"has_kind", id))
+
+static func _is_marriage(atom: String) -> bool:
+	for prefix in MARRIAGE_ATOMS:
+		if atom.begins_with(prefix):
+			return true
+	return false
+
+## courting:<id>, engaged:<id>, spouse:<id>: the stage of the farmer's marriage with a person,
+## from the flags a farm's marriage keeps (`farm_marriage`: `courting` a list of ids, `engaged`
+## and `spouse` an id each). Courting is true until the pendant is taken, engaged until the
+## wedding's night; a game without marriage has no such flags, and every atom is false.
+static func _marriage(state: RpgGameState, atom: String) -> bool:
+	var id := atom.get_slice(":", 1)
+	if id == "":
+		return _unknown(atom)
+	var spouse := RpgUtil.to_str(state.get_flag(MARRIAGE_FLAGS, "spouse", ""))
+	var engaged := RpgUtil.to_str(state.get_flag(MARRIAGE_FLAGS, "engaged", ""))
+	if atom.begins_with("spouse:"):
+		return spouse == id
+	if atom.begins_with("engaged:"):
+		return engaged == id
+	var courting := RpgUtil.to_array(state.get_flag(MARRIAGE_FLAGS, "courting", []))
+	return courting.has(id) and spouse != id and engaged != id
 
 ## The meta of the game state a farm's events are found under (RpgFarmEvents.STATE_META).
 const FARM_EVENTS_META := &"rpg_farm_events"

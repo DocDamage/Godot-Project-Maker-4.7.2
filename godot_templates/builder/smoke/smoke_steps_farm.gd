@@ -31,6 +31,12 @@ extends RefCounted
 ## ending days, every festival on its day and on no other -> the egg hunt is played in the
 ## village, the people on the square and the shop closed. The last step keeps their state too.
 ##
+## Then marriage (T17.26): the bouquet and the pendant are bought at the shop -> a person who
+## can be courted is courted with the bouquet held and `interact` -> asked with the pendant ->
+## the days to the wedding are ended, and on its day the one to be married stands on the square
+## -> its night is ended with crops on the plot -> the next morning part of the plot is watered
+## and the spouse is at home in the farmhouse. The last step keeps the marriage's state too.
+##
 ## The nights of the growing are the calendar's `end_day()`, run in full (a day that nobody
 ## slept through); the night after the harvest is slept in the bed.
 ##
@@ -108,6 +114,12 @@ func steps() -> Array[Dictionary]:
 		# with a note
 		_step("visit_the_forest", _visit_the_forest, 120.0),
 		_step("fish_at_the_beach", _fish_at_the_beach, 180.0),
+		# the cave (T17.24): only in a farm that fights, else each passes with a note
+		_step("buy_a_weapon", _buy_a_weapon, 120.0),
+		_step("enter_the_cave", _enter_the_cave, 120.0),
+		_step("defeat_an_enemy", _defeat_an_enemy, 90.0),
+		_step("bring_back_what_it_left", _bring_back_what_it_left, 90.0),
+		_step("defeated_and_wake_at_home", _defeated_and_wake_at_home, 120.0),
 		# festivals and birthdays (T17.25): only in a farm that has them, else each passes with a
 		# note. They end on the morning of the egg hunt, in spring, where the last step finds crops
 		_step("read_the_calendar", _read_the_calendar, 60.0),
@@ -115,6 +127,12 @@ func steps() -> Array[Dictionary]:
 		_step("festival_is_announced", _festival_is_announced, 180.0),
 		_step("a_year_of_festivals", _a_year_of_festivals, 300.0),
 		_step("egg_hunt", _egg_hunt, 120.0),
+		# marriage (T17.26): only in a farm with somebody to court, else each passes with a note
+		_step("buy_a_bouquet", _buy_a_bouquet, 120.0),
+		_step("court_with_a_bouquet", _court_with_a_bouquet, 60.0),
+		_step("propose_with_a_pendant", _propose_with_a_pendant, 60.0),
+		_step("the_wedding", _the_wedding, 120.0),
+		_step("spouse_at_home", _spouse_at_home, 60.0),
 		# the last (T17.18): by now the field, the bag, the friendships and the herd hold something
 		_step("save_and_load", _save_and_load, 90.0),
 	])
@@ -2089,6 +2107,8 @@ func _added_blocked(entry: Dictionary) -> Dictionary:
 	var out := {}
 	for cell: Variant in JsonUtil.to_array(entry.get("trees", [])):
 		out[_cell(cell)] = true
+	for cell: Variant in JsonUtil.to_array(entry.get("walls", [])):  # the rock of a cave (T17.24)
+		out[_cell(cell)] = true
 	for cell: Variant in JsonUtil.to_array(JsonUtil.to_dict(entry.get("water", {})).get("cells", [])):
 		out[_cell(cell)] = true
 	for key: String in ["scenery", "debris"]:
@@ -2116,8 +2136,10 @@ func _added_go(entry: Dictionary) -> String:
 	var scene := _tree().current_scene
 	if scene.scene_file_path != "res://" + JsonUtil.to_str(entry.get("map", "")):
 		return "the door of the trail led to %s" % scene.scene_file_path
-	if JsonUtil.to_bool(scene.get("is_interior")):
-		return "%s is an interior: no weather and no seasons would reach it" % scene.name
+	# a cave (T17.24) is underground: an interior; a forest and a beach are not
+	var underground := JsonUtil.to_str(entry.get("kind", "")) == ADDED_CAVE
+	if JsonUtil.to_bool(scene.get("is_interior")) != underground:
+		return "%s: is it an interior? %s; it is a %s" % [scene.name, scene.get("is_interior"), entry.get("kind")]
 	if RpgForage.map_kind(scene) != JsonUtil.to_str(entry.get("kind", "")):
 		return "%s says it is a '%s', the plan says %s" % [scene.name, RpgForage.map_kind(scene), entry.get("kind")]
 	if RpgField.current() == null or not scene.is_ancestor_of(RpgField.current()):
@@ -2285,6 +2307,305 @@ func _fish_at_the_beach() -> String:
 		return "what was picked up on the beach (%s) is no thing of a beach" % item
 	return await _added_back(entry)
 
+# ---------------------------------------------------------------- the cave (T17.24)
+#
+# These steps come after the added maps: the weapon is bought at the shop and held, the farmer
+# walks into the cave (its enemies are there, the farmer has its health, the HUD shows it), an
+# enemy is defeated with `use`, what it left is walked over and carried back to the farm, and
+# the farmer is defeated once: the day ends and it wakes at the bed, its health full and the
+# enemy back. In a farm that does not fight each passes with a note.
+
+const ADDED_CAVE := "cave"
+
+## The cave of the stored plan in a farm that fights; {} (and a note: the step passes) else.
+func _cave_or_skip(step_name: String) -> Dictionary:
+	var entry := _added_entry(ADDED_CAVE)
+	if entry.is_empty() or RpgFarmFight.current() == null:
+		print("[rpggen] INFO %s: the farm does not fight (no cave among its added maps), step passes" % step_name)
+		return {}
+	return entry
+
+## The enemies of the cave that is shown that still stand. (Asked by their ids and their health:
+## the class of the action RPG's enemy is not named here, since a farm that does not fight has
+## not got it.)
+func _cave_enemies() -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	var scene := _tree().current_scene
+	if scene == null:
+		return out
+	for node in scene.find_children("Enemy*", "", true, false):
+		var health := node.get_node_or_null("Health") as RpgHealth
+		var body := node as Node2D
+		if body != null and RpgFarmFight.is_cave_enemy(str(node.get("entity_id"))) and health != null and not health.is_dead() and not node.is_queued_for_deletion():
+			out.append(body)
+	return out
+
+## The cave is shown: walked to from the farm when another map is.
+func _cave_shown(entry: Dictionary) -> String:
+	var scene := _tree().current_scene
+	if scene != null and scene.scene_file_path == "res://" + JsonUtil.to_str(entry.get("map", "")):
+		return ""
+	return await _added_go(entry)
+
+## The HUD's health bar, or null.
+func _cave_health_bar() -> ProgressBar:
+	var hud := RpgFarmMode.current().get_node_or_null("Hud")
+	return hud.get_node_or_null("%HealthBar") as ProgressBar if hud != null else null
+
+## Puts the farmer on a cell beside the one `enemy` stands in, turned to it (the tile ahead,
+## on squares and on diamonds), where a swing reaches it.
+func _cave_beside(enemy: Node2D, entry: Dictionary) -> void:
+	var farmer := _farmer()
+	var field := RpgField.current()
+	var at := field.cell_at(enemy.global_position)
+	var blocked := _added_blocked(entry)
+	var size := _cell(entry.get("size"))
+	for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		var stand := at + step
+		if blocked.has(stand) or stand.x < 1 or stand.y < 1 or stand.x > size.x - 2 or stand.y > size.y - 2:
+			continue
+		farmer.global_position = field.cell_center(stand)
+		farmer.face_cell(at)
+		return
+
+## The weapon is bought at the shop in its hours, with the real menu, and held with its number.
+func _buy_a_weapon() -> String:
+	var entry := _cave_or_skip("buy_a_weapon")
+	if entry.is_empty():
+		return ""
+	var weapon := RpgFarmFight.WEAPON
+	var shop := RpgShopDefinition.load_shop(&"village_shop") as RpgFarmShop
+	if shop == null:
+		return "game/data/shops/village_shop.tres is not the shop of a farm"
+	if not _state().items.has(weapon):
+		return "the game has no item %s (game/data/items/%s.tres)" % [weapon, weapon]
+	await _animals_shop_hour(shop)
+	if not shop.offered(_state().items).has(weapon):
+		return "the shop does not offer the weapon: %s" % [shop.offered(_state().items)]
+	var price := shop.buy_price(weapon, _state().items)
+	if price != RpgFarmFight.WEAPON_PRICE:
+		return "the weapon costs %d, the shop's row says %d" % [price, RpgFarmFight.WEAPON_PRICE]
+	_state().gold = maxi(_state().gold, price + 100)  # the run may have spent its money
+	var gold: int = _state().gold
+	var menu: RpgShopMenu = await _ask_for_shop()
+	if menu == null:
+		return "the shop did not open at %s" % [RpgCalendar.current().clock()]
+	var row: Button = null
+	for candidate in menu.rows():
+		if menu.item_of(candidate) == weapon:
+			row = candidate
+	var failure := ""
+	if row == null:
+		failure = "the weapon is not a row of the shop's menu"
+	else:
+		row.pressed.emit()
+		await _frames(2)
+		if _state().inventory.count(weapon) != 1 or _state().gold != gold - price:
+			failure = "buying the weapon left %d of it and %d money (was %d)" % [_state().inventory.count(weapon), _state().gold, gold]
+	if is_instance_valid(menu):
+		menu.close()
+	await _frames(2)
+	if failure != "":
+		return failure
+	if shop.offered(_state().items).has(weapon):
+		return "the weapon is offered again once it is in the bag"
+	failure = await _animals_hold(weapon)
+	if failure != "":
+		return failure
+	if RpgFarmMode.current().hotbar.held_item() != weapon:
+		return "the weapon is not held"
+	return ""
+
+## Through the trail into the cave: an interior with its enemies where the plan puts them, the
+## farmer armed, the HUD's health bar full.
+func _enter_the_cave() -> String:
+	var entry := _cave_or_skip("enter_the_cave")
+	if entry.is_empty():
+		return ""
+	var failure: String = await _added_go(entry)
+	if failure != "":
+		return failure
+	var scene := _tree().current_scene
+	var field := RpgField.current()
+	var enemies := _cave_enemies()
+	var planned := JsonUtil.to_array(entry.get("enemies", []))
+	if enemies.size() != planned.size():
+		return "%d enemies stand in %s, its plan has %d" % [enemies.size(), scene.name, planned.size()]
+	for i in planned.size():
+		var at := _cell(JsonUtil.to_dict(planned[i]).get("cell"))
+		var found := false
+		for enemy in enemies:
+			var near := Vector2(field.cell_at(enemy.global_position)).distance_to(Vector2(at)) <= 2.0
+			if str(enemy.get("entity_id")) == "%s_enemy_%d" % [entry.get("id"), i + 1] and near:
+				found = true
+		if not found:
+			return "no enemy %s_enemy_%d near %s" % [entry.get("id"), i + 1, at]
+	var farmer := _farmer()
+	for part: String in [RpgFarmFight.HEALTH_NODE, RpgFarmFight.HURTBOX_NODE, RpgFarmFight.BLADE_NODE]:
+		if farmer.get_node_or_null(part) == null:
+			return "the farmer has no %s in the cave" % part
+	var bar := _cave_health_bar()
+	var hp := RpgFarmFight.hit_points()
+	if bar == null:
+		return "the HUD has no health bar"
+	if not bar.is_visible_in_tree() or int(bar.value) != hp[0] or int(bar.max_value) != hp[1] or hp[0] != hp[1]:
+		return "the health bar shows %d of %d, the farmer has %s" % [int(bar.value), int(bar.max_value), hp]
+	return ""
+
+## An enemy of the cave is defeated with the weapon held and `use`; it leaves a thing of the
+## cave. The farmer is kept from harm meanwhile (that is the last step's).
+func _defeat_an_enemy() -> String:
+	var entry := _cave_or_skip("defeat_an_enemy")
+	if entry.is_empty():
+		return ""
+	var failure: String = await _cave_shown(entry)
+	if failure == "":
+		failure = await _animals_hold(RpgFarmFight.WEAPON)
+	if failure != "":
+		return failure
+	var fight := RpgFarmFight.current()
+	var enemies := _cave_enemies()
+	if enemies.is_empty():
+		return "no enemy stands in the cave"
+	var enemy: Node2D = enemies[0]
+	var id := str(enemy.get("entity_id"))
+	var health := enemy.get_node_or_null("Health") as RpgHealth
+	var start := health.hp()
+	fight.last_drop = null
+	var hurtbox := _farmer().get_node_or_null(RpgFarmFight.HURTBOX_NODE) as RpgHurtbox
+	var swings := 0
+	for attempt in 30:
+		if not is_instance_valid(enemy) or not is_instance_valid(health) or health.is_dead():
+			break
+		hurtbox.make_invulnerable(2.0)
+		_cave_beside(enemy, entry)
+		await _frames(2)
+		await _tap("use")
+		swings += 1
+		await _wait_for(func() -> bool: return not _farmer().is_busy(), 60)
+	if not RpgUtil.to_bool(_state().get_flag(id, "defeated", false)):
+		return "%s still stands after %d swings (it had %d hit points)" % [id, swings, start]
+	if not await _wait_for(func() -> bool: return fight.last_drop != null and is_instance_valid(fight.last_drop) and fight.last_drop.is_inside_tree(), 30):
+		return "%s left nothing of the cave" % id
+	var item := fight.last_drop.item_id
+	if not fight.cave_things().has(item):
+		return "%s left %s, which is no thing of the cave" % [id, item]
+	_box["cave_enemy"] = id
+	_box["cave_drop"] = item
+	print("[rpggen] INFO defeat_an_enemy: %s fell after %d swings and left %s" % [id, swings, item])
+	return ""
+
+## What the enemy left is walked over (into the bag), and carried back to the farm.
+func _bring_back_what_it_left() -> String:
+	var entry := _cave_or_skip("bring_back_what_it_left")
+	if entry.is_empty():
+		return ""
+	var fight := RpgFarmFight.current()
+	var drop := fight.last_drop
+	if drop == null or not is_instance_valid(drop) or not drop.is_inside_tree():
+		return "nothing that an enemy left lies in the cave"
+	var item := drop.item_id
+	var before := _state().inventory.count(item)
+	var farmer := _farmer()
+	var tile := float(RpgUtil.map_tile_px(_tree().current_scene))
+	farmer.global_position = drop.global_position + Vector2(-tile, 0.0)
+	await _frames(2)
+	var target := drop.global_position
+	await SmokeMap.walk_toward(farmer, target, 180, func() -> bool: return _state().inventory.count(item) > before)
+	if _state().inventory.count(item) != before + 1:
+		return "walking over %s did not put it into the bag" % item
+	# and a thing of the cave that lies at one of its places is picked up with `interact`
+	var failure: String = await _added_pick(entry)
+	if failure != "":
+		return failure
+	var found := str(_box.get("added_item", ""))
+	if not RpgFarmFight.current().cave_things().has(StringName(found)):
+		return "what lay in the cave (%s) is no thing of a cave" % found
+	var carried := _state().inventory.count(item)
+	failure = await _added_back(entry)
+	if failure != "":
+		return failure
+	if _state().inventory.count(item) != carried:
+		return "%s did not come back to the farm in the bag" % item
+	var price := 0
+	for thing in RpgFarmMode.current().forage.things:
+		if str(thing.get("item", "")) == String(item):
+			price = RpgUtil.to_int(thing.get("price", 0))
+	var def: RpgItemDefinition = _state().items.get(item)
+	if price <= 0 or def == null or def.value != price:
+		return "%s is worth %d in the table and %d as an item: it cannot be sold" % [item, price, def.value if def != null else -1]
+	return ""
+
+## In the cave again, the farmer at its last hit point beside an enemy: the enemy's blow
+## defeats it, the day ends, and it wakes at the bed with its health full and the enemy that
+## fell back in its place.
+func _defeated_and_wake_at_home() -> String:
+	var entry := _cave_or_skip("defeated_and_wake_at_home")
+	if entry.is_empty():
+		return ""
+	var failure: String = await _cave_shown(entry)
+	if failure != "":
+		return failure
+	var fight := RpgFarmFight.current()
+	var day_end := RpgFarmMode.current().day_end
+	var calendar := RpgCalendar.current()
+	var today := calendar.today()
+	var enemies := _cave_enemies()
+	if enemies.is_empty():
+		return "no enemy stands in the cave to be defeated by"
+	_state().player_stats.hp = 1
+	fight.health_changed.emit(1, RpgFarmFight.hit_points()[1])
+	await _frames(2)
+	var bar := _cave_health_bar()
+	if bar == null or int(bar.value) != 1:
+		return "the health bar does not show the last hit point"
+	var enemy: Node2D = enemies[0]
+	var struck := false
+	for attempt in 3:
+		if fight.down or not is_instance_valid(enemy):
+			break
+		_cave_beside(enemy, entry)
+		if await _wait_for(func() -> bool: return fight.down, 240):
+			struck = true
+	if not fight.down and is_instance_valid(enemy):
+		# an enemy that keeps its distance (a shooter that missed) strikes through its hitbox
+		var hitbox := enemy.get_node_or_null("AttackHitbox") as RpgHitbox
+		var hurtbox := _farmer().get_node_or_null(RpgFarmFight.HURTBOX_NODE) as RpgHurtbox
+		if hitbox != null and hurtbox != null:
+			hurtbox.invulnerable_until_ms = 0
+			hurtbox.receive(hitbox.build_info(hurtbox))
+	if not fight.down:
+		return "the farmer at its last hit point was not defeated"
+	print("[rpggen] INFO defeated_and_wake_at_home: the farmer fell to %s" % ("an enemy's blow" if struck else "the enemy's hitbox, struck by the step (no blow came in 12 s)"))
+	if not await _wait_for(func() -> bool: return calendar.today() == today + 1, 300):
+		return "being defeated did not end the day"
+	if not await _wait_for_map(HOUSE, 600):
+		return "the farmer did not wake in the farmhouse"
+	await _frames(5)
+	if day_end.summary() != null:
+		day_end.summary().close()
+		await _frames(2)
+	_tree().paused = false
+	if day_end.last_night != RpgDayEnd.PASSED_OUT or not day_end.knocked_out:
+		return "the night was '%s' (knocked out: %s), not a defeat" % [day_end.last_night, day_end.knocked_out]
+	var home := RpgBed.home(_state())
+	var farmer := _farmer()
+	if home.is_empty() or farmer == null:
+		return "the game has no bed, or no farmer woke"
+	var bed_at: Vector2 = home["position"]
+	if farmer.global_position.distance_to(bed_at) > 24.0:
+		return "the farmer woke at %s, the bed is at %s" % [farmer.global_position, bed_at]
+	var hp := RpgFarmFight.hit_points()
+	if fight.down or hp[0] != hp[1] or not farmer.input_enabled:
+		return "the morning after: down %s, %s hit points, input %s" % [fight.down, hp, farmer.input_enabled]
+	bar = _cave_health_bar()
+	if bar == null or int(bar.value) != hp[1]:
+		return "the health bar is not full in the morning"
+	var fallen := str(_box.get("cave_enemy", ""))
+	if fallen != "" and RpgUtil.to_bool(_state().get_flag(fallen, "defeated", false)):
+		return "%s did not come back in the morning" % fallen
+	return ""
+
 # ---------------------------------------------------------------- saving and loading (T17.18)
 #
 # This step stands on its own too: it goes to the farm when another map is shown and works
@@ -2338,6 +2659,7 @@ func _save_snapshot() -> Dictionary:
 		"energy": RpgFarmMode.current().energy.value,
 		"forage": JsonUtil.to_dict(_state().get_flag(RpgForage.FLAG_ENTITY, RpgForage.PICKED_KEY, {})).duplicate(true),
 		"events": _events_snapshot(),  # the festivals' state (T17.25): {} in a farm without them
+		"marriage": _marriage_snapshot(),  # who is courted, engaged, married (T17.26): {} without
 	}
 
 ## The field of the map that is shown against what it was, cell by cell: the saved state of
@@ -2442,6 +2764,8 @@ func _save_and_load() -> String:
 		if herd != null:
 			herd.pet(JsonUtil.to_int(row["id"]))
 	_events_mark(false)  # ... and it is taken away again before the load (T17.25)
+	if RpgMarriage.current() != null:  # and the marriage's state changes (T17.26)
+		_state().set_flag(RpgMarriage.FLAG_ENTITY, RpgMarriage.SPOUSE_KEY, "smoke_nobody")
 	await _weather_frames(2)
 	var changed := _save_snapshot()
 	for part: String in ["date", "gold", "bag", "energy", "forage"]:
@@ -2449,6 +2773,8 @@ func _save_and_load() -> String:
 			return "the %s did not change before the load: the comparison would prove nothing" % part
 	if not JsonUtil.to_dict(kept["events"]).is_empty() and _save_same(changed["events"], kept["events"]):
 		return "the festivals' state did not change before the load: the comparison would prove nothing"
+	if not JsonUtil.to_dict(kept["marriage"]).is_empty() and _save_same(changed["marriage"], kept["marriage"]):
+		return "the marriage's state did not change before the load: the comparison would prove nothing"
 	if _save_same(field.to_dict(), cells):
 		return "the field did not change before the load: the comparison would prove nothing"
 	if not JsonUtil.to_array(kept["herd"]).is_empty() and _save_same(changed["herd"], kept["herd"]):
@@ -2472,7 +2798,7 @@ func _save_and_load() -> String:
 	var date := JsonUtil.to_dict(kept["date"])
 	if calendar.day != JsonUtil.to_int(date["day"]) or calendar.season != JsonUtil.to_int(date["season"]) or calendar.year != JsonUtil.to_int(date["year"]) or calendar.minute != JsonUtil.to_int(date["minute"]):
 		return "the date after loading is %s, it was %s" % [calendar.to_dict(), date]
-	for part: String in ["gold", "bag", "herd", "friends", "energy", "forage", "events"]:
+	for part: String in ["gold", "bag", "herd", "friends", "energy", "forage", "events", "marriage"]:
 		if not _save_same(loaded[part], kept[part]):
 			return "the %s after loading: %s, it was %s" % [part, loaded[part], kept[part]]
 	save.delete(SAVE_SLOT)
@@ -2499,8 +2825,10 @@ const EVENTS_VILLAGE := "res://game/maps/starter_map.tscn"
 ## The events of the game, or null, with an INFO line, in a farm that has none.
 func _events_or_skip(step_name: String) -> RpgFarmEvents:
 	var events := RpgFarmEvents.current()
-	if events == null:
+	# a farm with marriage and without festivals has the events for its wedding only (T17.26)
+	if events == null or not events.with_files:
 		print("[rpggen] INFO %s: the farm has no festivals, step passes" % step_name)
+		return null
 	return events
 
 ## The first hour of a fair day at which a festival's people stand on the square.
@@ -2934,3 +3262,315 @@ func _events_mark(on: bool) -> void:
 		return
 	var date := RpgCalendar.date_after(calendar.day, calendar.season, calendar.year, 3, calendar.days_per_season)
 	events.add_event({"id": "smoke_wedding", "kind": RpgFarmEvents.WEDDING, "name": "Wedding", "season": date[1], "day": date[0], "year": date[2]})
+
+# ---------------------------------------------------------------- marriage (T17.26)
+#
+# These steps come after the festivals and before the last: the bouquet and the pendant are
+# bought at the shop, a person who can be courted is courted and asked with `interact` while
+# each is held, the days to the wedding are ended (the people on the square on its day), the
+# wedding's night is ended with crops on the plot, and the next morning the spouse is at home
+# in the farmhouse and part of the plot is watered. The hearts in between are given, not
+# earned: a run that earns ten hearts with gifts would take a game's year. In a farm without
+# marriage (`starter_map.courtable` 0) each passes with a note.
+
+const MARRIAGE_HOUSE := "res://game/maps/farm_house.tscn"
+const MARRIAGE_FARM := "res://game/maps/farm.tscn"
+const MARRIAGE_VILLAGE := "res://game/maps/starter_map.tscn"
+## How many cells the step plants for the spouse to water on the first morning.
+const MARRIAGE_CROPS := 4
+
+## The marriage of the game, or null, with an INFO line, in a farm that has none.
+func _marriage_or_skip(step_name: String) -> RpgMarriage:
+	var marriage := RpgMarriage.current()
+	if marriage == null:
+		print("[rpggen] INFO %s: the farm has no marriage (starter_map.courtable is 0), step passes" % step_name)
+	elif marriage.courtable().is_empty():
+		print("[rpggen] INFO %s: nobody of the village can be courted, step passes" % step_name)
+		return null
+	return marriage
+
+## The person the steps court: the first who can be courted, or the one courted already.
+func _marriage_person(marriage: RpgMarriage) -> String:
+	for id in marriage.courtable():
+		if marriage.stage_of(id) != "":
+			return id
+	return marriage.courtable()[0]
+
+## Goes to the village at 11:00 of today and stands below the person, the thing `item_id` held;
+## "" when it stands there.
+func _marriage_meet(id: String, item_id: StringName) -> String:
+	var calendar := RpgCalendar.current()
+	if calendar.minute < 11 * 60:
+		calendar.pass_minutes(11 * 60 - calendar.minute)
+	RpgFarmMode.current().weather.force(RpgFarmWeather.SUN)
+	var failure: String = await _animals_go(MARRIAGE_VILLAGE)
+	if failure != "":
+		return failure
+	var npc := _person_node(id)
+	if npc == null or npc.schedule() == null:
+		return "%s has no NPC in the village" % id
+	var schedule := npc.schedule()
+	if not await _wait_for(func() -> bool: return not schedule.walking() and not schedule.away() and npc.visible, 600):
+		return "%s is not in the village at %s" % [id, calendar.clock()]
+	failure = await _animals_hold(item_id)
+	if failure == "":
+		failure = await _stand(_below(npc, 9.0), "up")
+	return failure
+
+## `interact` with the person until `done` says so, standing below it again before each try:
+## the clock goes on while the step waits, and a person whose hour has come walks off.
+func _marriage_give(id: String, done: Callable) -> bool:
+	var npc := _person_node(id)
+	for attempt in 4:
+		var schedule := npc.schedule()
+		await _wait_for(func() -> bool: return not schedule.walking() and not schedule.away() and npc.visible, 600)
+		if await _stand(_below(npc, 9.0), "up") != "":
+			return false
+		await _tap("interact")
+		if await _wait_for(done, 30):
+			return true
+		for i in 20:  # a talk the press may have begun instead (the person had walked on)
+			if not _farmer().move_locked:
+				break
+			await _shared._press("confirm")
+			await _frames(3)
+		await _frames(4)
+	return false
+
+## The bouquet and the pendant are rows of the shop in its hours and are bought with its menu.
+func _buy_a_bouquet() -> String:
+	var marriage := _marriage_or_skip("buy_a_bouquet")
+	if marriage == null:
+		return ""
+	var shop := RpgShopDefinition.load_shop(&"village_shop") as RpgFarmShop
+	if shop == null:
+		return "game/data/shops/village_shop.tres is not the shop of a farm"
+	for item_id: StringName in [RpgMarriage.BOUQUET, RpgMarriage.PENDANT]:
+		if not _state().items.has(item_id):
+			return "the game has no item %s (game/data/items/%s.tres)" % [item_id, item_id]
+	await _animals_shop_hour(shop)
+	if not shop.is_open():
+		return "the shop is closed at %s" % [RpgCalendar.current().clock()]
+	var menu: RpgShopMenu = await _ask_for_shop()
+	if menu == null:
+		return "the shop did not open in its hours"
+	var failure := ""
+	for item_id: StringName in [RpgMarriage.BOUQUET, RpgMarriage.PENDANT]:
+		var price := shop.buy_price(item_id, _state().items)
+		_state().gold += price
+		var had := _state().inventory.count(item_id)
+		var row: Button = null
+		for candidate in menu.rows():
+			if menu.item_of(candidate) == item_id:
+				row = candidate
+		if row == null:
+			failure = "the shop has no row for %s: %s" % [item_id, shop.offered(_state().items)]
+			break
+		row.pressed.emit()
+		await _animals_frames(2)
+		if _state().inventory.count(item_id) != had + 1 or price <= 0:
+			failure = "the shop sold %d of %s for %d" % [_state().inventory.count(item_id) - had, item_id, price]
+			break
+	if is_instance_valid(menu):
+		menu.close()
+	await _animals_frames(2)
+	_tree().paused = false
+	return failure
+
+## Below eight hearts the bouquet is not taken; from eight it is, with `interact`, and the
+## courting begins: the atom of the dialogue says so, and the two last hearts are open.
+func _court_with_a_bouquet() -> String:
+	var marriage := _marriage_or_skip("court_with_a_bouquet")
+	if marriage == null:
+		return ""
+	var friends := RpgFriendship.current()
+	var id := _marriage_person(marriage)
+	if marriage.stage_of(id) != "":
+		return "%s is courted already before the bouquet" % id
+	if not _state().inventory.has(RpgMarriage.BOUQUET):
+		_state().inventory.add(RpgMarriage.BOUQUET, 1)
+	var failure: String = await _marriage_meet(id, RpgMarriage.BOUQUET)
+	if failure != "":
+		return failure
+	# below eight hearts it is not taken
+	friends.points[id] = (RpgMarriage.COURT_HEARTS - 1) * RpgFriendship.HEART_POINTS
+	if marriage.refusal(id, RpgMarriage.BOUQUET) == "":
+		return "%s would take the bouquet at %d hearts" % [id, friends.hearts(id)]
+	friends.add_points(id, 5 * RpgFriendship.HEART_POINTS)
+	if friends.hearts(id) != RpgMarriage.COURT_HEARTS:
+		return "%s has %d hearts before the courting, at most %d" % [id, friends.hearts(id), RpgMarriage.COURT_HEARTS]
+	print("[rpggen] INFO court_with_a_bouquet: %s is given eight hearts (a run cannot earn them)" % id)
+	if not await _marriage_give(id, func() -> bool: return marriage.stage_of(id) == RpgMarriage.COURTING):
+		return "`interact` with the bouquet held did not court %s" % id
+	await _frames(4)
+	if _state().inventory.has(RpgMarriage.BOUQUET):
+		return "the bouquet is still in the bag"
+	if not RpgCondition.evaluate("courting:%s" % id):
+		return "the atom courting:%s is false" % id
+	friends.add_points(id, 2 * RpgFriendship.HEART_POINTS)
+	if friends.hearts(id) != RpgMarriage.PROPOSE_HEARTS:
+		return "%s has %d hearts while courted, expected the two last open" % [id, friends.hearts(id)]
+	return ""
+
+## At ten hearts the pendant, given with `interact`, is a yes: the wedding is three days on (or
+## the next day that is no festival), a day of the calendar for everybody.
+func _propose_with_a_pendant() -> String:
+	var marriage := _marriage_or_skip("propose_with_a_pendant")
+	if marriage == null:
+		return ""
+	var calendar := RpgCalendar.current()
+	var id := _marriage_person(marriage)
+	if marriage.stage_of(id) != RpgMarriage.COURTING:
+		return "%s is not courted (%s)" % [id, marriage.stage_of(id)]
+	if not _state().inventory.has(RpgMarriage.PENDANT):
+		_state().inventory.add(RpgMarriage.PENDANT, 1)
+	var failure: String = await _marriage_meet(id, RpgMarriage.PENDANT)
+	if failure != "":
+		return failure
+	var today := calendar.today()
+	if not await _marriage_give(id, func() -> bool: return marriage.engaged() == id):
+		return "`interact` with the pendant held did not make %s engaged" % id
+	await _frames(40)  # the yes is looked at
+	if _state().inventory.has(RpgMarriage.PENDANT):
+		return "the pendant is still in the bag"
+	if marriage.wedding_day() < today + RpgMarriage.WEDDING_AFTER:
+		return "the wedding is on day %d, the proposal was on %d" % [marriage.wedding_day(), today]
+	if not RpgCondition.evaluate("engaged:%s" % id) or RpgCondition.evaluate("courting:%s" % id):
+		return "the atoms do not say that %s is engaged" % id
+	var events := RpgFarmEvents.current()
+	if events != null:
+		var day := events.events_of(marriage.wedding_day())
+		if JsonUtil.to_str(RpgFarmEvents.festival_of(day).get("kind", "")) != RpgFarmEvents.WEDDING:
+			return "the wedding's day is %s in the calendar" % [day]
+	return ""
+
+## The days to the wedding are ended. On its day the shop is closed and the people stand on the
+## square, the one to be married with them; at its night the farmer is married.
+func _the_wedding() -> String:
+	var marriage := _marriage_or_skip("the_wedding")
+	if marriage == null:
+		return ""
+	var calendar := RpgCalendar.current()
+	var id := marriage.engaged()
+	if id == "":
+		return "nobody is engaged"
+	var guard := 0
+	while calendar.today() < marriage.wedding_day() and guard < 10:
+		await _weather_end_day()
+		guard += 1
+		if marriage.spouse() != "":
+			return "married before the wedding's day"
+	if calendar.today() != marriage.wedding_day():
+		return "the wedding's day did not come (today %d, the wedding %d)" % [calendar.today(), marriage.wedding_day()]
+	if not RpgCondition.evaluate("event:wedding"):
+		return "the atom event:wedding is false on the wedding's day"
+	var shop := RpgShopDefinition.load_shop(&"village_shop") as RpgFarmShop
+	await _events_hour(11)
+	if shop != null and shop.is_open():
+		return "the shop is open on the wedding's day"
+	var failure: String = await _animals_go(MARRIAGE_VILLAGE)
+	if failure != "":
+		return failure
+	var npc := _person_node(id)
+	if npc == null or npc.schedule() == null:
+		return "%s has no NPC in the village" % id
+	var schedule := npc.schedule()
+	var sent := schedule.entry_in_force()
+	if not JsonUtil.to_str(sent.get("place", "")).begins_with("square"):
+		return "%s is sent to %s on its wedding's day" % [id, sent]
+	var at := schedule.place_position(sent)
+	if not await _wait_for(func() -> bool: return not schedule.walking() and not schedule.away() and npc.global_position.distance_to(at) <= 4.0, 600):
+		return "%s is not on the square on its wedding's day" % id
+	failure = await _forage_stand(_below(npc, float(RpgUtil.map_tile_px(_tree().current_scene)) * 1.5), "up")
+	if failure != "":
+		return failure
+	await _frames(40)  # the square is looked at
+	# crops on the plot for the morning after, dry
+	failure = await _animals_go(MARRIAGE_FARM)
+	if failure != "":
+		return failure
+	var field := RpgField.current()
+	var mode := RpgFarmMode.current()
+	if field == null:
+		return "the farm has no field"
+	var in_season := mode.crops.of_season(calendar.season_name())
+	var planted := 0
+	for i in MARRIAGE_CROPS:
+		var found: Variant = _weather_free_cell(field)
+		if found == null or in_season.is_empty():
+			break
+		var cell: Vector2i = found
+		if field.till(cell) and field.plant(cell, in_season[0]):
+			planted += 1
+	_box["marriage_crops"] = planted
+	mode.weather.force_tomorrow(RpgFarmWeather.SUN)
+	await _weather_end_day()
+	if marriage.spouse() != id:
+		return "the wedding's night did not marry %s (spouse '%s')" % [id, marriage.spouse()]
+	if not RpgCondition.evaluate("spouse:%s" % id) or RpgCondition.evaluate("engaged:%s" % id):
+		return "the atoms do not say that %s is the spouse" % id
+	return ""
+
+## The morning after the wedding: part of the plot is watered, and the spouse is at home in the
+## farmhouse, on its cell, and says what it did.
+func _spouse_at_home() -> String:
+	var marriage := _marriage_or_skip("spouse_at_home")
+	if marriage == null:
+		return ""
+	var id := marriage.spouse()
+	if id == "":
+		return "nobody is married"
+	var help := marriage.help_today()
+	if JsonUtil.to_str(help.get("kind", "")) != RpgMarriage.WATER:
+		if JsonUtil.to_int(_box.get("marriage_crops", 0)) == 0:
+			print("[rpggen] INFO spouse_at_home: the plot had no free cell to plant, nothing was dry to water")
+		else:
+			return "the first morning's help is %s, not watering" % [help]
+	var field := RpgField.current()
+	if field != null and field.resolved_id() == RpgMarriage.FARM_FIELD and JsonUtil.to_int(help.get("count", 0)) > 0:
+		var wet := 0
+		var dry := 0
+		for key: Variant in field.to_dict().keys():
+			if field.is_watered(RpgField.cell_of(JsonUtil.to_str(key))):
+				wet += 1
+			else:
+				dry += 1
+		if wet < JsonUtil.to_int(help.get("count", 0)) or dry == 0:
+			return "the plot shows %d wet and %d dry cells after %s: not part of it" % [wet, dry, help]
+	var failure: String = await _animals_go(MARRIAGE_HOUSE)
+	if failure != "":
+		return failure
+	var npc := marriage.spouse_node() as Node2D
+	if npc == null:
+		return "the farmhouse has no spouse"
+	var schedule := npc.get_node_or_null(RpgSchedule.NODE_NAME) as RpgSchedule
+	var cell := marriage.home_cell()
+	if schedule == null or schedule.away() or not npc.visible or cell.size() != 2:
+		return "the spouse is not seen at home (cell %s)" % [cell]
+	var scene := _tree().current_scene as Node2D
+	var at := RpgSchedule.cell_position(scene, Vector2i(JsonUtil.to_int(cell[0]), JsonUtil.to_int(cell[1])))
+	if npc.global_position.distance_to(at) > 4.0:
+		return "the spouse stands %.0f px from its place" % npc.global_position.distance_to(at)
+	var said := ""
+	var lines: Variant = npc.get(&"dialogue")
+	if lines is RpgDialogueResource:
+		var dialogue: RpgDialogueResource = lines
+		if not dialogue.lines.is_empty():
+			said = dialogue.lines[0].text
+	if said == "":
+		return "the spouse has nothing to say"
+	# the farmer stands below the spouse and looks at it for a moment
+	failure = await _forage_stand(_below(npc, float(RpgUtil.map_tile_px(scene))), "up")
+	if failure != "":
+		return failure
+	await _frames(40)
+	print("[rpggen] INFO spouse_at_home: %s says \"%s\"; the help: %s" % [id, said, help])
+	return ""
+
+## What a save holds of the marriage: who is courted, engaged and married, the wedding's day,
+## this morning's help and what lies on the table.
+func _marriage_snapshot() -> Dictionary:
+	var marriage := RpgMarriage.current()
+	if marriage == null:
+		return {}
+	return {"courting": marriage.courting(), "engaged": marriage.engaged(), "wedding": marriage.wedding_day(), "spouse": marriage.spouse(), "help": marriage.help_today(), "table": String(marriage.on_table())}

@@ -30,6 +30,10 @@
         "loves": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "likes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "courtable": {
+          "description": "T17.26: the person can be courted (a bouquet from eight hearts) and married (a pendant at ten).",
+          "type": "boolean"
+        },
         "birthday": {
           "description": "T17.25: a gift on this day counts several times. {} for nobody's day.",
           "type": "object",

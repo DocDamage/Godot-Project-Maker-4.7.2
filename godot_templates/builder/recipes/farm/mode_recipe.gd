@@ -9,7 +9,10 @@ extends RefCounted
 ## that is the mode's own default is not written into the scene, so the mode of a farm with the
 ## default options is the scene it was. `festivals` (T17.25) is the mode's property of that
 ## name: true in a farm with `starter_map.festivals` on whose plan has its festivals, and not
-## written (nor in the hash) in any other, whose mode is the scene it was.
+## written (nor in the hash) in any other, whose mode is the scene it was. `fights` (T17.24)
+## the same for a farm that fights (FarmBuild.fights), whose HUD has the farmer's health too.
+## `courting` (T17.26) is the same for marriage: true in a farm with `starter_map.courtable`
+## above 0 whose plan has somebody to court.
 
 const RECIPE_VERSION := 5
 ## The folder of the files that are the user's once they exist (crops.json, people.json, ...).
@@ -27,6 +30,10 @@ func input_hash(ctx: BuildContext) -> String:
 	var hashed := {"v": RECIPE_VERSION, "pass_out_loss": FarmBuild.pass_out_loss(ctx), "days": FarmBuild.days_per_season(ctx), "minute_s": FarmBuild.minute_s(ctx), "hud": HudRecipe.mode_hash(ctx)}
 	if FarmBuild.festivals(ctx):  # only a farm with festivals has the key (T17.25)
 		hashed["festivals"] = true
+	if FarmBuild.fights(ctx):  # only a farm that fights has the key (T17.24)
+		hashed["fights"] = true
+	if FarmBuild.courting(ctx):  # only a farm with marriage has the key (T17.26)
+		hashed["courting"] = true
 	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
@@ -41,7 +48,11 @@ func build(ctx: BuildContext) -> Array:
 	root.set("data_dir", DATA_DIR)
 	if FarmBuild.festivals(ctx):
 		root.set("festivals", true)
-	root.add_child(HudRecipe.build_hud(ctx))
+	if FarmBuild.fights(ctx):
+		root.set("fights", true)
+	if FarmBuild.courting(ctx):
+		root.set("courting", true)
+	root.add_child(HudRecipe.build_hud(ctx, FarmBuild.fights(ctx)))
 	root.add_child(HudRecipe.build_weather(ctx))
 	var err := SceneUtil.save_scene(root, FarmBuild.MODE_PATH)
 	if err != OK:

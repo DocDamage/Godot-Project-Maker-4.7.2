@@ -83,6 +83,8 @@ const FROM_VILLAGE := "from_village"
 const FROM_FARM := "from_farm"
 ## Where a new game starts, in the farmhouse.
 const START_SPAWN := "start"
+## The second bed of a bed for two (T17.26: the room's plan says `sleepers: 2`).
+const BED_TWO := "Bed2"
 ## What a tool clears says what it is with this metadata (RpgField.CLEAR_META).
 const CLEAR_META := &"farm_clear"
 ## What of the plan the farmer cannot walk through (farm_plan.BLOCKING, and a tree).
@@ -1084,17 +1086,31 @@ func _add_bed(ctx: BuildContext, room: Dictionary, bed_plan: Dictionary, root: N
 		bed = HomeRecipe.build_bed(ctx)
 	var footprint: Vector2i = bed.get("footprint")
 	var head := cell_of(bed_plan.get("cell"))
-	var start := start_cell(cell_of(room.get("start")), head, footprint, cell_of(room.get("size")))
+	# a bed for two (T17.26: the plan's `sleepers`): a second bed east of the first, both
+	# waking the farmer on the same cell
+	var two := JsonUtil.to_int(bed_plan.get("sleepers", 1), 1) >= 2
+	var lying := Vector2i(footprint.x * (2 if two else 1), footprint.y)
+	var start := start_cell(cell_of(room.get("start")), head, lying, cell_of(room.get("size")))
 	var facing := JsonUtil.to_str(JsonUtil.to_dict(plan().get("start", {})).get("facing", "down"))
-	# its foot is the lowest row of its cells, and the middle of their width; on diamonds the
-	# middle of the one of its cells nearest the camera
-	if geo.isometric:
-		bed.position = geo.center(head + footprint - Vector2i.ONE)
-	else:
-		bed.position = Vector2(head.x * tile_px + footprint.x * tile_px * 0.5, (head.y + footprint.y) * tile_px)
-	bed.set("wake_offset", geo.center(start) - bed.position)
-	bed.set("wake_facing", facing)
-	entities.add_child(bed)
-	bed.owner = root
+	var beds: Array[Node2D] = [bed]
+	if two:
+		var second := SceneUtil.instance(HomeRecipe.BED_SCENE) as Node2D
+		if second == null:
+			second = HomeRecipe.build_bed(ctx)
+		second.name = BED_TWO
+		beds.append(second)
+	for i in beds.size():
+		var one := beds[i]
+		var at := head + Vector2i(footprint.x * i, 0)
+		# its foot is the lowest row of its cells, and the middle of their width; on diamonds
+		# the middle of the one of its cells nearest the camera
+		if geo.isometric:
+			one.position = geo.center(at + footprint - Vector2i.ONE)
+		else:
+			one.position = Vector2(at.x * tile_px + footprint.x * tile_px * 0.5, (at.y + footprint.y) * tile_px)
+		one.set("wake_offset", geo.center(start) - one.position)
+		one.set("wake_facing", facing)
+		entities.add_child(one)
+		one.owner = root
 	MapUtil.add_marker(spawns, root, START_SPAWN, geo.center(start), true, facing)
 	return start

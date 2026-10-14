@@ -1576,6 +1576,10 @@ ADDED_COLORS = {
     "sand": (226, 208, 150),
     "forest": (76, 132, 62),
     "forage": (236, 120, 170),
+    # a cave (T17.24): its floor, its rock and its enemies
+    "cave": (92, 84, 78),
+    "rock": (44, 40, 42),
+    "enemy": (214, 60, 52),
 }
 # the legend's order: what the farmer works with first, the scenery last
 FARM_ORDER = (
@@ -1629,7 +1633,8 @@ def farm_cells(farm: dict[str, Any]) -> dict[tuple[int, int], str]:
     return out
 
 
-ADDED_GROUNDS = {"beach": "sand", "forest": "forest"}  # the ground of an added map, by its kind
+# the ground of an added map, by its kind
+ADDED_GROUNDS = {"beach": "sand", "forest": "forest", "cave": "cave"}
 
 
 def added_cells(entry: dict[str, Any]) -> dict[tuple[int, int], str]:
@@ -1649,16 +1654,19 @@ def added_cells(entry: dict[str, Any]) -> dict[tuple[int, int], str]:
     put(entry.get("paths", []), "path")
     put((entry.get("water") or {}).get("cells", []), "water")
     put(entry.get("trees", []), "tree")
+    put(entry.get("walls", []), "rock")
     put([thing["cell"] for thing in entry.get("scenery", [])], "scenery")
     put([thing["cell"] for thing in entry.get("debris", [])], "debris")
     put(entry.get("spots", []), "forage")
+    put([thing["cell"] for thing in entry.get("enemies", [])], "enemy")
     put([entry["door"]["cell"]], "exit")
     return out
 
 
 FARM_ISO_DIAMOND = (2, 1)  # the diamond of a pack that says none: twice as wide as high
 FARM_ISO_BACKGROUND = (24, 24, 30)
-FARM_RAISED = frozenset({"building", "tree", "fence", "bin"})  # what stands up on its diamond
+# what stands up on its diamond (the rock of a cave too, T17.24)
+FARM_RAISED = frozenset({"building", "tree", "fence", "bin", "rock"})
 
 
 def farm_diamond(scale: int, footprint: tuple[int, int] | None = None) -> tuple[int, int]:

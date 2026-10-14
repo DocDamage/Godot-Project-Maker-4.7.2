@@ -1622,6 +1622,10 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Cave</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>What kind of map this is</source>
         <translation type="unfinished"></translation>
     </message>

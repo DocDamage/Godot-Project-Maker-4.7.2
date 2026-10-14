@@ -36,7 +36,7 @@ from PIL import Image
 
 from rpggen import paths
 from rpggen.core import classifier
-from rpggen.core.adapters import naming, sequences
+from rpggen.core.adapters import naming, sequences, tiled
 from rpggen.core.adapters.base import AdapterContext, AdapterResult, AssetFragment
 from rpggen.core.adapters.kenney_atlas import UNUSED_ATLAS_COPY
 from rpggen.core.analyzer import image_facts
@@ -432,16 +432,28 @@ class IsometricAdapter:
         animated = {
             f.path for seq in sequences.find_sequences(inv, ctx.claimed) for _n, f in seq.frames
         }
+        # the pictures an isometric Tiled map of the pack paints with are measured wherever
+        # they lie (T17.28): the Tiled sample of a pack lies in a folder of samples
+        painted = tiled.map_pictures(ctx.results)
         stills = [
             f
             for f in inv.files
             if _is_still(f)
             and f.path not in ctx.claimed
             and f.path not in animated  # "walk_0" to "walk_3" is the sequence reader's
-            and (shown is None or posixpath.dirname(f.path) in shown)
-            and not classifier.not_game_art(f.path, wrapper)
-            and not {p.casefold() for p in _folders(f.path)} & CHARACTER_FOLDERS
+            and (
+                f.path in painted
+                or (
+                    (shown is None or posixpath.dirname(f.path) in shown)
+                    and not classifier.not_game_art(f.path, wrapper)
+                    and not {p.casefold() for p in _folders(f.path)} & CHARACTER_FOLDERS
+                )
+            )
         ]
+        # ... but only the pack's own pictures say what its diamond is, when it has any
+        only_painted = {
+            f.path for f in stills if f.path in painted and classifier.not_game_art(f.path, wrapper)
+        }
         taken: set[str] = set()
         for path in sorted(other_views(stills)):
             taken.add(path)
@@ -479,7 +491,8 @@ class IsometricAdapter:
         stills = [f for f in stills if f.path not in taken]
 
         pictures = [p for p in (_look(root, f) for f in stills) if p is not None]
-        ground = find_ground(pictures, words) if pictures else None
+        own = [p for p in pictures if p.f.path not in only_painted]
+        ground = find_ground(own or pictures, words) if pictures else None
         if ground is None:
             if pictures:
                 reason = (

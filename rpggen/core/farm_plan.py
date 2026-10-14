@@ -224,7 +224,8 @@ def _route(sources: list[Cell], goals: set[Cell], closed: set[Cell], size: Cell)
 
 def _interior(kind: str, building_id: str, wide: int, door: int) -> dict[str, Any]:
     """The room inside a building: its walls are the outermost cells, its way out is a cell of
-    the bottom wall. The house has the bed (its head at ``cell``, a cell wide and two long) and
+    the bottom wall. The house has the bed (its head at ``cell``; since T17.26 a bed for two,
+    ``sleepers`` 2: two cells wide and two long, where a plan from before has one cell wide) and
     the cell the farmer starts on; an animal house has a trough and a place for every animal."""
     least_w, high = INTERIORS[kind]
     width = max(least_w, wide + 2)
@@ -236,8 +237,10 @@ def _interior(kind: str, building_id: str, wide: int, door: int) -> dict[str, An
         "arrive": [column, high - 2],
     }
     if kind == "house":
-        room["bed"] = {"cell": [1, 1], "size": [1, 2]}
-        room["start"] = [2, 2]
+        # a bed for two (T17.26): two beds side by side, planned whether or not anybody marries,
+        # since a room that exists is never built again
+        room["bed"] = {"cell": [1, 1], "size": [2, 2], "sleepers": 2}
+        room["start"] = [3, 2]
     else:
         room["trough"] = [1, 1]
         room["stalls"] = [[3 + i, 1] for i in range(STALLS[kind])]

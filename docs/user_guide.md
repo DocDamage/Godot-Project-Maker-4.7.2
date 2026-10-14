@@ -297,7 +297,11 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
   their flips; the solid values of an LDtk IntGrid layer block the player (*Solid values…* chooses them; a value named wall, solid or collision starts solid); objects on layers named
   `spawn`, `door` or `sign` become spawn points, doors (properties `target_map`, `target_spawn`)
   and markers with a `text`. Layers saved with zlib, gzip or Zstandard compression are read.
-  Like the other maps these are yours: regenerating never rewrites them.
+  Like the other maps these are yours: regenerating never rewrites them. An **isometric** Tiled
+  map is a map of an isometric project, and a map of squares (Tiled or LDtk) of a project seen
+  from above: a checked map of the other view is not built, and the run says so (TILE-013); see
+  [The isometric view](#3d-the-isometric-view). A staggered or hexagonal map is not read
+  (TILE-009 says why).
 * **Export targets.** Each checked platform gets an export preset in `export_presets.cfg`, so
   *Project → Export…* in Godot is ready to use: **Windows** (on by default, one `.exe` with the
   game inside), **Web** (`export/web/index.html`; thread support is off, so the build runs on
@@ -714,7 +718,8 @@ withered crop has the **Harvest** sound, and the rod has **Watering** for its ca
 
 **The options.** The Options page has a **Farm** box above the **Village** box (the *Starter
 map* box of the other top-down kinds, without the counts of villagers and enemies: the people
-are planned, and nobody is fought). *Combat* is not among the features of a farm.
+are planned, and nobody is fought in the village). **Combat** (off by default) gives the farm
+a **cave**: see *The cave* below.
 
 * **Farm** (small 32 x 24, medium 40 x 30, large 48 x 36 tiles) and **Plot** (24, 96 or 160
   cells that can be tilled). Only the plot can be tilled.
@@ -728,6 +733,9 @@ are planned, and nobody is fought). *Combat* is not among the features of a farm
 * **Festivals and birthdays** (on): a festival in every season and a birthday for everybody.
   Off, the farm has neither. It can be switched on for a farm that exists; the dry run and
   the words under the picture then say *4 festivals*.
+* **People to court** (2): how many people of the village can be courted and married; 0
+  turns marriage off. Who they are is chosen once and kept. It can be switched on for a farm
+  that exists: its people are chosen then, and nothing else of them changes.
 * The picture is the **planned farm**: the house, the plot, the pond or the well, the shipping
   bin, the yards with their fences and gates, the paths, what is to be cleared, the trees and
   the way to the village, with a legend; the line under it says it in words (*a farm of 40 x
@@ -743,9 +751,26 @@ are planned, and nobody is fought). *Combat* is not among the features of a farm
   **kind**. A **forest** is thick with trees and has a clearing, things to clear and places
   where things to forage lie; a **beach** has sand, the sea along one side to fish in, and
   shells and seaweed of its own. The kind follows the name until you choose it (*North shore*
-  is a beach, anything else a forest). The preview shows each added map beside the farm, and
-  the summary names them. In the game the way to an added map is a worn patch of ground with
-  an arrow at the edge of the farm. A cave is not offered yet.
+  is a beach, *Old mine* or *Crystal cavern* a cave, anything else a forest). The preview
+  shows each added map beside the farm, and the summary names them. In the game the way to an
+  added map is a worn patch of ground with an arrow at the edge of the farm. A **cave** row
+  needs *Combat* (without it the row is refused with a sentence that says so); with *Combat*
+  on and no cave row the farm gets one called *Cave* by itself.
+
+**The cave** (the feature *Combat*). With *Combat* on the farm has a cave among its added maps:
+rock with three chambers hollowed out of it and joined by tunnels, a few boulders, places
+where ore, crystals and mushrooms of the dark lie (the packs' items tagged `forage` and `cave`,
+else drawn ones; they sell for more than what lies on the farm, and the mushroom can be eaten),
+and the action RPG's enemies in the chambers away from the way in (the packs' `ENEMY`
+pictures, else a drawn slime). The shop sells a **sword** (200); hold it in the hotbar and
+press **Use** to swing it. A HUD of a farm with *Combat* has a red **health** bar over the
+energy. A defeated enemy leaves one of the cave's things where it fell (walk over it to pick
+it up) and is back the next morning. **Being defeated is passing out**: the day ends at once
+and you wake at the bed as after 2:00, with half your energy and, with *Passing out costs
+money*, a tenth of your money gone; your health is full every morning. The cave is dim and
+no rain falls there. Like every added map it is built once; switching *Combat* off later
+keeps the cave and its enemies (the report says so), since a map that exists is never taken
+away. With *Combat* off a farm is exactly what it was: no cave, no sword, nothing to fight.
 
 Once the farm has been generated its size, its plot, its animal houses, the difficulty and the
 starting money are fixed (the box says so): the farm's map exists and is yours. The other
@@ -813,6 +838,14 @@ options are read on every generation.
   times and is not one of the week's two. *Pause → People* names the day of who you have met.
 * **The calendar** hangs on the wall of your farmhouse (interact with it) and is in the pause
   menu as *Calendar*: the weeks of the season, today, the festival and the birthdays.
+* **Marriage** (with *People to court* above 0). Somebody you can court stops at eight hearts
+  until you give them a **bouquet** from the shop; at ten hearts a **pendant** is a yes, and
+  the wedding is three days later, a day on the square for everybody. The spouse then lives in
+  your farmhouse, has a day of their own (home in the morning, the square on two afternoons a
+  week), says other things, and on some mornings waters part of the plot, feeds the animals or
+  leaves something on the table for you. Friendship you neglect falls slowly (2 points a day
+  without a talk); nothing worse happens. The farmhouse has a bed for two; one built before
+  marriage keeps its bed, and the spouse lives there all the same.
 
 ![A farm](images/game_farm.png)
 
@@ -833,13 +866,19 @@ and energy, and how to add a crop.
 **Known limits.** Nobody has played a whole season by hand yet: the length of a day, the
 prices and the energy are untuned. The door to an added map is a mark on the ground beside
 the farm's edge, not a gap in it, and a tree that stands before it can hide it; the people of
-the village never go to an added map. There is no cave and nothing to
-fight. The farmer's tool strips of a pack are not played. A field has no edge tiles: tilled
+the village never go to an added map. Nobody has fought in the cave by hand: the enemies,
+the sword and the prices of the cave are untuned, the rock is drawn as flat dark shapes (on
+diamonds too), and the farmer's own attack animation is played only when its sheet has one.
+The farmer's tool strips of a pack are not played. A field has no edge tiles: tilled
 soil is one tile of the pack's soil sheet. Nobody has played a festival by hand: the prizes
 are untuned, the eggs and the table are drawn shapes that no pack's picture replaces, and you
 can walk through the table. A farm that was generated before festivals has its calendar in
 the pause menu only, its eggs lie round the square and not at places of their own, and its
-people say nothing of the day (their dialogue files were written before). Marriage, cooking
+people say nothing of the day (their dialogue files were written before). Nobody has courted
+anybody by hand: the hearts the smoke run needs are given to it, and the help is untuned. The
+spouse in the farmhouse is seen in the morning and the evening only; at night they are not
+seen, and they never walk onto the farm itself. A person from a farm made before marriage has
+no lines for courting in their dialogue (the spouse at home has its own). Children, cooking
 and crafting are not part of this kind.
 
 ## 3d. The isometric view
@@ -938,10 +977,33 @@ a building has its door before the middle of its front).
 
 ![An isometric game](images/game_isometric.png)
 
+**An isometric Tiled map.** A pack that ships a Tiled map whose orientation is *isometric*
+(Kenney's *Isometric Miniature* packs have one in `Samples/Tiled Sample.zip`) lists it in the
+*Imported maps* box like any other map, and an isometric project builds it on its diamonds:
+
+* Each tile is the picture its Tiled tile shows. The pictures are read as the pack's own are,
+  also when they lie in a folder of samples, and they join the project's tile set for that map
+  alone: they stay *unused* in the audit and fill no role. A picture whose file is not read as
+  isometric is matched by its bytes to one of the pack's isometric pictures.
+* The first layer that Tiled draws in its place is the ground; every other layer stands among
+  the people and things of the map, so that you walk behind a wall and in front of it, and a
+  layer that Tiled draws higher (a second floor) is drawn as high. A tile flipped in Tiled is
+  drawn unflipped.
+* A picture whose role is *Wall*, or (for a picture of the samples) whose name says wall, blocks
+  its diamond. Nothing else of the map blocks.
+* Objects named `spawn`, `door` or `sign` stand on the middle of their diamond. Without a spawn
+  you start on the free ground nearest the middle of the map's ground.
+
+A map of squares is not built into an isometric project, nor an isometric map into a project
+seen from above: the run says *The map … is drawn on diamonds and this project is seen from
+above: it is not imported.* (TILE-013), and a starter map of the other view is planned as if
+none was chosen. Staggered and hexagonal maps are not read.
+
 **Known limits.** Nobody has played an isometric game by hand yet. The **RPG Project Tools**
 dock places on diamonds (see *4. In Godot*), but nobody has dropped anything into an isometric
-map with a mouse yet: it was run by a test in an editor without a window. **Imported maps**
-(Tiled, LDtk) count squares, not diamonds: do not check imported maps on an isometric map. A room has walls only when the packs
+map with a mouse yet: it was run by a test in an editor without a window. An imported
+isometric map has no height: the stairs of a sample are pictures you walk across, and a second
+floor is only drawn higher. A room has walls only when the packs
 have isometric wall pieces. No terrain (autotile) is read from an isometric pack. Round road
 corners of a pack are laid on the square corners of a planned track, so a car can be seen on
 the verge at the outside of a corner. Some real packs are read wrongly: cars whose headings
@@ -1072,6 +1134,7 @@ Every message has a code; [errors.md](errors.md) lists all of them with the fix.
 | ASSET-031 | Something the kind of game needs was drawn for your pack | Info only: the game plays; give an asset of your own the role to replace the drawing. |
 | CAT-002 with `/projection` | The isometric view was asked for and the packs have no isometric ground tile, or a generated project was asked for another view | Add a pack of isometric tiles, or leave the view as it is. |
 | TILE-010 / TILE-011 / TILE-012 | An isometric pack's diamond could not be read / isometric and square ground in one project / tiles on another diamond were left out | The pack's pictures stay plain pictures (a text file of the pack that gives the tile size of its map is read when there is one); leave one of the two grounds out; use packs drawn on one diamond. See [The isometric view](#3d-the-isometric-view). |
+| TILE-013 | A checked imported map is drawn in the other view than the project's (diamonds against squares) | It is not built. Uncheck it, or make a project of the map's view. See [The isometric view](#3d-the-isometric-view). |
 | VAL-031 | A farm's plan cannot be worked (the plot, the bed or the bin cannot be reached) | Mend the farm's map in `rpggen/world_plan.json` (the section `farm.map`), or delete that section and `game/maps/farm.tscn` and regenerate to have the farm planned again. |
 | ASSET-001 / ASSET-003 | Tile size uncertain / grid does not divide | Fix the grid in the audit. |
 | REGEN-005 | The Godot editor has the project open | Close it, press Retry. |

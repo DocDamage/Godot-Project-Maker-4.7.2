@@ -250,6 +250,9 @@ var _group_of: Dictionary = {}
 ## asset id -> effective facets, for the tiles of the set
 var _facets: Dictionary = {}
 var _ids: Array[String] = []
+## asset id -> true for a picture that is in the set only for an imported map that paints it
+## (T17.28: an object of a pack, a picture of its samples): no plan paints it
+var _maps_only: Dictionary = {}
 
 func _init(catalog: CatalogReader) -> void:
 	_catalog = catalog
@@ -262,6 +265,8 @@ func _init(catalog: CatalogReader) -> void:
 		var asset_id := JsonUtil.to_str(id)
 		var entry := JsonUtil.to_dict(tiles[id])
 		_tiles[asset_id] = {"source": JsonUtil.to_int(entry.get("source", -1)), "coords": _vec(entry.get("coords")), "of": JsonUtil.to_str(entry.get("of", ""))}
+		if JsonUtil.to_bool(entry.get("maps_only", false)):
+			_maps_only[asset_id] = true
 		_ids.append(asset_id)
 	_ids.sort()
 	for asset_id in _ids:
@@ -373,13 +378,18 @@ func _matches(asset_id: String, what: String) -> bool:
 	var asset := _catalog.asset(asset_id)
 	return JsonUtil.to_str(asset.get("pack_id", "")) == what or _tags(eff).has(what) or JsonUtil.to_str(eff.get("role", "")) == what
 
-## The tiles of the set that are of `what`: a pack id, a tag or a role ("" for all), by id.
+## The tiles of the set that are of `what`: a pack id, a tag or a role ("" for all), by id. A
+## picture that is in the set only for an imported map is none of them.
 func pieces(what: String) -> Array[String]:
 	var out: Array[String] = []
 	for asset_id in _ids:
-		if _matches(asset_id, what):
+		if _matches(asset_id, what) and not _maps_only.has(asset_id):
 			out.append(asset_id)
 	return out
+
+## True for a picture that is in the set only for an imported map that paints it (T17.28).
+func maps_only(asset_id: String) -> bool:
+	return _maps_only.has(asset_id)
 
 ## The piece of `what` (a pack id, a tag or a role) that joins on exactly the sides `joins`
 ## (of n, e, s, w): `{asset_id, turn}` for `tile_for` and `paint`, or {} when the packs have
@@ -470,7 +480,7 @@ func plain_tiles(role: String) -> Array[String]:
 	var raised: Array[String] = []
 	for asset_id in _ids:
 		var eff := facets(asset_id)
-		if JsonUtil.to_str(eff.get("role", "")) != role or eff.has("joins"):
+		if JsonUtil.to_str(eff.get("role", "")) != role or eff.has("joins") or _maps_only.has(asset_id):
 			continue
 		if _group_of.has(asset_id) and _group_of[asset_id] != asset_id:
 			continue  # a turn of a tile that is listed by its first

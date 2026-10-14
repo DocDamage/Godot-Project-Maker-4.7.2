@@ -44,7 +44,7 @@ def test_the_kind_of_a_row_is_its_own_or_the_words_of_its_name() -> None:
     assert [kind(n) for n in ("Forest", "Old woods", "Birch Grove", "wood")] == ["forest"] * 4
     assert kind("Map 3") == "forest" and kind("") == "forest", "anything else is a forest"
     assert kind("Beachcomber") == "forest", "a word, not a part of one"
-    assert kind("Cave") == "forest", "no name chooses the kind that is not built yet"
+    assert [kind(n) for n in ("Cave", "Old mine", "Crystal Cavern", "grotto")] == ["cave"] * 4
     assert added_map_plan.row("Dunes") == {"name": "Dunes", "kind": "forest"}
     assert added_map_plan.row({"name": " Dunes ", "kind": "beach"}) == {
         "name": "Dunes",
@@ -57,7 +57,7 @@ def test_the_kind_of_a_row_is_its_own_or_the_words_of_its_name() -> None:
         "forest",
         "beach",
     ]
-    assert added_map_plan.BUILT == ("forest", "beach") and added_map_plan.RESERVED == ("cave",)
+    assert added_map_plan.BUILT == ("forest", "beach", "cave") and added_map_plan.RESERVED == ()
     assert set(added_map_plan.PLANNERS) == set(added_map_plan.BUILT)
     assert set(added_map_plan.SIZES) == set(added_map_plan.BUILT)
 
@@ -65,13 +65,10 @@ def test_the_kind_of_a_row_is_its_own_or_the_words_of_its_name() -> None:
 def test_a_row_that_cannot_be_a_map_says_why() -> None:
     with pytest.raises(added_map_plan.AddedMapError, match="needs a name"):
         added_map_plan.row({"name": "  "})
-    with pytest.raises(added_map_plan.AddedMapError, match="Deep: .* kind cave is not built yet"):
-        added_map_plan.row({"name": "Deep", "kind": "cave"})
-    with pytest.raises(added_map_plan.AddedMapError, match="one of forest, beach, not swamp"):
+    assert added_map_plan.row({"name": "Deep", "kind": "cave"}) == {"name": "Deep", "kind": "cave"}
+    with pytest.raises(added_map_plan.AddedMapError, match="one of forest, beach, cave, not swamp"):
         added_map_plan.row({"name": "Bog", "kind": "swamp"})
     # the farm's options say the same, as the config's check words it
-    with pytest.raises(farm_plan.FarmPlanError, match="kind cave is not built yet"):
-        farm_plan.normalized({"added_maps": [{"name": "Deep", "kind": "cave"}]})
     with pytest.raises(farm_plan.FarmPlanError, match="not swamp"):
         farm_plan.plan({"added_maps": [{"name": "Bog", "kind": "swamp"}]}, 3)
     # the config's schema offers the kinds that are built, and a row may name none
@@ -117,7 +114,7 @@ def test_an_added_map_is_planned_on_cells_and_is_the_same_for_the_same_seed(kind
         cols, rows = entry["size"]
         assert gap[0] in (0, cols - 1) or gap[1] in (0, rows - 1)
         assert abs(gap[0] - spawn[0]) + abs(gap[1] - spawn[1]) == 1
-        assert entry["debris"], "something to clear lies on every added map"
+        assert entry["debris"] or kind == "cave", "something to clear lies on a forest and a beach"
     # the packs' ground for the kind, when they have one, is named in the plan
     sandy = added_map_plan.plan(kind, 1, 5, "Somewhere", {"grounds": {kind: "pack.tiles.own"}})
     assert sandy["ground"] == "pack.tiles.own"
@@ -351,8 +348,8 @@ def test_a_new_row_plans_one_more_map_and_leaves_the_stored_ones_byte_for_byte(
     few["trails"] = few["trails"][:3]
     with pytest.raises(farm_plan.FarmPlanError, match="Bay: the farm has room for 3 added maps"):
         farm_plan.extend(few, [{"name": "Bay"}])
-    with pytest.raises(farm_plan.FarmPlanError, match="kind cave is not built yet"):
-        farm_plan.extend(grown, [{"name": "Deep", "kind": "cave"}])
+    deeper, _added = farm_plan.extend(grown, [{"name": "Deep", "kind": "cave"}])
+    assert deeper["added"][-1]["kind"] == "cave" and deeper["added"][:3] == grown["added"]
 
 
 def test_a_farm_from_before_it_had_trails_keeps_a_new_row_as_a_name(tmp_path: Path) -> None:
@@ -529,12 +526,15 @@ def test_a_config_carries_the_rows_and_a_dry_run_names_the_maps() -> None:
         "Bay: a beach of 30 x 20 with 6 places to forage and the sea to fish in",
     ]
     assert ", a forest (Old woods), a beach (Bay), " in plan["farm"]
-    # a kind that is not built is refused by the config's schema, and by the planner in words
+    # a kind nobody knows is refused by the config's schema; a cave without Combat by the
+    # planner, in words (T17.24)
     schema.validate("config", cfg.to_json())
-    cfg.starter_map["added_maps"] = [{"name": "Deep", "kind": "cave"}]
+    cfg.starter_map["added_maps"] = [{"name": "Deep", "kind": "swamp"}]
     with pytest.raises(RpgGenError):
         schema.validate("config", cfg.to_json())
-    assert "kind cave is not built yet" in " ".join(dry_run._plan(cfg, cat)["warnings"])
+    cfg.starter_map["added_maps"] = [{"name": "Deep", "kind": "cave"}]
+    schema.validate("config", cfg.to_json())
+    assert "switch on the feature Combat" in " ".join(dry_run._plan(cfg, cat)["warnings"])
     # the requirement check notes what a beach needs drawn, for the dry run and the wizard
     from rpggen.core import requirements
 

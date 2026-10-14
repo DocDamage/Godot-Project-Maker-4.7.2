@@ -17,6 +17,10 @@ extends Node
 ## day: it costs what it always costs, but it is the day's gift all the same. A second gift on
 ## the birthday is a gift like any other.
 ##
+## **Marriage** (T17.26, RpgMarriage) sets `cap_of`, the most points a person can have (eight
+## hearts for somebody who can be courted and is not yet), and takes a bouquet or a pendant
+## that is given (`gift` hands it over), which is no gift of taste.
+##
 ## It also knows the people themselves (`people`, from the file), gives their schedules to the
 ## NPCs that carry an RpgSchedule without entries (`RpgSchedule.source`), and counts a talk
 ## when the player interacts with the NPC of a person (`Events.interaction_started`).
@@ -30,6 +34,9 @@ const SAVE_KEY := "friendship"
 ## The user's file of the running game. Set by the farm's mode from its `data_dir`, which the
 ## recipe gives it: a runtime script names no path of the game itself.
 static var people_path := ""
+## Who says how many points a person can have at most: `func(id: String) -> int`; MAX_POINTS
+## for everybody while nobody sets it (only RpgMarriage does).
+static var cap_of: Callable = Callable()
 const HEARTS := 10
 const HEART_POINTS := 250
 const MAX_POINTS := HEARTS * HEART_POINTS
@@ -201,7 +208,11 @@ func has_met(id: String) -> bool:
 func add_points(id: String, amount: int) -> int:
 	if id == "":
 		return 0
-	points[id] = clampi(points_of(id) + amount, 0, MAX_POINTS)
+	var most := MAX_POINTS
+	if cap_of.is_valid():
+		most = clampi(RpgUtil.to_int(cap_of.call(id), MAX_POINTS), 0, MAX_POINTS)
+	# what is above the cap already (points of a game before marriage) is not taken away
+	points[id] = clampi(points_of(id) + amount, 0, maxi(most, points_of(id)))
 	changed.emit(id)
 	return points_of(id)
 
@@ -230,6 +241,9 @@ func gift(id: String, item_id: StringName, take: bool = true) -> String:
 	if id == "" or item_id == &"":
 		return ""
 	bind()
+	var marriage := RpgMarriage.current()
+	if marriage != null and marriage.is_token(item_id):
+		return marriage.give(id, item_id, take)
 	var events := RpgFarmEvents.current()
 	var birthday := events != null and events.birthday_gift_open(id)
 	if not birthday and gifts_left(id) <= 0:

@@ -8,6 +8,8 @@ extends CanvasLayer
 ##   they have one), and the money. The basic HUD's own line of money is hidden while this one
 ##   is there, so the money is shown once.
 ## * A toast (Events.notify) for a harvest and, in the morning, for what the shipping bin paid.
+## * In a farm that fights (T17.24) the farmer's health as a red bar over the energy
+##   (`%HealthBar`, which only the HUD of such a farm has).
 ##
 ## The scene (recipes/farm/hud_recipe.gd) has `%EnergyBar` and `%Slots` with a child a slot,
 ## each with an `Icon` (TextureRect) and a `Qty` (Label), and `%Clock`, `%Date`, `%Weather`,
@@ -54,6 +56,8 @@ func _bind() -> void:
 		_mode.weather.changed.connect(_on_weather)
 	if _mode.day_end != null:
 		_mode.day_end.woke.connect(_on_woke)
+	if _mode.fight != null:
+		_mode.fight.health_changed.connect(_on_health)
 	var calendar := RpgCalendar.current()
 	if calendar != null:
 		calendar.minute_passed.connect(_on_minute)
@@ -67,6 +71,18 @@ func _on_energy(_value: int, _maximum: int) -> void:
 func _on_map(_id: StringName) -> void:
 	watch_field(RpgField.current())
 	refresh()
+
+func _on_health(_hp: int, _max_hp: int) -> void:
+	refresh_health()
+
+## The health bar (T17.24) shows the farmer's hit points; a HUD without one shows nothing.
+func refresh_health() -> void:
+	var bar := get_node_or_null("%HealthBar") as ProgressBar
+	if bar == null:
+		return
+	var now := RpgFarmFight.hit_points()
+	bar.max_value = maxi(1, now[1])
+	bar.value = now[0]
 
 func _on_gold(_total: int) -> void:
 	refresh_status()
@@ -176,6 +192,7 @@ func refresh() -> void:
 	if bar != null:
 		bar.max_value = _mode.energy.max_energy
 		bar.value = _mode.energy.value
+	refresh_health()
 	var slots := get_node_or_null("%Slots")
 	if slots == null:
 		return

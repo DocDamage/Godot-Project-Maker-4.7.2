@@ -84,6 +84,29 @@ def iso_tiles(catalog: catalog_mod.Catalog) -> list[catalog_mod.Asset]:
     ]
 
 
+def map_pictures(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> list[catalog_mod.Asset]:
+    """The pictures the isometric maps chosen for import paint (T17.28) that are no tile of
+    ``iso_tiles``: an object of the pack (a crate, a wall piece) or a picture of its samples,
+    which a map paints as a tile. They are in the tile set for those maps alone. By id."""
+    chosen = set(cfg.imported_map_selection()["include"])
+    wanted: set[str] = set()
+    for imported in catalog.maps:
+        if imported["id"] not in chosen or not catalog_mod.map_fits(imported, cfg.projection):
+            continue
+        for layer in imported["layers"]:
+            wanted.update(layer.get("pictures", []) if layer["kind"] == "iso_tiles" else [])
+    tiles = {a.id for a in iso_tiles(catalog)}
+    return [
+        a
+        for a in sorted(catalog.assets, key=lambda a: catalog_mod._sort_key(a.id))
+        if a.id in wanted
+        and a.id not in tiles
+        and a.kind == "image"
+        and a.status != "MISSING"
+        and footprint_of(a) is not None
+    ]
+
+
 def ground_tiles(catalog: catalog_mod.Catalog) -> list[catalog_mod.Asset]:
     return [a for a in iso_tiles(catalog) if catalog_mod.effective(a).get("role") == "GROUND"]
 
@@ -220,7 +243,13 @@ def add(catalog: catalog_mod.Catalog, cfg: GeneratorConfig, staging_root: Path) 
     if footprint is None:
         return []
     by_pack: dict[str, list[catalog_mod.Asset]] = {}
-    for asset in iso_tiles(catalog):
+    # the pictures of the imported isometric maps that are no tiles of their own (T17.28)
+    only_maps = {a.id for a in map_pictures(catalog, cfg)}
+    members_all = sorted(
+        [*iso_tiles(catalog), *(a for a in catalog.assets if a.id in only_maps)],
+        key=lambda a: catalog_mod._sort_key(a.id),
+    )
+    for asset in members_all:
         if footprint_of(asset) == footprint:
             by_pack.setdefault(asset.pack_id, []).append(asset)
     custom = copy.deepcopy(known.custom_data) if known else []
@@ -275,6 +304,8 @@ def add(catalog: catalog_mod.Catalog, cfg: GeneratorConfig, staging_root: Path) 
                 }
                 if asset.id in turned:
                     tdef.tiles[asset.id]["of"] = turned[asset.id]
+                if asset.id in only_maps:
+                    tdef.tiles[asset.id]["maps_only"] = True
                 layout["tiles"].append([where[1], where[2], at[0], at[1], asset.sha256])
                 file = Path(staging_root) / asset.path
                 if writes and file.is_file():

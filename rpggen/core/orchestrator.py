@@ -313,6 +313,8 @@ def phase_install(state: _State) -> None:
         paths.templates_root(),
         state.cfg.archetype,
         editor_tools=bool(state.cfg.features.get("editor_tools", True)),
+        # a farm that fights (T17.24) has the action RPG's enemies and their recipes
+        borrowed=("arpg",) if farm_fights(state.cfg, state.staging.staging) else (),
     )
     used: set[str] = set()
     for ref in state.cfg.packs:
@@ -418,7 +420,7 @@ def add_run_made_assets(
         # step on its diamonds, the size its drawn people have (T17.14)
         # (T17.23) and what a beach among its added maps has: shells, seaweed, fish of the sea
         farm_kit.add(
-            catalog, farm_kit_tile(catalog, cfg), root, cfg.projection, farm_added_kinds(cfg)
+            catalog, farm_kit_tile(catalog, cfg), root, cfg.projection, farm_added_kinds(cfg, root)
         )
     if iso_atlas.wanted(cfg):
         from rpggen.core import iso_kit
@@ -622,11 +624,47 @@ FARM_ANIMAL_HOUSES = ("coop", "barn")
 ADDED_GROUND_WORDS = {"beach": ("sand", "beach", "shore", "desert")}
 
 
-def farm_added_kinds(cfg: config_mod.GeneratorConfig) -> list[str]:
-    """The kinds of the rows of a farm's *Added maps* (T17.23), as the options have them."""
+def farm_added_kinds(cfg: config_mod.GeneratorConfig, project: Any = None) -> list[str]:
+    """The kinds of the rows of a farm's *Added maps* (T17.23), as the options have them, and
+    the cave of a farm that fights (T17.24: *Combat* is on, or the stored plan of ``project``
+    has a cave)."""
     from rpggen.core import added_map_plan
 
-    return added_map_plan.kinds_of(cfg.starter_map_options().get("added_maps"))
+    return added_map_plan.kinds_for(
+        cfg.starter_map_options().get("added_maps"),
+        cfg.features.get("combat", False),
+        _stored_added(project),
+    )
+
+
+def _stored_added(project: Any) -> list[dict[str, Any]]:
+    """The added maps of the stored plan of a farm (``farm.map.added``), or []."""
+    from rpggen.core import farm_plan
+
+    stored = farm_plan.stored_in(world_plan.load(project)) if project else None
+    return list((stored or {}).get("added", []))
+
+
+def farm_fights(cfg: config_mod.GeneratorConfig, project: Any = None) -> bool:
+    """True when a farm fights (T17.24): *Combat* is on, or its stored plan has a cave."""
+    from rpggen.core import added_map_plan
+
+    if cfg.archetype != "farm":
+        return False
+    return added_map_plan.fights(cfg.features.get("combat", False), _stored_added(project))
+
+
+def farm_map_options(cfg: config_mod.GeneratorConfig, project: Any) -> dict[str, Any]:
+    """The options the farm's planner reads: ``starter_map`` with the cave of *Combat* among its
+    *Added maps* (``added_map_plan.with_cave``, T17.24). ``AddedMapError`` for a cave row in a
+    farm that does not fight."""
+    from rpggen.core import added_map_plan
+
+    options = dict(cfg.starter_map_options())
+    options["added_maps"] = added_map_plan.with_cave(
+        options.get("added_maps"), bool(cfg.features.get("combat", False)), _stored_added(project)
+    )
+    return options
 
 
 def _added_grounds(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict[str, str]:
@@ -756,14 +794,23 @@ def _plan_farm_map(state: _State, catalog: catalog_mod.Catalog) -> None:
 
     assert state.staging is not None and state.cfg is not None
     root = state.staging.staging
+    from rpggen.core import added_map_plan
+
     try:
+        # the cave of a farm that fights (T17.24) is one of its added maps
+        options = farm_map_options(state.cfg, root)
         section, notes = farm_plan.for_project(
-            root, state.cfg.starter_map_options(), state.cfg.seed, farm_facts(state.cfg, catalog)
+            root, options, state.cfg.seed, farm_facts(state.cfg, catalog)
         )
         plan = farm_plan.attach(world_plan.load(root) or {}, section)
-    except farm_plan.FarmPlanError as exc:
+    except (farm_plan.FarmPlanError, added_map_plan.AddedMapError) as exc:
         state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
         raise _Stop from None
+    if added_map_plan.has_cave(section.get("added")) and not state.cfg.features.get("combat"):
+        notes.append(
+            "Combat is off, but the farm has its cave: a map that exists is not taken away, so "
+            "the farm still fights there."
+        )
     for problem in farm_plan.check(section):
         state.issues.add("VAL-031", problem=problem)
     world_plan.save(root, plan)
@@ -822,6 +869,13 @@ def _plan_people(
         people = people_plan.with_birthdays(
             people, state.cfg.seed, int(options.get("days_per_season", 28))
         )
+    # who can be courted (T17.26): chosen once, while nobody has the key; 0 chooses nobody
+    try:
+        courting = people_plan.courtable_count(options)
+    except people_plan.PeoplePlanError as exc:
+        state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
+        raise _Stop from None
+    people = people_plan.with_courtable(people, state.cfg.seed, courting)
     plan["farm"] = people_plan.store(plan["farm"], people, notes)
     world_plan.save(root, plan)
     state.cb.on_log("farm: " + people_plan.summary(people))

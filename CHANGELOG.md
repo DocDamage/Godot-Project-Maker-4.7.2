@@ -23,6 +23,15 @@ does not ask for the isometric view is built as it was.
   farm that exists builds one more map and touches neither the farm nor the maps before it.
   The way there is a marked patch of ground at the edge of the farm. A farm with a beach sells
   the rod even when it has a well.
+* **The cave: combat on a farm.** The feature *Combat* is shown for a farm and, switched on,
+  gives it a **cave** among its added maps: rock with chambers and tunnels, the action RPG's
+  enemies (the packs' `ENEMY` pictures, else a drawn slime), and ore, crystals and mushrooms
+  to find and sell. The shop sells a sword, swung with *Use*; the HUD shows the farmer's health;
+  a defeated enemy leaves a thing of the cave and is back the next morning. Being defeated is
+  passing out: the day ends and the farmer wakes at the bed as after 2:00. A cave row needs
+  *Combat*; *Combat* without a cave row adds one called *Cave*. With *Combat* off a farm is
+  what it was: no cave, no sword, nothing to fight, and the action RPG's runtime is not
+  installed.
 * **Festivals and birthdays** on a farm (the option *Festivals and birthdays*, on): a festival
   in every season, always a Friday, with the shop closed, everybody on the village square and
   one small thing to do for a prize: an egg hunt in spring, a fishing count in summer (a
@@ -32,6 +41,14 @@ does not ask for the isometric view is built as it was.
   farmhouse and is in the pause menu; the day before a festival the sign by the house and the
   people say so. The festivals are data (`game/data/events.json`, written once and then
   yours). Switched on for a farm that exists, no map and none of your files is written again.
+* **Marriage** on a farm (the option *People to court*, 2; 0 turns it off): that many people
+  of the village, chosen once, can be courted. They stop at eight hearts until given a
+  bouquet from the shop; at ten a pendant is a yes, and three days later the wedding is a day
+  on the square. The spouse lives in the farmhouse (planned now with a bed for two), keeps a
+  day of their own, says other things, and on some mornings waters part of the plot, feeds
+  the animals or leaves something on the table. Neglected friendship falls slowly; nothing
+  worse happens. Switched on for a farm that exists, its people are chosen and no map and none
+  of your files is written again (the old farmhouse keeps its one bed).
 * **An isometric view** for the turn-based game, the action RPG, the farm and the racing game,
   from packs that ship one picture a tile: the diamond a pack stands on is read from its own
   text file or measured, a tile turned four ways is one tile, pieces whose names say which
@@ -39,6 +56,15 @@ does not ask for the isometric view is built as it was.
   driven. The same planned map is painted as diamonds; a top-down project is what it was. The
   view needs isometric ground tiles (none is drawn), and a project keeps the view it was first
   generated with.
+* **Isometric Tiled maps are imported** into an isometric project (the Tiled sample of
+  Kenney's *Isometric Miniature* packs is one): each tile is the picture its Tiled tile shows,
+  read as the pack's pictures are wherever it lies and put into the project's tile set for that
+  map alone; the first layer is the ground and the others stand among the people, a layer
+  drawn higher in Tiled is drawn higher; a picture of a wall blocks its diamond; spawns, doors
+  and signs stand on the middle of their diamonds. A map of squares is not imported into an
+  isometric project, nor an isometric map into one seen from above: the run says so
+  (TILE-013). Staggered and hexagonal maps are still not read, and TILE-009 now names the
+  shape. A map of squares is imported as it was.
 * **Every pack makes a farm.** What a pack lacks is drawn in its tile size (crops in five
   stages, tilled and watered soil, the tools, a seed bag, a hen and an egg, a shipping bin, a
   bed, rain, a rod, fish and things to forage) and reported as a note (ASSET-031). For the
@@ -75,7 +101,8 @@ does not ask for the isometric view is built as it was.
   people*).
 * **New notes and errors**: ASSET-034 (a crop of one picture: its stages are drawn), TILE-010
   (an isometric pack whose diamond could not be read), TILE-011 (isometric and square ground
-  in one project), TILE-012 (tiles on another diamond are left out), VAL-031 (a farm that
+  in one project), TILE-012 (tiles on another diamond are left out), TILE-013 (an imported map
+  of the other view is not built), VAL-031 (a farm that
   cannot be worked), SMOKE-013 (a step of the farm's own sequence).
 * **Mended while the milestone was tested**: two generations of projects with one name, run at
   the same time, failed each other's save checks (each check run now saves into a folder of
@@ -109,7 +136,7 @@ does not ask for the isometric view is built as it was.
 
 **Known limits.** Nobody has played either the farm or an isometric game by hand yet: what is
 known is what their tests and check runs assert. A farm has no cave yet, and the door to an
-added map is a mark on the ground beside the farm's edge, which a tree before it can hide. The editor's dock and imported Tiled or LDtk maps count squares, not diamonds. A
+added map is a mark on the ground beside the farm's edge, which a tree before it can hide. An imported isometric map has no height: the stairs of a sample are pictures walked across, and a second floor is only drawn higher. A
 room of an isometric project has walls only when the packs have isometric wall pieces. An
 isometric race is shown from above on the Options page. The French file has the new texts
 unfinished.

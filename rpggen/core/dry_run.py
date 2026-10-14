@@ -296,7 +296,14 @@ def _plan(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict
             "warnings": notes,
         }
     imported = next(
-        (m for m in catalog.maps if m["id"] == cfg.imported_map_selection()["starter"]), None
+        (
+            m
+            for m in catalog.maps
+            if m["id"] == cfg.imported_map_selection()["starter"]
+            # a map drawn in the other view is not imported (TILE-013, T17.28)
+            and catalog_mod.map_fits(m, cfg.projection)
+        ),
+        None,
     )
     if imported is not None:  # the planner is skipped: the starter map is that map
         return {
