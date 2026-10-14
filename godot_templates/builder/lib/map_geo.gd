@@ -89,11 +89,48 @@ static func camera_zoom(ctx: BuildContext) -> float:
 		return 1.0
 	var resolution := JsonUtil.to_array(ctx.config.get("resolution", [640, 360]))
 	var width := JsonUtil.to_float(resolution[0]) if resolution.size() == 2 else 640.0
-	return minf(1.0, width / (DIAMONDS_ACROSS * reader.footprint().x))
+	return whole_step_zoom(minf(1.0, width / (DIAMONDS_ACROSS * reader.footprint().x)), reader.footprint())
+
+## The zoom nearest `wanted` (never above 1, never none) at which one step of the grid of
+## diamonds is a whole number of px on the screen each way (T17.22). A tile of an isometric
+## pack is a block: under its face it has the side of its block, which the tiles before it
+## cover exactly. At a zoom where half a diamond is no whole number of px (0.444 on diamonds of
+## 180 x 104: 40 px and 23.1 px) every tile lies at another fraction of a pixel, the nearest
+## texel of one tile and of the tile behind it are a row apart here and there, and a sliver of
+## the side of the tile behind shows between two faces: thin dark dashes along the edges of
+## the diamonds. Where the steps are whole (0.5: 45 px and 26 px) every tile is sampled alike
+## and none shows, wherever the camera stands. The zooms that do it are the multiples of
+## 2 / gcd(w, h).
+static func whole_step_zoom(wanted: float, footprint: Vector2i) -> float:
+	if wanted >= 1.0 or footprint.x <= 0 or footprint.y <= 0:
+		return minf(wanted, 1.0)
+	var a := footprint.x
+	var b := footprint.y
+	while b != 0:
+		var rest := a % b
+		a = b
+		b = rest
+	var unit := 2.0 / a
+	return minf(1.0, maxi(1, roundi(wanted / unit)) * unit)
 
 ## True for a project whose maps are isometric and whose packs have the tiles for it.
 static func is_isometric(ctx: BuildContext) -> bool:
 	return IsoTileset.project_wanted(ctx.config) and IsoTileset.new(ctx.catalog).has_tiles()
+
+## The version of what the map recipes do with pieces that stand along a side of a diamond
+## (T17.22: the edge of a map from wall segments, a house of pieces, a yard's fence).
+const EDGE_VERSION := 1
+
+## What a map recipe adds to its hash for such pieces: `{iso_edges: EDGE_VERSION}` for an
+## isometric project whose tile set has one, and nothing for every other project, whose hash is
+## what it was (a pack of whole wall tiles, a project seen from above).
+static func edge_hash(ctx: BuildContext) -> Dictionary:
+	if not IsoTileset.project_wanted(ctx.config):
+		return {}
+	var reader := IsoTileset.new(ctx.catalog)
+	if reader.edge_sets().is_empty():
+		return {}
+	return {"iso_edges": EDGE_VERSION}
 
 func tileset_path() -> String:
 	if isometric:
@@ -379,11 +416,17 @@ static func border_cells(size: Vector2i, skip: Array = []) -> Array[Vector2i]:
 ## is drawn behind it) or the Walls layer when the map has no Props, and the two far sides on
 ## the Ground layer; without a wall tile, or when a wall tile blocks nothing, an invisible
 ## diamond a cell.
-func paint_walls(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Array = []) -> void:
+##
+## A pack whose walls are segments along a side of a diamond and no whole tiles (T17.22) gets
+## its edge laid from them (`paint_edge_walls`); `fence_first` asks for a fence where the packs
+## have both (a farm).
+func paint_walls(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Array = [], fence_first: bool = false) -> void:
 	if not isometric:
 		MapBuild.paint_walls(root, nodes, size, wall_tile(), tile_px, skip)
 		return
 	var wall := wall_tile()
+	if wall.is_empty() and paint_edge_walls(root, nodes, size, skip, fence_first):
+		return
 	var layer: TileMapLayer = null
 	for layer_name: String in ["Props", "Walls"]:
 		if layer == null and nodes.has(layer_name):
@@ -415,6 +458,83 @@ func paint_walls(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Array = 
 			_blocked_cells(root, far)
 	if not blocks:
 		border_collision(root, size, skip)
+
+## The sides of a cell of the edge of a map of `size` cells that look out of the map, the far
+## ones first: `n` on the first row, `w` on the first column, `e` on the last column, `s` on the
+## last row. A corner cell has two.
+static func outward_sides(cell: Vector2i, size: Vector2i) -> Array[String]:
+	var out: Array[String] = []
+	if cell.y == 0:
+		out.append("n")
+	if cell.x == 0:
+		out.append("w")
+	if cell.x == size.x - 1:
+		out.append("e")
+	if cell.y == size.y - 1:
+		out.append("s")
+	return out
+
+## True for the two sides of a diamond that lie away from the camera.
+static func is_far_side(side: String) -> bool:
+	return side == "n" or side == "w"
+
+## Where the pieces of one cell of a map's edge go: [[side, layer name], ..] for its sides
+## (`outward_sides`). A cell holds one tile a layer. **A cell with one side** has its piece on
+## `Props`, which is sorted with the actors by the middle of the cell: a piece on a far side is
+## drawn before whoever stands further south or east, a piece on a near side after whoever
+## stands on the cells before it and over him (nobody stands on the cell itself: it is
+## blocked). **A corner cell** has two pieces: the corner of two far sides has `n` on `Props`
+## and `w` on `GroundDetails`; a corner of a far and a near side has the near one on `Props`
+## and the far one on `GroundDetails`; the corner of the two near sides has `e` on `Props` and
+## `s` on `Overhead`. `GroundDetails` lies under the actors (a far wall is behind everybody; an
+## isometric map paints nothing else on that layer, its roads lie in the ground's) and
+## `Overhead` over them (nothing of a map is nearer the camera than that corner).
+static func edge_places(sides: Array[String]) -> Array:
+	if sides.size() < 2:
+		return [[sides[0], "Props"]] if sides.size() == 1 else []
+	var first := sides[0]
+	var second := sides[1]
+	if is_far_side(first) and is_far_side(second):
+		return [[first, "Props"], [second, "GroundDetails"]]
+	if is_far_side(first):
+		return [[second, "Props"], [first, "GroundDetails"]]
+	return [[first, "Props"], [second, "Overhead"]]
+
+## Lays the edge of an isometric map from the packs' wall segments (T17.22): on every cell of
+## the edge the member of one wall's set that stands along the side that looks out of the map
+## (`outward_sides`; the side is the piece's `edge`, never its turn), `skip` left open, a corner
+## cell with a piece for each of its two sides on two layers (`edge_places`; a map without
+## `Props` takes `Walls`, and one without the layer of a corner's second piece has one piece on
+## that corner: the packs' walls carry their own end posts). The cells are blocked by the
+## tiles' own collision (a wall blocks its diamond: the plan counts the cells of the edge as
+## wall), or by unseen diamonds when the tiles block nothing. False, with nothing painted,
+## when the packs have no wall that stands along all four sides or the map no layer for it.
+func paint_edge_walls(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Array = [], fence_first: bool = false) -> bool:
+	if not isometric:
+		return false
+	var wall_set := iso.border_set(fence_first)
+	var main_name := "Props" if nodes.has("Props") else "Walls"
+	if wall_set == "" or not nodes.has(main_name):
+		return false
+	var unblocked: Array[Vector2i] = []
+	for cell in border_cells(size, skip):
+		var blocked := false
+		for place: Array in edge_places(outward_sides(cell, size)):
+			var side := JsonUtil.to_str(place[0])
+			var layer_name := JsonUtil.to_str(place[1])
+			var layer: TileMapLayer = nodes.get(main_name if layer_name == "Props" else layer_name)
+			var piece := iso.edge_piece(wall_set, side)
+			if layer == null or piece.is_empty():
+				continue
+			MapUtil.put(layer, cell, _iso_tile(JsonUtil.to_str(piece["asset_id"]), JsonUtil.to_int(piece["turn"])))
+			var data := layer.get_cell_tile_data(cell)
+			if layer.collision_enabled and data != null and data.get_collision_polygons_count(0) > 0:
+				blocked = true
+		if not blocked:
+			unblocked.append(cell)
+	if not unblocked.is_empty():
+		_blocked_cells(root, unblocked)
+	return true
 
 ## Invisible collision along the edge of a map of `size` cells, a shape a cell (`skip` left
 ## open): MapUtil.border_collision's rectangles, or diamonds.

@@ -281,7 +281,13 @@ func test_diamonds_through_the_same_seam(t) -> void:
 		var def: Dictionary = raw
 		def["tile_size"] = [180, 104]
 	var large_ctx := _context(large)
-	t.near(MapGeo.camera_zoom(large_ctx), 640.0 / (8 * 180), 0.0001, "eight diamonds of 180 px across")
+	# eight diamonds of 180 px across would be 0.444; the zoom is the nearest at which a step of
+	# the grid is whole px each way (T17.22: no sliver of a block's side between two faces)
+	t.near(MapGeo.camera_zoom(large_ctx), 0.5, 0.0001, "diamonds of 180 x 104: 45 px and 26 px a step")
+	t.near(MapGeo.whole_step_zoom(640.0 / (8 * 256), Vector2i(256, 128)), 0.3125, 0.0001, "a zoom that is whole already stays")
+	t.near(MapGeo.whole_step_zoom(0.8, Vector2i(100, 65)), 0.8, 0.0001)
+	t.near(MapGeo.whole_step_zoom(0.3, Vector2i(180, 104)), 0.5, 0.0001, "never no zoom at all")
+	t.eq(MapGeo.whole_step_zoom(1.0, Vector2i(60, 34)), 1.0)
 	t.eq(MapGeo.tile_unit(large_ctx), 104)
 	# the text of the menus follows the config's base tile size, not the diamond
 	var ThemeRecipe: GDScript = load("res://builder/recipes/theme_recipe.gd")

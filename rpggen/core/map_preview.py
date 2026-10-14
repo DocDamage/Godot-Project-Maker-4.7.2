@@ -507,17 +507,80 @@ def iso_building_geometry(stands_on: Any) -> tuple[tuple[int, int], tuple[int, i
     return (columns, rows), ((columns - 1) // 2, rows)
 
 
+KIT_HOUSE_CELLS = (2, 2)  # the footprint of a village's house of pieces (IsoHouse.VILLAGE_CELLS)
+KIT_OPENINGS = frozenset({"door", "window"})
+KIT_NO_WALL = KIT_OPENINGS | {"roof", "fence"}
+EDGE_SIDES = ("n", "e", "s", "w")
+
+
+def iso_house_kit(catalog: Any) -> dict[str, str]:
+    """The pieces of a house in an isometric project's packs (T17.22), as the builder finds
+    them (``IsoHouse.kit``): ``{"wall": id, "door": id}``, the first turn of a plain wall that
+    stands along all four sides of its diamond (no door, no window, no fence) and of a wall
+    with a door that has a member for the south side; ``{}`` when the packs have no such kit.
+    With one, a village has houses though no pack drew a whole one: each is put together on the
+    footprint the plan wants (``KIT_HOUSE_CELLS`` in a village, the plan's own on a farm)."""
+    from rpggen.core import catalog as catalog_mod
+
+    pieces = [
+        a
+        for a in sorted(catalog.assets, key=lambda a: a.id)
+        if a.status not in ("UNUSED", "MISSING")
+        and catalog_mod.is_iso_tile(a)
+        and catalog_mod.effective(a).get("edge") in EDGE_SIDES
+    ]
+    # the tiles of the project's tile set, when it has been made: a piece on another diamond
+    # is in no map (TILE-012)
+    placed = {
+        tile_id
+        for tileset in catalog.tilesets
+        if getattr(tileset, "projection", "") == config_mod.PROJECTION_ISOMETRIC
+        for tile_id in getattr(tileset, "tiles", {})
+    }
+    if placed:
+        pieces = [a for a in pieces if a.id in placed]
+    first_of = catalog_mod.turn_sets(pieces)
+    sides: dict[str, set[str]] = {}
+    tags: dict[str, set[str]] = {}
+    roles: dict[str, str] = {}
+    for asset in pieces:
+        facets = catalog_mod.effective(asset)
+        first = first_of.get(asset.id, asset.id)
+        sides.setdefault(first, set()).add(str(facets["edge"]))
+        tags.setdefault(first, set()).update(str(t) for t in facets.get("tags") or [])
+        roles.setdefault(first, str(facets.get("role", "")))
+    walls = [
+        first
+        for first in sorted(sides)
+        if roles[first] == "WALL" and len(sides[first]) == 4 and not tags[first] & KIT_NO_WALL
+    ]
+    doors = [
+        first
+        for first in sorted(sides)
+        if "door" in tags[first] and "fence" not in tags[first] and "s" in sides[first]
+    ]
+    if not walls or not doors:
+        return {}
+    return {"wall": walls[0], "door": doors[0]}
+
+
 def building_info_for(
     catalog: Any, building_id: str = "", projection: str = "top_down"
 ) -> dict[str, Any]:
     """``building_info`` from the catalog alone: no picture is opened, so the plan of a project
-    that has not been generated yet (``rpggen generate --dry-run``) can be made."""
+    that has not been generated yet (``rpggen generate --dry-run``) can be made. An isometric
+    project whose packs drew no whole building and have the pieces of one (``iso_house_kit``)
+    has a house of ``KIT_HOUSE_CELLS``."""
     if projection == config_mod.PROJECTION_ISOMETRIC:
         from rpggen.core import catalog as catalog_mod
 
-        found = iso_buildings(catalog, building_id)
+        found = iso_buildings(catalog)
         if not found:
-            return {}
+            if not iso_house_kit(catalog):
+                return {}
+            size, door = iso_building_geometry(list(KIT_HOUSE_CELLS))
+            return {"size": list(size), "door": list(door)}
+        found = iso_buildings(catalog, building_id)
         size, door = iso_building_geometry(catalog_mod.effective(found[0]).get("stands_on"))
         return {"size": list(size), "door": list(door)}
     houses = starter_buildings(catalog, building_id)

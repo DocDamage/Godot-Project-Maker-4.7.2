@@ -380,6 +380,7 @@
         "laps": {"type": "integer", "minimum": 1},
         "block": {"type": "integer", "minimum": 1},
         "road": {"type": "integer", "minimum": 1},
+        "corners": {"const": "round"},
         "grapple": {"type": "boolean"},
         "jump": {"type": "boolean"},
         "rows": {"type": "integer", "minimum": 1},

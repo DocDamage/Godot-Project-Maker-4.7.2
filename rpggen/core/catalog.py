@@ -861,6 +861,7 @@ ISO_PIECE_WORDS: tuple[tuple[str, frozenset[str]], ...] = (
     ("door", frozenset({"door", "doors", "doorway", "gate", "gateway", "archway"})),
     ("window", frozenset({"window", "windows"})),
     ("roof", frozenset({"roof", "roofs", "chimney"})),
+    ("fence", frozenset({"fence", "fences"})),
 )
 # the roles of what a map is laid with: nothing that fills no diamond has one of them
 ISO_LAID_ROLES = frozenset({"GROUND", "ROAD", "WATER"})
@@ -891,7 +892,9 @@ def _iso_roles(assets: list[Asset], root: str) -> None:
         _folders, words = classifier.tokens(asset.path[len(root) + 1 :])
         said = {tag for tag, names in ISO_PIECE_WORDS if set(words) & names}
         role = current = facets.get("role")
-        roof = "roof" in said and current in ISO_LAID_ROLES | {"INTERIOR"}
+        # ... and no wall of a map's edge either, whatever else its name says (T17.22: the
+        # ``roofSingleWall`` of *Miniature Farm* was laid round the farm as its wall)
+        roof = "roof" in said and current in ISO_LAID_ROLES | {"INTERIOR", "WALL"}
         thing = facets.get("usage") == "sprite" and current in ISO_LAID_ROLES
         if facets.get("edge"):
             role = "WALL"

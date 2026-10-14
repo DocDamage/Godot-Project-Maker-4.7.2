@@ -89,6 +89,7 @@ func input_hash(ctx: BuildContext) -> String:
 	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the keys (T17.14)
 		hashed["iso"] = MapGeo.new(ctx).def
 		hashed["iso_v"] = ISO_VERSION
+		hashed.merge(MapGeo.edge_hash(ctx))  # T17.22: only with walls along a side
 	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:

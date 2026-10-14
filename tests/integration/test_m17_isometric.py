@@ -992,3 +992,206 @@ def test_stone_isle_follows_the_schemas(
     assert code == 0 and document["ok"] is True and document["failed_phase"] is None
     assert not [i for i in document["issues"] if i["severity"] != "info"], document["issues"]
     assert orchestrator.REPEAT_CODE in {i["code"] for i in document["issues"]}
+
+
+# ------------------------------------------- a pack of pieces: walls, a house, a farm (T17.22)
+#
+# The synthetic pack ``iso_kit`` has no whole wall tile and no whole house: its walls stand
+# along one side of a diamond (in four turns, and turn 0 is not the north side), one of them
+# has a door, one a window, and its roof is a tile. The edge of its maps is laid from the
+# segments by the side each stands on, its village has a house put together from the pieces,
+# and the smoke run of the kind walks into the wall and in and out of that house.
+
+KIT_PACK = REPO / "test_packs" / "synthetic" / "iso_kit"
+KIT_FOOT = (64, 36)
+KIT_HOUSE = "generated/scenes/objects/rpggen__iso_house.tscn"
+KIT_SHORT = "iso_kit.png.stone_short_wall_01_"
+# the side the turn 0, 1, 2, 3 of a wall of the pack stands along
+KIT_TURN_SIDES = "eswn"
+# what the pack does not have: music, a chest (and the demo quest that needs one). It has
+# walls and a house: ``collision_blocks``, ``enter_building`` and ``exit_building`` are played.
+KIT_ABSENT = ("map_music", "chest_open", "quest_journal")
+
+
+def _kit_config(archetype: str = "turn_based") -> config.GeneratorConfig:
+    from rpggen.core import mapping
+
+    opened = archive.open_pack(KIT_PACK, set(), pack_id="iso_kit")
+    cat, _issues, _made = catalog.assemble([(opened, inventory.build_inventory(opened))], None, [])
+    cfg = config.default_for(
+        "Kit Vale", [config.pack_ref_from_source(KIT_PACK, "iso_kit")], archetype=archetype
+    )
+    cfg.projection = "isometric"
+    cfg.starter = mapping.default_starter(cat, archetype, "isometric")
+    return cfg
+
+
+@pytest.fixture(scope="module")
+def kit_game(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):  # noqa: ANN201
+    return _generated(godot_exe, tmp_path_factory.mktemp("iso_kit"), _kit_config())
+
+
+def _kit_plan(target: Path) -> dict:
+    cat = catalog.Catalog.from_json(jsonio.read(paths.from_posix_rel(paths.CATALOG, target)))
+    cfg = _kit_config()
+    house = map_preview.building_info_for(cat, "", "isometric")
+    assert house == {"size": [2, 2], "door": [0, 2]}, "a kit of pieces counts as a house"
+    return map_preview.plan(cfg.starter_map_options(), cfg.seed, house, "turn_based")
+
+
+def _kit_tiles(target: Path) -> dict[tuple[int, int, int], tuple[str, str]]:
+    """(source, column, row) of a tile of the project's tile set -> (its asset, its edge)."""
+    data = jsonio.read(paths.from_posix_rel(paths.CATALOG, target))
+    cat = catalog.Catalog.from_json(data)
+    (definition,) = [t for t in data["tilesets"] if t.get("projection") == "isometric"]
+    out = {}
+    for asset_id, at in definition["tiles"].items():
+        edge = catalog.effective(cat.asset(asset_id)).get("edge") or ""
+        out[(at["source"], *at["coords"])] = (asset_id, edge)
+    return out
+
+
+def test_a_pack_of_pieces_is_a_turn_based_game_that_passes_its_smoke_run(kit_game) -> None:  # noqa: ANN001
+    target, result = kit_game
+    assert not _errors(result)
+    assert _smoke(target) == SHARED_STEPS + TURN_BASED_STEPS, "the kind's usual steps"
+    _passed_for_real(target, KIT_ABSENT)
+    saved = jsonio.read(paths.from_posix_rel(paths.CONFIG, target))
+    assert (saved["archetype"], saved["projection"]) == ("turn_based", "isometric")
+    assert "building" not in saved.get("starter", {}), "no pack drew a house to choose"
+    for rel in [*MAPS, KIT_HOUSE]:
+        assert (target / rel).is_file(), rel
+
+
+def test_the_edge_of_its_map_is_laid_from_wall_segments_by_their_sides(kit_game) -> None:  # noqa: ANN001
+    target, _result = kit_game
+    view = _view(target)
+    plan = _kit_plan(target)
+    w, h = plan["size"]
+    gap = tuple(plan["exit_gap"])
+    ring = {(x, y) for x in range(w) for y in range(h) if x in (0, w - 1) or y in (0, h - 1)}
+    tiles = _kit_tiles(target)
+    props = {cell: tiles[tile] for cell, tile in _cells(view, "Props").items()}
+    assert set(props) == ring - {gap}, "a segment on every cell of the edge, less the way out"
+    assert not _cells(view, "Walls")
+    wanted = {
+        "n": KIT_SHORT + "3",
+        "e": KIT_SHORT + "0",
+        "s": KIT_SHORT + "1",
+        "w": KIT_SHORT + "2",
+    }
+    for (x, y), (asset_id, edge) in props.items():
+        if x in (0, w - 1) and y in (0, h - 1):
+            continue  # a corner: below
+        side = "n" if y == 0 else "s" if y == h - 1 else "w" if x == 0 else "e"
+        assert (asset_id, edge) == (wanted[side], side), f"{(x, y)}: the lowest wall, for {side}"
+        assert KIT_TURN_SIDES[int(asset_id[-1])] == side, "the side is the piece's, not its turn"
+    # a corner cell has a piece for each of its two sides, on two layers
+    under = {cell: tiles[tile] for cell, tile in _cells(view, "GroundDetails").items()}
+    over = {cell: tiles[tile] for cell, tile in _cells(view, "Overhead").items()}
+    assert (props[(0, 0)][1], under[(0, 0)][1]) == ("n", "w")
+    assert (props[(w - 1, 0)][1], under[(w - 1, 0)][1]) == ("e", "n")
+    assert (props[(0, h - 1)][1], under[(0, h - 1)][1]) == ("s", "w")
+    assert (props[(w - 1, h - 1)][1], over[(w - 1, h - 1)][1]) == ("e", "s")
+    assert len(under) == 3 and len(over) == 1
+    # the ground under a segment stays: a segment fills no diamond
+    ground = _cells(view, "Ground")
+    assert ring <= set(ground) and len(ground) == w * h
+    starter = (target / MAPS[0]).read_text(encoding="utf-8")
+    assert "BorderCollision" not in starter, "the tiles block by their own diamonds"
+    # the room of the house has walls of the same segments, and its way out
+    room = (target / MAPS[1]).read_text(encoding="utf-8")
+    assert "BorderCollision" not in room and 'name="Props"' in room
+
+
+def test_its_village_has_a_house_put_together_from_the_pieces(kit_game) -> None:  # noqa: ANN001
+    import re
+
+    target, _result = kit_game
+    view = _view(target)
+    plan = _kit_plan(target)
+    houses = [e for e in view["entities"] if e["scene"] == "res://" + KIT_HOUSE]
+    assert len(houses) == len(plan["buildings"]) >= 1, "a house of pieces for every planned house"
+    first = plan["buildings"][0]
+    nearest = (first[0] + 1, first[1] + 1)
+    assert (houses[0]["x"], houses[0]["y"]) == iso_math.cell_to_screen(*nearest, *KIT_FOOT)
+    scene = (target / KIT_HOUSE).read_text(encoding="utf-8")
+    assert "metadata/stands_on = [2, 2]" in scene and 'metadata/role = "BUILDING"' in scene
+    # it blocks the outline of its four diamonds, and has its door and the spawn before it
+    assert "polygon = PackedVector2Array(0, -54, 64, -18, 0, 18, -64, -18)" in scene
+    for node in ("Left", "Right", "Footprint", "Entrance", "ExitSpawn"):
+        assert f'[node name="{node}"' in scene, node
+    # a piece on every side of the rim: eight places, one of them the door, above the plan's
+    # door cell (the south side of the cell (0, 1) of its footprint); a roof over each cell
+    names = set(re.findall(r'\[node name="((?:Wall|Door|Window|Roof)_[^"]+)"', scene))
+    sides = {name.split("_", 1)[1] for name in names if not name.startswith("Roof")}
+    assert sides == {"0_0_n", "0_0_w", "1_0_n", "1_0_e", "0_1_w", "0_1_s", "1_1_e", "1_1_s"}
+    assert [name for name in names if name.startswith("Door")] == ["Door_0_1_s"]
+    assert {name for name in names if name.startswith("Roof")} == {
+        "Roof_0_0", "Roof_1_0", "Roof_0_1", "Roof_1_1",
+    }  # fmt: skip
+    door = tuple(plan["doors"][0])
+    assert door == (first[0], first[1] + 2) and door in {tuple(c) for c in plan["path"]}
+    # the room behind its door is the room every house of the kind has
+    starter = (target / MAPS[0]).read_text(encoding="utf-8")
+    assert 'target_map = "res://game/maps/interior_1.tscn"' in starter
+    room = (target / MAPS[1]).read_text(encoding="utf-8")
+    assert "rpggen__iso_house_exit" in room, "leaving the room returns to the house's door"
+    # nothing of the plan stands on its footprint
+    cells = {(first[0] + dx, first[1] + dy) for dx in range(2) for dy in range(2)}
+    taken = [
+        tuple(c)
+        for key in ("decorations", "npcs", "chests", "enemies", "path", "exit_path")
+        for c in plan[key]
+    ]
+    assert not cells & {*taken, tuple(plan["spawn"])}
+
+
+def test_a_second_run_of_the_pack_of_pieces_changes_nothing(kit_game, godot_exe: Path) -> None:  # noqa: ANN001
+    target, _result = kit_game
+    kept = {
+        rel: (target / rel).read_bytes()
+        for rel in [
+            *MAPS,
+            KIT_HOUSE,
+            "generated/tilesets/iso.tres",
+            "generated/scenes/actors/player.tscn",
+            "project.godot",
+            paths.CATALOG,
+            paths.CONFIG,
+            paths.LEDGER,
+        ]
+    }
+    again = orchestrator.run_in_memory(_kit_config(), None, target, godot_exe)
+    assert again.ok, _errors(again)
+    assert [i.code for i in again.issues if i.code == orchestrator.REPEAT_CODE], (
+        "nothing changed: the build and the checks are not repeated"
+    )
+    for rel, data in kept.items():
+        assert (target / rel).read_bytes() == data, rel
+
+
+@pytest.mark.farm
+def test_a_farm_on_the_pack_of_pieces_is_fenced_and_has_a_house_of_pieces(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    cfg = _kit_config("farm")
+    cfg.starter_map["animals"] = "coop"
+    target = tmp_path / "out"
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    assert "save_and_load" in _smoke(target), "the farm's whole sequence"
+    farm = (target / "game/maps/farm.tscn").read_text(encoding="utf-8")
+    # the buildings of the plan are put together from the pieces, each on its own footprint
+    for name in ("House", "Coop"):
+        assert f'parent="YSorted/Entities/{name}/Left"' in farm, f"{name} is made of pieces"
+        assert f'parent="YSorted/Entities/{name}/Right"' in farm
+    assert 'name="Door_' in farm and 'name="Roof_' in farm and "metadata/kit" in farm
+    # the farm's edge is the pack's fence, by its sides; the yard's fence its segments
+    view = _map_view(target, godot_exe, "game/maps/farm.tscn")
+    tiles = _kit_tiles(target)
+    edge = {tiles[tile][0][:-1] for tile in _cells(view, "Props").values()}
+    assert edge == {"iso_kit.png.wood_fence_01_"}, "a farm is fenced where the pack has a fence"
+    assert 'name="Fence_coop_' in farm and "BorderCollision" not in farm
+    fence = farm[farm.index('[node name="Fence_coop_') :]
+    assert '[node name="Sprite" type="Sprite2D"' in fence

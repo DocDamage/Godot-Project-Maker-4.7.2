@@ -241,6 +241,12 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
             issues.add("ASSET-031", role=person.role, thing=person.thing, file="")
             stood_in.add(person.role)
         drawn = drawn | iso_kit.drawn_roles(catalog, view)
+        from rpggen.core import map_preview
+
+        # a pack whose houses are walls, doors and roofs as pieces has houses (T17.22): they
+        # are put together on the plan's footprints, and the role is not missing
+        if map_preview.iso_house_kit(catalog):
+            stood_in.add("BUILDING")
     mixed = mixed_ground(catalog)
     if mixed is not None:  # isometric and square ground in one project (T17.12)
         # the project paints with the ground of its projection (T17.13): the other is left out

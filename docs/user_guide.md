@@ -846,6 +846,21 @@ seven samples.
   the diamond's four sides the piece joins. rpggen lays roads, shores and walls with the piece
   that fits the neighbours of each cell, as terrains join for a top-down pack; where a pack
   has no piece for a case the nearest is used and the report says so.
+* **Walls along a side.** Many packs draw a wall as a thin piece that stands along **one side**
+  of its diamond, in four turns (and a wall with a door, a wall with a window, a fence, the
+  same way). rpggen measures which side each picture stands along (the audit shows it as the
+  facet `edge`) and lays the edge of a map from the pieces of one wall, each on the side that
+  looks out of the map, with the way out left open. It takes the lowest plain wall of your
+  packs, so that nobody is hidden behind it, and for a farm the fence. A pack with whole wall
+  tiles is laid with those, as before.
+* **A house of pieces.** When no pack drew a whole house for this view and your packs have a
+  wall for all four sides and a wall with a door, rpggen **puts a house together**: walls
+  along the sides of its footprint, the door at the plan's door, windows on some of the other
+  places, and a roof tile over every cell when the packs have one. It blocks its footprint
+  and is walked into like any house. The Mapping page has no *Building* to choose then, and
+  nothing is missing. A pack with a whole house gets that house, as before.
+* **Round road corners.** A road piece that joins two neighbouring sides is read as *round* (it
+  turns in a quarter circle) or *square* (the road fills the corner): the facet `corner`.
 * **Objects.** A picture whose base is narrower than the diamond (a tree, a sign) stands on
   one; a house may stand on several.
 * **What is set aside**: a folder `Angle` beside `Isometric` (the same models in another
@@ -896,14 +911,21 @@ a building has its door before the middle of its front).
 
 * The map is the one the same options would plan from above: the same size, house, path,
   villagers, chest and exits, laid on diamonds. The camera is drawn back when the diamonds are
-  large. The minimap stays the plan from above.
+  large, to a zoom at which a step from one diamond to the next is a whole number of pixels
+  (0.5 on diamonds of 180 x 104): at other zooms thin dark dashes showed along the edges of
+  the tiles. The minimap stays the plan from above.
 * You are drawn behind what stands nearer to the bottom of the screen and in front of what
   stands further up; a house of several diamonds is cut in two halves for that.
 * A raised block that has the role *Ground* does not block: height is not modelled.
 * A **farm** is the same farm: the tile ahead is the diamond you face (watch the white
   frame), and what your packs did not draw for this view (buildings, fences, the well, trees)
-  is a box on its diamond. The project's `README.md` has the details.
-* A **race** is driven exactly as from above and only drawn at an angle. A car drawn for this
+  is a box on its diamond. With walls and a door as pieces the farmhouse, the coop and the
+  barn are put together from them, and with a fence that stands along a side the farm's edge
+  and its yards are fenced with it. The project's `README.md` has the details.
+* A **race** is driven exactly as from above and only drawn at an angle. When the road pieces
+  of your packs have **round corners**, the track is planned with round corners, so that the
+  road you drive on is the road you see: the outside of a corner is grass, in the picture and
+  under the wheels. (A track that was generated before keeps its corners.) A car drawn for this
   view has its headings as separate pictures (`car_N.png`, `car_NE.png`, …) and turns in
   steps; a car drawn from straight above is used too and **looks flat**, which the Mapping
   page says beside it. No isometric car is drawn for a pack without one.
@@ -913,10 +935,10 @@ a building has its door before the middle of its front).
 **Known limits.** Nobody has played an isometric game by hand yet. The **RPG Project Tools**
 dock and **imported maps** (Tiled, LDtk) count squares, not diamonds: on an isometric map,
 place things by hand, and do not check imported maps. A room has walls only when the packs
-have isometric wall pieces. No terrain (autotile) is read from an isometric pack. Round road
-corners of a pack are laid on the square corners of a planned track, so a car can be seen on
-the verge at the outside of a corner. Some real packs are read wrongly: cars whose headings
-are numbered in no order, and characters that ship as single pictures a direction.
+have isometric wall pieces. No terrain (autotile) is read from an isometric pack. A house of
+pieces has one storey, a roof tile over every cell (a pack's slanted roofs are not joined into
+one ridge) and no corner posts of its own: the walls bring theirs. A track is planned with
+round corners only when the piece of every one of its four corners is round.
 
 ### The farm and the isometric view from the command line
 

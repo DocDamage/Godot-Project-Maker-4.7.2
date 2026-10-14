@@ -10,6 +10,7 @@ PNGs are saved without metadata, so two runs produce byte-identical files.
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -2235,6 +2236,207 @@ def make_iso_miniature(out: Path) -> None:
     _expected(out, "iso_miniature", expected)
 
 
+# --------------------------------------------------------------------------- iso_kit (T17.22)
+# In the manner of *Isometric Medieval Town* (a house as its pieces: walls that stand along one
+# side of a diamond in four turns, a wall with a door, one with a window, a roof that is a tile,
+# a post) with the road pieces of *Isometric Vector Roads* beside them (sides in their names,
+# corners that turn in a quarter circle and corners cut square). Nothing of either pack is
+# copied: every picture is drawn here.
+
+ISO_KIT_CANVAS = (72, 96)
+ISO_KIT_FOOT = (64, 36)
+ISO_KIT_SIDE = 6  # the rows of block under a ground tile's face
+ISO_KIT_FREE = 4  # the rows under a tile: it does not rest on the bottom of its picture
+ISO_KIT_WALL = 30  # px a whole wall is high
+ISO_KIT_INSET = 0.08  # how far inside its side a wall stands, of a diamond
+ISO_KIT_STONE: Color = (206, 200, 186, 255)
+ISO_KIT_STONE_DARK: Color = (132, 128, 124, 255)
+ISO_KIT_ROOF: Color = (176, 70, 58, 255)
+ISO_KIT_ROOF_DARK: Color = (128, 48, 44, 255)
+ISO_KIT_ASPHALT: Color = (84, 84, 92, 255)
+ISO_KIT_KERB: Color = (226, 222, 206, 255)
+# the side of its diamond a wall of turn 0, 1, 2, 3 stands along: not the turn's own number
+# (in *Medieval Town* turn 0 is n, in the *Miniature* packs `_S` is: the reader measures it)
+ISO_KIT_TURN_SIDES = ("e", "s", "w", "n")
+# the corners of a diamond a side runs between, as (east, south) of the grid, from -0.5 to 0.5
+ISO_SIDE_ENDS = {
+    "n": ((-0.5, -0.5), (0.5, -0.5)),
+    "e": ((0.5, -0.5), (0.5, 0.5)),
+    "s": ((-0.5, 0.5), (0.5, 0.5)),
+    "w": ((-0.5, -0.5), (-0.5, 0.5)),
+}
+
+
+def _kit_middle() -> tuple[float, float]:
+    """The middle of the diamond a tile of the kit stands on, in its picture."""
+    (cw, ch), (_w, h) = ISO_KIT_CANVAS, ISO_KIT_FOOT
+    return cw / 2.0, ch - ISO_KIT_FREE - ISO_KIT_SIDE - h / 2.0
+
+
+def _kit_point(east: float, south: float, lift: float = 0.0) -> tuple[float, float]:
+    """Where a point of the grid (east and south from the middle of the diamond) is in the
+    picture of a tile of the kit, ``lift`` px above the ground."""
+    mx, my = _kit_middle()
+    w, h = ISO_KIT_FOOT
+    return mx + (east - south) * w / 2.0, my + (east + south) * h / 2.0 - lift
+
+
+def _kit_tile(face: Callable[[float, float], Color]) -> Image.Image:
+    """A flat tile of the kit: the block of a ground tile, every pixel of its face the colour
+    ``face`` gives its place on the grid (east, south, each from -0.5 to 0.5)."""
+    w, h = ISO_KIT_FOOT
+    img = _iso_block(ISO_KIT_CANVAS, ISO_KIT_FOOT, ISO_KIT_SIDE, ISO_GRASS, bottom=ISO_KIT_FREE)
+    px = img.load()
+    mx, my = _kit_middle()
+    x0, y0 = (ISO_KIT_CANVAS[0] - w) // 2, int(my - h / 2)
+    for x, (top, low) in enumerate(_diamond_columns(w, h)):
+        for y in range(top, low + 1):
+            u = (x0 + x + 0.5 - mx) / (w / 2.0)
+            v = (y0 + y + 0.5 - my) / (h / 2.0)
+            px[x0 + x, y0 + y] = face((u + v) / 2.0, (v - u) / 2.0)
+    return img
+
+
+def _kit_wall(side: str, height: int, kind: str = "wall") -> Image.Image:
+    """A wall of the kit along one side of its diamond (n, e, s, w): a thin panel a little
+    inside the side, standing on the foot of the ground's block, ``height`` px high, with a
+    post at each end. ``kind`` cuts a doorway or a window into it, or makes it a fence (two
+    rails between posts)."""
+    img = Image.new("RGBA", ISO_KIT_CANVAS, (0, 0, 0, 0))
+    px = img.load()
+    (e0, s0), (e1, s1) = ISO_SIDE_ENDS[side]
+    inward = (-ISO_KIT_INSET if e0 == e1 and e0 > 0 else ISO_KIT_INSET if e0 == e1 else 0.0,
+              -ISO_KIT_INSET if s0 == s1 and s0 > 0 else ISO_KIT_INSET if s0 == s1 else 0.0)  # fmt: skip
+    a = _kit_point(e0 + inward[0], s0 + inward[1], -ISO_KIT_SIDE)
+    b = _kit_point(e1 + inward[0], s1 + inward[1], -ISO_KIT_SIDE)
+    if a[0] > b[0]:
+        a, b = b, a
+    first, last = int(round(a[0])), int(round(b[0])) - 1
+    lit = side in ("e", "w")  # the faces that look right are the light ones
+    colour = ISO_KIT_STONE if lit else ISO_KIT_STONE_DARK
+    if kind == "fence":
+        colour = WOOD if lit else WOOD_DARK
+    for x in range(first, last + 1):
+        t = (x - first) / max(1, last - first)
+        foot = int(round(a[1] + (b[1] - a[1]) * t))
+        post = x - first < 3 or last - x < 3
+        for y in range(foot - height + (0 if post else 2), foot + 1):
+            up = foot - y
+            if not post:
+                if kind == "door" and 0.3 < t < 0.7 and up < height * 0.7:
+                    continue
+                if kind == "window" and 0.4 < t < 0.6 and height * 0.4 < up < height * 0.7:
+                    continue
+                if kind == "fence" and not (up < 2 or height - 5 <= up < height - 3):
+                    continue
+            px[x, y] = ISO_KIT_KERB if post and kind != "fence" else colour
+    return img
+
+
+def _kit_roof() -> Image.Image:
+    """A roof of the kit that is a tile: it covers its diamond and rises to one point."""
+    img = _iso_block(ISO_KIT_CANVAS, ISO_KIT_FOOT, ISO_KIT_SIDE, ISO_KIT_ROOF, bottom=ISO_KIT_FREE,
+                     left=ISO_KIT_ROOF_DARK, right=ISO_KIT_ROOF)  # fmt: skip
+    draw = ImageDraw.Draw(img)
+    left, right, top, low = (_kit_point(-0.5, 0.5), _kit_point(0.5, -0.5),
+                             _kit_point(-0.5, -0.5), _kit_point(0.5, 0.5))  # fmt: skip
+    peak = (_kit_middle()[0], top[1] - 14)
+    draw.polygon([left, peak, top], fill=ISO_KIT_ROOF_DARK)
+    draw.polygon([top, peak, right], fill=ISO_KIT_ROOF_DARK)
+    draw.polygon([left, peak, low], fill=ISO_KIT_ROOF_DARK)
+    draw.polygon([low, peak, right], fill=ISO_KIT_ROOF)
+    return img
+
+
+def _kit_pole() -> Image.Image:
+    """A post of the kit: it stands on the middle of its diamond and is no wall."""
+    img = Image.new("RGBA", ISO_KIT_CANVAS, (0, 0, 0, 0))
+    x, y = _kit_point(0.0, 0.0, -ISO_KIT_SIDE)
+    ImageDraw.Draw(img).rectangle([x - 3, y - ISO_KIT_WALL, x + 2, y], fill=ISO_KIT_KERB)
+    return img
+
+
+def _kit_road(joined: str, shape: str) -> Callable[[float, float], Color]:
+    """The face of a road piece of the kit that joins on the sides ``joined`` (of n, e, s, w,
+    the grid's): a straight for two opposite sides; for two adjacent ones a corner that is
+    ``"round"`` (a quarter ring about the corner of the diamond the two sides share, as wide
+    as the straight) or ``"square"`` (the road fills its corner, a kerb on the two far
+    sides). Asphalt, a kerb a pixel or two wide, and the verge."""
+    steps = {"n": (0.0, -1.0), "e": (1.0, 0.0), "s": (0.0, 1.0), "w": (-1.0, 0.0)}
+    a, b = steps[joined[0]], steps[joined[1]]
+    lo, hi = 2.0 / 9.0, 7.0 / 9.0  # the road of a race's plan: five ninths of its block
+
+    def face(east: float, south: float) -> Color:
+        if a[0] == -b[0] and a[1] == -b[1]:  # a straight: a band through the middle
+            reach = abs(south if a[0] else east) + 0.5
+        else:
+            px, py = (a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5  # the corner the sides share
+            dx, dy = abs(east - px), abs(south - py)
+            if shape == "square":
+                reach = max(dx, dy)
+                return ISO_KIT_ASPHALT if reach <= hi else ISO_KIT_KERB if reach <= hi + 0.06 else ISO_GRASS  # fmt: skip
+            reach = math.hypot(dx, dy)
+        if lo <= reach <= hi:
+            return ISO_KIT_ASPHALT
+        return ISO_KIT_KERB if lo - 0.06 <= reach <= hi + 0.06 else ISO_GRASS
+
+    return face
+
+
+def make_iso_kit(out: Path) -> None:
+    """In the manner of *Medieval Town*: flat ground, walls along one side of a diamond in four
+    turns (a whole wall, a short one, one with a door, one with a window, a fence), a roof
+    that is a tile, a post and a tree; and, in the manner of *Vector Roads*, road pieces whose
+    names say their sides, with corners that are round (``road``) and square (``street``)."""
+    pack = out / "iso_kit"
+    canvas, foot = ISO_KIT_CANVAS, ISO_KIT_FOOT
+    _write_text(pack / "License.txt", "CC0-1.0 synthetic test pack\n")
+    _write_text(
+        pack / "Tile information.txt",
+        f"\n\tImage size : {canvas[0]} x {canvas[1]} px\n"
+        f"\tTile size  : {foot[0]} x {foot[1] + ISO_KIT_SIDE} px\n",
+    )
+    pictures: dict[str, Image.Image] = {}
+    expected: dict[str, dict] = {}
+    grounds = {"grass": ISO_GRASS, "dirt": (150, 112, 74, 255), "plate_stone": (168, 168, 176, 255),
+               "plate_road": (120, 116, 110, 255)}  # fmt: skip
+    walls = {"stone_wall": ("wall", ISO_KIT_WALL), "stone_short_wall": ("wall", 12),
+             "stone_door": ("door", ISO_KIT_WALL), "stone_window": ("window", ISO_KIT_WALL),
+             "wood_fence": ("fence", 12)}  # fmt: skip
+    for turn in range(4):
+        for name, colour in grounds.items():
+            block = _iso_block(canvas, foot, ISO_KIT_SIDE, colour, bottom=ISO_KIT_FREE, turn=turn)
+            pictures[f"{name}_01_{turn}.png"] = block
+        for name, (kind, height) in walls.items():
+            pictures[f"{name}_01_{turn}.png"] = _kit_wall(ISO_KIT_TURN_SIDES[turn], height, kind)
+            expected[f"PNG/{name}_01_{turn}.png"] = {
+                "usage": "iso_tile", "role": "WALL", "edge": ISO_KIT_TURN_SIDES[turn],
+            }  # fmt: skip
+        pictures[f"roof_point_01_{turn}.png"] = _kit_roof()
+        pictures[f"stone_pole_01_{turn}.png"] = _kit_pole()
+        pictures[f"tree_01_{turn}.png"] = _iso_tree(canvas, foot, ISO_KIT_SIDE + ISO_KIT_FREE)
+        expected[f"PNG/grass_01_{turn}.png"] = {"usage": "iso_tile", "role": "GROUND"}
+        expected[f"PNG/roof_point_01_{turn}.png"] = {"usage": "iso_tile", "role": "DECORATION"}
+        expected[f"PNG/stone_pole_01_{turn}.png"] = {"usage": "sprite", "frame": list(canvas)}
+    for joined in ("NS", "EW"):
+        pictures[f"road{joined}.png"] = _kit_tile(_kit_road(joined.lower(), ""))
+        expected[f"PNG/road{joined}.png"] = {"usage": "iso_tile", "role": "ROAD", "joins": sorted(joined.lower(), key="nesw".index)}  # fmt: skip
+    for joined in ("NE", "ES", "SW", "NW"):
+        sides = sorted(joined.lower(), key="nesw".index)
+        pictures[f"road{joined}.png"] = _kit_tile(_kit_road(joined.lower(), "round"))
+        pictures[f"street{joined}.png"] = _kit_tile(_kit_road(joined.lower(), "square"))
+        expected[f"PNG/road{joined}.png"] = {"usage": "iso_tile", "role": "ROAD", "joins": sides, "corner": "round"}  # fmt: skip
+        expected[f"PNG/street{joined}.png"] = {"usage": "iso_tile", "joins": sides, "corner": "square"}  # fmt: skip
+    for name, img in pictures.items():
+        _save_png(img, pack / "PNG" / name)
+    preview = Image.new("RGBA", (144, 96), (58, 58, 58, 255))
+    preview.alpha_composite(pictures["grass_01_0.png"], (0, 0))
+    preview.alpha_composite(pictures["roadES.png"], (72, 0))
+    _save_png(preview, pack / "Preview.png")
+    expected["Preview.png"] = {"role": "NONE"}
+    _expected(out, "iso_kit", expected)
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -2262,6 +2464,7 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "ranch": make_ranch,
     "iso_tiles": make_iso_tiles,
     "iso_miniature": make_iso_miniature,
+    "iso_kit": make_iso_kit,
     "audio_basic": lambda out: make_audio_basic(out),
 }
 

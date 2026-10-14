@@ -654,6 +654,9 @@ class IsometricAdapter:
             face = self._face(root, picture, facets)
             if face:
                 facets["tags"] = [face]
+            shape = self._corner(root, picture, facets)
+            if shape:
+                facets["corner"] = shape
             result.assets.append(AssetFragment(path, facets, confidence, "full"))
         result.issues = list(issues)
         return result
@@ -748,6 +751,29 @@ class IsometricAdapter:
         best = max(range(len(fits)), key=lambda q: (fits[q], -q))
         clear = fits[best] >= len(found) * COMPASS_SHARE and sorted(fits)[-2] < fits[best]
         return best if clear else 0
+
+    @staticmethod
+    def _corner(root: Path, picture: _Picture, facets: dict[str, Any]) -> str:
+        """``"round"`` or ``"square"`` for a flat tile that joins two adjacent sides, as its
+        picture shows it (``measure.corner_shape``, T17.22: a race is planned with the corners
+        its road pieces have); "" for every other picture. The sides are the grid's: the names'
+        compass has been turned to it by then."""
+        joins = facets.get("joins") or []
+        if facets.get("usage") != USAGE_TILE or facets.get("rise") or facets.get("edge"):
+            return ""
+        if len(joins) != 2:
+            return ""
+        try:
+            rgba = image_facts.load_rgba(root / picture.f.path)
+        except (OSError, ValueError):
+            return ""
+        origin, foot = facets["origin"], facets["footprint"]
+        middle, diamond = (origin[0], origin[1]), (foot[0], foot[1])
+        # the sides a name says are not always the ones its surface runs out on (``lotES`` of
+        # *Vector Roads* names the sides its kerb is on): such a piece is no corner of a road
+        if set(measure.open_sides(rgba, middle, diamond) or []) != set(joins):
+            return ""
+        return measure.corner_shape(rgba, middle, diamond, joins) or ""
 
     @staticmethod
     def _face(root: Path, picture: _Picture, facets: dict[str, Any]) -> str:

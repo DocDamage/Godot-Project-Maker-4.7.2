@@ -1,0 +1,298 @@
+extends RefCounted
+## A house of pieces (T17.22). Some isometric packs draw no whole house: they draw the walls,
+## the walls with a door or a window and the roofs of one as tiles of their own (*Medieval
+## Town*, *Modular Buildings*, the *Miniature* packs). From such a kit a house is put together
+## on the footprint a plan gives it:
+##
+## * on every cell of the footprint's rim the wall that stands along the side that looks out
+##   (`IsoTileset.edge_piece`: the side is the piece's `edge`, never its turn);
+## * the piece with a door on the south side of the cell above the plan's door cell (the plan's
+##   door cell lies one row below the footprint, in front of the side that faces the camera to
+##   the left: `MapGeo.building_info`);
+## * a piece with a window on some of the other places, by the seed;
+## * a roof tile over every cell, one storey up, when the packs have a roof that is a tile.
+##
+## **A storey's height** is not in the catalog. It is taken to be how far the wall rises above
+## its diamond on a far side (`rise` of its member on `n`): there the wall begins at the far
+## corner of the diamond and all of its height shows above it.
+##
+## **Sorting.** The house is one building: nobody stands on its footprint, so it sorts against
+## actors by the rule of every isometric object of several cells (`RpgIso.sort_keys`,
+## object_scenes_recipe.gd): what of it lies left of its corner nearest the camera sorts by the
+## left corner of its footprint, the rest by the right corner. The pieces are children of two
+## nodes on those two lines (`Left`, `Right`), in the order they are drawn: the far walls, the
+## near walls, the roofs, each from the back to the front. A roof on the diagonal through the
+## nearest corner lies on both sides and is cut in two there.
+##
+## The parts of a house are plain data (`parts`), so that the entry of the village's house
+## carries them into the hash of its scene, and a test can ask what stands where.
+
+const JsonUtil := preload("json_util.gd")
+const IsoTileset := preload("iso_tileset.gd")
+const TextureUtil := preload("texture_util.gd")
+
+## The id of the entry (ObjectEntries) of the village's house of pieces, and of its scene.
+const ENTRY_ID := "rpggen.iso_house"
+const ENTRY_NAME := "House"
+## The footprint of the village's house: two cells each way, the smallest a plan of a farm
+## gives a building and what a whole house of a pack usually stands on.
+const VILLAGE_CELLS := Vector2i(2, 2)
+## Of this many places for a wall one has a window, about.
+const WINDOW_EVERY := 2
+
+## The pieces a house is put together from: `{wall, door, window, roof, storey}`, each the first
+## turn of a set ("" for the window and the roof when the packs have none), or {} when the
+## packs have no kit: a plain wall along all four sides (no fence) and a wall with a door for
+## the south side. The wall is the highest of the packs' (a storey, not a parapet); the door,
+## the window and the roof are the ones whose names begin most like the wall's (*grey* walls
+## get the *grey* door), else the first by id.
+static func kit(iso: IsoTileset) -> Dictionary:
+	if iso == null or not iso.has_tiles():
+		return {}
+	var wall := ""
+	for first in iso.wall_sets(false):
+		var higher := iso.edge_rise(first, "n") - iso.edge_rise(wall, "n")
+		# of two as high the one with the shorter name: `wall` before `border_wall`
+		if wall == "" or higher > 0 or (higher == 0 and first.length() < wall.length()):
+			wall = first
+	if wall == "":
+		return {}
+	var doors: Array[String] = []
+	for first in iso.edge_sets("door", [IsoTileset.FENCE_TAG]):
+		if iso.edge_members(first).has("s"):
+			doors.append(first)
+	if doors.is_empty():
+		return {}
+	var windows: Array[String] = []
+	for first in iso.edge_sets("window", ["door", IsoTileset.FENCE_TAG]):
+		if iso.edge_members(first).size() == IsoTileset.SIDES.size():
+			windows.append(first)
+	return {
+		"wall": wall,
+		"door": _most_alike(doors, wall),
+		"window": _most_alike(windows, wall),
+		"roof": _roof(iso),
+		"storey": iso.edge_rise(wall, "n"),
+	}
+
+## The one of `ids` whose name begins most like `like` (the first of them when several do as
+## much); "" for none.
+static func _most_alike(ids: Array[String], like: String) -> String:
+	var best := ""
+	var best_shared := -1
+	for id in ids:
+		var shared := 0
+		while shared < mini(id.length(), like.length()) and id[shared] == like[shared]:
+			shared += 1
+		if shared > best_shared:
+			best = id
+			best_shared = shared
+	return best
+
+## The roof of the packs that is laid a cell: a tile tagged `roof` that stands along no side,
+## one whose four turns rise alike first (a roof with one peak looks the same on every cell; a
+## slanted one has a ridge whose direction by its turn nobody measured). "" when the packs have
+## no roof that is a tile.
+static func _roof(iso: IsoTileset) -> String:
+	var any := ""
+	for asset_id in iso.pieces(IsoTileset.ROOF_TAG):
+		if iso.edge_of(asset_id) != "" or iso.first_of(asset_id) != asset_id:
+			continue  # a turn of a roof that is listed by its first
+		var rises := {}
+		for turn in iso.turns_of(asset_id):
+			rises[JsonUtil.to_int(iso.facets(iso.turned(asset_id, turn)).get("rise", 0))] = true
+		if rises.size() == 1 and iso.turns_of(asset_id).size() > 1:
+			return asset_id
+		if any == "":
+			any = asset_id
+	return any
+
+## The parts of a house of `cells` cells whose door is before the column `door_column`, in the
+## order they are drawn: [{asset_id, texture, origin: [x, y], cell: [x, y], lift, kind, side}].
+## `cell` is counted from the footprint's first cell (its north-west one), `lift` is how far
+## the part is raised (a roof: a storey), `kind` is wall, door, window or roof, and `side` the
+## side a wall stands along ("" for a roof). Which walls have a window is drawn from `house_seed`.
+static func parts(iso: IsoTileset, pieces: Dictionary, cells: Vector2i, door_column: int, house_seed: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if pieces.is_empty():
+		return out
+	var rng := RandomNumberGenerator.new()
+	rng.seed = absi(house_seed) * 31 + cells.x * 7 + cells.y * 13 + door_column
+	var order := _back_to_front(cells)
+	var door_cell := Vector2i(clampi(door_column, 0, cells.x - 1), cells.y - 1)
+	var window := JsonUtil.to_str(pieces.get("window", ""))
+	for far: bool in [true, false]:
+		for cell in order:
+			for side in _rim_sides(cell, cells):
+				if (side == "n" or side == "w") != far:
+					continue
+				var kind := "wall"
+				if side == "s" and cell == door_cell:
+					kind = "door"
+				elif window != "" and rng.randi() % WINDOW_EVERY == 0:
+					kind = "window"
+				var found := iso.edge_piece(JsonUtil.to_str(pieces[kind]), side)
+				if found.is_empty():  # a window drawn for three sides: the plain wall
+					kind = "wall"
+					found = iso.edge_piece(JsonUtil.to_str(pieces["wall"]), side)
+				if not found.is_empty():
+					out.append(_part(iso, JsonUtil.to_str(found["asset_id"]), cell, 0, kind, side))
+	var roof := JsonUtil.to_str(pieces.get("roof", ""))
+	if roof != "":
+		for cell in order:
+			out.append(_part(iso, roof, cell, JsonUtil.to_int(pieces.get("storey", 0)), "roof", ""))
+	return out
+
+static func _part(iso: IsoTileset, asset_id: String, cell: Vector2i, lift: int, kind: String, side: String) -> Dictionary:
+	var eff := iso.facets(asset_id)
+	var origin := JsonUtil.to_array(eff.get("origin", [0, 0]))
+	var picture := iso.picture_of(asset_id)
+	return {
+		"asset_id": asset_id,
+		"texture": JsonUtil.to_str(picture.get("texture", "")),
+		"region": JsonUtil.to_array(picture.get("region", [0, 0, 0, 0])),
+		"origin": [JsonUtil.to_int(origin[0]), JsonUtil.to_int(origin[1])],
+		"cell": [cell.x, cell.y],
+		"lift": lift,
+		"kind": kind,
+		"side": side,
+	}
+
+## The cells of a footprint from the back to the front: by the depth of their diamonds, and of
+## two as deep the western one first.
+static func _back_to_front(cells: Vector2i) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for depth in cells.x + cells.y - 1:
+		for y in range(cells.y - 1, -1, -1):
+			var x := depth - y
+			if x >= 0 and x < cells.x:
+				out.append(Vector2i(x, y))
+	return out
+
+## The sides of a cell of a footprint that look out of it, in the order n, w, e, s.
+static func _rim_sides(cell: Vector2i, cells: Vector2i) -> Array[String]:
+	var out: Array[String] = []
+	if cell.y == 0:
+		out.append("n")
+	if cell.x == 0:
+		out.append("w")
+	if cell.x == cells.x - 1:
+		out.append("e")
+	if cell.y == cells.y - 1:
+		out.append("s")
+	return out
+
+## The entry (ObjectEntries) of the village's house of pieces, or {} when the packs have no
+## kit: a BUILDING drawn for the isometric view that stands on `VILLAGE_CELLS`, with its parts.
+## It has no picture of its own (`region` is empty): the object recipe builds its scene from
+## the parts.
+static func entry(iso: IsoTileset, house_seed: int) -> Dictionary:
+	var pieces := kit(iso)
+	if pieces.is_empty():
+		return {}
+	var cells := VILLAGE_CELLS
+	@warning_ignore("integer_division")
+	var door_column := (cells.x - 1) / 2
+	var footprint := iso.footprint()
+	return {
+		"id": ENTRY_ID,
+		"name": ENTRY_NAME,
+		"role": "BUILDING",
+		"tags": ["kit"],
+		"texture_path": "",
+		"region": [0, 0, 0, 0],
+		"origin": [0, 0],
+		"footprint": [],
+		"collision": {"profile": "NONE"},
+		"door": [],
+		"sha256": "",
+		"open_region": [],
+		"iso": [footprint.x, footprint.y],
+		"stands_on": [cells.x, cells.y],
+		"kit": pieces,
+		"parts": parts(iso, pieces, cells, door_column, house_seed),
+	}
+
+## True for the entry of a house of pieces.
+static func is_kit(e: Dictionary) -> bool:
+	return e.has("parts")
+
+## Where a part is drawn from the middle of the footprint's cell nearest the camera (where the
+## building's node stands): the middle of its own cell, raised by its lift.
+static func part_position(part: Dictionary, cells: Vector2i, footprint: Vector2i) -> Vector2:
+	var cell := JsonUtil.to_array(part["cell"])
+	var dx := JsonUtil.to_int(cell[0]) - (cells.x - 1)
+	var dy := JsonUtil.to_int(cell[1]) - (cells.y - 1)
+	return Vector2((dx - dy) * footprint.x / 2.0, (dx + dy) * footprint.y / 2.0 - JsonUtil.to_float(part.get("lift", 0)))
+
+## The pictures already read in this build, by path: an atlas is asked once a part.
+static var _images: Dictionary = {}
+
+## True when something is painted in `area` of the picture at `path` (true as well when the
+## picture cannot be read: the part is then shown whole).
+static func _painted(path: String, area: Rect2i) -> bool:
+	if not _images.has(path):
+		var texture := load(path) as Texture2D
+		var image: Image = null
+		if texture != null:
+			image = texture.get_image()
+		if image != null and image.is_compressed():
+			image.decompress()
+		_images[path] = image
+	var read: Image = _images[path]
+	if read == null or read.is_empty():
+		return true
+	var inside := area.intersection(Rect2i(Vector2i.ZERO, read.get_size()))
+	if inside.size.x <= 0 or inside.size.y <= 0:
+		return false
+	return not read.get_region(inside).is_invisible()
+
+## Puts the parts of a house under `root`, which stands on the middle of the cell of its
+## footprint nearest the camera: two nodes `Left` and `Right` on the lines the two halves sort
+## by, and under them a sprite a part (`<Kind>_<x>_<y>[_<side>]`), in the order of `parts`.
+## Returns {left, right}.
+static func assemble(root: Node2D, house_parts: Array, cells: Vector2i, footprint: Vector2i) -> Dictionary:
+	root.y_sort_enabled = true
+	var halves := {}
+	var lines := {"left": (1 - cells.x) * footprint.y / 2.0, "right": (1 - cells.y) * footprint.y / 2.0}
+	for half_name: String in ["left", "right"]:
+		var half := Node2D.new()
+		half.name = half_name.capitalize()
+		half.position = Vector2(0.0, JsonUtil.to_float(lines[half_name]))
+		root.add_child(half)
+		halves[half_name] = half
+	for raw: Variant in house_parts:
+		var part: Dictionary = raw
+		var texture_path := JsonUtil.to_str(part.get("texture", ""))
+		var region := JsonUtil.to_array(part.get("region", []))
+		if region.size() != 4 or not ResourceLoader.exists(texture_path):
+			continue
+		# the part's own picture in its atlas: the pixels the tile set shows for the tile
+		var own := Rect2i(JsonUtil.to_int(region[0]), JsonUtil.to_int(region[1]), JsonUtil.to_int(region[2]), JsonUtil.to_int(region[3]))
+		var origin := Vector2(JsonUtil.to_float(part["origin"][0]), JsonUtil.to_float(part["origin"][1]))
+		var at := part_position(part, cells, footprint)
+		var cell := JsonUtil.to_array(part["cell"])
+		var node_name := "%s_%d_%d" % [JsonUtil.to_str(part["kind"]).capitalize(), JsonUtil.to_int(cell[0]), JsonUtil.to_int(cell[1])]
+		if JsonUtil.to_str(part.get("side", "")) != "":
+			node_name += "_" + JsonUtil.to_str(part["side"])
+		var size := own.size
+		var cut := clampi(roundi(origin.x - at.x), 0, size.x)  # the column of the picture at the corner's x
+		for half_name: String in ["left", "right"]:
+			# what of the picture lies left of the corner nearest the camera is drawn with the
+			# left half, the rest with the right one: a part across that line is cut in two
+			var area := Rect2i(0, 0, cut, size.y) if half_name == "left" else Rect2i(cut, 0, size.x - cut, size.y)
+			if area.size.x <= 0 or not _painted(texture_path, Rect2i(own.position + area.position, area.size)):
+				continue
+			var half: Node2D = halves[half_name]
+			var sprite := Sprite2D.new()
+			sprite.centered = false
+			sprite.name = node_name
+			sprite.texture = TextureUtil.region_texture(texture_path, Rect2i(own.position + area.position, area.size))
+			var shift := Vector2(area.position)
+			sprite.offset = at - origin + shift - half.position
+			sprite.set_meta(&"asset_id", JsonUtil.to_str(part["asset_id"]))
+			sprite.set_meta(&"kind", JsonUtil.to_str(part["kind"]))
+			sprite.set_meta(&"cell", Vector2i(JsonUtil.to_int(cell[0]), JsonUtil.to_int(cell[1])))
+			sprite.set_meta(&"side", JsonUtil.to_str(part.get("side", "")))
+			half.add_child(sprite)
+	return halves

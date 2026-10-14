@@ -1,0 +1,249 @@
+{
+  "PNG/grass_01_0.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "PNG/grass_01_1.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "PNG/grass_01_2.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "PNG/grass_01_3.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "PNG/roadES.png": {
+    "corner": "round",
+    "joins": [
+      "e",
+      "s"
+    ],
+    "role": "ROAD",
+    "usage": "iso_tile"
+  },
+  "PNG/roadEW.png": {
+    "joins": [
+      "e",
+      "w"
+    ],
+    "role": "ROAD",
+    "usage": "iso_tile"
+  },
+  "PNG/roadNE.png": {
+    "corner": "round",
+    "joins": [
+      "n",
+      "e"
+    ],
+    "role": "ROAD",
+    "usage": "iso_tile"
+  },
+  "PNG/roadNS.png": {
+    "joins": [
+      "n",
+      "s"
+    ],
+    "role": "ROAD",
+    "usage": "iso_tile"
+  },
+  "PNG/roadNW.png": {
+    "corner": "round",
+    "joins": [
+      "n",
+      "w"
+    ],
+    "role": "ROAD",
+    "usage": "iso_tile"
+  },
+  "PNG/roadSW.png": {
+    "corner": "round",
+    "joins": [
+      "s",
+      "w"
+    ],
+    "role": "ROAD",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_point_01_0.png": {
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_point_01_1.png": {
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_point_01_2.png": {
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_point_01_3.png": {
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_door_01_0.png": {
+    "edge": "e",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_door_01_1.png": {
+    "edge": "s",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_door_01_2.png": {
+    "edge": "w",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_door_01_3.png": {
+    "edge": "n",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_pole_01_0.png": {
+    "frame": [
+      72,
+      96
+    ],
+    "usage": "sprite"
+  },
+  "PNG/stone_pole_01_1.png": {
+    "frame": [
+      72,
+      96
+    ],
+    "usage": "sprite"
+  },
+  "PNG/stone_pole_01_2.png": {
+    "frame": [
+      72,
+      96
+    ],
+    "usage": "sprite"
+  },
+  "PNG/stone_pole_01_3.png": {
+    "frame": [
+      72,
+      96
+    ],
+    "usage": "sprite"
+  },
+  "PNG/stone_short_wall_01_0.png": {
+    "edge": "e",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_short_wall_01_1.png": {
+    "edge": "s",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_short_wall_01_2.png": {
+    "edge": "w",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_short_wall_01_3.png": {
+    "edge": "n",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_wall_01_0.png": {
+    "edge": "e",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_wall_01_1.png": {
+    "edge": "s",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_wall_01_2.png": {
+    "edge": "w",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_wall_01_3.png": {
+    "edge": "n",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_window_01_0.png": {
+    "edge": "e",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_window_01_1.png": {
+    "edge": "s",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_window_01_2.png": {
+    "edge": "w",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_window_01_3.png": {
+    "edge": "n",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/streetES.png": {
+    "corner": "square",
+    "joins": [
+      "e",
+      "s"
+    ],
+    "usage": "iso_tile"
+  },
+  "PNG/streetNE.png": {
+    "corner": "square",
+    "joins": [
+      "n",
+      "e"
+    ],
+    "usage": "iso_tile"
+  },
+  "PNG/streetNW.png": {
+    "corner": "square",
+    "joins": [
+      "n",
+      "w"
+    ],
+    "usage": "iso_tile"
+  },
+  "PNG/streetSW.png": {
+    "corner": "square",
+    "joins": [
+      "s",
+      "w"
+    ],
+    "usage": "iso_tile"
+  },
+  "PNG/wood_fence_01_0.png": {
+    "edge": "e",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/wood_fence_01_1.png": {
+    "edge": "s",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/wood_fence_01_2.png": {
+    "edge": "w",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "PNG/wood_fence_01_3.png": {
+    "edge": "n",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Preview.png": {
+    "role": "NONE"
+  }
+}

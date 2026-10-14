@@ -436,6 +436,75 @@ def open_sides(
     ]
 
 
+CORNER_ROUND = "round"
+CORNER_SQUARE = "square"
+CORNER_STEPS = 48  # how many points along a line the road is followed over
+CORNER_ROUND_MAX = 0.85  # a road that reaches this share of its width along the diagonal ...
+CORNER_MIN_REACH = 0.3  # ... of a road at least this wide (of a side) is a square corner's
+
+
+def _grid_colour(
+    rgba: np.ndarray, middle: tuple[float, float], diamond: tuple[int, int], at: tuple[float, float]
+) -> np.ndarray | None:
+    """The colour of a tile's face at a point of the grid (east and south from its middle, the
+    diamond a square from -0.5 to 0.5), or None where nothing is painted."""
+    east, south = at
+    x = int(round(middle[0] + (east - south) * diamond[0] / 2.0))
+    y = int(round(middle[1] + (east + south) * diamond[1] / 2.0))
+    if not (0 <= y < rgba.shape[0] and 0 <= x < rgba.shape[1]) or rgba[y, x, 3] < PAINTED_ALPHA:
+        return None
+    return np.asarray(rgba[y, x, :3].astype(np.int16))
+
+
+def corner_shape(
+    rgba: np.ndarray, middle: tuple[float, float], diamond: tuple[int, int], joins: list[str]
+) -> str | None:
+    """How a flat road piece that joins two adjacent sides turns its corner (T17.22):
+    ``"round"`` or ``"square"``, or None for a piece that is no such corner or whose road
+    cannot be followed.
+
+    The road's colour is the face's just inside the middle of the two joined sides (where the
+    road leaves the tile); a piece on which the two differ is none. From the corner of the
+    diamond that the two sides share, the road is followed along the first joined side (how
+    far from that corner it lies: its outer edge) and along the diagonal to the opposite
+    corner. A road that fills its corner (a lot, a plaza, the meeting of two streets cut
+    square) reaches as far along the diagonal, in the grid's own measure, as along the side.
+    A road that turns in a quarter circle about the shared corner reaches the same distance
+    from it in every direction, which along the diagonal is 0.71 of the way a square one goes.
+    """
+    sides = [side for side in EDGE_SIDES if side in joins]
+    if len(sides) != 2 or len(joins) != 2:
+        return None
+    first, second = SIDE_STEPS[EDGE_SIDES.index(sides[0])], SIDE_STEPS[EDGE_SIDES.index(sides[1])]
+    if first[0] * second[0] + first[1] * second[1] != 0:
+        return None  # opposite sides: a straight
+    road = _grid_colour(rgba, middle, diamond, (first[0] * SIDE_REACH, first[1] * SIDE_REACH))
+    other = _grid_colour(rgba, middle, diamond, (second[0] * SIDE_REACH, second[1] * SIDE_REACH))
+    if road is None or other is None or int(np.abs(road - other).max()) > FACE_STEP:
+        return None
+    corner = ((first[0] + second[0]) * 0.5, (first[1] + second[1]) * 0.5)
+
+    def reach(step: tuple[float, float], start: tuple[float, float]) -> float:
+        """How far from ``start`` the road lies along ``step`` (a way of length 1), at most."""
+        found = 0.0
+        for n in range(1, CORNER_STEPS):
+            t = n / CORNER_STEPS
+            colour = _grid_colour(
+                rgba, middle, diamond, (start[0] + step[0] * t, start[1] + step[1] * t)
+            )
+            if colour is not None and int(np.abs(colour - road).max()) <= FACE_STEP:
+                found = t
+        return found
+
+    # along the first joined side, a little inside it, away from the shared corner
+    inside = (corner[0] - first[0] * (0.5 - SIDE_REACH), corner[1] - first[1] * (0.5 - SIDE_REACH))
+    along = reach((-second[0], -second[1]), inside)
+    across = reach((-(first[0] + second[0]), -(first[1] + second[1])), corner)
+    if along < CORNER_MIN_REACH or across <= 0.0:
+        return None
+    return CORNER_ROUND if across / along <= CORNER_ROUND_MAX else CORNER_SQUARE
+
+
 def turned_sides(sides: list[str], quarters: int) -> list[str]:
     """``sides`` a number of quarter turns clockwise round the diamond, in the order n, e, s, w."""
     moved = {EDGE_SIDES[(EDGE_SIDES.index(side) + quarters) % 4] for side in sides}

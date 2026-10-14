@@ -54,6 +54,8 @@ const ObjectIndex := preload("../../lib/object_index.gd")
 const BuildContext := preload("../../lib/build_context.gd")
 const InteriorRecipe := preload("../interior_recipe.gd")
 const MapGeo := preload("../../lib/map_geo.gd")
+const IsoTileset := preload("../../lib/iso_tileset.gd")
+const IsoHouse := preload("../../lib/iso_house.gd")
 const FarmBuild := preload("farm_build.gd")
 const FieldRecipe := preload("field_recipe.gd")
 const RoomRecipe := preload("room_recipe.gd")
@@ -290,8 +292,8 @@ static func building_entry(entries: Array[Dictionary], kind: String, cells: Vect
 	var ranked: Array[Dictionary] = []
 	var others: Array[Dictionary] = []
 	for entry in entries:
-		if JsonUtil.to_str(entry.get("role", "")) != "BUILDING":
-			continue
+		if JsonUtil.to_str(entry.get("role", "")) != "BUILDING" or IsoHouse.is_kit(entry):
+			continue  # a house of pieces is put together on the plan's own footprint (kit_building)
 		var tags: Array = entry.get("tags", [])
 		var animal := tags.has("coop") or tags.has("barn")
 		if kind != "house":
@@ -360,6 +362,7 @@ func input_hash(ctx: BuildContext) -> String:
 	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the keys (T17.14)
 		hashed["iso"] = MapGeo.new(ctx).def
 		hashed["iso_v"] = ISO_VERSION
+		hashed.merge(MapGeo.edge_hash(ctx))  # T17.22: only with walls along a side
 	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
@@ -444,7 +447,7 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 	var skip: Array[Vector2i] = []
 	if not way_out.is_empty():
 		skip.append(gap)
-	geo.paint_walls(root, nodes, size, skip)
+	geo.paint_walls(root, nodes, size, skip, true)  # a farm is fenced where the packs have a fence
 	for note in geo.take_notes():
 		print("[rpggen] INFO farm_map: ", note)
 
@@ -513,7 +516,10 @@ func _add_building(building: Dictionary, root: Node2D, nodes: Dictionary, geo: M
 		entrance = placed.get_node_or_null("Entrance")
 		exit_spawn = placed.get_node_or_null("ExitSpawn")
 	elif geo.isometric:
-		var box := drawn_iso_building(kind, rect.size, column, geo.footprint, tile_px)
+		# a house of the packs' pieces where they have them (T17.22), else one that is drawn
+		var box := kit_building(geo, entries, rect, column)
+		if box == null:
+			box = drawn_iso_building(kind, rect.size, column, geo.footprint, tile_px)
 		box.position = geo.center(rect.end - Vector2i.ONE)
 		SceneUtil.add(entities, box, root, node_name)
 	else:
@@ -647,6 +653,80 @@ static func drawn_iso_building(kind: String, cells: Vector2i, door_column: int, 
 	RpgFarmIso.add_box(parts, "Roof", u0 - 0.04, v0 - 0.04, 1.04, 1.04, wall, tile_px * ISO_ROOF, ROOF, footprint)
 	return body
 
+## A building put together from the packs' pieces on the plan's footprint `rect`, its door
+## before the column `door_column` (T17.22, IsoHouse): walls along its sides, the wall with a
+## door, windows by where it stands, a roof a cell. Solid over its footprint, its origin the
+## middle of the cell nearest the camera, in the two halves an isometric building sorts by.
+## Null when the packs have no kit (`entries` has no house of pieces).
+static func kit_building(geo: MapGeo, entries: Array[Dictionary], rect: Rect2i, door_column: int) -> StaticBody2D:
+	var pieces := {}
+	for entry in entries:
+		if IsoHouse.is_kit(entry):
+			pieces = JsonUtil.to_dict(entry.get("kit", {}))
+	if pieces.is_empty() or geo.iso == null:
+		return null
+	var body := StaticBody2D.new()
+	body.collision_layer = 0
+	body.collision_mask = 0
+	body.set_collision_layer_value(1, true)  # world
+	var shape := CollisionShape2D.new()
+	shape.name = "Shape"
+	var outline := ConvexPolygonShape2D.new()
+	outline.points = RpgFarmIso.outline(1.0 - rect.size.x, 1.0 - rect.size.y, 1.0, 1.0, geo.footprint)
+	shape.shape = outline
+	body.add_child(shape)
+	body.set_meta(&"kit", pieces.duplicate())
+	var parts := IsoHouse.parts(geo.iso, pieces, rect.size, door_column, rect.position.x * 131 + rect.position.y)
+	IsoHouse.assemble(body, parts, rect.size, geo.footprint)
+	return body
+
+## The sides of a cell of a yard's fence on which the yard lies (n, e, s, w): where a segment of
+## fence stands. A cell at a corner of the fence has none: the segments beside it meet there.
+static func yard_sides(cell: Vector2i, yard: Rect2i) -> Array[String]:
+	var out: Array[String] = []
+	for side in RpgIso.SIDES:
+		var by: Vector2i = RpgIso.STEPS[side]
+		if yard.has_point(cell + by):
+			out.append(side)
+	return out
+
+## A piece of a yard's fence from the packs' fence segments (T17.22): a solid diamond with the
+## segment of `fence_set` that stands along each of `sides` (`Sprite`, `Sprite2`), the middle of
+## the cell at the origin. Without a side it is the diamond alone.
+static func make_edge_fence(iso: IsoTileset, fence_set: String, sides: Array[String], footprint: Vector2i) -> Node2D:
+	var body := StaticBody2D.new()
+	body.collision_layer = 0
+	body.collision_mask = 0
+	body.set_collision_layer_value(1, true)  # world
+	var shape := CollisionShape2D.new()
+	shape.name = "Shape"
+	shape.shape = RpgFarmIso.diamond_shape(footprint, 1.0)
+	body.add_child(shape)
+	SceneUtil.attach_script(body, WORLD_OBJECT)
+	body.set("blocks_movement", true)
+	var count := 0
+	for side in sides:
+		var piece := iso.edge_piece(fence_set, side)
+		if piece.is_empty():
+			continue
+		var asset_id := JsonUtil.to_str(piece["asset_id"])
+		var picture := iso.picture_of(asset_id)
+		var region := JsonUtil.to_array(picture.get("region", []))
+		if region.size() != 4:
+			continue
+		var texture := TextureUtil.region_texture(JsonUtil.to_str(picture["texture"]), Rect2i(JsonUtil.to_int(region[0]), JsonUtil.to_int(region[1]), JsonUtil.to_int(region[2]), JsonUtil.to_int(region[3])))
+		if texture == null:
+			continue
+		count += 1
+		var sprite := Sprite2D.new()
+		sprite.name = "Sprite" if count == 1 else "Sprite%d" % count
+		sprite.texture = texture
+		IsoTileset.stand(sprite, iso.facets(asset_id), Vector2.ZERO)
+		sprite.set_meta(&"asset_id", asset_id)
+		sprite.set_meta(&"side", side)
+		body.add_child(sprite)
+	return body
+
 ## The yard of an animal house: a piece of fence on every cell of the plan's fence, the gate
 ## (which is walked through), and the node the animals' recipe finds it by.
 func _add_yard(building: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo, entries: Array[Dictionary]) -> void:
@@ -676,9 +756,15 @@ func _add_yard(building: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo
 	# on diamonds a piece of fence joins the pieces beside it, and the gate
 	var joined := fence.duplicate()
 	joined.append(gate_cell)
+	# the packs' fence segments, where they have a fence that stands along a side (T17.22)
+	var fence_set := ""
+	if geo.isometric and not geo.iso.wall_sets(true).is_empty():
+		fence_set = geo.iso.border_set(true)
 	for cell in fence:
 		var piece: Node2D = null
-		if geo.isometric:
+		if fence_set != "":
+			piece = make_edge_fence(geo.iso, fence_set, yard_sides(cell, rect), geo.footprint)
+		elif geo.isometric:
 			piece = make_iso_thing("fence", _entry_at(pictures, index), geo.footprint, tile_px, true, sides_of(cell, joined))
 		else:
 			piece = make_thing("fence", thing_texture(pictures, index), tile_px, true)

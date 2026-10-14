@@ -13,6 +13,7 @@ const ObjectIndex := preload("../lib/object_index.gd")
 const ActorBuild := preload("../lib/actor_build.gd")
 const BuildContext := preload("../lib/build_context.gd")
 const MapGeo := preload("../lib/map_geo.gd")
+const IsoHouse := preload("../lib/iso_house.gd")
 
 const WORLD_OBJECT_SCRIPT := "res://addons/rpg_runtime/world/world_object.gd"
 const DOOR_SCRIPT := "res://addons/rpg_runtime/world/door.gd"
@@ -153,14 +154,21 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		root.set_meta("iso", JsonUtil.to_array(e["iso"]).duplicate())
 		root.set_meta("stands_on", JsonUtil.to_array(e["stands_on"]).duplicate())
 
-	var sprite := Sprite2D.new()
-	sprite.name = "Sprite"
-	sprite.texture = TextureUtil.region_texture(texture_path, Rect2i(JsonUtil.to_int(region[0]), JsonUtil.to_int(region[1]), JsonUtil.to_int(region[2]), JsonUtil.to_int(region[3])))
-	sprite.centered = false
-	sprite.offset = -origin
-	root.add_child(sprite)
-	if ObjectEntries.is_iso(e) and ObjectEntries.iso_cells(e) != Vector2i.ONE:
-		_split_for_sorting(root, sprite, e, origin)
+	var sprite: Sprite2D = null
+	if IsoHouse.is_kit(e):
+		# a house of pieces (T17.22): no picture of its own, a sprite a wall and a roof, in the
+		# two halves an isometric building sorts by
+		root.set_meta("kit", JsonUtil.to_dict(e["kit"]).duplicate())
+		IsoHouse.assemble(root, JsonUtil.to_array(e["parts"]), ObjectEntries.iso_cells(e), ObjectEntries.iso_footprint(e))
+	else:
+		sprite = Sprite2D.new()
+		sprite.name = "Sprite"
+		sprite.texture = TextureUtil.region_texture(texture_path, Rect2i(JsonUtil.to_int(region[0]), JsonUtil.to_int(region[1]), JsonUtil.to_int(region[2]), JsonUtil.to_int(region[3])))
+		sprite.centered = false
+		sprite.offset = -origin
+		root.add_child(sprite)
+		if ObjectEntries.is_iso(e) and ObjectEntries.iso_cells(e) != Vector2i.ONE:
+			_split_for_sorting(root, sprite, e, origin)
 	if template == "chest":
 		var open: Array = e.get("open_region", [])
 		if open.size() == 4:

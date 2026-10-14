@@ -261,7 +261,7 @@ func _init(catalog: CatalogReader) -> void:
 	for id: Variant in tiles.keys():
 		var asset_id := JsonUtil.to_str(id)
 		var entry := JsonUtil.to_dict(tiles[id])
-		_tiles[asset_id] = {"source": JsonUtil.to_int(entry.get("source", -1)), "coords": _vec(entry.get("coords")), "of": JsonUtil.to_str(entry.get("of", ""))}
+		_tiles[asset_id] = {"source": JsonUtil.to_int(entry.get("source", -1)), "coords": _vec(entry.get("coords")), "of": JsonUtil.to_str(entry.get("of", "")), "at": _vec(entry.get("at"))}
 		_ids.append(asset_id)
 	_ids.sort()
 	for asset_id in _ids:
@@ -470,7 +470,7 @@ func plain_tiles(role: String) -> Array[String]:
 	var raised: Array[String] = []
 	for asset_id in _ids:
 		var eff := facets(asset_id)
-		if JsonUtil.to_str(eff.get("role", "")) != role or eff.has("joins"):
+		if JsonUtil.to_str(eff.get("role", "")) != role or eff.has("joins") or eff.has("edge"):
 			continue
 		if _group_of.has(asset_id) and _group_of[asset_id] != asset_id:
 			continue  # a turn of a tile that is listed by its first
@@ -486,5 +486,142 @@ func plain_tile(role: String) -> String:
 	var plain := plain_tiles(role)
 	if not plain.is_empty():
 		return plain[0]
-	var any := pieces(role)
-	return any[0] if not any.is_empty() else ""
+	for asset_id in pieces(role):
+		if not facets(asset_id).has("edge"):
+			return asset_id
+	return ""
+
+# --------------------------------------------------------------------------- pieces along a side
+#
+# A wall segment, a wall with a door or a window, a fence (T17.21, T17.22): a tile that fills no
+# diamond and stands along one side of its cell, which its facet `edge` names (n, e, s, w: the
+# sides of the grid, measured from the picture). Its four turns are four tiles of one set, and
+# which turn stands on which side differs from pack to pack, so the side is never taken from
+# the turn. Such a tile is no tile a map is filled or bordered with cell by cell
+# (`plain_tiles`, `plain_tile` leave it out): it is asked for by the side.
+
+## The tags that make a piece along a side something else than a plain wall.
+const EDGE_OPENINGS: Array[String] = ["door", "window"]
+const FENCE_TAG := "fence"
+const ROOF_TAG := "roof"
+
+## The first turn of the set a tile is one turn of; the tile itself when it is one picture.
+func first_of(asset_id: String) -> String:
+	return JsonUtil.to_str(_group_of.get(asset_id, asset_id))
+
+## The side of its cell a tile stands along ("n", "e", "s", "w"), or "" for any other tile.
+func edge_of(asset_id: String) -> String:
+	return JsonUtil.to_str(facets(asset_id).get("edge", ""))
+
+## The members of the set `asset_id` is one turn of, by the side each stands along:
+## `{side: asset id}`. A piece that is one picture is a set of one.
+func edge_members(asset_id: String) -> Dictionary:
+	var out := {}
+	if not _tiles.has(asset_id):
+		return out
+	var ids: Array[String] = [asset_id]
+	if _group_of.has(asset_id):
+		ids.clear()
+		var turns: Dictionary = _groups[_group_of[asset_id]]
+		for turn in turns_of(asset_id):
+			ids.append(JsonUtil.to_str(turns[turn]))
+	for id in ids:
+		var side := edge_of(id)
+		if side != "" and not out.has(side):
+			out[side] = id
+	return out
+
+## The sets of pieces along a side that are of `what` (a pack id, a tag or a role; "" for all)
+## and have none of the tags `without`: the first turn of each, by id.
+func edge_sets(what: String = "", without: Array = []) -> Array[String]:
+	var out: Array[String] = []
+	for asset_id in _ids:
+		if edge_of(asset_id) == "" or not _matches(asset_id, what):
+			continue
+		var first := JsonUtil.to_str(_group_of.get(asset_id, asset_id))
+		if out.has(first):
+			continue
+		var tags := _tags(facets(asset_id))
+		var left_out := false
+		for tag: Variant in without:
+			if tags.has(tag):
+				left_out = true
+		if not left_out:
+			out.append(first)
+	return out
+
+## The piece that stands along `side` (n, e, s, w) of its cell: `{asset_id, turn}` for
+## `tile_for` and `paint`, or {} when the packs have none. `what` is a wall's set (the id of any
+## of its turns: then the member of that set), or a pack id, a tag or a role (then the first
+## set of it, by id, that has a member on that side).
+func edge_piece(what: String, side: String) -> Dictionary:
+	var sets: Array[String] = []
+	if _tiles.has(what):
+		sets.append(what)
+	else:
+		sets = edge_sets(what)
+	for first in sets:
+		var members := edge_members(first)
+		if members.has(side):
+			var found := JsonUtil.to_str(members[side])
+			return {"asset_id": found, "turn": JsonUtil.to_int(facets(found).get("turn", 0))}
+	return {}
+
+## How far the member of a set on `side` rises above its diamond (0 when it has none).
+func edge_rise(asset_id: String, side: String) -> int:
+	var members := edge_members(asset_id)
+	if not members.has(side):
+		return 0
+	return JsonUtil.to_int(facets(JsonUtil.to_str(members[side])).get("rise", 0))
+
+## The plain walls of the packs that stand along all four sides (no door, no window, no roof):
+## the first turn of each set, by id. `fences` says whether the sets tagged `fence` are meant
+## or the others.
+func wall_sets(fences: bool = false) -> Array[String]:
+	var out: Array[String] = []
+	var without: Array = [ROOF_TAG]
+	without.append_array(EDGE_OPENINGS)
+	for first in edge_sets("WALL", without):
+		if edge_members(first).size() == SIDES.size() and _tags(facets(first)).has(FENCE_TAG) == fences:
+			out.append(first)
+	return out
+
+## The set the edge of a map is laid from, or "": the lowest plain wall (who walks along the
+## near sides of a map is not hidden by it), a fence first when `fence_first` (a farm, a yard),
+## else a fence only when the packs have no other wall. Of two as low the one with the shorter
+## name (the plainest), then the first by id.
+func border_set(fence_first: bool = false) -> String:
+	for fences: bool in [fence_first, not fence_first]:
+		var best := ""
+		for first in wall_sets(fences):
+			var lower := edge_rise(best, "n") - edge_rise(first, "n")
+			if best == "" or lower > 0 or (lower == 0 and first.length() < best.length()):
+				best = first
+		if best != "":
+			return best
+	return ""
+
+## Where the picture of a tile of the set is: `{texture: path of its atlas picture, region:
+## [x, y, w, h] of the tile's own picture in it}`, or {} for anything else. A piece of a house or
+## of a yard's fence is shown by a sprite, not painted into a layer; the sprite shows the same
+## pixels the tile set does.
+func picture_of(asset_id: String) -> Dictionary:
+	if not _tiles.has(asset_id):
+		return {}
+	var placed: Dictionary = _tiles[asset_id]
+	var atlas := {}
+	for raw: Variant in JsonUtil.to_array(_def.get("sources", [])):
+		var source := JsonUtil.to_dict(raw)
+		if JsonUtil.to_int(source.get("source_id", -1)) == JsonUtil.to_int(placed["source"]):
+			atlas = _catalog.asset(JsonUtil.to_str(source.get("asset", "")))
+	if atlas.is_empty():
+		return {}
+	var grid := JsonUtil.to_dict(CatalogReader.effective(atlas).get("grid", {}))
+	var cell := _vec(grid.get("cell"), footprint())
+	var coords: Vector2i = placed["coords"]
+	var at: Vector2i = placed["at"]
+	var size := _vec(facets(asset_id).get("canvas"), cell)
+	return {
+		"texture": "res://" + JsonUtil.to_str(atlas.get("path", "")),
+		"region": [coords.x * cell.x + at.x, coords.y * cell.y + at.y, size.x, size.y],
+	}
