@@ -170,6 +170,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.28 | Imported maps in the isometric view | L | T17.14 | done locally on Windows: the Tiled sample of *Isometric Miniature Farm* is the starter map of a generated isometric turn-based game that passes its smoke sequence, looked at against Tiled's drawing of the map (the pack's `Sample.png` is a picture of another scene); a picture of a pack's samples joins the tile set for its map alone and stays unused, walls block by role or (unused) by name, a second floor is only drawn higher and flips are dropped; TILE-013 for a map of the other view (the notes) |
 | T17.29 | Real farming packs: one tile set in several forms, crops, farm animals and layered characters | L | T17.21 | done locally on Windows: the three packs each give a farm with their own ground, crops that grow in their pictures and a player of the pack, played by the farm's smoke sequence and looked at in pictures; *Tiny Farm*'s player and hen are numbered tiles nothing names, chosen in the audit as a user would; the size choice is on the Audit page's *Packs* tab, not the Project page (the notes) |
 | T17.30 | Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand, AI-generated art marked | L | T17.29 | done locally on Windows: a Screaming Brain village (floors, walls, doorways) with walls along its edge and a house of pieces, a *Lords Of Pain* isometric action RPG with its own hero and enemies, and a farm each of SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset*, each passing its smoke run and looked at in a picture; CuteSCKR's pack marked as AI-generated gives its farm the README section *AI-generated content* and the same farm unmarked has none; the farms take their player from SakPix's villagers (a second pack), and the audit overrides made as a user would are in the notes (the slime of *Lords Of Pain* set aside: an arrow flies over it); paths and roads of Screaming Brain are overlays that need review, thick walls and corners stay unread (the notes) |
+| T17.31 | Autotiling: terrains read from real sheets and maps painted with them, from above and on diamonds | L | T17.30 | open |
 
 ---
 
@@ -1269,6 +1270,71 @@ characters, and CuteSCKR's 80 tile sets. Almost nothing of them is read usefully
 * A farm made from a CuteSCKR pack marked as AI-generated has the README section naming it,
   and a farm from the same packs with the mark taken off has none; a test holds both (a
   synthetic pack is fine for the test).
+
+## T17.31 — Autotiling: terrains read from real sheets and maps painted with them
+
+**Depends on:** T17.30 (and the three fixes of known shortfalls that follow it)
+**Files:** `rpggen/core/terrain/` (`blob.py`, a reader of terrain blocks inside sheets, an
+isometric one), `rpggen/core/catalog.py`, `godot_templates/builder/recipes/tileset_recipe.gd`,
+`godot_templates/builder/lib/map_geo.gd`, `iso_tileset.gd`, the recipes that paint ground,
+water, paths, roads, soil, cliffs and walls (starter map, areas, second map, interiors, the
+farm and its added maps, tracks)
+
+Added 2026-10-14 from the owner's review of the known shortfalls ("most of that looks like
+auto-tiling is not set up properly"). It is so:
+
+* **No map is painted with terrains.** `tileset_recipe.gd` puts terrain sets into the TileSet
+  when a pack has them, but no recipe calls `TileMapLayer.set_cells_terrain_connect` (or
+  `set_cells_terrain_path`): every map is painted cell by cell with one chosen tile. The
+  farm's field takes the one tile of a soil terrain that joins on every side.
+* **Terrains are read only from whole sheets of a known layout**: RPG Maker A2 blocks, Tiled
+  Wang sets, and a sheet that is all a 47-tile blob or a 16-tile corner set. Real packs keep
+  their terrains as blocks inside larger mixed sheets (Kenney *Tiny Farm*, EmanuelleDev *Farm
+  RPG*, LimeZu *Modern Farm*, CuteSCKR's 48 px sheets, SakPix's *tiles* sheets), mostly in the
+  3x3-with-inner-corners layout, and get `TILE-006` (layout not recognised) or nothing.
+* **No terrain is read from an isometric pack**, so isometric paths, roads, water edges and
+  ground transitions are laid from pieces by hand-made join rules (T17.15) or not at all.
+
+What it causes: ground of one repeated tile, hard square edges between grass, dirt, sand and
+water, a field and a pond without borders, paths and roads without their curb pieces, cliffs
+and cave rock as flat shapes, and isometric paths and roads of Screaming Brain left unread.
+
+**Spec**
+* **Terrain blocks in sheets.** A block of tiles inside a sheet whose edges match as one
+  terrain over another is found by edge matching, in the common layouts: 3x3 with the four
+  inner corners beside it (the "13-tile" and "RPG" blocks), the 47-tile blob and its packed
+  forms, the 16-tile corner and edge sets, and the 2x3/3x3 minimal sets; a terrain over
+  transparency (a path, a patch of flowers) and a terrain over another ground both. Each block
+  becomes a terrain of a terrain set with peering bits for Godot (`TileSet.TERRAIN_MODE_
+  MATCH_CORNERS_AND_SIDES`, `MATCH_CORNERS` or `MATCH_SIDES` by what the block has). Plain
+  variants of a terrain's centre tile (the same surface, low variance, tiling with each other)
+  are kept as its centre's variants with a probability, so a filled area is not one tile.
+* **Isometric terrains.** The same on diamonds: pieces whose edges join along the sides of a
+  diamond (by matching the pixels of the diamond's edges, and by names that give the joins, as
+  T17.12 reads them) are a terrain set of the isometric TileSet; Screaming Brain's Pathways and
+  Roads and Kenney's road and water pieces are read so.
+* **Maps painted with terrains.** Every recipe that paints ground, water, sand, paths, roads,
+  soil, cliffs or walls paints the area with `set_cells_terrain_connect` (areas) or
+  `set_cells_terrain_path` (paths and roads) when the TileSet has a terrain for it, and as now
+  when it has none. Ground uses its centre variants. The farm's field draws its edge where it
+  meets the grass, and grows as the farmer tills (the soil terrain repaints the cells around a
+  tilled cell). A pond and a beach's sea get their shores.
+* **A map that exists is never rebuilt.** Painting with terrains changes what a new map looks
+  like; a map under `game/` that exists is not repainted. Recipe versions are bumped so that
+  generated scenes rebuild, and the builder says which maps keep their old painting.
+* **Determinism.** Variant choice is by the map's seed (Godot's own random choice of
+  variants in `set_cells_terrain_connect` is checked by a probe and replaced by a seeded
+  choice if it is not stable).
+
+**Done when**
+* *Tiny Farm*, *Farm RPG*, *Modern Farm*, a CuteSCKR and a SakPix farm, the sample packs, a
+  Kenney *Medieval Town* village, a Screaming Brain village with paths, and an isometric race
+  on *Vector Roads* are generated with their terrains painted: varied ground, soft edges
+  between surfaces, shores on water, a field edged where it meets grass, paths and roads with
+  their curbs. Each passes its smoke run and is looked at in a picture, before and after.
+* Synthetic packs with a terrain block inside a mixed sheet in each layout, and an isometric
+  terrain, hold it in the tests; the share of real sheets whose terrains are read is measured
+  before and after and written in the notes.
 
 ---
 
