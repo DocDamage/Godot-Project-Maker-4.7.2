@@ -4,8 +4,9 @@ extends RefCounted
 ## diamonds covers the cells the builder says; the world tools and the world repair give what
 ## they add the shape of a cell. The maps are built as a recipe builds them, from the tile set of
 ## the isometric fixture pack (tests/fixtures/iso_tiles). A map of squares is placed in as it
-## was: test_placement.gd and test_world_repair.gd are unchanged, and the last test here says
-## what must not have moved.
+## was: test_placement.gd (to which only the names and the instance of a double click were
+## added later, on both views) and test_world_repair.gd were unchanged, and the last test here
+## says what must not have moved.
 ##
 ## What no test of this file can do is press Ctrl+Z in the editor: `Placement.apply` takes the
 ## editor's own undo manager, which exists only in a running editor. The undo of a placement is
@@ -285,6 +286,24 @@ func test_actors_and_markers_snap_the_same_way_and_keep_their_ids(t) -> void:
 	root.free()
 	_cleanup()
 
+func test_a_second_copy_on_another_diamond_gets_a_readable_name(t) -> void:
+	_cleanup()
+	var geo := _geo()
+	var root := _map(geo, "isle")
+	var entities := Maps.entities_of(root)
+	var first := Maps.entity(entities, "treeoak", "", false, geo.center(Vector2i(2, 2)))
+	var placement := Placement.new()
+	placement.snap = 16
+	var second := _dropped(root, geo.center(Vector2i(5, 4)) + Vector2(3, -2))
+	second.name = "treeoak"
+	var plan := placement.plan(second, root, _entry("treeoak"))
+	t.eq(plan["position"], geo.center(Vector2i(5, 4)))
+	t.eq(plan["name"], "treeoak2", "the name the editor gives a second copy")
+	first.name = "treeoak2"
+	t.eq(placement.plan(second, root, _entry("treeoak"))["name"], "treeoak", "a free name is kept")
+	root.free()
+	_cleanup()
+
 # ---------------------------------------------------------------- the world tools
 
 func test_the_world_tools_add_diamonds(t) -> void:
@@ -485,7 +504,7 @@ func test_a_map_of_squares_is_not_asked_about_diamonds(t) -> void:
 		t.eq(plan["position"], Vector2(16, 16), "the grid of px it always was")
 		var keys := plan.keys()
 		keys.sort()
-		t.eq(keys, ["entity_id", "flip", "flip_node", "kind", "map_id", "number", "old_entity_id", "old_flip", "old_parent", "old_position", "parent", "position"], "the plan it always was")
+		t.eq(keys, ["entity_id", "flip", "flip_node", "kind", "map_id", "name", "number", "old_entity_id", "old_flip", "old_name", "old_parent", "old_position", "parent", "position"], "the plan it always was, and the name a second copy gets")
 	var trigger := Placement.plan_trigger(root, Vector2(37, 21), 16, 16, true, "user://seq_test")
 	t.ok(not trigger.has("diamond"))
 	var area := Placement.build_trigger(trigger)

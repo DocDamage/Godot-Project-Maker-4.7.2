@@ -16,6 +16,8 @@ extends EditorPlugin
 ## res://rpggen/results/dock_probe.json says what was seen. After the save the dock's world
 ## tools add a trigger area, a gate and a floor switch in the middle of the view; they are
 ## looked at and not saved. Nobody moves a mouse: the 2D view's own drag and drop is not run.
+## The report also has `undo_order`: the order in which the scene's history ran the operations of
+## an action of its own (Placement.apply relies on it). It runs on a map of squares too.
 
 const IN := "res://rpggen/dock_probe_in.json"
 const OUT := "res://rpggen/results/dock_probe.json"
@@ -165,6 +167,7 @@ func _run() -> void:
 		seen["redo_ok"] = history.redo()
 		seen["redone"] = _where(root, node)
 		(report["places"] as Array).append(seen)
+	report["undo_order"] = _undo_order(root, manager, history)
 	if bool(wanted.get("save", true)):
 		report["saved"] = EditorInterface.save_scene()
 		await _frames(5)
@@ -180,6 +183,26 @@ func _run() -> void:
 	report["unit"] = RpgIso.map_unit(root)
 	report["ok"] = true
 	_finish(report)
+
+var _order: Array[String] = []
+
+func _note(what: String) -> void:
+	_order.append(what)
+
+## The order in which the scene's history runs an action's operations: two of each, noted as
+## they run; then the action is undone and redone. Placement.apply relies on it.
+func _undo_order(root: Node, manager: EditorUndoRedoManager, history: UndoRedo) -> Array[String]:
+	_order.clear()
+	manager.create_action("Probe the order", UndoRedo.MERGE_DISABLE, root)
+	manager.add_do_method(self, "_note", "do 1")
+	manager.add_do_method(self, "_note", "do 2")
+	manager.add_undo_method(self, "_note", "undo 1")
+	manager.add_undo_method(self, "_note", "undo 2")
+	manager.commit_action()
+	history.undo()
+	history.redo()
+	history.undo()  # the probe's action is not left in the scene's history
+	return _order.duplicate()
 
 func _finish(report: Dictionary) -> void:
 	DirAccess.make_dir_recursive_absolute(OUT.get_base_dir())

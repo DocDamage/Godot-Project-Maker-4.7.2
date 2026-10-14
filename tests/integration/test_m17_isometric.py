@@ -1236,21 +1236,27 @@ def test_a_farm_on_the_pack_of_pieces_is_fenced_and_has_a_house_of_pieces(
 # (`Placement.place_new`, the double click, and the dock's own `_fix_dropped`, what follows a
 # drop), undoes and redoes each through the editor's history and saves the scene; then the
 # dock's world tools add a trigger area, a gate and a floor switch, which are not saved. Nobody
-# moves a mouse: the 2D view's own drag and drop is not run.
+# moves a mouse: the 2D view's own drag and drop is not run. The run (tests/integration/
+# dock_probe_run.py) also holds the dock's three old faults mended: Ctrl+Z logs nothing, a
+# double click is saved as an instance of its scene, a second copy has a readable name.
 
-DOCK_PROBE = REPO / "tests" / "integration" / "dock_probe"
 ISLE_OBJECTS = "res://generated/scenes/objects/sample_pack_iso__"
 ISLE_PEOPLE = "res://generated/scenes/actors/characters/sample_pack_iso__characters__"
-# (the scene, the diamond the mouse is over, where on it, how it is placed, the node's name)
+# (the scene, the diamond the mouse is over, where on it, how it is placed, the node's name: a
+# second copy of one asset gets the name the editor gives one, T17.27's third fault mended; the
+# scene of a person has a root called Npc, so the fisher is the second Npc)
 DOCK_PLACES = [
     (ISLE_OBJECTS + "png__treepine.tscn", (4, 3), (6, -3), "double_click", "treepine"),
     (ISLE_OBJECTS + "png__treeoak.tscn", (9, 5), (-9, 2), "drop", "treeoak"),
     (ISLE_OBJECTS + "png__rock.tscn", (30, 3), (15, 0), "drop", "rock"),
     (ISLE_OBJECTS + "png__house_1.tscn", (20, 20), (-7, 4), "drop", "house_1"),
     (ISLE_OBJECTS + "png__house_2.tscn", (31, 5), (0, -9), "double_click", "house_2"),
-    (ISLE_PEOPLE + "villager_mason.tscn", (21, 21), (8, -4), "drop", "villager_mason"),
-    (ISLE_PEOPLE + "villager_fisher.tscn", (7, 5), (-6, -4), "double_click", "villager_fisher"),
-    (ISLE_OBJECTS + "items__chest.tscn", (5, 20), (-10, 0), "drop", "chest"),
+    (ISLE_PEOPLE + "villager_mason.tscn", (21, 21), (8, -4), "drop", "Npc"),
+    (ISLE_PEOPLE + "villager_fisher.tscn", (7, 5), (-6, -4), "double_click", "Npc2"),
+    (ISLE_OBJECTS + "items__chest.tscn", (5, 20), (-10, 0), "drop", "Chest"),
+    # a second copy of a tree, dropped and double-clicked
+    (ISLE_OBJECTS + "png__treeoak.tscn", (11, 8), (4, 2), "drop", "treeoak2"),
+    (ISLE_OBJECTS + "png__treepine.tscn", (13, 10), (-5, -1), "double_click", "treepine2"),
 ]
 
 
@@ -1264,20 +1270,10 @@ def test_the_dock_places_on_the_diamonds_of_stone_isle(
     that Ctrl+Z takes back and redo brings again; a house covers its four cells; the saved map
     has them where the builder would have put them, and the game still plays its whole
     sequence."""
-    import shutil
-
     from rpggen.core import godot
+    from tests.integration import dock_probe_run
 
     target, _result = isle
-    project = tmp_path / "proj"
-    shutil.copytree(target, project, ignore=shutil.ignore_patterns(".rpggen_*"))
-    shutil.copytree(DOCK_PROBE, project / "addons" / "zz_dock_probe")
-    settings = project / "project.godot"
-    text = settings.read_text(encoding="utf-8")
-    enabled = 'enabled=PackedStringArray("res://addons/rpg_project_tools/plugin.cfg")'
-    assert enabled in text, "the tools addon is the project's one editor plugin"
-    probe = enabled[:-1] + ', "res://addons/zz_dock_probe/plugin.cfg")'
-    settings.write_text(text.replace(enabled, probe), encoding="utf-8")
     plan = _isle_plan(target)
     taken = {
         tuple(c)
@@ -1290,19 +1286,16 @@ def test_the_dock_places_on_the_diamonds_of_stone_isle(
         x, y = iso_math.cell_to_screen(*cell, *ISLE_FOOT)
         assert iso_math.screen_to_cell(x + off[0], y + off[1], *ISLE_FOOT) == cell
         places.append({"scene": scene, "at": [x + off[0], y + off[1]], "how": how})
-    jsonio.write(
-        project / "rpggen/dock_probe_in.json",
-        {"map": "res://" + MAPS[0], "snap": 16, "save": True, "places": places},
-    )
+    wanted = {"map": "res://" + MAPS[0], "snap": 16, "save": True, "places": places}
+    run = dock_probe_run.run_probe(target, tmp_path / "proj", godot_exe, wanted)
+    project, report = run.project, run.report
     exe = godot.find_console_exe(godot_exe)
     logs = project / "rpggen/logs"
-    run = godot.run_godot(exe, project, ["--editor"], timeout_s=600, log_name="dock", log_dir=logs)
-    log = run.log_path.read_text(encoding="utf-8", errors="replace")
-    assert not run.timed_out and run.returncode == 0, log[-3000:]
-    assert "SCRIPT ERROR" not in log, log[-3000:]
-    report = jsonio.read(project / "rpggen/results/dock_probe.json")
-    assert report["ok"] is True and report["error"] == "", report
-    assert report["dock"] is True, "the project's own Assets dock did the drops"
+    # the three old faults of the dock (Ctrl+Z, the saved instance, the name), mended
+    dock_probe_run.check_the_faults_are_mended(run, MAPS[0])
+    assert [seen["placed"]["name"] for seen in report["places"]] == [p[4] for p in DOCK_PLACES], (
+        "a second copy is named as the editor names one"
+    )
     assert report["footprint"] == list(ISLE_FOOT), "the dock asks the map for its diamond"
     assert report["saved"] == 0, "the editor saved the scene"
     assert len(report["places"]) == len(DOCK_PLACES)

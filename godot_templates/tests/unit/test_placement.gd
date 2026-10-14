@@ -122,6 +122,102 @@ func test_a_detached_instance_is_planned_at_the_world_position(t) -> void:
 	inst.free()
 	root.free()
 
+# ---------------------------------------------------------------- names and instances
+
+func test_a_taken_name_gets_the_number_the_editor_would_give(t) -> void:
+	var parent := Node2D.new()
+	for child_name: String in ["treeoak", "rock", "rock2", "house3", "Npc1"]:
+		var child := Node2D.new()
+		child.name = child_name
+		parent.add_child(child)
+	t.eq(Placement.free_name(parent, "chest"), "chest", "a free name is kept")
+	t.eq(Placement.free_name(parent, "treeoak"), "treeoak2")
+	t.eq(Placement.free_name(parent, "rock"), "rock3", "rock2 is taken too")
+	t.eq(Placement.free_name(parent, "house3"), "house4", "a number goes on counting")
+	t.eq(Placement.free_name(parent, "Npc1"), "Npc2")
+	t.eq(Placement.free_name(parent, "treeoak", parent.get_node("treeoak")), "treeoak", "the node itself is not in the way")
+	parent.free()
+
+func test_a_second_copy_dropped_into_the_entities_gets_a_readable_name(t) -> void:
+	var root := Maps.map("m")
+	var entities := Maps.entities_of(root)
+	var first := Node2D.new()
+	first.name = "treeoak"
+	entities.add_child(first)
+	var dropped := Node2D.new()
+	dropped.name = "treeoak"
+	root.add_child(dropped)  # the editor drops it under the root, where the name is free
+	var placement := Placement.new()
+	var plan := placement.plan(dropped, root, {"name": "treeoak", "role": "", "tags": []})
+	t.eq(plan["name"], "treeoak2", "not @Node2D@<n>, which reparent would give")
+	t.eq(plan["old_name"], "treeoak")
+	var detached := Node2D.new()
+	detached.name = "treeoak"
+	t.eq(placement.plan(detached, root, {"name": "treeoak", "role": "", "tags": []}, null, Vector2(8, 8))["name"], "treeoak2", "a double click too")
+	var inside := Node2D.new()
+	inside.name = "treeoak3"
+	entities.add_child(inside)  # dropped onto the entities: it does not move
+	t.eq(placement.plan(inside, root, {"name": "treeoak", "role": "", "tags": []})["name"], "treeoak3", "its own name")
+	detached.free()
+	root.free()
+
+## A library scene as the builder writes one: a root with a script-like set of properties of its
+## own (a collision mask, metadata) that a map must not copy.
+func _library_scene(path: String) -> PackedScene:
+	var body := StaticBody2D.new()
+	body.name = "treeoak"
+	body.collision_mask = 5
+	body.set_meta("stands_on", [1, 1])
+	body.set_meta("kind", "tree")
+	var sprite := Sprite2D.new()
+	sprite.name = "Sprite"
+	body.add_child(sprite)
+	sprite.owner = body
+	var packed := PackedScene.new()
+	packed.pack(body)
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	ResourceSaver.save(packed, path)
+	body.free()
+	return load(path) as PackedScene
+
+## How a map packs `node` (its name is unique in the map): [its type ("" for an instance of a scene), whether it is an instance,
+## the names of the properties it saves].
+func _packed_as(root: Node, node: Node) -> Array:
+	var packed := PackedScene.new()
+	packed.pack(root)
+	var state := packed.get_state()
+	for i in state.get_node_count():
+		if state.get_node_name(i) == node.name:
+			var props: Array[String] = []
+			for p in state.get_node_property_count(i):
+				props.append(String(state.get_node_property_name(i, p)))
+			return [String(state.get_node_type(i)), state.get_node_instance(i) != null, props]
+	return []
+
+func test_a_double_click_is_saved_as_an_instance_of_its_scene(t) -> void:
+	var path := "user://placement_scene/treeoak.tscn"
+	var packed := _library_scene(path)
+	var root := Maps.map("m")
+	for part in root.find_children("*", "", true, false):
+		part.owner = root  # as in a saved map: what the root owns is packed
+	var entities := Maps.entities_of(root)
+	var node := Placement.instance_for_edit(packed) as Node2D
+	t.ok(node != null and node.scene_file_path == path)
+	entities.add_child(node, true)
+	node.owner = root
+	node.position = Vector2(24, 40)
+	var seen := _packed_as(root, node)
+	t.eq(seen[0], "", "no type=: an instance")
+	t.ok(seen[1], "instance=ExtResource(...)")
+	t.eq(seen[2], ["position"] as Array[String], "only what the map changed, no metadata/ and no mask")
+	# what the double click did before: a copy of the scene's root
+	var copy := packed.instantiate() as Node2D
+	entities.add_child(copy, true)
+	copy.owner = root
+	t.eq(_packed_as(root, copy)[0], "StaticBody2D", "a plain instantiate() is saved with type=")
+	root.free()
+	Maps.remove_tree("user://placement_scene")
+
 # ---------------------------------------------------------------- trigger areas (T12.54)
 
 func test_a_trigger_plan_numbers_the_id_and_names_the_sequence_file(t) -> void:

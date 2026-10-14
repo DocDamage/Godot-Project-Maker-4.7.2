@@ -496,6 +496,20 @@ recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with 
   * The world repair and the validator's *Fix* (`tools/world_repair.gd`): the actions of an
     isometric map carry its diamond (`iso`), and a door added there has the diamond's shape on
     the middle of its cell, as `MapGeo.add_exit_door` builds one.
+  * **Three old faults of the Assets dock mended, on every map** (squares and diamonds, seen
+    from above, from the side or isometric; `dock/placement.gd` only). Ctrl+Z after a double
+    click no longer logs `No path can be resolved between the nodes ... (not inside tree)` for
+    each property it sets back: an undo runs its operations in the order they were added, and
+    `Placement.apply` now adds the one that takes the node out of the map (or moves a dropped
+    one back) after the properties. A double click is saved as an instance of its scene
+    (`instance=ExtResource(...)`, only the position and the entity id), as a drop is: it is
+    instantiated with `PackedScene.GEN_EDIT_STATE_INSTANCE` (`Placement.instance_for_edit`);
+    before, the map kept `type=` and a copy of the scene root's script, collision mask and
+    metadata, which a rebuilt object scene did not reach. A second copy of one asset is named
+    as the editor names one (`treeoak2`, `house3`; `Placement.free_name`, in the plan as `name`
+    and `old_name`) instead of `@StaticBody2D@20523`, and keeps its name through undo and redo.
+    A map placed in before keeps what it has: a double-clicked node saved with `type=` stays a
+    copy until it is placed again.
 * **Imported isometric maps** (T17.28; the builder only, no script of the runtime changed). An
   isometric Tiled map of an isometric project is built by `recipes/imported_maps_recipe.gd` on
   `iso.tres`: its first layer in its place is the `Ground`, every other one a `TileMapLayer`

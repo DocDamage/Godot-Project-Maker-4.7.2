@@ -125,6 +125,59 @@ def test_editor_plugin_loads_in_the_editor(sample: Path, godot_exe: Path, tmp_pa
     )
 
 
+SAMPLE_OBJECTS = "res://generated/scenes/objects/sample_pack__"
+# (the scene, where the mouse is, how it is placed, the node's name): the map has a "house" and
+# a "Chest1" among its entities already, so the dropped house is the second copy of its scene
+DOCK_PLACES = [
+    (SAMPLE_OBJECTS + "objects__town__house.tscn", (203, 90), "drop", "house2"),
+    (SAMPLE_OBJECTS + "objects__town__house.tscn", (75, 186), "double_click", "house3"),
+    (SAMPLE_OBJECTS + "objects__town__tree_1.tscn", (101, 37), "drop", "tree_1"),
+    (SAMPLE_OBJECTS + "objects__town__tree_1.tscn", (149, 69), "drop", "tree_2"),
+    (SAMPLE_OBJECTS + "items__chest.tscn", (230, 133), "double_click", "Chest"),
+    (SAMPLE_OBJECTS + "items__chest.tscn", (262, 117), "drop", "Chest2"),
+]
+
+
+def test_the_dock_places_on_the_squares_of_the_sample(
+    sample: Path, godot_exe: Path, tmp_path: Path
+) -> None:
+    """The project's own Assets dock in a headless editor (tests/integration/dock_probe, the
+    run T17.27 made for diamonds) on the top-down sample: each placement snaps to the grid of
+    16 px among the Y-sorted entities and is one step of the scene's history; Ctrl+Z logs no
+    error, a double click is saved as an instance of its scene, as a drop is, and a second copy
+    of a scene has the name the editor gives one."""
+    from tests.integration import dock_probe_run
+
+    places = [{"scene": s, "at": list(at), "how": how} for s, at, how, _n in DOCK_PLACES]
+    wanted = {"map": "res://game/maps/starter_map.tscn", "snap": 16, "save": True, "places": places}
+    run = dock_probe_run.run_probe(sample, tmp_path / "proj", godot_exe, wanted)
+    report = run.report
+    assert report["footprint"] == [0, 0], "a map of squares"
+    assert report["saved"] == 0
+    dock_probe_run.check_the_faults_are_mended(run, "game/maps/starter_map.tscn")
+    assert [seen["placed"]["name"] for seen in report["places"]] == [p[3] for p in DOCK_PLACES]
+    for seen, (scene, at, how, _name) in zip(report["places"], DOCK_PLACES, strict=True):
+        snapped = [(at[0] + 8) // 16 * 16, (at[1] + 8) // 16 * 16]
+        placed = seen["placed"]
+        assert [placed["x"], placed["y"]] == snapped, f"{scene} on the grid"
+        assert placed["parent"] == "YSorted/Entities" and placed["owner"] is True
+        assert seen["action"].startswith("Place ") and seen["one_step"] is True
+        assert seen["undo_ok"] is True and seen["redo_ok"] is True
+        if how == "double_click":
+            assert seen["undone_in_tree"] is False
+        else:  # back where the editor dropped it, under the name the editor gave it
+            undone = seen["undone"]
+            assert (undone["parent"], [undone["x"], undone["y"]]) == (".", list(at))
+            assert undone["name"] == Path(scene).stem.split("__")[-1].replace("chest", "Chest")
+        again = seen["redone"]
+        assert (again["parent"], [again["x"], again["y"]]) == ("YSorted/Entities", snapped)
+    ids = [seen["placed"]["entity_id"] for seen in report["places"] if "chest" in seen["scene"]]
+    assert len(set(ids)) == 2 and all(i.startswith("starter_map_chest_") for i in ids), ids
+    assert [tool["kind"] for tool in report["tools"]] == ["trigger", "gate", "plate"]
+    for tool in report["tools"]:
+        assert tool["one_step"] is True and tool["undo_ok"] is True and tool["redo_ok"] is True
+
+
 def test_in_editor_rebuild_keeps_the_ledger_current(
     sample: Path, godot_exe: Path, tmp_path: Path
 ) -> None:

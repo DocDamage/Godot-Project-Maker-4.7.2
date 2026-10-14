@@ -144,9 +144,35 @@ static func existing_ids(root: Node, skip: Node = null) -> Array:
 			ids.append(id)
 	return ids
 
+## A readable name no other child of `parent` has (`skip` aside), made from `wanted` the way the
+## editor names a second copy of a scene: "treeoak" is taken, so "treeoak2"; "treeoak2" is
+## taken, so "treeoak3" (Node's own serial names with the editor's default, no separator).
+## `Node.reparent` would give a taken name a name like "@StaticBody2D@20523" instead.
+static func free_name(parent: Node, wanted: String, skip: Node = null) -> String:
+	var taken := {}
+	if parent != null:
+		for child in parent.get_children(true):
+			if child != skip:
+				taken[String(child.name)] = true
+	if not taken.has(wanted):
+		return wanted
+	var stem := wanted
+	while stem != "" and stem[stem.length() - 1].is_valid_int():
+		stem = stem.left(stem.length() - 1)
+	var number := 2 if stem == wanted else wanted.substr(stem.length()).to_int() + 1
+	while taken.has(stem + str(number)):
+		number += 1
+	return stem + str(number)
+
+## A library scene's instance as the editor makes one, so that the map saves it as an instance of
+## its scene (`instance=ExtResource(...)` and only what was changed), not as a copy of its root.
+static func instance_for_edit(packed: PackedScene) -> Node:
+	return packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
+
 ## The fix-ups of an instance (already in the map, or detached with `world_position` given).
 ## Returns {parent, old_parent, position, old_position, flip_node, old_flip, flip, entity_id,
-## old_entity_id, kind, map_id, number}. On an isometric map (T17.27) the position is the middle
+## old_entity_id, kind, map_id, number, name, old_name}; `name` is the instance's own name, or a
+## readable one free under the new parent (`free_name`). On an isometric map (T17.27) the position is the middle
 ## of the diamond under the point (with any snapping on: a grid of px means nothing there), and
 ## the plan also has `cell` (that diamond) and `cells` (every cell the object stands on, `cell`
 ## being the one nearest the camera). Nothing is dropped to a floor there: a room seen from the
@@ -166,6 +192,8 @@ func plan(instance: Node2D, root: Node, entry: Dictionary, selected: Node = null
 		"parent": parent, "old_parent": current_parent, "position": local, "old_position": instance.position,
 		"flip_node": null, "old_flip": false, "flip": false, "entity_id": "", "old_entity_id": "",
 		"kind": "", "map_id": "", "number": 0,
+		"name": String(instance.name) if parent == current_parent else free_name(parent, String(instance.name), instance),
+		"old_name": String(instance.name),
 	}
 	if flip_h:
 		var visual := visual_of(instance)
@@ -188,27 +216,49 @@ func plan(instance: Node2D, root: Node, entry: Dictionary, selected: Node = null
 		out["cells"] = cells_under(cell, stands_on(instance))
 	return out
 
-## Performs a plan with undo. A detached instance is added to the plan's parent.
+## Performs a plan with undo. A detached instance is added to the plan's parent under the plan's
+## name; one that moves to another parent is given the plan's name there.
+##
+## The undo of an action runs its operations in the order they were added, not backwards (Godot
+## 4.7, docs/godot_api_verified.md): what takes the instance out of the map or back to where it
+## was is added last, after the properties it sets back, so that each is set while the node is
+## still in the tree.
 func apply(plan: Dictionary, instance: Node2D, root: Node, undo: EditorUndoRedoManager, display_name: String) -> void:
 	var parent: Node = plan["parent"]
+	var fresh := not instance.is_inside_tree()
+	var old_parent: Node = plan["old_parent"]
+	var moved: bool = not fresh and old_parent != parent
+	var new_name := JsonIo.to_str(plan.get("name", String(instance.name)))
+	var old_name := JsonIo.to_str(plan.get("old_name", String(instance.name)))
+	var flip_node: Node = plan["flip_node"]
+	var has_id := JsonIo.to_str(plan["entity_id"]) != ""
 	undo.create_action("Place %s" % display_name, UndoRedo.MERGE_DISABLE, root)
-	if not instance.is_inside_tree():
+	if fresh:
+		instance.name = new_name  # free under the parent: add_child keeps it
 		undo.add_do_method(parent, "add_child", instance, true)
 		undo.add_do_method(instance, "set_owner", root)
 		undo.add_do_reference(instance)
-		undo.add_undo_method(parent, "remove_child", instance)
-	elif plan["old_parent"] != parent:
+	elif moved:
 		undo.add_do_method(instance, "reparent", parent, false)
-		undo.add_undo_method(instance, "reparent", plan["old_parent"], false)
+		if new_name != old_name:
+			undo.add_do_method(instance, "set_name", new_name)
 	undo.add_do_property(instance, "position", plan["position"])
-	undo.add_undo_property(instance, "position", plan["old_position"])
-	var flip_node: Node = plan["flip_node"]
 	if flip_node != null:
 		undo.add_do_property(flip_node, "flip_h", plan["flip"])
-		undo.add_undo_property(flip_node, "flip_h", plan["old_flip"])
-	if JsonIo.to_str(plan["entity_id"]) != "":
+	if has_id:
 		undo.add_do_property(instance, "entity_id", plan["entity_id"])
+	# the undo: first the properties, then the tree
+	if has_id:
 		undo.add_undo_property(instance, "entity_id", plan["old_entity_id"])
+	if flip_node != null:
+		undo.add_undo_property(flip_node, "flip_h", plan["old_flip"])
+	undo.add_undo_property(instance, "position", plan["old_position"])
+	if fresh:
+		undo.add_undo_method(parent, "remove_child", instance)
+	elif moved:
+		undo.add_undo_method(instance, "reparent", old_parent, false)
+		if new_name != old_name:
+			undo.add_undo_method(instance, "set_name", old_name)
 	undo.commit_action()
 	if JsonIo.to_str(plan["entity_id"]) != "":
 		record_allocation(JsonIo.to_str(plan["map_id"]), JsonIo.to_str(plan["kind"]), JsonIo.to_int(plan["number"]))
@@ -226,12 +276,13 @@ static func record_allocation(map_id: String, kind: String, number: int) -> void
 		push_error("[RPG-TOOLS] could not save the entity id allocation to the catalog")
 
 ## Instances a library scene at `world_position` (the double-click path) and applies the same
-## fix-ups. Returns the new node, or null when the scene cannot be loaded.
+## fix-ups. Returns the new node, or null when the scene cannot be loaded. The instance is made as
+## the editor makes a dropped one (`instance_for_edit`), so the map saves it the same way.
 func place_new(entry: Dictionary, root: Node, undo: EditorUndoRedoManager, world_position: Vector2, selected: Node = null) -> Node:
 	var packed := load(JsonIo.to_str(entry["scene_path"])) as PackedScene
 	if packed == null:
 		return null
-	var instance := packed.instantiate() as Node2D
+	var instance := instance_for_edit(packed) as Node2D
 	if instance == null:
 		return null
 	var p := plan(instance, root, entry, selected, world_position)
