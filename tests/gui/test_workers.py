@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from rpggen import paths
 from rpggen.errors import Issue
 from rpggen.gui import workers
 from rpggen.gui.state import WizardState
@@ -165,7 +166,7 @@ def test_a_zipped_pack_reports_extraction_and_every_stage_in_order(qtbot, tmp_pa
 
 
 def test_cancel_during_analysis_returns_fast_and_leaves_no_partial_folder(
-    qtbot, tmp_path, cache_dir
+    qtbot, tmp_path, cache_dir, monkeypatch
 ) -> None:
     import zipfile
 
@@ -174,7 +175,11 @@ def test_cancel_during_analysis_returns_fast_and_leaves_no_partial_folder(
     with zipfile.ZipFile(archive_file, "w") as zf:
         for png in pack.rglob("*.png"):
             zf.write(png, png.relative_to(pack).as_posix())
-    for source in (pack, archive_file):
+    for index, source in enumerate((pack, archive_file)):
+        # a cache of its own for each run: the first run's pool may have analyzed every image
+        # before its cancel took, and a second run that finds them all cached has no image left
+        # to stop between, so it finishes instead of failing (seen once on a CI runner)
+        monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / f"cache_{index}"))
         state = WizardState(pack_sources=[source])
         worker, outcome, progress = _run(qtbot, workers.analyze_packs, state)
         stopped = {}
@@ -191,7 +196,7 @@ def test_cancel_during_analysis_returns_fast_and_leaves_no_partial_folder(
             worker.start()
         assert isinstance(blocker.args[0], workers.Cancelled)
         assert time.monotonic() - stopped["at"] < 2.0
-    extracted = cache_dir / "extracted"
+    extracted = paths.cache_dir() / "extracted"  # the archive's run
     assert not extracted.exists() or not [
         p for p in extracted.iterdir() if p.name.endswith(".partial")
     ]
