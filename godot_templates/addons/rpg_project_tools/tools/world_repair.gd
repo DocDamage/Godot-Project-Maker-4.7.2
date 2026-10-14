@@ -41,7 +41,9 @@ const FACING := {"N": "down", "S": "up", "E": "left", "W": "right"}
 ## What the repair needs to know of a map: {tile, rect (cells, Rect2i), solid ({Vector2i: true}),
 ## painted ({Vector2i: true})}. A cell is walkable when something is painted there and no layer
 ## has a tile with a collision shape on it. An isometric map (T17.14) also has `iso`, the
-## diamond of its cells: `cell_of` and `center_of` then count by it, and `tile` is one step.
+## diamond of its cells: `cell_of` and `center_of` then count by it, and `tile` is one step. The
+## actions of such a map carry it too (`iso`), and a door added there has the diamond's shape
+## (T17.27).
 static func survey(root: Node) -> Dictionary:
 	var tile := 16
 	var diamond := Vector2i.ZERO
@@ -278,6 +280,8 @@ static func plan_repairs(maps: Array[String], plan: Dictionary, instance_of: Cal
 		if not action.has("tile") and surveys.has(action["map"]):
 			var info: Dictionary = surveys[action["map"]]
 			action["tile"] = info["tile"]
+			if info.has("iso"):  # an isometric map (T17.27): what is added has its diamond's shape
+				action["iso"] = info["iso"]
 	return actions
 
 static func _caused_by(actions: Array[Dictionary], from: int, cause_map: String, cause_node: String) -> void:
@@ -709,6 +713,13 @@ static func build(action: Dictionary) -> Node2D:
 	door.set("target_spawn", StringName(str(action["target_spawn"])))
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
+	if action.get("iso") is Vector2i:
+		# on diamonds the door is its cell, as the builder's is (MapGeo.add_exit_door): the
+		# position is the middle of the cell (`center_of`) and the shape RpgIso's diamond
+		var diamond: Vector2i = action["iso"]
+		shape.shape = RpgIso.cell_shape(diamond)
+		door.add_child(shape)
+		return door
 	var rect := RectangleShape2D.new()
 	var tile := JsonIo.to_float(action.get("tile", 16))
 	rect.size = Vector2(tile, tile)
