@@ -11,6 +11,12 @@ extends Node
 ## by a game that has it. The day's and the week's counters are reset by the calendar
 ## (`day_began`; a week begins on weekday 0).
 ##
+## **A birthday** (T17.25: `birthday` of a person's entry, known to RpgFarmEvents): the first
+## gift of that day counts BIRTHDAY_FACTOR times when the person loves or likes it or takes it
+## politely, and it is not one of the week's two. A disliked gift is a disliked gift on any
+## day: it costs what it always costs, but it is the day's gift all the same. A second gift on
+## the birthday is a gift like any other.
+##
 ## It also knows the people themselves (`people`, from the file), gives their schedules to the
 ## NPCs that carry an RpgSchedule without entries (`RpgSchedule.source`), and counts a talk
 ## when the player interacts with the NPC of a person (`Events.interaction_started`).
@@ -35,6 +41,8 @@ const LIKE_POINTS := 45
 const NEUTRAL_POINTS := 20
 const DISLIKE_POINTS := -20
 const GIFTS_PER_WEEK := 2
+## How many times the first gift of a person's birthday counts (not a disliked one).
+const BIRTHDAY_FACTOR := 5
 ## The tastes, as `taste_of` and `gift` name them and as people.json lists them.
 const LOVES := "loves"
 const LIKES := "likes"
@@ -171,6 +179,12 @@ static func gift_points(taste: String) -> int:
 			return DISLIKE_POINTS
 	return NEUTRAL_POINTS
 
+## The points the gift of a birthday gives: BIRTHDAY_FACTOR times those of the taste, but a
+## disliked gift takes what it always takes.
+static func birthday_points(taste: String) -> int:
+	var usual := gift_points(taste)
+	return usual * BIRTHDAY_FACTOR if usual > 0 else usual
+
 # ------------------------------------------------------------------ points and hearts
 
 func points_of(id: String) -> int:
@@ -210,12 +224,15 @@ func gifts_left(id: String) -> int:
 ## The farmer gives a person one of an item. Returns what the person thinks of it (LOVES,
 ## LIKES, DISLIKES or NEUTRAL), or "" when nothing was given: the person had two gifts this
 ## week, or (`take`) the bag does not hold the item. The item leaves the bag (`take`), the
-## points change by the taste, and the taste for this item is known from now on.
+## points change by the taste, and the taste for this item is known from now on. The first gift
+## of the person's birthday counts as the top of the file says, and is none of the week's two.
 func gift(id: String, item_id: StringName, take: bool = true) -> String:
 	if id == "" or item_id == &"":
 		return ""
 	bind()
-	if gifts_left(id) <= 0:
+	var events := RpgFarmEvents.current()
+	var birthday := events != null and events.birthday_gift_open(id)
+	if not birthday and gifts_left(id) <= 0:
 		RpgUtil.notify(RpgFarmStrings.t("FARM_GIFT_ENOUGH", [display_name(id)]))
 		return ""
 	if take:
@@ -224,14 +241,18 @@ func gift(id: String, item_id: StringName, take: bool = true) -> String:
 			return ""
 		state.inventory.remove(item_id, 1)
 	_meet(id)
-	gifts[id] = RpgUtil.to_int(gifts.get(id, 0)) + 1
+	if birthday:
+		events.note_birthday_gift(id)
+	else:
+		gifts[id] = RpgUtil.to_int(gifts.get(id, 0)) + 1
 	var given: Array = RpgUtil.to_array(known.get(id, []))
 	if not given.has(String(item_id)):
 		given.append(String(item_id))
 	known[id] = given
 	var taste := taste_of(id, item_id)
-	add_points(id, gift_points(taste))
-	RpgUtil.notify(RpgFarmStrings.t("FARM_GIFT_" + taste.to_upper(), [display_name(id)]))
+	add_points(id, birthday_points(taste) if birthday else gift_points(taste))
+	var said := RpgFarmStrings.t("FARM_GIFT_" + taste.to_upper(), [display_name(id)])
+	RpgUtil.notify(RpgFarmStrings.t("FARM_GIFT_BIRTHDAY", [said]) if birthday else said)
 	return taste
 
 ## The items of a taste the farmer knows of (those that were given), in the order of the file.

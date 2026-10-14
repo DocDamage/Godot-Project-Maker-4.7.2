@@ -23,6 +23,10 @@ extends Node
 ##   and `speed` as well. `energy` is what eating one restores. An entry that is only deleted
 ##   comes back from the planned list; `{"id": "fish_eel", "removed": true}` in the user's
 ##   list takes it away for good.
+## * **Maps of a kind** (T17.23). A map may say what kind of place it is with the metadata
+##   `farm_kind` (a farm's added maps do: `forest`, `beach`), and a thing to forage may name
+##   the kinds it lies on (`maps`, a list). On a map whose kind has things of its own, only
+##   those lie (shells on a beach); on every other map the things that name no kind (`things_for`).
 
 ## What lies on the map that is shown changed (a morning, a load, a thing picked up).
 signal changed
@@ -41,6 +45,8 @@ const PICKED_KEY := "picked"
 ## How many places in a hundred have something on a morning.
 const CHANCE := 45
 const PICK_SOUND := &"sfx_harvest"
+## The metadata of a map that says what kind of place it is ("" when it has none).
+const KIND_META := &"farm_kind"
 
 ## The things to forage and the fish, in the order of the files.
 var things: Array[Dictionary] = []
@@ -55,6 +61,7 @@ var _loaded := false
 var _nodes: Dictionary = {}  # spot -> RpgForagePickup
 var _positions: Array[Vector2] = []  # of the map that is shown
 var _key := ""  # ... and what that map is called (`map_key`)
+var _kind := ""  # ... and what kind of place it is (`map_kind`)
 
 ## The foraging of the running game, or null in a game that is no farm.
 static func current() -> RpgForage:
@@ -178,6 +185,26 @@ static func forage_of(entries: Array, game_seed: int, day: int, season_name: Str
 		out[spot] = StringName(found[roll(game_seed, day, spot, 2) % found.size()])
 	return out
 
+## What kind of place a map is: its metadata `farm_kind`, else "".
+static func map_kind(map: Node) -> String:
+	if map == null or not map.has_meta(KIND_META):
+		return ""
+	return RpgUtil.to_str(map.get_meta(KIND_META))
+
+## The things that lie on a map of a kind: the ones that name the kind when there are any, else
+## the ones that name no kind at all.
+static func things_for(entries: Array, kind: String) -> Array:
+	var own: Array = []
+	var plain: Array = []
+	for raw: Variant in entries:
+		var entry := RpgUtil.to_dict(raw)
+		var maps := RpgUtil.to_array(entry.get("maps", []))
+		if maps.is_empty():
+			plain.append(entry)
+		elif kind != "" and maps.has(kind):
+			own.append(entry)
+	return own if not own.is_empty() else plain
+
 ## The seed the things of this game follow from: the weather's.
 func game_seed() -> int:
 	var mode := get_parent() as RpgFarmMode
@@ -201,7 +228,7 @@ func morning(count: int) -> Dictionary:
 	var calendar := RpgCalendar.current()
 	if calendar == null:
 		return {}
-	return forage_of(things, map_seed(game_seed(), _key), calendar.today(), calendar.season_name(), count)
+	return forage_of(things_for(things, _kind), map_seed(game_seed(), _key), calendar.today(), calendar.season_name(), count)
 
 func _picked() -> Dictionary:
 	var state := RpgUtil.state()
@@ -278,6 +305,7 @@ func refresh(map: Node = null) -> int:
 			thing.queue_free()
 	_nodes.clear()
 	_key = map_key(map)
+	_kind = map_kind(map)
 	_positions = places_on(map)
 	if map == null or _positions.is_empty():
 		changed.emit()

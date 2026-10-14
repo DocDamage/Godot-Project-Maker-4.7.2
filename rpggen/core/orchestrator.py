@@ -416,7 +416,10 @@ def add_run_made_assets(
         # the crops, the soil and the tools the packs lack are drawn (T17.02); the notes are
         # the requirement check's here too. An isometric farm's are drawn as large as one
         # step on its diamonds, the size its drawn people have (T17.14)
-        farm_kit.add(catalog, farm_kit_tile(catalog, cfg), root, cfg.projection)
+        # (T17.23) and what a beach among its added maps has: shells, seaweed, fish of the sea
+        farm_kit.add(
+            catalog, farm_kit_tile(catalog, cfg), root, cfg.projection, farm_added_kinds(cfg)
+        )
     if iso_atlas.wanted(cfg):
         from rpggen.core import iso_kit
 
@@ -560,6 +563,7 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
         _plan_people(state, catalog, stored_farm)
         _plan_animals(state, catalog, stored_farm)
         _plan_forage(state, catalog, stored_farm)  # after the map: its places lie on it
+        _plan_events(state, stored_farm)  # after the forage: summer's festival is its fishing
 
 
 def _plan_areas(state: _State, catalog: catalog_mod.Catalog) -> None:
@@ -614,6 +618,37 @@ def _plan_crops(state: _State, catalog: catalog_mod.Catalog, stored: dict[str, A
 
 
 FARM_ANIMAL_HOUSES = ("coop", "barn")
+# the words a ground tile of the packs is known by as the ground of a kind of added map
+ADDED_GROUND_WORDS = {"beach": ("sand", "beach", "shore", "desert")}
+
+
+def farm_added_kinds(cfg: config_mod.GeneratorConfig) -> list[str]:
+    """The kinds of the rows of a farm's *Added maps* (T17.23), as the options have them."""
+    from rpggen.core import added_map_plan
+
+    return added_map_plan.kinds_of(cfg.starter_map_options().get("added_maps"))
+
+
+def _added_grounds(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict[str, str]:
+    """``{kind of added map: the id of the packs' ground tile for it}`` (T17.23): a ``GROUND``
+    tile of the project's view named or tagged as sand is the ground of a beach. A kind the
+    packs have no ground for is not in the table, and the builder draws its ground."""
+    out: dict[str, str] = {}
+    for kind, words in ADDED_GROUND_WORDS.items():
+        for asset in sorted(catalog.assets, key=lambda a: a.id):
+            facets = catalog_mod.effective(asset)
+            if facets.get("role") != "GROUND" or asset.status in ("UNUSED", "MISSING"):
+                continue
+            if not catalog_mod.fits_projection(asset, cfg.projection):
+                continue
+            tags = {str(t) for t in facets.get("tags") or []}
+            named = (
+                world_plan._words(asset.path) | tags | {t.removeprefix("surface:") for t in tags}
+            )
+            if named & set(words):
+                out[kind] = str(asset.id)
+                break
+    return out
 
 
 def _building_fact(catalog: catalog_mod.Catalog, obj: Any) -> dict[str, Any]:
@@ -677,6 +712,7 @@ def _iso_farm_facts(
         water=water,
         coop=own["coop"],
         barn=own["barn"],
+        grounds=_added_grounds(cfg, catalog),
     )
 
 
@@ -706,6 +742,7 @@ def farm_facts(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) ->
         water=world_plan._has_role(catalog, ("WATER",)),
         coop=own["coop"],
         barn=own["barn"],
+        grounds=_added_grounds(cfg, catalog),
     )
 
 
@@ -779,6 +816,12 @@ def _plan_people(
     except people_plan.PeoplePlanError as exc:
         state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
         raise _Stop from None
+    options = state.cfg.starter_map_options()
+    if options.get("festivals", True):
+        # birthdays (T17.25): whoever has none gets one, and nothing else of anybody changes
+        people = people_plan.with_birthdays(
+            people, state.cfg.seed, int(options.get("days_per_season", 28))
+        )
     plan["farm"] = people_plan.store(plan["farm"], people, notes)
     world_plan.save(root, plan)
     state.cb.on_log("farm: " + people_plan.summary(people))
@@ -810,6 +853,36 @@ def _plan_forage(
     plan["farm"] = forage_plan.store(plan["farm"], section)
     world_plan.save(root, plan)
     state.cb.on_log("farm: " + forage_plan.summary(section))
+    for note in notes:
+        state.cb.on_log("farm: " + note)
+
+
+def _plan_events(state: _State, stored: dict[str, Any] | None) -> None:
+    """The festivals of a farm's year (T17.25): planned once from the options and what the
+    farm's section says of its crops and its fishing, stored as ``farm.events``, and never
+    planned again. With ``starter_map.festivals`` off nothing is planned and what a project has
+    stored stays as it is. ``stored`` is the section the project had."""
+    from rpggen.core import event_plan
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    plan = world_plan.load(root)
+    assert plan is not None, "the crops are planned first"
+    try:
+        section, notes = event_plan.for_project(
+            (stored or {}).get("events"),
+            state.cfg.starter_map_options(),
+            state.cfg.seed,
+            event_plan.facts_of(plan["farm"]),
+        )
+    except event_plan.EventPlanError as exc:
+        state.issues.add("CAT-002", file="config", reason=f"/starter_map: {exc}")
+        raise _Stop from None
+    if section is None:
+        return
+    plan["farm"] = event_plan.store(plan["farm"], section)
+    world_plan.save(root, plan)
+    state.cb.on_log("farm: " + event_plan.summary(section))
     for note in notes:
         state.cb.on_log("farm: " + note)
 

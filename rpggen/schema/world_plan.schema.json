@@ -52,6 +52,7 @@
         "people": {"type": "array", "items": {"$ref": "#/$defs/Person"}},
         "animals": {"$ref": "#/$defs/FarmAnimals"},
         "forage": {"$ref": "#/$defs/FarmForage"},
+        "events": {"$ref": "#/$defs/FarmEvents"},
         "notes": {"type": "array", "items": {"type": "string"}}
       },
       "required": ["plan_version", "seed", "difficulty", "crops", "notes"],
@@ -137,12 +138,102 @@
           "additionalProperties": false
         },
         "added_maps": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "trails": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/FarmTrail"}},
+        "added": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/FarmAddedMap"}},
         "notes": {"type": "array", "items": {"type": "string"}}
       },
       "required": [
         "plan_version", "seed", "id", "map", "farm_size", "plot", "animals", "difficulty", "size",
         "house", "bin", "tillable", "water", "animal_houses", "paths", "debris", "trees",
         "scenery", "exit", "start", "added_maps", "notes"
+      ],
+      "additionalProperties": false
+    },
+    "FarmTrail": {
+      "type": "object",
+      "properties": {
+        "edge": {"enum": ["N", "E", "S", "W"]},
+        "cell": {"$ref": "#/$defs/Cell"},
+        "spawn": {"$ref": "#/$defs/Cell"},
+        "facing": {"enum": ["up", "down", "left", "right"]}
+      },
+      "required": ["edge", "cell", "spawn", "facing"],
+      "additionalProperties": false
+    },
+    "FarmAddedMap": {
+      "type": "object",
+      "properties": {
+        "plan_version": {"const": 1},
+        "seed": {"type": "integer"},
+        "index": {"type": "integer", "minimum": 1, "maximum": 8},
+        "id": {"type": "string", "pattern": "^farm_map_[1-8]$"},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["forest", "beach"]},
+        "map": {"type": "string", "pattern": "^game/maps/farm_map_[1-8]\\.tscn$"},
+        "size": {"$ref": "#/$defs/Cell"},
+        "ground": {"type": "string"},
+        "trail": {"type": "integer", "minimum": 0, "maximum": 7},
+        "door": {
+          "type": "object",
+          "properties": {
+            "edge": {"enum": ["N", "E", "S", "W"]},
+            "cell": {"$ref": "#/$defs/Cell"},
+            "spawn": {"$ref": "#/$defs/Cell"},
+            "facing": {"enum": ["up", "down", "left", "right"]},
+            "to": {"const": "farm"}
+          },
+          "required": ["edge", "cell", "spawn", "facing", "to"],
+          "additionalProperties": false
+        },
+        "clearing": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4},
+        "water": {
+          "type": "object",
+          "properties": {
+            "kind": {"const": "sea"},
+            "side": {"enum": ["N", "E", "S", "W"]},
+            "cells": {"type": "array", "items": {"$ref": "#/$defs/Cell"}}
+          },
+          "required": ["kind", "side", "cells"],
+          "additionalProperties": false
+        },
+        "fish": {
+          "type": "object",
+          "properties": {"from": {"$ref": "#/$defs/Cell"}, "at": {"$ref": "#/$defs/Cell"}},
+          "required": ["from", "at"],
+          "additionalProperties": false
+        },
+        "paths": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "trees": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "scenery": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {"enum": ["bush", "rock", "flowers"]},
+              "cell": {"$ref": "#/$defs/Cell"}
+            },
+            "required": ["kind", "cell"],
+            "additionalProperties": false
+          }
+        },
+        "debris": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {"enum": ["branch", "stump", "grass"]},
+              "cell": {"$ref": "#/$defs/Cell"}
+            },
+            "required": ["kind", "cell"],
+            "additionalProperties": false
+          }
+        },
+        "spots": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": [
+        "plan_version", "seed", "index", "id", "name", "kind", "map", "size", "ground", "trail",
+        "door", "paths", "trees", "scenery", "debris", "spots", "notes"
       ],
       "additionalProperties": false
     },
@@ -233,9 +324,65 @@
         },
         "loves": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "likes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-        "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+        "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "birthday": {
+          "type": "object",
+          "properties": {
+            "season": {"enum": ["spring", "summer", "autumn", "winter"]},
+            "day": {"type": "integer", "minimum": 1, "maximum": 28}
+          },
+          "required": ["season", "day"],
+          "additionalProperties": false
+        }
       },
       "required": ["id", "name", "asset", "home", "job", "schedule", "loves", "likes", "dislikes"],
+      "additionalProperties": false
+    },
+    "FarmEvents": {
+      "type": "object",
+      "properties": {
+        "plan_version": {"const": 1},
+        "seed": {"type": "integer"},
+        "days_per_season": {"enum": [7, 14, 28]},
+        "festivals": {"type": "array", "items": {"$ref": "#/$defs/FarmEvent"}},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["plan_version", "seed", "days_per_season", "festivals", "notes"],
+      "additionalProperties": false
+    },
+    "FarmEvent": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "kind": {
+          "description": "What there is to do. `gathering`: nothing, the people stand on the square. `wedding` is what the game adds at run time (T17.26).",
+          "enum": ["egg_hunt", "fishing_count", "produce_contest", "feast", "gathering", "wedding"]
+        },
+        "name": {"type": "string", "minLength": 1},
+        "season": {"enum": ["spring", "summer", "autumn", "winter"]},
+        "day": {"type": "integer", "minimum": 1, "maximum": 28},
+        "year": {"description": "Only in this year; every year without it.", "type": "integer", "minimum": 1},
+        "from": {"type": "integer", "minimum": 6, "maximum": 23},
+        "to": {"type": "integer", "minimum": 7, "maximum": 24},
+        "place": {"description": "The marker of the map the people gather at; each takes the spot of it their own schedule names.", "type": "string", "minLength": 1},
+        "shop_closed": {"description": "False: the shop keeps its hours on this day.", "type": "boolean"},
+        "table": {"description": "The marker where the judge's (or the feast's) table stands.", "type": "string", "minLength": 1},
+        "spots": {"description": "The markers the eggs of an egg hunt lie at.", "type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "each": {"description": "What one egg pays.", "type": "integer", "minimum": 0},
+        "goal": {"description": "From how many (eggs, fish, things shipped) or from which price on the prize is won.", "type": "integer", "minimum": 1},
+        "judge": {"description": "A produce contest: the dearest thing shipped that season, or how many.", "enum": ["price", "count"]},
+        "points": {"description": "A feast: the friendship everybody gains.", "type": "integer", "minimum": 0},
+        "prize": {
+          "type": "object",
+          "properties": {
+            "gold": {"type": "integer", "minimum": 0},
+            "item": {"type": "string", "minLength": 1},
+            "qty": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["id", "kind", "name", "season", "day"],
       "additionalProperties": false
     },
     "FarmForage": {
@@ -267,6 +414,7 @@
         },
         "price": {"type": "integer", "minimum": 0},
         "energy": {"type": "integer", "minimum": 0},
+        "maps": {"type": "array", "items": {"enum": ["beach"]}, "minItems": 1, "uniqueItems": true},
         "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"}
       },
       "required": ["id", "name", "asset", "item", "seasons", "price", "energy"],
@@ -291,7 +439,7 @@
           "minItems": 1,
           "uniqueItems": true
         },
-        "water": {"type": "array", "items": {"enum": ["pond"]}, "minItems": 1, "uniqueItems": true},
+        "water": {"type": "array", "items": {"enum": ["pond", "sea"]}, "minItems": 1, "uniqueItems": true},
         "price": {"type": "integer", "minimum": 0},
         "energy": {"type": "integer", "minimum": 0},
         "speed": {"type": "number", "minimum": 0.25, "maximum": 4},

@@ -461,6 +461,17 @@ FARM_ANIMAL_STEPS = [
     "egg_in_the_morning",
     "ship_the_egg",
 ]
+# the steps of the added maps (T17.23): in a farm without a forest or a beach each passes
+# with a note
+FARM_ADDED_STEPS = ["visit_the_forest", "fish_at_the_beach"]
+# the steps of the festivals and the birthdays (T17.25): played on diamonds as on squares
+FARM_EVENT_STEPS = [
+    "read_the_calendar",
+    "birthday_gift",
+    "festival_is_announced",
+    "a_year_of_festivals",
+    "egg_hunt",
+]
 # a new game starts in the farmhouse; the shared steps are played in the village
 FARM_SEQUENCE = [
     SHARED_STEPS[0],
@@ -468,6 +479,8 @@ FARM_SEQUENCE = [
     *SHARED_STEPS[1:],
     *FARM_STEPS,
     *FARM_ANIMAL_STEPS,
+    *FARM_ADDED_STEPS,
+    *FARM_EVENT_STEPS,
     "save_and_load",  # T17.18: saved, changed and loaded, the field compared cell by cell
 ]
 FARM_MAPS = ["game/maps/farm.tscn", "game/maps/farm_house.tscn", "game/maps/starter_map.tscn"]
@@ -550,7 +563,7 @@ def test_the_pack_makes_an_isometric_farm_that_passes_its_smoke_run(iso_farm) ->
     assert _smoke(target) == FARM_SEQUENCE, "the farm's usual steps, all of them"
     # what this farm does not have says so: no music, wall or chest in the pack, a well where
     # the pack has no water, no animal house
-    _passed_for_real(target, (*ABSENT, "catch_a_fish", *FARM_ANIMAL_STEPS))
+    _passed_for_real(target, (*ABSENT, "catch_a_fish", *FARM_ANIMAL_STEPS, *FARM_ADDED_STEPS))
     for rel in [*FARM_MAPS, FARM_SOIL, "generated/tilesets/iso.tres", "generated/data/crops.json"]:
         assert (target / rel).is_file(), rel
     archetypes = target / "addons/rpg_runtime/archetypes"
@@ -681,7 +694,8 @@ def test_an_isometric_farm_with_a_coop_and_a_pond(iso_coop, godot_exe: Path) -> 
     target, result = iso_coop
     assert not _errors(result)
     assert _smoke(target) == FARM_SEQUENCE
-    _passed_for_real(target)  # nothing of the farm passes with a note
+    # nothing of the farm passes with a note but the steps of the added maps it does not have
+    _passed_for_real(target, (*ABSENT, *FARM_ADDED_STEPS))
     settings = (target / "project.godot").read_text(encoding="utf-8")
     assert 'iso_controls="grid"' in settings
     plan = _farm_plan(target)
@@ -992,3 +1006,217 @@ def test_stone_isle_follows_the_schemas(
     assert code == 0 and document["ok"] is True and document["failed_phase"] is None
     assert not [i for i in document["issues"] if i["severity"] != "info"], document["issues"]
     assert orchestrator.REPEAT_CODE in {i["code"] for i in document["issues"]}
+
+
+# --------------------------------------------------------------------------- the dock (T17.27)
+#
+# The asset dock's placement, run where its undo exists: in the editor. A test-only plugin
+# (tests/integration/dock_probe) is copied into a copy of *Stone isle* and the editor is started
+# headless; the plugin opens the starter map, places library scenes with the dock's own code
+# (`Placement.place_new`, the double click, and the dock's own `_fix_dropped`, what follows a
+# drop), undoes and redoes each through the editor's history and saves the scene; then the
+# dock's world tools add a trigger area, a gate and a floor switch, which are not saved. Nobody
+# moves a mouse: the 2D view's own drag and drop is not run.
+
+DOCK_PROBE = REPO / "tests" / "integration" / "dock_probe"
+ISLE_OBJECTS = "res://generated/scenes/objects/sample_pack_iso__"
+ISLE_PEOPLE = "res://generated/scenes/actors/characters/sample_pack_iso__characters__"
+# (the scene, the diamond the mouse is over, where on it, how it is placed, the node's name)
+DOCK_PLACES = [
+    (ISLE_OBJECTS + "png__treepine.tscn", (4, 3), (6, -3), "double_click", "treepine"),
+    (ISLE_OBJECTS + "png__treeoak.tscn", (9, 5), (-9, 2), "drop", "treeoak"),
+    (ISLE_OBJECTS + "png__rock.tscn", (30, 3), (15, 0), "drop", "rock"),
+    (ISLE_OBJECTS + "png__house_1.tscn", (20, 20), (-7, 4), "drop", "house_1"),
+    (ISLE_OBJECTS + "png__house_2.tscn", (31, 5), (0, -9), "double_click", "house_2"),
+    (ISLE_PEOPLE + "villager_mason.tscn", (21, 21), (8, -4), "drop", "villager_mason"),
+    (ISLE_PEOPLE + "villager_fisher.tscn", (7, 5), (-6, -4), "double_click", "villager_fisher"),
+    (ISLE_OBJECTS + "items__chest.tscn", (5, 20), (-10, 0), "drop", "chest"),
+]
+
+
+def test_the_dock_places_on_the_diamonds_of_stone_isle(
+    isle,  # noqa: ANN001
+    godot_exe: Path,
+    tmp_path: Path,
+) -> None:
+    """What the dock places in the generated isometric map stands on the middle of the diamond
+    under the mouse, among the Y-sorted entities, as one step of the editor's undo history
+    that Ctrl+Z takes back and redo brings again; a house covers its four cells; the saved map
+    has them where the builder would have put them, and the game still plays its whole
+    sequence."""
+    import shutil
+
+    from rpggen.core import godot
+
+    target, _result = isle
+    project = tmp_path / "proj"
+    shutil.copytree(target, project, ignore=shutil.ignore_patterns(".rpggen_*"))
+    shutil.copytree(DOCK_PROBE, project / "addons" / "zz_dock_probe")
+    settings = project / "project.godot"
+    text = settings.read_text(encoding="utf-8")
+    enabled = 'enabled=PackedStringArray("res://addons/rpg_project_tools/plugin.cfg")'
+    assert enabled in text, "the tools addon is the project's one editor plugin"
+    probe = enabled[:-1] + ', "res://addons/zz_dock_probe/plugin.cfg")'
+    settings.write_text(text.replace(enabled, probe), encoding="utf-8")
+    plan = _isle_plan(target)
+    taken = {
+        tuple(c)
+        for key in ("decorations", "npcs", "chests", "enemies", "path", "exit_path")
+        for c in plan[key]
+    }
+    places = []
+    for scene, cell, off, how, _name in DOCK_PLACES:
+        assert cell not in taken, "a free diamond of the plan"
+        x, y = iso_math.cell_to_screen(*cell, *ISLE_FOOT)
+        assert iso_math.screen_to_cell(x + off[0], y + off[1], *ISLE_FOOT) == cell
+        places.append({"scene": scene, "at": [x + off[0], y + off[1]], "how": how})
+    jsonio.write(
+        project / "rpggen/dock_probe_in.json",
+        {"map": "res://" + MAPS[0], "snap": 16, "save": True, "places": places},
+    )
+    exe = godot.find_console_exe(godot_exe)
+    logs = project / "rpggen/logs"
+    run = godot.run_godot(exe, project, ["--editor"], timeout_s=600, log_name="dock", log_dir=logs)
+    log = run.log_path.read_text(encoding="utf-8", errors="replace")
+    assert not run.timed_out and run.returncode == 0, log[-3000:]
+    assert "SCRIPT ERROR" not in log, log[-3000:]
+    report = jsonio.read(project / "rpggen/results/dock_probe.json")
+    assert report["ok"] is True and report["error"] == "", report
+    assert report["dock"] is True, "the project's own Assets dock did the drops"
+    assert report["footprint"] == list(ISLE_FOOT), "the dock asks the map for its diamond"
+    assert report["saved"] == 0, "the editor saved the scene"
+    assert len(report["places"]) == len(DOCK_PLACES)
+    for seen, (scene, cell, off, how, _name) in zip(report["places"], DOCK_PLACES, strict=True):
+        middle = list(iso_math.cell_to_screen(*cell, *ISLE_FOOT))
+        mouse = [middle[0] + off[0], middle[1] + off[1]]
+        placed = seen["placed"]
+        assert [placed["x"], placed["y"]] == middle, f"{scene} on the diamond {cell}"
+        assert placed["cell"] == list(cell) and placed["middle"] == middle
+        assert placed["parent"] == "YSorted/Entities" and placed["owner"] is True
+        assert seen["action"].startswith("Place ") and seen["one_step"] is True
+        assert seen["undo_ok"] is True and seen["redo_ok"] is True
+        if how == "double_click":  # Ctrl+Z takes the new node out of the map
+            assert seen["undone_in_tree"] is False
+        else:  # ... and puts a dropped one back where the editor dropped it
+            undone = seen["undone"]
+            assert (undone["parent"], [undone["x"], undone["y"]]) == (".", mouse)
+            assert seen["status"].startswith("Placed ")
+            assert seen["status"].endswith(f" on the diamond ({cell[0]}, {cell[1]}).")
+        again = seen["redone"]
+        assert (again["parent"], [again["x"], again["y"]]) == ("YSorted/Entities", middle)
+    by_scene = {seen["scene"]: seen for seen in report["places"]}
+    house = by_scene[ISLE_OBJECTS + "png__house_1.tscn"]
+    assert house["stands_on"] == [2, 2]
+    assert sorted(map(tuple, house["cells"])) == [(19, 19), (19, 20), (20, 19), (20, 20)], (
+        "the diamond under the mouse is the one of its four cells nearest the camera"
+    )
+    chest = by_scene[ISLE_OBJECTS + "items__chest.tscn"]
+    assert chest["placed"]["entity_id"] == "starter_map_chest_002", "the id a square map gives"
+    assert by_scene[ISLE_OBJECTS + "png__treeoak.tscn"]["placed"]["entity_id"] == ""
+    # the world tools: on the middle of a diamond, and what blocks or triggers is the diamond
+    unit = iso_math.unit(*ISLE_FOOT)
+    middle = iso_math.cell_to_screen(0, 0, *ISLE_FOOT)
+    diamond = [[x - middle[0], y - middle[1]] for x, y in iso_math.diamond(0, 0, *ISLE_FOOT)]
+    assert report["unit"] == unit
+    trigger, gate, plate = report["tools"]
+    assert [tool["kind"] for tool in report["tools"]] == ["trigger", "gate", "plate"]
+    for tool in report["tools"]:
+        assert [tool["x"], tool["y"]] == tool["middle"], f"{tool['kind']}: on its diamond"
+        assert tool["one_step"] is True and tool["undo_ok"] is True and tool["redo_ok"] is True
+        assert tool["owner"] is True
+    assert (trigger["parent"], trigger["shape"]) == ("Triggers", "ConvexPolygonShape2D")
+    assert (gate["parent"], gate["shape"]) == ("YSorted/Entities", "ConvexPolygonShape2D")
+    assert trigger["points"] == diamond and gate["points"] == diamond
+    assert trigger["shape_owner"] is True and gate["shape_owner"] is True
+    assert gate["size"] == [unit, unit], "a tile is one step on the diamonds"
+    assert (plate["shape"], plate["size"]) == ("", [unit * 0.75, unit * 0.75])
+    # the saved map: what was there is where it was, what was placed is on its diamond
+    before = _view(target)
+    after = _map_view(project, godot_exe, MAPS[0])
+    was = {e["name"]: (e["x"], e["y"]) for e in before["entities"]}
+    now = {e["name"]: (e["x"], e["y"]) for e in after["entities"]}
+    assert {name: now.get(name) for name in was} == was
+    added = sorted(at for name, at in now.items() if name not in was)
+    wanted = sorted(
+        iso_math.cell_to_screen(*cell, *ISLE_FOOT) for _s, cell, _o, _h, _n in DOCK_PLACES
+    )
+    assert added == wanted
+    for layer in ("Ground", "Props"):
+        assert _cells(after, layer) == _cells(before, layer), "no tile moved"
+    # and the game plays as it did, with them in it
+    (project / paths.RESULTS_SMOKE).unlink()
+    smoke = godot.run_godot(
+        exe,
+        project,
+        orchestrator.smoke_args("turn_based", "dock_on_diamonds"),
+        timeout_s=godot.SMOKE_TIMEOUT_S,
+        log_name="dock_smoke",
+        log_dir=logs,
+    )
+    assert smoke.returncode == 0, smoke.stdout[-3000:]
+    assert _smoke(project) == SHARED_STEPS + TURN_BASED_STEPS
+
+
+# --------------------------------------------------------------------------- added maps (T17.23)
+
+
+@pytest.fixture(scope="module")
+def iso_forest(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):  # noqa: ANN201
+    """The isometric farm with a forest and a beach among its added maps."""
+    cfg = _farm_config()
+    cfg.starter_map["added_maps"] = [{"name": "Old woods"}, {"name": "North shore"}]
+    return _generated(godot_exe, tmp_path_factory.mktemp("iso_forest"), cfg)
+
+
+def test_an_isometric_farm_with_a_forest_and_a_beach(iso_forest, godot_exe: Path) -> None:  # noqa: ANN001
+    """The same recipe on diamonds: the farmer walks to the forest and back, and fishes from
+    the beach of a farm that has a well. The added maps are painted with the project's tile
+    set, their markers lie on the diamonds of the plan's cells, and the door of every trail
+    is a diamond on the farm."""
+    from rpggen.core import added_map_plan, farm_plan
+
+    target, result = iso_forest
+    assert not _errors(result)
+    assert _smoke(target) == FARM_SEQUENCE
+    # the two steps of the added maps are played; the pond's step is not (a well)
+    _passed_for_real(target, (*ABSENT, "catch_a_fish", *FARM_ANIMAL_STEPS))
+    plan = _farm_plan(target)
+    assert farm_plan.check(plan) == [] and plan["water"]["kind"] == "well"
+    assert [(e["id"], e["kind"]) for e in plan["added"]] == [
+        ("farm_map_1", "forest"),
+        ("farm_map_2", "beach"),
+    ]
+    forage = jsonio.read(target / "rpggen/world_plan.json")["farm"]["forage"]
+    assert forage["fishing"] is True, "the rod is sold for the beach"
+    trails = (target / "generated/scenes/farm/trails.tscn").read_text(encoding="utf-8")
+    assert "ConvexPolygonShape2D" in trails and "RectangleShape2D" not in trails
+    farm_scene = (target / FARM_MAPS[0]).read_text(encoding="utf-8")
+    assert '[node name="Trails" parent="."' in farm_scene
+    for entry in plan["added"]:
+        scene = (target / entry["map"]).read_text(encoding="utf-8")
+        assert 'path="res://generated/tilesets/iso.tres"' in scene
+        assert f'metadata/farm_kind = "{entry["kind"]}"' in scene
+        view = _map_view(target, godot_exe, entry["map"])
+        cols, rows = entry["size"]
+        ground = _cells(view, "Ground")
+        inside = {(x, y) for x in range(1, cols - 1) for y in range(1, rows - 1)}
+        assert inside <= set(ground), "the whole map has ground under it"
+        # every marker stands on the middle of the diamond of its cell
+        trail = plan["trails"][entry["trail"]]
+        x, y = iso_math.cell_to_screen(trail["cell"][0], trail["cell"][1], *FOOT)
+        door = trails.split(f'[node name="to_{entry["id"]}"')[1].split("[node")[0]
+        assert f"position = Vector2({x:g}, {y:g})" in door
+        lines = scene.splitlines()
+        spots = []
+        for at, line in enumerate(lines):
+            if line.startswith('[node name="Spot') and 'parent="Forage"' in line:
+                px, py = lines[at + 1].removeprefix("position = Vector2(").rstrip(")").split(", ")
+                spots.append(iso_math.screen_to_cell(float(px), float(py), *FOOT))
+        assert spots == [tuple(c) for c in entry["spots"]]
+        assert set(spots) <= added_map_plan.reached_cells(entry)
+    beach = plan["added"][1]
+    beach_scene = (target / beach["map"]).read_text(encoding="utf-8")
+    soil = _cells(_map_view(target, godot_exe, beach["map"]), "Soil")
+    wet = {tuple(c) for c in beach["water"]["cells"]}
+    assert set(soil) == wet, "the cells of the sea say they are water, and no other cell does"
+    assert 'metadata/farm_water = "sea"' in beach_scene and '[node name="Sand"' in beach_scene

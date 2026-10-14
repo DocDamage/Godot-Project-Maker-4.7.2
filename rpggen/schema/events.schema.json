@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "rpggen events of a farm's year (game/data/events.json)",
+  "type": "object",
+  "properties": {
+    "events": {"type": "array", "items": {"anyOf": [{"$ref": "#/$defs/Event"}, {"$ref": "#/$defs/Removed"}]}}
+  },
+  "required": ["events"],
+  "additionalProperties": false,
+  "$defs": {
+    "Removed": {
+      "description": "In the user's file: this id is taken away, and the planned list does not bring it back.",
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "removed": {"const": true}
+      },
+      "required": ["id", "removed"],
+      "additionalProperties": false
+    },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "kind": {
+          "description": "What there is to do. `gathering`: nothing, the people stand on the square. `wedding` is what the game adds at run time (T17.26).",
+          "enum": ["egg_hunt", "fishing_count", "produce_contest", "feast", "gathering", "wedding"]
+        },
+        "name": {"type": "string", "minLength": 1},
+        "season": {"enum": ["spring", "summer", "autumn", "winter"]},
+        "day": {"type": "integer", "minimum": 1, "maximum": 28},
+        "year": {"description": "Only in this year; every year without it.", "type": "integer", "minimum": 1},
+        "from": {"type": "integer", "minimum": 6, "maximum": 23},
+        "to": {"type": "integer", "minimum": 7, "maximum": 24},
+        "place": {"description": "The marker of the map the people gather at; each takes the spot of it their own schedule names.", "type": "string", "minLength": 1},
+        "shop_closed": {"description": "False: the shop keeps its hours on this day.", "type": "boolean"},
+        "table": {"description": "The marker where the judge's (or the feast's) table stands.", "type": "string", "minLength": 1},
+        "spots": {"description": "The markers the eggs of an egg hunt lie at.", "type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "each": {"description": "What one egg pays.", "type": "integer", "minimum": 0},
+        "goal": {"description": "From how many (eggs, fish, things shipped) or from which price on the prize is won.", "type": "integer", "minimum": 1},
+        "judge": {"description": "A produce contest: the dearest thing shipped that season, or how many.", "enum": ["price", "count"]},
+        "points": {"description": "A feast: the friendship everybody gains.", "type": "integer", "minimum": 0},
+        "prize": {
+          "type": "object",
+          "properties": {
+            "gold": {"type": "integer", "minimum": 0},
+            "item": {"type": "string", "minLength": 1},
+            "qty": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
+        },
+        "map": {"description": "The id of the map its markers are on (the village).", "type": "string"}
+      },
+      "required": ["id", "kind", "name", "season", "day"],
+      "additionalProperties": false
+    }
+  }
+}

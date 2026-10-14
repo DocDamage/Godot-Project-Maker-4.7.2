@@ -162,11 +162,11 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.20 | Gate (1.5.0) | M | T17.19 | open: the flags are on and the suites pass locally on Windows; CI, the frozen build, the upgrade test, the corpus and every manual row are not done, and `v1.5.0` is not tagged |
 | T17.21 | Real packs: cars by their pictures, the buildings' diamond, wall pieces, characters in eight facings | L | T17.12 | open |
 | T17.22 | Real packs in the builder: walls along an edge, a house of pieces, round road corners | L | T17.21 | open |
-| T17.23 | Added maps are built | L | T17.06 | open |
+| T17.23 | Added maps are built | L | T17.06 | done for a forest and a beach; they are maps of the farm's own recipe and not areas of T13.20, the farm's door to one is a mark beside its edge in a scene that is written on every build, a farm from before the card keeps names, and no person goes there (the notes) |
 | T17.24 | The cave: combat on a farm | L | T17.23 | open |
-| T17.25 | Festivals and birthdays | M | T17.09 | open |
+| T17.25 | Festivals and birthdays | M | T17.09 | done; the eggs and the table are drawn shapes of the game and the table can be walked through, a farm from before the card has its calendar in the pause menu only, its eggs round the square and no festival lines in its dialogues, and nobody has played a festival by hand (the notes) |
 | T17.26 | Marriage | L | T17.25 | open |
-| T17.27 | The editor dock on diamonds | M | T17.14 | open |
+| T17.27 | The editor dock on diamonds | M | T17.14 | done locally on Windows: run by tests, one of them in an editor without a window, and looked at in a picture of the game; nobody dropped anything with a mouse, and drop-to-floor has no meaning on diamonds. Three old faults of the dock's placement, on any map, were found and left (the notes) |
 | T17.28 | Imported maps in the isometric view | L | T17.14 | open |
 
 ---

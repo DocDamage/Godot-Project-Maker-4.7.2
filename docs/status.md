@@ -191,13 +191,22 @@ should know:
   Buildings* (measured at 99 x 50, probably 132 x 66) and the characters of two *Miniature*
   packs are read wrongly or not at all. *Super Retro Ranch*, the farming pack, was never
   opened (its licence): its fence and 2 x 2 sheets were not run through the readers.
-* **Not built.** The maps added to a farm (`added_maps` are names kept with the plan); a cave
-  and combat on a farm (the feature is hidden for the kind); the editor dock and imported maps
-  on diamonds (both count squares); terrains on a diamond's sides; height (a raised ground
+* **Added maps of a farm are built since T17.23** (a forest, a beach; generated, walked to,
+  foraged on and fished from by the smoke run on *Green acre* and on the synthetic isometric
+  pack, and looked at in six pictures). What is short of the card: the door on the farm is a
+  mark on the ground beside the edge, not a gap in it (a farm that exists is never written
+  again, so the farm shows a scene of doors that is written on every build), and a tree that
+  stands before the mark hides it (the first door of a farm in 4 of 900 plans, the fourth in
+  281); a drawn beach is sand in bands; the people never go to an added map; a farm planned
+  before the card keeps its rows as names.
+* **Not built.** A cave
+  and combat on a farm (the feature is hidden for the kind); imported maps on diamonds (they
+  count squares; the editor dock counts diamonds since T17.27, run by a test in an editor
+  without a window, never with a mouse); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working
   at zero energy ends the day*; a pail; a naming screen for animals; an isometric car and
   isometric people for a race; the diamond picture of an isometric race on the Options page
-  (it is shown from above). Marriage, festivals, cooking and crafting are left out by design
+  (it is shown from above). Festivals and birthdays are in (T17.25: nobody has played one by hand, and a farm from before them has its calendar in the pause menu only and its eggs round the square). Marriage, cooking and crafting are left out by design
   (Part E of the spec).
 * **Faults that are known and left.** A coop on a pack that has only cows stays empty. With
   a calendar the outdoor light follows it whatever the player's *Day and night* setting says.

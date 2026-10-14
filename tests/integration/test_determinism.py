@@ -165,6 +165,7 @@ def test_determinism_of_a_farm(godot_exe: Path, tmp_path: Path) -> None:
         "game/data/people.json",
         "game/data/animals.json",
         "game/data/forage.json",
+        "game/data/events.json",
     ):
         assert rel in files, rel
     assert any(rel.startswith("generated/scenes/farm/animals/") for rel in files)

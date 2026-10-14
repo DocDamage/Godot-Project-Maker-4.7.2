@@ -89,6 +89,16 @@ FISH: tuple[tuple[str, Color], ...] = (
 )
 # the four drawn things to forage, one a season, as ``forage_plan.DRAWN_FORAGE`` names them
 FORAGE = ("wild_herb", "wild_berries", "mushroom", "winter_root")
+# what a beach has (T17.23), as ``forage_plan.DRAWN_BEACH_FORAGE`` and ``DRAWN_SEA_FISH`` name
+# them: drawn only for a farm that has a beach among its added maps
+BEACH_FORAGE = ("shell", "seaweed")
+SEA_FISH: tuple[tuple[str, Color], ...] = (
+    ("sardine", (150, 180, 210, 255)),
+    ("sea_bass", (90, 120, 150, 255)),
+)
+BEACH_KIND = "beach"
+PEARL: Color = (242, 226, 196, 255)
+WEED: Color = (63, 143, 106, 255)
 BERRY: Color = (112, 72, 168, 255)
 CAP: Color = (190, 70, 56, 255)
 ROOT: Color = (206, 170, 120, 255)
@@ -276,6 +286,16 @@ def forage(tile: int, kind: str) -> Image.Image:
         d.rectangle(_box(t, 7, 2, 9, 6), fill=STEM)
         d.rectangle(_box(t, 5, 3, 7, 5), fill=LEAF)
         d.rectangle(_box(t, 9, 3, 11, 5), fill=LEAF)
+    elif kind == "shell":
+        fan = [_q(t, 2), _q(t, 4), _q(t, 14) - 1, _q(t, 20) - 1]
+        d.pieslice(fan, start=180, end=360, fill=PEARL, outline=DARK)
+        for x in (5, 8, 11):
+            d.line([(_q(t, 8), _q(t, 12)), (_q(t, x), _q(t, 6))], fill=WOOD_LIGHT)
+        d.rectangle(_box(t, 6, 12, 10, 14), fill=PEARL, outline=DARK)
+    elif kind == "seaweed":
+        for x0, top in ((3, 5), (7, 2), (11, 6)):
+            d.rectangle(_box(t, x0, top, x0 + 2, 15), fill=WEED, outline=STEM)
+            d.ellipse(_box(t, x0 - 1, top - 1, x0 + 3, top + 3), fill=WEED, outline=STEM)
     else:
         raise ValueError(f"no such thing to forage: {kind}")
     return img
@@ -422,6 +442,17 @@ def _forage_stand_in(name: str) -> StandIn:
                    usage="object")  # fmt: skip
 
 
+def _beach_stand_in(name: str) -> StandIn:
+    thing = f"thing to forage on a beach ({name.replace('_', ' ')})"
+    return StandIn(name, "ITEM", thing, partial(forage, kind=name), ("forage", "beach"), "beach",
+                   usage="object")  # fmt: skip
+
+
+def _sea_fish_stand_in(name: str, body: Color) -> StandIn:
+    return StandIn(name, "ITEM", f"fish of the sea ({name.replace('_', ' ')})",
+                   partial(fish, body=body), ("fish", "sea"), "sea", usage="object")  # fmt: skip
+
+
 CROP_STAND_INS = tuple(_crop_stand_in(name, fruit) for name, fruit in CROPS)
 SOIL = StandIn("soil", "DECORATION", "tilled soil", soil, ("soil",), "soil", roles=None,
                usage="tiles", fills=False)  # fmt: skip
@@ -448,6 +479,16 @@ STAND_INS: tuple[StandIn, ...] = (
     *CROP_STAND_INS, SOIL, WATERED, *TOOL_STAND_INS, SEED_BAG, HEN, EGG, BIN, BED, RAIN_OVERLAY,
     *FISH_STAND_INS, *FORAGE_STAND_INS,
 )  # fmt: skip
+
+
+# What a farm with an added map of a kind gets beside that (T17.23): the things and the fish
+# of a beach. A farm without a beach has none of them, as it had none before.
+KIND_STAND_INS: dict[str, tuple[StandIn, ...]] = {
+    BEACH_KIND: (
+        *(_beach_stand_in(name) for name in BEACH_FORAGE),
+        *(_sea_fish_stand_in(name, body) for name, body in SEA_FISH),
+    ),
+}
 
 
 # What the kit draws for the view from above only (T17.14): square tiles of soil, which an
@@ -567,13 +608,19 @@ def growing(catalog: catalog_mod.Catalog, projection: str = "top_down") -> int:
     return len(strips) + len(to_grow(catalog, projection))
 
 
-def lacking(catalog: catalog_mod.Catalog, projection: str = "top_down") -> list[StandIn]:
+def lacking(
+    catalog: catalog_mod.Catalog, projection: str = "top_down", kinds: Any = ()
+) -> list[StandIn]:
     """What the kit has to draw for a farm with this catalog. The three crops are drawn
-    together, when fewer than ``MIN_CROPS`` crops of the packs can grow."""
+    together, when fewer than ``MIN_CROPS`` crops of the packs can grow. ``kinds`` are the kinds
+    of the farm's added maps (T17.23): a beach adds what a beach has."""
     crops_lack = growing(catalog, projection) < MIN_CROPS
+    wanted = [*STAND_INS]
+    for kind in sorted(set(kinds or ())):
+        wanted += KIND_STAND_INS.get(str(kind), ())
     return [
         s
-        for s in STAND_INS
+        for s in wanted
         if (crops_lack if s.role == "CROP" else own_asset(catalog, s, projection) is None)
         and not (projection == catalog_mod.PROJECTION_ISOMETRIC and s.name in NOT_ISOMETRIC)
     ]
@@ -710,8 +757,9 @@ def _ripe_picture(source: catalog_mod.Asset, staging_root: Path) -> Image.Image 
 
 
 def add(
-    catalog: catalog_mod.Catalog, tile: int, staging_root: Path, projection: str = "top_down"
-) -> tuple[list[str], IssueList]:
+    catalog: catalog_mod.Catalog, tile: int, staging_root: Path, projection: str = "top_down",
+    kinds: Any = (),
+) -> tuple[list[str], IssueList]:  # fmt: skip
     """Draw what a farm needs and the packs lack into the staging copy, add it to the catalog
     and return the names with one ``ASSET-031`` note each; then the strip of every crop that is
     one picture (no note: ``ASSET-034`` has said it). The kit of the last run (a regeneration
@@ -720,7 +768,7 @@ def add(
     catalog.assets[:] = [a for a in catalog.assets if a.pack_id != KIT_PACK]
     t = _size(tile)
     added: list[str] = []
-    for stand_in in lacking(catalog, projection):
+    for stand_in in lacking(catalog, projection, kinds):
         image = stand_in.draw(t)
         rel = f"{KIT_DIR}/{stand_in.name}.png"
         _append(catalog, staging_root, asset_id(stand_in), rel, image, _facets(stand_in, image, t))

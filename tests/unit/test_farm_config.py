@@ -27,6 +27,7 @@ MONEY = ("starting_money", "pass_out_loss")  # T17.08
 FIELD = ("farm_size", "plot", "animals", "difficulty", "added_maps")  # T17.06
 FISHING = ("fishing",)  # T17.10
 CALENDAR = ("days_per_season", "day_length")  # T17.16
+FESTIVALS = ("festivals",)  # T17.25
 FARM_RECIPES = paths.templates_root() / "builder" / "recipes" / "farm"
 FARM_RUNTIME = paths.templates_root() / "addons" / "rpg_runtime" / "archetypes" / "farm"
 
@@ -48,12 +49,15 @@ def test_the_config_of_a_farm_is_valid_and_its_map_is_the_top_down_one() -> None
     # its own map (T17.06) are keys of their own in the same section
     defaults = config.starter_map_defaults("farm")
     assert {
-        k: v for k, v in defaults.items() if k not in (*MONEY, *FIELD, *FISHING, *CALENDAR)
+        k: v
+        for k, v in defaults.items()
+        if k not in (*MONEY, *FIELD, *FISHING, *CALENDAR, *FESTIVALS)
     } == config.starter_map_defaults("turn_based")
     assert {k: defaults[k] for k in MONEY} == {"starting_money": 100, "pass_out_loss": True}
     assert {k: defaults[k] for k in FIELD} == farm_plan.defaults()
     assert {k: defaults[k] for k in FISHING} == {"fishing": True}
     assert {k: defaults[k] for k in CALENDAR} == {"days_per_season": 28, "day_length": "normal"}
+    assert {k: defaults[k] for k in FESTIVALS} == {"festivals": True}
     again = config.GeneratorConfig.from_json(data)
     assert again.to_json() == data
     for kind in ("orchard",):

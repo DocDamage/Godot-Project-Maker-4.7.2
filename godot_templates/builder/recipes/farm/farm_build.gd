@@ -32,6 +32,10 @@ const MODE_PATH := "res://generated/scenes/combat/combat_mode.tscn"
 const WORLD_PLAN := "res://rpggen/world_plan.json"
 const SOIL_TILESET := "res://generated/tilesets/farm_soil.tres"
 const CROPS_DIR := "res://generated/scenes/farm/crops/"
+## The farm's side of the doors to its added maps (T17.23, added_maps_recipe.gd): a scene that
+## is written on every build, and the node the farm's map instances it as.
+const TRAILS_SCENE := "res://generated/scenes/farm/trails.tscn"
+const TRAILS_NODE := "Trails"
 const ITEMS_DIR := "res://game/data/items/"
 const HOTBAR_SLOTS := 10
 
@@ -114,6 +118,19 @@ static func forage() -> Dictionary:
 ## (the plan's `fishing`, which follows both on every generation).
 static func fishing() -> bool:
 	return JsonUtil.to_bool(forage().get("fishing", false))
+
+## The festivals of the plan (rpggen/core/event_plan.py: `farm.events.festivals`), in its
+## order; none in a farm that was planned without them.
+static func events() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for raw: Variant in JsonUtil.to_array(JsonUtil.to_dict(plan().get("events", {})).get("festivals", [])):
+		out.append(JsonUtil.to_dict(raw))
+	return out
+
+## True when the farm has festivals and birthdays (T17.25): the option `starter_map.festivals`
+## is on (it is when the config does not say) and the plan has its festivals.
+static func festivals(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(option(ctx, "festivals", true), true) and not events().is_empty()
 
 ## One of the farm's options (a key of the config's `starter_map`), or `fallback`.
 static func option(ctx: BuildContext, key: String, fallback: Variant) -> Variant:

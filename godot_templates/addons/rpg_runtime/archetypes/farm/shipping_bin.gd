@@ -11,12 +11,18 @@ extends StaticBody2D
 ## game state (`farm_bin.items`, rows of `{item_id, qty}` in the order they went in), so it is
 ## saved with the game, the save has no new key, and the night can sell it while the farmer is
 ## on another map (the static functions need no node).
+##
+## **What was shipped this season** (T17.25) is kept beside it (`farm_bin.shipped`: the season
+## it is of and, an item, how many of it the nights of that season sold): the produce contest
+## of a festival is judged on it. The first sale of another season begins it anew.
 
 ## What is in the bin changed (a thing went in, came out, or the night emptied it).
 signal changed
 
 const FLAG_ENTITY := "farm_bin"
 const FLAG_KEY := "items"
+## `{season: "<year>:<season>", items: {item id: qty}}`: what the nights of a season sold.
+const SHIPPED_KEY := "shipped"
 
 # ------------------------------------------------------------------ what is in it (no node needed)
 
@@ -119,7 +125,60 @@ static func sell_all() -> Dictionary:
 	if state != null and not sold.is_empty():
 		_store(kept)
 		state.gold += total
+		_record(sold)
 	return {"rows": sold, "total": total}
+
+# ------------------------------------------------------------------ what a season shipped
+
+## The season the calendar shows, as the record names it: "<year>:<season>" ("" without a
+## calendar: such a game keeps no record).
+static func season_key() -> String:
+	var calendar := RpgCalendar.current()
+	return "%d:%d" % [calendar.year, calendar.season] if calendar != null else ""
+
+## What the nights of the season the calendar shows have sold: item id -> how many. The night
+## of a day sells what was put in on that day, so a thing counts from the morning after.
+static func shipped() -> Dictionary:
+	var state := RpgUtil.state()
+	var out := {}
+	if state == null:
+		return out
+	var kept := RpgUtil.to_dict(state.get_flag(FLAG_ENTITY, SHIPPED_KEY, {}))
+	if season_key() == "" or RpgUtil.to_str(kept.get("season", "")) != season_key():
+		return out
+	var items := RpgUtil.to_dict(kept.get("items", {}))
+	for id: Variant in items.keys():
+		if RpgUtil.to_int(items[id]) > 0:
+			out[RpgUtil.to_str(id)] = RpgUtil.to_int(items[id])
+	return out
+
+## How many things the season shipped, and the dearest of them: `{count, best, price}` (`best`
+## is "" and `price` 0 when nothing was shipped; a thing is priced as the bin prices it today).
+static func shipped_best() -> Dictionary:
+	var count := 0
+	var best := ""
+	var price := 0
+	var items := shipped()
+	var ids: Array = items.keys()
+	ids.sort()
+	for id: String in ids:
+		count += RpgUtil.to_int(items[id])
+		var each := price_of(StringName(id))
+		if each > price:
+			price = each
+			best = id
+	return {"count": count, "best": best, "price": price}
+
+static func _record(sold: Array[Dictionary]) -> void:
+	var state := RpgUtil.state()
+	var key := season_key()
+	if state == null or key == "":
+		return
+	var items := shipped()
+	for row in sold:
+		var id := RpgUtil.to_str(row["item_id"])
+		items[id] = RpgUtil.to_int(items.get(id, 0)) + RpgUtil.to_int(row["qty"])
+	state.set_flag(FLAG_ENTITY, SHIPPED_KEY, {"season": key, "items": items})
 
 # ------------------------------------------------------------------ the bin on the map
 

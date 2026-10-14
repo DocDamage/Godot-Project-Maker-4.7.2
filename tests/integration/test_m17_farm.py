@@ -16,9 +16,11 @@ import pytest
 
 from rpggen import features, jsonio, paths, schema
 from rpggen.core import (
+    added_map_plan,
     animal_plan,
     config,
     crop_plan,
+    event_plan,
     farm_plan,
     forage_plan,
     ledger,
@@ -73,7 +75,19 @@ ANIMAL_STEPS = [
 # the last step (T17.18): the game is saved, changed and loaded, and the field, the date, the
 # money, the bag, the herd and the friendships are what they were
 SAVE_STEPS = ["save_and_load"]
-TAIL = ANIMAL_STEPS + SAVE_STEPS
+# the steps of the added maps (T17.23), before the last: in a farm without a forest or a beach
+# each passes with a note
+ADDED_STEPS = ["visit_the_forest", "fish_at_the_beach"]
+# the steps of the festivals and the birthdays (T17.25), before the last: in a farm with
+# `festivals` off each passes with a note
+EVENT_STEPS = [
+    "read_the_calendar",
+    "birthday_gift",
+    "festival_is_announced",
+    "a_year_of_festivals",
+    "egg_hunt",
+]
+TAIL = ANIMAL_STEPS + ADDED_STEPS + EVENT_STEPS + SAVE_STEPS
 TOOLS = ("hoe", "watering_can", "sickle", "farm_axe", "fishing_rod")
 START_TOOLS = ("hoe", "watering_can")  # the others are bought at the shop (T17.08, T17.10)
 FILES = [
@@ -252,7 +266,8 @@ def test_a_pack_without_crops_gets_the_drawn_ones_and_a_plot_to_grow_them_on(pla
             for name in ("berry", "carrot", "turnip")
         ]
     }
-    crops_only = {k: v for k, v in section.items() if k not in ("map", "people", "forage")}
+    others = ("map", "people", "forage", "events")  # what the other planners keep in the section
+    crops_only = {k: v for k, v in section.items() if k not in others}
     assert crops_only == crop_plan.plan({}, 12345, kit), "the plan of the seed, of the kit's crops"
     assert sorted(c["id"] for c in section["crops"]) == ["berry", "carrot", "turnip"]
     assert crop_plan.check(section) == []
@@ -457,7 +472,8 @@ def test_the_people_of_the_village(plain) -> None:
     for place in named:
         assert f'[node name="{place}" type="Marker2D" parent="Places"' in village, place
         assert f'metadata/place = "{place}"' in village
-    assert village.count('groups=["rpg_place"]') == 4 + 1 + 6 + 1, "home, its alias, square, work"
+    # home, its alias, square, work, and the table and the five eggs of the festivals (T17.25)
+    assert village.count('groups=["rpg_place"]') == 4 + 1 + 6 + 1 + 6
     # one NPC a person, with its schedule and what it says; the demo's villager stays
     for person in listed["people"]:
         who = person["id"]
@@ -996,7 +1012,7 @@ def test_green_acre_is_a_farm_that_is_worked_from_seed_to_sale(green_acre) -> No
     assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
     assert "npc_dialogue" in names and "chest_open" in names and "enter_building" in names
     # every step is played: only the animals' pass with a note, in a farm without their houses
-    assert _vacuous(target) == ANIMAL_STEPS
+    assert _vacuous(target) == ANIMAL_STEPS + ADDED_STEPS
     assert "SCRIPT ERROR" not in _text(target, "rpggen/logs/godot_smoke.log")
     assert _sample_notes(result) == [], "nothing is missing, and nothing is drawn"
     assert not [i for i in result.issues if i.code == "ASSET-031"]
@@ -1075,7 +1091,7 @@ def test_green_acre_with_a_coop_and_a_barn_keeps_its_hen_and_its_cow(green_acre_
     target, result = green_acre_animals
     names = _smoke(target)
     assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
-    assert _vacuous(target) == [], "every step of the farm is played, the animals' too"
+    assert _vacuous(target) == ADDED_STEPS, "every step of the farm is played, the animals' too"
     assert _animal_notes(target) == []
     assert _sample_notes(result) == []
     animals, farm_map, listed = _animal_files(target)
@@ -1263,3 +1279,352 @@ def test_the_rooms_of_a_farm_read_as_indoors(ranch, plain) -> None:
     assert (
         "interior.tres" not in room and not (target / "generated/tilesets/interior.tres").exists()
     )
+
+
+# ---------------------------------------------------------------- the added maps (T17.23)
+
+ADDED_ROWS = [{"name": "Old woods"}, {"name": "North shore"}]
+BEACH_KIT = ("seaweed", "shell", "sardine", "sea_bass")  # what the kit draws for a beach
+
+
+def _spots_of(target: Path, rel: str) -> list[tuple[int, int]]:
+    """The cells of the markers ``Forage/Spot<n>`` of a map, by their number."""
+    lines = _text(target, rel).splitlines()
+    found: dict[int, tuple[int, int]] = {}
+    for at, line in enumerate(lines):
+        if line.startswith('[node name="Spot') and 'parent="Forage"' in line:
+            x, y = lines[at + 1].removeprefix("position = Vector2(").rstrip(")").split(", ")
+            assert float(x) % 16 == 8 and float(y) % 16 == 8, "the middle of a cell"
+            number = int(line.split('"')[1].removeprefix("Spot"))
+            found[number] = (int(float(x)) // 16, int(float(y)) // 16)
+    assert sorted(found) == list(range(1, len(found) + 1))
+    return [found[n] for n in sorted(found)]
+
+
+def _world_files(target: Path) -> dict[str, bytes]:
+    """Every map of a project, and what a build writes once, by its path."""
+    return {
+        p.relative_to(target).as_posix(): p.read_bytes()
+        for folder in ("game/maps", "game/data")
+        for p in sorted((target / folder).rglob("*"))
+        if p.is_file() and not p.name.endswith(".import")
+    }
+
+
+@pytest.fixture(scope="module")
+def green_acre_added(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):
+    """*Green acre* with a forest and a beach among its added maps."""
+    target = tmp_path_factory.mktemp("m17_acre_added") / "out"
+    cfg = _sample_config(added_maps=[dict(row) for row in ADDED_ROWS])
+    result = orchestrator.run_in_memory(cfg, None, target, godot_exe)
+    assert result.ok, _errors(result)
+    return target, result
+
+
+def test_green_acre_with_a_forest_and_a_beach_is_walked_to_both(green_acre_added) -> None:
+    """The whole sequence passes, and the two steps of the added maps are played: the farmer
+    walks to the forest, picks up what lies there, clears a piece of what lies about and walks
+    back; walks to the beach, lands a fish of the sea, picks up a thing of the beach."""
+    target, result = green_acre_added
+    names = _smoke(target)
+    assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
+    assert names[-len(ADDED_STEPS + EVENT_STEPS) - 1 :] == [
+        *ADDED_STEPS,
+        *EVENT_STEPS,
+        "save_and_load",
+    ]
+    assert _vacuous(target) == ANIMAL_STEPS, "the steps of the added maps are played"
+    assert "SCRIPT ERROR" not in _text(target, "rpggen/logs/godot_smoke.log")
+    assert not [i for i in result.issues if i.code in ("VAL-027", "VAL-028", "VAL-031")]
+    # the sample has no shell and no fish of the sea: four drawn things, and nothing else
+    drawn = sorted(i.message for i in result.issues if i.code == "ASSET-031")
+    assert len(drawn) == 4 and all("beach" in m or "of the sea" in m for m in drawn), drawn
+    kit = sorted(p.stem for p in (target / "generated/farm_kit").glob("*.png"))
+    assert kit == sorted(BEACH_KIT)
+
+    farm = world_plan.load(target)["farm"]
+    plan = farm["map"]
+    schema.validate("world_plan", world_plan.load(target))
+    assert farm_plan.check(plan) == []
+    assert [(e["id"], e["kind"], e["name"], e["trail"]) for e in plan["added"]] == [
+        ("farm_map_1", "forest", "Old woods", 0),
+        ("farm_map_2", "beach", "North shore", 1),
+    ]
+    assert plan["added_maps"] == ["Old woods", "North shore"]
+    saved = jsonio.read(target / paths.CONFIG)
+    assert saved["starter_map"]["added_maps"] == ADDED_ROWS
+
+    # every added map is a scene of its own, a map of the world with a minimap
+    files = ledger.Ledger.load(target / paths.LEDGER).files
+    trails = _text(target, "generated/scenes/farm/trails.tscn")
+    farm_scene = _text(target, "game/maps/farm.tscn")
+    assert farm_scene.count("instance=ExtResource(") >= 1
+    assert '[node name="Trails" parent="."' in farm_scene
+    assert 'path="res://generated/scenes/farm/trails.tscn"' in farm_scene
+    assert "to_farm_map" not in farm_scene, "the doors are the trails' scene's, not the farm's"
+    assert files["generated/scenes/farm/trails.tscn"].owner == "generated"
+    for entry in plan["added"]:
+        ident = entry["id"]
+        rel = entry["map"]
+        scene = _text(target, rel)
+        assert files[rel].owner == "user_seed", "built once: the user's afterwards"
+        assert (target / f"generated/minimaps/game__maps__{ident}.tres").is_file()
+        assert f'map_id = &"{ident}"' in scene and f'display_name = "{entry["name"]}"' in scene
+        assert f'metadata/farm_kind = "{entry["kind"]}"' in scene
+        assert "is_interior" not in scene, "the weather and the seasons reach it"
+        assert '[node name="Soil" type="TileMapLayer"' in scene and '[node name="Field"' in scene
+        assert '[node name="to_farm" type="Area2D"' in scene
+        assert f'target_spawn = &"from_{ident}"' in scene
+        assert 'target_map = "res://game/maps/farm.tscn"' in scene
+        assert 'spawn_id = &"from_farm"' in scene
+        # the farm's side: the door on the cell of its trail, and the spawn one cell further in
+        trail = plan["trails"][entry["trail"]]
+        door_x, door_y = (trail["cell"][0] * 16 + 8, trail["cell"][1] * 16 + 8)
+        spawn_x, spawn_y = (trail["spawn"][0] * 16 + 8, trail["spawn"][1] * 16 + 8)
+        assert (
+            f'[node name="to_{ident}" type="Area2D" parent="."' in trails
+            and f'target_map = "res://{rel}"' in trails
+        )
+        door = trails.split(f'[node name="to_{ident}"')[1].split("[node")[0]
+        assert f"position = Vector2({door_x}, {door_y})" in door
+        spawn = trails.split(f'[node name="from_{ident}"')[1].split("[node")[0]
+        assert f"position = Vector2({spawn_x}, {spawn_y})" in spawn
+        assert f'spawn_id = &"from_{ident}"' in spawn
+        assert f'[node name="Mark_{ident}" type="Node2D"' in trails
+        # the forage markers lie on free cells of the map's own plan, in its order
+        spots = _spots_of(target, rel)
+        assert spots == [tuple(c) for c in entry["spots"]] and len(spots) >= 3
+        reached = added_map_plan.reached_cells(entry)
+        blocked = added_map_plan.blocked_cells(entry)
+        things = {tuple(t["cell"]) for key in ("scenery", "debris") for t in entry[key]}
+        for spot in spots:
+            assert spot in reached and spot not in blocked and spot not in things, spot
+        # what is cleared there is remembered under the map's own id
+        debris = _nodes(scene, "Debris_")
+        assert len(debris) == len(entry["debris"]) > 0
+        assert scene.count(f'entity_id = "{ident}_debris_') == len(debris)
+        assert "farm_debris_" not in scene
+        assert len(_nodes(scene, "Tree")) == len(entry["trees"])
+    forest, beach = (_text(target, e["map"]) for e in plan["added"])
+    assert '[node name="Shade" type="Node2D"' in forest and "farm_water" not in forest
+    assert '[node name="Clearing" type="Marker2D" parent="Markers"' in forest
+    assert 'metadata/farm_water = "sea"' in beach
+    assert '[node name="Sand" type="Node2D"' in beach, "the sample has no sand: it is drawn"
+    assert '[node name="Sea" type="StaticBody2D"' in beach
+    assert '[node name="FishFrom" type="Marker2D" parent="Markers"' in beach
+    assert len(plan["added"][0]["trees"]) > 100
+
+    # a beach has things and fish of its own, and the rod is sold
+    section = farm["forage"]
+    assert forage_plan.check(section) == [] and section["fishing"] is True
+    beach_things = [row for row in section["forage"] if row.get("maps") == ["beach"]]
+    sea_fish = [row for row in section["fish"] if row["water"] == ["sea"]]
+    assert sorted(r["asset"] for r in [*beach_things, *sea_fish]) == sorted(
+        f"rpggen_farm_kit.{name}" for name in BEACH_KIT
+    )
+    planned = jsonio.read(target / "generated/data/forage.json")
+    schema.validate("forage", planned)
+    schema.validate("forage", jsonio.read(target / "game/data/forage.json"))
+    assert [row["id"] for row in planned["forage"] if row.get("maps") == ["beach"]] == [
+        row["id"] for row in beach_things
+    ]
+    assert planned["spots"] == section["spots"] and planned["map"] == "farm"
+    for row in [*beach_things, *sea_fish]:
+        assert (target / f"game/data/items/{row['item']}.tres").is_file(), row["item"]
+
+
+def test_a_forest_added_to_a_farm_that_exists_builds_one_map_and_nothing_else(
+    godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    """A farm generated without added maps, then generated again with a forest row: every map
+    that existed, the farm's own among them, is byte for byte what it was, and so is the stored
+    plan but for the new entry; the forest exists, and the farmer walks to it and back. What
+    changed on the farm's side is the trails' scene, which is written on every build."""
+    target = tmp_path_factory.mktemp("m17_acre_grows") / "out"
+    first = orchestrator.run_in_memory(_sample_config(), None, target, godot_exe)
+    assert first.ok, _errors(first)
+    before = _world_files(target)
+    plan_before = world_plan.load(target)["farm"]
+    trails_before = _text(target, "generated/scenes/farm/trails.tscn")
+    assert "game/maps/farm.tscn" in before and "game/maps/farm_map_1.tscn" not in before
+    assert plan_before["map"]["added"] == [] and len(plan_before["map"]["trails"]) >= 3
+    assert "to_farm_map" not in trails_before and "door.gd" not in trails_before
+    assert '[node name="Trails" parent="."' in before["game/maps/farm.tscn"].decode("utf-8")
+    assert _vacuous(target) == ANIMAL_STEPS + ADDED_STEPS, "a farm without added maps"
+
+    second = orchestrator.run_in_memory(
+        _sample_config(added_maps=[{"name": "Old woods"}]), None, target, godot_exe
+    )
+    assert second.ok, _errors(second)
+    assert not [i for i in second.issues if i.code in ("VAL-027", "VAL-028", "VAL-031")]
+    after = _world_files(target)
+    assert set(after) - set(before) == {"game/maps/farm_map_1.tscn"}, "one map more"
+    for rel, data in before.items():
+        assert after[rel] == data, f"{rel} is what it was"
+    plan = world_plan.load(target)["farm"]
+    grows = ("added", "added_maps")
+    assert {k: v for k, v in plan["map"].items() if k not in grows} == {
+        k: v for k, v in plan_before["map"].items() if k not in grows
+    }, "the stored plan of the farm: its cells, its trails, its notes"
+    assert [(e["id"], e["kind"], e["trail"]) for e in plan["map"]["added"]] == [
+        ("farm_map_1", "forest", 0)
+    ]
+    for key in ("crops", "people", "forage"):
+        assert plan[key] == plan_before[key], f"the {key} are what they were"
+    assert farm_plan.check(plan["map"]) == []
+    trails = _text(target, "generated/scenes/farm/trails.tscn")
+    assert trails != trails_before and '[node name="to_farm_map_1" type="Area2D"' in trails
+    # the forest is reached: the step walks there through the door and back, and the game is
+    # saved and loaded with what was picked up there
+    names = _smoke(target)
+    assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
+    assert _vacuous(target) == [*ANIMAL_STEPS, "fish_at_the_beach"]
+    assert "SCRIPT ERROR" not in _text(target, "rpggen/logs/godot_smoke.log")
+
+    # the same options again: nothing is built and nothing changes
+    kept = {**_world_files(target), "trails": trails.encode("utf-8")}
+    kept[world_plan.PLAN_FILE] = (target / world_plan.PLAN_FILE).read_bytes()
+    again = orchestrator.run_in_memory(
+        _sample_config(added_maps=[{"name": "Old woods"}]), None, target, godot_exe
+    )
+    assert again.ok, _errors(again)
+    assert [i.code for i in again.issues if i.code == orchestrator.REPEAT_CODE]
+    now = {
+        **_world_files(target),
+        "trails": _text(target, "generated/scenes/farm/trails.tscn").encode("utf-8"),
+    }
+    now[world_plan.PLAN_FILE] = (target / world_plan.PLAN_FILE).read_bytes()
+    assert now == kept
+
+
+# ---------------------------------------------------------------- festivals and birthdays (T17.25)
+
+
+def _festival_markers(target: Path) -> dict[str, tuple[int, int]]:
+    """The markers ``festival_*`` of the village, each with its cell."""
+    lines = _text(target, "game/maps/starter_map.tscn").splitlines()
+    found: dict[str, tuple[int, int]] = {}
+    for at, line in enumerate(lines):
+        if line.startswith('[node name="festival_') and 'parent="Places"' in line:
+            x, y = lines[at + 1].removeprefix("position = Vector2(").rstrip(")").split(", ")
+            assert float(x) % 16 == 8 and float(y) % 16 == 8, "the middle of a cell"
+            found[line.split('"')[1]] = (int(float(x)) // 16, int(float(y)) // 16)
+    return found
+
+
+def test_green_acre_has_a_festival_a_season_and_a_birthday_for_everybody(green_acre) -> None:
+    """The events of the sample are the plan's, the file fits its schema and names markers the
+    village has, everybody has a birthday, the farmhouse has its calendar, and the steps of the
+    festivals are played: the calendar is read, a birthday gift is given, a year is run by
+    ending days and the egg hunt is played in the village."""
+    target, _result = green_acre
+    farm = world_plan.load(target)["farm"]
+    section = farm["events"]
+    assert event_plan.check(section) == []
+    assert [(e["season"], e["day"]) for e in section["festivals"]] == [
+        ("spring", 12),
+        ("summer", 12),
+        ("autumn", 26),
+        ("winter", 26),
+    ], "a festival a season, on its Friday"
+    kinds = [e["kind"] for e in section["festivals"]]
+    assert kinds[0] == "egg_hunt" and kinds[2:] == ["produce_contest", "feast"]
+    # summer's is the fishing count where the farm can fish, a second contest where it cannot
+    fishing = bool(farm["forage"]["fishing"])
+    assert kinds[1] == ("fishing_count" if fishing else "produce_contest")
+    listed = jsonio.read(target / "game/data/events.json")
+    schema.validate("events", listed)
+    assert listed == jsonio.read(target / "generated/data/events.json")
+    assert listed == event_plan.events_file(section), "the builder writes the planner's file"
+    # every marker an event names is a marker of the village, each on a cell of its own, and
+    # no egg lies among the people on the square
+    markers = _festival_markers(target)
+    named = {m for e in listed["events"] for m in [e.get("table"), *e.get("spots", [])] if m}
+    assert named == set(event_plan.MARKERS) == set(markers)
+    assert len(set(markers.values())) == len(markers)
+    village = _text(target, "game/maps/starter_map.tscn")
+    for event in listed["events"]:
+        assert event["map"] == "starter_map"
+        assert f'[node name="{event["place"]}" type="Marker2D" parent="Places"' in village
+    # birthdays: everybody has one, no two on one day, none on a festival
+    people = farm["people"]
+    born = [(p["birthday"]["season"], p["birthday"]["day"]) for p in people]
+    assert len(set(born)) == len(born) == len(people) > 0
+    assert not set(born) & {(e["season"], e["day"]) for e in section["festivals"]}
+    assert people_plan.with_birthdays(people, 1) == people, "who has one keeps it"
+    file_people = jsonio.read(target / "game/data/people.json")["people"]
+    assert [p["birthday"] for p in file_people] == [p["birthday"] for p in people]
+    for person in people:
+        talk = _text(target, f"game/data/dialogue/person_{person['id']}.tres")
+        for atom in ("festival", "festival_tomorrow", f"birthday:{person['id']}"):
+            assert f'condition = "{atom}"' in talk, atom
+    # the mode, the calendar on the wall of the farmhouse, the strings and the README
+    mode = _text(target, "generated/scenes/combat/combat_mode.tscn")
+    assert "festivals = true" in mode
+    house = _text(target, "game/maps/farm_house.tscn")
+    assert '[node name="WallCalendar" type="Area2D" parent="YSorted/Entities"' in house
+    assert "archetypes/farm/wall_calendar.gd" in house
+    assert "FARM_CALENDAR\t" in _text(target, "game/i18n/strings.tsv")
+    readme = _text(target, "README.md")
+    assert "game/data/events.json" in readme and '"birthday"' in readme
+    # the steps are played, none with a note
+    names = _smoke(target)
+    assert names[-len(EVENT_STEPS + SAVE_STEPS) :] == EVENT_STEPS + SAVE_STEPS
+    assert not set(_vacuous(target)) & set(EVENT_STEPS)
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    year = [line for line in log.splitlines() if "INFO a_year_of_festivals:" in line]
+    assert len(year) == 1 and "egg_hunt" in year[0], "a year of days, to the egg hunt"
+    days = int(year[0].split("a_year_of_festivals: ")[1].split(" days")[0])
+    assert 4 * 28 <= days < 8 * 28
+
+
+def test_a_farm_without_festivals_and_the_same_farm_when_they_are_switched_on(
+    godot_exe: Path, cache: Path, tmp_path: Path
+) -> None:
+    """With ``festivals`` off nothing of them is planned or built and their steps pass with a
+    note. Switched on afterwards (what a farm from before the card is when it is generated
+    again): the plan gains its events and the people their birthdays and nothing else of it
+    changes, no map is built again, the people's own file is not written again, and the
+    festivals take place all the same: the calendar is in the pause menu, the eggs lie round
+    the square."""
+    target = tmp_path / "out"
+    result = orchestrator.run_in_memory(_sample_config(festivals=False), None, target, godot_exe)
+    assert result.ok, _errors(result)
+    farm = world_plan.load(target)["farm"]
+    assert "events" not in farm and all("birthday" not in p for p in farm["people"])
+    assert not (target / "game/data/events.json").exists()
+    assert not (target / "generated/data/events.json").exists()
+    assert _festival_markers(target) == {}
+    assert "WallCalendar" not in _text(target, "game/maps/farm_house.tscn")
+    assert "festivals" not in _text(target, "generated/scenes/combat/combat_mode.tscn")
+    talk = _text(target, f"game/data/dialogue/person_{farm['people'][0]['id']}.tres")
+    assert "festival" not in talk and "birthday" not in talk
+    assert _vacuous(target) == ANIMAL_STEPS + ADDED_STEPS + EVENT_STEPS
+    kept = _world_files(target)
+    # switched on
+    again = orchestrator.run_in_memory(_sample_config(), None, target, godot_exe)
+    assert again.ok, _errors(again)
+    after = world_plan.load(target)["farm"]
+    assert event_plan.check(after["events"]) == []
+    assert [{k: v for k, v in p.items() if k != "birthday"} for p in after["people"]] == farm[
+        "people"
+    ], "the people are who they were, each with a birthday"
+    assert all(p["birthday"]["season"] in event_plan.SEASONS for p in after["people"])
+    for key in ("crops", "map", "forage"):
+        assert after[key] == farm[key], f"the {key} are what they were"
+    now = _world_files(target)
+    assert set(now) - set(kept) == {"game/data/events.json"}, "one file more, the user's"
+    for rel, data in kept.items():
+        assert now[rel] == data, f"{rel} was written again"
+    schema.validate("events", jsonio.read(target / "game/data/events.json"))
+    planned = jsonio.read(target / "generated/data/people.json")["people"]
+    assert [p["birthday"] for p in planned] == [p["birthday"] for p in after["people"]]
+    assert "festivals = true" in _text(target, "generated/scenes/combat/combat_mode.tscn")
+    # the steps are played on the old village and in the old room
+    names = _smoke(target)
+    assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
+    assert _vacuous(target) == ANIMAL_STEPS + ADDED_STEPS
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    assert "SCRIPT ERROR" not in log
+    assert "INFO read_the_calendar: the farmhouse has no calendar on its wall" in log
+    assert "INFO egg_hunt: the village has no marker festival_egg_1" in log

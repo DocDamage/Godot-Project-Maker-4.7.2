@@ -25,6 +25,12 @@ extends RefCounted
 ## herd), and the game is loaded: the field is what it was cell by cell, and the date, the
 ## money, the bag, the herd, the friendships and the energy with it (T17.18).
 ##
+## Before that last step, festivals and birthdays (T17.25): the calendar on the wall of the
+## farmhouse is read with `interact` -> the next birthday is waited for and its gift counts
+## five times -> the day before a festival the sign by the house says so -> a year is run by
+## ending days, every festival on its day and on no other -> the egg hunt is played in the
+## village, the people on the square and the shop closed. The last step keeps their state too.
+##
 ## The nights of the growing are the calendar's `end_day()`, run in full (a day that nobody
 ## slept through); the night after the harvest is slept in the bed.
 ##
@@ -98,6 +104,17 @@ func steps() -> Array[Dictionary]:
 		_step("pet_the_hen", _pet_the_hen, 40.0),
 		_step("egg_in_the_morning", _egg_in_the_morning, 60.0),
 		_step("ship_the_egg", _ship_the_egg, 40.0),
+		# the added maps (T17.23): only in a farm that has a forest or a beach, else each passes
+		# with a note
+		_step("visit_the_forest", _visit_the_forest, 120.0),
+		_step("fish_at_the_beach", _fish_at_the_beach, 180.0),
+		# festivals and birthdays (T17.25): only in a farm that has them, else each passes with a
+		# note. They end on the morning of the egg hunt, in spring, where the last step finds crops
+		_step("read_the_calendar", _read_the_calendar, 60.0),
+		_step("birthday_gift", _birthday_gift, 180.0),
+		_step("festival_is_announced", _festival_is_announced, 180.0),
+		_step("a_year_of_festivals", _a_year_of_festivals, 300.0),
+		_step("egg_hunt", _egg_hunt, 120.0),
 		# the last (T17.18): by now the field, the bag, the friendships and the herd hold something
 		_step("save_and_load", _save_and_load, 90.0),
 	])
@@ -1454,7 +1471,9 @@ func _catch_a_fish() -> String:
 	var mode := RpgFarmMode.current()
 	if mode == null or mode.fishing == null or mode.forage == null:
 		return "the farm's mode has no fishing"
-	if not JsonUtil.to_bool(_forage_plan().get("fishing", false)):
+	# a farm with a well and a beach fishes too (T17.23), at its beach: that is another step's
+	var pond := JsonUtil.to_str(JsonUtil.to_dict(_plan().get("water", {})).get("kind", "")) == RpgFishing.POND
+	if not JsonUtil.to_bool(_forage_plan().get("fishing", false)) or not pond:
 		print("[rpggen] INFO catch_a_fish: the farm has no pond, or fishing is switched off: step passes")
 		return ""
 	var scene: Node = await _forage_farm()
@@ -1638,7 +1657,8 @@ func _animals_shop_hour(shop: RpgFarmShop) -> void:
 	if calendar.minute > shop.opens * 60:
 		await _weather_end_day()
 	var guard := 0
-	while calendar.weekday() == shop.closed_weekday and guard < RpgCalendar.WEEK_DAYS:
+	# (its closed day of the week, and a festival's day off, T17.25)
+	while shop.closed_all_day() and guard < RpgCalendar.WEEK_DAYS:
 		await _weather_end_day()
 		guard += 1
 	calendar.pass_minutes(shop.opens * 60 - calendar.minute)
@@ -2040,6 +2060,231 @@ func _ship_the_egg() -> String:
 		return "the bin is not empty in the morning"
 	return ""
 
+# ---------------------------------------------------------------- the added maps (T17.23)
+#
+# These two steps run only in a farm whose plan has an added map of their kind (a forest, a
+# beach); in any other farm each passes with an INFO line. They stand on their own: they go to
+# the farm when another map is shown, walk to the added map and back through the real doors,
+# lend the tools the bag lacks, and leave the farm's map shown, as they found it.
+
+const ADDED_FOREST := "forest"
+const ADDED_BEACH := "beach"
+## After this hour the day is ended first, so that neither a cast nor a walk runs into 2:00.
+const ADDED_LATEST_HOUR := 18
+
+## The added map of a kind of the stored plan (`farm.map.added`), the first; {} without one.
+func _added_entry(kind: String) -> Dictionary:
+	for raw: Variant in JsonUtil.to_array(_plan().get("added", [])):
+		var entry := JsonUtil.to_dict(raw)
+		if JsonUtil.to_str(entry.get("kind", "")) == kind:
+			return entry
+	return {}
+
+## What the root of an added map is called: `farm_map_1` is `FarmMap1` (added_maps_recipe.gd).
+static func _added_root(entry: Dictionary) -> String:
+	return JsonUtil.to_str(entry.get("id", "")).capitalize().replace(" ", "")
+
+## The cells of an added map the farmer cannot stand on, from its plan.
+func _added_blocked(entry: Dictionary) -> Dictionary:
+	var out := {}
+	for cell: Variant in JsonUtil.to_array(entry.get("trees", [])):
+		out[_cell(cell)] = true
+	for cell: Variant in JsonUtil.to_array(JsonUtil.to_dict(entry.get("water", {})).get("cells", [])):
+		out[_cell(cell)] = true
+	for key: String in ["scenery", "debris"]:
+		for raw: Variant in JsonUtil.to_array(entry.get(key, [])):
+			out[_cell(JsonUtil.to_dict(raw).get("cell"))] = true
+	return out
+
+## From the farm to an added map through the door of its trail, with the real actions. ""
+## when the added map is shown and the farmer stands at its spawn `from_farm`.
+func _added_go(entry: Dictionary) -> String:
+	var calendar := RpgCalendar.current()
+	if calendar != null and (calendar.clock()[0] >= ADDED_LATEST_HOUR or calendar.clock()[0] < 6):
+		await _weather_end_day()
+	RpgFarmMode.current().weather.force(RpgFarmWeather.SUN)
+	var farm: Node = await _forage_farm()
+	if farm == null:
+		return "the game has no farm map"
+	var id := JsonUtil.to_str(entry.get("id", ""))
+	var trails := farm.get_node_or_null("Trails")
+	if trails == null or trails.get_node_or_null("to_" + id) == null or trails.get_node_or_null("Mark_" + id) == null:
+		return "the farm has no trail to %s (Trails/to_%s with its mark)" % [entry.get("name", id), id]
+	var failure: String = await _through_the_gap("to_" + id, "from_" + id, _added_root(entry), "from_farm")
+	if failure != "":
+		return failure
+	var scene := _tree().current_scene
+	if scene.scene_file_path != "res://" + JsonUtil.to_str(entry.get("map", "")):
+		return "the door of the trail led to %s" % scene.scene_file_path
+	if JsonUtil.to_bool(scene.get("is_interior")):
+		return "%s is an interior: no weather and no seasons would reach it" % scene.name
+	if RpgForage.map_kind(scene) != JsonUtil.to_str(entry.get("kind", "")):
+		return "%s says it is a '%s', the plan says %s" % [scene.name, RpgForage.map_kind(scene), entry.get("kind")]
+	if RpgField.current() == null or not scene.is_ancestor_of(RpgField.current()):
+		return "%s has no field: no tool would work there" % scene.name
+	return ""
+
+## Back to the farm through the gap in the edge of an added map.
+func _added_back(entry: Dictionary) -> String:
+	return await _through_the_gap("to_farm", "from_farm", FARM, "from_" + JsonUtil.to_str(entry.get("id", "")))
+
+## The places of the added map that is shown are its plan's, and a thing that lies at one this
+## morning is picked up with `interact`. `_box["added_item"]` is what was picked.
+func _added_pick(entry: Dictionary) -> String:
+	var scene := _tree().current_scene
+	var field := RpgField.current()
+	var forage := RpgFarmMode.current().forage
+	var spots := JsonUtil.to_array(entry.get("spots", []))
+	var places := forage.places_on(scene)
+	if spots.is_empty() or scene.get_node_or_null("Forage") == null or places.size() != spots.size():
+		return "%s has %d places to forage, its plan lists %d" % [scene.name, places.size(), spots.size()]
+	for i in spots.size():
+		if field.cell_at(places[i]) != _cell(spots[i]):
+			return "Forage/Spot%d of %s lies in %s, the plan says %s" % [i + 1, scene.name, field.cell_at(places[i]), _cell(spots[i])]
+	forage.refresh()
+	await _forage_frames(3)
+	var lying := forage.lying(places.size())
+	var shown := forage.shown()
+	if shown.is_empty() or shown.size() != lying.size():
+		return "%d things lie on %s this morning, %d should (%s)" % [shown.size(), scene.name, lying.size(), RpgField.season_now()]
+	var spot: int = shown[0]
+	var item := forage.thing_at(spot).item_id
+	if item != lying[spot] or not _state().items.has(item):
+		return "the thing at Spot%d of %s is '%s', expected '%s' (an item of the game)" % [spot + 1, scene.name, item, lying[spot]]
+	var failure: String = await _forage_stand(places[spot], "down")
+	if failure != "":
+		return failure
+	var before := _state().inventory.count(item)
+	var picked := false
+	for attempt in 3:
+		await _tap("interact")
+		if await _forage_wait(func() -> bool: return _state().inventory.count(item) == before + 1, 30):
+			picked = true
+			break
+	if not picked:
+		return "`interact` at Spot%d of %s did not pick up %s" % [spot + 1, scene.name, item]
+	await _forage_frames(2)
+	if forage.thing_at(spot) != null or not forage.picked_today().has(spot):
+		return "%s still lies at Spot%d of %s, or the flags do not remember that it was picked" % [item, spot + 1, scene.name]
+	_box["added_item"] = item
+	return ""
+
+## A piece of what lies about on the added map that is shown is cleared with its tool.
+func _added_clear(entry: Dictionary) -> String:
+	var scene := _tree().current_scene
+	var field := RpgField.current()
+	var holder := scene.get_node_or_null("YSorted/Entities")
+	var listed := JsonUtil.to_array(entry.get("debris", []))
+	var things: Array[Node2D] = []
+	for node in holder.get_children():
+		if node.has_meta(RpgField.CLEAR_META):
+			things.append(node as Node2D)
+	if things.size() != listed.size() or things.is_empty():
+		return "%d things to clear lie on %s, its plan lists %d" % [things.size(), scene.name, listed.size()]
+	var blocked := _added_blocked(entry)
+	var size := _cell(entry.get("size"))
+	for thing in things:
+		var kind := str(thing.get_meta(RpgField.CLEAR_META))
+		var cell := field.cell_at(thing.global_position)
+		for pair: Array in [[Vector2i.UP, "down"], [Vector2i.LEFT, "right"], [Vector2i.RIGHT, "left"], [Vector2i.DOWN, "up"]]:
+			var step: Vector2i = pair[0]
+			var stand := cell + step
+			if blocked.has(stand) or stand.x < 1 or stand.y < 1 or stand.x > size.x - 2 or stand.y > size.y - 2:
+				continue
+			if not str(thing.get("entity_id")).begins_with(JsonUtil.to_str(entry.get("id", "")) + "_debris_"):
+				return "the %s at %s is remembered as '%s': not under the id of its map" % [kind, cell, thing.get("entity_id")]
+			return await _clear(thing, kind, cell, stand, str(pair[1]), field, RpgFarmMode.current())
+	return "nothing to clear on %s can be reached" % scene.name
+
+## A farm with a forest: the farmer walks to it through the door of its trail, picks up what
+## lies there, clears a piece of what lies about, and walks back to the farm.
+func _visit_the_forest() -> String:
+	var entry := _added_entry(ADDED_FOREST)
+	if entry.is_empty():
+		print("[rpggen] INFO visit_the_forest: the farm has no forest among its added maps, step passes")
+		return ""
+	var failure: String = await _added_go(entry)
+	if failure == "":
+		failure = await _added_pick(entry)
+	if failure == "":
+		failure = await _added_clear(entry)
+	if failure == "":
+		failure = await _added_back(entry)
+	return failure
+
+## A farm with a beach: the farmer walks to it, casts the rod into the sea from the place the
+## plan names and lands a fish of the sea, picks up a thing of the beach, and walks back.
+func _fish_at_the_beach() -> String:
+	var entry := _added_entry(ADDED_BEACH)
+	if entry.is_empty():
+		print("[rpggen] INFO fish_at_the_beach: the farm has no beach among its added maps, step passes")
+		return ""
+	var mode := RpgFarmMode.current()
+	var failure: String = await _added_go(entry)
+	if failure != "":
+		return failure
+	var scene := _tree().current_scene
+	var field := RpgField.current()
+	var from := scene.get_node_or_null("Markers/FishFrom") as Node2D
+	var into := scene.get_node_or_null("Markers/FishAt") as Node2D
+	if from == null or into == null:
+		return "%s has no place to fish from (Markers/FishFrom, Markers/FishAt)" % scene.name
+	var at := field.cell_at(from.global_position)
+	var wet := field.cell_at(into.global_position)
+	var facings := {Vector2i.UP: "up", Vector2i.LEFT: "left", Vector2i.RIGHT: "right", Vector2i.DOWN: "down"}
+	if not field.is_water(wet) or field.is_water(at) or not facings.has(wet - at):
+		return "the place to fish from (%s) is not beside water (%s)" % [at, wet]
+	if RpgFishing.water_kind(field, wet) != "sea":
+		return "the water of %s is a %s, not the sea" % [scene.name, RpgFishing.water_kind(field, wet)]
+	if not JsonUtil.to_bool(_forage_plan().get("fishing", false)):
+		print("[rpggen] INFO fish_at_the_beach: fishing is switched off: nothing is cast")
+	else:
+		var calendar := RpgCalendar.current()
+		var biting := RpgFishing.fish_of(mode.forage.fish, calendar.season_name(), RpgFishing.time_of(calendar.minute), "sea")
+		if biting.is_empty():
+			return "no fish of the sea bites in %s at %d:00" % [calendar.season_name(), calendar.clock()[0]]
+		var sea_items := {}
+		for fish_id in biting:
+			sea_items[str(mode.forage.fish_entry(fish_id).get("item", ""))] = true
+		var counted := func() -> int:
+			var total := 0
+			for item: String in sea_items.keys():
+				total += _state().inventory.count(StringName(item))
+			return total
+		var before: int = counted.call()
+		var lent := not _state().inventory.has(&"fishing_rod")
+		if lent:
+			_state().inventory.add(&"fishing_rod", 1)
+		var slots := _state().inventory.slots
+		for i in slots.size():
+			if i >= RpgHotbar.SLOTS and StringName(str(slots[i].get("item_id", ""))) == &"fishing_rod":
+				slots.insert(0, slots.pop_at(i))
+				break
+		_box["fish_water"] = wet
+		failure = await _land_a_fish(field.cell_center(at), str(facings[wet - at]), at, mode, mode.fishing, mode.tool_for(&"fishing_rod"))
+		Input.action_release("use")
+		if mode.fishing.is_busy():
+			mode.fishing.cancel()
+		if lent:
+			_state().inventory.remove(&"fishing_rod", 1)
+		if failure != "":
+			return failure
+		var after: int = counted.call()
+		if after != before + 1:
+			return "the catch at the beach is no fish of the sea (%s)" % [sea_items.keys()]
+	failure = await _added_pick(entry)
+	if failure != "":
+		return failure
+	# what lies on a beach is a thing of the beach: its entry names the kind
+	var item := str(_box.get("added_item", ""))
+	var of_beach := false
+	for thing in mode.forage.things:
+		if str(thing.get("item", "")) == item and JsonUtil.to_array(thing.get("maps", [])).has(ADDED_BEACH):
+			of_beach = true
+	if not of_beach:
+		return "what was picked up on the beach (%s) is no thing of a beach" % item
+	return await _added_back(entry)
+
 # ---------------------------------------------------------------- saving and loading (T17.18)
 #
 # This step stands on its own too: it goes to the farm when another map is shown and works
@@ -2076,7 +2321,9 @@ static func _save_same(a: Variant, b: Variant) -> bool:
 		return str(a) == str(b)
 	return typeof(a) == typeof(b) and a == b
 
-## What a save holds of a farm, besides its field: {date, gold, bag, herd, friends, energy}.
+## What a save holds of a farm, besides its field: {date, gold, bag, herd, friends, energy,
+## forage}. `forage` is what was picked up, by map (the flag of RpgForage): the places of the
+## added maps are among them (T17.23).
 func _save_snapshot() -> Dictionary:
 	var friends := RpgFriendship.current()
 	var herd: Array = []
@@ -2089,6 +2336,8 @@ func _save_snapshot() -> Dictionary:
 		"herd": herd,
 		"friends": friends.to_dict() if friends != null else {},
 		"energy": RpgFarmMode.current().energy.value,
+		"forage": JsonUtil.to_dict(_state().get_flag(RpgForage.FLAG_ENTITY, RpgForage.PICKED_KEY, {})).duplicate(true),
+		"events": _events_snapshot(),  # the festivals' state (T17.25): {} in a farm without them
 	}
 
 ## The field of the map that is shown against what it was, cell by cell: the saved state of
@@ -2154,7 +2403,15 @@ func _save_and_load() -> String:
 	await _weather_frames(3)
 	var map_path := _tree().current_scene.scene_file_path
 	var cells := field.to_dict()
+	_events_mark(true)  # an event added at run time, for the save to keep (T17.25)
 	var kept := _save_snapshot()
+	# in a farm with added maps the last thing that was picked up lay on one of them (T17.23)
+	if not JsonUtil.to_array(_plan().get("added", [])).is_empty():
+		var on_added := false
+		for key: Variant in JsonUtil.to_dict(JsonUtil.to_dict(kept["forage"]).get("spots", {})).keys():
+			on_added = on_added or str(key).begins_with("farm_map_")
+		if not on_added:
+			return "the flags name no place of an added map where something was picked up: %s" % [kept["forage"]]
 	if not cells.has(RpgField.cell_name(wet)) or not cells.has(RpgField.cell_name(dry)) or field.crop_at(wet) != crop or not field.is_watered(wet):
 		return "the field does not hold the two cells that were worked: %s" % cells
 	save.set("dir", SmokeRunner.save_dir())
@@ -2176,6 +2433,7 @@ func _save_and_load() -> String:
 	_state().gold = JsonUtil.to_int(kept["gold"]) + 321
 	_state().inventory.add(StringName(JsonUtil.to_str(mode.crops.crop(crop).get("seed", ""))), 2)
 	mode.energy.value = 7 if JsonUtil.to_int(kept["energy"]) != 7 else 9
+	_state().set_flag(RpgForage.FLAG_ENTITY, RpgForage.PICKED_KEY, {"day": -7, "spots": {"nowhere": [0]}})
 	var friends := RpgFriendship.current()
 	if friends != null and not friends.order.is_empty():
 		friends.add_points(friends.order[0], 40)
@@ -2183,11 +2441,14 @@ func _save_and_load() -> String:
 	for row in RpgAnimalHouse.herd():
 		if herd != null:
 			herd.pet(JsonUtil.to_int(row["id"]))
+	_events_mark(false)  # ... and it is taken away again before the load (T17.25)
 	await _weather_frames(2)
 	var changed := _save_snapshot()
-	for part: String in ["date", "gold", "bag", "energy"]:
+	for part: String in ["date", "gold", "bag", "energy", "forage"]:
 		if _save_same(changed[part], kept[part]):
 			return "the %s did not change before the load: the comparison would prove nothing" % part
+	if not JsonUtil.to_dict(kept["events"]).is_empty() and _save_same(changed["events"], kept["events"]):
+		return "the festivals' state did not change before the load: the comparison would prove nothing"
 	if _save_same(field.to_dict(), cells):
 		return "the field did not change before the load: the comparison would prove nothing"
 	if not JsonUtil.to_array(kept["herd"]).is_empty() and _save_same(changed["herd"], kept["herd"]):
@@ -2211,7 +2472,7 @@ func _save_and_load() -> String:
 	var date := JsonUtil.to_dict(kept["date"])
 	if calendar.day != JsonUtil.to_int(date["day"]) or calendar.season != JsonUtil.to_int(date["season"]) or calendar.year != JsonUtil.to_int(date["year"]) or calendar.minute != JsonUtil.to_int(date["minute"]):
 		return "the date after loading is %s, it was %s" % [calendar.to_dict(), date]
-	for part: String in ["gold", "bag", "herd", "friends", "energy"]:
+	for part: String in ["gold", "bag", "herd", "friends", "energy", "forage", "events"]:
 		if not _save_same(loaded[part], kept[part]):
 			return "the %s after loading: %s, it was %s" % [part, loaded[part], kept[part]]
 	save.delete(SAVE_SLOT)
@@ -2224,3 +2485,452 @@ func _save_is_back(map_path: String, old_field: int) -> bool:
 	var scene := _tree().current_scene
 	var field := RpgField.current()
 	return router != null and not router.is_busy() and scene != null and scene.scene_file_path == map_path and field != null and field.is_inside_tree() and field.get_instance_id() != old_field
+
+# ---------------------------------------------------------------- festivals and birthdays (T17.25)
+#
+# These steps stand on their own, before the last: they go to the map they need, move the
+# calendar on by ending days (`_weather_end_day`), and count on nothing an earlier step left
+# behind. In a farm without festivals (`starter_map.festivals` off) each passes with a note.
+
+const EVENTS_HOUSE := "res://game/maps/farm_house.tscn"
+const EVENTS_FARM := "res://game/maps/farm.tscn"
+const EVENTS_VILLAGE := "res://game/maps/starter_map.tscn"
+
+## The events of the game, or null, with an INFO line, in a farm that has none.
+func _events_or_skip(step_name: String) -> RpgFarmEvents:
+	var events := RpgFarmEvents.current()
+	if events == null:
+		print("[rpggen] INFO %s: the farm has no festivals, step passes" % step_name)
+	return events
+
+## The first hour of a fair day at which a festival's people stand on the square.
+func _events_hour(hour: int) -> void:
+	var calendar := RpgCalendar.current()
+	if calendar.minute < hour * 60:
+		calendar.pass_minutes(hour * 60 - calendar.minute)
+	RpgFarmMode.current().weather.force(RpgFarmWeather.SUN)
+	await _frames(2)
+
+## What is wrong with the calendar page that is shown, or "".
+func _events_page_problem(page: RpgCalendarPage, events: RpgFarmEvents) -> String:
+	var calendar := RpgCalendar.current()
+	if page == null:
+		return "no calendar page is shown"
+	if page.heading() != RpgCalendarPage.heading_text(calendar.season, calendar.year):
+		return "the calendar is headed '%s' in %s of year %d" % [page.heading(), calendar.season_name(), calendar.year]
+	if page.day_count() != calendar.days_per_season:
+		return "the calendar shows %d days, a season has %d" % [page.day_count(), calendar.days_per_season]
+	if not page.mark_of(calendar.day).ends_with("today"):
+		return "day %d is marked '%s', not as today" % [calendar.day, page.mark_of(calendar.day)]
+	for row in events.season_rows(calendar.season, calendar.year):
+		if not page.listed().contains(JsonUtil.to_str(row["text"])):
+			return "the calendar does not list '%s': %s" % [row["text"], page.listed()]
+		var mark := page.mark_of(JsonUtil.to_int(row["day"]))
+		if mark == "" or mark == "today":
+			return "day %d (%s) is not marked" % [row["day"], row["text"]]
+	return ""
+
+## The calendar on the wall of the farmhouse opens the page of the season with `interact`, and
+## `cancel` closes it; the pause menu has the page too (that is where a farm from before the
+## card has it: its room is never built again).
+func _read_the_calendar() -> String:
+	var events := _events_or_skip("read_the_calendar")
+	if events == null:
+		return ""
+	var failure := ""
+	if ResourceLoader.exists(EVENTS_HOUSE):
+		failure = await _animals_go(EVENTS_HOUSE)
+		if failure != "":
+			return failure
+	var scene := _tree().current_scene
+	var wall := scene.find_child("WallCalendar", true, false) as RpgWallCalendar if scene != null else null
+	if wall == null:
+		print("[rpggen] INFO read_the_calendar: the farmhouse has no calendar on its wall (a room from before the card): the pause menu's page is read")
+	else:
+		failure = await _hold(&"hoe")
+		if failure == "":
+			if RpgIso.footprint_of(scene) != Vector2i.ZERO:
+				failure = await _forage_stand(wall.global_position, "down")  # a board on its cell
+			else:
+				failure = await _stand(wall.global_position + Vector2(0.0, 10.0), "up")
+		if failure != "":
+			return failure
+		if not await _interact_until(func() -> bool: return events.is_calendar_open()):
+			return "`interact` with the calendar on the wall did not open it"
+		await _frames(3)
+		if not _tree().paused:
+			return "the game goes on behind the calendar"
+		failure = _events_page_problem(events.open_calendar(), events)
+		await _frames(40)  # it is looked at
+		await _shared._press("cancel")
+		if not await _wait_for(func() -> bool: return not events.is_calendar_open(), 60):
+			return "`cancel` did not close the calendar"
+		await _frames(6)
+		if _tree().paused or events.is_calendar_open():
+			return "the game did not go on after the calendar was closed"
+		if failure != "":
+			return failure
+	# the pause menu's page
+	var controller := _controller()
+	var menu := controller.open_pause() if controller != null else null
+	await _frames(3)
+	if menu == null:
+		return "the pause menu did not open"
+	var button := menu.find_child(RpgCalendarPage.BUTTON_NAME, true, false) as Button
+	var page: RpgCalendarPage = null
+	if button == null:
+		failure = "the pause menu has no Calendar button"
+	else:
+		button.pressed.emit()
+		await _frames(3)
+		page = menu.get_node_or_null(RpgCalendarPage.PAGE_NAME) as RpgCalendarPage
+		failure = _events_page_problem(page, events)
+	if page != null and is_instance_valid(page):
+		page.close()
+		await _frames(2)
+	if is_instance_valid(menu):
+		menu.call(&"close")
+	await _frames(3)
+	_tree().paused = false
+	return failure
+
+## The next birthday of somebody of the village is waited for by ending days. On it the person
+## says so, a gift with `interact` counts as RpgFriendship.birthday_points says and is none of
+## the week's two, and the People page names the day.
+func _birthday_gift() -> String:
+	var events := _events_or_skip("birthday_gift")
+	if events == null:
+		return ""
+	var friends := RpgFriendship.current()
+	var calendar := RpgCalendar.current()
+	var state := _state()
+	if friends == null or friends.order.is_empty():
+		return "game/data/people.json lists nobody"
+	for person_id in friends.order:
+		if events.birthday_of(person_id).is_empty():
+			return "%s has no birthday (game/data/people.json, generated/data/people.json)" % person_id
+	# the first day from tomorrow on that is somebody's birthday and no festival
+	var id := ""
+	for ahead in range(1, 4 * calendar.days_per_season + 1):
+		var day := events.events_of(calendar.today() + ahead)
+		if not RpgFarmEvents.festival_of(day).is_empty():
+			continue
+		for row in day:
+			if id == "" and JsonUtil.to_str(row.get("kind", "")) == RpgFarmEvents.BIRTHDAY:
+				id = JsonUtil.to_str(row.get("person", ""))
+		if id != "":
+			for i in ahead:
+				await _weather_end_day()
+			break
+	if id == "" or not events.is_birthday(id):
+		return "no birthday within a year (%s is not today)" % id
+	await _events_hour(11)
+	var failure: String = await _animals_go(EVENTS_VILLAGE)
+	if failure != "":
+		return failure
+	var npc := _person_node(id)
+	if npc == null or npc.schedule() == null:
+		return "%s has no NPC in the village" % id
+	var schedule := npc.schedule()
+	if not await _wait_for(func() -> bool: return not schedule.walking() and not schedule.away(), 600):
+		return "%s is not in the village on its birthday at 11:00" % id
+	# the person says so: the line of its dialogue that the atom chooses
+	var said := false
+	var dialogue := npc.dialogue as RpgDialogueResource
+	if dialogue != null:
+		for line in dialogue.lines:
+			said = said or line.condition == "birthday:%s" % id
+	if not said:
+		print("[rpggen] INFO birthday_gift: the dialogue of %s has no line for its birthday (a file from before the card)" % id)
+	if not RpgCondition.evaluate("birthday:%s" % id):
+		return "the atom birthday:%s is false on the birthday of %s" % [id, id]
+	# a gift the person does not dislike, so that the day shows
+	var gift := &"potion"
+	for taste: String in [RpgFriendship.LOVES, RpgFriendship.LIKES]:
+		for raw: Variant in JsonUtil.to_array(friends.person(id).get(taste, [])):
+			if gift == &"potion" and state.items.has(StringName(JsonUtil.to_str(raw))):
+				gift = StringName(JsonUtil.to_str(raw))
+	if not state.items.has(gift):
+		return "the game has no %s to give" % gift
+	if not state.inventory.has(gift):
+		state.inventory.add(gift, 1)
+	failure = await _animals_hold(gift)
+	if failure == "":
+		failure = await _stand(_below(npc, 9.0), "up")
+	if failure != "":
+		return failure
+	var taste_now := friends.taste_of(id, gift)
+	var points := friends.points_of(id)
+	var left := friends.gifts_left(id)
+	var had: int = state.inventory.count(gift)
+	var wanted := clampi(points + RpgFriendship.birthday_points(taste_now), 0, RpgFriendship.MAX_POINTS)
+	if not events.birthday_gift_open(id):
+		return "%s has had the gift of its birthday already" % id
+	if not await _interact_until(func() -> bool: return not events.birthday_gift_open(id)):
+		return "`interact` with %s held did not give it to %s on its birthday" % [gift, id]
+	await _frames(4)
+	if state.inventory.count(gift) != had - 1:
+		return "the gift took %d of %s out of the bag, expected 1" % [had - state.inventory.count(gift), gift]
+	if friends.points_of(id) != wanted:
+		return "%s has %d points after a birthday gift it %s (%d before), expected %d" % [id, friends.points_of(id), taste_now, points, wanted]
+	if taste_now != RpgFriendship.DISLIKES and wanted < RpgFriendship.MAX_POINTS and friends.points_of(id) - points != RpgFriendship.gift_points(taste_now) * RpgFriendship.BIRTHDAY_FACTOR:
+		return "the birthday gift gave %d points, not %d times %d" % [friends.points_of(id) - points, RpgFriendship.BIRTHDAY_FACTOR, RpgFriendship.gift_points(taste_now)]
+	if friends.gifts_left(id) != left:
+		return "the birthday gift used up one of the week's gifts (%d left, %d before)" % [friends.gifts_left(id), left]
+	var told := events.birthday_text(id)
+	if told == "" or not RpgPeoplePage.detail_text(friends, id).contains(told):
+		return "the People page does not name the birthday of %s: %s" % [id, RpgPeoplePage.detail_text(friends, id)]
+	_box["birthday"] = id
+	return ""
+
+## Days are ended until tomorrow is a festival: the weather's sign by the house says so (read
+## with `interact`), and so does the atom the people's dialogue asks.
+func _festival_is_announced() -> String:
+	var events := _events_or_skip("festival_is_announced")
+	if events == null:
+		return ""
+	var calendar := RpgCalendar.current()
+	var mode := RpgFarmMode.current()
+	if events.events.is_empty():
+		return "game/data/events.json lists no festival"
+	var guard := 0
+	while events.festival_tomorrow().is_empty() and guard <= 4 * calendar.days_per_season:
+		if RpgCondition.evaluate("festival_tomorrow"):
+			return "the people announce a festival on %s %d, and none is tomorrow" % [calendar.season_name(), calendar.day]
+		await _weather_end_day()
+		guard += 1
+	var coming := events.festival_tomorrow()
+	if coming.is_empty():
+		return "no festival within a year"
+	var title := RpgFarmEvents.event_name(coming)
+	var line := events.tomorrow_text()
+	if line == "" or not line.contains(title):
+		return "the day before the %s is announced as '%s'" % [title, line]
+	if not mode.weather.forecast_text().contains(line):
+		return "the forecast does not say that the %s is tomorrow: %s" % [title, mode.weather.forecast_text()]
+	if not RpgCondition.evaluate("festival_tomorrow") or RpgCondition.evaluate("festival"):
+		return "the people do not say that the %s is tomorrow" % title
+	if events.is_festival():
+		return "today is a festival already"
+	# the sign by the house, read with `interact`
+	var failure: String = await _animals_go(EVENTS_FARM)
+	if failure != "":
+		return failure
+	var found := _tree().current_scene.find_child("WeatherSign", true, false) as RpgWeatherSign
+	if found == null:
+		print("[rpggen] INFO festival_is_announced: the farm has no weather sign, its reading is taken from the weather")
+		return ""
+	if not found.reading().contains(line):
+		return "the sign reads '%s' on the day before the %s" % [found.reading(), title]
+	var bus := RpgUtil.events()
+	var toasts: Array[String] = []
+	var on_toast := func(text: String) -> void: toasts.append(text)
+	bus.notify.connect(on_toast)
+	failure = await _hold(&"hoe")
+	if failure == "":
+		failure = await _stand_before(_below(found, 8.0), "up", found.global_position)
+	if failure == "":
+		var read := func() -> bool:
+			for text in toasts:
+				if text.contains(line):
+					return true
+			return false
+		if not await _interact_until(read):
+			failure = "`interact` with the sign did not say that the %s is tomorrow: %s" % [title, toasts]
+	bus.notify.disconnect(on_toast)
+	return failure
+
+## What is wrong with a day of the year, or "": a festival is on the day its entry names and on
+## no other, and on it the shop is closed and says why and everybody is sent to the square.
+func _events_day_problem(events: RpgFarmEvents, shop: RpgFarmShop, expected: Dictionary) -> String:
+	var calendar := RpgCalendar.current()
+	var friends := RpgFriendship.current()
+	var today := "%s %d" % [calendar.season_name(), calendar.day]
+	var entry := events.festival()
+	var wanted := JsonUtil.to_str(expected.get("%d:%d" % [calendar.season, calendar.day], ""))
+	if JsonUtil.to_str(entry.get("id", "")) != wanted:
+		return "%s: the festival is '%s', expected '%s'" % [today, entry.get("id", ""), wanted]
+	if wanted == "":
+		if RpgFarmShop.day_off_reason() != "" or RpgCondition.evaluate("festival"):
+			return "%s is no festival, and the shop has a day off" % today
+		if friends != null and not friends.order.is_empty() and not events.schedule_override(friends.order[0], 12).is_empty():
+			return "%s is no festival, and the people are sent somewhere" % today
+		return ""
+	var title := RpgFarmEvents.event_name(entry)
+	calendar.pass_minutes(12 * 60 - calendar.minute)
+	if shop != null and (shop.is_open() or not shop.closed_all_day() or not shop.closed_reason().contains(title)):
+		return "%s: the shop says '%s' at noon of the %s" % [today, shop.closed_reason(), title]
+	if not RpgCondition.evaluate("festival") or not RpgCondition.evaluate("event:%s" % JsonUtil.to_str(entry.get("kind", ""))):
+		return "%s: the people do not know of the %s" % [today, title]
+	var place := JsonUtil.to_str(entry.get("place", ""))
+	if friends != null:
+		for id in friends.order:
+			var sent := events.schedule_override(id, 12)
+			if not JsonUtil.to_str(sent.get("place", "")).begins_with(place) or JsonUtil.to_str(sent.get("map", "")) != JsonUtil.to_str(entry.get("map", "")):
+				return "%s: %s is sent to %s at noon of the %s, not to %s" % [today, id, sent, title, place]
+	return ""
+
+## A year is run by ending days: every festival of game/data/events.json happens on its day and
+## on no other, with the shop closed and the people sent to the square. The year ends on the
+## morning of the egg hunt (the step after this one plays it), when the year has one.
+func _a_year_of_festivals() -> String:
+	var events := _events_or_skip("a_year_of_festivals")
+	if events == null:
+		return ""
+	var calendar := RpgCalendar.current()
+	var shop := RpgShopDefinition.load_shop(&"village_shop") as RpgFarmShop
+	var length := calendar.days_per_season
+	var expected := {}
+	var hunt := false
+	for entry in events.events:
+		var key := "%d:%d" % [RpgFarmEvents.season_index(entry.get("season")), RpgFarmEvents.day_in(JsonUtil.to_int(entry.get("day", 0)), length)]
+		if expected.has(key):
+			return "two festivals on one day: %s and %s" % [expected[key], entry.get("id")]
+		expected[key] = JsonUtil.to_str(entry.get("id", ""))
+		hunt = hunt or JsonUtil.to_str(entry.get("kind", "")) == RpgFarmEvents.EGG_HUNT
+	if expected.is_empty():
+		return "game/data/events.json lists no festival"
+	var began: Array[String] = []
+	var ended: Array[String] = []
+	var on_began := func(entry: Dictionary) -> void: began.append(JsonUtil.to_str(entry.get("id", "")))
+	var on_ended := func(entry: Dictionary) -> void: ended.append(JsonUtil.to_str(entry.get("id", "")))
+	events.festival_began.connect(on_began)
+	events.festival_ended.connect(on_ended)
+	var seen := {}
+	var failure := ""
+	var days := 0
+	var year := 4 * length
+	while failure == "" and days < 2 * year:
+		await _weather_end_day()
+		days += 1
+		failure = _events_day_problem(events, shop, expected)
+		var entry := events.festival()
+		if not entry.is_empty():
+			seen[JsonUtil.to_str(entry.get("id", ""))] = true
+		if days >= year and (not hunt or JsonUtil.to_str(entry.get("kind", "")) == RpgFarmEvents.EGG_HUNT):
+			break
+	events.festival_began.disconnect(on_began)
+	events.festival_ended.disconnect(on_ended)
+	if failure != "":
+		return failure
+	if seen.size() != expected.size():
+		return "%d of the %d festivals of events.json happened in a year: %s" % [seen.size(), expected.size(), seen.keys()]
+	if began.size() < expected.size() or began.size() - ended.size() > 1 or began.size() < ended.size():
+		return "%d festivals began and %d ended in %d days" % [began.size(), ended.size(), days]
+	if hunt and JsonUtil.to_str(events.festival().get("kind", "")) != RpgFarmEvents.EGG_HUNT:
+		return "the year did not come round to the egg hunt in %d days" % days
+	print("[rpggen] INFO a_year_of_festivals: %d days, %d festivals began (%s)" % [days, began.size(), ", ".join(seen.keys())])
+	return ""
+
+## The egg hunt, in the village: the shop is closed and says why, everybody stands on the
+## square, an egg lies at every spot, each is found with `interact` and pays, and the last one
+## pays the prize. Where the year has no egg hunt the step passes with a note.
+func _egg_hunt() -> String:
+	var events := _events_or_skip("egg_hunt")
+	if events == null:
+		return ""
+	var entry := events.festival()
+	if JsonUtil.to_str(entry.get("kind", "")) != RpgFarmEvents.EGG_HUNT:
+		print("[rpggen] INFO egg_hunt: today is no egg hunt (game/data/events.json has none), step passes")
+		return ""
+	var calendar := RpgCalendar.current()
+	var friends := RpgFriendship.current()
+	var state := _state()
+	var title := RpgFarmEvents.event_name(entry)
+	var hours := RpgFarmEvents.hours_of(entry)
+	await _events_hour(hours[0] + 1)
+	var failure: String = await _animals_go(EVENTS_VILLAGE)
+	if failure != "":
+		return failure
+	var scene := _tree().current_scene
+	# the shop
+	var shop := RpgShopDefinition.load_shop(&"village_shop") as RpgFarmShop
+	if shop == null or shop.is_open() or not shop.closed_reason().contains(title):
+		return "the shop is not closed for the %s at %s" % [title, calendar.clock()]
+	var asked: RpgShopMenu = await _ask_for_shop()
+	if asked != null:
+		asked.close()
+		return "the shop opened on the day of the %s" % title
+	# the people, on the square
+	var place := JsonUtil.to_str(entry.get("place", ""))
+	var centre := RpgSchedule.find_place(scene, place)
+	if centre == null:
+		return "the village has no place '%s' for the %s" % [place, title]
+	for id in friends.order:
+		var npc := _person_node(id)
+		if npc == null or npc.schedule() == null:
+			return "%s has no NPC in the village" % id
+		var schedule := npc.schedule()
+		var sent := schedule.entry_in_force()
+		if not JsonUtil.to_str(sent.get("place", "")).begins_with(place) or not schedule.here(sent):
+			return "%s is sent to %s on the %s" % [id, sent, title]
+		var at := schedule.place_position(sent)
+		if not at.is_finite():
+			return "the village has no place for %s" % [sent]
+		var there := func() -> bool: return not schedule.walking() and not schedule.away() and npc.visible and npc.global_position.distance_to(at) <= 4.0
+		if not await _wait_for(there, 600):
+			return "%s is %.0f px from %s on the %s" % [id, npc.global_position.distance_to(at), sent.get("place"), title]
+	# the farmer looks at the square for a moment
+	failure = await _forage_stand(RpgUtil.world_position(centre) + Vector2(0.0, float(RpgUtil.map_tile_px(scene))), "up")
+	if failure != "":
+		return failure
+	await _frames(40)
+	# the eggs
+	var spots := JsonUtil.to_array(entry.get("spots", []))
+	var things := events.things()
+	if spots.is_empty() or things.size() != spots.size() - events.found().size():
+		return "%d eggs lie in the village, the hunt has %d spots (%d found)" % [things.size(), spots.size(), events.found().size()]
+	var each := JsonUtil.to_int(entry.get("each", 0))
+	var prize := JsonUtil.to_int(JsonUtil.to_dict(entry.get("prize", {})).get("gold", 0))
+	var goal := RpgFarmEvents.goal_of(entry)
+	for raw: Variant in spots:
+		var spot := JsonUtil.to_str(raw)
+		var egg := events.thing_at(spot)
+		if egg == null:
+			if events.found().has(spot):
+				continue
+			return "no egg lies at %s" % spot
+		if RpgSchedule.find_place(scene, spot) == null:
+			print("[rpggen] INFO egg_hunt: the village has no marker %s (a village from before the card): the egg lies by the square" % spot)
+		var gold: int = state.gold
+		var count := events.count()
+		# standing on its cell: it is walked over, and `interact` finds it under the feet
+		var foot := egg.global_position
+		if RpgIso.footprint_of(scene) == Vector2i.ZERO:
+			foot -= Vector2(0.0, RpgUtil.map_tile_px(scene) * 0.5 - 1.0)
+		failure = await _forage_stand(foot, "down")
+		if failure != "":
+			return failure
+		if not await _interact_until(func() -> bool: return events.found().has(spot)):
+			return "`interact` at %s did not find its egg" % spot
+		await _frames(3)
+		var paid := each + (prize if count + 1 == goal else 0)
+		if events.count() != count + 1 or state.gold != gold + paid:
+			return "the egg at %s made %d eggs and paid %d, expected %d and %d" % [spot, events.count(), state.gold - gold, count + 1, paid]
+		if events.thing_at(spot) != null:
+			return "the egg at %s still lies there" % spot
+	if events.count() < goal or not events.is_done():
+		return "%d eggs were found and the prize of %d is not won" % [events.count(), goal]
+	if not events.things().is_empty():
+		return "%d things of the hunt still lie in the village" % events.things().size()
+	return ""
+
+## What a save holds of the festivals: what was done today, what was added, what was shipped.
+func _events_snapshot() -> Dictionary:
+	var events := RpgFarmEvents.current()
+	if events == null:
+		return {}
+	return {"found": events.found(), "count": events.count(), "done": events.is_done(), "added": events.added(), "shipped": RpgShippingBin.shipped()}
+
+## Before the save of the last step: an event is added at run time (a day for everybody some
+## days on), so that a save has one to keep. After it: the event is taken away again.
+func _events_mark(on: bool) -> void:
+	var events := RpgFarmEvents.current()
+	var calendar := RpgCalendar.current()
+	if events == null:
+		return
+	if not on:
+		events.remove_event("smoke_wedding")
+		return
+	var date := RpgCalendar.date_after(calendar.day, calendar.season, calendar.year, 3, calendar.days_per_season)
+	events.add_event({"id": "smoke_wedding", "kind": RpgFarmEvents.WEDDING, "name": "Wedding", "season": date[1], "day": date[0], "year": date[2]})

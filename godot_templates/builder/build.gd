@@ -73,7 +73,9 @@ const ARCHETYPE_RECIPES := {
 	# a farm (T17.04) is a top-down game: it skips nothing and adds its tools, crops, soil and mode,
 	# its own map with the farmhouse (T17.06), the people of the village (T17.09) and the animals
 	# of its coop and its barn (T17.07: nothing in a farm without either)
-	"farm": ["farm/farmer_recipe", "farm/crop_recipes", "farm/forage_recipe", "farm/field_recipe", "farm/room_recipe", "farm/home_recipe", "farm/farm_map_recipe", "farm/people_recipes", "farm/animal_recipes", "farm/hud_recipe", "farm/mode_recipe"],
+	# the maps added to it and the farm's side of their doors (T17.23), before the farm's map,
+	# which instances that side; the festivals of its year (T17.25: nothing in a farm without them)
+	"farm": ["farm/farmer_recipe", "farm/crop_recipes", "farm/forage_recipe", "farm/field_recipe", "farm/room_recipe", "farm/home_recipe", "farm/added_maps_recipe", "farm/farm_map_recipe", "farm/people_recipes", "farm/events_recipe", "farm/animal_recipes", "farm/hud_recipe", "farm/mode_recipe"],
 }
 ## The shared recipes an archetype does without, and what it runs in the place of the first of
 ## them: a metroidvania has rooms (T14.06), not a starter map with houses and a field.

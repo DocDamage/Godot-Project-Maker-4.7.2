@@ -19,6 +19,13 @@ for a seed and is **stored** in the project (``rpggen/world_plan.json``, the key
 the section ``farm``) and reused: once it is there the seed and the options no longer change
 it, and an NPC the packs gain later is appended (``extend``). The builder writes it to
 ``game/data/people.json`` once; that file is the user's. No Qt, no Godot.
+
+**Birthdays** (T17.25) are added by ``with_birthdays`` to whoever has none: a season and a day
+of it, by the seed and the person's id, spread over the seasons, never on the day of a festival
+or on the first day of spring (the first morning of a game, when the farmer knows nobody) and no
+two on one day while the year has days enough. Somebody who has a birthday keeps it, so
+the people a project stored before it had birthdays get theirs without anything else of them
+changing. A project with ``festivals`` off has no birthdays.
 """
 
 from __future__ import annotations
@@ -27,6 +34,8 @@ import copy
 import re
 from random import Random
 from typing import Any
+
+from rpggen.core import calendar_math
 
 PLAN_VERSION = 1
 PEOPLE_FILE = "game/data/people.json"
@@ -291,6 +300,47 @@ def for_project(
     return fresh["people"], list(fresh["notes"])
 
 
+def with_birthdays(
+    people: list[dict[str, Any]],
+    seed: int,
+    days_per_season: int = calendar_math.DAYS_PER_SEASON,
+) -> list[dict[str, Any]]:
+    """The people, each with a ``birthday`` ``{"season", "day"}`` (a copy). Who has one keeps
+    it; the others get theirs in the order of the list: the season that has the fewest
+    birthdays so far (of several, one by the seed and the person's id), and a day of it that is
+    no festival's, not the first of spring and nobody else's (anybody's, once every such day of
+    the year is taken)."""
+    from rpggen.core import event_plan
+
+    length = calendar_math.season_length(days_per_season)
+    seasons = calendar_math.SEASONS
+    festivals = {(seasons[s], d) for s, d in event_plan.festival_days(length)}
+    festivals.add((seasons[0], 1))  # the first morning of a game is nobody's birthday
+    out = copy.deepcopy(people)
+    taken: set[tuple[str, int]] = set()
+    counts = dict.fromkeys(seasons, 0)
+    for person in out:
+        born = person.get("birthday")
+        if isinstance(born, dict) and born.get("season") in seasons:
+            taken.add((str(born["season"]), int(born.get("day", 0) or 0)))
+            counts[str(born["season"])] += 1
+    for person in out:
+        born = person.get("birthday")
+        if isinstance(born, dict) and born.get("season") in seasons:
+            continue
+        rng = Random(f"{int(seed)}:birthday:{person.get('id', '')}")
+        every = {s: [d for d in range(1, length + 1) if (s, d) not in festivals] for s in seasons}
+        free = {s: [d for d in days if (s, d) not in taken] for s, days in every.items()}
+        pool = free if any(free.values()) else every
+        fewest = min(counts[s] for s in seasons if pool[s])
+        season = rng.choice([s for s in seasons if pool[s] and counts[s] == fewest])
+        day = rng.choice(pool[season])
+        person["birthday"] = {"season": season, "day": day}
+        taken.add((season, day))
+        counts[season] += 1
+    return out
+
+
 def store(farm: dict[str, Any], people: list[dict[str, Any]], notes: Any = ()) -> dict[str, Any]:
     """The ``farm`` section of the world plan with the people beside its crops (a copy)."""
     out = copy.deepcopy(farm)
@@ -302,7 +352,8 @@ def store(farm: dict[str, Any], people: list[dict[str, Any]], notes: Any = ()) -
 def check(people: list[dict[str, Any]], facts: Any = None) -> list[str]:
     """What is wrong with the people of a plan (an empty list for good ones): somebody without
     a home or with a schedule that does not cover every day, an entry that names no known
-    place, work for somebody without a job, two people of one id, two shopkeepers. With
+    place, work for somebody without a job, two people of one id, two shopkeepers, a birthday
+    that is no season and day. With
     ``facts``, also a home the village does not have, the pond or the shop of a village
     without one, and a taste for an item the game does not have."""
     known = _facts(facts) if facts is not None else None
@@ -335,6 +386,13 @@ def check(people: list[dict[str, Any]], facts: Any = None) -> list[str]:
                 problems.append(f"{who}: works in a shop the village does not have")
             if not 0 <= int(entry.get("hour", -1)) <= 23:
                 problems.append(f"{who}: an entry at the hour {entry.get('hour')!r}")
+        if "birthday" in person:
+            born = person["birthday"] if isinstance(person["birthday"], dict) else {}
+            day = born.get("day")
+            if born.get("season") not in calendar_math.SEASONS:
+                problems.append(f"{who}: a birthday in the unknown season {born.get('season')!r}")
+            if isinstance(day, bool) or not isinstance(day, int) or not 1 <= day <= 28:
+                problems.append(f"{who}: a birthday on the day {day!r}")
         listed = [item for taste in TASTES for item in person.get(taste, [])]
         if len(listed) != len(set(listed)):
             problems.append(f"{who}: an item in two tastes")

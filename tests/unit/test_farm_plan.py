@@ -57,9 +57,10 @@ def test_the_options_have_defaults_and_say_what_is_wrong() -> None:
     village = {"size": [40, 24], "buildings": 2, "ground": ""}
     assert farm_plan.normalized(village) == farm_plan.defaults()
     assert farm_plan.normalized(None) == farm_plan.defaults()
+    # a row is a name and a kind (T17.23); the kind is the row's, else the name's words
     assert farm_plan.normalized({"added_maps": ["Beach", {"name": " Cave "}]})["added_maps"] == [
-        {"name": "Beach"},
-        {"name": "Cave"},
+        {"name": "Beach", "kind": "beach"},
+        {"name": "Cave", "kind": "forest"},
     ]
     for key in ("farm_size", "plot", "animals", "difficulty"):
         with pytest.raises(farm_plan.FarmPlanError, match=f"{key} must be one of"):
@@ -383,13 +384,20 @@ def test_a_farm_that_cannot_be_worked_is_planned_again_with_the_next_seed(
         farm_plan.plan({}, seed)
 
 
-def test_added_maps_are_names_and_a_project_keeps_the_farm_it_stored(tmp_path: Path) -> None:
+def test_added_maps_are_planned_once_and_a_project_keeps_the_farm_it_stored(
+    tmp_path: Path,
+) -> None:
     stored = farm_plan.plan({"added_maps": ["Beach"]}, 8)
     assert stored["added_maps"] == ["Beach"]
+    assert [(e["id"], e["kind"], e["name"]) for e in stored["added"]] == [
+        ("farm_map_1", "beach", "Beach")
+    ]
     grown, added = farm_plan.extend(stored, [{"name": "beach"}, {"name": "Forest"}, "Cave"])
     assert added == ["Forest", "Cave"] and grown["added_maps"] == ["Beach", "Forest", "Cave"]
-    without = {k: v for k, v in grown.items() if k != "added_maps"}
-    assert without == {k: v for k, v in stored.items() if k != "added_maps"}, "the farm stays"
+    grows = ("added_maps", "added")
+    without = {k: v for k, v in grown.items() if k not in grows}
+    assert without == {k: v for k, v in stored.items() if k not in grows}, "the farm stays"
+    assert grown["added"][0] == stored["added"][0], "and so does the map that was added before"
     assert farm_plan.extend(grown, [{"name": "CAVE"}]) == (grown, [])
     with pytest.raises(farm_plan.FarmPlanError, match="8 added maps at most"):
         farm_plan.extend(grown, [str(n) for n in range(6)])

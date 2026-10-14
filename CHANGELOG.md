@@ -16,6 +16,22 @@ does not ask for the isometric view is built as it was.
   befriended; animals, fishing, foraging, weather and seasons. The game reads
   `game/data/crops.json`, `people.json`, `animals.json` and `forage.json`, each written once
   and then yours.
+* **Maps added to a farm are built**: every row of *Added maps* is a map of its own beside
+  the farm, a **forest** (thick with trees, a clearing, things to clear and to forage) or a
+  **beach** (sand, the sea along one side to fish in, shells and seaweed of its own), chosen
+  in the row or by the words of its name. Each is planned and built once; a row added to a
+  farm that exists builds one more map and touches neither the farm nor the maps before it.
+  The way there is a marked patch of ground at the edge of the farm. A farm with a beach sells
+  the rod even when it has a well.
+* **Festivals and birthdays** on a farm (the option *Festivals and birthdays*, on): a festival
+  in every season, always a Friday, with the shop closed, everybody on the village square and
+  one small thing to do for a prize: an egg hunt in spring, a fishing count in summer (a
+  second contest on a farm that cannot fish), a produce contest on what the shipping bin sold
+  that season in autumn, a feast in winter. Everybody has a birthday, on which the first gift
+  counts five times and is none of the week's two. A calendar hangs on the wall of the
+  farmhouse and is in the pause menu; the day before a festival the sign by the house and the
+  people say so. The festivals are data (`game/data/events.json`, written once and then
+  yours). Switched on for a farm that exists, no map and none of your files is written again.
 * **An isometric view** for the turn-based game, the action RPG, the farm and the racing game,
   from packs that ship one picture a tile: the diamond a pack stands on is read from its own
   text file or measured, a tile turned four ways is one tile, pieces whose names say which
@@ -92,8 +108,8 @@ does not ask for the isometric view is built as it was.
     when the track has something for them.
 
 **Known limits.** Nobody has played either the farm or an isometric game by hand yet: what is
-known is what their tests and check runs assert. Maps added to a farm are names only and are
-not built. The editor's dock and imported Tiled or LDtk maps count squares, not diamonds. A
+known is what their tests and check runs assert. A farm has no cave yet, and the door to an
+added map is a mark on the ground beside the farm's edge, which a tree before it can hide. The editor's dock and imported Tiled or LDtk maps count squares, not diamonds. A
 room of an isometric project has walls only when the packs have isometric wall pieces. An
 isometric race is shown from above on the Options page. The French file has the new texts
 unfinished.

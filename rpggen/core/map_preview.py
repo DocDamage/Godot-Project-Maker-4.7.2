@@ -1570,6 +1570,13 @@ FARM_COLORS = {
     "exit": (171, 71, 188),
     "start": (255, 255, 255),
 }
+# what the picture of an added map has beside those (T17.23): the sand of a beach, the floor of
+# a forest, and the places where things to forage lie
+ADDED_COLORS = {
+    "sand": (226, 208, 150),
+    "forest": (76, 132, 62),
+    "forage": (236, 120, 170),
+}
 # the legend's order: what the farmer works with first, the scenery last
 FARM_ORDER = (
     "start", "building", "door", "bin", "tillable", "water", "path", "yard", "fence", "gate",
@@ -1612,8 +1619,40 @@ def farm_cells(farm: dict[str, Any]) -> dict[tuple[int, int], str]:
     put([thing["cell"] for thing in farm.get("debris", [])], "debris")
     if farm.get("exit"):
         put([farm["exit"]["cell"]], "exit")
+    # the trail to every added map (T17.23): a door beside the edge, in the way out's colour
+    trails = farm.get("trails", [])
+    for entry in farm.get("added", []):
+        if isinstance(entry.get("trail"), int) and 0 <= entry["trail"] < len(trails):
+            put([trails[entry["trail"]]["cell"]], "exit")
     x0, y0, w, h = (int(v) for v in farm["house"]["rect"])
     out[(x0 + w // 2, y0 + h // 2)] = "start"
+    return out
+
+
+ADDED_GROUNDS = {"beach": "sand", "forest": "forest"}  # the ground of an added map, by its kind
+
+
+def added_cells(entry: dict[str, Any]) -> dict[tuple[int, int], str]:
+    """What the picture of an added map (T17.23, one entry of ``farm.map.added``) shows at every
+    cell that is not its ground: keys of ``FARM_COLORS`` and ``ADDED_COLORS``, as
+    ``farm_cells`` gives them for the farm. The way back to the farm has the colour of the
+    farm's way out."""
+    cols, rows = int(entry["size"][0]), int(entry["size"][1])
+    out: dict[tuple[int, int], str] = {}
+
+    def put(cells: Any, kind: str) -> None:
+        for cell in cells:
+            out[(int(cell[0]), int(cell[1]))] = kind
+
+    put([(x, y) for x in range(cols) for y in (0, rows - 1)], "edge")
+    put([(x, y) for y in range(rows) for x in (0, cols - 1)], "edge")
+    put(entry.get("paths", []), "path")
+    put((entry.get("water") or {}).get("cells", []), "water")
+    put(entry.get("trees", []), "tree")
+    put([thing["cell"] for thing in entry.get("scenery", [])], "scenery")
+    put([thing["cell"] for thing in entry.get("debris", [])], "debris")
+    put(entry.get("spots", []), "forage")
+    put([entry["door"]["cell"]], "exit")
     return out
 
 
@@ -1632,10 +1671,15 @@ def farm_diamond(scale: int, footprint: tuple[int, int] | None = None) -> tuple[
     return wide, high
 
 
-def _render_farm_iso(farm: dict[str, Any], scale: int, footprint: tuple[int, int]) -> Image.Image:
+def _render_farm_iso(
+    farm: dict[str, Any], scale: int, footprint: tuple[int, int],
+    kinds: dict[tuple[int, int], str] | None = None, ground: str = "ground",
+    colors: dict[str, tuple[int, int, int]] | None = None,
+) -> Image.Image:  # fmt: skip
     """``render_farm`` on diamonds: the same cells in the same colours, back to front. What
     stands up (a building, a tree, a fence, the bin) is a block half a diamond high with darker
-    sides, so that the house reads as a house."""
+    sides, so that the house reads as a house. With ``kinds`` (and the ``ground`` under them)
+    it draws another map of the farm's plan the same way: an added map."""
     cols, rows = int(farm["size"][0]), int(farm["size"][1])
     w, h = farm_diamond(scale, footprint)
     lift = max(2, h // 2)
@@ -1643,14 +1687,14 @@ def _render_farm_iso(farm: dict[str, Any], scale: int, footprint: tuple[int, int
     (ox, oy), size = _iso_frame(all_cells, (w, h), above=lift + 1, below=1)
     picture = Image.new("RGB", size, FARM_ISO_BACKGROUND)
     draw = ImageDraw.Draw(picture)
-    kinds = farm_cells(farm)
+    kinds = farm_cells(farm) if kinds is None else kinds
 
     def corners(cell: Tile, up: int = 0) -> list[tuple[float, float]]:
         return [(ox + x, oy + y - up) for x, y in iso_math.diamond(cell[0], cell[1], w, h)]
 
     for cell in sorted(all_cells, key=lambda c: (c[0] + c[1], c[0])):
-        kind = kinds.get(cell, "ground")
-        colour = FARM_COLORS[kind]
+        kind = kinds.get(cell, ground)
+        colour = (colors or FARM_COLORS)[kind]
         if kind not in FARM_RAISED:
             draw.polygon(corners(cell), fill=colour)
             continue
@@ -1671,16 +1715,54 @@ def render_farm(
     edge, the plot, the water, the paths, the buildings and their doors, the yards with their
     fences and gates, the bin, the trees, the scenery, what there is to clear, the way out and
     where the farmer starts. With ``footprint`` (the diamond of an isometric project, T17.16)
-    the same plan is drawn as diamonds, as the game shows it."""
+    the same plan is drawn as diamonds, as the game shows it. The maps added to the farm
+    (T17.23, ``added``) stand to the right of it, each drawn the same way (``render_added``);
+    the farm itself is at the left and at the top, so a place in its picture is where it was."""
     if footprint is not None:
-        return _render_farm_iso(farm, scale, footprint)
-    cols, rows = int(farm["size"][0]), int(farm["size"][1])
-    picture = Image.new("RGB", (cols, rows), FARM_COLORS["ground"])
+        picture = _render_farm_iso(farm, scale, footprint)
+    else:
+        cols, rows = int(farm["size"][0]), int(farm["size"][1])
+        picture = Image.new("RGB", (cols, rows), FARM_COLORS["ground"])
+        pixels = picture.load()
+        assert pixels is not None
+        for (x, y), kind in farm_cells(farm).items():
+            if 0 <= x < cols and 0 <= y < rows:
+                pixels[x, y] = FARM_COLORS[kind]
+        picture = picture.resize((cols * scale, rows * scale), Image.Resampling.NEAREST)
+    others = [render_added(entry, scale, footprint) for entry in farm.get("added", [])]
+    if not others:
+        return picture
+    gap = max(2, scale)
+    width = picture.width + sum(gap + other.width for other in others)
+    out = Image.new(
+        "RGB", (width, max(picture.height, *(o.height for o in others))), FARM_ISO_BACKGROUND
+    )
+    out.paste(picture, (0, 0))
+    at = picture.width
+    for other in others:
+        out.paste(other, (at + gap, 0))
+        at += gap + other.width
+    return out
+
+
+def render_added(
+    entry: dict[str, Any], scale: int = 8, footprint: tuple[int, int] | None = None
+) -> Image.Image:
+    """The picture of one added map of a farm (T17.23): its edge, its ground by its kind (sand,
+    the floor of a forest), the sea, the trees, the path, what stands and lies there, the places
+    where things to forage lie, and the way back to the farm; on squares, or on diamonds."""
+    ground = ADDED_GROUNDS.get(str(entry.get("kind", "")), "ground")
+    kinds = added_cells(entry)
+    colors = {**FARM_COLORS, **ADDED_COLORS}
+    if footprint is not None:
+        return _render_farm_iso(entry, scale, footprint, kinds, ground, colors)
+    cols, rows = int(entry["size"][0]), int(entry["size"][1])
+    picture = Image.new("RGB", (cols, rows), colors[ground])
     pixels = picture.load()
     assert pixels is not None
-    for (x, y), kind in farm_cells(farm).items():
+    for (x, y), kind in kinds.items():
         if 0 <= x < cols and 0 <= y < rows:
-            pixels[x, y] = FARM_COLORS[kind]
+            pixels[x, y] = colors[kind]
     return picture.resize((cols * scale, rows * scale), Image.Resampling.NEAREST)
 
 

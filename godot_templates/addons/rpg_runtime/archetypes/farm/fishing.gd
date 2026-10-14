@@ -3,9 +3,10 @@ extends Node
 ## Fishing on a farm (T17.10). A child of the farm's mode (`Fishing`), made by it like the
 ## weather and the end of the day. The rod (RpgFarmRod) casts; this is the rest.
 ##
-## * **The cast** (`cast`, what `use` with the rod at a water cell does): at a pond the line
-##   is out (WAITING) and the farmer stands still; at a well a toast says that nothing lives
-##   there and nothing else happens. A cast passes CAST_MINUTES of the calendar at once.
+## * **The cast** (`cast`, what `use` with the rod at a water cell does): at a pond, and at
+##   the sea of a beach (T17.23), the line is out (WAITING) and the farmer stands still; at a
+##   well a toast says that nothing lives there and nothing else happens. A cast passes
+##   CAST_MINUTES of the calendar at once.
 ## * **The wait** is 1 to 4 seconds of the running game (`wait_of`: it follows from the seed of
 ##   the game and the number of the cast, which is kept in the flags, `farm_fishing.casts`). It
 ##   does not pass while the game is paused. `use` again while waiting pulls the line in.
@@ -35,6 +36,9 @@ const BITE := 2
 const REELING := 3
 const POND := "pond"
 const WELL := "well"
+## The metadata of a map that says what its water is when no RpgWaterSource does: `sea` on a
+## beach (T17.23), where the fish whose `water` is `sea` bite.
+const WATER_META := &"farm_water"
 const TIMES: Array[String] = ["morning", "day", "evening"]
 const WAIT_MIN := 1.0
 const WAIT_MAX := 4.0
@@ -150,7 +154,8 @@ static func wait_of(game_seed: int, cast_no: int) -> float:
 	return lerpf(WAIT_MIN, WAIT_MAX, RpgForage.roll(game_seed, cast_no, 0, 6) / 99.0)
 
 ## What the water at `water_cell` of a field's map is: the `kind` of the map's RpgWaterSource
-## (`pond` or `well`), a pond when the map has water tiles and no such body.
+## (`pond` or `well`), else what the map says its water is (the metadata `farm_water`: `sea`),
+## and a pond when the map has water tiles and neither.
 static func water_kind(field: RpgField, _water_cell: Vector2i) -> String:
 	var map := field.get_parent() if field != null else null
 	if map != null:
@@ -158,6 +163,10 @@ static func water_kind(field: RpgField, _water_cell: Vector2i) -> String:
 			if body is RpgWaterSource:
 				var source: RpgWaterSource = body
 				return source.kind
+		if map.has_meta(WATER_META):
+			var said := RpgUtil.to_str(map.get_meta(WATER_META))
+			if said != "":
+				return said
 	return POND
 
 func _forage() -> RpgForage:
@@ -181,7 +190,7 @@ func cast(field: RpgField, water_cell: Vector2i) -> bool:
 	if state != IDLE or field == null:
 		return false
 	var water := water_kind(field, water_cell)
-	if water != POND:
+	if water == WELL:
 		RpgUtil.notify(RpgFarmStrings.t("FARM_FISH_WELL"))
 		return false
 	var game := RpgUtil.state()

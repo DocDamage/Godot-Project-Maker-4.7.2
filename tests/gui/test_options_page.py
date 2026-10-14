@@ -683,8 +683,11 @@ def test_what_a_farm_needs_of_its_features_and_what_it_says_of_itself() -> None:
     cfg = config.default_for("T", [REF], archetype="farm")
     plans = options.plan_farm(cfg, None)
     text = options.farm_text(plans)
-    assert text == "a farm of 40 x 30 with a plot of 96 cells, a pond, 3 crops, 3 people"
-    assert options.farm_text({**plans, "people": 1}).endswith("3 crops, 1 person")
+    assert text == (
+        "a farm of 40 x 30 with a plot of 96 cells, a pond, 3 crops, 3 people, 4 festivals"
+    )
+    assert options.farm_text({**plans, "people": 1}).endswith("3 crops, 1 person, 4 festivals")
+    assert options.farm_text({**plans, "festivals": 0}).endswith("3 crops, 3 people")
 
 
 def test_a_farm_has_its_box_over_the_box_of_its_village(qtbot, monkeypatch) -> None:
@@ -780,11 +783,40 @@ def test_the_options_of_a_farm_follow_its_box(qtbot, monkeypatch) -> None:
     # the village beside it is still the starter map's
     page.starter_box.counts["buildings"].setValue(3)
     assert page.summary.maps_label.text().endswith("3 interiors")
-    # added maps: names, with a note that says they are not built
-    assert box.added_label.text() == "Added maps" and "not built yet" in box.added_note.text()
+    # added maps (T17.23): a row is a name and a kind, and each is a map of its own
+    assert box.added_label.text() == "Added maps" and "a map of its own" in box.added_note.text()
+    assert "not built" not in box.added_note.text()
+    assert box.added.columnCount() == 2
+    assert [box.added.horizontalHeaderItem(i).text() for i in range(2)] == ["Name", "Kind"]
+    alone = box._pixmap.toImage().width()
     assert box.add_row() and box.add_row("Beach")
-    assert box.added_rows() == [{"name": "Map 1"}, {"name": "Beach"}]
+    first, second = box.kind_combo(0), box.kind_combo(1)
+    assert [first.itemData(i) for i in range(first.count())] == ["forest", "beach"], "no cave yet"
+    assert [first.itemText(i) for i in range(first.count())] == ["Forest", "Beach"]
+    assert first.toolTip() and first.accessibleName()
+    # the kind is the name's words until somebody chooses it
+    assert (first.currentData(), second.currentData()) == ("forest", "beach")
+    assert box.added_rows() == [
+        {"name": "Map 1", "kind": "forest"},
+        {"name": "Beach", "kind": "beach"},
+    ]
+    box.added.item(0, 0).setText("North shore")
+    assert first.currentData() == "beach", "the kind follows the name"
+    first.setCurrentIndex(first.findData("forest"))
+    first.activated.emit(first.currentIndex())  # what choosing it by hand does
+    box.added.item(0, 0).setText("Map 1")
+    box.added.item(0, 0).setText("Sea view")
+    assert first.currentData() == "forest", "a kind that was chosen stays"
+    box.added.item(0, 0).setText("Map 1")
     assert box.plan["added_maps"] == ["Map 1", "Beach"]
+    assert [(e["name"], e["kind"]) for e in box.plan["added"]] == [
+        ("Map 1", "forest"),
+        ("Beach", "beach"),
+    ]
+    # the picture has them beside the farm, and the words name them
+    assert box._pixmap.toImage().width() > alone
+    assert "a forest (Map 1), a beach (Beach)" in box.summary.text()
+    assert page.summary.farm_label.text().endswith("a coop, a barn, a forest, a beach")
     assert page.validate(state) == []
     page.leave(state)
     assert state.config.starter_map == {
@@ -795,9 +827,17 @@ def test_the_options_of_a_farm_follow_its_box(qtbot, monkeypatch) -> None:
         "starting_money": 40,
         "fishing": False,
         "buildings": 3,
-        "added_maps": [{"name": "Map 1"}, {"name": "Beach"}],
+        "added_maps": [{"name": "Map 1", "kind": "forest"}, {"name": "Beach", "kind": "beach"}],
     }
     config.GeneratorConfig.from_json(state.config.to_json())
+    # a row that says its kind comes back with it, whatever its name
+    page.enter(state)
+    assert page.farm_box.kind_combo(0).currentData() == "forest"
+    state.config.starter_map["added_maps"][0] = {"name": "Map 1", "kind": "beach"}
+    page.enter(state)
+    assert page.farm_box.kind_combo(0).currentData() == "beach"
+    assert page.farm_box.plan["added"][0]["kind"] == "beach"
+    state.config.starter_map["added_maps"][0] = {"name": "Map 1", "kind": "forest"}
     # the farm's reset leaves the village alone, and the village's the farm
     page.enter(state)
     assert page.farm_box.combos["animals"].currentData() == "coop_and_barn"
@@ -1216,14 +1256,25 @@ def test_a_farm_that_exists_shows_its_stored_plan_with_what_is_then_fixed(
     assert box.checks["fishing"].isEnabled() and box.checks["pass_out_loss"].isEnabled()
     assert not page.starter_box.counts["buildings"].isEnabled(), "the village exists too"
     assert not box.remove_row(), "a map the plan has stays"
+    assert box.kind_combo(0).currentData() == "beach" and not box.kind_combo(0).isEnabled()
     assert box.add_row("Forest") and box.plan["added_maps"] == ["Beach", "Forest"]
+    assert box.kind_combo(1).isEnabled(), "the kind of a new row can be chosen"
+    # the stored map is the one that was planned, and the new row plans one more (T17.23)
+    assert box.plan["added"][0] == stored["added"][0]
+    assert [(e["id"], e["kind"]) for e in box.plan["added"]] == [
+        ("farm_map_1", "beach"),
+        ("farm_map_2", "forest"),
+    ]
+    assert {k: v for k, v in box.plan.items() if k not in ("added", "added_maps")} == {
+        k: v for k, v in stored.items() if k not in ("added", "added_maps")
+    }
     box.combos["days_per_season"].setCurrentIndex(box.combos["days_per_season"].findData(7))
     box.checks["pass_out_loss"].setChecked(False)
     page.leave(state)
     assert state.config.starter_map == {
         "animals": "coop",
         "buildings": 2,
-        "added_maps": [{"name": "Beach"}, {"name": "Forest"}],
+        "added_maps": [{"name": "Beach", "kind": "beach"}, {"name": "Forest", "kind": "forest"}],
         "days_per_season": 7,
         "pass_out_loss": False,
     }

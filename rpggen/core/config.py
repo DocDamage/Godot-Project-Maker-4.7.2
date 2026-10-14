@@ -215,6 +215,8 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         # length a day is
         options["days_per_season"] = FARM_DAYS_PER_SEASON
         options["day_length"] = FARM_DAY_LENGTH
+        # festivals and birthdays (T17.25): false plans neither
+        options["festivals"] = True
         # the farm's own map (T17.06) beside the village's: how large the field and the plot
         # are, which animal houses stand on it, how much there is to clear, and the added maps
         from rpggen.core import farm_plan

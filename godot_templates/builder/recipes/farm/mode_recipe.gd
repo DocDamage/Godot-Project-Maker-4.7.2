@@ -7,7 +7,9 @@ extends RefCounted
 ## `starter_map.pass_out_loss` is the mode's property of that name, and so are the two of the
 ## calendar (T17.16): `days_per_season`, and `minute_s` from `starter_map.day_length`. A value
 ## that is the mode's own default is not written into the scene, so the mode of a farm with the
-## default options is the scene it was.
+## default options is the scene it was. `festivals` (T17.25) is the mode's property of that
+## name: true in a farm with `starter_map.festivals` on whose plan has its festivals, and not
+## written (nor in the hash) in any other, whose mode is the scene it was.
 
 const RECIPE_VERSION := 5
 ## The folder of the files that are the user's once they exist (crops.json, people.json, ...).
@@ -22,7 +24,10 @@ func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([FarmBuild.MODE_PATH])
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "pass_out_loss": FarmBuild.pass_out_loss(ctx), "days": FarmBuild.days_per_season(ctx), "minute_s": FarmBuild.minute_s(ctx), "hud": HudRecipe.mode_hash(ctx)})
+	var hashed := {"v": RECIPE_VERSION, "pass_out_loss": FarmBuild.pass_out_loss(ctx), "days": FarmBuild.days_per_season(ctx), "minute_s": FarmBuild.minute_s(ctx), "hud": HudRecipe.mode_hash(ctx)}
+	if FarmBuild.festivals(ctx):  # only a farm with festivals has the key (T17.25)
+		hashed["festivals"] = true
+	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -34,6 +39,8 @@ func build(ctx: BuildContext) -> Array:
 	root.set("days_per_season", FarmBuild.days_per_season(ctx))
 	root.set("minute_s", FarmBuild.minute_s(ctx))
 	root.set("data_dir", DATA_DIR)
+	if FarmBuild.festivals(ctx):
+		root.set("festivals", true)
 	root.add_child(HudRecipe.build_hud(ctx))
 	root.add_child(HudRecipe.build_weather(ctx))
 	var err := SceneUtil.save_scene(root, FarmBuild.MODE_PATH)

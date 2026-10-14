@@ -18,8 +18,12 @@ nothing is put on a path. ``check`` (``VAL-031``) floods the walkable cells from
 house all the same, and a plan that fails is planned again with the next seed (the notes say so).
 The plan is **stored** in the project (``rpggen/world_plan.json``, ``farm.map``, beside the crops
 of ``crop_plan.py``) and reused: once the farm's map exists, the seed and the options no longer
-change it; *Added maps* only adds names to ``added_maps`` (the maps themselves are areas of the
-world, T13.20). No Qt, no Godot.
+change it. *Added maps* (T17.23) are maps of their own beside the farm, planned by
+``added_map_plan.py`` and kept here as ``added`` (one entry a map; ``added_maps`` are their
+names): a row that is new plans one more map and nothing that is stored changes. Each is joined
+to the farm by a door pair whose farm side is one of the **trails** (``trails``): places beside
+the edge of the farm that are set aside when the farm is planned, whether or not it has added
+maps, so that a map added later needs nothing of the farm built again. No Qt, no Godot.
 """
 
 from __future__ import annotations
@@ -27,6 +31,8 @@ from __future__ import annotations
 import copy
 from random import Random
 from typing import Any
+
+from rpggen.core import added_map_plan
 
 PLAN_VERSION = 1
 KIND = "farm"
@@ -43,6 +49,8 @@ ANIMALS: dict[str, tuple[str, ...]] = {
 DIFFICULTIES = ("easy", "normal", "hard")
 MIN_PLOT = 12
 MAX_ADDED = 8
+TRAILS = MAX_ADDED  # the places set aside for the doors to added maps
+TRAILS_APART = 6  # cells between two of them, and between one and the way out
 REROLLS = 12
 LAYOUTS = 8  # how often one seed lays the field out before the plot is made smaller
 MARGIN = 2  # cells between the edge of the field and what stands on it
@@ -106,24 +114,30 @@ def normalized(options: Any) -> dict[str, Any]:
     rows = out["added_maps"]
     if not isinstance(rows, list) or len(rows) > MAX_ADDED:
         raise FarmPlanError(f"added_maps must be a list of at most {MAX_ADDED} maps")
-    names: list[str] = []
-    for row in rows:
-        name = str(row.get("name", "") if isinstance(row, dict) else row).strip()
-        if not name:
-            raise FarmPlanError("an added map needs a name")
-        if name.casefold() in {n.casefold() for n in names}:
-            raise FarmPlanError(f"two added maps are called {name}")
-        names.append(name)
-    out["added_maps"] = [{"name": name} for name in names]
+    clean: list[dict[str, str]] = []
+    for raw in rows:
+        try:
+            row = added_map_plan.row(raw)
+        except added_map_plan.AddedMapError as exc:
+            raise FarmPlanError(str(exc)) from None
+        if row["name"].casefold() in {r["name"].casefold() for r in clean}:
+            raise FarmPlanError(f"two added maps are called {row['name']}")
+        clean.append(row)
+    out["added_maps"] = clean
     return out
 
 
-def facts_of(house: Any = None, water: bool = True, coop: Any = None, barn: Any = None) -> Any:
+def facts_of(
+    house: Any = None, water: bool = True, coop: Any = None, barn: Any = None, grounds: Any = None
+) -> Any:
     """What the planner needs to know of the packs: the footprint of the building that is the
     farmhouse (``map_preview.building_info_for``: ``{"size": [w, h], "door": [dx, dy]}`` in
-    cells, or nothing), of a coop and a barn when the packs have their own, and whether the packs
-    have water tiles (a pond) or not (a well)."""
+    cells, or nothing), of a coop and a barn when the packs have their own, whether the packs
+    have water tiles (a pond) or not (a well), and the ground tile they have for a kind of
+    added map (``grounds``: ``{"beach": the id of a sand tile}``; a kind without one is drawn)."""
     out: dict[str, Any] = {"water": bool(water)}
+    if grounds:
+        out["grounds"] = {str(k): str(v) for k, v in sorted(dict(grounds).items()) if v}
     for key, value in (("house", house), ("coop", coop), ("barn", barn)):
         if value:
             out[key] = {"size": list(value["size"]), "door": list(value["door"])}
@@ -502,6 +516,94 @@ def _farm(opts: dict[str, Any], seed: int, facts: dict[str, Any]) -> dict[str, A
     return None
 
 
+# --------------------------------------------------------------------------- the trails
+
+
+def _trail_cells(section: dict[str, Any]) -> set[Cell]:
+    """The cells of the trails of a farm: where each door lies and where the farmer arrives."""
+    return {_cell(t[key]) for t in section.get("trails", []) for key in ("cell", "spawn")}
+
+
+def _before(cell: Cell) -> set[Cell]:
+    """The cells before a cell as the game shows it: what stands on one of them is drawn over
+    the cell, seen from above (the two rows south of it) and on diamonds (east of it too)."""
+    x, y = cell
+    return {(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (1, 2)} | {(x + 1, y)}
+
+
+def _trails(section: dict[str, Any], seed: int) -> list[dict[str, Any]]:
+    """The places set aside for the doors to added maps (T17.23): ``TRAILS`` of them at most,
+    each the cell beside the edge where a door lies (``cell``) and the cell one further in where
+    the farmer arrives (``spawn``). Both can be walked to from the house, and nothing of the
+    plan lies on them, stands beside a door of a building, or is a place where a thing to forage
+    lies (``forage_plan.spots_for``, which reads this map with the same seed). They are chosen
+    after everything else and with dice of their own, so the farm is the farm it was without
+    them; and they are chosen once, whether or not a map is added, so that a map added later
+    finds its place without anything of the farm being built again. They are taken in an order
+    of the seed's, the ones that no tree hides first (``_before``)."""
+    from rpggen.core import forage_plan
+
+    cols, rows = (int(v) for v in section["size"])
+    reached = reached_cells(section)
+    taken: set[Cell] = {_cell(c) for c in section.get("paths", [])}
+    taken.update(_cell(c) for c in section["tillable"])
+    taken.update(
+        _cell(t["cell"]) for t in [*section.get("scenery", []), *section.get("debris", [])]
+    )
+    taken.update(_cell(c) for c in forage_plan.spots_for(section, seed))
+    for building in [section["house"], *section.get("animal_houses", [])]:
+        door = _cell(building["door"])
+        taken.update((door[0] + dx, door[1] + dy) for dx in (-1, 0, 1) for dy in (0, 1))
+        yard = building.get("yard") or {}
+        if yard.get("rect"):
+            taken.update(_rect_cells(yard["rect"]))
+        if yard.get("gate"):
+            taken.add(_cell(yard["gate"]))
+    taken.update(_cell(section["bin"][key]) for key in ("cell", "front"))
+    if section["water"].get("fill"):
+        taken.add(_cell(section["water"]["fill"]))
+    for cell in (_cell(c) for c in section["water"]["cells"]):
+        taken.update(_beside(cell))
+    way_out = section.get("exit") or {}
+    gap = _cell(way_out["cell"]) if way_out else None
+    found: list[dict[str, Any]] = []
+    for edge in ("N", "E", "S", "W"):
+        for along in range(4, (cols if edge in ("N", "S") else rows) - 4):
+            wall = {
+                "N": (along, 0),
+                "S": (along, rows - 1),
+                "E": (cols - 1, along),
+                "W": (0, along),
+            }[edge]
+            step = INWARD[edge]
+            door = (wall[0] + step[0], wall[1] + step[1])
+            spawn = (door[0] + step[0], door[1] + step[1])
+            if not {door, spawn} <= reached or {door, spawn} & taken:
+                continue
+            if gap is not None and abs(wall[0] - gap[0]) + abs(wall[1] - gap[1]) < TRAILS_APART:
+                continue
+            found.append(
+                {"edge": edge, "cell": list(door), "spawn": list(spawn), "facing": FACING_IN[edge]}
+            )
+    Random(f"{KIND}:trails:{int(seed)}").shuffle(found)
+    # a trail is a mark on the ground: the ones no tree stands before come first, so that the
+    # first maps a farm adds have a door that is seen (a tree's crown hangs over the cells behind
+    # its trunk, in both views)
+    trees = {_cell(c) for c in section.get("trees", [])}
+    found.sort(key=lambda trail: bool(_before(_cell(trail["cell"])) & trees))
+    chosen: list[dict[str, Any]] = []
+    for trail in found:
+        if len(chosen) >= TRAILS:
+            break
+        here = _cell(trail["cell"])
+        if all(
+            abs(here[0] - t["cell"][0]) + abs(here[1] - t["cell"][1]) >= TRAILS_APART
+            for t in chosen
+        ):
+            chosen.append(trail)
+    return chosen
+
+
 # --------------------------------------------------------------------------- the check
 
 
@@ -608,6 +710,8 @@ def _overlaps(section: dict[str, Any]) -> list[str]:
             problems.append(f"two things to clear lie at {list(cell)}")
         seen.add(cell)
         claim([cell], f"a thing to clear ({thing['kind']})", on=("the plot",))
+    for number, trail in enumerate(section.get("trails", []), 1):
+        claim([trail["cell"], trail["spawn"]], f"trail {number}")
     return problems
 
 
@@ -683,7 +787,31 @@ def check(section: dict[str, Any]) -> list[str]:
         problems.append("there is no way out to the village")
     elif _cell(section["exit"]["cell"]) not in reached:
         problems.append("the way out cannot be reached from the house")
-    return problems + _room_problems(section)
+    return problems + _room_problems(section) + _added_problems(section, reached)
+
+
+def _added_problems(section: dict[str, Any], reached: set[Cell]) -> list[str]:
+    """The ways to the added maps (T17.23): every trail can be walked to from the house and
+    lies beside the edge; every added map has a trail of its own and passes its own check."""
+    problems: list[str] = []
+    cols, rows = (int(v) for v in section["size"])
+    trails = section.get("trails", [])
+    for number, trail in enumerate(trails, 1):
+        door, spawn = _cell(trail["cell"]), _cell(trail["spawn"])
+        if door not in reached or spawn not in reached:
+            problems.append(f"trail {number} cannot be reached from the house")
+        if min(door[0], door[1], cols - 1 - door[0], rows - 1 - door[1]) != 1:
+            problems.append(f"trail {number} is not beside the edge of the field: {list(door)}")
+    used: set[int] = set()
+    for entry in section.get("added", []):
+        name = str(entry.get("name", entry.get("id", "")))
+        at = entry.get("trail")
+        if not isinstance(at, int) or not 0 <= at < len(trails) or at in used:
+            problems.append(f"{name} has no trail of its own on the farm")
+        else:
+            used.add(at)
+        problems += [f"{name}: {problem}" for problem in added_map_plan.check(entry)]
+    return problems
 
 
 # --------------------------------------------------------------------------- the plan
@@ -704,28 +832,65 @@ def plan(options: Any, seed: int, facts: Any = None) -> dict[str, Any]:
             out["seed"] = int(seed)
             if attempt:
                 out["notes"].append(f"The farm was planned with seed {int(seed) + attempt}.")
-            out["added_maps"] = [row["name"] for row in opts["added_maps"]]
+            out["trails"] = _trails(out, int(seed))
+            out["added"] = []
+            out, _added = extend(out, opts["added_maps"], known)
             return out
     raise FarmPlanError("no farm that can be worked: " + "; ".join(found[:3]))
 
 
-def extend(stored: dict[str, Any], added_rows: Any) -> tuple[dict[str, Any], list[str]]:
-    """``stored`` with the names of *Added maps* it does not have yet (a beach, a forest, a
-    cave). The maps themselves are not planned here: they are areas of the world (T13.20).
-    Nothing of the farm changes. Returns (section, the names that were added)."""
+def extend(
+    stored: dict[str, Any], added_rows: Any, facts: Any = None
+) -> tuple[dict[str, Any], list[str]]:
+    """``stored`` with the rows of *Added maps* it does not have yet, each planned as a map of
+    its own (``added_map_plan``: a forest, a beach) from the farm's seed and the map's number,
+    on the next trail of the farm that is free. **Nothing that is stored changes**: not the
+    farm, and not a map that was added before (a row whose name the farm has is not looked at
+    again, whatever kind it now says). A farm planned before it had trails keeps a new row as a
+    name, as it did, and the caller says so (``names_only``). Returns (section, the names that
+    were added)."""
     out = copy.deepcopy(stored)
     have = {str(n).casefold() for n in out.get("added_maps", [])}
     added: list[str] = []
-    for row in added_rows or []:
-        name = str(row.get("name", "") if isinstance(row, dict) else row).strip()
-        if not name or name.casefold() in have:
-            continue
+    for raw in added_rows or []:
+        given = str(raw.get("name", "") if isinstance(raw, dict) else raw).strip()
+        if given.casefold() in have:
+            continue  # stored already: what the row says now is not read
+        try:
+            row = added_map_plan.row(raw)
+        except added_map_plan.AddedMapError as exc:
+            raise FarmPlanError(str(exc)) from None
+        name = row["name"]
         if len(have) >= MAX_ADDED:
             raise FarmPlanError(f"a farm has {MAX_ADDED} added maps at most")
+        if "trails" in out:
+            entries = out.setdefault("added", [])
+            free = [i for i in range(len(out["trails"])) if i not in {e["trail"] for e in entries}]
+            if not free:
+                raise FarmPlanError(
+                    f"{name}: the farm has room for {len(out['trails'])} added maps "
+                    "(no place is left at its edge for another door)"
+                )
+            try:
+                entry = added_map_plan.plan(
+                    row["kind"], len(entries) + 1, int(out.get("seed", 0)), name, facts
+                )
+            except added_map_plan.AddedMapError as exc:
+                raise FarmPlanError(str(exc)) from None
+            entry["trail"] = free[0]
+            entries.append(entry)
         out.setdefault("added_maps", []).append(name)
         have.add(name.casefold())
         added.append(name)
     return out, added
+
+
+def names_only(section: dict[str, Any]) -> list[str]:
+    """The added maps of a farm that are names and no maps: those of a farm that was planned
+    before a farm had trails (before T17.23). Its map has no place for their doors, and a map
+    that exists is not built again, so they stay names."""
+    built = {str(e["name"]).casefold() for e in section.get("added", [])}
+    return [str(n) for n in section.get("added_maps", []) if str(n).casefold() not in built]
 
 
 def plot_size(section: dict[str, Any]) -> int:
@@ -739,6 +904,7 @@ def summary(section: dict[str, Any]) -> str:
     parts = [f"a farm of {cols} x {rows} with a plot of {plot_size(section)} cells"]
     parts.append(f"a {section['water']['kind']}")
     parts += [f"a {b['kind']}" for b in section.get("animal_houses", [])]
+    parts += [f"a {e['kind']} ({e['name']})" for e in section.get("added", [])]
     return ", ".join(parts)
 
 
@@ -746,7 +912,8 @@ def describe(options: Any) -> str:
     """What the options make, without planning: "a medium farm with a medium plot, a coop"."""
     opts = normalized(options)
     animals = "".join(f", a {kind}" for kind in ANIMALS[opts["animals"]])
-    return f"a {opts['farm_size']} farm with a {opts['plot']} plot{animals}"
+    added = "".join(f", a {row['kind']}" for row in opts["added_maps"])
+    return f"a {opts['farm_size']} farm with a {opts['plot']} plot{animals}{added}"
 
 
 # --------------------------------------------------------------------------- the stored plan
@@ -783,15 +950,23 @@ def for_project(
     project: Any, options: Any, seed: int, facts: Any = None
 ) -> tuple[dict[str, Any], list[str]]:
     """The farm's map a generation uses: a fresh one while the project has no farm, else the
-    stored one, never planned again, with the names of ``added_maps`` it does not have yet.
+    stored one, never planned again, with the *Added maps* it does not have yet planned beside it.
     Returns (section, notes); ``attach`` puts the section into the world plan."""
     from rpggen.core import world_plan
 
     opts = normalized(options)
     if project and exists(project):
         stored = stored_in(world_plan.load(project)) or {}
-        extended, added = extend(stored, opts["added_maps"])
-        return extended, [f"The farm kept its plan; added: {', '.join(added)}."] if added else []
+        extended, added = extend(stored, opts["added_maps"], facts)
+        notes = [f"The farm kept its plan; added: {', '.join(added)}."] if added else []
+        left = names_only(extended)
+        if left:
+            notes.append(
+                f"The farm was made before added maps were built: {', '.join(left)} "
+                f"{'stays a name' if len(left) == 1 else 'stay names'} (its map has no place "
+                "for a door to another map, and a map that exists is not built again)."
+            )
+        return extended, notes
     fresh = plan(opts, seed, facts)
     return fresh, list(fresh["notes"])
 

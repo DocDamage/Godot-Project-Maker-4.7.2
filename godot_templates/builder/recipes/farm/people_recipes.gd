@@ -8,7 +8,9 @@ extends RefCounted
 ## * game/data/people.json, the same, once: it is the user's afterwards (RpgFriendship reads
 ##   it, and gives the schedules to the NPCs);
 ## * game/data/dialogue/person_<id>.tres, once: what a person says, and what it says from two
-##   hearts on (`friendship:<id>>=2`).
+##   hearts on (`friendship:<id>>=2`); in a farm that was planned with festivals (T17.25) also,
+##   before either, what it says on a festival (`festival`), on the day before one
+##   (`festival_tomorrow`) and on its birthday (`birthday:<id>`).
 ##
 ## As the farm's part of the village (starter_map_recipe calls `prepare` before it paints the
 ## walls and `augment_map` before it saves the map; see MAP_AUGMENTERS there):
@@ -19,6 +21,8 @@ extends RefCounted
 ##   `work` beside the villager who keeps the shop. Each has more spots than one
 ##   (`home_1_2`, `square_2`, ...) and the people take them in turn, so that two who are at
 ##   the same place do not stand in each other. The village has no water: there is no `pond`;
+## * in a farm that was planned with festivals, the markers they name (events_recipe.gd:
+##   `festival_table` below the square, `festival_egg_<n>` spread over the village);
 ## * an NPC for every person, with its `Schedule` (RpgSchedule, `person` its id), where it is
 ##   at home. All the places of a person are on the village, so each has one NPC.
 ##
@@ -42,6 +46,7 @@ const ActorRecipes := preload("../actor_recipes.gd")
 const InteriorRecipe := preload("../interior_recipe.gd")
 const FarmBuild := preload("farm_build.gd")
 const FarmMapRecipe := preload("farm_map_recipe.gd")
+const EventsRecipe := preload("events_recipe.gd")
 
 const PLANNED_PATH := "res://generated/data/people.json"
 const USER_PATH := "res://game/data/people.json"
@@ -60,6 +65,15 @@ const HOME_SPOTS := 4
 const SQUARE_SPOTS := 6
 ## From how many hearts a person has more to say.
 const FRIEND_HEARTS := 2
+## The version of what the recipe does for a farm with festivals only (T17.25): in the hashes of
+## such a farm and of no other.
+const EVENTS_VERSION := 1
+## What the people say on a festival, in turn.
+const FESTIVAL_LINES: Array[String] = [
+	"What a day! The whole village is on the square.",
+	"I have looked forward to this all season.",
+	"No work today. Have you seen what there is to do?",
+]
 ## The cells beside the door of a house where its people stand, the nearest first. Never the
 ## cell next to the door's: the door of a house of even width lies between two cells.
 const HOME_STEPS: Array[Vector2i] = [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(3, 0), Vector2i(-3, 0)]
@@ -189,7 +203,15 @@ func input_hash(ctx: BuildContext) -> String:
 	var scenes := {}
 	for person in people():
 		scenes[person["id"]] = scene_for(ctx, person)
-	return ctx.stable_hash({"v": RECIPE_VERSION, "people": people(), "scenes": scenes, "houses": houses(ctx), "spots": [HOME_SPOTS, SQUARE_SPOTS]})
+	var hashed := {"v": RECIPE_VERSION, "people": people(), "scenes": scenes, "houses": houses(ctx), "spots": [HOME_SPOTS, SQUARE_SPOTS]}
+	if festive():  # only a farm with festivals has the key (T17.25)
+		hashed["events_v"] = EVENTS_VERSION
+	return ctx.stable_hash(hashed)
+
+## True in a farm that was planned with festivals: its people say so, and its village has the
+## markers they name.
+static func festive() -> bool:
+	return not FarmBuild.events().is_empty()
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -201,7 +223,7 @@ func build(ctx: BuildContext) -> Array:
 		entries.append(person_entry(person, places_for(i, count), scene_for(ctx, person)))
 		var path := dialogue_path(JsonUtil.to_str(person["id"]))
 		if not FileAccess.file_exists(path):
-			var err := SeedUtil.save(_dialogue(person), path)
+			var err := SeedUtil.save(_dialogue(person, i), path)
 			if err != OK:
 				issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
 	var data := {"people": entries}
@@ -213,8 +235,11 @@ func build(ctx: BuildContext) -> Array:
 	return issues
 
 ## What a person says: a greeting, and another line once the farmer has two hearts with it. The
-## first line whose condition holds is said; the other is passed over.
-func _dialogue(person: Dictionary) -> Resource:
+## first line whose condition holds is said; the other is passed over. In a farm with festivals
+## (T17.25) three lines come before them, each said on its day and passed over on every other:
+## on a festival, on the day before one, and on the person's birthday (a line by an atom of
+## RpgCondition: marriage, T17.26, adds its own the same way).
+func _dialogue(person: Dictionary, index: int = 0) -> Resource:
 	var id := JsonUtil.to_str(person["id"])
 	var speaker := JsonUtil.to_str(person.get("name", id.capitalize()))
 	var friends := "friendship:%s>=%d" % [id, FRIEND_HEARTS]
@@ -224,6 +249,14 @@ func _dialogue(person: Dictionary) -> Resource:
 		_line("friend", speaker, "It is good to see you! Come by whenever you like.", friends),
 		_line("hello", speaker, greeting % speaker, "not " + friends),
 	]
+	if festive():
+		var special: Array = [
+			_line("festival", speaker, FESTIVAL_LINES[index % FESTIVAL_LINES.size()], "festival"),
+			_line("festival_tomorrow", speaker, "Tomorrow is the festival on the square. The shop will be closed, so buy what you need today.", "festival_tomorrow"),
+		]
+		if not JsonUtil.to_dict(person.get("birthday", {})).is_empty():
+			special.append(_line("birthday", speaker, "It is my birthday today! You remembered?", "birthday:%s" % id))
+		lines = special + lines
 	var res_lines: Array = res.get("lines")
 	res_lines.assign(lines)
 	return res
@@ -240,7 +273,11 @@ func _line(line_id: String, speaker: String, text: String, condition: String) ->
 
 ## What the starter map's hash holds of the farm's part of the village.
 static func map_hash() -> Dictionary:
-	return {"v": RECIPE_VERSION, "people": people(), "exit": JsonUtil.to_dict(FarmMapRecipe.plan().get("exit", {})), "spots": [HOME_SPOTS, SQUARE_SPOTS, DEMO_NPCS]}
+	var hashed := {"v": RECIPE_VERSION, "people": people(), "exit": JsonUtil.to_dict(FarmMapRecipe.plan().get("exit", {})), "spots": [HOME_SPOTS, SQUARE_SPOTS, DEMO_NPCS]}
+	if festive():  # only a farm with festivals has the keys (T17.25)
+		hashed["festival"] = EventsRecipe.markers()
+		hashed["events_v"] = EVENTS_VERSION
+	return hashed
 
 ## The cells of a village something stands or lies on: its houses, what the planner placed, its
 ## roads, where the player appears (with the cells round it), and `kept` (doors and the like).
@@ -336,7 +373,10 @@ static func _free(cell: Vector2i, size: Vector2i, taken: Dictionary) -> bool:
 ## spots beside the door of house n (one home near the arrival when the village has no house),
 ## `home` (the first spot of house 1, for a schedule that names no house), `square` and its
 ## spots, and `work` beside the first NPC of the starter map (the villager who keeps the shop).
-static func village_spots(layout: Dictionary, house: Vector2i, kept: Array[Vector2i]) -> Dictionary:
+## With `festival` (the markers the planned festivals name, events_recipe.gd: none in a farm
+## without them) those come last: the first below the square, the others spread over the map
+## and never among the people who stand on the square (two cells from every spot of it).
+static func village_spots(layout: Dictionary, house: Vector2i, kept: Array[Vector2i], festival: Array[String] = []) -> Dictionary:
 	var size: Vector2i = layout["size"]
 	var spawn: Vector2i = layout["spawn"]
 	var taken := occupied(layout, house, kept)
@@ -363,6 +403,17 @@ static func village_spots(layout: Dictionary, house: Vector2i, kept: Array[Vecto
 		at = keepers[0]
 		counter = [at + Vector2i(1, 0), at + Vector2i(-1, 0)]
 	out["work"] = pick_spots(at, 1, size, taken, counter)[0]
+	var apart := taken.duplicate()
+	for spot in square:
+		for dx in range(-2, 3):
+			for dy in range(-2, 3):
+				apart[spot + Vector2i(dx, dy)] = true
+	for i in festival.size():
+		var centre := EventsRecipe.centre_for(i, festival.size(), size, square[0])
+		var cell := pick_spots(centre, 1, size, taken if i == 0 else apart)[0]
+		taken[cell] = true
+		apart[cell] = true
+		out[festival[i]] = cell
 	return out
 
 ## Asked by the starter map recipe before it paints the walls: {npcs: how many of the planner's
@@ -400,7 +451,7 @@ static func augment_map(ctx: BuildContext, root: Node2D, nodes: Dictionary, layo
 		kept.append(gap)
 		kept.append(arrive)
 		kept.append(WorldPlan.inside(JsonUtil.to_str(door["edge"]), arrive))
-	var spots := village_spots(layout, house, kept)
+	var spots := village_spots(layout, house, kept, EventsRecipe.markers())
 	var places := Node2D.new()
 	SceneUtil.add(root, places, root, "Places")
 	for place: String in spots.keys():

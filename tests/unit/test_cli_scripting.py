@@ -654,7 +654,10 @@ def test_a_dry_run_of_a_farm_describes_its_plan(
     assert code == 0, err
     summary = doc["summary"]
     assert summary["archetype"] == "farm"
-    text = r"a farm of 40 x 30 with a plot of 96 cells, a (pond|well), \d+ crops, \d+ people"
+    text = (
+        r"a farm of 40 x 30 with a plot of 96 cells, a (pond|well), \d+ crops, \d+ people, "
+        r"4 festivals"
+    )
     assert re.fullmatch(text, summary["map"]["farm"]), summary["map"]
     # the starter map is the village: nobody to fight, and the demo's villager alone
     assert summary["map"]["counts"]["enemies"] == 0 and summary["map"]["counts"]["npcs"] == 1
@@ -676,7 +679,7 @@ def test_the_crops_and_the_people_of_a_dry_run_are_those_of_the_packs() -> None:
 
     ranch = plans("ranch")
     assert ranch["crops"] == 4 and ranch["people"] == 3 and not ranch["stored"]
-    assert options.farm_text(ranch).endswith(", 4 crops, 3 people")
+    assert options.farm_text(ranch).endswith(", 4 crops, 3 people, 4 festivals")
     assert plans("basic16")["crops"] == 3, "the drawn turnip, carrot and berry"
     none = options.plan_farm(config.default_for("F", [], archetype="farm"), None)
     assert (none["crops"], none["people"]) == (3, 3)

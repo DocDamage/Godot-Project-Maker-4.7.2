@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -28,8 +29,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rpggen.core import config as config_mod
 from rpggen.core import (
+    added_map_plan,
     farm_plan,
     map_preview,
     options,
@@ -39,6 +40,7 @@ from rpggen.core import (
     wave_plan,
     world_plan,
 )
+from rpggen.core import config as config_mod
 from rpggen.gui import theme
 from rpggen.gui.models.options_model import (
     ABILITY_LABELS,
@@ -1364,6 +1366,13 @@ class FarmBox(ArcadeBox):
         ("check", "fishing", "Fishing", "A rod is sold where the farm has a pond", None),
         (
             "check",
+            "festivals",
+            "Festivals and birthdays",
+            "A festival a season on the village square, and a birthday for everybody",
+            None,
+        ),
+        (
+            "check",
             "pass_out_loss",
             "Passing out costs money",
             "Staying up to 2:00 costs a tenth of the money as well as half the energy",
@@ -1383,11 +1392,20 @@ class FarmBox(ArcadeBox):
         self.footprint: tuple[int, int] | None = None  # the diamond of an isometric project
         self.added_label.setText(self.tr("Added maps"))
         self.add_button.setText(self.tr("Add a map"))
-        self.added.setToolTip(self.tr("The name of a map beside the farm: a beach, a forest"))
+        self.added.setToolTip(self.tr("A map beside the farm: its name, and what kind it is"))
+        # a row is a name and a kind (T17.23): the kind follows the name until it is chosen
+        self._row_kinds: dict[str, str] = {}
+        self.added.setColumnCount(2)
+        self.added.setHorizontalHeaderLabels([self.tr("Name"), self.tr("Kind")])
+        header = self.added.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.added.itemChanged.connect(self._name_changed)
         self.added_note = _muted(
             self.tr(
-                "Added maps are names for now: they are kept with the plan of the farm, and "
-                "the maps themselves are not built yet."
+                "Each added map is a map of its own, reached by a trail at the edge of the "
+                "farm. One that is built stays as it is; a new row adds another."
             ),
             "farmAddedNote",
         )
@@ -1401,6 +1419,65 @@ class FarmBox(ArcadeBox):
     def set_footprint(self, footprint: tuple[int, int] | None) -> None:
         """The diamond the picture is drawn on (None: squares, a farm seen from above)."""
         self.footprint = footprint
+
+    # ------------------------------------------------------------------ added maps (T17.23)
+
+    def kind_choices(self) -> tuple[tuple[str, str], ...]:
+        """The kinds a row may be, as a combo lists them: the ones that are built."""
+        names = {"forest": self.tr("Forest"), "beach": self.tr("Beach")}
+        return tuple((kind, names.get(kind, kind.capitalize())) for kind in added_map_plan.BUILT)
+
+    def kind_combo(self, row: int) -> QComboBox | None:
+        widget = self.added.cellWidget(row, 1)
+        return widget if isinstance(widget, QComboBox) else None
+
+    def _append(self, name: str) -> None:
+        super()._append(name)
+        row = self.added.rowCount() - 1
+        combo = QComboBox()
+        combo.setObjectName(f"farmAddedKind{row}")
+        combo.setToolTip(self.tr("What kind of map this is"))
+        combo.setAccessibleName(self.tr("The kind of the added map"))
+        for kind, label in self.kind_choices():
+            combo.addItem(label, kind)
+        given = self._row_kinds.get(name, "")
+        combo.setCurrentIndex(max(0, combo.findData(given or added_map_plan.kind_of_name(name))))
+        combo.setProperty("chosen", bool(given))
+        combo.activated.connect(lambda _index, box=combo: self._kind_chosen(box))
+        self.added.setCellWidget(row, 1, combo)
+
+    def _kind_chosen(self, combo: QComboBox) -> None:
+        combo.setProperty("chosen", True)
+        self._changed()
+
+    def _name_changed(self, item: QTableWidgetItem) -> None:
+        """A kind nobody chose follows the words of the name ("North beach": a beach)."""
+        combo = self.kind_combo(item.row()) if item.column() == 0 else None
+        if combo is not None and not combo.property("chosen") and combo.isEnabled():
+            combo.setCurrentIndex(max(0, combo.findData(added_map_plan.kind_of_name(item.text()))))
+
+    def added_rows(self) -> list[dict[str, str]]:
+        rows = []
+        for row in range(self.added.rowCount()):
+            item = self.added.item(row, 0)
+            text = item.text().strip() if item else ""
+            combo = self.kind_combo(row)
+            if text:
+                kind = str(combo.currentData()) if combo is not None else ""
+                rows.append({"name": text, "kind": kind or added_map_plan.kind_of_name(text)})
+        return rows
+
+    def load(self, values: dict[str, Any], locked_rows: int = 0) -> None:
+        self._row_kinds = {
+            str(row.get("name", "")): str(row.get("kind", "") or "")
+            for row in values.get(self.ADDED_KEY, []) or []
+        }
+        super().load(values, locked_rows)
+        self._row_kinds = {}
+        for row in range(self._locked_rows):  # a map that is built keeps its kind
+            combo = self.kind_combo(row)
+            if combo is not None:
+                combo.setEnabled(False)
 
     def picture(self, stages: dict[str, Any]):  # noqa: ANN201
         return map_preview.render_farm(stages, scale=6, footprint=self.footprint)

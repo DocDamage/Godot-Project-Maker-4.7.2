@@ -216,8 +216,9 @@ Whether a farm has a coop or a barn is decided when it is first generated, with 
 - The places are the markers **`Forage/Spot1`, `Spot2`, ...** of `game/maps/farm.tscn`: move
   them, delete them or add more (`Spot9`, ...) in the editor. Any map with such markers has
   things to forage.
-- **Fishing.** A farm with a **pond** sells a **fishing rod** at the shop (a farm with a well
-  has no fish: the game says so when you cast into it). Hold the rod, face the water and `use`
+- **Fishing.** A farm with a **pond**, or with a **beach** among its added maps, sells a
+  **fishing rod** at the shop (a well has no fish: the game says so when you cast into it).
+  Hold the rod, face the water and `use`
   it: the line is out and you stand still. After **one to four seconds** a fish **bites** (a
   mark over your head; `use` again before that pulls the line in). Then a bar opens: the pale
   line is the fish, the green zone is yours. **Hold `use`** and the zone rises, let go and it
@@ -253,9 +254,12 @@ yours: a list `forage` and a list `fish`.
 - `item` is the id of the item you get: `game/data/items/fish_carp.tres`, where its name, its
   icon and its price are (`price` here is what rpggen gave that item when it made it).
 - `seasons` is when it is there; a fish also has `times` (`morning`, `day`, `evening`),
-  `water` (`pond`) and `speed` (how fast it moves along the bar: 1 is easy, 1.4 is lively).
+  `water` (`pond`, or `sea` for a fish that bites at a beach) and `speed` (how fast it moves
+  along the bar: 1 is easy, 1.4 is lively).
 - `energy` is what eating one restores.
-- An entry of `forage` has `id`, `name`, `item`, `seasons`, `price` and `energy`.
+- An entry of `forage` has `id`, `name`, `item`, `seasons`, `price` and `energy`, and may have
+  `maps`: the kinds of map it lies on (`["beach"]`). On a map whose kind has things of its own
+  only those lie; everywhere else the things that name no kind.
 
 **To add a fish or a thing to forage**, copy an entry, give it a new `id` and `item`, and make
 the item (copy `fish_carp.tres` in the editor and change its `id`, name and icon). What your
@@ -263,6 +267,39 @@ packs gain later is added to `generated/data/forage.json` by the next generation
 knows every entry of that list that your own list does not have. So a fish or a thing is not
 removed by deleting its entry; write `{ "id": "fish_eel", "removed": true }` in its place (in
 `fish` or in `forage`), and it no longer bites or lies anywhere.
+
+### Added maps: a forest, a beach
+
+Every row of *Added maps* (the wizard's Options page, or `starter_map.added_maps` in
+`rpggen/generator_config.json`: `{ "name": "Old woods", "kind": "forest" }`) is a map of its
+own beside the farm: `game/maps/farm_map_1.tscn`, `farm_map_2.tscn`, ... in the order of the
+rows. A row without a `kind` is a beach when its name has a word like *beach*, *shore* or
+*coast*, else a forest.
+
+- **A forest** is thick with trees, with a path to a clearing, bushes, rocks, flowers, and
+  branches, stumps and grass to clear with the axe and the sickle.
+- **A beach** has sand, the sea along one side, driftwood and beach grass, and a few trees on
+  the far side. Stand at the water, hold the rod and `use` it: the fish whose `water` is `sea`
+  bite there. What lies on a beach in the morning are the things whose `maps` say `beach`
+  (shells, seaweed), not the farm's.
+- Things to forage lie at the markers `Forage/Spot<n>` of each, as on the farm. The weather,
+  the seasons and the light of the day are the farm's.
+- **The way there** is a worn patch of ground with an arrow at the edge of the farm, one for
+  every added map: walk onto it. The way back is the gap in the edge of the added map.
+- **Each map is built once and is then yours.** To add another, add a row and generate again:
+  the new map is built, and neither the farm nor a map that was added before is touched. A
+  row that is removed takes nothing away. The kind of a map that exists is fixed.
+- The farm's side of the doors (the patch, the door `to_farm_map_<n>` and the spawn
+  `from_farm_map_<n>`) is **not** in `game/maps/farm.tscn`: the farm shows the scene
+  `generated/scenes/farm/trails.tscn` (its node `Trails`), which rpggen writes on every build.
+  That is how a map added later gets its door without your farm being written again. Do not
+  edit that scene (your changes would be lost), and keep the node `Trails` if you want the
+  doors. To move a door, turn the node `Trails` into your own (*Make Local*) and move its
+  children; rpggen then no longer adds doors for later maps, and you add them yourself.
+- A farm has room for as many added maps as it has free places at its edge (eight at most;
+  the wizard says so when a row is one too many).
+- A farm that was generated before added maps were built has no node `Trails`: its rows stay
+  names, and the report says so.
 
 ### The screen
 
@@ -294,6 +331,106 @@ and what they love, like and dislike (`loves`, `likes`, `dislikes`: lists of ite
   as it is: a person you delete from it is gone. (No list of rpggen's fills it in, so it needs
   no `"removed": true`; an entry that has the mark is nobody.) Their NPC still stands in the
   village until you delete it from the map.
+
+### Festivals and birthdays
+
+A farm made with the option **Festivals and birthdays** (`starter_map.festivals`, on unless
+you switch it off) has a festival in every season and a birthday for everybody. A farm made
+with it off has neither, and nothing of this part is shown in its game.
+
+**A festival** is one day: the shop is closed all day and says why, everybody stands on the
+village square from 9:00 to 20:00 whatever their schedules and the weather say, and there is
+one small thing to do. The day before, the weather's sign by your house says that it is
+coming, and so do the people. In a season of 28 days the festivals are on spring 12, summer
+12, autumn 26 and winter 26 (in one of 14 days: 5, 5, 12 and 12; in one of 7: the 5th of
+every season). They are always a Friday.
+
+- **Spring, the egg hunt**: five eggs lie in the village for the day. `interact` with one
+  finds it and pays 20; the last one pays the prize of 150 as well.
+- **Summer, the fishing day** (on a farm whose shop sells the rod): every fish you land that
+  day is counted, wherever you fish, and the third wins 200. A farm that cannot fish has a
+  **summer fair** instead: a contest on how many things your shipping bin sold this season.
+- **Autumn, the harvest fair**: `interact` with the judges' table on the square. It judges
+  the dearest thing your shipping bin sold this season (a thing counts from the morning
+  after you put it in), once; from a price that the plan chose on, it wins 300.
+- **Winter, the feast**: hold any food and `interact` with the table. One of it is shared,
+  and everybody's friendship grows by 60 points.
+
+The festivals are in **`game/data/events.json`**, written once and then yours. One entry is
+one event:
+
+```json
+{
+  "id": "egg_hunt",
+  "kind": "egg_hunt",
+  "name": "Egg hunt",
+  "season": "spring",
+  "day": 12,
+  "from": 9,
+  "to": 20,
+  "map": "starter_map",
+  "place": "square",
+  "spots": ["festival_egg_1", "festival_egg_2", "festival_egg_3", "festival_egg_4", "festival_egg_5"],
+  "each": 20,
+  "goal": 5,
+  "prize": { "gold": 150 }
+}
+```
+
+- `kind` is what there is to do: `egg_hunt`, `fishing_count`, `produce_contest`, `feast`, or
+  `gathering` (nothing: the people stand on the square and the shop is closed). `name` is
+  what the calendar, the sign and the shop call it.
+- `season` and `day` say when; with a `year` it happens in that year only. A day your seasons
+  do not have (26 in a season of 14 days) is folded into the season week by week, so it stays
+  on its day of the week. `from` and `to` are the hours the people stand at `place`.
+- `map` and `place` name the map and the marker the people gather at (a `Marker2D` in the
+  group `rpg_place`, as the places of the schedules are); each person takes the spot of it
+  their own schedule names (`square_3`), else the place itself. `"shop_closed": false` lets
+  the shop keep its hours.
+- `spots` are the markers the eggs lie at, `each` what one pays. `table` is the marker the
+  table of a contest or a feast stands at. Move a marker in `game/maps/starter_map.tscn` to
+  move what stands there.
+- `goal` is the number from which the prize is won (eggs, fish, things shipped), or for a
+  contest with `"judge": "price"` the price the dearest thing must have; `"judge": "count"`
+  counts the things instead. `prize` is `{ "gold": 150 }`, `{ "item": "seed_corn", "qty": 5 }`
+  or both. `points` is the friendship a feast gives everybody.
+- **To add an event**, add an entry with an `id` of its own. **To change one**, change its
+  entry. An event you delete comes back from `generated/data/events.json`, the list rpggen
+  planned, since the game reads from there what your list does not have; **to remove one**,
+  put `{ "id": "egg_hunt", "removed": true }` in the place of its entry.
+- A village that was built before your project had festivals has no markers `festival_egg_<n>`
+  and `festival_table`: the eggs and the table are then put a few cells round the marker
+  `square`, wherever that is, and one may end up where you cannot walk. Add the markers to
+  the map (copy `square`, rename it) to say where they belong.
+
+**A birthday** is the `birthday` of a person's entry of `game/data/people.json`:
+
+```json
+"birthday": { "season": "summer", "day": 20 }
+```
+
+The first gift you give somebody on that day counts **five times** when it is loved, liked or
+taken politely (400, 225 or 100 points) and is not one of the week's two; a disliked gift
+takes its 20 points as on any day. A second gift on the same day is a gift like any other.
+The person has a line for the day, the morning begins with a note, and the **People** page
+names the day of everybody you have met. Change the entry to move a birthday; `"birthday": {}`
+is no birthday. A person whose entry has no `birthday` at all (a file from before your project
+had festivals) has the one rpggen planned, which is in `generated/data/people.json`.
+
+**The calendar** shows a season as its weeks: today, the festival and the birthdays, with a
+list of what each marked day is; *Earlier* and *Later* turn to the other seasons. It hangs on
+the wall of your farmhouse (`interact` with it), and the pause menu has it as **Calendar**. A
+farmhouse that was built before your project had festivals has none on its wall, since a room
+that exists is never built again: copy the node `WallCalendar` from a newer project's
+`game/maps/farm_house.tscn`, or use the pause menu. In the isometric view the calendar is a
+board on a post that stands on a cell of the room.
+
+**What a person says** on such a day is a line of their dialogue
+(`game/data/dialogue/person_<id>.tres`) with one of these as its condition: `festival` (today
+is one), `festival_tomorrow`, `birthday:<id>` (today is that person's), `event:<kind>` (today
+has an event of that kind, such as `event:egg_hunt`). A line whose condition does not hold is
+passed over. The dialogues of a project from before it had festivals have no such lines: add
+them in the dialogue tab of the dock.
 
 ### The isometric view
 
@@ -345,13 +482,19 @@ the farm, the same crops, people and saves. What is different:
 |------|-------|
 | The crops | `game/data/crops.json` (yours) |
 | The same list as rpggen planned it | `generated/data/crops.json` (rewritten on every build) |
-| The people | `game/data/people.json` (yours) |
+| The people, each with their birthday | `game/data/people.json` (yours) |
+| The festivals | `game/data/events.json` (yours) |
+| The same list as rpggen planned it | `generated/data/events.json` (rewritten on every build) |
+| Where the eggs lie and the table stands on a festival | the markers `festival_egg_<n>` and `festival_table` under `Places` of `game/maps/starter_map.tscn` (yours) |
+| The calendar on the wall | the node `WallCalendar` of `game/maps/farm_house.tscn` (yours) |
 | The animals, the feed and the animal houses | `game/data/animals.json` (yours) |
 | The same list as rpggen planned it | `generated/data/animals.json` (rewritten on every build) |
 | The scenes of the animals | `generated/scenes/farm/animals/` |
 | The fish and the things to forage | `game/data/forage.json` (yours) |
 | The same list as rpggen planned it, with the forage places of the plan | `generated/data/forage.json` (rewritten on every build) |
-| The places where things to forage lie | the markers `Forage/Spot<n>` of `game/maps/farm.tscn` (yours) |
+| The places where things to forage lie | the markers `Forage/Spot<n>` of `game/maps/farm.tscn` and of every added map (yours) |
+| The maps added to the farm | `game/maps/farm_map_<n>.tscn` (yours) |
+| The farm's doors to them | `generated/scenes/farm/trails.tscn` (rewritten on every build), shown by the farm's node `Trails` |
 | The shop | `game/data/shops/village_shop.tres` (yours) |
 | What a new game starts with | `game/data/new_game.tres` (yours) |
 | The seeds, the produce, the fish, the forage and the tools as items | `game/data/items/` (yours) |

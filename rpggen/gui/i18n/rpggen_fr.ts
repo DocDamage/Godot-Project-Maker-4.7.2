@@ -1598,11 +1598,35 @@ Details: {0}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The name of a map beside the farm: a beach, a forest</source>
+        <source>A map beside the farm: its name, and what kind it is</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Added maps are names for now: they are kept with the plan of the farm, and the maps themselves are not built yet.</source>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Each added map is a map of its own, reached by a trail at the edge of the farm. One that is built stays as it is; a new row adds another.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Forest</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Beach</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>What kind of map this is</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The kind of the added map</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

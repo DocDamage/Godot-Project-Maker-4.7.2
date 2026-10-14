@@ -23,6 +23,9 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 | `party:<actor id>` | the character is in the party (the player always is) |
 | `var:<name><op><N>` | the variable compares so with N; `op` is `>=`, `<=`, `==`, `!=`, `>` or `<` (a variable never set is 0) |
 | `friendship:<id>>=N` | the person has at least N hearts (a farm; false in every other game) |
+| `birthday:<id>` | today is the person's birthday (a farm with festivals; false in every other game) |
+| `festival` / `festival_tomorrow` | today, or tomorrow, is a festival or another day for everybody (a farm with festivals) |
+| `event:<kind>` | today has an event of that kind: `event:egg_hunt`, `event:wedding` (a farm with festivals) |
 
 ## Dialogue events
 
