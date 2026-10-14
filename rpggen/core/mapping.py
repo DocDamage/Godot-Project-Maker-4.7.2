@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from rpggen.core import catalog as catalog_mod
-from rpggen.core import requirements
+from rpggen.core import classifier, requirements
 
 # role -> key in ``config.starter``; roles without a key (WALL, UI) only need to exist.
 ROLE_KEYS = {
@@ -127,6 +127,31 @@ def _worked_soil(asset: catalog_mod.Asset) -> bool:
     return bool(tags & {"soil", "watered"})
 
 
+OPEN_GROUND_WORDS = (
+    frozenset({"grass", "lawn", "meadow"}),  # what a field, a village and a track lie on
+    frozenset({"ground", "dirt", "earth", "soil", "land", "sand", "snow"}),
+)
+
+
+def open_ground_rank(asset: catalog_mod.Asset) -> int:
+    """How good a ground of an isometric map a tile is, the lower the better: a flat tile
+    whose name or surface says grass (the reader tags a plain green tile ``surface:grass``),
+    then one that says earth, then any other flat tile, and a raised piece or one that joins
+    on some sides last (a roof, a block, a ramp, a river bank: height is not modelled). The
+    isometric packs name every tile, and the first by name is a paving as often as a meadow.
+    The same choice as the field of an isometric track (``iso_track.gd``), for every map."""
+    facets = catalog_mod.effective(asset)
+    ranks = len(OPEN_GROUND_WORDS)
+    if int(facets.get("rise") or 0) > 0 or facets.get("edge") or facets.get("joins"):
+        return ranks + 1
+    tags = {str(tag) for tag in facets.get("tags") or []}
+    said = {tag.removeprefix("surface:") for tag in tags} | set(classifier.tokens(asset.path)[1])
+    for rank, words in enumerate(OPEN_GROUND_WORDS):
+        if said & words:
+            return rank
+    return ranks
+
+
 def candidates(
     catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
 ) -> list[catalog_mod.Asset]:
@@ -167,6 +192,7 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
             found,
             key=lambda a: (
                 role == "GROUND" and _worked_soil(a),
+                open_ground_rank(a) if role == "GROUND" and projection != TOP_DOWN else 0,
                 _is_variant(a),
                 _later_turn(a),
                 _later_season(a),

@@ -549,7 +549,7 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
         _plan_rooms(state, catalog)
         return
     if state.cfg.archetype in ("shmup", "run_and_gun", "racing"):
-        _plan_stages(state)
+        _plan_stages(state, catalog)
         return
     root = state.staging.staging
     # the crops of a farm are a section of the same file: what is stored of them is read before
@@ -990,7 +990,7 @@ def _plan_rooms(state: _State, catalog: catalog_mod.Catalog) -> None:
         state.cb.on_log("world: " + note)
 
 
-def _plan_stages(state: _State) -> None:
+def _plan_stages(state: _State, catalog: catalog_mod.Catalog | None = None) -> None:
     """A shoot 'em up's stages (T16.06): planned once from the options and the seed, stored in
     the project's plan file, and never planned again once the game has its list of stages. A
     stored plan that cannot be finished (somebody changed it) is reported, not replaced."""
@@ -1004,6 +1004,13 @@ def _plan_stages(state: _State) -> None:
         state.cfg.archetype, wave_plan
     )
     facts = planner.facts_of(state.cfg.resolution, state.cfg.base_tile_size)
+    if planner is track_plan and catalog is not None:
+        # a race on road pieces that turn in a quarter circle is planned with such corners
+        facts = track_plan.facts_of(
+            state.cfg.resolution,
+            state.cfg.base_tile_size,
+            track_plan.round_corners(catalog, state.cfg.projection),
+        )
     try:
         plan, notes = planner.for_project(
             root, state.cfg.starter_map_options(), state.cfg.seed, facts

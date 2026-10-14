@@ -12,6 +12,7 @@ const JsonUtil := preload("json_util.gd")
 const BuildContext := preload("build_context.gd")
 const Geometry := preload("geometry.gd")
 const IsoTileset := preload("iso_tileset.gd")
+const IsoHouse := preload("iso_house.gd")
 
 const SPRITE_ROLES := ["DECORATION", "BUILDING", "INTERIOR", "ITEM"]
 
@@ -77,8 +78,28 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 			var stands := IsoTileset.stands_on(eff)
 			made["iso"] = [JsonUtil.to_int(eff["footprint"][0]), JsonUtil.to_int(eff["footprint"][1])]
 			made["stands_on"] = [stands.x, stands.y]
+	var house := kit_house(ctx, out)
+	if not house.is_empty():
+		out.append(house)
 	out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return JsonUtil.to_str(x["id"]) < JsonUtil.to_str(y["id"]))
 	return out
+
+## The house of pieces of an isometric project (T17.22, IsoHouse): the entry of a building that
+## is put together from the packs' wall, door and roof tiles, when the project is isometric,
+## its packs drew no whole building for that view (`found`: one that did is placed as it
+## always was) and they have the pieces. {} otherwise, which is every project seen from above
+## and every isometric pack with a house or without walls along a side. Such an entry has two
+## more keys, and only it has them: `kit` (the sets it is made of) and `parts`.
+static func kit_house(ctx: BuildContext, found: Array[Dictionary]) -> Dictionary:
+	if not IsoTileset.project_wanted(ctx.config):
+		return {}
+	for e in found:
+		if e["role"] == "BUILDING" and is_iso(e):
+			return {}
+	var iso := IsoTileset.new(ctx.catalog)
+	if not iso.has_tiles():
+		return {}
+	return IsoHouse.entry(iso, JsonUtil.to_int(ctx.config.get("seed", 12345)))
 
 ## The second picture of a strip or sheet (frame 1 = "open"), or the last frame of an animation
 ## named `open`; [] for a single picture. `region` is the first frame's [x, y, w, h].

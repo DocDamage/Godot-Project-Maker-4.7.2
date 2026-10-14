@@ -84,7 +84,7 @@ func input_hash(ctx: BuildContext) -> String:
 static func _iso_hash(ctx: BuildContext) -> Dictionary:
 	if not MapGeo.is_isometric(ctx):
 		return {}
-	return {"iso": MapGeo.new(ctx).def, "iso_v": ISO_VERSION}
+	return {"iso": MapGeo.new(ctx).def, "iso_v": ISO_VERSION}.merged(MapGeo.edge_hash(ctx))
 
 ## The archetype's map augmenter (MAP_AUGMENTERS), or null.
 func _augmenter(ctx: BuildContext) -> GDScript:

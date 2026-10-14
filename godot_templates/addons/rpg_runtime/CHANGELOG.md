@@ -537,6 +537,37 @@ recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with 
   is loaded, and the field is compared cell by cell with the date and the rest.
 * `builder/validate.gd`: the copy of a map for the round trip carries the process's id.
 
+**Real isometric packs in the builder (T17.22).** Nothing of the runtime changes: these are
+the builder's, and what they make is read by the scripts that were there.
+
+* **Walls from segments.** A pack whose walls are pieces along one side of a diamond (the
+  facet `edge`) and no whole tiles has the edge of its maps laid from one wall's set
+  (`MapGeo.paint_edge_walls`, `IsoTileset.edge_piece(wall set or tag, side)`): on every cell of
+  the edge the piece for the side that looks out of the map, the way out left open, the
+  lowest plain wall of the packs (a farm: its fence). A corner cell has a piece for each of
+  its two sides, on two layers: `Props`, which is sorted with the actors, and `GroundDetails`
+  for a far side or `Overhead` for the second near side of the corner nearest the camera. The
+  cells block by the tiles' own diamonds. A pack with whole wall tiles is laid as before.
+* **A house of pieces** (`builder/lib/iso_house.gd`). When no pack drew a whole building for
+  the view and the packs have a wall for all four sides and a wall with a door, the village's
+  house is the object `rpggen.iso_house` (`generated/scenes/objects/rpggen__iso_house.tscn`):
+  walls along the sides of a footprint of two by two cells, the door above the plan's door
+  cell, windows by the seed, a roof tile over every cell a storey up (as far as the wall rises
+  above its diamond on a far side). It is a `StaticBody2D` like every building: `Footprint`,
+  `Entrance`, `ExitSpawn`, the metadata `iso` and `stands_on`, and `kit`; its pieces are
+  sprites under two nodes `Left` and `Right` that sort as the two halves of an isometric
+  building do. A farm's house, coop and barn are put together the same way on the footprints
+  of its plan, and a yard is fenced with the packs' fence segments.
+* **The camera's zoom** of an isometric game with large diamonds is the nearest at which a
+  step of the grid is a whole number of screen px each way (`MapGeo.whole_step_zoom`: 0.5
+  where it was 0.444 on diamonds of 180 x 104). At another zoom slivers of the tiles' block
+  sides showed as thin dark dashes along the diamonds' edges.
+* **Round corners in an isometric race.** A race whose corner pieces all turn in a quarter
+  circle (the facet `corner`) is planned with round corners (`stages.corners`): the surface
+  cells of a corner (`RpgTrackSurfaces`) are a quarter ring and the waypoint of the cell lies
+  on the middle of it. `car_math`, `car_physics`, `race.gd` and `rival.gd` are untouched; a
+  race seen from above, a race on square pieces and a race that is stored are what they were.
+
 ## 1.4.0
 
 (There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)

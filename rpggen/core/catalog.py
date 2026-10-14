@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import posixpath
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -855,6 +856,59 @@ def _farm_roles(assets: list[Asset], root: str) -> None:
             facets.pop("roles_alt", None)
 
 
+# What the pieces of an isometric pack's houses are called (the tags of ``_iso_roles``).
+ISO_PIECE_WORDS: tuple[tuple[str, frozenset[str]], ...] = (
+    ("door", frozenset({"door", "doors", "doorway", "gate", "gateway", "archway"})),
+    ("window", frozenset({"window", "windows"})),
+    ("roof", frozenset({"roof", "roofs", "chimney"})),
+    ("fence", frozenset({"fence", "fences"})),
+)
+# the roles of what a map is laid with: nothing that fills no diamond has one of them
+ISO_LAID_ROLES = frozenset({"GROUND", "ROAD", "WATER"})
+
+
+def _iso_roles(assets: list[Asset], root: str) -> None:
+    """The roles of an isometric pack's pieces (after T17.20), where the picture says more
+    than the words: never over a profile or a learned value, never for a picture left unused.
+
+    * **A piece along one side of its diamond** (``edge``: a wall segment, a wall with a
+      window or a door, a fence) is a ``WALL``, whatever its name made of it: a wall with a
+      window is no ``UI`` because *window* is a word of menus. It is tagged ``door`` or
+      ``window`` when its name says so, so that a house can be given a door.
+    * **A roof** (``roof``, ``chimney`` in its name) is tagged ``roof`` and is nobody's ground
+      or room: it fills a diamond, a storey up.
+    * **An object**, which fills no diamond, is not what a map is laid with: a carpet, the
+      upper storey of a house with *tiles* in its name are ``DECORATION``, not ``GROUND``."""
+    from rpggen.core import classifier
+
+    for asset in assets:
+        facets = asset.detected
+        if asset.kind != "image" or asset.detected_by in ("profile", "learned"):
+            continue
+        if facets.get("projection") != PROJECTION_ISOMETRIC or facets.get("role") == "NONE":
+            continue
+        if facets.get("animations") or facets.get("headings"):
+            continue
+        _folders, words = classifier.tokens(asset.path[len(root) + 1 :])
+        said = {tag for tag, names in ISO_PIECE_WORDS if set(words) & names}
+        role = current = facets.get("role")
+        # ... and no wall of a map's edge either, whatever else its name says (T17.22: the
+        # ``roofSingleWall`` of *Miniature Farm* was laid round the farm as its wall)
+        roof = "roof" in said and current in ISO_LAID_ROLES | {"INTERIOR", "WALL"}
+        thing = facets.get("usage") == "sprite" and current in ISO_LAID_ROLES
+        if facets.get("edge"):
+            role = "WALL"
+        elif roof or thing:
+            role = "DECORATION"
+        if not facets.get("edge"):
+            said &= {"roof"}  # a door leaf by itself is no wall with a door
+        if said:
+            facets["tags"] = sorted(set(facets.get("tags") or []) | said)
+        if role != current:
+            facets["role"] = role
+            facets.pop("roles_alt", None)
+
+
 ROTATION_SHEET_ROLES = frozenset({"DECORATION", "EFFECT", "PROJECTILE", "NONE"})
 # the roles the classifier gives the things of an arcade pack for want of a better one
 ARCADE_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "ENEMY", "NPC"})
@@ -937,6 +991,25 @@ def isometric_footprint(pack: CatalogPack) -> tuple[int, int, str] | None:
     return None
 
 
+_GLUED_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])")
+
+
+def _headings_name(path: str) -> str:
+    """The path a car in several headings is told from its other colours by. A car whose
+    files say their headings (``taxi_N.png``) keeps its first file's path. One whose files are
+    numbered views (``Black/Sedan 1/carBlack2_003.png``, which is ``carRed2_002.png`` in the
+    red folder: the numbers follow no order) is named without the number, its glued words
+    apart, so that the colour in the name is found: ``Black/Sedan 1/car_Black2``."""
+    from rpggen.core.adapters import naming, sequences
+
+    folder, stem = posixpath.split(posixpath.splitext(path)[0])
+    if naming.split_turn(stem) is not None:
+        return path
+    split = sequences.split_number(stem)
+    name = _GLUED_WORDS.sub("_", split[0] if split is not None and split[0] else stem)
+    return posixpath.join(folder, name)
+
+
 def mark_colour_variants(catalog: Catalog) -> None:
     """Tag the pictures a pack ships in several colours (T16.21): every one gets
     ``colour:<name>`` when its name or folder says one, and every one but the first of a group
@@ -953,10 +1026,10 @@ def mark_colour_variants(catalog: Catalog) -> None:
         root = f"assets/packs/{asset.pack_id}/"
         facets = asset.detected
         made_of = facets.get("heading_files") or []
-        if asset.path.startswith(root):
+        if made_of:  # a car's headings put into one strip (T17.12): its files say the colour
+            key, colour = classifier.colour_key(_headings_name(str(made_of[0])))
+        elif asset.path.startswith(root):
             key, colour = classifier.colour_key(asset.path[len(root) :])
-        elif made_of:  # a car's headings put into one strip (T17.12): its files say the colour
-            key, colour = classifier.colour_key(str(made_of[0]))
         else:
             continue  # a generated picture
         if facets.get("role") == "NONE":
@@ -1589,6 +1662,8 @@ def assemble(
                 if kind_role and current in ARCADE_REPLACED_ROLES and kind_role != current:
                     asset.detected["role"] = kind_role
                     asset.detected.pop("roles_alt", None)
+        if VIEW_ISOMETRIC in warnings:
+            _iso_roles([a for a in catalog.assets if a.pack_id == pack_id], root)
         if view == "side":
             _side_view_soldier([a for a in catalog.assets if a.pack_id == pack_id])
         if view == "farm":

@@ -120,9 +120,45 @@ def normalized(options: Any) -> dict[str, Any]:
     return out
 
 
-def facts_of(resolution: Any, tile: int) -> dict[str, Any]:
-    """What the plan needs to know of the project: the size of the screen and of a tile."""
-    return {"view": [int(resolution[0]), int(resolution[1])], "tile": max(8, int(tile))}
+CORNERS_ROUND = "round"
+
+
+def facts_of(resolution: Any, tile: int, corners: str = "") -> dict[str, Any]:
+    """What the plan needs to know of the project: the size of the screen and of a tile, and
+    ``corners``: ``"round"`` for an isometric race whose road is laid from corner pieces that
+    turn in a quarter circle (T17.22, ``round_corners``), which is planned with such corners.
+    Every other project says nothing, and its plan is what it always was."""
+    view = [int(resolution[0]), int(resolution[1])]
+    out: dict[str, Any] = {"view": view, "tile": max(8, int(tile))}
+    if corners == CORNERS_ROUND:
+        out["corners"] = CORNERS_ROUND
+    return out
+
+
+CORNER_JOINS = (("n", "e"), ("e", "s"), ("s", "w"), ("n", "w"))
+
+
+def round_corners(catalog: Any, projection: str) -> str:
+    """``"round"`` when an isometric project's road is laid from pieces and the piece of every
+    corner is round (the facet ``corner``), else "". The piece of a corner is the one the
+    builder lays there (``IsoTileset.piece_for``): the first road tile by id that joins on
+    exactly the two sides. A pack with a square piece for one of the four, a pack that draws
+    no pieces, and every project seen from above keep the square corner of the plan."""
+    from rpggen.core import catalog as catalog_mod
+
+    if projection != catalog_mod.PROJECTION_ISOMETRIC:
+        return ""
+    pieces: dict[tuple[str, ...], str] = {}
+    for asset in sorted(catalog.assets, key=lambda a: a.id):
+        facets = catalog_mod.effective(asset)
+        if asset.status in ("UNUSED", "MISSING") or not catalog_mod.is_iso_tile(asset):
+            continue
+        if facets.get("role") != "ROAD" or not facets.get("joins"):
+            continue
+        sides = tuple(sorted(facets["joins"]))
+        pieces.setdefault(sides, str(facets.get("corner", "")))
+    shapes = [pieces.get(tuple(sorted(pair)), "") for pair in CORNER_JOINS]
+    return CORNERS_ROUND if all(shape == CORNERS_ROUND for shape in shapes) else ""
 
 
 stage_id = wave_plan.stage_id
@@ -230,7 +266,7 @@ def _paint(rows: list[list[str]], x0: int, y0: int, x1: int, y1: int, letter: st
             rows[y][x] = letter
 
 
-def _paint_road(rows: list[list[str]], loop: list[Cell]) -> None:
+def _paint_road(rows: list[list[str]], loop: list[Cell], rounded: bool = False) -> None:
     n = len(loop)
     for i, cell in enumerate(loop):
         ox, oy = _origin(cell)
@@ -249,6 +285,40 @@ def _paint_road(rows: list[list[str]], loop: list[Cell]) -> None:
             sx = -(arms[0][0] + arms[1][0])
             sy = -(arms[0][1] + arms[1][1])
             rows[oy + (hi if sy > 0 else lo)][ox + (hi if sx > 0 else lo)] = GRASS
+            if rounded:
+                _round_corner(rows, ox, oy, arms)
+
+
+def corner_pivot(arms: list[Cell]) -> tuple[int, int]:
+    """The corner of a corner cell's block that its two arms share, as (0 or 1, 0 or 1) of
+    the block: the point the road of a round corner turns about."""
+    return (1 if arms[0][0] + arms[1][0] > 0 else 0, 1 if arms[0][1] + arms[1][1] > 0 else 0)
+
+
+def _round_corner(rows: list[list[str]], ox: int, oy: int, arms: list[Cell]) -> None:
+    """The road of a corner cell as a round corner piece draws it (T17.22): a quarter ring
+    about the corner of the block that the two arms share, from ``VERGE`` to ``VERGE + ROAD``
+    tiles from it. It leaves the block where the square corner's arms do, five tiles wide, and
+    what lies outside the ring is grass: the outside of the corner, where the picture of the
+    piece has its verge."""
+    px, py = corner_pivot(arms)
+    for y in range(BLOCK):
+        for x in range(BLOCK):
+            reach = math.hypot(x + 0.5 - px * BLOCK, y + 0.5 - py * BLOCK)
+            rows[oy + y][ox + x] = "r" if VERGE <= reach <= VERGE + ROAD else GRASS
+
+
+def corner_middle(cell: Cell, arms: list[Cell]) -> tuple[float, float]:
+    """The middle of the road of a round corner cell, in tiles: on the diagonal of its block,
+    in the middle of the ring (``_round_corner``). Where a car that follows the road is when
+    it is half way round."""
+    ox, oy = _origin(cell)
+    px, py = corner_pivot(arms)
+    reach = (VERGE + ROAD * 0.5) / math.sqrt(2.0)
+    return (
+        ox + (BLOCK - reach if px else reach),
+        oy + (BLOCK - reach if py else reach),
+    )
 
 
 def counts_of(level: int, difficulty: str) -> dict[str, int]:
@@ -276,7 +346,8 @@ def _track(
     rows_n = max(c[1] for c in loop) + 1
     width, height = cols * BLOCK + 2 * BORDER, rows_n * BLOCK + 2 * BORDER
     rows = [[GRASS] * width for _ in range(height)]
-    _paint_road(rows, loop)
+    rounded = facts.get("corners") == CORNERS_ROUND
+    _paint_road(rows, loop, rounded)
 
     def px(x: float, y: float) -> list[float]:
         return [round(x * tile, 2), round(y * tile, 2)]
@@ -335,9 +406,12 @@ def _track(
         letter = rows[math.floor(y)][math.floor(x)]
         surface = {"d": "dirt", "o": "oil"}.get(letter, "road")
         speed = car_math.top_speed(surface)
+        at = (x, y)
         if not _is_straight(loop, i):
             speed = min(speed, car_math.curve_speed(CORNER_RADIUS, surface))
-        waypoints.append({"cell": list(cell), "position": px(x, y), "speed": round(speed, 2)})
+            if rounded:  # the middle of the block is near the outside of a round corner's road
+                at = corner_middle(cell, [_step(cell, loop[i - 1]), _step(cell, loop[(i + 1) % n])])
+        waypoints.append({"cell": list(cell), "position": px(*at), "speed": round(speed, 2)})
         if i and i % 2 == 0:
             # across the road where it comes into the cell: every car goes over that line,
             # also one that cuts the corner of a corner cell and never sees its middle
@@ -527,14 +601,17 @@ def plan(options: Any, seed: int, facts: Any = None) -> dict[str, Any]:
     """The tracks of a game. A track that cannot be raced is planned again with the next seed
     (``REROLLS`` times at most); the notes of the plan say which."""
     opts = normalized(options)
-    known = facts_of((facts or {}).get("view", (640, 360)), (facts or {}).get("tile", 16))
+    given = facts or {}
+    known = facts_of(
+        given.get("view", (640, 360)), given.get("tile", 16), str(given.get("corners", ""))
+    )
     tracks, notes = [], []
     for index in range(opts["tracks"]):
         track, took = _planned(index, opts, known, int(seed))
         if took != int(seed):
             notes.append(f"Track {index + 1} was planned with seed {took}.")
         tracks.append(track)
-    return {
+    out = {
         "plan_version": PLAN_VERSION,
         "kind": KIND,
         "seed": int(seed),
@@ -550,6 +627,10 @@ def plan(options: Any, seed: int, facts: Any = None) -> dict[str, Any]:
         "added": [],
         "notes": notes,
     }
+    if known.get("corners"):
+        # only a plan with round corners says so: a track added later is planned like the rest
+        out["corners"] = known["corners"]
+    return out
 
 
 def extend(stored: dict[str, Any], added_rows: Any, seed: int) -> tuple[dict[str, Any], list[str]]:
@@ -564,7 +645,7 @@ def extend(stored: dict[str, Any], added_rows: Any, seed: int) -> tuple[dict[str
         "track_size": out.get("track_size", "medium"),
         "laps": int(out.get("laps", 3)),
     }
-    facts = {"view": out["view"], "tile": out["tile"]}
+    facts = {"view": out["view"], "tile": out["tile"], "corners": out.get("corners", "")}
     for row in added_rows or []:
         name = str(row.get("name", "")).strip()
         if not name or name.casefold() in have:

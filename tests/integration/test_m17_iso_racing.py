@@ -308,3 +308,170 @@ def test_dirt_cup_is_raced_on_the_diamonds_of_stone_isle(
     lap = [line for line in log.splitlines() if "INFO race_is_driven" in line]
     found = re.search(r"(\d+) checkpoints", lap[0]) if lap else None
     assert found is not None and int(found[1]) == len(tracks[0]["checkpoints"]), lap
+
+
+# --------------------------------------------------------- round corners (T17.22)
+#
+# The synthetic pack ``iso_kit`` has road pieces that name their sides, in the manner of
+# *Vector Roads*: straights, and corners that turn in a quarter circle. A race on them is
+# planned with round corners, so that what the plan calls road is what a piece shows as road:
+# the race is driven on the flat plan, as ever, and a car is never seen on the verge while the
+# plan has it on the road, nor the other way round.
+
+KIT = REPO / "test_packs" / "synthetic" / "iso_kit"
+KIT_FOOT = (64, 36)
+ASPHALT = (84, 84, 92)
+VERGE = (104, 170, 84)
+
+
+def _kit_config() -> config.GeneratorConfig:
+    from rpggen.core import archive, catalog, inventory, mapping
+
+    opened = [archive.open_pack(pack, set(), pack_id=pack.name) for pack in (KIT, MINIATURE)]
+    cat, _issues, _made = catalog.assemble(
+        [(pack, inventory.build_inventory(pack)) for pack in opened], None, []
+    )
+    cfg = config.default_for(
+        "Kit Cup",
+        [config.pack_ref_from_source(pack, pack.name) for pack in (KIT, MINIATURE)],
+        archetype="racing",
+    )
+    cfg.projection = "isometric"
+    cfg.starter = mapping.default_starter(cat, "racing", "isometric")
+    return cfg
+
+
+@pytest.fixture(scope="module")
+def round_race(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactory):  # noqa: ANN201
+    target = tmp_path_factory.mktemp("iso_round") / "out"
+    result = orchestrator.run_in_memory(_kit_config(), None, target, godot_exe)
+    assert result.ok, _errors(result)
+    return target, result
+
+
+def _ground_cells(scene: str) -> dict[tuple[int, int], tuple[int, int, int]]:
+    """cell -> (source, column, row) of the tiles of a scene's ``Ground`` layer, read from the
+    bytes Godot stores a layer's cells in: a version, then twelve bytes a cell."""
+    import base64
+    import struct
+
+    node = _node(scene, "Ground")
+    found = re.search(r'tile_map_data = PackedByteArray\("([^"]*)"\)', node)
+    assert found, "the ground layer has cells"
+    raw = base64.b64decode(found[1])
+    out = {}
+    for at in range(2, len(raw) - 11, 12):
+        x, y, source, column, row, _alternative = struct.unpack_from("<hhHHHH", raw, at)
+        out[(x, y)] = (source, column, row)
+    return out
+
+
+def test_a_race_on_round_corner_pieces_is_planned_with_round_corners_and_passes(round_race) -> None:  # noqa: ANN001
+    from rpggen.core import track_plan, world_plan
+
+    target, result = round_race
+    assert not _errors(result)
+    assert _smoke(target) == STEPS, "the eleven steps of every racing game"
+    assert not [i for i in result.issues if i.code == "VAL-029"]
+    stored = world_plan.load(target)["stages"]
+    saved = jsonio.read(target / paths.CONFIG)
+    assert stored["corners"] == "round"
+    facts = track_plan.facts_of(saved["resolution"], saved["base_tile_size"], "round")
+    assert stored == track_plan.plan({}, saved["seed"], facts), "the plan of round corners"
+    assert track_plan.check(stored) == []
+    tracks = jsonio.read(target / "game/data/stages.json")["stages"]
+    for planned, listed in zip(stored["list"], tracks, strict=True):
+        for key in ("start", "checkpoints", "waypoints", "pickups", "laps"):
+            assert listed[key] == planned[key], f"{key} of {planned['id']} is the plan's"
+    # the lap of the sequence went through every checkpoint of the first track
+    log = _text(target, "rpggen/logs/godot_smoke.log")
+    lap = [line for line in log.splitlines() if "INFO race_is_driven" in line]
+    found = re.search(r"(\d+) checkpoints", lap[0]) if lap else None
+    assert found is not None and int(found[1]) == len(tracks[0]["checkpoints"]), lap
+
+
+def test_what_the_plan_calls_road_is_what_the_pieces_show_as_road(round_race) -> None:  # noqa: ANN001
+    import math
+
+    from PIL import Image
+
+    from rpggen.core import catalog, track_plan, world_plan
+
+    target, _result = round_race
+    stored = world_plan.load(target)["stages"]
+    data = jsonio.read(target / paths.CATALOG)
+    cat = catalog.Catalog.from_json(data)
+    (definition,) = [t for t in data["tilesets"] if t.get("projection") == "isometric"]
+    by_tile = {
+        (at["source"], *at["coords"]): asset_id for asset_id, at in definition["tiles"].items()
+    }
+    block, tile = track_plan.BLOCK, stored["tile"]
+    pictures: dict[str, Image.Image] = {}
+
+    def shown(asset_id: str, east: float, south: float) -> tuple[int, int, int]:
+        """The colour a piece shows at a point of its diamond (east, south: -0.5 to 0.5)."""
+        asset = cat.asset(asset_id)
+        facets = catalog.effective(asset)
+        if asset_id not in pictures:
+            pictures[asset_id] = Image.open(KIT / "PNG" / Path(asset.path).name).convert("RGB")
+        (ox, oy), (fw, fh) = facets["origin"], facets["footprint"]
+        x = int(round(ox + (east - south) * fw / 2.0))
+        y = int(round(oy + (east + south) * fh / 2.0))
+        return pictures[asset_id].getpixel((x, y))
+
+    sides_of = {(0, -1): "n", (1, 0): "e", (0, 1): "s", (-1, 0): "w"}
+    checked = corners = 0
+    for index, planned in enumerate(stored["list"]):
+        scene = _text(target, f"generated/scenes/stages/stage_{index + 1:02d}.tscn")
+        ground = _ground_cells(scene)
+        loop = [tuple(c) for c in planned["loop"]]
+        rows = planned["rows"]
+        laid = {}
+        for i, cell in enumerate(loop):
+            arms = [
+                (loop[i - 1][0] - cell[0], loop[i - 1][1] - cell[1]),
+                (loop[(i + 1) % len(loop)][0] - cell[0], loop[(i + 1) % len(loop)][1] - cell[1]),
+            ]
+            asset_id = by_tile[ground[cell]]
+            laid[cell] = asset_id
+            facets = catalog.effective(cat.asset(asset_id))
+            wanted = sorted((sides_of[arm] for arm in arms), key="nesw".index)
+            assert facets["role"] == "ROAD" and facets["joins"] == wanted, (cell, asset_id)
+            if arms[0] != (-arms[1][0], -arms[1][1]):
+                corners += 1
+                assert facets["corner"] == "round", f"{cell}: a round piece on a corner of the plan"
+            # every tile of the cell's block: road in the plan is asphalt or kerb in the picture,
+            # grass in the plan is verge or kerb, never the other's. (A tile of the plan is three
+            # and a half px of this pack's diamond: a tile on the very edge of the road, with
+            # the other ground beside it, may show a pixel of either and is not asked.)
+            ox, oy = track_plan.BORDER + cell[0] * block, track_plan.BORDER + cell[1] * block
+            for ty in range(block):
+                for tx in range(block):
+                    colour = shown(asset_id, (tx + 0.5) / block - 0.5, (ty + 0.5) / block - 0.5)
+                    on_road = rows[oy + ty][ox + tx] != "g"
+                    beside = {
+                        rows[oy + ty + dy][ox + tx + dx] != "g"
+                        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                    }
+                    if beside != {on_road}:
+                        continue
+                    assert colour != (VERGE if on_road else ASPHALT), (
+                        f"track {index + 1}, cell {cell}, tile ({tx}, {ty}): the plan says "
+                        f"{'road' if on_road else 'grass'} and the piece shows {colour}"
+                    )
+                    checked += 1
+        # the lap: the line from waypoint to waypoint, a step of a third of a tile, lies on the
+        # road of the plan and on the asphalt of the pieces all the way round
+        points = [w["position"] for w in planned["waypoints"]]
+        for a, b in zip(points, points[1:] + points[:1], strict=True):
+            steps = max(1, int(math.dist(a, b) / (tile / 3)))
+            for n in range(steps):
+                x = (a[0] + (b[0] - a[0]) * n / steps) / tile
+                y = (a[1] + (b[1] - a[1]) * n / steps) / tile
+                assert rows[int(y)][int(x)] != "g", f"track {index + 1}: the lap leaves the road"
+                cx, cy = (x - track_plan.BORDER) / block, (y - track_plan.BORDER) / block
+                cell = (int(cx), int(cy))
+                colour = shown(laid[cell], cx - cell[0] - 0.5, cy - cell[1] - 0.5)
+                assert colour != VERGE, f"track {index + 1}: a car on the lap is seen on the verge"
+                checked += 1
+    assert corners >= 4 * len(stored["list"]) and checked > 2000
