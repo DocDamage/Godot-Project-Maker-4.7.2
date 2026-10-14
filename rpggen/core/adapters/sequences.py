@@ -145,6 +145,110 @@ def find_sequences(inv: Inventory, claimed: set[str]) -> list[Sequence]:
     return found
 
 
+# A character rendered once a facing (Kenney's *Miniature* packs): ``Male_3_Run7.png`` is the
+# character ``Male``, facing 3 of eight, frame 7 of its run. The facing is a number before the
+# action, and the frame's number is glued to the action.
+FACING_FRAME = re.compile(
+    r"^(?P<name>.+?)[_\- ](?P<facing>[0-7])[_\- ](?P<action>[A-Za-z]+?)[_\- ]?(?P<num>\d+)$"
+)
+# The facing a number is, on the screen: 0 looks up and to the right, and every next number is
+# an eighth of a turn clockwise (looked at on *Miniature Dungeon*: 3 runs towards the camera, 7
+# away from it, 1 to the right and 5 to the left).
+FACINGS = ("up_right", "right", "down_right", "down", "down_left", "left", "up_left", "up")
+FACING_MIRROR = 6  # facing k seen in a mirror is facing (6 - k): 3 and 7 are their own
+FACINGS_CONFIDENCE = 0.9
+FACINGS_UNSURE_CONFIDENCE = 0.5  # needs review: the pictures do not mirror as the facings say
+
+
+@dataclass
+class FacingSet:
+    """A character whose frames are files named by facing, action and frame."""
+
+    folder: str
+    name: str
+    # {action as written: {facing: frames in playing order}}
+    actions: dict[str, dict[int, list[tuple[int, InventoryFile]]]]
+
+    @property
+    def files(self) -> list[InventoryFile]:
+        return [
+            f
+            for action in sorted(self.actions)
+            for facing in sorted(self.actions[action])
+            for _n, f in self.actions[action][facing]
+        ]
+
+
+def find_facings(inv: Inventory, claimed: set[str]) -> list[FacingSet]:
+    """The characters of a pack that are drawn once a facing, by folder and name: every action
+    of one has all eight facings, 0 to 7, each with as many frames, all pictures one size. An
+    action that lacks a facing is left out; a name with no whole action is no such character."""
+    groups: dict[tuple[str, str], dict[str, dict[int, list[tuple[int, InventoryFile]]]]] = {}
+    for f in inv.files:
+        if not _is_still(f) or f.path in claimed:
+            continue
+        m = FACING_FRAME.match(posixpath.splitext(posixpath.basename(f.path))[0])
+        if m is None:
+            continue
+        key = (posixpath.dirname(f.path), m.group("name"))
+        frames = groups.setdefault(key, {}).setdefault(m.group("action"), {})
+        frames.setdefault(int(m.group("facing")), []).append((int(m.group("num")), f))
+    found: list[FacingSet] = []
+    for key in sorted(groups):
+        whole: dict[str, dict[int, list[tuple[int, InventoryFile]]]] = {}
+        sizes: set[tuple[int, int]] = set()
+        for action, facings in groups[key].items():
+            counts = {len(numbered) for numbered in facings.values()}
+            if set(facings) != set(range(len(FACINGS))) or len(counts) != 1:
+                continue
+            whole[action] = {
+                facing: sorted(numbered, key=lambda nf: (nf[0], nf[1].path))
+                for facing, numbered in facings.items()
+            }
+            for numbered in facings.values():
+                sizes.update(
+                    (int((f.image or {}).get("w", 0)), int((f.image or {}).get("h", 0)))
+                    for _n, f in numbered
+                )
+        # one action at least is a word for what a character does: "tile_3_a1" is no person
+        acts = any(
+            naming.SYNONYMS.get(a.casefold(), a.casefold()) in naming.CANONICAL_ACTIONS
+            for a in whole
+        )
+        if acts and len(sizes) == 1 and 0 not in next(iter(sizes)):
+            found.append(FacingSet(key[0], key[1], whole))
+    return found
+
+
+def facings_mirror(root: Path, character: FacingSet) -> bool:
+    """Whether the pictures bear out which facing a number is. A character seen in a mirror
+    looks the other way across the screen: facing ``k`` mirrored is most like facing
+    ``6 - k`` when 3 and 7 are the two that look straight at and away from the camera. Of the
+    eight ways the numbers could lie round the mirror's axis, the pictures must be most like
+    this one. (Which of the two looks at the camera no silhouette says: that is the order the
+    renderer of these packs writes.)"""
+    from rpggen.core.analyzer import views
+
+    action = min(character.actions, key=lambda a: (len(character.actions[a][0]), a))
+    shown, mirrored = [], []
+    for facing in range(len(FACINGS)):
+        try:
+            rgba = image_facts.load_rgba(root / character.actions[action][facing][0][1].path)
+        except (OSError, ValueError):
+            return False
+        one, other = views.view(rgba), views.view(rgba[:, ::-1])
+        if one is None or other is None:
+            return False
+        shown.append(one)
+        mirrored.append(other)
+    count = len(FACINGS)
+    alike = [
+        sum(views.likeness(mirrored[k], shown[(axis - k) % count], None) for k in range(count))
+        for axis in range(count)
+    ]
+    return max(range(count), key=lambda axis: (alike[axis], -axis)) == FACING_MIRROR
+
+
 @dataclass
 class FrameExport:
     """A folder that is one numbered frame export without an action word."""
@@ -305,7 +409,7 @@ class SequencesAdapter:
     priority = 55  # before the strips adapter
 
     def match(self, inv: Inventory, root: Path) -> float:
-        if find_sequences(inv, set()):
+        if find_sequences(inv, set()) or find_facings(inv, set()):
             return 1.0
         for export in find_frame_exports(inv, set()):
             if split_export(root, export)[1] or self._source(root, export, IssueList()):
@@ -322,6 +426,8 @@ class SequencesAdapter:
         work = (ctx.work_dir or paths.cache_dir()) / WORK_FOLDER
         for key in sorted(characters):
             self._character(root, ctx.pack_id, characters[key], work, result, issues)
+        for character in find_facings(inv, ctx.claimed):
+            self._facings(root, character, work, result, issues)
         taken = set(ctx.claimed) | {f.path for f in result.assets} | set(result.consumed)
         for export in find_frame_exports(inv, taken):
             self._export(root, export, work, result, issues)
@@ -545,6 +651,66 @@ class SequencesAdapter:
                 )
             )
         return plan
+
+    def _facings(
+        self,
+        root: Path,
+        character: FacingSet,
+        work: Path,
+        result: AdapterResult,
+        issues: IssueList,
+    ) -> None:
+        """A character drawn once a facing (``find_facings``): one sprite with an animation
+        for every action and facing, named as the runtime plays them (``walk_down``,
+        ``walk_up_left``; a run is the walk), each from a strip of its own frames. An action
+        the runtime does not know (``Pickup``) keeps its name, small, and plays once."""
+        files = character.files
+        size = ((files[0].image or {}).get("w", 0), (files[0].image or {}).get("h", 0))
+        w, h = int(size[0]), int(size[1])
+        animations: dict[str, Any] = {}
+        baseline = 0
+        for written in sorted(character.actions, key=lambda a: (a.casefold(), a)):
+            action = naming.SYNONYMS.get(written.casefold(), written.casefold())
+            known = action in naming.CANONICAL_ACTIONS
+            for facing, direction in enumerate(FACINGS):
+                name = f"{action}_{direction}"
+                if name in animations:
+                    continue  # "Run" and "Walk" of one character: the first one is the walk
+                seq = Sequence(character.folder, written, character.actions[written][facing])
+                file_name = strip_name(seq)
+                dest = work / file_name
+                try:
+                    write_strip(root, seq, dest)
+                except (OSError, ValueError) as exc:
+                    issues.add(
+                        "ADAPT-001", adapter=self.name, file=seq.frames[0][1].path, reason=str(exc)
+                    )
+                    return
+                project_path = f"{FRAME_STRIP_DIR}/{file_name}"
+                result.generated[project_path] = str(dest)
+                cols, _rows = layout(len(seq.frames), w)
+                cells = [[i % cols, i // cols] for i in range(len(seq.frames))]
+                animations[name] = {
+                    "frames": cells,
+                    "fps": naming.fps(action),
+                    "loop": naming.is_looping(action) if known else len(cells) == 1,
+                    "source": project_path,
+                }
+                if direction == "down" and not baseline:
+                    mask = image_facts.occupancy(image_facts.load_rgba(dest))
+                    baseline = frames_mod.baseline_y(mask, [(c * w, r * h, w, h) for c, r in cells])
+        facets: dict[str, Any] = {
+            "usage": "sprite",
+            "grid": {"cell": [w, h], "margin": [0, 0], "separation": [0, 0]},
+            "frame": [w, h],
+            "origin": [w // 2, baseline],
+            "animations": {k: animations[k] for k in sorted(animations)},
+            "directions": len(FACINGS),
+        }
+        sure = facings_mirror(root, character)
+        confidence = FACINGS_CONFIDENCE if sure else FACINGS_UNSURE_CONFIDENCE
+        result.assets.append(AssetFragment(files[0].path, facets, confidence, "full"))
+        result.consumed.extend(f.path for f in files[1:])
 
     def _character(
         self,

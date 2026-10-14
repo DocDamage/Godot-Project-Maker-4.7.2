@@ -763,7 +763,10 @@ def test_the_pack_view_is_isometric() -> None:
     assert (
         classifier.pack_view(_inv("a.png", pack_id="isometric_x"), [{"usage": "sprite"}]) == "top"
     ), "with the pictures read, they say it"
-    assert classifier.made_for(_inv("Platformer Pack/a.png", pack_id="isometric_x")) == "side"
+    # a pack seen at an angle is not seen from the side, whatever its folders are called
+    # (*Isometric Blocks* has a folder "Platformer tiles"); one that is not isometric still is
+    assert classifier.made_for(_inv("Platformer Pack/a.png", pack_id="isometric_x")) == "top"
+    assert classifier.made_for(_inv("Platformer Pack/a.png", pack_id="blocks_x")) == "side"
 
 
 def test_the_sniff_marks_an_isometric_pack(tmp_path: Path) -> None:
