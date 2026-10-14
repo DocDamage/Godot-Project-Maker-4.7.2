@@ -112,12 +112,14 @@ func add_file(path: String) -> void:
 	add_list(RpgUtil.to_array(RpgUtil.to_dict(RpgUtil.restore_numbers(parsed)).get("people", [])))
 
 ## Adds entries (what a test has instead of a file). An entry without an id, or whose id is
-## there already, is left out.
+## there already, is left out. The file is read as it is (no planned list fills it in), so a
+## person is gone when their entry is deleted; an entry that says `"removed": true`, the mark
+## the farm's other lists take a thing away with, is nobody either.
 func add_list(entries: Array) -> void:
 	for raw: Variant in entries:
 		var entry := RpgUtil.to_dict(raw)
 		var id := RpgUtil.to_str(entry.get("id", ""))
-		if id == "" or people.has(id):
+		if id == "" or people.has(id) or RpgUtil.to_bool(entry.get("removed", false)):
 			continue
 		people[id] = entry
 		order.append(id)

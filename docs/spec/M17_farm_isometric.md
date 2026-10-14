@@ -160,6 +160,14 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.18 | Smoke sequences and integration tests | M | T17.17 | done locally on Windows; the two CI jobs have not run, and a slime in a folder of characters is still an NPC without the sample's profile (the notes) |
 | T17.19 | Documentation, screenshots and changelogs | M | T17.18 | done; all pictures were made again on Windows (the notes) |
 | T17.20 | Gate (1.5.0) | M | T17.19 | open: the flags are on and the suites pass locally on Windows; CI, the frozen build, the upgrade test, the corpus and every manual row are not done, and `v1.5.0` is not tagged |
+| T17.21 | Real packs: cars by their pictures, the buildings' diamond, wall pieces, characters in eight facings | L | T17.12 | open |
+| T17.22 | Real packs in the builder: walls along an edge, a house of pieces, round road corners | L | T17.21 | open |
+| T17.23 | Added maps are built | L | T17.06 | open |
+| T17.24 | The cave: combat on a farm | L | T17.23 | open |
+| T17.25 | Festivals and birthdays | M | T17.09 | open |
+| T17.26 | Marriage | L | T17.25 | open |
+| T17.27 | The editor dock on diamonds | M | T17.14 | open |
+| T17.28 | Imported maps in the isometric view | L | T17.14 | open |
 
 ---
 
@@ -894,9 +902,10 @@ RC Pro-Am is seen at an angle; M16 made the view from above and left this.
 
 # Part E — Not in this milestone
 
-**Left out of the farm on purpose**, to keep 1.5.0 a release and not a year: marriage and
-children, festivals and birthdays, a museum or a community goal, mining floors, cooking and
-crafting recipes, tool upgrades beyond the shop's two, a greenhouse, multiplayer. Each is an
+**Left out of the farm on purpose**, to keep 1.5.0 a release and not a year: children, a
+museum or a community goal, mining floors beyond the one cave, cooking and crafting recipes,
+tool upgrades beyond the shop's two, a greenhouse, multiplayer. (Marriage, festivals and
+birthdays, and the cave were on this list and are cards of Part F since 2026-10-13.) Each is an
 addition to data the farm already has (`people.json`, `crops.json`, the calendar's signals)
 and can be a card of a later milestone.
 
@@ -913,6 +922,191 @@ in the order that was recommended there; nothing here builds toward them except 
 
 ---
 
+# Part F — What the owner asked for after the cards (2026-10-13)
+
+When T17.01 to T17.20 were implemented, the status page listed what real packs still showed
+and what Part E had left out on purpose. The owner's answer was that all of it is to be
+addressed. These cards are that list. They are part of M17 and of release 1.5.0; the gate
+(T17.20) is closed after them. The ground rules above apply to each, and so does what the
+milestone learnt: a card is not done until its game was looked at in a rendered picture, the
+full suites ran with nothing else using Godot, and the slow GUI tests were among them.
+
+## T17.21 — Real packs: cars by their pictures, the buildings' diamond, wall pieces, characters in eight facings
+
+**Depends on:** T17.12
+**Files:** `rpggen/core/adapters/isometric.py`, `rpggen/core/analyzer/isometric.py`,
+`rpggen/core/adapters/naming.py`, `rpggen/core/classifier.py`, `rpggen/core/catalog.py`,
+`rpggen/core/mapping.py`, the catalog and profile schemas, `tests/unit/test_isometric.py`
+
+**Spec**
+* **A heading from the picture.** The 480 civilian cars of *Isometric Tiles Vehicles* are
+  sixteen files a car numbered in no order. A set of views of one object is ordered round
+  the compass by measuring the pictures; a set that cannot be ordered with confidence stays
+  unread with the reason on its card. The colours of a model (its folder) are variants of one
+  car, and slope views are set aside. No car of the pack is a decoration.
+* **The diamond of *Isometric Tiles Buildings***, measured at 99 x 50 from its small pieces, is
+  found from the evidence the pack has, and beside *Tiles Base* the project's diamond is its
+  ground's.
+* **Wall pieces.** A thin wall segment on the edge of a diamond (*Medieval Town* has sixty with
+  the role and the map's edge got none) is catalogued so that the builder can lay it along an
+  edge: which side of its diamond it stands on, by its turn.
+* **The default ground** of an isometric project is a tile whose name or surface says grass,
+  ground or dirt before a paving, as the race's field already chooses.
+* **Characters in eight facings** by a number before the action (`Male_3_Run2.png`, the
+  *Miniature* packs) are one character with its animations.
+* The stray *looks like a racing pack* marks on isometric packs end.
+
+**Done when**
+* The table of the 23 packs is made again, and every row that the notes of T17.12 call wrong
+  or partly read is right or has its reason.
+
+## T17.22 — Real packs in the builder: walls along an edge, a house of pieces, round road corners
+
+**Depends on:** T17.21
+**Files:** `godot_templates/builder/lib/map_geo.gd`, `iso_tileset.gd`, the starter map, farm
+and track recipes, `godot_templates/builder/recipes/racing/iso_track.gd`,
+`rpggen/core/track_plan.py` (only if a corner's shape must be known to the check)
+
+**Spec**
+* **Walls from segments.** The edge of an isometric map is laid from the pack's wall segments
+  by the side each stands on, with corners where two sides meet and the gap for the way out;
+  a pack with whole wall tiles is laid as today.
+* **A house from pieces.** A pack whose buildings are walls, doors, windows and roofs as
+  separate pieces (*Medieval Town*, *Modular Buildings*) gets a house on the planned
+  footprint: walls along its sides, a door at the plan's door, a roof over it; it blocks its
+  footprint and sorts as one building. A pack with a whole house is placed as today.
+* **Round corners.** A road corner piece that is round is known as round, and an isometric
+  race drives it: the physics stays on the flat plan, so either the plan's corner is given
+  the shape of the piece (surface cells, waypoints and the barrier follow it), or the square
+  corner is drawn under a round piece so that no car is seen on the verge while it is on the
+  road. The choice is made by looking at both.
+* *Medieval Town* with *Nature*, and *Vector Roads Base* with *Tiles Vehicles*, are generated
+  and looked at; the thin lines along diamond edges at a zoom that is no whole number are
+  explained or mended.
+
+**Done when**
+* The two pairs of real packs make an isometric village with a house and walls and an
+  isometric race whose cars stay on the road they are seen on, on the owner's machine, and a
+  synthetic pack in each shape holds it in the tests.
+
+## T17.23 — Added maps are built
+
+**Depends on:** T17.06
+**Files:** `rpggen/core/farm_plan.py` (`added_maps`), `rpggen/core/world_plan.py`, the areas of
+T13.20, `godot_templates/builder/recipes/farm/`, `rpggen/core/forage_plan.py`
+
+A farm's *Added maps* were names kept with the plan and nothing was built.
+
+**Spec**
+* A row of *Added maps* is a map of its own beside the farm, of a kind chosen from its name
+  or a choice in the row: a **forest** (trees, forage places, things to clear), a **beach**
+  (sand, water along one side, a place to fish, forage of its own), a **cave** (T17.24). Each
+  is planned on a grid like the farm, stored once, built once, and joined to the farm or to
+  the village by a door pair; the check of the farm's plan covers the way to it.
+* Forage and fishing work on an added map as on the farm; the people's schedules may name a
+  place on one.
+* A farm that exists gets an added map by regenerating with a new row, as an added room or
+  track does: nothing that exists is rebuilt.
+
+**Done when**
+* A farm with a forest and a beach is generated; the farmer walks to both and back, picks up
+  what lies there and fishes from the beach, in the smoke run.
+
+## T17.24 — The cave: combat on a farm
+
+**Depends on:** T17.23
+**Files:** `rpggen/core/options.py` (`combat` for a farm), the action RPG's enemies and combat
+(`combat/realtime/`, `archetypes/arpg/`), `godot_templates/builder/recipes/farm/`
+
+**Spec**
+* The feature **Combat** is shown for a farm again and does something: with it on, the farm
+  has a cave (an added map of its own kind) with the action RPG's enemies from the packs'
+  `ENEMY` assets (or a drawn one), a weapon in the shop, hearts or health on the HUD, and
+  things to find that the farm can use or sell. Being defeated is passing out: the farmer
+  wakes at the bed as after 2:00.
+* With it off there is no cave, no weapon and nothing to fight, as today.
+
+**Done when**
+* A farm with Combat on is generated; the farmer buys a weapon, enters the cave, defeats an
+  enemy, brings back what it left, is defeated once and wakes at home, in the smoke run.
+
+## T17.25 — Festivals and birthdays
+
+**Depends on:** T17.09
+**Files:** `rpggen/core/people_plan.py`, `archetypes/farm/` (a calendar of events),
+`game/data/events.json` (written once), the HUD and the people's page
+
+**Spec**
+* Every person has a **birthday** (a season and a day, from the plan): a gift on that day
+  counts several times, the People page and a calendar on the farmhouse wall show it, and
+  the person says so.
+* A **festival** a season, on a fixed day: the shop is closed, the people gather on the
+  village square by their schedules, a line each, and one small thing to do (a contest judged
+  on the best crop shipped that season, an egg hunt on the square, a fishing count, a feast)
+  with a prize. The day before, the weather sign and the people say it is coming.
+* The events are data (`events.json`), the user's once written, read by the calendar; the
+  generated README says how to add one.
+
+**Done when**
+* A year is run in the smoke sequence by ending days: four festivals happen on their days with
+  the people on the square, and a birthday gift counts as the plan says.
+
+## T17.26 — Marriage
+
+**Depends on:** T17.25
+**Files:** `rpggen/core/people_plan.py` (who can be courted), `archetypes/farm/friendship.gd`,
+the dialogue of the people, the farmhouse's room, `game/data/people.json`
+
+**Spec**
+* Some people of the plan can be courted (an option says how many; none turns it off). From
+  eight hearts a **bouquet** from the shop begins courting and opens two more hearts; at ten
+  a **pendant** proposes, and three days later the wedding is a day on the square.
+* A spouse lives in the farmhouse (the bed is for two: the room is planned with it from the
+  start, since a room that exists is never rebuilt), has a schedule of their own, speaks other
+  lines, and helps on some mornings: waters part of the plot, feeds the animals, or leaves
+  something on the table.
+* Friendship that is neglected falls slowly; nothing worse happens. Children are not part of
+  1.5.0.
+
+**Done when**
+* The smoke sequence courts and marries a villager by giving and by ending days, and finds
+  the spouse at home in the morning with part of the plot watered.
+
+## T17.27 — The editor dock on diamonds
+
+**Depends on:** T17.14
+**Files:** `godot_templates/addons/rpg_project_tools/dock/` (`placement.gd`, `asset_dock.gd`),
+`godot_templates/addons/rpg_project_tools/tools/`
+
+**Spec**
+* In an isometric project the dock places an object on the diamond under the mouse, standing
+  on its footprint, sorted with what is there, and drops it to the floor as it does on
+  squares; the validator's Fix and the world repair count cells on diamonds (a door added by
+  the repair has a diamond's shape).
+
+**Done when**
+* An object dropped from the dock into an isometric map in the editor stands where the game
+  shows it, in a test that runs the dock's placement on an isometric scene.
+
+## T17.28 — Imported maps in the isometric view
+
+**Depends on:** T17.14
+**Files:** `godot_templates/builder/recipes/imported_maps_recipe.gd`, `rpggen/core/adapters/tiled.py`
+and the LDtk reader
+
+**Spec**
+* A Tiled map whose orientation is isometric (the *Miniature* packs ship one as a sample,
+  which today is `TILE-009`, not imported) is imported into an isometric project: its layers
+  onto the project's tile set by the tiles' pictures, its objects as objects on their
+  diamonds. A staggered or hexagonal map is still refused with its reason. A map of squares is
+  not imported into an isometric project, and the report says so.
+
+**Done when**
+* The sample map of *Isometric Miniature Farm* is a map of a generated project on the owner's
+  machine, and a synthetic isometric Tiled map holds it in the tests.
+
+---
+
 ## Appendix — The request of 2026-10-12, item by item
 
 | Asked for | Card |
@@ -920,3 +1114,4 @@ in the order that was recommended there; nothing here builds toward them except 
 | A farm and life sim | T17.01 – T17.11 (`farm`), with its wizard, sample and tests in T17.16 – T17.18 |
 | Isometric | T17.12 – T17.15 (`projection: isometric` for `turn_based`, `arpg`, `farm` and `racing`) |
 | The others stay as future | Part E |
+| 2026-10-13: the faults real packs still show, added maps, the dock and imported maps on diamonds, a cave, marriage and festivals are all to be addressed | Part F (T17.21 – T17.28) |

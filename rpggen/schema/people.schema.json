@@ -3,11 +3,21 @@
   "title": "rpggen people of a farm's village (game/data/people.json)",
   "type": "object",
   "properties": {
-    "people": {"type": "array", "items": {"$ref": "#/$defs/Person"}}
+    "people": {"type": "array", "items": {"anyOf": [{"$ref": "#/$defs/Person"}, {"$ref": "#/$defs/Removed"}]}}
   },
   "required": ["people"],
   "additionalProperties": false,
   "$defs": {
+    "Removed": {
+      "description": "In the user's file: this id is taken away, and the planned list does not bring it back.",
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "removed": {"const": true}
+      },
+      "required": ["id", "removed"],
+      "additionalProperties": false
+    },
     "Person": {
       "type": "object",
       "properties": {

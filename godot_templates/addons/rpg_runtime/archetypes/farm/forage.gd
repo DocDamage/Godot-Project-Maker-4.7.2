@@ -20,7 +20,9 @@ extends Node
 ## * **The table** is `game/data/forage.json` (written once, the user's), then what only
 ##   `generated/data/forage.json` has: `forage`, entries `{id, name, item, seasons, price,
 ##   energy}`, and `fish`, entries with `times` (`morning`, `day`, `evening`), `water` (`pond`)
-##   and `speed` as well. `energy` is what eating one restores.
+##   and `speed` as well. `energy` is what eating one restores. An entry that is only deleted
+##   comes back from the planned list; `{"id": "fish_eel", "removed": true}` in the user's
+##   list takes it away for good.
 
 ## What lies on the map that is shown changed (a morning, a load, a thing picked up).
 signal changed
@@ -43,6 +45,8 @@ const PICK_SOUND := &"sfx_harvest"
 ## The things to forage and the fish, in the order of the files.
 var things: Array[Dictionary] = []
 var fish: Array[Dictionary] = []
+## The ids an entry `"removed": true` took away: no later entry of such an id is added.
+var removed: Array[String] = []
 ## The places of a map that has no markers: its id and the cells (the planned file's).
 var planned_map := ""
 var planned_spots: Array[Vector2i] = []
@@ -96,7 +100,8 @@ func add_file(path: String) -> void:
 				planned_spots.append(Vector2i(RpgUtil.to_int(pair[0]), RpgUtil.to_int(pair[1])))
 
 ## Adds entries (what a test has instead of a file). One without an id or an item, or whose id
-## is there already, is left out.
+## is there already or was removed, is left out; one that says `"removed": true` (it needs no
+## item) adds nothing and keeps every later entry of its id out.
 func add_lists(forage_entries: Array, fish_entries: Array) -> void:
 	_loaded = true
 	for pair: Array in [[forage_entries, things], [fish_entries, fish]]:
@@ -104,7 +109,12 @@ func add_lists(forage_entries: Array, fish_entries: Array) -> void:
 		for raw: Variant in RpgUtil.to_array(pair[0]):
 			var entry := RpgUtil.to_dict(raw)
 			var id := RpgUtil.to_str(entry.get("id", ""))
-			if id == "" or RpgUtil.to_str(entry.get("item", "")) == "" or _has(id):
+			if id == "" or _has(id) or removed.has(id):
+				continue
+			if RpgUtil.to_bool(entry.get("removed", false)):
+				removed.append(id)
+				continue
+			if RpgUtil.to_str(entry.get("item", "")) == "":
 				continue
 			into.append(entry)
 

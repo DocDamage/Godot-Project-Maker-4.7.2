@@ -667,7 +667,11 @@ def test_the_welcome_menu_lists_five_and_each_lands_on_its_kind(
     welcome = win.welcome
     menu = welcome.sample_card.menu()
     assert menu is not None and [a.text() for a in menu.actions()] == FIVE
-    assert welcome.sample_choose_button.toolTip() == "A sample pack for each kind of game"
+    # five samples and seven kinds: no kind is promised a sample
+    assert welcome.sample_choose_button.toolTip() == (
+        "The bundled sample packs: several kinds of game"
+    )
+    assert "each kind" not in welcome.sample_card.toolTip()
     welcome.sample_actions[key].trigger()
     assert not win.welcome_visible and win.current_index == GENERATE_INDEX
     state = win.state
@@ -802,16 +806,19 @@ def test_a_sample_of_m17_is_catalogued_without_an_edit(kind: str) -> None:
     plain = requirements.check(cat, cfg)
     assert [i.code for i in plain if i.severity is not Severity.INFO] == []
     # what the names alone do not say is drawn, and said: the two soil tiles of the farm are
-    # one tile each (no grid to measure, so they are read as pictures), and the slime of the
-    # isle is a sheet in a folder of characters (read as a villager)
+    # one tile each (no grid to measure, so they are read as pictures). The isle has nothing
+    # drawn: its slime, a sheet in the folder of characters, is an enemy by its name
     assert (
         sorted(i.detail["thing"] for i in plain)
         == {
             "farm": ["tilled soil", "watered soil"],
-            "iso": ["enemy"],
+            "iso": [],
         }[kind]
     )
-    assert {i.code for i in plain} == {"ASSET-031"}
+    assert {i.code for i in plain} == {"farm": {"ASSET-031"}, "iso": set()}[kind]
+    if kind == "iso":
+        slime = cat.asset(f"{folder}.characters.slime")
+        assert slime is not None and slime.detected["role"] == "ENEMY" and not slime.overrides
 
     profiles.install_profile(ROOT / folder / profile)
     cat, issues = _assemble(folder)
@@ -1049,6 +1056,13 @@ def test_the_welcome_menu_lists_seven_and_each_lands_on_its_kind_and_its_view(
     welcome = win.welcome
     menu = welcome.sample_card.menu()
     assert menu is not None and [a.text() for a in menu.actions()] == SEVEN
+    # Stone isle is a view and no kind, and the action RPG has no sample: the texts count neither
+    assert welcome.sample_choose_button.toolTip() == (
+        "The bundled sample packs: several kinds of game, and one in the isometric view"
+    )
+    assert welcome.sample_card.toolTip().endswith(
+        "Choose a sample offers the samples of other kinds of game and of the isometric view"
+    )
     welcome.sample_actions[key].trigger()
     assert not win.welcome_visible and win.current_index == GENERATE_INDEX
     state = win.state
@@ -1097,3 +1111,33 @@ def test_the_project_pages_list_offers_seven_and_the_isle_comes_with_its_view(
     assert win.state.archetype == "turn_based" and win.state.config.archetype == "turn_based"
     assert win.state.config.projection == ISOMETRIC
     assert win.state.pack_sources == [ROOT / "sample_pack_iso"]
+
+
+def test_the_welcome_cards_are_as_high_with_seven_samples_as_with_five_or_two(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    """How many samples the chooser lists is not what the cards' height follows from: a card is
+    at least ``CARD_HEIGHT`` high (its floor, held since ``CardButton.set_floor_height``) and
+    its row is the same with two, five and seven samples. (The four welcome goldens moved by 4 px when they
+    were next made after that floor began to hold, which was put down to the seven samples.)"""
+    from PySide6.QtWidgets import QApplication
+
+    from rpggen.gui.pages.welcome_page import CARD_HEIGHT
+
+    seen = []
+    for arcade, m17, count in ((False, False, 2), (True, False, 5), (True, True, 7)):
+        win = _window_with(qtbot, tmp_path, monkeypatch, available=True, arcade=arcade, m17=m17)
+        win.resize(1100, 720)
+        win.show()
+        QApplication.processEvents()
+        welcome = win.welcome
+        assert len(welcome.sample_card.menu().actions()) == count
+        cards = (welcome.sample_card, welcome.own_card, welcome.open_card)
+        heights = [card.height() for card in cards]
+        # as high as the tallest needs with the font of the machine, and never under the floor
+        assert len(set(heights)) == 1 and heights[0] >= CARD_HEIGHT, (count, heights)
+        seen.append(
+            (welcome.sample_card.geometry().getRect()[1:], welcome.recent_label.geometry().y())
+        )
+        win.close()
+    assert seen[0] == seen[1] == seen[2], "the cards and what is under them are where they were"

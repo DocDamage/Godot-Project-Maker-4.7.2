@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from rpggen.core import config, options
+from rpggen.gui.models.options_model import ViewState
 from rpggen.gui.pages.options_page import OptionsPage
 from rpggen.gui.state import WizardState
 
@@ -880,6 +881,109 @@ def test_the_view_is_offered_only_with_the_flag_and_for_a_kind_that_has_it(
         assert all(choice.isHidden() for choice in page.view_choices.values()), kind
 
 
+def test_packs_of_squares_have_no_view_row(qtbot, monkeypatch) -> None:
+    """Most projects are made of packs that have nothing isometric: there is nothing to choose
+    and nothing to explain, so the row is not there at all (it was shown disabled, with the
+    command line's sentence under it)."""
+    _flags(monkeypatch)
+    assert not options.has_isometric_art(_cat("basic16"))
+    assert not options.has_isometric_art(None)
+    assert options.has_isometric_art(_cat("iso_tiles"))
+    for kind in ("turn_based", "arpg", "farm", "racing"):
+        page, state = _kind_page(qtbot, kind, "basic16")
+        assert page.model.view_state() == ViewState(False), kind
+        assert all(choice.isHidden() for choice in page.view_choices.values()), kind
+        assert not page.model.set_view("isometric", "grid"), "and nothing can be set"
+        before = state.config.to_json()
+        page.leave(state)
+        assert state.config.to_json() == before, kind
+        assert "projection" not in before and "iso_controls" not in before
+    # a project that exists and is seen from above, of such packs: no row either
+    page, state = _kind_page(qtbot, "turn_based", "basic16")
+    state.regenerating = True
+    page.enter(state)
+    assert all(choice.isHidden() for choice in page.view_choices.values())
+
+
+def test_isometric_pictures_without_ground_say_why_in_the_wizards_words(qtbot, monkeypatch) -> None:
+    from rpggen.core import catalog as catalog_mod
+    from rpggen.core import iso_atlas
+    from rpggen.gui import edits
+    from rpggen.gui.models.options_model import VIEW_NO_GROUND_TEXT
+
+    _flags(monkeypatch)
+    cat = _cat("iso_tiles")
+    grounds = [a.id for a in iso_atlas.ground_tiles(cat)]
+    assert grounds
+    cat = edits.set_overrides(cat, grounds, {"role": "DECORATION"})
+    assert iso_atlas.ground_problem(cat) == iso_atlas.NO_GROUND_REASON, "what the run says"
+    assert options.has_isometric_art(cat)
+    cfg = config.default_for("T", [REF])
+    state = WizardState(config=cfg, catalog=cat)
+    page = OptionsPage()
+    qtbot.addWidget(page)
+    page.resize(828, 900)
+    page.show()
+    page.enter(state)
+    view = page.view_choice
+    assert not view.isHidden() and view.projection() == "top_down"
+    assert not view.view_combo.isEnabled()
+    assert view.note.text() == view.view_combo.toolTip() == VIEW_NO_GROUND_TEXT
+    assert not view.note.isHidden()
+    # written for a person: no key of the config, no name of a role as the catalog spells it
+    for word in ("GROUND", "top_down", "projection", "the audit"):
+        assert word not in view.note.text(), word
+    assert "role Ground on the Audit page" in view.note.text()
+    assert not page.model.set_view("isometric", "screen"), "and it cannot be set"
+    page.leave(state)
+    assert state.config.projection == "top_down"
+    # the command line and the run keep their sentence
+    assert "GROUND" in iso_atlas.NO_GROUND_REASON and "top_down" in iso_atlas.NO_GROUND_REASON
+    assert catalog_mod.effective(cat.asset(grounds[0]))["role"] == "DECORATION"
+
+
+def test_a_race_has_no_pad_and_its_config_carries_none(qtbot, monkeypatch) -> None:
+    """A race is steered, relative to the car or by the stick as a direction of the screen: it
+    does not read ``iso_controls``. Its View has no Pad, and its config never carries the
+    key, whoever set it."""
+    _flags(monkeypatch)
+    page, state = _kind_page(qtbot, "racing", "iso_tiles", projection="isometric")
+    view = page.view_choice
+    assert view is page.arcade_boxes["racing"].view and not view.isHidden()
+    assert view.projection() == "isometric" and view.view_combo.isEnabled()
+    assert view.pad_combo.isHidden() and view.pad_label.isHidden()
+    assert page.model.view_state().pad is False
+    assert page.arcade_boxes["racing"].combos["steering"].isVisibleTo(page), "it has Steering"
+    assert not page.model.set_view("isometric", "grid"), "the Pad is not the model's to set"
+    assert page.model.draft.iso_controls == "screen"
+    view.view_combo.setCurrentIndex(0)
+    view.view_combo.setCurrentIndex(1)
+    assert view.pad_combo.isHidden(), "choosing the view again does not bring the Pad"
+    page.leave(state)
+    assert state.config.projection == "isometric"
+    assert "iso_controls" not in state.config.to_json()
+    # a config that carries the key for a race: accepted, not read, not written back
+    data = state.config.to_json()
+    data["iso_controls"] = "grid"
+    loaded = config.GeneratorConfig.from_json(data)
+    assert loaded.iso_controls == "screen" and "iso_controls" not in loaded.to_json()
+    loaded.iso_controls = "grid"  # set by hand on the object
+    assert "iso_controls" not in loaded.to_json()
+    page, state = _kind_page(qtbot, "racing", "iso_tiles", projection="isometric")
+    state.config.iso_controls = "grid"
+    page.enter(state)
+    assert page.view_choice.pad_combo.isHidden()
+    page.leave(state)
+    assert state.config.iso_controls == "screen"
+    # the kinds whose player walks keep theirs
+    for kind in ("turn_based", "arpg", "farm"):
+        page, state = _kind_page(qtbot, kind, "iso_tiles", projection="isometric")
+        assert not page.view_choice.pad_combo.isHidden(), kind
+        assert page.model.set_view("isometric", "grid")
+        page.leave(state)
+        assert state.config.to_json()["iso_controls"] == "grid", kind
+
+
 def test_the_view_sets_the_projection_and_the_pad(qtbot, monkeypatch) -> None:
     from rpggen.core import iso_atlas
     from rpggen.gui.pages.archetype_page import ArchetypePage
@@ -923,21 +1027,18 @@ def test_the_view_sets_the_projection_and_the_pad(qtbot, monkeypatch) -> None:
     view.view_combo.setCurrentIndex(1)
     page.leave(state)
     assert state.config.projection == "isometric"
-    # a pack of squares: the view stays From above, with the reason the run would give
+    # a pack of squares: the view stays From above, and there is no row to say so
     page, state = _kind_page(qtbot, "turn_based", "basic16")
     view = page.view_choice
-    assert not view.isHidden() and view.projection() == "top_down"
-    assert not view.view_combo.isEnabled()
-    assert view.view_combo.toolTip() == iso_atlas.NO_GROUND_REASON
-    assert not view.note.isHidden() and view.note.text() == iso_atlas.NO_GROUND_REASON
-    assert "no isometric ground tile" in view.note.text()
+    assert view.isHidden() and view.projection() == "top_down"
+    assert iso_atlas.ground_problem(page.model.catalog), "the run would refuse the view"
     assert not page.model.set_view("isometric", "screen"), "and it cannot be set"
     assert page.model.draft.projection == "top_down"
     page.leave(state)
     assert state.config.projection == "top_down"
     # a config that asks for the view its packs no longer have goes back to squares
     page, state = _kind_page(qtbot, "turn_based", "basic16", projection="isometric")
-    assert page.view_choice.projection() == "top_down"
+    assert page.view_choice.projection() == "top_down" and page.view_choice.isHidden()
     page.leave(state)
     assert state.config.projection == "top_down"
 

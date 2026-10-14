@@ -229,9 +229,10 @@ PAD_CHOICES = (
 
 class ViewChoice(QWidget):
     """How the maps of the project are seen (T17.16): *From above* or *Isometric*, and with
-    the isometric view how the pad moves the player. The box of a kind that has the view holds
-    one; it is hidden until ``show_state`` says the view can be chosen. ``prefix`` names its
-    widgets (``starterView``, ``farmView``, ``raceView``)."""
+    the isometric view how the pad moves the player, for a kind whose player walks (a race is
+    steered: it has its *Steering* and no *Pad*). The box of a kind that has the view holds
+    one; it is hidden until ``show_state`` says there is a view to choose. ``prefix`` names
+    its widgets (``starterView``, ``farmView``, ``raceView``)."""
 
     edited = Signal()
 
@@ -239,6 +240,7 @@ class ViewChoice(QWidget):
         super().__init__(parent)
         self.setObjectName(f"{prefix}Choice")
         self._loading = False
+        self._pad = True  # the kind reads the Pad (``ViewState.pad``)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(2)
@@ -291,9 +293,9 @@ class ViewChoice(QWidget):
             self.edited.emit()
 
     def _show_pad(self) -> None:
-        isometric = self.projection() == config_mod.PROJECTION_ISOMETRIC
-        self.pad_label.setVisible(isometric)
-        self.pad_combo.setVisible(isometric)
+        shown = self._pad and self.projection() == config_mod.PROJECTION_ISOMETRIC
+        self.pad_label.setVisible(shown)
+        self.pad_combo.setVisible(shown)
 
     def show_state(self, state: ViewState) -> None:
         """The choice as the model has it: shown or not, what is chosen, whether it can be
@@ -301,6 +303,7 @@ class ViewChoice(QWidget):
         self._loading = True
         try:
             self.setVisible(state.shown)
+            self._pad = state.pad
             self.view_combo.setCurrentIndex(max(0, self.view_combo.findData(state.projection)))
             self.pad_combo.setCurrentIndex(max(0, self.pad_combo.findData(state.controls)))
             self.view_combo.setEnabled(state.can_choose)

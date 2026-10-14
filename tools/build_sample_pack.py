@@ -2590,9 +2590,8 @@ def _farm_overrides(cat, edits, name):  # noqa: ANN001, ANN202
 
 
 def _iso_overrides(cat, edits, name):  # noqa: ANN001, ANN202
-    """The slime is who the hero fights (a sheet in a folder of characters is read as a
-    villager), and the chest is a chest."""
-    cat = edits.set_override(cat, f"{name}.characters.slime", "role", "ENEMY")
+    """The chest is a chest. (The slime is read as an enemy by its name, though it lies in the
+    folder of characters.)"""
     return edits.set_override(cat, f"{name}.items.chest", "tags", ["chest"])
 
 

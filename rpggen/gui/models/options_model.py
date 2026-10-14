@@ -66,6 +66,13 @@ EXISTING_FARM_TEXT = (
 # a farm's options that are read on every generation (the rest is fixed once the farm exists)
 FARM_LIVE = ("days_per_season", "day_length", "fishing", "pass_out_loss", "added_maps")
 VIEW_FIXED_TEXT = "the view of a generated project cannot be changed"
+# Why the View stays From above for packs that have isometric pictures and no isometric ground:
+# the wizard's own sentence (the command line's is ``iso_atlas.NO_GROUND_REASON``, which names
+# the config's keys)
+VIEW_NO_GROUND_TEXT = (
+    "These packs have isometric pictures but no isometric ground tile to build a map on. "
+    "Give one the role Ground on the Audit page."
+)
 IMPORTED_STARTER_TEXT = (
     "The starter map is an imported map, so the layout options are not used. "
     "Set the starter map under Imported maps back to the layout options to use them."
@@ -107,11 +114,12 @@ class StarterState:
 class ViewState:
     """The *View* choice of a kind that can be isometric (T17.16)."""
 
-    shown: bool  # the kind has the view and the wizard offers it
+    shown: bool  # the kind has the view, the wizard offers it and the packs have isometric art
     projection: str = config_mod.PROJECTION_TOP_DOWN
     controls: str = config_mod.ISO_CONTROLS_SCREEN
     can_choose: bool = False  # False: the packs have no isometric ground, or the project exists
     reason: str = ""  # why not, for the tooltip and the line under the choice
+    pad: bool = True  # False: the kind does not read the Pad (a race has its Steering)
 
 
 def view_offered(archetype: str) -> bool:
@@ -226,7 +234,7 @@ class OptionsModel:
         cfg.git = dict(self.draft.git)
         cfg.export_targets = self.draft.selected_export_targets()
         cfg.repair_world = self.draft.repair_world
-        cfg.iso_controls = self.draft.iso_controls
+        cfg.iso_controls = config_mod.iso_controls_for(cfg.archetype, self.draft.iso_controls)
         if cfg.projection != self.draft.projection:
             # what was chosen on the Mapping page for the other view may not fit this one
             from rpggen.core import mapping
@@ -568,17 +576,23 @@ class OptionsModel:
 
     def view_state(self) -> ViewState:
         """The *View* choice: shown for a kind that has the isometric view while the wizard
-        offers it; preselected (the draft's); fixed once the project exists; and without
-        isometric ground it stays *From above*, with the reason the run would give."""
+        offers it and a pack has isometric pictures (with packs of squares alone there is
+        nothing to choose and nothing to explain, so there is no row); preselected (the
+        draft's); fixed once the project exists; and with isometric pictures but no isometric
+        ground it stays *From above*, with the reason in the wizard's words. The *Pad* is for
+        the kinds whose player walks."""
         if self.draft is None or not view_offered(self.draft.archetype):
             return ViewState(False)
         draft = self.draft
+        isometric = draft.projection == config_mod.PROJECTION_ISOMETRIC
+        if not isometric and not options.has_isometric_art(self.catalog):
+            return ViewState(False)
+        pad = draft.archetype in config_mod.ISO_CONTROLS_KINDS
+        controls = config_mod.iso_controls_for(draft.archetype, draft.iso_controls)
         if project_exists(self.state):
-            return ViewState(
-                True, draft.projection, draft.iso_controls, False, self.tr(VIEW_FIXED_TEXT)
-            )
-        problem = options.isometric_problem(self.catalog)
-        return ViewState(True, draft.projection, draft.iso_controls, not problem, problem)
+            return ViewState(True, draft.projection, controls, False, self.tr(VIEW_FIXED_TEXT), pad)
+        reason = self.tr(VIEW_NO_GROUND_TEXT) if options.isometric_problem(self.catalog) else ""
+        return ViewState(True, draft.projection, controls, not reason, reason, pad)
 
     def set_view(self, projection: str, controls: str) -> bool:
         """The view and the pad as the user chose them; False when nothing changed. A view
@@ -590,6 +604,8 @@ class OptionsModel:
             projection = self.draft.projection
         if controls not in config_mod.ISO_CONTROLS:
             controls = self.draft.iso_controls
+        if not state.pad:  # the kind does not read it: nothing the page shows sets it
+            controls = config_mod.ISO_CONTROLS_SCREEN
         if (projection, controls) == (self.draft.projection, self.draft.iso_controls):
             return False
         if projection != self.draft.projection and self.state is not None:

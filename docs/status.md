@@ -199,15 +199,28 @@ should know:
   isometric people for a race; the diamond picture of an isometric race on the Options page
   (it is shown from above). Marriage, festivals, cooking and crafting are left out by design
   (Part E of the spec).
-* **Faults that are known and left.** A slime in a folder of characters is read as an NPC
-  without the sample's profile. The *Pad* choice is shown for an isometric race, which does
-  not use it. The reason under a *View* choice that cannot be isometric is the command line's
-  sentence (it names `GROUND` and `top_down`). The first paragraph of a generated README says
-  *a farm RPG starter* and *a racing RPG starter*. A coop on a pack that has only cows stays
-  empty. With a calendar the outdoor light follows it whatever the player's *Day and night*
-  setting says. A walking villager does not avoid the player. The second choice of a dialogue
-  is cut off at the bottom of the window in the picture of *Stone isle* (`game_isometric.png`);
-  whether that is the isometric project's alone was not looked into.
+* **Faults that are known and left.** A coop on a pack that has only cows stays empty. With
+  a calendar the outdoor light follows it whatever the player's *Day and night* setting says.
+  A walking villager does not avoid the player. The texts the Options page takes from its
+  model (the reason under a *View* that cannot be chosen, the note of an existing map) are
+  not in the translation file: they are passed to `tr()` as constants, which the extraction
+  does not see. A crop that is still standing in a saved game when its kind is removed from
+  `crops.json` stays where it is and cannot be picked. A dialogue line with so many choices
+  that its box is higher than the screen is not scrolled.
+* **Faults of the first list that were mended** (2026-10-13, after the documentation): the
+  second choice of a dialogue was cut off at the bottom of the window, in every kind of game
+  since 1.0 and not in the isometric one alone (the box grew downward; it grows upward); a
+  slime in a folder of characters was read as an NPC (a monster's own name now counts for
+  more than a folder that says only *characters*; the sample's profile no longer has to say
+  it); the *Pad* choice was offered for an isometric race; the *View* choice was shown,
+  disabled, for every project of packs that have nothing isometric, with the command line's
+  sentence under it; a generated README called a farm and a race *RPG starters* with *a
+  talking NPC, a chest*; the sample chooser promised a pack for each kind of game; the axe was
+  silent; a track's README listed nodes a track may not have; a crop, an animal or a fish
+  deleted from the user's list could not be removed (an entry `"removed": true` does it).
+  One was no fault: the welcome view's cards are 4 px taller than in the pictures of 1.3
+  because their height of 160 px has held since a fix of M16 (`CardButton.set_floor_height`),
+  not because of the seven samples; the goldens only showed it when they were next made.
 * The French file has the new wizard texts of M17 unfinished.
 
 The gate (T17.20) is open:

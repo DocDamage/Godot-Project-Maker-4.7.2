@@ -99,3 +99,29 @@ def test_the_smoke_steps_and_the_installed_files_of_a_racing_game(tmp_path: Path
     # another kind does not get the car
     other = staging.install_templates(staging.create_staging(tmp_path / "o"), templates, "shmup")
     assert not [w for w in other if "/racing/" in w or "smoke_steps_racing" in w]
+
+
+def test_a_race_does_not_read_iso_controls_and_its_config_never_carries_it() -> None:
+    """A race is steered (``starter_map.steering``), in both views: ``iso_controls`` is the
+    pad of the kinds whose player walks. A config of a race that has the key is accepted, the
+    key is read as the default and is not written back; a dry run never names it."""
+    from rpggen.core import dry_run
+
+    assert config.ISO_CONTROLS_KINDS == ("turn_based", "arpg", "farm")
+    assert set(config.ISOMETRIC_KINDS) - set(config.ISO_CONTROLS_KINDS) == {"racing"}
+    cfg = _cfg(projection="isometric", iso_controls="grid")
+    data = cfg.to_json()
+    schema.validate("config", data)
+    assert data["projection"] == "isometric" and "iso_controls" not in data
+    carried = {**data, "iso_controls": "grid"}
+    schema.validate("config", carried)  # accepted
+    loaded = config.GeneratorConfig.from_json(carried)
+    assert loaded.iso_controls == "screen" and loaded.to_json() == data
+    for kind in config.ISO_CONTROLS_KINDS:
+        ref = config.PackRef("p", "p", "0" * 64, "folder")
+        walking = config.default_for("W", [ref], archetype=kind)
+        walking.iso_controls = "grid"
+        assert walking.to_json()["iso_controls"] == "grid", kind
+        assert config.GeneratorConfig.from_json(walking.to_json()).iso_controls == "grid"
+    source = Path(dry_run.__file__).read_text(encoding="utf-8")
+    assert "iso_controls" not in source, "nothing of a dry run prints the pad"

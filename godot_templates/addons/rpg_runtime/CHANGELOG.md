@@ -23,6 +23,15 @@ it); `RpgShopDefinition.closed_reason()` ("" for every shop but a farm's;
 `map_cell()` and `cell_ahead()`; `RpgDayNight.weather_tint` (a static `Color`, white);
 `RpgWorldMapMenu` lists no *World* row for a plan file that holds nothing but a farm's plan.
 
+**A fix that changes what every game with a dialogue shows.** `ui/dialogue_box.gd`: the panel
+of the dialogue box grows **upward** (`grow_vertical = GROW_DIRECTION_BEGIN`, set in `_ready`
+on the node `%Panel`). It stands on the bottom edge of the screen with room for a line of text;
+a line with choices needs more, and the panel took that room downward, under the screen: the
+second choice of a line was cut off, in every kind of game and at every size of text (seen in
+the picture of *Stone isle*, whose text is 16 px; with 8 px the second of two choices was cut
+too). A line without choices is where it was. The scene `dialogue_box.tscn` is the one the
+recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with the runtime.
+
 **The calendar.**
 
 * **`RpgCalendar`** (`world/calendar.gd`): the minute of the day, the day of the season, the
@@ -229,6 +238,18 @@ it); `RpgShopDefinition.closed_reason()` ("" for every shop but a farm's;
   without interior tiles are painted with it, not with the grass and the hedge of the maps
   outside, and no season changes it. This is for new maps: a map that exists is never built
   again.
+
+* **A thing the user's file takes away stays away.** `RpgCropData`, `RpgAnimalData` (its
+  `animals`) and `RpgForage` (`forage` and `fish`) read the user's file and then what only the
+  planned file has, so a crop, a kind, a fish or a thing whose entry was deleted came back. An
+  entry `{"id": "<id>", "removed": true}` in the user's file now takes the id away: nothing
+  is added for it, and no later entry of that id is (`removed`, the ids). `RpgFriendship`
+  reads `people.json` alone, so a deleted person was always gone; an entry with the mark is
+  nobody there too. The arcade kinds' `stages.json` keeps its rule.
+* **Every tool is heard.** `tools/axe.gd` plays `sfx_hoe` when it clears a stump or a branch
+  (it was silent: the farm has no slot for an axe alone). The sickle plays `sfx_harvest`
+  whatever it cuts, the rod `sfx_water` for its cast and `sfx_harvest` for a fish, as before;
+  `sounds.gd` has the rule.
 
 **The isometric view.**
 

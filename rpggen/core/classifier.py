@@ -42,6 +42,11 @@ KEYWORD_WEIGHTS = {role: kws for role, kws in ROLE_KEYWORDS}
 DEEP_FOLDER_WEIGHT = 1.0
 OTHER_FOLDER_WEIGHT = 0.6
 FILE_WEIGHT = 0.9
+# The words that say only that a picture is somebody (a folder of characters). They speak for a
+# villager, unless the picture's own name says it is a monster or a boss: a slime in a folder of
+# characters is a slime. (A hero there wins already, by the order of the table.)
+SOMEBODY_WORDS = frozenset({"character", "characters"})
+MONSTER_ROLES = ("ENEMY", "BOSS")
 
 _SPLIT_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 _SPLIT_NON_ALNUM = re.compile(r"[^A-Za-z0-9]+")
@@ -919,9 +924,12 @@ def classify(
     deep_tokens = {t for f in deep_folders for t in _tokenize(f)}
     other_tokens = {t for f in folders[:-2] for t in _tokenize(f)}
 
+    named_monster = any(kw in file_tokens for role in MONSTER_ROLES for kw in KEYWORD_WEIGHTS[role])
     scores = {role: 0.0 for role in ROLE_ORDER}
     for role, keywords in ROLE_KEYWORDS:
         for kw, weight in keywords.items():
+            if named_monster and kw in SOMEBODY_WORDS:
+                continue  # the name says what it is: "somebody" adds nothing
             mult = 0.0
             if kw in deep_tokens:
                 mult = DEEP_FOLDER_WEIGHT

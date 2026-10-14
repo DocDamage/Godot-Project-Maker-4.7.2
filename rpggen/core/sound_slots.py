@@ -128,7 +128,11 @@ ARCHETYPE_SLOTS: dict[str, tuple[Slot, ...]] = {
     ),
     # the farm (T17.02)
     "farm": (
-        Slot("sfx_hoe", SFX, "Hoe", "The hoe tills the ground.", ("hoe", "till", "dig")),
+        # every tool is heard through these (``archetypes/farm/sounds.gd`` has the rule): the
+        # axe strikes with the hoe's, the sickle and a fish landed are the harvest's, a cast
+        # of the rod is the can's
+        Slot("sfx_hoe", SFX, "Hoe", "The hoe tills the ground; the axe strikes with it too.",
+             ("hoe", "till", "dig")),
         Slot("sfx_water", SFX, "Watering", "The watering can waters the soil.",
              ("watering", "water", "splash", "pour")),
         Slot("sfx_plant", SFX, "Plant", "A seed is planted.", ("plant", "seed", "sow")),

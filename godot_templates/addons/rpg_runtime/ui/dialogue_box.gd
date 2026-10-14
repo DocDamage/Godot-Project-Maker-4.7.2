@@ -2,6 +2,9 @@ class_name RpgDialogueBox
 extends CanvasLayer
 ## Shows a dialogue at the bottom of the screen. Scene unique names: Panel, Portrait, Speaker, Body,
 ## Choices. Joins the group "rpg_dialogue_box" so NPCs and signs can find it.
+##
+## The panel stands on the bottom edge of the screen and grows upward: a line with choices needs
+## more room than the panel's own height, and that room is above it, not under the screen.
 
 var runner := RpgDialogueRunner.new()
 var _actor: Node = null
@@ -13,6 +16,9 @@ func _ready() -> void:
 	layer = 50
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
+	var panel := get_node_or_null("%Panel") as Control
+	if panel != null:
+		panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 
 func is_open() -> bool:
 	return _open

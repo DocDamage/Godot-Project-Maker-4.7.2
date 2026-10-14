@@ -3,7 +3,8 @@ extends RefCounted
 ## The crops of a farm (T17.05): `game/data/crops.json`, one entry a crop. The file is the
 ## user's (written once); the crops rpggen planned since (a crop added to the packs later) are
 ## taken from `generated/data/crops.json`, which every build writes, when the user's file does
-## not list them.
+## not list them. So an entry that is only deleted comes back from the planned list; the user's
+## file takes a crop away for good with `{"id": "berry", "removed": true}`.
 ##
 ## An entry: `id`, `name`, `seed` and `produce` (item ids), `seasons` (the names of the seasons
 ## it grows in), `days` (watered nights from seed to ripe), `stages` (the pictures of its growth
@@ -18,6 +19,8 @@ const PLANNED_PATH := "res://generated/data/crops.json"
 ## Crop id -> its entry, and the ids in the order of the files.
 var crops: Dictionary = {}
 var order: Array[String] = []
+## The ids an entry `"removed": true` took away: no later entry of such an id is added.
+var removed: Array[String] = []
 
 ## The crops of the running game: the user's file, then what only the planned file has.
 static func load_default() -> RpgCropData:
@@ -35,12 +38,16 @@ func add_file(path: String) -> void:
 	add_list(RpgUtil.to_array(RpgUtil.to_dict(RpgUtil.restore_numbers(parsed)).get("crops", [])))
 
 ## Adds entries (what a test has instead of a file). An entry without an id, or whose id is
-## there already, is left out.
+## there already or was removed, is left out; one that says `"removed": true` adds nothing and
+## keeps every later entry of its id out.
 func add_list(entries: Array) -> void:
 	for raw: Variant in entries:
 		var entry := RpgUtil.to_dict(raw)
 		var id := RpgUtil.to_str(entry.get("id", ""))
-		if id == "" or crops.has(id):
+		if id == "" or crops.has(id) or removed.has(id):
+			continue
+		if RpgUtil.to_bool(entry.get("removed", false)):
+			removed.append(id)
 			continue
 		crops[id] = entry
 		order.append(id)

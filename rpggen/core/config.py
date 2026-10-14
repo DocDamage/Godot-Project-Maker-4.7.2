@@ -250,6 +250,15 @@ ISOMETRIC_NOT_YET: tuple[str, ...] = ()  # the race was the last (T17.15)
 ISO_CONTROLS_SCREEN = "screen"
 ISO_CONTROLS_GRID = "grid"
 ISO_CONTROLS = (ISO_CONTROLS_SCREEN, ISO_CONTROLS_GRID)
+# The kinds whose player walks, and so reads the setting. A race is steered (relative to the car,
+# or by the stick as a direction of the screen: ``starter_map.steering``): its config may carry
+# the key, which is then neither read nor written back.
+ISO_CONTROLS_KINDS = ("turn_based", "arpg", "farm")
+
+
+def iso_controls_for(archetype: str, wanted: str) -> str:
+    """``wanted`` for a kind that reads ``iso_controls``, the default for one that does not."""
+    return wanted if archetype in ISO_CONTROLS_KINDS else ISO_CONTROLS_SCREEN
 
 
 def default_features(archetype: str = "turn_based") -> dict[str, bool]:
@@ -313,8 +322,9 @@ class GeneratorConfig:
             out["repair_world"] = False
         if self.projection != PROJECTION_TOP_DOWN:  # a top-down config is what it was
             out["projection"] = self.projection
-        if self.iso_controls != ISO_CONTROLS_SCREEN:  # the default is not written
-            out["iso_controls"] = self.iso_controls
+        controls = iso_controls_for(self.archetype, self.iso_controls)
+        if controls != ISO_CONTROLS_SCREEN:  # the default is not written, nor what is not read
+            out["iso_controls"] = controls
         imported = self.imported_map_selection()
         if imported["include"] or imported["starter"]:
             out["imported_maps"] = {
@@ -383,7 +393,9 @@ class GeneratorConfig:
             export_targets=list(data.get("export_targets", EXPORT_TARGET_DEFAULT)),
             repair_world=bool(data.get("repair_world", True)),
             projection=str(data.get("projection", PROJECTION_TOP_DOWN)),
-            iso_controls=str(data.get("iso_controls", ISO_CONTROLS_SCREEN)),
+            iso_controls=iso_controls_for(
+                data["archetype"], str(data.get("iso_controls", ISO_CONTROLS_SCREEN))
+            ),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],

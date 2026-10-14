@@ -642,5 +642,104 @@
    "usage": "iso_tile"
   },
   "role": "WALL"
+ },
+ {
+  "path": "characters/slime.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    16
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    },
+    "walk_left": {
+     "frames": [
+      [
+       0,
+       1
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "ENEMY"
+ },
+ {
+  "path": "Characters/boss_golem.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    16
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    },
+    "walk_left": {
+     "frames": [
+      [
+       0,
+       1
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "BOSS"
+ },
+ {
+  "path": "characters/fisher.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    16,
+    16
+   ],
+   "animations": {
+    "walk_down": {
+     "frames": [
+      [
+       0,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    },
+    "walk_left": {
+     "frames": [
+      [
+       0,
+       1
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "NPC"
  }
 ]

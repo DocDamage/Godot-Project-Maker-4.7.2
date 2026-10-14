@@ -39,10 +39,11 @@ does not ask for the isometric view is built as it was.
   zip inside the pack's folder, a sprite atlas beside the same loose pictures.
 * **The wizard**: seven cards on the Archetype page (rows of four in a wide window, rows of
   three below that, one column in a narrow one) with the **Farm** card; a line that says a
-  pack looks like a farming pack or is isometric, with its diamond; on the Options page a
-  **View** choice (*From above*, *Isometric*) and, for the isometric view, a **Pad** choice,
-  in the box of each kind that has the view: chosen for the packs, refused with the reason
-  when they have no isometric ground, and fixed once the project exists; the **Farm** box with
+  pack looks like a farming pack or is isometric, with its diamond; on the Options page,
+  when a pack has isometric pictures, a **View** choice (*From above*, *Isometric*) in the
+  box of each kind that has the view and, for the isometric view of a kind whose player
+  walks, a **Pad** choice (a race has its *Steering*): chosen for the packs, refused with the
+  reason when they have no isometric ground, and fixed once the project exists; the **Farm** box with
   the planned farm as a picture (on squares or on diamonds), the days of a season and the
   length of a day; the presets *Cosy* and *Short year*.
 * **Two more samples** under *Choose a sample*, which lists seven: *Green acre* (a farm) and
@@ -69,6 +70,26 @@ does not ask for the isometric view is built as it was.
   into; small diamonds were measured too coarsely; a farm whose villager stood where a
   check of the generation put its gate failed that check; and the farm's sound slots (hoe,
   watering, plant, harvest, animal, rooster) were offered on the Mapping page and never played.
+* **Mended after the milestone's documentation was written**:
+  * **A dialogue's choices are on the screen.** The dialogue box grew downward when a line had
+    choices, so the second choice was cut off at the bottom of the window. This was so in
+    every kind of game since 1.0; the box now grows upward. The generated scenes are what they
+    were (the fix is in the runtime's script).
+  * A monster or a boss in a folder that only says *characters* (`characters/slime.png`) is
+    read as an enemy, not as a villager: its own name counts for more than the folder's.
+  * The first paragraph of a generated README says what the project is for every kind (a race
+    was "a **racing** RPG starter" with "a talking NPC, a chest"). The README of a turn-based
+    game and of an action RPG is unchanged; a metroidvania's no longer says *a small map*.
+  * On a farm, a crop, an animal, a fish or a thing to forage can be removed for good with
+    `{ "id": "berry", "removed": true }` in `game/data/crops.json`, `animals.json` or
+    `forage.json` (a deleted entry comes back from rpggen's own list, as before).
+  * The axe is heard: it plays the **Hoe** sound.
+  * The Options page shows no **View** row for packs that have nothing isometric (it was
+    shown, disabled, for every turn-based, action, farm and racing project), says in its own
+    words why packs with isometric pictures and no isometric ground stay *From above*, and
+    offers no **Pad** for a race, whose config no longer carries `iso_controls`.
+  * A track's README says that the nodes `Road`, `Marks`, `Walls` and `Scenery` are there only
+    when the track has something for them.
 
 **Known limits.** Nobody has played either the farm or an isometric game by hand yet: what is
 known is what their tests and check runs assert. Maps added to a farm are names only and are

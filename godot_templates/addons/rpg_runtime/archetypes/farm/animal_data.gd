@@ -3,7 +3,9 @@ extends RefCounted
 ## The animals a farm can have (T17.07): `game/data/animals.json`. The file is the user's
 ## (written once); the kinds and the houses rpggen planned since are taken from
 ## `generated/data/animals.json`, which every build writes, when the user's file does not list
-## them. A farm without an animal house has neither file, and this is empty.
+## them. A farm without an animal house has neither file, and this is empty. A kind that is
+## only deleted comes back from the planned list; `{"id": "hen", "removed": true}` among the
+## `animals` of the user's file takes it away for good (the houses are the map's: they stay).
 ##
 ## * `animals`: one entry a kind. `id` and `name`; `house` (`coop` or `barn`); `ticket` (the
 ##   item the shop lists it as: it is never in the bag) and `cost`; `product` and `price`,
@@ -26,6 +28,8 @@ const BY_HAND := "hand"
 ## Kind id -> its entry, and the ids in the order of the files.
 var kinds: Dictionary = {}
 var order: Array[String] = []
+## The kinds an entry `"removed": true` took away: no later entry of such an id is added.
+var removed: Array[String] = []
 ## House kind ("coop") -> its entry, and the kinds in the order of the files.
 var houses: Dictionary = {}
 var house_order: Array[String] = []
@@ -53,7 +57,10 @@ func add(table: Dictionary) -> void:
 	for raw: Variant in RpgUtil.to_array(table.get("animals", [])):
 		var entry := RpgUtil.to_dict(raw)
 		var id := RpgUtil.to_str(entry.get("id", ""))
-		if id == "" or kinds.has(id):
+		if id == "" or kinds.has(id) or removed.has(id):
+			continue
+		if RpgUtil.to_bool(entry.get("removed", false)):
+			removed.append(id)
 			continue
 		kinds[id] = entry
 		order.append(id)

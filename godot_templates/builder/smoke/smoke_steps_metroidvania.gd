@@ -495,6 +495,11 @@ func _gate_blocks() -> String:
 		elif i % 30 == 25:
 			Input.action_release("jump")
 		await _tree().physics_frame
+		if not is_instance_valid(player):
+			# two seconds of walking right can end at an exit of the room: the room that comes
+			# has a player of its own, and this one is gone. It did not get onto the ledge.
+			print("[rpggen] INFO the player left the room of the ledge while jumping at it, step goes on")
+			break
 		highest = minf(highest, player.global_position.y)
 		if player.is_on_floor() and player.global_position.y <= ledge_top + 1.0:
 			_release_all()
@@ -615,6 +620,8 @@ func _guardian_dies() -> String:
 	for i in 20:
 		if died[0]:
 			break
+		if not is_instance_valid(player) or not is_instance_valid(guardian):
+			break  # gone with their room: the check below says what is missing
 		guardian.speed_scale = 0.0
 		guardian.velocity.x = 0.0
 		player.global_position.x = guardian.global_position.x - tile * 1.1

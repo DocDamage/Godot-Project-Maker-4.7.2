@@ -3,7 +3,7 @@
   "title": "rpggen animals of a farm (game/data/animals.json)",
   "type": "object",
   "properties": {
-    "animals": {"type": "array", "items": {"$ref": "#/$defs/AnimalKind"}},
+    "animals": {"type": "array", "items": {"anyOf": [{"$ref": "#/$defs/AnimalKind"}, {"$ref": "#/$defs/Removed"}]}},
     "feed": {
       "type": "object",
       "properties": {
@@ -20,6 +20,16 @@
   "required": ["animals"],
   "additionalProperties": false,
   "$defs": {
+    "Removed": {
+      "description": "In the user's file: this id is taken away, and the planned list does not bring it back.",
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "removed": {"const": true}
+      },
+      "required": ["id", "removed"],
+      "additionalProperties": false
+    },
     "AnimalKind": {
       "type": "object",
       "properties": {

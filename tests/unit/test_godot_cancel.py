@@ -134,16 +134,19 @@ def test_on_line_receives_lines_before_the_process_exits(tmp_path: Path) -> None
         on_line=lambda line: seen.append((time.monotonic() - started, line)),
     )
     total = time.monotonic() - started
-    assert [line for _t, line in seen] == ["first line", "error text", "second line"]
+    lines = [line for _t, line in seen]
+    # The program prints its last two lines one right after the other, to two pipes that are
+    # read by two threads: which of the two is handed on first is not decided by rpggen (it
+    # was "error text" nearly always, and now and then it was not). What is: every line
+    # arrives, a stream keeps its own order, and a line printed 1.5 s before the others is
+    # there before them.
+    assert lines[0] == "first line" and sorted(lines[1:]) == ["error text", "second line"]
     assert seen[0][0] < total - 1.0  # the first line came while the program was still running
     assert run.stdout.splitlines() == ["first line", "second line"]
     assert run.stderr.strip() == "error text"
-    # the log has both streams, in the order they were printed
-    assert run.log_path.read_text(encoding="utf-8").splitlines() == [
-        "first line",
-        "error text",
-        "second line",
-    ]
+    # the log has both streams, every line whole and once
+    logged = run.log_path.read_text(encoding="utf-8").splitlines()
+    assert logged[0] == "first line" and sorted(logged[1:]) == ["error text", "second line"]
 
 
 def test_the_log_file_is_written_while_the_process_runs_and_survives_a_cancel(

@@ -3938,15 +3938,23 @@ What you set for their assets in the audit is not used any more.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>A sample pack for each kind of game</source>
+        <source>The bundled sample packs: several kinds of game, and one in the isometric view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fills in the bundled sample pack, generates it and shows the result. Choose a sample offers the samples of other kinds of game and of the isometric view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The bundled sample packs: several kinds of game</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fills in the bundled sample pack, generates it and shows the result. Choose a sample offers the samples of other kinds of game</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Fills in the bundled sample pack, generates it and shows the result. Choose a sample offers the side-view sample too</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Fills in the bundled sample pack, generates it and shows the result. Choose a sample offers a pack for each kind of game</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

@@ -79,7 +79,9 @@ is the same race:
 - In the scene of a track, the node **View** says how the plan is seen (the diamond, and how
   many px of the plan one diamond is wide). **Barriers**, **Surfaces**, the cars and the
   **Pickups** are where the plan has them, which is not where you see them in the editor;
-  **Ground**, **Road**, **Marks**, **Walls** and **Scenery** are what is seen.
+  **Ground**, **Road**, **Marks**, **Walls** and **Scenery** are what is seen. Of these only
+  **Ground** is in every track: **Road**, **Marks**, **Walls** and **Scenery** are there only
+  when the track has something for them (a track without scenery has no **Scenery** node).
 - When your pack has road pieces that name their sides (`roadNS`, `roadES`, …), the road is
   laid from them, one piece for each cell of the loop, and the corners of the track are its
   corner pieces. The car still drives the square corner of the plan, so at the outside of a

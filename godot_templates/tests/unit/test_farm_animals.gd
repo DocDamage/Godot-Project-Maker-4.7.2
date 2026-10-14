@@ -528,3 +528,23 @@ func test_the_data_of_the_animals(t) -> void:
 	data.add({"animals": [{"id": "hen", "house": "barn"}, {"id": "duck", "house": "coop", "variants": [{"id": "duck", "scene": "res://duck.tscn"}]}], "houses": [{"kind": "coop", "stalls": 9}], "feed": {"item": "grain", "price": 1}, "names": ["X"]})
 	t.eq([data.house_of("hen"), data.stalls("coop"), data.feed_item, data.names.size()], ["coop", 2, &"hay", 3])
 	t.eq([data.order, data.scene_of("duck", 0), data.scene_of("duck", 5), data.scene_of("cat", 0)], [["hen", "cow", "duck"], "res://duck.tscn", "res://duck.tscn", ""])
+
+func test_a_kind_the_users_file_removes_does_not_come_back_from_the_planned_list(t) -> void:
+	var planned := {
+		"animals": [{"id": "hen", "house": "coop", "ticket": "animal_hen", "cost": 100}, {"id": "duck", "house": "coop", "ticket": "animal_duck", "cost": 150}],
+		"houses": [{"kind": "coop", "stalls": 2}],
+	}
+	var deleted := RpgAnimalData.new()
+	deleted.add({"animals": [planned["animals"][0]], "houses": planned["houses"]})
+	deleted.add(planned)
+	t.eq(deleted.order, ["hen", "duck"] as Array[String], "a kind that is only deleted comes back")
+	var data := RpgAnimalData.new()
+	data.add({"animals": [{"id": "duck", "removed": true}, planned["animals"][0]], "houses": planned["houses"]})
+	data.add(planned)
+	t.eq(data.order, ["hen"] as Array[String])
+	t.eq(data.removed, ["duck"] as Array[String])
+	t.ok(not data.has("duck"))
+	t.eq(data.kind_of_ticket(&"animal_duck"), "", "the shop has no ticket for it")
+	t.eq(data.kinds_of("coop"), ["hen"] as Array[String])
+	t.eq(data.stalls("coop"), 2, "the house is the map's: it stays")
+	t.ok(not data.is_empty())

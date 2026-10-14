@@ -6,6 +6,14 @@ extends RefCounted
 ##   sfx_plant    a seed went into the soil      sfx_harvest  a ripe crop was picked, the sickle cut
 ##   sfx_animal   an animal was petted or fed    sfx_rooster  a new day began
 ## (`sfx_sell` is the morning's summary, RpgDayEnd; the rod and the forage play theirs themselves.)
+##
+## Every tool is heard, and the slots are seven: a tool that has no slot of its own takes the
+## one whose work is nearest to its own.
+##   the hoe          sfx_hoe                    the axe          sfx_hoe (a tool that strikes)
+##   the can          sfx_water                  the sickle       sfx_harvest (a crop or grass cut)
+##   the rod          sfx_water (the cast), sfx_harvest (a fish landed); `sfx_bite`, a slot of
+##                    your own, when the game has it
+##   a thing foraged  sfx_harvest
 
 const HOE := &"sfx_hoe"
 const WATER := &"sfx_water"

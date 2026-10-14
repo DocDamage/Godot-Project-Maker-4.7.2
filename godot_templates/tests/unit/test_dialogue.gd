@@ -2,6 +2,12 @@ extends RefCounted
 ## Dialogue: condition language, runner flow, events and JSON import (T6.06).
 
 const Fixtures := preload("../lib/fixtures.gd")
+const UiRecipes := preload("res://builder/recipes/ui_recipes.gd")
+const SceneUtil := preload("res://builder/lib/scene_util.gd")
+
+const BOX_TMP := "user://test_dialogue_box.tscn"
+## The base resolution of a generated game (the config's default), in both views.
+const BASE_RESOLUTION := Vector2i(640, 360)
 
 func _state() -> Node:
 	var state := Fixtures.install_state({&"potion": Fixtures.item(&"potion", 99, &"heal", 10)})
@@ -218,3 +224,62 @@ func test_json_import(t) -> void:
 	var bare := RpgDialogueJson.from_json('[{"text": "only"}]')
 	t.eq(bare.lines.size(), 1)
 	t.ok(RpgDialogueJson.from_json("not json") == null)
+
+# ---------------------------------------------------------------- the box on the screen
+
+## The dialogue box of a generated game (the recipe's scene, the runtime's script) on a screen of
+## the base resolution, with the text as large as the theme of the game makes it: 8 px for a
+## pack of 16 px tiles, 16 px for one of 32 px and for the isometric sample.
+func _box_on_screen(font_size: int) -> RpgDialogueBox:
+	var screen := SubViewport.new()
+	screen.name = "DialogueScreen"
+	screen.size = BASE_RESOLUTION
+	Fixtures.tree().root.add_child(screen)
+	var root: Node = UiRecipes.new().call("_build_dialogue_box")
+	SceneUtil.save_scene(root, BOX_TMP)
+	var box := (load(BOX_TMP) as PackedScene).instantiate() as RpgDialogueBox
+	var look := Theme.new()
+	look.default_font_size = font_size
+	(box.get_node("Panel") as Control).theme = look
+	screen.add_child(box)
+	if not box.is_node_ready():
+		box._ready()
+	return box
+
+func test_every_choice_of_a_line_is_on_the_screen(t) -> void:
+	for font_size: int in [8, 16]:
+		var box := _box_on_screen(font_size)
+		var screen := box.get_parent() as SubViewport
+		var line := _line("ask", "Is there anything I can help you with?")
+		line.speaker = "Villager"
+		line.choices = [_choice("Any tips?", ""), _choice("Would you like to trade with me?", ""), _choice("No, thank you.", "")]
+		box.open(_res([line]))
+		t.ok(box.is_open())
+		(box.get_node("%Body") as RichTextLabel).visible_ratio = 1.0
+		box.call("_show_choices")
+		await Fixtures.tree().process_frame
+		await Fixtures.tree().process_frame
+		var seen := Rect2(Vector2.ZERO, Vector2(BASE_RESOLUTION))
+		var panel := box.get_node("%Panel") as Control
+		var buttons := (box.get_node("%Choices") as Container).get_children()
+		t.eq(buttons.size(), 3, "font %d" % font_size)
+		t.ok(seen.encloses(panel.get_global_rect()), "font %d: the panel %s lies on the screen %s" % [font_size, panel.get_global_rect(), seen])
+		t.near(panel.get_global_rect().end.y, float(BASE_RESOLUTION.y) - 8.0, 0.01, "font %d: it stands on the bottom edge" % font_size)
+		for i in buttons.size():
+			var button := buttons[i] as Button
+			t.ok(seen.encloses(button.get_global_rect()), "font %d: choice %d %s lies on the screen" % [font_size, i, button.get_global_rect()])
+			t.ok(panel.get_global_rect().encloses(button.get_global_rect()), "font %d: choice %d lies in the panel" % [font_size, i])
+		# a line without choices is as low as it always was
+		var plain := _line("plain", "Good morning.")
+		box.call("_close")
+		box.open(_res([plain]))
+		(box.get_node("%Body") as RichTextLabel).visible_ratio = 1.0
+		await Fixtures.tree().process_frame
+		await Fixtures.tree().process_frame
+		if font_size == 8:
+			t.near(panel.get_global_rect().position.y, float(BASE_RESOLUTION.y) - 92.0, 0.01, "the panel of a plain line starts where the recipe puts it")
+		t.near(panel.get_global_rect().end.y, float(BASE_RESOLUTION.y) - 8.0, 0.01)
+		box.call("_close")
+		screen.get_parent().remove_child(screen)
+		screen.free()
+	DirAccess.remove_absolute(BOX_TMP)

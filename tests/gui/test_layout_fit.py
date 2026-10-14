@@ -394,9 +394,12 @@ def test_the_pages_of_a_farm_and_of_an_isometric_project_fit(
         if isinstance(page, OptionsPage):
             assert state.config.projection == projection, "the pages left it as it was"
             view = page.view_choice
-            assert view is not None and not view.isHidden()
+            # the row is there when a pack has isometric pictures (the ranch has none), and
+            # the Pad with the isometric view of a kind whose player walks (not a race's)
+            assert view is not None and view.isHidden() == (case == "farm")
             assert view.projection() == projection
-            assert view.pad_combo.isHidden() == (projection != "isometric")
+            pad = projection == "isometric" and archetype != "racing"
+            assert view.pad_combo.isHidden() == (not pad)
             if archetype == "farm":
                 box = page.farm_box
                 assert not box.isHidden() and box.plan is not None

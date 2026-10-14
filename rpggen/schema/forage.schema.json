@@ -3,8 +3,8 @@
   "title": "rpggen fish and forage of a farm (game/data/forage.json)",
   "type": "object",
   "properties": {
-    "forage": {"type": "array", "items": {"$ref": "#/$defs/Thing"}},
-    "fish": {"type": "array", "items": {"$ref": "#/$defs/Fish"}},
+    "forage": {"type": "array", "items": {"anyOf": [{"$ref": "#/$defs/Thing"}, {"$ref": "#/$defs/Removed"}]}},
+    "fish": {"type": "array", "items": {"anyOf": [{"$ref": "#/$defs/Fish"}, {"$ref": "#/$defs/Removed"}]}},
     "spots": {
       "type": "array",
       "items": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2}
@@ -15,6 +15,16 @@
   "required": ["forage", "fish"],
   "additionalProperties": false,
   "$defs": {
+    "Removed": {
+      "description": "In the user's file: this id is taken away, and the planned list does not bring it back.",
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "removed": {"const": true}
+      },
+      "required": ["id", "removed"],
+      "additionalProperties": false
+    },
     "Thing": {
       "type": "object",
       "properties": {

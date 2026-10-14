@@ -115,3 +115,18 @@ def test_nine_slice_rejects_non_panels() -> None:
     noise = np.random.default_rng(1).integers(0, 256, size=(32, 32, 4), dtype=np.uint8)
     noise[0, 0, 3] = 0
     assert image_facts.detect_nine_slice(noise) is None
+
+
+def test_a_monsters_name_counts_for_more_than_a_folder_of_characters() -> None:
+    """A walking sheet in a folder that says only *characters* is a villager, unless its own
+    name says it is a monster or a boss; the hero there stays the hero."""
+    walking = {"usage": "sprite", "frame": [16, 16], "animations": {"walk_down": {}}}
+    role, confidence, alt = classifier.classify(walking, "characters/slime.png", None)
+    assert role == "ENEMY" and alt[0][0] == "NPC", "the walking sheet still speaks for a villager"
+    assert confidence > alt[0][1]
+    assert classifier.classify(walking, "characters/villager_mason.png", None)[0] == "NPC"
+    assert classifier.classify(walking, "characters/mason.png", None)[0] == "NPC"
+    assert classifier.classify(walking, "characters/hero.png", None)[0] == "PLAYER"
+    assert classifier.classify(walking, "character/dragon_boss.png", None)[0] == "BOSS"
+    # a folder that names villagers is no folder of "somebody": it still decides
+    assert classifier.classify(walking, "npcs/guard_wolf.png", None)[0] == "NPC"

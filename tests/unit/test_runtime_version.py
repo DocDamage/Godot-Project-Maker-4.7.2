@@ -174,7 +174,7 @@ def test_template_only_has_known_placeholders() -> None:
     assert set(re.findall(r"\{(\w*)\}", text)) == {
         "custom_sound_slots",
         "project_name",
-        "archetype",
+        "opening",  # what the project is, in the words of its kind (staging.opening)
         "runtime_version",
         "godot_version",
         "packs_list",

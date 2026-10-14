@@ -119,7 +119,16 @@ one**, copy an entry, give it a new `id`, `seed` and `produce`, make the two ite
 `scene` at the scene of a crop you have (the pictures of another crop will do until you have
 drawn your own). A crop your packs gain later is added to `generated/data/crops.json` by the
 next generation; the game grows every crop of that list that your own list does not have. So
-a crop is not removed by deleting its entry: it comes back from that list.
+a crop is not removed by deleting its entry: it comes back from that list. **To remove one**,
+put this in the place of its entry:
+
+```json
+{ "id": "berry", "removed": true }
+```
+
+The shop then sells no seed of it, and a seed that is still in a bag can no longer be planted.
+(Pick what is standing in a saved game first: a crop the game no longer knows stays where it
+is, does not grow and cannot be picked.)
 
 ### Animals
 
@@ -164,6 +173,9 @@ The animals of the game are in **`game/data/animals.json`**, written once and th
 
 A kind or a colour your packs gain later is added to `generated/data/animals.json` by the next
 generation; the game has every kind and house of that list that your own list does not have.
+So a kind is not removed by deleting its entry; write `{ "id": "duck", "removed": true }` in its
+place among the `animals`, and the shop no longer sells it. (The houses cannot be removed this
+way: they are rooms of the map.)
 Whether a farm has a coop or a barn is decided when it is first generated, with its map.
 
 ### Money: the shipping bin and the shop
@@ -248,7 +260,9 @@ yours: a list `forage` and a list `fish`.
 **To add a fish or a thing to forage**, copy an entry, give it a new `id` and `item`, and make
 the item (copy `fish_carp.tres` in the editor and change its `id`, name and icon). What your
 packs gain later is added to `generated/data/forage.json` by the next generation; the game
-knows every entry of that list that your own list does not have.
+knows every entry of that list that your own list does not have. So a fish or a thing is not
+removed by deleting its entry; write `{ "id": "fish_eel", "removed": true }` in its place (in
+`fish` or in `forage`), and it no longer bites or lies anywhere.
 
 ### The screen
 
@@ -277,7 +291,9 @@ and what they love, like and dislike (`loves`, `likes`, `dislikes`: lists of ite
 - The pause menu has a **People** page: who you have met, their hearts, and what you know of
   their taste.
 - A person whose schedule has them on another map is away from this one. This file is read
-  as it is: a person you delete from it is gone.
+  as it is: a person you delete from it is gone. (No list of rpggen's fills it in, so it needs
+  no `"removed": true`; an entry that has the mark is nobody.) Their NPC still stands in the
+  village until you delete it from the map.
 
 ### The isometric view
 

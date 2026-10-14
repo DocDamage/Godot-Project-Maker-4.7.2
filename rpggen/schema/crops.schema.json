@@ -3,11 +3,21 @@
   "title": "rpggen crops of a farm (game/data/crops.json)",
   "type": "object",
   "properties": {
-    "crops": {"type": "array", "items": {"$ref": "#/$defs/Crop"}}
+    "crops": {"type": "array", "items": {"anyOf": [{"$ref": "#/$defs/Crop"}, {"$ref": "#/$defs/Removed"}]}}
   },
   "required": ["crops"],
   "additionalProperties": false,
   "$defs": {
+    "Removed": {
+      "description": "In the user's file: this id is taken away, and the planned list does not bring it back.",
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "removed": {"const": true}
+      },
+      "required": ["id", "removed"],
+      "additionalProperties": false
+    },
     "Crop": {
       "type": "object",
       "properties": {

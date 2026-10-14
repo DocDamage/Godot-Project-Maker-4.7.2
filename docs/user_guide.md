@@ -262,9 +262,10 @@ Collision, anything), and under *Advanced* the random seed, key/gamepad bindings
   one is off, with a line saying what it needs (the demo content needs tile sets, dialogue,
   combat and saving; enemy pathfinding needs combat). Switching the needed one back on
   restores what you had chosen.
-* **View.** The box of a turn-based RPG, an action RPG, a farm or a racing game has a **View**
-  choice, *From above* or *Isometric*. With packs of square tiles it stays *From above* and
-  the line under it says why; see [The isometric view](#3d-the-isometric-view).
+* **View.** When one of your packs has isometric pictures, the box of a turn-based RPG, an
+  action RPG, a farm or a racing game has a **View** choice, *From above* or *Isometric*; see
+  [The isometric view](#3d-the-isometric-view). With packs of square tiles alone there is no
+  such row.
 * **Starter map.** The *Starter map* box sets the size in tiles (24 to 96, with the names Small,
   Medium and Large), the ground set, how many buildings, villagers, enemies, chests,
   decorations and ground patches. The picture beside it is the real plan, drawn from your assets:
@@ -706,8 +707,10 @@ ground.
 
 The Sound section has the kind's slots: **Hoe**, **Watering**, **Plant**, **Harvest**,
 **Sell**, **Animal**, **Rooster** (a new day), the music of the four seasons (a season
-without its own plays the first that is filled) and **Night music** (from 20:00). The axe has
-no sound of its own.
+without its own plays the first that is filled) and **Night music** (from 20:00). Every tool
+is heard through these: the axe strikes with the **Hoe** sound, the sickle on grass or a
+withered crop has the **Harvest** sound, and the rod has **Watering** for its cast and
+**Harvest** for a fish landed.
 
 **The options.** The Options page has a **Farm** box above the **Village** box (the *Starter
 map* box of the other top-down kinds, without the counts of villagers and enemies: the people
@@ -729,8 +732,8 @@ are planned, and nobody is fought). *Combat* is not among the features of a farm
   pond, one without a well; rpggen plans the farm so that the farmer can walk from the door
   to the plot, the water, the bin, the yards and the way out, and reports VAL-031 if a plan
   that was changed by hand cannot be worked.
-* **View**: see [The isometric view](#3d-the-isometric-view). With a pack of square tiles it
-  stays *From above* and says why.
+* **View** (only with a pack that has isometric pictures): see
+  [The isometric view](#3d-the-isometric-view).
 * The presets **Cosy** (days of 20 minutes, nothing lost for passing out, 500 to start with)
   and **Short year** (7 days a season).
 * **Added maps** takes names (a beach, a forest). They are **names only for now**: they are
@@ -795,7 +798,10 @@ options are read on every generation.
 **What is yours.** The game reads four lists that rpggen writes once and then leaves alone:
 `game/data/crops.json` (a crop's seasons, days, regrowth and items), `game/data/people.json`
 (homes, jobs, schedules, tastes), `game/data/animals.json` and `game/data/forage.json` (fish
-and things to forage). The farm is `game/maps/farm.tscn` with the farmhouse and the animal
+and things to forage). A crop, an animal, a fish or a thing your packs gain later is added by
+the game from rpggen's own list, so deleting an entry of those three files does not remove it:
+write `{ "id": "berry", "removed": true }` in its place. (People are read from your file
+alone: delete the entry.) The farm is `game/maps/farm.tscn` with the farmhouse and the animal
 houses as rooms beside it, and the village is `game/maps/starter_map.tscn`; like every map
 they are built once. A crop, an animal or a fish your packs gain later is added to the plan
 and to the lists under `generated/data/`, and the game uses what your own lists do not have.
@@ -852,19 +858,24 @@ seven samples.
 
 **Choosing it.** On the Archetype page rpggen says *This pack is isometric (40 x 22 diamonds).
 The view is chosen on the Options page.* There, the box of each kind that has the view (the
-*Starter map*, the *Farm* box, the *Tracks* of a race) has a **View** choice:
+*Starter map*, the *Farm* box, the *Tracks* of a race) has a **View** choice **when one of your
+packs has isometric pictures**. With packs of square tiles alone there is nothing to choose,
+and the row is not shown.
 
 * *From above* or *Isometric*. For a new project rpggen chooses *Isometric* when your packs
   have isometric ground and no ground of square tiles, and *From above* otherwise.
-* **Isometric needs isometric ground tiles.** No ground is drawn for this view: without one
-  the choice stays *From above* and the line under it says why (on the command line it is
-  CAT-002). One project has one ground: isometric and square ground tiles mapped in the same
+* **Isometric needs isometric ground tiles.** No ground is drawn for this view: when your
+  packs have isometric pictures but none of them is a ground tile, the choice stays *From
+  above* and the line under it says so: *These packs have isometric pictures but no isometric
+  ground tile to build a map on. Give one the role Ground on the Audit page.* (On the command
+  line it is CAT-002.) One project has one ground: isometric and square ground tiles mapped in the same
   project are TILE-011, and tiles of a pack whose diamond is another size are left out
   (TILE-012).
 * **The view is fixed once the project has been generated**: its maps are painted in it.
-* **Pad** (shown with *Isometric*): *follows the screen* (up is up; the default) or *follows
-  the diamonds* (the four directions go along the edges of the tiles). It is for the games
-  you walk in; a race does not use it.
+* **Pad** (shown with *Isometric*, for the games you walk in): *follows the screen* (up is up;
+  the default) or *follows the diamonds* (the four directions go along the edges of the
+  tiles). A race has no *Pad*: it is steered, and its *Steering* option says how. A config
+  file of a race that carries `"iso_controls"` is accepted, and the key is not read.
 
 An isometric project is offered, on the Mapping page, only what fits its view: isometric tiles
 and objects, and characters, items and sounds of any pack; a project seen from above is

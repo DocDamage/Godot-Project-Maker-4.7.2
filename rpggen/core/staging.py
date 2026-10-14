@@ -374,6 +374,52 @@ def version_control_note(pack_art: str) -> str:
     return f"## 9.1 Version control\n\n{body}"
 
 
+# The README's first paragraph after its first sentence: what the project is and what is in it.
+# The two RPGs have the text the template always had (their README is byte for byte what it
+# was); the other kinds were called "a **racing** RPG starter" with "a talking NPC, a chest" by
+# it, and have their own.
+RPG_OPENING = (
+    "It is a **{archetype}** RPG starter: a small"
+    "\nmap, a player you can walk around with, a talking NPC, a chest, a title screen, a pause"
+    " menu and\nsaving and loading. Everything is yours to change."
+)
+KIND_OPENINGS = {
+    "metroidvania": (
+        "It is a **metroidvania** starter: a small world"
+        "\nof rooms seen from the side, a player you can run and jump with, a talking NPC, a"
+        " chest,\nenemies, a title screen, a pause menu and saving and loading. Everything is"
+        " yours to change."
+    ),
+    "shmup": (
+        "It is a **shoot 'em up** starter: a run of stages"
+        "\nwith waves of enemies and a boss each, a ship you fly and shoot with, power-ups, lives"
+        " and a\nscore, a title screen with the high scores and a pause menu. Everything is"
+        " yours to change."
+    ),
+    "run_and_gun": (
+        "It is a **run and gun** starter: a run of stages"
+        "\nseen from the side with a boss each, a soldier who runs, jumps and aims, weapons to"
+        " pick up,\nlives and a score, a title screen with high scores and a pause menu."
+        " Everything is yours to change."
+    ),
+    "racing": (
+        "It is a **racing game** starter: a championship"
+        "\nof races, a car you drive against rivals, pickups on the road, a title screen with"
+        " the high\nscores and a pause menu. Everything is yours to change."
+    ),
+    "farm": (
+        "It is a **farm** game starter: a farm with a"
+        "\nhouse and a field, crops to grow and sell, a village with a shop, days and seasons,"
+        " a title\nscreen, a pause menu and saving and loading. Everything is yours to change."
+    ),
+}
+
+
+def opening(archetype: str) -> str:
+    """What the README's first paragraph says the project is and has in it."""
+    return KIND_OPENINGS.get(archetype) or RPG_OPENING.format(archetype=archetype)
+
+
 # What the README's first paragraph adds for a kind of game the shared sections were not
 # written for. Empty for the top-down archetypes, so their README is what it was.
 KIND_NOTES = {
@@ -426,7 +472,8 @@ def render_readme(
     custom_list = "\n".join(f"  - `{key}`" for key in custom) or "  - (none yet)"
     text = template.format(
         project_name=cfg.project_name,
-        archetype=cfg.archetype,
+        archetype=cfg.archetype,  # not in the template any more; a placeholder all the same
+        opening=opening(cfg.archetype),
         runtime_version=runtime,
         godot_version=cfg.godot_version,
         packs_list=packs,

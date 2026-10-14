@@ -1,8 +1,6 @@
 # {project_name}
 
-This is a Godot game project made with rpggen. It is a **{archetype}** RPG starter: a small
-map, a player you can walk around with, a talking NPC, a chest, a title screen, a pause menu and
-saving and loading. Everything is yours to change.{kind_note}
+This is a Godot game project made with rpggen. {opening}{kind_note}
 
 - Godot version: {godot_version}
 - RPG runtime version: {runtime_version}

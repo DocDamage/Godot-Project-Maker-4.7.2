@@ -179,7 +179,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.416667,
+      "confidence": 0.473684,
       "detected": {
         "animations": {
           "idle_down": {
@@ -334,15 +334,15 @@
           8,
           15
         ],
-        "role": "NPC",
+        "role": "ENEMY",
         "roles_alt": [
           [
-            "ENEMY",
-            0.375
+            "NPC",
+            0.263158
           ],
           [
             "PLAYER",
-            0.041667
+            0.052632
           ]
         ],
         "size": [

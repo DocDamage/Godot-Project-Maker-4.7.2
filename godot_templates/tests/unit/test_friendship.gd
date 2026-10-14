@@ -347,3 +347,12 @@ func test_the_page_is_added_to_a_pause_menu_with_one_call(t) -> void:
 	Fixtures.tree().root.remove_child(menu)
 	menu.free()
 	_clear()
+
+func test_a_person_the_file_marks_as_removed_is_nobody(t) -> void:
+	Fixtures.uninstall_state()
+	Fixtures.install_state()
+	var friends := RpgFriendship.ensure()
+	friends.add_list([PEOPLE[0], {"id": "bert", "removed": true}])
+	t.eq(friends.order, ["anna"] as Array[String], "the mark of the other lists is no person")
+	t.eq(friends.person("bert"), {})
+	Fixtures.uninstall_state()

@@ -504,3 +504,32 @@ func test_which_fish_bites_by_the_calendar_and_nothing_where_none_does(t) -> voi
 	t.eq(RpgFishingBar.offset_of(0.25, 80.0), 60.0)
 	t.eq(RpgFishingBar.length_for(180.0), 72.0)
 	_cleanup()
+
+func test_a_fish_or_a_thing_the_users_file_removes_does_not_come_back(t) -> void:
+	var deleted := RpgForage.new()
+	deleted.add_lists([FORAGE[0]], [FISH[0]])
+	deleted.add_lists(FORAGE, FISH)
+	t.eq([deleted.things.size(), deleted.fish.size()], [FORAGE.size(), FISH.size()], "what is only deleted comes back")
+	deleted.free()
+	var forage := RpgForage.new()
+	forage.add_lists([{"id": "forage_nut", "removed": true}, FORAGE[0]], [{"id": "fish_eel", "removed": true}])
+	forage.add_lists(FORAGE, FISH)
+	var things: Array[String] = []
+	for entry in forage.things:
+		things.append(RpgUtil.to_str(entry["id"]))
+	var fish: Array[String] = []
+	for entry in forage.fish:
+		fish.append(RpgUtil.to_str(entry["id"]))
+	t.eq(things, ["forage_herb", "forage_leek", "forage_root"] as Array[String])
+	t.eq(fish, ["fish_perch", "fish_carp"] as Array[String])
+	t.eq(forage.removed, ["forage_nut", "fish_eel"] as Array[String])
+	t.eq(forage.fish_entry("fish_eel"), {})
+	t.eq(forage.energy_of(&"forage_nut"), 0)
+	for season: String in ["spring", "summer", "autumn", "winter"]:
+		for time: String in ["morning", "day", "evening"]:
+			t.ok(not RpgFishing.fish_of(forage.fish, season, time, "pond").has("fish_eel"), "no eel bites in %s, %s" % [season, time])
+	for day in 40:
+		var lying := RpgForage.forage_of(forage.things, 7, day, "autumn", 8)
+		for spot: Variant in lying.keys():
+			t.ok(String(lying[spot]) != "forage_nut", "no nut lies anywhere")
+	forage.free()

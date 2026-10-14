@@ -350,3 +350,44 @@ func test_the_crops_of_the_user_come_first_and_the_planned_ones_fill_in(t) -> vo
 	t.eq(data.stages("nothing"), 1, "a crop that is not there is harmless")
 	data.add_file("res://no/such/crops.json")
 	t.eq(data.order.size(), 3)
+
+func test_a_crop_the_users_file_removes_does_not_come_back_from_the_planned_list(t) -> void:
+	# a crop that is only deleted from the user's list comes back: the planned list has it
+	var deleted := RpgCropData.new()
+	deleted.add_list([CROPS[0], CROPS[2]])
+	deleted.add_list(CROPS)
+	t.eq(deleted.order.size(), CROPS.size(), "deleting an entry removes nothing")
+	# an entry that says it is removed takes the crop away, wherever it stands in the file
+	var data := RpgCropData.new()
+	data.add_list([CROPS[0], {"id": "bean", "removed": true}])
+	data.add_list(CROPS)
+	t.eq(data.order, ["corn", "leek"] as Array[String])
+	t.eq(data.removed, ["bean"] as Array[String])
+	t.ok(not data.has("bean"))
+	t.eq(data.crop_of_seed(&"seed_bean"), "", "its seed is the seed of nothing")
+	t.eq(data.crop_of_produce(&"crop_bean"), "")
+	for season: String in ["spring", "summer", "autumn", "winter"]:
+		t.ok(not data.of_season(season).has("bean"), "the shop sells no seed of it in %s" % season)
+	data.add_list(CROPS)
+	t.eq(data.order.size(), 2, "however often the planned list is read")
+	# `removed: false` is an entry like any other, and a removal of what nobody has is harmless
+	var kept := RpgCropData.new()
+	kept.add_list([{"id": "bean", "removed": false, "days": 2}, {"id": "ghost", "removed": true}])
+	kept.add_list(CROPS)
+	t.eq(kept.days("bean"), 2)
+	t.eq(kept.order, ["bean", "corn", "leek"] as Array[String])
+	# the planned list cannot bring back by a mark what the user has: the first entry counts
+	var first := RpgCropData.new()
+	first.add_list([CROPS[1]])
+	first.add_list([{"id": "bean", "removed": true}])
+	t.ok(first.has("bean"))
+	# the files: the user's, then the planned one
+	var user := "user://test_removed_crops.json"
+	var file := FileAccess.open(user, FileAccess.WRITE)
+	file.store_string(JSON.stringify({"crops": [{"id": "leek", "removed": true}, CROPS[0]]}))
+	file.close()
+	var read := RpgCropData.new()
+	read.add_file(user)
+	read.add_list(CROPS)
+	t.eq(read.order, ["corn", "bean"] as Array[String])
+	DirAccess.remove_absolute(user)

@@ -332,6 +332,23 @@ def isometric_problem(catalog: Any) -> str:
     return iso_atlas.ground_problem(catalog)
 
 
+def has_isometric_art(catalog: Any) -> bool:
+    """True when a pack of the catalog is one of isometric tiles, or one of its pictures is
+    drawn for the isometric view, whatever its role or status: there is something a *View*
+    choice could be about. False for the packs of squares most projects are made of."""
+    from rpggen.core import catalog as catalog_mod
+
+    if catalog is None:
+        return False
+    if any(catalog_mod.pack_view(pack) == "isometric" for pack in catalog.packs):
+        return True
+    return any(
+        a.kind == "image"
+        and catalog_mod.effective(a).get("projection") == catalog_mod.PROJECTION_ISOMETRIC
+        for a in catalog.assets
+    )
+
+
 def pack_footprint(catalog: Any) -> tuple[int, int] | None:
     """The diamond of the first isometric pack of a catalog (``catalog.isometric_footprint``),
     or None when no pack is isometric."""

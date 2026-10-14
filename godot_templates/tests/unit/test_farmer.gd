@@ -448,8 +448,28 @@ func test_the_work_of_the_farm_asks_for_its_sound_slots(t) -> void:
 	_stand(farmer, Vector2i(4, 1), "down")
 	t.ok(_use(farmer), "the axe clears the stump")
 	t.ok(not is_instance_valid(stump) or stump.is_queued_for_deletion())
-	t.eq(RpgFarmSounds.count, before + 5, "and has no slot of its own")
+	t.eq(RpgFarmSounds.count, before + 6, "and is heard")
+	t.eq(RpgFarmSounds.last, &"sfx_hoe", "the axe has no slot of its own: it strikes with the hoe's")
+	t.ok(not _use(farmer), "nothing left to clear")
+	t.eq(RpgFarmSounds.count, before + 6, "is silent")
+	mode.hotbar.hold_item(&"sickle")
+	var grass := _clearable(map, "grass", Vector2i(4, 2))
+	t.ok(_use(farmer), "the sickle cuts the grass")
+	t.ok(not is_instance_valid(grass) or grass.is_queued_for_deletion())
+	t.eq(RpgFarmSounds.last, &"sfx_harvest", "with the harvest's sound")
+	t.eq(RpgFarmSounds.count, before + 7)
 	_cleanup()
+
+func test_every_tool_of_the_farm_has_a_sound(t) -> void:
+	var tools: Array[RpgFarmTool] = [RpgFarmHoe.new(), RpgFarmWateringCan.new(), RpgFarmSickle.new(), RpgFarmAxe.new()]
+	var slots: Array[StringName] = [RpgFarmSounds.HOE, RpgFarmSounds.WATER, RpgFarmSounds.HARVEST, RpgFarmSounds.HOE]
+	for i in tools.size():
+		t.eq(tools[i].sound, slots[i], String(tools[i].id))
+	# the rod's use is the cast, which the fishing sounds itself
+	t.eq(RpgFarmRod.new().sound, &"")
+	t.eq(RpgFishing.CAST_SOUND, RpgFarmSounds.WATER)
+	t.eq(RpgFishing.CATCH_SOUND, RpgFarmSounds.HARVEST)
+	t.eq(RpgForage.PICK_SOUND, RpgFarmSounds.HARVEST)
 
 # ---------------------------------------------------------------- the mode
 

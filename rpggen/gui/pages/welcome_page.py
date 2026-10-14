@@ -431,24 +431,35 @@ class WelcomePage(QWidget):
         chooser = self.sample_card.add_footer(self.tr("Choose a sample"))
         chooser.setObjectName("sampleChoose")
         two = [s.key for s in offered] == ["top", "side"]
-        chooser.setToolTip(
-            self.tr("The top-down village or the side-view cave")
-            if two
-            else self.tr("A sample pack for each kind of game")
-        )
-        chooser.setMenu(menu)
-        self.sample_choose_button = chooser
-        self.sample_card.setToolTip(
-            self.tr(
+        # a sample is a pack and what it is tried as: most are a kind of game of their own, and
+        # one (Stone isle) is a view of a kind that has a sample already; no kind is promised
+        # a sample (the action RPG has none)
+        view = any(s.projection != project_model.SAMPLES[0].projection for s in offered)
+        if two:
+            chooser_tip = self.tr("The top-down village or the side-view cave")
+            card_tip = self.tr(
                 "Fills in the bundled sample pack, generates it and shows the result. "
                 "Choose a sample offers the side-view sample too"
             )
-            if two
-            else self.tr(
-                "Fills in the bundled sample pack, generates it and shows the result. "
-                "Choose a sample offers a pack for each kind of game"
+        elif view:
+            chooser_tip = self.tr(
+                "The bundled sample packs: several kinds of game, and one in the isometric view"
             )
-        )
+            card_tip = self.tr(
+                "Fills in the bundled sample pack, generates it and shows the result. "
+                "Choose a sample offers the samples of other kinds of game and of the "
+                "isometric view"
+            )
+        else:
+            chooser_tip = self.tr("The bundled sample packs: several kinds of game")
+            card_tip = self.tr(
+                "Fills in the bundled sample pack, generates it and shows the result. "
+                "Choose a sample offers the samples of other kinds of game"
+            )
+        chooser.setToolTip(chooser_tip)
+        chooser.setMenu(menu)
+        self.sample_choose_button = chooser
+        self.sample_card.setToolTip(card_tip)
 
     def _card(
         self, name: str, icon_name: str, title: str, text: str, signal: SignalInstance, tip: str
