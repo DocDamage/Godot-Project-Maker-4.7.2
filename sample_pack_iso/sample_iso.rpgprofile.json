@@ -244,6 +244,7 @@
         80,
         96
       ],
+      "corner": "square",
       "footprint": [
         40,
         22
@@ -348,6 +349,7 @@
         80,
         96
       ],
+      "corner": "square",
       "footprint": [
         40,
         22
@@ -509,6 +511,7 @@
         80,
         96
       ],
+      "corner": "square",
       "footprint": [
         40,
         22
@@ -560,6 +563,7 @@
         80,
         96
       ],
+      "corner": "square",
       "footprint": [
         40,
         22
