@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791824871206,
+  "lastUpdate": 1791951780473,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -822,6 +822,105 @@ window.BENCHMARK_DATA = {
           {
             "name": "racing game from the Dirt cup sample",
             "value": 70.9,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": false,
+          "id": "d1b36999173ac7b122c5841e916de811f76de282",
+          "message": "M17: ten faults mended, a guard in the metroidvania's smoke run, and Part F of the spec\n\nEvery choice of a dialogue is on the screen (the panel grew downward under it: an old fault of every kind); a race has no Pad choice; the View choice is shown only for packs with isometric pictures and says in the wizard's words why it cannot be chosen; a generated README opens truly for each of the seven kinds; a monster's name counts for more than a folder of characters (Stone isle's slime is its enemy without the profile); the axe has a sound; the racing README names the nodes a track really has; an entry of a farm's data file can be marked removed; the sample chooser's words. The welcome cards' height was no fault. test_godot_cancel asserted an order between two pipes that nothing gives.\n\nThe Windows metroidvania job of the first CI run on m17 logged a freed player: the smoke step that walks at a ledge for two seconds, and the guardian's, stop when the player has left with its room.\n\ndocs/spec/M17_farm_isometric.md has Part F: eight cards (T17.21 to T17.28) for what the owner asked to be addressed on 2026-10-13: the real packs' faults, added maps, the cave, festivals and birthdays, marriage, the dock and imported maps on diamonds.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-13T21:17:03-04:00",
+          "tree_id": "d3fd89a782c5bb369aa75a1b9bc23bba30b6abb5",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/d1b36999173ac7b122c5841e916de811f76de282"
+        },
+        "date": 1791951775916,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 14.64,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 1.93,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 110.16,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 21.61,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, full",
+            "value": 111.97,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 14.87,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 19.34,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 6.31,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 5.72,
+            "unit": "s"
+          },
+          {
+            "name": "metroidvania from the side-view sample",
+            "value": 60.21,
+            "unit": "s"
+          },
+          {
+            "name": "shoot 'em up from the Star lane sample",
+            "value": 71.44,
+            "unit": "s"
+          },
+          {
+            "name": "run and gun from the Jungle line sample",
+            "value": 51.84,
+            "unit": "s"
+          },
+          {
+            "name": "racing game from the Dirt cup sample",
+            "value": 66.47,
+            "unit": "s"
+          },
+          {
+            "name": "farm from the Green acre sample",
+            "value": 62.77,
+            "unit": "s"
+          },
+          {
+            "name": "isometric turn-based game from the Stone isle sample",
+            "value": 45.48,
             "unit": "s"
           }
         ]
