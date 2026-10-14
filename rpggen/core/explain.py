@@ -82,6 +82,47 @@ UNUSED_REASONS = {
         "a heading of a vehicle on a slope going up or down; a game drives on the flat ones. "
         "Give it a role to use it."
     ),
+    "layered_piece": (
+        "a piece of the pack's character (a body, eyes, hair, clothes or an accessory): the "
+        "character is put together from its pieces and is an asset of its own; this piece is "
+        "one of its choices. Give it a role to use it alone."
+    ),
+    "engine_copy": (
+        "in a folder of RPG Maker beside the pack's own pictures: the same art laid out for "
+        "another engine at its own size. Give it a role to use it as well."
+    ),
+    "aseprite_copy": (
+        "the pack's pictures once more as its Aseprite files export them, beside a folder PNG "
+        "that is used. Give it a role to use it as well."
+    ),
+    "many_buildings": (
+        "a picture of several buildings side by side, too large to be one house of the "
+        "village. Give it a role to use it whole, or cut it into objects."
+    ),
+    "character_sheet": (
+        "a sheet of a character or an animal (or the guide to its rows) that rpggen could not "
+        "read as one; it is no ground. Give it a role to use it."
+    ),
+    "portrait_piece": (
+        "a piece of a portrait drawn in layers (its eyes, its hair): rpggen does not put a "
+        "portrait together. Give it a role to use it alone."
+    ),
+    "same_tiles": (
+        "the same tiles as another picture of this pack (a sheet with spacing, a packed sheet "
+        "or single files of one set); one form is used. Give it a role to use this one as well."
+    ),
+    "compiled_sheet": (
+        "a sheet of pictures this pack also has a file each; those are used. Give it a role "
+        "to use the sheet as well."
+    ),
+    "other_size": (
+        "the pack is drawn in several sizes and another size is used (the pack's card says "
+        "which and lets you choose). Give it a role to use it as well."
+    ),
+    "preview_gif": (
+        "an animated GIF that shows a sheet the pack also has as a PNG; the sheet is used. "
+        "Give it a role to use the GIF as well."
+    ),
     classifier.UNUSED_PREVIEW_FOLDER: (
         "in a preview folder: a picture of the pack, not a part of it. Give it a role to use it."
     ),

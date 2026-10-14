@@ -1,0 +1,101 @@
+{
+  "Tilemap/tilemap.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "role": "GROUND",
+    "separation": [
+      1,
+      1
+    ],
+    "usage": "tiles"
+  },
+  "Tilemap/tilemap_packed.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0000.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0001.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0002.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0003.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0004.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0005.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0006.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0007.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0008.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0009.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0010.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0011.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0012.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0013.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0014.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0015.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0016.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0017.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0018.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0019.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0020.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0021.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0022.png": {
+    "role": "NONE"
+  },
+  "Tiles/tile_0023.png": {
+    "role": "NONE"
+  },
+  "generated/farm_crops/farm_forms__tilemap_tilemap__crop_1.png#crop_1": {
+    "frame": [
+      16,
+      16
+    ],
+    "role": "CROP",
+    "usage": "growth_strip"
+  }
+}

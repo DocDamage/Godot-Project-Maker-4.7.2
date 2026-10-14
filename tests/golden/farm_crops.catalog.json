@@ -1,0 +1,732 @@
+{
+  "assets": [
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          10
+        ],
+        "role": "DECORATION",
+        "size": [
+          48,
+          16
+        ],
+        "tags": [
+          "crop"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_crops.animals.bugs.cabbage_white",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Animals/Bugs/Cabbage White.png",
+      "sha256": "d43e8a393bd885e504e202a7bf0c499c4c378c8e0aa27ef1d7a8460cf0926335",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.7,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "sleep_down": {
+            "fps": 2.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ANIMAL",
+        "size": [
+          64,
+          48
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "farm_pack",
+      "id": "farm_crops.animals.farm.chicken.chicken_white",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Animals/Farm/Chicken/Chicken White.png",
+      "sha256": "3c0602ba603fd79e117606c1f01163e80fcaf4d4f8c9fb6ba4315db7936d4279",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/gif_strips/d8c1996a7334ab055262cab7ce7c20ca0bfd4b037b2a7ee802033cf68b3c00ea.png"
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "unused_because:preview_gif"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "farm_crops.animated.animated_gifs_16x16.mill_16x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Animated/Animated_gifs_16x16/Mill_16x16.gif",
+      "sha256": "d8c1996a7334ab055262cab7ce7c20ca0bfd4b037b2a7ee802033cf68b3c00ea",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          11
+        ],
+        "role": "NPC",
+        "roles_alt": [
+          [
+            "PLAYER",
+            0.090909
+          ]
+        ],
+        "size": [
+          48,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_crops.animated.animated_sheets_16x16.mill_16x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Animated/Animated_sheets_16x16/Mill_16x16.png",
+      "sha256": "635aa26f55cd6e7f6bbef3d12b9e28b251287ded140856afdb1539a268cb3d15",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "CROP",
+        "size": [
+          96,
+          16
+        ],
+        "stages": 6,
+        "tags": [
+          "crop",
+          "growth_by:strip",
+          "produce:cabbage",
+          "season:spring",
+          "source_file:Crops/Spring/Cabbage.png"
+        ],
+        "usage": "growth_strip"
+      },
+      "detected_by": "farm_pack",
+      "id": "farm_crops.crops.spring.cabbage",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "generated/farm_crops/farm_crops__crops_spring_cabbage.png",
+      "sha256": "11801b311ac35706b36abebad48e9e2088aed0e5b26ba7d3be91878e8e555530",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "CROP",
+        "size": [
+          80,
+          16
+        ],
+        "stages": 5,
+        "tags": [
+          "crop",
+          "growth_by:strip",
+          "produce:carrot",
+          "season:spring",
+          "source_file:Crops/Spring/Carrot.png"
+        ],
+        "usage": "growth_strip"
+      },
+      "detected_by": "farm_pack",
+      "id": "farm_crops.crops.spring.carrot",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "generated/farm_crops/farm_crops__crops_spring_carrot.png",
+      "sha256": "e7962f0ff3fea0d468ce57e22b7a20edde693dfe1d8c1accb83d474dccc0b786",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.454545,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          64,
+          64
+        ],
+        "grid": {
+          "cell": [
+            64,
+            64
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          32,
+          46
+        ],
+        "role": "NONE",
+        "size": [
+          128,
+          64
+        ],
+        "tags": [
+          "crop",
+          "same_as:Crops/Spring/Cabbage.png",
+          "season:spring",
+          "unused_because:compiled_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_crops.crops.spring.spring_crops",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Crops/Spring/Spring Crops.png",
+      "sha256": "0363c74d183b19578625c0c895360f04cebac9868057dc44f72749b2a22d71e8",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "crop",
+          "food"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "farm_pack",
+      "id": "farm_crops.icons.food_icons.cabbage",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Icons/Food Icons/Cabbage.png",
+      "sha256": "3a99682932e38563374c868d2933c2c5247e08d185f48700b5ad59da00872cdc",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "crop",
+          "food"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "farm_pack",
+      "id": "farm_crops.icons.food_icons.carrot",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Icons/Food Icons/Carrot.png",
+      "sha256": "852703b0373312c3428630d241db9b810292d8172a12a53de41c3847dccc29d7",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "ITEM",
+        "size": [
+          32,
+          16
+        ],
+        "tags": [
+          "crop",
+          "food"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "farm_pack",
+      "id": "farm_crops.icons.food_icons.carrot_cake",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Icons/Food Icons/Carrot cake.png",
+      "sha256": "52f01d780e5777b93f2508cde77beddecbb312a599003b1a5bdbfc778a5cd33d",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.481,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.074074
+          ],
+          [
+            "WALL",
+            0.037037
+          ]
+        ],
+        "size": [
+          128,
+          64
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_crops.tileset.tileset_grass_spring",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_crops",
+      "path": "assets/packs/farm_crops/Tileset/Tileset Grass Spring.png",
+      "sha256": "a42901d4994a1acb1705606390daf4e71ab3759506bc43e037b40a53f83afd3b",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "farm_pack",
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/farm_crops/LICENSE.txt"
+      ],
+      "pack_id": "farm_crops",
+      "profile_id": null,
+      "root": "assets/packs/farm_crops",
+      "source_sha256": "a18437d5a95cac1e874e9fdd0cc3ea2f86e08ab06443bb61c80ea3eccefc994b",
+      "warnings": [
+        "view:farm"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "farm_crops.tileset.tileset_grass_spring",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

@@ -467,13 +467,48 @@ KIND_NOTES = {
 }
 
 
+def credits_note(catalog: catalog_mod.Catalog | None) -> str:
+    """The README's list of the credits the packs' licences ask for (T17.29): each pack whose
+    licence requires credit, with its author, licence and page. Empty when none does, so the
+    README of a project whose packs ask for nothing is what it was."""
+    if catalog is None:
+        return ""
+    from rpggen.core import licenses
+
+    lines: list[str] = []
+    for pack in catalog.packs:
+        found = pack.effective_license()
+        if not found.attribution_required:
+            continue
+        parts = [
+            found.author.strip() or "author not named (see its licence file)",
+            licenses.label(found.license_id),
+        ]
+        if found.url.strip():
+            parts.append(found.url.strip())
+        lines.append(f"- **{pack.pack_id}**: " + " — ".join(parts))
+    if not lines:
+        return ""
+    return (
+        "\n\n### Credits\n\n"
+        "The licences of these packs require credit. Keep it in your game and on its page; the"
+        "\ngame's Credits screen shows it.\n\n" + "\n".join(lines)
+    )
+
+
 def render_readme(
-    template: str, cfg: config_mod.GeneratorConfig, runtime: str, archetype_notes: str = ""
+    template: str,
+    cfg: config_mod.GeneratorConfig,
+    runtime: str,
+    archetype_notes: str = "",
+    catalog: catalog_mod.Catalog | None = None,
 ) -> str:
     """Fill the README template (``str.format`` placeholders; values are never re-interpreted,
     so braces in a project name are safe). ``archetype_notes`` (the archetype's own section,
-    ``README.<archetype>.md``) is appended as it is."""
+    ``README.<archetype>.md``) is appended as it is. With ``catalog``, the credits the packs'
+    licences require follow the list of packs."""
     packs = "\n".join(f"- {p.pack_id}" for p in cfg.packs) or "- (none)"
+    packs += credits_note(catalog)
     from rpggen.core import sound_slots
 
     custom = sound_slots.custom_slots(cfg.sounds, cfg.archetype)
@@ -526,6 +561,7 @@ def write_project_files(
         cfg,
         runtime_version.read_version(paths.templates_root()) or "unknown",
         notes_file.read_text(encoding="utf-8") if notes_file.is_file() else "",
+        catalog,
     )
     dst = root / "README.md"
     if not dst.is_file() or dst.read_bytes().replace(b"\r\n", b"\n") != readme.encode("utf-8"):

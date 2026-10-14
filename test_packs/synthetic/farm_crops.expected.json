@@ -1,0 +1,53 @@
+{
+  "Animals/Farm/Chicken/Chicken White.png": {
+    "anims": [
+      "idle_down",
+      "sleep_down",
+      "walk_down"
+    ],
+    "frame": [
+      16,
+      16
+    ],
+    "role": "ANIMAL",
+    "usage": "sprite"
+  },
+  "Animated/Animated_gifs_16x16/Mill_16x16.gif": {
+    "role": "NONE"
+  },
+  "Crops/Spring/Spring Crops.png": {
+    "role": "NONE"
+  },
+  "Icons/Food Icons/Cabbage.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "Icons/Food Icons/Carrot cake.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "Icons/Food Icons/Carrot.png": {
+    "role": "ITEM",
+    "usage": "sprite"
+  },
+  "Tileset/Tileset Grass Spring.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "generated/farm_crops/farm_crops__crops_spring_cabbage.png": {
+    "frame": [
+      16,
+      16
+    ],
+    "role": "CROP",
+    "usage": "growth_strip"
+  },
+  "generated/farm_crops/farm_crops__crops_spring_carrot.png": {
+    "frame": [
+      16,
+      16
+    ],
+    "role": "CROP",
+    "usage": "growth_strip"
+  }
+}

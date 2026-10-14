@@ -239,6 +239,22 @@ def set_pack_license(catalog: Catalog, pack_id: str, key: str, value: Any) -> Ca
     return dataclasses.replace(catalog, packs=packs)
 
 
+def set_pack_size(catalog: Catalog, pack_id: str, size: int) -> Catalog:
+    """Use another of the sizes a pack is drawn in (T17.29). The assets are copies, and the
+    tile sets follow; nothing changes for a size the pack does not have."""
+    from rpggen.core import pack_forms
+
+    fresh = dataclasses.replace(
+        catalog,
+        assets=[copy.deepcopy(a) for a in catalog.assets],
+        pack_sizes=dict(catalog.pack_sizes),
+    )
+    if not pack_forms.use_size(fresh, pack_id, size):
+        return catalog
+    catalog_mod.assign_tilesets(fresh, catalog)
+    return fresh
+
+
 def _with_objects(catalog: Catalog, objects: list[catalog_mod.SheetObject]) -> Catalog:
     return dataclasses.replace(catalog, objects=objects)
 
@@ -444,6 +460,9 @@ class EditSession(QObject):
         return self.apply(
             "Edit pack information", lambda c: set_pack_license(c, pack_id, key, value)
         )
+
+    def set_pack_size(self, pack_id: str, size: int) -> bool:
+        return self.apply("Choose the pack's size", lambda c: set_pack_size(c, pack_id, size))
 
     def add_rule(self, rule: catalog_mod.FolderRule) -> bool:
         return self.apply("Add folder rule", lambda c: add_folder_rule(c, rule))

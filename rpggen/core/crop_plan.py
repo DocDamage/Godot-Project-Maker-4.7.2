@@ -41,6 +41,7 @@ DRAWN_STAGES = 5
 _SIZE = re.compile(r"_?\d+x\d+")
 _FRAMES = re.compile(r"_?\d+_?frames?")
 _SLUG = re.compile(r"[^a-z0-9]+")
+PRODUCE_TAG = "produce:"  # adapters.farm.PRODUCE_TAG: what a crop's reader called its produce
 
 
 class CropPlanError(ValueError):
@@ -80,7 +81,13 @@ def facts_of(catalog: Any) -> dict[str, Any]:
             continue
         stages = int(facets.get("stages") or 0)
         if stages >= 2:
-            name = crop_name(str(asset.id))
+            # the name of the produce, where the reader found it (T17.29), else the id's
+            said = [
+                str(t)[len(PRODUCE_TAG) :]
+                for t in facets.get("tags") or []
+                if str(t).startswith(PRODUCE_TAG)
+            ]
+            name = said[0] if said and said[0] else crop_name(str(asset.id))
             crops.append({"asset": str(asset.id), "name": name, "stages": stages})
     return {"crops": crops}
 

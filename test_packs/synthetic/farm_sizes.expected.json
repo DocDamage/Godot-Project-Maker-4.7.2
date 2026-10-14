@@ -1,0 +1,27 @@
+{
+  "16x16/1_Terrains_16x16.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ],
+    "usage": "tiles"
+  },
+  "32x32/1_Terrains_32x32.png": {
+    "role": "NONE"
+  },
+  "32x32/2_Fences_32x32.png": {
+    "role": "NONE"
+  },
+  "32x32/3_Props_32x32.png": {
+    "role": "NONE"
+  }
+}

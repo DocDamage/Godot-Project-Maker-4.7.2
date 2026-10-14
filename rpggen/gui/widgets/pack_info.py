@@ -60,6 +60,15 @@ class PackLicenseBox(QGroupBox):
         form.addRow("", self.credit_box)
         form.addRow("", self.warning)
         form.addRow("", self.files_label)
+        # a pack drawn in several sizes (T17.29): which one the project uses
+        self.size_combo = QComboBox()
+        self.size_combo.setObjectName(f"packSize_{pack_id}")
+        self.size_combo.setToolTip(
+            self.tr("The pack is drawn in several sizes: the project uses one of them")
+        )
+        self.size_label = QLabel(self.tr("Tile size"))
+        form.addRow(self.size_label, self.size_combo)
+        self.size_combo.activated.connect(self._on_size)
         self.license_combo.activated.connect(self._on_license)
         self.author_edit.editingFinished.connect(
             lambda: self._set("author", self.author_edit.text().strip())
@@ -74,6 +83,28 @@ class PackLicenseBox(QGroupBox):
 
     def _on_license(self, index: int) -> None:
         self._set("license_id", str(self.license_combo.itemData(index) or ""))
+
+    def _on_size(self, index: int) -> None:
+        size = self.size_combo.itemData(index)
+        if isinstance(size, int):
+            self.session.set_pack_size(self.pack_id, size)
+
+    def show_sizes(self) -> None:
+        """The sizes the pack is drawn in, the one used chosen; hidden for a pack of one size."""
+        from rpggen.core import pack_forms
+
+        catalog = self.session.catalog
+        sizes = pack_forms.sizes_of(catalog, self.pack_id)
+        self.size_combo.blockSignals(True)
+        self.size_combo.clear()
+        for size in sizes:
+            self.size_combo.addItem(self.tr("{0} px").format(size), size)
+        used = catalog.pack_sizes.get(self.pack_id)
+        if used in sizes:
+            self.size_combo.setCurrentIndex(sizes.index(used))
+        self.size_combo.blockSignals(False)
+        self.size_combo.setVisible(len(sizes) > 1)
+        self.size_label.setVisible(len(sizes) > 1)
 
     def show_pack(self, pack: CatalogPack) -> None:
         found = pack.effective_license()
@@ -101,6 +132,7 @@ class PackLicenseBox(QGroupBox):
         self.files_label.setText(
             self.tr("Read from: {0}").format(files) if files else self.tr("No licence file found.")
         )
+        self.show_sizes()
 
 
 class PackInfoPanel(QWidget):
@@ -115,7 +147,8 @@ class PackInfoPanel(QWidget):
         intro = QLabel(
             self.tr(
                 "What the licence files of each pack say. Correct anything that is wrong: the "
-                "game's Credits screen lists every pack with its author and licence."
+                "game's Credits screen lists every pack with its author and licence. A pack "
+                "drawn in several sizes is used in one of them; choose it here."
             )
         )
         intro.setWordWrap(True)

@@ -289,6 +289,9 @@ class Catalog:
     # LPC characters put together from a body and layers (M16): [{id, name, body, layers,
     # auto?}]; see ``lpc_compose``.
     characters: list[dict[str, Any]] = field(default_factory=list)
+    # The size a pack drawn in several sizes is used in (T17.29): {pack id: px}; see
+    # ``pack_forms.choose_sizes``. Only the packs that have several sizes are listed.
+    pack_sizes: dict[str, int] = field(default_factory=dict)
 
     def allocate_source_id(self, tileset: str) -> int:
         """Return the next never-reused source id of ``tileset`` and advance the counter."""
@@ -312,6 +315,8 @@ class Catalog:
             out["variants"] = copy.deepcopy(self.variants)
         if self.characters:
             out["characters"] = copy.deepcopy(self.characters)
+        if self.pack_sizes:  # optional: a catalog of packs of one size each is unchanged
+            out["pack_sizes"] = {k: int(v) for k, v in sorted(self.pack_sizes.items())}
         return out
 
     def _to_json(self) -> dict[str, Any]:
@@ -342,6 +347,7 @@ class Catalog:
             maps=copy.deepcopy(d.get("maps", [])),
             variants=copy.deepcopy(d.get("variants", [])),
             characters=copy.deepcopy(d.get("characters", [])),
+            pack_sizes={str(k): int(v) for k, v in (d.get("pack_sizes") or {}).items()},
         )
 
 
@@ -483,6 +489,39 @@ def _group_names(tile_assets: list[Asset]) -> dict[str, tuple[str, int]]:
     return names
 
 
+NOT_A_HOUSE_WORDS = frozenset(
+    {"bridge", "bridges", "fence", "fences", "tree", "trees", "rock", "rocks", "stone", "stones",
+     "cliff", "cliffs", "water", "path", "paths", "bush", "bushes", "boat", "boats"}
+)  # fmt: skip
+HOUSE_WORDS = frozenset({"house", "houses", "home", "building", "buildings", "barn", "shop"})
+
+
+def _another_form(asset: Asset) -> bool:
+    """True for a sheet set aside as another form of the tiles the pack has (T17.29: the same
+    tiles once more, or a size of the pack that is not used), while nobody gave it a role: it
+    joins no tile set, so that no tile set is made in a size the project does not use."""
+    from rpggen.core import classifier, pack_forms
+
+    eff = effective(asset)
+    if eff.get("role") != "NONE":
+        return False
+    if asset.pack_id == "generated" and "generated_terrain" in (eff.get("tags") or []):
+        # the terrain drawn from a sheet set aside: a sheet of another engine (the source's
+        # role was NONE when it was drawn, and a terrain of the packs has a role)
+        return True
+    reasons = {
+        pack_forms.SAME_TILES,
+        pack_forms.COMPILED_SHEET,
+        pack_forms.OTHER_SIZE,
+        pack_forms.CHARACTER_SHEET,
+        pack_forms.ENGINE_COPY,
+    }
+    return any(
+        str(t).startswith(classifier.UNUSED_TAG) and str(t)[len(classifier.UNUSED_TAG) :] in reasons
+        for t in eff.get("tags") or []
+    )
+
+
 def assign_tilesets(
     catalog: Catalog,
     previous: Catalog | None,
@@ -511,7 +550,7 @@ def assign_tilesets(
     tile_assets = [
         a
         for a in sorted(catalog.assets, key=lambda a: _sort_key(a.id))
-        if effective(a).get("usage") == "tiles" and a.status != "MISSING"
+        if effective(a).get("usage") == "tiles" and a.status != "MISSING" and not _another_form(a)
     ]
     missing_sources = {
         a.id for a in catalog.assets if a.status == "MISSING" and a.id in prev_source_of
@@ -832,23 +871,68 @@ def _farm_roles(assets: list[Asset], root: str) -> None:
     folder of tools is the watering can, not a pond), a crop of one picture is a ``CROP``, and
     an animated overlay tagged ``weather`` is an ``EFFECT``, so that the rain is nobody to talk
     to. A growth strip is a ``CROP`` in every pack, where it is read."""
-    from rpggen.core import classifier
+    from rpggen.core import classifier, pack_forms
+    from rpggen.core.adapters import farm
 
+    # a pack whose crops were read from their pictures (T17.29) grows those: its single
+    # pictures of a crop (*Modern Farm*'s baskets of cabbages, a fruitless vine) are no crops
+    read_crops = any(
+        a.detected_by == farm.NAME and a.detected.get("usage") == "growth_strip" for a in assets
+    )
     for asset in assets:
         facets = asset.detected
-        if asset.kind != "image" or asset.detected_by in ("profile", "learned"):
+        # what the farming packs' reader decided (T17.29: a food icon is an item) stays too
+        if asset.kind != "image" or asset.detected_by in ("profile", "learned", "farm_pack"):
             continue
         if facets.get("usage") != "sprite" or facets.get("headings"):
             continue
         current, tags = facets.get("role"), set(facets.get("tags") or [])
         role = None
+        folders, stem_words = classifier.tokens(asset.path[len(root) + 1 :])
+        if current == "NPC" and (set(folders) | set(stem_words)) & {"portrait", "portraits"}:
+            # a portrait in a folder of NPCs is nobody to meet (T17.29: *Farm RPG*'s villagers
+            # were the pieces of its portraits)
+            facets["role"] = "PORTRAIT"
+            facets.pop("roles_alt", None)
+            continue
+        if current == "NPC":
+            # ... nor a horse in a folder of its own (``Animals/Farm/Horse/1/Run.png``), a
+            # deer of the forest or a butterfly: an animal of the farm, or something that lives
+            # about it; nor a piece of a character it could not put together, nor the copy an
+            # Aseprite folder exports
+            said = set(folders)
+            found = None
+            if said & farm.ANIMAL_WORDS:
+                found = "ANIMAL"  # without animations it is planned for nothing, and no prop
+            elif (
+                said & farm.CRITTER_WORDS
+                or (said & {"animal", "animals"} and "animal" not in tags)
+                or said & pack_forms.HOUSE_NAMES  # ``NPCS houses/Blacksmith/Blacksmith.png``
+            ):
+                found = "DECORATION"
+            elif (
+                said & {"aseprite"}
+                or "aseprite" in asset.id.split(".")  # drawn from a folder Aseprite's source
+                or any(farm._part_of(p) for p in folders)
+                or set(stem_words) & {"body", "bodies", "skin", "skins"}  # a bare body
+            ):
+                found = "NONE"
+                facets["tags"] = sorted(
+                    {*facets.get("tags", []), classifier.UNUSED_TAG + "layered_piece"}
+                )
+            if found is not None:
+                facets["role"] = found
+                facets.pop("roles_alt", None)
+                continue
         if facets.get("animations"):
             if current in FARM_REPLACED_ROLES and tags & {"animal", "weather"}:
                 role = "ANIMAL" if "animal" in tags else "EFFECT"
         elif "tool" in tags:
             role = "TOOL" if current in FARM_TOOL_REPLACED_ROLES else None
-        elif current in FARM_REPLACED_ROLES and classifier.is_single_crop(
-            asset.path[len(root) + 1 :]
+        elif (
+            not read_crops
+            and current in FARM_REPLACED_ROLES
+            and classifier.is_single_crop(asset.path[len(root) + 1 :])
         ):
             role = "CROP"
         if role is not None and role != current:
@@ -1294,8 +1378,16 @@ def colour_name(asset: Asset) -> str:
     return "_".join(part for part in (name, turn_name(asset)) if part)
 
 
-def _license_files(inv: Inventory, root: str) -> list[str]:
-    return sorted((f"{root}/{f.path}" for f in inv.files if f.kind == "license"), key=_sort_key)
+def _licence_paths(inv: Inventory, folder: Path) -> list[str]:
+    """The pack's licence files relative to its folder: the files named as licences, and the
+    documentation files that hold the licence (T17.29: ``Documentation.txt`` at the root or one
+    folder down, saying licence, credit or commercial)."""
+    named = [f.path for f in inv.files if f.kind == "license"]
+    return named + licenses.doc_licence_files(folder, [(f.path, f.kind) for f in inv.files])
+
+
+def _license_files(rel_paths: list[str], root: str) -> list[str]:
+    return sorted((f"{root}/{rel}" for rel in rel_paths), key=_sort_key)
 
 
 REVIEWED_STATUSES = frozenset({"CONFIRMED", "UNUSED"})
@@ -1395,8 +1487,8 @@ def assemble(
     Returns ``(catalog, issues, generated_files)`` where generated_files maps project-relative
     paths (GIF strips) to the absolute files the installer must copy.
     """
-    from rpggen.core import adapters, classifier, terrain
-    from rpggen.core.adapters import strips
+    from rpggen.core import adapters, classifier, pack_forms, terrain
+    from rpggen.core.adapters import farm, strips
     from rpggen.core.analyzer import analyzer_for, prewarm
 
     adapters.register_defaults()
@@ -1411,6 +1503,7 @@ def assemble(
     extra_rules: list[FolderRule] = []
     pack_roots: dict[str, Path] = {}
     picture_hashes: dict[str, str] = {}  # asset id -> difference hash (T13.04)
+    farm_ids: set[str] = set()  # the farming packs (T17.29)
 
     for opened, inv in sorted(packs, key=lambda pair: _sort_key(pair[1].pack_id)):
         if is_cancelled is not None and is_cancelled():
@@ -1478,6 +1571,9 @@ def assemble(
         base_ids = ids.disambiguate([ids.asset_id(pack_id, p) for p in paths_sorted])
         id_for_path = dict(zip(paths_sorted, base_ids, strict=True))
         files = {f.path: f for f in inv.files}
+        farm_pack = farm.is_farm_pack(inv)
+        if farm_pack:
+            farm_ids.add(pack_id)
         # a source rpggen drew (a .aseprite, T16.21; a car's headings put into one strip,
         # T17.12): the strip in the work folder is the asset's picture
         drawn = {p: rel for res in results for p, rel in res.rendered.items()}
@@ -1494,6 +1590,15 @@ def assemble(
                     stages = strips.growth_stages(facets)
                     if stages:
                         grown = classifier.growth_evidence(path, facets.get("frame"), stages)
+                    if (
+                        grown
+                        and farm_pack
+                        and not farm.counted(path)
+                        and not farm.frames_grow(opened.root, path, facets.get("frame"), stages)
+                    ):
+                        # a butterfly called *Cabbage White*, a horse eating a carrot, a food
+                        # icon that shines: their pictures do not grow (T17.29)
+                        grown = None
                     if grown:  # a crop's stages in a row (T17.01): no animation
                         strips.as_growth_strip(facets)
                 if "role" not in facets:
@@ -1532,18 +1637,23 @@ def assemble(
                             {*facets.get("tags", []), classifier.UNUSED_TAG + reason}
                         )
                 f = files[path]
-                if f.image and path not in drawn:
+                # a picture rpggen drew from a part of a sheet is the variant's (T17.29: a crop
+                # cut from a sheet of tiles)
+                drawn_key = (
+                    f"{path}#{variant}" if variant and f"{path}#{variant}" in drawn else path
+                )
+                if f.image and drawn_key not in drawn:
                     facets["size"] = [f.image["w"], f.image["h"]]
                 _suggest_tags(facets, path)
                 asset_id = id_for_path[path] + (f"#{variant}" if variant else "")
                 picture = _picture_hash(ctx.analyze, path) if ctx.analyze else None
-                if picture is not None:
+                if picture is not None and drawn_key == path:
                     picture_hashes[asset_id] = picture
                 catalog.assets.append(
                     Asset(
                         id=asset_id,
                         pack_id=pack_id,
-                        path=drawn.get(path) or f"{root}/{path}",
+                        path=drawn.get(drawn_key) or f"{root}/{path}",
                         sha256=f.sha256,
                         kind="image",
                         status="AUTO_DETECTED",
@@ -1626,12 +1736,25 @@ def assemble(
             )  # fmt: skip
             present_ids.add(asset_id)
 
-        license_files = _license_files(inv, root)
+        licence_paths = _licence_paths(inv, opened.root)
+        license_files = _license_files(licence_paths, root)
         if not license_files:
             issues.add("ASSET-021", pack_id=pack_id, file=root)
         _side_view_usage([a for a in catalog.assets if a.pack_id == pack_id])
         sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
         view = classifier.made_for(inv, sheets)
+        if farm_pack and view == "top" and not classifier.isometric_view(inv, sheets):
+            view = "farm"  # its own name says farm and its files nothing else (T17.29)
+        elif (
+            view == "racing"
+            and classifier.farm_view(inv, sheets)
+            and not classifier.isometric_view(inv, sheets)
+        ):
+            # a farm with a tractor in a folder of vehicles is no racing pack (T17.29)
+            view = "farm"
+        pack_forms.apply(
+            [a for a in catalog.assets if a.pack_id == pack_id], inv, opened.root, root, farm_pack
+        )
         if classifier.isometric_view(inv, sheets):
             # how the pack is seen (T17.12); what it was made for is said beside it
             warnings.append(VIEW_ISOMETRIC)
@@ -1677,6 +1800,8 @@ def assemble(
                     continue
                 if facets.get("usage") not in ("sprite", "object") or facets.get("role") == "NONE":
                     continue
+                if asset.detected_by == farm.NAME:
+                    continue  # a food icon is an item (T17.29), a crop of it was read whole
                 if facets.get("animations") or facets.get("headings"):
                     continue
                 if classifier.is_single_crop(asset.path[len(root) + 1 :]):
@@ -1695,11 +1820,14 @@ def assemble(
                 [r.adapter for r in results if r.assets or r.objects or r.tilesets],
                 next((r.profile_id for r in results if r.profile_id), None),
                 sorted(set(warnings)),
-                licenses.detect_files(
-                    opened.root, [f.path for f in inv.files if f.kind == "license"]
-                ).to_json(),
+                licenses.detect_files(opened.root, licence_paths).to_json(),
             )
         )
+
+    # one size of a pack drawn in several, and no tile set in a size a pack does not draw
+    catalog.pack_sizes = pack_forms.choose_sizes(
+        catalog, dict(previous.pack_sizes) if previous is not None else {}, farm_ids
+    )
 
     # the same picture twice: the later file says which one it repeats (information only)
     from rpggen.core.analyzer import similarity
@@ -1743,6 +1871,28 @@ def assemble(
             )
         )
     _add_objects(catalog, objects_raw, previous)
+    # the things cut from a sheet set aside as another form are set aside too (T17.29: the
+    # 16 000 objects of *Modern Farm*'s sheets at three sizes and in a complete set)
+    by_id = {a.id: a for a in catalog.assets}
+    for obj in catalog.objects:
+        sheet = by_id.get(obj.sheet) if obj.source == "auto" else None
+        if sheet is not None and _another_form(sheet) and obj.status != "CONFIRMED":
+            obj.status = "UNUSED"
+        elif (
+            sheet is not None
+            and sheet.pack_id in farm_ids
+            and obj.status != "CONFIRMED"
+            and effective(sheet).get("role") == "NONE"
+            and classifier.UNUSED_TAG + pack_forms.MANY_BUILDINGS
+            not in (effective(sheet).get("tags") or [])
+        ):
+            obj.status = "UNUSED"  # the things of a sheet set aside in a farming pack
+        if sheet is not None and sheet.pack_id in farm_ids and obj.role == "BUILDING":
+            # in a farming pack a large thing of a sheet of bridges or fences is no house: the
+            # village of *Farm RPG* had its bridge as the house to walk into (T17.29)
+            words = set(classifier.tokens(sheet.path)[0]) | set(classifier.tokens(sheet.path)[1])
+            if words & NOT_A_HOUSE_WORDS and not words & HOUSE_WORDS:
+                obj.role = "DECORATION"
     assign_tilesets(catalog, previous, adapter_tilesets)
     terrain.attach_terrain_sets(catalog, terrain_result)
     resolve_maps(catalog, maps_raw, previous, issues)

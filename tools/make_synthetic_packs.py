@@ -2437,6 +2437,310 @@ def make_iso_kit(out: Path) -> None:
     _expected(out, "iso_kit", expected)
 
 
+DOC_LICENCE_TEXT = """Full version license:
+
+These assets can be used in any commercial or non-commercial project.
+They cannot be resold or redistributed, even if modified.
+
+Credits are mandatory: you can credit me by linking to my page: synthartist.itch.io.
+
+You can be credited as "Synth Artist".
+"""
+
+
+def make_doc_licence(out: Path) -> None:
+    """A pack whose licence is in its documentation file, inside one wrapper folder (T17.29, as
+    in *Farm RPG*): ``Documentation.txt`` requires credit. A note beside it says nothing of a
+    licence, and a read-me two folders down is no licence of the pack."""
+    pack = out / "doc_licence"
+    top = pack / "Doc Licence Pack"
+    _write_text(top / "Documentation.txt", DOC_LICENCE_TEXT)
+    _write_text(top / "Notes.txt", "Tiles are 16 x 16. Have fun!\n")
+    _write_text(top / "Tiles" / "Read me.txt", "Credit for these tiles: see the licence.\n")
+    _save_png(_terrain(), top / "Tiles" / "terrain.png")
+    _expected(
+        out,
+        "doc_licence",
+        {
+            "Doc Licence Pack/Tiles/terrain.png": {
+                "cell": [16, 16],
+                "margin": [0, 0],
+                "separation": [0, 0],
+                "nonempty": 18,
+                "role": "GROUND",
+            },
+        },
+    )
+
+
+# ------------------------------------------------------------------------------------------
+# Real farming packs (T17.29): one tile set in several forms, a pack in two sizes, crops beside
+# food icons, a layered character. Drawn in the shapes of *Tiny Farm*, *Farm RPG* and *Modern
+# Farm*; nothing of them is copied.
+
+WHITE: Color = (245, 245, 245, 255)
+FARM_GREEN: Color = (70, 160, 70, 255)
+FARM_SOIL: Color = (120, 84, 54, 255)
+
+
+def _plant(size: int, stage: int, stages: int, fruit: Color | None = None) -> Image.Image:
+    """One stage of a plant in a cell: a green tuft that is wider and taller at every stage,
+    standing on the bottom of its cell."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    grow = (stage + 1) / stages
+    w, h = max(2, int((size - 4) * grow)), max(2, int((size - 3) * grow))
+    left = (size - w) // 2
+    d.rectangle([left, size - 1 - h, left + w - 1, size - 2], fill=FARM_GREEN)
+    if fruit is not None and stage == stages - 1:
+        d.rectangle([size // 2 - 2, size - 1 - h, size // 2 + 1, size - h + 2], fill=fruit)
+    return img
+
+
+def _farm_cell(i: int, size: int = 16) -> Image.Image:
+    """A tile of ground or a thing of the set, each different."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    if i < 12:  # ground: opaque, a colour of its own a tile
+        d.rectangle([0, 0, size - 1, size - 1], fill=(80 + i * 9, 150 - i * 4, 60 + i * 3, 255))
+        d.point([(i % size, (i * 3) % size)], fill=(30, 30, 30, 255))
+    else:  # a thing: a box of its own colour and shape
+        k = i - 12
+        d.rectangle([2 + k % 4, 3, size - 3, size - 2 - k % 3], fill=pal(40 + k), outline=BLACK)
+    return img
+
+
+def _set_cells() -> list[Image.Image]:
+    """The 24 cells of the set in three forms: two rows of ground, a row with a crop that
+    grows in three stages, a row of things."""
+    cells = [_farm_cell(i) for i in range(12)]
+    cells += [_farm_cell(12), _farm_cell(13)]
+    cells += [_plant(16, s, 3, (230, 120, 40, 255)) for s in range(3)]
+    cells += [_farm_cell(14)]
+    cells += [_farm_cell(15 + k) for k in range(6)]
+    return cells
+
+
+def make_farm_forms(out: Path) -> None:
+    """One set of 16 px tiles in three forms, as Kenney's *Tiny Farm* ships it: a sheet with a
+    pixel between the tiles, a packed sheet and a single file a tile, all numbered. The spaced
+    sheet is the tile set; the packed sheet and the single files are set aside by their
+    content. A crop grows in three cells of a row and has no name."""
+    pack = out / "farm_forms"
+    _write_text(pack / "License.txt", "CC0-1.0 synthetic test pack\n")
+    cells = _set_cells()
+    cols, rows = 6, 4
+    spaced = Image.new("RGBA", (cols * 17 - 1, rows * 17 - 1), (0, 0, 0, 0))
+    packed = Image.new("RGBA", (cols * 16, rows * 16), (0, 0, 0, 0))
+    for n, cell in enumerate(cells):
+        c, r = n % cols, n // cols
+        spaced.paste(cell, (c * 17, r * 17))
+        packed.paste(cell, (c * 16, r * 16))
+        _save_png(cell, pack / "Tiles" / f"tile_{n:04d}.png")
+    _save_png(spaced, pack / "Tilemap" / "tilemap.png")
+    _save_png(packed, pack / "Tilemap" / "tilemap_packed.png")
+    expected: dict[str, dict] = {
+        "Tilemap/tilemap.png": {
+            "usage": "tiles",
+            "role": "GROUND",
+            "cell": [16, 16],
+            "margin": [0, 0],
+            "separation": [1, 1],
+        },
+        "Tilemap/tilemap_packed.png": {"role": "NONE"},  # the same tiles packed
+        # the crop of the sheet, drawn into a strip of its own
+        "generated/farm_crops/farm_forms__tilemap_tilemap__crop_1.png#crop_1": {
+            "usage": "growth_strip",
+            "role": "CROP",
+            "frame": [16, 16],
+        },
+    }
+    for n in range(len(cells)):
+        expected[f"Tiles/tile_{n:04d}.png"] = {"role": "NONE"}  # cells of the sheet
+    _expected(out, "farm_forms", expected)
+
+
+def make_farm_sizes(out: Path) -> None:
+    """One farming pack drawn at 16 and at 32 px, a folder a size, as LimeZu's *Modern Farm*
+    ships it (and at 48): the 32 px pictures are the 16 px ones twice as large. One size is used
+    (the smallest when no other pack says), the other is set aside."""
+    pack = out / "farm_sizes"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    terrain = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    for n in range(16):
+        terrain.paste(_farm_cell(n % 12), ((n % 4) * 16, (n // 4) * 16))
+    fences = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    props = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    for n in range(8):
+        fences.paste(_farm_cell(12 + n % 4), ((n % 4) * 16, (n // 4) * 16))
+        props.paste(_farm_cell(16 + n % 5), ((n % 4) * 16, (n // 4) * 16))
+    expected: dict[str, dict] = {}
+    for size in (16, 32):
+        scale = size // 16
+        for name, img in (("1_Terrains", terrain), ("2_Fences", fences), ("3_Props", props)):
+            big = img.resize((img.width * scale, img.height * scale), Image.Resampling.NEAREST)
+            _save_png(big, pack / f"{size}x{size}" / f"{name}_{size}x{size}.png")
+        expected[f"{size}x{size}/1_Terrains_{size}x{size}.png"] = (
+            {
+                "usage": "tiles",
+                "role": "GROUND",
+                "cell": [16, 16],
+                "margin": [0, 0],
+                "separation": [0, 0],
+            }
+            if size == 16
+            else {"role": "NONE"}
+        )
+        if size == 32:  # the other size, set aside
+            expected[f"{size}x{size}/2_Fences_{size}x{size}.png"] = {"role": "NONE"}
+            expected[f"{size}x{size}/3_Props_{size}x{size}.png"] = {"role": "NONE"}
+    _expected(out, "farm_sizes", expected)
+
+
+def _growth_file(stages: int, fruit: Color, height: int = 16) -> Image.Image:
+    """*Farm RPG*'s crop: seeds, the stages, an empty cell and the produce."""
+    img = Image.new("RGBA", ((stages + 2) * 16, height), (0, 0, 0, 0))
+    seeds = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    ImageDraw.Draw(seeds).rectangle([4, 12, 11, 14], fill=FARM_SOIL)
+    img.paste(seeds, (0, height - 16))
+    for s in range(1, stages):
+        plant = _plant(16, s, stages, fruit)
+        img.paste(plant, (s * 16, height - 16))
+    produce = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    ImageDraw.Draw(produce).ellipse([3, 4, 12, 13], fill=fruit, outline=BLACK)
+    img.paste(produce, ((stages + 1) * 16, height - 16))
+    return img
+
+
+def _icon_pair(fill: Color) -> Image.Image:
+    """A food icon and the same icon lit: two frames of one picture."""
+    img = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for k in range(2):
+        d.ellipse([k * 16 + 3, 4, k * 16 + 12, 13], fill=fill, outline=WHITE if k else BLACK)
+    return img
+
+
+def _hen_sheet() -> Image.Image:
+    """A hen in rows: standing, walking, sleeping; four frames a row."""
+    img = Image.new("RGBA", (64, 48), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for r in range(3):
+        for c in range(4):
+            x, y = c * 16, r * 16
+            lift = (c % 2) if r == 1 else 0
+            d.ellipse([x + 3, y + 6 - lift, x + 12, y + 14 - lift], fill=WHITE, outline=BLACK)
+            d.rectangle([x + 9, y + 3 - lift, x + 11, y + 6 - lift], fill=(220, 40, 40, 255))
+    return img
+
+
+def make_farm_crops(out: Path) -> None:
+    """*Farm RPG*'s shapes: crops a strip each in folders of seasons (seeds, stages, an empty
+    cell, the produce), the season's sheet of all of them, food icons named after the same
+    crops (items, not crops), a butterfly called after a cabbage (no crop), a hen in a sheet of
+    rows, and a GIF beside the sheet it shows."""
+    pack = out / "farm_crops"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    crops = (("Carrot", 5, (230, 120, 40, 255)), ("Cabbage", 6, (150, 210, 110, 255)))
+    season = Image.new("RGBA", (128, 64), (0, 0, 0, 0))
+    for n, (name, stages, fruit) in enumerate(crops):
+        strip = _growth_file(stages, fruit)
+        _save_png(strip, pack / "Crops" / "Spring" / f"{name}.png")
+        season.paste(strip, (0, n * 32))
+        _save_png(_icon_pair(fruit), pack / "Icons" / "Food Icons" / f"{name}.png")
+    _save_png(season, pack / "Crops" / "Spring" / "Spring Crops.png")
+    _save_png(_icon_pair((180, 120, 60, 255)), pack / "Icons" / "Food Icons" / "Carrot cake.png")
+    butterfly = Image.new("RGBA", (48, 16), (0, 0, 0, 0))
+    for k in range(3):
+        ImageDraw.Draw(butterfly).rectangle([k * 16 + 4 + k, 5, k * 16 + 11 - k, 10], fill=WHITE)
+    _save_png(butterfly, pack / "Animals" / "Bugs" / "Cabbage White.png")
+    _save_png(_hen_sheet(), pack / "Animals" / "Farm" / "Chicken" / "Chicken White.png")
+    _save_png(_season_grass(0), pack / "Tileset" / "Tileset Grass Spring.png")
+    mill = [_small(pal(60 + k), 16, "box") for k in range(3)]
+    sheet = Image.new("RGBA", (48, 16), (0, 0, 0, 0))
+    for k, frame in enumerate(mill):
+        sheet.paste(frame, (k * 16, 0))
+    _save_png(sheet, pack / "Animated" / "Animated_sheets_16x16" / "Mill_16x16.png")
+    gif = pack / "Animated" / "Animated_gifs_16x16" / "Mill_16x16.gif"
+    gif.parent.mkdir(parents=True, exist_ok=True)
+    mill[0].save(gif, save_all=True, append_images=mill[1:], duration=100, loop=0, disposal=2)
+    expected: dict[str, dict] = {
+        "Crops/Spring/Spring Crops.png": {"role": "NONE"},  # the strips once more
+        "Icons/Food Icons/Carrot cake.png": {"usage": "sprite", "role": "ITEM"},
+        "Animals/Farm/Chicken/Chicken White.png": {
+            "usage": "sprite",
+            "role": "ANIMAL",
+            "frame": [16, 16],
+            "anims": ["idle_down", "sleep_down", "walk_down"],
+        },
+        "Animated/Animated_gifs_16x16/Mill_16x16.gif": {"role": "NONE"},
+        "Tileset/Tileset Grass Spring.png": {"usage": "tiles", "role": "GROUND"},
+    }
+    for name, _stages, _fruit in crops:
+        key = f"generated/farm_crops/farm_crops__crops_spring_{name.casefold()}.png"
+        expected[key] = {"usage": "growth_strip", "role": "CROP", "frame": [16, 16]}
+        expected[f"Icons/Food Icons/{name}.png"] = {"usage": "sprite", "role": "ITEM"}
+    _expected(out, "farm_crops", expected)
+
+
+LAYERED_PARTS = (
+    ("Skins", "1", (230, 190, 160, 255)),
+    ("Skins", "2", (150, 100, 70, 255)),
+    ("Eyes", "Blue", (40, 80, 200, 255)),
+    ("Clothes", "Farm/Blue", (60, 90, 200, 255)),
+    ("Clothes", "Farm/Red", (200, 60, 60, 255)),
+    ("Hair", "Short/Black", (30, 30, 30, 255)),
+    ("Acc", "Hat", (200, 170, 60, 255)),
+)
+LAYERED_BOXES = {
+    "Skins": (5, 2, 10, 15),
+    "Clothes": (5, 8, 10, 13),
+    "Eyes": (6, 5, 9, 5),
+    "Hair": (5, 1, 10, 3),
+    "Acc": (4, 0, 11, 1),
+}
+
+
+def _piece(part: str, colour: Color, frames: int) -> Image.Image:
+    """One piece of a character for one action: a row of four directions, ``frames`` each;
+    every piece covers its own part of the body, in the same cells."""
+    img = Image.new("RGBA", (4 * frames * 16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    x0, y0, x1, y1 = LAYERED_BOXES[part]
+    for n in range(4 * frames):
+        bob = n % 2
+        d.rectangle([n * 16 + x0, y0 + bob, n * 16 + x1, y1 + bob], fill=colour)
+    return img
+
+
+def make_farm_layered(out: Path) -> None:
+    """*Farm RPG*'s player: a body, eyes, clothes, hair and accessories, a file each for an
+    action (``Character/PNG/2. Walk/Hair/Short/Black.png``), each a row of four directions.
+    It is one character put together from its pieces; the pieces are its choices."""
+    pack = out / "farm_layered"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    for folder, frames in (("1. Idle", 2), ("2. Walk", 4)):
+        for part, name, colour in LAYERED_PARTS:
+            path = pack / "Character" / "PNG" / folder / part / f"{name}.png"
+            _save_png(_piece(part, colour, frames), path)
+    _save_png(_season_grass(1), pack / "Tileset" / "grass.png")
+    expected: dict[str, dict] = {
+        "generated/lpc_characters/farm_layered__lpc_character__character.png": {
+            "usage": "sprite",
+            "role": "PLAYER",
+            "frame": [8, 16],  # cut to the columns the pieces paint
+            "anims": [
+                f"{action}_{d}"
+                for action in ("idle", "walk")
+                for d in ("down", "left", "right", "up")
+            ],
+        },
+    }
+    for part, name, _colour in LAYERED_PARTS:
+        expected[f"Character/PNG/1. Idle/{part}/{name}.png"] = {"role": "NONE"}
+    _expected(out, "farm_layered", expected)
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -2466,6 +2770,11 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "iso_miniature": make_iso_miniature,
     "iso_kit": make_iso_kit,
     "audio_basic": lambda out: make_audio_basic(out),
+    "doc_licence": make_doc_licence,
+    "farm_forms": make_farm_forms,
+    "farm_sizes": make_farm_sizes,
+    "farm_crops": make_farm_crops,
+    "farm_layered": make_farm_layered,
 }
 
 

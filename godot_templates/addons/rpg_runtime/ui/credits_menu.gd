@@ -52,7 +52,12 @@ func pack_lines(pack: Dictionary) -> Array[Dictionary]:
 	var author := str(pack.get("author", ""))
 	var title := str(pack.get("name", ""))
 	if author != "":
-		title = tr("UI_CREDITS_BY") % [title, author]
+		# the English text where no translation has the key (the validator, a test): a key
+		# formatted with two values was a runtime error once a pack named its author (T17.29)
+		var by := tr("UI_CREDITS_BY")
+		if by == "UI_CREDITS_BY":
+			by = RpgStrings.english("UI_CREDITS_BY")
+		title = by % [title, author] if by.count("%s") == 2 else "%s — %s" % [title, author]
 	out.append({"text": title, "heading": false})
 	var license := str(pack.get("license", ""))
 	var license_url := str(pack.get("license_url", ""))

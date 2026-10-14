@@ -178,6 +178,7 @@ def test_folder_pack_is_read_in_place() -> None:
 
 def test_rar_requires_7zip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(archive, "find_7z", lambda: None)
+    monkeypatch.setattr(archive, "find_bsdtar", lambda: None)
     src = tmp_path / "x.rar"
     src.write_bytes(b"Rar!")
     with pytest.raises(RpgGenError) as ei:

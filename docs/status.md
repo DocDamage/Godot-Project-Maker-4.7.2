@@ -218,6 +218,19 @@ should know:
   are flat dark shapes (on diamonds too), and the farmer's swing is the tool's icon over its
   hands when its sheet has no attack. With *Combat* off a farm is what it was (an A/B against
   `HEAD`: the maps, the data and the scenes the same but for `unique_id`s).
+* **Real farming packs since T17.29**: Kenney's *Tiny Farm*, EmanuelleDev's *Farm RPG* (a
+  `.rar`, opened with Windows' own `tar` when 7-Zip is not there; its licence, in
+  `Documentation.txt`, asks for credit and the README gives it) and LimeZu's *Modern Farm* (at
+  16, 32 and 48 px) each make a farm on this machine with their own ground, crops that grow in
+  their own pictures and a player of the pack, played through the farm's smoke sequence and
+  looked at in pictures. Short of it: *Tiny Farm* names nothing, so its farmer and hen were
+  chosen in the audit as a user would, its crops are *Crop 1* to *Crop 5* (the wheat, yellow
+  when ripe, is not found) and the map is laid with the sheet's first tile (the farm lays every pack's ground with the first tile of its sheet: *Modern Farm*'s is grass with a corner of earth, and *Farm RPG*'s pond is filled with a sheet of fish read as its water); the size of a pack
+  drawn in several is chosen on the Audit page's *Packs* tab, not the Project page; a pack's
+  layered character takes its rows' names from LimeZu's order or from the action folders, and
+  a dog is no farm animal. SakPix's *Cozy Farming Village* (large sheets of loose objects) is now
+  read as a farming pack (its tools sheet a *Tool*) and nothing else moves; CuteSCKR's *Farm
+  Tileset* is read as before: cutting such sheets is T17.30.
 * **Not built.** Dropping onto diamonds with a mouse (the
   editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working

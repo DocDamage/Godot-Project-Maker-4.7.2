@@ -433,6 +433,7 @@
         "turn": {"type": "integer", "minimum": 0, "maximum": 7},
         "joins": {"type": "array", "items": {"enum": ["n", "e", "s", "w"]}, "minItems": 1, "maxItems": 4, "uniqueItems": true},
         "edge": {"enum": ["n", "e", "s", "w"]},
+        "feet": {"type": "integer", "minimum": 1},
         "corner": {"enum": ["round", "square"]},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {

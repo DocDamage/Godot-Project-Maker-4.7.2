@@ -75,6 +75,20 @@ does not ask for the isometric view is built as it was.
   2 x 2 corner sheets as terrains, and a farmer's tool strips kept apart from the villagers.
   Tilled and watered soil are a field's ground and never the ground a map is laid with while
   the packs have another.
+* **Real farming packs** (Kenney's *Tiny Farm*, EmanuelleDev's *Farm RPG*, LimeZu's *Modern
+  Farm*): pictures that are **the same tiles in several forms** (a sheet with spacing, a packed
+  sheet, single files; strips and the sheet of the season that repeats them) are found by
+  their content, and one form is used; a pack **in several sizes** is used in one (the other
+  packs' size, else the smallest; the Audit page's *Packs* tab chooses another), and no tile
+  set is made in a size a pack does not draw; **crops by their pictures** (cells that grow, in
+  a folder of crops or named after a crop, or a run of growing cells in a tile
+  sheet), named after their produce, with food icons as items; **farm animals** in sheets of
+  rows with their animations; **characters drawn in pieces** (a body, eyes, hair, clothes and
+  accessories, a file an action or a sheet a piece) as one character whose parts are its
+  choices, and a character drawn a file an action as one character; a GIF beside the sheet it
+  shows set aside. Licences are read from documentation files too, a credit the licence asks
+  for is written into the generated README, and a `.rar` is opened with Windows' own `tar`
+  when 7-Zip is not installed (T17.29).
 * **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
   picture rises above it, turns by number or by compass letter as one tile (never as frames of
   an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a
@@ -103,7 +117,9 @@ does not ask for the isometric view is built as it was.
   (an isometric pack whose diamond could not be read), TILE-011 (isometric and square ground
   in one project), TILE-012 (tiles on another diamond are left out), TILE-013 (an imported map
   of the other view is not built), VAL-031 (a farm that
-  cannot be worked), SMOKE-013 (a step of the farm's own sequence).
+  cannot be worked), SMOKE-013 (a step of the farm's own sequence), ASSET-035 (a picture among
+  the crops whose cells do not grow), ARCH-010 (files of a rar whose names the system's `tar`
+  cannot read).
 * **Mended while the milestone was tested**: two generations of projects with one name, run at
   the same time, failed each other's save checks (each check run now saves into a folder of
   its own); a dark kerb along isometric paths and a footing under far walls; a pack read

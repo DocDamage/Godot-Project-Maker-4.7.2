@@ -182,7 +182,7 @@ _COMMERCIAL = re.compile(
     re.I | re.S,
 )
 _NEEDS_CREDIT = re.compile(
-    r"\b(?:credit|attribution)\s+(?:is\s+)?(?:required|mandatory|necessary)\b|"
+    r"\b(?:credits?|attribution)\s+(?:is\s+|are\s+)?(?:required|mandatory|necessary|obligatory)\b|"
     r"\b(?:must|have\s+to|need\s+to|required\s+to)\s+(?:give\s+)?(?:credit|attribut|be\s+credited|mention)|"
     r"\bplease\s+(?:give\s+)?credit\b|\bcredit\s+(?:me|us|the\s+(?:author|artist))\b",
     re.I,
@@ -191,6 +191,16 @@ _NO_CREDIT = re.compile(
     r"\b(?:no|without)\s+(?:credit|attribution)\s+(?:is\s+)?(?:required|needed|necessary)\b|"
     r"\b(?:credit|attribution)\s+(?:is\s+)?(?:not\s+required|optional|appreciated\s+but\s+not)",
     re.I,
+)
+# "Credits much appreciated": a wish, not a condition (read after the two above, which win)
+_CREDIT_WISHED = re.compile(
+    r"\b(?:credits?|attribution)\s+(?:is\s+|are\s+)?(?:\w+\s+)?(?:appreciated|welcome)\b", re.I
+)
+# 'You can be credited as "EmanuelleDev"'
+_CREDITED_AS = re.compile(r"\bcredited\s+as\s+[\"“'‘]?([^\"”'’\n]{1,60})", re.I)
+# a page named without its scheme ("emanuelledev.itch.io"): the shop most packs come from
+_BARE_ITCH = re.compile(
+    r"(?<![\w.@/-])([a-z0-9][a-z0-9-]*)\.itch\.io(/[^\s<>\"')\]]*)?(?![\w.-]*@)", re.I
 )
 _AUTHOR_LINE = re.compile(
     r"^\s*[*\-#>]*\s*(?:author|authors|artist|artists|creator|creators|created\s+by|made\s+by|"
@@ -278,6 +288,11 @@ def _scan(text: str) -> _Found:
         found.attribution = False
     elif _NEEDS_CREDIT.search(text):
         found.attribution = True
+    elif _CREDIT_WISHED.search(text):
+        found.attribution = False
+    credited = _CREDITED_AS.search(text)
+    if credited and (author := _clean_author(credited.group(1))):
+        found.authors.append(author)  # the name the licence asks for comes first
     for line in text.splitlines():
         for pattern in (_AUTHOR_LINE, _BY_LINE, _COPYRIGHT_LINE):
             m = pattern.match(line)
@@ -294,7 +309,18 @@ def _scan(text: str) -> _Found:
         url = url.rstrip(".,;:")
         if not any(host in url.casefold() for host in _LICENCE_HOSTS) and url not in found.urls:
             found.urls.append(url)
+    for m in _BARE_ITCH.finditer(text):
+        url = f"https://{m.group(1)}.itch.io{(m.group(2) or '').rstrip('.,;:/')}"
+        if not any(u.casefold().rstrip("/") == url.casefold() for u in found.urls):
+            found.urls.append(url)
     return found
+
+
+def _itch_author(url: str) -> str:
+    """The shop name of an itch.io page ("limezu" of https://limezu.itch.io/modernfarm): the
+    author when the licence names no other."""
+    m = re.match(r"https?://([a-z0-9][a-z0-9-]*)\.itch\.io(?:/|$)", url, re.I)
+    return m.group(1) if m else ""
 
 
 def detect(files: list[tuple[str, str]]) -> PackLicense:
@@ -310,8 +336,54 @@ def detect(files: list[tuple[str, str]]) -> PackLicense:
             wording = found.attribution
         author = author or next(iter(found.authors), "")
         url = url or next(iter(found.urls), "")
+    author = author or _itch_author(url)
     required = requires_attribution(license_id)  # a licence with a rule wins over the wording
     return PackLicense(license_id, author, url, bool(wording) if required is None else required)
+
+
+# A documentation file that may hold the licence (T17.29): "Documentation.txt", "Read me.txt",
+# "Terms of use.md", "About.txt", "Info.txt"... (the names compared without spaces and signs)
+DOC_LICENCE_STEMS = (
+    "documentation",
+    "docs",
+    "readme",
+    "terms",
+    "eula",
+    "about",
+    "info",
+    "notice",
+    "usage",
+)
+_SAYS_LICENCE = re.compile(r"licen[cs]e|credit|commercial", re.I)
+NESTED_SUFFIX = "_extracted"  # the folder a nested archive is extracted to (archive.py)
+
+
+def _doc_depth(rel_path: str) -> int:
+    """How many folders down a file lies; the folder a nested archive was extracted to does
+    not count (a licence at a zip's root is at the root of what the zip holds)."""
+    folders = rel_path.split("/")[:-1]
+    return sum(1 for f in folders if not f.casefold().endswith(NESTED_SUFFIX))
+
+
+def is_doc_licence_name(rel_path: str) -> bool:
+    name = rel_path.rsplit("/", 1)[-1]
+    stem = name.rpartition(".")[0] or name
+    folded = re.sub(r"[\W_]+", "", stem.casefold())
+    return folded.startswith(DOC_LICENCE_STEMS)
+
+
+def doc_licence_files(root: Path, files: list[tuple[str, str]]) -> list[str]:
+    """The documentation files of a pack that hold its licence: ``files`` are (relative path,
+    inventory kind) pairs; a file of kind ``doc`` with a documentation name, at the pack's root
+    or one folder down (many packs have one wrapper folder), whose text speaks of a licence, a
+    credit or commercial use."""
+    found: list[str] = []
+    for rel, kind in files:
+        if kind != "doc" or _doc_depth(rel) > 1 or not is_doc_licence_name(rel):
+            continue
+        if _SAYS_LICENCE.search(read_text(root / rel)):
+            found.append(rel)
+    return found
 
 
 def detect_files(root: Path, rel_paths: list[str]) -> PackLicense:

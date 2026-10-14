@@ -15,7 +15,7 @@ import zipfile
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
-from typing import Literal
+from typing import IO, Literal
 
 from rpggen import ids, jsonio, paths, procenv
 from rpggen.core import cache_policy
@@ -425,12 +425,25 @@ def _parse_7z_listing(text: str) -> list[_Entry]:
 
 def _run_7z(command: list[str], ctl: Control) -> subprocess.CompletedProcess[str]:
     """Run 7-Zip, polling for a cancel (the process is killed, nothing is left half-written)."""
+    return _run_tool(command, ctl, "utf-8")
+
+
+def _run_tool(
+    command: list[str],
+    ctl: Control,
+    encoding: str,
+    *,
+    stdout: int | IO[bytes] = subprocess.PIPE,
+    poll: Callable[[], None] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run an archive tool, polling for a cancel (and ``poll``, which may raise) every 0.2 s:
+    on a cancel or an error the process is killed. ``stdout`` may be a file the output goes to."""
     process = subprocess.Popen(
         command,
-        stdout=subprocess.PIPE,
+        stdout=stdout,
         stderr=subprocess.PIPE,
         text=True,
-        encoding="utf-8",
+        encoding=encoding,
         errors="replace",
         env=procenv.child_env(),
     )
@@ -438,9 +451,11 @@ def _run_7z(command: list[str], ctl: Control) -> subprocess.CompletedProcess[str
         while True:
             try:
                 out, err = process.communicate(timeout=0.2)
-                return subprocess.CompletedProcess(command, process.returncode, out, err)
+                return subprocess.CompletedProcess(command, process.returncode, out or "", err)
             except subprocess.TimeoutExpired:
                 ctl.check()
+                if poll is not None:
+                    poll()
     except BaseException:
         process.kill()
         process.communicate()
@@ -450,6 +465,8 @@ def _run_7z(command: list[str], ctl: Control) -> subprocess.CompletedProcess[str
 def _extract_rar(
     archive: Path, dest: Path, issues: IssueList, ctl: Control, folder: str = ""
 ) -> None:
+    """A rar is opened with 7-Zip when it is installed, else with the system's own tar when that
+    is bsdtar (libarchive reads rar; Windows 10 and later ship it), else refused (ARCH-007)."""
     if folder:  # a rar is not listed by the sniff, so it is never offered as a bundle
         raise RpgGenError(
             "ARCH-001",
@@ -458,9 +475,15 @@ def _extract_rar(
         )
     exe = find_7z()
     if exe is None:
-        raise RpgGenError("ARCH-007")
+        tar = find_bsdtar()
+        if tar is None:
+            raise RpgGenError("ARCH-007")
+        _extract_with_bsdtar(tar, archive, dest, issues, ctl)
+        return
     ctl.report(f"Reading {archive.name}", 0, 0)
-    listing = _run_7z([str(exe), "l", "-slt", str(archive)], ctl)
+    # -sccUTF-8: the listing is read as UTF-8; in the console's code page a name such as
+    # "Can’t" comes out as "Can't" and is then not found when the list file names it
+    listing = _run_7z([str(exe), "l", "-slt", "-sccUTF-8", str(archive)], ctl)
     if listing.returncode != 0:
         raise RpgGenError("ARCH-001", path=str(archive), reason=listing.stderr.strip()[:200])
     # The first block describes the archive itself ("Type = Rar"): it has no Attributes line.
@@ -479,6 +502,188 @@ def _extract_rar(
     if run.returncode != 0:
         raise RpgGenError("ARCH-001", path=str(archive), reason=run.stderr.strip()[:200])
     _check_extracted_size(dest)
+
+
+# --------------------------------------------------------------------------- rar via bsdtar
+
+# A line of ``tar -tv``: mode, links, owner, group, size, date (month, day, time or year; the
+# month may be localized), one space, the name. A link names its target after " -> " (symbolic)
+# or " link to " (hard).
+_TAR_LINE = re.compile(
+    r"^(?P<mode>\S{10})\S*\s+\d+\s+\S+\s+\S+\s+(?P<size>\d+)\s+"
+    r"\S+\s+\d{1,2}\s+(?:\d{1,2}:\d{2}|\d{4}) (?P<name>.+)$"
+)
+_TAR_UNREADABLE = "unreadable filename"  # bsdtar skips a name the locale cannot represent
+_TAR_GLOB = re.compile(r"[*?\[\\]")
+
+
+def _tar_encoding() -> str:
+    """What bsdtar writes names in: the ANSI code page on Windows, UTF-8 elsewhere."""
+    return "mbcs" if os.name == "nt" else "utf-8"
+
+
+@functools.cache
+def _is_bsdtar(exe: str) -> bool:
+    try:
+        run = subprocess.run(
+            [exe, "--version"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=10,
+            env=procenv.child_env(),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    text = (run.stdout + run.stderr).casefold()
+    return "bsdtar" in text or "libarchive" in text
+
+
+def find_bsdtar() -> Path | None:
+    """The system's tar when it is bsdtar (libarchive reads rar). On Windows the one in System32
+    comes first: Git's GNU tar, often earlier on PATH, does not read rar."""
+    candidates: list[str] = []
+    if os.name == "nt":
+        system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
+        candidates.append(str(Path(system_root) / "System32" / "tar.exe"))
+    for name in ("bsdtar", "tar"):
+        found = shutil.which(name)
+        if found:
+            candidates.append(found)
+    for candidate in candidates:
+        if Path(candidate).is_file() and _is_bsdtar(candidate):
+            return Path(candidate)
+    return None
+
+
+def _parse_tar_listing(text: str, issues: IssueList) -> list[_Entry]:
+    """The regular files of a ``tar -tvf`` listing. A link is reported (ARCH-009) and left out;
+    a folder or a line that is not an entry is ignored."""
+    entries: list[_Entry] = []
+    for line in text.splitlines():
+        match = _TAR_LINE.match(line)
+        if match is None:
+            continue
+        kind = match["mode"][0]
+        name = match["name"]
+        if kind in "lh":
+            sep = " -> " if kind == "l" else " link to "
+            issues.add("ARCH-009", entry=normalize_name(name.partition(sep)[0]))
+            continue
+        if kind != "-":
+            continue
+        entries.append(_Entry(normalize_name(name), name, int(match["size"]), 0))
+    return entries
+
+
+def _dir_size(root: Path) -> int:
+    total = 0
+    pending = [root]
+    while pending:
+        with os.scandir(pending.pop()) as found:
+            for entry in found:
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append(Path(entry.path))
+                elif entry.is_file(follow_symlinks=False):
+                    total += entry.stat(follow_symlinks=False).st_size
+    return total
+
+
+def _extract_with_bsdtar(
+    tar: Path, archive: Path, dest: Path, issues: IssueList, ctl: Control
+) -> None:
+    """List the archive, select its entries (``_select_entries``), extract it into a scratch
+    folder beside ``dest`` and move the selected files alone into ``dest``: junk, links and the
+    loser of a case collision never reach it. bsdtar cannot be handed a list of names (it reads
+    them as patterns), hence the scratch folder."""
+    encoding = _tar_encoding()
+    ctl.report(f"Reading {archive.name}", 0, 0)
+    listing = _run_tool([str(tar), "-tvf", str(archive)], ctl, encoding)
+    unreadable = listing.stderr.count(_TAR_UNREADABLE)
+    if listing.returncode != 0 and not unreadable:
+        raise RpgGenError("ARCH-001", path=str(archive), reason=listing.stderr.strip()[:200])
+    if unreadable:
+        issues.add("ARCH-010", path=archive.name, count=unreadable)
+    entries = _parse_tar_listing(listing.stdout, issues)
+    if not entries and listing.returncode != 0:
+        raise RpgGenError("ARCH-001", path=str(archive), reason=listing.stderr.strip()[:200])
+    allowed = _select_entries(entries, issues, str(archive), ctl.budget)
+    # every regular file is written to the scratch folder, the ones left out too
+    listed = sum(max(e.size, 0) for e in entries)
+    declared = sum(max(e.size, 0) for e in allowed)
+    label = f"Extracting {archive.name}"
+    ctl.report(label, 0, declared)
+    kept = {e.name for e in allowed}
+    folded = {name.casefold() for name in kept}
+    collided = {
+        e.name.casefold()
+        for e in entries
+        if e.name not in kept and e.name.casefold() in folded and not is_junk(e.name)
+    }
+    with tempfile.TemporaryDirectory(prefix="rpggen_rar_", dir=dest.parent) as scratch_dir:
+        scratch = Path(scratch_dir) / "x"
+        scratch.mkdir()
+        last = [0.0]
+
+        def watch() -> None:  # the archive may lie about its sizes: what is written counts
+            now = time.monotonic()
+            if now - last[0] < 1.0:
+                return
+            last[0] = now
+            written = _dir_size(scratch)
+            if written > listed or written > LIMITS["max_total_bytes"]:
+                raise RpgGenError("ARCH-004", reason=f"{archive.name} writes more than it declares")
+            ctl.report(label, min(written, declared), declared)
+
+        run = _run_tool(
+            [str(tar), "-xf", str(archive), "-C", str(scratch)], ctl, encoding, poll=watch
+        )
+        moved = 0
+        for entry in allowed:
+            ctl.check()
+            source = scratch.joinpath(*PurePosixPath(entry.name).parts)
+            target = dest.joinpath(*PurePosixPath(entry.name).parts)
+            if not _inside(dest, target) or not _inside(scratch, source):
+                raise RpgGenError("ARCH-003", entry=entry.name)
+            if source.is_symlink() or not source.is_file():
+                reason = run.stderr.strip()[:200] or f"{entry.name} was not extracted"
+                raise RpgGenError("ARCH-001", path=str(archive), reason=reason)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if entry.name.casefold() in collided:
+                # on a case-insensitive disk the names that collide were written to one file,
+                # the last one winning: the kept one is read again on its own
+                _tar_entry_to(tar, archive, entry, target, ctl, encoding)
+            else:
+                os.replace(source, target)
+            if target.stat().st_size > max(entry.size, 0):
+                raise RpgGenError(
+                    "ARCH-004", reason=f"entry {entry.name} exceeds its declared size"
+                )
+            moved += max(entry.size, 0)
+            ctl.report(label, moved, declared)
+    if run.returncode != 0:  # what was selected is all there: the error was about the rest
+        log.debug("bsdtar on %s: %s", archive, run.stderr.strip()[:500])
+    ctl.report(label, declared, declared)
+    _check_extracted_size(dest)
+
+
+def _tar_entry_to(
+    tar: Path, archive: Path, entry: _Entry, target: Path, ctl: Control, encoding: str
+) -> None:
+    """Write one entry of the archive to ``target`` (``tar -xOf``). Its name is a pattern to
+    bsdtar: a name with a wildcard is refused rather than matched loosely."""
+    name = str(entry.raw)
+    if _TAR_GLOB.search(name):
+        raise RpgGenError(
+            "ARCH-001",
+            path=str(archive),
+            reason=f"{entry.name} differs from another name only in case and has a wildcard",
+        )
+    with open(target, "wb") as out:
+        run = _run_tool([str(tar), "-xOf", str(archive), name], ctl, encoding, stdout=out)
+    if run.returncode != 0:
+        raise RpgGenError("ARCH-001", path=str(archive), reason=run.stderr.strip()[:200])
 
 
 # --------------------------------------------------------------------------- links

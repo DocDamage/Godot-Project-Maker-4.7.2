@@ -88,6 +88,33 @@ without `--pack-folder`, rpggen lists the packs of the bundle and stops.
 Rarely, a pack has a password or contains something unsafe (ARCH-002, ARCH-003, ARCH-004); extract
 it yourself and add the folder.
 
+**A `.rar` archive** is opened with 7-Zip when it is installed, else with the `tar` that
+Windows 10 and later have (it reads rar); without either it is refused with the reason
+(ARCH-007), as a `.7z` is. That `tar` cannot read file names outside your system's code page:
+such files are left out and said (ARCH-010).
+
+**Packs that ship their art more than once.** Many packs have the same tiles in several forms:
+a sheet with a pixel between the tiles, a packed sheet and a single file a tile (Kenney's
+*Tiny* packs), or every crop as a strip of its own and all of them again on one sheet of the
+season. rpggen finds such pictures **by their content** (every cell is compared), uses one
+form and sets the others aside in the audit with the reason (*the same tiles as another
+picture of this pack*, or *a sheet of pictures this pack also has a file each*); one click
+there brings one back. The same picture twice is only noted, as before. An animated GIF that
+shows a sheet the pack also has as a PNG is set aside the same way.
+
+**A pack in several sizes** (LimeZu's packs at 16, 32 and 48 px, a folder or a name a size) is
+used in one of them: the size your other packs use, else the smallest. The Audit page's
+**Packs** tab has a **Tile size** choice on the card of such a pack; the other sizes are set
+aside, and no tile set is made in a size the pack does not draw. In a farming pack a sheet
+that was read as tiles of another size is cut again at the pack's size, or kept as a picture.
+
+**Licences in a documentation file.** Besides `LICENSE`, `Credits` and `Readme`, rpggen reads a
+licence from a text file called *Documentation*, *Terms*, *About*, *Info*, *Notice* and the
+like, at the pack's root or one folder down (or at the root of an archive inside it), when the
+text speaks of a licence, credit or commercial use. When the licence asks for credit, the
+generated `README.md` has a **Credits** section that names the pack, its author, its licence
+and its page, besides the game's Credits screen.
+
 **Archetype page.** Choose the kind of game:
 
 * **Turn-based**: encounters on the map start a battle screen with attack, defend, item and run.
@@ -683,6 +710,31 @@ What rpggen looks for:
   in the audit, so they do not become villagers. They are not played yet: using a tool shows
   the animation only when the player's own sheet has one named `hoe`, `water`, `sickle` or
   `axe`; otherwise its attack animation, or the tool's icon over the farmer's hands.
+* **Crops by their pictures.** Many farming packs name a crop and nothing else
+  (`Crops/Spring/Carrot.png`: seeds, the stages, an empty cell and the carrot harvested;
+  `Carrot_Growth_Stages_16x16.png` with a row of numbers under it). In a folder of crops (or of a
+  season inside one), or named after a crop, a picture is a crop when its cells **grow**: each covers
+  about as much of itself as the one before or more, the ripe one the most. The stages are
+  drawn into a strip of their own and the crop is named after its produce; the produce
+  harvested, a withered plant and a row of labels are left out. A picture of the crops'
+  folder whose cells do not grow is not taken (the note ASSET-035). In a pack whose crops
+  have no names at all (Kenney's *Tiny Farm*: numbered tiles), a run of three green cells or
+  more that grows along a row of its tile sheet is a crop, named *Crop 1*, *Crop 2*, … A
+  fruit tree is no crop.
+* **Food icons are items.** A picture in a folder of icons or food is an item, whatever crop
+  it is named after: *Carrot cake*, and a butterfly called *Cabbage White*, are no crops.
+* **Farm animals** (a chicken, a hen, a rooster, a cow, a sheep, a goat, a pig, a duck, a
+  horse, a donkey, a rabbit, by their folder or name) drawn as a sheet of rows are animals
+  whose rows are their animations: the first *idle*, the second *walk*, the third *sleep*.
+* **Characters in pieces.** A pack that draws its player as a body, eyes, hair, clothes and
+  accessories, a file each for an action (`Character/PNG/2. Walk/Hair's/Josh/Black.png`), or
+  as a sheet a piece with every action in its rows (LimeZu's farmer generator), is **one
+  character**: the body with the first eyes, clothes and hair drawn over it, in that order
+  (body, clothes, eyes, hair, then accessories). It is the player when nothing else of the
+  pack is; a set in a folder of NPCs is a villager. In the audit it is one card; *Compose
+  character…* on it shows every part with its choices (another body is another character:
+  select that body). A character drawn whole, a file an action named after the action
+  (`Pre-made/Alex/Walk.png`, `Idle.png`), is one character too.
 
 **What the roles are used for.** The Audit and Mapping pages have three roles for this kind:
 *Crop*, *Farm animal* and *Tool*.
