@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791951780473,
+  "lastUpdate": 1791992002746,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -921,6 +921,105 @@ window.BENCHMARK_DATA = {
           {
             "name": "isometric turn-based game from the Stone isle sample",
             "value": 45.48,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": false,
+          "id": "e962e37416e158610efcaa7d5333250b91788b48",
+          "message": "Perf: the speed-up of parallel analysis is 2x from 8 cpus and 1.5x from 4\n\nThe best of several timings still read 1.6x and 1.9x on CI's 4-cpu runners\n(two cores with two threads each) for code that gives 3x on a 20-cpu machine,\nthe same as the last green commit. T12.17's text and the notes say so.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-14T09:43:18-04:00",
+          "tree_id": "c67e5fc83d02c78b3c26634282b5593b278f18b5",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/e962e37416e158610efcaa7d5333250b91788b48"
+        },
+        "date": 1791991999952,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 12,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 2.95,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 77.32,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 12.33,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, full",
+            "value": 69.2,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 27.33,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 9.55,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 5.84,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 2.94,
+            "unit": "s"
+          },
+          {
+            "name": "metroidvania from the side-view sample",
+            "value": 37.45,
+            "unit": "s"
+          },
+          {
+            "name": "shoot 'em up from the Star lane sample",
+            "value": 68.99,
+            "unit": "s"
+          },
+          {
+            "name": "run and gun from the Jungle line sample",
+            "value": 50.33,
+            "unit": "s"
+          },
+          {
+            "name": "racing game from the Dirt cup sample",
+            "value": 60.21,
+            "unit": "s"
+          },
+          {
+            "name": "farm from the Green acre sample",
+            "value": 85.04,
+            "unit": "s"
+          },
+          {
+            "name": "isometric turn-based game from the Stone isle sample",
+            "value": 43.03,
             "unit": "s"
           }
         ]
