@@ -1399,7 +1399,7 @@ def test_an_isometric_farm_with_a_forest_and_a_beach(iso_forest, godot_exe: Path
     assert not _errors(result)
     assert _smoke(target) == FARM_SEQUENCE
     # the two steps of the added maps are played; the pond's step is not (a well)
-    _passed_for_real(target, (*ABSENT, "catch_a_fish", *FARM_ANIMAL_STEPS))
+    _passed_for_real(target, (*ABSENT, "catch_a_fish", *FARM_ANIMAL_STEPS, *FARM_CAVE_STEPS))
     plan = _farm_plan(target)
     assert farm_plan.check(plan) == [] and plan["water"]["kind"] == "well"
     assert [(e["id"], e["kind"]) for e in plan["added"]] == [
