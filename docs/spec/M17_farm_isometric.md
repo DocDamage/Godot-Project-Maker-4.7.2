@@ -169,6 +169,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.27 | The editor dock on diamonds | M | T17.14 | done locally on Windows: run by tests, one of them in an editor without a window, and looked at in a picture of the game; nobody dropped anything with a mouse, and drop-to-floor has no meaning on diamonds. Three old faults of the dock's placement, on any map, were found and left (the notes) |
 | T17.28 | Imported maps in the isometric view | L | T17.14 | done locally on Windows: the Tiled sample of *Isometric Miniature Farm* is the starter map of a generated isometric turn-based game that passes its smoke sequence, looked at against Tiled's drawing of the map (the pack's `Sample.png` is a picture of another scene); a picture of a pack's samples joins the tile set for its map alone and stays unused, walls block by role or (unused) by name, a second floor is only drawn higher and flips are dropped; TILE-013 for a map of the other view (the notes) |
 | T17.29 | Real farming packs: one tile set in several forms, crops, farm animals and layered characters | L | T17.21 | open |
+| T17.30 | Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand | L | T17.29 | open |
 
 ---
 
@@ -1176,6 +1177,83 @@ with its own crops, and nothing was confirmed without review but 15 RPG Maker au
 * A synthetic pack in each shape (one set in three forms, a pack in two sizes, a crop folder
   of growth strips beside food icons, a layered character, a licence in a documentation file)
   holds it in the tests, and the accuracy corpus has an expected file for each.
+
+## T17.30 — Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand
+
+**Depends on:** T17.29
+**Files:** `rpggen/core/adapters/isometric.py`, `rpggen/core/analyzer/isometric.py`,
+`rpggen/core/adapters/naming.py`, `rpggen/core/sequences.py` (facings), `rpggen/core/adapters/`
+(object sheets, mixed sheets), `rpggen/core/classifier.py`, `rpggen/core/catalog.py`,
+`rpggen/core/mapping.py`, the licence reading of T17.29, the catalog and profile schemas, the
+wizard's pack page, `tests/unit/`, `test_packs/synthetic/`
+
+On 2026-10-13 and 14 the analyzer was run on the packs of four more publishers on the owner's
+drives (read where they lie; none is in the repository; the owner confirmed the licences of
+SakPix and CuteSCKR): the 13 isometric packs of Screaming Brain (CC0), *Lords Of Pain*
+(isometric, use allowed, no redistribution), SakPix's 31 stage packs and its 8-direction
+characters, and CuteSCKR's 80 tile sets. Almost nothing of them is read usefully.
+
+**What they showed**
+* **Isometric packs that are not Kenney's.** Not one picture of Screaming Brain or of *Lords Of
+  Pain* is read as an isometric tile: eleven packs stop with `TILE-010` (no flat tile to
+  measure), the others are read as square tile sets. The diamond is in the file names
+  (`Floor_Dry_01-256x128.png`), and so is the side a wall or a doorway faces
+  (`Flat_Brick_01-SE-128x192.png`); most packs ship a *Small* and a *Large* copy. *Lords Of
+  Pain*'s ground is a few 256 x 256 pictures.
+* **Characters in a folder of facings.** SakPix's characters (about 280) are a folder each with
+  `rotations/east.png`, `north-east.png` and the rest, and animations beside them: every
+  picture is a sprite of its own (977 NPCs, 1,126 decorations). *Lords Of Pain*'s heroes,
+  enemies and boss face 16 ways by folder and angle (`NEE`, `22.5`), a file a frame: 2,272
+  NPCs, 896 boss pictures, 656 enemy pictures, none a character with animations.
+* **Object sheets.** A SakPix stage pack is about 20 sheets of 1536 x 1024 (and similar) with
+  many objects lying loose on transparency, named by what they hold (*13. Farm animals*,
+  *6. Barns and silos*, *10. fences and gates*); some are sheets of tiles (*1. Fertile soil
+  tiles*, *3. Crop Field tiles*). Each sheet is read as one sprite: *Cozy Farming Village*
+  gives 20 objects of 1536 x 1024 and no tile, crop, animal or building.
+* **Mixed tile sheets.** CuteSCKR's packs are a few sheets of 768 x 768 in 48 px tiles that mix
+  ground, fences, crops, buildings and objects; every sheet is read as ground, and a few packs
+  get tile sets of 8, 12, 96 or 128 px.
+* **No licence file.** No SakPix stage pack and no CuteSCKR pack has one (`ASSET-021`), so a game
+  made from them says it has no licence although the owner has it.
+
+**Spec**
+* **Isometric by name.** A pack whose file or folder names give a diamond (`WxH` with W = 2H, or
+  a stated tile size) is read as isometric with that diamond when no flat tile can be measured,
+  and the flat tiles that are there are checked against it. A facing in the name (`SE`, `SW`,
+  `NE`, `NW`, `N`, `E`, `S`, `W`) gives a wall's or doorway's `edge` (T17.21) or an object's
+  turn. *Small* and *Large* copies are one set in two sizes (T17.29). A large ground picture
+  that tiles on its diamond is ground.
+* **Characters in a folder of facings.** A folder of one character whose pictures or subfolders
+  are named by a direction (`east`, `north-east`, `NE`, `NEE`, an angle) is one character with
+  those facings and the animations beside them (a folder or a strip an action). Of 16 facings
+  the game uses the 8 it turns by and says so on the card; 4 facings are used as they are.
+* **Object sheets.** A sheet of objects lying loose on transparency is cut into its objects (the
+  islands of opaque pixels, with a margin; parts of one object that lie close are kept
+  together), each an asset of its own with a stable id from its place on the sheet, and a role
+  from the sheet's name and its own size and shape (an animal of *Farm animals*, a building of
+  *Barns and silos*, a fence of *fences and gates*). A sheet whose name says tiles, or whose
+  pictures lie on a grid, is read as tiles. What cannot be read with confidence stays unread
+  with its reason.
+* **Mixed tile sheets.** A sheet of tiles is sorted tile by tile: ground that tiles seamlessly
+  with its neighbours, objects that cover several tiles (kept as one object), edges and
+  corners of a terrain, and the rest as decoration; a sheet is no longer ground because it
+  is a sheet. No tile set is made in a size the sheet is not drawn in.
+* **A licence recorded by hand.** On the pack page the user can state a pack's licence (an
+  identifier and a credit line) when the pack has no file; it is kept in the pack's profile
+  and written into the generated README as a file's would be, marked as the user's own
+  statement.
+
+**Done when**
+* SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset* give a farm each; a Screaming
+  Brain set (floors, walls, doorways) gives an isometric village with walls along its edge and
+  a house of pieces (T17.22); *Lords Of Pain* gives an isometric action RPG with its own hero
+  and enemies. Each is generated on the owner's machine, passes its smoke run and is looked at
+  in a picture.
+* A synthetic pack in each shape (names that give the diamond and the facing, a folder of
+  facings in 8 and in 16, an object sheet with a tile sheet beside it, a mixed tile sheet)
+  holds it in the tests, with expected files for the accuracy corpus, and the share of the
+  real packs' pictures read with confidence is measured before and after and written in the
+  notes.
 
 ---
 
