@@ -14,11 +14,14 @@ unsupported.
 | Name | Priority | Reads |
 |------|----------|-------|
 | `profile` | 0 | an installed [profile](profiles.md) whose fingerprint matches |
+| `iso_sheets` | 8 | isometric sheets whose names (or Tiled tile sets) state their cell: diamonds, blocks and wall faces cut cell by cell into tiles of their own (T17.30) |
 | `tiled` | 10 | `.tsx`/`.tsj` tile sets and `.tmx`/`.tmj` maps: collision, custom data, wang terrains, animated tiles; the tile layers and the spawn, door and sign objects of the maps (T12.49) |
 | `aseprite` | 20 | Aseprite JSON (hash and array formats), frame tags, durations |
 | `ldtk` | 30 | LDtk tile set definitions; the tile, auto and IntGrid layers and the spawn, door and sign entities of every level (T12.49) |
 | `rpgmaker` | 40 | RPG Maker MV/MZ tilesets (A1-A5, B-E), character sheets, faces |
 | `lpc` | 50 | Liberated Pixel Cup characters: the universal sheet (832 px wide, the classic 21 rows or the generator's 54) with every animation that is drawn on it, and the LPC collection's files, a picture per animation (`body/bodies/male/walk.png`) or a folder per animation with a picture per colour. A body is a character; hair, clothes and weapons are read as layers and left unused |
+| `facings` | 46 | characters (and props) in a folder of facings named by direction: `rotations/east.png`, or a folder a facing of a file a frame, 4, 8 or 16 facings (T17.30) |
+| `sheet_parts` | 53 | large sheets of many things: object sheets cut into their islands, a tile set's mixed sheets sorted cell by cell, sheets of loose tiles (T17.30) |
 | `sequences` | 55 | animations saved as one numbered image per frame (T12.50, see below) |
 | `strips` | 60 | horizontal animation strips (incl. GIF) |
 | `generic_grid` | 100 | everything else: grid detection, strips, character sheets, small sprites |

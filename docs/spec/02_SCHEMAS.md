@@ -197,7 +197,13 @@ use), `rpgmaker` (the RPG Maker terms) or `""` (unknown). `license_overrides` (o
 when empty) holds the Audit page's corrections of the same keys and survives a new analysis; the
 effective licence is `license` with the overrides on top, and a `license_id` chosen there without
 `attribution_required` brings that licence's own rule. A catalog without `license` reads an
-unknown licence.
+unknown licence. Since T17.30 the overrides may also hold `credit` (string: the line the game
+credits the pack with, as its user wrote it; never read from a file, so `license` has no such
+key). A pack with no `license_files` and a `license_id` among its overrides has a licence
+**stated by hand**: the README lists it as its user's own statement and the run says ASSET-036
+instead of ASSET-021. `ai_generated` (bool, T17.30) marks a pack as AI-generated art: a project
+whose catalog uses an asset of it (one that is not `UNUSED` or `MISSING`) has the README section
+*AI-generated content*.
 
 ### 4.3 Asset
 
@@ -482,6 +488,10 @@ All three files share this shape:
 }
 ```
 
+* `pack_license` (optional, T17.30): the licence its user stated for a pack that has no licence
+  file, the keys of `license_overrides` (`license_id`, `author`, `url`, `attribution_required`,
+  `credit`, `ai_generated`). Written only for such a pack, or a pack marked as AI-generated art; a pack the profile matches takes it as its
+  corrections when its catalog has none.
 * A profile matches when the fraction of `required_files` present with an identical hash is at least `min_match`.
 * `required_files` holds up to 20 files, chosen as the largest images.
 * Profiles never contain image data.
@@ -669,6 +679,7 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `projection: isometric` is accepted for `racing`; the node `View` (`footprint`, `cell_px`, `origin`) of a track's scene; `base_zoom` of its camera | generator_config, generated (an isometric race's) | T17.15 |
 | `projection` and `walls` of a Map; the layer kind `iso_tiles` with `pictures` and `offset`; `maps_only` of a tile of a TileSetDef | asset_catalog | T17.28 |
 | `pack_sizes` (`{ pack id: px }`, the size a pack drawn in several is used in); the tags `size_form:<n>`, `same_as:<path>`, `unused_because:same_tiles`, `unused_because:compiled_sheet`, `unused_because:other_size`, `unused_because:preview_gif`, `produce:<name>`, `growth_by:strip` / `growth_by:grid`, `cells:<row>:<col>:<n>`, `food`, `layered_piece`, `layered_set:<folder>`, `unused_because:layered_piece`; a crop's growth strip drawn to `generated/farm_crops/<pack>__<file>[__<variant>].png` (a variant `#crop_<n>` of a tile sheet); an LpcCharacter of a pack's pieces (`generated/lpc_characters/`); the facet `feet` (int ≥ 1: how wide an actor's feet are, where its frames are much wider than it; the builder's `ActorBuild.set_feet`); the tags `unused_because:character_sheet`, `many_buildings`, `engine_copy`, `aseprite_copy`, `portrait_piece` and `pet` | asset_catalog, Facets, pack profile | T17.29 |
+| the parts of a sheet as variants of its asset, each drawn into a picture of its own: an isometric cell `#c<col>_<row>` and a wall piece `#c<col>_<row>_<n/e/s/w>` (`generated/iso_cells/`, with `turn` and the tag `turn_group:<first cell>`, which groups the four pieces of a wall as the names group named turns), a thing of an object sheet `#o<x>_<y>` (its place in px), loose tiles `#tiles`, a patch of ground of a mixed sheet `#g<x>_<y>` (`generated/sheet_parts/`), a ground picture cut on its diamond `#diamond`; the sources `named` and `ground_picture` of a pack's warning `isometric:<w>x<h>:<source>`; the tags `unused_because:iso_sheet`, `iso_piece_not_read`, `object_sheet`, `sorted_sheet`, `facings:<n>` (a character drawn in 4 or 16 facings), `walk_from_still`, `animal`, and `surface:grass` on a tile sheet; the facet `feet` on a character in facings; `credit` and `ai_generated` of `license_overrides`; `pack_license` of a pack profile | asset_catalog, Facets, pack profile | T17.30 |
 
 ---
 

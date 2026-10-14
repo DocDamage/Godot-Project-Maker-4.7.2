@@ -1,0 +1,722 @@
+{
+  "assets": [
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          512,
+          512
+        ],
+        "origin": [
+          256,
+          511
+        ],
+        "role": "NONE",
+        "size": [
+          512,
+          512
+        ],
+        "tags": [
+          "animal",
+          "unused_because:object_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n1_farm_animals",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "assets/packs/object_sheet/Cozy Synthetic Asset Pack/1. Farm animals.png",
+      "sha256": "ac61ef86a8fb55afd87dcfc0f4fd0c1abdc5d4eb2d401dca13b5af0d3f424a14",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          61,
+          91
+        ],
+        "grid": {
+          "cell": [
+            61,
+            91
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          30,
+          90
+        ],
+        "role": "ANIMAL",
+        "size": [
+          61,
+          91
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n1_farm_animals#o190_120",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/35e501a8e4ab9ceba0300f58c12b16f0b5d0656b755295a71a4de3e05c1d5872.png",
+      "sha256": "ac61ef86a8fb55afd87dcfc0f4fd0c1abdc5d4eb2d401dca13b5af0d3f424a14",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          61,
+          91
+        ],
+        "grid": {
+          "cell": [
+            61,
+            91
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          30,
+          90
+        ],
+        "role": "ANIMAL",
+        "size": [
+          61,
+          91
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n1_farm_animals#o190_300",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/6c9d7d23432e7f4aa95d9b36513c848c912a49ac03cdc59388d6ab8fdc89eb4c.png",
+      "sha256": "ac61ef86a8fb55afd87dcfc0f4fd0c1abdc5d4eb2d401dca13b5af0d3f424a14",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          61,
+          91
+        ],
+        "grid": {
+          "cell": [
+            61,
+            91
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          30,
+          90
+        ],
+        "role": "ANIMAL",
+        "size": [
+          61,
+          91
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n1_farm_animals#o340_120",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/49da73be4dbd49e2f19575e663695cb3a2484add14fd37cb98e2aadd0d54f7a8.png",
+      "sha256": "ac61ef86a8fb55afd87dcfc0f4fd0c1abdc5d4eb2d401dca13b5af0d3f424a14",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          61,
+          91
+        ],
+        "grid": {
+          "cell": [
+            61,
+            91
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          30,
+          90
+        ],
+        "role": "ANIMAL",
+        "size": [
+          61,
+          91
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n1_farm_animals#o340_300",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/b23530dc879357488f366cef6c33fb62f24e340de508518b14113e48f5eec58a.png",
+      "sha256": "ac61ef86a8fb55afd87dcfc0f4fd0c1abdc5d4eb2d401dca13b5af0d3f424a14",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          61,
+          91
+        ],
+        "grid": {
+          "cell": [
+            61,
+            91
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          30,
+          90
+        ],
+        "role": "ANIMAL",
+        "size": [
+          61,
+          91
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n1_farm_animals#o40_120",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/9ec71c8184fc332651fdf261272a2720eef233890a55554c048f869d09313be8.png",
+      "sha256": "ac61ef86a8fb55afd87dcfc0f4fd0c1abdc5d4eb2d401dca13b5af0d3f424a14",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          61,
+          91
+        ],
+        "grid": {
+          "cell": [
+            61,
+            91
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          30,
+          90
+        ],
+        "role": "ANIMAL",
+        "size": [
+          61,
+          91
+        ],
+        "tags": [
+          "animal"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n1_farm_animals#o40_300",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/8d71e278cc4f0c6e6424d18f1c5ffc64b39721654a660550634b2bd6e97cafb9.png",
+      "sha256": "ac61ef86a8fb55afd87dcfc0f4fd0c1abdc5d4eb2d401dca13b5af0d3f424a14",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          512,
+          512
+        ],
+        "origin": [
+          256,
+          511
+        ],
+        "role": "NONE",
+        "size": [
+          512,
+          512
+        ],
+        "tags": [
+          "barn",
+          "unused_because:object_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n2_barns_and_silos",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "assets/packs/object_sheet/Cozy Synthetic Asset Pack/2. Barns and silos.png",
+      "sha256": "9af3d4b87a87ae15073ecdde4c4170d87e1c79b83c6652eee71959f18f755b1c",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          31,
+          31
+        ],
+        "origin": [
+          15,
+          30
+        ],
+        "role": "DECORATION",
+        "size": [
+          31,
+          31
+        ],
+        "tags": [
+          "barn"
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n2_barns_and_silos#o200_440",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/e15e23ea8042e2d886dc02133c344c1c0bf3c46e9fb0dab9587187f6689c8e8f.png",
+      "sha256": "9af3d4b87a87ae15073ecdde4c4170d87e1c79b83c6652eee71959f18f755b1c",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          181,
+          241
+        ],
+        "origin": [
+          90,
+          240
+        ],
+        "role": "BUILDING",
+        "size": [
+          181,
+          241
+        ],
+        "tags": [
+          "barn"
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n2_barns_and_silos#o280_140",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/a860dedc573313fead63b717b541d7b06b283a1632865fdf7621b3a8f569f668.png",
+      "sha256": "9af3d4b87a87ae15073ecdde4c4170d87e1c79b83c6652eee71959f18f755b1c",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          181,
+          241
+        ],
+        "origin": [
+          90,
+          240
+        ],
+        "role": "BUILDING",
+        "size": [
+          181,
+          241
+        ],
+        "tags": [
+          "barn"
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n2_barns_and_silos#o40_140",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/83ed1db4ef1eee7f92529b1ebfbeaa2ca8e2e92f9f269f5a2c261a11e9cd715d.png",
+      "sha256": "9af3d4b87a87ae15073ecdde4c4170d87e1c79b83c6652eee71959f18f755b1c",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "frame": [
+          31,
+          141
+        ],
+        "origin": [
+          15,
+          140
+        ],
+        "role": "DECORATION",
+        "size": [
+          31,
+          141
+        ],
+        "tags": [
+          "barn"
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n2_barns_and_silos#o470_260",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/79858680db2f1729aaebc1a3774bdb2c3a83e98fd30d150c48782acc9787c2fb.png",
+      "sha256": "9af3d4b87a87ae15073ecdde4c4170d87e1c79b83c6652eee71959f18f755b1c",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          512,
+          512
+        ],
+        "origin": [
+          256,
+          511
+        ],
+        "role": "NONE",
+        "size": [
+          512,
+          512
+        ],
+        "tags": [
+          "unused_because:object_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n3_grass_tiles",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "assets/packs/object_sheet/Cozy Synthetic Asset Pack/3. Grass tiles.png",
+      "sha256": "fbbdeef5ce586ed61bb0cd2268534066bebe6560165cd8a4e23e6fd0433c9db5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "grid": {
+          "cell": [
+            48,
+            48
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "size": [
+          384,
+          96
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "sheet_parts",
+      "id": "object_sheet.cozy_synthetic_asset_pack.n3_grass_tiles#tiles",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "object_sheet",
+      "path": "generated/sheet_parts/895976f7b506e0620206fbc87b6ba1f4ba2cf76c3f439fc1b170c78a4d30c998.png",
+      "sha256": "fbbdeef5ce586ed61bb0cd2268534066bebe6560165cd8a4e23e6fd0433c9db5",
+      "status": "AUTO_DETECTED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "sheet_parts"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/object_sheet/LICENSE.txt"
+      ],
+      "pack_id": "object_sheet",
+      "profile_id": null,
+      "root": "assets/packs/object_sheet",
+      "source_sha256": "b2b8f135f984f0cfdaad851a0776bb267d2d981aa72eaf83c6885bd19167784c",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "object_sheet.cozy_synthetic_asset_pack.n3_grass_tiles#tiles",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        48,
+        48
+      ]
+    }
+  ]
+}

@@ -169,7 +169,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.27 | The editor dock on diamonds | M | T17.14 | done locally on Windows: run by tests, one of them in an editor without a window, and looked at in a picture of the game; nobody dropped anything with a mouse, and drop-to-floor has no meaning on diamonds. Three old faults of the dock's placement, on any map, were found and left; mended since (the notes) |
 | T17.28 | Imported maps in the isometric view | L | T17.14 | done locally on Windows: the Tiled sample of *Isometric Miniature Farm* is the starter map of a generated isometric turn-based game that passes its smoke sequence, looked at against Tiled's drawing of the map (the pack's `Sample.png` is a picture of another scene); a picture of a pack's samples joins the tile set for its map alone and stays unused, walls block by role or (unused) by name, a second floor is only drawn higher and flips are dropped; TILE-013 for a map of the other view (the notes) |
 | T17.29 | Real farming packs: one tile set in several forms, crops, farm animals and layered characters | L | T17.21 | done locally on Windows: the three packs each give a farm with their own ground, crops that grow in their pictures and a player of the pack, played by the farm's smoke sequence and looked at in pictures; *Tiny Farm*'s player and hen are numbered tiles nothing names, chosen in the audit as a user would; the size choice is on the Audit page's *Packs* tab, not the Project page (the notes) |
-| T17.30 | Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand, AI-generated art marked | L | T17.29 | open |
+| T17.30 | Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand, AI-generated art marked | L | T17.29 | done locally on Windows: a Screaming Brain village (floors, walls, doorways) with walls along its edge and a house of pieces, a *Lords Of Pain* isometric action RPG with its own hero and enemies, and a farm each of SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset*, each passing its smoke run and looked at in a picture; CuteSCKR's pack marked as AI-generated gives its farm the README section *AI-generated content* and the same farm unmarked has none; the farms take their player from SakPix's villagers (a second pack), and the audit overrides made as a user would are in the notes (the slime of *Lords Of Pain* set aside: an arrow flies over it); paths and roads of Screaming Brain are overlays that need review, thick walls and corners stay unread (the notes) |
 
 ---
 
@@ -1241,18 +1241,19 @@ characters, and CuteSCKR's 80 tile sets. Almost nothing of them is read usefully
 * **A licence recorded by hand.** On the pack page the user can state a pack's licence (an
   identifier and a credit line) when the pack has no file; it is kept in the pack's profile
   and written into the generated README as a file's would be, marked as the user's own
-  statement.
-* **AI-generated art, marked by hand.** On the same page the user can mark a pack as
-  AI-generated art (added 2026-10-14: CuteSCKR's packs are, and need no licence file, but a game
-  made from them that is sold must declare it on its store page). The mark is kept in the pack's
-  profile; a generated project whose catalog uses any asset of such a pack gets a section of its
-  README, *AI-generated content*, listing those packs and saying that a store page (Steam's AI
-  disclosure, for one) must declare it. A project that uses none of them has no such section.
-  The section also suggests cleaning those pictures up in Aseprite, by hand or with an AI
-  assistant (Claude, or the one the user has) driving Aseprite: fixing stray pixels, outlines,
-  palettes and the frames of animations, so the art is the user's own work on top of what was
-  generated. It says plainly that edited art still came from a generator, so the store page
-  still declares it.
+  statement. (SakPix's stage packs are bought, and SakPix's itch.io terms let buyers use them
+  freely: such a pack is what this is for. CuteSCKR's packs need no licence recorded.)
+* **AI-generated art, marked by hand.** On the pack page, next to the licence recorded by hand,
+  the user can mark a pack as AI-generated art. CuteSCKR's packs are AI-generated and need no
+  licence file; a game made from them that is sold must declare it on its store page. The mark
+  is kept in the pack's profile; a generated project whose catalog uses any asset of such a
+  pack gets a README section "AI-generated content" listing those packs and saying a store
+  page (Steam's AI disclosure, for one) must declare it. The section also suggests cleaning
+  those packs' pictures up in Aseprite, by hand or with an AI assistant (Claude, or whichever
+  one the user has) driving Aseprite (stray pixels, outlines, palettes, animation frames), so
+  that the art becomes the user's own work on top of what was generated, and says plainly that
+  edited art still came from a generator, so the store page still declares it. A project that
+  uses none of them has no such section.
 
 **Done when**
 * SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset* give a farm each; a Screaming
@@ -1265,8 +1266,9 @@ characters, and CuteSCKR's 80 tile sets. Almost nothing of them is read usefully
   holds it in the tests, with expected files for the accuracy corpus, and the share of the
   real packs' pictures read with confidence is measured before and after and written in the
   notes.
-* A farm made from a CuteSCKR pack marked as AI-generated has the README section naming it, and a
-  farm from the same packs with the mark taken off has none; a test holds both.
+* A farm made from a CuteSCKR pack marked as AI-generated has the README section naming it,
+  and a farm from the same packs with the mark taken off has none; a test holds both (a
+  synthetic pack is fine for the test).
 
 ---
 

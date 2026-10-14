@@ -1,0 +1,279 @@
+{
+  "assets": [
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          576,
+          576
+        ],
+        "origin": [
+          288,
+          575
+        ],
+        "role": "NONE",
+        "size": [
+          576,
+          576
+        ],
+        "tags": [
+          "unused_because:sorted_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "assets/packs/mixed_sheet/Synthetic Farm Tileset/farm/1.png",
+      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "grid": {
+          "cell": [
+            48,
+            48
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "size": [
+          192,
+          48
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1#g0_96",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "generated/sheet_parts/c30b8c63389a084116ce030dfa9ea07e673e348acc2bab46f5693549b9353b9e.png",
+      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          27,
+          27
+        ],
+        "origin": [
+          13,
+          26
+        ],
+        "role": "DECORATION",
+        "size": [
+          27,
+          27
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1#o106_300",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "generated/sheet_parts/4d9010872e18b3a40cc75e40024bc4367751c6d046208431f2f05b37f95fe8a8.png",
+      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          27,
+          27
+        ],
+        "origin": [
+          13,
+          26
+        ],
+        "role": "DECORATION",
+        "size": [
+          27,
+          27
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1#o10_300",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "generated/sheet_parts/abf5efe6d03711b61885eacba6009c492780977c264f00bc93b1e1fbbd467f09.png",
+      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          96,
+          131
+        ],
+        "origin": [
+          48,
+          130
+        ],
+        "role": "DECORATION",
+        "size": [
+          96,
+          131
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1#o192_10",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "generated/sheet_parts/5cadd4f011d28cbc89532f01630a552b269e5bfc93f6b7689eb37d4e47750ec8.png",
+      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          144,
+          24
+        ],
+        "origin": [
+          72,
+          23
+        ],
+        "role": "DECORATION",
+        "size": [
+          144,
+          24
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1#o336_24",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "generated/sheet_parts/a8ac40f456474df696c51e07cef921fc1a1f69d1e59c293dc2b837517390b7e0.png",
+      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          27,
+          27
+        ],
+        "origin": [
+          13,
+          26
+        ],
+        "role": "DECORATION",
+        "size": [
+          27,
+          27
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1#o58_300",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "generated/sheet_parts/76efec87ec5e56dde5e98b6eb3e514fc09505d563782db5c8354a66c5e013356.png",
+      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "sheet_parts"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/mixed_sheet/LICENSE.txt"
+      ],
+      "pack_id": "mixed_sheet",
+      "profile_id": null,
+      "root": "assets/packs/mixed_sheet",
+      "source_sha256": "143227b5ccd5f106fb35d5d4d9f66f0f1bfb1cf40361d4e491d4ac6f5e779a3b",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "mixed_sheet.synthetic_farm_tileset.farm.n1#g0_96",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        48,
+        48
+      ]
+    }
+  ]
+}

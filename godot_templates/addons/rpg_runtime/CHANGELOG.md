@@ -47,6 +47,17 @@ file. The English text of `RpgStrings` stands in for a missing translation, and 
 without two `%s` gives "Name — Author". A game whose packs named their authors shows the same
 line as before.
 
+**Packs of other shapes in the builder (T17.30).** Nothing of the runtime changes. The builder:
+`MapGeo.tile_unit` measures an isometric project by its diamond whatever tile sets of squares
+its packs also have (*Lords Of Pain*'s effects made a tile set of 16 px, and the action RPG's
+enemies, its followers' leash and its smoke steps were scaled to 16 px on diamonds of 128);
+a project seen from above, or an isometric one without such a set, gets the unit it got. An
+enemy of the action RPG stands on its feet where its sheet says how wide they are (the facet
+`feet`, as the player since T17.29: a skeleton drawn in a frame as wide as its swing could not
+reach the player); `arpg/enemy_recipes.gd` is at `RECIPE_VERSION` 3, so the enemies of every
+action RPG are built again once, the same scenes where no enemy has the facet. `error_codes.gd`
+has the three new codes.
+
 **Real farming packs in the builder (T17.29).** Nothing of the runtime changes but the line
 above. The builder: `ActorBuild.set_feet` makes an actor's feet as wide as the facet `feet`
 says, where a sheet says it (a character drawn 14 px wide in frames of 32 walked through no

@@ -65,6 +65,18 @@
     },
     "license": {
       "type": "string"
+    },
+    "pack_license": {
+      "type": "object",
+      "properties": {
+        "license_id": {"type": "string"},
+        "author": {"type": "string"},
+        "url": {"type": "string"},
+        "attribution_required": {"type": "boolean"},
+        "credit": {"type": "string"},
+        "ai_generated": {"type": "boolean"}
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false,

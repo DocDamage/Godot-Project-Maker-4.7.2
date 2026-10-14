@@ -54,9 +54,38 @@ class PackLicenseBox(QGroupBox):
         self.warning.setObjectName(f"packCreditWarning_{pack_id}")
         self.warning.setWordWrap(True)
         self.warning.setProperty("state", "warning")
+        # a pack with no licence file (T17.30): its user states the licence and the credit
+        self.credit_edit = QLineEdit()
+        self.credit_edit.setObjectName(f"packCreditLine_{pack_id}")
+        self.credit_edit.setPlaceholderText(self.tr("Art by ... (the line the game credits)"))
+        self.credit_edit.setToolTip(
+            self.tr("How the game credits this pack: written into the README as your statement")
+        )
+        self.credit_label = QLabel(self.tr("Credit line"))
+        self.stated_note = QLabel(
+            self.tr(
+                "The pack has no licence file. Choose its licence and write its credit line: the "
+                "README of the game names them as your own statement."
+            )
+        )
+        self.stated_note.setObjectName(f"packStatedNote_{pack_id}")
+        self.stated_note.setWordWrap(True)
+        self.stated_note.setProperty("muted", True)
         form.addRow(self.tr("Licence"), self.license_combo)
         form.addRow(self.tr("Author"), self.author_edit)
         form.addRow(self.tr("URL"), self.url_edit)
+        form.addRow(self.credit_label, self.credit_edit)
+        form.addRow("", self.stated_note)
+        self.ai_box = QCheckBox(self.tr("AI-generated art (a store page must declare it)"))
+        self.ai_box.setObjectName(f"packAiGenerated_{pack_id}")
+        self.ai_box.setToolTip(
+            self.tr(
+                "The pack's pictures were made with a generator: the README of a game that uses "
+                "them says so, for its store page"
+            )
+        )
+        form.addRow("", self.ai_box)
+        self.ai_box.toggled.connect(lambda on: self._set("ai_generated", on))
         form.addRow("", self.credit_box)
         form.addRow("", self.warning)
         form.addRow("", self.files_label)
@@ -77,6 +106,9 @@ class PackLicenseBox(QGroupBox):
             lambda: self._set("url", self.url_edit.text().strip())
         )
         self.credit_box.toggled.connect(lambda on: self._set("attribution_required", on))
+        self.credit_edit.editingFinished.connect(
+            lambda: self._set("credit", self.credit_edit.text().strip())
+        )
 
     def _set(self, key: str, value: object) -> None:
         self.session.set_pack_license(self.pack_id, key, value)
@@ -128,6 +160,17 @@ class PackLicenseBox(QGroupBox):
         for widget in (self.license_combo, self.author_edit, self.url_edit, self.credit_box):
             widget.blockSignals(False)
         self.warning.setVisible(found.attribution_required and not found.author.strip())
+        if self.credit_edit.text() != found.credit:
+            self.credit_edit.blockSignals(True)
+            self.credit_edit.setText(found.credit)
+            self.credit_edit.blockSignals(False)
+        self.ai_box.blockSignals(True)
+        self.ai_box.setChecked(found.ai_generated)
+        self.ai_box.blockSignals(False)
+        no_file = not pack.license_files
+        self.credit_label.setVisible(no_file)
+        self.credit_edit.setVisible(no_file)
+        self.stated_note.setVisible(no_file)
         files = ", ".join(f.rsplit("/", 1)[-1] for f in pack.license_files)
         self.files_label.setText(
             self.tr("Read from: {0}").format(files) if files else self.tr("No licence file found.")

@@ -480,6 +480,7 @@ def _character_sheets(assets: list[Any], prefix: str) -> None:
 
 
 MANY_BUILDINGS = "many_buildings"
+CUT_PARTS = "generated/sheet_parts/"  # adapters.sheet_parts (not imported: they import us)
 BUILDING_MAX_TILES = 12
 # what a picture of one building of a farming pack is called (else it is a thing of one)
 HOUSE_NAMES = frozenset(
@@ -506,6 +507,8 @@ def _sheets_of_buildings(assets: list[Any], tile: int | None) -> None:
         facets = asset.detected
         if facets.get("role") != "BUILDING" or facets.get("usage") not in ("sprite", "object"):
             continue
+        if asset.path.startswith(CUT_PARTS):
+            continue  # one thing cut from a sheet of buildings (T17.30): its reader measured it
         w, h = (facets.get("size") or [0, 0])[:2]
         if w > BUILDING_MAX_TILES * size or h > BUILDING_MAX_TILES * size:
             aside(asset, MANY_BUILDINGS)
@@ -562,6 +565,9 @@ def _one_tile_size(assets: list[Any], size: int, offered: list[int]) -> None:
         if facets.get("usage") != "tiles" or not cell or facets.get("role") == "NONE":
             continue
         if list(cell) == [size, size]:
+            continue
+        if asset.path.startswith(CUT_PARTS):
+            aside(asset, OTHER_SIZE)  # tiles cut from loose squares, of another size (T17.30)
             continue
         w, h = (facets.get("size") or [0, 0])[:2]
         own = size_of(asset) == size  # drawn at the size that is used: cut it at that size

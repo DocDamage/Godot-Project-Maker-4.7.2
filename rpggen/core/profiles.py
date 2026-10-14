@@ -111,6 +111,11 @@ def export_profile(
         "author": meta.get("author", ""),
         "license": meta.get("license") or DEFAULT_LICENSE,
     }
+    pack = next((p for p in catalog.packs if p.pack_id == pack_id), None)
+    if pack is not None and (pack.licence_stated() or pack.effective_license().ai_generated):
+        # the licence the user stated for a pack with no licence file, and the mark of
+        # AI-generated art (T17.30), go with it
+        profile["pack_license"] = dict(sorted(pack.license_overrides.items()))
     schema.validate("profile", profile)
     return profile
 

@@ -478,22 +478,73 @@ def credits_note(catalog: catalog_mod.Catalog | None) -> str:
     lines: list[str] = []
     for pack in catalog.packs:
         found = pack.effective_license()
-        if not found.attribution_required:
+        stated = pack.licence_stated()
+        if not found.attribution_required and not stated:
             continue
         parts = [
-            found.author.strip() or "author not named (see its licence file)",
+            found.credit.strip()
+            or found.author.strip()
+            or ("author not named" if stated else "author not named (see its licence file)"),
             licenses.label(found.license_id),
         ]
         if found.url.strip():
             parts.append(found.url.strip())
+        if stated:
+            # T17.30: what the user said of a pack that has no licence file
+            parts.append("the pack has no licence file; this is the licence its user stated")
         lines.append(f"- **{pack.pack_id}**: " + " — ".join(parts))
     if not lines:
         return ""
+    stated_note = ""
+    if any(pack.licence_stated() for pack in catalog.packs):
+        stated_note = (
+            "\nA pack that has no licence file is listed with the licence you stated for it on"
+            "\nthe Audit page (Packs): that line is your own statement, not the pack's."
+        )
     return (
         "\n\n### Credits\n\n"
         "The licences of these packs require credit. Keep it in your game and on its page; the"
-        "\ngame's Credits screen shows it.\n\n" + "\n".join(lines)
+        "\ngame's Credits screen shows it." + stated_note + "\n\n" + "\n".join(lines)
     )
+
+
+AI_NOTE_HEAD = (
+    "\n\n### AI-generated content\n\n"
+    "These packs were marked as AI-generated art on the Audit page (Packs), and this game uses"
+    "\nthem. A game that is sold must declare it on its store page (Steam's AI disclosure, for"
+    "\none).\n\n"
+)
+AI_NOTE_CLEAN_UP = (
+    "You can clean their pictures up in Aseprite, by hand or with an AI assistant (Claude, or"
+    "\nwhichever one you use) driving Aseprite: stray pixels, outlines, palettes, animation"
+    "\nframes. The art then becomes your own work on top of what was generated."
+)
+AI_NOTE_STILL_DECLARED = "Edited art still came from a generator: the store page still declares it."
+
+
+def ai_packs(catalog: catalog_mod.Catalog | None) -> list[str]:
+    """The packs marked as AI-generated art (T17.30) of which the project uses an asset (one
+    that is not set aside), sorted."""
+    if catalog is None:
+        return []
+    marked = {p.pack_id for p in catalog.packs if p.effective_license().ai_generated}
+    used = {
+        a.pack_id
+        for a in catalog.assets
+        if a.pack_id in marked and a.status not in ("UNUSED", "MISSING")
+    }
+    return sorted(used)
+
+
+def ai_note(catalog: catalog_mod.Catalog | None) -> str:
+    """The README's section on AI-generated content (T17.30): the packs marked so that the
+    project uses, that a store page must declare them, and how to clean their art up. Empty
+    when the project uses none, so the README of every other project is what it was."""
+    found = ai_packs(catalog)
+    if not found:
+        return ""
+    listed = "\n".join(f"- **{pack_id}**" for pack_id in found)
+    return AI_NOTE_HEAD + listed + "\n\n" + AI_NOTE_CLEAN_UP + "\n" + AI_NOTE_STILL_DECLARED
 
 
 def render_readme(
@@ -509,6 +560,7 @@ def render_readme(
     licences require follow the list of packs."""
     packs = "\n".join(f"- {p.pack_id}" for p in cfg.packs) or "- (none)"
     packs += credits_note(catalog)
+    packs += ai_note(catalog)
     from rpggen.core import sound_slots
 
     custom = sound_slots.custom_slots(cfg.sounds, cfg.archetype)

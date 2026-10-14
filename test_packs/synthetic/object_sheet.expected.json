@@ -1,0 +1,77 @@
+{
+  "Cozy Synthetic Asset Pack/1. Farm animals.png": {
+    "role": "NONE"
+  },
+  "Cozy Synthetic Asset Pack/1. Farm animals.png#o190_120": {
+    "anims": [
+      "idle_down",
+      "walk_down"
+    ],
+    "role": "ANIMAL",
+    "usage": "sprite"
+  },
+  "Cozy Synthetic Asset Pack/1. Farm animals.png#o190_300": {
+    "anims": [
+      "idle_down",
+      "walk_down"
+    ],
+    "role": "ANIMAL",
+    "usage": "sprite"
+  },
+  "Cozy Synthetic Asset Pack/1. Farm animals.png#o340_120": {
+    "anims": [
+      "idle_down",
+      "walk_down"
+    ],
+    "role": "ANIMAL",
+    "usage": "sprite"
+  },
+  "Cozy Synthetic Asset Pack/1. Farm animals.png#o340_300": {
+    "anims": [
+      "idle_down",
+      "walk_down"
+    ],
+    "role": "ANIMAL",
+    "usage": "sprite"
+  },
+  "Cozy Synthetic Asset Pack/1. Farm animals.png#o40_120": {
+    "anims": [
+      "idle_down",
+      "walk_down"
+    ],
+    "role": "ANIMAL",
+    "usage": "sprite"
+  },
+  "Cozy Synthetic Asset Pack/1. Farm animals.png#o40_300": {
+    "anims": [
+      "idle_down",
+      "walk_down"
+    ],
+    "role": "ANIMAL",
+    "usage": "sprite"
+  },
+  "Cozy Synthetic Asset Pack/2. Barns and silos.png#o200_440": {
+    "role": "DECORATION",
+    "usage": "object"
+  },
+  "Cozy Synthetic Asset Pack/2. Barns and silos.png#o280_140": {
+    "role": "BUILDING",
+    "usage": "object"
+  },
+  "Cozy Synthetic Asset Pack/2. Barns and silos.png#o40_140": {
+    "role": "BUILDING",
+    "usage": "object"
+  },
+  "Cozy Synthetic Asset Pack/2. Barns and silos.png#o470_260": {
+    "role": "DECORATION",
+    "usage": "object"
+  },
+  "Cozy Synthetic Asset Pack/3. Grass tiles.png#tiles": {
+    "cell": [
+      48,
+      48
+    ],
+    "role": "GROUND",
+    "usage": "tiles"
+  }
+}

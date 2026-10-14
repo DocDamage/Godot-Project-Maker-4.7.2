@@ -1,0 +1,865 @@
+{
+  "assets": [
+    {
+      "confidence": 0.9,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/b6a592be4e62d3db83dc959a82d70b0f013bc33004abb7db1e0934ccb15e19c2.png"
+          },
+          "attack_down_left": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/d6f131c61a1bf50b155f1f294285e50026323d0bdedfc72864e437f14d015062.png"
+          },
+          "attack_down_right": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/f818d236b1973163ae6cb9a1dd0c8e931b022864386c0a90e007264611bf6a8b.png"
+          },
+          "attack_left": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/c4d5dcb901cd664db9debe80b39f7edb34b450331c546abe46cc9fd42b13cb81.png"
+          },
+          "attack_right": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/1341e83cac10dfce549d256d2ebfecf955fe8bb50724c1936d55517ba93d8112.png"
+          },
+          "attack_up": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/d4201bf70c165c84f5000cb0c33ad380fa49c5a0ad8b230f1c5333cac490ca14.png"
+          },
+          "attack_up_left": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/01c14686c1a87832a1b95fa42bd6c9662c0430ec70b9657a54b1eb79946cf0f0.png"
+          },
+          "attack_up_right": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/1d4977a404ebfd0410fe3da47d6ed16adb1287d8ce7dfdd381aa4994152875dc.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/1a1644bda5461d0fc61689ce50579d7476664682bccc7cc94c916724ebb1fb9c.png"
+          },
+          "idle_down_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/6c497c1a68ccaf40a7d229b4717e99883ad79b98f4d0a33dff73563199740211.png"
+          },
+          "idle_down_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/c940192767e31c7124bb9a5da0b888883894e1bc33e0695c4b71a7f3286b80ff.png"
+          },
+          "idle_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/cb77fe5885580da8579a819c2589fdf97f98d3929fbc2870e6eff06f38ee0094.png"
+          },
+          "idle_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/1d5745f85b1412c2abd465ca58da382df0870380940261d84fd331008c9df288.png"
+          },
+          "idle_up": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/1bc1d327a4edff61f3e251c8f02a5e89bcd5d97b798a0bf31dd57a31033acc9f.png"
+          },
+          "idle_up_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/4d7276b0af1be6a20eb447f8e89c77395c3749e69f26e3f2d1b25f6278afe2ec.png"
+          },
+          "idle_up_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/4b4f2fa4acebc1c87b448193246490259269d300bb72b846abac8a00e6682cbe.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/d83b9578cebb087a882fa402b70fb80ecc0634ffb1a2a2a4c6c31bb3a03f26d5.png"
+          },
+          "walk_down_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/24b51c31306878b95a66b15084579aaa9b14e4c3052f3095f1807155d2ee1eac.png"
+          },
+          "walk_down_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/d84db01d7c03904389886807fbee874a155b4ed1261daffaccd5c45716d767b5.png"
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/675d8dbf3f9f2800064138f12f10e08ffe3af6243094b14828dde24e579f761b.png"
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/4f1c0ec39d43a4216132bc949fe2cfb5a44e5b9d776842d2d697d864c1c01845.png"
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/22d9ad31ae0fb321121404f37851651bdd443c38986f18af87fe156df5aa03e0.png"
+          },
+          "walk_up_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/4f6457bb877fe43663b414247bdcf74a3014a4b4588027c584702d344e8d1d32.png"
+          },
+          "walk_up_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/cfe61b3952e7677d6b6b090bfdbc81dbac154a23549855a326b7ca54789b7efe.png"
+          }
+        },
+        "directions": 8,
+        "feet": 7,
+        "frame": [
+          12,
+          17
+        ],
+        "grid": {
+          "cell": [
+            12,
+            17
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          6,
+          16
+        ],
+        "role": "PLAYER",
+        "size": [
+          48,
+          48
+        ],
+        "tags": [
+          "facings:16"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "facings",
+      "id": "facings.playable_character.knight.knight_armed_idle.s.knight_armed_idle_s_270_0_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "facings",
+      "path": "assets/packs/facings/playable character/knight/knight_armed_idle/S/knight_armed_idle_S_270.0_0.png",
+      "sha256": "fcb4c458847124a6bfa22e08a1ab14eeb850f98973b3cc0b6200c95a0c7857a4",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/666cb1cd89243fc854342a93727e69544bf31102339e5e1402bcb37e23b0d1cc.png"
+          },
+          "idle_down_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/666cb1cd89243fc854342a93727e69544bf31102339e5e1402bcb37e23b0d1cc.png"
+          },
+          "idle_down_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/666cb1cd89243fc854342a93727e69544bf31102339e5e1402bcb37e23b0d1cc.png"
+          },
+          "idle_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/666cb1cd89243fc854342a93727e69544bf31102339e5e1402bcb37e23b0d1cc.png"
+          },
+          "idle_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/666cb1cd89243fc854342a93727e69544bf31102339e5e1402bcb37e23b0d1cc.png"
+          },
+          "idle_up": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/666cb1cd89243fc854342a93727e69544bf31102339e5e1402bcb37e23b0d1cc.png"
+          },
+          "idle_up_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/666cb1cd89243fc854342a93727e69544bf31102339e5e1402bcb37e23b0d1cc.png"
+          },
+          "idle_up_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/666cb1cd89243fc854342a93727e69544bf31102339e5e1402bcb37e23b0d1cc.png"
+          }
+        },
+        "directions": 8,
+        "feet": 7,
+        "frame": [
+          12,
+          10
+        ],
+        "grid": {
+          "cell": [
+            12,
+            10
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          6,
+          9
+        ],
+        "role": "DECORATION",
+        "size": [
+          48,
+          48
+        ],
+        "tags": [
+          "bin",
+          "facings:16"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "facings",
+      "id": "facings.prop.crate.s.crate_s_270_0_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "facings",
+      "path": "assets/packs/facings/prop/crate/S/crate_S_270.0_0.png",
+      "sha256": "3c8ca6858c55e840f43f1faa91c391d42bc86d527d836526339bd80110fcf94d",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/aecea037ec16d6050fe0f0be2af4312651c59c337330df87e07c155d23e100c8.png"
+          },
+          "idle_down_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/8804a18ee64aaab510345865a0c6f93e193c710f0982e0fbd2cf1b1f45a6ec0c.png"
+          },
+          "idle_down_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/beafb133539e2f9e4ac5c393cad45856f57ab0c1309e6b1125c927f655e27e86.png"
+          },
+          "idle_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/a15d57ca275199082e03e633cd8cd2cc9c3c12de010ec2b89d84a249e75ced75.png"
+          },
+          "idle_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/25a5b7f442bb12a5a8e9f37bfc303af1602a2c8bf9c18f28e3d357f541c1dbcd.png"
+          },
+          "idle_up": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/e7485ba82fec277894549054218cf0552c59c6f3a760f580fd202ff833ab1544.png"
+          },
+          "idle_up_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/9b3f54fff8b261165ef966866858a519f34bc8d0ec4addef1f6f580885857f3b.png"
+          },
+          "idle_up_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/b6a8456a670c4a149746139635c4b861f915d11a5d925e46075ac640d0c00927.png"
+          },
+          "walk_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/aecea037ec16d6050fe0f0be2af4312651c59c337330df87e07c155d23e100c8.png"
+          },
+          "walk_down_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/8804a18ee64aaab510345865a0c6f93e193c710f0982e0fbd2cf1b1f45a6ec0c.png"
+          },
+          "walk_down_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/beafb133539e2f9e4ac5c393cad45856f57ab0c1309e6b1125c927f655e27e86.png"
+          },
+          "walk_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/a15d57ca275199082e03e633cd8cd2cc9c3c12de010ec2b89d84a249e75ced75.png"
+          },
+          "walk_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/25a5b7f442bb12a5a8e9f37bfc303af1602a2c8bf9c18f28e3d357f541c1dbcd.png"
+          },
+          "walk_up": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/e7485ba82fec277894549054218cf0552c59c6f3a760f580fd202ff833ab1544.png"
+          },
+          "walk_up_left": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/9b3f54fff8b261165ef966866858a519f34bc8d0ec4addef1f6f580885857f3b.png"
+          },
+          "walk_up_right": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/b6a8456a670c4a149746139635c4b861f915d11a5d925e46075ac640d0c00927.png"
+          }
+        },
+        "directions": 8,
+        "feet": 7,
+        "frame": [
+          12,
+          17
+        ],
+        "grid": {
+          "cell": [
+            12,
+            17
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          6,
+          16
+        ],
+        "role": "NPC",
+        "size": [
+          24,
+          32
+        ],
+        "tags": [
+          "walk_from_still"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "facings",
+      "id": "facings.villagers.n1_villager.rotations.south",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "facings",
+      "path": "assets/packs/facings/Villagers/1._Villager/rotations/south.png",
+      "sha256": "23f28c812ed5dc5d81527c327ecb59c8043c6a11a867e77f52b2b0a7c816dd61",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          24,
+          32
+        ],
+        "origin": [
+          12,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          24,
+          32
+        ],
+        "tags": [
+          "unused_because:preview_gif"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "facings",
+      "id": "facings.villagers.n1_villager_showcase",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "facings",
+      "path": "assets/packs/facings/Villagers/1._Villager_showcase.gif",
+      "sha256": "c9257cb3a591de0a2ef78e86e150b076ed1051f360a94ac623147a62617af525",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "facings"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/facings/license.txt"
+      ],
+      "pack_id": "facings",
+      "profile_id": null,
+      "root": "assets/packs/facings",
+      "source_sha256": "93004e8cd3213653bd7806630d6af73d57795d6fc3c6a2f8ae3f10db966d67ff",
+      "warnings": []
+    }
+  ],
+  "tilesets": []
+}

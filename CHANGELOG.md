@@ -89,6 +89,23 @@ does not ask for the isometric view is built as it was.
   shows set aside. Licences are read from documentation files too, a credit the licence asks
   for is written into the generated README, and a `.rar` is opened with Windows' own `tar`
   when 7-Zip is not installed (T17.29).
+* **Packs of other shapes** (Screaming Brain's isometric packs, *Lords Of Pain*, SakPix's
+  stage packs and characters, CuteSCKR's tile sets): **isometric sheets named by their cell**
+  (`Floor_Dry_01-256x128.png`, wall faces `-SE-128x192`) are cut cell by cell, the background
+  colour made see-through, wall faces put together into pieces for the four sides of a diamond
+  with their doors and windows, a *Small* and a *Large* copy one pack in two sizes; a **large
+  ground picture** of an isometric pack that names no diamond is cut on one at its characters'
+  scale; **characters in a folder of facings** (`rotations/east.png`; sixteen facings a folder
+  each, of which the eight the game turns by are used: ADAPT-008) are one character with their
+  animations; **object sheets** are cut into their things, each an asset with an id from its
+  place and a role from the sheet's name; **mixed tile sheets** are sorted cell by cell into
+  ground, objects and decorations; and on the Audit page's *Packs* tab a pack with no licence
+  file can be given its **licence and a credit line by hand**, kept in the pack's profile and
+  written into the README as your own statement (ASSET-036); a pack can be **marked as
+  AI-generated art** there too, and the README of a game that uses it has a section
+  *AI-generated content* naming it for the store page's declaration, with a word on cleaning
+  the art up in Aseprite. New notes TILE-014, ADAPT-008,
+  ASSET-036. The analysis of such sheets runs in parallel and stops on a cancel (T17.30).
 * **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
   picture rises above it, turns by number or by compass letter as one tile (never as frames of
   an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a

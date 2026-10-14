@@ -60,6 +60,7 @@
 | ASSET-033 | warning | The LPC character {character} was left out or is incomplete: {reason}. | Put the part back into the pack, or choose the character's parts again on the Audit page. |
 | ASSET-034 | info | The crop {asset} is one picture: it has no stages to grow through. | A strip with the crop's stages in a row grows by them; until then drawn stages stand in. |
 | ASSET-035 | info | {file} lies among the crops, but its pictures do not grow from one cell to the next: it is not read as a crop. | If it is a crop, give it the role CROP and the usage growth strip on the Audit page. |
+| ASSET-036 | info | Pack {pack_id} has no license file; its licence is the one you stated: {license}. | The README of the game names it as your own statement. Correct it on the Audit page (Packs) if it is wrong. |
 | ASSET-028 | warning | Pack {pack_id} needs attribution, but no author was found in its license files. | Enter the author on the Audit page (pack information) so that the credits screen names them. |
 
 ## Adapters (ADAPT)
@@ -73,6 +74,7 @@
 | ADAPT-005 | info | {count} animations were found in the numbered frames of {sequence}; their names are not known. | Give them names (walk, attack, ...) in the asset's animations on the Audit page. |
 | ADAPT-006 | info | The Aseprite file {file} could not be read ({reason}); the pictures beside it are used without it. | — |
 | ADAPT-007 | info | The sprite list {file} does not fit the sheets of the pack ({reason}); the cut pictures are used as they are. | — |
+| ADAPT-008 | info | {character} is drawn in {count} facings: the game turns by 8 and uses those, the others are left out. | — |
 
 ## Catalog (CAT)
 
@@ -102,6 +104,7 @@
 | TILE-011 | warning | The packs have isometric ground ({asset}) and square ground: a map is painted with one of the two, and the {left_out} tiles are left out of this project. | Leave one of the two packs out, or mark the ground that is not wanted as unused. A project that is seen from above paints with the square tiles, an isometric one with the isometric tiles. |
 | TILE-012 | warning | The isometric tiles of {pack_id} stand on a diamond of {found} px and the ground of this project on one of {footprint} px: they are left out of its tile set. | Tiles drawn on different diamonds cannot share a map. Use packs drawn on one diamond, or choose the ground of the other pack on the Mapping page before the project is first generated. |
 | TILE-013 | warning | The map {map} is drawn {drawn} and this project is {view}: it is not imported. | A map is imported into a project that is seen as the map is drawn: an isometric Tiled map into an isometric project, a map of squares into a project seen from above. Choose another map on the Options page, or make a project of the other view. |
+| TILE-014 | warning | The names of the pictures of {pack_id} give its diamond as {named} px, and its flat tiles measure {measured} px: the names' diamond is used, the pictures that are no cells of a named sheet are not read as tiles. | Check the sizes in the file names; a picture that is a tile of another diamond can be given its role on the Audit page. |
 
 ## Animation (ANIM)
 

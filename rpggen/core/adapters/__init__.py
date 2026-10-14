@@ -89,8 +89,10 @@ def register_defaults() -> None:
     """Register the built-in adapters (idempotent)."""
     from rpggen.core.adapters.aseprite import AsepriteAdapter
     from rpggen.core.adapters.cutter import CutterAdapter
+    from rpggen.core.adapters.facings import FacingsAdapter
     from rpggen.core.adapters.farm import FarmPackAdapter
     from rpggen.core.adapters.generic_grid import GenericGridAdapter
+    from rpggen.core.adapters.iso_sheets import IsoSheetsAdapter
     from rpggen.core.adapters.isometric import IsometricAdapter
     from rpggen.core.adapters.kenney_atlas import KenneyAtlasAdapter
     from rpggen.core.adapters.ldtk import LdtkAdapter
@@ -99,18 +101,22 @@ def register_defaults() -> None:
     from rpggen.core.adapters.profile import ProfileAdapter
     from rpggen.core.adapters.rpgmaker import RpgMakerAdapter
     from rpggen.core.adapters.sequences import SequencesAdapter
+    from rpggen.core.adapters.sheet_parts import SheetPartsAdapter
     from rpggen.core.adapters.strips import StripsAdapter
     from rpggen.core.adapters.tiled import TiledAdapter
 
     for adapter in (
         ProfileAdapter(),
         LearnedAdapter(),
+        IsoSheetsAdapter(),
         TiledAdapter(),
         AsepriteAdapter(),
         LdtkAdapter(),
         RpgMakerAdapter(),
         LpcAdapter(),
+        SheetPartsAdapter(),
         CutterAdapter(),
+        FacingsAdapter(),
         KenneyAtlasAdapter(),
         IsometricAdapter(),
         FarmPackAdapter(),

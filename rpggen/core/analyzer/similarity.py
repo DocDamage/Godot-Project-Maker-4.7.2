@@ -20,6 +20,9 @@ DUPLICATE_TAG = "duplicate_of:"
 # A flat or nearly flat picture hashes to (almost) all zeros or ones, whatever its colour: such a
 # hash says nothing, so it never makes two files duplicates.
 MIN_BITS, MAX_BITS = 6, 58
+# where the readers of T17.30 draw the parts they cut from a sheet (adapters.iso_sheets,
+# adapters.sheet_parts): every part has the sheet's file hash and is no copy of anything
+CUT_PART_DIRS = ("generated/iso_cells/", "generated/sheet_parts/")
 
 
 def distance(a: str, b: str) -> int:
@@ -91,6 +94,8 @@ def mark_duplicates(catalog: catalog_mod.Catalog, hashes: dict[str, str]) -> lis
         size = _size(asset)
         if asset.kind != "image" or size is None or (asset.pack_id, asset.path) in files_done:
             continue
+        if asset.path.startswith(CUT_PART_DIRS):
+            continue  # a part of a sheet cut into a picture of its own (T17.30): no copy of it
         files_done.add((asset.pack_id, asset.path))
         original: catalog_mod.Asset | None = first_by_bytes.get((asset.pack_id, asset.sha256))
         value = hashes.get(asset.id)

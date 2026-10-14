@@ -1979,6 +1979,12 @@
         },
         "attribution_required": {
           "type": "boolean"
+        },
+        "credit": {
+          "type": "string"
+        },
+        "ai_generated": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false

@@ -43,6 +43,8 @@ class AdapterResult:
     # FolderRule dicts and the matched profile id: only the profile adapter sets them.
     folder_rules: list[dict[str, Any]] = field(default_factory=list)
     profile_id: str | None = None
+    # the licence a profile states for its pack (T17.30: a pack with no licence file)
+    pack_license: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -60,6 +62,15 @@ class AdapterContext:
     work_dir: Path | None = None
     # Rules learned from the user's corrections (learned_rules.LearnedRule); empty: none apply.
     learned: list[Any] = field(default_factory=list)
+    # The worker's cancel (T17.30): the readers that cut sheets poll it between pictures.
+    is_cancelled: Callable[[], bool] | None = None
+
+    def check_cancel(self) -> None:
+        """Raise ``archive.Cancelled`` when the worker was cancelled."""
+        if self.is_cancelled is not None and self.is_cancelled():
+            from rpggen.core.archive import Cancelled
+
+            raise Cancelled
 
 
 class Adapter(Protocol):
