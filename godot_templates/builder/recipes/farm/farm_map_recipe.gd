@@ -23,7 +23,11 @@ extends RefCounted
 ## `Markers/BinFront` and `Markers/HouseDoor`, and the weather's sign `WeatherSign` (T17.11); in a room, `Markers/Trough` and
 ## `Markers/Stall1` ... `Markers/Stall<n>`. The places where things to forage lie (T17.10) are
 ## the markers `Forage/Spot1` ... of the farm, at the cells `farm.forage.spots` of the plan
-## (forage_recipe.add_places).
+## (forage_recipe.add_places). The doors to the maps added to the farm (T17.23) are not nodes of
+## this map: it instances `generated/scenes/farm/trails.tscn` as `Trails`, under what stands on
+## it, and added_maps_recipe.gd writes that scene on every build. So a map that is added later
+## gets its door on the farm, and its spawn, without this map being written again. A farm whose
+## plan has no `trails` (one planned before T17.23) has no such node.
 ##
 ## **Squares or diamonds** (T17.14). The plan is a grid of cells whatever the view, and every
 ## cell becomes a place, a shape or a tile through the seam of the map recipes
@@ -38,7 +42,7 @@ extends RefCounted
 ## a well. The door of a drawn building is a band along its south side, as the door of an
 ## isometric building of the packs is. The rooms are painted with the same tile set.
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 4
 ## The version of what the recipe does for an isometric project only (T17.14): it is in the hash
 ## of such a project and of no other.
 const ISO_VERSION := 2
@@ -62,6 +66,7 @@ const RoomRecipe := preload("room_recipe.gd")
 const HomeRecipe := preload("home_recipe.gd")
 const HudRecipe := preload("hud_recipe.gd")
 const ForageRecipe := preload("forage_recipe.gd")
+const EventsRecipe := preload("events_recipe.gd")
 
 const MAPS_DIR := "res://game/maps/"
 const MAP_ID := "farm"
@@ -363,6 +368,8 @@ func input_hash(ctx: BuildContext) -> String:
 		hashed["iso"] = MapGeo.new(ctx).def
 		hashed["iso_v"] = ISO_VERSION
 		hashed.merge(MapGeo.edge_hash(ctx))  # T17.22: only with walls along a side
+	if not FarmBuild.events().is_empty():  # only a farm with festivals has the key (T17.25)
+		hashed["calendar"] = EventsRecipe.RECIPE_VERSION
 	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
@@ -474,8 +481,9 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 	_add_water(water, water_cells, root, entities, markers, geo, entries)
 	_add_bin(ctx, farm, root, entities, markers, geo)
 	_add_sign(ctx, farm, root, entities, geo)
-	_add_things(farm, root, entities, geo, entries)
+	add_things(farm, root, entities, geo, entries)
 	ForageRecipe.add_places(root, geo)
+	_add_trails(farm, root, nodes)
 
 	if not way_out.is_empty():
 		MapUtil.add_marker(spawns, root, FROM_VILLAGE, geo.center(cell_of(way_out.get("spawn"))), true, JsonUtil.to_str(way_out.get("facing", "down")))
@@ -866,9 +874,24 @@ func _add_sign(ctx: BuildContext, farm: Dictionary, root: Node2D, entities: Node
 	sign.position = _spot(cell, geo)
 	SceneUtil.add(entities, sign, root, String(sign.name))
 
-## What lies and stands about: the things to clear (each remembered once it is cleared), the
-## trees and the scenery.
-func _add_things(farm: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo, entries: Array[Dictionary]) -> void:
+## The farm's side of the doors to its added maps (T17.23): the scene added_maps_recipe.gd
+## writes on every build, instanced once, under what stands on the map (its marks lie flat on
+## the ground). Nothing for a plan without trails.
+func _add_trails(farm: Dictionary, root: Node2D, nodes: Dictionary) -> void:
+	if not farm.has("trails"):
+		return
+	var ysorted: Node = nodes["YSorted"]
+	var trails := MapUtil.place(FarmBuild.TRAILS_SCENE, root, root, Vector2.ZERO, FarmBuild.TRAILS_NODE)
+	if trails == null:
+		print("[rpggen] INFO farm_map: the scene of the trails is missing (%s): the farm has no doors to added maps" % FarmBuild.TRAILS_SCENE)
+		return
+	root.move_child(trails, ysorted.get_index())
+
+## What lies and stands about on a map of the farm: the things to clear (each remembered once it
+## is cleared, under an id that begins with `prefix`: the farm's, or the id of an added map,
+## T17.23), the trees and the scenery. `farm` is the plan of the map: its `debris`, `trees` and
+## `scenery`.
+func add_things(farm: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo, entries: Array[Dictionary], prefix: String = "farm") -> void:
 	var tile_px := geo.tile_px
 	# a px above the lower edge of a square, so that a thing sorts with what stands there
 	var lift := Vector2.ZERO if geo.isometric else Vector2(0.0, 1.0)
@@ -882,7 +905,7 @@ func _add_things(farm: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo, 
 		var cell := cell_of(thing.get("cell"))
 		var node := _thing(kind, pictures, counts, geo)
 		node.set_meta(CLEAR_META, kind)
-		node.set("entity_id", "farm_debris_%d_%d" % [cell.x, cell.y])
+		node.set("entity_id", "%s_debris_%d_%d" % [prefix, cell.x, cell.y])
 		var persistent := Node.new()
 		persistent.name = "Persistent"
 		SceneUtil.attach_script(persistent, PERSISTENT)
@@ -1123,6 +1146,8 @@ func room_root(ctx: BuildContext, building: Dictionary, issues: Array) -> Node2D
 	var bed_plan := JsonUtil.to_dict(room.get("bed", {}))
 	if not bed_plan.is_empty():
 		player_cell = _add_bed(ctx, room, bed_plan, root, nodes, geo)
+		# the calendar on the wall of the farmhouse (T17.25): only in a farm with festivals
+		EventsRecipe.add_wall_calendar(root, entities, size, cell_of(bed_plan.get("cell")), geo)
 	if JsonUtil.to_array(room.get("trough")).size() == 2:
 		MapUtil.add_marker(markers, root, "Trough", geo.center(cell_of(room.get("trough"))))
 	var stalls := cells_of(room.get("stalls"))

@@ -178,6 +178,7 @@
         "fishing": {"type": "boolean"},
         "days_per_season": {"enum": [7, 14, 28]},
         "day_length": {"enum": ["short", "normal", "long"]},
+        "festivals": {"type": "boolean"},
         "farm_size": {"enum": ["small", "medium", "large"]},
         "plot": {"enum": ["small", "medium", "large"]},
         "animals": {"enum": ["none", "coop", "coop_and_barn"]},
@@ -186,7 +187,10 @@
           "maxItems": 8,
           "items": {
             "type": "object",
-            "properties": {"name": {"type": "string", "minLength": 1}},
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "kind": {"enum": ["forest", "beach"]}
+            },
             "required": ["name"],
             "additionalProperties": false
           }

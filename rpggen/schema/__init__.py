@@ -22,6 +22,7 @@ KINDS = (
     "people",
     "animals",
     "forage",
+    "events",
 )
 
 

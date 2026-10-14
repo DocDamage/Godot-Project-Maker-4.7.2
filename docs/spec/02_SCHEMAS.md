@@ -70,7 +70,7 @@ The stages of an arcade game are `game/data/stages.json` (T16.01), written by th
 * `map_layers` is not used (a room has the layers `Background`, `Ground`, `Platforms`, `Hazards`,
   `Decoration`, `Foreground`), `imported_maps` is not used, and `features.navigation` is off.
 
-**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and that starter map is its **village**; the farm itself is a map of its own, planned once and stored (§12.3), with the farmhouse a new game starts in. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2). Its money (T17.08) is two more keys of `starter_map`, which only a farm has: `starting_money` (0 to 99999, default 100: the gold of `game/data/new_game.tres`, which is written once) and `pass_out_loss` (default true: a farmer who stays up to 2:00 loses a tenth of the money as well as half the energy; false keeps the money). A new game also starts with a hoe, a watering can and fifteen seeds of the first crop; the sickle and the axe are bought. The village shop of a farm (`game/data/shops/village_shop.tres`, written once) is an `RpgFarmShop`: the shop of every top-down kind with `opens` (9), `closes` (17) and `closed_weekday` (6, the day `people_plan.SHOP_CLOSED_DAY` gives the shopkeeper off; -1 for none), `seasonal` (default true: the seeds of the season are on offer, from `crops.json`) and `sell_ratio` 1. The farm's own map (T17.06) is five more keys of `starter_map`, read by `rpggen/core/farm_plan.py`: `farm_size` (`small`, `medium`, `large`: a field of 32 by 24, 40 by 30 or 48 by 36 cells; default `medium`), `plot` (`small`, `medium`, `large`: 6 by 4, 12 by 8 or 16 by 10 cells of tillable ground; default `medium`), `animals` (`none`, `coop`, `coop_and_barn`; default `none`), `difficulty` (`easy`, `normal`, `hard`: how much there is to clear, and the days of the crops) and `added_maps` (at most 8 rows `{ "name" }`; the names are stored in the plan, the maps themselves are areas of the world). The planner takes the footprint of the farmhouse from the starter building of the catalog, of a coop and a barn from a `BUILDING` object tagged so, and plans a pond when the packs have a `WATER` tile and a well when they have none. `VAL-031` (a warning, a line a problem) says what keeps the stored farm from being worked. The builder makes `game/maps/farm.tscn` and a room for every building of the plan (`game/maps/farm_house.tscn`, `farm_coop.tscn`, `farm_barn.tscn`) once; `game/data/new_game.tres` of a farm starts in `farm_house.tscn` at the spawn `start`. The door pair between the two maps: the farm's door `to_village` leads to the village's spawn `from_farm`, the village's door `to_farm` (in the wall opposite the farm's way out) to the farm's spawn `from_village`. The people (T17.09) have no key of their own in the config; the builder writes `generated/data/people.json` on every build and `game/data/people.json` and `game/data/dialogue/person_<id>.tres` once, and puts the places their schedules name on the village as markers under `Places`: `home_<n>` (and `home_<n>_2` to `_4`), `home`, `square` (and `square_2` to `_6`) and `work`; the people take the spots of a place in turn. Fishing and foraging (T17.10) have one key of `starter_map`, which only a farm has: `fishing` (default true; false keeps the fishing rod out of the shop). The rod is sold only where the farm's plan has a pond (`farm.map.water.kind`); what is planned of the fish, the things to forage and the places they lie at is `farm.forage` (§12.6). The builder writes `generated/data/forage.json` on every build, and `game/data/forage.json` and an item for every fish and every thing to forage (`game/data/items/<item>.tres`) and for the rod (`fishing_rod.tres`) once; the places are the markers `Forage/Spot<n>` of `game/maps/farm.tscn`. The calendar (T17.03) has two keys of `starter_map` since T17.16, which only a farm has: `days_per_season` (`7`, `14` or `28`, default 28: the property of that name of the farm's mode, which gives it to `RpgCalendar`) and `day_length` (`short`, `normal`, `long`; default `normal`: a game minute is 0.5, 0.7 or 1.0 real seconds, the mode's `minute_s`, so a day of 1200 minutes lasts 10, 14 or 20 minutes). Both are read on every generation, so a project that exists can change them; a saved game keeps its date, and a day beyond a shorter season is the season's last.
+**A `farm` (M17).** The `archetype` enum has `farm` since T17.04. It is a top-down game: `starter_map`, `starter`, `map_layers` and `imported_maps` are what they are for `turn_based`, and that starter map is its **village**; the farm itself is a map of its own, planned once and stored (§12.3), with the farmhouse a new game starts in. Its `features` start with `combat` and `navigation` off. Its crops are planned once and stored in `rpggen/world_plan.json` (§12.2). Its money (T17.08) is two more keys of `starter_map`, which only a farm has: `starting_money` (0 to 99999, default 100: the gold of `game/data/new_game.tres`, which is written once) and `pass_out_loss` (default true: a farmer who stays up to 2:00 loses a tenth of the money as well as half the energy; false keeps the money). A new game also starts with a hoe, a watering can and fifteen seeds of the first crop; the sickle and the axe are bought. The village shop of a farm (`game/data/shops/village_shop.tres`, written once) is an `RpgFarmShop`: the shop of every top-down kind with `opens` (9), `closes` (17) and `closed_weekday` (6, the day `people_plan.SHOP_CLOSED_DAY` gives the shopkeeper off; -1 for none), `seasonal` (default true: the seeds of the season are on offer, from `crops.json`) and `sell_ratio` 1. The farm's own map (T17.06) is five more keys of `starter_map`, read by `rpggen/core/farm_plan.py`: `farm_size` (`small`, `medium`, `large`: a field of 32 by 24, 40 by 30 or 48 by 36 cells; default `medium`), `plot` (`small`, `medium`, `large`: 6 by 4, 12 by 8 or 16 by 10 cells of tillable ground; default `medium`), `animals` (`none`, `coop`, `coop_and_barn`; default `none`), `difficulty` (`easy`, `normal`, `hard`: how much there is to clear, and the days of the crops) and `added_maps` (at most 8 rows `{ "name", "kind" }`, T17.23: each is a map of its own beside the farm; `kind` is `forest` or `beach`, and a row without one takes it from its name: a beach when the name has the word *beach*, *shore*, *coast*, *seaside*, *sea*, *bay* or *strand*, else a forest. `cave` is a kind the planner knows and does not build yet (T17.24): a row of it is refused with a sentence that says so). The planner takes the footprint of the farmhouse from the starter building of the catalog, of a coop and a barn from a `BUILDING` object tagged so, and plans a pond when the packs have a `WATER` tile and a well when they have none. `VAL-031` (a warning, a line a problem) says what keeps the stored farm from being worked. The builder makes `game/maps/farm.tscn` and a room for every building of the plan (`game/maps/farm_house.tscn`, `farm_coop.tscn`, `farm_barn.tscn`) once; `game/data/new_game.tres` of a farm starts in `farm_house.tscn` at the spawn `start`. The door pair between the two maps: the farm's door `to_village` leads to the village's spawn `from_farm`, the village's door `to_farm` (in the wall opposite the farm's way out) to the farm's spawn `from_village`. The people (T17.09) have no key of their own in the config; the builder writes `generated/data/people.json` on every build and `game/data/people.json` and `game/data/dialogue/person_<id>.tres` once, and puts the places their schedules name on the village as markers under `Places`: `home_<n>` (and `home_<n>_2` to `_4`), `home`, `square` (and `square_2` to `_6`) and `work`; the people take the spots of a place in turn. Fishing and foraging (T17.10) have one key of `starter_map`, which only a farm has: `fishing` (default true; false keeps the fishing rod out of the shop). The rod is sold only where the farm's plan has a pond (`farm.map.water.kind`); what is planned of the fish, the things to forage and the places they lie at is `farm.forage` (§12.6). The builder writes `generated/data/forage.json` on every build, and `game/data/forage.json` and an item for every fish and every thing to forage (`game/data/items/<item>.tres`) and for the rod (`fishing_rod.tres`) once; the places are the markers `Forage/Spot<n>` of `game/maps/farm.tscn`. The calendar (T17.03) has two keys of `starter_map` since T17.16, which only a farm has: `days_per_season` (`7`, `14` or `28`, default 28: the property of that name of the farm's mode, which gives it to `RpgCalendar`) and `day_length` (`short`, `normal`, `long`; default `normal`: a game minute is 0.5, 0.7 or 1.0 real seconds, the mode's `minute_s`, so a day of 1200 minutes lasts 10, 14 or 20 minutes). Both are read on every generation, so a project that exists can change them; a saved game keeps its date, and a day beyond a shorter season is the season's last. Festivals and birthdays (T17.25) have one key of `starter_map`, which only a farm has: `festivals` (default true; false plans no festival and no birthday, and the farm is what it was before the card but for code that does nothing). With it on the festivals are planned once and stored as `farm.events` (§12.7), every person of `farm.people` has a `birthday`, the builder writes `generated/data/events.json` on every build and `game/data/events.json` once, the village that is built gets the markers `festival_table` and `festival_egg_1` to `_5` under `Places`, the farmhouse room that is built gets the node `WallCalendar`, the dialogue of a person that is written gets three more lines (`festival`, `festival_tomorrow`, `birthday:<id>`), and the mode's property `festivals` is true. It is read on every generation: switched on for a farm that exists, the plan gains its events and the people their birthdays, and neither the village nor the room nor `game/data/people.json` is written again (the game finds the calendar in the pause menu, the birthdays in `generated/data/people.json` and puts the eggs round the square); switched off, the stored plan stays and the mode is built without the property.
 
 **PackRef:** `{ "pack_id": str, "source": str (absolute path as the user gave it; informational only), "source_sha256": str, "kind": "zip"|"7z"|"rar"|"folder", "folders"?: [str] }`. `folders` (T16.22, optional) is for a `source` that is a bundle of packs, a folder each: it names the pack folders to take, by their names, and each is a pack of its own. An entry with one folder is the pack `pack_id`; an entry with several is read as one entry per folder, in the order given, with ids made from the folders' names, and is written back that way, so the ids stay. The wizard and `--pack-folder` write one entry per folder. `folders` is not allowed on a `rar` (a rar is not listed, so it is never a bundle); on any other source that is not a bundle, and for a folder the bundle does not have, opening the pack stops with `ARCH-001`, which names the nearest folder. Only the named folders are unpacked, with the licence files of the bundle's top level beside each.
 
@@ -630,6 +630,12 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `starter_map.days_per_season`, `starter_map.day_length` | generator_config (farm) | T17.16 |
 | `summary.map.farm` (a planned farm in words; the map of `summary.map` is then its village) | command-line documents | T17.16 |
 | `farm.forage` | world_plan | T17.10 |
+| `starter_map.festivals` | generator_config (farm) | T17.25 |
+| `farm.events`; `birthday` of a Person of `farm.people` | world_plan | T17.25 |
+| `game/data/events.json`, `generated/data/events.json` (`events`); `birthday` of a person of `people.json` | game data (farm) | T17.25 |
+| `flags.farm_events` (`added`, `today`, `birthday_gifts`), `flags.farm_bin.shipped` (`season`, `items`) | save game | T17.25 |
+| the condition atoms `birthday:<id>`, `festival`, `festival_tomorrow`, `event:<kind>` | dialogue (false in a game without festivals) | T17.25 |
+| `farm.map.trails`, `farm.map.added` (the maps added to a farm); `kind` of a row of `starter_map.added_maps`; `maps` of a thing to forage, `water: ["sea"]` of a fish | world_plan, generator_config (farm), game data (farm) | T17.23 |
 | `flags.farm_forage` (`picked`: `{ day, spots: { map: [place] } }`), `flags.farm_fishing` (`casts`) | save game | T17.10 |
 | `game/data/forage.json`, `generated/data/forage.json` (`forage`, `fish`; the generated one also `spots`, `map`, `fishing`) | game data (farm) | T17.10 |
 | the tags `use_anim:<tool>`, `of:<asset id>` and `unused_because:use_anim` | asset_catalog | T17.10 |
@@ -867,7 +873,7 @@ the seed and the options no longer change it. The farm's own options are keys of
 beside the village's: `farm_size` (`small`, `medium`, `large`: a field of 32 x 24, 40 x 30 or
 48 x 36 cells), `plot` (`small`, `medium`, `large`: 6 x 4, 12 x 8 or 16 x 10 cells that can be
 tilled), `animals` (`none`, `coop`, `coop_and_barn`), `difficulty` (how much there is to clear)
-and `added_maps` (at most 8 rows `{ "name" }`).
+and `added_maps` (at most 8 rows `{ "name", "kind" }`: the maps of 12.3a).
 
 **The plan is a grid of cells and has no position on the screen.** A cell is `[x, y]`, `x` to
 the east and `y` to the south, `[0, 0]` the north-west corner; a rectangle is `[x, y, w, h]`.
@@ -892,7 +898,9 @@ the field are its edge (nobody walks there) but for the way out.
 | `scenery` | array | `{ "kind", "cell" }` near the edge: `bush`, `rock` (in the way), `flowers` (walked over). |
 | `exit` | object | `{ "edge", "cell", "spawn", "facing", "to" }`: the gap in the edge (`E`, `S` or `W`), the cell inside it where the farmer arrives and where it looks, and the map it leads to (`starter_map`, the village). |
 | `start` | object | `{ "map", "cell", "facing" }`: where a new game starts: a cell of the room of the house, beside the bed. |
-| `added_maps` | array of string | The names of *Added maps*. The maps are not planned here: they are areas of the world (T13.20). |
+| `added_maps` | array of string | The names of *Added maps*, in the order they were added. |
+| `trails` | array of Trail | *Optional* (T17.23; a farm planned before it has none). The places set aside for the doors to added maps, at most 8, chosen when the farm is planned whether or not it has added maps: `{ "edge", "cell", "spawn", "facing" }`, `cell` the cell **beside** the edge (not in it) where the door lies and `spawn` the cell one further in where the farmer arrives. Both can be walked to from the house, nothing of the plan lies on them, and no forage place of `farm.forage.spots` is one of them. They are chosen after everything else, with dice of their own, so the rest of the plan is what it was without them; the ones no tree stands before come first. |
+| `added` | array of AddedMap | *Optional* (T17.23). One entry a map that was added, in the order of `added_maps`; see 12.3a. A farm without `trails` has none: its `added_maps` stay names. |
 | `notes` | array of string | What the planner changed (a later seed, a smaller plot, a larger field). |
 
 **Building:** `id` (`farm_house`, `farm_coop`, `farm_barn`), `kind` (`house`, `coop`, `barn`),
@@ -935,6 +943,47 @@ the bin, through every gate into its yard and to its door, and to the way out; t
 twelve cells; nothing lies on something else (only a thing to clear on the plot); the farmer
 starts on the floor of the house beside the bed and can walk to its door.
 
+### 12.3a `farm.map.added` (the maps added to a farm, T17.23)
+
+Planned by `rpggen/core/added_map_plan.py`, one entry a row of `starter_map.added_maps`, from
+the farm's `seed` and the map's number, and **stored once**: a row that is new plans one more
+entry, and the stored ones stay byte for byte (a row whose name the plan has is not read
+again, whatever kind it says now). A map is a grid of cells like the farm, painted with squares
+or with diamonds by `recipes/farm/added_maps_recipe.gd`, **built once** as
+`game/maps/farm_map_<n>.tscn` and then the user's.
+
+| Key | Type | Meaning |
+|-----|------|---------|
+| `plan_version` | 1 | |
+| `seed` | int | The farm's seed. |
+| `index` | int | 1 to 8: its number among the added maps. |
+| `id`, `map` | string | `farm_map_<index>` and `game/maps/farm_map_<index>.tscn`. The id is the number, not the name, so no name can be the id of another map. |
+| `name` | string | The row's name: what the map is called in the game (`display_name` of its root). |
+| `kind` | string | `forest` or `beach`. The table of kinds is `added_map_plan.PLANNERS`; `cave` is reserved (T17.24). |
+| `size` | `[cols, rows]` | 28 x 22 for a forest, 30 x 20 for a beach. |
+| `ground` | string | The id of the packs' ground tile for the kind (a `GROUND` tile named or tagged *sand*, *beach*, *shore* or *desert* for a beach), or `""`: the ground is then drawn (sand over the tiles; the farm's ground under a shade for a forest). |
+| `trail` | int | The index of the farm's trail (`farm.map.trails`) whose door leads here. |
+| `door` | object | `{ "edge", "cell", "spawn", "facing", "to": "farm" }`: the gap in the edge of this map that leads back, and the cell before it. |
+| `paths` | array of cell | A forest: from the way in to its clearing. `[]` for a beach. |
+| `clearing` | `[x, y, w, h]` | A forest only: cells without trees. |
+| `water` | object | A beach only: `{ "kind": "sea", "side", "cells" }`, the sea along one side (`N`, `E`, `S`, `W`), three to five cells deep, the cells of the edge on that side among them. The cells carry the `water` data of the `Soil` layer, so the rod is cast there. |
+| `fish` | object | A beach only: `{ "from", "at" }`: the cell the rod is cast from and the cell of the sea beside it. |
+| `trees`, `scenery`, `debris` | | As on the farm (`farm.map`). |
+| `spots` | array of cell | The places where a thing to forage may lie in the morning: 8 in a forest, 6 on a beach (most of them near the water), fewer when the map has less room. Written as `Forage/Spot<n>`. |
+| `notes` | array of string | What the planner did again. |
+
+**The check** (`added_map_plan.check`, part of `farm_plan.check`, `VAL-031`): the way in is a
+cell of the edge with the floor before it; nothing lies on something else or outside the map;
+from the way in the farmer walks to every forage place, to the clearing and to the place the
+rod is cast from, which lies beside the sea; every added map has a trail of its own. An
+arrangement that fails is thrown again (twelve times at most).
+
+**The door pair.** The farm's side is not written into `game/maps/farm.tscn`: that map
+instances `generated/scenes/farm/trails.tscn` once (its node `Trails`), and the builder writes
+that scene on every build with, for every entry, the door `to_<id>` on the trail's `cell`, the
+spawn `from_<id>` on its `spawn` and a mark on the ground. The added map's side is the door
+`to_farm` in its gap and the spawn `from_farm`.
+
 ### 12.4 `farm.people` (the people of a farm's village, T17.09)
 
 Planned once by `rpggen/core/people_plan.py` from the `NPC` assets of the catalog, the seed and
@@ -951,7 +1000,9 @@ sprite), `home` (the number of a house of the village, from 1; the houses are sh
 evenly), `job` (`shopkeeper` for one person of a village with a shop, else `""`), `pattern`
 (which day it has: `shopkeeper`, `villager`, `stroller`, `angler`), `loves`, `likes` and
 `dislikes` (item ids of the game, no item twice; never a tool or a seed; two, three and two,
-fewer in a game with few items) and `schedule`.
+fewer in a game with few items), `schedule`, and in a farm with festivals `birthday`
+(`{ "season", "day" }`, T17.25, §12.7: optional, and added to the people a project stored
+before it without anything else of them changing).
 
 **Schedule entry** (what `RpgSchedule` reads, `actors/schedule.gd`): `hour` (from which hour of
 the day it holds: 6 to 23, then 0 and 1 of the night), `days` (optional: the days of the week
@@ -1037,7 +1088,7 @@ packs gain later is appended. `forage` is an optional key of the `farm` section:
 |-----|------|------|
 | `plan_version` | 1 | |
 | `seed` | int | The seed it was planned with. |
-| `fishing` | bool | The rod is sold: the option `starter_map.fishing` is on **and** the farm's map has a pond. It is the one key that is not kept: it follows the option and the map on every generation. |
+| `fishing` | bool | The rod is sold: the option `starter_map.fishing` is on **and** the farm's map has a pond or a beach among its added maps (T17.23). It is the one key that is not kept: it follows the option and the map on every generation. |
 | `forage` | array of Thing | The things to forage, in the order the seed gave. |
 | `fish` | array of Fish | The fish. |
 | `spots` | array of `[x, y]` | The cells of the farm's map where a thing may lie in the morning, sorted from the top: 6, 8 or 10 for a small, a medium or a large field. |
@@ -1046,10 +1097,15 @@ packs gain later is appended. `forage` is an optional key of the `farm` section:
 **Thing:** `id` and `item` (the id of the item it is, `forage_<name>`), `name`, `asset` (the
 picture; `""` for a drawn one of a plan made without the kit, which then has a `color`),
 `seasons` (from the picture's `season:<name>` tags, else a season of its own; every season has
-at least one thing), `price` and `energy` (what eating one restores).
+at least one thing), `price` and `energy` (what eating one restores). A thing of a kind of
+added map also has `maps` (T17.23: `["beach"]`): it lies only on maps of that kind, and on such
+a map only the things that name it lie. The things of a beach (the packs' `ITEM`s tagged
+`forage` and `beach`, else the kit's drawn shell and seaweed) are appended when the farm gets
+its first beach.
 
 **Fish:** the same keys (the item is `fish_<name>`), and `times` (`morning`: before 12:00,
-`day`: before 18:00, `evening`), `water` (`["pond"]`) and `speed` (how fast its mark moves
+`day`: before 18:00, `evening`), `water` (`["pond"]`, or `["sea"]` for a fish of a beach:
+an `ITEM` tagged `fish` and `sea`, else the kit's drawn sardine and sea bass) and `speed` (how fast its mark moves
 along the bar: 1.0, 1.2 or 1.4, the dearer the faster). A fish bites at two of the three times
 and in three of the four seasons unless the packs have fewer than three fish; at every time of
 every season at least one bites.
@@ -1075,3 +1131,70 @@ writes the same lists with `spots`, `map` (`farm`: the id of the map the cells a
 `fishing` to `generated/data/forage.json` on every build; the game reads the user's file and
 takes from the generated one the entries the user's does not list.
 
+### 12.7 `farm.events` (the festivals of a farm's year, T17.25)
+
+Planned once by `rpggen/core/event_plan.py` from the options (`starter_map.festivals`,
+`days_per_season`) and what the farm's section says of its crops and its fishing, and **stored
+and reused**: once the key is there the options no longer change it. `events` is an optional
+key of the `farm` section; a farm with `festivals` off has none (and a stored one is left as
+it is: the game then shows nothing of it). The seed changes nothing of the plan: there is one
+festival a season, on a fixed day.
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `plan_version` | 1 | |
+| `seed` | int | The seed of the generation that planned it |
+| `days_per_season` | 7, 14, 28 | The length of a season the days were planned for |
+| `festivals` | array of Event | Four, in the order of the seasons |
+| `notes` | array of string | What the planner had to say (a farm that cannot fish) |
+
+**Event:** `id`, `kind` (`egg_hunt`, `fishing_count`, `produce_contest`, `feast`; the files
+also take `gathering`, which has nothing to do, and `wedding`, which the game adds at run time,
+T17.26), `name`, `season` (`spring` to `winter`), `day` (1 to 28), `from` and `to` (the hours
+the people stand at `place`: 9 and 20), `place` (`square`: the marker of the village the
+people gather at). By kind: an egg hunt has `spots` (the markers `festival_egg_1` to `_5`),
+`each` (20: what an egg pays), `goal` (5) and `prize`; a fishing count has `goal` (3) and
+`prize`; a produce contest has `table` (the marker `festival_table`), `judge` (`price`: the
+dearest thing the bin sold that season, or `count`: how many things), `goal` and `prize`; a
+feast has `table` and `points` (60: the friendship everybody gains). `prize` is
+`{ "gold" }`, `{ "item", "qty" }` or both. Optional in the files: `year` (only in that year)
+and `shop_closed` (false: the shop keeps its hours).
+
+**The day.** A festival is the fifth day of a week (a Friday: never weekday 6, the day the
+shop is closed anyway): in spring and summer of the middle week of the season, in autumn and
+winter of its last. That is day 12, 12, 26 and 26 of a season of 28 days, 5, 5, 12 and 12 of
+one of 14, and 5 of every season of 7 (`event_plan.festival_day`). The day is planned for the
+length the project has when it is planned; the game folds a day a shorter season no longer has
+into it week by week (`RpgFarmEvents.day_in`: `(day - 1) % days_per_season + 1`), so it stays a
+Friday. Summer's festival is the fishing count where `farm.forage.fishing` is true and a
+second produce contest (`summer_fair`, `judge: count`, `goal` 10) where it is not. The `goal`
+of the autumn contest is the middle one of the prices of the crops that grow in autumn.
+
+`event_plan.check` finds: two events of one id, a kind or a season nobody knows, a day the
+planned season does not have, two festivals on one day, an egg hunt without spots, a contest
+or a feast without a table.
+
+**`game/data/events.json`** (`rpggen/schema/events.schema.json`) is what the game reads:
+`{ "events": [ Event ] }`, an Event as above with `map` (`starter_map`: the id of the map its
+markers are on; `event_plan.events_file`). The builder writes it **once**; it is the user's
+afterwards. It writes the same list to `generated/data/events.json` on every build; the game
+reads the user's file and takes from the generated one the events the user's does not list,
+and an entry `{ "id", "removed": true }` of the user's file keeps an id out. The markers the
+events name are made on the village when it is built (`Places/festival_table`,
+`Places/festival_egg_<n>`); a village that exists is never built again, and the game then
+puts the things round the marker `place`.
+
+**Birthdays** are not events of the plan: each Person (§12.4) has a `birthday`
+(`{ "season", "day" }`), given by `people_plan.with_birthdays` to whoever has none (so the
+people a project stored before T17.25 get theirs and nothing else of them changes): by the
+seed and the person's id, in the season that has the fewest so far, never on a festival's day
+or on the first day of spring, and no two on one day while the year has days enough. A farm
+with `festivals` off gives nobody a birthday.
+
+**At run time** (`RpgFarmEvents`, the child `Events` of the farm's mode, at work only when the
+mode's `festivals` is true) nothing new is saved under a key of its own: `flags.farm_events`
+holds `added` (the events `add_event` added: a wedding), `today` (`{ day, id, found, count,
+done }`: what was found, caught or judged on the festival of the day with that index) and
+`birthday_gifts` (`{ day, people }`: who had the gift of their birthday today), and
+`flags.farm_bin.shipped` holds `{ season: "<year>:<season>", items: { item id: qty } }`, what
+the nights of the season sold (the produce contest is judged on it).

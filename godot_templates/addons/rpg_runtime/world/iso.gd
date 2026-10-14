@@ -268,3 +268,16 @@ static func used_rect(layer: TileMapLayer, cells: Rect2i) -> Rect2:
 	var rect := bounds(cells.size, layer.tile_set.tile_size)
 	rect.position += cell_to_screen(cells.position, layer.tile_set.tile_size) - cell_to_screen(Vector2i.ZERO, layer.tile_set.tile_size)
 	return rect
+
+## The shape of one cell around its middle, what blocks or triggers on it: the diamond (T17.27).
+## The editor tools give it to what they add to an isometric map (a door of the world repair, a
+## trigger area, a gate), so it is the shape the builder gives a cell (MapGeo.cell_shape). No
+## arithmetic of its own: `diamond`, moved to the middle of its cell.
+static func cell_shape(footprint: Vector2i) -> ConvexPolygonShape2D:
+	var middle := cell_to_screen(Vector2i.ZERO, footprint)
+	var points := PackedVector2Array()
+	for corner in diamond(Vector2i.ZERO, footprint):
+		points.append(corner - middle)
+	var shape := ConvexPolygonShape2D.new()
+	shape.points = points
+	return shape

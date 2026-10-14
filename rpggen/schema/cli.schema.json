@@ -213,6 +213,12 @@
             "farm": {
               "type": "string"
             },
+            "added_maps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "rooms": {
               "type": "array",
               "items": {

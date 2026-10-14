@@ -725,6 +725,9 @@ are planned, and nobody is fought). *Combat* is not among the features of a farm
   or 20 minutes for a day from 6:00 to 2:00).
 * **Starting money** (100), **Fishing** (the shop sells a rod when the farm has a pond) and
   **Passing out costs money**.
+* **Festivals and birthdays** (on): a festival in every season and a birthday for everybody.
+  Off, the farm has neither. It can be switched on for a farm that exists; the dry run and
+  the words under the picture then say *4 festivals*.
 * The picture is the **planned farm**: the house, the plot, the pond or the well, the shipping
   bin, the yards with their fences and gates, the paths, what is to be cleared, the trees and
   the way to the village, with a legend; the line under it says it in words (*a farm of 40 x
@@ -736,8 +739,13 @@ are planned, and nobody is fought). *Combat* is not among the features of a farm
   [The isometric view](#3d-the-isometric-view).
 * The presets **Cosy** (days of 20 minutes, nothing lost for passing out, 500 to start with)
   and **Short year** (7 days a season).
-* **Added maps** takes names (a beach, a forest). They are **names only for now**: they are
-  kept with the plan and no map is built for them.
+* **Added maps**: every row is a map of its own beside the farm, with a **name** and a
+  **kind**. A **forest** is thick with trees and has a clearing, things to clear and places
+  where things to forage lie; a **beach** has sand, the sea along one side to fish in, and
+  shells and seaweed of its own. The kind follows the name until you choose it (*North shore*
+  is a beach, anything else a forest). The preview shows each added map beside the farm, and
+  the summary names them. In the game the way to an added map is a worn patch of ground with
+  an arrow at the edge of the farm. A cave is not offered yet.
 
 Once the farm has been generated its size, its plot, its animal houses, the difficulty and the
 starting money are fixed (the box says so): the farm's map exists and is yours. The other
@@ -792,13 +800,27 @@ options are read on every generation.
   every morning a few things of the season lie at the edges of the farm.
 * **Weather.** A day is sunny or rainy, with storms in summer and snow in winter. Rain waters
   the whole field. The sign beside your door tells tomorrow's weather.
+* **Festivals** (with the option, which is on): one a season, always a Friday (spring 12,
+  summer 12, autumn 26 and winter 26 in seasons of 28 days). The shop is closed that day and
+  everybody stands on the village square from 9:00 to 20:00. In spring five **eggs** lie in
+  the village: find them with interact, each pays a little and the last one a prize. In
+  summer the **fish** you land that day are counted (on a farm that cannot fish: the things
+  your bin sold this season). In autumn the judges' **table** on the square judges the
+  dearest thing your bin sold this season. In winter you bring a dish, any food, to the
+  table, and the whole village likes you a little more. The day before, the sign by your
+  door and the people say that it is coming.
+* **Birthdays.** Everybody has one. The first gift you give somebody on that day counts five
+  times and is not one of the week's two. *Pause → People* names the day of who you have met.
+* **The calendar** hangs on the wall of your farmhouse (interact with it) and is in the pause
+  menu as *Calendar*: the weeks of the season, today, the festival and the birthdays.
 
 ![A farm](images/game_farm.png)
 
-**What is yours.** The game reads four lists that rpggen writes once and then leaves alone:
+**What is yours.** The game reads five lists that rpggen writes once and then leaves alone:
 `game/data/crops.json` (a crop's seasons, days, regrowth and items), `game/data/people.json`
-(homes, jobs, schedules, tastes), `game/data/animals.json` and `game/data/forage.json` (fish
-and things to forage). A crop, an animal, a fish or a thing your packs gain later is added by
+(homes, jobs, schedules, tastes, birthdays), `game/data/animals.json`, `game/data/forage.json`
+(fish and things to forage) and `game/data/events.json` (the festivals: their days, where the
+eggs lie and the table stands, the prizes; removed like a crop). A crop, an animal, a fish or a thing your packs gain later is added by
 the game from rpggen's own list, so deleting an entry of those three files does not remove it:
 write `{ "id": "berry", "removed": true }` in its place. (People are read from your file
 alone: delete the entry.) The farm is `game/maps/farm.tscn` with the farmhouse and the animal
@@ -809,10 +831,16 @@ The project's `README.md` (section 22) explains every entry, the numbers behind 
 and energy, and how to add a crop.
 
 **Known limits.** Nobody has played a whole season by hand yet: the length of a day, the
-prices and the energy are untuned. Added maps are names only. There is no cave and nothing to
+prices and the energy are untuned. The door to an added map is a mark on the ground beside
+the farm's edge, not a gap in it, and a tree that stands before it can hide it; the people of
+the village never go to an added map. There is no cave and nothing to
 fight. The farmer's tool strips of a pack are not played. A field has no edge tiles: tilled
-soil is one tile of the pack's soil sheet. Marriage, festivals, cooking and crafting are not
-part of this kind.
+soil is one tile of the pack's soil sheet. Nobody has played a festival by hand: the prizes
+are untuned, the eggs and the table are drawn shapes that no pack's picture replaces, and you
+can walk through the table. A farm that was generated before festivals has its calendar in
+the pause menu only, its eggs lie round the square and not at places of their own, and its
+people say nothing of the day (their dialogue files were written before). Marriage, cooking
+and crafting are not part of this kind.
 
 ## 3d. The isometric view
 
@@ -933,12 +961,14 @@ a building has its door before the middle of its front).
 ![An isometric game](images/game_isometric.png)
 
 **Known limits.** Nobody has played an isometric game by hand yet. The **RPG Project Tools**
-dock and **imported maps** (Tiled, LDtk) count squares, not diamonds: on an isometric map,
-place things by hand, and do not check imported maps. A room has walls only when the packs
-have isometric wall pieces. No terrain (autotile) is read from an isometric pack. A house of
-pieces has one storey, a roof tile over every cell (a pack's slanted roofs are not joined into
-one ridge) and no corner posts of its own: the walls bring theirs. A track is planned with
-round corners only when the piece of every one of its four corners is round.
+dock places on diamonds (see *4. In Godot*), but nobody has dropped anything into an isometric
+map with a mouse yet: it was run by a test in an editor without a window. **Imported maps**
+(Tiled, LDtk) count squares, not diamonds: do not check imported maps on an isometric map. A
+room has walls only when the packs have isometric wall pieces. No terrain (autotile) is read
+from an isometric pack. A house of pieces has one storey, a roof tile over every cell (a pack's
+slanted roofs are not joined into one ridge) and no corner posts of its own: the walls bring
+theirs. A track is planned with round corners only when the piece of every one of its four
+corners is round.
 
 ### The farm and the isometric view from the command line
 
@@ -1010,6 +1040,24 @@ JSON.
 
 On the dock's **Validate** tab, **Fix** and **Fix all** mend doors that lead nowhere and maps that
 cannot be reached (they add the missing spawn point or door; Ctrl+Z takes it back).
+
+**On an isometric map** the dock counts diamonds. What you drag in or double-click stands on the
+middle of the diamond under the mouse, where the generator puts its own trees and people, and it
+goes among the Y-sorted entities, so it is drawn behind and in front of what is there. A house
+of several diamonds stands with its nearest corner on that diamond and covers the diamonds
+behind it. The status line says which diamond it was. Three things differ from a map of squares:
+
+* While you drag, the picture follows the mouse freely; it settles on its diamond when you let
+  go.
+* Every **Snap** choice but *Off* means *the diamond*: a grid of 8 or 32 pixels has no meaning
+  there. With *Off* the object stays exactly where you dropped it.
+* Nothing is dropped to a floor: that is for the rooms of a metroidvania, which are never
+  isometric.
+
+As on squares, the dock does not refuse a diamond that is taken or that lies outside the painted
+map: look where you drop. A trigger area, a gate and a door added by **Fix** have the shape of
+their diamond; a floor switch and a lever keep their small square; an encounter zone added with
+nothing selected covers six by six diamonds. Ctrl+Z takes each back, as on squares.
 
 **Shops.** In a shop, left and right choose how many to buy or sell (up to what you can pay for,
 carry or own), and **Sell all** sells everything the shop buys after a second press.

@@ -21,7 +21,12 @@ it); `RpgShopDefinition.closed_reason()` ("" for every shop but a farm's;
 `RpgUiController.open_shop` shows a non-empty one as a toast and does not open the shop);
 `RpgNpc.schedule()` (null for an NPC without one); `RpgActor.look()`, `map_node()`,
 `map_cell()` and `cell_ahead()`; `RpgDayNight.weather_tint` (a static `Color`, white);
-`RpgWorldMapMenu` lists no *World* row for a plan file that holds nothing but a farm's plan.
+`RpgWorldMapMenu` lists no *World* row for a plan file that holds nothing but a farm's plan;
+`RpgSchedule.override` (a static Callable, unset by default: who can put a person somewhere
+else for a day; `pick` and `resolve` do not ask it, `entry_in_force` does); the condition
+atoms `birthday:<id>`, `festival`, `festival_tomorrow` and `event:<kind>` (false, not unknown,
+in every game without a farm's festivals: `RpgCondition` finds them through a meta of the game
+state that only `RpgFarmEvents` sets).
 
 **A fix that changes what every game with a dialogue shows.** `ui/dialogue_box.gd`: the panel
 of the dialogue box grows **upward** (`grow_vertical = GROW_DIRECTION_BEGIN`, set in `_ready`
@@ -188,6 +193,15 @@ recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with 
   map ends the cast. A cast passes 10 minutes of the calendar and the bar 20 more. `fish_for`
   chooses among the fish of the table that bite in the season, at the time of day (`time_of`)
   and in the water. `advance(delta)` and `button` are for tests.
+* **Maps of a kind** (T17.23: the forest and the beach a farm can add). A map says what kind
+  of place it is with the metadata `farm_kind` (`RpgForage.KIND_META`, `map_kind(map)`), and a
+  thing to forage may name the kinds it lies on (`maps` in `forage.json`): on a map whose kind
+  has things of its own only those lie, elsewhere the things that name no kind
+  (`RpgForage.things_for(entries, kind)`). A map without an `RpgWaterSource` says what its
+  water is with the metadata `farm_water` (`RpgFishing.WATER_META`: `sea` on a beach), and the
+  fish whose `water` names it bite there; only a well takes no cast (it was: only a pond takes
+  one). What was picked up is kept by map, as before. Nothing of this is at work on a map that
+  has neither metadata: the farm's own map is what it was.
 * **Animals.** `RpgAnimalHouse` is a part of the mode (its child `Animals`; it does nothing in
   a farm without an animal house). The herd is data in the flags (a row an animal with its
   kind, name, house, stall, colour variant, friendship, `fed`, `petted` and the product it has
@@ -250,6 +264,47 @@ recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with 
   (it was silent: the farm has no slot for an axe alone). The sickle plays `sfx_harvest`
   whatever it cuts, the rod `sfx_water` for its cast and `sfx_harvest` for a fish, as before;
   `sounds.gd` has the rule.
+* **Festivals and birthdays** (T17.25). `events.gd`, **`RpgFarmEvents`**: a child `Events` of
+  the farm's mode, at work only when the mode's `festivals` is true (the option
+  `starter_map.festivals`; the mode's recipe sets it); otherwise `RpgFarmEvents.current()` is
+  null and nothing below happens. It reads `game/data/events.json` (`user_path`, which the
+  mode names from its `data_dir`) and, for the ids that file does not list,
+  `generated/data/events.json`; `{"id": ..., "removed": true}` takes one away.
+  * `today()`, `tomorrow()`, `events_on(day, season, year)`, `festival()`, `is_festival()`,
+    `festival_tomorrow()`, `has_kind(kind)`, `season_rows(season, year)`. A day a shorter
+    season no longer has is folded into it week by week (`day_in`), so a festival stays on
+    its day of the week.
+  * **A festival day**: `RpgFarmShop.day_off` (a static Callable, unset by default) closes
+    every farm shop for the day, and `closed_reason()` says why; `closed_all_day()` is new.
+    `RpgSchedule.override` sends everybody to the event's `place` from `from` to `to`, each to
+    the spot of it their own schedule names. `festival_began(event)` is emitted in the morning
+    and `festival_ended(event)` in the night (`RpgCalendar.NIGHT_SHOP + 50`). The things of
+    the day are made on the event's map when it is entered and are in no saved scene
+    (`festival_thing.gd`, `RpgFestivalThing`: an egg, a table; drawn, walked over, found by
+    `interact`), at the markers the event names, or round its `place` on a map without them.
+  * **What there is to do**: `find_egg(spot)`, `count_fish()` (also on `RpgFishing.caught`),
+    `use_table(held)` (a contest is judged, a dish is brought), `give_prize(event)`;
+    `found()`, `count()`, `is_done()`. A produce contest is judged on what the bin sold this
+    season: `RpgShippingBin.shipped()` and `shipped_best()`, kept by `sell_all` under
+    `flags.farm_bin.shipped`.
+  * **Birthdays**: `birthday_of(id)`, `is_birthday(id)`, `birthdays_on(day, season)`,
+    `birthday_text(id)`; from the person's entry of `people.json`, else from
+    `generated/data/people.json`. `RpgFriendship.gift` asks `birthday_gift_open(id)`: the
+    first gift of the day gives `birthday_points(taste)` (`BIRTHDAY_FACTOR`, 5, times the
+    points of a loved, a liked or a politely taken gift; a disliked one takes what it always
+    takes) and is none of the week's two. `RpgPeoplePage.detail_text` names the day.
+  * **`add_event({kind, season, day, year, ...})`** adds an event at run time, kept in the
+    flags and shown on the calendar; the people gather for it and the shop is closed as on a
+    festival. `remove_event(id)`, `added()`. This is what a wedding is (T17.26).
+  * **The calendar**: `ui/calendar_page.gd`, `RpgCalendarPage` (the weeks of a season, today,
+    the festival and the birthdays in their colours, a list of the marked days, *Earlier* and
+    *Later*). `RpgCalendarPage.add_to(menu)` gives the pause menu its *Calendar* button, as
+    the People page has its own; `RpgFarmEvents.open_calendar()` shows the page over the paused
+    game, which is what `wall_calendar.gd` (`RpgWallCalendar`, the calendar on the wall of the
+    farmhouse) does on `interact`.
+  * `RpgFarmWeather.forecast_text()` has a second line on the day before a festival
+    (`tomorrow_text()`). The state is in `flags.farm_events` (`added`, `today`,
+    `birthday_gifts`): the save has no new key.
 
 **The isometric view.**
 
@@ -371,6 +426,23 @@ recipe always wrote: no `RECIPE_VERSION` moved, and a project gets the fix with 
     the marks, the walls and the scenery on the diamonds; the barriers, the cars, the pickups
     and the race in the plan); `RaceBuild.scale_for` chooses the scale for the picture of the
     car.
+* **The editor tools on diamonds** (T17.27; `addons/rpg_project_tools/`, which has no changelog
+  of its own). `RpgIso.cell_shape(footprint)` is new: the shape of one cell around its middle,
+  a `ConvexPolygonShape2D` of `RpgIso.diamond`, which is the shape the builder gives a cell.
+  The tools ask a map through `RpgIso` and do something else only when it answers with a
+  diamond; on a map of squares they do what they did.
+  * The Assets dock (`dock/placement.gd`): what is dragged or double-clicked into an isometric
+    map stands on the middle of the diamond under the mouse (`RpgIso.cell_at`,
+    `RpgIso.cell_position`), among the Y-sorted entities and with the entity id a map of squares
+    gives. An object of several diamonds stands with its nearest cell there (the `stands_on` of
+    its scene). Every *Snap* choice but *Off* means the diamond. Nothing is dropped to a floor.
+    The plan of a placement says its `cell` and `cells`; the status line says the diamond.
+  * The world tools: a trigger area is its diamond, a gate has a `Shape` child of its diamond
+    and a `size` of one step, an encounter zone with nothing selected is the outline of 6 x 6
+    diamonds. A tile is `RpgIso.unit` of the map being edited, not 16.
+  * The world repair and the validator's *Fix* (`tools/world_repair.gd`): the actions of an
+    isometric map carry its diamond (`iso`), and a door added there has the diamond's shape on
+    the middle of its cell, as `MapGeo.add_exit_door` builds one.
 
 **The smoke runner and the smoke steps.**
 

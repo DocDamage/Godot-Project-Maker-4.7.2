@@ -200,9 +200,13 @@ func keeps_animals_in() -> bool:
 static func text(kind: String) -> String:
 	return RpgFarmStrings.t("FARM_WEATHER_" + kind.to_upper())
 
-## What the sign by the house says.
+## What the sign by the house says: tomorrow's weather and, on the day before a festival
+## (T17.25), that it is coming.
 func forecast_text() -> String:
-	return RpgFarmStrings.t("FARM_FORECAST", [text(forecast())])
+	var out := RpgFarmStrings.t("FARM_FORECAST", [text(forecast())])
+	var events := RpgFarmEvents.current()
+	var coming := events.tomorrow_text() if events != null else ""
+	return out if coming == "" else out + "\n" + coming
 
 # ------------------------------------------------------------------ the debug hooks
 

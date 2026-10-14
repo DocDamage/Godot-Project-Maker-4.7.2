@@ -17,8 +17,16 @@ and no picture, and the builder draws a plain icon.
   yards and whatever stands on the farm. They are read off the farm's map (``farm_plan.py``),
   which is not changed; the builder writes them into the map as markers. **Which spot has what
   on which day is not planned**: the game derives it from its seed and the date (``RpgForage``).
-* ``fishing`` says whether the rod is sold: the option of that name, and a farm with a pond.
-  It follows the option and the farm's map on every generation.
+* ``fishing`` says whether the rod is sold: the option of that name, and a farm with a pond
+  or with a beach among its added maps. It follows the option and the farm's map on every
+  generation.
+* **Added maps** (T17.23). The places of an added map are part of its own plan
+  (``added_map_plan.py``, ``spots``). What lies there is this table's: a thing whose entry
+  says ``maps`` lies only on maps of those kinds, and on a map whose kind has things of its own
+  only those lie (a beach: shells and seaweed), so a forest has what the farm has. A fish whose
+  ``water`` is ``sea`` bites at a beach and nowhere else. The things and the fish of a beach are
+  the packs' (an ``ITEM`` tagged ``forage`` and ``beach``, or ``fish`` and ``sea``), else the
+  kit's drawn ones; they are appended when the farm gets its first beach.
 
 The plan is deterministic for a seed and is **stored** in the project (``rpggen/world_plan.json``,
 ``farm.forage``) and reused: once it is there the seed no longer changes it, and a fish or a
@@ -52,6 +60,17 @@ DRAWN_FORAGE = (
     ("winter_root", "winter", "#ceaa78"),
 )
 DRAWN_FISH = (("perch", "#7ea85c"), ("carp", "#e28e3e"), ("eel", "#546084"))
+# ... and for a beach (T17.23): (name, its seasons, its colour), and the fish of the sea.
+# ``farm_kit.BEACH_FORAGE`` and ``farm_kit.SEA_FISH`` draw the same ones.
+BEACH = "beach"
+SEA = "sea"  # added_map_plan.SEA: the water of a beach
+BEACH_TAG = "beach"
+SEA_TAG = "sea"
+DRAWN_BEACH_FORAGE = (
+    ("shell", ("spring", "summer", "autumn", "winter"), "#f2e2c4"),
+    ("seaweed", ("spring", "summer", "autumn"), "#3f8f6a"),
+)
+DRAWN_SEA_FISH = (("sardine", "#96b4d2"), ("sea_bass", "#5a7896"))
 # how many places a farm of a size has, how near the edge they lie (cells), how far apart
 SPOTS = {"small": 6, "medium": 8, "large": 10}
 EDGE = 5
@@ -76,10 +95,14 @@ def facts_of(catalog: Any) -> dict[str, Any]:
     """What the planner needs to know of the packs: their ``ITEM`` pictures tagged ``forage``
     (each ``{asset, name, seasons}``, the seasons from its ``season:`` tags) and tagged ``fish``
     (``{asset, name}``), sorted by id. The ones rpggen drew for the run (the kit) are among them.
-    A picture that is switched off, and a colour variant made by rpggen, is none."""
+    A picture that is switched off, and a colour variant made by rpggen, is none. The things of
+    a beach (tagged ``beach`` as well) and the fish of the sea (tagged ``sea``) are lists of
+    their own, ``beach`` and ``sea``, which are there only when the packs have such pictures."""
     from rpggen.core import catalog as catalog_mod
 
     out: dict[str, list[dict[str, Any]]] = {"forage": [], "fish": []}
+    beach: list[dict[str, Any]] = []
+    sea: list[dict[str, Any]] = []
     for asset in sorted(getattr(catalog, "assets", []), key=lambda a: a.id):
         facets = catalog_mod.effective(asset)
         if asset.kind != "image" or asset.status in ("UNUSED", "MISSING") or "#" in asset.id:
@@ -89,16 +112,20 @@ def facts_of(catalog: Any) -> dict[str, Any]:
         tags = [str(t) for t in facets.get("tags") or []]
         name = crop_plan.crop_name(str(asset.id))
         if "fish" in tags:
-            out["fish"].append({"asset": str(asset.id), "name": name})
+            (sea if SEA_TAG in tags else out["fish"]).append({"asset": str(asset.id), "name": name})
         elif "forage" in tags:
             seasons = [t[len(SEASON_TAG) :] for t in tags if t.startswith(SEASON_TAG)]
-            out["forage"].append(
+            (beach if BEACH_TAG in tags else out["forage"]).append(
                 {
                     "asset": str(asset.id),
                     "name": name,
                     "seasons": [s for s in SEASONS if s in seasons],
                 }
             )
+    if beach:
+        out["beach"] = beach
+    if sea:
+        out["sea"] = sea
     return out
 
 
@@ -269,6 +296,53 @@ def has_pond(farm_map: dict[str, Any] | None) -> bool:
     return str(((farm_map or {}).get("water") or {}).get("kind", "")) == POND
 
 
+def has_sea(farm_map: dict[str, Any] | None) -> bool:
+    """True when one of the farm's added maps is a beach (T17.23)."""
+    from rpggen.core import added_map_plan
+
+    return added_map_plan.has_sea((farm_map or {}).get("added"))
+
+
+def has_fish(farm_map: dict[str, Any] | None) -> bool:
+    """True when the farm has water with fish in it: a pond, or the sea of a beach."""
+    return has_pond(farm_map) or has_sea(farm_map)
+
+
+def _of_beach(row: dict[str, Any]) -> bool:
+    return BEACH in (row.get("maps") or []) or SEA in (row.get("water") or [])
+
+
+def with_beach(section: dict[str, Any], facts: Any) -> list[str]:
+    """Appends the things and the fish of a beach to a plan that has none yet (in place): the
+    packs' (``facts["beach"]``, ``facts["sea"]``), else the drawn ones. Every season has a
+    thing of the beach and at every time of every season a fish of the sea bites. Returns the
+    names that were added; nothing when the plan has them already."""
+    if any(_of_beach(row) for key in ("forage", "fish") for row in section.get(key, [])):
+        return []
+    used = {str(row["id"]) for key in ("forage", "fish") for row in section.get(key, [])}
+    drawn_seasons = {name: list(seasons) for name, seasons, _color in DRAWN_BEACH_FORAGE}
+    things = [dict(f) for f in (facts or {}).get("beach", [])] or [
+        {"asset": "", "name": name, "seasons": list(seasons), "color": color}
+        for name, seasons, color in DRAWN_BEACH_FORAGE
+    ]
+    fish = [dict(f) for f in (facts or {}).get("sea", [])] or [
+        {"asset": "", "name": name, "color": color} for name, color in DRAWN_SEA_FISH
+    ]
+    for found in (things, fish):
+        found.sort(key=lambda f: (str(f.get("asset", "")), str(f["name"])))
+    forage_rows: list[dict[str, Any]] = []
+    for i, fact in enumerate(things):
+        if not fact.get("seasons") and str(fact["name"]) in drawn_seasons:
+            fact["seasons"] = drawn_seasons[str(fact["name"])]  # the kit's pictures
+        forage_rows.append({**_forage_entry(fact, i, used), "maps": [BEACH]})
+    fish_rows = [{**_fish_entry(fact, i, used), "water": [SEA]} for i, fact in enumerate(fish)]
+    _cover_seasons(forage_rows)
+    _cover_times(fish_rows)
+    section.setdefault("forage", []).extend(forage_rows)
+    section.setdefault("fish", []).extend(fish_rows)
+    return [str(row["name"]) for row in (*forage_rows, *fish_rows)]
+
+
 # --------------------------------------------------------------------------- the plan
 
 
@@ -288,15 +362,18 @@ def plan(
     fish_rows = [_fish_entry(fact, i, used) for i, fact in enumerate(fish)]
     _cover_seasons(forage_rows)
     _cover_times(fish_rows)
-    return {
+    section = {
         "plan_version": PLAN_VERSION,
         "seed": int(seed),
-        "fishing": opts["fishing"] and has_pond(farm_map),
+        "fishing": opts["fishing"] and has_fish(farm_map),
         "forage": forage_rows,
         "fish": fish_rows,
         "spots": spots_for(farm_map, seed),
         "notes": notes,
     }
+    if has_sea(farm_map):
+        with_beach(section, facts)
+    return section
 
 
 def extend(stored: dict[str, Any], facts: Any) -> tuple[dict[str, Any], list[str]]:
@@ -320,7 +397,8 @@ def check(section: dict[str, Any]) -> list[str]:
     """What is wrong with a plan (an empty list for a good one): a season with nothing to
     forage, a time of a season at which no fish bites, two things of one id."""
     problems: list[str] = []
-    forage, fish = section.get("forage", []), section.get("fish", [])
+    forage = [f for f in section.get("forage", []) if not _of_beach(f)]
+    fish = [f for f in section.get("fish", []) if not _of_beach(f)]
     for season in SEASONS:
         if not any(season in f["seasons"] for f in forage):
             problems.append(f"{season}: nothing to forage")
@@ -328,7 +406,7 @@ def check(section: dict[str, Any]) -> list[str]:
             if not any(season in f["seasons"] and time in f["times"] for f in fish):
                 problems.append(f"{season}, {time}: no fish bites")
     seen: set[str] = set()
-    for row in [*forage, *fish]:
+    for row in [*section.get("forage", []), *section.get("fish", [])]:
         if row["id"] in seen:
             problems.append(f"{row['id']}: listed twice")
         seen.add(row["id"])
@@ -389,7 +467,9 @@ def for_project(
         free = set(free_cells(farm_map)) if farm_map else set()
         if farm_map and not (section.get("spots") and {_cell(c) for c in section["spots"]} <= free):
             section["spots"] = spots_for(farm_map, int(section.get("seed", seed)))
-        section["fishing"] = opts["fishing"] and has_pond(farm_map)
+        section["fishing"] = opts["fishing"] and has_fish(farm_map)
+        if has_sea(farm_map):
+            added += with_beach(section, facts)
         notes = [f"The farm kept its fish and forage; added: {', '.join(added)}."] if added else []
         return section, notes
     fresh = plan(opts, seed, facts, farm_map)

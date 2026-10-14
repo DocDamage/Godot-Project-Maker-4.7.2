@@ -3,6 +3,10 @@ extends RefCounted
 ## Placing library scenes in a map (T8.03). `plan` works out the fix-ups an instance needs (Y-sort
 ## parent, snapping, flip, entity id) without changing anything; `apply` performs them through
 ## the editor's undo manager as one action called "Place <name>".
+##
+## A map of diamonds (T17.27, `projection: isometric`) is asked through RpgIso, the runtime's
+## arithmetic: what is placed stands on the middle of the diamond under it, as the builder
+## stands it. A map of squares is placed in as it always was.
 
 const EntityIds := preload("../tools/entity_ids.gd")
 const CatalogEdit := preload("../tools/catalog_edit.gd")
@@ -70,6 +74,54 @@ static func floor_below(root: Node, world: Vector2) -> Vector2:
 				break
 	return Vector2(world.x, best) if best != INF else world
 
+# ---------------------------------------------------------------- diamonds (T17.27)
+
+## The diamond of an isometric map's cells (the size of its tile set); Vector2i.ZERO for a map
+## of squares or without tiles, where nothing below is asked.
+static func diamond_of(root: Node) -> Vector2i:
+	return RpgIso.footprint_of(root)
+
+## The middle of the diamond under `world`: where the builder puts an actor, a marker and the
+## origin of an object's picture (builder/lib/map_geo.gd `center`). With snapping off (`step` 0)
+## the point is returned as it is.
+static func snap_to_diamond(root: Node, world: Vector2, step: int) -> Vector2:
+	if step <= 0:
+		return world
+	return RpgIso.cell_position(root, RpgIso.cell_at(root, world))
+
+## How many cells a library scene stands on, [columns, rows]: the `stands_on` the builder wrote
+## on an isometric object scene (object_scenes_recipe.gd), one cell for everything else.
+static func stands_on(instance: Node) -> Vector2i:
+	if instance == null or not instance.has_meta("stands_on"):
+		return Vector2i.ONE
+	var pair := JsonIo.to_array(instance.get_meta("stands_on"))
+	if pair.size() != 2:
+		return Vector2i.ONE
+	return Vector2i(maxi(1, JsonIo.to_int(pair[0])), maxi(1, JsonIo.to_int(pair[1])))
+
+## The cells an object of `size` cells stands on when its origin is on `cell`: `cell` is the one
+## nearest the camera (the highest x and y), as the builder's IsoTileset.cells_under counts.
+static func cells_under(cell: Vector2i, size: Vector2i) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for dy in maxi(1, size.y):
+		for dx in maxi(1, size.x):
+			out.append(cell - Vector2i(dx, dy))
+	return out
+
+## The outline of a rectangle of cells of an isometric map, in the world: the top, the right,
+## the bottom and the left corner.
+static func cells_outline(root: Node, cells: Rect2i) -> PackedVector2Array:
+	var diamond := diamond_of(root)
+	var last := cells.end - Vector2i.ONE
+	# where the layer's own px are in the world (RpgIso.diamond counts in the layer)
+	var shift := RpgIso.cell_position(root, cells.position) - RpgIso.cell_to_screen(cells.position, diamond)
+	return PackedVector2Array([
+		RpgIso.diamond(cells.position, diamond)[0] + shift,
+		RpgIso.diamond(Vector2i(last.x, cells.position.y), diamond)[1] + shift,
+		RpgIso.diamond(last, diamond)[2] + shift,
+		RpgIso.diamond(Vector2i(cells.position.x, last.y), diamond)[3] + shift,
+	])
+
 ## The parent an instance goes under. `selected` is the node selected before the drop.
 func target_parent(root: Node, current_parent: Node, selected: Node = null) -> Node:
 	if ysort_mode == "selected" and selected != null and (selected == root or root.is_ancestor_of(selected)):
@@ -94,12 +146,17 @@ static func existing_ids(root: Node, skip: Node = null) -> Array:
 
 ## The fix-ups of an instance (already in the map, or detached with `world_position` given).
 ## Returns {parent, old_parent, position, old_position, flip_node, old_flip, flip, entity_id,
-## old_entity_id, kind, map_id, number}.
+## old_entity_id, kind, map_id, number}. On an isometric map (T17.27) the position is the middle
+## of the diamond under the point (with any snapping on: a grid of px means nothing there), and
+## the plan also has `cell` (that diamond) and `cells` (every cell the object stands on, `cell`
+## being the one nearest the camera). Nothing is dropped to a floor there: a room seen from the
+## side is never isometric.
 func plan(instance: Node2D, root: Node, entry: Dictionary, selected: Node = null, world_position: Variant = null) -> Dictionary:
 	var current_parent: Node = instance.get_parent()
 	var parent := target_parent(root, current_parent if current_parent != null else root, selected)
 	var world: Vector2 = world_position if world_position is Vector2 else instance.global_position
-	world = snap_position(world, snap)
+	var diamond := diamond_of(root)
+	world = snap_position(world, snap) if diamond == Vector2i.ZERO else snap_to_diamond(root, world, snap)
 	if is_side_view(root):
 		world = floor_below(root, world)  # no Y-sort in a room: things stand on the floor
 	var local := world
@@ -125,6 +182,10 @@ func plan(instance: Node2D, root: Node, entry: Dictionary, selected: Node = null
 		out["kind"] = kind
 		out["map_id"] = map_id
 		out["number"] = number
+	if diamond != Vector2i.ZERO:
+		var cell := RpgIso.cell_at(root, world)
+		out["cell"] = cell
+		out["cells"] = cells_under(cell, stands_on(instance))
 	return out
 
 ## Performs a plan with undo. A detached instance is added to the plan's parent.
@@ -186,7 +247,9 @@ const SEQUENCE_SCRIPT := "res://addons/rpg_runtime/events/sequence.gd"
 
 ## Where a new trigger area goes: {parent (the map's Triggers node, else the root), position (local
 ## to the parent), entity_id (<map>_trigger_<n>), sequence_path (game/data/sequences/<entity_id>.tres),
-## size (one tile), on_interact}. Nothing is changed.
+## size (one tile), on_interact}. Nothing is changed. On an isometric map the position is the
+## middle of the diamond under the point and the plan has `diamond`, the size of a cell: the
+## area is that diamond.
 static func plan_trigger(root: Node, world_position: Vector2, tile: int, step: int, on_interact: bool, sequences_dir: String = SEQUENCES_DIR) -> Dictionary:
 	var parent: Node = root.get_node_or_null(TRIGGERS_PATH)
 	if parent == null:
@@ -194,16 +257,21 @@ static func plan_trigger(root: Node, world_position: Vector2, tile: int, step: i
 	var map_id := EntityIds.map_id_of(root)
 	var number := EntityIds.next_number(existing_ids(root), map_id, "trigger")
 	var entity_id := EntityIds.make_id(map_id, "trigger", number)
-	var world := snap_position(world_position, step)
+	var diamond := diamond_of(root)
+	var world := snap_position(world_position, step) if diamond == Vector2i.ZERO else snap_to_diamond(root, world_position, step)
 	var local := world
 	if parent is Node2D and (parent as Node2D).is_inside_tree():
 		local = (parent as Node2D).to_local(world)
-	return {
+	var out := {
 		"parent": parent, "position": local, "entity_id": entity_id, "on_interact": on_interact,
 		"sequence_path": "%s/%s.tres" % [sequences_dir, entity_id], "size": Vector2(tile, tile),
 	}
+	if diamond != Vector2i.ZERO:
+		out["diamond"] = diamond
+	return out
 
-## The trigger area of a plan, not yet in the map: an RpgTriggerArea with a one-tile rectangle.
+## The trigger area of a plan, not yet in the map: an RpgTriggerArea with a one-tile rectangle,
+## or with the diamond of its cell (RpgIso.cell_shape, the shape the builder gives a cell).
 static func build_trigger(plan: Dictionary) -> Area2D:
 	var area := Area2D.new()
 	area.set_script(load(TRIGGER_SCRIPT))
@@ -216,6 +284,11 @@ static func build_trigger(plan: Dictionary) -> Area2D:
 	area.position = at
 	var shape := CollisionShape2D.new()
 	shape.name = "Shape"
+	if plan.has("diamond"):
+		var diamond: Vector2i = plan["diamond"]
+		shape.shape = RpgIso.cell_shape(diamond)
+		area.add_child(shape)
+		return area
 	var rect := RectangleShape2D.new()
 	var size: Vector2 = plan["size"]
 	rect.size = size
@@ -264,7 +337,9 @@ const ZONE_DEFAULT_TILES := 6
 ## TileMapLayer makes the zone its painted cells; other selected 2D nodes give the rectangle around
 ## them (half a tile of margin, at least 3x3 tiles); with nothing selected it is 6x6 tiles around
 ## `centre`. The table lists every enemy definition of the project as a group of one. Nothing is
-## changed.
+## changed. On an isometric map the zone with nothing selected is the outline of 6x6 diamonds
+## around the cell under `centre`; the rectangle around selected nodes is a rectangle of the
+## screen there too (`tile` is then one step on the diamonds).
 static func plan_zone(root: Node, selected: Array, centre: Vector2, tile: int, enemies_dir: String = ENEMIES_DIR, encounters_dir: String = ENCOUNTERS_DIR) -> Dictionary:
 	var parent: Node = root.get_node_or_null(TRIGGERS_PATH)
 	if parent == null:
@@ -288,7 +363,12 @@ static func plan_zone(root: Node, selected: Array, centre: Vector2, tile: int, e
 		rect = rect.grow_individual(maxf(0.0, (least - rect.size.x) / 2.0), maxf(0.0, (least - rect.size.y) / 2.0), maxf(0.0, (least - rect.size.x) / 2.0), maxf(0.0, (least - rect.size.y) / 2.0))
 	var origin := RpgUtil.world_position(parent as Node2D) if parent is Node2D else Vector2.ZERO
 	var polygon := PackedVector2Array()
-	if layer == null:
+	if layer == null and points.is_empty() and diamond_of(root) != Vector2i.ZERO:
+		@warning_ignore("integer_division")
+		var first := RpgIso.cell_at(root, centre) - Vector2i(ZONE_DEFAULT_TILES / 2, ZONE_DEFAULT_TILES / 2)
+		for corner in cells_outline(root, Rect2i(first, Vector2i(ZONE_DEFAULT_TILES, ZONE_DEFAULT_TILES))):
+			polygon.append((corner - origin).snapped(Vector2(1, 1)))
+	elif layer == null:
 		for corner: Vector2 in [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]:
 			polygon.append((corner - origin).snapped(Vector2(1, 1)))
 	var map_id := EntityIds.map_id_of(root)
@@ -373,7 +453,10 @@ const LOCK_KINDS: Array[String] = ["gate", "plate", "lever"]
 
 ## A new gate or switch: {parent (the map's YSorted/Entities, else the root), position (snapped,
 ## local to the parent), entity_id (<map>_gate_<n> or <map>_switch_<n>), kind, size, gate (the
-## selected gate a new switch opens, or null)}. Nothing is changed.
+## selected gate a new switch opens, or null)}. Nothing is changed. On an isometric map the
+## position is the middle of the diamond under the point and the plan has `diamond`: a gate
+## closes its diamond, as the builder's does (builder/lib/world_plan.gd `add_gate`); a switch
+## keeps the square it makes for itself.
 static func plan_lock(root: Node, world_position: Vector2, tile: int, kind: String, selected: Node = null) -> Dictionary:
 	var parent: Node = ysort_parent(root)
 	if parent == null:
@@ -381,7 +464,8 @@ static func plan_lock(root: Node, world_position: Vector2, tile: int, kind: Stri
 	var id_kind := "gate" if kind == "gate" else "switch"
 	var map_id := EntityIds.map_id_of(root)
 	var number := EntityIds.next_number(existing_ids(root), map_id, id_kind)
-	var world := snap_position(world_position, tile)
+	var diamond := diamond_of(root)
+	var world := snap_position(world_position, tile) if diamond == Vector2i.ZERO else snap_to_diamond(root, world_position, tile)
 	var local := world
 	if parent is Node2D and (parent as Node2D).is_inside_tree():
 		local = (parent as Node2D).to_local(world)
@@ -391,10 +475,13 @@ static func plan_lock(root: Node, world_position: Vector2, tile: int, kind: Stri
 		if script != null and script.resource_path == GATE_SCRIPT:
 			gate = selected
 	var t := float(tile)
-	return {
+	var out := {
 		"parent": parent, "position": local, "entity_id": EntityIds.make_id(map_id, id_kind, number),
 		"kind": kind, "size": Vector2(t, t) if kind == "gate" else Vector2(t, t) * 0.75, "gate": gate,
 	}
+	if diamond != Vector2i.ZERO:
+		out["diamond"] = diamond
+	return out
 
 ## The gate or switch of a plan, not yet in the map.
 static func build_lock(plan: Dictionary) -> Node2D:
@@ -415,6 +502,13 @@ static func build_lock(plan: Dictionary) -> Node2D:
 		node.set("kind", 1 if kind == "lever" else 0)  # RpgSwitch.Kind.LEVER / PLATE
 	var at: Vector2 = plan["position"]
 	node.position = at
+	if kind == "gate" and plan.has("diamond"):
+		# a gate makes a rectangle of `size` only when it has no shape of its own
+		var diamond: Vector2i = plan["diamond"]
+		var shape := CollisionShape2D.new()
+		shape.name = "Shape"
+		shape.shape = RpgIso.cell_shape(diamond)
+		node.add_child(shape)
 	return node
 
 ## The condition a gate opened by this switch gets.
@@ -430,6 +524,8 @@ static func add_lock(plan: Dictionary, root: Node, undo: EditorUndoRedoManager) 
 	undo.create_action("Add %s" % JsonIo.to_str(plan["kind"]), UndoRedo.MERGE_DISABLE, root)
 	undo.add_do_method(parent, "add_child", node, true)
 	undo.add_do_method(node, "set_owner", root)
+	for child in node.get_children():  # the diamond of a gate on an isometric map; else none
+		undo.add_do_method(child, "set_owner", root)
 	undo.add_do_reference(node)
 	undo.add_undo_method(parent, "remove_child", node)
 	if gate != null:

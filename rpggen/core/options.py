@@ -260,7 +260,7 @@ def plan_farm(cfg: config_mod.GeneratorConfig, catalog: Any, project: Any = None
     own map, ``farm_plan``: the stored one when ``project`` has its farm, with the added maps
     it does not have yet), ``crops`` and ``people`` (how many), ``stored`` and ``notes``. Raises
     a ``ValueError`` (the planners' errors) when the options make no farm."""
-    from rpggen.core import farm_plan, orchestrator, people_plan, world_plan
+    from rpggen.core import event_plan, farm_plan, orchestrator, people_plan, world_plan
 
     chosen = cfg.starter_map_options()
     facts = orchestrator.farm_facts(cfg, catalog) if catalog is not None else farm_plan.facts_of()
@@ -275,7 +275,20 @@ def plan_farm(cfg: config_mod.GeneratorConfig, catalog: Any, project: Any = None
         people = len(who["people"])
     else:
         people = people_plan.DRAWN_PEOPLE
-    return {"map": section, "crops": crops, "people": people, "stored": stored, "notes": notes}
+    # festivals (T17.25): the stored ones, else the four a year has, none with the option off
+    festivals = 0
+    if chosen.get("festivals", True):
+        festivals = len((kept.get("events") or {}).get("festivals") or []) or len(
+            event_plan.SEASONS
+        )
+    return {
+        "map": section,
+        "crops": crops,
+        "people": people,
+        "festivals": festivals,
+        "stored": stored,
+        "notes": notes,
+    }
 
 
 def farm_numbers(starter_map: dict[str, Any], crops: int | None = None) -> list[str]:
@@ -298,14 +311,37 @@ def farm_numbers(starter_map: dict[str, Any], crops: int | None = None) -> list[
 
 def farm_text(plans: dict[str, Any]) -> str:
     """A planned farm in words, for a dry run: "a farm of 40 x 30 with a plot of 96 cells, a
-    pond, 6 crops, 5 people" (``plans`` is ``plan_farm``'s)."""
+    pond, 6 crops, 5 people, 4 festivals" (``plans`` is ``plan_farm``'s; the festivals are
+    left out of a farm that has none)."""
     from rpggen.core import farm_plan
 
     people = plans["people"]
+    festivals = int(plans.get("festivals", 0) or 0)
     return (
         f"{farm_plan.summary(plans['map'])}, {_count(plans['crops'], 'crop')}, "
         f"{people} {'person' if people == 1 else 'people'}"
+        + (f", {_count(festivals, 'festival')}" if festivals else "")
     )
+
+
+def added_maps_text(farm_map: dict[str, Any]) -> list[str]:
+    """The maps added to a farm in words, a line each, for a dry run and the wizard (T17.23):
+    "Old woods: a forest of 28 x 22 with 8 places to forage", "North shore: a beach of 30 x 20
+    with 6 places to forage and the sea to fish in". A name that is no map (a farm from before
+    added maps were built) says so."""
+    from rpggen.core import farm_plan
+
+    out = []
+    for entry in farm_map.get("added", []):
+        cols, rows = entry["size"]
+        text = (
+            f"{entry['name']}: a {entry['kind']} of {cols} x {rows} with "
+            f"{_count(len(entry.get('spots', [])), 'place')} to forage"
+        )
+        out.append(text + (" and the sea to fish in" if entry.get("water") else ""))
+    out += [f"{name}: a name only (the farm was made before added maps were built)"
+            for name in farm_plan.names_only(farm_map)]  # fmt: skip
+    return out
 
 
 def default_projection(catalog: Any, archetype: str) -> str:

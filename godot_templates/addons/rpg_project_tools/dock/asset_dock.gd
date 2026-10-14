@@ -154,6 +154,7 @@ func _build_settings() -> Control:
 	for s in SNAP_CHOICES:
 		_snap.add_item(s)
 	_snap.select(2)
+	_snap.tooltip_text = "On an isometric map every choice but Off puts what is placed on the middle of the diamond under it."
 	_snap.item_selected.connect(func(_i: int) -> void: _apply_settings())
 	snap_row.add_child(_snap)
 	_snap_custom = SpinBox.new()
@@ -239,7 +240,7 @@ func _add_lock(kind: String) -> void:
 		return
 	var selected_nodes := EditorInterface.get_selection().get_selected_nodes()
 	var selected: Node = selected_nodes[0] if selected_nodes.size() == 1 else null
-	var plan := Placement.plan_lock(root, _view_centre(), _tile_size(), kind, selected)
+	var plan := Placement.plan_lock(root, _view_centre(), _map_tile(root), kind, selected)
 	var node := Placement.add_lock(plan, root, plugin.get_undo_redo())
 	EditorInterface.get_selection().clear()
 	EditorInterface.get_selection().add_node(node)
@@ -258,7 +259,7 @@ func _add_zone() -> void:
 		_set_status("Random encounters are for turn-based games; in an action RPG, enemies are placed on the map.")
 		return
 	var selected: Array = EditorInterface.get_selection().get_selected_nodes()
-	var plan := Placement.plan_zone(root, selected, _view_centre(), _tile_size())
+	var plan := Placement.plan_zone(root, selected, _view_centre(), _map_tile(root))
 	var area := Placement.add_zone(plan, root, plugin.get_undo_redo())
 	EditorInterface.get_resource_filesystem().scan()
 	EditorInterface.get_selection().clear()
@@ -275,7 +276,7 @@ func _add_trigger(on_interact: bool) -> void:
 	if root == null or plugin == null:
 		_set_status("Open a map scene to add a trigger area.")
 		return
-	var tile := _tile_size()
+	var tile := _map_tile(root)
 	var plan := Placement.plan_trigger(root, _view_centre(), tile, tile, on_interact)
 	var area := Placement.add_trigger(plan, root, plugin.get_undo_redo())
 	EditorInterface.get_resource_filesystem().scan()
@@ -347,6 +348,19 @@ func _tile_size() -> int:
 			return JsonIo.to_int(def["tile_size"][0])
 	return 16
 
+## What the world tools mean by a tile in the map being edited: the tile size above, and on an
+## isometric map (T17.27) one step from a diamond to the next, as the builder counts it.
+func _map_tile(root: Node) -> int:
+	var diamond := Placement.diamond_of(root)
+	return RpgIso.unit(diamond) if diamond != Vector2i.ZERO else _tile_size()
+
+## " on the diamond (x, y)" for what was placed in an isometric map, "" in any other.
+static func _cell_text(root: Node, placed: Node) -> String:
+	if not (placed is Node2D) or Placement.diamond_of(root) == Vector2i.ZERO:
+		return ""
+	var cell := RpgIso.cell_at(root, (placed as Node2D).global_position)
+	return " on the diamond (%d, %d)" % [cell.x, cell.y]
+
 # ---------------------------------------------------------------- placement
 
 func _on_drag_started(scene_path: String) -> void:
@@ -390,7 +404,7 @@ func _fix_dropped(node: Node2D, root: Node) -> void:
 	var selected: Node = _previous_selection if is_instance_valid(_previous_selection) else null
 	var p := placement.plan(node, root, entry, selected)
 	placement.apply(p, node, root, plugin.get_undo_redo(), JsonIo.to_str(entry["name"]))
-	_set_status("Placed %s%s." % [entry["name"], " as " + JsonIo.to_str(p["entity_id"]) if JsonIo.to_str(p["entity_id"]) != "" else ""])
+	_set_status("Placed %s%s%s." % [entry["name"], " as " + JsonIo.to_str(p["entity_id"]) if JsonIo.to_str(p["entity_id"]) != "" else "", _cell_text(root, node)])
 
 func _on_item_activated(index: int) -> void:
 	var root := EditorInterface.get_edited_scene_root()
@@ -407,7 +421,7 @@ func _on_item_activated(index: int) -> void:
 		_set_status("Could not place %s." % entry["name"])
 		return
 	_handled[node.get_instance_id()] = true
-	_set_status("Placed %s." % entry["name"])
+	_set_status("Placed %s%s." % [entry["name"], _cell_text(root, node)])
 
 # ---------------------------------------------------------------- project tab
 

@@ -208,12 +208,14 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     drawn: frozenset[str] = frozenset()
     stood_in: set[str] = set()  # the roles a drawn stand-in fills: noted, so not also missing
     if cfg.archetype == FARM_KIND:
-        from rpggen.core import farm_kit
+        from rpggen.core import added_map_plan, farm_kit
 
         # what a farm works with and a pack lacks is drawn (T17.02). The player and the ground
         # are not: a farm needs them from a pack. A bed or a bin is no scenery, and drawn soil
-        # no ground, so those leave their roles as lacking as they were.
-        for farm_stand_in in farm_kit.lacking(catalog, cfg.projection):
+        # no ground, so those leave their roles as lacking as they were. And what a beach among
+        # its added maps has (T17.23).
+        kinds = added_map_plan.kinds_of(cfg.starter_map_options().get("added_maps"))
+        for farm_stand_in in farm_kit.lacking(catalog, cfg.projection, kinds):
             issues.add("ASSET-031", role=farm_stand_in.role, thing=farm_stand_in.thing, file="")
             if farm_stand_in.fills:
                 stood_in.add(farm_stand_in.role)

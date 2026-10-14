@@ -29,7 +29,16 @@
         "schedule": {"type": "array", "items": {"$ref": "#/$defs/Entry"}},
         "loves": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "likes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-        "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+        "dislikes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "birthday": {
+          "description": "T17.25: a gift on this day counts several times. {} for nobody's day.",
+          "type": "object",
+          "properties": {
+            "season": {"enum": ["spring", "summer", "autumn", "winter"]},
+            "day": {"type": "integer", "minimum": 1, "maximum": 28}
+          },
+          "additionalProperties": false
+        }
       },
       "required": ["id", "name", "schedule", "loves", "likes", "dislikes"],
       "additionalProperties": false

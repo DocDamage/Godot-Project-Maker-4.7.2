@@ -183,12 +183,19 @@ func _friends() -> RpgFriendship:
 static func row_text(friends: RpgFriendship, id: String) -> String:
 	return "%s   %s" % [friends.display_name(id), RpgFarmStrings.t("FARM_PEOPLE_HEARTS", [friends.hearts(id), RpgFriendship.HEARTS])]
 
-## The name and the hearts of a person and, a line a taste, the items that were given to it:
-## "Loves: Corn", "Likes: ...", "Dislikes: ...". Nothing is said of an item nobody gave.
+## The name and the hearts of a person, its birthday in a farm that has them (T17.25:
+## "Birthday: spring 12") and, a line a taste, the items that were given to it: "Loves: Corn",
+## "Likes: ...", "Dislikes: ...". Nothing is said of an item nobody gave.
 static func detail_text(friends: RpgFriendship, id: String) -> String:
 	if friends == null or id == "":
 		return ""
 	var lines: PackedStringArray = [row_text(friends, id)]
+	var events := RpgFarmEvents.current()
+	var born := events.birthday_text(id) if events != null else ""
+	var tastes := 1
+	if born != "":
+		lines.append(born)
+		tastes = 2
 	var keys := {RpgFriendship.LOVES: "FARM_PEOPLE_LOVES", RpgFriendship.LIKES: "FARM_PEOPLE_LIKES", RpgFriendship.DISLIKES: "FARM_PEOPLE_DISLIKES"}
 	for taste in RpgFriendship.TASTES:
 		var names: PackedStringArray = []
@@ -196,7 +203,7 @@ static func detail_text(friends: RpgFriendship, id: String) -> String:
 			names.append(RpgFarmStrings.item_name(StringName(item)))
 		if not names.is_empty():
 			lines.append(RpgFarmStrings.t(RpgUtil.to_str(keys[taste]), [", ".join(names)]))
-	if lines.size() == 1:
+	if lines.size() == tastes:
 		lines.append(RpgFarmStrings.t("FARM_PEOPLE_UNKNOWN"))
 	return "\n".join(lines)
 

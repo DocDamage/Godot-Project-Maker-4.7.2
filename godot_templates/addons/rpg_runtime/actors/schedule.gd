@@ -27,6 +27,11 @@ extends Node
 ## map walks to the nearest door (RpgDoor) and is away from there, and one that comes back
 ## appears at the door nearest to its place. On a map without navigation, or when no path leads
 ## there, the NPC fades out, is moved and fades in again (`fade_s`; 0 moves it at once).
+##
+## **A day that is not like the others** (T17.25: a festival of a farm) does not change the
+## entries: whoever knows of it sets `RpgSchedule.override`, and the entry it gives for a person
+## at an hour wins over everything the person's own entries say, whatever the weather. `pick`
+## and `resolve` do not ask it: they say what the entries say. `entry_in_force` does.
 
 ## The NPC stands at its place again (after a walk or a move).
 signal arrived
@@ -59,6 +64,11 @@ var actor: RpgActor = null
 ## A mode sets it (the farm gives the schedules of game/data/people.json, so they can be edited
 ## there); nobody else does, and then a schedule without entries does nothing.
 static var source: Callable = Callable()
+## Who can put a person somewhere else for a day: `func(person: String, hour: int) ->
+## Dictionary`, an entry (as above) that is in force at that hour of today whatever the
+## person's own entries say, or {} for an hour like any other. Nobody sets it but a mode that
+## has such days (the farm's events), and then every schedule goes by its entries alone.
+static var override: Callable = Callable()
 
 static var _weather := ""
 
@@ -124,7 +134,12 @@ func entry_in_force() -> Dictionary:
 	var calendar := RpgCalendar.current()
 	if calendar == null:
 		return {}
-	return resolve(calendar.clock()[0], calendar.weekday(), _weather)
+	var hour := calendar.clock()[0]
+	if override.is_valid():
+		var forced := RpgUtil.to_dict(override.call(person_id(), hour))
+		if not forced.is_empty():
+			return forced
+	return resolve(hour, calendar.weekday(), _weather)
 
 # ------------------------------------------------------------------ the weather
 

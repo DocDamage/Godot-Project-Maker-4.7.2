@@ -11,6 +11,11 @@ extends RefCounted
 ##   ability:<id>         (the player has the ability; the metroidvania, T14.05)
 ##   friendship:<id>>=N   (the person has at least N hearts; the farm, T17.09. False in a game
 ##                         without friendships)
+##   birthday:<id>   festival   festival_tomorrow   event:<kind>
+##                        (today is the person's birthday; today, or tomorrow, is a festival or
+##                         another day for everybody; today has an event of the kind, such as
+##                         event:egg_hunt or event:wedding. The farm, T17.25. False in a game
+##                         without festivals)
 ## Unknown atoms are false and log "[RPG-DLG] unknown condition atom".
 
 ## The comparison operators of var:, longest first so that ">=" is not read as ">".
@@ -69,8 +74,11 @@ static func _tokens(expr: String) -> PackedStringArray:
 ## The atom prefixes the language knows (for the editor's checks and completion).
 const ATOMS: Array[String] = [
 	"flag:", "item:", "gold>=", "level>=", "party:", "var:", "quest_active:", "quest_done:",
-	"quest_stage:", "quest:", "ability:", "friendship:",
+	"quest_stage:", "quest:", "ability:", "friendship:", "birthday:", "festival",
+	"festival_tomorrow", "event:",
 ]
+## The atoms of a farm's events (T17.25) that are a word and no more.
+const EVENT_WORDS: Array[String] = ["festival", "festival_tomorrow"]
 
 ## What is wrong with `expr` without evaluating it: unknown or malformed atoms, a dangling
 ## operator. Empty when the condition is well formed (T12.61: flagged inline in the dock).
@@ -110,6 +118,10 @@ static func atom_problem(atom: String) -> String:
 		if atom.begins_with(prefix):
 			return "" if atom.trim_prefix(prefix).is_valid_int() else "'%s' needs a number" % atom
 	if atom.begins_with("party:") or atom.begins_with("quest_active:") or atom.begins_with("quest_done:") or atom.begins_with("ability:"):
+		return "" if atom.get_slice(":", 1) != "" else "'%s' needs an id" % atom
+	if EVENT_WORDS.has(atom):
+		return ""
+	if atom.begins_with("birthday:") or atom.begins_with("event:"):
 		return "" if atom.get_slice(":", 1) != "" else "'%s' needs an id" % atom
 	if atom.begins_with("var:"):
 		var body := atom.trim_prefix("var:")
@@ -157,6 +169,8 @@ static func _atom(atom: String, state: RpgGameState) -> bool:
 		return _compare_var(state, atom)
 	if atom.begins_with("friendship:"):
 		return _friendship(state, atom)
+	if EVENT_WORDS.has(atom) or atom.begins_with("birthday:") or atom.begins_with("event:"):
+		return _farm_event(state, atom)
 	if atom.begins_with("quest_active:"):
 		return state.quest_is_active(StringName(atom.trim_prefix("quest_active:")))
 	if atom.begins_with("quest_done:"):
@@ -212,6 +226,31 @@ static func _friendship(state: RpgGameState, atom: String) -> bool:
 	if friendship == null or not friendship.has_method(&"hearts"):
 		return false
 	return RpgUtil.to_int(friendship.call(&"hearts", body.substr(0, at))) >= body.substr(at + 2).to_int()
+
+## birthday:<id>, festival, festival_tomorrow, event:<kind>: the days of a farm's year that are
+## not like the others. The events are a part of a farm's mode that the game state carries as a
+## meta (RpgFarmEvents, found by that name: the script is not in the project of another kind);
+## without it no day is a birthday or a festival.
+static func _farm_event(state: RpgGameState, atom: String) -> bool:
+	if not state.has_meta(FARM_EVENTS_META):
+		return false
+	var events: Variant = state.get_meta(FARM_EVENTS_META)
+	if not is_instance_valid(events) or not (events is Node):
+		return false
+	var node: Node = events
+	if atom == "festival":
+		return node.has_method(&"is_festival") and RpgUtil.to_bool(node.call(&"is_festival"))
+	if atom == "festival_tomorrow":
+		return node.has_method(&"festival_tomorrow") and not RpgUtil.to_dict(node.call(&"festival_tomorrow")).is_empty()
+	var id := atom.get_slice(":", 1)
+	if id == "":
+		return _unknown(atom)
+	if atom.begins_with("birthday:"):
+		return node.has_method(&"is_birthday") and RpgUtil.to_bool(node.call(&"is_birthday", id))
+	return node.has_method(&"has_kind") and RpgUtil.to_bool(node.call(&"has_kind", id))
+
+## The meta of the game state a farm's events are found under (RpgFarmEvents.STATE_META).
+const FARM_EVENTS_META := &"rpg_farm_events"
 
 static func _unknown(atom: String) -> bool:
 	push_error("[RPG-DLG] unknown condition atom '%s'" % atom)

@@ -324,6 +324,9 @@ def _plan(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict
         try:
             plans = options.plan_farm(cfg, catalog)
             out["farm"] = options.farm_text(plans)
+            # the maps added to it (T17.23), each in words: "Old woods: a forest of 28 x 22
+            # with 8 places to forage"
+            out["added_maps"] = options.added_maps_text(plans["map"])
             out["warnings"] += [str(note) for note in plans["notes"]]
         except ValueError as error:  # FarmPlanError, PeoplePlanError
             out["farm"] = ""
@@ -388,5 +391,6 @@ def format_summary(summary: dict[str, Any]) -> list[str]:
         lines.append(row(name, f"{plan['size'][0]} x {plan['size'][1]} tiles; {counts}"))
         if "farm" in plan:
             lines.append(row("farm", plan["farm"] or "none: the options make no farm"))
+            lines.extend(row("added map", text) for text in plan.get("added_maps", []))
         lines.extend(row("", f"note: {w}") for w in plan["warnings"])
     return lines

@@ -6,7 +6,9 @@ extends RpgCombatMode
 ## tools, the night of the fields (the calendar's `on_night`, NIGHT_CROPS), and the end of the
 ## day (its child `DayEnd`, T17.08: the night of the shipping bin, sleeping, passing out, the
 ## morning's summary), the weather (its child `Weather`, T17.11) and what a season changes
-## beside the crops (its child `Seasons`, T17.11: the pictures of the ground and the music).
+## beside the crops (its child `Seasons`, T17.11: the pictures of the ground and the music), and
+## the days of the year that are not like the others (its child `Events`, T17.25: festivals and
+## birthdays, with `festivals` on).
 
 const ENERGY_NODE := "Energy"
 const HOTBAR_NODE := "Hotbar"
@@ -22,6 +24,9 @@ const HOTBAR_NODE := "Hotbar"
 ## The folder of the game's own data files (`crops.json`, `people.json`, ...), set by the
 ## recipe. Empty in a mode that is made by code: the game then has the planned files only.
 @export var data_dir: String = ""
+## True: the year has festivals and the people have birthdays (the option
+## `starter_map.festivals`; the mode's recipe sets it, and a mode that is made by code has none).
+@export var festivals: bool = false
 
 var energy: RpgEnergy = null
 var hotbar: RpgHotbar = null
@@ -37,6 +42,9 @@ var animals: RpgAnimalHouse = null
 ## which also holds the table of the fish) and the cast of the rod (RpgFishing: `Fishing`).
 var forage: RpgForage = null
 var fishing: RpgFishing = null
+## The festivals and the birthdays (RpgFarmEvents, T17.25: its child `Events`, which does
+## nothing in a farm without `festivals`).
+var events: RpgFarmEvents = null
 ## The crops of the game (game/data/crops.json).
 var crops: RpgCropData = null
 
@@ -68,6 +76,7 @@ func _ready() -> void:
 	day_end.attach()  # after the fields: its night (NIGHT_SHOP) and its morning follow theirs
 	forage.attach()
 	fishing.attach()
+	events.attach()  # after the friendships and the fishing: it asks the one and hears the other
 
 ## Gives `calendar` the season and the day this farm has (`days_per_season`, `minute_s`).
 func set_calendar(calendar: RpgCalendar) -> void:
@@ -82,6 +91,7 @@ func _name_data_files() -> void:
 	RpgAnimalData.user_path = data_dir.path_join("animals.json")
 	RpgForage.user_path = data_dir.path_join("forage.json")
 	RpgFriendship.people_path = data_dir.path_join("people.json")
+	RpgFarmEvents.user_path = data_dir.path_join("events.json")
 
 ## Makes what the mode consists of (in `_ready`, not when the scene is built: a saved scene
 ## would hold the parts and every instance would make them twice).
@@ -135,6 +145,13 @@ func ensure_parts() -> void:
 		fishing = RpgFishing.new()
 		fishing.name = RpgFishing.NODE_NAME
 		add_child(fishing)
+	if events == null:
+		events = get_node_or_null(RpgFarmEvents.NODE_NAME) as RpgFarmEvents
+	if events == null:
+		events = RpgFarmEvents.new()
+		events.name = RpgFarmEvents.NODE_NAME
+		add_child(events)
+	events.enabled = festivals
 	if crops == null:
 		crops = RpgCropData.load_default()
 	if _tools.is_empty():
@@ -197,8 +214,9 @@ func _on_night(_day: int) -> void:
 
 # ------------------------------------------------------------------ the pause menu
 
-## The pause menu has a People page (T17.09). The menu is made anew each time it opens, so the
-## button is added each time; a shop or another menu that pauses the game gets none.
+## The pause menu has a People page (T17.09) and, in a farm with festivals, a Calendar page
+## (T17.25). The menu is made anew each time it opens, so the buttons are added each time; a
+## shop or another menu that pauses the game gets none.
 func _on_paused(paused: bool) -> void:
 	if not paused or RpgFriendship.current() == null:
 		return
@@ -210,3 +228,5 @@ func _on_paused(paused: bool) -> void:
 	if menu is RpgPauseMenu and is_instance_valid(menu):
 		var pause: RpgPauseMenu = menu
 		RpgPeoplePage.add_to(pause)
+		if RpgFarmEvents.current() != null:
+			RpgCalendarPage.add_to(pause)

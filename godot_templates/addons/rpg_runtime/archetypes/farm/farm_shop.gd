@@ -22,6 +22,10 @@ extends RpgShopDefinition
 
 ## Every farm shop asks these for more rows; see the top of the file.
 static var stock_sources: Array[Callable] = []
+## Who can close every farm shop for a whole day (T17.25: a festival): `func() -> String`, what
+## the keeper says on such a day, or "" on a day like any other. Nobody else sets it, and then
+## the shop keeps its hours.
+static var day_off: Callable = Callable()
 
 ## The hours it is open, on a clock of 24: from `opens` up to, not including, `closes`.
 @export var opens: int = 9
@@ -56,13 +60,28 @@ static func open_at(minute: int, weekday: int, from_hour: int, to_hour: int, clo
 ## Open now by the calendar of the game. A game without a calendar has a shop without hours.
 func is_open() -> bool:
 	var calendar := RpgCalendar.current()
-	return calendar == null or open_at(calendar.minute, calendar.weekday(), opens, closes, closed_weekday)
+	if calendar == null:
+		return true
+	return day_off_reason() == "" and open_at(calendar.minute, calendar.weekday(), opens, closes, closed_weekday)
 
-## What the keeper says instead of showing the wares ("" while the shop is open).
+## Why no farm shop opens at all today (`day_off`: a festival), or "".
+static func day_off_reason() -> String:
+	return RpgUtil.to_str(day_off.call()) if day_off.is_valid() else ""
+
+## True on a day the shop does not open at any hour: its closed day of the week, or a day off.
+func closed_all_day() -> bool:
+	var calendar := RpgCalendar.current()
+	if calendar == null:
+		return false
+	return (closed_weekday >= 0 and calendar.weekday() == closed_weekday) or day_off_reason() != ""
+
+## What the keeper says instead of showing the wares ("" while the shop is open): why it has a
+## day off, else its hours.
 func closed_reason() -> String:
 	if is_open():
 		return ""
-	return hours_text()
+	var why := day_off_reason()
+	return why if why != "" else hours_text()
 
 ## "The shop is closed. It is open from 9:00 to 17:00, every day but Sunday."
 func hours_text() -> String:
