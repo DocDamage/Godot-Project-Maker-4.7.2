@@ -205,13 +205,17 @@ func _update_hitbox_active() -> void:
 		return
 	hitbox.active = on
 
-## A ranged weapon's shot: one arrow from the middle of the body along the facing, added beside the
-## player. A heavy attack's arrow hits harder and pushes further.
+## A ranged weapon's shot: one arrow along the facing, added beside the player. It flies on the
+## ground from the player's feet (it hurts what it is aimed at, a body shorter than half the player's
+## as well as a tall one) and is drawn at the middle of the body, where it was loosed. A heavy
+## attack's arrow hits harder and pushes further.
 func fire_arrow() -> RpgProjectile:
 	var router := RpgUtil.router()
 	var tile := float(RpgUtil.map_tile_px(router.current_map if router != null else null))
-	var from := RpgUtil.world_position(hurtbox) if hurtbox != null else RpgUtil.world_position(actor)
+	var from := RpgUtil.world_position(actor)
+	var body := RpgUtil.world_position(hurtbox) if hurtbox != null else from
 	var shot := RpgProjectile.create(actor, from, RpgArpgMath.facing_vector(actor.facing), &"player", ARROW_SPEED_TILES * tile, ARROW_RANGE_TILES * tile, "arrow")
+	shot.set_on_ground(body - from)
 	shot.heavy = _heavy
 	if _heavy:
 		shot.knockback_strength *= RpgArpgMath.HEAVY_KNOCKBACK_MULT

@@ -64,18 +64,21 @@ func update(delta: float) -> bool:
 	_finish()
 	return true
 
-## The projectile, from the middle of the body toward `target` (the player's feet): it flies parallel
-## to the line between the two pairs of feet, so it meets the target's body, not its feet. Added
-## beside the actor.
+## The projectile, from the feet toward `target` (the player's feet): it flies on the ground along
+## the line between the two pairs of feet, so it meets the target's footprint whether the shooter is
+## shorter or taller than the target, and is drawn at the middle of the shooter's body, where it
+## was fired. Added beside the actor.
 func fire() -> RpgProjectile:
 	if actor == null:
 		return null
 	var hurtbox := actor.get_node_or_null("Hurtbox") as Node2D
-	var from := RpgUtil.world_position(hurtbox) if hurtbox != null else RpgUtil.world_position(actor)
-	var direction := target - RpgUtil.world_position(actor)
+	var from := RpgUtil.world_position(actor)
+	var body := RpgUtil.world_position(hurtbox) if hurtbox != null else from
+	var direction := target - from
 	if direction.length() < 0.01:
 		direction = RpgArpgMath.facing_vector(actor.facing)
 	var shot := RpgProjectile.create(actor, from, direction, &"enemy", speed, range_px, style)
+	shot.set_on_ground(body - from)
 	var holder := actor.get_parent()
 	if holder != null:
 		holder.add_child(shot)
