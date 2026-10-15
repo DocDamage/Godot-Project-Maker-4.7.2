@@ -71,7 +71,33 @@ SCENERY = ("bush", "rock", "flowers")
 # what the farmer cannot walk through: grass and flowers are walked over
 BLOCKING = frozenset({"branch", "stump", "bush", "rock"})
 DEBRIS_ON_PLOT = {"easy": 0.10, "normal": 0.18, "hard": 0.28}  # of the cells of the plot
-TREES = {1: 0.55, 2: 0.30, 3: 0.10}  # how likely a tree is, by the cells from the edge
+TREES = {1: 0.9, 2: 0.55, 3: 0.30, 4: 0.12}  # how likely a tree is, by the cells from the edge
+GROVE = 0.82  # where the wood is this thick inside the farm, a grove stands
+WOOD_FOOT = [(dx, dy) for dx in (-2, -1, 0, 1, 2) for dy in (-2, -1, 0, 1, 2) if dx or dy]
+GROVE_CHANCE = 0.45
+TREE_CROWN = 3  # the rows a tree's crown rises above its cell
+DENSITY_STEP = 6  # cells between the knots of the field of how thick the wood is
+
+
+def _density(cols: int, rows: int, rng: Random) -> list[list[float]]:
+    """A smooth field of 0..1 over the farm: random knots every ``DENSITY_STEP`` cells, eased
+    between (T17.33: a wood thick in places and thin in others)."""
+    kx, ky = cols // DENSITY_STEP + 2, rows // DENSITY_STEP + 2
+    knots = [[rng.random() for _ in range(kx)] for _ in range(ky)]
+    out: list[list[float]] = []
+    for y in range(rows):
+        row = []
+        gy, fy = divmod(y / DENSITY_STEP, 1.0)
+        for x in range(cols):
+            gx, fx = divmod(x / DENSITY_STEP, 1.0)
+            i, j = int(gx), int(gy)
+            sx, sy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
+            top = knots[j][i] * (1 - sx) + knots[j][i + 1] * sx
+            bottom = knots[j + 1][i] * (1 - sx) + knots[j + 1][i + 1] * sx
+            row.append(top * (1 - sy) + bottom * sy)
+        out.append(row)
+    return out
+
 
 Cell = tuple[int, int]
 STEPS: tuple[Cell, ...] = ((0, 1), (1, 0), (-1, 0), (0, -1))
@@ -410,11 +436,28 @@ def _lay_out(
         return all((cell[0] + dx, cell[1] + dy) not in blockers for dx, dy in AROUND)
 
     trees: list[Cell] = []
+    # T17.33: the trees as a wood's edge, not a ring: a smooth field of how thick the wood is
+    # (thick here, thin there), and a grove or two where it is thickest inside
+    thick = _density(cols, rows, Random(rng.random()))
+    # a tree stands higher than its cell: none just south of a block, where its crown would
+    # cover the plot, the pond or a roof
+    shade = {
+        (x + dx, y + dy)
+        for y in range(rows)
+        for x in range(cols)
+        if taken[y][x]
+        for dy in range(2, TREE_CROWN + 1)
+        for dx in (-1, 0, 1)
+    }
     for y in range(1, rows - 1):
         for x in range(1, cols - 1):
             from_edge = min(x, y, cols - 1 - x, rows - 1 - y)
-            chance = TREES.get(from_edge, 0.0) if from_edge < 3 or scale == 2 else 0.0
-            if rng.random() < chance and (x, y) not in keep:
+            chance = TREES.get(from_edge + 1, 0.0) if from_edge < 4 or scale == 2 else 0.0
+            d = thick[y][x]
+            chance = min(0.95, chance * (0.2 + 1.6 * d))
+            if from_edge >= 4 and d > GROVE:
+                chance = GROVE_CHANCE  # a grove in the open
+            if rng.random() < chance and (x, y) not in keep and (x, y) not in shade:
                 trees.append((x, y))
     blockers.update(trees)
     used.update(trees)
@@ -442,7 +485,14 @@ def _lay_out(
         return out
 
     at_edge = [c for c in free if min(c[0], c[1], cols - 1 - c[0], rows - 1 - c[1]) <= 5]
-    scenery = scatter(at_edge, (cols + rows) // 8 + 2 * scale, SCENERY)
+    # T17.33: bushes, rocks and flowers gather at the foot of the wood, not evenly everywhere
+    tree_set = set(trees)
+    by_wood = [
+        c for c in at_edge if any((c[0] + dx, c[1] + dy) in tree_set for dx, dy in WOOD_FOOT)
+    ]
+    scenery = scatter(by_wood, (cols + rows) // 8 + 2 * scale, SCENERY)
+    if len(scenery) < (cols + rows) // 16:
+        scenery += scatter(at_edge, (cols + rows) // 16 - len(scenery), SCENERY)
     # more to clear on a larger field and a harder game; grass twice as often as wood
     litter = (*DEBRIS, "grass")
     on_plot = [c for c in tillable if c not in paths]

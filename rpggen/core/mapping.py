@@ -191,12 +191,20 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
 
         def ground_rank(a: catalog_mod.Asset) -> int:
             if role == "BUILDING" and a.pack_id in farms:
-                # ... and its house the largest building, not a market stall
+                # ... and its house the largest building, not a market stall; a house by its
+                # name before a barn or a coop (T17.33)
                 w, h = (catalog_mod.effective(a).get("frame") or [0, 0])[:2]
                 return -int(w) * int(h)
             if role != "GROUND" or (projection == TOP_DOWN and a.pack_id not in farms):
                 return 0
             rank = open_ground_rank(a)
+            tags = {str(t) for t in catalog_mod.effective(a).get("tags") or []}
+            if a.pack_id in farms and any(
+                t.startswith("season:") and t != "season:spring" for t in tags
+            ):
+                rank += len(OPEN_GROUND_WORDS) + 1  # a farm begins in spring (T17.33)
+            if a.pack_id in farms and set(classifier.tokens(a.path)[1]) & {"forest", "deep"}:
+                rank += 1  # a wood's darker grass after the meadow's
             if a.pack_id in farms and set(classifier.tokens(a.path)[1]) & NOT_FARM_GROUND_WORDS:
                 # T17.33: a farm is laid with its meadow, not with the grass of its caves
                 # (*Farm RPG*'s ``Tileset Grass Caves`` was its farm's ground)
@@ -236,7 +244,7 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
                     objs,
                     key=lambda o: (
                         _house_rank(catalog, o),
-                        -int(o.region[2]) * int(o.region[3]),
+                        _size_rank(o),
                         objs.index(o),
                     ),
                 )
@@ -251,7 +259,27 @@ NOT_FARM_GROUND_WORDS = frozenset(
 HOUSE_NAME_WORDS = frozenset(
     {"house", "houses", "home", "cottage", "farmhouse", "cabin", "hut", "inn", "shop"}
 )
-NOT_A_HOUSE_NAME = frozenset({"dog", "bird", "birdhouse", "doghouse", "tree", "tileset"})
+NOT_A_HOUSE_NAME = frozenset(
+    {"dog", "bird", "birdhouse", "doghouse", "tree", "tileset", "npc", "npcs", "fishman",
+     "blacksmith", "wizard", "school", "temple", "station", "trailer"}
+)  # fmt: skip
+
+
+def _size_rank(obj: Any) -> int:
+    """A house of about the farm plan's house (6 x 5 cells of 16 px) first: a cottage, not a
+    manor nor a shed (T17.33)."""
+    w, h = int(obj.region[2]), int(obj.region[3])
+    return abs(w - 96) + abs(h - 80)
+
+
+def _house_words_rank(path: str) -> int:
+    """0 for a picture named a house, 2 for a barn or a coop and the like, 1 else."""
+    said = set(classifier.tokens(path)[0]) | set(classifier.tokens(path)[1])
+    if said & {"barn", "barns", "coop", "coops", "stable", "silo", "greenhouse", "mill"}:
+        return 2
+    if said & HOUSE_NAME_WORDS and not said & NOT_A_HOUSE_NAME:
+        return 0
+    return 1
 
 
 def _house_rank(catalog: catalog_mod.Catalog, obj: Any) -> int:
@@ -265,6 +293,9 @@ def _house_rank(catalog: catalog_mod.Catalog, obj: Any) -> int:
     said |= set(classifier.tokens(str(obj.name))[1])
     if tags & {"barn", "coop"}:
         return 3
+    w, h = int(obj.region[2]), int(obj.region[3])
+    if h > 1.6 * w or w > 3.5 * h:
+        return 2  # a column of beds or a row of fences, no house (T17.33: *Tiny Farm*)
     if said & HOUSE_NAME_WORDS and not said & NOT_A_HOUSE_NAME:
         return 0
     if said & NOT_A_HOUSE_NAME:

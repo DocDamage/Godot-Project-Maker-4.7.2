@@ -131,8 +131,18 @@ static func ensure_terrain_sets(ts: TileSet, sets: Array) -> void:
 			var t_index := ts.get_terrains_count(i)
 			ts.add_terrain(i)
 			var terrain_spec: Dictionary = terrains[t_index]
-			ts.set_terrain_name(i, t_index, JsonUtil.to_str(terrain_spec.get("name", "terrain")))
+			ts.set_terrain_name(i, t_index, terrain_label(spec, terrain_spec))
 			ts.set_terrain_color(i, t_index, Color.from_string(JsonUtil.to_str(terrain_spec.get("color", "#ffffff")), Color.WHITE))
+
+## The name a terrain has in the editor's Terrains list. A terrain rpggen read from a sheet
+## (its set has a `sheet` and a `surface`) says which block of which sheet it is (T17.33): a pack
+## of twenty sets all called "dirt" could not be told apart when painting by hand. The surface
+## the builder paints by is the set's `surface`, never this name.
+static func terrain_label(spec: Dictionary, terrain_spec: Dictionary) -> String:
+	var plain := JsonUtil.to_str(terrain_spec.get("name", "terrain"))
+	if not spec.has("sheet") or not spec.has("surface") or JsonUtil.to_str(spec.get("name", "")) == "":
+		return plain
+	return "%s · %s" % [plain, JsonUtil.to_str(spec["name"])]
 
 ## Index of the terrain set called `set_name` in the definition's list, or -1.
 static func terrain_set_index(sets: Array, set_name: String) -> int:

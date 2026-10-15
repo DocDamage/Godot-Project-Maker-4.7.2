@@ -47,6 +47,14 @@ FILE_WEIGHT = 0.9
 # characters is a slime. (A hero there wins already, by the order of the table.)
 SOMEBODY_WORDS = frozenset({"character", "characters"})
 MONSTER_ROLES = ("ENEMY", "BOSS")
+# The words a folder is named with for all it holds (T17.33): *Terrain*, *Characters*, *Props*.
+# Beside a file whose own name says what it is (``Terrain/water.png``, ``Props/house.png``) such a
+# folder says little: its words count for a third.
+CONTAINER_WORDS = frozenset(
+    {"terrain", "tiles", "tileset", "character", "characters", "prop", "props", "object",
+     "objects", "deco", "decor", "decoration", "decorations"}
+)  # fmt: skip
+CONTAINER_WEIGHT = 1 / 3
 
 _SPLIT_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 _SPLIT_NON_ALNUM = re.compile(r"[^A-Za-z0-9]+")
@@ -950,6 +958,12 @@ def classify(
     other_tokens = {t for f in folders[:-2] for t in _tokenize(f)}
 
     named_monster = any(kw in file_tokens for role in MONSTER_ROLES for kw in KEYWORD_WEIGHTS[role])
+    # the file's own words name a role, with a word that is not a container's
+    named = any(
+        kw in file_tokens and kw not in CONTAINER_WORDS
+        for _role, keywords in ROLE_KEYWORDS
+        for kw in keywords
+    )
     scores = {role: 0.0 for role in ROLE_ORDER}
     for role, keywords in ROLE_KEYWORDS:
         for kw, weight in keywords.items():
@@ -960,6 +974,8 @@ def classify(
                 mult = DEEP_FOLDER_WEIGHT
             elif kw in other_tokens:
                 mult = OTHER_FOLDER_WEIGHT
+            if named and kw in CONTAINER_WORDS:
+                mult *= CONTAINER_WEIGHT
             if kw in file_tokens:
                 mult = max(mult, FILE_WEIGHT)
             scores[role] += weight * mult

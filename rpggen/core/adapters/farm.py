@@ -536,7 +536,10 @@ class FarmPackAdapter:
             return
         step = cell + gap
         cols, rows = (a.shape[1] + gap) // step, (a.shape[0] + gap) // step
+        from rpggen.core.adapters import sheet_parts
+
         number = 0
+        said: dict[str, int] = {}
         for r in range(rows):
             cells = [a[r * step : r * step + cell, c * step : c * step + cell] for c in range(cols)]
             counts = cell_counts(cells)
@@ -553,7 +556,12 @@ class FarmPackAdapter:
                 if stages:
                     number += 1
                     variant = f"crop_{number}"
-                    name = f"crop_{number}"
+                    # T17.33: named by its ripe stage's colour and shape (``orange_plant``),
+                    # not ``crop_1``; a name twice gets a number
+                    name = sheet_parts.looks_of(cells[c + stages - 1]) or variant
+                    said[name] = said.get(name, 0) + 1
+                    if said[name] > 1:
+                        name = f"{name}_{said[name]}"
                     strip = np.concatenate(cells[c : c + stages], axis=1)
                     dest = _save(
                         np.ascontiguousarray(strip),

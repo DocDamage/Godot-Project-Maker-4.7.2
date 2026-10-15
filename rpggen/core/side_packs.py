@@ -738,23 +738,79 @@ NOT_GROUND_WORDS = frozenset(
 
 
 def _piece(stem: str) -> tuple[str, frozenset[str]] | None:
-    """(surface prefix, place words) of a piece's name, or None when it names no place."""
+    """(surface prefix, place words) of a piece's name, or None when it names no place. The
+    words of a ground's form (``block``, ``horizontal``, ``vertical`` of Kenney's *New
+    Platformer Pack*: ``terrain_grass_block_top_left``) are place words of their own, so a
+    surface's pieces of every form are one group (T17.33)."""
     ws = words(stem)
     if not ws:
         return None
-    k = next((i for i, w in enumerate(ws) if w in PLACE_WORDS), len(ws))
+    k = next((i for i, w in enumerate(ws) if w in PLACE_WORDS or w in FORM_WORDS), len(ws))
     prefix, place = ws[:k], frozenset(ws[k:])
-    if not prefix or (place and not place <= PLACE_WORDS) or set(prefix) & NOT_GROUND_WORDS:
+    allowed = PLACE_WORDS | FORM_WORDS
+    if not prefix or (place and not place <= allowed) or set(prefix) & NOT_GROUND_WORDS:
         return None
     return "_".join(prefix), place
+
+
+# the form of a ground a piece is of (T17.33): a block, a platform one cell high, a column one
+# cell wide; and the bottom of a block, an overhang (a platform's end with its lip under it)
+FORM_WORDS = frozenset({"block", "horizontal", "vertical", "bottom", "overhang"})
 
 
 # (place words) -> (row of the generated sheet, peering mask or None, kind, probability)
 Layout = tuple[int, int | None, str, float]
 
 
+def _form_layout(place: frozenset[str]) -> Layout | None:
+    """The layout of a piece named by its ground's form (T17.33, Kenney's *New Platformer
+    Pack*): a block's ``top``, ``bottom``, ``left``, ``right``, ``center`` and their corners, a
+    platform one cell high (``horizontal_left``, ``_middle``, ``_right``, its ``overhang``
+    ends), a column one cell wide (``vertical_top``, ``_middle``, ``_bottom``), a block alone."""
+    s = side_tiles
+    n, e, south, w = s.N, s.E, s.S, s.W
+    side_words = place - {"block", "overhang"}
+    if "horizontal" in place:
+        if "left" in place:
+            return (0, e, "overhang_left" if "overhang" in place else "end_left",
+                    1.0 if "overhang" in place else 0.0)  # fmt: skip
+        if "right" in place:
+            return (0, w, "overhang_right" if "overhang" in place else "end_right",
+                    1.0 if "overhang" in place else 0.0)  # fmt: skip
+        return (0, e | w, "platform", 1.0)
+    if "vertical" in place:
+        if "top" in place:
+            return (0, south, "column_top", 1.0)
+        if "bottom" in place:
+            return (0, n, "column_bottom", 1.0)
+        return (0, n | south, "column", 1.0)
+    if "block" not in place:
+        return None
+    if place == frozenset({"block"}):
+        return (0, 0, "block", 1.0)
+    vertical = {"top": e | south | w, "bottom": n | e | w}
+    horizontal = {"left": n | e | south, "right": n | south | w}
+    if side_words in ({"center"}, {"centre"}):
+        return (0, s.ALL, "center", 1.0)
+    if side_words == {"top"}:
+        return (0, vertical["top"], "mid", 1.0)
+    if side_words == {"bottom"}:
+        return (0, vertical["bottom"], "bottom", 1.0)
+    if side_words in ({"left"}, {"right"}):
+        side = next(iter(side_words))
+        return (0, horizontal[side], f"face_{side}", 1.0)
+    if len(side_words) == 2 and side_words & {"top", "bottom"} and side_words & {"left", "right"}:
+        upper = "top" in side_words
+        left = "left" in side_words
+        mask = (south if upper else n) | (e if left else w)
+        return (0, mask, f"{'top' if upper else 'bottom'}_{'left' if left else 'right'}", 1.0)
+    return None
+
+
 def _layout(place: frozenset[str]) -> Layout | None:
     s = side_tiles
+    if place & FORM_WORDS:
+        return _form_layout(place)
     if "ledge" in place:
         return None  # a ledge's decoration hangs under the surface: no ground
     if "half" in place:

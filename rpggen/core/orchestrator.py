@@ -747,9 +747,26 @@ def _farm_buildings(
     was set (the wizard always sets it) the list was that one building, and a pack's own coop
     and barn never reached the planner (T17.18). The farmhouse is the chosen building when the
     packs have it, else the first that is no coop and no barn, else the first."""
-    picked = [b for b in every if b.id == chosen] if chosen else []
+    # a picture chosen as the building is its building object (T17.33: a house of the pack)
+    picked = (
+        [b for b in every if b.id == chosen or getattr(b, "sheet", None) == chosen]
+        if chosen
+        else []
+    )
     plain = [b for b in every if not tags(b) & set(FARM_ANIMAL_HOUSES)]
+    # the pack's houses by their names before a piece of a tile sheet (T17.33)
+    plain.sort(key=lambda b: (0 if "house" in tags(b) else 1, _shape_rank(b)))
+    if picked and "house" not in tags(picked[0]) and plain and "house" in tags(plain[0]):
+        picked = []  # the village's building is no house the pack names: the farm's is one
     return every, picked or plain or every
+
+
+def _shape_rank(building: Any) -> int:
+    region = getattr(building, "region", None)
+    if not region:
+        return 0
+    w, h = int(region[2]), int(region[3])
+    return 1 if h > 1.6 * w or w > 3.5 * h else 0
 
 
 def _iso_farm_facts(

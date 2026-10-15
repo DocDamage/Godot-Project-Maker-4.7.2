@@ -199,6 +199,173 @@ def _from_above(rgba: np.ndarray, mask: np.ndarray) -> str | None:
     return None
 
 
+def is_tree(rgba: np.ndarray, least: int = 40) -> bool:
+    """A tree seen from the front or from above at an angle (T17.33: the trees CuteSCKR's sheets
+    draw among their things): a wide crown of leaves (green, or a season's red, orange or
+    yellow) over a narrow trunk of wood, the crown at least as wide as two thirds of the thing,
+    the trunk at most two fifths of it, in the band between the crown and the ground."""
+    if rgba.ndim != 3 or rgba.shape[2] != 4:
+        return False
+    mask = rgba[:, :, 3] >= ALPHA
+    box = _box(mask)
+    if box is None:
+        return False
+    x0, y0, x1, y1 = box
+    bh, bw = y1 - y0 + 1, x1 - x0 + 1
+    if bh < least or bw < least * 3 // 5 or bh < 0.8 * bw:
+        return False
+    hue, sat, val = _hsv(rgba[..., :3])
+    crown = slice(y0, y0 + int(bh * 0.75))
+    leafy = (
+        mask
+        & (sat >= 0.25)
+        & (val >= 0.25)
+        & (((hue >= 60) & (hue < 170)) | (hue < 60) | (hue >= 330))
+    )
+    green = mask & (hue >= 60) & (hue < 170) & (sat >= 0.2)
+    crown_mask = mask[crown]
+    if not crown_mask.any():
+        return False
+    cols = np.nonzero(crown_mask.any(axis=0))[0]
+    if cols.size == 0 or (cols.max() - cols.min() + 1) < 0.66 * bw:
+        return False
+    if float(green[crown].sum()) < 0.35 * float(crown_mask.sum()) and float(
+        leafy[crown].sum()
+    ) < 0.6 * float(crown_mask.sum()):
+        return False
+    # the trunk: below the crown, a row whose colour (the outline left out) is narrow, of wood
+    body = mask & (val >= 0.3)
+    narrow = []
+    for y in range(y0 + int(bh * 0.7), y1 + 1):
+        width = int(body[y].sum())
+        if 0 < width <= 0.4 * bw:
+            narrow.append(y)
+    if not narrow:
+        return False
+    if float(green[crown].sum()) < 0.45 * float(crown_mask.sum()):
+        return False  # a crown of leaves is green (a hay bale, a sack, a hive are not)
+    # the trunk's row: the narrow row most of wood (a shadow's edge under it is grey)
+    best = 0.0
+    middle = (x0 + x1) / 2.0
+    for y in narrow:
+        row = body[y]
+        xs = np.nonzero(row)[0]
+        # one run of colour in the middle of the thing: a trunk, not the feet of a crate
+        if (
+            xs.size == 0
+            or xs.max() - xs.min() + 1 != xs.size
+            or abs(xs.mean() - middle) > 0.15 * bw
+        ):
+            continue
+        wood = row & (hue[y] >= 10) & (hue[y] < 50) & (sat[y] >= 0.2)
+        best = max(best, float(wood.sum()) / max(1.0, float(row.sum())))
+    return best >= 0.5
+
+
+HOUSE_LEAST = 64  # px each way: a kennel, a well, a sign are smaller
+
+
+def is_house(rgba: np.ndarray, least: int = HOUSE_LEAST) -> bool:
+    """A house or a barn seen from the front (T17.33: the houses CuteSCKR's sheets draw among
+    their things): a roof narrowing to its ridge over solid walls, the walls as wide as the
+    house in the lower part and painted all over, with a darker opening (a door, windows) in
+    them; not a tree (its crown is no wall)."""
+    if rgba.ndim != 3 or rgba.shape[2] != 4:
+        return False
+    mask = rgba[:, :, 3] >= ALPHA
+    box = _box(mask)
+    if box is None:
+        return False
+    x0, y0, x1, y1 = box
+    bh, bw = y1 - y0 + 1, x1 - x0 + 1
+    if bh < least or bw < least or bw < 0.6 * bh or bw > 2.5 * bh:
+        return False
+    extent = np.zeros(bh)
+    fill = np.zeros(bh)
+    for i, y in enumerate(range(y0, y1 + 1)):
+        xs = np.nonzero(mask[y, x0 : x1 + 1])[0]
+        if xs.size:
+            extent[i] = xs.max() - xs.min() + 1
+            fill[i] = xs.size / extent[i]
+    lower = slice(int(bh * 0.6), int(bh * 0.95))
+    # the walls: wide and solid
+    if float(np.median(extent[lower])) < 0.8 * bw or float(np.median(fill[lower])) < 0.95:
+        return False
+    # the roof: its first rows narrower than the walls (a ridge, a gable, a peak)
+    top = extent[: max(2, int(bh * 0.05))]
+    foot = slice(int(bh * 0.9), bh)
+    if float(np.median(fill[foot])) < 0.9 or float(np.median(extent[foot])) < 0.75 * bw:
+        return False  # its walls stand on the ground: not the wheels of a cart or a tractor
+    if (
+        float(top.mean()) > 0.4 * bw
+        or float(extent[int(bh * 0.1)]) > 0.6 * bw  # a roof widens slowly to its eaves
+        or float(extent[int(bh * 0.3)]) < float(top.mean()) + 0.2 * bw
+    ):
+        return False  # a crate of produce, a pen: as wide at the top as below
+    # the roof is painted all over, not the tips of the produce in a crate
+    eaves = next((i for i in range(bh) if extent[i] >= 0.9 * bw), bh)
+    roof = fill[max(1, int(bh * 0.05)) : eaves]
+    if roof.size == 0 or float(np.median(roof)) < 0.85:
+        return False
+    hue, sat, val = _hsv(rgba[..., :3])
+    leaf = (hue >= 70) & (hue < 170) & (sat >= 0.3)
+    over = mask[y0 : y0 + max(1, eaves), x0 : x1 + 1]
+    if float(leaf[y0 : y0 + max(1, eaves), x0 : x1 + 1][over].mean()) > 0.6:
+        return False  # a melon in its crate, a tree's crown: green and round, no roof
+    walls = mask[y0 + int(bh * 0.5) : y1 + 1, x0 : x1 + 1]
+    if (
+        float(
+            ((hue >= 70) & (hue < 170) & (sat >= 0.3))[y0 + int(bh * 0.5) : y1 + 1, x0 : x1 + 1][
+                walls
+            ].mean()
+        )
+        > 0.5
+    ):
+        return False  # green all over: a hedge, a tree's crown
+    # an opening: a dark patch in the walls (a door, a window)
+    dark = walls & (val[y0 + int(bh * 0.5) : y1 + 1, x0 : x1 + 1] < 0.3)
+    return float(dark.sum()) >= 0.01 * float(walls.sum())
+
+
+def thing_kind(rgba: np.ndarray, least: int = 40) -> str | None:
+    """What a small thing of nature is by its colours and shape (T17.33): ``tree``, ``bush``
+    (a round mass of leaves), ``rock`` (grey and compact), ``flowers`` (spots of a bright colour
+    among green), ``grass`` (a low tuft of green), ``stump`` (wood, wider than tall and low);
+    None for anything else."""
+    if is_tree(rgba, least):
+        return "tree"
+    if rgba.ndim != 3 or rgba.shape[2] != 4:
+        return None
+    mask = rgba[:, :, 3] >= ALPHA
+    box = _box(mask)
+    if box is None:
+        return None
+    x0, y0, x1, y1 = box
+    bh, bw = y1 - y0 + 1, x1 - x0 + 1
+    n = float(mask.sum())
+    if n < 12:
+        return None
+    hue, sat, val = _hsv(rgba[..., :3])
+    body = mask & (val >= 0.3)
+    nb = float(body.sum()) or 1.0
+    green = float((body & (hue >= 60) & (hue < 170) & (sat >= 0.25)).sum()) / nb
+    grey = float((body & (sat < 0.18)).sum()) / nb
+    wood = float((body & (hue >= 15) & (hue < 45) & (sat >= 0.3) & (val < 0.75)).sum()) / nb
+    bright = float((body & (sat >= 0.45) & (val >= 0.6) & ~((hue >= 60) & (hue < 170))).sum()) / nb
+    fill = n / float(bh * bw)
+    if grey >= 0.6 and fill >= 0.5 and 0.5 <= bw / bh <= 2.5:
+        return "rock"
+    if green >= 0.25 and bright >= 0.1 and bright <= 0.6:
+        return "flowers"
+    if green >= 0.6 and bh <= 0.75 * bw and fill < 0.55:
+        return "grass"
+    if green >= 0.6 and fill >= 0.55 and 0.6 <= bw / bh <= 1.8:
+        return "bush"
+    if wood >= 0.5 and bw >= 1.1 * bh and fill >= 0.4:
+        return "stump"
+    return None
+
+
 FIGURE_CONFIDENCE = 0.8
 FIGURE_TAG = "figure:"
 _NUMBERED = re.compile(r"^(?:[a-z]+[_\- ]?)?\d+$")
@@ -249,6 +416,22 @@ def read_numbered(assets: list[Any], pack_root: Path, root: str) -> int:
             species = animal_of(rgba, above=False)
             role = "ANIMAL" if species else None
         if role is None:
+            kind = "tree" if is_tree(rgba, least=12) else None
+            if kind is not None:
+                # a thing of nature among the numbered tiles (T17.33: *Tiny Farm*'s pines,
+                # bushes, rocks and flowers): the farm's scenery
+                tags = {
+                    t
+                    for t in facets.get("tags") or []
+                    if not t.startswith(("unused_because:", "same_as:"))
+                }
+                facets.update({"usage": "sprite", "role": "DECORATION",
+                               "frame": [w, h], "origin": [w // 2, h - 1],
+                               "tags": sorted(tags | {kind, FIGURE_TAG + kind})})  # fmt: skip
+                for key in ("animations", "grid", "tile_overrides", "roles_alt"):
+                    facets.pop(key, None)
+                asset.confidence = max(float(asset.confidence or 0.0), FIGURE_CONFIDENCE)
+                found += 1
             continue
         tags = {
             t for t in facets.get("tags") or [] if not t.startswith(("unused_because:", "same_as:"))

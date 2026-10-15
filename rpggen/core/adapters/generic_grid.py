@@ -365,9 +365,16 @@ class GenericGridAdapter:
         K = GENERIC_CONSTANTS
         top = a["grid_candidates"][0]
         cw, ch = top["cell"]
+        # T17.33: on a sheet whose tiles lie apart (a line of space between them), what reaches
+        # over several tiles is tiles side by side (Tiny Farm's rocks, crates, barn wall and roof
+        # read as one house), not one picture: never a thing of its own
+        spaced = any(int(s) > 0 for s in top.get("separation", [0, 0]))
         out = []
         for n, (x, y, w, h) in enumerate(a["regions"], start=1):
             big = (w // cw) >= K["BUILDING_MIN_CELLS"] and (h // ch) >= K["BUILDING_MIN_CELLS"]
+            if spaced and (w > cw or h > ch):
+                continue  # several tiles side by side: no thing of its own
+            big = big and not spaced
             fx, fy, fw, fh = _footprint(w, h)
             out.append(
                 {

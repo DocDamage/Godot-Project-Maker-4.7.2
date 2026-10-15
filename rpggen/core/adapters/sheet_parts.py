@@ -292,6 +292,24 @@ def _thing(
         facets["role"] = role
     if tag:
         facets["tags"] = [tag]
+    if role in ("", "DECORATION"):
+        from rpggen.core import figures
+
+        # only a tree is told so surely: bushes, rocks and flowers by their colours alone were
+        # crops, soil and animals as often (that is T17.34's vision step)
+        if w >= BUILDING_MIN and h >= BUILDING_MIN and figures.is_house(picture):
+            # a house or a barn among the things (T17.33: CuteSCKR's farmhouses, which nothing
+            # names): the farm's and the village's own instead of a drawn box
+            facets["role"] = "BUILDING"
+            facets["tags"] = sorted({*facets.get("tags", []), "house"})
+            return facets, NAMED_CONFIDENCE
+        kind = "tree" if figures.is_tree(picture) else None
+        if kind is not None:
+            # a tree, a bush, a rock, flowers among the things of a sheet that names nothing
+            # (T17.33): the farm's own, told by their pictures
+            facets["role"] = "DECORATION"
+            facets["tags"] = sorted({*facets.get("tags", []), kind})
+            return facets, NAMED_CONFIDENCE
     if role == "ANIMAL":
         # its species (T17.33): the sheet's name when it names one, else what the picture shows,
         # so each lives in its own house
@@ -720,7 +738,7 @@ def sort_cells(a: np.ndarray, cell: int, crops: bool = False) -> _Cut:
             cut.parts.append(_Part(f"g{c0 * cell}_{r0 * cell}", sheet, facets, GROUND_CONFIDENCE))
         for members in _connected({m for m in group if m not in ground}):
             if sum(share[r, c] for r, c in members) >= CELL_SPECK:
-                cut.parts.append(_object_of(a, mask, cell, members))
+                cut.parts.extend(_objects_of(a, mask, cell, members))
     return cut
 
 
@@ -820,6 +838,30 @@ def _object_of(a: np.ndarray, mask: np.ndarray, cell: int, members: list[tuple[i
     picture[~own[y:y1, x:x1]] = 0
     facets, confidence = _thing(picture, "DECORATION", "", False)
     return _Part(f"o{c0 * cell + x}_{r0 * cell + y}", picture, facets, confidence)
+
+
+def _objects_of(
+    a: np.ndarray, mask: np.ndarray, cell: int, members: list[tuple[int, int]]
+) -> list[_Part]:
+    """The things of the cells ``members``: one, or each of the things apart that the cells
+    hold when they hold two or more of about one size side by side (T17.33: CuteSCKR's two
+    trees, a green and an autumn one, whose crowns cross the same cell)."""
+    one = _object_of(a, mask, cell, members)
+    parts = [i for i in islands(one.picture[..., 3] >= PAINTED_ALPHA) if int(i[4].sum()) > 0]
+    if len(parts) < 2:
+        return [one]
+    largest = max(int(i[4].sum()) for i in parts)
+    big = [i for i in parts if int(i[4].sum()) >= 0.25 * largest]
+    if len(big) < 2:
+        return [one]
+    ox, oy = (int(v) for v in one.variant[1:].split("_"))
+    out = []
+    for x, y, iw, ih, own in big:
+        picture = one.picture[y : y + ih, x : x + iw].copy()
+        picture[~own] = 0
+        facets, confidence = _thing(picture, "DECORATION", "", False)
+        out.append(_Part(f"o{ox + x}_{oy + y}", picture, facets, confidence))
+    return out
 
 
 def _render_name(f: InventoryFile, variant: str) -> str:

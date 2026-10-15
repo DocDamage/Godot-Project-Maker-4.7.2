@@ -16,6 +16,19 @@ const IsoHouse := preload("iso_house.gd")
 
 const SPRITE_ROLES := ["DECORATION", "BUILDING", "INTERIOR", "ITEM"]
 
+## The tags of a thing cut from a sheet that the farm and the maps know what to do with.
+const NAMED_THINGS := ["tree", "bush", "rock", "flowers", "grass", "stump", "fence", "well"]
+
+## A thing cut from a sheet that is an entry too (T17.33): a building, or a tree, a bush, a
+## rock, flowers, grass, a stump, a fence or a well by its tags.
+static func _named_thing(eff: Dictionary) -> bool:
+	if JsonUtil.to_str(eff.get("role", "")) == "BUILDING":
+		return true
+	for tag: Variant in JsonUtil.to_array(eff.get("tags", [])):
+		if NAMED_THINGS.has(JsonUtil.to_str(tag)):
+			return true
+	return false
+
 static func _default_origin(region: Array) -> Array:
 	return [JsonUtil.to_int(region[2]) / 2, JsonUtil.to_int(region[3]) - 1]
 
@@ -47,7 +60,8 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 		if a.get("status", "") in ["UNUSED", "MISSING"]:
 			continue
 		var eff: Dictionary = ctx.catalog.effective(a)
-		if eff.get("usage", "") != "sprite" or not SPRITE_ROLES.has(eff.get("role", "")):
+		# a thing cut from a sheet (usage `object`, its own picture) is one too (T17.33)
+		if not SPRITE_ROLES.has(eff.get("role", "")) or not (eff.get("usage", "") == "sprite" or (eff.get("usage", "") == "object" and _named_thing(eff))):
 			continue
 		var anims: Dictionary = eff.get("animations", {})
 		# An animated asset is not an object, except a chest strip (its 2 frames are read as an

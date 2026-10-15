@@ -181,7 +181,7 @@ def figure(seqs: list[list[Frame]]) -> Figure | None:
     height = float(np.median([f.height for f in standing]))
     width = float(np.median([f.width for f in standing]))
     # the figure's own colours: those of the stillest animation (the one most alike throughout)
-    still = max(seqs, key=lambda s: (_stillness(s), -seqs.index(s)))
+    still = seqs[max(range(len(seqs)), key=lambda i: (_stillness(seqs[i]), -i))]
     colours: set[int] = set()
     for f in still:
         colours |= f.colours

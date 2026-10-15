@@ -226,9 +226,35 @@ def _one_thing(asset: Any, roots: dict[str, Path], pack_roots: dict[str, str]) -
 
 TREE_WORDS = frozenset({"tree", "trees", "pine", "oak", "birch", "maple", "mahogany"})
 NOT_A_TREE = frozenset(
-    {"effects", "effect", "fx", "animation", "trunk", "trunks", "root", "roots", "shadow",
+    {"effects", "effect", "fx", "animation", "trunk", "trunks", "root", "roots",
      "shandow", "leafs", "leaves", "water", "stump", "copiar", "old"}
 )  # fmt: skip
+
+
+def _pieces(alpha: np.ndarray, step: int = 2) -> list[tuple[int, int, int, int]]:
+    """The boxes (x0, y0, x1, y1, end exclusive) of the pieces of touching painted pixels of a
+    mask, looked at in blocks of ``step`` px."""
+    h, w = alpha.shape
+    small = alpha[: h // step * step, : w // step * step]
+    small = small.reshape(h // step, step, w // step, step).any(axis=(1, 3))
+    sh, sw = small.shape
+    seen = np.zeros_like(small)
+    out: list[tuple[int, int, int, int]] = []
+    for sy, sx in zip(*np.nonzero(small), strict=True):
+        if seen[sy, sx]:
+            continue
+        stack = [(int(sy), int(sx))]
+        seen[sy, sx] = True
+        x0, y0, x1, y1 = int(sx), int(sy), int(sx), int(sy)
+        while stack:
+            y, x = stack.pop()
+            x0, y0, x1, y1 = min(x0, x), min(y0, y), max(x1, x), max(y1, y)
+            for ny, nx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+                if 0 <= ny < sh and 0 <= nx < sw and small[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    stack.append((ny, nx))
+        out.append((x0 * step, y0 * step, (x1 + 1) * step, (y1 + 1) * step))
+    return out
 
 
 def trees(catalog: Any, farm_ids: set[str], roots: dict[str, Path]) -> None:
@@ -239,7 +265,6 @@ def trees(catalog: Any, farm_ids: set[str], roots: dict[str, Path]) -> None:
     import re
 
     from rpggen.core.catalog import SheetObject
-    from rpggen.core.figures import _box
 
     pack_roots = {p.pack_id: p.root for p in catalog.packs}
     have = {o.id for o in catalog.objects}
@@ -257,27 +282,13 @@ def trees(catalog: Any, farm_ids: set[str], roots: dict[str, Path]) -> None:
                 alpha = np.asarray(im.convert("RGBA"))[:, :, 3] >= 64
         except (OSError, ValueError):
             continue
-        h, w = alpha.shape
-        cols = alpha.any(axis=0)
-        # the trees side by side: the columns painted, the gaps between them clear
-        runs: list[tuple[int, int]] = []
-        x = 0
-        while x < w:
-            if cols[x]:
-                start = x
-                while x < w and cols[x]:
-                    x += 1
-                runs.append((start, x))
-            else:
-                x += 1
-        if not runs or runs[0][1] - runs[0][0] < 16:
+        # the trees of a picture (side by side or one under the other): the first large piece
+        # of touching painted pixels in reading order is the first season's
+        pieces = [b for b in _pieces(alpha) if b[2] - b[0] >= 16 and b[3] - b[1] >= 16]
+        if not pieces:
             continue
-        x0, x1 = runs[0]
-        box = _box(alpha[:, x0:x1])
-        if box is None:
-            continue
-        _bx0, y0, _bx1, y1 = box
-        region = [x0, y0, x1 - x0, y1 - y0 + 1]
+        x0, y0, x1, y1 = min(pieces, key=lambda b: (b[1] // 32, b[0]))
+        region = [x0, y0, x1 - x0, y1 - y0]
         object_id = f"{asset.id}#tree"
         if object_id in have:
             continue
@@ -324,7 +335,12 @@ def animal_houses(catalog: Any, farm_ids: set[str], roots: dict[str, Path] | Non
     }
     pack_roots = {p.pack_id: p.root for p in catalog.packs}
     for asset in sorted(catalog.assets, key=lambda a: a.id):
-        if asset.pack_id not in farm_ids or "#" in asset.id or asset.kind != "image":
+        if asset.pack_id not in farm_ids or asset.kind != "image":
+            continue
+        if "#" in asset.id:
+            # a house cut from a sheet of things that its picture says is one (T17.33)
+            if "house" in (asset.detected.get("tags") or []) and asset.status != "UNUSED":
+                _add_house(catalog, asset, SheetObject)
             continue
         stem = posixpath.splitext(posixpath.basename(asset.path))[0]
         folder = posixpath.basename(posixpath.dirname(asset.path))
@@ -341,6 +357,8 @@ def animal_houses(catalog: Any, farm_ids: set[str], roots: dict[str, Path] | Non
             continue
         if kind == "house" and (words | folder_words) & NOT_A_FARMHOUSE:
             continue
+        if kind == "house" and asset.detected.get("usage") == "tiles":
+            continue  # a tile set of walls and roofs to build houses of (``Tileset House.png``)
         if kind == "house" and (roots is None or not _one_thing(asset, roots, pack_roots)):
             continue  # a kit of walls and roofs (``Tiny House.png``), or several houses
         if any(
@@ -353,18 +371,8 @@ def animal_houses(catalog: Any, farm_ids: set[str], roots: dict[str, Path] | Non
             continue
         fh = max(1, round(h * FOOTPRINT_FRACTION))
         fy = h - fh
-        # the picture is the house (a copy of a cell of a sheet set aside comes back)
-        facets = asset.detected
-        facets["tags"] = sorted(
-            t
-            for t in facets.get("tags") or []
-            if not str(t).startswith(("unused_because:", "same_as:"))
-        )
-        facets["role"] = "BUILDING"
-        facets.pop("roles_alt", None)
-        if facets.get("usage") not in ("sprite", "object"):
-            facets["usage"] = "sprite"
-        asset.confidence = max(float(asset.confidence or 0.0), CONFIDENCE)
+        # the picture stays what it was read as (a copy of a sheet's cell set aside, a
+        # decoration): its object is the farm's building, not the village's starter
         catalog.objects.append(
             SheetObject(
                 f"{asset.id}#{kind}",
@@ -379,6 +387,30 @@ def animal_houses(catalog: Any, farm_ids: set[str], roots: dict[str, Path] | Non
             )  # fmt: skip
         )
         tagged.add(kind)
+
+
+def _add_house(catalog: Any, asset: Any, sheet_object: Any) -> None:
+    """The building object of a whole picture of a house (``{asset}#house``)."""
+    size = asset.detected.get("size") or [0, 0]
+    w, h = int(size[0]), int(size[1])
+    if w < MIN_HOUSE or h < MIN_HOUSE:
+        return
+    fh = max(1, round(h * FOOTPRINT_FRACTION))
+    fy = h - fh
+    stem = asset.id.rsplit("#", 1)[-1]
+    catalog.objects.append(
+        sheet_object(
+            f"{asset.id}#house",
+            asset.id,
+            stem,
+            "BUILDING",
+            [0, 0, w, h],
+            [w // 2, h - 1],
+            [0, fy, w, fh],
+            {"profile": "CUSTOM", "polygon": [[0, fy], [w, fy], [w, h], [0, h]]},
+            ["house", DRESS_TAG],
+        )  # fmt: skip
+    )
 
 
 def _frame_in_colours(
