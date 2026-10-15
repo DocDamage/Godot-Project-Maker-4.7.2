@@ -450,9 +450,18 @@ def _terrain(
     named = all(p.named is not None or p.sides == frozenset(SIDES) for p in members)
     if not named and not _holds(members):
         return None
-    first = by_id[members[0].asset_id]
-    roles = [str(catalog_mod.effective(by_id[p.asset_id]).get("role", "")) for p in members]
+    role_of = {
+        p.asset_id: str(catalog_mod.effective(by_id[p.asset_id]).get("role", "")) for p in members
+    }
+    roles = [role_of[p.asset_id] for p in members]
     role = max(sorted(set(roles)), key=roles.count)
+    # a piece of another role is not one of these, though its name and colours agree (Kenney's
+    # streets are kerbed roads beside the roads): a painted road would lay them in its turns.
+    # A plain middle stays whatever its role
+    members = [p for p in members if role_of[p.asset_id] == role or p.sides == frozenset(SIDES)]
+    if len(members) < MIN_PIECES or len({p.sides for p in members}) < MIN_PIECES:
+        return None
+    first = by_id[members[0].asset_id]
     words = set().union(*(p.words for p in members))
     middle = np.mean([p.middle for p in members], axis=0)
     surface = blocks.surface_of(middle, words)
