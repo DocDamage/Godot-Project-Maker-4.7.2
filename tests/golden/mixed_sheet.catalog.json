@@ -27,8 +27,56 @@
       "overrides": {},
       "pack_id": "mixed_sheet",
       "path": "assets/packs/mixed_sheet/Synthetic Farm Tileset/farm/1.png",
-      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
       "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          48,
+          96
+        ],
+        "grid": {
+          "cell": [
+            48,
+            96
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          24,
+          95
+        ],
+        "role": "CROP",
+        "size": [
+          192,
+          96
+        ],
+        "stages": 4,
+        "tags": [
+          "cells:10:1:4",
+          "crop",
+          "growth_by:sheet",
+          "produce:crop_1"
+        ],
+        "usage": "growth_strip"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1#crop48_432",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "generated/sheet_parts/b74984d50bf9c43ee9ab23255bcd29e93728c422e34d77eb1b3dd5a6722719ba.png",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
+      "status": "NEEDS_REVIEW"
     },
     {
       "confidence": 0.8,
@@ -63,8 +111,8 @@
       "kind": "image",
       "overrides": {},
       "pack_id": "mixed_sheet",
-      "path": "generated/sheet_parts/c30b8c63389a084116ce030dfa9ea07e673e348acc2bab46f5693549b9353b9e.png",
-      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "path": "generated/sheet_parts/5f9c804a869bb0c04b85e8c82d43965b101440cb7fcdfdf84fcad6ff3c548170.png",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
       "status": "AUTO_DETECTED"
     },
     {
@@ -90,8 +138,8 @@
       "kind": "image",
       "overrides": {},
       "pack_id": "mixed_sheet",
-      "path": "generated/sheet_parts/4d9010872e18b3a40cc75e40024bc4367751c6d046208431f2f05b37f95fe8a8.png",
-      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "path": "generated/sheet_parts/28c56cc57b131dfed90c98574ea2e4a85adb92ea19a65e17ee44a79bf29efdbf.png",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
       "status": "NEEDS_REVIEW"
     },
     {
@@ -117,8 +165,8 @@
       "kind": "image",
       "overrides": {},
       "pack_id": "mixed_sheet",
-      "path": "generated/sheet_parts/abf5efe6d03711b61885eacba6009c492780977c264f00bc93b1e1fbbd467f09.png",
-      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "path": "generated/sheet_parts/6cf496de69d824c4655405822dc782fde615fdeea0b3274f2fd7b741707e34a1.png",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
       "status": "NEEDS_REVIEW"
     },
     {
@@ -144,8 +192,35 @@
       "kind": "image",
       "overrides": {},
       "pack_id": "mixed_sheet",
-      "path": "generated/sheet_parts/5cadd4f011d28cbc89532f01630a552b269e5bfc93f6b7689eb37d4e47750ec8.png",
-      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "path": "generated/sheet_parts/69d63a9def254a95ab2a5d06bd35934a38ca687e8809e89f17eb72320c01c50c.png",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          25,
+          25
+        ],
+        "origin": [
+          12,
+          24
+        ],
+        "role": "DECORATION",
+        "size": [
+          25,
+          25
+        ],
+        "usage": "object"
+      },
+      "detected_by": "sheet_parts",
+      "id": "mixed_sheet.synthetic_farm_tileset.farm.n1#o256_500",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "mixed_sheet",
+      "path": "generated/sheet_parts/dc63ffc5db1d6f090cddd81d85a0c0d2a01d2a868653c2a1ce2c9d414ca41fae.png",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
       "status": "NEEDS_REVIEW"
     },
     {
@@ -171,8 +246,8 @@
       "kind": "image",
       "overrides": {},
       "pack_id": "mixed_sheet",
-      "path": "generated/sheet_parts/a8ac40f456474df696c51e07cef921fc1a1f69d1e59c293dc2b837517390b7e0.png",
-      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "path": "generated/sheet_parts/ed0525002d76f09f0cd1eb2202b246d13c4c3816bdfc2a813c23894ba015dc6c.png",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
       "status": "NEEDS_REVIEW"
     },
     {
@@ -198,8 +273,8 @@
       "kind": "image",
       "overrides": {},
       "pack_id": "mixed_sheet",
-      "path": "generated/sheet_parts/76efec87ec5e56dde5e98b6eb3e514fc09505d563782db5c8354a66c5e013356.png",
-      "sha256": "9167b7eab01078dc36a0ea8836353ba954c90a55de2ed6b50521108c684d5364",
+      "path": "generated/sheet_parts/2decfba0f022842b37dc3484933c8ce0bb95f8feec61a1c4e28923df8f1fd4ba.png",
+      "sha256": "386713d2f7c81b5fafa1efc9c5bd7684d2c34c528905763cc673cc4579f00bb4",
       "status": "NEEDS_REVIEW"
     }
   ],
@@ -233,7 +308,7 @@
       "pack_id": "mixed_sheet",
       "profile_id": null,
       "root": "assets/packs/mixed_sheet",
-      "source_sha256": "143227b5ccd5f106fb35d5d4d9f66f0f1bfb1cf40361d4e491d4ac6f5e779a3b",
+      "source_sha256": "7a2ddfaad9cd7d66c189b416b776003f8593adbbe6263e72f5dadfc4dd5b4207",
       "warnings": []
     }
   ],

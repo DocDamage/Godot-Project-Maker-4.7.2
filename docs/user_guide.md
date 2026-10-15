@@ -144,8 +144,11 @@ generator and is still declared. A game that uses none of them has no such secti
 * **Mixed tile sheets** (CuteSCKR's tile sets: sheets of 48 px cells mixing ground, fences,
   crops, buildings and things): a pack that calls itself a tile set has its sheets sorted cell
   by cell. A patch of whole cells that tiles is ground; a thing drawn over several cells is
-  kept as one object; a cell alone is a decoration. Most of these things need review: their
-  sheets name nothing. A house of such a sheet is a building once you give it the role.
+  kept as one object; a cell alone is a decoration. In a farming pack a row of growth stages
+  (a plant on its mound of soil in each cell, growing from one cell to the next) is a crop,
+  named *Crop 1*, *Crop 2* ... since nothing names it, and the farm grows it. Most of the
+  other things need review: their sheets name nothing. A house of such a sheet is a building
+  once you give it the role.
 
 In both cases the sheet itself is set aside, with the reason, and its parts are the assets.
 
@@ -802,6 +805,15 @@ list of such notes, and no errors. Tilled and watered soil have the role *Ground
 how the field finds them, but rpggen does not lay a map with them while the pack has another
 ground.
 
+**The ground of a farm's maps** is one tile of your ground sheet, chosen from its pictures:
+the most even tile of grass (or of earth) that is opaque and repeats without a seam, not the
+sheet's first tile (on real farming packs that is the corner of a bed of soil or of a blob of
+grass). A sheet with no such tile (*Tiny Farm*, whose grass is only the green round its beds)
+gets a plain ground drawn in the sheet's own green (ASSET-031). The whole map is that one tile
+for now: a ground that varies and joins the soil, the water and the paths with the sheet's
+edge pieces is a later step. The pond is laid with a picture of water, never with a sheet of
+fish or other icons (a picture in a folder of icons is an item).
+
 The Sound section has the kind's slots: **Hoe**, **Watering**, **Plant**, **Harvest**,
 **Sell**, **Animal**, **Rooster** (a new day), the music of the four seasons (a season
 without its own plays the first that is filled) and **Night music** (from 20:00). Every tool
@@ -860,8 +872,13 @@ press **Use** to swing it. A HUD of a farm with *Combat* has a red **health** ba
 energy. A defeated enemy leaves one of the cave's things where it fell (walk over it to pick
 it up) and is back the next morning. **Being defeated is passing out**: the day ends at once
 and you wake at the bed as after 2:00, with half your energy and, with *Passing out costs
-money*, a tenth of your money gone; your health is full every morning. The cave is dim and
-no rain falls there. Like every added map it is built once; switching *Combat* off later
+money*, a tenth of your money gone; your health is full every morning. The cave is dark (a
+cool, dim light, darker than a room of the village) and no rain falls there. Its rock is your
+packs' own where they have a picture of it: a cell of a picture named *rock*, *cave*, *cliff* or
+*stone* (or a cliff or wall tile sheet) that is opaque and repeats, laid over every cell of
+rock; else your packs' boulders on the rock; else drawn shapes. An enemy drawn much smaller
+than the farmer (a slime a tile large) is scaled up to about seven tenths of the farmer's
+height. Like every added map it is built once; switching *Combat* off later
 keeps the cave and its enemies (the report says so), since a map that exists is never taken
 away. With *Combat* off a farm is exactly what it was: no cave, no sword, nothing to fight.
 

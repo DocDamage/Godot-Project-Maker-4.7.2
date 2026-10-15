@@ -8,6 +8,7 @@ extends RefCounted
 const Fixtures := preload("../lib/fixtures.gd")
 const AddedMaps := preload("../../builder/recipes/farm/added_maps_recipe.gd")
 const FarmBuild := preload("../../builder/recipes/farm/farm_build.gd")
+const CaveRock := preload("../../builder/recipes/farm/cave_rock.gd")
 
 const SAVE_DIR := "user://test_farm_cave"
 const CAVE_THINGS := [
@@ -60,6 +61,45 @@ func test_the_rock_of_a_cave_is_drawn_in_runs_along_its_rows(t) -> void:
 	t.eq(AddedMaps.CAVE, RpgFarmFight.CAVE, "the recipe's kind is the game's")
 	t.eq(FarmBuild.WEAPON, String(RpgFarmFight.WEAPON), "the item the recipe writes is the one the game swings")
 	t.eq(FarmBuild.WEAPON_PRICE, RpgFarmFight.WEAPON_PRICE)
+
+## A cave's sheet of 16 px cells: [0] the dark floor, [1] a rock face whose grain repeats every
+## 4 px, [2] grass, [3] a boulder on see-through ground.
+func _rock_image() -> Image:
+	var image := Image.create_empty(64, 16, false, Image.FORMAT_RGBA8)
+	image.fill_rect(Rect2i(0, 0, 16, 16), Color8(40, 30, 36))
+	for y in 16:
+		for x in range(16, 32):
+			image.set_pixel(x, y, Color8(112, 80, 76) if ((x >> 1) + (y >> 1)) % 2 == 1 else Color8(96, 66, 64))
+	image.fill_rect(Rect2i(32, 0, 16, 16), Color8(90, 160, 70))
+	image.fill_rect(Rect2i(52, 4, 8, 8), Color8(110, 110, 116))
+	return image
+
+func test_the_rock_of_a_cave_is_the_textured_light_cell_of_a_picture_of_rock(t) -> void:
+	var image := _rock_image()
+	var floor_facts := CaveRock.cell_facts(image, Rect2i(0, 0, 16, 16))
+	var face := CaveRock.cell_facts(image, Rect2i(16, 0, 16, 16))
+	t.ok(not floor_facts.is_empty() and not face.is_empty(), "the floor and the face are opaque and tile")
+	t.ok(CaveRock.score(face) > CaveRock.score(floor_facts), "the textured light face before the flat dark floor")
+	t.eq(CaveRock.cell_facts(image, Rect2i(32, 0, 16, 16)), {}, "grass is no rock")
+	t.eq(CaveRock.cell_facts(image, Rect2i(48, 0, 16, 16)), {}, "a boulder on see-through ground is no cell of rock")
+	t.eq(CaveRock.cells_of(Vector2i(64, 16), 16, {}).size(), 4)
+	t.eq(CaveRock.cells_of(Vector2i(66, 16), 16, {"cell": [16, 16], "margin": [0, 0], "separation": [1, 0]}).size(), 3, "a sheet with gaps")
+
+func test_a_picture_is_rock_by_its_name_and_a_wall_by_its_role(t) -> void:
+	t.eq(CaveRock.rank("pack.tileset.rock_caves", {}, false), 0)
+	t.eq(CaveRock.rank("pack.tileset.caves", {}, false), 1)
+	t.eq(CaveRock.rank("pack.props.stones", {}, false), 2)
+	t.eq(CaveRock.rank("pack.tileset.walls", {"role": "WALL"}, true), 3, "a wall of the tile set")
+	t.eq(CaveRock.rank("pack.tileset.walls", {"role": "WALL"}, false), -1, "a picture of a wall that is no tile")
+	t.eq(CaveRock.rank("pack.fences", {"role": "WALL", "tags": ["fence"]}, true), -1, "a fence is no rock")
+	t.eq(CaveRock.rank("pack.tileset.grass", {"role": "GROUND"}, true), -1)
+
+func test_an_enemy_much_smaller_than_the_farmer_is_scaled_to_it(t) -> void:
+	t.eq(AddedMaps.scale_to_farmer(30, 13), 1.5, "the kit's slime beside a farmer of 30 px: 70 % of the farmer, in quarters")
+	t.eq(AddedMaps.scale_to_farmer(15, 13), 1.0, "as large as it should be already")
+	t.eq(AddedMaps.scale_to_farmer(40, 30), 1.0, "never smaller than it is drawn")
+	t.eq(AddedMaps.scale_to_farmer(64, 8), 3.0, "at most three times")
+	t.eq(AddedMaps.scale_to_farmer(0, 13), 1.0, "a farmer of no picture")
 
 func test_what_the_weapon_adds_is_its_attack(t) -> void:
 	var def := Fixtures.item(&"blade")

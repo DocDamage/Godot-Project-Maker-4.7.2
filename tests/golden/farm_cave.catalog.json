@@ -1,0 +1,434 @@
+{
+  "assets": [
+    {
+      "confidence": 0.47619,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "idle_left": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "idle_right": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "idle_up": {
+            "fps": 1.0,
+            "frames": [
+              [
+                0,
+                3
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_left": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_right": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ]
+            ],
+            "loop": true
+          },
+          "walk_up": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "directions": 4,
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          11
+        ],
+        "role": "ITEM",
+        "size": [
+          64,
+          64
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_cave.farm_cave_pack.icons.fish.sea.dolphin",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_cave",
+      "path": "assets/packs/farm_cave/Farm Cave Pack/Icons/Fish/Sea/Dolphin.png",
+      "sha256": "8c551dec3a28e3d66f1b04f74dbd2d801f0e5b2d8f9cae43c101320ae1ca0da2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.407407,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.407407
+          ],
+          [
+            "WALL",
+            0.037037
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_cave.farm_cave_pack.tileset.rock_caves",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_cave",
+      "path": "assets/packs/farm_cave/Farm Cave Pack/Tileset/Rock Caves.png",
+      "sha256": "e621a3aaa462e1475ec247d60d9ce6d893827fdcc4de86167c7ab31aaaaabaf3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5624,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.074074
+          ],
+          [
+            "WALL",
+            0.037037
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_cave.farm_cave_pack.tileset.tileset_grass_meadow",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_cave",
+      "path": "assets/packs/farm_cave/Farm Cave Pack/Tileset/Tileset Grass Meadow.png",
+      "sha256": "d4e2b6b04a0e944930b82c94d2dd9ebbed119decdd0bc3a337b2a6f8c0e682bd",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "WATER",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "surface:water"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "farm_cave.farm_cave_pack.tileset.water_tile",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "farm_cave",
+      "path": "assets/packs/farm_cave/Farm Cave Pack/Tileset/Water tile.png",
+      "sha256": "a1d467582b138634de5555d22a200efe2547eca66ba1bf1bca24a43e3eb77621",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 3,
+        "retired": []
+      }
+    }
+  },
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            0,
+            8
+          ],
+          [
+            28,
+            8
+          ],
+          [
+            28,
+            12
+          ],
+          [
+            0,
+            12
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        0,
+        8,
+        28,
+        4
+      ],
+      "id": "farm_cave.farm_cave_pack.tileset.tileset_grass_meadow#object_1",
+      "name": "object_1",
+      "origin": [
+        14,
+        11
+      ],
+      "region": [
+        34,
+        18,
+        28,
+        12
+      ],
+      "role": "DECORATION",
+      "sheet": "farm_cave.farm_cave_pack.tileset.tileset_grass_meadow",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": []
+    }
+  ],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/farm_cave/LICENSE.txt"
+      ],
+      "pack_id": "farm_cave",
+      "profile_id": null,
+      "root": "assets/packs/farm_cave",
+      "source_sha256": "92accd9ee40053e3b053511b5c0bb66baa4b04c06343dc69cf57a085598783d6",
+      "warnings": [
+        "view:farm"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "farm_cave.farm_cave_pack.tileset.rock_caves",
+          "source_id": 0
+        },
+        {
+          "asset": "farm_cave.farm_cave_pack.tileset.tileset_grass_meadow",
+          "source_id": 1
+        },
+        {
+          "asset": "farm_cave.farm_cave_pack.tileset.water_tile",
+          "source_id": 2
+        }
+      ],
+      "terrain_sets": [],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

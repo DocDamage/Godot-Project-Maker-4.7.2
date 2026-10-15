@@ -166,9 +166,31 @@ does not ask for the isometric view is built as it was.
     offers no **Pad** for a race, whose config no longer carries `iso_controls`.
   * A track's README says that the nodes `Road`, `Marks`, `Walls` and `Scenery` are there only
     when the track has something for them.
+  * **A farm's ground is plain ground.** Every map of a farm was laid with the first tile of its
+    ground sheet, which on real farming packs is the corner of a bed of soil (*Tiny Farm*) or
+    of a blob of grass (*Farm RPG*). The farm, its village and its added maps are now laid with
+    the most even tile of grass or earth of the sheet that repeats without a seam, measured
+    from the pictures (`farm.ground` in the plan file); a sheet without one gets a plain ground
+    drawn in its own green (*Tiny Farm*). One tile everywhere: varying the ground and joining
+    it to soil, water and paths is painting with terrains, a step of its own. The village of a
+    farm no longer has patches of the sheet's next tiles (its edges and corners).
+  * **A pond of water, not of fish.** A picture in a folder of icons of a farming pack is an
+    item and never water or ground (*Farm RPG*'s sheet of fish icons filled the pond), and a
+    single picture of one tile named or tagged water is a tile of water (*Farm RPG*'s
+    `Water tile.png`).
+  * **The cave reads as a cave.** Its rock is the packs' own where they have a picture of it
+    (a cell of a picture named rock, cave, cliff or stone, or of a cliff or wall tile sheet,
+    that is opaque and repeats; on diamonds a tile so named; else the packs' boulders), drawn
+    shapes only when they have none; its light is darker than a room's; and an enemy drawn
+    much smaller than the farmer (the kit's slime: half the farmer's height) is scaled to
+    seven tenths of the farmer's height.
+  * **Crops of a mixed tile sheet.** In a farming pack, a row of growth stages on a mixed sheet
+    (a plant on its mound of soil in each cell, each covering more of its cell than the one
+    before) is a crop: CuteSCKR's *Farm Tileset* grows ten crops of its own.
 
 **Known limits.** Nobody has played either the farm or an isometric game by hand yet: what is
-known is what their tests and check runs assert. A farm has no cave yet, and the door to an
+known is what their tests and check runs assert. A farm's ground is one tile, and its soil,
+water and paths meet it with hard edges (no map is painted with terrains yet), and the door to an
 added map is a mark on the ground beside the farm's edge, which a tree before it can hide. An imported isometric map has no height: the stairs of a sample are pictures walked across, and a second floor is only drawn higher. A
 room of an isometric project has walls only when the packs have isometric wall pieces. An
 isometric race is shown from above on the Options page. The French file has the new texts

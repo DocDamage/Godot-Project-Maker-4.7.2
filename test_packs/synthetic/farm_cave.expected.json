@@ -1,0 +1,13 @@
+{
+  "Farm Cave Pack/Icons/Fish/Sea/Dolphin.png": {
+    "role": "ITEM"
+  },
+  "Farm Cave Pack/Tileset/Tileset Grass Meadow.png": {
+    "role": "GROUND",
+    "usage": "tiles"
+  },
+  "Farm Cave Pack/Tileset/Water tile.png": {
+    "role": "WATER",
+    "usage": "tiles"
+  }
+}

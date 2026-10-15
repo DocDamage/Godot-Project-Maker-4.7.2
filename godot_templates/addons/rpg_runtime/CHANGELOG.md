@@ -47,6 +47,16 @@ file. The English text of `RpgStrings` stands in for a missing translation, and 
 without two `%s` gives "Name — Author". A game whose packs named their authors shows the same
 line as before.
 
+**A farm's ground, pond and cave in the builder (after T17.30).** Nothing of the runtime
+changes. The builder: `lib/plain_ground.gd` (new, in every project, inert without the plan
+file's `farm.ground`, which only a farm seen from above has) gives a farm's maps the plain
+ground tile rpggen measured instead of the sheet's first tile (`farm_map_recipe`
+`RECIPE_VERSION` 5, `added_maps_recipe` 2; `starter_map_recipe` has the key `plain` in its
+hash only in such a farm, so every other project's hash is what it was);
+`recipes/farm/cave_rock.gd` (new, a farm's folder) lays the packs' rock over a cave's drawn
+rock; a cave's root sets `RpgMapRoot.ambient_override` (darker than an interior's light) and
+an enemy of a cave drawn much smaller than the farmer gets a `scale` in the map.
+
 **Packs of other shapes in the builder (T17.30).** Nothing of the runtime changes. The builder:
 `MapGeo.tile_unit` measures an isometric project by its diamond whatever tile sets of squares
 its packs also have (*Lords Of Pain*'s effects made a tile set of 16 px, and the action RPG's

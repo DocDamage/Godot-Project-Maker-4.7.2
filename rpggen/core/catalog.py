@@ -869,6 +869,53 @@ FARM_REPLACED_ROLES = frozenset({"DECORATION", "EFFECT", "ITEM", "NPC"})
 FARM_TOOL_REPLACED_ROLES = FARM_REPLACED_ROLES | {"WATER", "WEAPON"}  # tools/water.png, an axe
 
 
+FARM_ICON_FOLDERS = frozenset({"icon", "icons", "item", "items", "food", "foods"})
+WATER_TILE_MOST = 64  # px: a single picture of water this large or smaller is one tile
+
+
+def _farm_water(asset: Asset, facets: dict[str, Any], root: str) -> bool:
+    """Water in a farming pack (after T17.29), True when it decided: a picture in a folder of
+    icons is never water nor ground (*Farm RPG*'s sheet of fish icons in ``Icons/Fish/Sea``
+    filled the pond: an icon of a fish is an item); and a single square picture of one tile
+    whose name or surface says water (*Farm RPG*'s ``Tileset/Water tile.png``) is a tile of
+    water, not a sprite of ground."""
+    from rpggen.core import classifier
+
+    folders, stem_words = classifier.tokens(asset.path[len(root) + 1 :])
+    role = facets.get("role")
+    if {f.casefold() for f in folders} & FARM_ICON_FOLDERS:
+        if role in ("WATER", "GROUND"):
+            facets["role"] = "ITEM"
+            facets.pop("roles_alt", None)
+            return True
+        return False
+    size = facets.get("size") or [0, 0]
+    tags = {str(t) for t in facets.get("tags") or []}
+    if (
+        facets.get("usage") == "sprite"
+        and role in ("GROUND", "WATER")
+        and not facets.get("animations")
+        and len(size) == 2
+        and size[0] == size[1]
+        and 8 <= int(size[0]) <= WATER_TILE_MOST
+        and ("water" in {w.casefold() for w in stem_words} or "surface:water" in tags)
+        and "tool" not in tags  # ``Tools/water_16x16``: the watering can
+        and not {f.casefold() for f in folders} & {"tool", "tools"}
+    ):
+        cell = int(size[0])
+        for key in ("frame", "origin", "roles_alt"):
+            facets.pop(key, None)
+        facets.update(
+            {
+                "role": "WATER",
+                "usage": "tiles",
+                "grid": {"cell": [cell, cell], "margin": [0, 0], "separation": [0, 0]},
+            }
+        )
+        return True
+    return False
+
+
 def _farm_roles(assets: list[Asset], root: str) -> None:
     """The roles of a farming pack's things (T17.02), where the words of a file say so and no
     reader or rule has decided: an animal with an animation (it walks, or sleeps) is an
@@ -888,6 +935,8 @@ def _farm_roles(assets: list[Asset], root: str) -> None:
         facets = asset.detected
         # what the farming packs' reader decided (T17.29: a food icon is an item) stays too
         if asset.kind != "image" or asset.detected_by in ("profile", "learned", "farm_pack"):
+            continue
+        if _farm_water(asset, facets, root):
             continue
         if facets.get("usage") != "sprite" or facets.get("headings"):
             continue
