@@ -64,6 +64,7 @@ PLAIN_COLOUR = 0.07  # two plain tiles are of one surface within this mean colou
 # checkerboard, not a ground that varies.
 PLAIN_MIN_SPREAD = 0.03
 PLAIN_SEAM_RATIO = 3.0
+PLAIN_GROUP_COLOUR = 0.035  # the tones of the plain tiles of one ground differ at most this
 MAX_PLAIN_CELLS = 256
 NEAR = 4  # cells round a 3x3 block where its inner corners are looked for
 CORNER_KEYS = (
@@ -1037,8 +1038,10 @@ def _plain_groups(sheet: _Sheet) -> list[Block]:
         group = [first]
         rest = []
         for k in left:
-            near = float(np.abs(sheet.mean_colour(k) - colour).mean()) <= PLAIN_COLOUR
-            if near and _tile_together(sheet, first, k):
+            # laid at random among each other they must look one ground: of one tone, and
+            # tiling with every tile of the group
+            near = float(np.abs(sheet.mean_colour(k) - colour).mean()) <= PLAIN_GROUP_COLOUR
+            if near and all(_tile_together(sheet, m, k) for m in group):
                 group.append(k)
             else:
                 rest.append(k)

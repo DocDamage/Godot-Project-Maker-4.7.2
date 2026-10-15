@@ -34,7 +34,6 @@
         ],
         "tile_overrides": {
           "0,1": {
-            "probability": 0.35,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -46,7 +45,7 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "tilemap_grass_4_0",
+              "set": "tilemap_dirt_0_1",
               "terrain": 0
             }
           },
@@ -67,6 +66,7 @@
             }
           },
           "1,1": {
+            "probability": 0.35,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -78,7 +78,7 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "tilemap_dirt_1_1",
+              "set": "tilemap_dirt_0_1",
               "terrain": 0
             }
           },
@@ -100,7 +100,6 @@
             }
           },
           "2,1": {
-            "probability": 0.35,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -112,12 +111,11 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "tilemap_dirt_1_1",
+              "set": "tilemap_dirt_2_1",
               "terrain": 0
             }
           },
           "3,0": {
-            "probability": 0.35,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -129,7 +127,7 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "tilemap_grass_1_0",
+              "set": "tilemap_grass_3_0",
               "terrain": 0
             }
           },
@@ -146,11 +144,12 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "tilemap_dirt_1_1",
+              "set": "tilemap_dirt_2_1",
               "terrain": 0
             }
           },
           "4,0": {
+            "probability": 0.35,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -162,7 +161,7 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "tilemap_grass_4_0",
+              "set": "tilemap_grass_3_0",
               "terrain": 0
             }
           },
@@ -1125,7 +1124,7 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
-          "name": "tilemap_grass_4_0",
+          "name": "tilemap_grass_3_0",
           "over": "ground",
           "shape": "plain",
           "sheet": "farm_forms.tilemap.tilemap",
@@ -1140,7 +1139,7 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
-          "name": "tilemap_dirt_1_1",
+          "name": "tilemap_dirt_0_1",
           "over": "ground",
           "shape": "plain",
           "sheet": "farm_forms.tilemap.tilemap",
@@ -1155,7 +1154,7 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
-          "name": "tilemap_dirt_4_1",
+          "name": "tilemap_dirt_2_1",
           "over": "ground",
           "shape": "plain",
           "sheet": "farm_forms.tilemap.tilemap",
@@ -1163,6 +1162,21 @@
           "terrains": [
             {
               "color": "#ffc107",
+              "name": "dirt"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "tilemap_dirt_4_1",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "farm_forms.tilemap.tilemap",
+          "surface": "dirt",
+          "terrains": [
+            {
+              "color": "#9c27b0",
               "name": "dirt"
             }
           ]

@@ -806,23 +806,6 @@
             "terrain": 0
           }
         },
-        "3,1": {
-          "probability": 0.35,
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "cave_rock_0_1",
-            "terrain": 0
-          }
-        },
         "4,0": {
           "collision": {
             "profile": "ONE_WAY"

@@ -1233,23 +1233,6 @@
               "set": "cave_rock_0_1",
               "terrain": 0
             }
-          },
-          "3,1": {
-            "probability": 0.35,
-            "terrain": {
-              "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
-                "bottom_side": 0,
-                "left_side": 0,
-                "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
-                "top_side": 0
-              },
-              "set": "cave_rock_0_1",
-              "terrain": 0
-            }
           }
         },
         "tileset": "overworld",
@@ -2014,7 +1997,7 @@
       "pack_id": "sample_pack_side",
       "profile_id": null,
       "root": "assets/packs/sample_pack_side",
-      "source_sha256": "b84d7b32fcaa988cfa6e9ea24b94d9ff94452a667c6a615d8b07bba1dcbd52a7",
+      "source_sha256": "96aaae998abe6164c46efccdba8fc48c8d7c25487e94e59c24c0251c6d7c18a3",
       "warnings": [
         "strips_direction_assumed:boss/guardian_attack.png",
         "strips_direction_assumed:boss/guardian_hurt.png",

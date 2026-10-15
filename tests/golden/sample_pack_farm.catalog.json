@@ -2384,23 +2384,6 @@
               "terrain": 0
             }
           },
-          "1,1": {
-            "probability": 0.35,
-            "terrain": {
-              "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
-                "bottom_side": 0,
-                "left_side": 0,
-                "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
-                "top_side": 0
-              },
-              "set": "grass_sand_1_0",
-              "terrain": 0
-            }
-          },
           "2,0": {
             "probability": 0.35,
             "terrain": {
@@ -2546,23 +2529,6 @@
             }
           },
           "1,0": {
-            "terrain": {
-              "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
-                "bottom_side": 0,
-                "left_side": 0,
-                "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
-                "top_side": 0
-              },
-              "set": "path_path_1_0",
-              "terrain": 0
-            }
-          },
-          "1,1": {
-            "probability": 0.35,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -2797,7 +2763,23 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "grass_grass_1_0",
+              "set": "grass_grass_2_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_grass_2_0",
               "terrain": 0
             }
           },
@@ -2898,7 +2880,23 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "sample_pack_farm_tilesets_summer_grass_grass_1_0",
+              "set": "sample_pack_farm_tilesets_summer_grass_grass_2_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "sample_pack_farm_tilesets_summer_grass_grass_2_0",
               "terrain": 0
             }
           },
@@ -3578,7 +3576,7 @@
       "pack_id": "sample_pack_farm",
       "profile_id": null,
       "root": "assets/packs/sample_pack_farm",
-      "source_sha256": "2d88dc642fd68e31e1643b2e251089b5ec2d5b1a3c5b5956905c2a213072dcd7",
+      "source_sha256": "139be6d98ebaa6712f852481f7425eed8798960f9915d351ddaef614c7225af3",
       "warnings": [
         "strips_direction_assumed:animals/cow_sleep_24x24_2frames.png",
         "strips_direction_assumed:animals/hen_sleep_16x16_2frames.png",
@@ -3725,6 +3723,21 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
+          "name": "grass_grass_2_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.spring.grass",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#00bcd4",
+              "name": "grass"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
           "name": "sample_pack_farm_tilesets_summer_grass_grass_1_0",
           "over": "ground",
           "shape": "plain",
@@ -3732,7 +3745,22 @@
           "surface": "grass",
           "terrains": [
             {
-              "color": "#00bcd4",
+              "color": "#e91e63",
+              "name": "grass"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "sample_pack_farm_tilesets_summer_grass_grass_2_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.summer.grass",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#795548",
               "name": "grass"
             }
           ]
@@ -3747,7 +3775,7 @@
           "surface": "water",
           "terrains": [
             {
-              "color": "#e91e63",
+              "color": "#4caf50",
               "name": "water"
             }
           ]
@@ -3762,7 +3790,7 @@
           "surface": "water",
           "terrains": [
             {
-              "color": "#795548",
+              "color": "#8d6e63",
               "name": "water"
             }
           ]

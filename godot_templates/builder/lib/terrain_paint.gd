@@ -76,10 +76,15 @@ static func find(ctx: BuildContext, def: Dictionary, tile_set: TileSet, surfaces
 ## The words of a sheet's name and folders that say it is no ground outdoors.
 const INDOOR_WORDS: Array[String] = ["dungeon", "cave", "caves", "house", "interior", "indoor", "temple", "castle", "barn", "mine"]
 
+## True for a sheet that is not the first choice outdoors: one that says it is indoors, and a
+## season's copy of another sheet (`variant_of:`, *Farm RPG*'s autumn and winter grounds).
 static func _indoors(ctx: BuildContext, asset_id: String) -> bool:
 	if ctx == null or asset_id == "":
 		return false
 	var asset := ctx.catalog.asset(asset_id)
+	for tag: Variant in JsonUtil.to_array(ctx.catalog.effective(asset).get("tags", [])):
+		if JsonUtil.to_str(tag).begins_with("variant_of:"):
+			return true
 	var path := JsonUtil.to_str(asset.get("path", "")).to_lower()
 	for separator: String in ["/", "_", "-", ".", " "]:
 		path = path.replace(separator, " ")

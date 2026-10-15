@@ -630,39 +630,6 @@
         32
       ],
       "tile_overrides": {
-        "0,0": {
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "ground_grass_0_0",
-            "terrain": 0
-          }
-        },
-        "0,1": {
-          "probability": 0.35,
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "ground_grass_0_0",
-            "terrain": 0
-          }
-        },
         "1,0": {
           "terrain": {
             "peering": {
@@ -693,72 +660,6 @@
               "top_side": 0
             },
             "set": "ground_grass_1_0",
-            "terrain": 0
-          }
-        },
-        "2,0": {
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "ground_dirt_2_0",
-            "terrain": 0
-          }
-        },
-        "2,1": {
-          "probability": 0.35,
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "ground_dirt_2_0",
-            "terrain": 0
-          }
-        },
-        "3,0": {
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "ground_dirt_3_0",
-            "terrain": 0
-          }
-        },
-        "3,1": {
-          "probability": 0.35,
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "ground_dirt_3_0",
             "terrain": 0
           }
         },
@@ -826,39 +727,6 @@
               "top_side": 0
             },
             "set": "ground_stone_4_0",
-            "terrain": 0
-          }
-        },
-        "7,0": {
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "ground_sand_7_0",
-            "terrain": 0
-          }
-        },
-        "7,1": {
-          "probability": 0.35,
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "ground_sand_7_0",
             "terrain": 0
           }
         }
@@ -1319,7 +1187,7 @@
           "surface": "grass",
           "terrains": [
             {
-              "color": "#e91e63",
+              "color": "#2196f3",
               "name": "meadow_a2_a2_0_0"
             }
           ]
@@ -1334,23 +1202,8 @@
           "surface": "sand",
           "terrains": [
             {
-              "color": "#795548",
+              "color": "#ffc107",
               "name": "meadow_a2_a2_2_0"
-            }
-          ]
-        },
-        {
-          "layout": "plain",
-          "mode": "corners_and_sides",
-          "name": "ground_grass_0_0",
-          "over": "ground",
-          "shape": "plain",
-          "sheet": "sample_pack.tilesets.ground",
-          "surface": "grass",
-          "terrains": [
-            {
-              "color": "#4caf50",
-              "name": "grass"
             }
           ]
         },
@@ -1364,38 +1217,8 @@
           "surface": "grass",
           "terrains": [
             {
-              "color": "#8d6e63",
+              "color": "#4caf50",
               "name": "grass"
-            }
-          ]
-        },
-        {
-          "layout": "plain",
-          "mode": "corners_and_sides",
-          "name": "ground_dirt_2_0",
-          "over": "ground",
-          "shape": "plain",
-          "sheet": "sample_pack.tilesets.ground",
-          "surface": "dirt",
-          "terrains": [
-            {
-              "color": "#2196f3",
-              "name": "dirt"
-            }
-          ]
-        },
-        {
-          "layout": "plain",
-          "mode": "corners_and_sides",
-          "name": "ground_dirt_3_0",
-          "over": "ground",
-          "shape": "plain",
-          "sheet": "sample_pack.tilesets.ground",
-          "surface": "dirt",
-          "terrains": [
-            {
-              "color": "#ffc107",
-              "name": "dirt"
             }
           ]
         },
@@ -1409,23 +1232,8 @@
           "surface": "stone",
           "terrains": [
             {
-              "color": "#9c27b0",
+              "color": "#8d6e63",
               "name": "stone"
-            }
-          ]
-        },
-        {
-          "layout": "plain",
-          "mode": "corners_and_sides",
-          "name": "ground_sand_7_0",
-          "over": "ground",
-          "shape": "plain",
-          "sheet": "sample_pack.tilesets.ground",
-          "surface": "sand",
-          "terrains": [
-            {
-              "color": "#00bcd4",
-              "name": "sand"
             }
           ]
         },
@@ -1439,7 +1247,7 @@
           "surface": "water",
           "terrains": [
             {
-              "color": "#4caf50",
+              "color": "#9c27b0",
               "name": "water"
             }
           ]
@@ -1454,7 +1262,7 @@
           "surface": "water",
           "terrains": [
             {
-              "color": "#8d6e63",
+              "color": "#00bcd4",
               "name": "water"
             }
           ]

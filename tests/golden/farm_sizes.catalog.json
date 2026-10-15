@@ -37,22 +37,6 @@
         ],
         "tile_overrides": {
           "0,1": {
-            "terrain": {
-              "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
-                "bottom_side": 0,
-                "left_side": 0,
-                "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
-                "top_side": 0
-              },
-              "set": "n1_terrains_16x16_grass_0_1",
-              "terrain": 0
-            }
-          },
-          "0,2": {
             "probability": 0.35,
             "terrain": {
               "peering": {
@@ -65,7 +49,23 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "n1_terrains_16x16_dirt_3_1",
+              "set": "n1_terrains_16x16_grass_3_0",
+              "terrain": 0
+            }
+          },
+          "0,2": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "n1_terrains_16x16_dirt_0_2",
               "terrain": 0
             }
           },
@@ -98,7 +98,7 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "n1_terrains_16x16_dirt_3_1",
+              "set": "n1_terrains_16x16_dirt_0_2",
               "terrain": 0
             }
           },
@@ -120,7 +120,6 @@
             }
           },
           "2,1": {
-            "probability": 0.35,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -132,7 +131,7 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "n1_terrains_16x16_grass_0_1",
+              "set": "n1_terrains_16x16_dirt_2_1",
               "terrain": 0
             }
           },
@@ -153,6 +152,22 @@
             }
           },
           "3,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "n1_terrains_16x16_grass_3_0",
+              "terrain": 0
+            }
+          },
+          "3,1": {
             "probability": 0.35,
             "terrain": {
               "peering": {
@@ -165,23 +180,7 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "n1_terrains_16x16_grass_1_0",
-              "terrain": 0
-            }
-          },
-          "3,1": {
-            "terrain": {
-              "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
-                "bottom_side": 0,
-                "left_side": 0,
-                "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
-                "top_side": 0
-              },
-              "set": "n1_terrains_16x16_dirt_3_1",
+              "set": "n1_terrains_16x16_dirt_2_1",
               "terrain": 0
             }
           },
@@ -603,7 +602,7 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
-          "name": "n1_terrains_16x16_grass_0_1",
+          "name": "n1_terrains_16x16_grass_3_0",
           "over": "ground",
           "shape": "plain",
           "sheet": "farm_sizes.n16x16.n1_terrains_16x16",
@@ -618,7 +617,7 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
-          "name": "n1_terrains_16x16_dirt_3_1",
+          "name": "n1_terrains_16x16_dirt_2_1",
           "over": "ground",
           "shape": "plain",
           "sheet": "farm_sizes.n16x16.n1_terrains_16x16",
@@ -633,7 +632,7 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
-          "name": "n1_terrains_16x16_dirt_2_2",
+          "name": "n1_terrains_16x16_dirt_0_2",
           "over": "ground",
           "shape": "plain",
           "sheet": "farm_sizes.n16x16.n1_terrains_16x16",
@@ -641,6 +640,21 @@
           "terrains": [
             {
               "color": "#ffc107",
+              "name": "dirt"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "n1_terrains_16x16_dirt_2_2",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "farm_sizes.n16x16.n1_terrains_16x16",
+          "surface": "dirt",
+          "terrains": [
+            {
+              "color": "#9c27b0",
               "name": "dirt"
             }
           ]
