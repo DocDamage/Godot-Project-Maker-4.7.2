@@ -703,9 +703,9 @@ MAX_TERRAINS = 6
 MAX_SEEDS = 16
 MAX_ALIKE = 4
 # a piece of a terrain is painted for this share at least in colours of its fill
-SHARED_PALETTE = 0.65
+SHARED_PALETTE = 0.3  # T17.33: a rock face round a dark inside shares little of its colours
 # a piece of ground is painted nearly all over (a door or a sign in front of earth is not)
-PIECE_COVER = 0.85
+PIECE_COVER = 0.45  # T17.33: an edge piece is painted half over (its outside is the air)
 COLOUR_NEAR = 0.1
 
 
@@ -759,12 +759,29 @@ def terrains(
             if bits:
                 joins[c.key] = bits
         by_key = {c.key: c for c in cells}
+        # T17.33: the face of a wall joins the faces of its wall above and below it
+        # (*Gothicvania*'s cave walls: each piece meets the dark inside on one side only)
+        faces = {k: b for k, b in joins.items() if (b & (E | W)) in (E, W)}
+        for k, bits in list(faces.items()):
+            c = by_key[k]
+            for side in (N, S):
+                if bits & side:
+                    continue
+                if any(
+                    fits(c, side, by_key[o])
+                    for o, ob in faces.items()
+                    if o != k and (ob & (E | W)) == (bits & (E | W))
+                ):
+                    bits |= side
+            joins[k] = bits
         # second pass: a surface piece joins the pieces of its surface beside it
         surfaces = [by_key[k] for k, b in joins.items() if b & S and not b & N]
         if not surfaces:
             continue
         for k, bits in list(joins.items()):
             c = by_key[k]
+            if bits & N and (bits & (E | W)) in (E, W):
+                continue  # a wall's face (above): no surface beside it
             for side in (E, W):
                 if bits & side:
                     continue

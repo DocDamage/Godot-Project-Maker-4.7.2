@@ -338,9 +338,19 @@ def entries(block: Block, set_name: str) -> dict[str, dict[str, Any]]:
             terrain = _bits_entry(what, SIDE_KEYS, set_name)
         out[f"{cx},{cy}"] = {"terrain": terrain}
     full = _full_entry(block, set_name)
+    # T17.33: the middle is most of a ground (VARIANTS_SHARE of it for all its variants
+    # together), so the variants are details here and there, never a patchwork
+    share = (
+        min(VARIANT_PROBABILITY, VARIANTS_SHARE / (1.0 - VARIANTS_SHARE) / len(block.variants))
+        if block.variants
+        else VARIANT_PROBABILITY
+    )
     for cx, cy in block.variants:
-        out[f"{cx},{cy}"] = {"terrain": full, "probability": VARIANT_PROBABILITY}
+        out[f"{cx},{cy}"] = {"terrain": full, "probability": round(share, 4)}
     return out
+
+
+VARIANTS_SHARE = 0.15  # of a ground's cells, its variants' together at most
 
 
 def _full_entry(block: Block, set_name: str) -> dict[str, Any]:

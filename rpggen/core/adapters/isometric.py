@@ -101,6 +101,8 @@ LEANING_WORDS = frozenset({"slanted", "slant", "diagonal", "leaning", "broken"})
 WALL_WORDS = frozenset({"wall", "walls"})
 # the shapes of roof pieces that only make a roof with their like when they cover their cells
 HALF_CELL_SHAPES = frozenset({"slope", "hip", "valley"})
+# T17.33: a roof piece over half a cell, which makes no roof of a house: the house's roof is drawn
+HALF_CELL_TAG = "roof_half_cell"
 
 
 def says_isometric(words: set[str]) -> bool:
@@ -946,6 +948,9 @@ class IsometricAdapter:
         whole = measure.roof_covers_cells(laid, diamond) is not False
         for path, shape in shaped.items():
             if not whole and shape.split(":")[0] in HALF_CELL_SHAPES:
+                # T17.33: why its house's roof is drawn, on the audit card
+                facets = read[path][0]
+                facets["tags"] = sorted({*facets.get("tags", []), HALF_CELL_TAG})
                 continue
             facets = read[path][0]
             read[path] = (_standing(facets, roof=shape, roof_rise=rise), TILE_CONFIDENCE)

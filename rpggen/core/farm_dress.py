@@ -196,7 +196,116 @@ FOOTPRINT_FRACTION = 0.3
 MIN_HOUSE = 32  # px each way: a smaller picture of a barn is an icon
 
 
-def animal_houses(catalog: Any, farm_ids: set[str]) -> None:
+FARMHOUSE_WORDS = frozenset({"house", "houses", "home", "cottage", "farmhouse", "cabin"})
+NOT_A_FARMHOUSE = frozenset({"dog", "doghouse", "bird", "birdhouse", "npcs", "npc", "kit"})
+ONE_THING = 0.85  # of what a picture paints, its largest piece: one thing, not a sheet
+
+
+def _one_thing(asset: Any, roots: dict[str, Path], pack_roots: dict[str, str]) -> bool:
+    """True when a picture is one thing: its largest piece of touching painted pixels is most of
+    what it paints."""
+    file = _file_of(asset, roots, pack_roots, {})
+    if file is None:
+        return False
+    try:
+        with Image.open(file) as im:
+            alpha = np.asarray(im.convert("RGBA"))[:, :, 3] >= 64
+    except (OSError, ValueError):
+        return False
+    if not alpha.any():
+        return False
+    from rpggen.core.figures import _islands_in
+
+    # looked at in blocks of 4 px: the pieces of a sheet lie further apart than that
+    h, w = alpha.shape
+    alpha = alpha[: h // 4 * 4, : w // 4 * 4].reshape(h // 4, 4, w // 4, 4).any(axis=(1, 3))
+
+    sizes = [size for size, _share in _islands_in(alpha, np.zeros_like(alpha))]
+    return max(sizes) >= ONE_THING * int(alpha.sum())
+
+
+TREE_WORDS = frozenset({"tree", "trees", "pine", "oak", "birch", "maple", "mahogany"})
+NOT_A_TREE = frozenset(
+    {"effects", "effect", "fx", "animation", "trunk", "trunks", "root", "roots", "shadow",
+     "shandow", "leafs", "leaves", "water", "stump", "copiar", "old"}
+)  # fmt: skip
+
+
+def trees(catalog: Any, farm_ids: set[str], roots: dict[str, Path]) -> None:
+    """A farming pack's trees drawn a season beside the other (T17.33: *Farm RPG*'s
+    ``Tree/Common/Shadow/Pine Tree.png``, four pines of the four seasons in a row): the first
+    of each picture, its spring tree, is a ``DECORATION`` tagged ``tree`` the farm plants
+    instead of drawing one. A picture of one tree is one already."""
+    import re
+
+    from rpggen.core.catalog import SheetObject
+    from rpggen.core.figures import _box
+
+    pack_roots = {p.pack_id: p.root for p in catalog.packs}
+    have = {o.id for o in catalog.objects}
+    for asset in sorted(catalog.assets, key=lambda a: a.id):
+        if asset.pack_id not in farm_ids or "#" in asset.id or asset.kind != "image":
+            continue
+        said = {w for w in re.split(r"[^a-z]+", asset.path.casefold()) if w}
+        if not said & TREE_WORDS or said & NOT_A_TREE or asset.detected.get("animations"):
+            continue
+        file = _file_of(asset, roots, pack_roots, {})
+        if file is None:
+            continue
+        try:
+            with Image.open(file) as im:
+                alpha = np.asarray(im.convert("RGBA"))[:, :, 3] >= 64
+        except (OSError, ValueError):
+            continue
+        h, w = alpha.shape
+        cols = alpha.any(axis=0)
+        # the trees side by side: the columns painted, the gaps between them clear
+        runs: list[tuple[int, int]] = []
+        x = 0
+        while x < w:
+            if cols[x]:
+                start = x
+                while x < w and cols[x]:
+                    x += 1
+                runs.append((start, x))
+            else:
+                x += 1
+        if not runs or runs[0][1] - runs[0][0] < 16:
+            continue
+        x0, x1 = runs[0]
+        box = _box(alpha[:, x0:x1])
+        if box is None:
+            continue
+        _bx0, y0, _bx1, y1 = box
+        region = [x0, y0, x1 - x0, y1 - y0 + 1]
+        object_id = f"{asset.id}#tree"
+        if object_id in have:
+            continue
+        fh = max(1, region[3] // 6)
+        catalog.objects.append(
+            SheetObject(
+                object_id,
+                asset.id,
+                posixpath.splitext(posixpath.basename(asset.path))[0],
+                "DECORATION",
+                region,
+                [region[2] // 2, region[3] - 1],
+                [region[2] // 3, region[3] - fh, max(1, region[2] // 3), fh],
+                {
+                    "profile": "CUSTOM",
+                    "polygon": [
+                        [region[2] // 3, region[3] - fh],
+                        [2 * region[2] // 3, region[3] - fh],
+                        [2 * region[2] // 3, region[3]],
+                        [region[2] // 3, region[3]],
+                    ],
+                },
+                ["tree", DRESS_TAG],
+            )  # fmt: skip
+        )
+
+
+def animal_houses(catalog: Any, farm_ids: set[str], roots: dict[str, Path] | None = None) -> None:
     """A farming pack's own barn and coop (T17.33: *Modern Farm*'s ``Barn_Small_16x16.png`` and
     ``Chicken_Coop_16x16.png``): a single picture named so, large enough, becomes a building
     tagged ``barn`` or ``coop`` where no building of the packs is (the many barns of its sheet
@@ -213,17 +322,27 @@ def animal_houses(catalog: Any, farm_ids: set[str]) -> None:
         for t in o.tags
         if t in ("barn", "coop")
     }
+    pack_roots = {p.pack_id: p.root for p in catalog.packs}
     for asset in sorted(catalog.assets, key=lambda a: a.id):
         if asset.pack_id not in farm_ids or "#" in asset.id or asset.kind != "image":
             continue
         stem = posixpath.splitext(posixpath.basename(asset.path))[0]
+        folder = posixpath.basename(posixpath.dirname(asset.path))
         words = {w for w in re.split(r"[^a-z]+", stem.casefold()) if w}
+        folder_words = {w for w in re.split(r"[^a-z]+", folder.casefold()) if w}
         kinds = {HOUSE_WORDS[w] for w in words if w in HOUSE_WORDS}
-        if len(kinds) != 1 or words & NOT_A_HOUSE:
+        if not kinds and (words | folder_words) & FARMHOUSE_WORDS:
+            # T17.33: a whole house of the pack (*Farm RPG*'s ``Houses/1.png``): the farmhouse
+            kinds = {"house"}
+        if len(kinds) != 1 or (words | folder_words) & NOT_A_HOUSE:
             continue
         kind = kinds.pop()
-        if kind in tagged or asset.path.casefold().endswith(".gif"):
+        if (kind in tagged and kind != "house") or asset.path.casefold().endswith(".gif"):
             continue
+        if kind == "house" and (words | folder_words) & NOT_A_FARMHOUSE:
+            continue
+        if kind == "house" and (roots is None or not _one_thing(asset, roots, pack_roots)):
+            continue  # a kit of walls and roofs (``Tiny House.png``), or several houses
         if any(
             str(t).startswith("unused_because:other_size") for t in asset.detected.get("tags") or []
         ):

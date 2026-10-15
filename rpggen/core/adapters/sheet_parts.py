@@ -702,7 +702,11 @@ def sort_cells(a: np.ndarray, cell: int, crops: bool = False) -> _Cut:
         mostly = len(full) >= GROUND_WHOLE_SHARE * len(group)
         ground = _ground_cells(a, cell, full) if mostly else set()
         for block in _connected(ground):
-            tiles = [a[r * cell : (r + 1) * cell, c * cell : (c + 1) * cell] for r, c in block]
+            # T17.33: a cell of a painted patch of ground that shows a seam laid beside itself
+            # (CuteSCKR's grass: a grid of dark lines over the farm) is made seamless
+            tiles = [
+                seamless(a[r * cell : (r + 1) * cell, c * cell : (c + 1) * cell]) for r, c in block
+            ]
             sheet = np.concatenate(tiles, axis=1)
             r0, c0 = block[0]
             facets: dict[str, Any] = {
@@ -718,6 +722,44 @@ def sort_cells(a: np.ndarray, cell: int, crops: bool = False) -> _Cut:
             if sum(share[r, c] for r, c in members) >= CELL_SPECK:
                 cut.parts.append(_object_of(a, mask, cell, members))
     return cut
+
+
+SEAMLESS_RATIO = 0.9  # laid beside itself, a seam this much rougher than its pixels shows
+
+
+def seam_ratio(tile: np.ndarray) -> float:
+    """How much rougher a tile's seams are laid beside itself than its own neighbouring pixels."""
+    t = tile[..., :3].astype(np.int16)
+    near = float(np.abs(np.diff(t, axis=0)).mean() + np.abs(np.diff(t, axis=1)).mean()) / 2
+    seam = max(float(np.abs(t[:, 0] - t[:, -1]).mean()), float(np.abs(t[0] - t[-1]).mean()))
+    ratio = seam / max(near, 1.0)
+    # a line of its own along an edge (a border the sheet drew round its patch) is a seam
+    # however rough the grass inside is: its mean stands out of the means of the lines inside
+    for lines in (t.mean(axis=1), t.mean(axis=0)):
+        inner = lines[1:-1]
+        spread = float(np.abs(inner - inner.mean(axis=0)).mean()) + 1.0
+        for edge in (lines[0], lines[-1]):
+            if float(np.abs(edge - inner.mean(axis=0)).mean()) > 3.0 * spread:
+                ratio = max(ratio, SEAMLESS_RATIO + 1.0)
+    return ratio
+
+
+def seamless(tile: np.ndarray) -> np.ndarray:
+    """``tile`` as it is when it lies beside itself without a seam; else blended with itself
+    moved by half a tile each way, so that its edges are its own middle and meet their
+    neighbours' (the usual way of making a texture tile; for a painted patch of grass it shows
+    nothing, for drawn pixel art it is never needed: such a tile is made to tile)."""
+    if tile.shape[2] != 4 or float((tile[..., 3] >= 250).mean()) < 0.99:
+        return tile
+    if seam_ratio(tile) <= SEAMLESS_RATIO:
+        return tile
+    h, w = tile.shape[:2]
+    moved = np.roll(np.roll(tile, h // 2, axis=0), w // 2, axis=1).astype(np.float32)
+    ys = 1.0 - np.abs(np.arange(h, dtype=np.float32) - (h - 1) / 2.0) / ((h - 1) / 2.0)
+    xs = 1.0 - np.abs(np.arange(w, dtype=np.float32) - (w - 1) / 2.0) / ((w - 1) / 2.0)
+    weight = np.clip(np.minimum(ys[:, None], xs[None, :]) * 2.5, 0.0, 1.0)[..., None]
+    out = tile.astype(np.float32) * weight + moved * (1.0 - weight)
+    return np.asarray(np.clip(np.rint(out), 0, 255), dtype=np.uint8)
 
 
 def _ground_cells(a: np.ndarray, cell: int, full: set[tuple[int, int]]) -> set[tuple[int, int]]:

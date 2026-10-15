@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from rpggen.core import catalog as catalog_mod
 from rpggen.core import classifier, requirements
@@ -195,7 +196,12 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
                 return -int(w) * int(h)
             if role != "GROUND" or (projection == TOP_DOWN and a.pack_id not in farms):
                 return 0
-            return open_ground_rank(a)
+            rank = open_ground_rank(a)
+            if a.pack_id in farms and set(classifier.tokens(a.path)[1]) & NOT_FARM_GROUND_WORDS:
+                # T17.33: a farm is laid with its meadow, not with the grass of its caves
+                # (*Farm RPG*'s ``Tileset Grass Caves`` was its farm's ground)
+                rank += len(OPEN_GROUND_WORDS) + 2
+            return rank
 
         # a recolour variant (T13.18) never takes a role from the pack's own asset by itself,
         # of a tile turned four ways (T17.12) the first turn is the one that is named, and of
@@ -222,8 +228,48 @@ def best_for(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN
     if role in OBJECT_ROLES:
         objs = [o for o in objects_with_role(catalog, role) if o.status != "UNUSED"]
         if objs:
+            if role == "BUILDING":
+                # T17.33: a house by its name before a part of a tile sheet (*Farm RPG*'s
+                # village had a piece of its dungeon tile set as its house), an animal's house
+                # last, the larger first
+                objs = sorted(
+                    objs,
+                    key=lambda o: (
+                        _house_rank(catalog, o),
+                        -int(o.region[2]) * int(o.region[3]),
+                        objs.index(o),
+                    ),
+                )
             return objs[0].id
     return None
+
+
+NOT_FARM_GROUND_WORDS = frozenset(
+    {"cave", "caves", "mine", "mines", "dungeon", "cliff", "cliffs", "shadow", "shadows",
+     "water", "path", "paths", "road", "bridge", "beach", "temple", "house", "barn", "carpet"}
+)  # fmt: skip
+HOUSE_NAME_WORDS = frozenset(
+    {"house", "houses", "home", "cottage", "farmhouse", "cabin", "hut", "inn", "shop"}
+)
+NOT_A_HOUSE_NAME = frozenset({"dog", "bird", "birdhouse", "doghouse", "tree", "tileset"})
+
+
+def _house_rank(catalog: catalog_mod.Catalog, obj: Any) -> int:
+    tags = set(getattr(obj, "tags", None) or [])
+    sheet = catalog.asset(obj.sheet)
+    said = (
+        set(classifier.tokens(sheet.path)[0]) | set(classifier.tokens(sheet.path)[1])
+        if sheet
+        else set()
+    )
+    said |= set(classifier.tokens(str(obj.name))[1])
+    if tags & {"barn", "coop"}:
+        return 3
+    if said & HOUSE_NAME_WORDS and not said & NOT_A_HOUSE_NAME:
+        return 0
+    if said & NOT_A_HOUSE_NAME:
+        return 2
+    return 1
 
 
 def is_assigned(catalog: catalog_mod.Catalog, role: str, projection: str = TOP_DOWN) -> bool:

@@ -2088,7 +2088,8 @@ def assemble(
             words = set(classifier.tokens(sheet.path)[0]) | set(classifier.tokens(sheet.path)[1])
             if words & NOT_A_HOUSE_WORDS and not words & HOUSE_WORDS:
                 obj.role = "DECORATION"
-    farm_dress.animal_houses(catalog, farm_ids)  # a farming pack's own barn and coop (T17.33)
+    farm_dress.animal_houses(catalog, farm_ids, pack_roots)  # its own barn, coop, house (T17.33)
+    farm_dress.trees(catalog, farm_ids, pack_roots)  # and its own trees
     assign_tilesets(catalog, previous, adapter_tilesets)
     terrain.attach_terrain_sets(catalog, terrain_result)
     resolve_maps(catalog, maps_raw, previous, issues)

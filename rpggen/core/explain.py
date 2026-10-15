@@ -187,6 +187,12 @@ def why(asset: catalog_mod.Asset) -> str:
         )
     elif asset.detected_by and asset.detected_by not in ("inventory", "generic_grid"):
         parts.append(f"read by the {asset.detected_by} reader")
+    if "roof_half_cell" in (eff.get("tags") or []):
+        # T17.33: why a house of these pieces has a roof drawn in their colours
+        parts.append(
+            "a roof piece over half a cell: laid a cell each it makes no one roof, so a house's "
+            "roof is drawn in its colours"
+        )
     for tag in eff.get("tags") or []:
         if isinstance(tag, str) and tag.startswith(classifier.VARIANT_TAG):
             other = _named(tag[len(classifier.VARIANT_TAG) :])
