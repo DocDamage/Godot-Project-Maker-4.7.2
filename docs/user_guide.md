@@ -487,6 +487,44 @@ Audit page a tile's **collision** can be *One-way* (a plank you can jump up thro
 four more slots: **Jump**, **Land**, **Dash** and **Ability**, filled by file name like the
 others.
 
+**Packs as they come (since T17.32).** rpggen reads the shapes side-view packs are sold in, for
+the metroidvania and the run and gun alike:
+
+* **A tile sheet whose tiles nothing names** (Kenney's pixel platformer packs, ansimuz's and
+  pozak's tile sets): the pictures say which tiles are the ground (its surface on top, its
+  ends, its inside, the faces under it), a plank to jump through, a ladder, spikes, water or
+  a coin; the rooms and stages are painted with that ground, its grass on top and its ends
+  rounded. A tile the pictures leave in doubt (a door, a key, a flag, a sign) is not used,
+  and the report counts them (TILE-016); you can give one its collision on the Audit page.
+  The numbered copies of the same tiles (`tile_0001.png`) are set aside.
+* **A sheet of characters** beside the tiles (`tilemap-characters.png`) is characters: each
+  run of alike frames is one, the first the player, the others enemies.
+* **Ground pieces named by their place** (`grassLeft`, `grassMid`, `grassRight`, `grassCenter`,
+  `grassHalf_left`, `grassCliff_right`, `grassHill_left`) are put together into one tile sheet
+  a surface (`generated/side_terrain/`) and the rooms are painted with them; the `Half`
+  pieces are planks to jump through. A sign, a door or a ledge's decoration is no ground.
+* **Characters as folders of frames** (`Hell-Hound/Sprites/Idle/frame1.png`,
+  `Ogre/Sprites/walk-unarmed/...`, `alienBeige_walk1.png`, `alienBeige_jump.png`): one
+  character with its animations named by the folders or the files; the same animations as
+  strips (`Spritesheets/`) and previews (`.gif`) are set aside. A character whose folder or
+  files say *player*, *hero* or *heroine* is the player, a *boss* the guardian, the others
+  enemies.
+* **Background layers** in a folder (`Background/1 (2).png` to `1 (5).png`, `back`, `middle`,
+  `front`, `sky`, `clouds`) are one parallax set, far to near by their names, their numbers
+  or how much of each is see-through; a room or a stage uses the set nearest its ground's
+  sheet. A folder of whole pictures (several backgrounds to choose from) is no set.
+* **Props** are decorations, never characters. **One tile size a pack**: a sheet in another
+  size than the pack's ground is cut again at that size when it divides it, else it is a
+  picture.
+* **A licence file one folder above** a pack you add on its own (`Assets/license.txt` beside
+  `Assets/Gothicvania/`) is the pack's licence, and the pack's notes in the catalog say where
+  it was found (`licence_above:license.txt`).
+
+What is left to you: animations that nothing names (pozak's beat-'em-up characters are one
+sheet of 16 rows without names: give the rows their names in the audit's *Animations…*
+dialog), and a pack drawn very large (Kenney's 128-pixel *Platformer Pack Remastered*): raise
+the resolution on the Project page so that a room shows more than five tiles across.
+
 **The world options.** On the Options page the *Starter map* box is the **Starter world**:
 
 * **Rooms** (5 to 12) and the **room width** and **height** in tiles. A room is at least one

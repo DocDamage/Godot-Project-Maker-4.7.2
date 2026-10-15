@@ -32,6 +32,7 @@ from __future__ import annotations
 import hashlib
 import posixpath
 import re
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -48,6 +49,7 @@ PARALLAX = "parallax:"
 PARALLAX_SET = "parallax_set:"
 ACTION_TAG = "action_folders"
 FOLDER_TAG = "character_folder:"
+SAYS_TAG = "says:"
 SIDE_TERRAIN = "side"
 SIDE_DIR = "generated/side_terrain"
 SIDE_TAG = "side_terrain"
@@ -65,7 +67,10 @@ _WORDS = re.compile(r"[^0-9a-z]+")
 
 
 def words(text: str) -> list[str]:
-    return [w for w in _WORDS.split(_CAMEL.sub(" ", text).casefold()) if w and not w.isdigit()]
+    """The small-letter words of a name, camel case split, a number glued to a word dropped
+    (``castleHillRight2`` is castle, hill, right)."""
+    out = [w.rstrip("0123456789") for w in _WORDS.split(_CAMEL.sub(" ", text).casefold())]
+    return [w for w in out if w]
 
 
 def _rel(asset: Any, root: str) -> str:
@@ -125,11 +130,16 @@ def characters(assets: list[Any], root: str) -> int:
             continue
         if ACTION_TAG not in _tags(asset) or asset.detected_by in ("profile", "learned"):
             continue
-        said = set(words(_rel(asset, root)))
+        said = set(words(_rel(asset, root))) | {
+            t[len(SAYS_TAG) :] for t in _tags(asset) if t.startswith(SAYS_TAG)
+        }
         role = next((r for r, ws in ROLE_WORDS.items() if said & ws), "ENEMY")
         asset.detected["role"] = role
+        asset.detected["tags"] = sorted(t for t in _tags(asset) if not t.startswith(PARALLAX))
         asset.detected.pop("roles_alt", None)
-        asset.confidence = max(asset.confidence, CONFIDENCE if role != "ENEMY" else ENEMY_CONFIDENCE)
+        asset.confidence = max(
+            asset.confidence, CONFIDENCE if role != "ENEMY" else ENEMY_CONFIDENCE
+        )
         changed += 1
     return changed
 
@@ -168,7 +178,10 @@ def not_ground(assets: list[Any], root: str) -> int:
     decoration (Kenney's ``grassLedgeLeft`` hangs under a surface; ``signRight`` points)."""
     changed = 0
     for asset in assets:
-        if asset.detected.get("role") not in NOT_GROUND_ROLES or asset.detected_by in ("profile", "learned"):
+        if asset.detected.get("role") not in NOT_GROUND_ROLES or asset.detected_by in (
+            "profile",
+            "learned",
+        ):
             continue
         if asset.detected.get("usage") != "sprite" or "#" in asset.id:
             continue
@@ -188,7 +201,13 @@ def prop_objects(catalog: Any, side_ids: set[str]) -> int:
     packs = {p.pack_id: p.root for p in catalog.packs}
     for obj in catalog.objects:
         sheet = by_id.get(obj.sheet)
-        if sheet is None or sheet.pack_id not in side_ids or obj.role not in CHARACTER_ROLES:
+        if sheet is None or sheet.pack_id not in side_ids:
+            continue
+        if FRAME_SHEET in _tags(sheet) and obj.source == "auto" and obj.status != "CONFIRMED":
+            obj.status = "UNUSED"  # the frames of a character's sheet are no things
+            changed += 1
+            continue
+        if obj.role not in CHARACTER_ROLES:
             continue
         if obj.source != "auto" or not is_prop_path(_rel(sheet, packs.get(sheet.pack_id, ""))):
             continue
@@ -212,6 +231,8 @@ NOT_LAYER_WORDS = frozenset(
      "sample", "character", "characters", "player", "sprite", "sprites", "icon", "ui"}
 )  # fmt: skip
 MIN_LAYER_HEIGHT = 64
+# a layer see-through for less than this share of it is a whole picture (the farthest of a set)
+OPAQUE_LAYER = 0.01
 _NUMBER = re.compile(r"(\d+)")
 
 
@@ -239,11 +260,13 @@ def parallax_sets(assets: list[Any], pack_root: Path, root: str) -> int:
         if rel.casefold().endswith(".gif"):
             continue
         facets = asset.detected
-        if facets.get("animations") or facets.get("usage") not in ("background", "sprite", "tiles"):
+        if facets.get("usage") not in ("background", "sprite", "tiles"):
             continue
+        if facets.get("animations") and asset.detected_by != "generic_grid":
+            continue  # frames a reader named (a guessed grid of frames does not count)
         size = facets.get("size") or [0, 0]
-        if int(size[1]) < MIN_LAYER_HEIGHT or int(size[0]) < int(size[1]):
-            continue  # a layer is as wide as high at least
+        if int(size[1]) < MIN_LAYER_HEIGHT or 2 * int(size[0]) < int(size[1]):
+            continue  # a layer is half as wide as high at least (it repeats sideways)
         stem_words = set(words(posixpath.splitext(posixpath.basename(rel))[0]))
         if stem_words & NOT_LAYER_WORDS:
             continue
@@ -258,12 +281,21 @@ def parallax_sets(assets: list[Any], pack_root: Path, root: str) -> int:
         named = all(set(words(s)) & LAYER_WORDS for s in stems.values())
         if not (folder_words & LAYER_WORDS or named):
             continue
-        heights = {int((a.detected.get("size") or [0, 0])[1]) for a in members}
-        if len(heights) != 1:
-            continue  # the layers of one scene are as high as one another
+        # the layers of one scene are as high as one another: the most of one height are the
+        # scene (pozak's ``1 (3) 2.png``, an animated layer 16 times as high, is not)
+        heights = Counter(int((a.detected.get("size") or [0, 0])[1]) for a in members)
+        height, count = max(heights.items(), key=lambda hc: (hc[1], hc[0]))
+        members = [a for a in members if int((a.detected.get("size") or [0, 0])[1]) == height]
+        if count < 2:
+            continue
         if all(any(t.startswith(PARALLAX) for t in _tags(a)) for a in members):
             continue  # their names said their depths already
+        clear = {a.id: _see_through(pack_root / _rel(a, root)) for a in members}
+        if all(clear[a.id] < OPAQUE_LAYER for a in members):
+            continue  # whole pictures only: backgrounds to choose from, not layers of one
         order = _order(members, stems, pack_root, root)
+        # a whole picture is the farthest layer or none: one nearer would hide the others
+        order = [order[0], *(a for a in order[1:] if clear[a.id] >= OPAQUE_LAYER)]
         set_name = folder or "."
         for depth, asset in enumerate(order, start=1):
             facets = asset.detected
@@ -273,7 +305,7 @@ def parallax_sets(assets: list[Any], pack_root: Path, root: str) -> int:
             facets["usage"] = "background"
             facets["role"] = "BACKGROUND"
             for key in ("frame", "origin", "grid", "roles_alt", "tile_overrides", "tileset",
-                        "terrain_proposal"):  # fmt: skip
+                        "animations", "terrain_proposal"):  # fmt: skip
                 facets.pop(key, None)
             asset.confidence = max(asset.confidence, CONFIDENCE)
             tagged += 1
@@ -298,6 +330,80 @@ def _order(members: list[Any], stems: dict[str, str], pack_root: Path, root: str
             by_number.reverse()  # the opaque sky is the last by number
         return by_number
     return sorted(members, key=lambda a: (clear[a.id], a.id))
+
+
+# --------------------------------------------------------------------------- sheets of frames
+
+_SIZE = re.compile(r"(?<![0-9])([0-9]{2,3})\s*[xX]\s*([0-9]{2,3})(?![0-9])")
+FRAME_SHEET = "frame_sheet"
+FRAMES_OF_SHEET = "frames_of_sheet"
+UNNAMED_CONFIDENCE = 0.5  # needs review: the rows' animations have no names
+
+
+def frame_sheets(assets: list[Any], pack_root: Path, root: str) -> int:
+    """pozak's characters (``Character 120x120.png``, ``Character 160x160 (1).png``): a sheet
+    whose name gives a frame size that divides it is one character, each row of painted frames
+    an animation (``anim_<row>``: no name says which, so it needs review); the islands another
+    reader cut of it are set aside, and so are the numbered pictures of the pack that are its
+    frames exported one by one (``Player/Character (2) 15.png``)."""
+    sizes: set[tuple[int, int]] = set()
+    made = 0
+    for asset in assets:
+        if "#" in asset.id or asset.kind != "image" or asset.detected_by in ("profile", "learned"):
+            continue
+        rel = _rel(asset, root)
+        if rel.casefold().endswith(".gif"):
+            continue
+        m = _SIZE.search(posixpath.splitext(posixpath.basename(rel))[0])
+        size = asset.detected.get("size") or [0, 0]
+        if m is None or asset.detected.get("animations") and asset.detected_by != "generic_grid":
+            continue
+        cw, ch = int(m.group(1)), int(m.group(2))
+        w, h = int(size[0]), int(size[1])
+        if not cw or not ch or w % cw or h % ch or (w // cw) * (h // ch) < 4:
+            continue
+        rgba = _load(pack_root / rel)
+        if rgba is None:
+            continue
+        parts = side_tiles.cells_of(rgba, cw, ch, (0, 0), (0, 0))
+        rows: dict[int, list[list[int]]] = {}
+        for c in parts:
+            if c.cover >= side_tiles.EMPTY:
+                rows.setdefault(c.y, []).append([c.x, c.y])
+        if not rows:
+            continue
+        facets = asset.detected
+        tags = {t for t in _tags(asset) if not t.startswith(UNUSED) and not t.startswith(SAME_AS)}
+        facets.update({
+            "usage": "sprite",
+            "grid": {"cell": [cw, ch], "margin": [0, 0], "separation": [0, 0]},
+            "frame": [cw, ch],
+            "origin": [cw // 2, ch - 1],
+            "animations": {
+                f"anim_{i}": {"frames": frames, "fps": 8.0, "loop": True}
+                for i, (_y, frames) in enumerate(sorted(rows.items()))
+            },
+            "tags": sorted(tags | {FRAME_SHEET}),
+        })  # fmt: skip
+        said = set(words(rel))
+        facets["role"] = next((r for r, ws in ROLE_WORDS.items() if said & ws), "PLAYER")
+        facets.pop("roles_alt", None)
+        asset.confidence = UNNAMED_CONFIDENCE
+        sizes.add((cw, ch))
+        made += 1
+        for other in assets:
+            if other.id.startswith(asset.id + "#") and not _set_aside(other):
+                _aside(other, FRAMES_OF_SHEET, rel)
+    if not sizes:
+        return 0
+    for asset in assets:
+        if "#" in asset.id or FRAME_SHEET in _tags(asset) or _set_aside(asset):
+            continue
+        size = asset.detected.get("size") or [0, 0]
+        stem = posixpath.splitext(posixpath.basename(asset.path))[0]
+        if (int(size[0]), int(size[1])) in sizes and _number(stem) is not None:
+            _aside(asset, FRAMES_OF_SHEET)
+    return made
 
 
 # --------------------------------------------------------------------------- character sheets
@@ -334,9 +440,9 @@ def character_sheets(assets: list[Any], pack_root: Path, root: str) -> list[Any]
         if asset.detected_by in ("profile", "learned") or "#" in asset.id:
             continue
         rel = _rel(asset, root)
-        said = set(words(rel))
+        said = set(words(posixpath.splitext(posixpath.basename(rel))[0]))
         if not said & CHARACTER_SHEET_WORDS:
-            continue
+            continue  # the sheet's own name says so (a folder of characters holds sheets of one)
         rgba = _load(pack_root / rel)
         if rgba is None:
             continue
@@ -373,8 +479,8 @@ def character_sheets(assets: list[Any], pack_root: Path, root: str) -> list[Any]
                 "frame": [cw, ch],
                 "origin": [cw // 2, baseline],
                 "animations": {
-                    "idle": {"frames": frames[:1], "fps": 4.0, "loop": True},
-                    "walk": {"frames": frames, "fps": 8.0, "loop": True},
+                    "idle_down": {"frames": frames[:1], "fps": 4.0, "loop": True},
+                    "walk_down": {"frames": frames, "fps": 8.0, "loop": True},
                 },
                 "role": "PLAYER" if i == 0 else "ENEMY",
                 "size": list(facets.get("size") or [0, 0]),
@@ -454,7 +560,10 @@ def _piece(stem: str) -> tuple[str, frozenset[str]] | None:
 
 
 # (place words) -> (row of the generated sheet, peering mask or None, kind, probability)
-def _layout(place: frozenset[str]) -> tuple[int, int | None, str, float] | None:
+Layout = tuple[int, int | None, str, float]
+
+
+def _layout(place: frozenset[str]) -> Layout | None:
     s = side_tiles
     if "ledge" in place:
         return None  # a ledge's decoration hangs under the surface: no ground
@@ -485,15 +594,18 @@ def _layout(place: frozenset[str]) -> tuple[int, int | None, str, float] | None:
     return None
 
 
-def _named_groups(assets: list[Any], root: str) -> dict[tuple[str, str], list[tuple[Any, tuple[int, int | None, str, float]]]]:  # fmt: skip
-    groups: dict[tuple[str, str], list[tuple[Any, tuple[int, int | None, str, float]]]] = {}
+def _named_groups(assets: list[Any], root: str) -> dict[tuple[str, str], list[tuple[Any, Layout]]]:
+    groups: dict[tuple[str, str], list[tuple[Any, Layout]]] = {}
     for asset in assets:
         facets = asset.detected
         if asset.kind != "image" or "#" in asset.id:
             continue
         if facets.get("animations") and asset.detected_by != "generic_grid":
             continue  # frames a reader named: no piece of ground
-        if asset.detected_by in ("profile", "learned") or facets.get("usage") not in ("sprite", "tiles"):
+        if asset.detected_by in ("profile", "learned") or facets.get("usage") not in (
+            "sprite",
+            "tiles",
+        ):
             continue
         tags = _tags(asset)
         if any(t.startswith(UNUSED) for t in tags) and UNUSED + "compiled_sheet" not in tags:
@@ -515,7 +627,7 @@ def _named_groups(assets: list[Any], root: str) -> dict[tuple[str, str], list[tu
 
 def _make_sheet(
     key: tuple[str, str],
-    members: list[tuple[Any, tuple[int, int | None, str, float]]],
+    members: list[tuple[Any, Layout]],
     pack_root: Path,
     root: str,
     work: Path,
@@ -527,10 +639,12 @@ def _make_sheet(
     if len(sizes) != 1 or "center" not in kinds or "mid" not in kinds:
         return None
     tile = sizes.pop()
-    rows: dict[int, list[tuple[Any, tuple[int, int | None, str, float]]]] = {}
+    rows: dict[int, list[tuple[Any, Layout]]] = {}
     order = {"center": 0, "mid": 1, "left": 2, "right": 3, "single": 4, "cliff": 5,
              "one_way_left": 0, "one_way_mid": 1, "one_way": 1, "one_way_right": 2}  # fmt: skip
-    for asset, lay in sorted(members, key=lambda m: (m[1][0], order.get(m[1][2], 9), m[1][3] == 0.0, m[0].id)):
+    for asset, lay in sorted(
+        members, key=lambda m: (m[1][0], order.get(m[1][2], 9), m[1][3] == 0.0, m[0].id)
+    ):
         rows.setdefault(lay[0], []).append((asset, lay))
     cols = max(len(v) for v in rows.values())
     sheet = Image.new("RGBA", (cols * tile, (max(rows) + 1) * tile), (0, 0, 0, 0))
@@ -727,7 +841,9 @@ def read_tiles(
         overrides = asset.detected.setdefault("tile_overrides", {})
         for key, entry in entries.items():
             overrides[key] = {**overrides.get(key, {}), **entry}
-        asset.detected["tile_overrides"] = dict(sorted(overrides.items(), key=lambda kv: _xy(kv[0])))
+        asset.detected["tile_overrides"] = dict(
+            sorted(overrides.items(), key=lambda kv: _xy(kv[0]))
+        )
         sets[asset.id] = [
             terrain_set_def(name, surface, asset.id, index + i)
             for i, (name, (surface, _m)) in enumerate(zip(names, read.terrains, strict=True))

@@ -1,0 +1,18 @@
+{
+  "Background/1 (2).png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "Background/1 (5).png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "Tileset/Tileset.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "role": "GROUND",
+    "usage": "tiles"
+  }
+}

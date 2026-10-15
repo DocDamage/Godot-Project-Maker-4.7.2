@@ -117,7 +117,13 @@ def _numbered(files: list[InventoryFile]) -> list[tuple[int, InventoryFile]] | N
             m2 = LEADING.match(stem)
             if m2 is None:
                 return None
-            lead.append((_WORDS.sub("", (m2.group("base") or "").casefold().rstrip("0123456789")), int(m2.group("num")), f))
+            lead.append(
+                (
+                    _WORDS.sub("", (m2.group("base") or "").casefold().rstrip("0123456789")),
+                    int(m2.group("num")),
+                    f,
+                )
+            )
         if len({b for b, _n, _f in lead}) != 1:
             return None
         parsed = lead
@@ -152,7 +158,9 @@ def find_action_folders(inv: Inventory, claimed: set[str]) -> list[ActionFolder]
         ordered = _numbered(files)
         if ordered is None:
             continue
-        sizes = {(int((f.image or {}).get("w", 0)), int((f.image or {}).get("h", 0))) for f in files}
+        sizes = {
+            (int((f.image or {}).get("w", 0)), int((f.image or {}).get("h", 0))) for f in files
+        }
         if len(sizes) != 1 or 0 in next(iter(sizes)):
             continue
         name = posixpath.basename(folder)
@@ -218,14 +226,31 @@ def _shared_words(members: list[ActionFolder]) -> set[str]:
     no action: the character's name written into each (``player`` of ``player-idle``)."""
     if len(members) < 2:
         return set()
-    sets = [
-        set(words(posixpath.basename(a.label))) | set(words(a.stem)) for a in members
-    ]
+    sets = [set(words(posixpath.basename(a.label))) | set(words(a.stem)) for a in members]
     common = set.intersection(*sets)
     return {w for w in common if w not in naming.ACTIONS}
 
 
+def _sequences_read(
+    actions: dict[str, ActionFolder], by_sequence: dict[str, tuple[Any, ...]]
+) -> bool:
+    """True when the numbered-frame reader reads these frames as one character already (bare
+    numbers in folders named by actions, ``bat/attack/0001.png``): it is left to that reader,
+    which names the animations as it always has."""
+    owners = set()
+    for a in actions.values():
+        for f in a.frames:
+            if f.path not in by_sequence:
+                return False
+            owners.add(by_sequence[f.path])
+    return len(owners) == 1
+
+
 def find_characters(inv: Inventory, claimed: set[str]) -> list[Character]:
+    by_sequence: dict[str, tuple[Any, ...]] = {}
+    for seq in sequences.find_sequences(inv, claimed):
+        for _n, f in seq.frames:
+            by_sequence[f.path] = (seq.owner_folder, seq.owner, seq.size)
     groups: dict[str, list[ActionFolder]] = {}
     for action in find_action_folders(inv, claimed):
         owner = _owner(action)
@@ -235,7 +260,9 @@ def find_characters(inv: Inventory, claimed: set[str]) -> list[Character]:
     out: list[Character] = []
     for owner in sorted(groups):
         members = groups[owner]
-        named = [a for a in members if _action_of(posixpath.basename(a.label)) or _action_of(a.stem)]
+        named = [
+            a for a in members if _action_of(posixpath.basename(a.label)) or _action_of(a.stem)
+        ]
         single = (
             len(members) == 1
             and members[0].label == members[0].folder
@@ -266,7 +293,7 @@ def find_characters(inv: Inventory, claimed: set[str]) -> list[Character]:
             if not name or name in actions:
                 continue
             actions[name] = a
-        if not actions:
+        if not actions or _sequences_read(actions, by_sequence):
             continue
         size = (
             max(a.size[0] for a in actions.values()),
@@ -297,16 +324,27 @@ def find_action_files(inv: Inventory, claimed: set[str]) -> list[Character]:
     out: list[Character] = []
     for folder in sorted(by_folder):
         files = by_folder[folder]
-        if not folder or len(files) < 3 or any(not _is_still(f) or f.path in claimed for f in files):
+        if (
+            not folder
+            or len(files) < 3
+            or any(not _is_still(f) or f.path in claimed for f in files)
+        ):
             continue
-        sizes = {(int((f.image or {}).get("w", 0)), int((f.image or {}).get("h", 0))) for f in files}
+        sizes = {
+            (int((f.image or {}).get("w", 0)), int((f.image or {}).get("h", 0))) for f in files
+        }
         if len(sizes) != 1 or 0 in next(iter(sizes)):
             continue
+        w, h = next(iter(sizes))
+        if w >= 2 * h:
+            continue  # strips of frames side by side: the strips reader's
         split: list[tuple[list[str], int, InventoryFile]] = []
         for f in files:
             stem = posixpath.splitext(posixpath.basename(f.path))[0]
             m = _FILE_FRAME.match(stem)
-            split.append((words(m.group("base") if m else stem), int(m.group("num")) if m else 0, f))
+            split.append(
+                (words(m.group("base") if m else stem), int(m.group("num")) if m else 0, f)
+            )
         names = set()
         for ws, _n, _f in split:
             k = next((i for i, w in enumerate(ws) if w in FILE_ACTIONS), None)
@@ -341,6 +379,32 @@ def find_action_files(inv: Inventory, claimed: set[str]) -> list[Character]:
                 named[name] = ActionFolder(folder, folder, frames, size, action)
         out.append(Character(folder, sorted(named.items()), size))
     return out
+
+
+SAYS = "says:"
+# the words of a file beside a character's folders that say what the character is
+# (``space-marine-lite/player.ase``, ``player-preview.gif``)
+ROLE_FILE_WORDS = frozenset({"player", "hero", "heroine", "boss", "npc", "villager"})
+
+
+def _sibling_words(inv: Inventory, folder: str) -> list[str]:
+    """``says:<word>`` for every role word in the names of the files in the character's own
+    folder (not in its sub-folders)."""
+    found: set[str] = set()
+    for f in inv.files:
+        if posixpath.dirname(f.path) == folder:
+            stem = posixpath.splitext(posixpath.basename(f.path))[0]
+            found |= set(words(stem)) & ROLE_FILE_WORDS
+    return sorted(SAYS + w for w in found)
+
+
+def directed(name: str) -> str:
+    """An animation's name as the other readers write it: with the direction it faces, ``down``
+    when the name gives none (the side-view kinds read ``attack_down`` as ``attack``)."""
+    parts = name.split("_")
+    if any(p in naming.DIRECTIONS for p in parts):
+        return name
+    return f"{name}_down"
 
 
 def strip_name(frames: list[InventoryFile], size: tuple[int, int]) -> str:
@@ -413,19 +477,21 @@ class ActionFramesAdapter:
             try:
                 write_strip(root, action.frames, character.size, dest)
             except (OSError, ValueError) as exc:
-                issues.add("ADAPT-001", adapter=self.name, file=action.frames[0].path, reason=str(exc))
+                issues.add(
+                    "ADAPT-001", adapter=self.name, file=action.frames[0].path, reason=str(exc)
+                )
                 continue
             project_path = f"{STRIP_DIR}/{file_name}"
             result.generated[project_path] = str(dest)
             cols, _rows = sequences.layout(len(action.frames), w)
             verb = anim.split("_")[0]
-            animations[anim] = {
+            animations[directed(anim)] = {
                 "frames": [[i % cols, i // cols] for i in range(len(action.frames))],
                 "fps": naming.fps(verb),
                 "loop": naming.is_looping(verb),
                 "source": project_path,
             }
-            counts[anim] = len(action.frames)
+            counts[directed(anim)] = len(action.frames)
             if not used or anim == "idle":
                 baseline = _lowest_row(dest, character.size, len(action.frames))
             used.extend(action.frames)
@@ -437,7 +503,11 @@ class ActionFramesAdapter:
             "frame": [w, h],
             "origin": [w // 2, baseline],
             "animations": {k: animations[k] for k in sorted(animations)},
-            "tags": [TAG, f"{FOLDER_TAG}{character.folder}"],
+            "tags": [
+                TAG,
+                f"{FOLDER_TAG}{character.folder}",
+                *_sibling_words(inv, character.folder),
+            ],
         }
         result.assets.append(AssetFragment(used[0].path, facets, CONFIDENCE, "full"))
         result.consumed.extend(f.path for f in used[1:])

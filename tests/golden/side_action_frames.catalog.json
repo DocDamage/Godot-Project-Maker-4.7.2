@@ -1,0 +1,492 @@
+{
+  "assets": [
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:Characters/Hero-Files/Sprites/Attack/frame1.png",
+          "unused_because:preview_gif"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.previews.hero_attack",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Previews/hero-attack.gif",
+      "sha256": "7b33d250eff9baadba267962cd254d15cc54a5ed25bced3bb18774723cd70ea3",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:Characters/Hero-Files/Sprites/Attack/frame1.png",
+          "unused_because:preview_gif"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.previews.hero_idle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Previews/hero-idle.gif",
+      "sha256": "65c3214ffdbd88948fe821493b8a9ab91db2306a6504dc63e2250a8a59c36f54",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:Characters/Hero-Files/Sprites/Attack/frame1.png",
+          "unused_because:preview_gif"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.previews.hero_jump",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Previews/hero-jump.gif",
+      "sha256": "c527d45df920231b51f2316e666b6040166e00f072ab1df5f3198daeb3dbab5f",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:Characters/Hero-Files/Sprites/Attack/frame1.png",
+          "unused_because:preview_gif"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.previews.hero_run",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Previews/hero-run.gif",
+      "sha256": "818fbe6a355192ee95211cae473880244fc60e9754fa3c4328886960ee69ce14",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "animations": {
+          "attack_down": {
+            "fps": 12.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/e0eee853272548607c5896bc1fe7edc4eca976806cf0573390eb2267993d2749.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/aa7f61a7cf9907e7de0d1bf479bbfa05052573756748d288050be107058c2af2.png"
+          },
+          "jump_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "generated/frame_strips/436e03990a25c7ec974e3ffe01d9a6e0e287370515124a9040f8d9308294cf94.png"
+          },
+          "run_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/9cf35dc0be1b1cd4ecfd217a2dfe9aa98fada9dd2d3f9cc83c6de0d35a1fce23.png"
+          }
+        },
+        "frame": [
+          32,
+          32
+        ],
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          16,
+          31
+        ],
+        "role": "PLAYER",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "action_folders",
+          "character_folder:Characters/Hero-Files"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.sprites.attack.frame1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Sprites/Attack/frame1.png",
+      "sha256": "e8a7560e89715656f6724c5b2ba29dc33db71b46ccb9ac9f32aaeba3f4ef9e76",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          96,
+          32
+        ],
+        "origin": [
+          48,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          96,
+          32
+        ],
+        "tags": [
+          "same_as:Characters/Hero-Files/Sprites/Attack/frame1.png",
+          "unused_because:same_frames"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.spritesheets.hero_attack",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Spritesheets/hero-attack.png",
+      "sha256": "84e7c64a27d7164607d52ef8359dd0198bd2face867c3fefc07725ac7abca44c",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          96,
+          32
+        ],
+        "origin": [
+          48,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          96,
+          32
+        ],
+        "tags": [
+          "same_as:Characters/Hero-Files/Sprites/Attack/frame1.png",
+          "unused_because:same_frames"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.spritesheets.hero_idle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Spritesheets/hero-idle.png",
+      "sha256": "9af96533a8c4bd9890e5bde3a0b44aeae72cf762c73c75932ad0932fc3cb92e5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "same_as:Characters/Hero-Files/Sprites/Attack/frame1.png",
+          "unused_because:same_frames"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.spritesheets.hero_jump",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Spritesheets/hero-jump.png",
+      "sha256": "123fd8684605b7a3f50226a2bd99d413bc151a654bff7170436cd9199fe57cf2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          128,
+          32
+        ],
+        "origin": [
+          64,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          128,
+          32
+        ],
+        "tags": [
+          "same_as:Characters/Hero-Files/Sprites/Attack/frame1.png",
+          "unused_because:same_frames"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.hero_files.spritesheets.hero_run",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Hero-Files/Spritesheets/hero-run.png",
+      "sha256": "3e5aff6388424768a9009898a3806e385709bf1996ae9ddffe97f47a6ad7875f",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/852ec1f8acbcf4f86349874cd4baf45f0541ff19f99c09601eb2bdbed5c087cc.png"
+          },
+          "walk_unarmed_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/309f8e27bf67297f1b20e174a1a09fb00928a621cb53237fa91ca35312140e1a.png"
+          }
+        },
+        "frame": [
+          48,
+          40
+        ],
+        "grid": {
+          "cell": [
+            48,
+            40
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          24,
+          39
+        ],
+        "role": "ENEMY",
+        "size": [
+          48,
+          40
+        ],
+        "tags": [
+          "action_folders",
+          "character_folder:Characters/Ogre"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "action_frames",
+      "id": "side_action_frames.characters.ogre.sprites.idle.ogre_idle_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_action_frames",
+      "path": "assets/packs/side_action_frames/Characters/Ogre/Sprites/idle/ogre-idle-1.png",
+      "sha256": "5219377c5964333fa22276e06c63a0b77c9010bcfefee412900f3a11a3f373ff",
+      "status": "AUTO_DETECTED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "action_frames"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/side_action_frames/license.txt"
+      ],
+      "pack_id": "side_action_frames",
+      "profile_id": null,
+      "root": "assets/packs/side_action_frames",
+      "source_sha256": "36f3390f28e73abc8a17a6fb3e8c07bcd7fb520c115064ea992658f537de1f1f",
+      "warnings": [
+        "view:side"
+      ]
+    }
+  ],
+  "tilesets": []
+}

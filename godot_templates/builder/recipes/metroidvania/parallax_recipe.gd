@@ -56,12 +56,12 @@ static func layers(ctx: BuildContext) -> Array[Dictionary]:
 			out.append(entry)
 			continue
 		var key := JsonUtil.to_str(a.get("pack_id", "")) + "/" + set_name
-		if not by_set.has(key):
-			by_set[key] = []
-		(by_set[key] as Array).append(entry)
+		var members: Array = JsonUtil.to_array(by_set.get(key, []))
+		members.append(entry)
+		by_set[key] = members
 	if not by_set.is_empty():
 		var chosen := _nearest_set(ctx, by_set.keys())
-		for entry: Variant in by_set[chosen]:
+		for entry: Variant in JsonUtil.to_array(by_set[chosen]):
 			out.append(JsonUtil.to_dict(entry))
 	out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool:
 		return JsonUtil.to_int(x["depth"]) < JsonUtil.to_int(y["depth"]) or (x["depth"] == y["depth"] and JsonUtil.to_str(x["asset"]) < JsonUtil.to_str(y["asset"])))

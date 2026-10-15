@@ -195,7 +195,8 @@ def test_no_top_down_golden_has_a_side_view_tag_or_view() -> None:
             "sample_pack_gun",
             "sample_pack_shmup",
         )
-        if path.stem.split(".")[0] in side_or_layers:
+        # and the real side-view shapes of T17.32 (side_numbered_platformer, side_named_...)
+        if path.stem.split(".")[0] in side_or_layers or path.stem.startswith("side_"):
             continue
         data = json.loads(path.read_text(encoding="utf-8"))
         for pack in data["packs"]:

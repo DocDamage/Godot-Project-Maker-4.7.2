@@ -180,7 +180,7 @@ SIDE_VIEW_WORDS = frozenset(
     {"platformer", "platformers", "sidescroller", "sidescrolling", "metroidvania", "jump"}
 )
 TOP_VIEW_WORDS = frozenset({"rpg", "jrpg", "topdown", "overworld"})
-SIDE_VIEW_PAIRS = (("side", "scroller"), ("side", "view"), ("side", "scrolling"))
+SIDE_VIEW_PAIRS = (("side", "scroller"), ("side", "view"), ("side", "scrolling"), ("beat", "em"))
 TOP_VIEW_PAIRS = (("top", "down"),)
 
 
@@ -605,7 +605,7 @@ def _one_name(stem: str, isometric: bool) -> str:
     return turn.base if turn is not None else stem
 
 
-def made_for(inventory: Any, sheets: Any = ()) -> str:
+def made_for(inventory: Any, sheets: Any = (), name: str = "") -> str:
     """``"side"`` or ``"top"``, or the kind a pack was made for (``"shmup"``, ``"racing"``,
     ``"farm"``): how a pack looks at its world (T14.02). The words of its folders
     and files count (platformer, sidescroller, metroidvania, jump against rpg, topdown,
@@ -619,7 +619,7 @@ def made_for(inventory: Any, sheets: Any = ()) -> str:
     isometric = isometric_view(inventory, sheets)
     # the pack's own name counts twice (T17.32: *Platformer Pack Medieval*, pozak's *2D Pixel
     # Art Platformer Asset Pack*s say it nowhere else)
-    own = _all_words(str(getattr(inventory, "pack_id", "") or ""))
+    own = _all_words(name or str(getattr(inventory, "pack_id", "") or ""))
     if set(own) & SIDE_VIEW_WORDS or any(_has_pair(own, p) for p in SIDE_VIEW_PAIRS):
         side += 2
     if set(own) & TOP_VIEW_WORDS or any(_has_pair(own, p) for p in TOP_VIEW_PAIRS):

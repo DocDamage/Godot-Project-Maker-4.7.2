@@ -86,7 +86,9 @@ class SheetRead:
     painted: int = 0
 
 
-def cells_of(rgba: np.ndarray, cw: int, ch: int, margin: tuple[int, int], sep: tuple[int, int]) -> list[Cell]:
+def cells_of(
+    rgba: np.ndarray, cw: int, ch: int, margin: tuple[int, int], sep: tuple[int, int]
+) -> list[Cell]:
     """The cells of a sheet cut on its grid, row by row."""
     h, w = rgba.shape[:2]
     out: list[Cell] = []
@@ -183,10 +185,10 @@ def fits(a: Cell, side: int, b: Cell) -> bool:
     if agree < ALPHA_AGREE:
         return False
     both = ma & mb
-    if both.sum() < max(2, int(0.5 * len(ma))):
+    if both.sum() < max(2, int(0.5 * max(ma.sum(), mb.sum()))):
         return False
     diff = float(np.abs(ea[both] - eb[both]).mean())
-    tol = SEAM_TOL + SEAM_NOISE * max(ga, gb)
+    tol = SEAM_TOL + SEAM_NOISE * min(ga, gb)
     if diff > tol:
         return False
     return not _bordered(a, side, tol) and not _bordered(b, OPPOSITE[side], tol)
@@ -338,7 +340,12 @@ def kind_of(cell: Cell) -> str | None:
         return WATER
     if is_fill(cell):
         return FILL
-    for kind, test in ((ONE_WAY, is_one_way), (LADDER, is_ladder), (SPIKES, is_spikes), (COIN, is_coin)):
+    for kind, test in (
+        (ONE_WAY, is_one_way),
+        (LADDER, is_ladder),
+        (SPIKES, is_spikes),
+        (COIN, is_coin),
+    ):
         if test(cell):
             return kind
     return None
@@ -348,22 +355,15 @@ def kind_of(cell: Cell) -> str | None:
 
 
 def _top_band(cell: Cell) -> np.ndarray:
-    """The colour of a surface piece's surface: of the painted rows of its upper half, the one
-    of the most saturated colour (an outline above the grass is not the grass)."""
+    """The colour of a surface piece's surface: the mean of its upper rows (a third of the
+    cell) without the dark ones (an outline above the grass is not the grass)."""
     h = cell.rgba.shape[0]
-    best, best_sat = np.zeros(3, np.float32), -1.0
-    for y in range(max(1, h // 2)):
-        mask = cell.rgba[y, :, 3] >= ALPHA
-        if mask.mean() < 0.5:
-            continue
-        colour = cell.rgba[y, :, :3][mask].astype(np.float32).mean(axis=0) / 255.0
-        mx, mn = float(colour.max()), float(colour.min())
-        sat = (mx - mn) / mx if mx > 0 else 0.0
-        if mn > 0.75:
-            sat = max(sat, 0.5)  # snow: white is the surface
-        if sat > best_sat:
-            best, best_sat = colour, sat
-    return best
+    band = cell.rgba[: max(1, h // 3)].reshape(-1, 4)
+    painted = band[band[:, 3] >= ALPHA][:, :3].astype(np.float32) / 255.0
+    light = painted[painted.max(axis=1) >= 0.35] if painted.size else painted
+    if not light.size:
+        return np.zeros(3, np.float32)
+    return np.asarray(light.mean(axis=0))
 
 
 def surface_of(colour: np.ndarray) -> str:
@@ -390,7 +390,9 @@ MAX_TERRAINS = 6
 MAX_SEEDS = 16
 MAX_ALIKE = 4
 # a piece of a terrain is painted for this share at least in colours of its fill
-SHARED_PALETTE = 0.75
+SHARED_PALETTE = 0.65
+# a piece of ground is painted nearly all over (a door or a sign in front of earth is not)
+PIECE_COVER = 0.85
 COLOUR_NEAR = 0.1
 
 
@@ -428,7 +430,7 @@ def terrains(cells: list[Cell], fills: list[Cell]) -> list[tuple[str, dict[str, 
         # first pass: the sides that join the fill itself
         joins: dict[str, int] = {}
         for c in cells:
-            if c.key in members or c.key in taken or c.cover < 0.4:
+            if c.key in members or c.key in taken or c.cover < PIECE_COVER:
                 continue
             bits = 0
             for side in (N, E, S, W):
@@ -507,7 +509,10 @@ def overrides(read_: SheetRead, set_names: list[str]) -> dict[str, dict[str, Any
         if kind == ONE_WAY:
             out[key] = {"collision": {"profile": "ONE_WAY"}, "custom": {"side": kind}}
         elif kind == LADDER:
-            out[key] = {"collision": {"profile": "LADDER"}, "custom": {"side": kind, "ladder": True}}
+            out[key] = {
+                "collision": {"profile": "LADDER"},
+                "custom": {"side": kind, "ladder": True},
+            }
         elif kind == SPIKES:
             out[key] = {"collision": {"profile": "NONE"}, "custom": {"side": kind, "hazard": True}}
         else:  # water and coins are no ground to stand on

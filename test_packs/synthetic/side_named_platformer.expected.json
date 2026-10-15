@@ -1,0 +1,18 @@
+{
+  "PNG/Ground/Grass/grassCenter.png": {
+    "role": "NONE"
+  },
+  "PNG/Ground/Grass/grassHalf_mid.png": {
+    "role": "NONE"
+  },
+  "PNG/Ground/Grass/grassMid.png": {
+    "role": "NONE"
+  },
+  "PNG/Players/player_idle.png": {
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "PNG/Tiles/grassLedgeLeft.png": {
+    "role": "DECORATION"
+  }
+}

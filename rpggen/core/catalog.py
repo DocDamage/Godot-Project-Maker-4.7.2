@@ -1867,7 +1867,7 @@ def assemble(
             issues.add("ASSET-021", pack_id=pack_id, file=root)
         _side_view_usage([a for a in catalog.assets if a.pack_id == pack_id])
         sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
-        view = classifier.made_for(inv, sheets)
+        view = classifier.made_for(inv, sheets, opened.root.name if opened.kind == "folder" else "")
         if farm_pack and view == "top" and not classifier.isometric_view(inv, sheets):
             view = "farm"  # its own name says farm and its files nothing else (T17.29)
         elif (
@@ -1937,6 +1937,7 @@ def assemble(
             # characters, their background layers ordered sets, their character sheets cut
             side_ids.add(pack_id)
             own = [a for a in catalog.assets if a.pack_id == pack_id]
+            side_packs.frame_sheets(own, opened.root, root)
             side_packs.characters(own, root)
             side_packs.props(own, root)
             side_packs.not_ground(own, root)
@@ -1975,7 +1976,11 @@ def assemble(
                 [r.adapter for r in results if r.assets or r.objects or r.tilesets],
                 next((r.profile_id for r in results if r.profile_id), None),
                 sorted(set(warnings)),
-                (above[1] if above is not None else licenses.detect_files(opened.root, licence_paths)).to_json(),
+                (
+                    above[1]
+                    if above is not None
+                    else licenses.detect_files(opened.root, licence_paths)
+                ).to_json(),
                 _profile_licence(results),
             )
         )

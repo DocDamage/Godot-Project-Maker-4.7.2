@@ -3612,7 +3612,7 @@ def _numbered_sheet(t: int = 16) -> Image.Image:
             x, y = col * t, row * t
             _dirt(d, x, y, t, t)
             if row == 0:
-                d.rectangle([x, y, x + t - 1, y + 4], fill=GRASS)
+                d.rectangle([x, y, x + t - 1, y + 2], fill=GRASS)
                 d.line([(x, y), (x + t - 1, y)], fill=GRASS_LIGHT)
             if col == 0:
                 d.rectangle([x, y, x + 1, y + t - 1], fill=OUTLINE)
@@ -3655,8 +3655,14 @@ def _character_sheet(t: int = 24) -> Image.Image:
     img = Image.new("RGBA", (9 * t, 2 * t), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     colours = (
-        (60, 190, 80, 255), (220, 60, 60, 255), (60, 100, 230, 255), (240, 200, 40, 255),
-        (170, 70, 200, 255), (40, 200, 200, 255), (250, 140, 30, 255), (120, 120, 120, 255),
+        (60, 190, 80, 255),
+        (220, 60, 60, 255),
+        (60, 100, 230, 255),
+        (240, 200, 40, 255),
+        (170, 70, 200, 255),
+        (40, 200, 200, 255),
+        (250, 140, 30, 255),
+        (120, 120, 120, 255),
         (250, 160, 200, 255),
     )
     for i, color in enumerate(colours):
@@ -3688,7 +3694,7 @@ def make_side_numbered(out: Path) -> None:
         {
             "Tilemap/tilemap_packed.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16]},
             "Tilemap/tilemap-characters_packed.png#ch0_0": {
-                "usage": "sprite", "role": "PLAYER", "frame": [24, 24], "anims": ["idle", "walk"],
+                "usage": "sprite", "role": "PLAYER", "frame": [24, 24], "anims": ["idle_down", "walk_down"],
             },
             "Tilemap/tilemap-characters_packed.png#ch2_0": {"usage": "sprite", "role": "ENEMY"},
             "Tilemap/tilemap-characters_packed.png#ch8_0": {"usage": "sprite", "role": "ENEMY"},
@@ -3698,7 +3704,7 @@ def make_side_numbered(out: Path) -> None:
     )  # fmt: skip
 
 
-def _piece(kind: str, t: int = 32) -> Image.Image:
+def _ground_piece(kind: str, t: int = 32) -> Image.Image:
     """A piece of a grass-topped ground of ``t`` px drawn as its name says where it goes."""
     img = Image.new("RGBA", (t, t), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -3707,7 +3713,11 @@ def _piece(kind: str, t: int = 32) -> Image.Image:
         d.rectangle([0, 0, t - 1, 5], fill=GRASS)
         return img
     if kind.startswith("hill"):
-        pts = [(0, t - 1), (t - 1, 0), (t - 1, t - 1)] if kind == "hill_right" else [(0, 0), (t - 1, t - 1), (0, t - 1)]
+        pts = (
+            [(0, t - 1), (t - 1, 0), (t - 1, t - 1)]
+            if kind == "hill_right"
+            else [(0, 0), (t - 1, t - 1), (0, t - 1)]
+        )
         d.polygon(pts, fill=DIRT)
         return img
     _dirt(d, 0, 0, t, t)
@@ -3733,12 +3743,15 @@ def make_side_named(out: Path) -> None:
         ("grassHalf_right", "half"), ("grassHill_left", "hill_left"),
         ("grassHill_right", "hill_right"),
     ):  # fmt: skip
-        _save_png(_piece(kind), ground / f"{name}.png")
-    _save_png(_piece("mid"), pack / "PNG" / "Tiles" / "grassLedgeLeft.png")
+        _save_png(_ground_piece(kind), ground / f"{name}.png")
+    _save_png(_ground_piece("mid"), pack / "PNG" / "Tiles" / "grassLedgeLeft.png")
     _save_png(_sign(), pack / "PNG" / "Tiles" / "signRight.png")
     hero = (214, 96, 64, 255)
     for action, frames in (("idle", 2), ("walk", 4), ("jump", 2)):
-        _save_png(_side_strip(frames, hero, 32, 32, action), pack / "PNG" / "Players" / f"player_{action}.png")
+        _save_png(
+            _side_strip(frames, hero, 32, 32, action),
+            pack / "PNG" / "Players" / f"player_{action}.png",
+        )
     _expected(
         out,
         "side_named_platformer",
@@ -3774,21 +3787,26 @@ def make_side_action_frames(out: Path) -> None:
         _gif([f.convert("P") for f in frames], hero / "Previews" / f"hero-{action}.gif")
     ogre = pack / "Characters" / "Ogre" / "Sprites"
     for action, count in (("idle", 2), ("walk-unarmed", 4)):
-        strip = _side_strip(count, (120, 150, 80, 255), 48, 40, "run" if "walk" in action else "idle")
+        strip = _side_strip(
+            count, (120, 150, 80, 255), 48, 40, "run" if "walk" in action else "idle"
+        )
         for i in range(count):
-            _save_png(strip.crop((i * 48, 0, i * 48 + 48, 40)), ogre / action / f"ogre-{action}-{i + 1}.png")
+            _save_png(
+                strip.crop((i * 48, 0, i * 48 + 48, 40)),
+                ogre / action / f"ogre-{action}-{i + 1}.png",
+            )
     _expected(
         out,
         "side_action_frames",
         {
             "Characters/Hero-Files/Sprites/Attack/frame1.png": {
                 "usage": "sprite", "role": "PLAYER", "frame": [32, 32],
-                "anims": ["attack", "idle", "jump", "run"],
+                "anims": ["attack_down", "idle_down", "jump_down", "run_down"],
             },
             "Characters/Hero-Files/Spritesheets/hero-idle.png": {"role": "NONE"},
             "Characters/Hero-Files/Previews/hero-idle.gif": {"role": "NONE"},
             "Characters/Ogre/Sprites/idle/ogre-idle-1.png": {
-                "usage": "sprite", "role": "ENEMY", "anims": ["idle", "walk_unarmed"],
+                "usage": "sprite", "role": "ENEMY", "anims": ["idle_down", "walk_unarmed_down"],
             },
         },
     )  # fmt: skip
