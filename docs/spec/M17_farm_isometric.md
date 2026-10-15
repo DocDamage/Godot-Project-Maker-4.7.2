@@ -173,6 +173,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.31 | Autotiling: terrains read from real sheets and maps painted with them, from above and on diamonds | L | T17.30 | done locally on Windows: terrain blocks are read inside sheets in every layout of the card and pieces on diamonds by their edges and names; maps are painted with Godot's terrains and the variants chosen by the seed; *Tiny Farm*, *Farm RPG*, *Modern Farm*, CuteSCKR's and SakPix's farms, the samples, a *Medieval Town* village, a Screaming Brain village with its paths and a race on *Vector Roads* generated, played by their smoke runs and looked at; *Medieval Town*, SakPix's and CuteSCKR's packs have no terrain with edges (their grounds vary, nothing more), cliffs, walls and a cave's rock are not painted with terrains, and nobody played by hand (the notes) |
 | T17.32 | Real side-view packs: numbered tile sheets, terrain pieces by name, characters as frames in folders, background layers, beat-'em-up characters | L | T17.31 | done locally on Windows: a *Gothicvania* metroidvania (its caverns tiles as a terrain, its heroine, its creatures, its parallax set), a *Warped* run and gun with its space marine, rooms of Kenney's *Pixel Platformer* and *Platformer Pack Remastered*, each through its smoke run and looked at in pictures; 8.4 % of the 63 packs' pictures read with confidence (0.3 % before), 41.4 % with those set aside (21.0 %); pozak's characters have no animation names (they need review); nobody has played by hand. The card's *Dark Castle Interior* NPC objects were its character's frames, and its *New Platformer Pack* licence was found before (the measure read the wrong pack); see the notes |
 | T17.33 | Everything the real packs still leave unread or unbuilt | L | T17.32 | open |
+| T17.34 | Confidence close to 100 % on real packs: an answer key, calibration, publisher rules, profiles, trusted corrections, a local vision step | L | T17.33 | open |
 
 ---
 
@@ -1471,6 +1472,65 @@ down what they left; this card is that list, and it is done when none of it is l
   games of T17.29 to T17.32 is generated again without the audit overrides those cards needed
   (unless a user would still make that choice, and then the card says why), passes its smoke
   run and is looked at in a picture.
+
+## T17.34 — Confidence close to 100 % on real packs
+
+**Depends on:** T17.33 (and T12.26, the private corpus, which it builds at last)
+**Files:** `rpggen/core/accuracy.py`, `rpggen/core/catalog.py` (`recompute_status`, the
+confidence of each reader), `rpggen/core/learned_rules.py`, `rpggen/core/profiles.py`, the
+adapters, a new `rpggen/core/vision/` (the local vision step), the wizard's audit and settings
+pages, `tools/`, `tests/`
+
+Added 2026-10-15. The share of real pictures read "with confidence" (Confirmed or
+Auto-detected) was 0.3 % on 63 side-view packs before T17.32 and 8.4 % after; on the farm and
+isometric packs it ranged from 15 % to 99 %. That number says how sure the analyzer is, not how
+often it is right: scores are cautious, rules learned from the user are capped below *sure*,
+some pictures (numbered tiles) carry no evidence but their pixels, and no real pack has an
+answer key, so accuracy is measured only on the synthetic packs. The owner asked how to get as
+close to 100 % as possible, and chose: an answer key drafted by an agent and spot-checked by the
+owner, and a vision model that runs on this machine only.
+
+**Spec**
+* **An answer key for the owner's packs** (T12.26's private corpus). For each real pack used by
+  T17.29 to T17.33 an agent drafts the expected catalog (usage, role, grid or frame, animations
+  and their names) by looking at the pictures, written as `*.corpus.json` entries in a folder on
+  F: (never in the repository: the packs are not ours). A review page (an Artifact or a local
+  HTML file) shows a sample of each pack's pictures with the drafted answer, the owner marks
+  what is wrong, and the agent corrects the key. `rpggen analyze --private-corpus DIR --packs
+  ROOT` scores against it.
+* **Calibration.** Each reader's confidences are fitted on the key so that a picture marked
+  *sure* is right at least 99 % of the time, measured; a reader that is right more often than
+  it claims gets its confidence raised, one that is wrong more often gets it lowered. The share
+  of pictures that are sure and the accuracy of the sure ones are both reported per pack and per
+  publisher.
+* **Publisher rules.** Where a publisher lays out every pack the same way (Kenney's names and
+  sheets, pozak's stage packs, SakPix's `rotations/`, ansimuz's folders), a rule for the
+  publisher, held by the key, reads its packs with confidence; a new pack of the same publisher
+  starts sure.
+* **Profiles for reviewed packs.** A pack whose audit has been confirmed once is saved as a
+  profile; every later use of that pack is fully sure. The owner's packs that are in the key get
+  their profiles from it.
+* **Trusted corrections.** A rule learned from the user's audit corrections (T12.59) may become
+  *sure* after enough confirmations with no miss (the numbers set from the key), instead of
+  staying capped below.
+* **A local vision step, optional and off by default.** For pictures that names and pixels
+  cannot decide (a numbered tile that might be a key or a flag, an unnamed animal, a crop
+  without a produce), the analyzer can ask a model running on this machine. The first backend is
+  a local ComfyUI (default `http://127.0.0.1:8188`, set in the wizard's settings) through a
+  captioning or tagging node it has (WD14 Tagger, Florence-2 or JoyCaption; which one is the
+  owner's to install). Pictures are never sent anywhere else; with the setting off nothing is
+  sent at all; with ComfyUI not running or without such a node the step is skipped with a note.
+  A vision answer counts as evidence beside names and pixels, calibrated on the key like any
+  reader, and its answers are cached by the picture's hash.
+
+**Done when**
+* The key covers every real pack of T17.29 to T17.33, spot-checked by the owner.
+* On it, the sure share of pictures and the accuracy of the sure ones are measured before and
+  after, per pack and per publisher, and written in the notes: the aim is every picture sure and
+  99 % or more of the sure ones right; where a pack falls short, the notes say which pictures
+  and why.
+* The vision step works against the owner's ComfyUI with a captioning or tagging node, and is
+  shown to change answers only where it is measured to help.
 
 ---
 
