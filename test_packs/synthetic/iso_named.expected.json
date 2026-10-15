@@ -11,6 +11,36 @@
   "Isometric Named - Large/Floors/Floor_Grass_01-64x32.png#c3_0": {
     "role": "NONE"
   },
+  "Isometric Named - Large/Town/Isometric Buildings 1 - 32x48.png#c0_0_e": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Town/Isometric Buildings 1 - 32x48.png#c0_0_n": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Town/Isometric Buildings 1 - 32x48.png#c0_0_s": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Town/Isometric Buildings 1 - 32x48.png#c0_0_w": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Town/Town Roofing - 70x52.png#c0_0": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Town/Town Roofing - 70x52.png#c1_0": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Corner_Stone_01-SE-36x50.png#c0_0_es": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Corner_Stone_01-SE-36x50.png#c0_0_ne": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Corner_Stone_01-SE-36x50.png#c0_0_nw": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Corner_Stone_01-SE-36x50.png#c0_0_sw": {
+    "role": "NONE"
+  },
   "Isometric Named - Large/Walls/Flat_Stone_01-SE-32x48.png": {
     "role": "NONE"
   },
@@ -56,6 +86,18 @@
   "Isometric Named - Large/Walls/Flat_Stone_Doorway_01-SE-32x48.png#c0_0_w": {
     "role": "NONE"
   },
+  "Isometric Named - Large/Walls/Thick_Stone_01-SE-36x50.png#c0_0_e": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Thick_Stone_01-SE-36x50.png#c0_0_n": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Thick_Stone_01-SE-36x50.png#c0_0_s": {
+    "role": "NONE"
+  },
+  "Isometric Named - Large/Walls/Thick_Stone_01-SE-36x50.png#c0_0_w": {
+    "role": "NONE"
+  },
   "Isometric Named - Small/Floors/Floor_Grass_01-32x16.png": {
     "role": "NONE"
   },
@@ -69,6 +111,54 @@
   },
   "Isometric Named - Small/Floors/Floor_Grass_01-32x16.png#c3_0": {
     "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Town/Isometric Buildings 1 - 16x24.png#c0_0_e": {
+    "edge": "e",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Town/Isometric Buildings 1 - 16x24.png#c0_0_n": {
+    "edge": "n",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Town/Isometric Buildings 1 - 16x24.png#c0_0_s": {
+    "edge": "s",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Town/Isometric Buildings 1 - 16x24.png#c0_0_w": {
+    "edge": "w",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Town/Town Roofing - 38x28.png#c0_0": {
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Town/Town Roofing - 38x28.png#c1_0": {
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Corner_Stone_01-SE-20x26.png#c0_0_es": {
+    "post": "es",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Corner_Stone_01-SE-20x26.png#c0_0_ne": {
+    "post": "ne",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Corner_Stone_01-SE-20x26.png#c0_0_nw": {
+    "post": "nw",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Corner_Stone_01-SE-20x26.png#c0_0_sw": {
+    "post": "sw",
+    "role": "DECORATION",
     "usage": "iso_tile"
   },
   "Isometric Named - Small/Walls/Flat_Stone_01-SE-16x24.png": {
@@ -125,6 +215,26 @@
     "usage": "iso_tile"
   },
   "Isometric Named - Small/Walls/Flat_Stone_Doorway_01-SE-16x24.png#c0_0_w": {
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Thick_Stone_01-SE-20x26.png#c0_0_e": {
+    "edge": "e",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Thick_Stone_01-SE-20x26.png#c0_0_n": {
+    "edge": "n",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Thick_Stone_01-SE-20x26.png#c0_0_s": {
+    "edge": "s",
+    "role": "WALL",
+    "usage": "iso_tile"
+  },
+  "Isometric Named - Small/Walls/Thick_Stone_01-SE-20x26.png#c0_0_w": {
+    "edge": "w",
     "role": "WALL",
     "usage": "iso_tile"
   }

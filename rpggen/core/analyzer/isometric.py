@@ -531,3 +531,197 @@ def stands_on(base: int, width: int) -> tuple[int, int]:
         return (1, 1)
     halves = max(2, round(2 * base / width))
     return ((halves + 1) // 2, halves // 2)
+
+
+# ------------------------------------------------------------------ roofs, posts, paths
+#
+# The pieces of a house of pieces (after T17.22). A **roof piece** covers one diamond a storey
+# up: one slope of a roof (``slope``, high along one side, the ridge), the quarter of a hipped
+# roof (``hip``, high at one corner, where the hips meet), a gable over one cell (``ridge``,
+# high along the line between the middles of two opposite sides), a pyramid (``peak``) and the
+# inner corner of an L (``valley``, low at one corner). Which way a piece is turned is read
+# from its outline: every shape and turn is drawn as a surface over the diamond, raised by how
+# high it is at each point, and the one whose upper outline is the picture's is taken.
+
+CORNERS = {"nw": (0.0, 0.0), "ne": (1.0, 0.0), "es": (1.0, 1.0), "sw": (0.0, 1.0)}  # (east, south)
+ROOF_TURNS: dict[str, tuple[str, ...]] = {
+    "slope": EDGE_SIDES,  # the side that is high: the ridge
+    "hip": tuple(CORNERS),  # the corner that is high: where the hips meet
+    "ridge": ("ew", "ns"),  # the line of the ridge: from the west side to the east, or n to s
+    "peak": ("",),
+    "valley": tuple(CORNERS),  # the corner that is low
+}
+ROOF_SAMPLES = 72  # points of the diamond each way the surface is drawn with
+ROOF_RISES = np.linspace(0.1, 2.5, 49)  # how high a piece may rise, of its diamond's height
+ROOF_MISFIT = 0.05  # the mean misfit of the outline a piece is read with, of the diamond's width
+ROOF_MARGIN = 0.08  # the columns this near a corner of the diamond (of its width) are not looked at
+ROOF_RISE_SLACK = 0.15  # a piece of a roof rises as its pack's slopes do, within this share
+# The words of a roof piece's name that say its shape (``roof_inner_corner`` before ``corner``);
+# a roof whose name says none is a slope, a gable or a pyramid: the quarter of a hipped roof
+# and an inner corner draw outlines that a slope's turns draw too, and are read by name only.
+ROOF_SHAPE_WORDS: tuple[tuple[str, frozenset[str]], ...] = (
+    ("valley", frozenset({"inner", "valley"})),
+    ("hip", frozenset({"corner", "hip", "hipped"})),
+    ("slope", frozenset({"slant", "slanted", "slope", "sloped", "lean"})),
+    ("ridge", frozenset({"straight", "single", "ridge", "gable"})),
+    ("peak", frozenset({"point", "peak", "pyramid", "spire", "tip"})),
+)
+ROOF_UNNAMED = ("slope", "ridge", "peak")
+
+
+def roof_shapes_named(words: set[str]) -> tuple[str, ...]:
+    """The shapes a roof piece whose name has ``words`` may have (``ROOF_SHAPE_WORDS``)."""
+    for shape, said in ROOF_SHAPE_WORDS:
+        if words & said:
+            return (shape,)
+    return ROOF_UNNAMED
+
+
+def roof_rise(read: list[tuple[str, int]]) -> int | None:
+    """How much the roof pieces of a pack rise over a cell, from what each was read with
+    alone (shape, rise): the middle rise of its slopes, else of all its pieces."""
+    slopes = sorted(r for name, r in read if name.startswith("slope"))
+    every = slopes or sorted(r for _name, r in read)
+    return every[(len(every) - 1) // 2] if every else None
+
+
+def _roof_height(shape: str, turn: str, u: np.ndarray, v: np.ndarray) -> np.ndarray:
+    """How high a roof piece is over the point (u east, v south) of its diamond, 1 at the top
+    of a slope (a peak and a ridge rise half as much: they go up over half a cell)."""
+    if shape == "slope":
+        return {"n": 1 - v, "e": u, "s": v, "w": 1 - u}[turn]
+    if shape in ("hip", "valley"):
+        cu, cv = CORNERS[turn]
+        far = np.maximum(np.abs(u - cu), np.abs(v - cv))
+        return 1 - far if shape == "hip" else far
+    if shape == "ridge":
+        return 0.5 - np.abs((v if turn == "ew" else u) - 0.5)
+    return 0.5 - np.maximum(np.abs(u - 0.5), np.abs(v - 0.5))
+
+
+def roof_shape(
+    rgba: np.ndarray,
+    middle: tuple[float, float],
+    diamond: tuple[int, int],
+    shapes: tuple[str, ...] = tuple(ROOF_TURNS),
+    rise: int | None = None,
+) -> tuple[str, int, float] | None:
+    """The shape and turn of a roof piece (``"slope:n"``, ``"hip:es"``, ``"ridge:ew"``,
+    ``"peak"``), how many pixels its slope rises over one cell and how far its outline is from
+    the one drawn (of the diamond's width), or None when no shape of ``shapes`` draws the
+    picture's upper outline within ``ROOF_MISFIT``. ``middle`` is the middle of the diamond in
+    the picture, under the roof: how high its eaves are over it is measured and says nothing.
+
+    The upper outline alone does not tell every turn: the quarter of a hipped roof high at the
+    far corner and the one high at the near corner, raised twice as much, draw the same
+    triangle. The pieces of one roof rise alike, so a pack's pieces are read twice
+    (``roof_rise``): once each to find how much its slopes rise, then with ``rise`` given (the
+    rise is then looked for within ``ROOF_RISE_SLACK`` of it)."""
+    w, h = diamond
+    mask = painted(rgba)
+    if w < MIN_WIDTH or not mask.any():
+        return None
+    columns = np.arange(mask.shape[1])
+    has = mask.any(axis=0)
+    top = np.where(has, mask.argmax(axis=0), -1)
+    lo = int(np.ceil(middle[0] - w / 2 + ROOF_MARGIN * w))
+    hi = int(np.floor(middle[0] + w / 2 - ROOF_MARGIN * w))
+    look = (columns >= max(lo, 0)) & (columns <= min(hi, mask.shape[1] - 1)) & has
+    if look.sum() < w // 4:
+        return None
+    grid = (np.arange(ROOF_SAMPLES) + 0.5) / ROOF_SAMPLES
+    u, v = np.meshgrid(grid, grid)
+    sx = np.rint(middle[0] + (u - v) * w / 2.0).astype(int).ravel()
+    sy = (middle[1] + (u + v - 1.0) * h / 2.0).ravel()
+    inside = (sx >= 0) & (sx < mask.shape[1])
+    sx, sy = sx[inside], sy[inside]
+    measured = top[look].astype(float)
+    best: tuple[float, str, int] | None = None
+    if rise is None:
+        rises = [float(share * h) for share in ROOF_RISES]
+    else:
+        rises = [float(r) for r in np.linspace(1 - ROOF_RISE_SLACK, 1 + ROOF_RISE_SLACK, 7) * rise]
+    for shape in shapes:
+        for turn in ROOF_TURNS[shape]:
+            z = _roof_height(shape, turn, u, v).ravel()[inside]
+            for lift in rises:
+                drawn = np.full(mask.shape[1], np.inf)
+                np.minimum.at(drawn, sx, sy - z * lift)
+                predicted = drawn[look]
+                drawn_here = np.isfinite(predicted)  # a column between two samples is skipped
+                if drawn_here.sum() < look.sum() // 2:
+                    continue
+                diff = measured[drawn_here] - predicted[drawn_here]
+                off = float(np.median(diff))
+                misfit = float(np.abs(diff - off).mean())
+                name = f"{shape}:{turn}" if turn else shape
+                if best is None or misfit < best[0] - 1e-9:
+                    best = (misfit, name, int(round(lift)))
+    if best is None or best[0] > ROOF_MISFIT * w:
+        return None
+    return best[1], best[2], round(best[0] / w, 4)
+
+
+# how many diamonds' widths, at least, four quarters of a hipped roof laid on two cells by two
+# span (2 when they cover their cells, 1 when they cover the half next to their high side),
+# and two slopes laid on two rows (1.5, or 1)
+ROOF_HIPS_SPAN = 1.5
+ROOF_SLOPES_SPAN = 1.25
+_HIP_CELLS = {"hip:es": (0, 0), "hip:sw": (1, 0), "hip:ne": (0, 1), "hip:nw": (1, 1)}
+_SLOPE_CELLS = {"slope:s": (0, 0), "slope:n": (0, 1)}
+
+
+def roof_covers_cells(
+    pieces: dict[str, tuple[np.ndarray, tuple[float, float]]], diamond: tuple[int, int]
+) -> bool | None:
+    """Whether a pack's slopes and hips cover the whole of their cells, as the shapes of
+    ``roof_shape`` are drawn: the four quarters of a hipped roof laid on two cells by two (else
+    the two slopes of a gable on two rows) span two diamonds (one and a half). *Medieval Town*'s
+    cover the half of their cell next to their high side (its quarters make a pyramid one cell
+    wide, its slopes a gable one cell deep) and stand on walls of their own: its roofs are
+    gables of one cell, ``roof_straight``. ``pieces`` is {shape: (picture, middle of its
+    diamond)}; None when it has neither set whole."""
+    w, h = diamond
+    for cells, least in ((_HIP_CELLS, ROOF_HIPS_SPAN), (_SLOPE_CELLS, ROOF_SLOPES_SPAN)):
+        if not all(shape in pieces for shape in cells):
+            continue
+        left, right = np.inf, -np.inf
+        for shape, (x, y) in cells.items():
+            picture, middle = pieces[shape]
+            columns = np.nonzero(painted(picture).any(axis=0))[0]
+            if columns.size == 0:
+                continue
+            at = (x - y) * w / 2.0 - middle[0]
+            left, right = min(left, at + columns[0]), max(right, at + columns[-1] + 1)
+        span = (right - left) / w if right > left else 0.0
+        return bool(span >= least)
+    return None
+
+
+POST_WIDTH = 0.25  # a post is at most this share of its diamond's width wide ...
+POST_HEIGHT = 1.5  # ... and this many times as high as it is wide
+POST_NEAR = 0.25  # its foot lies this near a corner of the diamond, of the diamond's width
+
+
+def post_corner(
+    rgba: np.ndarray, middle: tuple[float, float], diamond: tuple[int, int]
+) -> str | None:
+    """The corner of its diamond a post stands on (``nw`` the top one, ``ne`` the right one,
+    ``es`` the lowest, ``sw`` the left one), or None for a picture that is no post: something
+    narrow and upright whose foot (the middle of its own small diamond, a quarter of its width
+    over its lowest pixel) is at a corner."""
+    found = outline(painted(rgba))
+    if found is None:
+        return None
+    (x, y, bw, bh), _top, _bottom = found
+    w, h = diamond
+    if bw > POST_WIDTH * w or bh < POST_HEIGHT * bw:
+        return None
+    foot = (x + (bw - 1) / 2.0, y + bh - 1 - bw / 4.0)
+    best, near = None, POST_NEAR * w
+    for corner, (cu, cv) in CORNERS.items():
+        at = (middle[0] + (cu - cv) * w / 2.0, middle[1] + (cu + cv - 1.0) * h / 2.0)
+        far = float(np.hypot(foot[0] - at[0], (foot[1] - at[1]) * w / max(h, 1)))
+        if far <= near:
+            best, near = corner, far
+    return best

@@ -70,6 +70,9 @@ KEY_TOLERANCE = 8  # a pixel this near the background colour in every channel is
 KEY_SHARE = 0.05  # the corner's colour is a background when this share of the sheet has it
 PAINTED_SHARE = 0.01  # a cell with fewer painted pixels than this share of it is empty
 SLANT_SHARE = 0.25  # a face slants when its foot falls this share of the diamond's height
+# a sheet may be this many pixels wider or higher than its whole cells (the *Town Pack*'s roofs:
+# 432 wide in cells of 143); what is left over at the right and the bottom is no cell
+SHEET_SLACK = 4
 _TSX_TILE = re.compile(r"<tileset\b[^>]*>", re.IGNORECASE)
 _TSX_IMAGE = re.compile(r"<image\b[^>]*>", re.IGNORECASE)
 _ATTR = re.compile(r'\b([a-z]+)\s*=\s*"([^"]*)"', re.IGNORECASE)
@@ -77,6 +80,12 @@ _WORDS_DOOR = frozenset({"door", "doors", "doorway", "doorways", "gate", "entran
 _WORDS_WINDOW = frozenset({"window", "windows", "windowa", "windowb", "windowc"})
 _WORDS_WATER = frozenset({"water", "sea", "ocean", "lake", "river", "shoals"})
 _WORDS_ROAD = frozenset({"road", "roads", "path", "paths", "pathway", "pathways", "street"})
+_WORDS_ROOF = frozenset({"roof", "roofs", "roofing"})
+_WORDS_POST = frozenset({"corner", "corners", "pillar", "pillars", "post", "posts", "pole"})
+ROOF_WIDER = 1.3  # a roof's cell is at most this many times as wide as its diamond
+THICK_WIDER = 1.25  # a thick wall's face is at most this many times as wide as a flat one's
+POST_CONFIDENCE = 0.85
+ROOF_CONFIDENCE = 0.85
 
 
 @dataclass(frozen=True)
@@ -208,7 +217,7 @@ def candidates(inv: Inventory, root: Path, claimed: set[str]) -> list[_Sheet]:
         if cell is None:
             continue
         w, h = _size(f)
-        if w < cell[0] or h < cell[1] or w % cell[0] or h % cell[1]:
+        if w < cell[0] or h < cell[1] or w % cell[0] > SHEET_SLACK or h % cell[1] > SHEET_SLACK:
             continue
         key = tuple(said[1]) if said and said[1] else None
         found.append(_Sheet(f, cell, key))  # type: ignore[arg-type]
@@ -250,7 +259,7 @@ def face_diamonds(
                 mask = measure.painted(a[row * ch : (row + 1) * ch, col * cw : (col + 1) * cw])
                 if mask.mean() < PAINTED_SHARE:
                     continue
-                if slant(mask, cw / 2):
+                if slant(mask, cw / 2) and _straight_ends(mask):
                     found.add((2 * cw, cw))
                 break
             else:
@@ -267,12 +276,37 @@ def classify_sheets(sheets: list[_Sheet], diamonds: list[Diamond]) -> None:
         ("cube", lambda cw, ch, d: cw == ch == d.width == 2 * d.height),
         ("block", lambda cw, ch, d: cw == d.width and d.height < ch <= d.height * 3 // 2),
     )
+    # after T17.30: the pieces of Screaming Brain's walls and towns, by their names and cells
+    named_tests = (
+        # a roof over one diamond, its eaves a little wider (*Town Roofing*, 143 x 92 on 128)
+        ("roof", _WORDS_ROOF, lambda cw, ch, d: d.width < cw <= d.width * ROOF_WIDER),
+        # a post at a corner of walls (*Corner_Brick*, 80 x 100 beside walls of 64 x 96)
+        ("post", _WORDS_POST, lambda cw, ch, d: d.width // 2 < cw <= d.width and ch > cw),
+    )
     for sheet in sheets:
         for kind, fits in tests:
             d = next((d for d in diamonds if fits(sheet.cell[0], sheet.cell[1], d)), None)
             if d is not None:
                 sheet.kind, sheet.diamond = kind, d
                 break
+        if sheet.kind:
+            continue
+        said = _words(sheet.f.path)
+        for kind, words, named_fit in named_tests:
+            d = next((d for d in diamonds if named_fit(sheet.cell[0], sheet.cell[1], d)), None)
+            if d is not None and said & words:
+                sheet.kind, sheet.diamond = kind, d
+                break
+        if sheet.kind:
+            continue
+        # a thick wall's face: half a diamond wide and the end of the wall beside it
+        cw, ch = sheet.cell
+        d = next(
+            (d for d in diamonds if d.width // 2 < cw <= d.width // 2 * THICK_WIDER and ch > cw),
+            None,
+        )
+        if d is not None:
+            sheet.kind, sheet.diamond = "thick", d
 
 
 def _key_of(a: np.ndarray, said: tuple[int, int, int] | None) -> tuple[int, int, int] | None:
@@ -286,7 +320,32 @@ def _key_of(a: np.ndarray, said: tuple[int, int, int] | None) -> tuple[int, int,
     near = (np.abs(a[..., :3].astype(np.int16) - corner[:3].astype(np.int16)) <= KEY_TOLERANCE).all(
         axis=2
     )
-    return (int(corner[0]), int(corner[1]), int(corner[2])) if near.mean() >= KEY_SHARE else None
+    if near.mean() >= KEY_SHARE:
+        return (int(corner[0]), int(corner[1]), int(corner[2]))
+    return _border_key(a)
+
+
+BORDER_SHARE = 0.25  # the commonest colour of a sheet's border is its background from this share
+
+
+def _border_key(a: np.ndarray) -> tuple[int, int, int] | None:
+    """The background of a sheet whose corner is painted (the *Town Pack*'s walls fill their
+    cells to the top left corner): the commonest colour of its outermost rows and columns, when
+    a quarter of that border and ``KEY_SHARE`` of the sheet have it and the sheet is opaque.
+    None otherwise (a texture has no colour that common)."""
+    if not bool((a[..., 3] == 255).all()):
+        return None
+    border = np.concatenate([a[0, :, :3], a[-1, :, :3], a[:, 0, :3], a[:, -1, :3]])
+    colours, counts = np.unique(border, axis=0, return_counts=True)
+    best = colours[int(counts.argmax())]
+    if counts.max() < BORDER_SHARE * len(border):
+        return None
+    near = (np.abs(a[..., :3].astype(np.int16) - best.astype(np.int16)) <= KEY_TOLERANCE).all(
+        axis=2
+    )
+    if near.mean() < KEY_SHARE:
+        return None
+    return (int(best[0]), int(best[1]), int(best[2]))
 
 
 def keyed(a: np.ndarray, key: tuple[int, int, int] | None) -> np.ndarray:
@@ -311,6 +370,26 @@ def slant(mask: np.ndarray, drop: float) -> str:
     if abs(abs(left - right) - drop) > drop * SLANT_SHARE + 1:
         return ""
     return "/" if left > right else "\\"
+
+
+END_SHARE = 0.15  # the columns at each end of a face whose foot must run one way
+
+
+def _straight_ends(mask: np.ndarray) -> bool:
+    """True when the foot of a wall face runs one way at both of its ends, as a flat face's
+    does. A thick wall's face (Screaming Brain's *Thick* walls) shows the end of the wall at
+    one side, its foot running back the other way: its cell is wider than half its diamond,
+    and it is no face to take the diamond from (it gave 144 x 72 for walls of 128 x 64)."""
+    columns = np.nonzero(mask.any(axis=0))[0]
+    if columns.size < 8:
+        return False
+    foot = np.array([mask.shape[0] - 1 - int(mask[::-1, c].argmax()) for c in columns])
+    end = max(2, int(round(columns.size * END_SHARE)))
+    steps = np.diff(foot.astype(int))
+    for part in (steps[:end], steps[-end:]):
+        if (part > 0).any() and (part < 0).any():
+            return False
+    return bool(np.sign(steps[:end].sum()) == np.sign(steps[-end:].sum()))
 
 
 SEAM_RATIO = 3.0  # a texture tiles on its diamond when its seams differ this little
@@ -538,6 +617,15 @@ class IsoSheetsAdapter:
         if sheet.kind == "wall":
             self._walls(sheet, cells, read)
             return read
+        if sheet.kind == "thick":
+            self._walls(sheet, self._thick_faces(sheet, cells), read, ("thick",))
+            return read
+        if sheet.kind == "post":
+            self._posts(sheet, cells, read)
+            return read
+        if sheet.kind == "roof":
+            self._roofs(sheet, cells, read)
+            return read
         for (col, row), part in sorted(cells.items(), key=lambda kv: (kv[0][1], kv[0][0])):
             facets, confidence = self._tile(sheet, part)
             if facets is None:
@@ -587,15 +675,115 @@ class IsoSheetsAdapter:
             return "DECORATION"
         return "GROUND"
 
-    def _walls(self, sheet: _Sheet, cells: dict[tuple[int, int], np.ndarray], read: _Read) -> None:
+    @staticmethod
+    def _thick_faces(
+        sheet: _Sheet, cells: dict[tuple[int, int], np.ndarray]
+    ) -> dict[tuple[int, int], np.ndarray]:
+        """The faces of a thick wall's cells, each as wide as a flat face: a face slanting
+        ``/`` shows the wall's end at its left (the wall's thickness, behind the face), one
+        slanting ``\\`` at its right; the end is cut off and the face is read as a flat one.
+        Its top keeps the wall's thickness. The posts of the pack stand where two such walls
+        meet. A cell whose face slants neither way is left out."""
+        d = sheet.diamond
+        assert d is not None
+        half = d.width // 2
+        out: dict[tuple[int, int], np.ndarray] = {}
+        for at, part in cells.items():
+            extra = part.shape[1] - half
+            left_cut, right_cut = part[:, extra:], part[:, :half]
+            if slant(measure.painted(left_cut), d.height / 2) == "/":
+                out[at] = left_cut
+            elif slant(measure.painted(right_cut), d.height / 2) == "\\":
+                out[at] = right_cut
+        return out
+
+    def _posts(self, sheet: _Sheet, cells: dict[tuple[int, int], np.ndarray], read: _Read) -> None:
+        """Posts (*Corner_Brick*: a narrow upright block that stands where two walls meet),
+        each put at the four corners of a diamond's canvas: four pieces, turns of one set, each
+        with the facet ``post`` (the corner: ``nw`` the top one, ``ne``, ``es``, ``sw``), so
+        that the builder puts one where the sides of a wall meet."""
+        d = sheet.diamond
+        assert d is not None
+        for (col, row), part in sorted(cells.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+            found = measure.outline(measure.painted(part))
+            if found is None:
+                continue
+            x, y, pw, ph = found[0]
+            if pw > measure.POST_WIDTH * d.width or ph < measure.POST_HEIGHT * pw:
+                continue
+            post = part[y : y + ph, x : x + pw]
+            fx, fy = (pw - 1) / 2.0, ph - 1 - pw / 4.0
+            ox = int(np.ceil(d.width / 2 + fx)) + 1
+            oy = int(np.ceil(d.height / 2 + fy)) + 1
+            cw = ox + int(np.ceil(d.width / 2 + pw - fx)) + 1
+            ch = oy + int(np.ceil(d.height / 2 + ph - fy)) + 1
+            group = f"c{col}_{row}"
+            for turn, (corner, (cu, cv)) in enumerate(measure.CORNERS.items()):
+                canvas = np.zeros((ch, cw, 4), dtype=np.uint8)
+                px = int(round(ox + (cu - cv) * d.width / 2 - fx))
+                py = int(round(oy + (cu + cv - 1) * d.height / 2 - fy))
+                canvas[py : py + ph, px : px + pw] = post
+                facets: dict[str, Any] = {
+                    "usage": "iso_tile",
+                    "projection": "isometric",
+                    "canvas": [cw, ch],
+                    "footprint": [d.width, d.height],
+                    "origin": [ox, oy],
+                    "rise": max(0, oy - d.height // 2 - py),
+                    "size": [cw, ch],
+                    "role": "DECORATION",
+                    "post": corner,
+                    "turn": turn,
+                    "tags": sorted({"post", f"{TURN_GROUP_TAG}{group}"}),
+                }
+                measured = measure.post_corner(canvas, (ox, oy), (d.width, d.height))
+                confidence = POST_CONFIDENCE if measured == corner else LOOSE_CONFIDENCE
+                self._add(read, sheet, f"{group}_{corner}", canvas, facets, confidence)
+
+    def _roofs(self, sheet: _Sheet, cells: dict[tuple[int, int], np.ndarray], read: _Read) -> None:
+        """Roofs over one diamond (*Town Roofing*): each cell a tile tagged ``roof`` whose
+        ``origin`` is the middle of the diamond its eaves cover (as wide as the roof, its lowest
+        corner the roof's lowest pixel). Each is a whole roof of one cell (low hipped roofs,
+        flat ones with a parapet): no piece of a larger roof, so it has no ``roof`` shape and
+        a house of several cells gets one a cell."""
+        d = sheet.diamond
+        assert d is not None
+        for (col, row), part in sorted(cells.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+            box = measure.outline(measure.painted(part))
+            if box is None:
+                continue
+            x, y, bw, bh = box[0]
+            origin = [int(round(x + (bw - 1) / 2.0)), int(round(y + bh - 1 - bw / 4.0))]
+            h, w = part.shape[:2]
+            facets: dict[str, Any] = {
+                "usage": "iso_tile",
+                "projection": "isometric",
+                "canvas": [w, h],
+                "footprint": [d.width, d.height],
+                "origin": origin,
+                "rise": max(0, origin[1] - d.height // 2 - y),
+                "size": [w, h],
+                "role": "DECORATION",
+                "tags": ["roof"],
+            }
+            self._add(read, sheet, f"c{col}_{row}", part, facets, ROOF_CONFIDENCE)
+
+    def _walls(
+        self,
+        sheet: _Sheet,
+        cells: dict[tuple[int, int], np.ndarray],
+        read: _Read,
+        more_tags: tuple[str, ...] = (),
+    ) -> None:
         """Wall faces in pairs, one slanting each way, put together into the four pieces of a
-        wall (see the module)."""
+        wall (see the module). ``more_tags`` are given to every piece (``thick``)."""
         d = sheet.diamond
         assert d is not None
         said = _words(sheet.f.path)
         tags = sorted(
             ({"door"} if said & _WORDS_DOOR else set())
             | ({"window"} if said & _WORDS_WINDOW else set())
+            | set(more_tags)
         )
         faces = {at: slant(measure.painted(part), d.height / 2) for at, part in cells.items()}
         done: set[tuple[int, int]] = set()

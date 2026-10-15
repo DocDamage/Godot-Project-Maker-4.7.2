@@ -94,6 +94,13 @@ NOT_STANDING_FOLDERS = frozenset(
     {"ui", "interface", "hud", "menu", "menus", "vfx", "fx", "effect", "effects", "cursor",
      "cursors", "filter", "filters", "icon", "icons"}
 )  # fmt: skip
+# the words of a name that make a picture a roof piece or a post of a house (after T17.22)
+ROOF_WORDS = frozenset({"roof", "roofs", "roofing"})
+POST_WORDS = frozenset({"pole", "poles", "post", "posts", "pillar", "pillars", "column", "corner"})
+LEANING_WORDS = frozenset({"slanted", "slant", "diagonal", "leaning", "broken"})
+WALL_WORDS = frozenset({"wall", "walls"})
+# the shapes of roof pieces that only make a roof with their like when they cover their cells
+HALF_CELL_SHAPES = frozenset({"slope", "hip", "valley"})
 
 
 def says_isometric(words: set[str]) -> bool:
@@ -307,6 +314,18 @@ def _wider_ground(pictures: list[_Picture], found: measure.Diamond) -> Ground | 
     return Ground(
         width, int(round(width * slope)), side, _mode([p.free for p in on]), canvas, SOURCE_MEASURED
     )
+
+
+def _standing(facets: dict[str, Any], **more: Any) -> dict[str, Any]:
+    """The facets of a picture as a tile that stands on its cell (a roof piece, a post): what
+    made it an object or a piece along a side taken out, ``more`` put in."""
+    out = {k: v for k, v in facets.items() if k not in ("frame", "stands_on", "edge")}
+    return {**out, "usage": USAGE_TILE, **more}
+
+
+def _not_flat(facets: dict[str, Any]) -> bool:
+    """True for a piece that is no flat tile of the ground: along a side, a roof, a post."""
+    return bool(facets.get("edge") or facets.get("roof") or facets.get("post"))
 
 
 def _folders(path: str) -> list[str]:
@@ -719,6 +738,7 @@ class IsometricAdapter:
                 for picture in pictures:
                     if picture.f.path in members and "edge" in read[picture.f.path][0]:
                         read[picture.f.path] = self._facets(picture, ground, edges=False)
+        self._roofs_and_posts(root, pictures, read, turn_groups)
         quarters = self._compass(root, pictures, read, joins)
         if quarters:
             joins = {path: measure.turned_sides(sides, quarters) for path, sides in joins.items()}
@@ -789,6 +809,105 @@ class IsometricAdapter:
         )
 
     @staticmethod
+    def _roofs_and_posts(
+        root: Path,
+        pictures: list[_Picture],
+        read: dict[str, tuple[dict[str, Any], float]],
+        turn_groups: list[set[str]],
+    ) -> None:
+        """The pieces of a house that are no walls (after T17.22), read where their names say
+        what they are and their pictures agree: a **roof piece** (*roof* in its name) gets
+        ``roof``, its shape and turn (``measure.roof_shape``: by its outline, of the shapes its
+        name allows), and ``roof_rise``, how much the pack's slopes rise over a cell; a **post**
+        (*pole*, *post*, *pillar*, *corner* in its name; narrow and upright) gets ``post``, the
+        corner of its diamond it stands on. Either is a tile (``iso_tile``) standing on its
+        cell, whatever it was read as before (an object, or a wall along a side: a slope seen
+        from its end is thin), so that a house of pieces can be roofed and given its corners.
+        A set of turns is posts only when every turn stands on a corner of its own."""
+        roofs: list[tuple[_Picture, tuple[str, ...], np.ndarray]] = []
+        posts: dict[str, str] = {}
+        for picture in pictures:
+            facets = read[picture.f.path][0]
+            if facets.get("usage") not in (USAGE_TILE, "sprite") or "origin" not in facets:
+                continue
+            named = list(classifier.name_words(_stem(picture.f.path)))
+            words = set(named)
+            roof_at = next((i for i, word in enumerate(named) if word in ROOF_WORDS), -1)
+            wall_at = next((i for i, word in enumerate(named) if word in WALL_WORDS), -1)
+            # ``woodWallRoofLeft`` is a wall under a roof's end; ``roofSingleWall`` a roof
+            is_roof = roof_at >= 0 and not 0 <= wall_at < roof_at
+            is_post = bool(words & POST_WORDS) and not words & LEANING_WORDS
+            if not is_roof and not is_post:
+                continue
+            try:
+                rgba = image_facts.load_rgba(root / picture.f.path)
+            except (OSError, ValueError):
+                continue
+            if is_roof:
+                roofs.append((picture, measure.roof_shapes_named(words), rgba))
+                continue
+            origin, foot = facets["origin"], facets["footprint"]
+            corner = measure.post_corner(rgba, (origin[0], origin[1]), (foot[0], foot[1]))
+            if corner:
+                posts[picture.f.path] = corner
+        for members in turn_groups:
+            corners = [posts.get(path) for path in members]
+            if None in corners or len(set(corners)) != len(corners):
+                for path in members:
+                    posts.pop(path, None)
+        for path, corner in posts.items():
+            facets, _confidence = read[path]
+            read[path] = (_standing(facets, post=corner), TILE_CONFIDENCE)
+        first: list[tuple[str, int]] = []
+        for picture, shapes, rgba in roofs:
+            facets = read[picture.f.path][0]
+            origin, foot = facets["origin"], facets["footprint"]
+            alone = measure.roof_shape(rgba, (origin[0], origin[1]), (foot[0], foot[1]), shapes)
+            if alone is not None:
+                first.append((alone[0], alone[1]))
+        rise = measure.roof_rise(first)
+        if rise is None:
+            return
+        shaped: dict[str, str] = {}
+        pictures_of: dict[str, tuple[np.ndarray, tuple[float, float]]] = {}
+        diamond = (0, 0)
+        for picture, shapes, rgba in roofs:
+            facets = read[picture.f.path][0]
+            origin, foot = facets["origin"], facets["footprint"]
+            diamond = (foot[0], foot[1])
+            found = measure.roof_shape(rgba, (origin[0], origin[1]), diamond, shapes, rise)
+            if found is not None:
+                shaped[picture.f.path] = found[0]
+                pictures_of[picture.f.path] = (rgba, (origin[0], origin[1]))
+        # a set of turns is a roof's piece when every turn is one of the same shape, each
+        # turned its own way (a tree among the turns of a roof's corner is none)
+        for members in turn_groups:
+            kinds_of = [shaped.get(path) for path in members]
+            if not any(kinds_of):
+                continue
+            kinds = {shape.split(":")[0] for shape in kinds_of if shape}
+            turned = [shape for shape in kinds_of if shape and ":" in shape]
+            if (
+                None in kinds_of
+                or len(kinds) != 1
+                or (kinds & HALF_CELL_SHAPES and len(set(turned)) != len(turned))
+            ):
+                for path in members:
+                    shaped.pop(path, None)
+        # pieces that cover only the half of their cell next to their high side (*Medieval
+        # Town*) make no roof over the cells they are laid on: their slopes and hips are left
+        # as they were read, their gables and pyramids are a roof's pieces
+        laid: dict[str, tuple[np.ndarray, tuple[float, float]]] = {}
+        for path, shape in shaped.items():
+            laid.setdefault(shape, pictures_of[path])
+        whole = measure.roof_covers_cells(laid, diamond) is not False
+        for path, shape in shaped.items():
+            if not whole and shape.split(":")[0] in HALF_CELL_SHAPES:
+                continue
+            facets = read[path][0]
+            read[path] = (_standing(facets, roof=shape, roof_rise=rise), TILE_CONFIDENCE)
+
+    @staticmethod
     def _compass(
         root: Path,
         pictures: list[_Picture],
@@ -837,7 +956,7 @@ class IsometricAdapter:
         its road pieces have); "" for every other picture. The sides are the grid's: the names'
         compass has been turned to it by then."""
         joins = facets.get("joins") or []
-        if facets.get("usage") != USAGE_TILE or facets.get("rise") or facets.get("edge"):
+        if facets.get("usage") != USAGE_TILE or facets.get("rise") or _not_flat(facets):
             return ""
         if len(joins) != 2:
             return ""
@@ -859,7 +978,7 @@ class IsometricAdapter:
         ``surface:grass`` for a plain green one whose name says no surface, "" for any other
         picture. What a map's ground is chosen by when no name says *grass* (*Nature* calls
         its meadow ``naturePack_001``)."""
-        if facets.get("usage") != USAGE_TILE or facets.get("rise") or facets.get("edge"):
+        if facets.get("usage") != USAGE_TILE or facets.get("rise") or _not_flat(facets):
             return ""
         try:
             rgba = image_facts.load_rgba(root / picture.f.path)

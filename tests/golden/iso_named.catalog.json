@@ -148,6 +148,677 @@
       "confidence": 0.9,
       "detected": {
         "frame": [
+          128,
+          48
+        ],
+        "origin": [
+          64,
+          47
+        ],
+        "role": "NONE",
+        "size": [
+          128,
+          48
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Large/Town/Isometric Buildings 1 - 32x48.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "e",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:1",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c0_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/7a85c41101a724002e0c2627eb98720d99e7a9dce0c369b5c54aea88fcb69ce6.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "n",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:0",
+          "turn_group:c0_0",
+          "unused_because:other_size"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/e67ea0557448987bd046268e3492244eac801ebf2f2eb3a32efa30936c925296.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "s",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:2",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c0_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/caa5c4bc452a7d452eaddb7da4b0373833f120cf3afe3eb42b87894754d28c2d.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "w",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:3",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c0_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/286d1e50657d6b44e20fe474616aab4b87cb72efa62b29d8c281cf0be72ab7b9.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "e",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:1",
+          "turn_group:c2_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c2_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c2_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/22476e9b48870d71841c2871281ac0b8ff4bf1d4bb8d17ef578adde00f42eb13.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "n",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:0",
+          "turn_group:c2_0",
+          "unused_because:other_size"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c2_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/8733080326028d129ddbd75bb1f7c5030dad9269d13700a26249024fa8281e2c.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "s",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:2",
+          "turn_group:c2_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c2_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c2_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/c23c3c82f70e09519cab1b94eb0c32fb285e9c468fa7d69eaa986f967ebc0d31.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          64
+        ],
+        "edge": "w",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          48
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          64
+        ],
+        "tags": [
+          "size_form:64",
+          "turn:3",
+          "turn_group:c2_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c2_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.isometric_buildings_1_32x48#c2_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/d871e1a84e91c53305207e6946357456643d1b8b785cda0a9b01993caa6a00b8.png",
+      "sha256": "f7377f87fc2ceb995b3c65d942b4ee1e2ca170356e22ed027f2739c15fd5bd47",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          142,
+          52
+        ],
+        "origin": [
+          71,
+          51
+        ],
+        "role": "NONE",
+        "size": [
+          142,
+          52
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.town_roofing_70x52",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Large/Town/Town Roofing - 70x52.png",
+      "sha256": "545cfb609519aa7a84aac5f6d5d1fcb28dcc5c44c84de7073511c3a2938b195d",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          70,
+          52
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          34,
+          32
+        ],
+        "projection": "isometric",
+        "rise": 1,
+        "role": "NONE",
+        "size": [
+          70,
+          52
+        ],
+        "tags": [
+          "roof",
+          "size_form:64",
+          "unused_because:other_size"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.town_roofing_70x52#c0_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/fa60592d128dc49945e914032f52c7ad4f200868dd8189894d140f09071957d2.png",
+      "sha256": "545cfb609519aa7a84aac5f6d5d1fcb28dcc5c44c84de7073511c3a2938b195d",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          70,
+          52
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          34,
+          32
+        ],
+        "projection": "isometric",
+        "rise": 1,
+        "role": "NONE",
+        "size": [
+          70,
+          52
+        ],
+        "tags": [
+          "roof",
+          "size_form:64",
+          "unused_because:other_size"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.town.town_roofing_70x52#c1_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/f2a4816065070bdf1d1e74282a90fef389a421106ded3c790e188af1a7049144.png",
+      "sha256": "545cfb609519aa7a84aac5f6d5d1fcb28dcc5c44c84de7073511c3a2938b195d",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          36,
+          50
+        ],
+        "origin": [
+          18,
+          49
+        ],
+        "role": "NONE",
+        "size": [
+          36,
+          50
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.corner_stone_01_se_36x50",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Large/Walls/Corner_Stone_01-SE-36x50.png",
+      "sha256": "71336823e1ef0ef1c1f14976171cf1ea3ae8c212aa372e8c487957b378eca9a5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          73,
+          79
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          36,
+          59
+        ],
+        "post": "es",
+        "projection": "isometric",
+        "rise": 9,
+        "role": "NONE",
+        "size": [
+          73,
+          79
+        ],
+        "tags": [
+          "post",
+          "size_form:64",
+          "turn:2",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.corner_stone_01_se_36x50#c0_0_nw"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.corner_stone_01_se_36x50#c0_0_es",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/3e73edecd1d51aca02487eee6fb70e0fd534dea740cc69148b50dfab3beec38f.png",
+      "sha256": "71336823e1ef0ef1c1f14976171cf1ea3ae8c212aa372e8c487957b378eca9a5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          73,
+          79
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          36,
+          59
+        ],
+        "post": "ne",
+        "projection": "isometric",
+        "rise": 25,
+        "role": "NONE",
+        "size": [
+          73,
+          79
+        ],
+        "tags": [
+          "post",
+          "size_form:64",
+          "turn:1",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.corner_stone_01_se_36x50#c0_0_nw"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.corner_stone_01_se_36x50#c0_0_ne",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/bbbbabab57c813caa62912616bdb0de23b84db4dc59050432863a7139e045673.png",
+      "sha256": "71336823e1ef0ef1c1f14976171cf1ea3ae8c212aa372e8c487957b378eca9a5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          73,
+          79
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          36,
+          59
+        ],
+        "post": "nw",
+        "projection": "isometric",
+        "rise": 41,
+        "role": "NONE",
+        "size": [
+          73,
+          79
+        ],
+        "tags": [
+          "post",
+          "size_form:64",
+          "turn:0",
+          "turn_group:c0_0",
+          "unused_because:other_size"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.corner_stone_01_se_36x50#c0_0_nw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/3ce11b113db2db463ef9e0bac8923eb6d1d3e7162951934c1f691fa51130821c.png",
+      "sha256": "71336823e1ef0ef1c1f14976171cf1ea3ae8c212aa372e8c487957b378eca9a5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          73,
+          79
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          36,
+          59
+        ],
+        "post": "sw",
+        "projection": "isometric",
+        "rise": 25,
+        "role": "NONE",
+        "size": [
+          73,
+          79
+        ],
+        "tags": [
+          "post",
+          "size_form:64",
+          "turn:3",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.corner_stone_01_se_36x50#c0_0_nw"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.corner_stone_01_se_36x50#c0_0_sw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/395f09b7e914bb90a613b9aa4292f268f9813b9916e951852f8896617076977c.png",
+      "sha256": "71336823e1ef0ef1c1f14976171cf1ea3ae8c212aa372e8c487957b378eca9a5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
           64,
           48
         ],
@@ -747,20 +1418,20 @@
       "confidence": 0.9,
       "detected": {
         "frame": [
-          36,
+          72,
           50
         ],
         "origin": [
-          18,
+          36,
           49
         ],
         "role": "NONE",
         "size": [
-          36,
+          72,
           50
         ],
         "tags": [
-          "unused_because:iso_piece_not_read"
+          "unused_because:iso_sheet"
         ],
         "usage": "sprite"
       },
@@ -770,7 +1441,178 @@
       "overrides": {},
       "pack_id": "iso_named",
       "path": "assets/packs/iso_named/Isometric Named - Large/Walls/Thick_Stone_01-SE-36x50.png",
-      "sha256": "99d0a26032480bd67703ee2b8a0f1184d3553ad9f74cf2ef83fb929ecf41afc9",
+      "sha256": "ae73641320ccca2d02c2f24d059afc7580938b7bebd6374763b2e62f8db02b75",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          66
+        ],
+        "edge": "e",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          50
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          66
+        ],
+        "tags": [
+          "size_form:64",
+          "thick",
+          "turn:1",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.thick_stone_01_se_36x50#c0_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.thick_stone_01_se_36x50#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/1972c514dc531ad20f64b2057015a7cfa4f5929b7ebacac68b4563fa98d0c5be.png",
+      "sha256": "ae73641320ccca2d02c2f24d059afc7580938b7bebd6374763b2e62f8db02b75",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          66
+        ],
+        "edge": "n",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          50
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          66
+        ],
+        "tags": [
+          "size_form:64",
+          "thick",
+          "turn:0",
+          "turn_group:c0_0",
+          "unused_because:other_size"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.thick_stone_01_se_36x50#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/97d234338b3a56af664502d5a9b81a0b313912c913e0b967f2530362df89cae5.png",
+      "sha256": "ae73641320ccca2d02c2f24d059afc7580938b7bebd6374763b2e62f8db02b75",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          66
+        ],
+        "edge": "s",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          50
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "NONE",
+        "size": [
+          64,
+          66
+        ],
+        "tags": [
+          "size_form:64",
+          "thick",
+          "turn:2",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.thick_stone_01_se_36x50#c0_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.thick_stone_01_se_36x50#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/a650bfb7c23f3de0bc697ce586bf7959861be8ba406de1794e6f093b9e34b431.png",
+      "sha256": "ae73641320ccca2d02c2f24d059afc7580938b7bebd6374763b2e62f8db02b75",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          64,
+          66
+        ],
+        "edge": "w",
+        "footprint": [
+          64,
+          32
+        ],
+        "origin": [
+          32,
+          50
+        ],
+        "projection": "isometric",
+        "rise": 32,
+        "role": "NONE",
+        "size": [
+          64,
+          66
+        ],
+        "tags": [
+          "size_form:64",
+          "thick",
+          "turn:3",
+          "turn_group:c0_0",
+          "unused_because:other_size",
+          "variant_of:iso_named.isometric_named_large.walls.thick_stone_01_se_36x50#c0_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_large.walls.thick_stone_01_se_36x50#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/02805d802e694dd6d6c42d979af2ec1359d1b5599044ced795c2c8887bc1dddd.png",
+      "sha256": "ae73641320ccca2d02c2f24d059afc7580938b7bebd6374763b2e62f8db02b75",
       "status": "UNUSED"
     },
     {
@@ -912,6 +1754,663 @@
       "pack_id": "iso_named",
       "path": "generated/iso_cells/eadfae851e8008743ef273e6059b13f1a2511106ac445498353684dbda496e81.png",
       "sha256": "bd8dee312a60901d90f5fc629f3a05ef17073211f7dc4ed74b102a343ee84bd5",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          64,
+          24
+        ],
+        "origin": [
+          32,
+          23
+        ],
+        "role": "NONE",
+        "size": [
+          64,
+          24
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Small/Town/Isometric Buildings 1 - 16x24.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "e",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:1",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c0_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/5cde2b791029e66ae78b27259736ded208f70294db56a9e3eba67d8276f6a686.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "n",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:0",
+          "turn_group:c0_0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/69edd7a1e9794e0fe00c04e11bddc2a11c7f854088c6aa6a3fad3905929ff637.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "s",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:2",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c0_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/8700928cfbc13f78d47236ab859175916806ca02db06d2d487411fdcb9ddccb9.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "w",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:3",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c0_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/deb16ae3b8db94c7c14db424049058064bee9c6a86a509cb193131cf67c014b5.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "e",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:1",
+          "turn_group:c2_0",
+          "variant_of:iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c2_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c2_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/ba8506a04186ea5f96dc83acbfcbd3e85db72456a9e7fd6f4db3d4760ae1602e.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "n",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:0",
+          "turn_group:c2_0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c2_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/71c9bfa204ffbe3243939c65da7ae8fb47439d3c2e41ac6387dedf4078ebac56.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "s",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:2",
+          "turn_group:c2_0",
+          "variant_of:iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c2_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c2_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/74c79b1c25253c33dccd21daec718004c31150c733bf3bf4e8de2190056aac69.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          32
+        ],
+        "edge": "w",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          24
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "size_form:32",
+          "turn:3",
+          "turn_group:c2_0",
+          "variant_of:iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c2_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.isometric_buildings_1_16x24#c2_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/7b65b4a3aa5e3b695af026976906354a72ef01963e39bb1cf6e6d4dcabd479ab.png",
+      "sha256": "572120ab72267211e106ede7b78bd5b93be8edb0f8b786d8a9a8486d3b828933",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          78,
+          28
+        ],
+        "origin": [
+          39,
+          27
+        ],
+        "role": "NONE",
+        "size": [
+          78,
+          28
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.town_roofing_38x28",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Small/Town/Town Roofing - 38x28.png",
+      "sha256": "b14052c359dd20852ad6db0a22f7e066d265ff34c71101f0f1f3efe447963053",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          38,
+          28
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          18,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 1,
+        "role": "DECORATION",
+        "size": [
+          38,
+          28
+        ],
+        "tags": [
+          "roof",
+          "size_form:32"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.town_roofing_38x28#c0_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/52b87ba1c7be8aa6dd0dd1caae6d0c6136299b7e00468586168ab03b1c2185f2.png",
+      "sha256": "b14052c359dd20852ad6db0a22f7e066d265ff34c71101f0f1f3efe447963053",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          38,
+          28
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          18,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 1,
+        "role": "DECORATION",
+        "size": [
+          38,
+          28
+        ],
+        "tags": [
+          "roof",
+          "size_form:32"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.town.town_roofing_38x28#c1_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/eb2ad2a1c99ad3657cf671dd31084d1923dda1c57f63d80bb78d97302f4cf8d8.png",
+      "sha256": "b14052c359dd20852ad6db0a22f7e066d265ff34c71101f0f1f3efe447963053",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.9,
+      "detected": {
+        "frame": [
+          20,
+          26
+        ],
+        "origin": [
+          10,
+          25
+        ],
+        "role": "NONE",
+        "size": [
+          20,
+          26
+        ],
+        "tags": [
+          "unused_because:iso_sheet"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.corner_stone_01_se_20x26",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "assets/packs/iso_named/Isometric Named - Small/Walls/Corner_Stone_01-SE-20x26.png",
+      "sha256": "e001871aa9a4a7b6a14c892e0153a17560913c448ad859fdc35148bd7511579d",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          41,
+          39
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          20,
+          27
+        ],
+        "post": "es",
+        "projection": "isometric",
+        "rise": 1,
+        "role": "DECORATION",
+        "size": [
+          41,
+          39
+        ],
+        "tags": [
+          "post",
+          "size_form:32",
+          "turn:2",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.corner_stone_01_se_20x26#c0_0_nw"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.corner_stone_01_se_20x26#c0_0_es",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/7f981de517a84ca8140ba07fd80140927ed7248ffa75e9e7e2f58884e4e4f596.png",
+      "sha256": "e001871aa9a4a7b6a14c892e0153a17560913c448ad859fdc35148bd7511579d",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          41,
+          39
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          20,
+          27
+        ],
+        "post": "ne",
+        "projection": "isometric",
+        "rise": 9,
+        "role": "DECORATION",
+        "size": [
+          41,
+          39
+        ],
+        "tags": [
+          "post",
+          "size_form:32",
+          "turn:1",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.corner_stone_01_se_20x26#c0_0_nw"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.corner_stone_01_se_20x26#c0_0_ne",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/18df9814573f6df3a813e107cecb2332b0f76cb05c39f13e216cede7ed77c596.png",
+      "sha256": "e001871aa9a4a7b6a14c892e0153a17560913c448ad859fdc35148bd7511579d",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          41,
+          39
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          20,
+          27
+        ],
+        "post": "nw",
+        "projection": "isometric",
+        "rise": 17,
+        "role": "DECORATION",
+        "size": [
+          41,
+          39
+        ],
+        "tags": [
+          "post",
+          "size_form:32",
+          "turn:0",
+          "turn_group:c0_0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.corner_stone_01_se_20x26#c0_0_nw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/ac2b7820882662ec9f5bf64767c35d044356af6fa6bd41f0bb039ff33e6c7ba5.png",
+      "sha256": "e001871aa9a4a7b6a14c892e0153a17560913c448ad859fdc35148bd7511579d",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          41,
+          39
+        ],
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          20,
+          27
+        ],
+        "post": "sw",
+        "projection": "isometric",
+        "rise": 9,
+        "role": "DECORATION",
+        "size": [
+          41,
+          39
+        ],
+        "tags": [
+          "post",
+          "size_form:32",
+          "turn:3",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.corner_stone_01_se_20x26#c0_0_nw"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.corner_stone_01_se_20x26#c0_0_sw",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/56619fb78d1b21eee091ad810bea31c5b1d49ef2c309b3cabad355766c9a49da.png",
+      "sha256": "e001871aa9a4a7b6a14c892e0153a17560913c448ad859fdc35148bd7511579d",
       "status": "AUTO_DETECTED"
     },
     {
@@ -1505,20 +3004,20 @@
       "confidence": 0.9,
       "detected": {
         "frame": [
-          20,
+          40,
           26
         ],
         "origin": [
-          10,
+          20,
           25
         ],
         "role": "NONE",
         "size": [
-          20,
+          40,
           26
         ],
         "tags": [
-          "unused_because:iso_piece_not_read"
+          "unused_because:iso_sheet"
         ],
         "usage": "sprite"
       },
@@ -1528,8 +3027,175 @@
       "overrides": {},
       "pack_id": "iso_named",
       "path": "assets/packs/iso_named/Isometric Named - Small/Walls/Thick_Stone_01-SE-20x26.png",
-      "sha256": "59673890d404e27a24241ea0fbeaeae6ea7bbae16b3c05e34b28a030121aa6f9",
+      "sha256": "e781926c2a193ed714effb23a2c32f2a6197dffea0e78b16ca6b8a883c216320",
       "status": "UNUSED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          34
+        ],
+        "edge": "e",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          26
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          34
+        ],
+        "tags": [
+          "size_form:32",
+          "thick",
+          "turn:1",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.thick_stone_01_se_20x26#c0_0_n"
+        ],
+        "turn": 1,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.thick_stone_01_se_20x26#c0_0_e",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/55559e59a0602c48a98d362a5e50ca6e4518a0a617b0c7cbd345b52c3adbc2f8.png",
+      "sha256": "e781926c2a193ed714effb23a2c32f2a6197dffea0e78b16ca6b8a883c216320",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          34
+        ],
+        "edge": "n",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          26
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          34
+        ],
+        "tags": [
+          "size_form:32",
+          "thick",
+          "turn:0",
+          "turn_group:c0_0"
+        ],
+        "turn": 0,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.thick_stone_01_se_20x26#c0_0_n",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/8f37bd13374df5f22c8bd30ab75fad3c594c50d07917fc7bbe0759b3a8946970.png",
+      "sha256": "e781926c2a193ed714effb23a2c32f2a6197dffea0e78b16ca6b8a883c216320",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          34
+        ],
+        "edge": "s",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          26
+        ],
+        "projection": "isometric",
+        "rise": 8,
+        "role": "WALL",
+        "size": [
+          32,
+          34
+        ],
+        "tags": [
+          "size_form:32",
+          "thick",
+          "turn:2",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.thick_stone_01_se_20x26#c0_0_n"
+        ],
+        "turn": 2,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.thick_stone_01_se_20x26#c0_0_s",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/578dcea884a066cc9741650ee53dc308d2be626b0db7dd5d1e730f08d2236f5f.png",
+      "sha256": "e781926c2a193ed714effb23a2c32f2a6197dffea0e78b16ca6b8a883c216320",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "canvas": [
+          32,
+          34
+        ],
+        "edge": "w",
+        "footprint": [
+          32,
+          16
+        ],
+        "origin": [
+          16,
+          26
+        ],
+        "projection": "isometric",
+        "rise": 16,
+        "role": "WALL",
+        "size": [
+          32,
+          34
+        ],
+        "tags": [
+          "size_form:32",
+          "thick",
+          "turn:3",
+          "turn_group:c0_0",
+          "variant_of:iso_named.isometric_named_small.walls.thick_stone_01_se_20x26#c0_0_n"
+        ],
+        "turn": 3,
+        "usage": "iso_tile"
+      },
+      "detected_by": "iso_sheets",
+      "id": "iso_named.isometric_named_small.walls.thick_stone_01_se_20x26#c0_0_w",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_named",
+      "path": "generated/iso_cells/c8c7814482f3de572c75010aa881831d6ca367df3f99849a6022ebffa916b67d.png",
+      "sha256": "e781926c2a193ed714effb23a2c32f2a6197dffea0e78b16ca6b8a883c216320",
+      "status": "AUTO_DETECTED"
     }
   ],
   "catalog_version": 2,
@@ -1560,7 +3226,7 @@
       "pack_id": "iso_named",
       "profile_id": null,
       "root": "assets/packs/iso_named",
-      "source_sha256": "bc38595306812c29bdbd5228dee36a33dd3aad13f630480a40a9bc4dcea90cbf",
+      "source_sha256": "a4b64e46303cae6a7325e0dd28ae0eeeb6ed16f78c55d6b80b41658a53bef2cf",
       "warnings": [
         "isometric:32x16:named",
         "view:isometric"

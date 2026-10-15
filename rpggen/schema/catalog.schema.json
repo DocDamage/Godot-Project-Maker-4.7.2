@@ -492,6 +492,9 @@
         "edge": {"enum": ["n", "e", "s", "w"]},
         "feet": {"type": "integer", "minimum": 1},
         "corner": {"enum": ["round", "square"]},
+        "roof": {"type": "string", "pattern": "^(slope:[nesw]|hip:(nw|ne|es|sw)|valley:(nw|ne|es|sw)|ridge:(ew|ns)|peak)$"},
+        "roof_rise": {"type": "integer", "minimum": 1},
+        "post": {"enum": ["nw", "ne", "es", "sw"]},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",
@@ -827,6 +830,9 @@
         "edge": {"anyOf": [{"type": "null"}, {"enum": ["n", "e", "s", "w"]}]},
         "feet": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 1}]},
         "corner": {"anyOf": [{"type": "null"}, {"enum": ["round", "square"]}]},
+        "roof": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^(slope:[nesw]|hip:(nw|ne|es|sw)|valley:(nw|ne|es|sw)|ridge:(ew|ns)|peak)$"}]},
+        "roof_rise": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 1}]},
+        "post": {"anyOf": [{"type": "null"}, {"enum": ["nw", "ne", "es", "sw"]}]},
         "stands_on": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2}]},
         "character_index": {
           "anyOf": [
@@ -1562,6 +1568,9 @@
         "edge": {"enum": ["n", "e", "s", "w"]},
         "feet": {"type": "integer", "minimum": 1},
         "corner": {"enum": ["round", "square"]},
+        "roof": {"type": "string", "pattern": "^(slope:[nesw]|hip:(nw|ne|es|sw)|valley:(nw|ne|es|sw)|ridge:(ew|ns)|peak)$"},
+        "roof_rise": {"type": "integer", "minimum": 1},
+        "post": {"enum": ["nw", "ne", "es", "sw"]},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",

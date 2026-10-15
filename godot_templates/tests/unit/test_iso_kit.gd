@@ -31,6 +31,10 @@ const DOOR := "iso_kit.png.stone_door_01_"
 const WINDOW := "iso_kit.png.stone_window_01_"
 const FENCE := "iso_kit.png.wood_fence_01_"
 const ROOF := "iso_kit.png.roof_point_01_0"
+const SLANT := "iso_kit.png.roof_slant_01_"
+const HIP := "iso_kit.png.roof_corner_01_"
+const POST := "iso_kit.png.stone_post_01_"
+const SHORT_POST := "iso_kit.png.stone_short_post_01_"
 ## The side the turn 0, 1, 2, 3 of a wall of the pack stands along: not the turn's number.
 const TURN_SIDES: Array[String] = ["e", "s", "w", "n"]
 ## How far the whole wall rises above its diamond on a far side: the storey of a house.
@@ -159,6 +163,24 @@ func test_the_edge_of_a_map_is_laid_from_segments(t) -> void:
 	t.eq(_asset_at(over, Vector2i(5, 4)), by_side["s"])
 	t.eq(under.get_used_cells().size(), 3)
 	t.eq(over.get_used_cells().size(), 1)
+	# a post where the two sides of the edge meet, at each corner of the map (after T17.22)
+	var edge_posts := root.get_node_or_null("YSorted/EdgePosts") as Node2D
+	t.ok(edge_posts != null and edge_posts.y_sort_enabled, "the posts sort with the actors")
+	var corners := {"nw": Vector2i(0, 0), "ne": Vector2i(5, 0), "es": Vector2i(5, 4), "sw": Vector2i(0, 4)}
+	var post_turns := {"nw": 2, "ne": 3, "es": 0, "sw": 1}
+	for corner: String in corners:
+		var post: Sprite2D = null
+		if edge_posts != null:
+			post = edge_posts.get_node_or_null("Post_" + corner) as Sprite2D
+		t.ok(post != null, "a post at the corner %s" % corner)
+		if post == null:
+			continue
+		t.eq(str(post.get_meta(&"asset_id")), SHORT_POST + str(post_turns[corner]), "the short post for the short wall: the high one would stand out")
+		var middle := props.map_to_local(corners[corner])
+		var origin := JsonUtil.to_array(geo.iso.facets(SHORT_POST + "0").get("origin", [0, 0]))
+		t.eq(post.position, middle + Vector2(0, 1), "sorted a pixel after the walls of its cell")
+		t.eq(post.position + post.offset, middle - Vector2(JsonUtil.to_float(origin[0]), JsonUtil.to_float(origin[1])), "its picture's diamond on its cell")
+	t.eq((edge_posts.get_node("Post_es") as Sprite2D).z_index, 11, "the nearest one over the near wall of its corner")
 	# the cells are blocked by the tiles' own diamonds, on the layer that is sorted with the actors
 	t.ok(props.y_sort_enabled and props.collision_enabled)
 	for cell in props.get_used_cells():
@@ -231,6 +253,7 @@ func _check_house(t, house: Node2D, size: Vector2i, door_column: int, what: Stri
 	var doors: Array = []
 	var placed := {}
 	var roofs := {}
+	var posts_at := {}
 	for sprite in _sprites(house):
 		var cell: Vector2i = sprite.get_meta("cell")
 		var side := str(sprite.get_meta("side"))
@@ -246,7 +269,12 @@ func _check_house(t, house: Node2D, size: Vector2i, door_column: int, what: Stri
 			t.ok(from_x >= -0.001, "%s: %s of the right half begins at the cut (%s)" % [what, sprite.name, from_x])
 		if kind == "roof":
 			roofs[cell] = int(roofs.get(cell, 0)) + 1
-			t.eq(asset_id, ROOF)
+			t.ok(asset_id.begins_with(HIP) or asset_id.begins_with(SLANT) or asset_id == ROOF, "%s: a piece of the roof: %s" % [what, asset_id])
+			continue
+		if kind == "post":
+			# a post on each corner of the footprint, on the corner of its cell (after T17.22)
+			posts_at[side] = cell
+			t.ok(asset_id.begins_with(POST), "%s: a post of the pack" % what)
 			continue
 		# one piece a side; the few px of it that lie across the cut are a sprite of the other half
 		t.ok(not placed.has([cell, side, sprite.get_parent().name]), "%s: one piece on the %s side of %s" % [what, side, cell])
@@ -274,6 +302,7 @@ func _check_house(t, house: Node2D, size: Vector2i, door_column: int, what: Stri
 				rim += 1 if out else 0
 	t.eq(walls.size(), rim)
 	t.eq(roofs.size(), size.x * size.y)
+	t.eq(posts_at, {"nw": Vector2i.ZERO, "ne": Vector2i(size.x - 1, 0), "sw": Vector2i(0, size.y - 1), "es": size - Vector2i.ONE}, "%s: a post at each corner" % what)
 	t.eq(doors, [[Vector2i(door_column, size.y - 1), "s"]], "%s: one door, above the plan's door cell" % what)
 	# the walk round it: every point of the ground two cells around it, a quarter of a cell apart
 	var checked := 0
@@ -302,7 +331,15 @@ func test_a_house_is_put_together_from_the_packs_pieces(t) -> void:
 	t.eq(TilesetRecipe.new().build(ctx), [])
 	var iso := IsoTileset.new(ctx.catalog)
 	var pieces := IsoHouse.kit(iso)
-	t.eq(pieces, {"wall": WALL + "0", "door": DOOR + "0", "window": WINDOW + "0", "roof": ROOF, "storey": STOREY})
+	var roofs := JsonUtil.to_dict(pieces.get("roofs", {}))
+	var rise := JsonUtil.to_int(pieces.get("roof_rise", 0))
+	t.eq(pieces, {"wall": WALL + "0", "door": DOOR + "0", "window": WINDOW + "0", "roof": ROOF, "storey": STOREY, "post": POST + "0", "roofs": roofs, "roof_rise": rise})
+	t.eq(roofs, {
+		"slope:e": SLANT + "0", "slope:s": SLANT + "1", "slope:w": SLANT + "2", "slope:n": SLANT + "3",
+		"hip:ne": HIP + "0", "hip:es": HIP + "1", "hip:sw": HIP + "2", "hip:nw": HIP + "3",
+		"peak": ROOF,
+	}, "one roof's pieces: the slopes, the quarters of a hipped roof and the pyramid, by shape")
+	t.ok(rise >= 20 and rise <= 28, "a slope of the kit rises 24 px over a cell: %d" % rise)
 	# the packs drew no whole house: the entry of the village's is the house of pieces
 	var entry := ObjectEntries.starter_building(ctx)
 	t.eq(str(entry.get("id", "")), IsoHouse.ENTRY_ID)
@@ -316,10 +353,31 @@ func test_a_house_is_put_together_from_the_packs_pieces(t) -> void:
 	# the parts are made once for a seed
 	t.eq(ObjectEntries.starter_building(ctx)["parts"], entry["parts"])
 	var parts: Array = entry["parts"]
-	t.eq(parts.size(), 8 + 4, "eight places for a wall and four roofs")
+	t.eq(parts.size(), 8 + 4 + 4, "eight places for a wall, four posts and four pieces of roof")
 	var roof_part: Dictionary = parts[parts.size() - 1]
 	t.eq(roof_part["kind"], "roof")
 	t.eq(roof_part["lift"], STOREY, "a roof lies a storey up: as far as the wall rises on a far side")
+	# the roof is one hipped roof: the four quarters rise to the middle of the footprint
+	var roof_of := {}
+	var posts := {}
+	for raw: Variant in parts:
+		var part: Dictionary = raw
+		var cell := JsonUtil.to_array(part["cell"])
+		if part["kind"] == "roof":
+			roof_of[Vector2i(JsonUtil.to_int(cell[0]), JsonUtil.to_int(cell[1]))] = part["asset_id"]
+		elif part["kind"] == "post":
+			posts[part["side"]] = [Vector2i(JsonUtil.to_int(cell[0]), JsonUtil.to_int(cell[1])), part["asset_id"]]
+	t.eq(roof_of, {Vector2i(0, 0): HIP + "1", Vector2i(1, 0): HIP + "2", Vector2i(0, 1): HIP + "0", Vector2i(1, 1): HIP + "3"})
+	# a post where two walls meet, at each corner of the footprint, on the corner of its cell
+	t.eq(posts, {
+		"nw": [Vector2i(0, 0), POST + "2"], "ne": [Vector2i(1, 0), POST + "3"],
+		"sw": [Vector2i(0, 1), POST + "1"], "es": [Vector2i(1, 1), POST + "0"],
+	})
+	var kinds: Array[String] = []
+	for raw: Variant in parts:
+		kinds.append(str(JsonUtil.to_dict(raw)["kind"]))
+	t.eq(kinds.find("post"), 4, "the far post after the four far walls")
+	t.eq(kinds.rfind("post"), 11, "the other three after the near walls, before the roof")
 	t.eq(IsoHouse.part_position(roof_part, Vector2i(2, 2), FOOT), Vector2(0, -STOREY), "the roof of the nearest cell")
 	t.eq(IsoHouse.part_position(parts[0], Vector2i(2, 2), FOOT), Vector2(0, -FOOT.y), "the far cell's wall stands on the far cell")
 	# its scene: the object recipe builds it as it builds a whole house
@@ -385,6 +443,42 @@ func test_a_house_is_put_together_from_the_packs_pieces(t) -> void:
 			tiles.erase(DOOR + str(turn))
 	t.eq(IsoHouse.kit(IsoTileset.new(CatalogReader.new(doorless, "isometric"))), {})
 	_cleanup()
+
+func test_a_roof_of_pieces_is_planned_as_one_roof(t) -> void:
+	var full := {}
+	for shape: String in ["slope:n", "slope:e", "slope:s", "slope:w", "hip:nw", "hip:ne", "hip:es", "hip:sw", "ridge:ew", "ridge:ns", "peak"]:
+		full[shape] = shape
+	# two by two: the four quarters of one hipped roof, each high where they meet
+	var plan := IsoHouse.roof_plan(Vector2i(2, 2), full)
+	t.eq(plan[Vector2i(0, 0)], {"asset_id": "hip:es", "level": 0})
+	t.eq(plan[Vector2i(1, 0)], {"asset_id": "hip:sw", "level": 0})
+	t.eq(plan[Vector2i(0, 1)], {"asset_id": "hip:ne", "level": 0})
+	t.eq(plan[Vector2i(1, 1)], {"asset_id": "hip:nw", "level": 0})
+	# four by two: slopes up to a ridge from the west end to the east, hips at its ends
+	plan = IsoHouse.roof_plan(Vector2i(4, 2), full)
+	t.eq(plan[Vector2i(1, 0)]["asset_id"], "slope:s", "north of the ridge: high on its south side")
+	t.eq(plan[Vector2i(2, 1)]["asset_id"], "slope:n")
+	t.eq(plan[Vector2i(3, 0)]["asset_id"], "hip:sw")
+	# four by four: a second ring a slope's rise higher
+	plan = IsoHouse.roof_plan(Vector2i(4, 4), full)
+	t.eq(plan[Vector2i(1, 1)], {"asset_id": "hip:es", "level": 1})
+	t.eq(plan[Vector2i(0, 2)], {"asset_id": "slope:e", "level": 0})
+	# three by three: a pyramid in the middle; three by one: a gable along the row
+	t.eq(IsoHouse.roof_plan(Vector2i(3, 3), full)[Vector2i(1, 1)], {"asset_id": "peak", "level": 1})
+	plan = IsoHouse.roof_plan(Vector2i(3, 1), full)
+	for x in 3:
+		t.eq(plan[Vector2i(x, 0)], {"asset_id": "ridge:ew", "level": 0})
+	t.eq(IsoHouse.roof_plan(Vector2i(1, 3), full)[Vector2i(0, 1)]["asset_id"], "ridge:ns")
+	# packs whose slopes cover half a cell (Medieval Town) have gables over one cell: a gable
+	# along every row of the longer way
+	var gables := {"ridge:ew": "g_ew", "ridge:ns": "g_ns", "peak": "p"}
+	plan = IsoHouse.roof_plan(Vector2i(2, 2), gables)
+	t.eq(plan.size(), 4)
+	for cell: Vector2i in plan:
+		t.eq(plan[cell], {"asset_id": "g_ew", "level": 0})
+	t.eq(IsoHouse.roof_plan(Vector2i(2, 3), gables)[Vector2i(1, 2)]["asset_id"], "g_ns")
+	t.eq(IsoHouse.roof_plan(Vector2i(2, 2), {"peak": "p"}), {}, "a pyramid alone: a roof tile a cell, as before")
+	t.eq(IsoHouse.roof_plan(Vector2i(2, 2), {}), {})
 
 func test_a_yard_is_fenced_with_the_packs_segments(t) -> void:
 	_cleanup()

@@ -2356,6 +2356,54 @@ def _kit_pole() -> Image.Image:
     return img
 
 
+# after T17.22: the pieces of a roof and the posts at the corners of walls, as *Medieval Town*
+# draws them (``roof_slant``, ``roof_corner``, ``grey_pole``): which side or corner each turn
+# is on is the reader's to measure
+ISO_KIT_ROOF_RISE = 24  # px a slope of the kit rises over one cell
+ISO_KIT_SLOPE_SIDES = ("e", "s", "w", "n")  # the high side of the slope of turn 0, 1, 2, 3
+ISO_KIT_HIP_CORNERS = ("ne", "es", "sw", "nw")  # the high corner of the hip of turn 0, 1, 2, 3
+ISO_KIT_POST_CORNERS = ("es", "sw", "nw", "ne")  # the corner the post of turn 0, 1, 2, 3 is on
+ISO_CORNER_GRID = {"nw": (-0.5, -0.5), "ne": (0.5, -0.5), "es": (0.5, 0.5), "sw": (-0.5, 0.5)}
+
+
+def _kit_roof_piece(high: list[str], ridge: bool = False) -> Image.Image:
+    """A piece of a roof of the kit over its diamond, at the height of the ground (a house lifts
+    it a storey): the corners named in ``high`` raised by a slope's rise, the others on the
+    eaves. Two corners: one slope, high along the side between them. One: the quarter of a
+    hipped roof, in two triangles that meet along the hip from the high corner to the one
+    across from it."""
+    img = Image.new("RGBA", ISO_KIT_CANVAS, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    at = {
+        name: _kit_point(e, s, ISO_KIT_ROOF_RISE if name in high else 0)
+        for name, (e, s) in ISO_CORNER_GRID.items()
+    }
+    order = ["nw", "ne", "es", "sw"]
+    if len(high) == 1:
+        apex = high[0]
+        across = order[(order.index(apex) + 2) % 4]
+        for side in (order[(order.index(apex) + 1) % 4], order[(order.index(apex) + 3) % 4]):
+            lit = ISO_KIT_ROOF if side in ("ne", "es") else ISO_KIT_ROOF_DARK
+            draw.polygon([at[apex], at[side], at[across]], fill=lit)
+    else:
+        lit = ISO_KIT_ROOF if "es" not in high else ISO_KIT_ROOF_DARK
+        draw.polygon([at[name] for name in order], fill=lit)
+    return img
+
+
+def _kit_post(corner: str, height: int = ISO_KIT_WALL) -> Image.Image:
+    """A post of the kit standing on one corner of its diamond: a narrow block a little higher
+    than the wall it is for (``height``)."""
+    img = Image.new("RGBA", ISO_KIT_CANVAS, (0, 0, 0, 0))
+    e, s = ISO_CORNER_GRID[corner]
+    x, y = _kit_point(e, s, -ISO_KIT_SIDE)
+    ImageDraw.Draw(img).rectangle(
+        [int(round(x)) - 3, int(round(y)) - height - 2, int(round(x)) + 2, int(round(y)) + 1],
+        fill=ISO_KIT_KERB,
+    )
+    return img
+
+
 def _kit_road(joined: str, shape: str) -> Callable[[float, float], Color]:
     """The face of a road piece of the kit that joins on the sides ``joined`` (of n, e, s, w,
     the grid's): a straight for two opposite sides; for two adjacent ones a corner that is
@@ -2386,8 +2434,12 @@ def _kit_road(joined: str, shape: str) -> Callable[[float, float], Color]:
 def make_iso_kit(out: Path) -> None:
     """In the manner of *Medieval Town*: flat ground, walls along one side of a diamond in four
     turns (a whole wall, a short one, one with a door, one with a window, a fence), a roof
-    that is a tile, a post and a tree; and, in the manner of *Vector Roads*, road pieces whose
-    names say their sides, with corners that are round (``road``) and square (``street``)."""
+    that is a tile, a pole in the middle of its diamond and a tree; after T17.22 the pieces of
+    a roof (``roof_slant``: one slope; ``roof_corner``: the quarter of a hipped roof) and posts
+    that stand on a corner (``stone_post``, and ``stone_short_post`` for the short wall), each
+    in four turns; and, in the manner of *Vector
+    Roads*, road pieces whose names say their sides, with corners that are round (``road``)
+    and square (``street``)."""
     pack = out / "iso_kit"
     canvas, foot = ISO_KIT_CANVAS, ISO_KIT_FOOT
     _write_text(pack / "License.txt", "CC0-1.0 synthetic test pack\n")
@@ -2414,6 +2466,26 @@ def make_iso_kit(out: Path) -> None:
             }  # fmt: skip
         pictures[f"roof_point_01_{turn}.png"] = _kit_roof()
         pictures[f"stone_pole_01_{turn}.png"] = _kit_pole()
+        # after T17.22: a roof of pieces (slopes and the quarters of a hipped roof) and posts
+        slope = ISO_KIT_SLOPE_SIDES[turn]
+        high = [c for c in ISO_CORNER_GRID if slope in c]
+        pictures[f"roof_slant_01_{turn}.png"] = _kit_roof_piece(high)
+        pictures[f"roof_corner_01_{turn}.png"] = _kit_roof_piece([ISO_KIT_HIP_CORNERS[turn]])
+        pictures[f"stone_post_01_{turn}.png"] = _kit_post(ISO_KIT_POST_CORNERS[turn])
+        # ... and a short one for the short wall (a storey's post on it would stand out)
+        pictures[f"stone_short_post_01_{turn}.png"] = _kit_post(ISO_KIT_POST_CORNERS[turn], 12)
+        expected[f"PNG/stone_short_post_01_{turn}.png"] = {
+            "usage": "iso_tile", "role": "DECORATION", "post": ISO_KIT_POST_CORNERS[turn],
+        }  # fmt: skip
+        expected[f"PNG/roof_slant_01_{turn}.png"] = {
+            "usage": "iso_tile", "role": "DECORATION", "roof": f"slope:{slope}",
+        }  # fmt: skip
+        expected[f"PNG/roof_corner_01_{turn}.png"] = {
+            "usage": "iso_tile", "role": "DECORATION", "roof": f"hip:{ISO_KIT_HIP_CORNERS[turn]}",
+        }  # fmt: skip
+        expected[f"PNG/stone_post_01_{turn}.png"] = {
+            "usage": "iso_tile", "role": "DECORATION", "post": ISO_KIT_POST_CORNERS[turn],
+        }  # fmt: skip
         pictures[f"tree_01_{turn}.png"] = _iso_tree(canvas, foot, ISO_KIT_SIDE + ISO_KIT_FREE)
         expected[f"PNG/grass_01_{turn}.png"] = {"usage": "iso_tile", "role": "GROUND"}
         expected[f"PNG/roof_point_01_{turn}.png"] = {"usage": "iso_tile", "role": "DECORATION"}
@@ -2798,16 +2870,100 @@ def _named_wall(cell: tuple[int, int], opening: str, lit: Color, shaded: Color) 
     return img
 
 
+TEAL: Color = (0, 128, 128, 255)
+NAMED_WOOD: Color = (150, 96, 54, 255)
+NAMED_WOOD_DARK: Color = (110, 70, 40, 255)
+NAMED_ROOF: Color = (170, 64, 52, 255)
+NAMED_THICK = 4  # px of a thick wall's end beside its face (Screaming Brain: 8 of 72)
+
+
+def _named_thick(cell: tuple[int, int], lit: Color, shaded: Color) -> Image.Image:
+    """A thick wall in Screaming Brain's shape, on magenta: two faces as ``_named_wall`` draws
+    them, each in a cell ``NAMED_THICK`` px wider, the end of the wall beside it (at the left of
+    the ``/`` face, at the right of the ``\\`` one, its foot running back the other way)."""
+    cw, ch = cell
+    face = cw - NAMED_THICK
+    drop = face // 2
+    img = Image.new("RGBA", (2 * cw, ch), MAGENTA)
+    flat = _named_wall((face, ch - 2), "", lit, shaded)
+    img.paste(flat.crop((0, 0, face, ch - 2)), (NAMED_THICK, 2))
+    img.paste(flat.crop((face, 0, 2 * face, ch - 2)), (cw, 2))
+    end = tuple(max(0, c - 40) for c in lit[:3]) + (255,)
+    for x in range(NAMED_THICK):
+        # the end of the ``/`` face: from its foot back up and to the left; the same mirrored
+        for y in range(drop + 2 - x // 2, ch - x // 2 - 1):
+            img.putpixel((NAMED_THICK - 1 - x, y), end)  # type: ignore[arg-type]
+        for y in range(drop + 2 - x // 2, ch - x // 2 - 1):
+            img.putpixel((cw + face + x, y), end)  # type: ignore[arg-type]
+    return img
+
+
+def _named_post(cell: tuple[int, int], colour: Color) -> Image.Image:
+    """A post at a corner of walls (*Corner_Stone*), on magenta: a narrow upright block in the
+    middle of its cell, its foot a few pixels over the cell's bottom."""
+    cw, ch = cell
+    img = Image.new("RGBA", cell, MAGENTA)
+    x0 = cw // 2 - 3
+    ImageDraw.Draw(img).rectangle([x0, 2, x0 + 5, ch - 5], fill=colour)
+    return img
+
+
+def _named_town(cell: tuple[int, int], count: int) -> Image.Image:
+    """The walls of a town in the *Town Pack*'s shape: pairs of faces on teal, the first face of
+    each slanting down (``\\``), so that the sheet's corner is painted; a texture on the faces,
+    so that no colour of theirs is as common as the background."""
+    cw, ch = cell
+    drop = cw // 2
+    img = Image.new("RGBA", (2 * cw * count, ch), TEAL)
+    for pair in range(count):
+        for face in range(2):
+            for x in range(cw):
+                rise = (
+                    (drop * x) // max(1, cw - 1)
+                    if face == 0
+                    else (drop * (cw - 1 - x)) // max(1, cw - 1)
+                )
+                for y in range(rise, rise + ch - drop):
+                    base = NAMED_WOOD if face == 1 else NAMED_WOOD_DARK
+                    grain = ((x * 7 + y * 13) % 61, (x * 11 + y * 5) % 53, (x * 3 + y * 17) % 47)
+                    colour = tuple(
+                        max(0, min(255, c + g - 25)) for c, g in zip(base[:3], grain, strict=True)
+                    ) + (255,)
+                    img.putpixel(((2 * pair + face) * cw + x, y), colour)  # type: ignore[arg-type]
+    return img
+
+
+def _named_roofs(cell: tuple[int, int], diamond: tuple[int, int], count: int) -> Image.Image:
+    """Roofs over one diamond each (*Town Roofing*: 143 x 92 on diamonds of 128), on teal, in a
+    sheet two pixels wider than its cells: a low hipped roof whose eaves are a diamond as wide
+    as the cell, its lowest corner on the cell's bottom."""
+    cw, ch = cell
+    img = Image.new("RGBA", (cw * count + 2, ch), TEAL)
+    draw = ImageDraw.Draw(img)
+    for i in range(count):
+        x0 = i * cw
+        bottom = ch - 2
+        left, right = (x0, bottom - cw // 4), (x0 + cw - 1, bottom - cw // 4)
+        top, low = (x0 + cw // 2, bottom - cw // 2), (x0 + cw // 2, bottom)
+        peak = (x0 + cw // 2, bottom - cw // 4 - diamond[1] // 2)
+        draw.polygon([left, top, peak], fill=NAMED_ROOF)
+        draw.polygon([top, right, peak], fill=NAMED_ROOF)
+        draw.polygon([left, peak, low], fill=tuple(max(0, c - 40) for c in NAMED_ROOF[:3]) + (255,))
+        draw.polygon([peak, right, low], fill=NAMED_ROOF)
+    return img
+
+
 def make_iso_named(out: Path) -> None:
     """Screaming Brain's shapes: an isometric pack whose files are sheets on magenta named by
     their cell (``Floor_Grass_01-64x32.png``, wall faces ``Flat_Stone_01-SE-32x48.png`` with a
-    doorway and a window beside them), in a *Small* and a *Large* copy; a thick piece the
-    reader does not read."""
+    doorway and a window beside them), in a *Small* and a *Large* copy; and (after T17.30) a
+    thick wall with the end of the wall beside each face, a sheet of posts for the corners
+    (``Corner_Stone_01``), a town's walls on teal whose sheet's corner is painted, its roofs in
+    a sheet two pixels wider than its cells."""
     pack = out / "iso_named"
     _write_text(pack / "License.txt", "CC0-1.0 synthetic test pack\n")
     expected: dict[str, dict] = {}
     for size, (dw, dh) in (("Large", (64, 32)), ("Small", (32, 16))):
-        top = pack / f"Isometric Named - {size}"
         floor = f"Isometric Named - {size}/Floors/Floor_Grass_01-{dw}x{dh}.png"
         _save_png(
             _named_floor((dw, dh), [NAMED_GRASS, NAMED_DIRT, None, NAMED_GRASS]), pack / floor
@@ -2823,10 +2979,41 @@ def make_iso_named(out: Path) -> None:
                     {"usage": "iso_tile", "role": "WALL"} if used else {"role": "NONE"}
                 )
             expected[wall] = {"role": "NONE"}
-        thick = Image.new("RGBA", (dw // 2 + 4, dw * 3 // 4 + 2), MAGENTA)
-        ImageDraw.Draw(thick).rectangle([2, 2, dw // 2, dw * 3 // 4 - 2], fill=NAMED_STONE)
-        _save_png(thick, top / "Walls" / f"Thick_Stone_01-SE-{dw // 2 + 4}x{dw * 3 // 4 + 2}.png")
         used = size == "Small"
+        # after T17.30: a thick wall, the posts where walls meet, a town's walls on teal, its
+        # roofs
+        thick_cell = (dw // 2 + NAMED_THICK, dw * 3 // 4 + 2)
+        thick = (
+            f"Isometric Named - {size}/Walls/Thick_Stone_01-SE-{thick_cell[0]}x{thick_cell[1]}.png"
+        )
+        _save_png(_named_thick(thick_cell, NAMED_STONE, NAMED_STONE_DARK), pack / thick)
+        post_cell = (dw // 2 + NAMED_THICK, dw * 3 // 4 + 2)
+        post = (
+            f"Isometric Named - {size}/Walls/Corner_Stone_01-SE-{post_cell[0]}x{post_cell[1]}.png"
+        )
+        _save_png(_named_post(post_cell, NAMED_STONE), pack / post)
+        town = f"Isometric Named - {size}/Town/Isometric Buildings 1 - {cell[0]}x{cell[1]}.png"
+        _save_png(_named_town(cell, 2), pack / town)
+        roof_cell = (dw + 6, (dw + 6) * 3 // 4)
+        roofs = f"Isometric Named - {size}/Town/Town Roofing - {roof_cell[0]}x{roof_cell[1]}.png"
+        _save_png(_named_roofs(roof_cell, (dw, dh), 2), pack / roofs)
+        for side in "nesw":
+            expected[f"{thick}#c0_0_{side}"] = (
+                {"usage": "iso_tile", "role": "WALL", "edge": side} if used else {"role": "NONE"}
+            )
+            expected[f"{town}#c0_0_{side}"] = (
+                {"usage": "iso_tile", "role": "WALL", "edge": side} if used else {"role": "NONE"}
+            )
+        for corner in ("nw", "ne", "es", "sw"):
+            expected[f"{post}#c0_0_{corner}"] = (
+                {"usage": "iso_tile", "role": "DECORATION", "post": corner}
+                if used
+                else {"role": "NONE"}
+            )
+        for col in range(2):
+            expected[f"{roofs}#c{col}_0"] = (
+                {"usage": "iso_tile", "role": "DECORATION"} if used else {"role": "NONE"}
+            )
         for col in (0, 1, 3):
             expected[f"{floor}#c{col}_0"] = (
                 {"usage": "iso_tile", "role": "GROUND"} if used else {"role": "NONE"}

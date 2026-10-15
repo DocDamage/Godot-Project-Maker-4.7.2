@@ -642,6 +642,25 @@ the builder's, and what they make is read by the scripts that were there.
   on the middle of it. `car_math`, `car_physics`, `race.gd` and `rival.gd` are untouched; a
   race seen from above, a race on square pieces and a race that is stored are what they were.
 
+**Corners and roofs of a house of pieces (after T17.30).** Nothing of the runtime changes.
+
+* **Posts.** A tile with the facet `post` (`nw`, `ne`, `es`, `sw`: the corner of its diamond
+  it stands on) is a post (`IsoTileset.post_sets`, `post_piece`; `post_set_for`: of the sets
+  no higher than the wall, the one of the wall's colour). The edge of a map laid from wall segments has one at each corner of the
+  map where two of its sides meet, a `Sprite2D` under `YSorted/EdgePosts` sorted a pixel after
+  the walls of its cell (the nearest one at `z_index` 11, over the `Overhead` layer); a house
+  of pieces has one at each corner of its footprint (parts of kind `post`, the far one after
+  the far walls, the others after the near walls).
+* **One roof.** A tile with the facet `roof` (`slope:n`, `hip:es`, `ridge:ew`, `peak`,
+  `valley:nw`) and `roof_rise` is a piece of a roof; the kit of a house carries `roofs`
+  ({shape: asset id}, one family) and `roof_rise`, and `IsoHouse.roof_plan` lays them: slopes
+  rising from every side to a ridge, the quarters of a hipped roof at its ends, each ring of
+  cells a slope's rise higher, a gable or a pyramid where two or four sides are as near; when
+  the packs have no slope or quarter for a cell, a gable along every row of the longer way;
+  else a roof tile a cell, as before. A house's kit without posts or roof pieces is what it was.
+* `MapGeo.EDGE_VERSION` is 2: the maps of an isometric project with wall segments are built
+  again; every other project's hash is what it was.
+
 ## 1.4.0
 
 (There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)
