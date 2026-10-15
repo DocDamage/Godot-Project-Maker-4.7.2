@@ -284,7 +284,9 @@ def test_a_pack_without_crops_gets_the_drawn_ones_and_a_plot_to_grow_them_on(pla
             for name in ("berry", "carrot", "turnip")
         ]
     }
-    others = ("map", "people", "forage", "events")  # what the other planners keep in the section
+    # what the other planners keep in the section (the plain ground: farm_ground, measured on
+    # every run)
+    others = ("map", "people", "forage", "events", "ground")
     crops_only = {k: v for k, v in section.items() if k not in others}
     assert crops_only == crop_plan.plan({}, 12345, kit), "the plan of the seed, of the kit's crops"
     assert sorted(c["id"] for c in section["crops"]) == ["berry", "carrot", "turnip"]

@@ -2,6 +2,14 @@
   "Synthetic Farm Tileset/farm/1.png": {
     "role": "NONE"
   },
+  "Synthetic Farm Tileset/farm/1.png#crop48_432": {
+    "frame": [
+      48,
+      96
+    ],
+    "role": "CROP",
+    "usage": "growth_strip"
+  },
   "Synthetic Farm Tileset/farm/1.png#g0_96": {
     "cell": [
       48,
@@ -15,6 +23,10 @@
     "usage": "object"
   },
   "Synthetic Farm Tileset/farm/1.png#o192_10": {
+    "role": "DECORATION",
+    "usage": "object"
+  },
+  "Synthetic Farm Tileset/farm/1.png#o256_500": {
     "role": "DECORATION",
     "usage": "object"
   },

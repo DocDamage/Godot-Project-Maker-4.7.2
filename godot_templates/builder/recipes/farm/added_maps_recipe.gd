@@ -41,9 +41,15 @@ extends RefCounted
 ##     action RPG's enemies (recipes/arpg/enemy_recipes.gd, which a farm that fights has: the
 ##     packs' ENEMY, else the drawn slime of the farm kit) at the cells the plan names, each
 ##     remembered as `<id>_enemy_<n>` (RpgFarmFight brings them back every morning). Its root
-##     is an interior (`is_interior`): no rain falls there and the light is dim.
+##     is an interior (`is_interior`): no rain falls there, and its light is a cave's
+##     (`ambient_override`, darker than a room's). The packs' own rock lies over the drawn one
+##     where they have it (cave_rock.gd: a cell of a picture of rock seen from above, a tile of
+##     rock on diamonds, else their boulders), and an enemy drawn much smaller than the farmer
+##     is scaled to stand ENEMY_HEIGHT of the farmer's height (`scale_to_farmer`).
+## * The ground of every map but a beach with sand of its own is the farm's plain ground tile
+##   where rpggen found one (`farm.ground`, builder/lib/plain_ground.gd).
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
 ## The version of what the recipe does for an isometric project only: in the hash of such a
 ## project and of no other.
 const ISO_VERSION := 1
@@ -58,6 +64,8 @@ const BuildContext := preload("../../lib/build_context.gd")
 const FarmBuild := preload("farm_build.gd")
 const FieldRecipe := preload("field_recipe.gd")
 const FarmMapRecipe := preload("farm_map_recipe.gd")
+const CaveRock := preload("cave_rock.gd")
+const PlainGround := preload("../../lib/plain_ground.gd")
 
 const TRAILS_SCENE := FarmBuild.TRAILS_SCENE
 const TRAILS_NODE := FarmBuild.TRAILS_NODE
@@ -76,6 +84,10 @@ const CAVE := "cave"
 const ENEMY_RECIPES := "../arpg/enemy_recipes.gd"
 const GLOOM := Color(0.04, 0.03, 0.06, 0.55)
 const ROCK := Color(0.2, 0.18, 0.19)
+## The light of a cave (RpgMapRoot.ambient_override): darker and bluer than the light of a room.
+const CAVE_LIGHT := Color(0.5, 0.48, 0.6)
+## How tall an enemy of a cave stands beside the farmer (`_scale_to_farmer`).
+const ENEMY_HEIGHT := 0.7
 
 const SAND := Color(0.89, 0.82, 0.59)
 const SAND_DARK := Color(0.86, 0.79, 0.56)
@@ -172,6 +184,8 @@ func input_hash(ctx: BuildContext) -> String:
 		"music": JsonUtil.to_str(ctx.section("sounds").get("music_map", "")),
 		"entries": ObjectEntries.entries(ctx),
 		"field": FieldRecipe.RECIPE_VERSION,
+		"plain": PlainGround.stored(),
+		"rock": CaveRock.VERSION,
 	}
 	if MapGeo.is_isometric(ctx):
 		hashed["iso"] = MapGeo.new(ctx).def
@@ -335,14 +349,18 @@ func _add_ground(ctx: BuildContext, entry: Dictionary, kind: String, root: Node2
 			# the floor of a cave is the ground in the gloom; the rock is drawn over it, and it
 			# blocks where it meets the floor. Underground: no rain and a dim light.
 			root.set("is_interior", true)
+			# a cave is darker than a room of a house: the light of a cave, whatever the hour
+			root.set("ambient_override", CAVE_LIGHT)
 			var rock := FarmMapRecipe.cells_of(entry.get("walls"))
 			if own.is_empty():
 				_add_cover(root, ground, geo, "Gloom", row_runs(size, rock), GLOOM, GLOOM)
-			# the rock, the edge's among it (no wall tile of the packs stands round a cave)
+			# the rock, the edge's among it (no wall tile of the packs stands round a cave):
+			# drawn, and the packs' own rock laid over it where they have it (cave_rock.gd)
 			var drawn: Array[Vector2i] = []
 			drawn.append_array(rock)
 			drawn.append_array(MapGeo.border_cells(size, [FarmMapRecipe.cell_of(JsonUtil.to_dict(entry.get("door", {})).get("cell"))]))
 			_add_cover(root, ground, geo, "Rock", cell_runs(drawn), ROCK, ROCK)
+			_add_rock(ctx, entry, root, nodes, geo, drawn)
 			var body := StaticBody2D.new()
 			body.collision_layer = 0
 			body.collision_mask = 0
@@ -356,6 +374,45 @@ func _add_ground(ctx: BuildContext, entry: Dictionary, kind: String, root: Node2
 				shape.position = geo.center(cell)
 				body.add_child(shape)
 	return water_tile
+
+## The packs' own rock of a cave over the drawn one (cave_rock.gd): a cell of a picture of rock
+## on every cell of rock and of the edge seen from above, the isometric tile of rock on the
+## ground of every cell on diamonds; else the packs' boulders (the farm's `rock` things), one on
+## every cell of rock, which block nothing (the body `RockWall` does). Says in the log which.
+func _add_rock(ctx: BuildContext, entry: Dictionary, root: Node2D, nodes: Dictionary, geo: MapGeo, cells: Array[Vector2i]) -> void:
+	var holder: Node2D = root.get_node("Rock")
+	var ground: TileMapLayer = nodes["Ground"]
+	var used := CaveRock.lay(ctx, geo, holder, ground, cells)
+	if used != "":
+		print("[rpggen] INFO added_maps (%s): the cave's rock is %s" % [map_id(entry), used])
+		return
+	var boulders := FarmMapRecipe.thing_entries(ObjectEntries.entries(ctx), "rock", geo.tile_px)
+	var fitting: Array[Dictionary] = []
+	for found in boulders:
+		if MapGeo.is_iso_entry(found) == geo.isometric:
+			fitting.append(found)
+	if fitting.is_empty():
+		print("[rpggen] INFO added_maps (%s): the packs have no rock: the cave's rock is drawn" % map_id(entry))
+		return
+	var parent: Node2D = nodes["Entities"] if geo.isometric else holder
+	var interior := {}
+	for cell in FarmMapRecipe.cells_of(entry.get("walls")):
+		interior[cell] = true
+	var i := 0
+	for cell in cells:
+		if not interior.has(cell):
+			continue  # the edge stays drawn: boulders round the map would hide its doorway
+		var picture: Node2D = null
+		if geo.isometric:
+			picture = FarmMapRecipe.iso_picture("rock", fitting[i % fitting.size()], geo.footprint, geo.tile_px)
+			picture.position = geo.center(cell)
+		else:
+			picture = FarmMapRecipe.picture("rock", FarmMapRecipe.thing_texture(fitting, i), geo.tile_px)
+			picture.position += FarmMapRecipe._spot(cell, geo)
+		picture.name = "Boulder_%d_%d" % [cell.x, cell.y]
+		parent.add_child(picture)
+		i += 1
+	print("[rpggen] INFO added_maps (%s): the cave's rock is the packs' boulders (%s)" % [map_id(entry), JsonUtil.to_str(fitting[0]["id"])])
 
 ## `cells` as runs along a row (Rect2i one row high), row by row: what a drawn cover of some
 ## cells of a map is laid as.
@@ -398,6 +455,7 @@ func _add_enemies(ctx: BuildContext, entry: Dictionary, id: String, root: Node2D
 		return
 	var recipe: RefCounted = script.new()
 	var cells: Array = JsonUtil.to_array(entry.get("enemies", []))
+	var farmer := painted_height(PLAYER_SCENE)
 	for i in cells.size():
 		var scene := JsonUtil.to_str(recipe.call("starter_scene_at", ctx, i))
 		if scene == "":
@@ -408,9 +466,59 @@ func _add_enemies(ctx: BuildContext, entry: Dictionary, id: String, root: Node2D
 		if enemy != null:
 			enemy.set("entity_id", "%s_enemy_%d" % [id, i + 1])
 			enemy.set("facing", "down")
+			var size := scale_to_farmer(farmer, painted_height(scene))
+			if size != 1.0:
+				(enemy as Node2D).scale = Vector2(size, size)
+				if i == 0:
+					print("[rpggen] INFO added_maps (%s): the enemies are drawn %.2f times as large, %d%% of the farmer's height" % [id, size, roundi(ENEMY_HEIGHT * 100.0)])
+
+## How many px high the first picture of the `Visual` of a scene of an actor is painted (its
+## frame without the see-through rows above and below), or 0 when it has none.
+static func painted_height(scene_path: String) -> int:
+	if not ResourceLoader.exists(scene_path):
+		return 0
+	var packed := load(scene_path) as PackedScene
+	if packed == null:
+		return 0
+	var node := packed.instantiate()
+	var height := 0
+	var visual := node.get_node_or_null("Visual") as AnimatedSprite2D
+	if visual != null and visual.sprite_frames != null:
+		var frames := visual.sprite_frames
+		var names := frames.get_animation_names()
+		var animation := ""
+		if frames.has_animation("idle_down"):
+			animation = "idle_down"
+		elif not names.is_empty():
+			animation = names[0]
+		if animation != "" and frames.get_frame_count(animation) > 0:
+			var texture := frames.get_frame_texture(animation, 0)
+			var image: Image = null
+			if texture != null:
+				image = texture.get_image()
+			if image != null:
+				if image.is_compressed():
+					image.decompress()
+				height = image.get_used_rect().size.y
+	node.free()
+	return height
+
+## The scale of an enemy that is painted `enemy` px high beside a farmer painted `farmer` px
+## high: what makes it ENEMY_HEIGHT of the farmer, in quarters, never smaller than it is drawn
+## and at most three times as large; 1 when it is that already, or either is not known (the kit's
+## slime was a tile large: half the farmer's height from above).
+static func scale_to_farmer(farmer: int, enemy: int) -> float:
+	if farmer <= 0 or enemy <= 0:
+		return 1.0
+	var wanted := ENEMY_HEIGHT * farmer / float(enemy)
+	var stepped := clampf(roundf(wanted * 4.0) / 4.0, 1.0, 3.0)
+	return stepped
 
 ## The ground tile of the farm (farm_map_recipe.gd chooses the same).
 func _farm_ground(ctx: BuildContext, geo: MapGeo) -> Dictionary:
+	var plain := PlainGround.tile(geo)  # the plain tile rpggen found (farm.ground)
+	if not plain.is_empty():
+		return plain
 	var wanted := JsonUtil.to_str(ctx.section("starter_map").get("ground", ""))
 	if wanted == "":
 		wanted = JsonUtil.to_str(ctx.section("starter").get("ground", ""))

@@ -659,6 +659,7 @@ Several task cards extend these schemas. Each card that adds a field must update
 | `flags.farm_marriage` (`courting`, `engaged`, `wedding`, `spouse`, `wed`, `home`, `help`, `table`); `game/data/items/bouquet.tres`, `pendant.tres` | save game, game data (farm) | T17.26 |
 | the condition atoms `courting:<id>`, `engaged:<id>`, `spouse:<id>` | dialogue (false in a game without marriage) | T17.26 |
 | `farm.events`; `birthday` of a Person of `farm.people` | world_plan | T17.25 |
+| `farm.ground` (`v`, `asset`, `surface`: `grass` or `earth`, `base`: [column, row] of the plain ground tile; measured on every run, absent for an isometric farm or a ground that is no sheet) | world_plan | after T17.30 |
 | `game/data/events.json`, `generated/data/events.json` (`events`); `birthday` of a person of `people.json` | game data (farm) | T17.25 |
 | `flags.farm_events` (`added`, `today`, `birthday_gifts`), `flags.farm_bin.shipped` (`season`, `items`) | save game | T17.25 |
 | the condition atoms `birthday:<id>`, `festival`, `festival_tomorrow`, `event:<kind>` | dialogue (false in a game without festivals) | T17.25 |

@@ -26,6 +26,7 @@ const BuildContext := preload("../lib/build_context.gd")
 const ImportedMaps := preload("imported_maps_recipe.gd")
 const WorldPlan := preload("../lib/world_plan.gd")
 const MapGeo := preload("../lib/map_geo.gd")
+const PlainGround := preload("../lib/plain_ground.gd")
 
 const OUT_PATH := "res://game/maps/starter_map.tscn"
 ## The entities of the demo placed in the starter map (T8.08 removes exactly these).
@@ -77,7 +78,13 @@ func input_hash(ctx: BuildContext) -> String:
 		"demo_removed": ctx.demo_removed,
 		"demo": ctx.section("features").get("demo", true),
 		"world": WorldPlan.area(WorldPlan.read(), WorldPlan.VILLAGE_ID),
-	}).merged(_augmenter_hash(ctx)))
+	}).merged(_augmenter_hash(ctx)).merged(_plain_hash()))
+
+## The plain ground of a farm (`farm.ground`) and the version of its painting; nothing for any
+## other project, whose hash is what it was.
+static func _plain_hash() -> Dictionary:
+	var stored := PlainGround.stored()
+	return {} if stored.is_empty() else {"plain": stored, "plain_v": PlainGround.VERSION}
 
 ## What an isometric project's map is made from beside the rest (T17.14): its tile set of
 ## diamonds. Nothing for a project seen from above, whose hash is what it was.
@@ -335,6 +342,14 @@ func _house_area(building: Dictionary, geo: MapGeo) -> Rect2i:
 ## from above the others are tiles of the same sheet; an isometric pack's are its other flat
 ## ground tiles.
 func _paint_ground(ctx: BuildContext, geo: MapGeo, ground: TileMapLayer, building: Dictionary, layout: Dictionary) -> void:
+	# a farm's village has the plain ground tile rpggen found on its sheet, as the farm has
+	# (farm.ground of the plan file: no other project has the key), and no patches of the
+	# sheet's other tiles, which are its edges and corners
+	var plain := PlainGround.tile(geo)
+	if not plain.is_empty():
+		var plain_size: Vector2i = layout["size"]
+		MapBuild.fill_ground(ground, plain_size, plain)
+		return
 	var base := _ground_tile(ctx, geo)
 	if base.is_empty():
 		return

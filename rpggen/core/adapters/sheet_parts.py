@@ -74,6 +74,15 @@ LOOSE_TILE_MAX = 64  # a larger square of a sheet of loose tiles is cut in quart
 NAMED_CONFIDENCE = 0.8
 UNNAMED_CONFIDENCE = 0.5  # nothing says what the thing is: needs review
 GROUND_CONFIDENCE = 0.8
+# a row of growth stages of a farming pack's mixed sheet (``crop_rows``)
+CROP_FOOT = 8  # a plant stands within 1/8 of its cell of the cell's bottom ...
+CROP_SOIL_ROWS = 4  # ... and the colour of its lowest rows of paint is its soil, ...
+CROP_SOIL = (
+    0.2  # ... which differs this little from the first stage's (a carrot after them is no stage)
+)
+CROP_FIRST = 0.6  # the first stage covers at most this share of a cell (a sprout on its mound)
+CROP_CONFIDENCE = 0.6
+CROP_NAME = "crop_"  # crop_1, crop_2, ... in the pack's order: nothing names them
 TILESET_WORDS = frozenset({"tileset", "tilesets", "tile", "tiles"})
 OBJECT_WORDS = frozenset({"asset", "assets", "objects", "props", "stage"})
 # the words of a sheet's name -> (role, tag) of the things on it, the first that matches
@@ -144,6 +153,19 @@ def is_tileset_pack(inv: Inventory) -> bool:
     tops = {f.path.split("/", 1)[0] for f in inv.files if "/" in f.path}
     names = [inv.pack_id.replace("_", " ")] + (sorted(tops) if len(tops) == 1 else [])
     return any(set(classifier.name_words(name)) & TILESET_WORDS for name in names)
+
+
+def is_farm_tileset(inv: Inventory) -> bool:
+    """Whether a tile set pack is a farming one, whose mixed sheets may hold rows of crops: the
+    farm reader's test (``farm.is_farm_pack``), or the pack's name or the one folder it is
+    wrapped in says *farm* (*Farm Tileset - Pixel Art*)."""
+    from rpggen.core.adapters import farm
+
+    if farm.is_farm_pack(inv):
+        return True
+    tops = {f.path.split("/", 1)[0] for f in inv.files if "/" in f.path}
+    names = [inv.pack_id.replace("_", " ")] + (sorted(tops) if len(tops) == 1 else [])
+    return any(set(classifier.name_words(name)) & farm.FARM_PACK_WORDS for name in names)
 
 
 def candidates(inv: Inventory, claimed: set[str]) -> list[InventoryFile]:
@@ -336,12 +358,150 @@ def _grass(picture: np.ndarray) -> bool:
     return g > r * 1.1 and g > b * 1.2
 
 
-def sort_cells(a: np.ndarray, cell: int) -> _Cut:
-    """A mixed tile sheet sorted cell by cell (see the module)."""
+@dataclass
+class _CropRow:
+    row: int  # the row of cells the plants stand in
+    col: int  # the first stage's column
+    stages: int
+    up: int  # the rows of cells above it the tallest stage reaches into
+
+
+def _bottom_colour(picture: np.ndarray) -> np.ndarray | None:
+    """The mean colour (0..1) of the lowest painted rows of a cell: the soil a plant stands in."""
+    mask = picture[..., 3] >= PAINTED_ALPHA
+    rows = np.nonzero(mask.any(axis=1))[0]
+    if not rows.size:
+        return None
+    low = int(rows[-1])
+    band = mask.copy()
+    band[: max(0, low - CROP_SOIL_ROWS + 1)] = False
+    return picture[..., :3][band].astype(np.float64).mean(axis=0) / 255.0
+
+
+def _soil_like(colour: np.ndarray | None) -> bool:
+    """Whether the lowest paint of a cell is earth (red over green, not a leaf, not the sky)."""
+    return colour is not None and colour[0] >= colour[1] and colour[0] >= colour[2] * 0.9
+
+
+def _in_soil(picture: np.ndarray) -> bool:
+    """Whether a cell holds a plant of its own: what it paints lowest is earth (a speck is
+    nothing)."""
+    painted = float((picture[..., 3] >= PAINTED_ALPHA).mean()) if picture.size else 0.0
+    return painted >= CELL_SPECK and _soil_like(_bottom_colour(picture))
+
+
+def crop_rows(a: np.ndarray, cell: int, share: np.ndarray) -> list[_CropRow]:
+    """The rows of growth stages of a mixed sheet of a farming pack (CuteSCKR's sheet 1: a crop a
+    row of cells, its stages side by side and its produce after them). A run of cells is a crop
+    when each is a plant standing at the bottom of its cell (``CROP_FOOT``) in the same soil as
+    the first (``CROP_SOIL``), green at every stage, the first small (``CROP_FIRST``), and the
+    stages grow as T17.29's rule has it (``farm.growth_run``: each covers more of its cell than
+    the one before, the ripe one about the largest). A stalk that goes on into the cell above
+    makes the frames of the run that many cells high (two at most). By the top, then the left."""
+    from rpggen.core.adapters import farm
+
+    rows, cols = share.shape
+    taken: set[tuple[int, int]] = set()
+    mask = a[..., 3] >= PAINTED_ALPHA
+    found: list[_CropRow] = []
+
+    def tile(r: int, c: int, high: int = 1) -> np.ndarray:
+        return a[(r - high + 1) * cell : (r + 1) * cell, c * cell : (c + 1) * cell]
+
+    # from the bottom up: the tops of a row's tall plants, in the row above it, are its own
+    # before that row is read
+    for r in range(rows - 1, -1, -1):
+        facts = []
+        for c in range(cols):
+            picture = tile(r, c)
+            m = picture[..., 3] >= PAINTED_ALPHA
+            ys = np.nonzero(m.any(axis=1))[0]
+            ok = (
+                (r, c) not in taken
+                and CELL_SPECK <= share[r, c] < WHOLE
+                and ys.size > 0
+                and int(ys[-1]) >= cell - 1 - cell // CROP_FOOT
+                and farm.cell_counts([picture])[0][2] >= farm.GREEN_SHARE
+            )
+            colour = _bottom_colour(picture) if ok else None
+            facts.append((ok and _soil_like(colour), colour))
+        c = 0
+        while c < cols:
+            soil = facts[c][1]
+            if not facts[c][0] or soil is None:
+                c += 1
+                continue
+            end = c
+            while end < cols and facts[end][0]:
+                colour = facts[end][1]
+                if colour is None or float(np.sqrt(((colour - soil) ** 2).sum())) > CROP_SOIL:
+                    break
+                end += 1
+            up = 0
+            while up < 2 and r - up - 1 >= 0:
+                border = (r - up) * cell
+                above = r - up - 1
+                crossing = [
+                    bool(
+                        (
+                            mask[border - 1, k * cell : (k + 1) * cell]
+                            & mask[border, k * cell : (k + 1) * cell]
+                        ).any()
+                    )
+                    for k in range(c, end)
+                ]
+                # ... into cells that are no plants in soil of their own (a row of crops above,
+                # which nothing of this row reaches)
+                own = any(_in_soil(tile(above, k)) and not crossing[k - c] for k in range(c, end))
+                if not any(crossing) or own or any((above, k) in taken for k in range(c, end)):
+                    break
+                up += 1
+            frames = [tile(r, k, up + 1) for k in range(c, end)]
+            counts = farm.cell_counts(frames)
+            small = 0 < counts[0][0] <= CROP_FIRST * cell * cell
+            stages = (
+                farm.growth_run(counts, 0, farm.GROWTH_RATIO)
+                if small and end - c >= farm.MIN_STAGES
+                else 0
+            )
+            if stages >= farm.MIN_STAGES:
+                found.append(_CropRow(r, c, stages, up))
+                taken.update((r - u, k) for u in range(up + 1) for k in range(c, c + stages))
+                c += stages
+            else:
+                c += 1
+    return sorted(found, key=lambda run: (run.row, run.col))
+
+
+def _crop_part(a: np.ndarray, cell: int, run: _CropRow) -> _Part:
+    from rpggen.core.adapters import farm
+
+    high = (run.up + 1) * cell
+    top = (run.row - run.up) * cell
+    strip = np.ascontiguousarray(
+        a[top : top + high, run.col * cell : (run.col + run.stages) * cell]
+    )
+    facets = farm._crop_facets(run.stages, cell, high, "crop", "sheet")
+    facets["tags"] = sorted({*facets["tags"], f"cells:{run.row}:{run.col}:{run.stages}"})
+    return _Part(f"crop{run.col * cell}_{top}", strip, facets, CROP_CONFIDENCE)
+
+
+def sort_cells(a: np.ndarray, cell: int, crops: bool = False) -> _Cut:
+    """A mixed tile sheet sorted cell by cell (see the module); ``crops``: a farming pack's,
+    whose rows of growth stages are crops (``crop_rows``)."""
     cut = _Cut(reason=UNUSED_SORTED_SHEET)
     mask = a[..., 3] >= PAINTED_ALPHA
     rows, cols = mask.shape[0] // cell, mask.shape[1] // cell
     share = mask.reshape(rows, cell, cols, cell).mean(axis=(1, 3))
+    if crops:
+        # the cells of a crop are no thing of their own: they are left out of what follows
+        for run in crop_rows(a, cell, share):
+            cut.parts.append(_crop_part(a, cell, run))
+            for u in range(run.up + 1):
+                for k in range(run.col, run.col + run.stages):
+                    r0, c0 = run.row - u, k
+                    mask[r0 * cell : (r0 + 1) * cell, c0 * cell : (c0 + 1) * cell] = False
+        share = mask.reshape(rows, cell, cols, cell).mean(axis=(1, 3))
     painted = share > 0
     whole = share >= WHOLE
     parent = list(range(rows * cols))
@@ -471,6 +631,7 @@ class SheetPartsAdapter:
         work = (ctx.work_dir or paths.cache_dir()) / WORK_FOLDER
         files = candidates(inv, ctx.claimed)
         tileset = is_tileset_pack(inv)
+        farming = tileset and is_farm_tileset(inv)
 
         def one(f: InventoryFile) -> _Cut:
             ctx.check_cancel()
@@ -485,7 +646,7 @@ class SheetPartsAdapter:
                 # a sheet of the size of RPG Maker's B to E sheets in a pack that says no tile
                 # set is offered as tiles of 48 px by the grid reader (T16.21), as it was
                 return _Cut(reason="")
-            cut = sort_cells(a, cell) if cell else cut_objects(f, a)
+            cut = sort_cells(a, cell, farming) if cell else cut_objects(f, a)
             for part in cut.parts:
                 dest = work / _render_name(f, part.variant)
                 try:
@@ -498,12 +659,18 @@ class SheetPartsAdapter:
             return cut
 
         cuts = iso_sheets.in_parallel(one, files, ctx)
+        crops = 0
         for f, cut in zip(files, cuts, strict=True):
             if cut.error:
                 issues.add("ADAPT-001", adapter=self.name, file=f.path, reason=cut.error)
             if not cut.parts:
                 continue
             for part in cut.parts:
+                if part.facets.get("usage") == "growth_strip":
+                    # named in the pack's order (the sheets by name, a sheet's by its rows)
+                    crops += 1
+                    tags = [t for t in part.facets["tags"] if not t.startswith("produce:")]
+                    part.facets["tags"] = sorted({*tags, f"produce:{CROP_NAME}{crops}"})
                 name = _render_name(f, part.variant)
                 project = f"{RENDER_DIR}/{name}"
                 result.assets.append(

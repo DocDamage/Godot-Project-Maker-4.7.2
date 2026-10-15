@@ -109,6 +109,16 @@ def test_its_player_animals_and_ground_are_the_packs(farm: Path) -> None:
 
 
 @pytest.mark.farm
+def test_its_crop_is_the_row_of_growth_stages_of_the_mixed_sheet(farm: Path) -> None:
+    """After T17.30: the row of stages on `mixed_sheet`'s sheet is a crop the farm grows."""
+    crops = jsonio.read(farm / "generated/data/crops.json")["crops"]
+    assert "crop_1" in [c["id"] for c in crops]
+    data = jsonio.read(farm / "rpggen/asset_catalog.json")
+    crop = next(a for a in data["assets"] if a["id"].endswith("farm.n1#crop48_432"))
+    assert crop["detected"]["role"] == "CROP" and crop["detected"]["stages"] == 4
+
+
+@pytest.mark.farm
 def test_the_readme_names_the_pack_marked_as_ai_generated(farm: Path, village: Path) -> None:
     """T17.30: the farm uses `mixed_sheet`, marked as AI-generated art in the audit, and its
     README says so with the clean-up advice; the village, whose pack nobody marked, has no such

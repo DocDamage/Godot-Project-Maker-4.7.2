@@ -2995,6 +2995,15 @@ def make_mixed_sheet(out: Path) -> None:
     # single things, a cell each
     for i, colour in enumerate([(200, 60, 60, 255), (220, 200, 60, 255), (90, 90, 200, 255)]):
         d.ellipse([10 + i * 48, 300, 36 + i * 48, 326], fill=colour)
+    # a crop in a row of cells (CuteSCKR's sheet 1): four stages that grow on mounds of soil,
+    # the last one's stalk going on into the cell above, and its produce after them
+    for k in range(4):
+        x = 48 + k * 48
+        d.ellipse([x + 8, 516, x + 40, 527], fill=FARM_SOIL)
+        top = 508 - k * 12 if k < 3 else 470  # the ripe one reaches into the row above
+        d.rectangle([x + 22, top, x + 25, 518], fill=(60, 140, 50, 255))
+        d.ellipse([x + 14 - 2 * k, top, x + 33 + 2 * k, top + 8 + 4 * k], fill=(80, 170, 60, 255))
+    d.ellipse([256, 500, 280, 524], fill=(230, 120, 40, 255))  # the produce: no soil, no stage
     _save_png(img, pack / "farm" / "1.png")
     prefix = "Synthetic Farm Tileset/farm/1.png"
     expected = {
@@ -3003,8 +3012,77 @@ def make_mixed_sheet(out: Path) -> None:
         f"{prefix}#o192_10": {"usage": "object", "role": "DECORATION"},
         f"{prefix}#o336_24": {"usage": "object", "role": "DECORATION"},
         f"{prefix}#o10_300": {"usage": "object", "role": "DECORATION"},
+        f"{prefix}#crop48_432": {"usage": "growth_strip", "role": "CROP", "frame": [48, 96]},
+        f"{prefix}#o256_500": {"usage": "object", "role": "DECORATION"},
     }
     _expected(out, "mixed_sheet", expected)
+
+
+def _ground_sheet() -> Image.Image:
+    """64 x 32 in 16 px tiles, as a real farming pack's ground sheet begins: the corner of a bed of
+    soil on grass (orange stripes on green, no tile to walk on), then plain grass, the same grass
+    with a few darker blades, a darker shade of it, plain earth, water and a blob of grass on
+    see-through ground."""
+    img = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    grass, shade, earth = (90, 160, 70, 255), (72, 140, 58, 255), (170, 130, 80, 255)
+    d.rectangle([0, 0, 15, 15], fill=grass)
+    for k in range(-16, 16, 5):  # the bed's edge: stripes that do not meet when laid in a row
+        d.line([(k, 15), (k + 15, 0)], fill=(220, 140, 60, 255), width=2)
+    d.rectangle([16, 0, 31, 15], fill=grass)
+    d.rectangle([32, 0, 47, 15], fill=grass)
+    for x, y in ((35, 4), (42, 9), (38, 12)):
+        d.rectangle([x, y, x, y + 1], fill=(80, 150, 62, 255))
+    d.rectangle([48, 0, 63, 15], fill=shade)
+    d.rectangle([0, 16, 15, 31], fill=earth)
+    d.rectangle([16, 16, 31, 31], fill=(60, 120, 200, 255))
+    d.ellipse([34, 18, 61, 29], fill=grass)
+    return img
+
+
+def _rock_sheet() -> Image.Image:
+    """64 x 32 in 16 px cells, a cave's sheet as *Farm RPG*'s *Rock Caves*: the dark floor, a
+    rock face whose grain repeats every 4 px (it tiles with itself), a boulder on see-through
+    ground and an edge of rock over the floor."""
+    img = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, 15, 15], fill=(40, 30, 36, 255))
+    for y in range(16):
+        for x in range(16, 32):
+            light = ((x // 2) + (y // 2)) % 2
+            img.putpixel((x, y), (112, 80, 76, 255) if light else (96, 66, 64, 255))
+    d.ellipse([34, 4, 46, 14], fill=(110, 110, 116, 255))
+    d.rectangle([48, 0, 63, 15], fill=(40, 30, 36, 255))
+    d.rectangle([48, 0, 63, 6], fill=(104, 72, 70, 255))
+    d.rectangle([0, 16, 63, 31], fill=(40, 30, 36, 255))
+    return img
+
+
+def make_farm_cave(out: Path) -> None:
+    """A farming pack with what the cave and the ground of a farm look for (after T17.24 and
+    T17.29): a ground sheet whose first tile is no ground to walk on and whose plain grass comes
+    after it, a cave's sheet of rock, one picture of water, and a sheet of fish icons in a folder
+    of icons (an item, never the water of a pond)."""
+    pack = out / "farm_cave" / "Farm Cave Pack"
+    _write_text(out / "farm_cave" / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_ground_sheet(), pack / "Tileset" / "Tileset Grass Meadow.png")
+    _save_png(_rock_sheet(), pack / "Tileset" / "Rock Caves.png")
+    water = Image.new("RGBA", (16, 16), (60, 120, 200, 255))
+    ImageDraw.Draw(water).line([(3, 6), (8, 6)], fill=(120, 170, 230, 255))
+    _save_png(water, pack / "Tileset" / "Water tile.png")
+    fish = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    fd = ImageDraw.Draw(fish)
+    for k in range(16):
+        x, y = (k % 4) * 16, (k // 4) * 16
+        fd.ellipse([x + 2, y + 5, x + 12, y + 11], fill=(70, 110, 190, 255), outline=BLACK)
+        fd.polygon([(x + 12, y + 8), (x + 15, y + 5), (x + 15, y + 11)], fill=(70, 110, 190, 255))
+    _save_png(fish, pack / "Icons" / "Fish" / "Sea" / "Dolphin.png")
+    expected: dict[str, dict] = {
+        "Farm Cave Pack/Tileset/Tileset Grass Meadow.png": {"usage": "tiles", "role": "GROUND"},
+        "Farm Cave Pack/Tileset/Water tile.png": {"usage": "tiles", "role": "WATER"},
+        "Farm Cave Pack/Icons/Fish/Sea/Dolphin.png": {"role": "ITEM"},
+    }
+    _expected(out, "farm_cave", expected)
 
 
 PACKS: dict[str, Callable[[Path], None]] = {
@@ -3045,6 +3123,7 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "facings": make_facings,
     "object_sheet": make_object_sheet,
     "mixed_sheet": make_mixed_sheet,
+    "farm_cave": make_farm_cave,
 }
 
 

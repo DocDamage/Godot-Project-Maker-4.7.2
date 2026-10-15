@@ -422,6 +422,11 @@ def add_run_made_assets(
         farm_kit.add(
             catalog, farm_kit_tile(catalog, cfg), root, cfg.projection, farm_added_kinds(cfg, root)
         )
+        from rpggen.core import farm_ground
+
+        # a ground sheet without one plain tile (*Tiny Farm*) gets a plain ground drawn in its
+        # own grass colour, with its note
+        issues.extend(farm_ground.add(catalog, cfg, farm_kit_tile(catalog, cfg), root))
     if iso_atlas.wanted(cfg):
         from rpggen.core import iso_kit
 
@@ -562,6 +567,7 @@ def _plan_world(state: _State, catalog: catalog_mod.Catalog) -> None:
         # tastes are for what the crops give
         _plan_crops(state, catalog, stored_farm)
         _plan_farm_map(state, catalog)
+        _plan_farm_ground(state, catalog)
         _plan_people(state, catalog, stored_farm)
         _plan_animals(state, catalog, stored_farm)
         _plan_forage(state, catalog, stored_farm)  # after the map: its places lie on it
@@ -782,6 +788,28 @@ def farm_facts(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) ->
         barn=own["barn"],
         grounds=_added_grounds(cfg, catalog),
     )
+
+
+def _plan_farm_ground(state: _State, catalog: catalog_mod.Catalog) -> None:
+    """The plain ground of a farm's maps (``farm_ground``): measured from the ground sheet on
+    every run and stored as ``farm.ground`` beside the map, where the recipes read it; a farm
+    whose sheet cannot be read, or an isometric one, has no such key."""
+    from rpggen.core import farm_ground
+
+    assert state.staging is not None and state.cfg is not None
+    root = state.staging.staging
+    plan = world_plan.load(root) or {}
+    if not isinstance(plan.get("farm"), dict):
+        return
+    chosen = farm_ground.plan(catalog, state.cfg, root)
+    if chosen is None:
+        if "ground" not in plan["farm"]:
+            return
+        plan["farm"].pop("ground")
+    else:
+        plan["farm"]["ground"] = chosen
+        state.cb.on_log(f"farm: the ground is the tile {chosen['base']} of {chosen['asset']}")
+    world_plan.save(root, plan)
 
 
 def _plan_farm_map(state: _State, catalog: catalog_mod.Catalog) -> None:

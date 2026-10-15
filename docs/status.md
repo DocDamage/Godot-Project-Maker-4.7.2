@@ -214,9 +214,12 @@ should know:
   passing out. Generated and played by the smoke run on *Green acre* and on the synthetic
   isometric pack (the sword bought, an enemy defeated with `use`, what it left carried home,
   the farmer defeated by an enemy's blow and woken at the bed), and looked at in pictures.
-  Short of it: nobody fought by hand, the numbers are untuned, the rock and the edge of a cave
-  are flat dark shapes (on diamonds too), and the farmer's swing is the tool's icon over its
-  hands when its sheet has no attack. With *Combat* off a farm is what it was (an A/B against
+  Since the fixes after T17.30 the cave's rock is the packs' own where they have a picture of it
+  (a cell of a picture of rock seen from above, a rock tile on diamonds, else their boulders;
+  drawn shapes only without), its light is a cave's, and an enemy much smaller than the farmer
+  is scaled to it. Short of it: nobody fought by hand, the numbers are untuned, the rock is one
+  cell repeated with a hard edge to the floor (no terrain painting yet), and the farmer's swing
+  is the tool's icon over its hands when its sheet has no attack. With *Combat* off a farm is what it was (an A/B against
   `HEAD`: the maps, the data and the scenes the same but for `unique_id`s).
 * **Real farming packs since T17.29**: Kenney's *Tiny Farm*, EmanuelleDev's *Farm RPG* (a
   `.rar`, opened with Windows' own `tar` when 7-Zip is not there; its licence, in
@@ -225,7 +228,11 @@ should know:
   their own pictures and a player of the pack, played through the farm's smoke sequence and
   looked at in pictures. Short of it: *Tiny Farm* names nothing, so its farmer and hen were
   chosen in the audit as a user would, its crops are *Crop 1* to *Crop 5* (the wheat, yellow
-  when ripe, is not found) and the map is laid with the sheet's first tile (the farm lays every pack's ground with the first tile of its sheet: *Modern Farm*'s is grass with a corner of earth, and *Farm RPG*'s pond is filled with a sheet of fish read as its water); the size of a pack
+  when ripe, is not found) and its sheet has no plain grass (a plain ground is drawn in its
+  green); a farm's maps are laid with one plain tile of the ground sheet, measured from its
+  pictures, and *Farm RPG*'s pond with its picture of water (both mended after T17.30: before,
+  every map was the sheet's first tile and the pond a sheet of fish icons); the ground is one
+  tile with hard edges to soil, water and paths until maps are painted with terrains; the size of a pack
   drawn in several is chosen on the Audit page's *Packs* tab, not the Project page; a pack's
   layered character takes its rows' names from LimeZu's order or from the action folders, and
   a dog is no farm animal. SakPix's *Cozy Farming Village* (large sheets of loose objects) is now
@@ -243,7 +250,8 @@ should know:
   Short of it: the farms take their player from SakPix's villagers and CuteSCKR's buildings
   were given their role in the audit; Screaming Brain's thick
   walls, corners, roofs, paths and roads are not read; things cut from a mixed sheet need
-  review. A pack with no licence file can be given its licence and a credit line on the Audit
+  review, but a farming pack's rows of growth stages are crops (CuteSCKR's farm grows its own
+  ten, *Crop 1* to *Crop 10*, after T17.30). A pack with no licence file can be given its licence and a credit line on the Audit
   page's *Packs* tab: the README credits it as its user's own statement. A pack can be marked
   there as AI-generated art (CuteSCKR's): the README of a game that uses it has a section
   *AI-generated content* for the store page's declaration. *Lords Of Pain*'s slime, set

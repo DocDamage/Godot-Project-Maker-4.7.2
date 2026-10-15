@@ -53,9 +53,21 @@
         "animals": {"$ref": "#/$defs/FarmAnimals"},
         "forage": {"$ref": "#/$defs/FarmForage"},
         "events": {"$ref": "#/$defs/FarmEvents"},
+        "ground": {"$ref": "#/$defs/FarmGround"},
         "notes": {"type": "array", "items": {"type": "string"}}
       },
       "required": ["plan_version", "seed", "difficulty", "crops", "notes"],
+      "additionalProperties": false
+    },
+    "FarmGround": {
+      "type": "object",
+      "properties": {
+        "v": {"type": "integer"},
+        "asset": {"type": "string", "minLength": 1},
+        "surface": {"enum": ["grass", "earth"]},
+        "base": {"$ref": "#/$defs/Cell"}
+      },
+      "required": ["v", "asset", "surface", "base"],
       "additionalProperties": false
     },
     "FarmMap": {

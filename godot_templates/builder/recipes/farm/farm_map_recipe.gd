@@ -42,7 +42,7 @@ extends RefCounted
 ## a well. The door of a drawn building is a band along its south side, as the door of an
 ## isometric building of the packs is. The rooms are painted with the same tile set.
 
-const RECIPE_VERSION := 4
+const RECIPE_VERSION := 5
 ## The version of what the recipe does for an isometric project only (T17.14): it is in the hash
 ## of such a project and of no other.
 const ISO_VERSION := 2
@@ -58,6 +58,7 @@ const ObjectIndex := preload("../../lib/object_index.gd")
 const BuildContext := preload("../../lib/build_context.gd")
 const InteriorRecipe := preload("../interior_recipe.gd")
 const MapGeo := preload("../../lib/map_geo.gd")
+const PlainGround := preload("../../lib/plain_ground.gd")
 const IsoTileset := preload("../../lib/iso_tileset.gd")
 const IsoHouse := preload("../../lib/iso_house.gd")
 const FarmBuild := preload("farm_build.gd")
@@ -365,6 +366,7 @@ func input_hash(ctx: BuildContext) -> String:
 		"field": FieldRecipe.RECIPE_VERSION,
 		"room": RoomRecipe.RECIPE_VERSION,
 		"forage": ForageRecipe.spots(),
+		"plain": PlainGround.stored(),
 	}
 	if MapGeo.is_isometric(ctx):  # only an isometric project's hash has the keys (T17.14)
 		hashed["iso"] = MapGeo.new(ctx).def
@@ -390,6 +392,10 @@ func build(ctx: BuildContext) -> Array:
 # ---------------------------------------------------------------- the farm
 
 func _ground_tile(ctx: BuildContext, geo: MapGeo) -> Dictionary:
+	# the plain tile of the ground sheet where rpggen found one (farm.ground), not its first
+	var plain := PlainGround.tile(geo)
+	if not plain.is_empty():
+		return plain
 	var wanted := JsonUtil.to_str(ctx.section("starter_map").get("ground", ""))
 	if wanted == "":
 		wanted = JsonUtil.to_str(ctx.section("starter").get("ground", ""))
