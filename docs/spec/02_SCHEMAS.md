@@ -245,7 +245,7 @@ whose catalog uses an asset of it (one that is not `UNUSED` or `MISSING`) has th
 | `grid` | Grid | usage=tiles or sprite sheet | |
 | `tileset` | string | usage=tiles | Name of the TileSetDef this sheet belongs to. |
 | `collision` | CollisionSpec | usage=tiles/object | Default for the whole sheet. |
-| `tile_overrides` | object keyed `"x,y"` | usage=tiles | Per-tile `{collision?, terrain?, custom?, skip?}`. |
+| `tile_overrides` | object keyed `"x,y"` | usage=tiles | Per-tile `{collision?, terrain?, custom?, skip?, probability?}`. `probability` (release 1.5, T17.31) is the `TileData.probability` of a plain variant of a terrain's middle (0.35 for the variants rpggen reads; 1 when absent). |
 | `animations` | object name→AnimSpec | usage=sprite | |
 | `frame` | vec2i | usage=sprite | Frame size in px. |
 | `origin` | vec2i | usage=sprite/object | Pixel inside a frame/object that becomes the node origin (the feet). |
@@ -274,6 +274,7 @@ whose catalog uses an asset of it (one that is not `UNUSED` or `MISSING`) has th
 | `size` | vec2i | every image asset | Pixel size of the image file (T2.14); a change on a tile sheet used by a tileset raises CONFLICT. |
 | `region` | `[x, y, w, h]` | usage=portrait | Pixel rect of one face inside a face sheet (T2.11). |
 | `terrain_proposal` | object | usage=tiles | Blob/corner terrain recognized on a sheet (T8.06c): `{layout, confidence, mode, terrain_set, tile_overrides}`; `layout` is `blob47_godot_12x4` (Godot's 3x3 minimal template, M16), `blob47_12x4` (the masks in ascending order), `corners16_4x4`, `corners16_drawn_4x4` (T17.01: the 16 corner tiles in the order the sheet has them, read off which corners of each tile are drawn; for art over nothing only), or `sides16_godot_12x4` (T17.01: a fence sheet, tiles that join at their sides only, in the cells of Godot's template; `mode` is `sides` and only one tile for each of the 16 combinations of sides gets a terrain). Not applied until the user accepts it in the audit's Terrain tab, which moves `tile_overrides` into the overrides and sets the override `terrain_proposal` to null. |
+| `iso_terrain` | object | usage=iso_tile | Release 1.5 (T17.31): the piece of an isometric terrain a flat tile is, `{set, mode, surface, over, shape, role, peering}`: the name of its terrain set, `sides` or `corners_and_sides`, the surface of its middle (`road`, `path`, `water`, ...), `nothing` for a piece drawn over nothing (a path laid on the ground), `path` or `any`, the role most of its set have, and the peering keys of `tile_overrides` read by the grid (`top_side` is the side n, the upper right of the diamond; `top_right_corner` the corner between n and e). `iso_atlas.add` gathers the sets into the `iso` definition's `terrain_sets`. |
 
 **Role** enum: `GROUND, WALL, CLIFF, WATER, ROAD, AUTOTILE, DECORATION, BUILDING, INTERIOR, PLAYER, NPC, ENEMY, BOSS, WEAPON, ITEM, EFFECT, PROJECTILE, UI, PORTRAIT, BACKGROUND, AUDIO_MUSIC, AUDIO_SFX, FONT, NONE`. From release 1.4 (M16) also `VEHICLE` (the player's car), `EXPLOSION`, `POWERUP` (what the player picks up to get stronger; `ITEM` stays for chests and coins) and `HAZARD` (asteroids, tyres, oil, spikes); they are labels in the audit and rows on the Mapping page in every kind. An asset of the pack `rpggen_arcade_kit` (`generated/arcade_kit/`, `detected_by: "placeholder"`) is a stand-in rpggen drew for an arcade kind; like the side-view kit it is made again on every run. From release 1.5 (M17) also `CROP` (a growth strip, or a crop of one picture), `ANIMAL` (a farm animal that is kept; `NPC` stays for people and `ENEMY` for what fights) and `TOOL` (the icon of a hoe, a watering can and the like), labels in the audit and rows on the Mapping page in every kind like those of M16. Detection gives `CROP` to every growth strip, and in a pack whose view is `farm` to a crop of one picture, `ANIMAL` to an animated sprite tagged `animal`, `TOOL` to a picture without animation tagged `tool`, and `EFFECT` to an animated overlay tagged `weather`; a pack of another view gets none of them. An asset of the pack `rpggen_farm_kit` (`generated/farm_kit/`, `detected_by: "placeholder"`, tag `farm_kit`) is a stand-in rpggen drew for a farm (T17.02), made again on every run: `turnip`, `carrot` and `berry` (growth strips of five stages, `CROP`, drawn when fewer than two crops of the packs can grow), `soil` and `watered` (one tile each, usage `tiles`, role `DECORATION`, tags `soil` / `watered`), `hoe`, `watering_can`, `sickle` and `axe` (`TOOL`, tag `tool`), `seed_bag` and `egg` (`ITEM`, tags `seed` / `product`), `hen` (`ANIMAL`, four frames of walk in the rows down, left, right, up), `shipping_bin` and `bed` (`DECORATION`, tags `bin` / `bed`), `rain` (`EFFECT`, tag `weather`, three frames of four tiles a side); the single pictures with a role the top-down recipes place by themselves (`ITEM`, `DECORATION`) have the usage `object`, so that only the farm's recipes place them. `rpggen_farm_kit.grown.<name>` (`generated/farm_kit/grown/`, tag `grown_from:<asset id>`) is the growth strip of a crop the packs have as one picture: four drawn stages, then the picture as the ripe one.
 
@@ -328,6 +329,19 @@ Standard animation names: `idle_down, idle_up, idle_left, idle_right, walk_*, at
 ```
 
 * The `mode` enum is `corners_and_sides`, `corners` or `sides`. These map to `TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES`, `TileSet.TERRAIN_MODE_MATCH_CORNERS` and `TileSet.TERRAIN_MODE_MATCH_SIDES`. ⚠ VERIFY the enum names.
+* **What a terrain set paints** (release 1.5, T17.31): a set rpggen read has five more keys,
+  all optional (a Tiled wang set has none of them; its terrains' names say the surface):
+  `surface` (`grass`, `dirt`, `sand`, `water`, `stone`, `snow`, `path`, `road`, `soil`,
+  `soil_wet`, `rock`, `dark` or `other`: what its middle is, by its colour and the words of its
+  sheet), `over` (`ground`, or `nothing` for a terrain drawn over transparency), `shape`
+  (`any`: every shape of an area or a path, `area`: areas two cells wide and more, `path`: a
+  terrain that joins at its sides, `plain`: the plain variants of a ground and nothing else),
+  `layout` (`blob47_godot_12x4`, `blob47_12x4`, `corners16_4x4`, `corners16_drawn_4x4`,
+  `sides16_drawn_4x4`, `rpg13_3x3`, `minimal9_3x3`, `strips`, `plain`, `rpgmaker_a2`) and
+  `sheet` (the asset the set was read from; a composed RPG Maker atlas names itself), and for
+  an isometric set `role`. The map recipes choose a terrain by these
+  (`builder/lib/terrain_paint.gd`). A set rpggen read from blocks inside a sheet has one
+  terrain, whose peering bits are -1 (nothing) where the terrain ends.
 * TileSet assignment rules (T2.14): one TileSetDef per distinct tile size. A sheet whose role is INTERIOR goes into a separate `interior` set of the same size. Names are `overworld`, `overworld_32`, `interior`, `interior_32` and so on.
 * **The tile set of an isometric project** (T17.13, release 1.5) is one more definition, `iso`, which only a project with `projection: isometric` has. It carries two keys no other definition has:
 

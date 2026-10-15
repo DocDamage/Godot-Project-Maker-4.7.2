@@ -3565,17 +3565,17 @@ def make_iso_terrain(out: Path) -> None:
     """An isometric kit of terrains (T17.31): pieces of a pond named by the sides their land is
     on, in the manner of Kenney's *Vector Roads*, a plain grass block, and a sheet of paths
     without names in the manner of Screaming Brain's *Pathways*."""
-    pack = out / "iso_terrain" / "Isometric Terrain Kit"
+    pack = out / "iso_terrain" / "Isometric Pond Kit"
     _write_text(out / "iso_terrain" / "License.txt", "CC0-1.0 synthetic test pack\n")
     grass = Image.new("RGBA", (IT_FOOT[0], IT_FOOT[1] + IT_SIDE), (0, 0, 0, 0))
     grass.alpha_composite(_it_water(("n", "e", "s", "w"), ""))
     _save_png(grass, pack / "PNG" / "grass.png")
     expected: dict[str, dict] = {
-        "Isometric Terrain Kit/PNG/grass.png": {"usage": "iso_tile", "role": "GROUND"}
+        "Isometric Pond Kit/PNG/grass.png": {"usage": "iso_tile", "role": "GROUND"}
     }
     for name, (land, corner) in IT_WATER_PIECES.items():
         _save_png(_it_water(land, corner), pack / "PNG" / f"{name}.png")
-        expected[f"Isometric Terrain Kit/PNG/{name}.png"] = {"usage": "iso_tile", "role": "WATER"}
+        expected[f"Isometric Pond Kit/PNG/{name}.png"] = {"usage": "iso_tile", "role": "WATER"}
     _save_png(_it_path_sheet(), pack / "Paths" / "Path_Stone_01-64x32.png")
     _expected(out, "iso_terrain", expected)
 

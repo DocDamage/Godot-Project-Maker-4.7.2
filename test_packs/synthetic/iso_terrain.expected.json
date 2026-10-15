@@ -1,57 +1,57 @@
 {
-  "Isometric Terrain Kit/PNG/grass.png": {
+  "Isometric Pond Kit/PNG/grass.png": {
     "role": "GROUND",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/water.png": {
+  "Isometric Pond Kit/PNG/water.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterCornerES.png": {
+  "Isometric Pond Kit/PNG/waterCornerES.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterCornerNE.png": {
+  "Isometric Pond Kit/PNG/waterCornerNE.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterCornerNW.png": {
+  "Isometric Pond Kit/PNG/waterCornerNW.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterCornerSW.png": {
+  "Isometric Pond Kit/PNG/waterCornerSW.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterE.png": {
+  "Isometric Pond Kit/PNG/waterE.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterES.png": {
+  "Isometric Pond Kit/PNG/waterES.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterN.png": {
+  "Isometric Pond Kit/PNG/waterN.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterNE.png": {
+  "Isometric Pond Kit/PNG/waterNE.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterNW.png": {
+  "Isometric Pond Kit/PNG/waterNW.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterS.png": {
+  "Isometric Pond Kit/PNG/waterS.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterSW.png": {
+  "Isometric Pond Kit/PNG/waterSW.png": {
     "role": "WATER",
     "usage": "iso_tile"
   },
-  "Isometric Terrain Kit/PNG/waterW.png": {
+  "Isometric Pond Kit/PNG/waterW.png": {
     "role": "WATER",
     "usage": "iso_tile"
   }

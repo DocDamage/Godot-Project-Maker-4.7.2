@@ -22,11 +22,11 @@
         "usage": "sprite"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/Paths/Path_Stone_01-64x32.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/Paths/Path_Stone_01-64x32.png",
       "sha256": "008d44dbc7bbf9631f8466c9227d7a1594829d4239ab153088a17b88b99bc68f",
       "status": "UNUSED"
     },
@@ -73,7 +73,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c0_0",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c0_0",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -124,7 +124,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c0_1",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c0_1",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -175,7 +175,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c0_2",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c0_2",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -226,7 +226,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c1_0",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c1_0",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -277,7 +277,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c1_1",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c1_1",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -328,7 +328,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c1_2",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c1_2",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -379,7 +379,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c2_0",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c2_0",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -430,7 +430,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c2_1",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c2_1",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -481,7 +481,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c2_2",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c2_2",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -532,7 +532,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c3_1",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c3_1",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -583,7 +583,7 @@
         "usage": "iso_tile"
       },
       "detected_by": "iso_sheets",
-      "id": "iso_terrain.isometric_terrain_kit.paths.path_stone_01_64x32#c3_2",
+      "id": "iso_terrain.isometric_pond_kit.paths.path_stone_01_64x32#c3_2",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
@@ -592,7 +592,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.78125,
+      "confidence": 0.5,
       "detected": {
         "canvas": [
           64,
@@ -611,12 +611,16 @@
         "role": "GROUND",
         "roles_alt": [
           [
+            "WATER",
+            0.333333
+          ],
+          [
             "DECORATION",
-            0.0625
+            0.066667
           ],
           [
             "WALL",
-            0.03125
+            0.033333
           ]
         ],
         "size": [
@@ -629,16 +633,16 @@
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.grass",
+      "id": "iso_terrain.isometric_pond_kit.png.grass",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/grass.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/grass.png",
       "sha256": "5b3d2cffe30a79795466ccdbcb0907dfa2e98c7b1fbdff8778a90e5e49a417c8",
-      "status": "AUTO_DETECTED"
+      "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -661,7 +665,7 @@
             "top_right_corner": 0,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -672,11 +676,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -691,22 +695,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.water",
+      "id": "iso_terrain.isometric_pond_kit.png.water",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/water.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/water.png",
       "sha256": "7b92cd9adb3c594b345f86bc4f60ee4b4e64d558e8a8ac885884cfb53e689f41",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -729,7 +730,7 @@
             "top_right_corner": 0,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -744,11 +745,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -763,22 +764,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.watercorneres",
+      "id": "iso_terrain.isometric_pond_kit.png.watercorneres",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterCornerES.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterCornerES.png",
       "sha256": "d06f09be27ac78cbeccf3bde4ced9c07aca3af3f906241e3583a6a97fad15814",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -801,7 +799,7 @@
             "top_right_corner": -1,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -816,11 +814,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -835,22 +833,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.watercornerne",
+      "id": "iso_terrain.isometric_pond_kit.png.watercornerne",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterCornerNE.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterCornerNE.png",
       "sha256": "e2d6404f1bfb2d5b0548e35f3f83017d240a202630abd8e047ebc3ff48c01030",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -873,7 +868,7 @@
             "top_right_corner": 0,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -888,11 +883,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -907,22 +902,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.watercornernw",
+      "id": "iso_terrain.isometric_pond_kit.png.watercornernw",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterCornerNW.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterCornerNW.png",
       "sha256": "07f99cba6a92edfe088e2fad396c2427aac462276bc9cc4b7487132800cce9e5",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -945,7 +937,7 @@
             "top_right_corner": 0,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -960,11 +952,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -979,22 +971,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.watercornersw",
+      "id": "iso_terrain.isometric_pond_kit.png.watercornersw",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterCornerSW.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterCornerSW.png",
       "sha256": "97f2d1e800ffb9b7affc85b77c89e6bdeb3bb10a40b537790a9464140baf1cdd",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -1017,7 +1006,7 @@
             "top_right_corner": -1,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -1031,11 +1020,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -1050,22 +1039,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.watere",
+      "id": "iso_terrain.isometric_pond_kit.png.watere",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterE.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterE.png",
       "sha256": "5bae2dc392d6e22e790f3351f5d58152cdb014641dc645e50b87db666ddbac4c",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -1088,7 +1074,7 @@
             "top_right_corner": -1,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -1103,11 +1089,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -1122,22 +1108,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.wateres",
+      "id": "iso_terrain.isometric_pond_kit.png.wateres",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterES.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterES.png",
       "sha256": "17d866159045703ccf36b40dcee53f1b5913316ab483a8cbee27a5cbda3dd75c",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -1160,7 +1143,7 @@
             "top_right_corner": -1,
             "top_side": -1
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -1174,11 +1157,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -1193,22 +1176,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.watern",
+      "id": "iso_terrain.isometric_pond_kit.png.watern",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterN.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterN.png",
       "sha256": "0c7bdb27f5cd9e7d58fe885901c871346a1dafdd3264cdac27fbbfa280203826",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -1231,7 +1211,7 @@
             "top_right_corner": -1,
             "top_side": -1
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -1246,11 +1226,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -1265,22 +1245,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.waterne",
+      "id": "iso_terrain.isometric_pond_kit.png.waterne",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterNE.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterNE.png",
       "sha256": "2ed7eebbe67ac1fed6024bbc7048ac0a57cb2338cd8d1d653a135cc0e12016fe",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -1303,7 +1280,7 @@
             "top_right_corner": -1,
             "top_side": -1
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -1318,11 +1295,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -1337,22 +1314,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.waternw",
+      "id": "iso_terrain.isometric_pond_kit.png.waternw",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterNW.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterNW.png",
       "sha256": "1aaf4a564eb64f2fe275dada47c9de1b81895ece5896b7fa6b5b5d6231ddbc91",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -1375,7 +1349,7 @@
             "top_right_corner": 0,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -1389,11 +1363,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -1408,22 +1382,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.waters",
+      "id": "iso_terrain.isometric_pond_kit.png.waters",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterS.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterS.png",
       "sha256": "da937d7f9fe4ef41304221796d8b4c65bd13806a85c90ac5963f1b4d216d8dfe",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -1446,7 +1417,7 @@
             "top_right_corner": 0,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -1461,11 +1432,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -1480,22 +1451,19 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.watersw",
+      "id": "iso_terrain.isometric_pond_kit.png.watersw",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterSW.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterSW.png",
       "sha256": "c5d04b1fbcb11fb21aa3505412ad42e5cfcf69ef93ef54b84ef17467594e892b",
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.533333,
+      "confidence": 0.633333,
       "detected": {
         "canvas": [
           64,
@@ -1518,7 +1486,7 @@
             "top_right_corner": 0,
             "top_side": 0
           },
-          "role": "GROUND",
+          "role": "WATER",
           "set": "iso_waterCornerES_water",
           "shape": "any",
           "surface": "water"
@@ -1532,11 +1500,11 @@
         ],
         "projection": "isometric",
         "rise": 0,
-        "role": "GROUND",
+        "role": "WATER",
         "roles_alt": [
           [
-            "WATER",
-            0.3
+            "GROUND",
+            0.2
           ],
           [
             "DECORATION",
@@ -1551,17 +1519,14 @@
           64,
           40
         ],
-        "tags": [
-          "surface:water"
-        ],
         "usage": "iso_tile"
       },
       "detected_by": "isometric",
-      "id": "iso_terrain.isometric_terrain_kit.png.waterw",
+      "id": "iso_terrain.isometric_pond_kit.png.waterw",
       "kind": "image",
       "overrides": {},
       "pack_id": "iso_terrain",
-      "path": "assets/packs/iso_terrain/Isometric Terrain Kit/PNG/waterW.png",
+      "path": "assets/packs/iso_terrain/Isometric Pond Kit/PNG/waterW.png",
       "sha256": "fa044bbae1b5af6a7dd13204e73d85b09b19b0bdb04bcf6cb75b75e776c06f4c",
       "status": "NEEDS_REVIEW"
     }
@@ -1592,7 +1557,7 @@
       "pack_id": "iso_terrain",
       "profile_id": null,
       "root": "assets/packs/iso_terrain",
-      "source_sha256": "fbc8a926c3cf38043fc18c92f43c701086b2eacb7562f8f97bd9db3af99fd003",
+      "source_sha256": "76a225cdf00e9a5bb4e9fa0704823a66bf4a38799df22a9748cfe0891bb8adc1",
       "warnings": [
         "isometric:64x32:measured",
         "isometric:64x32:named",
