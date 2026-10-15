@@ -1174,6 +1174,7 @@
             "custom": {
               "side": "ground"
             },
+            "probability": 0.0588,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,
@@ -1250,6 +1251,7 @@
             "custom": {
               "side": "ground"
             },
+            "probability": 0.0588,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,
@@ -1288,6 +1290,7 @@
             "custom": {
               "side": "ground"
             },
+            "probability": 0.0588,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,
@@ -1301,6 +1304,14 @@
               },
               "set": "jungle_side_grass_0",
               "terrain": 0
+            }
+          },
+          "4,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
             }
           },
           "4,1": {
@@ -1399,7 +1410,7 @@
       "pack_id": "sample_pack_gun",
       "profile_id": null,
       "root": "assets/packs/sample_pack_gun",
-      "source_sha256": "20c45e9c1865dcfff6499fba1153cc7c8d31d47f11737a01902996ef81df0e6d",
+      "source_sha256": "e3d2ff17ce5fb1313867be13e9d7ed2f81ebcc7fd49cc4c5e9bc8f1818fc64ec",
       "warnings": [
         "strips_direction_assumed:boss/gate_attack.png",
         "strips_direction_assumed:boss/gate_idle.png",

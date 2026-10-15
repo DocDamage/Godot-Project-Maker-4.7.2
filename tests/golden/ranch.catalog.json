@@ -3732,6 +3732,104 @@
       "collision": {
         "polygon": [
           [
+            6,
+            10
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            12
+          ],
+          [
+            6,
+            12
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        6,
+        10,
+        4,
+        2
+      ],
+      "id": "ranch.autotiles.n01_soil_tilled#brown_round",
+      "name": "brown_round",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        0,
+        48,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "ranch.autotiles.n01_soil_tilled",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:0:3"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            6,
+            10
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            12
+          ],
+          [
+            6,
+            12
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        6,
+        10,
+        4,
+        2
+      ],
+      "id": "ranch.autotiles.n02_soil_watered#brown_round",
+      "name": "brown_round",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        0,
+        48,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "ranch.autotiles.n02_soil_watered",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:0:3"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
             0,
             22
           ],

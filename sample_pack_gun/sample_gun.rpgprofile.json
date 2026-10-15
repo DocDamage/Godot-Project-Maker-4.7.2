@@ -762,6 +762,7 @@
           "custom": {
             "side": "ground"
           },
+          "probability": 0.0588,
           "terrain": {
             "peering": {
               "bottom_left_corner": -1,
@@ -838,6 +839,7 @@
           "custom": {
             "side": "ground"
           },
+          "probability": 0.0588,
           "terrain": {
             "peering": {
               "bottom_left_corner": -1,
@@ -876,6 +878,7 @@
           "custom": {
             "side": "ground"
           },
+          "probability": 0.0588,
           "terrain": {
             "peering": {
               "bottom_left_corner": -1,
@@ -894,6 +897,9 @@
         "4,0": {
           "collision": {
             "profile": "ONE_WAY"
+          },
+          "custom": {
+            "side": "one_way"
           }
         },
         "4,1": {

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import random
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -3453,6 +3454,88 @@ def make_terrain_blocks(out: Path) -> None:
     _expected(out, "terrain_blocks", expected)
 
 
+ST_CELL = 16
+ST_GAP = 1
+ST_OUTLINE: Color = (62, 38, 50, 255)
+ST_GREEN: Color = (70, 160, 70, 255)
+ST_LEAF: Color = (110, 190, 90, 255)
+ST_WOOD: Color = (150, 96, 60, 255)
+ST_GREY: Color = (150, 150, 160, 255)
+# where each thing of the sheet lies (column, row), for the tests
+ST_TREE = (2, 0)  # the crown; its trunk is the cell under it
+ST_ROCK = (3, 0)
+ST_BUCKET = (4, 0)
+ST_FLOWER = (3, 2)
+ST_FENCE = ((0, 2), (1, 2), (2, 2))
+
+
+def _sheet_things() -> Image.Image:
+    """Kenney's *Tiny Farm* shape (T17.33): one sheet of 16 px tiles a pixel apart holding ground
+    and the things a level is furnished with. Plain grass tiles; a tree whose crown is one
+    cell and its trunk the cell under it (its leaves go on over the line between them); a rock,
+    a bucket and a flower each in a cell of its own, outlined, on see-through pixels; and three
+    pieces of a fence that run from one side of their cell to the other."""
+    t, g = ST_CELL, ST_GAP
+    img = Image.new("RGBA", (6 * t + 5 * g, 6 * t + 5 * g), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    rng = random.Random(33)
+
+    def at(c: int, r: int) -> tuple[int, int]:
+        return c * (t + g), r * (t + g)
+
+    trunk = (ST_TREE[0], ST_TREE[1] + 1)
+    things = {ST_TREE, trunk, ST_ROCK, ST_BUCKET, ST_FLOWER, *ST_FENCE}
+    # every other cell is grass: a sheet of tiles paints every cell (its grid is read so)
+    grass = [(c, r) for r in range(6) for c in range(6) if (c, r) not in things]
+    for c, r in grass:  # plain grass: opaque, of one tone, with a little grain
+        x, y = at(c, r)
+        for py in range(t):
+            for px in range(t):
+                k = rng.randint(-8, 8)
+                img.putpixel((x + px, y + py), (96 + k, 168 + k, 74 + k, 255))
+    x, y = at(*ST_TREE)  # the crown, down to the bottom of its cell
+    d.ellipse([x + 1, y + 1, x + 14, y + 15], fill=ST_GREEN, outline=ST_OUTLINE)
+    d.rectangle([x + 4, y + 12, x + 11, y + 15], fill=ST_GREEN)
+    x, y = at(ST_TREE[0], ST_TREE[1] + 1)  # the trunk under it, its leaves at the top
+    d.rectangle([x + 4, y, x + 11, y + 2], fill=ST_LEAF)
+    d.rectangle([x + 6, y + 3, x + 9, y + 14], fill=ST_WOOD, outline=ST_OUTLINE)
+    x, y = at(*ST_ROCK)
+    d.ellipse([x + 2, y + 5, x + 13, y + 14], fill=ST_GREY, outline=ST_OUTLINE)
+    x, y = at(*ST_BUCKET)
+    d.rectangle([x + 4, y + 4, x + 11, y + 14], fill=ST_WOOD, outline=ST_OUTLINE)
+    d.line([x + 4, y + 7, x + 11, y + 7], fill=ST_OUTLINE)
+    x, y = at(*ST_FLOWER)  # small: a stem and a bloom
+    d.line([x + 8, y + 9, x + 8, y + 14], fill=ST_GREEN)
+    d.ellipse([x + 6, y + 5, x + 10, y + 9], fill=(230, 200, 40, 255), outline=ST_OUTLINE)
+    for c, r in ST_FENCE:  # a rail from side to side, open at its ends, a post in the middle
+        x, y = at(c, r)
+        d.rectangle([x, y + 6, x + t - 1, y + 9], fill=ST_WOOD)
+        d.line([x, y + 6, x + t - 1, y + 6], fill=ST_OUTLINE)
+        d.line([x, y + 9, x + t - 1, y + 9], fill=ST_OUTLINE)
+        d.rectangle([x + 6, y + 3, x + 9, y + 14], fill=ST_WOOD, outline=ST_OUTLINE)
+    return img
+
+
+def make_sheet_things(out: Path) -> None:
+    """A sheet of tiles that holds things to place as well as ground (T17.33): sheet_things."""
+    pack = out / "sheet_things"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_sheet_things(), pack / "Tilemap" / "tilemap.png")
+    _expected(
+        out,
+        "sheet_things",
+        {
+            "Tilemap/tilemap.png": {
+                "usage": "tiles",
+                "role": "GROUND",
+                "cell": [ST_CELL, ST_CELL],
+                "margin": [0, 0],
+                "separation": [ST_GAP, ST_GAP],
+            }
+        },
+    )
+
+
 IT_FOOT = (64, 32)
 IT_SIDE = 8
 IT_GRASS: Color = (96, 168, 74, 255)
@@ -3898,6 +3981,7 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "side_named_platformer": make_side_named,
     "side_action_frames": make_side_action_frames,
     "side_layered_platformer": make_side_layered,
+    "sheet_things": make_sheet_things,
 }
 
 

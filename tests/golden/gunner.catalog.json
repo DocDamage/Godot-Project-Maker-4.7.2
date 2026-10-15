@@ -790,6 +790,7 @@
             "custom": {
               "side": "ground"
             },
+            "probability": 0.1765,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,

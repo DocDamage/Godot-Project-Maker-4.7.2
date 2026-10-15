@@ -309,6 +309,50 @@ def _sheet_of(catalog: Any, sheet: Any) -> bool:
     )
 
 
+def drop_misread(catalog: Any) -> int:
+    """Takes out the objects a sheet should not have given (T17.33): the shapes the grid reader
+    found in a background (the hills of a far backdrop were placed from the dock as dark
+    blocks), and those lying on cells of a tile sheet that are read as tiles of a kind (a ladder,
+    a plank, spikes): they are painted, not placed. A user's object or a confirmed one stays.
+    Returns how many."""
+    from rpggen.core import catalog as catalog_mod
+
+    by_id = {a.id: a for a in catalog.assets}
+    keep = []
+    for obj in catalog.objects:
+        sheet = by_id.get(obj.sheet)
+        if sheet is None or obj.source != "auto" or obj.status == "CONFIRMED":
+            keep.append(obj)
+            continue
+        facets = catalog_mod.effective(sheet)
+        if facets.get("usage") == "background" or facets.get("role") == "BACKGROUND":
+            continue
+        grid = _grid(facets) if facets.get("usage") == "tiles" else None
+        if grid is not None and _on_special_cells(obj.region, facets, grid):
+            continue
+        keep.append(obj)
+    dropped = len(catalog.objects) - len(keep)
+    catalog.objects[:] = keep
+    return dropped
+
+
+def _on_special_cells(region: list[int], facets: dict[str, Any], grid: tuple[int, ...]) -> bool:
+    """True when ``region`` of a tile sheet lies on a cell whose tile is of a kind of its own
+    (``tile_overrides`` with ``custom``: a ladder, a plank, spikes, water)."""
+    cw, ch, mx, my, sx, sy = grid
+    x, y, w, h = (int(v) for v in region)
+    for key, override in (facets.get("tile_overrides") or {}).items():
+        if not isinstance(override, dict) or not override.get("custom") or override.get("terrain"):
+            continue
+        col, _sep, row = str(key).partition(",")
+        if not (col.isdigit() and row.isdigit()):
+            continue
+        cx, cy = mx + int(col) * (cw + sx), my + int(row) * (ch + sy)
+        if x < cx + cw and cx < x + w and y < cy + ch and cy < y + h:
+            return True
+    return False
+
+
 def add(catalog: Any, roots: dict[str, Path], work_dir: Path | None = None) -> dict[str, str]:
     """Adds the things of every used, square sheet of tiles of ``catalog`` (the module's rules):
     an object of the sheet each, or, for a thing over several cells of a sheet whose cells lie

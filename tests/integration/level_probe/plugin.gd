@@ -36,14 +36,18 @@ const PLACEMENT := "res://addons/rpg_project_tools/dock/placement.gd"
 const INDEX := "res://addons/rpg_project_tools/dock/index.gd"
 const CATALOG_EDIT := "res://addons/rpg_project_tools/tools/catalog_edit.gd"
 
-const SIDES := [TileSet.CELL_NEIGHBOR_RIGHT_SIDE, TileSet.CELL_NEIGHBOR_BOTTOM_SIDE, TileSet.CELL_NEIGHBOR_LEFT_SIDE, TileSet.CELL_NEIGHBOR_TOP_SIDE]
-const CORNERS := [TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_CORNER, TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_CORNER, TileSet.CELL_NEIGHBOR_TOP_LEFT_CORNER, TileSet.CELL_NEIGHBOR_TOP_RIGHT_CORNER]
-const STEP := {
-	TileSet.CELL_NEIGHBOR_RIGHT_SIDE: Vector2i(1, 0), TileSet.CELL_NEIGHBOR_BOTTOM_SIDE: Vector2i(0, 1),
-	TileSet.CELL_NEIGHBOR_LEFT_SIDE: Vector2i(-1, 0), TileSet.CELL_NEIGHBOR_TOP_SIDE: Vector2i(0, -1),
-	TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_CORNER: Vector2i(1, 1), TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_CORNER: Vector2i(-1, 1),
-	TileSet.CELL_NEIGHBOR_TOP_LEFT_CORNER: Vector2i(-1, -1), TileSet.CELL_NEIGHBOR_TOP_RIGHT_CORNER: Vector2i(1, -1),
-}
+## The sides and corners of a cell, in turn round it, on squares and on diamonds; each corner
+## lies between the side before it and the side after it.
+const SQUARE_SIDES := [TileSet.CELL_NEIGHBOR_RIGHT_SIDE, TileSet.CELL_NEIGHBOR_BOTTOM_SIDE, TileSet.CELL_NEIGHBOR_LEFT_SIDE, TileSet.CELL_NEIGHBOR_TOP_SIDE]
+const SQUARE_CORNERS := [TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_CORNER, TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_CORNER, TileSet.CELL_NEIGHBOR_TOP_LEFT_CORNER, TileSet.CELL_NEIGHBOR_TOP_RIGHT_CORNER]
+const DIAMOND_SIDES := [TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_SIDE, TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_SIDE, TileSet.CELL_NEIGHBOR_TOP_LEFT_SIDE, TileSet.CELL_NEIGHBOR_TOP_RIGHT_SIDE]
+const DIAMOND_CORNERS := [TileSet.CELL_NEIGHBOR_BOTTOM_CORNER, TileSet.CELL_NEIGHBOR_LEFT_CORNER, TileSet.CELL_NEIGHBOR_TOP_CORNER, TileSet.CELL_NEIGHBOR_RIGHT_CORNER]
+
+static func _sides(ts: TileSet) -> Array:
+	return DIAMOND_SIDES if ts.tile_shape == TileSet.TILE_SHAPE_ISOMETRIC else SQUARE_SIDES
+
+static func _corners(ts: TileSet) -> Array:
+	return DIAMOND_CORNERS if ts.tile_shape == TileSet.TILE_SHAPE_ISOMETRIC else SQUARE_CORNERS
 ## The surfaces a user paints a level with, in the order they are taken.
 const SURFACES: Array[String] = ["water", "dirt", "path", "sand", "stone", "soil", "snow", "grass", "dark", "rock"]
 ## What a level is furnished with: role and how many.
@@ -202,7 +206,7 @@ func _terrain_tiles(ts: TileSet) -> Dictionary:
 func _strip_terrain(ts: TileSet, key: Vector2i) -> bool:
 	for td: TileData in _terrain_tiles(ts).get(key, []):
 		var all_sides := true
-		for bit: int in SIDES:
+		for bit: int in _sides(ts):
 			if not td.is_valid_terrain_peering_bit(bit) or td.get_terrain_peering_bit(bit) != key.y:
 				all_sides = false
 		if all_sides:
@@ -363,20 +367,14 @@ func _paint_top(ground: TileMapLayer, details: TileMapLayer, base: Vector2i, siz
 			out.append({"layer": details, "cells": _strips(details, key, at.x, at.y, 8), "set": key.x, "terrain": key.y, "strip": true})
 			continue
 		if (areas[i] as Array).is_empty():
-			# a path two cells wide, painted as the Path mode paints, with a bend
-			var line: Array[Vector2i] = []
-			for x in range(2, 30):
-				line.append(Vector2i(x, 12))
-			for y in range(13, 22):
-				line.append(Vector2i(29, y))
-			details.set_cells_terrain_path(line, key.x, key.y)
-			var second: Array[Vector2i] = []
+			# a path two cells wide with a bend, painted as a user paints a wide path: Connect
 			for x in range(2, 31):
-				second.append(Vector2i(x, 13))
+				cells.append(Vector2i(x, 12))
+				cells.append(Vector2i(x, 13))
 			for y in range(14, 22):
-				second.append(Vector2i(30, y))
-			details.set_cells_terrain_path(second, key.x, key.y)
-			cells = line + second
+				cells.append(Vector2i(29, y))
+				cells.append(Vector2i(30, y))
+			details.set_cells_terrain_connect(cells, key.x, key.y)
 		else:
 			for c: Vector2i in areas[i]:
 				cells.append(c)
@@ -440,24 +438,30 @@ func _judge(layer: TileMapLayer, cells: Array[Vector2i], set_index: int, terrain
 	var middle := {}
 	var middles := 0
 	var mode := ts.get_terrain_set_mode(set_index)
+	var sides := _sides(ts)
+	var corners := _corners(ts)
+	var stand_ins := 0
 	for c in cells:
 		var td := layer.get_cell_tile_data(c)
 		if td == null:
 			holes += 1
 			continue
+		if layer.get_cell_alternative_tile(c) > 0:
+			stand_ins += 1  # the nearest piece the pack draws, for one it does not (complete_terrains)
 		var bad := td.terrain_set != set_index or td.terrain != terrain
 		var bits: Array = []
 		if mode != TileSet.TERRAIN_MODE_MATCH_CORNERS:
-			bits.append_array(SIDES)
+			bits.append_array(sides)
 		if mode != TileSet.TERRAIN_MODE_MATCH_SIDES:
-			bits.append_array(CORNERS)
+			bits.append_array(corners)
 		for bit: int in bits:
 			if bad or not td.is_valid_terrain_peering_bit(bit):
 				continue
-			var step: Vector2i = STEP[bit]
-			var there := inside.has(c + step)
-			if CORNERS.has(bit):
-				there = there and inside.has(c + Vector2i(step.x, 0)) and inside.has(c + Vector2i(0, step.y))
+			var there := inside.has(layer.get_neighbor_cell(c, bit))
+			var at := corners.find(bit)
+			if at >= 0:
+				# a corner is the terrain's when the cell there and the two sides beside it are
+				there = there and inside.has(layer.get_neighbor_cell(c, sides[at])) and inside.has(layer.get_neighbor_cell(c, sides[(at + 1) % 4]))
 			var says := td.get_terrain_peering_bit(bit) == terrain
 			if says != there:
 				bad = true
@@ -467,10 +471,14 @@ func _judge(layer: TileMapLayer, cells: Array[Vector2i], set_index: int, terrain
 				examples.append([c.x, c.y])
 		var all_in := true
 		if strip:
-			all_in = (inside.has(c + Vector2i.LEFT) and inside.has(c + Vector2i.RIGHT)) or (inside.has(c + Vector2i.UP) and inside.has(c + Vector2i.DOWN))
+			# along the strip: the sides across from each other both its own
+			all_in = false
+			for k in 2:
+				if inside.has(layer.get_neighbor_cell(c, sides[k])) and inside.has(layer.get_neighbor_cell(c, sides[k + 2])):
+					all_in = true
 		else:
-			for step: Vector2i in STEP.values():
-				if not inside.has(c + step):
+			for bit: int in sides + corners:
+				if not inside.has(layer.get_neighbor_cell(c, bit)):
 					all_in = false
 		if all_in:
 			middles += 1
@@ -482,6 +490,7 @@ func _judge(layer: TileMapLayer, cells: Array[Vector2i], set_index: int, terrain
 	return {
 		"name": ts.get_terrain_name(set_index, terrain), "set": set_index, "layer": String(layer.name),
 		"cells": cells.size(), "wrong": wrong, "holes": holes, "wrong_at": examples, "strip": strip,
+		"stand_ins": stand_ins,
 		"middles": middles, "middle_tiles": middle.size(),
 		"main_share": float(most) / float(middles) if middles > 0 else 1.0,
 	}

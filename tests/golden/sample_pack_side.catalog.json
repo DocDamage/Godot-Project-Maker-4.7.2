@@ -1210,6 +1210,7 @@
             "custom": {
               "side": "ground"
             },
+            "probability": 0.0588,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,
@@ -1286,6 +1287,7 @@
             "custom": {
               "side": "ground"
             },
+            "probability": 0.0588,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,
@@ -1324,6 +1326,7 @@
             "custom": {
               "side": "ground"
             },
+            "probability": 0.0588,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,
@@ -1337,6 +1340,14 @@
               },
               "set": "cave_side_grass_0",
               "terrain": 0
+            }
+          },
+          "4,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
             }
           },
           "4,1": {
@@ -1355,10 +1366,19 @@
               "side": "one_way"
             }
           },
+          "6,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
+            }
+          },
           "6,1": {
             "custom": {
               "side": "ground"
             },
+            "probability": 0.0,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,
@@ -1372,6 +1392,22 @@
               },
               "set": "cave_side_grass_0",
               "terrain": 0
+            }
+          },
+          "7,0": {
+            "collision": {
+              "profile": "LADDER"
+            },
+            "custom": {
+              "ladder": true
+            }
+          },
+          "7,1": {
+            "collision": {
+              "profile": "LADDER"
+            },
+            "custom": {
+              "ladder": true
             }
           }
         },
@@ -1427,698 +1463,7 @@
       }
     }
   },
-  "objects": [
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            15
-          ],
-          [
-            60,
-            15
-          ],
-          [
-            60,
-            22
-          ],
-          [
-            0,
-            22
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        15,
-        60,
-        7
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_1",
-      "name": "object_1",
-      "origin": [
-        30,
-        21
-      ],
-      "region": [
-        48,
-        42,
-        60,
-        22
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            8
-          ],
-          [
-            16,
-            8
-          ],
-          [
-            16,
-            12
-          ],
-          [
-            0,
-            12
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        8,
-        16,
-        4
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_10",
-      "name": "object_10",
-      "origin": [
-        8,
-        11
-      ],
-      "region": [
-        272,
-        60,
-        16,
-        12
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            20
-          ],
-          [
-            16,
-            20
-          ],
-          [
-            16,
-            28
-          ],
-          [
-            0,
-            28
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        20,
-        16,
-        8
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_11",
-      "name": "object_11",
-      "origin": [
-        8,
-        27
-      ],
-      "region": [
-        96,
-        64,
-        16,
-        28
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            20
-          ],
-          [
-            24,
-            20
-          ],
-          [
-            24,
-            28
-          ],
-          [
-            0,
-            28
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        20,
-        24,
-        8
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_12",
-      "name": "object_12",
-      "origin": [
-        12,
-        27
-      ],
-      "region": [
-        168,
-        80,
-        24,
-        28
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            8
-          ],
-          [
-            32,
-            8
-          ],
-          [
-            32,
-            12
-          ],
-          [
-            0,
-            12
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        8,
-        32,
-        4
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_13",
-      "name": "object_13",
-      "origin": [
-        16,
-        11
-      ],
-      "region": [
-        32,
-        84,
-        32,
-        12
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            56
-          ],
-          [
-            320,
-            56
-          ],
-          [
-            320,
-            80
-          ],
-          [
-            0,
-            80
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        56,
-        320,
-        24
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_14",
-      "name": "object_14",
-      "origin": [
-        160,
-        79
-      ],
-      "region": [
-        0,
-        96,
-        320,
-        80
-      ],
-      "role": "BUILDING",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            4
-          ],
-          [
-            28,
-            4
-          ],
-          [
-            28,
-            6
-          ],
-          [
-            0,
-            6
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        4,
-        28,
-        2
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_2",
-      "name": "object_2",
-      "origin": [
-        14,
-        5
-      ],
-      "region": [
-        64,
-        42,
-        28,
-        6
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            4
-          ],
-          [
-            20,
-            4
-          ],
-          [
-            20,
-            6
-          ],
-          [
-            0,
-            6
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        4,
-        20,
-        2
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_3",
-      "name": "object_3",
-      "origin": [
-        10,
-        5
-      ],
-      "region": [
-        176,
-        42,
-        20,
-        6
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            13
-          ],
-          [
-            16,
-            13
-          ],
-          [
-            16,
-            18
-          ],
-          [
-            0,
-            18
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        13,
-        16,
-        5
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_4",
-      "name": "object_4",
-      "origin": [
-        8,
-        17
-      ],
-      "region": [
-        240,
-        42,
-        16,
-        18
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            22
-          ],
-          [
-            16,
-            22
-          ],
-          [
-            16,
-            32
-          ],
-          [
-            0,
-            32
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        22,
-        16,
-        10
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_5",
-      "name": "object_5",
-      "origin": [
-        8,
-        31
-      ],
-      "region": [
-        32,
-        48,
-        16,
-        32
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            31
-          ],
-          [
-            32,
-            31
-          ],
-          [
-            32,
-            44
-          ],
-          [
-            0,
-            44
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        31,
-        32,
-        13
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_6",
-      "name": "object_6",
-      "origin": [
-        16,
-        43
-      ],
-      "region": [
-        128,
-        48,
-        32,
-        44
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            22
-          ],
-          [
-            16,
-            22
-          ],
-          [
-            16,
-            32
-          ],
-          [
-            0,
-            32
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        22,
-        16,
-        10
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_7",
-      "name": "object_7",
-      "origin": [
-        8,
-        31
-      ],
-      "region": [
-        304,
-        48,
-        16,
-        32
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            14
-          ],
-          [
-            28,
-            14
-          ],
-          [
-            28,
-            20
-          ],
-          [
-            0,
-            20
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        14,
-        28,
-        6
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_8",
-      "name": "object_8",
-      "origin": [
-        14,
-        19
-      ],
-      "region": [
-        4,
-        52,
-        28,
-        20
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            8
-          ],
-          [
-            12,
-            8
-          ],
-          [
-            12,
-            12
-          ],
-          [
-            0,
-            12
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        8,
-        12,
-        4
-      ],
-      "id": "sample_pack_side.backgrounds.bg_far#object_9",
-      "name": "object_9",
-      "origin": [
-        6,
-        11
-      ],
-      "region": [
-        204,
-        52,
-        12,
-        12
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.backgrounds.bg_far",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    },
-    {
-      "collision": {
-        "polygon": [
-          [
-            0,
-            22
-          ],
-          [
-            10,
-            22
-          ],
-          [
-            10,
-            32
-          ],
-          [
-            0,
-            32
-          ]
-        ],
-        "profile": "CUSTOM"
-      },
-      "footprint": [
-        0,
-        22,
-        10,
-        10
-      ],
-      "id": "sample_pack_side.tiles.cave#object_1",
-      "name": "object_1",
-      "origin": [
-        5,
-        31
-      ],
-      "region": [
-        115,
-        0,
-        10,
-        32
-      ],
-      "role": "DECORATION",
-      "sheet": "sample_pack_side.tiles.cave",
-      "source": "auto",
-      "status": "AUTO_DETECTED",
-      "tags": []
-    }
-  ],
+  "objects": [],
   "packs": [
     {
       "adapters_matched": [
@@ -2137,7 +1482,7 @@
       "pack_id": "sample_pack_side",
       "profile_id": null,
       "root": "assets/packs/sample_pack_side",
-      "source_sha256": "bd7b0c1ca22572da1b465e72e94f012d2307f1f0699a3ee735d628d9f25f2ee9",
+      "source_sha256": "3e70b536f95f9c2b2d3b82f0676d44926e64bebe8543a7d924d9b4b7b6d60640",
       "warnings": [
         "strips_direction_assumed:boss/guardian_attack.png",
         "strips_direction_assumed:boss/guardian_hurt.png",

@@ -318,6 +318,55 @@
       "collision": {
         "polygon": [
           [
+            5,
+            13
+          ],
+          [
+            11,
+            13
+          ],
+          [
+            11,
+            15
+          ],
+          [
+            5,
+            15
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        5,
+        13,
+        6,
+        2
+      ],
+      "id": "farm_cave.farm_cave_pack.tileset.rock_caves#grey_round",
+      "name": "grey_round",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        32,
+        0,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "farm_cave.farm_cave_pack.tileset.rock_caves",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:2:0"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
             0,
             8
           ],

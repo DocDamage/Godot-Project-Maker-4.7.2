@@ -775,6 +775,7 @@
             "custom": {
               "side": "ground"
             },
+            "probability": 0.1765,
             "terrain": {
               "peering": {
                 "bottom_left_corner": -1,
@@ -952,7 +953,57 @@
       }
     }
   },
-  "objects": [],
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            8,
+            14
+          ],
+          [
+            24,
+            14
+          ],
+          [
+            24,
+            16
+          ],
+          [
+            8,
+            16
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        8,
+        14,
+        16,
+        2
+      ],
+      "id": "platformer.tiles.hazards.spikes#white_wide",
+      "name": "white_wide",
+      "origin": [
+        16,
+        15
+      ],
+      "region": [
+        0,
+        0,
+        32,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "platformer.tiles.hazards.spikes",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:0:0"
+      ]
+    }
+  ],
   "packs": [
     {
       "adapters_matched": [

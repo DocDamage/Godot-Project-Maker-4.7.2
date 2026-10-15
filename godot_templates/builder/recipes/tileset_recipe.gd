@@ -1,7 +1,7 @@
 extends RefCounted
 ## Builds one TileSet resource per TileSetDef in the catalog.
 
-const RECIPE_VERSION := 5
+const RECIPE_VERSION := 6
 
 const Paths := preload("../lib/paths.gd")
 const Geometry := preload("../lib/geometry.gd")
@@ -125,24 +125,221 @@ static func ensure_terrain_sets(ts: TileSet, sets: Array) -> void:
 		if ts.get_terrain_sets_count() <= i:
 			ts.add_terrain_set()
 			var mode: TileSet.TerrainMode = TERRAIN_MODES.get(JsonUtil.to_str(spec.get("mode", "corners_and_sides")), TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES)
+			if plain_ground(spec):
+				mode = TileSet.TERRAIN_MODE_MATCH_SIDES  # it meets others only by its sides
 			ts.set_terrain_set_mode(i, mode)
 		var terrains: Array = spec.get("terrains", [])
 		while ts.get_terrains_count(i) < terrains.size():
 			var t_index := ts.get_terrains_count(i)
 			ts.add_terrain(i)
 			var terrain_spec: Dictionary = terrains[t_index]
-			ts.set_terrain_name(i, t_index, terrain_label(spec, terrain_spec))
+			ts.set_terrain_name(i, t_index, terrain_label(spec, terrain_spec, sets))
 			ts.set_terrain_color(i, t_index, Color.from_string(JsonUtil.to_str(terrain_spec.get("color", "#ffffff")), Color.WHITE))
+
+## True for the terrain set of a plain ground (`shape` "plain": a tile and its variants, no edge
+## or corner pieces), which meets other terrains only by its sides (T17.33).
+static func plain_ground(spec: Dictionary) -> bool:
+	return JsonUtil.to_str(spec.get("shape", "")) == "plain"
+
+## The bits of a terrain set, sides then corners, and how much each counts when a piece the pack
+## does not draw is stood in for by the nearest it does: seen from the side the top counts most
+## (grass over earth), then the sides, then the bottom; a corner less than a side.
+const COMPLETE_SIDES: Array[TileSet.CellNeighbor] = [
+	TileSet.CELL_NEIGHBOR_RIGHT_SIDE, TileSet.CELL_NEIGHBOR_BOTTOM_SIDE,
+	TileSet.CELL_NEIGHBOR_LEFT_SIDE, TileSet.CELL_NEIGHBOR_TOP_SIDE,
+]
+const COMPLETE_CORNERS: Array[TileSet.CellNeighbor] = [
+	TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_CORNER, TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_CORNER,
+	TileSet.CELL_NEIGHBOR_TOP_LEFT_CORNER, TileSet.CELL_NEIGHBOR_TOP_RIGHT_CORNER,
+]
+## the same on diamonds (an isometric tile set), in the same order round the cell
+const DIAMOND_SIDES: Array[TileSet.CellNeighbor] = [
+	TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_SIDE, TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_SIDE,
+	TileSet.CELL_NEIGHBOR_TOP_LEFT_SIDE, TileSet.CELL_NEIGHBOR_TOP_RIGHT_SIDE,
+]
+const DIAMOND_CORNERS: Array[TileSet.CellNeighbor] = [
+	TileSet.CELL_NEIGHBOR_BOTTOM_CORNER, TileSet.CELL_NEIGHBOR_LEFT_CORNER,
+	TileSet.CELL_NEIGHBOR_TOP_CORNER, TileSet.CELL_NEIGHBOR_RIGHT_CORNER,
+]
+
+static func _complete_sides(ts: TileSet) -> Array[TileSet.CellNeighbor]:
+	return DIAMOND_SIDES if ts.tile_shape == TileSet.TILE_SHAPE_ISOMETRIC else COMPLETE_SIDES
+
+static func _complete_corners(ts: TileSet) -> Array[TileSet.CellNeighbor]:
+	return DIAMOND_CORNERS if ts.tile_shape == TileSet.TILE_SHAPE_ISOMETRIC else COMPLETE_CORNERS
+## the two sides of each corner, as indexes of COMPLETE_SIDES
+const CORNER_SIDES := [[0, 1], [2, 1], [2, 3], [0, 3]]
+const SIDE_WEIGHTS := [2, 1, 2, 4]  # right, bottom, left, top: seen from the side
+const FLAT_WEIGHTS := [2, 2, 2, 2]  # seen from above every side counts the same
+
+## Every terrain of a set of one terrain paints without holes (T17.33). Godot's Terrain tool leaves
+## a cell empty when no tile of the terrain fits the cells around it, and a pack seldom draws
+## every piece (a plain ground has none but its middle; a side-view ground no end of a ledge one
+## tile thick): for each way the terrain can meet others (16 matched by sides, 47 by corners and
+## sides) that no tile of the source fits, the nearest tile it does draw is added again as an
+## alternative tile with those bits, the same picture with the same collision and data. Made
+## once: a source whose terrain tiles have alternatives already is left as it is.
+static func complete_terrains(ts: TileSet, src: TileSetAtlasSource, sets: Array) -> void:
+	var drawn := {}  # set index -> [[coords, bits], ...] of the source's tiles of terrain 0
+	for i in src.get_tiles_count():
+		var coords := src.get_tile_id(i)
+		var td := src.get_tile_data(coords, 0)
+		if td == null or td.terrain_set < 0 or td.terrain != 0 or td.terrain_set >= sets.size():
+			continue
+		if src.get_alternative_tiles_count(coords) > 1:
+			return  # completed before
+		if not drawn.has(td.terrain_set):
+			drawn[td.terrain_set] = []
+		JsonUtil.to_array(drawn[td.terrain_set]).append([coords, _tile_bits(td, ts), td.probability])
+	for set_index: int in drawn.keys():
+		var spec: Dictionary = sets[set_index]
+		if JsonUtil.to_array(spec.get("terrains", [])).size() != 1:
+			continue  # a set of several terrains joins them by its own pieces
+		var mode := ts.get_terrain_set_mode(set_index)
+		if mode == TileSet.TERRAIN_MODE_MATCH_CORNERS:
+			continue
+		var weights: Array = SIDE_WEIGHTS if JsonUtil.to_str(spec.get("shape", "")) == "side" else FLAT_WEIGHTS
+		var tiles: Array = drawn[set_index]
+		var have := {}
+		for tile: Array in tiles:
+			have[tile[1]] = true
+		for wanted: Array in _all_bits(mode):
+			if have.has(wanted):
+				continue
+			var best: Array = []
+			var best_cost := 1 << 30
+			for tile: Array in tiles:
+				var cost := _bits_cost(wanted, JsonUtil.to_array(tile[1]), weights) * 2 + (0 if is_equal_approx(JsonUtil.to_float(tile[2]), 1.0) else 1)
+				if cost < best_cost:
+					best_cost = cost
+					best = tile
+			if best.is_empty():
+				continue
+			var coords: Vector2i = best[0]
+			var alt := src.create_alternative_tile(coords)
+			var td := src.get_tile_data(coords, alt)
+			_copy_tile_data(src.get_tile_data(coords, 0), td, ts)
+			td.terrain_set = set_index
+			td.terrain = 0
+			var sides := _complete_sides(ts)
+			for b in sides.size():
+				td.set_terrain_peering_bit(sides[b], JsonUtil.to_int(wanted[b]))
+			if mode == TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES:
+				var corners := _complete_corners(ts)
+				for b in corners.size():
+					td.set_terrain_peering_bit(corners[b], JsonUtil.to_int(wanted[4 + b]))
+			have[wanted] = true
+
+## [right, bottom, left, top, (corners...)] of a tile of terrain 0: 0 where it says the terrain
+## goes on, -1 elsewhere.
+static func _tile_bits(td: TileData, ts: TileSet) -> Array:
+	var out: Array = []
+	for bit in _complete_sides(ts):
+		out.append(0 if td.is_valid_terrain_peering_bit(bit) and td.get_terrain_peering_bit(bit) == 0 else -1)
+	var corners := _complete_corners(ts)
+	if td.is_valid_terrain_peering_bit(corners[0]):
+		for bit in corners:
+			out.append(0 if td.get_terrain_peering_bit(bit) == 0 else -1)
+	return out
+
+## Every way a terrain of a set in `mode` meets others: the 16 of its sides; with corners, the 47
+## where a corner is the terrain's only when both its sides are.
+static func _all_bits(mode: TileSet.TerrainMode) -> Array:
+	var out: Array = []
+	for mask in range(16):
+		var sides: Array = []
+		for b in 4:
+			sides.append(0 if mask & (1 << b) else -1)
+		if mode != TileSet.TERRAIN_MODE_MATCH_CORNERS_AND_SIDES:
+			out.append(sides)
+			continue
+		for corners in range(16):
+			var bits := sides.duplicate()
+			var fits := true
+			for c in 4:
+				var set_bit := (corners & (1 << c)) != 0
+				var pair: Array = CORNER_SIDES[c]
+				if set_bit and (JsonUtil.to_int(sides[JsonUtil.to_int(pair[0])]) != 0 or JsonUtil.to_int(sides[JsonUtil.to_int(pair[1])]) != 0):
+					fits = false
+					break
+				bits.append(0 if set_bit else -1)
+			if fits:
+				out.append(bits)
+	return out
+
+## How far a tile's bits are from the wanted ones: a side by its weight, a corner by one; a
+## corner a tile does not have (a set matched by its sides) counts nothing.
+static func _bits_cost(wanted: Array, bits: Array, weights: Array) -> int:
+	var cost := 0
+	for b in 4:
+		if JsonUtil.to_int(wanted[b]) != JsonUtil.to_int(bits[b]):
+			cost += JsonUtil.to_int(weights[b])
+	for c in range(4, mini(wanted.size(), bits.size())):
+		if JsonUtil.to_int(wanted[c]) != JsonUtil.to_int(bits[c]):
+			cost += 1
+	if wanted.size() > 4 and bits.size() == 4:
+		for c in range(4, wanted.size()):
+			if JsonUtil.to_int(wanted[c]) == 0:
+				cost += 1  # a piece without corners stands where an inner corner goes
+	return cost
+
+## Copies what a tile carries (its look, collision, custom data, navigation) onto another.
+static func _copy_tile_data(from: TileData, to: TileData, ts: TileSet) -> void:
+	to.texture_origin = from.texture_origin
+	to.modulate = from.modulate
+	to.z_index = from.z_index
+	to.y_sort_origin = from.y_sort_origin
+	for layer in ts.get_physics_layers_count():
+		for p in from.get_collision_polygons_count(layer):
+			to.add_collision_polygon(layer)
+			to.set_collision_polygon_points(layer, p, from.get_collision_polygon_points(layer, p))
+			to.set_collision_polygon_one_way(layer, p, from.is_collision_polygon_one_way(layer, p))
+	for layer in ts.get_custom_data_layers_count():
+		to.set_custom_data_by_layer_id(layer, from.get_custom_data_by_layer_id(layer))
+	for layer in ts.get_navigation_layers_count():
+		to.set_navigation_polygon(layer, from.get_navigation_polygon(layer))
 
 ## The name a terrain has in the editor's Terrains list. A terrain rpggen read from a sheet
 ## (its set has a `sheet` and a `surface`) says which block of which sheet it is (T17.33): a pack
 ## of twenty sets all called "dirt" could not be told apart when painting by hand. The surface
 ## the builder paints by is the set's `surface`, never this name.
-static func terrain_label(spec: Dictionary, terrain_spec: Dictionary) -> String:
+static func terrain_label(spec: Dictionary, terrain_spec: Dictionary, sets: Array = []) -> String:
 	var plain := JsonUtil.to_str(terrain_spec.get("name", "terrain"))
 	if not spec.has("sheet") or not spec.has("surface") or JsonUtil.to_str(spec.get("name", "")) == "":
 		return plain
-	return "%s · %s" % [plain, JsonUtil.to_str(spec["name"])]
+	if plain.contains("_") or plain == JsonUtil.to_str(spec["name"]):
+		plain = JsonUtil.to_str(spec["surface"])  # an RPG Maker set is named as its set: its surface
+	var sheet := JsonUtil.to_str(spec["sheet"])
+	var shown := sheet_name(sheet)
+	if sheet.begins_with("generated."):
+		shown = set_words(JsonUtil.to_str(spec["name"]))  # a sheet rpggen made: what it is made of
+	var label := "%s · %s" % [plain, shown]
+	# the blocks of one surface of one sheet are told apart by their number, in the list's order
+	var same := 0
+	var place := 0
+	for other: Variant in sets:
+		var o := JsonUtil.to_dict(other)
+		if JsonUtil.to_str(o.get("sheet", "")) == JsonUtil.to_str(spec["sheet"]) and JsonUtil.to_str(o.get("surface", "")) == JsonUtil.to_str(spec["surface"]):
+			same += 1
+			if JsonUtil.to_str(o.get("name", "")) == JsonUtil.to_str(spec["name"]):
+				place = same
+	return label + (" %d" % place if same > 1 and place > 1 else "")
+
+## The words of a set's name without the place of its block and words twice over:
+## "meadow_a2_a2_0_0" -> "meadow a2".
+static func set_words(set_name: String) -> String:
+	var out: PackedStringArray = []
+	for word in set_name.split("_", false):
+		if word.is_valid_int() or (out.size() > 0 and out[out.size() - 1] == word):
+			continue
+		out.append(word)
+	return " ".join(out)
+
+## A sheet's name as a user knows it: its file's name (the last part of its asset id, before a
+## cut part's `#`), its words apart: "farmrpg.tileset.tileset_grass_spring" -> "tileset grass spring".
+static func sheet_name(asset_id: String) -> String:
+	var whole := asset_id.get_slice("#", 0)
+	return whole.get_slice(".", whole.get_slice_count(".") - 1).replace("_", " ").strip_edges()
 
 ## Index of the terrain set called `set_name` in the definition's list, or -1.
 static func terrain_set_index(sets: Array, set_name: String) -> int:
@@ -398,6 +595,7 @@ func _build_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionar
 			if runs.has(coords):
 				var run_spec: Dictionary = runs[coords]
 				_apply_animation(ctx, src, coords, run_spec, asset, issues)
+	complete_terrains(ts, src, JsonUtil.to_array(def.get("terrain_sets", [])))
 	# Tiles are never removed. Cells that became empty are reported (TILE-005).
 	var emptied: Array = []
 	for i in src.get_tiles_count():
@@ -611,6 +809,7 @@ func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dicti
 		_apply_collision(ctx, td, asset, spec_hash, desired, is_new, "%s/%d/%d,%d" % [ts_name, source_id, coords.x, coords.y], issues)
 		if _nav_enabled and JsonUtil.to_str(eff.get("role", "")) == "GROUND" and collision.get("profile", "NONE") == "NONE" and td.get_navigation_polygon(0) == null:
 			td.set_navigation_polygon(0, IsoTileset.navigation_polygon(footprint))
+	complete_terrains(ts, src, JsonUtil.to_array(def.get("terrain_sets", [])))
 	var emptied: Array = []
 	for i in src.get_tiles_count():
 		var coords := src.get_tile_id(i)

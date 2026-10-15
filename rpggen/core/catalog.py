@@ -876,6 +876,7 @@ FARM_TOOL_REPLACED_ROLES = FARM_REPLACED_ROLES | {"WATER", "WEAPON"}  # tools/wa
 
 
 FARM_ICON_FOLDERS = frozenset({"icon", "icons", "item", "items", "food", "foods"})
+FARM_ICON_NOT_PEOPLE = frozenset({"ANIMAL", "NPC", "ENEMY", "PLAYER", "BOSS"})
 WATER_TILE_MOST = 64  # px: a single picture of water this large or smaller is one tile
 
 
@@ -893,6 +894,14 @@ def _farm_water(asset: Asset, facets: dict[str, Any], root: str) -> bool:
         if role in ("WATER", "GROUND"):
             facets["role"] = "ITEM"
             facets.pop("roles_alt", None)
+            return True
+        if role in FARM_ICON_NOT_PEOPLE and {f.casefold() for f in folders} & {"icon", "icons"}:
+            # an icon is no character (T17.33: *Farm RPG*'s ``Icons/Farm Animals/Wool.png``, the
+            # wool drawn twice, was a sheep that walked): an item, its first picture
+            facets["role"] = "ITEM"
+            facets.pop("roles_alt", None)
+            facets.pop("animations", None)
+            facets.pop("directions", None)
             return True
         return False
     size = facets.get("size") or [0, 0]
@@ -2098,7 +2107,9 @@ def assemble(
     terrain.attach_terrain_sets(catalog, terrain_result)
     from rpggen.core import sheet_things
 
-    # the trees and rocks of a sheet of tiles (T17.33), once its terrains take their cells
+    # the trees and rocks of a sheet of tiles (T17.33), once its terrains take their cells; and
+    # no object of a background or of tiles of a kind (a ladder)
+    sheet_things.drop_misread(catalog)
     generated.update(sheet_things.add(catalog, pack_roots, work_dir))
     resolve_maps(catalog, maps_raw, previous, issues)
     for asset in catalog.assets:

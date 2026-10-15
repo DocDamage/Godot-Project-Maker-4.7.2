@@ -89,6 +89,8 @@ class SheetRead:
     terrains: list[tuple[str, dict[str, int]]] = field(default_factory=list)
     # cells of a terrain laid only where nothing else fits (a second surface on the same earth)
     alternates: set[str] = field(default_factory=set)
+    # the variants of a ground's middle, laid now and then: their probability, by cell key
+    variants: dict[str, float] = field(default_factory=dict)
     cell: tuple[int, int] = (0, 0)
     unread: int = 0
     painted: int = 0
@@ -309,7 +311,20 @@ def is_ladder(cell: Cell) -> bool:
     rung_rows = between.mean(axis=1)
     if float(rung_rows.max()) < 0.9 or float(rung_rows.min()) > 0.2:
         return False
-    return _repeats(cell, S)
+    return _repeats(cell, S) or _rails_meet(cell)
+
+
+def _rails_meet(cell: Cell) -> bool:
+    """True when a ladder laid on itself goes on: its top row and its bottom row are painted in
+    the same columns and of the same colours (the rails). ``fits`` takes the rung across the
+    middle row for an outline round a block (T17.33: the side sample's ladder)."""
+    top, bottom = cell.rgba[0], cell.rgba[-1]
+    tm, bm = top[:, 3] >= ALPHA, bottom[:, 3] >= ALPHA
+    if float((tm == bm).mean()) < ALPHA_AGREE or not (tm & bm).any():
+        return False
+    both = tm & bm
+    diff = np.abs(top[both, :3].astype(np.float32) - bottom[both, :3].astype(np.float32)) / 255.0
+    return float(diff.mean()) <= SEAM_TOL
 
 
 # a rung differs from the backdrop between the rails by this much of value (0..1) at least
@@ -842,6 +857,78 @@ def _doors_and_poles(cells: list[Cell], kinds: dict[str, str]) -> None:
             kinds[c.key] = FLAG
 
 
+def _plank_ends(cells: list[Cell], kinds: dict[str, str]) -> None:
+    """The ends of a plank to jump through (T17.33: the side sample's plank, three cells wide
+    with a post under each end): a cell beside a one-way cell whose upper rows are painted as
+    the plank's are, across its width, with little under them (its post), is the plank too."""
+    by_xy = {(c.x, c.y): c for c in cells}
+    planks = [c for c in cells if kinds.get(c.key) == ONE_WAY]
+    for plank in planks:
+        rows = _rows_cover(plank)
+        board = rows >= 0.97
+        if not board.any():
+            continue
+        for dx in (-1, 1):
+            x = plank.x + dx
+            while (x, plank.y) in by_xy:
+                end = by_xy[(x, plank.y)]
+                if end.key in kinds or end.cover < EMPTY:
+                    break
+                own = _rows_cover(end)
+                if not (own[board] >= 0.97).all() or float(own[~board].mean()) > PLANK_UNDER:
+                    break
+                kinds[end.key] = ONE_WAY
+                x += dx
+
+
+# under the board of a plank's end at most this share is painted (a post)
+PLANK_UNDER = 0.3
+# a fill of a side ground this far from its middle's colour (a share of the middle's brightness:
+# the side sample's earth varies by 8 %, its cave wall is 20 % darker) is another ground
+MIDDLE_TONE = 0.12
+# the variants of a middle, together, at most this share of it (terrain.blocks.VARIANTS_SHARE)
+MIDDLE_VARIANTS = 0.15
+
+
+def _middles(cells: list[Cell], result: SheetRead) -> None:
+    """The middle of each side-view ground and its variants (T17.33). A ground often has several
+    fills (earth with its stones here and there) and Godot laid them all as often: a patchwork.
+    The plainest is the middle; a fill of its tone is a variant laid now and then (together at
+    most MIDDLE_VARIANTS of the ground); a fill of another tone (the dark wall of a cave beside
+    its earth) is laid only where nothing else fits."""
+    from rpggen.core.terrain import blocks
+
+    by_key = {c.key: c for c in cells}
+    whole = 0
+    for _side_key, bit in blocks.SIDE_KEYS:
+        whole |= bit
+    for _surface, members in result.terrains:
+        middles = [
+            by_key[k] for k, bits in members.items() if bits & whole == whole and k in by_key
+        ]
+        if len(middles) < 2:
+            continue
+        middles.sort(key=lambda c: (_plainness(c), c.y, c.x))
+        main = middles[0]
+        colour = main.rgba[:, :, :3].reshape(-1, 3).astype(np.float32).mean(axis=0) / 255.0
+        alike = []
+        for c in middles[1:]:
+            own = c.rgba[:, :, :3].reshape(-1, 3).astype(np.float32).mean(axis=0) / 255.0
+            if float(np.abs(own - colour).mean()) / max(float(colour.mean()), 0.05) > MIDDLE_TONE:
+                result.alternates.add(c.key)
+            else:
+                alike.append(c.key)
+        share = min(0.35, MIDDLE_VARIANTS / (1.0 - MIDDLE_VARIANTS) / max(1, len(alike)))
+        for key in alike:
+            result.variants[key] = round(share, 4)
+
+
+def _plainness(cell: Cell) -> float:
+    """How much a cell's neighbouring pixels differ, on average: the plainest fill is the least."""
+    a = cell.rgba[:, :, :3].astype(np.float32)
+    return float(np.abs(np.diff(a, axis=0)).mean() + np.abs(np.diff(a, axis=1)).mean())
+
+
 def read(rgba: np.ndarray, cell: tuple[int, int], margin: tuple[int, int] = (0, 0),
          sep: tuple[int, int] = (0, 0)) -> SheetRead:  # fmt: skip
     """The kinds of the cells of a sheet and its side-view terrains."""
@@ -860,9 +947,11 @@ def read(rgba: np.ndarray, cell: tuple[int, int], margin: tuple[int, int] = (0, 
         elif kind is not None:
             result.kinds[c.key] = kind
     _doors_and_poles(cells, result.kinds)
+    _plank_ends(cells, result.kinds)
     result.terrains = terrains(
         [c for c in cells if c.key not in result.kinds], fills, result.alternates
     )
+    _middles(cells, result)
     in_terrain = {k for _s, members in result.terrains for k in members}
     # the sides of hills (T17.33): ground under a diagonal, of the colours of a fill
     for c in cells:
@@ -895,6 +984,8 @@ def overrides(read_: SheetRead, set_names: list[str]) -> dict[str, dict[str, Any
                         "custom": {"side": "ground"}}  # fmt: skip
             if key in read_.alternates:
                 out[key]["probability"] = 0.0
+            elif key in read_.variants:
+                out[key]["probability"] = read_.variants[key]
     for key, kind in read_.kinds.items():
         if kind == ONE_WAY:
             out[key] = {"collision": {"profile": "ONE_WAY"}, "custom": {"side": kind}}
