@@ -45,12 +45,15 @@ from rpggen.core import config as config_mod
 from rpggen.gui import theme
 from rpggen.gui.models.options_model import (
     ABILITY_LABELS,
+    ASSETS_TEXT,
+    ASSETS_VIEW_CHOICES,
     EXPORT_TARGET_LABELS,
     INPUT_COLUMNS,
     PACK_ART_LABELS,
     SEED_MAX,
     STARTER_COUNTS,
     STARTER_SIZE_NAMES,
+    AssetsViewState,
     FeatureState,
     StarterState,
     ViewState,
@@ -140,8 +143,13 @@ class FeatureGroups(QWidget):
         self.needs: dict[str, QLabel] = {}
         self.descriptions: dict[str, QLabel] = {}
         self.hidden: set[str] = set()  # features this kind of game does not have
+        # the cards of the groups none of whose features the kind has (a project of assets
+        # only has no game systems, T17.33): not shown, and the others close up
+        self.empty: set[int] = set()
+        self.group_keys: list[list[str]] = []
         self.reset = reset_button("resetFeatures")
         for group in options.FEATURE_GROUPS:
+            self.group_keys.append(options.features_in_group(group))
             box = QGroupBox(self.tr(group))
             box.setObjectName(f"group_{group.replace(' ', '_')}")
             vbox = QVBoxLayout(box)
@@ -174,9 +182,17 @@ class FeatureGroups(QWidget):
         if columns == self.columns:
             return
         self.columns = columns
+        self._place()
+
+    def _place(self) -> None:
+        """The group cards that are shown, in ``columns`` columns."""
+        columns = max(1, self.columns)
         for box in self.groups:
             self.grid.removeWidget(box)
+        shown = [box for i, box in enumerate(self.groups) if i not in self.empty]
         for i, box in enumerate(self.groups):
+            box.setVisible(i not in self.empty)
+        for i, box in enumerate(shown):
             self.grid.addWidget(box, i // columns, i % columns)
         for column in range(2):
             self.grid.setColumnStretch(column, 1 if column < columns else 0)
@@ -199,6 +215,10 @@ class FeatureGroups(QWidget):
             self.descriptions[key].setVisible(shown)
             if not shown:
                 self.needs[key].setVisible(False)
+        empty = {i for i, keys in enumerate(self.group_keys) if set(keys) <= self.hidden}
+        if empty != self.empty:
+            self.empty = empty
+            self._place()
 
     def values(self) -> dict[str, bool]:
         return {k: b.isChecked() for k, b in self.boxes.items()}
@@ -316,6 +336,65 @@ class ViewChoice(QWidget):
             self.note.setText(state.reason)
             self.note.setVisible(bool(state.reason) and state.shown)
             self._show_pad()
+        finally:
+            self._loading = False
+
+
+class AssetsBox(QGroupBox):
+    """A project of assets only (T17.33): what is made instead of a game, and its *View*
+    (from above, from the side or isometric), which the packs choose until somebody does."""
+
+    edited = Signal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setTitle(self.tr("Assets only"))
+        self.setObjectName("assetsBox")
+        self._loading = False
+        layout = QVBoxLayout(self)
+        self.text = _muted(self.tr(ASSETS_TEXT), "assetsText")
+        layout.addWidget(self.text)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(theme.px("space_8"))
+        self.view_label = QLabel(self.tr("View"))
+        self.view_combo = QComboBox()
+        self.view_combo.setObjectName("assetsViewCombo")
+        self.view_combo.setAccessibleName(self.tr("View"))
+        self.view_combo.setToolTip(
+            self.tr("How the packs are drawn: the tile sets and the scenes are made for it")
+        )
+        self.view_label.setBuddy(self.view_combo)
+        row.addWidget(self.view_label)
+        row.addWidget(self.view_combo)
+        row.addStretch(1)
+        layout.addLayout(row)
+        self.note = _muted("", "assetsViewNote")
+        self.note.setVisible(False)
+        layout.addWidget(self.note)
+        self.setVisible(False)
+        self.view_combo.currentIndexChanged.connect(self._changed)
+
+    def view(self) -> str:
+        return str(self.view_combo.currentData())
+
+    def _changed(self, *_args: object) -> None:
+        if not self._loading:
+            self.edited.emit()
+
+    def show_state(self, state: AssetsViewState) -> None:
+        """The views that can be chosen, the one that is, whether it can change and the line
+        under it (the packs chose it, or the project exists)."""
+        self._loading = True
+        try:
+            self.view_combo.clear()
+            for value, text in ASSETS_VIEW_CHOICES:
+                if value in state.choices:
+                    self.view_combo.addItem(self.tr(text), value)
+            self.view_combo.setCurrentIndex(max(0, self.view_combo.findData(state.view)))
+            self.view_combo.setEnabled(state.can_choose)
+            self.note.setText(state.note)
+            self.note.setVisible(bool(state.note))
         finally:
             self._loading = False
 

@@ -32,6 +32,7 @@ ARCHETYPE_NAMES = {
     "metroidvania": "Metroidvania",
     **options.ARCADE_NAMES,
     "farm": options.FARM_NAME,
+    "assets": "Assets only",  # T17.33
 }
 # an arcade kind's numbers are words of the plan: each is translated as a whole
 PLAN_NOUN = {"racing": "Tracks: {0}"}
@@ -94,6 +95,8 @@ class OptionsSummary(QGroupBox):
                 if summary.world
                 else self.tr("The options do not fit together")
             )
+        elif summary.archetype == "assets":  # no maps: the levels are the owner's (T17.33)
+            self.maps_label.setText(self.tr("No maps: you build the levels in Godot"))
         elif summary.archetype == "metroidvania":
             self.maps_label.setText(
                 self.tr("World: {0}").format(summary.world)

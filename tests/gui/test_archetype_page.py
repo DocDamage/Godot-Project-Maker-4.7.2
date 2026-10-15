@@ -153,14 +153,15 @@ def test_the_three_arcade_kinds_are_on_since_the_gate_of_1_4() -> None:
     assert features.RACING_AVAILABLE
 
 
-def test_there_are_seven_cards_and_a_kind_behind_its_flag_cannot_be_chosen(
+def test_there_are_eight_cards_and_a_kind_behind_its_flag_cannot_be_chosen(
     qtbot, monkeypatch
 ) -> None:
     _arcade_on(monkeypatch, False)
     monkeypatch.setattr(features, "FARM_AVAILABLE", False)
     state = WizardState(archetype="racing")
     page = _page(qtbot, state)
-    assert list(page.cards) == ["turn_based", "arpg", "metroidvania", *ARCADE, "farm"]
+    assert list(page.cards) == ["assets", "turn_based", "arpg", "metroidvania", *ARCADE, "farm"]
+    assert page.assets_card.isEnabled(), "a project of assets only has no flag (T17.33)"
     for key in (*ARCADE, "farm"):
         card = page.cards[key]
         assert not card.isEnabled() and card.toolTip() == "Coming in a later version"
@@ -191,25 +192,25 @@ def test_each_arcade_kind_can_be_chosen_with_its_flag_on(qtbot, monkeypatch) -> 
         assert page.selected() == key, "coming back, the card is still the chosen one"
 
 
-def test_seven_cards_in_rows_of_four_or_three_and_a_narrow_window_has_a_column(
+def test_eight_cards_in_rows_of_four_or_three_and_a_narrow_window_has_a_column(
     qtbot, monkeypatch
 ) -> None:
-    """T17.16: rows of four from 1280 px on (two rows), rows of three below that (two rows in
-    view, the third scrolls), and the column of a narrow window."""
+    """T17.16, T17.33: rows of four from 1280 px on (two rows), rows of three below that (two
+    rows in view, the third scrolls), and the column of a narrow window."""
     from rpggen.gui.pages import archetype_page
 
     _arcade_on(monkeypatch)
     monkeypatch.setattr(features, "FARM_AVAILABLE", True)
     page = _page(qtbot, WizardState())
     cards = list(page.cards.values())
-    assert len(cards) == 7
+    assert len(cards) == 8
     grid = page.cards_grid
     for (width, height), columns in (((1100, 620), 3), ((1400, 1000), 4), ((1280, 720), 4)):
         page.resize(width, height)
         qtbot.wait(20)
         assert page.in_grid and page.columns == columns
         places = [grid.getItemPosition(grid.indexOf(card))[:2] for card in cards]
-        assert places == [(index // columns, index % columns) for index in range(7)]
+        assert places == [(index // columns, index % columns) for index in range(8)]
         for card in cards:
             assert card.shape == "grid"
             assert card.mock.height() <= archetype_page.MOCK_GRID_HEIGHT
@@ -245,7 +246,7 @@ def test_seven_cards_in_rows_of_four_or_three_and_a_narrow_window_has_a_column(
     qtbot.wait(20)
     bar = page.cards_scroll.verticalScrollBar()
     assert page.selected() == "farm" and bar.value() > 0
-    farm = cards[6].geometry()
+    farm = cards[7].geometry()
     assert farm.top() >= bar.value()
     assert farm.bottom() <= bar.value() + page.cards_scroll.viewport().height()
     page.enter(WizardState())
@@ -254,7 +255,7 @@ def test_seven_cards_in_rows_of_four_or_three_and_a_narrow_window_has_a_column(
     qtbot.wait(20)
     assert not page.in_grid and page.columns == 1
     places = [grid.getItemPosition(grid.indexOf(card))[:2] for card in cards]
-    assert places == [(row, 0) for row in range(7)]
+    assert places == [(row, 0) for row in range(8)]
     for card in cards:
         assert card.shape == "row"
         assert card.mock.size().toTuple() == archetype_page.MOCK_ROW_SIZE
@@ -473,7 +474,7 @@ def test_a_new_project_starts_in_the_view_of_its_packs(qtbot, monkeypatch) -> No
 
     _arcade_on(monkeypatch)
     _farm_on(monkeypatch)
-    for kind in ("turn_based", "arpg", "farm", "racing"):
+    for kind in ("turn_based", "arpg", "farm", "racing", "assets"):
         assert left(tiles, kind).projection == "isometric", kind
     for kind in ("metroidvania", "shmup", "run_and_gun"):
         assert left(tiles, kind).projection == "top_down", f"{kind} has no isometric view"
@@ -483,3 +484,77 @@ def test_a_new_project_starts_in_the_view_of_its_packs(qtbot, monkeypatch) -> No
     assert left(tiles, "turn_based", regenerating=True).projection == "top_down"
     _farm_on(monkeypatch, isometric=False)
     assert left(tiles, "turn_based").projection == "top_down", "the flag is off: as it was"
+
+
+# ---------------------------------------------------------------- assets only (T17.33)
+
+
+def test_the_assets_card_is_first_and_can_always_be_chosen(qtbot, monkeypatch) -> None:
+    """The card of a project of assets only: first, never behind a flag, with its flow, and
+    what follows it when the page is left: the kind's features and bindings, no map options
+    of the kind before, and a view the packs decide."""
+    _arcade_on(monkeypatch, False)
+    _farm_on(monkeypatch, farm=False)
+    ref = config.PackRef("x", "C:/x", "0" * 64, "folder")
+    state = WizardState(config=config.default_for("T", [ref]))
+    state.config.starter_map = {"buildings": 2, "areas": [{"name": "Woods", "biome": "forest"}]}
+    page = _page(qtbot, state)
+    card = page.assets_card
+    assert list(page.cards)[0] == "assets" and page.cards["assets"] is card
+    assert card.isEnabled() and card.toolTip() == ""
+    assert card.accessibleName() == "Assets only"
+    assert card.flow.steps == ["Packs", "Tile sets", "Dock", "Your levels"]
+    assert "No game is made" in card.body_label.text()
+    assert "Terrain tool" in card.bullet_label.text()
+    assert page.selected() == "turn_based", "the turn-based game is still the default"
+    card.click()
+    assert page.selected() == "assets" and not card.check_label.isHidden()
+    page.leave(state)
+    cfg = state.config
+    assert state.archetype == "assets" and cfg.archetype == "assets"
+    assert cfg.features == config.default_features("assets"), "untouched features follow"
+    assert cfg.input == config.default_input("assets"), "and untouched bindings"
+    assert cfg.starter_map == {}, "a project of assets only has no maps"
+    assert cfg.view == "" and cfg.to_json()["archetype"] == "assets"
+    page.enter(state)
+    assert page.selected() == "assets", "coming back, the card is still the chosen one"
+    # seen from the side, its bindings are the side view's: untouched, they go back too
+    cfg.view = "side"
+    cfg.input = config.default_input("assets", "side")
+    page.turn_card.click()
+    page.leave(state)
+    assert cfg.archetype == "turn_based" and cfg.view == ""
+    assert cfg.input == config.default_input("turn_based")
+    assert cfg.features == config.default_features("turn_based")
+
+
+def test_the_assets_card_has_its_drawing(qtbot) -> None:
+    from PySide6.QtGui import QImage
+
+    from rpggen.gui.pages.archetype_page import MockScreen
+
+    page = _page(qtbot, WizardState())
+    mock = page.assets_card.mock
+    assert mock.art is None
+    mock.setFixedSize(320, 160)
+    image: QImage = mock.grab().toImage()
+    seen = {
+        image.pixelColor(x, y).getRgb()[:3]
+        for x in range(image.width())
+        for y in range(image.height())
+    }
+    assert MockScreen.BACKGROUNDS["assets"].getRgb()[:3] in seen
+    for colour, what in (
+        ((34, 38, 50), "the palette"),
+        ((250, 214, 90), "the chosen swatch"),
+        ((166, 122, 78), "the path being painted"),
+        ((72, 132, 200), "the pond"),
+        ((206, 178, 132), "the wall of the house"),
+    ):
+        assert colour in seen, what
+    # with the art of a pack the grass is its ground; every shape a card gives it paints
+    page.enter(_sample_state())
+    assert mock.art is not None
+    for size in ((200, 48), (200, 112), (440, 160)):
+        mock.setFixedSize(*size)
+        assert not mock.grab().isNull()

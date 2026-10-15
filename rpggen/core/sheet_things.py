@@ -48,6 +48,9 @@ JOIN_PIXELS = 2
 JOIN_COLOUR = 80  # of 255 per channel: much the same colour across the line between cells
 JOIN_MATCH = 0.25  # of the pixels both borders paint
 MAX_GROUP = 2  # cells each way: a larger group is part of a building, drawn as tiles
+GLYPH_RUN = 6  # glyphs side by side in a row, at least, make a font
+GLYPH_COVER = 0.55  # a glyph paints at most this share of its cell
+GLYPH_COLOURS = 4  # ... in at most this many colours, for the whole row
 CONFIDENCE = 0.6
 WORK_FOLDER = "sheet_things"
 RENDER_DIR = "generated/sheet_things"
@@ -189,6 +192,45 @@ def _continues(edge: np.ndarray, other: np.ndarray) -> bool:
     same = np.abs(a - b).max(axis=1) <= JOIN_COLOUR
     bright = (a.max(axis=1) >= OUTLINE_VALUE * 255) & (b.max(axis=1) >= OUTLINE_VALUE * 255)
     return int((same & bright).sum()) >= max(JOIN_PIXELS, int(JOIN_MATCH * int(both.sum())))
+
+
+def _glyph_rows(cells: dict[tuple[int, int], np.ndarray]) -> list[tuple[int, int]]:
+    """The cells of rows of glyphs (T17.33: *Pixel Platformer*'s digits 0 to 9, twice, and its
+    signs, which were placed from the dock as decorations): ``GLYPH_RUN`` cells or more one after
+    the other in reading order (a run goes on from the end of a row to the start of the next),
+    each painting little (``GLYPH_COVER``), all of them in at most ``GLYPH_COLOURS`` colours.
+    A font, not things."""
+    if not cells:
+        return []
+    last_col = max(c for c, _r in cells)
+    out: list[tuple[int, int]] = []
+    run: list[tuple[int, int]] = []
+    palette: frozenset[tuple[int, int, int]] = frozenset()
+    for key in [*sorted(cells, key=lambda k: (k[1], k[0])), (-99, -99)]:
+        colours = _palette(cells[key]) if key in cells else None
+        if run and colours is not None:
+            c0, r0 = run[-1]
+            follows = key == (c0 + 1, r0) or (c0 == last_col and key == (0, r0 + 1))
+            if follows and len(palette | colours) <= GLYPH_COLOURS:
+                run.append(key)
+                palette = palette | colours
+                continue
+        if len(run) >= GLYPH_RUN:
+            out.extend(run)
+        run = [key] if colours is not None else []
+        palette = colours or frozenset()
+    return out
+
+
+def _palette(cell: np.ndarray) -> frozenset[tuple[int, int, int]] | None:
+    """The colours of a cell that paints little in few colours (a glyph), else None."""
+    mask = cell[..., 3] >= PAINTED_ALPHA
+    if float(mask.mean()) > GLYPH_COVER:
+        return None
+    colours = {tuple(int(v) for v in px) for px in cell[..., :3][mask]}
+    if len(colours) > GLYPH_COLOURS:
+        return None
+    return frozenset(colours)  # type: ignore[arg-type]
 
 
 def _groups(cells: dict[tuple[int, int], np.ndarray]) -> list[list[tuple[int, int]]]:
@@ -404,6 +446,8 @@ def add(catalog: Any, roots: dict[str, Path], work_dir: Path | None = None) -> d
                 if single is not None and _person(single):
                     continue  # a character or an animal the pack has on its own, used as it is
                 painted[(c, r)] = cell
+        for cell_key in _glyph_rows(painted):
+            painted.pop(cell_key, None)
         found: list[tuple[list[tuple[int, int]], np.ndarray, int, int]] = []
         for members in _groups(painted):
             whole, c0, r0 = _stitched(members, painted, cw, ch)

@@ -3828,6 +3828,37 @@
     },
     {
       "collision": {
+        "profile": "NONE"
+      },
+      "footprint": [
+        7,
+        8,
+        2,
+        2
+      ],
+      "id": "ranch.autotiles.n03_fence#brown_small",
+      "name": "brown_small",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        0,
+        32,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "ranch.autotiles.n03_fence",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:0:2"
+      ]
+    },
+    {
+      "collision": {
         "polygon": [
           [
             0,

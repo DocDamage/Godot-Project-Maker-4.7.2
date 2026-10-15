@@ -75,7 +75,8 @@ def test_the_card_can_be_chosen_with_the_flag_on(qtbot) -> None:
     page = _archetype_page(qtbot, state)
     card = page.metroidvania_card
     assert card.isEnabled() and card.toolTip() == ""
-    assert list(page.cards)[:3] == ["turn_based", "arpg", "metroidvania"]  # six since T16.16
+    # six since T16.16, the card of assets only first since T17.33
+    assert list(page.cards)[:4] == ["assets", "turn_based", "arpg", "metroidvania"]
     card.click()
     assert page.selected() == "metroidvania"
     assert not card.check_label.isHidden()

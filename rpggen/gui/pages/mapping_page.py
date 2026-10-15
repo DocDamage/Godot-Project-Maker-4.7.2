@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import catalog as catalog_mod
+from rpggen.core import config as config_mod
 from rpggen.core import labels, mapping, options, requirements
 from rpggen.errors import Issue
 from rpggen.gui import edits, icons, theme, thumbnails
@@ -31,10 +32,16 @@ from rpggen.gui.pages.audit_page import make_resolver
 from rpggen.gui.pages.base import WizardPage, form_error
 from rpggen.gui.state import WizardState
 from rpggen.gui.widgets import buttons
-from rpggen.gui.widgets.card import Card
+from rpggen.gui.widgets.card import INFO, Banner, Card
 from rpggen.gui.widgets.sound_section import SoundSection
 
 USE_PLACEHOLDER = "Use placeholder"
+# what the page says for a project of assets only (T17.33), instead of its roles and sounds
+ASSETS_NOTE = (
+    "A project of assets only has no game, so there is no player, enemy or sound to choose. "
+    "Every asset of your packs becomes a tile of a tile set or a scene of the RPG Project Tools "
+    "dock, as the Audit page has it."
+)
 CONTINUE_WITHOUT = "Continue without"
 NAME_WIDTH = 170  # the role's name and its hint
 STATUS_WIDTH = 92  # "✔ assigned", "⚠ placeholder"
@@ -265,6 +272,11 @@ class MappingPage(WizardPage):
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(0, 0, theme.px("space_8"), 0)
         body_layout.setSpacing(theme.px("space_12"))
+        # a project of assets only (T17.33) has no game: no role to give an asset, no sounds
+        self.assets_note = Banner(INFO, self.tr(ASSETS_NOTE))
+        self.assets_note.setObjectName("mappingAssetsNote")
+        self.assets_note.setVisible(False)
+        body_layout.addWidget(self.assets_note)
         self.rows_box = QVBoxLayout()
         self.rows_box.setSpacing(theme.px("space_12"))
         body_layout.addLayout(self.rows_box)
@@ -327,6 +339,11 @@ class MappingPage(WizardPage):
                 self.rows[role] = widget
                 card.box.addWidget(widget)
         self._refresh()
+        assets = archetype == config_mod.ASSETS_KIND
+        self.assets_note.setVisible(assets)
+        if assets:  # no music, no sounds of a game (T17.33)
+            self.sound_section.setVisible(False)
+            return
         self.sound_section.set_data(
             state.catalog,
             dict(state.config.sounds) if state.config else {},
@@ -578,6 +595,8 @@ class MappingPage(WizardPage):
         return True
 
     def _summary(self, archetype: str, assigned: dict[str, bool]) -> str:
+        if archetype == config_mod.ASSETS_KIND:
+            return self.tr("Nothing to assign: a project of assets only has no game")
         required = [r for r in mapping.rows(archetype) if r.required]
         optional = [r for r in mapping.rows(archetype) if not r.required]
         done_required = sum(1 for r in required if assigned.get(r.role))
@@ -766,5 +785,7 @@ class MappingPage(WizardPage):
         state.placeholders = set(self.placeholders)
         if state.config is not None:
             state.config.starter = dict(self.starter)
-            state.config.sounds = dict(self.sound_section.sounds)
+            assets = self._archetype() == config_mod.ASSETS_KIND
+            # a project of assets only has no music and no sounds of a game (T17.33)
+            state.config.sounds = {} if assets else dict(self.sound_section.sounds)
         return None

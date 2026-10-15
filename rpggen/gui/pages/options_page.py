@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import config as config_mod
-from rpggen.core import options, vcs
+from rpggen.core import vcs
 from rpggen.errors import Issue
 from rpggen.gui import icons, theme
 from rpggen.gui.dialogs.options_dialogs import ManagePresetsDialog, SolidValuesDialog
@@ -90,6 +90,8 @@ class OptionsPage(WizardPage):
         self._summary_on_side = False
 
         self.features = sections.FeatureGroups()
+        # a project of assets only (T17.33): what is made instead of a game, and its view
+        self.assets_box = sections.AssetsBox()
         self.starter_box = sections.StarterMapBox()
         self.world_box = sections.StarterWorldBox()  # a metroidvania's, instead of the map's
         self.world_box.setVisible(False)
@@ -111,6 +113,7 @@ class OptionsPage(WizardPage):
         self.export_targets = sections.ExportTargetsBox()
         self.advanced = sections.AdvancedOptions()
         column: tuple[QWidget, ...] = (
+            self.assets_box,
             self.features,
             self.farm_box,
             self.starter_box,
@@ -178,6 +181,7 @@ class OptionsPage(WizardPage):
         }
         for holder in (self.starter_box, self.farm_box, self.arcade_boxes["racing"]):
             holder.viewEdited.connect(self._on_view_edited)
+        self.assets_box.edited.connect(self._on_assets_view_edited)
         self.imported_box.edited.connect(self._on_imported_edited)
         self.solid_button.clicked.connect(self.edit_solid_values)
         for editor in (self.resolution, self.window_editor):
@@ -272,21 +276,27 @@ class OptionsPage(WizardPage):
         pathfinding and the layers of a room (T14.10)."""
         side = self.model.is_side
         arcade = self.arcade_box
-        self.starter_box.setVisible(not self.model.planned)
+        assets = self.model.is_assets  # no game (T17.33): none of a game's sections
+        self.assets_box.setVisible(assets)
+        self.starter_box.setVisible(not self.model.planned and not assets)
         self.starter_box.set_village(self.model.is_farm)
         self.farm_box.setVisible(self.model.is_farm)
         self.world_box.setVisible(side)
         for box in self.arcade_boxes.values():
             box.setVisible(box is arcade)
-        if self.model.planned:
+        if self.model.planned or assets:
             self.imported_box.setVisible(False)
         # what the kind's builders do not read is not shown: pathfinding in rooms, the demo
-        # and pathfinding in stages, combat on a farm
+        # and pathfinding in stages, combat on a farm, a game's systems in a project of assets
         self.features.set_kind(self.model.kind)
-        self.features.set_hidden(set(options.hidden_features(self.model.kind)))
+        self.features.set_hidden(set(self.model.hidden_features()))
         self.layers_box.set_fixed(side)
-        # a stage is not a map of layers: an arcade kind builds its own
-        self.layers_box.setVisible(arcade is None)
+        # a stage is not a map of layers: an arcade kind builds its own; assets have no maps
+        self.layers_box.setVisible(arcade is None and not assets)
+        # nothing to export, no maps to repair and presets of a game's features
+        self.export_targets.setVisible(not assets)
+        self.repair_box.setVisible(not assets)
+        self.presets.setVisible(not assets)
 
     @property
     def arcade_box(self) -> sections.ArcadeBox | None:
@@ -320,6 +330,23 @@ class OptionsPage(WizardPage):
         self.refresh_summary()
         self.changed.emit()
 
+    def _on_assets_view_edited(self) -> None:
+        """The View of a project of assets only was chosen (T17.33): untouched bindings follow
+        it (the side's body jumps)."""
+        if self._loading or self.draft is None or not self.model.is_assets:
+            return
+        self._collect()  # the bindings as the table has them, before they are compared
+        if not self.model.set_assets_view(self.assets_box.view()):
+            return
+        self._loading = True
+        try:
+            self.advanced.fill_input(self.model.input_rows())
+            self.assets_box.show_state(self.model.assets_view_state())
+        finally:
+            self._loading = False
+        self.refresh_summary()
+        self.changed.emit()
+
     def _load_draft(self) -> None:
         """Shows the draft in the widgets."""
         draft = self.draft
@@ -333,7 +360,10 @@ class OptionsPage(WizardPage):
             self.seed_box.setValue(min(draft.seed, SEED_MAX))
             self.repair_box.setChecked(draft.repair_world)
             self.advanced.fill_input(self.model.input_rows())
-            if self.model.is_side:
+            if self.model.is_assets:  # no maps: the box of its view (T17.33)
+                self.layers_box.fill(draft.map_layers)
+                self.assets_box.show_state(self.model.assets_view_state())
+            elif self.model.is_side:
                 self.layers_box.fill(list(ROOM_LAYERS))
                 self.world_box.load(draft.starter_map_options(), self.model.built_added_rooms())
             elif (arcade := self.arcade_box) is not None:
@@ -426,6 +456,8 @@ class OptionsPage(WizardPage):
     # ------------------------------------------------------------------ starter map
 
     def _update_starter_state(self) -> None:
+        if self.model.is_assets:  # no starter map (T17.33)
+            return
         state = self.model.starter_state()
         if self.model.is_side:
             self.world_box.show_state(state)
@@ -441,7 +473,9 @@ class OptionsPage(WizardPage):
     def starter_values(self) -> dict[str, Any]:
         """The starter map options as the widgets show them (the starter world's for a
         metroidvania, the stages' or the tracks' for an arcade kind, the village's and the
-        farm's own for a farm)."""
+        farm's own for a farm; none for a project of assets only)."""
+        if self.model.is_assets:
+            return {}
         if self.model.is_side:
             return self.world_box.values()
         if (arcade := self.arcade_box) is not None:
@@ -461,7 +495,9 @@ class OptionsPage(WizardPage):
 
     def _show_world(self) -> None:
         """The world of the areas table, drawn under it (planned at once: it is cheap); for a
-        metroidvania the rooms, seen from the side."""
+        metroidvania the rooms, seen from the side; nothing for a project of assets only."""
+        if self.model.is_assets:
+            return
         if self.model.is_side:
             self.world_box.show_plan(*self.model.rooms_preview(self.starter_values()))
             return
@@ -485,7 +521,7 @@ class OptionsPage(WizardPage):
         self._on_starter_edited()
 
     def _reset_starter(self) -> None:
-        if self.draft is None:
+        if self.draft is None or self.model.is_assets:
             return
         self._loading = True
         try:
@@ -550,6 +586,8 @@ class OptionsPage(WizardPage):
         return self.model.normalize_imported(*self.imported_box.selection())
 
     def _imported_or_none(self) -> dict[str, Any] | None:
+        if self.model.is_assets:  # no maps are built (T17.33)
+            return None
         return self.imported_values() if self.imported_list.count() else None
 
     def _on_imported_edited(self, *_args: object) -> None:

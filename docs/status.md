@@ -31,6 +31,13 @@ collision, animation, behaviour); (4) the composition of generated maps, last. A
 in the editor: a short level painted with the terrain tool and furnished from the dock, played,
 and looked at beside the pack's own sample picture.
 
+**Later the same day the generated games were dropped** ("we are not even supposed to be worrying
+about those any more"): no game is generated or played to judge the work, and the maps are not
+worked on. What is judged is a project of the packs' assets only (the kind `assets`, T17.33: the
+tile sets, the dock's scenes and the catalog, no game) and a level made in it by the test-only
+editor probe `tests/integration/level_probe` (a new scene, the Terrain tool's painting, the
+dock's placing), pictured beside the pack's own sample.
+
 **How the work is run.** The full local suites (about three hours) and CI (about two hours,
 dispatched by hand: `gh workflow run CI --ref m17`) run once per batch of cards, not per card;
 during a card only lint, types, the unit and GDScript suites and the integration tests of what it

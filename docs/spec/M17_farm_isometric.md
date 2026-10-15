@@ -1496,14 +1496,40 @@ sprinkled like noise, small NPCs pasted on at the wrong scale, nothing composed.
 * **Composition**: a map reads as a place: paths lead to things, open ground is broken by
   features, a map's edge is natural.
 
+**Generated games dropped (2026-10-15, later the same day).** The owner: "we are not even
+supposed to be worrying about those any more". The games are no longer generated or played to
+judge this card, and their maps are not worked on (what part 4 did to them stays as it is). In
+their place a project of **the packs' assets only** (the kind `assets`): their TileSets, the
+scenes the dock places and the catalog, with the runtime the scenes need, and no maps, menus,
+main scene, smoke run or export check. It is seen from above, at an angle (isometric) or from
+the side, as its packs are drawn (`view`, decided from the packs when not given). Its README says
+how to build a level. A level is made in it by the test-only editor plugin
+`tests/integration/level_probe` the way a user makes one (a new scene, the Terrain tool's
+painting, the dock's placing) and pictured.
+
+Two things the probe showed belong to this card too:
+* **A terrain paints without holes.** Godot's Terrain tool leaves a cell empty when no tile of
+  the terrain fits the cells around it, and a pack seldom draws every piece (a plain ground has
+  none but its middle; a side-view ground no end of a ledge one tile thick). For every way a
+  terrain can meet others that its pack draws no piece for, the nearest piece it does draw is
+  added again as an alternative tile with those bits; the probe counts these *stand-ins*.
+* **The things of a sheet of tiles are in the dock.** A sheet that holds trees, rocks, crops,
+  sacks and tools beside its ground (*Tiny Farm*'s one sheet of 132 tiles) gives each as an
+  object of the dock, joined over the line between cells where its art goes on, named by how it
+  looks until T17.34 names it better.
+
 **Done when**
-* Every item above is done, each held by a synthetic pack in the tests, and each of the real
-  games of T17.29 to T17.32 is generated again without the audit overrides those cards needed
-  (unless a user would still make that choice, and then the card says why), passes its smoke
-  run and is looked at in a picture, beside the pack's own sample or preview picture, until a
-  person would say it looks like a game made with that pack; the before, the sample and the
-  after are kept side by side for the owner's review, and where a game still falls short the
-  notes say what and why.
+* Every item above is done, each held by a synthetic pack in the tests.
+* Each real pack set of T17.29 to T17.32 is built as an assets-only project without the audit
+  overrides those cards needed (unless a user would still make that choice, and then the card
+  says why), a level is made in it by the probe and pictured beside the pack's own sample or
+  preview: its terrains paint with no hole and no piece that does not fit its neighbours, the
+  stand-ins are counted, everything placed from the dock is the pack's art at a whole-number
+  scale, sorted, colliding and animated as it should. The pictures and reports are kept in
+  `F:
+pggen_scratch	33
+  `F:\rpggen_scratch\t33\review\<pack>\`; where a pack still falls short, the notes say what
+  and why.
 
 ## T17.34 — Confidence close to 100 % on real packs
 

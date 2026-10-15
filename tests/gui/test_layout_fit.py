@@ -250,7 +250,7 @@ def test_the_options_page_fits_with_a_world_of_areas(
 
 
 def _two_rows_in_view(page) -> None:  # noqa: ANN001 - an ArchetypePage in rows of three
-    """T17.16: seven cards in rows of three. Two rows are whole in the page's room and fill
+    """T17.16, T17.33: eight cards in rows of three. Two rows are whole in the page's room and fill
     it, wherever the page has scrolled to (the chosen card is brought into view), and the rest
     scrolls. Under two lines of hints the room is too low for two rows of cards: every row is
     then as high as its cards need, and the page scrolls a little more."""
@@ -300,7 +300,7 @@ def test_the_pages_of_an_arcade_kind_fit(
         if isinstance(page, ArchetypePage):
             assert page.selected() == archetype
             assert page.in_grid == (size == "default"), "rows of three from 1000 px on"
-            if page.in_grid:  # two rows are in view at 720 px; the seventh card scrolls
+            if page.in_grid:  # two rows are in view at 720 px; the third row scrolls
                 _two_rows_in_view(page)
             for card in page.cards.values():
                 assert card.height() >= card.minimumSizeHint().height(), card.key
@@ -350,7 +350,7 @@ def _synthetic_state(packs: tuple[str, ...], archetype: str, projection: str, sc
 def test_the_pages_of_a_farm_and_of_an_isometric_project_fit(
     qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str, theme_name: str, size: str
 ) -> None:
-    """T17.16: seven cards on the Archetype page with its two hints, the roles of the view on
+    """T17.16: eight cards on the Archetype page with its two hints, the roles of the view on
     the Mapping page, and on the Options page the farm's box over its village's and the View
     choice in the box of the kind, at the minimum window and at the default one, in both
     themes. The two flags are set here; they are on in the wizard since the gate of 1.5."""
@@ -376,7 +376,7 @@ def test_the_pages_of_a_farm_and_of_an_isometric_project_fit(
             QApplication.processEvents()
         found.extend(f"{page.title}: {p}" for p in layout_problems(page))
         if isinstance(page, ArchetypePage):
-            assert page.selected() == archetype and len(page.cards) == 7
+            assert page.selected() == archetype and len(page.cards) == 8
             assert page.farm_card.isEnabled()
             assert page.iso_hint.isHidden() == (projection != "isometric")
             # (the miniature pack has cars: detection says a racing game fits it too)
@@ -414,11 +414,11 @@ def test_the_pages_of_a_farm_and_of_an_isometric_project_fit(
 
 
 @pytest.mark.parametrize("size", [(1280, 720), (1400, 1000), (1600, 1000)])
-def test_seven_cards_are_two_rows_of_four_in_a_window_1280_wide_and_more(
+def test_eight_cards_are_two_rows_of_four_in_a_window_1280_wide_and_more(
     qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, size: tuple[int, int]
 ) -> None:
-    """T17.16: from 1280 px on the seven cards are in view together, at every height: with
-    their lists when two rows of whole cards fit, without them when they do not."""
+    """T17.16, T17.33: from 1280 px on the eight cards are in view together, at every height:
+    with their lists when two rows of whole cards fit, without them when they do not."""
     from rpggen import features
     from rpggen.gui.pages.archetype_page import ArchetypePage
 
@@ -478,3 +478,51 @@ def test_the_pages_fit_with_the_two_samples_of_m17(
     dev.show_each_page(window, check)
     assert not found, f"{layout}/{size}:\n" + "\n".join(found)
     assert state.config.projection == (view or "top_down"), "the pages left the view as it was"
+
+
+@pytest.mark.parametrize("size", sorted(SIZES))
+@pytest.mark.parametrize("theme_name", dev.LAYOUT_THEMES)
+def test_the_pages_of_a_project_of_assets_only_fit(
+    qtbot, tmp_path: Path, theme_name: str, size: str
+) -> None:
+    """T17.33: a project of assets only on the sample pack: its card is chosen, the Mapping
+    page has its note instead of roles and sounds, the Options page its own box instead of a
+    game's sections, and Results no Play button; every page fits at both sizes and themes."""
+    from rpggen.gui.pages.archetype_page import ArchetypePage
+    from rpggen.gui.pages.mapping_page import MappingPage
+    from rpggen.gui.pages.options_page import OptionsPage
+    from rpggen.gui.pages.results_page import ResultsPage
+
+    theme.apply_theme(theme_name, remember=False)
+    state = dev.layout_state("assets", tmp_path)
+    assert state.archetype == "assets" and state.config.archetype == "assets"
+    window = MainWindow(state, default_pages())
+    qtbot.addWidget(window)
+    window.resize(*SIZES[size])
+    window.show()
+    QApplication.processEvents()
+    found: list[str] = []
+
+    def check(page_name: str, win: MainWindow) -> None:
+        current = win.welcome if win.welcome_visible else win.current_page
+        found.extend(f"{page_name}: {p}" for p in layout_problems(current))
+        if isinstance(current, ArchetypePage):
+            assert current.selected() == "assets" and len(current.cards) == 8
+            if current.in_grid:
+                visible = current.cards_scroll.viewport().height()
+                at = current.cards_scroll.verticalScrollBar().value()
+                card = current.assets_card.geometry()
+                assert at <= card.top() and card.bottom() <= at + max(visible, card.height())
+        if isinstance(current, MappingPage):
+            assert not current.assets_note.isHidden() and current.sound_section.isHidden()
+            assert current.rows == {}
+        if isinstance(current, OptionsPage):
+            assert not current.assets_box.isHidden() and current.starter_box.isHidden()
+            assert current.layers_box.isHidden() and current.export_targets.isHidden()
+            assert current.presets.isHidden()
+        if isinstance(current, ResultsPage):
+            assert current.play_button.isHidden() and current.starter_button.isHidden()
+            assert not current.godot_button.isHidden()
+
+    dev.show_each_page(window, check)
+    assert not found, f"assets/{theme_name}/{size}:\n" + "\n".join(found)

@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen import procenv
+from rpggen.core import config as config_mod
 from rpggen.core import (
     conflicts,
     godot,
@@ -631,11 +632,14 @@ class ResultsPage(WizardPage):
         pixmap = QPixmap(str(path)) if path is not None else QPixmap()
         if pixmap.isNull():
             self.map_picture.clear()
-            self.map_picture.setText(
-                self.tr("No picture of the world was made.")
-                if self.has_rooms()
-                else self.tr("No picture of the starter map was made.")
-            )
+            if self.is_assets():  # no maps in a project of assets only (T17.33)
+                self.map_picture.setText(self.tr("No maps: you build the levels in Godot."))
+            else:
+                self.map_picture.setText(
+                    self.tr("No picture of the world was made.")
+                    if self.has_rooms()
+                    else self.tr("No picture of the starter map was made.")
+                )
             return
         # 300 high: in the default window the counts under the picture show without scrolling
         self.map_picture.setPixmap(
@@ -668,6 +672,23 @@ class ResultsPage(WizardPage):
         ("Read <code>README.md</code> in the project.", "README.md"),
     )
 
+    # a project of assets only has no game and no maps (T17.33): the levels are the owner's
+    NEXT_ITEMS_ASSETS = (
+        ("Open the project in Godot: the <b>RPG Project Tools</b> dock lists your packs.", ""),
+        (
+            "Make a level and paint it with a tile set of <code>generated/tilesets/</code> on "
+            "the <b>Terrains</b> tab.",
+            "generated/tilesets",
+        ),
+        ("Place buildings, props and people from the dock into your level.", ""),
+        ("Read <code>README.md</code> in the project.", "README.md"),
+    )
+
+    def is_assets(self) -> bool:
+        """True for the result of a project of assets only (T17.33): nothing to play."""
+        cfg = self.result.cfg if self.result is not None else None
+        return cfg is not None and cfg.archetype == config_mod.ASSETS_KIND
+
     def has_rooms(self) -> bool:
         """True for the result of a metroidvania: a world of rooms."""
         cfg = self.result.cfg if self.result is not None else None
@@ -694,6 +715,17 @@ class ResultsPage(WizardPage):
         return ""
 
     def _fill_next_steps(self) -> None:
+        assets = self.is_assets()
+        # no main scene to run and no starter map to open: Open in Godot is the way in
+        self.play_button.setVisible(not assets)
+        self.starter_button.setVisible(not assets)
+        if assets:
+            rows = []
+            for text, rel in self.NEXT_ITEMS_ASSETS:
+                link = f' <a href="show:{rel}">{self.tr("Show")}</a>' if rel else ""
+                rows.append(f"<li>{self.tr(text)}{link}</li>")
+            self.what_next_label.setText(f"<b>{self.tr('What next')}</b><ul>{''.join(rows)}</ul>")
+            return
         rooms = self.has_rooms()
         self.starter_button.setText(
             self.tr("Open first room") if rooms else self.tr("Open starter map")

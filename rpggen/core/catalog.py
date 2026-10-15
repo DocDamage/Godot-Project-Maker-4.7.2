@@ -802,6 +802,39 @@ def _side_view_soldier(assets: list[Asset]) -> None:
             return
 
 
+PORTRAIT_SCALE = 3  # a person this many times as large as another of its folder is its face
+
+
+def _large_twin_portraits(assets: list[Asset]) -> None:
+    """A person drawn again much larger beside its sprite is its portrait (T17.33: *Farm RPG*'s
+    ``Premade/Alaric/Blacksmith aseprite.png``, 128 px, beside ``Blacksmith Idle.png``, 32 px,
+    was placed from the dock as a giant): a ``PLAYER`` or ``NPC`` that only stands, whose frame
+    is ``PORTRAIT_SCALE`` times another person's of the same folder each way, is a ``PORTRAIT``.
+    Never over a profile or a learned value."""
+    people = [
+        a for a in assets
+        if a.kind == "image" and a.detected.get("role") in FARM_CHARACTER_ROLES
+        and a.detected.get("usage") == "sprite" and len(a.detected.get("frame") or []) == 2
+    ]  # fmt: skip
+    for asset in people:
+        if asset.detected_by in ("profile", "learned"):
+            continue
+        facets = asset.detected
+        if {str(n).split("_", 1)[0] for n in facets.get("animations") or {}} - {"idle"}:
+            continue  # it walks: a person
+        fw, fh = (int(v) for v in facets["frame"])
+        folder = asset.path.rsplit("/", 1)[0]
+        for other in people:
+            if other is asset or other.path.rsplit("/", 1)[0] != folder:
+                continue
+            ow, oh = (int(v) for v in other.detected["frame"])
+            if fw >= PORTRAIT_SCALE * ow and fh >= PORTRAIT_SCALE * oh:
+                facets["role"] = "PORTRAIT"
+                facets.pop("roles_alt", None)
+                facets["tags"] = sorted({*(facets.get("tags") or []), "portrait_of:" + other.id})
+                break
+
+
 def _farm_farmer(assets: list[Asset]) -> None:
     """A farming pack whose hero is called a farmer (T17.01): the classifier takes a character
     in a folder of characters for an NPC, which leaves the pack without a player. When no asset
@@ -895,7 +928,10 @@ def _farm_water(asset: Asset, facets: dict[str, Any], root: str) -> bool:
             facets["role"] = "ITEM"
             facets.pop("roles_alt", None)
             return True
-        if role in FARM_ICON_NOT_PEOPLE and {f.casefold() for f in folders} & {"icon", "icons"}:
+        icons = {f.casefold() for f in folders} & {"icon", "icons"}
+        if role == "ITEM" and icons:
+            return True  # an icon read as an item stays one, animated or not (Wool.png)
+        if role in FARM_ICON_NOT_PEOPLE and icons:
             # an icon is no character (T17.33: *Farm RPG*'s ``Icons/Farm Animals/Wool.png``, the
             # wool drawn twice, was a sheep that walked): an item, its first picture
             facets["role"] = "ITEM"
@@ -1966,6 +2002,7 @@ def assemble(
             figures.read_numbered(
                 [a for a in catalog.assets if a.pack_id == pack_id], opened.root, root
             )
+            _large_twin_portraits([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_farmer([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_use_strips([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_roles([a for a in catalog.assets if a.pack_id == pack_id], root)

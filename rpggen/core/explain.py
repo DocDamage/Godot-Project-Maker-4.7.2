@@ -111,6 +111,10 @@ UNUSED_REASONS = {
         "a piece of a thing drawn over several cells of a sheet (half a tree); the whole thing "
         "is in the dock. Give it a role to use this piece alone as well."
     ),
+    "trimmed_copy": (
+        "the same picture as one of a folder of fixed size beside it, cut to what it paints "
+        "(Kenney's 'Variable sizes'); the fixed size is used. Give it a role to use this one."
+    ),
     "same_tiles": (
         "the same tiles as another picture of this pack (a sheet with spacing, a packed sheet "
         "or single files of one set); one form is used. Give it a role to use this one as well."

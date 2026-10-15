@@ -35,7 +35,12 @@ PICTURE = "rpggen/results/starter_map.png"  # the starter map as it was built (T
 PICTURE_SIZE = QSize(112, 70)
 CARD_HEIGHT = 160  # the three choices
 TWO_COLUMNS_FROM = 900  # the recent projects: two columns from this width of the view
-ARCHETYPE_WORDS = {"turn_based": "turn-based", "arpg": "action", "metroidvania": "metroidvania"}
+ARCHETYPE_WORDS = {
+    "turn_based": "turn-based",
+    "arpg": "action",
+    "metroidvania": "metroidvania",
+    "assets": "assets only",  # T17.33
+}
 
 
 def pack_changes(project: app_settings.RecentProject) -> list[tuple[str, datetime]]:

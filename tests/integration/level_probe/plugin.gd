@@ -97,7 +97,7 @@ func _run() -> void:
 		return
 	var ground := root.get_node("Ground") as TileMapLayer
 	var details := root.get_node("GroundDetails") as TileMapLayer
-	var base := _largest_terrain(ts)
+	var base := _ground_terrain(ts, side)
 	report["base"] = _label(ts, base)
 	var size := Vector2i(40, 23) if side else (Vector2i(14, 14) if iso else Vector2i(40, 26))
 	report["size"] = [size.x, size.y]
@@ -169,20 +169,28 @@ func _make_template(ts: TileSet) -> Error:
 
 # ------------------------------------------------------------------ what the tile set has
 
-## The (terrain set, terrain) with the most tiles, or [-1, -1].
-func _largest_terrain(ts: TileSet) -> Vector2i:
+## The terrain a user lays first: seen from above a grass if the tile set has one (the one with
+## the most tiles), else the terrain with the most tiles; [-1, -1] without terrains.
+func _ground_terrain(ts: TileSet, side: bool) -> Vector2i:
 	var counts := _terrain_tiles(ts)
 	var best := Vector2i(-1, -1)
 	var most := 0
 	var keys: Array = counts.keys()
 	keys.sort()
-	for key: Vector2i in keys:
-		if (counts[key] as Array).size() > most:
-			most = (counts[key] as Array).size()
-			best = key
+	for grass_first in ([false] if side else [true, false]):
+		for key: Vector2i in keys:
+			var words := _words(ts.get_terrain_name(key.x, key.y))
+			if grass_first and (words.is_empty() or words[0] != "grass"):
+				continue
+			if (counts[key] as Array).size() > most:
+				most = (counts[key] as Array).size()
+				best = key
+		if best.x >= 0:
+			return best
 	return best
 
-## {Vector2i(set, terrain): [TileData, ...]} of every tile of the tile set's atlases.
+## {Vector2i(set, terrain): [TileData, ...]} of the tiles the packs draw (each atlas tile as it
+## is, not its alternatives: those stand in for pieces a pack does not draw).
 func _terrain_tiles(ts: TileSet) -> Dictionary:
 	var out := {}
 	for i in ts.get_source_count():
@@ -190,15 +198,13 @@ func _terrain_tiles(ts: TileSet) -> Dictionary:
 		if source == null:
 			continue
 		for t in source.get_tiles_count():
-			var coords := source.get_tile_id(t)
-			for alt in source.get_alternative_tiles_count(coords):
-				var td := source.get_tile_data(coords, source.get_alternative_tile_id(coords, alt))
-				if td == null or td.terrain_set < 0 or td.terrain < 0:
-					continue
-				var key := Vector2i(td.terrain_set, td.terrain)
-				if not out.has(key):
-					out[key] = []
-				(out[key] as Array).append(td)
+			var td := source.get_tile_data(source.get_tile_id(t), 0)
+			if td == null or td.terrain_set < 0 or td.terrain < 0:
+				continue
+			var key := Vector2i(td.terrain_set, td.terrain)
+			if not out.has(key):
+				out[key] = []
+			(out[key] as Array).append(td)
 	return out
 
 ## True for a terrain of strips alone (paths one tile wide): none of its tiles says the terrain
