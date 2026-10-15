@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792007715848,
+  "lastUpdate": 1792051441119,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -1119,6 +1119,105 @@ window.BENCHMARK_DATA = {
           {
             "name": "isometric turn-based game from the Stone isle sample",
             "value": 41.69,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "dsferraro@gmail.com",
+            "name": "initial upload",
+            "username": "DocDamage"
+          },
+          "distinct": false,
+          "id": "f30b23212c0b6275220a73fb19901612bfe2dcda",
+          "message": "Tests: the import-retry note (BUILD-006) is about the computer, not the sample\n\nA farm sample on an Ubuntu runner had Godot crash on import; the import ran\nagain and the farm passed its whole sequence, but the samples' note checks\ncounted BUILD-006 as a note of the pack. It is left out with ENV- notes.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-10-15T02:00:17-04:00",
+          "tree_id": "0c465bd56b76b4c6e33fa6ae99d81ff09dc51cf7",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/f30b23212c0b6275220a73fb19901612bfe2dcda"
+        },
+        "date": 1792051422481,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 17.02,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 2.29,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 74.51,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 9.74,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, full",
+            "value": 60.7,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 10.52,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 13.18,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 4.49,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 2.25,
+            "unit": "s"
+          },
+          {
+            "name": "metroidvania from the side-view sample",
+            "value": 34,
+            "unit": "s"
+          },
+          {
+            "name": "shoot 'em up from the Star lane sample",
+            "value": 66.66,
+            "unit": "s"
+          },
+          {
+            "name": "run and gun from the Jungle line sample",
+            "value": 51.07,
+            "unit": "s"
+          },
+          {
+            "name": "racing game from the Dirt cup sample",
+            "value": 61.34,
+            "unit": "s"
+          },
+          {
+            "name": "farm from the Green acre sample",
+            "value": 81.55,
+            "unit": "s"
+          },
+          {
+            "name": "isometric turn-based game from the Stone isle sample",
+            "value": 42.63,
             "unit": "s"
           }
         ]
