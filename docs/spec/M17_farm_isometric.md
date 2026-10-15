@@ -171,6 +171,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.29 | Real farming packs: one tile set in several forms, crops, farm animals and layered characters | L | T17.21 | done locally on Windows: the three packs each give a farm with their own ground, crops that grow in their pictures and a player of the pack, played by the farm's smoke sequence and looked at in pictures; *Tiny Farm*'s player and hen are numbered tiles nothing names, chosen in the audit as a user would; the size choice is on the Audit page's *Packs* tab, not the Project page (the notes) |
 | T17.30 | Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand, AI-generated art marked | L | T17.29 | done locally on Windows: a Screaming Brain village (floors, walls, doorways) with walls along its edge and a house of pieces, a *Lords Of Pain* isometric action RPG with its own hero and enemies, and a farm each of SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset*, each passing its smoke run and looked at in a picture; CuteSCKR's pack marked as AI-generated gives its farm the README section *AI-generated content* and the same farm unmarked has none; the farms take their player from SakPix's villagers (a second pack), and the audit overrides made as a user would are in the notes (the slime of *Lords Of Pain* set aside: an arrow flies over it); paths and roads of Screaming Brain are overlays that need review, thick walls and corners stay unread (the notes) |
 | T17.31 | Autotiling: terrains read from real sheets and maps painted with them, from above and on diamonds | L | T17.30 | done locally on Windows: terrain blocks are read inside sheets in every layout of the card and pieces on diamonds by their edges and names; maps are painted with Godot's terrains and the variants chosen by the seed; *Tiny Farm*, *Farm RPG*, *Modern Farm*, CuteSCKR's and SakPix's farms, the samples, a *Medieval Town* village, a Screaming Brain village with its paths and a race on *Vector Roads* generated, played by their smoke runs and looked at; *Medieval Town*, SakPix's and CuteSCKR's packs have no terrain with edges (their grounds vary, nothing more), cliffs, walls and a cave's rock are not painted with terrains, and nobody played by hand (the notes) |
+| T17.32 | Real side-view packs: numbered tile sheets, terrain pieces by name, characters as frames in folders, background layers, beat-'em-up characters | L | T17.31 | open |
 
 ---
 
@@ -1335,6 +1336,84 @@ and cave rock as flat shapes, and isometric paths and roads of Screaming Brain l
 * Synthetic packs with a terrain block inside a mixed sheet in each layout, and an isometric
   terrain, hold it in the tests; the share of real sheets whose terrains are read is measured
   before and after and written in the notes.
+
+## T17.32 — Real side-view packs
+
+**Depends on:** T17.31 (terrains), T17.29 and T17.30 (forms, facings, object sheets)
+**Files:** `rpggen/core/adapters/` (the side-view and sequence readers, `naming.py`,
+`pack_forms.py`, `facings.py`), `rpggen/core/terrain/`, `rpggen/core/classifier.py`,
+`rpggen/core/catalog.py`, `rpggen/core/mapping.py`, the side-view recipes (rooms of the
+metroidvania, stages of run and gun), `tools/make_synthetic_packs.py`, `tests/`
+
+Added 2026-10-15. The side-view kinds (metroidvania, run and gun) were checked on synthetic
+packs, the project's side-view sample and two real packs (T16.21, still open). On 2026-10-15
+the analyzer was run on 63 real side-view packs on the owner's drives (read where they lie,
+nothing copied into the repository): 29 Kenney platformer packs (CC0), four of ansimuz's
+*Legacy Collection* (*Gothicvania*, *Warped*, *Misc*, *Explosions and Magic*), pozak's 20
+folders (eight platformer stage packs, beat-'em-up characters, a jump kit) and ten folders of
+the *Platformer & Beat 'Em Up Pack* (the licences of pozak's and that pack are the owner's to
+confirm). Of about 13,000 pictures, fewer than 1 % were read with confidence.
+
+**What they showed**
+* **Numbered tile sheets are not given roles.** Kenney's pixel packs (*Pixel Platformer* and its
+  three expansions, *1-Bit Platformer*, *Pico-8 Platformer*, *Pixel Line Platformer*,
+  *Platformer Assets Pixel*, *Pixel Platformer Blocks*) ship a tile map and the same tiles as
+  `tile_0001.png` files: the single files are rightly set aside as copies (T17.29), but the
+  sheet's tiles get no role (ground, platform, ladder, spikes, coin, door), and the characters'
+  sheet (24 px) is read as tiles.
+* **Terrain pieces named by their place are single sprites.** Kenney's vector platformer packs
+  (*Platformer Assets Base*, *Candy*, *Ice*, *Tile Extensions*, the *Platformer Pack*
+  *Industrial*/*Medieval*/*Nautical*/*Remastered*) name each piece by where it goes
+  (`grassLeft`, `grassMid`, `grassRight`, `grassCliffLeft`, `castleHillRight2`,
+  `grassLedgeRight`): 172 of *Base*'s pictures are single GROUND sprites, no tile set is made,
+  and a sign or a ledge is ground.
+* **Characters as frames in folders.** ansimuz's and pozak's characters are folders of numbered
+  frames per action (`Hell-Hound-Files/Sprites/Idle/frame5.png`), and often the same as strips
+  (`Spritesheets/death-walk.png`) and previews (`Previews/attack.gif`). Each frame becomes an
+  NPC of its own (293 in *Gothicvania*), the strips are set aside instead of the frames, and
+  the animations' names are lost (`ADAPT-005`: "10 animations were found in the numbered
+  frames ...; their names are not known") although the folders name them.
+* **Beat-'em-up characters**: *Street Brawler Bruiser* is 312 PLAYER pictures, *Rebel* 318
+  NPC objects: one character's frames, read one by one.
+* **Stage packs**: pozak's platformer packs (*Burning Village Japan*, *Dark Castle Interior*,
+  *Mystic Bamboo Forest*, ...) are layered backgrounds, a tile sheet and props; the background
+  layers are read as BACKGROUND or as single sprites without their order, and *Dark Castle
+  Interior*'s props become 200 NPC objects.
+* **Tile sizes** of 8, 12, 24, 48, 64 and 128 px are made beside the size a pack is drawn in
+  (*Gothicvania*: six sizes).
+* **Licences**: *New Platformer Pack* (Kenney) has no licence found; ansimuz's `license.txt`
+  sits one folder above the packs; pozak's packs have none.
+
+**Spec**
+* **Roles of a numbered tile sheet** come from the pictures where nothing names them: a tile
+  that is solid at its top and repeats beside itself is ground or a platform; a thin one is a
+  one-way platform; a ladder, spikes, water, a coin, a door, a flag and a key are told by their
+  shape and colour where they can be with confidence, and stay unread with their reason where
+  they cannot. A character sheet of a pack (its own folder, a size of its own) is characters.
+* **Side-view terrain by name**: pieces named `Left`/`Mid`/`Right`/`Center`, `Cliff`, `Hill`,
+  `Ledge`, `Half`, `Corner` and the like are a side-view terrain (T17.31): the surface's top,
+  its sides, its inside and its slopes, and the rooms and stages are painted with it. A sign,
+  a door or a ledge decoration is not ground.
+* **Characters as frames in folders**: a folder of a character whose subfolders or file names
+  name actions (`Idle`, `Walk`, `Attack`, `Hurt`, `Death`, `Jump`) is one character with those
+  animations, named; where a strip and frames hold the same animation, one is used and the
+  other set aside; previews are unused. Beat-'em-up characters are read the same way.
+* **Stage packs**: background layers are read as a parallax set with their order (by number,
+  by name — sky, far, mid, near — or by how much of each is transparent), and a stage or room
+  uses them behind its tiles; props are objects, never NPCs.
+* **Sizes**: no tile set in a size a pack is not drawn in (T17.29's rule, applied to these).
+* **Licences**: a licence file one folder above the pack is found when the pack is analysed
+  alone; packs without one can be given one by hand (T17.30).
+
+**Done when**
+* A metroidvania from *Gothicvania* (its tiles, its heroine and its enemies), a run and gun from
+  *Warped* or a pozak stage pack with its player, and a platformer room from Kenney's *Pixel
+  Platformer* and from *Platformer Pack Remastered* are generated on the owner's machine, pass
+  their smoke runs and are looked at in pictures, before and after.
+* The share of the 63 packs' pictures read with confidence is measured before and after and
+  written in the notes; synthetic packs in each shape (a numbered sheet with a character sheet,
+  terrain pieces named by place, a character as frames in action folders with a strip and
+  previews beside, a layered background) hold it in the tests.
 
 ---
 
