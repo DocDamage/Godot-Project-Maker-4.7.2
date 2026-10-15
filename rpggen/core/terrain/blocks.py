@@ -63,6 +63,7 @@ PLAIN_COLOUR = 0.07  # two plain tiles are of one surface within this mean colou
 # A tile of one flat colour has no variants: two flat tiles of near colours laid at random are a
 # checkerboard, not a ground that varies.
 PLAIN_MIN_SPREAD = 0.03
+PLAIN_SEAM_RATIO = 3.0
 MAX_PLAIN_CELLS = 256
 NEAR = 4  # cells round a 3x3 block where its inner corners are looked for
 CORNER_KEYS = (
@@ -75,6 +76,7 @@ SIDE_KEYS = (("top_side", 1), ("right_side", 4), ("bottom_side", 16), ("left_sid
 
 RPG13 = "rpg13_3x3"
 MINIMAL9 = "minimal9_3x3"
+RPG2X3 = "rpgmaker_2x3"
 STRIPS = "strips"
 SIDES16_DRAWN = "sides16_drawn_4x4"
 PLAIN = "plain"
@@ -86,6 +88,7 @@ LAYOUTS = (
     SIDES16_DRAWN,
     RPG13,
     MINIMAL9,
+    RPG2X3,
     STRIPS,
     PLAIN,
 )
@@ -118,6 +121,10 @@ class Block:
     surface: str = "other"
     shape: str = "area"  # area | any | path | plain
     variants: list[tuple[int, int]] = field(default_factory=list)
+    # an RPG Maker block of 2 x 3 cells: the cell of its top left corner (its 47 tiles are
+    # composed into an atlas of their own, ``rpgmaker_a2``)
+    a2: tuple[int, int] | None = None
+    picture: Any = None  # the six cells of such a block (a PIL image), to compose them
 
     @property
     def origin(self) -> tuple[int, int]:
@@ -204,6 +211,14 @@ class _Sheet:
 
     def self_tiles(self, c: tuple[int, int]) -> bool:
         return self.h_fits(c, c) and self.v_fits(c, c)
+
+    def tiles_closely(self, c: tuple[int, int]) -> bool:
+        """Laid beside itself a plain tile's seams are as smooth as its own neighbouring pixels
+        (within PLAIN_SEAM_RATIO; the measure of the plain ground of a farm): a gradient that
+        looks plain is no ground to lay everywhere."""
+        h = self.h_diff(c, c) <= PLAIN_SEAM_RATIO * max(float(self.grain_h[c[1], c[0]]), 1.0)
+        v = self.v_diff(c, c) <= PLAIN_SEAM_RATIO * max(float(self.grain_v[c[1], c[0]]), 1.0)
+        return h and v
 
     def even_to_its_edge(self, c: tuple[int, int]) -> bool:
         """True when a cell's border is of the colour of its inside: the middle of a terrain,
@@ -371,6 +386,7 @@ def find(rgba: np.ndarray, cw: int, ch: int, words: set[str] | None = None) -> l
     found: list[Block] = []
     found += _blob_windows(sheet)
     found += _square_windows(sheet)
+    found += _blocks2x3(sheet)
     found += _blocks3(sheet)
     found += _strips(sheet)
     for b in found:
@@ -378,7 +394,7 @@ def find(rgba: np.ndarray, cw: int, ch: int, words: set[str] | None = None) -> l
             b.variants = _variants(sheet, b.centre)
     found += _plain_groups(sheet)
     for b in found:
-        ref = b.centre or b.cells[0][0]
+        ref = b.centre or ((b.a2[0] + 1, b.a2[1]) if b.a2 else b.cells[0][0])
         b.surface = surface_of(sheet.mean_colour(ref), words)
     return found
 
@@ -604,6 +620,98 @@ def _square_windows(sheet: _Sheet) -> list[Block]:
                 found.shape = "any"
             _take(sheet, [(c, 0) for c in cells])
             out.append(found)
+    return out
+
+
+def _region_colour(cells: list[np.ndarray]) -> np.ndarray:
+    painted = [c[..., :3][c[..., 3] > 0] for c in cells]
+    joined = (
+        np.concatenate([p for p in painted if len(p)]) if any(len(p) for p in painted) else None
+    )
+    return np.zeros(3) if joined is None else np.asarray(joined.mean(axis=0) / 255.0)
+
+
+def _edged(
+    sheet: _Sheet, c: tuple[int, int], middle: np.ndarray, *strips: tuple[slice, slice]
+) -> bool:
+    """True when every strip of a cell has another colour than the terrain's middle."""
+    pixels = sheet.cells[c[1], c[0]]
+    return all(
+        float(np.abs(_region_colour([pixels[s]]) - middle).mean()) >= PLAIN_COLOUR for s in strips
+    )
+
+
+def _blocks2x3(sheet: _Sheet) -> list[Block]:
+    """Blocks of RPG Maker's 2 x 3 layout (``rpgmaker_2x3``) inside a sheet: a cell that shows
+    the terrain as an island (or nothing), the cell of its inner corners beside it, and under
+    them a 2 x 2 patch of the terrain with its whole edge round it. The 47 tiles are composed
+    of the quarters of the six cells (``rpgmaker_a2``), as for a sheet that is all A2."""
+    out: list[Block] = []
+    if sheet.cw != sheet.ch or sheet.cw % 2:
+        return out
+    q = sheet.cw // 2
+    for y0 in range(sheet.rows - 2):
+        for x0 in range(sheet.cols - 1):
+            if not _free(sheet, x0, y0, 2, 3):
+                continue
+            tl, tr = (x0, y0 + 1), (x0 + 1, y0 + 1)
+            bl, br = (x0, y0 + 2), (x0 + 1, y0 + 2)
+            corner = (x0 + 1, y0)
+            if not all(sheet.drawn(c) for c in (tl, tr, bl, br, corner)):
+                continue
+            if len({sheet.digest[c[1]][c[0]] for c in (tl, tr, bl, br, corner)}) < 5:
+                continue
+            seams = (
+                sheet.h_fits(tl, tr),
+                sheet.h_fits(bl, br),
+                sheet.v_fits(tl, bl),
+                sheet.v_fits(tr, br),
+            )
+            if not all(seams):
+                continue
+            # its middle (the quarters at the middle of the patch) and its edge differ
+            cell = sheet.cells
+            middle = _region_colour(
+                [
+                    cell[tl[1], tl[0]][q:, q:],
+                    cell[tr[1], tr[0]][q:, :q],
+                    cell[bl[1], bl[0]][:q, q:],
+                    cell[br[1], br[0]][:q, :q],
+                ]
+            )
+            rim = _region_colour(
+                [cell[tl[1], tl[0]][:2], cell[bl[1], bl[0]][-2:], cell[tl[1], tl[0]][:, :2]]
+            )
+            if float(np.abs(middle - rim).mean()) < PLAIN_COLOUR:
+                continue
+
+            # every cell of the patch has the edge on its two outer sides (a part of a 3x3
+            # block has it on one side or none)
+            top, bottom = (slice(0, 2), slice(None)), (slice(-2, None), slice(None))
+            left, right = (slice(None), slice(0, 2)), (slice(None), slice(-2, None))
+            if not (
+                _edged(sheet, tl, middle, top, left)
+                and _edged(sheet, tr, middle, top, right)
+                and _edged(sheet, bl, middle, bottom, left)
+                and _edged(sheet, br, middle, bottom, right)
+            ):
+                continue
+            # the cell of the inner corners is the middle at its middle, the edge at its corners
+            c = cell[corner[1], corner[0]]
+            at_middle = _region_colour([c[q // 2 : q + q // 2, q // 2 : q + q // 2]])
+            if float(np.abs(at_middle - middle).mean()) > PLAIN_COLOUR:
+                continue
+            block = Block(
+                RPG2X3,
+                "corners_and_sides",
+                [((x0 + dx, y0 + dy), 0) for dy in range(3) for dx in range(2)],
+                None,
+            )
+            block.shape = "any"
+            block.a2 = (x0, y0)
+            block.over = _over(sheet, [tl, br])
+            _take(sheet, block.cells)
+            out.append(block)
     return out
 
 
@@ -851,7 +959,7 @@ def _single(
 def _is_plain(sheet: _Sheet, c: tuple[int, int]) -> bool:
     return (
         bool(sheet.opaque[c[1], c[0]] >= 0.98)
-        and sheet.self_tiles(c)
+        and sheet.tiles_closely(c)
         and PLAIN_MIN_SPREAD <= sheet.spread(c) <= PLAIN_SPREAD
     )
 
@@ -877,7 +985,7 @@ def _variants(sheet: _Sheet, centre: tuple[int, int]) -> list[tuple[int, int]]:
                 continue
             if float(np.abs(sheet.mean_colour(k) - colour).mean()) > PLAIN_COLOUR:
                 continue
-            if not sheet.self_tiles(k) or not _tile_together(sheet, centre, k):
+            if not sheet.tiles_closely(k) or not _tile_together(sheet, centre, k):
                 continue
             out.append(k)
     for k in out:

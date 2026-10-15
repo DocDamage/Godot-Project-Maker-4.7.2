@@ -193,7 +193,10 @@ static func inputs(catalog: CatalogReader) -> Array:
 		for id: Variant in ids:
 			var asset := catalog.asset(JsonUtil.to_str(id))
 			var eff := CatalogReader.effective(asset)
-			out.append([id, asset.get("sha256", ""), eff.get("origin"), eff.get("collision"), eff.get("role"), eff.get("tags", [])])
+			var row := [id, asset.get("sha256", ""), eff.get("origin"), eff.get("collision"), eff.get("role"), eff.get("tags", [])]
+			if eff.has("iso_terrain"):  # only a piece of a terrain has it (T17.31)
+				row.append(eff["iso_terrain"])
+			out.append(row)
 	return out
 
 ## The tiles of the definition that lie in the source `source_id`: [{id, coords, at}], by id.

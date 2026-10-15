@@ -338,7 +338,7 @@ static func soil_terrain(ctx: BuildContext, tag: String) -> Dictionary:
 	if MapGeo.is_isometric(ctx):
 		return {}
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
-	var surfaces: Array[String] = ["soil"] if tag == "soil" else ["soil_wet"]
+	var surfaces: Array = ["soil" if tag == "soil" else "soil_wet"]
 	var found := TerrainPaint.find(ctx, def, null, surfaces, TerrainPaint.AREA_SHAPES)
 	if found.is_empty():
 		return {}

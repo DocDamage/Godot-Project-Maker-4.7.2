@@ -43,6 +43,8 @@ var tile_set: TileSet = null
 ## What the painting had to settle for, for a recipe to say once a map: the kind of piece
 ## ("ROAD") -> how many cells were laid with the nearest piece instead of the right one.
 var notes: Dictionary = {}
+## What a terrain of the tile set painted since the last notes (T17.31): the kind -> the set.
+var painted: Dictionary = {}
 
 var _ctx: BuildContext
 
@@ -329,7 +331,8 @@ func paint_joined(layer: TileMapLayer, cells: Array[Vector2i], what: String, pla
 	# a terrain of the tile set for roads or water paints them, joined where they meet (T17.31)
 	var found := terrain_for(what)
 	if not found.is_empty() and not cells.is_empty():
-		RpgTerrain.paint_area(layer, cells, JsonUtil.to_int(found["set"]), JsonUtil.to_int(found["terrain"]), seed_for(what.to_lower()))
+		RpgTerrain.paint_area(terrain_layer(layer, found), cells, JsonUtil.to_int(found["set"]), JsonUtil.to_int(found["terrain"]), seed_for(what.to_lower()))
+		_painted(what, found)
 		return
 	if not isometric:
 		if plain.is_empty():
@@ -372,7 +375,8 @@ func paint_sides(layer: TileMapLayer, sides: Dictionary, what: String, plain: Di
 		for key: Variant in sides:
 			path.append(key)
 		path.append(path[0])
-		RpgTerrain.paint_path(layer, path, JsonUtil.to_int(found["set"]), JsonUtil.to_int(found["terrain"]), seed_for(what.to_lower()))
+		RpgTerrain.paint_path(terrain_layer(layer, found), path, JsonUtil.to_int(found["set"]), JsonUtil.to_int(found["terrain"]), seed_for(what.to_lower()))
+		_painted(what, found)
 		return
 	var has_pieces := isometric and not iso.laid_pieces(what).is_empty()
 	for key: Variant in sides:
@@ -432,7 +436,11 @@ func terrain_for(what: String, avoid: String = "") -> Dictionary:
 		return {}  # on diamonds patches are other flat tiles, and the field has its own diamonds
 	match what:
 		"ROAD":
-			var road := TerrainPaint.find(_ctx, def, tile_set, ["path", "road"], TerrainPaint.PATH_SHAPES, ["ROAD"])
+			# a terrain that joins at its sides first: one that fills its corners too is a lot,
+			# a square, more than a road
+			var road := TerrainPaint.find(_ctx, def, tile_set, ["path", "road"], ["path"], ["ROAD"])
+			if road.is_empty():
+				road = TerrainPaint.find(_ctx, def, tile_set, ["path", "road"], ["any"], ["ROAD"])
 			if road.is_empty():
 				road = TerrainPaint.find(_ctx, def, tile_set, ["dirt", "sand", "stone"], ["any"], ["ROAD"])
 			return road
@@ -445,6 +453,15 @@ func terrain_for(what: String, avoid: String = "") -> Dictionary:
 		"SAND":
 			return TerrainPaint.find(_ctx, def, tile_set, ["sand"], TerrainPaint.AREA_SHAPES, ["GROUND"])
 	return {}
+
+## The layer a terrain is painted on instead of `layer`: on diamonds a terrain drawn over nothing
+## (a path laid on the ground, Screaming Brain's) goes on the map's `GroundDetails` over the
+## `Ground` it was asked for, which keeps its ground under it; everything else on `layer`.
+func terrain_layer(layer: TileMapLayer, found: Dictionary) -> TileMapLayer:
+	if not isometric or JsonUtil.to_str(found.get("over", "")) != "nothing" or String(layer.name) != "Ground":
+		return layer
+	var details := layer.get_parent().get_node_or_null("GroundDetails") as TileMapLayer if layer.get_parent() != null else null
+	return details if details != null else layer
 
 ## Fills `rect` with the ground `base` ({source_id, coords}): seen from above, when the tile is
 ## the middle of a terrain with plain variants, each cell takes one of them by the seed of
@@ -484,6 +501,8 @@ func paint_patches(layer: TileMapLayer, patches: Array, others: Array, base: Dic
 	for item: Dictionary in patches:
 		var patch_rect: Rect2i = item["rect"]
 		RpgTerrain.paint_area(layer, RpgTerrain.rect_cells(patch_rect), JsonUtil.to_int(found["set"]), JsonUtil.to_int(found["terrain"]), seed_for(label))
+	if not patches.is_empty():
+		_painted("PATCH", found)
 
 ## Up to `count` other tiles to vary the ground with, as `other_tiles`, without the pieces of a
 ## terrain (its edges and corners: a patch of them is no ground, T17.31). For a tile set without
@@ -511,7 +530,18 @@ func take_notes() -> Array[String]:
 	for kind: String in kinds:
 		out.append("%s: %d cells were laid with the nearest piece (the packs have no piece that joins on exactly their sides)" % [kind.to_lower(), JsonUtil.to_int(notes[kind])])
 	notes.clear()
+	var with_terrain := painted.keys()
+	with_terrain.sort()
+	for kind: String in with_terrain:
+		out.append("%s: painted with the terrain %s of the tile set" % [kind.to_lower(), JsonUtil.to_str(painted[kind])])
+	painted.clear()
 	return out
+
+## Remembers which terrain painted `what`, for `take_notes` (T17.31).
+func _painted(what: String, found: Dictionary) -> void:
+	var all := TerrainPaint.specs(def)
+	var index := JsonUtil.to_int(found.get("set", -1))
+	painted[what] = JsonUtil.to_str(all[index].get("name", "")) if index >= 0 and index < all.size() else str(index)
 
 ## The cells of the border of a map of `size` cells, without those of `skip`, row by row.
 static func border_cells(size: Vector2i, skip: Array = []) -> Array[Vector2i]:

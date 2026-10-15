@@ -1974,6 +1974,13 @@ def assemble(
     terrain.apply_tiled_wang(catalog, adapter_tilesets)
     terrain_result = terrain.generate(catalog, pack_roots, work_dir, issues, is_cancelled)
     generated.update(terrain_result.generated)
+    # the isometric pieces that join along the sides of a diamond (T17.31)
+    terrain.iso.read(
+        catalog,
+        pack_roots,
+        generated,
+        lambda job, items: terrain._in_parallel(job, items, is_cancelled),
+    )
     present_ids.update(a.id for a in catalog.assets)
 
     if previous is not None:

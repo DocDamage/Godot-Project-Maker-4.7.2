@@ -218,7 +218,7 @@ static func ground_middle(def: Dictionary, tile_set: TileSet, tile: Dictionary, 
 	if asset_id == "":
 		return tile
 	# the A2 block's composed terrains are the assets generated.<the sheet's id as a slug>_b<n>
-	var prefix := "generated." + asset_id.replace(".", "_").replace("#", "_") + "_b"
+	var prefix := "generated." + asset_id.replace(".", "_").replace("#", "_") + "_"
 	for spec in specs(def):
 		if JsonUtil.to_str(spec.get("sheet", "")).begins_with(prefix):
 			var middle := middle_of(tile_set, JsonUtil.to_int(spec["index"]))
