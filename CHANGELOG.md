@@ -133,6 +133,22 @@ does not ask for the isometric view is built as it was.
   variants are chosen by the project's seed (Godot's own choice changes from run to run). A
   map that exists is never painted again and the run says so (TILE-015, new); a project
   without terrains is built as it was.
+* **Real side-view packs** (T17.32), for the metroidvania and the run and gun. A tile sheet
+  whose tiles nothing names is read from its pictures: the ground as a side-view terrain (its
+  surface on top, its ends, its inside, the faces under it), planks to jump through, ladders,
+  spikes, water and coins; the tiles left in doubt are counted (TILE-016, new). Ground pieces
+  named by their place (`grassLeft`, `grassMid`, `grassCenter`, `grassHalf_left`,
+  `grassCliff_right`, `grassHill_left`) are put together into a sheet a surface. Rooms and
+  stages are painted with that terrain (the terrain shape `side`). A character drawn as a
+  folder of frames an action (`Sprites/Idle/frame1.png`), as files named by actions
+  (`alienBeige_walk1.png`) or as a sheet whose name gives its frame size (`Character
+  160x160.png`) is one character; its strips, previews and Aseprite files are set aside. A
+  character sheet beside the tiles is cut into characters. Background layers in a folder are
+  one parallax set, ordered far to near, and a room uses the set nearest its ground. Props
+  are no characters; a sign, a door or a ledge's decoration is no ground; a pack has one tile
+  size; a licence file one folder above a pack added on its own is found; a pack that calls
+  itself a platformer or a beat 'em up is seen from the side. Done on *Gothicvania*, *Warped*,
+  Kenney's *Pixel Platformer* and *Platformer Pack Remastered*.
 * **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
   picture rises above it, turns by number or by compass letter as one tile (never as frames of
   an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a

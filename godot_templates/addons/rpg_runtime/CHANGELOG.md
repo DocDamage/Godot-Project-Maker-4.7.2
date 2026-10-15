@@ -691,6 +691,20 @@ in a farm that has them.
 * `MapGeo.EDGE_VERSION` is 2: the maps of an isometric project with wall segments are built
   again; every other project's hash is what it was.
 
+**The ground of a side-view room as its terrain (T17.32).** Nothing of the runtime changes;
+`RpgTerrain` (T17.31) paints it.
+
+* `SideKit.find` gives the kit a `terrain` (`{set, terrain}`): the terrain set of the shape
+  `side` read from the ground's sheet (`SideKit.side_terrain`; `TerrainPaint.SIDE_SHAPE`, which
+  no map seen from above takes). `RoomsRecipe.paint` paints the `#` cells of a room with it
+  (`RpgTerrain.paint_area`, seed `RoomsRecipe.TERRAIN_SEED`) and `StageRecipe.paint_floor` a
+  stage's floor; a kit without one paints `top` and `fill` as before. `RECIPE_VERSION` of the
+  rooms recipe is 2 and of the stage recipe 4: a room or a stage that exists is never built
+  again, so only new ones are painted so.
+* `Parallax.layers` takes one parallax set (`parallax_set:<folder>`): of several, the one
+  whose folder shares the most with the ground's sheet (in its pack first, else the first by
+  name); layers without a set are taken as before.
+
 ## 1.4.0
 
 (There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)

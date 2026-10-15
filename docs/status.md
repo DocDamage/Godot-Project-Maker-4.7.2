@@ -280,6 +280,21 @@ should know:
   with terrains (no real pack had them as a sheet of tiles: *Farm RPG*'s rock is one picture);
   a road one cell wide of a terrain that has only a 3 x 3 block is not painted with it; nobody
   played by hand.
+* **Real side-view packs since T17.32**: tile sheets whose tiles nothing names are read from
+  their pictures (the ground as a side-view terrain, planks, ladders, spikes, water, coins;
+  the rest counted as unread, TILE-016), ground pieces named by their place are put together
+  into a terrain, and rooms and stages are painted with it; characters drawn as folders of
+  frames an action, as files named by actions or as a sheet named by its frame size are one
+  character each (their strips, previews and sources set aside); a character sheet beside the
+  tiles is cut into characters; background layers are one parallax set a room uses; props are
+  no characters; one tile size a pack; a licence file one folder above a pack is found. Of the
+  63 packs of the card, 8.4 % of the pictures are read with confidence (0.3 % before), 41.4 %
+  with those set aside with a reason (21.0 %). Done on *Gothicvania* (metroidvania),
+  *Warped* (run and gun), Kenney's *Pixel Platformer* and *Platformer Pack Remastered*, each
+  played by its smoke sequence and looked at in pictures. Short of it: pozak's characters have
+  no animation names (they need review), Kenney's outlined grass caps, ladders on a backdrop,
+  doors and keys are unread, slopes are not built, a 128-px pack needs a larger resolution by
+  hand; nobody played by hand.
 * **Not built.** Dropping onto diamonds with a mouse (the
   editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working
