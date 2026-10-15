@@ -116,6 +116,23 @@ does not ask for the isometric view is built as it was.
   Farm* slopes up to a ridge with hips at its ends; on *Medieval Town*, whose slopes and hips
   cover half a cell, a gable along every row; a roof tile a cell only where a pack has nothing
   better. Screaming Brain's paths and roads are left to T17.31 (terrains).
+* **Autotiling: terrains read from real sheets and maps painted with them** (T17.31). Terrain
+  blocks inside larger sheets are found by matching the edges of their cells: Godot's 47-tile
+  template and the blob in the masks' order anywhere in a sheet, 16-tile corner and edge sets,
+  a block of 3 x 3 with its inner corners wherever they lie near it (or without them), RPG
+  Maker's block of 2 x 3 (composed into its 47 tiles), beds of soil one cell wide; over
+  transparency or over another ground; plain cells that tile with a terrain's middle are its
+  variants, laid less often, and plain tiles of one tone that tile with each other vary a
+  ground. On diamonds, pieces whose surface goes on across some sides of their diamond are a
+  terrain of the isometric tile set, read from the pictures and from the names that give
+  their joins (`roadES`, `waterE`): Kenney's road, river and shore pieces and Screaming Brain's
+  *Pathways* and *Roads*. Maps are painted with Godot's terrains: a ground that varies,
+  patches of another ground with soft edges, roads and paths with their kerbs, ponds and a
+  beach's sea with their shores, a farm's field edged where it meets the grass, whose tilled
+  and watered soil join the soil round them as the farmer hoes, and an isometric track. The
+  variants are chosen by the project's seed (Godot's own choice changes from run to run). A
+  map that exists is never painted again and the run says so (TILE-015, new); a project
+  without terrains is built as it was.
 * **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
   picture rises above it, turns by number or by compass letter as one tile (never as frames of
   an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a
