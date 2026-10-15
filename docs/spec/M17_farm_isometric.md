@@ -1515,13 +1515,27 @@ owner, and a vision model that runs on this machine only.
   staying capped below.
 * **A local vision step, optional and off by default.** For pictures that names and pixels
   cannot decide (a numbered tile that might be a key or a flag, an unnamed animal, a crop
-  without a produce), the analyzer can ask a model running on this machine. The first backend is
-  a local ComfyUI (default `http://127.0.0.1:8188`, set in the wizard's settings) through a
-  captioning or tagging node it has (WD14 Tagger, Florence-2 or JoyCaption; which one is the
-  owner's to install). Pictures are never sent anywhere else; with the setting off nothing is
-  sent at all; with ComfyUI not running or without such a node the step is skipped with a note.
-  A vision answer counts as evidence beside names and pixels, calibrated on the key like any
-  reader, and its answers are cached by the picture's hash.
+  without a produce), the analyzer can ask a model running on this machine. The owner's setup
+  (`F:\DocsImageGenerator`, Image Studio, with ComfyUI at `F:\stuff from desktop\ComfyUI` on
+  `127.0.0.1:8188`) has no captioning or tagging node in ComfyUI (only AnimateDiff), and its
+  ComfyUI models make pictures (Juggernaut XL with the pixel-art and trained LoRAs, Z-Image
+  Turbo); they cannot say what a picture is. It does have a llama.cpp build with multimodal
+  support (`studio\llm\server\llama-server.exe`, with `llama-mtmd-cli`) and the Qwen3.5 9B
+  model Image Studio's prompt writer uses (`studio\llm\Qwen3.5-9B-Q5_K_M.gguf`, served on
+  `127.0.0.1:8189` per job). So the first backend is **llama-server with that model and its
+  vision projector** (an `mmproj` GGUF of the same model, which the owner adds; nothing is
+  downloaded by rpggen), started by rpggen on a port of its own (default 8190, so it never meets
+  Image Studio's writer) and asked through llama-server's OpenAI-style chat endpoint with the
+  picture attached. A ComfyUI tagging node (WD14 Tagger, Florence-2) is a second backend, used
+  if the owner installs one. Pictures never leave the machine; with the setting off nothing is
+  sent at all; without the model or the projector the step is skipped with a note. A vision
+  answer counts as evidence beside names and pixels, calibrated on the key like any reader, and
+  its answers are cached by the picture's hash. The GPU is shared with Image Studio: the step
+  waits while ComfyUI is busy and unloads its model when done.
+* **What Image Studio already knows** is used: its training scripts (`studio	rain\prepare_*.py`)
+  sort SakPix's packs, tall heroes and the side-scroller packs into what they hold, and its
+  `tiles.py` knows the 47-tile Godot terrain; their rules are read for the publisher rules above
+  (nothing is copied from that repository without saying so in the notes).
 
 **Done when**
 * The key covers every real pack of T17.29 to T17.33, spot-checked by the owner.
@@ -1529,8 +1543,8 @@ owner, and a vision model that runs on this machine only.
   after, per pack and per publisher, and written in the notes: the aim is every picture sure and
   99 % or more of the sure ones right; where a pack falls short, the notes say which pictures
   and why.
-* The vision step works against the owner's ComfyUI with a captioning or tagging node, and is
-  shown to change answers only where it is measured to help.
+* The vision step works against the owner's llama-server with Qwen3.5 9B and its projector,
+  and is shown to change answers only where it is measured to help.
 
 ---
 
