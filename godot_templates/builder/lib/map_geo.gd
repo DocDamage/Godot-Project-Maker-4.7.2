@@ -469,7 +469,8 @@ func terrain_layer(layer: TileMapLayer, found: Dictionary) -> TileMapLayer:
 func fill_ground(layer: TileMapLayer, rect: Rect2i, base: Dictionary, label: String) -> void:
 	if base.is_empty():
 		return
-	if isometric or tile_set == null or RpgTerrain.variants_of(tile_set, JsonUtil.to_int(base["source_id"]), base["coords"]).size() < 2:
+	var base_coords: Vector2i = base["coords"]
+	if isometric or tile_set == null or RpgTerrain.variants_of(tile_set, JsonUtil.to_int(base["source_id"]), base_coords).size() < 2:
 		MapUtil.fill(layer, rect, base)
 		return
 	RpgTerrain.fill_varied(layer, RpgTerrain.rect_cells(rect), base, seed_for(label))
@@ -513,7 +514,8 @@ func plain_others(base: Dictionary, count: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for tile in other_tiles(base, 64):
 		var src := tile_set.get_source(JsonUtil.to_int(tile["source_id"])) as TileSetAtlasSource
-		var td := src.get_tile_data(tile["coords"], 0) if src != null else null
+		var tile_coords: Vector2i = tile["coords"]
+		var td := src.get_tile_data(tile_coords, 0) if src != null else null
 		if td != null and td.terrain_set >= 0:
 			continue
 		out.append(tile)

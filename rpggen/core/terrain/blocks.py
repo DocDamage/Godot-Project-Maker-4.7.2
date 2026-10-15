@@ -259,6 +259,17 @@ class _Sheet:
         """The mean colour of a cell's painted pixels (0..1)."""
         return np.asarray(self.means[c[1], c[0]])
 
+    def middle_colour(self, c: tuple[int, int]) -> np.ndarray:
+        """The mean colour of the painted pixels of a cell's inner half (what its surface is,
+        without the edge drawn round it)."""
+        cell = self.cells[c[1], c[0]]
+        h, w = cell.shape[:2]
+        inside = cell[h // 4 : h - h // 4, w // 4 : w - w // 4].reshape(-1, 4)
+        painted = inside[inside[:, 3] > 0]
+        if not len(painted):
+            return self.mean_colour(c)
+        return np.asarray(painted[:, :3].mean(axis=0) / 255.0, dtype=np.float64)
+
     def spread(self, c: tuple[int, int]) -> float:
         """The sum of the standard deviations of a cell's colour channels (0..1)."""
         return float(self.spreads[c[1], c[0]])
@@ -395,7 +406,7 @@ def find(rgba: np.ndarray, cw: int, ch: int, words: set[str] | None = None) -> l
     found += _plain_groups(sheet)
     for b in found:
         ref = b.centre or ((b.a2[0] + 1, b.a2[1]) if b.a2 else b.cells[0][0])
-        b.surface = surface_of(sheet.mean_colour(ref), words)
+        b.surface = surface_of(sheet.middle_colour(ref), words)
     return found
 
 
@@ -576,7 +587,8 @@ def _square_windows(sheet: _Sheet) -> list[Block]:
                 continue
             cells = [(x0 + i % 4, y0 + i // 4) for i in range(16)]
             drawn = [sheet.drawn(c) for c in cells]
-            if sum(drawn) < 15 or len({sheet.digest[c[1]][c[0]] for c in cells}) < 15:
+            painted = [not sheet.empty(c) for c in cells]
+            if sum(painted) < 15 or len({sheet.digest[c[1]][c[0]] for c in cells}) < 15:
                 continue
             found: Block | None = None
             corners = [_corner_bits(sheet, c) for c in cells]
@@ -614,7 +626,7 @@ def _square_windows(sheet: _Sheet) -> list[Block]:
                 continue
             full = 15 if found.mode == "corners" else 1 | 4 | 16 | 64
             found.centre = next((c for c, what in found.cells if what == full), None)
-            found.cells = [(c, w) for c, w in found.cells if sheet.drawn(c) or w]
+            found.cells = [(c, w) for c, w in found.cells if not sheet.empty(c) or w]
             found.over = _over(sheet, [c for c, _w in found.cells])
             if found.mode == "corners":
                 found.shape = "any"
@@ -669,16 +681,21 @@ def _blocks2x3(sheet: _Sheet) -> list[Block]:
             )
             if not all(seams):
                 continue
-            # its middle (the quarters at the middle of the patch) and its edge differ
+            # its middle (the quarters at the middle of the patch) is one surface, painted all
+            # over, and its edge differs
             cell = sheet.cells
-            middle = _region_colour(
-                [
-                    cell[tl[1], tl[0]][q:, q:],
-                    cell[tr[1], tr[0]][q:, :q],
-                    cell[bl[1], bl[0]][:q, q:],
-                    cell[br[1], br[0]][:q, :q],
-                ]
-            )
+            quarters = [
+                cell[tl[1], tl[0]][q:, q:],
+                cell[tr[1], tr[0]][q:, :q],
+                cell[bl[1], bl[0]][:q, q:],
+                cell[br[1], br[0]][:q, :q],
+            ]
+            inside = np.concatenate([part.reshape(-1, 4) for part in quarters])
+            if (inside[:, 3] >= OPAQUE_ALPHA).mean() < 0.95:
+                continue
+            if float((inside[:, :3] / 255.0).std(axis=0).sum()) > PLAIN_SPREAD:
+                continue
+            middle = _region_colour(quarters)
             rim = _region_colour(
                 [cell[tl[1], tl[0]][:2], cell[bl[1], bl[0]][-2:], cell[tl[1], tl[0]][:, :2]]
             )

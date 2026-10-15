@@ -92,7 +92,8 @@ static func fill_varied(layer: TileMapLayer, cells: Array[Vector2i], tile: Dicti
 			layer.set_cell(cell, source, coords, 0)
 			continue
 		var chosen: Array = pick(choices, cell, map_seed)
-		layer.set_cell(cell, RpgUtil.to_int(chosen[0]), chosen[1], 0)
+		var chosen_coords: Vector2i = chosen[1]
+		layer.set_cell(cell, RpgUtil.to_int(chosen[0]), chosen_coords, 0)
 
 ## The tiles that are `coords` of `source` once more: the same terrain with the same peering
 ## bits ([[source, coords, probability], ...]); [] for a tile without a terrain.

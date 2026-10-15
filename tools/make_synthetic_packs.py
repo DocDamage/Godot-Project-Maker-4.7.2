@@ -3272,6 +3272,314 @@ def make_farm_cave(out: Path) -> None:
     _expected(out, "farm_cave", expected)
 
 
+# ----------------------------------------------------------------------------- terrain blocks (T17.31)
+
+TB_GRASS: Color = (88, 160, 72, 255)
+TB_DIRT: Color = (150, 104, 62, 255)
+TB_SAND: Color = (226, 198, 120, 255)
+TB_WATER: Color = (52, 120, 210, 255)
+TB_STONE: Color = (140, 140, 146, 255)
+TB_PATH: Color = (180, 140, 90, 255)
+TB_SNOW: Color = (226, 232, 240, 255)
+# where each block lies in the sheet of 32 x 24 cells of 16 px (column, row of its first cell)
+TB_AT = {
+    "blob47_godot_12x4": (1, 1),
+    "blob47_12x4": (14, 1),
+    "corners16_4x4": (1, 6),
+    "corners16_drawn_4x4": (6, 6),
+    "sides16_drawn_4x4": (11, 6),
+    "rpg13_3x3": (16, 6),
+    "minimal9_3x3": (25, 6),
+    "rpgmaker_2x3": (29, 6),
+    "strips": (1, 12),
+}
+TB_INNER_AT = (20, 6)  # the four inner corners of the 3x3 block, a 2 x 2 beside it
+TB_VARIANTS_AT = [(16, 10), (18, 10)]  # the plain variants of that block's middle
+
+
+def _tb_texture(colour: Color, lx: int, ly: int) -> Color:
+    """A colour with a little grain, the same in every cell (it tiles with itself)."""
+    if (lx * 3 + ly * 5) % 7 == 0:
+        return (max(0, colour[0] - 18), max(0, colour[1] - 18), max(0, colour[2] - 18), 255)
+    return colour
+
+
+def _tb_cell(
+    img: Image.Image, col: int, row: int, paint: Callable[[int, int], Color | None]
+) -> None:
+    for ly in range(16):
+        for lx in range(16):
+            found = paint(lx, ly)
+            if found is not None:
+                img.putpixel((col * 16 + lx, row * 16 + ly), found)
+
+
+def _tb_blob(img: Image.Image, col: int, row: int, mask: int, a: Color, b: Color | None) -> None:
+    """A tile of a 47-tile blob: the terrain `a`, the ground `b` (None: nothing) in a band of
+    four px along every side the mask leaves out and in the corner it leaves out."""
+    n, ne, e, se, s, sw, w, nw = (bool(mask & bit) for bit in (1, 2, 4, 8, 16, 32, 64, 128))
+
+    def paint(lx: int, ly: int) -> Color | None:
+        outside = (
+            (not n and ly < 4)
+            or (not s and ly > 11)
+            or (not w and lx < 4)
+            or (not e and lx > 11)
+            or (n and e and not ne and ly < 4 and lx > 11)
+            or (s and e and not se and ly > 11 and lx > 11)
+            or (s and w and not sw and ly > 11 and lx < 4)
+            or (n and w and not nw and ly < 4 and lx < 4)
+        )
+        return b if outside else _tb_texture(a, lx, ly)
+
+    _tb_cell(img, col, row, paint)
+
+
+def _tb_corners(img: Image.Image, col: int, row: int, bits: int, a: Color, b: Color | None) -> None:
+    """A tile of a 16-tile corner set: each quarter the terrain when its corner's bit is set."""
+
+    def paint(lx: int, ly: int) -> Color | None:
+        bit = (1 if lx < 8 else 2) if ly < 8 else (8 if lx < 8 else 4)
+        return _tb_texture(a, lx, ly) if bits & bit else b
+
+    _tb_cell(img, col, row, paint)
+
+
+def _tb_sides(img: Image.Image, col: int, row: int, sides: int, a: Color) -> None:
+    """A tile of a 16-tile edge set over nothing: a middle and an arm to every side it joins."""
+
+    def paint(lx: int, ly: int) -> Color | None:
+        middle = 5 <= lx <= 10 and 5 <= ly <= 10
+        arm = (
+            (sides & 1 and 5 <= lx <= 10 and ly < 5)
+            or (sides & 4 and 5 <= ly <= 10 and lx > 10)
+            or (sides & 16 and 5 <= lx <= 10 and ly > 10)
+            or (sides & 64 and 5 <= ly <= 10 and lx < 5)
+        )
+        return _tb_texture(a, lx, ly) if middle or arm else None
+
+    _tb_cell(img, col, row, paint)
+
+
+def _terrain_blocks_sheet() -> Image.Image:
+    """A mixed sheet of 32 x 24 cells of 16 px with a terrain block of every layout T17.31 reads,
+    some in another order than their bits, some over grass and some over nothing, a tree and a
+    sign among them, and plain cells of grass (what the rest of the sheet is drawn on)."""
+    from rpggen.core.terrain import blob as blob_layouts
+    from rpggen.core.terrain import rpgmaker_a2
+
+    img = Image.new("RGBA", (512, 384), (0, 0, 0, 0))
+    x0, y0 = TB_AT["blob47_godot_12x4"]
+    for i, mask in enumerate(blob_layouts.GODOT_3X3_MINIMAL):
+        if mask is not None:
+            _tb_blob(img, x0 + i % 12, y0 + i // 12, mask, TB_DIRT, TB_GRASS)
+    x0, y0 = TB_AT["blob47_12x4"]
+    for i, mask in enumerate(rpgmaker_a2.blob_masks()):
+        _tb_blob(img, x0 + i % 12, y0 + i // 12, mask, TB_WATER, TB_SAND)
+    x0, y0 = TB_AT["corners16_4x4"]
+    for bits in range(16):
+        _tb_corners(img, x0 + bits % 4, y0 + bits // 4, bits, TB_STONE, TB_GRASS)
+    x0, y0 = TB_AT["corners16_drawn_4x4"]
+    for place in range(16):  # the 16 tiles in another order: a sheet that says its own
+        bits = (place * 7 + 3) % 16
+        _tb_corners(img, x0 + place % 4, y0 + place // 4, bits, TB_SNOW, None)
+    x0, y0 = TB_AT["sides16_drawn_4x4"]
+    for place in range(16):
+        n = (place * 5 + 2) % 16
+        sides = (
+            (1 if n & 1 else 0) | (4 if n & 2 else 0) | (16 if n & 4 else 0) | (64 if n & 8 else 0)
+        )
+        _tb_sides(img, x0 + place % 4, y0 + place // 4, sides, TB_PATH)
+    # a block of 3 x 3 with its inner corners beside it, and two plain variants of its middle
+    x0, y0 = TB_AT["rpg13_3x3"]
+    masks3 = {
+        (0, 0): 28,
+        (1, 0): 124,
+        (2, 0): 112,
+        (0, 1): 31,
+        (1, 1): 255,
+        (2, 1): 241,
+        (0, 2): 7,
+        (1, 2): 199,
+        (2, 2): 193,
+    }
+    for (dx, dy), mask in masks3.items():
+        _tb_blob(img, x0 + dx, y0 + dy, mask, TB_SAND, TB_GRASS)
+    ix, iy = TB_INNER_AT
+    for (dx, dy), mask in {(0, 0): 127, (1, 0): 253, (0, 1): 223, (1, 1): 247}.items():
+        _tb_blob(img, ix + dx, iy + dy, mask, TB_SAND, TB_GRASS)
+    for vx, vy in TB_VARIANTS_AT:
+        _tb_cell(img, vx, vy, lambda lx, ly: _tb_texture(TB_SAND, (lx + 3) % 16, (ly + 1) % 16))
+    # the minimal set: a 3 x 3 block alone, a terrain over nothing
+    x0, y0 = TB_AT["minimal9_3x3"]
+    for (dx, dy), mask in masks3.items():
+        _tb_blob(img, x0 + dx, y0 + dy, mask, TB_DIRT, None)
+    # RPG Maker's 2 x 3: the terrain as an island, its inner corners, a 2 x 2 patch with its edge
+    x0, y0 = TB_AT["rpgmaker_2x3"]
+    _tb_blob(img, x0, y0, 0, TB_WATER, TB_GRASS)
+    _tb_blob(img, x0 + 1, y0, 255 & ~(2 | 8 | 32 | 128), TB_WATER, TB_GRASS)
+    for (dx, dy), mask in {(0, 1): 28, (1, 1): 112, (0, 2): 7, (1, 2): 193}.items():
+        _tb_blob(img, x0 + dx, y0 + dy, mask, TB_WATER, TB_GRASS)
+    # beds of soil one cell wide (*Tiny Farm*'s): a column, a row and the single bed
+    x0, y0 = TB_AT["strips"]
+    for k, mask in enumerate((16, 17, 1)):
+        _tb_blob(img, x0, y0 + k, mask, TB_DIRT, TB_GRASS)
+    for k, mask in enumerate((4, 68, 64)):
+        _tb_blob(img, x0 + 2 + k, y0, mask, TB_DIRT, TB_GRASS)
+    _tb_blob(img, x0 + 6, y0, 0, TB_DIRT, TB_GRASS)
+    # what else a mixed sheet has: a tree over two cells and a sign
+    d = ImageDraw.Draw(img)
+    d.ellipse([24 * 16 + 2, 16 * 16 + 1, 25 * 16 + 13, 17 * 16 + 4], fill=(40, 120, 50, 255))
+    d.rectangle([24 * 16 + 14, 17 * 16 + 4, 24 * 16 + 17, 17 * 16 + 15], fill=(110, 70, 40, 255))
+    d.rectangle([28 * 16 + 3, 16 * 16 + 3, 28 * 16 + 12, 16 * 16 + 9], fill=(160, 120, 70, 255))
+    d.rectangle([28 * 16 + 7, 16 * 16 + 9, 28 * 16 + 8, 16 * 16 + 15], fill=(110, 70, 40, 255))
+    return img
+
+
+def make_terrain_blocks(out: Path) -> None:
+    """Terrain blocks inside a mixed sheet, one of every layout (T17.31)."""
+    pack = out / "terrain_blocks" / "Terrain Blocks"
+    _write_text(out / "terrain_blocks" / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_terrain_blocks_sheet(), pack / "Tilesets" / "Ground Terrain Mix.png")
+    expected = {
+        "Terrain Blocks/Tilesets/Ground Terrain Mix.png": {
+            "usage": "tiles",
+            "role": "GROUND",
+            "cell": [16, 16],
+        }
+    }
+    _expected(out, "terrain_blocks", expected)
+
+
+IT_FOOT = (64, 32)
+IT_SIDE = 8
+IT_GRASS: Color = (96, 168, 74, 255)
+IT_WATER: Color = (70, 140, 220, 255)
+IT_EARTH: Color = (120, 84, 52, 255)
+IT_PATH: Color = (168, 150, 122, 255)
+IT_MAGENTA: Color = (255, 0, 255, 255)
+# the land sides a piece of water is named by, and the corner of land of the inner corners
+IT_WATER_PIECES = {
+    "water": ((), ""),
+    "waterN": (("n",), ""),
+    "waterE": (("e",), ""),
+    "waterS": (("s",), ""),
+    "waterW": (("w",), ""),
+    "waterNE": (("n", "e"), ""),
+    "waterES": (("e", "s"), ""),
+    "waterSW": (("s", "w"), ""),
+    "waterNW": (("n", "w"), ""),
+    "waterCornerNE": ((), "ne"),
+    "waterCornerES": ((), "es"),
+    "waterCornerSW": ((), "sw"),
+    "waterCornerNW": ((), "nw"),
+}
+# the eleven pieces of a sheet of paths (Screaming Brain's order): the sides each joins on
+IT_PATHS = [
+    ("n", "e", "s", "w"),
+    ("n", "s"),
+    ("e", "w"),
+    (),
+    ("n", "e", "s"),
+    ("e", "s", "w"),
+    ("n", "s", "w"),
+    ("n", "e", "w"),
+    ("n", "e"),
+    ("e", "s"),
+    ("s", "w"),
+    ("n", "w"),
+]
+
+
+def _it_grid(x: int, y: int, middle: tuple[float, float]) -> tuple[float, float]:
+    """A px of a picture in the grid's own measure from the middle of its diamond."""
+    a = (x + 0.5 - middle[0]) / (IT_FOOT[0] / 2)
+    b = (y + 0.5 - middle[1]) / (IT_FOOT[1] / 2)
+    return (a + b) / 2, (b - a) / 2
+
+
+def _it_water(land: tuple[str, ...], corner: str) -> Image.Image:
+    """A block of the isometric terrain kit: water, with grass along the sides `land` names and
+    in the corner `corner`, the earth of the block under it."""
+    img = Image.new("RGBA", (IT_FOOT[0], IT_FOOT[1] + IT_SIDE), (0, 0, 0, 0))
+    middle = (IT_FOOT[0] / 2, IT_FOOT[1] / 2)
+    band = 0.2
+    for y in range(img.height):
+        for x in range(img.width):
+            east, south = _it_grid(x, y, middle)
+            if abs(east) <= 0.5 and abs(south) <= 0.5:
+                near = {
+                    "n": south < -0.5 + band,
+                    "e": east > 0.5 - band,
+                    "s": south > 0.5 - band,
+                    "w": east < -0.5 + band,
+                }
+                in_corner = {
+                    "ne": near["n"] and near["e"],
+                    "es": near["e"] and near["s"],
+                    "sw": near["s"] and near["w"],
+                    "nw": near["w"] and near["n"],
+                }
+                is_land = any(near[side] for side in land) or (corner != "" and in_corner[corner])
+                img.putpixel((x, y), IT_GRASS if is_land else IT_WATER)
+    # the side of the block: IT_SIDE px of earth under the lowest px of the face, column by column
+    for x in range(img.width):
+        painted = [y for y in range(IT_FOOT[1]) if img.getpixel((x, y))[3]]
+        if painted:
+            for y in range(max(painted) + 1, max(painted) + 1 + IT_SIDE):
+                img.putpixel((x, y), IT_EARTH)
+    return img
+
+
+def _it_path_sheet() -> Image.Image:
+    """A sheet of paths in cells of 64 x 32 on magenta: eleven pieces that join through the
+    middles of the sides of a diamond (and an empty cell), drawn over nothing."""
+    cols, rows = 4, 3
+    img = Image.new("RGBA", (cols * IT_FOOT[0], rows * IT_FOOT[1]), IT_MAGENTA)
+    for k, sides in enumerate(IT_PATHS):
+        if not sides and k == 3:
+            continue  # Screaming Brain leaves the fourth cell empty
+        cx, cy = (k % cols) * IT_FOOT[0], (k // cols) * IT_FOOT[1]
+        middle = (cx + IT_FOOT[0] / 2, cy + IT_FOOT[1] / 2)
+        for y in range(cy, cy + IT_FOOT[1]):
+            for x in range(cx, cx + IT_FOOT[0]):
+                east, south = _it_grid(x, y, middle)
+                if abs(east) > 0.5 or abs(south) > 0.5:
+                    continue
+                arm = (
+                    ("n" in sides and abs(east) < 0.13 and south <= 0)
+                    or ("s" in sides and abs(east) < 0.13 and south >= 0)
+                    or ("e" in sides and abs(south) < 0.13 and east >= 0)
+                    or ("w" in sides and abs(south) < 0.13 and east <= 0)
+                    or (abs(east) < 0.13 and abs(south) < 0.13)
+                )
+                if arm:
+                    shade = 12 if (x + 2 * y) % 5 == 0 else 0
+                    img.putpixel(
+                        (x, y), (IT_PATH[0] - shade, IT_PATH[1] - shade, IT_PATH[2] - shade, 255)
+                    )
+    return img
+
+
+def make_iso_terrain(out: Path) -> None:
+    """An isometric kit of terrains (T17.31): pieces of a pond named by the sides their land is
+    on, in the manner of Kenney's *Vector Roads*, a plain grass block, and a sheet of paths
+    without names in the manner of Screaming Brain's *Pathways*."""
+    pack = out / "iso_terrain" / "Isometric Terrain Kit"
+    _write_text(out / "iso_terrain" / "License.txt", "CC0-1.0 synthetic test pack\n")
+    grass = Image.new("RGBA", (IT_FOOT[0], IT_FOOT[1] + IT_SIDE), (0, 0, 0, 0))
+    grass.alpha_composite(_it_water(("n", "e", "s", "w"), ""))
+    _save_png(grass, pack / "PNG" / "grass.png")
+    expected: dict[str, dict] = {
+        "Isometric Terrain Kit/PNG/grass.png": {"usage": "iso_tile", "role": "GROUND"}
+    }
+    for name, (land, corner) in IT_WATER_PIECES.items():
+        _save_png(_it_water(land, corner), pack / "PNG" / f"{name}.png")
+        expected[f"Isometric Terrain Kit/PNG/{name}.png"] = {"usage": "iso_tile", "role": "WATER"}
+    _save_png(_it_path_sheet(), pack / "Paths" / "Path_Stone_01-64x32.png")
+    _expected(out, "iso_terrain", expected)
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -3311,6 +3619,8 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "object_sheet": make_object_sheet,
     "mixed_sheet": make_mixed_sheet,
     "farm_cave": make_farm_cave,
+    "terrain_blocks": make_terrain_blocks,
+    "iso_terrain": make_iso_terrain,
 }
 
 

@@ -460,6 +460,20 @@ func _paint(cell: Vector2i) -> void:
 	else:
 		_soil.erase_cell(cell)
 
+## True when the `Soil` layer shows tilled (or, with `watered`, watered) soil at `cell`: the
+## field's one tile of it, or a tile of its terrain of soil (T17.31), which is the piece that
+## joins the soil round it.
+func shows_soil(cell: Vector2i, watered: bool) -> bool:
+	if _soil == null:
+		return false
+	var terrain := watered_terrain if watered else soil_terrain
+	if terrain >= 0:
+		var data := _soil.get_cell_tile_data(cell)
+		return data != null and data.terrain_set == terrain
+	var source := watered_source if watered else tilled_source
+	var tile := watered_tile if watered else tilled_tile
+	return _soil.get_cell_source_id(cell) == source and _soil.get_cell_atlas_coords(cell) == tile
+
 ## Takes the terrain of soil off a cell that is ground again, so that the soil round it is
 ## painted again without it (T17.31); nothing for a cell of no terrain.
 func _unpaint_terrain(cell: Vector2i) -> void:

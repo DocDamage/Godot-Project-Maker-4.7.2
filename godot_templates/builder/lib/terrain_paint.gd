@@ -44,13 +44,6 @@ static func specs(def: Dictionary) -> Array[Dictionary]:
 		out.append(spec)
 	return out
 
-## True when a tile set definition has a terrain set a map can be painted with.
-static func has_terrains(def: Dictionary) -> bool:
-	for spec in specs(def):
-		if JsonUtil.to_str(spec.get("shape", "any")) != "plain" or not JsonUtil.to_array(spec.get("terrains", [])).is_empty():
-			return true
-	return false
-
 ## What a map recipe adds to its hash: `{terrain_v: VERSION}` when a tile set of the project has
 ## terrains, nothing for any other project.
 static func hash_part(ctx: BuildContext) -> Dictionary:
@@ -75,6 +68,28 @@ static func surface_of(spec: Dictionary, terrain: int = 0) -> String:
 ## then the first in the definition. `avoid` is a surface not to take (the ground's own).
 ## Without a `tile_set` (a recipe that runs before the maps) the definition alone is asked.
 static func find(ctx: BuildContext, def: Dictionary, tile_set: TileSet, surfaces: Array, shapes: Array, roles: Array = [], avoid: String = "") -> Dictionary:
+	# a terrain of a sheet that says it is indoors (a dungeon's floor, a house's) only when no
+	# other has the surface: these are the maps outdoors
+	var found := _find(ctx, def, tile_set, surfaces, shapes, roles, avoid, true)
+	return found if not found.is_empty() else _find(ctx, def, tile_set, surfaces, shapes, roles, avoid, false)
+
+## The words of a sheet's name and folders that say it is no ground outdoors.
+const INDOOR_WORDS: Array[String] = ["dungeon", "cave", "caves", "house", "interior", "indoor", "temple", "castle", "barn", "mine"]
+
+static func _indoors(ctx: BuildContext, asset_id: String) -> bool:
+	if ctx == null or asset_id == "":
+		return false
+	var asset := ctx.catalog.asset(asset_id)
+	var path := JsonUtil.to_str(asset.get("path", "")).to_lower()
+	for separator: String in ["/", "_", "-", ".", " "]:
+		path = path.replace(separator, " ")
+	var words := path.split(" ", false)
+	for word in INDOOR_WORDS:
+		if words.has(word):
+			return true
+	return false
+
+static func _find(ctx: BuildContext, def: Dictionary, tile_set: TileSet, surfaces: Array, shapes: Array, roles: Array, avoid: String, outdoors: bool) -> Dictionary:
 	var all := specs(def)
 	for surface: Variant in surfaces:
 		var wanted := JsonUtil.to_str(surface)
@@ -84,6 +99,8 @@ static func find(ctx: BuildContext, def: Dictionary, tile_set: TileSet, surfaces
 		for spec in all:
 			var index := JsonUtil.to_int(spec["index"])
 			if tile_set != null and index >= tile_set.get_terrain_sets_count():
+				continue
+			if outdoors and _indoors(ctx, JsonUtil.to_str(spec.get("sheet", ""))):
 				continue
 			var shape := JsonUtil.to_str(spec.get("shape", "any"))
 			if not shapes.has(shape):
@@ -108,31 +125,6 @@ static func find(ctx: BuildContext, def: Dictionary, tile_set: TileSet, surfaces
 			return best
 	return {}
 
-## The terrain of the sheet `asset_id` that is first in the definition (a sheet of soil), as
-## `find` gives it; {} when the sheet has none. `skip` is a number of such terrains to pass over
-## (the second terrain of a sheet of dry and wet soil).
-static func of_sheet(def: Dictionary, tile_set: TileSet, asset_id: String, shapes: Array, skip: int = 0) -> Dictionary:
-	if tile_set == null or asset_id == "":
-		return {}
-	var seen := 0
-	for spec in specs(def):
-		var index := JsonUtil.to_int(spec["index"])
-		if JsonUtil.to_str(spec.get("sheet", "")) != asset_id or index >= tile_set.get_terrain_sets_count():
-			continue
-		var shape := JsonUtil.to_str(spec.get("shape", "any"))
-		if not shapes.has(shape):
-			continue
-		if seen < skip:
-			seen += 1
-			continue
-		return {
-			"set": index, "terrain": 0, "surface": surface_of(spec), "shape": shape,
-			"over": JsonUtil.to_str(spec.get("over", "ground")), "sheet": asset_id,
-			"mode": JsonUtil.to_str(spec.get("mode", "corners_and_sides")),
-		}
-	return {}
-
-## True when the name of a terrain (`have`) says the surface `want`: the same word, or a wang
 ## terrain's name that has it among its words ("Dark Grass" is grass).
 static func _names(have: String, want: String) -> bool:
 	if have == want:

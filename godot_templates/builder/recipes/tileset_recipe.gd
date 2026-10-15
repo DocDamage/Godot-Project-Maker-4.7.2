@@ -591,7 +591,8 @@ func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dicti
 		var td := src.get_tile_data(coords, 0)
 		var iso_terrain: Variant = eff.get("iso_terrain")
 		if iso_terrain is Dictionary and (is_new or td.terrain_set == -1):
-			apply_iso_terrain(td, ts, JsonUtil.to_array(def.get("terrain_sets", [])), iso_terrain)
+			var iso_spec: Dictionary = iso_terrain
+			apply_iso_terrain(td, ts, JsonUtil.to_array(def.get("terrain_sets", [])), iso_spec)
 		var collision := IsoTileset.default_collision(eff)
 		var middle := atlas_cell / 2
 		var origin: Vector2i = ctx.vec2i(eff.get("origin", [middle.x, middle.y]))

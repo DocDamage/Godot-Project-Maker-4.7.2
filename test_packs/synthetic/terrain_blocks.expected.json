@@ -1,0 +1,10 @@
+{
+  "Terrain Blocks/Tilesets/Ground Terrain Mix.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "role": "GROUND",
+    "usage": "tiles"
+  }
+}

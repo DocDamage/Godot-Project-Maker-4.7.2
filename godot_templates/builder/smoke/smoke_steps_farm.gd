@@ -708,8 +708,7 @@ func _till_a_cell() -> String:
 	var cost := mode.tool_for(&"hoe").energy_cost
 	if mode.energy.value != before - cost:
 		return "the hoe cost %d energy, expected %d" % [before - mode.energy.value, cost]
-	var soil := _tree().current_scene.get_node("Soil") as TileMapLayer
-	if soil.get_cell_atlas_coords(cell) != field.tilled_tile:
+	if not field.shows_soil(cell, false):
 		return "the Soil layer does not show tilled soil at %s" % cell
 	if field.cells.size() != 1:
 		return "%d cells were worked, expected 1" % field.cells.size()
@@ -753,8 +752,7 @@ func _water_it() -> String:
 		return "`use` with the can did not water %s" % cell
 	if RpgFarmWateringCan.charges() != RpgFarmWateringCan.SIZE - 1:
 		return "the can holds %d, expected %d" % [RpgFarmWateringCan.charges(), RpgFarmWateringCan.SIZE - 1]
-	var soil := _tree().current_scene.get_node("Soil") as TileMapLayer
-	if soil.get_cell_atlas_coords(cell) != field.watered_tile:
+	if not field.shows_soil(cell, true):
 		return "the Soil layer does not show watered soil at %s" % cell
 	return ""
 
@@ -1242,7 +1240,7 @@ func _rain_waters_the_field() -> String:
 		return "the crop grew in the dry night before the rain"
 	var soil := field.get_node_or_null(field.soil_path) as TileMapLayer
 	# (the source too: a pack's wet soil may be the same cell of another source as its dry soil)
-	if soil != null and (soil.get_cell_atlas_coords(cell) != field.watered_tile or soil.get_cell_source_id(cell) != field.watered_source):
+	if soil != null and not field.shows_soil(cell, true):
 		return "the Soil layer does not show watered soil at %s" % cell
 	var map := RpgUtil.router().current_map
 	if weather.overlay_visible() != weather.shows_on(map) or weather.overlay_visible() == map.interior():
@@ -2690,7 +2688,7 @@ func _save_field_differs(field: RpgField, before: Dictionary) -> String:
 		if soil != null:
 			var want_source := field.watered_source if was_wet else field.tilled_source
 			var want_tile := field.watered_tile if was_wet else field.tilled_tile
-			if soil.get_cell_source_id(cell) != want_source or soil.get_cell_atlas_coords(cell) != want_tile:
+			if not field.shows_soil(cell, was_wet):
 				return "the Soil layer shows the tile %s of source %d at %s after loading, expected %s of %d (%s soil)" % [soil.get_cell_atlas_coords(cell), soil.get_cell_source_id(cell), cell, want_tile, want_source, "wet" if was_wet else "dry"]
 	return ""
 
