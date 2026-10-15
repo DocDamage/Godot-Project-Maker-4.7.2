@@ -55,6 +55,8 @@ CONTAINER_WORDS = frozenset(
      "objects", "deco", "decor", "decoration", "decorations"}
 )  # fmt: skip
 CONTAINER_WEIGHT = 1 / 3
+# the roles whose words alone leave a container folder its weight
+UNNAMING_ROLES = frozenset({"WALL"})
 
 _SPLIT_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 _SPLIT_NON_ALNUM = re.compile(r"[^A-Za-z0-9]+")
@@ -958,10 +960,12 @@ def classify(
     other_tokens = {t for f in folders[:-2] for t in _tokenize(f)}
 
     named_monster = any(kw in file_tokens for role in MONSTER_ROLES for kw in KEYWORD_WEIGHTS[role])
-    # the file's own words name a role, with a word that is not a container's
+    # the file's own words name a role, with a word that is not a container's (a wall or a
+    # fence says too little: ``Props/fence.png`` is a prop the dock places, not a wall sheet)
     named = any(
         kw in file_tokens and kw not in CONTAINER_WORDS
-        for _role, keywords in ROLE_KEYWORDS
+        for role, keywords in ROLE_KEYWORDS
+        if role not in UNNAMING_ROLES
         for kw in keywords
     )
     scores = {role: 0.0 for role in ROLE_ORDER}

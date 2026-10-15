@@ -39,30 +39,11 @@
       "status": "AUTO_DETECTED"
     },
     {
-      "confidence": 0.5,
+      "confidence": 0.666667,
       "detected": {
         "animations": {
-          "anim_1": {
-            "fps": 8.0,
-            "frames": [
-              [
-                0,
-                0
-              ],
-              [
-                1,
-                0
-              ],
-              [
-                2,
-                0
-              ]
-            ],
-            "loop": true,
-            "source": "generated/frame_strips/5910441cc789a32931e895e5f28ace93321a399457a900a1b5179973f8770276.png"
-          },
-          "anim_2": {
-            "fps": 8.0,
+          "idle_2_down": {
+            "fps": 4.0,
             "frames": [
               [
                 0,
@@ -83,6 +64,25 @@
             ],
             "loop": true,
             "source": "generated/frame_strips/9d90a89fa8050b58108ad2044b6dea25980b553f15890ce95240b5278068f58e.png"
+          },
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "generated/frame_strips/5910441cc789a32931e895e5f28ace93321a399457a900a1b5179973f8770276.png"
           }
         },
         "frame": [
@@ -110,13 +110,20 @@
         "role": "ENEMY",
         "roles_alt": [
           [
-            "ITEM",
-            0.137931
+            "NPC",
+            0.166667
+          ],
+          [
+            "PLAYER",
+            0.033333
           ]
         ],
         "size": [
           16,
           16
+        ],
+        "tags": [
+          "motion_named"
         ],
         "usage": "sprite"
       },

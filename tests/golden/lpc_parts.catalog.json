@@ -1,7 +1,7 @@
 {
   "assets": [
     {
-      "confidence": 0.76,
+      "confidence": 0.723077,
       "detected": {
         "animations": {
           "attack_down": {
@@ -482,7 +482,7 @@
         "roles_alt": [
           [
             "PLAYER",
-            0.04
+            0.046154
           ]
         ],
         "size": [
@@ -498,7 +498,7 @@
       "pack_id": "lpc_parts",
       "path": "assets/packs/lpc_parts/characters/guard.png",
       "sha256": "3690519c338184e1b604a349f5fbe96b1eec6aff405ff8025491f262b54ef590",
-      "status": "AUTO_DETECTED"
+      "status": "NEEDS_REVIEW"
     },
     {
       "confidence": 1.0,

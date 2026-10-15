@@ -220,6 +220,9 @@ func _check_dependencies(resources: Array[String]) -> void:
 
 func _check_main_scene() -> void:
 	var main_scene := JsonUtil.to_str(ProjectSettings.get_setting("application/run/main_scene", ""))
+	if JsonUtil.to_str(_ctx.config.get("archetype", "")) == "assets" and main_scene == "":
+		_item("main_scene", "none: an assets-only project (T17.33)", true)
+		return
 	var ok := main_scene != "" and ResourceLoader.exists(main_scene)
 	if not ok:
 		_fail("VAL-005", {})

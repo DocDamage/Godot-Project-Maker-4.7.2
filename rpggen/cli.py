@@ -61,9 +61,19 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     gen.add_argument(
         "--archetype",
-        choices=("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing", "farm"),
+        choices=(
+            "turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing", "farm", "assets"
+        ),
         default="turn_based",
-        help="the kind of game for --pack (a --config carries its own)",
+        help="the kind of game for --pack (a --config carries its own); assets: the packs' tile "
+        "sets and the dock's scenes only, no game, to build levels by hand",
+    )  # fmt: skip
+    gen.add_argument(
+        "--view",
+        choices=("top", "side"),
+        default="",
+        help="for --archetype assets: seen from above or from the side (else as the packs are "
+        "drawn)",
     )
     gen.add_argument(
         "--projection",
@@ -340,6 +350,9 @@ def _generate(args: argparse.Namespace) -> int:
                         args.pack, name, tile_size=args.tile_size or 16, archetype=args.archetype
                     )
                 cfg.projection = args.projection
+                if args.view and cfg.archetype == config_mod.ASSETS_KIND:
+                    cfg.view = args.view
+                    cfg.input = config_mod.default_input(cfg.archetype, args.view)
                 cfg_path = Path(tmp) / "generator_config.json"
                 config_mod.save(cfg, cfg_path)
             if args.preset:

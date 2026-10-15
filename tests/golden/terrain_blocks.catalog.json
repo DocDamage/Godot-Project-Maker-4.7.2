@@ -815,11 +815,11 @@
         "roles_alt": [
           [
             "DECORATION",
-            0.0625
+            0.064516
           ],
           [
             "WALL",
-            0.03125
+            0.032258
           ]
         ],
         "size": [
@@ -1583,7 +1583,7 @@
             }
           },
           "16,10": {
-            "probability": 0.35,
+            "probability": 0.0882,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -1824,7 +1824,7 @@
             }
           },
           "18,10": {
-            "probability": 0.35,
+            "probability": 0.0882,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,

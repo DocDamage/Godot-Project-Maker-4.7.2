@@ -107,6 +107,10 @@ UNUSED_REASONS = {
         "a piece of a portrait drawn in layers (its eyes, its hair): rpggen does not put a "
         "portrait together. Give it a role to use it alone."
     ),
+    "part_of_thing": (
+        "a piece of a thing drawn over several cells of a sheet (half a tree); the whole thing "
+        "is in the dock. Give it a role to use this piece alone as well."
+    ),
     "same_tiles": (
         "the same tiles as another picture of this pack (a sheet with spacing, a packed sheet "
         "or single files of one set); one form is used. Give it a role to use this one as well."

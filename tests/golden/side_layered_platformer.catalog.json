@@ -93,7 +93,7 @@
       "status": "AUTO_DETECTED"
     },
     {
-      "confidence": 0.5,
+      "confidence": 0.8,
       "detected": {
         "animations": {
           "idle_down": {
@@ -157,7 +157,7 @@
       "pack_id": "side_layered_platformer",
       "path": "assets/packs/side_layered_platformer/Props/Props (2).png",
       "sha256": "b1a5aee52f17b2e91666ebd05c9f70e6aaa0311f39b3721e4e050fd22e3b0411",
-      "status": "NEEDS_REVIEW"
+      "status": "AUTO_DETECTED"
     },
     {
       "confidence": 0.85,
@@ -406,12 +406,28 @@
               "side": "one_way"
             }
           },
+          "5,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "side": "key"
+            }
+          },
           "6,0": {
             "collision": {
               "profile": "LADDER"
             },
             "custom": {
               "ladder": true
+            }
+          },
+          "6,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "side": "door"
             }
           },
           "7,0": {
@@ -432,7 +448,7 @@
       "overrides": {},
       "pack_id": "side_layered_platformer",
       "path": "assets/packs/side_layered_platformer/Tileset/Tileset.png",
-      "sha256": "529ad7c32d29750b7229fba9bd0f4e34b3718faaf4b26269e17c701b7f8f2fd7",
+      "sha256": "33452468b475151e3f92cde437477e39f1a765cab65de7fcc58467dcfc74c97a",
       "status": "AUTO_DETECTED"
     }
   ],
@@ -466,7 +482,7 @@
       "pack_id": "side_layered_platformer",
       "profile_id": null,
       "root": "assets/packs/side_layered_platformer",
-      "source_sha256": "94bb7bc55f37e36654cc81c9db7478c16f5b81915ff4107074ae5d4325268ddf",
+      "source_sha256": "6a7210e171f42a4eee2853c9e9a6a3a7c5aa2892fbe9e95d7c869bced0f078fa",
       "warnings": [
         "view:side"
       ]

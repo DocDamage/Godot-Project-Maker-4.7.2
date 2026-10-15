@@ -26,7 +26,8 @@
         "shmup",
         "run_and_gun",
         "racing",
-        "farm"
+        "farm",
+        "assets"
       ]
     },
     "packs": {
@@ -306,6 +307,7 @@
     },
     "repair_world": {"type": "boolean"},
     "projection": {"enum": ["top_down", "isometric"]},
+    "view": {"enum": ["top", "side"]},
     "iso_controls": {"enum": ["screen", "grid"]},
     "export_targets": {
       "type": "array",

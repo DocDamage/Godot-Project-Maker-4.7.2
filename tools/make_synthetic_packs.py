@@ -3640,9 +3640,11 @@ def _numbered_sheet(t: int = 16) -> Image.Image:
         d.point([(wx + 1, y + 2), (wx + 2, y + 2)], fill=(120, 180, 250, 255))
     x = 4 * t  # a coin
     d.ellipse([x + 4, y + 4, x + 11, y + 11], fill=GOLD, outline=(200, 150, 20, 255))
-    x = 5 * t  # a key: gold, long
-    d.rectangle([x + 2, y + 6, x + 13, y + 8], fill=GOLD)
-    d.rectangle([x + 2, y + 4, x + 5, y + 10], fill=GOLD)
+    x = 5 * t  # a key: gold, long, its bow at one end ringing a hole (T17.33: read so)
+    d.rectangle([x + 6, y + 7, x + 14, y + 8], fill=GOLD)
+    d.rectangle([x + 12, y + 9, x + 13, y + 10], fill=GOLD)
+    d.ellipse([x + 1, y + 4, x + 7, y + 11], fill=GOLD)
+    d.ellipse([x + 3, y + 6, x + 5, y + 9], fill=(0, 0, 0, 0))
     x = 6 * t  # a door
     d.rectangle([x + 3, y + 1, x + 12, y + t - 1], fill=(120, 70, 40, 255), outline=OUTLINE)
     d.point([(x + 10, y + 9)], fill=GOLD)

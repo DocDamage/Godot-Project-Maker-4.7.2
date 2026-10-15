@@ -1048,10 +1048,20 @@ def _grain(sheet: _Sheet, c: tuple[int, int]) -> float:
 
 
 def _seamless(sheet: _Sheet, group: list[tuple[int, int]]) -> list[tuple[int, int]]:
-    """The tiles of a group of plain tiles that lie together without a seam: the smoothest
-    first (it is the middle), then those whose own seams are as smooth and whose grain is its
-    grain. A group whose every tile shows a seam keeps its smoothest alone."""
-    ranked = sorted(group, key=lambda c: (round(_seam_ratio(sheet, c), 6), c[1], c[0]))
+    """The tiles of a group of plain tiles that lie together without a seam: the plainest of
+    the seamless ones first (it is the middle: a tuft or a pebble is a detail, not the ground),
+    then those whose own seams are as smooth and whose grain is its grain. A group whose every
+    tile shows a seam keeps its smoothest alone."""
+    ranked = sorted(
+        group,
+        key=lambda c: (
+            _seam_ratio(sheet, c) > SEAMLESS_RATIO,
+            round(_grain(sheet, c), 3) if _seam_ratio(sheet, c) <= SEAMLESS_RATIO else 0.0,
+            round(_seam_ratio(sheet, c), 6),
+            c[1],
+            c[0],
+        ),
+    )
     best = ranked[0]
     grain = _grain(sheet, best)
     kept = [best]
@@ -1102,7 +1112,7 @@ def _plain_groups(sheet: _Sheet) -> list[Block]:
         left = rest
         if len(group) < 2:
             continue
-        # the smoothest is the ground's middle, alone when every other tile shows a seam
+        # the plainest seamless tile is the ground's middle, alone when every other shows a seam
         group = _seamless(sheet, group)
         b = Block(PLAIN, "corners_and_sides", [(group[0], 255)], group[0], shape="plain")
         b.variants = group[1:]

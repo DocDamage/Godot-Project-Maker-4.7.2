@@ -14,6 +14,7 @@ const ActorBuild := preload("../lib/actor_build.gd")
 const BuildContext := preload("../lib/build_context.gd")
 const MapGeo := preload("../lib/map_geo.gd")
 const IsoHouse := preload("../lib/iso_house.gd")
+const SideTileset := preload("../lib/side_tileset.gd")
 
 const WORLD_OBJECT_SCRIPT := "res://addons/rpg_runtime/world/world_object.gd"
 const DOOR_SCRIPT := "res://addons/rpg_runtime/world/door.gd"
@@ -42,7 +43,7 @@ func input_hash(ctx: BuildContext) -> String:
 ## A metroidvania's rooms are seen from the side (T14.04): nothing blocks the way but the tiles,
 ## and chests and signs are used from beside them.
 static func _side_view(ctx: BuildContext) -> bool:
-	return JsonUtil.to_str(ctx.config.get("archetype", "")) in ["metroidvania", "run_and_gun"]
+	return SideTileset.side_view(ctx.config)
 
 func _tile_size(ctx: BuildContext) -> int:
 	return MapGeo.tile_unit(ctx)

@@ -198,7 +198,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.4,
+      "confidence": 0.461538,
       "detected": {
         "animations": {
           "attack_down": {
@@ -360,7 +360,7 @@
         "roles_alt": [
           [
             "NPC",
-            0.4
+            0.307692
           ]
         ],
         "size": [
@@ -852,7 +852,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -866,7 +866,7 @@
         "roles_alt": [
           [
             "ITEM",
-            0.142857
+            0.1875
           ]
         ],
         "size": [

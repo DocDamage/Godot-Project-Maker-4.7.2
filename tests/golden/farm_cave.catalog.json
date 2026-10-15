@@ -173,7 +173,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.407407,
+      "confidence": 0.464789,
       "detected": {
         "grid": {
           "cell": [
@@ -189,15 +189,15 @@
             0
           ]
         },
-        "role": "GROUND",
+        "role": "DECORATION",
         "roles_alt": [
           [
-            "DECORATION",
-            0.407407
+            "GROUND",
+            0.323944
           ],
           [
             "WALL",
-            0.037037
+            0.042254
           ]
         ],
         "size": [
@@ -237,11 +237,11 @@
         "roles_alt": [
           [
             "DECORATION",
-            0.074074
+            0.075472
           ],
           [
             "WALL",
-            0.037037
+            0.037736
           ]
         ],
         "size": [

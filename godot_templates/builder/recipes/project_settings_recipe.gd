@@ -3,6 +3,7 @@ extends RefCounted
 
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
+const SideTileset := preload("../lib/side_tileset.gd")
 
 const RECIPE_VERSION := 5
 
@@ -19,6 +20,7 @@ const AUTOLOADS := [
 # editor_tools feature is on.
 const TOOLS_PLUGIN := "res://addons/rpg_project_tools/plugin.cfg"
 const THEME_PATH := "res://generated/theme/main_theme.tres"
+const BOOT_SCENE := "res://generated/scenes/bootstrap/boot.tscn"
 const BUS_LAYOUT_PATH := "res://generated/audio/default_bus_layout.tres"
 
 # Physics layer names (ARCHITECTURE §17).
@@ -48,6 +50,8 @@ func input_hash(ctx: BuildContext) -> String:
 	}
 	if _isometric(ctx.config):  # only an isometric project's hash has the key (T17.14)
 		hashed["iso_controls"] = _iso_controls(ctx.config)
+	if JsonUtil.to_str(ctx.config.get("archetype", "")) == SideTileset.ASSETS_KIND:
+		hashed["assets"] = JsonUtil.to_str(ctx.config.get("view", ""))  # no main scene (T17.33)
 	return ctx.stable_hash(hashed)
 
 ## An isometric project (T17.14) says how the pad moves the player on its diamonds: the
@@ -71,7 +75,12 @@ func build(ctx: BuildContext) -> Array:
 	ProjectSettings.set_setting("application/config/name", str(cfg.get("project_name", "rpggen game")))
 	if str(ProjectSettings.get_setting("application/config/version", "")) == "":
 		ProjectSettings.set_setting("application/config/version", "0.1.0")  # the game's own number: change it when you like
-	ProjectSettings.set_setting("application/run/main_scene", "res://generated/scenes/bootstrap/boot.tscn")
+	if JsonUtil.to_str(cfg.get("archetype", "")) == SideTileset.ASSETS_KIND:
+		# an assets-only project has no game (T17.33): no main scene, and the user's own stays
+		if str(ProjectSettings.get_setting("application/run/main_scene", "")) == BOOT_SCENE:
+			ProjectSettings.set_setting("application/run/main_scene", "")
+	else:
+		ProjectSettings.set_setting("application/run/main_scene", BOOT_SCENE)
 	ProjectSettings.set_setting("display/window/size/viewport_width", JsonUtil.to_int(res[0]))
 	ProjectSettings.set_setting("display/window/size/viewport_height", JsonUtil.to_int(res[1]))
 	ProjectSettings.set_setting("display/window/size/window_width_override", JsonUtil.to_int(win[0]))
@@ -84,7 +93,7 @@ func build(ctx: BuildContext) -> Array:
 	ProjectSettings.set_setting("rendering/2d/snap/snap_2d_vertices_to_pixel", true)
 	for i in PHYSICS_LAYER_NAMES.size():
 		ProjectSettings.set_setting("layer_names/2d_physics/layer_%d" % (i + 1), PHYSICS_LAYER_NAMES[i])
-	if JsonUtil.to_str(cfg.get("archetype", "")) in ["metroidvania", "run_and_gun"]:
+	if SideTileset.side_view(cfg):
 		ProjectSettings.set_setting("layer_names/2d_physics/layer_%d" % ONE_WAY_LAYER, ONE_WAY_LAYER_NAME)
 	_apply_autoloads()
 	_apply_tools_plugin(cfg)

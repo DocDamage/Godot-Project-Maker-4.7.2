@@ -419,7 +419,7 @@ func _walks_over_hill() -> String:
 	player.jumped.connect(count)
 	var top := [ground_y]
 	var watch := func() -> bool:
-		top[0] = minf(top[0], player.global_position.y)
+		top[0] = minf(float(top[0]), player.global_position.y)
 		return player.global_position.x > (far + 2) * tile and player.is_on_floor()
 	Input.action_press("move_right")
 	var over := await _wait_for(watch, 240)

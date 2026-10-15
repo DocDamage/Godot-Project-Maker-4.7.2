@@ -14,6 +14,8 @@ const Geometry := preload("geometry.gd")
 const ARCHETYPE := "metroidvania"
 ## The kinds of game that are seen from the side: their TileSets get the side-view parts.
 const SIDE_VIEW_KINDS: Array[String] = ["metroidvania", "run_and_gun"]
+## A project of the packs' assets and no game (T17.33).
+const ASSETS_KIND := "assets"
 ## Index of the one-way physics layer in the TileSet (0 is the solid world).
 const ONE_WAY_PHYSICS := 1
 ## Collision layer 11, "one_way": the player takes it out of its mask to drop through.
@@ -23,7 +25,13 @@ const DATA_LAYERS: Array[String] = ["ladder", "hazard", "breakable"]
 const SOLID_ROLES: Array[String] = ["GROUND", "WALL", "CLIFF"]
 
 static func wanted(config: Dictionary) -> bool:
-	return SIDE_VIEW_KINDS.has(JsonUtil.to_str(config.get("archetype", "")))
+	return side_view(config)
+
+## True for a project seen from the side: a side-view kind, or an assets-only project whose view
+## is the side's (T17.33: config.ASSETS_KIND, `view`).
+static func side_view(config: Dictionary) -> bool:
+	var kind := JsonUtil.to_str(config.get("archetype", ""))
+	return SIDE_VIEW_KINDS.has(kind) or (kind == ASSETS_KIND and JsonUtil.to_str(config.get("view", "")) == "side")
 
 ## Adds the one-way physics layer and the custom data layers the TileSet does not have yet.
 ## Nothing that exists is removed, reordered or retyped.

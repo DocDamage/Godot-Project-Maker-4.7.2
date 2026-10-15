@@ -796,7 +796,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.526316,
+      "confidence": 0.8,
       "detected": {
         "frame": [
           16,
@@ -826,7 +826,7 @@
       "pack_id": "sample_pack_gun",
       "path": "assets/packs/sample_pack_gun/props/fern.png",
       "sha256": "42eec3c970cfa2433a1cf88e0374ddcce52e40079574613dbd82be1d62b64ffe",
-      "status": "NEEDS_REVIEW"
+      "status": "AUTO_DETECTED"
     },
     {
       "confidence": 0.9,
@@ -1311,6 +1311,14 @@
               "hazard": true
             }
           },
+          "5,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
+            }
+          },
           "6,0": {
             "collision": {
               "profile": "ONE_WAY"
@@ -1391,7 +1399,7 @@
       "pack_id": "sample_pack_gun",
       "profile_id": null,
       "root": "assets/packs/sample_pack_gun",
-      "source_sha256": "0f21afc5395728f4df56d70e3f278c061e91190908eb5f38f846c1dbd7d5abb4",
+      "source_sha256": "20c45e9c1865dcfff6499fba1153cc7c8d31d47f11737a01902996ef81df0e6d",
       "warnings": [
         "strips_direction_assumed:boss/gate_attack.png",
         "strips_direction_assumed:boss/gate_idle.png",

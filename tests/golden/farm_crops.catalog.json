@@ -625,11 +625,11 @@
         "roles_alt": [
           [
             "DECORATION",
-            0.074074
+            0.075472
           ],
           [
             "WALL",
-            0.037037
+            0.037736
           ]
         ],
         "size": [
@@ -650,6 +650,57 @@
       "path": "assets/packs/farm_crops/Tileset/Tileset Grass Spring.png",
       "sha256": "a42901d4994a1acb1705606390daf4e71ab3759506bc43e037b40a53f83afd3b",
       "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "nine_slice": [
+          6,
+          6,
+          6,
+          6
+        ],
+        "role": "UI",
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "farm_dress"
+        ],
+        "usage": "ui"
+      },
+      "detected_by": "farm_dress",
+      "id": "generated.farm_frame",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "generated",
+      "path": "generated/farm_dress/f2fe7e799b020c3910efb104.png",
+      "sha256": "f2fe7e799b020c3910efb104a13f0db863069f976fcd6ab2e60da4cc13487a88",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "role": "PORTRAIT",
+        "size": [
+          144,
+          48
+        ],
+        "tags": [
+          "farm_dress",
+          "portrait_of:farm_crops.animated.animated_sheets_16x16.mill_16x16"
+        ],
+        "usage": "portrait"
+      },
+      "detected_by": "farm_dress",
+      "id": "generated.portrait_mill_16x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "generated",
+      "path": "generated/farm_dress/dd48b960d12e0a3045e77caa.png",
+      "sha256": "dd48b960d12e0a3045e77caa7abfd1194186dd49c1d08ce8250dc6a159e638fd",
+      "status": "AUTO_DETECTED"
     }
   ],
   "catalog_version": 2,
@@ -688,6 +739,21 @@
       "warnings": [
         "view:farm"
       ]
+    },
+    {
+      "adapters_matched": [],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "",
+        "url": ""
+      },
+      "license_files": [],
+      "pack_id": "generated",
+      "profile_id": null,
+      "root": "generated/terrain_atlases",
+      "source_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "warnings": []
     }
   ],
   "tilesets": [

@@ -65,8 +65,9 @@ def test_the_cells_of_a_numbered_sheet_are_read_from_their_pictures(tmp_path: Pa
         "profile": "NONE"
     }
     assert kinds["3,1"] == "water" and kinds["4,1"] == "coin"
-    assert "5,1" not in over and "6,1" not in over, "a key and a door stay unread"
-    assert any(i.code == "TILE-016" and sheet.id in i.message for i in issues)
+    # T17.33: the key and the door are read from their pictures, so no tile is left unread
+    assert kinds["5,1"] == "key" and kinds["6,1"] == "door"
+    assert not any(i.code == "TILE-016" and sheet.id in i.message for i in issues)
     (tileset,) = [t for t in cat.tilesets if any(s["asset"] == sheet.id for s in t.sources)]
     (side,) = [s for s in tileset.terrain_sets if s["sheet"] == sheet.id]
     assert side["shape"] == "side" and side["mode"] == "sides" and side["surface"] == "grass"

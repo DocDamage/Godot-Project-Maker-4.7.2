@@ -44,8 +44,8 @@ def test_the_frame_export_gives_named_animations_where_a_source_names_them() -> 
         and hero["animations"]["idle_down"]["fps"] == 4.0
     )
     slime = catalog.effective(assets["ENEMY/SLIME/SLIME 1.png"])
-    assert sorted(slime["animations"]) == ["anim_1", "anim_2"], "no source: not named"
-    assert codes.count("ADAPT-005") == 1 and "ADAPT-006" not in codes
+    assert sorted(slime["animations"]) == ["idle_2_down", "idle_down"], "no source: by its frames"
+    assert "ADAPT-005" not in codes and "ADAPT-006" not in codes  # every run named
     assert sorted(catalog.effective(assets["PROPS/FLAME/FLAME1.png"])["animations"]) == [
         "idle_down"
     ]

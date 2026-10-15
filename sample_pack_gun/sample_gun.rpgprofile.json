@@ -907,6 +907,9 @@
         "5,0": {
           "collision": {
             "profile": "ONE_WAY"
+          },
+          "custom": {
+            "side": "one_way"
           }
         },
         "6,0": {

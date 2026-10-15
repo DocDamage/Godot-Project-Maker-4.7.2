@@ -65,7 +65,8 @@
           "cells:10:1:4",
           "crop",
           "growth_by:sheet",
-          "produce:crop_1"
+          "looks:brown_stalk",
+          "produce:brown_stalk"
         ],
         "usage": "growth_strip"
       },

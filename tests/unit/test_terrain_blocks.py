@@ -75,10 +75,14 @@ def test_the_inner_corners_and_the_variants_of_a_3x3_block() -> None:
     assert by_cell[(ix + 1, iy + 1)] == 247
     assert sorted(block.variants) == sorted(synth.TB_VARIANTS_AT)
     entries = blocks.entries(block, "sand_block")
+    chances = []
     for x, y in synth.TB_VARIANTS_AT:
         entry = entries[f"{x},{y}"]
-        assert entry["probability"] == blocks.VARIANT_PROBABILITY
+        assert 0 < entry["probability"] <= blocks.VARIANT_PROBABILITY
         assert set(entry["terrain"]["peering"].values()) == {0}
+        chances.append(entry["probability"])
+    # T17.33: the middle (probability 1) is most of the ground, the variants details in it
+    assert sum(chances) / (1.0 + sum(chances)) <= blocks.VARIANTS_SHARE + 1e-3
 
 
 def test_the_peering_of_a_tile_follows_its_mask() -> None:

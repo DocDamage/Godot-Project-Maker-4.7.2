@@ -417,14 +417,26 @@ def find_effects(inv: Inventory, claimed: set[str]) -> list[Character]:
 
 
 STRIP_FOLDER_WORDS = frozenset({"individual", "sheets", "sheet", "strips", "strip"})
+# a name that gives its frames' size or count (``_16x16``, ``_4frames``, ``_strip8``)
+SAYS_ITS_FRAMES = re.compile(r"(?<![0-9a-z])(\d+x\d+|\d+_?frames?|strip\d+)(?![0-9a-z])")
 WHOLE_SHEET = 8  # frames on a grid, at least: a sheet of all of a character's frames
+
+
+def _strip_named(f: InventoryFile) -> bool:
+    """True when the strips reader reads `f` by its name: a character's name, then an action."""
+    from rpggen.core.adapters.strips import STRIP_NAME
+
+    stem = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0]).stem
+    return STRIP_NAME.match(stem) is not None
 
 
 def find_action_strips(inv: Inventory, claimed: set[str]) -> list[Character]:
     """A folder of one character's strips, a file an action (T17.33: the *hero with cape*'s
     ``individual_sheets/male_hero-run.png``, ``-idle``, ``-combo_1``): every picture as high as
     the others, as wide as a whole number of square frames, named by the character's name and
-    then what it does, two of them by an action word. Each strip is one animation."""
+    then what it does, two of them by an action word, and one at least by a name the strips
+    reader does not read (``-combo_1``; a folder of ``soldier_idle``, ``soldier_run`` is that
+    reader's). Each strip is one animation."""
     by_folder: dict[str, list[InventoryFile]] = {}
     for f in inv.files:
         if f.kind == "image" and _is_still(f) and f.path not in claimed:
@@ -442,6 +454,11 @@ def find_action_strips(inv: Inventory, claimed: set[str]) -> list[Character]:
             continue
         if all(int((f.image or {}).get("w", 0)) == h for f in files):
             continue  # single pictures: the action files' reader's
+        if any(SAYS_ITS_FRAMES.search(posixpath.basename(f.path).casefold()) for f in files):
+            continue  # ``farmer_walk_down_16x16_4frames``: strips that say their frames are read
+            # by their names (the strips reader), each its own sheet
+        if all(_strip_named(f) for f in files):
+            continue  # ``soldier_idle``, ``soldier_run``: every one the strips reader's
         split = [(words(posixpath.splitext(posixpath.basename(f.path))[0]), f) for f in files]
         # the character's name: the words every file begins with
         prefix: list[str] = []

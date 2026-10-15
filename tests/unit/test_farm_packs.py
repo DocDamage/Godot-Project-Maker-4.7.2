@@ -244,7 +244,13 @@ def test_a_layered_character_is_one_character_with_its_choices(tmp_path: Path) -
 
 
 def _roots(cat: catalog.Catalog) -> dict[str, Path]:
-    return {p.pack_id: archive.open_pack(SYNTH / p.pack_id, set()).root for p in cat.packs}
+    from rpggen.core.terrain import GENERATED_PACK  # the portraits and frame a farm is dressed with
+
+    return {
+        p.pack_id: archive.open_pack(SYNTH / p.pack_id, set()).root
+        for p in cat.packs
+        if p.pack_id != GENERATED_PACK
+    }
 
 
 def test_the_forms_of_one_picture_twice_stay_the_duplicate_of_information_only() -> None:

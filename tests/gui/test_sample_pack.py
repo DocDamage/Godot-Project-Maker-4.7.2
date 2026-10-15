@@ -918,8 +918,10 @@ def test_what_green_acre_is_made_of() -> None:
     assert facts["barn"] == {"size": [6, 4], "door": [2, 4]}
     cfg.starter = {}
     assert orchestrator.farm_facts(cfg, cat) == facts, "and the same when nothing is chosen"
+    # a building chosen for the village that the pack does not call a house leaves the farm the
+    # pack's own house (T17.33)
     cfg.starter = {"building": f"{name}.objects.farmyard#yard_coop"}
-    assert orchestrator.farm_facts(cfg, cat)["house"] == facts["coop"], "a coop chosen as the house"
+    assert orchestrator.farm_facts(cfg, cat)["house"] == facts["house"], "the pack's house"
 
 
 def test_what_stone_isle_is_made_of() -> None:

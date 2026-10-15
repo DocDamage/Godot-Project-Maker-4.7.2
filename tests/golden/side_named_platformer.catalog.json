@@ -57,10 +57,25 @@
           },
           "0,2": {
             "collision": {
-              "profile": "NONE"
+              "polygon": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  32,
+                  32
+                ],
+                [
+                  0,
+                  32
+                ]
+              ],
+              "profile": "CUSTOM"
             },
             "custom": {
-              "side": "slope_left"
+              "side": "slope_left",
+              "slope": "down"
             }
           },
           "1,0": {
@@ -92,10 +107,25 @@
           },
           "1,2": {
             "collision": {
-              "profile": "NONE"
+              "polygon": [
+                [
+                  0,
+                  32
+                ],
+                [
+                  32,
+                  0
+                ],
+                [
+                  32,
+                  32
+                ]
+              ],
+              "profile": "CUSTOM"
             },
             "custom": {
-              "side": "slope_right"
+              "side": "slope_right",
+              "slope": "up"
             }
           },
           "2,0": {
@@ -747,7 +777,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.416667,
+      "confidence": 0.5,
       "detected": {
         "frame": [
           16,
@@ -758,6 +788,16 @@
           15
         ],
         "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ],
+          [
+            "GROUND",
+            0.185185
+          ]
+        ],
         "size": [
           16,
           16

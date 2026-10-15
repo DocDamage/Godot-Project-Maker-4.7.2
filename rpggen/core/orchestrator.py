@@ -346,6 +346,9 @@ def phase_catalog(state: _State) -> None:
     state.issues.extend(i for i in issues if (i.code, i.message) not in known)
     staging.install_generated(state.staging, generated)
     shutil.rmtree(work_dir, ignore_errors=True)
+    if state.cfg.archetype == config_mod.ASSETS_KIND and not state.cfg.view:
+        decide_view(state.cfg, catalog)
+        state.cb.on_log(f"assets only: seen {_VIEW_WORDS[assets_view(state.cfg)]} (the packs)")
     if state.derive_tile_size:
         derived = catalog_mod.dominant_tile_size(catalog)
         state.cfg.base_tile_size = derived or 16
@@ -355,7 +358,7 @@ def phase_catalog(state: _State) -> None:
         state.cb.on_log(f"base tile size {state.cfg.base_tile_size} (from the packs)")
     # an isometric project needs isometric ground from a pack (T17.13): none is drawn
     iso_atlas.check_ground(catalog, state.cfg)
-    if not state.cfg.sounds:
+    if not state.cfg.sounds and state.cfg.archetype != config_mod.ASSETS_KIND:
         # nothing was chosen (the command line, an older project): the packs' audio is used
         state.cfg.sounds = sound_slots.default_sounds(catalog, state.cfg.archetype)
     made_issues, stand_ins = add_run_made_assets(
@@ -378,7 +381,8 @@ def phase_catalog(state: _State) -> None:
     )
     state.catalog = catalog
     state.generated = generated
-    _plan_world(state, catalog)
+    if state.cfg.archetype != config_mod.ASSETS_KIND:  # an assets-only project has no maps
+        _plan_world(state, catalog)
     if state.staging.regenerate:
         # Files of assets that vanished from their pack stay: tile set sources, scenes and
         # animations built from them keep loading until the user confirms the removal.
@@ -398,8 +402,19 @@ def add_run_made_assets(
 ) -> tuple[IssueList, list[str]]:
     """Add what a run makes itself to ``catalog`` and write the files under ``root``: a debug
     placeholder for every role of ``roles`` the packs lack, and for a metroidvania the side-view
-    kit. Returns the issues (ASSET-011) and the kinds the kit stands in for."""
+    kit. Returns the issues (ASSET-011) and the kinds the kit stands in for. An assets-only
+    project (T17.33) gets nothing drawn: only the isometric packs' tiles packed into atlases."""
     issues = IssueList()
+    if cfg.archetype == config_mod.ASSETS_KIND:
+        if iso_atlas.wanted(cfg):
+            iso_atlas.add(catalog, cfg, root)
+        elif any(catalog_mod.VIEW_FARM in p.warnings for p in catalog.packs):
+            from rpggen.core import farm_ground
+
+            # a farming pack's sheet without a plain tile (*Tiny Farm*: its grass is only the
+            # green round its beds) gets a plain ground in its own grass colour to lay under them
+            issues.extend(farm_ground.add(catalog, cfg, cfg.base_tile_size, root))
+        return issues, []
     if roles:
         _written, issues = placeholders.add_placeholder_assets(
             catalog, roles, cfg.base_tile_size, root, cfg.projection
@@ -445,6 +460,37 @@ def add_run_made_assets(
         # (T17.13). A project that is seen from above gets none of it.
         iso_atlas.add(catalog, cfg, root)
     return issues, stand_ins
+
+
+_VIEW_WORDS = {"top": "from above", "side": "from the side", "isometric": "at an angle"}
+
+
+def assets_view(cfg: config_mod.GeneratorConfig) -> str:
+    """``"top"``, ``"side"`` or ``"isometric"``: how an assets-only project is seen."""
+    if cfg.projection == config_mod.PROJECTION_ISOMETRIC:
+        return "isometric"
+    return config_mod.VIEW_SIDE if cfg.view == config_mod.VIEW_SIDE else config_mod.VIEW_TOP
+
+
+def decide_view(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> None:
+    """The view of an assets-only project whose config does not say it (T17.33): what most of
+    its packs are drawn as (the first pack's when as many are of each). A side view gets the
+    side-view body's input (it jumps); an isometric one the isometric projection."""
+    views = [catalog_mod.pack_view(p) for p in catalog.packs if p.pack_id != _GENERATED_PACK]
+    if not views:
+        cfg.view = config_mod.VIEW_TOP
+        return
+    best = max(dict.fromkeys(views), key=views.count)
+    if best == "isometric":
+        cfg.projection = config_mod.PROJECTION_ISOMETRIC
+        cfg.view = config_mod.VIEW_TOP
+        return
+    cfg.view = config_mod.VIEW_SIDE if best == "side" else config_mod.VIEW_TOP
+    if cfg.view == config_mod.VIEW_SIDE and cfg.input == config_mod.default_input(cfg.archetype):
+        cfg.input = config_mod.default_input(cfg.archetype, config_mod.VIEW_SIDE)
+
+
+_GENERATED_PACK = "generated"  # terrain.GENERATED_PACK: what rpggen made, no pack's view
 
 
 def farm_kit_tile(catalog: catalog_mod.Catalog, cfg: config_mod.GeneratorConfig) -> int:
@@ -1314,6 +1360,10 @@ def _starter_picture(state: _State) -> None:
 
 
 def phase_smoke(state: _State) -> None:
+    assert state.cfg is not None
+    if state.cfg.archetype == config_mod.ASSETS_KIND:
+        _skip(state, "smoke", "VAL-032")  # no game to play (T17.33)
+        return
     _run_smoke(state)
     _starter_picture(state)
 
@@ -1352,6 +1402,9 @@ def _run_smoke(state: _State) -> None:
 def phase_export(state: _State) -> None:
     """Optional: export the staged project once to prove it exports (needs export templates)."""
     assert state.cfg is not None and state.staging is not None and state.log_dir is not None
+    if state.cfg.archetype == config_mod.ASSETS_KIND:
+        _skip(state, "export", "VAL-032")  # no main scene to export (T17.33)
+        return
     if not state.cfg.validation.get("export_check", True):
         _skip(state, "export", "VAL-022")
         return

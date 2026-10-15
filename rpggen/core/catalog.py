@@ -823,6 +823,10 @@ def _farm_farmer(assets: list[Asset]) -> None:
 
 
 FARM_CHARACTER_ROLES = frozenset({"PLAYER", "NPC"})
+# what the tool word of a strip may make of it beside its folder's word (``farmer_water_down``
+# in ``characters/``: water, ``farmer_axe_down``: a weapon), before it is known to be a strip of a
+# character of its folder
+FARM_USE_STRIP_ROLES = frozenset({"WATER", "WEAPON", "TOOL"})
 
 
 def _farm_use_strips(assets: list[Asset]) -> None:
@@ -841,13 +845,13 @@ def _farm_use_strips(assets: list[Asset]) -> None:
             asset.kind == "image"
             and facets.get("usage") == "sprite"
             and bool(facets.get("animations"))
-            and facets.get("role") in FARM_CHARACTER_ROLES
+            and facets.get("role") in FARM_CHARACTER_ROLES | FARM_USE_STRIP_ROLES
         )
 
     found = [(a, *classifier.character_words(a.path)) for a in assets if character(a)]
     who: dict[tuple[str, tuple[str, ...]], Asset] = {}
     for asset, words, tool in sorted(found, key=lambda row: row[0].id):
-        if words and not tool:
+        if words and not tool and asset.detected.get("role") in FARM_CHARACTER_ROLES:
             who.setdefault((asset.path.rsplit("/", 1)[0], tuple(words)), asset)
     for asset, words, tool in found:
         owner = who.get((asset.path.rsplit("/", 1)[0], tuple(words)))
@@ -2092,6 +2096,10 @@ def assemble(
     farm_dress.trees(catalog, farm_ids, pack_roots)  # and its own trees
     assign_tilesets(catalog, previous, adapter_tilesets)
     terrain.attach_terrain_sets(catalog, terrain_result)
+    from rpggen.core import sheet_things
+
+    # the trees and rocks of a sheet of tiles (T17.33), once its terrains take their cells
+    generated.update(sheet_things.add(catalog, pack_roots, work_dir))
     resolve_maps(catalog, maps_raw, previous, issues)
     for asset in catalog.assets:
         asset.status = recompute_status(

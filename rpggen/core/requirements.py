@@ -15,6 +15,7 @@ REQUIRED: dict[str, list[str]] = {
     "run_and_gun": ["PLAYER", "GROUND"],
     "racing": ["VEHICLE", "GROUND"],
     "farm": ["PLAYER", "GROUND"],  # T17.02
+    "assets": [],  # T17.33: the packs' assets, whatever they hold
 }
 RECOMMENDED = ["NPC", "ENEMY", "BUILDING", "WALL", "ITEM", "UI", "PORTRAIT"]
 # The roles an archetype uses beside the required ones (T14.02). The two top-down archetypes
@@ -30,6 +31,7 @@ OPTIONAL: dict[str, list[str]] = {
     # a farm's village is the top-down starter map, so it has its walls and portraits too
     "farm": ["BUILDING", "NPC", "CROP", "ANIMAL", "TOOL", "ITEM", "DECORATION", "WALL", "UI",
              "PORTRAIT"],
+    "assets": [],  # T17.33: nothing is missing from a project of what the packs hold
 }  # fmt: skip
 
 # What needs each role (used in the ASSET-010 message).
@@ -104,6 +106,7 @@ REQUIRED_BY_ARCHETYPE: dict[str, dict[str, str]] = {
 }
 ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
 FARM_KIND = "farm"
+ASSETS_KIND = "assets"
 FARM_KIT_PACK = "rpggen_farm_kit"  # farm_kit.KIT_PACK: the farm's drawn stand-ins
 ISO_KIT_PACK = "rpggen_iso_kit"  # iso_kit.KIT_PACK: the people drawn for the isometric view
 # the kits whose stand-ins of a last run fill nothing: the check goes by what the packs have
@@ -237,7 +240,8 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         if mine is not None and not catalog_mod.effective(mine).get("headings"):
             issues.add("ASSET-032", asset=mine.id)
     view = cfg.projection
-    if view == ISOMETRIC and cfg.archetype not in ARCADE_KINDS:  # a race has no people (T17.15)
+    # a race has no people (T17.15), and an assets-only project draws nobody (T17.33)
+    if view == ISOMETRIC and cfg.archetype not in (*ARCADE_KINDS, ASSETS_KIND):
         from rpggen.core import iso_kit
 
         # the isometric packs have no people: the hero, the villager and the enemy no pack of
@@ -289,6 +293,18 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
     for role in recommended(cfg.archetype):
         if not _filled(catalog, role, view) and role not in stood_in:
             issues.add("ASSET-010", role=role, feature=required_by(role, cfg.archetype))
+    if cfg.archetype != ASSETS_KIND:  # no game (T17.33): no music, no player to choose
+        _game_checks(catalog, cfg, issues)
+    for pack in sorted(catalog.packs, key=lambda p: p.pack_id):
+        found = pack.effective_license()
+        if found.attribution_required and not found.author.strip():
+            issues.add("ASSET-028", pack_id=pack.pack_id)
+    return issues
+
+
+def _game_checks(catalog: catalog_mod.Catalog, cfg: GeneratorConfig, issues: IssueList) -> None:
+    """The music, the sounds and the player a game needs (ASSET-026, -027, -014, -030)."""
+    view = cfg.projection
     if not _assets_with_role(catalog, "AUDIO_MUSIC"):
         issues.add("ASSET-026")
     if not _assets_with_role(catalog, "AUDIO_SFX"):
@@ -302,8 +318,3 @@ def check(catalog: catalog_mod.Catalog, cfg: GeneratorConfig) -> IssueList:
         missing = missing_air_animations(player)
         if player is not None and missing:
             issues.add("ASSET-030", asset=player.id, missing=" or ".join(missing))
-    for pack in sorted(catalog.packs, key=lambda p: p.pack_id):
-        found = pack.effective_license()
-        if found.attribution_required and not found.author.strip():
-            issues.add("ASSET-028", pack_id=pack.pack_id)
-    return issues

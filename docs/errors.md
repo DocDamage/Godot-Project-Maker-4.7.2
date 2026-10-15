@@ -161,6 +161,7 @@
 | VAL-029 | warning | {stage} cannot be finished as it is planned: {problem}. | Change the stage's entry in rpggen/world_plan.json and game/data/stages.json (fewer bullets, an earlier wave), or delete both files and regenerate to plan the stages again. |
 | VAL-030 | warning | {stage} cannot be finished by a soldier that does not jump: {problem}. | Turn the option Jump on, or delete rpggen/world_plan.json and game/data/stages.json so that the stages are planned again for the grapple, or put a block to swing from (or a plank to climb) there in the stage's scene. |
 | VAL-031 | warning | The farm cannot be worked as it is planned: {problem}. | Change the farm's map in rpggen/world_plan.json (the section farm.map: a cell of its plot, its water, its fences or what lies in the way), or delete that section and game/maps/farm.tscn and regenerate to plan the farm again. |
+| VAL-032 | info | An assets-only project has no game: it was not played and not test-exported. | — |
 
 ## Smoke test (SMOKE)
 

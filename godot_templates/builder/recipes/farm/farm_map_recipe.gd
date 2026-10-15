@@ -1046,7 +1046,7 @@ static func _crown_covers(cell: Vector2i, found: Array[Dictionary], index: int, 
 	if region.size() != 4:
 		return false
 	var high := ceili(JsonUtil.to_float(region[3]) / tile_px)
-	var half := int(floor(JsonUtil.to_float(region[2]) / tile_px / 2.0))
+	var half := floori(JsonUtil.to_float(region[2]) / tile_px / 2.0)
 	for dy in range(0, high):
 		for dx in range(-half, half + 1):
 			if covered.has(cell + Vector2i(dx, -dy)):

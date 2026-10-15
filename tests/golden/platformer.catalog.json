@@ -165,7 +165,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.4,
+      "confidence": 0.461538,
       "detected": {
         "animations": {
           "attack_down": {
@@ -312,7 +312,7 @@
         "roles_alt": [
           [
             "NPC",
-            0.4
+            0.307692
           ]
         ],
         "size": [
@@ -627,7 +627,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -641,7 +641,7 @@
         "roles_alt": [
           [
             "ITEM",
-            0.142857
+            0.1875
           ]
         ],
         "size": [
@@ -680,11 +680,11 @@
         "roles_alt": [
           [
             "DECORATION",
-            0.0625
+            0.078947
           ],
           [
             "WALL",
-            0.03125
+            0.039474
           ]
         ],
         "size": [

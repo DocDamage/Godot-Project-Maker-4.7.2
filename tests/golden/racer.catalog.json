@@ -413,7 +413,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.4107,
+      "confidence": 0.4,
       "detected": {
         "grid": {
           "cell": [
@@ -433,15 +433,15 @@
         "roles_alt": [
           [
             "ROAD",
-            0.3
+            0.385714
           ],
           [
             "DECORATION",
-            0.066667
+            0.085714
           ],
           [
             "WALL",
-            0.033333
+            0.042857
           ]
         ],
         "size": [

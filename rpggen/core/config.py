@@ -94,8 +94,16 @@ def split_bundles(packs: list[PackRef]) -> list[PackRef]:
     return out
 
 
-def default_input(archetype: str) -> dict[str, dict[str, Any]]:
-    """Default input bindings (02_SCHEMAS §1.1) for the archetype."""
+# the input of an assets-only project seen from the side is the metroidvania's (T17.33): its
+# scenes are the side-view body, which jumps
+ASSETS_VIEW_SIDE_INPUT = "assets:side"
+
+
+def default_input(archetype: str, view: str = "") -> dict[str, dict[str, Any]]:
+    """Default input bindings (02_SCHEMAS §1.1) for the archetype (and the view of an
+    assets-only project)."""
+    if archetype == "assets" and view == "side":
+        archetype = ASSETS_VIEW_SIDE_INPUT
     bindings: dict[str, dict[str, Any]] = {
         "move_up": {"keys": ["W", "Up"], "joy_buttons": [11], "joy_axes": [[1, -1.0]]},
         "move_down": {"keys": ["S", "Down"], "joy_buttons": [12], "joy_axes": [[1, 1.0]]},
@@ -111,7 +119,7 @@ def default_input(archetype: str) -> dict[str, dict[str, Any]]:
         bindings["secondary_attack"] = {"keys": ["K"], "mouse_buttons": [2], "joy_buttons": [3]}
         bindings["dodge"] = {"keys": ["Shift"], "joy_buttons": [1]}
         bindings["quick_item"] = {"keys": ["Q"], "joy_buttons": [9]}
-    if archetype == "metroidvania":
+    if archetype == "metroidvania" or archetype == ASSETS_VIEW_SIDE_INPUT:
         # Space jumps, so it no longer interacts; `down` with jump drops through a platform
         bindings["interact"] = {"keys": ["E", "Up"], "joy_buttons": [3]}
         bindings["jump"] = {"keys": ["Space", "Z"], "joy_buttons": [0]}
@@ -193,8 +201,8 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         from rpggen.core import track_plan
 
         return track_plan.defaults()
-    if archetype in ARCADE_KINDS:
-        return {}
+    if archetype in ARCADE_KINDS or archetype == ASSETS_KIND:
+        return {}  # an assets-only project has no maps (T17.33)
     options: dict[str, Any] = {
         "size": [40, 24],
         "buildings": 1,
@@ -241,13 +249,31 @@ ARCADE_OFF = ("dialogue", "navigation")
 # A farm (M17) has nothing to fight until somebody switches combat on.
 FARM_OFF = ("combat", "navigation")
 
+# A project of the packs' assets only (T17.33): their TileSets, the scenes the editor's dock
+# places and the catalog, with the runtime the scenes need, and no game (no maps, no menus, no
+# loop, no smoke run). The owner builds the levels by hand. Seen from above (top-down or
+# isometric, ``projection``) or from the side (``view``), as the packs are drawn.
+ASSETS_KIND = "assets"
+VIEW_TOP = "top"
+VIEW_SIDE = "side"
+VIEWS = (VIEW_TOP, VIEW_SIDE)
+# what an assets-only project has: the editor's tools; nothing of a game
+ASSETS_ON = ("tilesets", "collision", "terrain", "animations", "editor_tools")
+
+
+def side_view(archetype: str, view: str = "") -> bool:
+    """True for a project seen from the side: a side-view kind, or an assets-only project whose
+    view is the side's (T17.33)."""
+    return archetype in SIDE_VIEW_KINDS or (archetype == ASSETS_KIND and view == VIEW_SIDE)
+
+
 # How the maps of a project are seen (T17.13): from above on squares, or at an angle on the
 # diamonds of an isometric pack. A config without the key is top-down.
 PROJECTION_TOP_DOWN = "top_down"
 PROJECTION_ISOMETRIC = "isometric"
 PROJECTIONS = (PROJECTION_TOP_DOWN, PROJECTION_ISOMETRIC)
 # The kinds that have an isometric view: the top-down ones and the racing game.
-ISOMETRIC_KINDS = ("turn_based", "arpg", "farm", "racing")
+ISOMETRIC_KINDS = ("turn_based", "arpg", "farm", "racing", "assets")
 # ... and those of them whose isometric maps are not made yet (T17.14 made the turn-based game
 # and the action RPG): asked for, they are refused before anything is built
 ISOMETRIC_NOT_YET: tuple[str, ...] = ()  # the race was the last (T17.15)
@@ -268,6 +294,8 @@ def iso_controls_for(archetype: str, wanted: str) -> str:
 
 
 def default_features(archetype: str = "turn_based") -> dict[str, bool]:
+    if archetype == ASSETS_KIND:
+        return {key: key in ASSETS_ON for key in FEATURE_KEYS}
     off = ARCADE_OFF if archetype in ARCADE_KINDS else ("navigation",)
     if archetype == "farm":
         off = FARM_OFF
@@ -301,6 +329,9 @@ class GeneratorConfig:
     projection: str = PROJECTION_TOP_DOWN
     # how the pad moves the player on an isometric map (T17.14): "screen" or "grid"
     iso_controls: str = ISO_CONTROLS_SCREEN
+    # an assets-only project (T17.33): "top" or "side"; "" until the packs decide it (the
+    # catalog phase writes what they are drawn as)
+    view: str = ""
     config_version: int = CONFIG_VERSION
     generator_version: str = __version__
     godot_version: str = GODOT_VERSION
@@ -328,6 +359,8 @@ class GeneratorConfig:
             out["repair_world"] = False
         if self.projection != PROJECTION_TOP_DOWN:  # a top-down config is what it was
             out["projection"] = self.projection
+        if self.archetype == ASSETS_KIND and self.view:
+            out["view"] = self.view
         controls = iso_controls_for(self.archetype, self.iso_controls)
         if controls != ISO_CONTROLS_SCREEN:  # the default is not written, nor what is not read
             out["iso_controls"] = controls
@@ -402,6 +435,7 @@ class GeneratorConfig:
             iso_controls=iso_controls_for(
                 data["archetype"], str(data.get("iso_controls", ISO_CONTROLS_SCREEN))
             ),
+            view=str(data.get("view", "")),
             config_version=data["config_version"],
             generator_version=data["generator_version"],
             godot_version=data["godot_version"],

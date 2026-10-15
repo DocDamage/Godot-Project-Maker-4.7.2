@@ -907,12 +907,28 @@
               "side": "one_way"
             }
           },
+          "5,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "side": "key"
+            }
+          },
           "6,0": {
             "collision": {
               "profile": "LADDER"
             },
             "custom": {
               "ladder": true
+            }
+          },
+          "6,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "side": "door"
             }
           },
           "7,0": {
@@ -933,7 +949,7 @@
       "overrides": {},
       "pack_id": "side_numbered_platformer",
       "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap_packed.png",
-      "sha256": "529ad7c32d29750b7229fba9bd0f4e34b3718faaf4b26269e17c701b7f8f2fd7",
+      "sha256": "33452468b475151e3f92cde437477e39f1a765cab65de7fcc58467dcfc74c97a",
       "status": "AUTO_DETECTED"
     },
     {
@@ -1030,7 +1046,7 @@
       "status": "UNUSED"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -1061,7 +1077,7 @@
       "status": "UNUSED"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -1092,7 +1108,7 @@
       "status": "UNUSED"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -1123,7 +1139,7 @@
       "status": "UNUSED"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -1154,7 +1170,7 @@
       "status": "UNUSED"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -1309,7 +1325,7 @@
       "status": "UNUSED"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -1340,7 +1356,7 @@
       "status": "UNUSED"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -1367,11 +1383,11 @@
       "overrides": {},
       "pack_id": "side_numbered_platformer",
       "path": "assets/packs/side_numbered_platformer/Tiles/tile_0013.png",
-      "sha256": "19ce7323bff690792e365e18ebee7315aa0f1e617c6ceb1b073e77c84d76c857",
+      "sha256": "7501e621b43007134da52ccdf84c3a1f7e12f5b2c66c50e3dcda2296780ed443",
       "status": "UNUSED"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -1525,7 +1541,7 @@
       "pack_id": "side_numbered_platformer",
       "profile_id": null,
       "root": "assets/packs/side_numbered_platformer",
-      "source_sha256": "5a850ad1ee718f094305c25c85f3521b62902511a1ea61f8fd9205237f4604f2",
+      "source_sha256": "bb071847a395fd13c8abb2abda4141eb8f998ff99db741f15c745c5511590da5",
       "warnings": [
         "view:side"
       ]
