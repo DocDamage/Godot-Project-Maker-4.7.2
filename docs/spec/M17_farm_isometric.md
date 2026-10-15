@@ -1467,6 +1467,16 @@ down what they left; this card is that list, and it is done when none of it is l
 * A folder named for what it holds (*Terrain*, *Characters*, *Props*) does not give its files a
   wrong role (a synthetic pack had to avoid the name *Terrain* for its water).
 
+**The aim, as the owner set it (2026-10-15).** "The whole purpose is for me to be able to make
+my own levels without having to add all the underlying logic to my assets as I import them."
+Generated maps are examples; what matters is that every asset is right when the user builds with
+it. So this card is judged in the editor: for each real pack, the generated TileSet is painted
+with Godot's own Terrain tool and the level furnished from the RPG Project Tools dock, the way
+the owner will make a level, then played and looked at beside the pack's own sample. The look
+requirements below apply to what painting and placing produce; the composition of generated
+maps (forest edges, prop clusters, paths that lead to things) comes last, and only if time
+allows.
+
 **The look of the games (added 2026-10-15, the owner's review)** — "terrain still looks like
 ass in all these visuals", and "it's not just terrain, it's buildings, props, NPCs, etc." The
 pictures of T17.31 and T17.32 show: ground as a visible grid of 48 px tiles (CuteSCKR), a quilt
