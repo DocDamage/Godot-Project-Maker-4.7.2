@@ -172,6 +172,7 @@ Sizes are rough: **S** under a day, **M** 1–3 days, **L** 3–7 days, **XL** m
 | T17.30 | Packs of other shapes: isometric packs by their names, characters in a folder of facings, object sheets, mixed tile sheets, a licence recorded by hand, AI-generated art marked | L | T17.29 | done locally on Windows: a Screaming Brain village (floors, walls, doorways) with walls along its edge and a house of pieces, a *Lords Of Pain* isometric action RPG with its own hero and enemies, and a farm each of SakPix's *Cozy Farming Village* and CuteSCKR's *Farm Tileset*, each passing its smoke run and looked at in a picture; CuteSCKR's pack marked as AI-generated gives its farm the README section *AI-generated content* and the same farm unmarked has none; the farms take their player from SakPix's villagers (a second pack), and the audit overrides made as a user would are in the notes (the slime of *Lords Of Pain* set aside: an arrow flies over it); paths and roads of Screaming Brain are overlays that need review, thick walls and corners stay unread (the notes) |
 | T17.31 | Autotiling: terrains read from real sheets and maps painted with them, from above and on diamonds | L | T17.30 | done locally on Windows: terrain blocks are read inside sheets in every layout of the card and pieces on diamonds by their edges and names; maps are painted with Godot's terrains and the variants chosen by the seed; *Tiny Farm*, *Farm RPG*, *Modern Farm*, CuteSCKR's and SakPix's farms, the samples, a *Medieval Town* village, a Screaming Brain village with its paths and a race on *Vector Roads* generated, played by their smoke runs and looked at; *Medieval Town*, SakPix's and CuteSCKR's packs have no terrain with edges (their grounds vary, nothing more), cliffs, walls and a cave's rock are not painted with terrains, and nobody played by hand (the notes) |
 | T17.32 | Real side-view packs: numbered tile sheets, terrain pieces by name, characters as frames in folders, background layers, beat-'em-up characters | L | T17.31 | done locally on Windows: a *Gothicvania* metroidvania (its caverns tiles as a terrain, its heroine, its creatures, its parallax set), a *Warped* run and gun with its space marine, rooms of Kenney's *Pixel Platformer* and *Platformer Pack Remastered*, each through its smoke run and looked at in pictures; 8.4 % of the 63 packs' pictures read with confidence (0.3 % before), 41.4 % with those set aside (21.0 %); pozak's characters have no animation names (they need review); nobody has played by hand. The card's *Dark Castle Interior* NPC objects were its character's frames, and its *New Platformer Pack* licence was found before (the measure read the wrong pack); see the notes |
+| T17.33 | Everything the real packs still leave unread or unbuilt | L | T17.32 | open |
 
 ---
 
@@ -1414,6 +1415,62 @@ confirm). Of about 13,000 pictures, fewer than 1 % were read with confidence.
   written in the notes; synthetic packs in each shape (a numbered sheet with a character sheet,
   terrain pieces named by place, a character as frames in action folders with a strip and
   previews beside, a layered background) hold it in the tests.
+
+## T17.33 — Everything the real packs still leave unread or unbuilt
+
+**Depends on:** T17.32
+**Files:** as the items need: the readers in `rpggen/core/adapters/`, `rpggen/core/terrain/`,
+`side_tiles.py`, `side_packs.py`, `pack_forms.py`, `iso_sheets.py`, `sheet_parts.py`,
+`catalog.py`, `mapping.py`, the builder's libraries and recipes, `tools/make_synthetic_packs.py`
+
+Added 2026-10-15 at the owner's word: "everything still not read will need to be read and
+implemented properly". The cards T17.29 to T17.32 and the three fixes after T17.30 each wrote
+down what they left; this card is that list, and it is done when none of it is left.
+
+**Side view (T17.32)**
+* pozak's characters have no animation names (their `.ase` files carry no tags): name their
+  rows from what the frames do (standing, a cycle of steps, a swing, a fall) and from the pack's
+  own animation index where one exists, so none needs review for its names.
+* Kenney's grass tops drawn with an outline under them, ladders drawn on a backdrop, doors,
+  keys and flags are read from the pictures.
+* Slopes are read and **built**: a sloped tile has a sloped collision and the player walks it.
+* A pack of large tiles (128 px) chooses a resolution that shows a room, without the user.
+* The packs still read poorly are read: pozak's *Dark Castle Interior* and *Burning Village
+  Japan* props, Kenney's *Platformer Pack Industrial*, *Medieval*, *Nautical* and *Platformer
+  Assets Tile Extensions*, ansimuz's *Explosions and Magic* (effects with their frames), and the
+  folders of the *Platformer & Beat 'Em Up Pack* (one sheet a character, with copies beside it).
+
+**Farm (T17.29, T17.30, the farm fix, T17.31)**
+* Numbered tiles name nothing (*Tiny Farm*): its player and its hen are found from the pictures,
+  as T17.32 finds a platformer's, not by an audit override.
+* *Modern Farm*'s interface, walls and portraits are read (no placeholders), and its barn and
+  coop are its own pictures, not the builder's shapes.
+* Animals cut from an object sheet have their species (chicken, cow, sheep, pig, goat, duck,
+  horse), so each goes to its own house.
+* Crops read from a mixed sheet get their produce's name from its picture where the pack has a
+  matching item, else a name from its colour and shape, never `crop_1`.
+* A pack drawn in 48 px tiles (CuteSCKR) is read in its size without the user setting it.
+* The cave's floor is the pack's cave or stone ground where it has one.
+* CuteSCKR's ground terrains join without seams; *Modern Farm*'s and *Farm RPG*'s remaining
+  sheets with terrains are read (T17.31 read 4 of 11 and 25 of 35).
+
+**Isometric (T17.21, T17.22, T17.30, the isometric fix, T17.31)**
+* A pack is read as isometric from its pictures and its names, whatever its id (today an id
+  without the word *isometric* can stop it).
+* *Medieval Town*'s house has one roof: its half-cell slopes are composed into a whole roof, or
+  the reason it cannot is shown on the audit card and the roof is drawn to match.
+* *Medieval Town*'s ground plates are a terrain where they join.
+* Cut objects of object sheets need no review where their sheet names them.
+
+**Everywhere**
+* A folder named for what it holds (*Terrain*, *Characters*, *Props*) does not give its files a
+  wrong role (a synthetic pack had to avoid the name *Terrain* for its water).
+
+**Done when**
+* Every item above is done, each held by a synthetic pack in the tests, and each of the real
+  games of T17.29 to T17.32 is generated again without the audit overrides those cards needed
+  (unless a user would still make that choice, and then the card says why), passes its smoke
+  run and is looked at in a picture.
 
 ---
 
