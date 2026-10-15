@@ -3446,6 +3446,8 @@ def make_terrain_blocks(out: Path) -> None:
             "usage": "tiles",
             "role": "GROUND",
             "cell": [16, 16],
+            "margin": [0, 0],
+            "separation": [0, 0],
         }
     }
     _expected(out, "terrain_blocks", expected)

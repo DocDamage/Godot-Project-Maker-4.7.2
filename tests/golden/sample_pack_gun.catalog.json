@@ -1287,7 +1287,7 @@
       "pack_id": "sample_pack_gun",
       "profile_id": null,
       "root": "assets/packs/sample_pack_gun",
-      "source_sha256": "e03d3ee9519d24e95d6ce77943fcf055b4f977e8675e9433deb5a07d56d10f82",
+      "source_sha256": "1bcaab96fd561490b92a08acc6b0e85bc66d7a1eb19fe5d7dfe41e5cc4648629",
       "warnings": [
         "strips_direction_assumed:boss/gate_attack.png",
         "strips_direction_assumed:boss/gate_idle.png",

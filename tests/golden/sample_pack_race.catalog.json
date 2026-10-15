@@ -782,7 +782,7 @@
       "pack_id": "sample_pack_race",
       "profile_id": null,
       "root": "assets/packs/sample_pack_race",
-      "source_sha256": "a9ced9eedf520158ce953f4a0f6d5a78c74d137e204cc0acfad4b3d6ec518e2f",
+      "source_sha256": "9a49174541c3fab39c9ac3c723e338ebea871e865d4df3d282c691efb5bcd9e2",
       "warnings": [
         "view:racing"
       ]

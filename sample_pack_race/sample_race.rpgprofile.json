@@ -383,6 +383,74 @@
       "tags": [
         "road"
       ],
+      "tile_overrides": {
+        "1,0": {
+          "terrain": {
+            "peering": {
+              "bottom_left_corner": 0,
+              "bottom_right_corner": 0,
+              "bottom_side": 0,
+              "left_side": 0,
+              "right_side": 0,
+              "top_left_corner": 0,
+              "top_right_corner": 0,
+              "top_side": 0
+            },
+            "set": "road_path_1_0",
+            "terrain": 0
+          }
+        },
+        "2,0": {
+          "probability": 0.35,
+          "terrain": {
+            "peering": {
+              "bottom_left_corner": 0,
+              "bottom_right_corner": 0,
+              "bottom_side": 0,
+              "left_side": 0,
+              "right_side": 0,
+              "top_left_corner": 0,
+              "top_right_corner": 0,
+              "top_side": 0
+            },
+            "set": "road_path_1_0",
+            "terrain": 0
+          }
+        },
+        "5,1": {
+          "terrain": {
+            "peering": {
+              "bottom_left_corner": 0,
+              "bottom_right_corner": 0,
+              "bottom_side": 0,
+              "left_side": 0,
+              "right_side": 0,
+              "top_left_corner": 0,
+              "top_right_corner": 0,
+              "top_side": 0
+            },
+            "set": "road_grass_5_1",
+            "terrain": 0
+          }
+        },
+        "7,1": {
+          "probability": 0.35,
+          "terrain": {
+            "peering": {
+              "bottom_left_corner": 0,
+              "bottom_right_corner": 0,
+              "bottom_side": 0,
+              "left_side": 0,
+              "right_side": 0,
+              "top_left_corner": 0,
+              "top_right_corner": 0,
+              "top_side": 0
+            },
+            "set": "road_grass_5_1",
+            "terrain": 0
+          }
+        }
+      },
       "tileset": "overworld",
       "usage": "tiles"
     },
@@ -460,7 +528,38 @@
           "asset": "tiles/road.png"
         }
       ],
-      "terrain_sets": [],
+      "terrain_sets": [
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "road_path_1_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_race.tiles.road",
+          "surface": "path",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "path"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "road_grass_5_1",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_race.tiles.road",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#8d6e63",
+              "name": "grass"
+            }
+          ]
+        }
+      ],
       "tile_size": [
         16,
         16

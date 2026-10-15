@@ -2014,7 +2014,7 @@
       "pack_id": "sample_pack_side",
       "profile_id": null,
       "root": "assets/packs/sample_pack_side",
-      "source_sha256": "4ec4840a04ed11178cb5d17a9a80a1c4adfc147c5eccc6711ae4173f131052fa",
+      "source_sha256": "b84d7b32fcaa988cfa6e9ea24b94d9ff94452a667c6a615d8b07bba1dcbd52a7",
       "warnings": [
         "strips_direction_assumed:boss/guardian_attack.png",
         "strips_direction_assumed:boss/guardian_hurt.png",

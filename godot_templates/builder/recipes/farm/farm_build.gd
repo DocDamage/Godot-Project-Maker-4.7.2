@@ -323,7 +323,10 @@ static func plot_terrain(ctx: BuildContext) -> Dictionary:
 	if MapGeo.is_isometric(ctx):
 		return {}
 	var def: Dictionary = ctx.catalog.tileset_def("overworld")
-	var found := TerrainPaint.find(ctx, def, null, PLOT_SURFACES, TerrainPaint.SOIL_SHAPES, ["GROUND"])
+	# a terrain of areas first; beds one cell wide only in a pack that has nothing else
+	var found := TerrainPaint.find(ctx, def, null, PLOT_SURFACES, TerrainPaint.AREA_SHAPES, ["GROUND"])
+	if found.is_empty():
+		found = TerrainPaint.find(ctx, def, null, PLOT_SURFACES, ["path"], ["GROUND"])
 	if JsonUtil.to_str(found.get("surface", "")) == "soil" and not soil_terrain(ctx, "soil").is_empty():
 		return {}
 	return found

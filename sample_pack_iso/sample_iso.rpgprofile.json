@@ -223,6 +223,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": -1,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "e"
       ],
@@ -249,6 +267,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": -1,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "e",
         "s"
@@ -275,6 +311,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": 0,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "e",
         "s",
@@ -302,6 +356,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": 0,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "e",
         "w"
@@ -328,6 +400,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": -1,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "n"
       ],
@@ -354,6 +444,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": -1,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "n",
         "e"
@@ -380,6 +488,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": -1,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "n",
         "e",
@@ -435,6 +561,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": 0,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "n",
         "e",
@@ -462,6 +606,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": -1,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "n",
         "s"
@@ -488,6 +650,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": 0,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "n",
         "s",
@@ -516,6 +696,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": 0,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "n",
         "w"
@@ -542,6 +740,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": -1,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "s"
       ],
@@ -568,6 +784,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": 0,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "s",
         "w"
@@ -594,6 +828,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": 0,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "ROAD",
+        "set": "iso_pathE_path",
+        "shape": "path",
+        "surface": "path"
+      },
       "joins": [
         "w"
       ],
@@ -1094,6 +1346,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": -1,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "WATER",
+        "set": "iso_waterES_water",
+        "shape": "path",
+        "surface": "water"
+      },
       "joins": [
         "e",
         "s"
@@ -1120,6 +1390,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": 0,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "WATER",
+        "set": "iso_waterES_water",
+        "shape": "path",
+        "surface": "water"
+      },
       "joins": [
         "e",
         "s",
@@ -1147,6 +1435,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": -1,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "WATER",
+        "set": "iso_waterES_water",
+        "shape": "path",
+        "surface": "water"
+      },
       "joins": [
         "n",
         "e"
@@ -1173,6 +1479,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": -1,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "WATER",
+        "set": "iso_waterES_water",
+        "shape": "path",
+        "surface": "water"
+      },
       "joins": [
         "n",
         "e",
@@ -1228,6 +1552,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": 0,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "WATER",
+        "set": "iso_waterES_water",
+        "shape": "path",
+        "surface": "water"
+      },
       "joins": [
         "n",
         "e",
@@ -1255,6 +1597,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": 0,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "WATER",
+        "set": "iso_waterES_water",
+        "shape": "path",
+        "surface": "water"
+      },
       "joins": [
         "n",
         "s",
@@ -1282,6 +1642,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": -1,
+          "left_side": 0,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "WATER",
+        "set": "iso_waterES_water",
+        "shape": "path",
+        "surface": "water"
+      },
       "joins": [
         "n",
         "w"
@@ -1308,6 +1686,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": 0,
+          "right_side": -1,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": -1
+        },
+        "role": "WATER",
+        "set": "iso_waterES_water",
+        "shape": "path",
+        "surface": "water"
+      },
       "joins": [
         "s",
         "w"

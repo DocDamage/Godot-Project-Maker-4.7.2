@@ -95,6 +95,7 @@ def generate(
     work_dir: Path | None,
     issues: IssueList,
     is_cancelled: Callable[[], bool] | None = None,
+    pictures: dict[str, str] | None = None,
 ) -> TerrainResult:
     """A2 composites, blob proposals, terrain blocks inside sheets (T17.31) and TILE-006
     reports for the tile sheets of ``catalog``.
@@ -120,9 +121,13 @@ def generate(
         root = roots[asset.pack_id]
         rel = asset.path.split("/", 3)[-1]
         file = root / rel
+        if pictures and asset.path in pictures:  # a picture rpggen cut (a part of a sheet)
+            file = Path(pictures[asset.path])
         tags = _tags(facets)
         cell = _cell(facets)
         stem = ids.slug(posixpath.splitext(posixpath.basename(rel))[0])
+        if pictures and asset.path in pictures:  # named after the asset, not its file's hash
+            stem = ids.slug(asset.id.rsplit(".", 1)[-1])
         if "rpgmaker_autotile" in tags:
             sheet_kind = next((t for t in tags if t in ("A1", "A2", "A3", "A4")), "")
             if sheet_kind in DEFERRED_A_SHEETS:

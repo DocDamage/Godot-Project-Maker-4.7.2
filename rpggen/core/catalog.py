@@ -1972,7 +1972,9 @@ def assemble(
 
     # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
     terrain.apply_tiled_wang(catalog, adapter_tilesets)
-    terrain_result = terrain.generate(catalog, pack_roots, work_dir, issues, is_cancelled)
+    terrain_result = terrain.generate(
+        catalog, pack_roots, work_dir, issues, is_cancelled, generated
+    )
     generated.update(terrain_result.generated)
     # the isometric pieces that join along the sides of a diamond (T17.31)
     terrain.iso.read(

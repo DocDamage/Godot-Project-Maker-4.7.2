@@ -756,6 +756,73 @@
         32
       ],
       "tile_overrides": {
+        "0,1": {
+          "terrain": {
+            "peering": {
+              "bottom_left_corner": 0,
+              "bottom_right_corner": 0,
+              "bottom_side": 0,
+              "left_side": 0,
+              "right_side": 0,
+              "top_left_corner": 0,
+              "top_right_corner": 0,
+              "top_side": 0
+            },
+            "set": "cave_rock_0_1",
+            "terrain": 0
+          }
+        },
+        "1,1": {
+          "probability": 0.35,
+          "terrain": {
+            "peering": {
+              "bottom_left_corner": 0,
+              "bottom_right_corner": 0,
+              "bottom_side": 0,
+              "left_side": 0,
+              "right_side": 0,
+              "top_left_corner": 0,
+              "top_right_corner": 0,
+              "top_side": 0
+            },
+            "set": "cave_rock_0_1",
+            "terrain": 0
+          }
+        },
+        "2,1": {
+          "probability": 0.35,
+          "terrain": {
+            "peering": {
+              "bottom_left_corner": 0,
+              "bottom_right_corner": 0,
+              "bottom_side": 0,
+              "left_side": 0,
+              "right_side": 0,
+              "top_left_corner": 0,
+              "top_right_corner": 0,
+              "top_side": 0
+            },
+            "set": "cave_rock_0_1",
+            "terrain": 0
+          }
+        },
+        "3,1": {
+          "probability": 0.35,
+          "terrain": {
+            "peering": {
+              "bottom_left_corner": 0,
+              "bottom_right_corner": 0,
+              "bottom_side": 0,
+              "left_side": 0,
+              "right_side": 0,
+              "top_left_corner": 0,
+              "top_right_corner": 0,
+              "top_side": 0
+            },
+            "set": "cave_rock_0_1",
+            "terrain": 0
+          }
+        },
         "4,0": {
           "collision": {
             "profile": "ONE_WAY"
@@ -1553,7 +1620,23 @@
           "asset": "tiles/cave.png"
         }
       ],
-      "terrain_sets": [],
+      "terrain_sets": [
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "cave_rock_0_1",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_side.tiles.cave",
+          "surface": "rock",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "rock"
+            }
+          ]
+        }
+      ],
       "tile_size": [
         16,
         16
