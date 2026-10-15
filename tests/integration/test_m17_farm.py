@@ -127,6 +127,11 @@ FILES = [
 ]
 
 
+# what a report says of the computer, not of the pack: a missing tool (ENV-) or a Godot
+# that crashed while importing and was run again (BUILD-006)
+MACHINE_NOTES = ("ENV-", "BUILD-006")
+
+
 def _config(source: Path, pack_id: str) -> config.GeneratorConfig:
     return config.default_for(
         "Green Acre", [config.pack_ref_from_source(source, pack_id)], archetype="farm"
@@ -1010,7 +1015,7 @@ def _sample_notes(result) -> list[str]:
     return sorted(
         f"{i.code}: {i.message}"
         for i in result.issues
-        if not i.code.startswith("ENV-")
+        if not i.code.startswith(MACHINE_NOTES)
         and (i.severity.value != "info" or i.code not in SAMPLE_NOTES)
     )
 

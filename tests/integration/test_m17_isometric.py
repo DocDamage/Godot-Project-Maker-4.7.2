@@ -89,6 +89,11 @@ KIT = [
 ]
 
 
+# what a report says of the computer, not of the pack: a missing tool (ENV-) or a Godot
+# that crashed while importing and was run again (BUILD-006)
+MACHINE_NOTES = ("ENV-", "BUILD-006")
+
+
 def _config(
     archetype: str, projection: str = "isometric", controls: str = "screen"
 ) -> config.GeneratorConfig:
@@ -826,7 +831,7 @@ def test_stone_isle_is_an_isometric_turn_based_game_that_passes_its_smoke_run(is
     notes = sorted(
         f"{i.code}: {i.message}"
         for i in result.issues
-        if not i.code.startswith("ENV-")
+        if not i.code.startswith(MACHINE_NOTES)
         and (i.severity.value != "info" or i.code not in ISLE_NOTES)
     )
     assert notes == [], "nothing is missing, and nobody is drawn: the pack has its people"

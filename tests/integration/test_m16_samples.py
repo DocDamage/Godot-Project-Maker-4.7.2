@@ -44,6 +44,11 @@ NOTES = {"ADAPT-003", "ASSET-031"}
 Made = tuple[Path, orchestrator.RunResult]
 
 
+# what a report says of the computer, not of the pack: a missing tool (ENV-) or a Godot
+# that crashed while importing and was run again (BUILD-006)
+MACHINE_NOTES = ("ENV-", "BUILD-006")
+
+
 def _config(key: str, **starter_map) -> config.GeneratorConfig:
     sample = project_model.sample(key)
     assert sample.key == key
@@ -125,7 +130,8 @@ def _notes(result: orchestrator.RunResult) -> list[str]:
     return sorted(
         f"{i.code}: {i.message}"
         for i in result.issues
-        if not i.code.startswith("ENV-") and (i.severity.value != "info" or i.code not in NOTES)
+        if not i.code.startswith(MACHINE_NOTES)
+        and (i.severity.value != "info" or i.code not in NOTES)
     )
 
 
