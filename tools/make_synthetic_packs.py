@@ -3692,7 +3692,7 @@ def make_side_numbered(out: Path) -> None:
         out,
         "side_numbered_platformer",
         {
-            "Tilemap/tilemap_packed.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16]},
+            "Tilemap/tilemap_packed.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16], "margin": [0, 0], "separation": [0, 0]},
             "Tilemap/tilemap-characters_packed.png#ch0_0": {
                 "usage": "sprite", "role": "PLAYER", "frame": [24, 24], "anims": ["idle_down", "walk_down"],
             },
@@ -3846,7 +3846,7 @@ def make_side_layered(out: Path) -> None:
         {
             "Background/1 (2).png": {"usage": "background", "role": "BACKGROUND"},
             "Background/1 (5).png": {"usage": "background", "role": "BACKGROUND"},
-            "Tileset/Tileset.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16]},
+            "Tileset/Tileset.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16], "margin": [0, 0], "separation": [0, 0]},
         },
     )  # fmt: skip
 

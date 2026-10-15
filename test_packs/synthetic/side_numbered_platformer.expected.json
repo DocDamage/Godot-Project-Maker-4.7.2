@@ -28,7 +28,15 @@
       16,
       16
     ],
+    "margin": [
+      0,
+      0
+    ],
     "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ],
     "usage": "tiles"
   },
   "Tiles/tile_0000.png": {

@@ -55,11 +55,15 @@ def test_the_cells_of_a_numbered_sheet_are_read_from_their_pictures(tmp_path: Pa
         peering["1,1"][s] == 0 for s in ("top_side", "right_side", "bottom_side", "left_side")
     )
     assert peering["1,2"]["bottom_side"] == -1
-    kinds = {k: v["custom"]["side"] for k, v in over.items()}
+    kinds = {k: v["custom"].get("side") for k, v in over.items()}
     assert [kinds[f"{x},0"] for x in (3, 4, 5)] == ["one_way"] * 3
     assert over["3,0"]["collision"] == {"profile": "ONE_WAY"}
-    assert kinds["6,0"] == "ladder" and over["6,0"]["collision"] == {"profile": "LADDER"}
-    assert kinds["7,0"] == "spikes" and over["7,0"]["custom"]["hazard"] is True
+    assert over["6,0"]["custom"] == {"ladder": True} and over["6,0"]["collision"] == {
+        "profile": "LADDER"
+    }
+    assert over["7,0"]["custom"] == {"hazard": True} and over["7,0"]["collision"] == {
+        "profile": "NONE"
+    }
     assert kinds["3,1"] == "water" and kinds["4,1"] == "coin"
     assert "5,1" not in over and "6,1" not in over, "a key and a door stay unread"
     assert any(i.code == "TILE-016" and sheet.id in i.message for i in issues)

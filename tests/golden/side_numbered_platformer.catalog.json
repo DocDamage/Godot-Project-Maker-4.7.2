@@ -912,8 +912,7 @@
               "profile": "LADDER"
             },
             "custom": {
-              "ladder": true,
-              "side": "ladder"
+              "ladder": true
             }
           },
           "7,0": {
@@ -921,8 +920,7 @@
               "profile": "NONE"
             },
             "custom": {
-              "hazard": true,
-              "side": "spikes"
+              "hazard": true
             }
           }
         },

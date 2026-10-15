@@ -1308,8 +1308,7 @@
               "profile": "NONE"
             },
             "custom": {
-              "hazard": true,
-              "side": "spikes"
+              "hazard": true
             }
           },
           "6,0": {
@@ -1392,7 +1391,7 @@
       "pack_id": "sample_pack_gun",
       "profile_id": null,
       "root": "assets/packs/sample_pack_gun",
-      "source_sha256": "a877c161308ea9a598bc25f8e501f739240daf36413b06d25877953fd17e24bd",
+      "source_sha256": "0f21afc5395728f4df56d70e3f278c061e91190908eb5f38f846c1dbd7d5abb4",
       "warnings": [
         "strips_direction_assumed:boss/gate_attack.png",
         "strips_direction_assumed:boss/gate_idle.png",

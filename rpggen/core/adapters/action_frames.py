@@ -317,6 +317,10 @@ def find_action_files(inv: Inventory, claimed: set[str]) -> list[Character]:
     ``alienBeige_hit``): every name is the character's name, an action word and maybe a frame's
     number, all of one size, and two actions at least. The animations are named by the action
     (``stand`` is ``idle``, ``hit`` is ``hurt``)."""
+    # a character rendered once a facing (``Male_3_Run7``) is the numbered-frame reader's
+    facing = {f.path for s in sequences.find_facings(inv, claimed) for f in s.files}
+    # and frames it reads by their names (``hero_walk_ne_01``) are its as well
+    facing |= {f.path for s in sequences.find_sequences(inv, claimed) for _n, f in s.frames}
     by_folder: dict[str, list[InventoryFile]] = {}
     for f in inv.files:
         if f.kind == "image":
@@ -324,6 +328,8 @@ def find_action_files(inv: Inventory, claimed: set[str]) -> list[Character]:
     out: list[Character] = []
     for folder in sorted(by_folder):
         files = by_folder[folder]
+        if any(f.path in facing for f in files):
+            continue
         if (
             not folder
             or len(files) < 3

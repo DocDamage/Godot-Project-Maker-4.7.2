@@ -901,8 +901,7 @@
             "profile": "NONE"
           },
           "custom": {
-            "hazard": true,
-            "side": "spikes"
+            "hazard": true
           }
         },
         "5,0": {

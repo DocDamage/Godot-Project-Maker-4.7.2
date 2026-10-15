@@ -511,10 +511,10 @@ def overrides(read_: SheetRead, set_names: list[str]) -> dict[str, dict[str, Any
         elif kind == LADDER:
             out[key] = {
                 "collision": {"profile": "LADDER"},
-                "custom": {"side": kind, "ladder": True},
+                "custom": {"ladder": True},
             }
         elif kind == SPIKES:
-            out[key] = {"collision": {"profile": "NONE"}, "custom": {"side": kind, "hazard": True}}
+            out[key] = {"collision": {"profile": "NONE"}, "custom": {"hazard": True}}
         else:  # water and coins are no ground to stand on
             out[key] = {"collision": {"profile": "NONE"}, "custom": {"side": kind}}
     return out
