@@ -779,6 +779,8 @@ def _side_view_usage(assets: list[Asset]) -> None:
 
 # A pack warning: the pack looks like a side-view (platformer) pack (T14.02).
 VIEW_SIDE = "view:side"
+# A pack warning: the licence file was found one folder above the pack (T17.32).
+LICENCE_ABOVE = "licence_above:"
 
 
 def _side_view_soldier(assets: list[Asset]) -> None:
@@ -1590,7 +1592,7 @@ def assemble(
     Returns ``(catalog, issues, generated_files)`` where generated_files maps project-relative
     paths (GIF strips) to the absolute files the installer must copy.
     """
-    from rpggen.core import adapters, classifier, pack_forms, terrain
+    from rpggen.core import adapters, classifier, pack_forms, side_packs, terrain
     from rpggen.core.adapters import farm, strips
     from rpggen.core.analyzer import analyzer_for, prewarm
 
@@ -1607,6 +1609,7 @@ def assemble(
     pack_roots: dict[str, Path] = {}
     picture_hashes: dict[str, str] = {}  # asset id -> difference hash (T13.04)
     farm_ids: set[str] = set()  # the farming packs (T17.29)
+    side_ids: set[str] = set()  # the packs seen from the side (T17.32)
 
     for opened, inv in sorted(packs, key=lambda pair: _sort_key(pair[1].pack_id)):
         if is_cancelled is not None and is_cancelled():
@@ -1843,7 +1846,16 @@ def assemble(
         licence_paths = _licence_paths(inv, opened.root)
         license_files = _license_files(licence_paths, root)
         stated = _stated_licence(pack_id, previous, results)
-        if not license_files and stated:
+        above = (
+            licenses.licence_above(opened.root)
+            if not license_files and opened.kind == "folder"
+            else None
+        )
+        if above is not None:
+            # the licence one folder above a pack analysed alone (T17.32): what it says is the
+            # pack's, and the pack says where it was found
+            warnings.append(f"{LICENCE_ABOVE}{above[0]}")
+        elif not license_files and stated:
             # the user stated it on the Audit page or in the pack's profile (T17.30)
             issues.add(
                 "ASSET-036",
@@ -1921,6 +1933,17 @@ def assemble(
                         facets["footprint"] = [int(diamond_said[0]), int(diamond_said[2])]
         if view == "side":
             _side_view_soldier([a for a in catalog.assets if a.pack_id == pack_id])
+            # what real side-view packs are (T17.32): their creatures enemies, their props no
+            # characters, their background layers ordered sets, their character sheets cut
+            side_ids.add(pack_id)
+            own = [a for a in catalog.assets if a.pack_id == pack_id]
+            side_packs.characters(own, root)
+            side_packs.props(own, root)
+            side_packs.not_ground(own, root)
+            side_packs.parallax_sets(own, opened.root, root)
+            cut = side_packs.character_sheets(own, opened.root, root)
+            catalog.assets.extend(cut)
+            present_ids.update(a.id for a in cut)
         if view == "farm":
             _farm_farmer([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_use_strips([a for a in catalog.assets if a.pack_id == pack_id])
@@ -1952,7 +1975,7 @@ def assemble(
                 [r.adapter for r in results if r.assets or r.objects or r.tilesets],
                 next((r.profile_id for r in results if r.profile_id), None),
                 sorted(set(warnings)),
-                licenses.detect_files(opened.root, licence_paths).to_json(),
+                (above[1] if above is not None else licenses.detect_files(opened.root, licence_paths)).to_json(),
                 _profile_licence(results),
             )
         )
@@ -1970,12 +1993,25 @@ def assemble(
     mark_season_variants(catalog)
     mark_turns(catalog)
 
+    # the tiles of side-view packs (T17.32): terrains of named pieces and of the cells of their
+    # sheets, the kinds of those cells, one tile size a pack
+    side_sets, side_files = side_packs.read_tiles(
+        catalog,
+        pack_roots,
+        side_ids,
+        work_dir,
+        issues,
+        lambda job, items: terrain._in_parallel(job, items, is_cancelled),
+    )
+    generated.update(side_files)
     # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
     terrain.apply_tiled_wang(catalog, adapter_tilesets)
     terrain_result = terrain.generate(
         catalog, pack_roots, work_dir, issues, is_cancelled, generated
     )
     generated.update(terrain_result.generated)
+    for asset_id, found_sets in side_sets.items():
+        terrain_result.terrain_sets.setdefault(asset_id, []).extend(found_sets)
     # the isometric pieces that join along the sides of a diamond (T17.31)
     terrain.iso.read(
         catalog,
@@ -2013,6 +2049,7 @@ def assemble(
             )
         )
     _add_objects(catalog, objects_raw, previous)
+    side_packs.prop_objects(catalog, side_ids)  # props cut from a sheet are no NPCs (T17.32)
     # the things cut from a sheet set aside as another form are set aside too (T17.29: the
     # 16 000 objects of *Modern Farm*'s sheets at three sizes and in a complete set)
     by_id = {a.id: a for a in catalog.assets}

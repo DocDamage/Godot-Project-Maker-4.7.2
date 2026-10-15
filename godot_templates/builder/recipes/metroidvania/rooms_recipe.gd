@@ -10,7 +10,10 @@ extends RefCounted
 ## what stands in it (the sign, the pickups, the hermit of the last room, a chest, the enemies and
 ## the guardian) come from the plan too.
 
-const RECIPE_VERSION := 1
+const RECIPE_VERSION := 2
+## The seed the side-view terrain of a room settles its variants by (T17.32): the same rows give
+## the same tiles.
+const TERRAIN_SEED := 3217
 
 const Paths := preload("../../lib/paths.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -221,6 +224,16 @@ static func paint(rows: Array, layers: Dictionary, kit: Dictionary) -> void:
 	var ladder := JsonUtil.to_dict(kit["ladder"])
 	var hazard := JsonUtil.to_dict(kit["hazard"])
 	var breakable := JsonUtil.to_dict(kit["breakable"])
+	var terrain := JsonUtil.to_dict(kit.get("terrain", {}))
+	if not terrain.is_empty():
+		# the ground as its terrain (T17.32): the surface on top, the ends, the inside, the faces
+		var cells: Array[Vector2i] = []
+		for y in rows.size():
+			var line := JsonUtil.to_str(rows[y])
+			for x in line.length():
+				if line[x] == "#":
+					cells.append(Vector2i(x, y))
+		RpgTerrain.paint_area(ground, cells, JsonUtil.to_int(terrain["set"]), JsonUtil.to_int(terrain["terrain"]), TERRAIN_SEED)
 	for y in rows.size():
 		var row := JsonUtil.to_str(rows[y])
 		var above := JsonUtil.to_str(rows[y - 1]) if y > 0 else ""
@@ -228,8 +241,9 @@ static func paint(rows: Array, layers: Dictionary, kit: Dictionary) -> void:
 			var cell := Vector2i(x, y)
 			match row[x]:
 				"#":
-					var covered := above != "" and (above[x] == "#" or above[x] == "B")
-					MapUtil.put(ground, cell, fill if covered else top)
+					if terrain.is_empty():
+						var covered := above != "" and (above[x] == "#" or above[x] == "B")
+						MapUtil.put(ground, cell, fill if covered else top)
 				"B":
 					MapUtil.put(ground, cell, breakable if not breakable.is_empty() else top)
 				"=":

@@ -335,9 +335,12 @@ Standard animation names: `idle_down, idle_up, idle_left, idle_right, walk_*, at
   `soil_wet`, `rock`, `dark` or `other`: what its middle is, by its colour and the words of its
   sheet), `over` (`ground`, or `nothing` for a terrain drawn over transparency), `shape`
   (`any`: every shape of an area or a path, `area`: areas two cells wide and more, `path`: a
-  terrain that joins at its sides, `plain`: the plain variants of a ground and nothing else),
+  terrain that joins at its sides, `plain`: the plain variants of a ground and nothing else,
+  `side` (release 1.5, T17.32): the ground of a side-view room, its surface on top, its ends,
+  its inside and the faces under it, in the mode `sides`; the side-view rooms and stages paint
+  their ground with it and no other map takes it),
   `layout` (`blob47_godot_12x4`, `blob47_12x4`, `corners16_4x4`, `corners16_drawn_4x4`,
-  `sides16_drawn_4x4`, `rpg13_3x3`, `minimal9_3x3`, `strips`, `plain`, `rpgmaker_a2`) and
+  `sides16_drawn_4x4`, `rpg13_3x3`, `minimal9_3x3`, `strips`, `plain`, `rpgmaker_a2`, `side`) and
   `sheet` (the asset the set was read from; a composed RPG Maker atlas names itself), and for
   an isometric set `role`. The map recipes choose a terrain by these
   (`builder/lib/terrain_paint.gd`). A set rpggen read from blocks inside a sheet has one

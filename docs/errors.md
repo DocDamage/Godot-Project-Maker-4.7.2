@@ -106,6 +106,7 @@
 | TILE-013 | warning | The map {map} is drawn {drawn} and this project is {view}: it is not imported. | A map is imported into a project that is seen as the map is drawn: an isometric Tiled map into an isometric project, a map of squares into a project seen from above. Choose another map on the Options page, or make a project of the other view. |
 | TILE-014 | warning | The names of the pictures of {pack_id} give its diamond as {named} px, and its flat tiles measure {measured} px: the names' diamond is used, the pictures that are no cells of a named sheet are not read as tiles. | Check the sizes in the file names; a picture that is a tile of another diamond can be given its role on the Audit page. |
 | TILE-015 | info | The map {map} exists and keeps the painting it has: a map made now is painted with the terrains of the tile set (soft edges, ground that varies). | Move the map away and generate again to have it painted anew; what was changed on it by hand is then lost. |
+| TILE-016 | info | {unread} of the {painted} painted tiles of {asset} were not given a side-view role: their pictures do not say with confidence whether they are ground, a platform, a ladder, spikes, water or a coin (a door, a key, a flag, a sign or a digit are too alike to tell). | Give a tile its role on the Audit page if a room should use it; the tiles that were read are used. |
 
 ## Animation (ANIM)
 

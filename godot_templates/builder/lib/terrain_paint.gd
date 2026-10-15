@@ -33,6 +33,9 @@ const PATCH_SURFACES: Array[String] = ["dirt", "sand", "grass", "stone", "snow",
 const AREA_SHAPES: Array[String] = ["any", "area"]
 const PATH_SHAPES: Array[String] = ["path", "any"]
 const SOIL_SHAPES: Array[String] = ["any", "area", "path"]
+## The ground of a side-view room (T17.32): only the side-view rooms and stages paint with it
+## (`side_kit.gd`); no shape list above names it, so no map seen from above takes it.
+const SIDE_SHAPE := "side"
 
 ## The terrain sets of a definition, each with its `index` in the TileSet.
 static func specs(def: Dictionary) -> Array[Dictionary]:

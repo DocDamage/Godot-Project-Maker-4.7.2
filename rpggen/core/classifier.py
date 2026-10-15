@@ -617,6 +617,13 @@ def made_for(inventory: Any, sheets: Any = ()) -> str:
     top = 0
     seen: set[str] = set()
     isometric = isometric_view(inventory, sheets)
+    # the pack's own name counts twice (T17.32: *Platformer Pack Medieval*, pozak's *2D Pixel
+    # Art Platformer Asset Pack*s say it nowhere else)
+    own = _all_words(str(getattr(inventory, "pack_id", "") or ""))
+    if set(own) & SIDE_VIEW_WORDS or any(_has_pair(own, p) for p in SIDE_VIEW_PAIRS):
+        side += 2
+    if set(own) & TOP_VIEW_WORDS or any(_has_pair(own, p) for p in TOP_VIEW_PAIRS):
+        top += 2
     for f in getattr(inventory, "files", ()):
         folders, stem = _path_parts(f.path)
         for part in (*folders, _one_name(stem, isometric)):

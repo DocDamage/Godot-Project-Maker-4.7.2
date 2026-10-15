@@ -87,6 +87,7 @@ def run_adapters(
 
 def register_defaults() -> None:
     """Register the built-in adapters (idempotent)."""
+    from rpggen.core.adapters.action_frames import ActionFramesAdapter
     from rpggen.core.adapters.aseprite import AsepriteAdapter
     from rpggen.core.adapters.cutter import CutterAdapter
     from rpggen.core.adapters.facings import FacingsAdapter
@@ -115,6 +116,7 @@ def register_defaults() -> None:
         RpgMakerAdapter(),
         LpcAdapter(),
         SheetPartsAdapter(),
+        ActionFramesAdapter(),
         CutterAdapter(),
         FacingsAdapter(),
         KenneyAtlasAdapter(),
