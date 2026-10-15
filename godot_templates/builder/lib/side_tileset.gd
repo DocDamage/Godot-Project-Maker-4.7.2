@@ -91,7 +91,7 @@ static func kinds(eff: Dictionary, tile_override: Dictionary, collision: Diction
 
 ## Gives a tile its side-view parts. The one-way polygon is added once (a polygon that is there,
 ## maybe edited in Godot, is left alone); the custom data follows the catalog on every build.
-static func configure_tile(td: TileData, eff: Dictionary, tile_override: Dictionary, collision: Dictionary, cell: Vector2i) -> void:
+static func configure_tile(td: TileData, eff: Dictionary, tile_override: Dictionary, collision: Dictionary, cell: Vector2i, ts: TileSet = null) -> void:
 	var what := kinds(eff, tile_override, collision)
 	if what["one_way"] and td.get_collision_polygons_count(ONE_WAY_PHYSICS) == 0:
 		var points := Geometry.to_tile_space(Geometry.rect_poly(0.0, 0.0, float(cell.x), one_way_thickness(cell)), cell)
@@ -102,3 +102,25 @@ static func configure_tile(td: TileData, eff: Dictionary, tile_override: Diction
 		var value: bool = what[layer_name]
 		if JsonUtil.to_bool(td.get_custom_data(layer_name)) != value:
 			td.set_custom_data(layer_name, value)
+	# a hill's side and the earth under its foot (T17.33): their layers are added only to a
+	# TileSet that has such a tile, so the TileSets of packs without hills are what they were
+	var custom := JsonUtil.to_dict(tile_override.get("custom", {}))
+	var slope := JsonUtil.to_str(custom.get("slope", ""))
+	var under := JsonUtil.to_str(custom.get("under_slope", ""))
+	for pair: Array in [["slope_", slope], ["under_slope_", under]]:
+		var which := JsonUtil.to_str(pair[1])
+		if which != "up" and which != "down":
+			continue
+		var layer_name := JsonUtil.to_str(pair[0]) + which
+		if ts == null:
+			continue
+		_ensure_bool_layer(ts, layer_name)
+		td.set_custom_data(layer_name, true)
+
+## The bool custom data layer `layer_name` of a TileSet, added when it is missing.
+static func _ensure_bool_layer(ts: TileSet, layer_name: String) -> void:
+	if ts.get_custom_data_layer_by_name(layer_name) == -1:
+		ts.add_custom_data_layer()
+		var index := ts.get_custom_data_layers_count() - 1
+		ts.set_custom_data_layer_name(index, layer_name)
+		ts.set_custom_data_layer_type(index, TYPE_BOOL)

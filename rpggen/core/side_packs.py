@@ -40,7 +40,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from rpggen.core import side_tiles
+from rpggen.core import motion, side_tiles
 from rpggen.errors import IssueList
 
 UNUSED = "unused_because:"
@@ -338,6 +338,9 @@ _SIZE = re.compile(r"(?<![0-9])([0-9]{2,3})\s*[xX]\s*([0-9]{2,3})(?![0-9])")
 FRAME_SHEET = "frame_sheet"
 FRAMES_OF_SHEET = "frames_of_sheet"
 UNNAMED_CONFIDENCE = 0.5  # needs review: the rows' animations have no names
+MOTION_NAMED = "motion_named"  # T17.33: the animations were named from what the frames do
+MOTION_CONFIDENCE = 0.8
+TILE_SHEET_WORDS = frozenset({"tilemap", "tileset", "tiles", "terrain"})
 
 
 def frame_sheets(assets: list[Any], pack_root: Path, root: str) -> int:
@@ -362,34 +365,50 @@ def frame_sheets(assets: list[Any], pack_root: Path, root: str) -> int:
         w, h = int(size[0]), int(size[1])
         if not cw or not ch or w % cw or h % ch or (w // cw) * (h // ch) < 4:
             continue
+        if set(words(rel)) & TILE_SHEET_WORDS:
+            continue  # pozak's ``Terrain/Tilemap 24x24 (3).png``: tiles, no character
         rgba = _load(pack_root / rel)
         if rgba is None:
             continue
-        parts = side_tiles.cells_of(rgba, cw, ch, (0, 0), (0, 0))
-        rows: dict[int, list[list[int]]] = {}
-        for c in parts:
-            if c.cover >= side_tiles.EMPTY:
-                rows.setdefault(c.y, []).append([c.x, c.y])
-        if not rows:
+        # the frames may be drawn at a part of the size the name says (T17.33)
+        cw, ch = motion.cell_of(rgba, (cw, ch))
+        frames = motion.frames_of(rgba, cw, ch)
+        seqs = motion.sequences(frames, w // cw)
+        fig = motion.figure(seqs)
+        if fig is None:
             continue
+        # every animation named by what its frames do (T17.33: standing, steps, a swing, ...)
+        named = motion.names(seqs, fig)
         facets = asset.detected
         tags = {t for t in _tags(asset) if not t.startswith(UNUSED) and not t.startswith(SAME_AS)}
+        once = {"death", "get_up", "hurt", "attack", "jump", "fall", "action"}
         facets.update({
             "usage": "sprite",
             "grid": {"cell": [cw, ch], "margin": [0, 0], "separation": [0, 0]},
             "frame": [cw, ch],
             "origin": [cw // 2, ch - 1],
             "animations": {
-                f"anim_{i}": {"frames": frames, "fps": 8.0, "loop": True}
-                for i, (_y, frames) in enumerate(sorted(rows.items()))
+                f"{name}_down": {
+                    "frames": [[f.col, f.row] for f in seq],
+                    "fps": 8.0 if name.split("_")[0] in ("idle", "crouch") else 10.0,
+                    "loop": name.rsplit("_", 1)[0] not in once and name not in once,
+                }
+                for name, seq in zip(named, seqs, strict=True)
             },
-            "tags": sorted(tags | {FRAME_SHEET}),
+            "tags": sorted(tags | {FRAME_SHEET, MOTION_NAMED}),
         })  # fmt: skip
         said = set(words(rel))
         facets["role"] = next((r for r, ws in ROLE_WORDS.items() if said & ws), "PLAYER")
         facets.pop("roles_alt", None)
-        asset.confidence = UNNAMED_CONFIDENCE
+        # named from the frames: sure when it stands and walks, as a reader of names would be
+        basics = {n.split("_")[0] for n in named}
+        asset.confidence = (
+            MOTION_CONFIDENCE
+            if {"idle"} <= basics and basics & {"walk", "run"}
+            else UNNAMED_CONFIDENCE
+        )
         sizes.add((cw, ch))
+        sizes.add((int(m.group(1)), int(m.group(2))))
         made += 1
         for other in assets:
             if other.id.startswith(asset.id + "#") and not _set_aside(other):
@@ -404,6 +423,159 @@ def frame_sheets(assets: list[Any], pack_root: Path, root: str) -> int:
         if (int(size[0]), int(size[1])) in sizes and _number(stem) is not None:
             _aside(asset, FRAMES_OF_SHEET)
     return made
+
+
+# --------------------------------------------------------------------------- tiles twice
+
+SAME_TILES = "same_tiles"
+TILE_COPY_SIZES = (8, 160)  # single square tiles of this many px
+MIN_COPIES = 8
+COPY_SHARE = 0.6  # of a size's single tiles found among the cells of one sheet
+TILE_COPY_CONFIDENCE = 0.8
+
+
+COPY_DIFF = 2.0  # mean difference (0..255) of a single tile and its cell: the export's rounding
+
+
+def _premultiplied(part: np.ndarray) -> np.ndarray:
+    a = part.astype(np.float32)
+    a[:, :, :3] *= a[:, :, 3:4] / 255.0
+    return a
+
+
+def _matches(singles: np.ndarray, cells: np.ndarray) -> np.ndarray:
+    """For each single tile (premultiplied, n x h x w x 4), the index of the cell (premultiplied,
+    m x h x w x 4) it is the same picture as within ``COPY_DIFF``, else -1. Two copies of one
+    picture exported apart differ in a few edge pixels, so they are compared, not hashed."""
+    out = np.full(len(singles), -1, dtype=np.int64)
+    if not len(singles) or not len(cells):
+        return out
+    k = max(1, singles.shape[1] // 10)
+    coarse_c = cells[:, ::k, ::k].reshape(len(cells), -1)
+    coarse_s = singles[:, ::k, ::k].reshape(len(singles), -1)
+    flat_c = cells.reshape(len(cells), -1)
+    for i in range(len(singles)):
+        near = np.abs(coarse_c - coarse_s[i][None, :]).mean(axis=1)
+        for j in np.argsort(near, kind="stable")[:3]:
+            if float(near[j]) > 4.0 * COPY_DIFF:
+                break
+            if float(np.abs(flat_c[j] - singles[i].reshape(-1)).mean()) <= COPY_DIFF:
+                out[i] = int(j)
+                break
+    return out
+
+
+def tile_copies(assets: list[Any], pack_root: Path, root: str) -> int:
+    """A side-view pack that ships its tiles twice (T17.33: Kenney's *Platformer Pack Medieval*,
+    *Nautical*, *Industrial*: ``PNG/medievalTile_001.png`` to ``_268`` and
+    ``Tilesheet/medieval_tilesheet.png``): a sheet whose cells are most of the pack's single
+    square tiles of one size is that size's tile sheet (another reader may have cut it as a sheet
+    of objects), read as tiles on its grid; the single tiles found in it are set aside as its
+    copies, and so is a second sheet of the same cells (the ``_2X`` file). Returns the sheets
+    read so."""
+    singles: dict[int, list[Any]] = {}
+    for asset in assets:
+        size = asset.detected.get("size") or [0, 0]
+        w, h = int(size[0]), int(size[1])
+        if "#" in asset.id or asset.kind != "image" or w != h:
+            continue
+        if not TILE_COPY_SIZES[0] <= w <= TILE_COPY_SIZES[1] or _set_aside(asset):
+            continue
+        if asset.detected_by in ("profile", "learned") or asset.path.casefold().endswith(".gif"):
+            continue
+        if asset.detected.get("animations") and asset.detected_by != "generic_grid":
+            continue
+        if asset.confidence >= AUTO_SURE:
+            continue  # read surely already (a character, a piece of the strips reader)
+        stem = posixpath.splitext(posixpath.basename(asset.path))[0]
+        piece = _piece(stem)
+        if piece is not None and _layout(piece[1]) is not None:
+            continue  # named by its place: the pieces' own sheet is made from the names
+        singles.setdefault(w, []).append(asset)
+    made = 0
+    made_sheets: list[tuple[int, Any]] = []
+    for n, group in sorted(singles.items()):
+        if len(group) < MIN_COPIES:
+            continue
+        loaded: list[tuple[Any, np.ndarray]] = []
+        for asset in group:
+            rgba = _load(pack_root / _rel(asset, root))
+            if rgba is not None and rgba.shape[0] == n and rgba.shape[1] == n:
+                loaded.append((asset, _premultiplied(rgba)))
+        if len(loaded) < MIN_COPIES:
+            continue
+        stack = np.stack([p for _a, p in loaded])
+        taken: Any = None
+        for sheet in sorted(assets, key=lambda a: a.id):
+            size = sheet.detected.get("size") or [0, 0]
+            w, h = int(size[0]), int(size[1])
+            if "#" in sheet.id or sheet.kind != "image" or w < 4 * n or h < 2 * n:
+                continue
+            if sheet.detected_by in ("profile", "learned") or sheet in group:
+                continue
+            if UNUSED + "atlas_copy" in _tags(sheet):
+                continue  # a packed atlas with its XML: the single files are the art
+            rgba = None
+            for sep in (0, 1, 2):
+                if (w + sep) % (n + sep) or (h + sep) % (n + sep):
+                    continue
+                rgba = rgba if rgba is not None else _load(pack_root / _rel(sheet, root))
+                if rgba is None:
+                    break
+                cells = [
+                    c
+                    for c in side_tiles.cells_of(rgba, n, n, (0, 0), (sep, sep))
+                    if c.cover >= side_tiles.EMPTY
+                ]
+                if not cells:
+                    continue
+                hit = _matches(stack, np.stack([_premultiplied(c.rgba) for c in cells]))
+                found = {i: loaded[i][0] for i in range(len(loaded)) if hit[i] >= 0}
+                if len(found) < max(MIN_COPIES, COPY_SHARE * len(loaded)):
+                    continue
+                rel = _rel(sheet, root)
+                if taken is not None:
+                    _aside(sheet, SAME_TILES, taken)  # the same sheet again
+                    _as_picture(sheet)
+                else:
+                    taken = rel
+                    _tile_sheet(sheet, n, sep)
+                    made_sheets.append((n, sheet))
+                    made += 1
+                for copy_ in found.values():
+                    if not _set_aside(copy_):
+                        _aside(copy_, SAME_TILES, rel)
+                        _as_picture(copy_)
+                for other in assets:
+                    if other.id.startswith(sheet.id + "#") and not _set_aside(other):
+                        _aside(other, SAME_TILES, rel)
+                break
+    # the same sheet drawn twice as large (``_tilesheet@2.png``, the *Retina* tiles): the
+    # smaller is used, as of every pack drawn in several sizes
+    for n, small in made_sheets:
+        sw, sh = (int(v) for v in small.detected.get("size") or [0, 0])
+        for m, big in made_sheets:
+            bw, bh = (int(v) for v in big.detected.get("size") or [0, 0])
+            if m > n and m % n == 0 and (bw, bh) == (sw * m // n, sh * m // n):
+                _aside(big, OTHER_SIZE, _rel(small, root))
+                _as_picture(big)
+    return made
+
+
+def _tile_sheet(sheet: Any, n: int, sep: int) -> None:
+    """Makes a sheet a sheet of ground tiles of ``n`` px (its other readings dropped)."""
+    facets = sheet.detected
+    tags = {t for t in _tags(sheet) if not t.startswith(UNUSED) and not t.startswith(SAME_AS)}
+    for key in ("animations", "frame", "origin", "roles_alt", "directions"):
+        facets.pop(key, None)
+    facets.update({
+        "usage": "tiles",
+        "grid": {"cell": [n, n], "margin": [0, 0], "separation": [sep, sep]},
+        "tags": sorted(tags),
+    })  # fmt: skip
+    if facets.get("role") not in ("GROUND", "WALL", "CLIFF"):
+        facets["role"] = "GROUND"
+    sheet.confidence = max(float(sheet.confidence or 0.0), TILE_COPY_CONFIDENCE)
 
 
 # --------------------------------------------------------------------------- character sheets
@@ -654,12 +826,27 @@ def _make_sheet(
         for c, (asset, (_row, mask, kind, prob)) in enumerate(row):
             try:
                 with Image.open(pack_root / _rel(asset, root)) as im:
-                    sheet.paste(im.convert("RGBA"), (c * tile, r * tile))
+                    piece = im.convert("RGBA")
+                    sheet.paste(piece, (c * tile, r * tile))
             except (OSError, ValueError):
                 continue
             k = f"{c},{r}"
             entry: dict[str, Any] = {"custom": {"side": kind}}
-            if mask is not None:
+            slope = (
+                side_tiles.slope_of(np.asarray(piece)[:, :, 3] >= side_tiles.ALPHA)
+                if kind.startswith("slope")
+                else None
+            )
+            under = side_tiles.corner_under(np.asarray(piece)) if kind.startswith("inner") else None
+            if slope is not None:
+                # a hill's side (T17.33): its collision is the slope its picture draws
+                entry["custom"]["slope"] = slope
+                entry["collision"] = side_tiles.slope_collision(slope, tile, tile)
+            elif under is not None:
+                # the earth under the foot of a slope, its surface going on in one top corner
+                entry["custom"]["under_slope"] = under
+                entry["collision"] = {"profile": "FULL"}
+            elif mask is not None:
                 entry["terrain"] = {"set": "", "terrain": 0, "peering": _peering(mask)}
                 if prob != 1.0:
                     entry["probability"] = prob
@@ -676,6 +863,81 @@ def _make_sheet(
     if not out.is_file():
         sheet.save(out, format="PNG", optimize=False)
     return out, overrides, used, tile, pixels
+
+
+LOOSE_MIN = 8
+LOOSE_COLUMNS = 8
+
+
+def _loose_tiles(assets: list[Any], root: str) -> dict[str, list[Any]]:
+    """Single square pictures of one size, eight or more in one folder, that no reader took as
+    anything sure and that are not set aside: a folder of loose tiles (T17.33)."""
+    by: dict[tuple[str, int], list[Any]] = {}
+    # a folder whose pieces were laid by their names already is read so
+    named = {posixpath.dirname(_rel(a, root)) for a in assets if UNUSED + PIECE_ASIDE in _tags(a)}
+    for asset in assets:
+        facets = asset.detected
+        size = facets.get("size") or [0, 0]
+        w, h = int(size[0]), int(size[1])
+        if "#" in asset.id or asset.kind != "image" or w != h or not 8 <= w <= 160:
+            continue
+        if _set_aside(asset) or asset.detected_by in ("profile", "learned"):
+            continue
+        if asset.path.casefold().endswith(".gif") or facets.get("usage") not in ("sprite", "tiles"):
+            continue
+        if facets.get("animations") and asset.detected_by != "generic_grid":
+            continue
+        if facets.get("role") in CHARACTER_ROLES or asset.confidence >= AUTO_SURE:
+            continue
+        rel = _rel(asset, root)
+        if posixpath.dirname(rel) in named:
+            continue
+        by.setdefault((posixpath.dirname(rel), w), []).append(asset)
+    out: dict[str, list[Any]] = {}
+    for (folder, _w), members in sorted(by.items()):
+        if len(members) >= LOOSE_MIN and folder not in out:
+            out[folder] = sorted(members, key=lambda a: _natural(_rel(a, root)))
+    return out
+
+
+AUTO_SURE = 0.75
+
+
+def _natural(text: str) -> list[Any]:
+    return [int(p) if p.isdigit() else p for p in re.split(r"(\d+)", text.casefold())]
+
+
+def _read_loose(
+    folder: str, members: list[Any], pack_root: Path, root: str, work: Path
+) -> tuple[Path, side_tiles.SheetRead, list[tuple[Any, str]], int, np.ndarray] | None:
+    """The loose tiles of a folder laid in a sheet in their names' order and read from their
+    pictures (``side_tiles.read``); None when nothing of them was read."""
+    tile = int((members[0].detected.get("size") or [0])[0])
+    placed: list[tuple[Any, str]] = []
+    rows = (len(members) + LOOSE_COLUMNS - 1) // LOOSE_COLUMNS
+    sheet = Image.new("RGBA", (LOOSE_COLUMNS * tile, rows * tile), (0, 0, 0, 0))
+    for i, asset in enumerate(members):
+        try:
+            with Image.open(pack_root / _rel(asset, root)) as im:
+                piece = im.convert("RGBA")
+        except (OSError, ValueError):
+            continue
+        if piece.size != (tile, tile):
+            continue
+        c, r = i % LOOSE_COLUMNS, i // LOOSE_COLUMNS
+        sheet.paste(piece, (c * tile, r * tile))
+        placed.append((asset, f"{c},{r}"))
+    pixels = np.asarray(sheet)
+    read = side_tiles.read(pixels, (tile, tile))
+    if not read.terrains and not read.kinds:
+        return None
+    digest = hashlib.sha256(pixels.tobytes() + repr(pixels.shape).encode()).hexdigest()
+    out = work / f"{digest[:24]}.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if not out.is_file():
+        sheet.save(out, format="PNG", optimize=False)
+    del folder
+    return out, read, placed, tile, pixels
 
 
 def _peering(mask: int) -> dict[str, int]:
@@ -796,6 +1058,41 @@ def read_tiles(
             for piece, _key in used:
                 _aside(piece, PIECE_ASIDE, rel)
                 _as_picture(piece)
+        # loose tiles a folder (T17.33: Kenney's *Tile Extensions*, ``slice01_01.png`` and
+        # ``grassHalfLeft.png`` with no ``center`` beside them): laid into a sheet, read from
+        # their pictures as a sheet's cells are
+        for folder, members in sorted(_loose_tiles(assets, root).items()):
+            made_loose = _read_loose(folder, members, roots[pack_id], root, work)
+            if made_loose is None:
+                continue
+            out, read, placed, tile, pixels = made_loose
+            slug = re.sub(r"[^a-z0-9]+", "_", f"{pack_id}_{folder}".casefold()).strip("_")
+            asset_id = f"{GENERATED_PACK}.{slug}_loose"
+            rel = f"{SIDE_DIR}/{out.name}"
+            names = [f"{slug}_loose_{s}_{i}" for i, (s, _m) in enumerate(read.terrains)]
+            overrides = side_tiles.overrides(read, names)
+            surface = read.terrains[0][0] if read.terrains else "ground"
+            added.append(
+                Asset(asset_id, GENERATED_PACK, rel, hashlib.sha256(pixels.tobytes()).hexdigest(),
+                      "image", "AUTO_DETECTED",
+                      {"usage": "tiles", "role": "GROUND",
+                       "grid": {"cell": [tile, tile], "margin": [0, 0], "separation": [0, 0]},
+                       "tags": sorted({SIDE_TAG, f"surface:{surface}", f"side_pack:{pack_id}"}),
+                       "tile_overrides": dict(sorted(overrides.items(), key=lambda kv: _xy(kv[0]))),
+                       "size": [int(pixels.shape[1]), int(pixels.shape[0])]},
+                      {}, "side_packs", CONFIDENCE)
+            )  # fmt: skip
+            generated[rel] = str(out)
+            if read.terrains:
+                sets[asset_id] = [
+                    terrain_set_def(n, s, asset_id, index + i)
+                    for i, (n, (s, _m)) in enumerate(zip(names, read.terrains, strict=True))
+                ]
+                index += len(names)
+            for piece, key in placed:
+                if key in overrides:
+                    _aside(piece, PIECE_ASIDE, rel)
+                    _as_picture(piece)
     if added:
         from rpggen.core.catalog import CatalogPack
         from rpggen.core.terrain import rpgmaker_a2

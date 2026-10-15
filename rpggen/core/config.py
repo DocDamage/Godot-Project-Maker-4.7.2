@@ -421,7 +421,25 @@ def default_for(
         archetype=archetype,
         base_tile_size=base_tile_size,
         features=default_features(archetype),
+        resolution=resolution_for(base_tile_size),
     )
+
+
+DEFAULT_RESOLUTION = (640, 360)
+# the largest tile the default resolution is made for: 640 x 360 shows 20 x 11 tiles of 32 px
+RESOLUTION_TILE = 32
+
+
+def resolution_for(base_tile_size: int) -> tuple[int, int]:
+    """The default resolution for a tile size (T17.33): 640 x 360 up to 32 px tiles; for larger
+    tiles as much larger as the tile, so the view shows as many tiles (a room of 128 px tiles
+    in 2560 x 1440, the stretch mode scaling it to the window)."""
+    tile = int(base_tile_size or 0)
+    if tile <= RESOLUTION_TILE:
+        return DEFAULT_RESOLUTION
+    w = int(round(DEFAULT_RESOLUTION[0] * tile / RESOLUTION_TILE / 2.0)) * 2
+    h = int(round(DEFAULT_RESOLUTION[1] * tile / RESOLUTION_TILE / 2.0)) * 2
+    return (w, h)
 
 
 def check_sound_names(data: Any) -> None:

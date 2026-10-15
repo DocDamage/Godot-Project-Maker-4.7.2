@@ -349,6 +349,9 @@ def phase_catalog(state: _State) -> None:
     if state.derive_tile_size:
         derived = catalog_mod.dominant_tile_size(catalog)
         state.cfg.base_tile_size = derived or 16
+        if tuple(state.cfg.resolution) == config_mod.DEFAULT_RESOLUTION:
+            # the resolution nobody chose follows the tile size (T17.33)
+            state.cfg.resolution = config_mod.resolution_for(state.cfg.base_tile_size)
         state.cb.on_log(f"base tile size {state.cfg.base_tile_size} (from the packs)")
     # an isometric project needs isometric ground from a pack (T17.13): none is drawn
     iso_atlas.check_ground(catalog, state.cfg)

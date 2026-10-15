@@ -278,6 +278,8 @@ def find_characters(inv: Inventory, claimed: set[str]) -> list[Character]:
         )
         if not named and not single and not structural:
             continue
+        if set(words(owner)) & EFFECTS_FOLDER:
+            continue  # ``Grotto-escape-2-FX/sprites/{fire-ball,slash}``: effects, each its own
         if len(members) < 2 and not single:
             # one folder of frames and nothing beside it: the sequences reader's, or no character
             continue
@@ -387,6 +389,75 @@ def find_action_files(inv: Inventory, claimed: set[str]) -> list[Character]:
     return out
 
 
+# the words of a folder of an effect's frames (T17.33: ansimuz's *Explosions and Magic*)
+EFFECT_WORDS = frozenset(
+    {"fx", "vfx", "effect", "effects", "explosion", "explosions", "slash", "magic", "spell",
+     "particle", "particles", "smoke", "impact", "hit", "hits", "spark", "sparks", "splash",
+     "bolt", "pulse", "shock", "energy", "fireball", "burst", "blast", "death", "charged",
+     "waveform", "crossed", "flash", "dust", "poof", "explode"}
+)  # fmt: skip
+EFFECT_CONFIDENCE = 0.85
+# a folder of these words holds effects, never a character's animations
+EFFECTS_FOLDER = frozenset({"fx", "vfx", "effect", "effects", "explosion", "explosions"})
+EFFECT_TAG = "effect_frames"
+
+
+def find_effects(inv: Inventory, claimed: set[str]) -> list[Character]:
+    """The folders of numbered frames of one stem that no character took and whose folders say
+    an effect (``Explosions pack/explosion-1-c/Sprites/explosion-c1..c10``, ``Hit/Sprites``,
+    ``Warped shooting fx/Bolt/sprites``): one effect each, its frames one animation."""
+    out: list[Character] = []
+    for action in find_action_folders(inv, claimed):
+        said = set(words(action.label)) | set(words(action.stem))
+        if not said & EFFECT_WORDS:
+            continue
+        out.append(Character(action.label, [("idle", action)], action.size))
+    return out
+
+
+RUN_MIN_FRAMES = 16
+MOTION_CONFIDENCE = 0.8
+TILE_WORDS = frozenset({"terrain", "tile", "tiles", "tileset", "tilemap", "tilesheet", "ground"})
+
+
+def find_runs(root: Path, inv: Inventory, claimed: set[str]) -> list[Character]:
+    """A folder of many numbered frames of one stem with empty frames between its animations
+    (T17.33: the *black knight*'s ``CHARACTER/CHARACTER1..168``): one character, each run of
+    painted frames an animation named by what its frames do (``motion``)."""
+    import numpy as np
+
+    from rpggen.core import motion
+
+    out: list[Character] = []
+    for action in find_action_folders(inv, claimed):
+        if len(action.frames) < RUN_MIN_FRAMES:
+            continue
+        if set(words(action.label)) & TILE_WORDS or set(words(action.stem)) & TILE_WORDS:
+            continue  # pozak's ``Terrain/PNG/Terrain (24x24))1..533``: tiles one by one
+        images = []
+        for f in action.frames:
+            try:
+                with Image.open(root / f.path) as im:
+                    images.append(np.asarray(im.convert("RGBA")))
+            except (OSError, ValueError):
+                images.append(np.zeros((1, 1, 4), np.uint8))
+        found = motion.runs(images)
+        if len(found) < 2:
+            continue
+        fig = motion.figure(found)
+        if fig is None:
+            continue
+        named = motion.names(found, fig)
+        actions = [
+            (name, ActionFolder(action.folder, action.label, [action.frames[f.col] for f in run],
+                                action.size, action.stem))
+            for name, run in zip(named, found, strict=True)
+        ]  # fmt: skip
+        owner = _owner(action) or action.label
+        out.append(Character(owner, sorted(actions), action.size))
+    return out
+
+
 SAYS = "says:"
 # the words of a file beside a character's folders that say what the character is
 # (``space-marine-lite/player.ase``, ``player-preview.gif``)
@@ -451,15 +522,37 @@ class ActionFramesAdapter:
     priority = 54  # after the object sheets, before the numbered frames of one folder
 
     def match(self, inv: Inventory, root: Path) -> float:
-        return 1.0 if find_characters(inv, set()) else 0.0
+        if find_characters(inv, set()) or find_effects(inv, set()):
+            return 1.0
+        # a folder of many numbered frames may be one character's animations (``find_runs``)
+        many = any(len(a.frames) >= RUN_MIN_FRAMES for a in find_action_folders(inv, set()))
+        return 1.0 if many else 0.0
 
     def extract(self, inv: Inventory, root: Path, ctx: AdapterContext) -> AdapterResult:
         result = AdapterResult(self.name)
         issues = IssueList()
         work = (ctx.work_dir or paths.cache_dir()) / WORK_FOLDER
-        for character in find_characters(inv, ctx.claimed):
+        characters = find_characters(inv, ctx.claimed)
+        for character in characters:
             ctx.check_cancel()
             self._character(root, inv, character, work, result, issues)
+        taken = {f.path for c in characters for _n, a in c.actions for f in a.frames}
+        effects = find_effects(inv, ctx.claimed | taken)
+        for effect in effects:
+            ctx.check_cancel()
+            self._character(root, inv, effect, work, result, issues, effect=True)
+        taken |= {f.path for c in effects for _n, a in c.actions for f in a.frames}
+        for character in find_runs(root, inv, ctx.claimed | taken):
+            ctx.check_cancel()
+            self._character(root, inv, character, work, result, issues, named_by_motion=True)
+            # the empty frames between the animations are part of the folder too
+            folder = character.actions[0][1].folder + "/"
+            used = set(result.consumed) | {a.path for a in result.assets}
+            result.consumed.extend(
+                f.path for f in inv.files
+                if f.kind == "image" and posixpath.dirname(f.path) + "/" == folder
+                and f.path not in used
+            )  # fmt: skip
         result.issues = list(issues)
         return result
 
@@ -471,6 +564,8 @@ class ActionFramesAdapter:
         work: Path,
         result: AdapterResult,
         issues: IssueList,
+        effect: bool = False,
+        named_by_motion: bool = False,
     ) -> None:
         w, h = character.size
         animations: dict[str, Any] = {}
@@ -515,7 +610,23 @@ class ActionFramesAdapter:
                 *_sibling_words(inv, character.folder),
             ],
         }
-        result.assets.append(AssetFragment(used[0].path, facets, CONFIDENCE, "full"))
+        confidence = CONFIDENCE
+        if named_by_motion:
+            facets["tags"] = [*facets["tags"], "motion_named"]
+            said = set(words(character.folder)) | set(words(character.actions[0][1].stem))
+            facets["role"] = (
+                "PLAYER" if said & {"character", "player", "hero", "heroine"} else "ENEMY"
+            )
+            confidence = MOTION_CONFIDENCE
+        if effect:
+            # an effect plays once where it happens (T17.33)
+            facets["role"] = "EFFECT"
+            facets["tags"] = [EFFECT_TAG]
+            for anim in facets["animations"].values():
+                anim["loop"] = False
+            facets["origin"] = [w // 2, h // 2]
+            confidence = EFFECT_CONFIDENCE
+        result.assets.append(AssetFragment(used[0].path, facets, confidence, "full"))
         result.consumed.extend(f.path for f in used[1:])
         # the Aseprite sources of the same animations are not drawn again
         prefix = character.folder + "/"

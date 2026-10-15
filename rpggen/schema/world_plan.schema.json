@@ -606,6 +606,7 @@
         "end": {"type": "string"},
         "guardian": {"type": "string"},
         "path": {"type": "array", "items": {"type": "string"}},
+        "slopes": {"type": "boolean"},
         "list": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/Room"}}
       },
       "required": ["version", "room_size", "abilities", "start", "end", "list"],
@@ -621,7 +622,7 @@
         "cell": {"$ref": "#/$defs/Cell"},
         "size": {"$ref": "#/$defs/Cell"},
         "added": {"type": "boolean"},
-        "tiles": {"type": "array", "items": {"type": "string", "pattern": "^[#.=HT^B]+$"}},
+        "tiles": {"type": "array", "items": {"type": "string", "pattern": "^[#.=HT^B/\\\\]+$"}},
         "exits": {
           "type": "array",
           "items": {

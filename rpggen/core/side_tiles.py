@@ -57,7 +57,12 @@ LADDER = "ladder"
 SPIKES = "spikes"
 WATER = "water"
 COIN = "coin"
-KINDS = (FILL, ONE_WAY, LADDER, SPIKES, WATER, COIN)
+DOOR = "door"
+KEY = "key"
+FLAG = "flag"
+SLOPE_UP = "slope_up"
+SLOPE_DOWN = "slope_down"
+KINDS = (FILL, ONE_WAY, LADDER, SPIKES, WATER, COIN, DOOR, KEY, FLAG, SLOPE_UP, SLOPE_DOWN)
 
 
 @dataclass
@@ -82,6 +87,9 @@ class SheetRead:
 
     kinds: dict[str, str] = field(default_factory=dict)
     terrains: list[tuple[str, dict[str, int]]] = field(default_factory=list)
+    # cells of a terrain laid only where nothing else fits (a second surface on the same earth)
+    alternates: set[str] = field(default_factory=set)
+    cell: tuple[int, int] = (0, 0)
     unread: int = 0
     painted: int = 0
 
@@ -147,9 +155,37 @@ def _facts(cell: Cell, side: int) -> tuple[np.ndarray, np.ndarray, float, float,
         if both_mid.sum() >= 2
         else 0.0
     )
+    if border > 0.0:
+        # an outline is a line of its own all along the side: the edge differs from every line
+        # a little way in too. A surface piece's bottom row of earth is the earth above it,
+        # though its middle row may still be the grass (T17.33: Kenney's grass tops)
+        border = min(border, _near_border(cell, side, edge, mask))
     found = (edge, mask, grain, border, apart)
     cell.memo[key] = found
     return found
+
+
+def _near_border(cell: Cell, side: int, edge: np.ndarray, mask: np.ndarray) -> float:
+    """How little the edge differs from the lines 2 to a quarter of the cell in from it (an
+    outline of 1 or 2 px differs from all of them)."""
+    a = cell.rgba
+    size = a.shape[0] if side in (N, S) else a.shape[1]
+    best = 1.0
+    for k in range(2, max(3, size // 4 + 1)):
+        if side == N:
+            line = a[k]
+        elif side == S:
+            line = a[-1 - k]
+        elif side == W:
+            line = a[:, k]
+        else:
+            line = a[:, -1 - k]
+        both = mask & (line[:, 3] >= ALPHA)
+        if both.sum() < 2:
+            continue
+        diff = float((np.abs(edge - line[:, :3].astype(np.float32) / 255.0)[both]).mean())
+        best = min(best, diff)
+    return best
 
 
 def _edge(cell: Cell, side: int) -> tuple[np.ndarray, np.ndarray]:
@@ -243,9 +279,14 @@ def is_one_way(cell: Cell) -> bool:
 
 def is_ladder(cell: Cell) -> bool:
     """Two rails from top to bottom with rungs between, tiling upwards."""
-    if not (0.12 <= cell.cover <= 0.8):
+    if cell.cover < 0.12:
         return False
     cols = _cols_cover(cell)
+    if cell.cover > 0.8:
+        spans = _runs(cols >= 0.95)
+        if len(spans) == 1 and spans[0][1] - spans[0][0] + 1 >= len(cols) // 2:
+            return _ladder_on_backdrop(cell, spans[0])
+        return False
     w = len(cols)
     rails = cols >= 0.95
     runs: list[tuple[int, int]] = []
@@ -258,6 +299,8 @@ def is_ladder(cell: Cell) -> bool:
             runs.append((start, x - 1))
         else:
             x += 1
+    if len(runs) == 1 and runs[0][1] - runs[0][0] + 1 >= w // 2:
+        return _ladder_on_backdrop(cell, runs[0])
     if len(runs) != 2 or runs[1][0] - runs[0][1] < w // 4:
         return False
     between = cell.alpha[:, runs[0][1] + 1 : runs[1][0]]
@@ -267,6 +310,77 @@ def is_ladder(cell: Cell) -> bool:
     if float(rung_rows.max()) < 0.9 or float(rung_rows.min()) > 0.2:
         return False
     return _repeats(cell, S)
+
+
+# a rung differs from the backdrop between the rails by this much of value (0..1) at least
+RUNG_CONTRAST = 0.2
+
+
+def _runs(flags: np.ndarray) -> list[tuple[int, int]]:
+    """The runs of True in a row of flags, as (first, last)."""
+    out: list[tuple[int, int]] = []
+    i, n = 0, len(flags)
+    while i < n:
+        if flags[i]:
+            j = i
+            while j < n and flags[j]:
+                j += 1
+            out.append((i, j - 1))
+            i = j
+        else:
+            i += 1
+    return out
+
+
+def _ladder_on_backdrop(cell: Cell, span: tuple[int, int]) -> bool:
+    """A ladder drawn over a backdrop (T17.33, Kenney's pixel platformer): its columns are
+    painted from top to bottom between see-through margins, the outer columns (the rails) keep
+    one value down the cell, and between them rows of another value (the rungs) cross the
+    backdrop twice or more; it tiles upwards."""
+    x0, x1 = span
+    width = x1 - x0 + 1
+    rail = max(1, width // 6)
+    rgb = cell.rgba[:, :, :3].astype(np.float32) / 255.0
+    value = rgb.max(axis=2)
+    inner = value[:, x0 + rail + 1 : x1 - rail]
+    if inner.shape[1] < 2:
+        return False
+    rows = inner.mean(axis=1)
+    lo, hi = float(rows.min()), float(rows.max())
+    if hi - lo < RUNG_CONTRAST:
+        return False
+    # the rows are of two kinds, rungs and the backdrop between them; a rung crosses the whole
+    # backdrop (its row is of one value from rail to rail), and each kind comes twice or more
+    even = inner.std(axis=1) <= 0.5 * RUNG_CONTRAST
+    if float(even.mean()) < 0.8:
+        return False  # a window, a handle, panels: no ladder
+    light = rows >= (lo + hi) / 2.0
+    inside = 0
+    for kind in (light, ~light):
+        runs = [r for r in _runs(kind) if r[1] - r[0] + 1 <= len(rows) // 3]
+        if len(runs) < 2:
+            return False
+        inside += sum(1 for r in runs if r[0] > 0 and r[1] < len(rows) - 1)
+    if inside < 3:
+        return False  # a frame round a pane (its bars at the cell's edges): no rungs
+    rails = np.concatenate([value[:, x0 : x0 + rail], value[:, x1 - rail + 1 : x1 + 1]], axis=1)
+    rail_rows = rails.mean(axis=1)
+    if float(rail_rows.std()) >= 0.5 * float(rows.std()):
+        return False  # the sides change down the cell as the middle does (bricks): no rails
+    # it tiles upwards: its top row is its bottom row again (the rungs make every line near an
+    # edge differ from it, so the seam is compared as it is)
+    return _rows_meet(cell, cell)
+
+
+def _rows_meet(upper: Cell, lower: Cell) -> bool:
+    """True when ``upper``'s bottom row is ``lower``'s top row again: painted alike, of colours
+    within a seam's difference."""
+    a = upper.rgba[-1].astype(np.float32) / 255.0
+    b = lower.rgba[0].astype(np.float32) / 255.0
+    pa, pb = a[:, 3] >= ALPHA / 255.0, b[:, 3] >= ALPHA / 255.0
+    if float((pa == pb).mean()) < ALPHA_AGREE or not (pa & pb).any():
+        return False
+    return float(np.abs(a[:, :3] - b[:, :3])[pa & pb].mean()) <= SEAM_TOL
 
 
 def is_spikes(cell: Cell) -> bool:
@@ -328,6 +442,201 @@ def is_coin(cell: Cell) -> bool:
     return float(gold.mean()) >= 0.45
 
 
+def _gold_share(cell: Cell) -> float:
+    hue, sat, val = _hsv(cell)
+    if not hue.size:
+        return 0.0
+    return float(((hue >= 25) & (hue <= 65) & (sat >= 0.35) & (val >= 0.5)).mean())
+
+
+def _enclosed(inside: np.ndarray) -> np.ndarray:
+    """The pixels of ``inside`` (a mask) that no path of ``inside`` pixels joins to the border."""
+    h, w = inside.shape
+    seen = np.zeros_like(inside)
+    stack = [(y, x) for y in range(h) for x in (0, w - 1) if inside[y, x]]
+    stack += [(y, x) for x in range(w) for y in (0, h - 1) if inside[y, x]]
+    while stack:
+        y, x = stack.pop()
+        if seen[y, x]:
+            continue
+        seen[y, x] = True
+        for ny, nx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+            if 0 <= ny < h and 0 <= nx < w and inside[ny, nx] and not seen[ny, nx]:
+                stack.append((ny, nx))
+    return np.asarray(inside & ~seen)
+
+
+def is_key(cell: Cell) -> bool:
+    """A key (T17.33): a gold shape alone in the cell, long one way, whose bow at one end rings
+    a hole (see-through or painted dark)."""
+    if not (0.08 <= cell.cover <= 0.6) or _gold_share(cell) < 0.3:
+        return False
+    ys, xs = np.nonzero(cell.alpha)
+    y0, y1, x0, x1 = int(ys.min()), int(ys.max()), int(xs.min()), int(xs.max())
+    bh, bw = y1 - y0 + 1, x1 - x0 + 1
+    if not (bw >= 1.4 * bh or bh >= 1.4 * bw):
+        return False
+    rgb = cell.rgba[y0 : y1 + 1, x0 : x1 + 1, :3].astype(np.float32) / 255.0
+    mx, mn = rgb.max(axis=2), rgb.min(axis=2)
+    sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-6), 0.0)
+    hue_ok = (rgb[:, :, 0] >= rgb[:, :, 2] + 0.2) & (rgb[:, :, 1] >= 0.5 * rgb[:, :, 0])
+    gold = cell.alpha[y0 : y1 + 1, x0 : x1 + 1] & hue_ok & (sat >= 0.35) & (mx >= 0.5)
+    holes = _enclosed(~gold)
+    if not holes.any():
+        return False
+    hy, hx = np.nonzero(holes)
+    along = hx if bw >= bh else hy
+    length = bw if bw >= bh else bh
+    middle = float(along.mean()) / length
+    return middle <= 0.4 or middle >= 0.6  # the hole is in the bow, at one end
+
+
+def _pole(cell: Cell) -> tuple[int, int] | None:
+    """The columns of a thin pole from the top of the cell down most of it, or None."""
+    cols = _cols_cover(cell)
+    w = len(cols)
+    for start, end in _runs(cols >= 0.9):
+        if end - start + 1 <= max(1, w // 3) and float(cell.alpha[0, start : end + 1].max()):
+            return start, end
+    return None
+
+
+def is_flag(cell: Cell) -> bool:
+    """A flag (T17.33): a thin pole from the top of the cell down, and a cloth of a strong colour
+    beside it hanging from its top part, nothing beside the pole below the cloth."""
+    if not (0.1 <= cell.cover <= 0.85):
+        return False
+    pole = _pole(cell)
+    if pole is None:
+        return False
+    h, w = cell.alpha.shape
+    cloth = cell.alpha.copy()
+    cloth[:, pole[0] : pole[1] + 1] = False
+    if float(cloth.mean()) < 0.12:
+        return False
+    ys, xs = np.nonzero(cloth)
+    if int(ys.max()) > 0.85 * h:
+        return False  # something stands beside the pole at its foot: a lamp, a sign
+    near = xs.min() <= pole[1] + 2 if xs.min() > pole[1] else xs.max() >= pole[0] - 2
+    if not near:
+        return False
+    rgb = cell.rgba[:, :, :3][cloth].astype(np.float32) / 255.0
+    mx, mn = rgb.max(axis=1), rgb.min(axis=1)
+    sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-6), 0.0)
+    return float((sat >= 0.45).mean()) >= 0.5
+
+
+def _just_a_pole(cell: Cell) -> bool:
+    """A cell of nothing but a thin pole from top to bottom (the foot of a flag)."""
+    pole = _pole(cell)
+    if pole is None:
+        return False
+    rest = cell.alpha.copy()
+    rest[:, pole[0] : pole[1] + 1] = False
+    return (
+        float(rest.mean()) <= EMPTY
+        and float(_cols_cover(cell)[pole[0] : pole[1] + 1].max()) >= 0.95
+    )
+
+
+def _door_box(stack: list[Cell]) -> bool:
+    """A door (T17.33): an upright block one to three cells high (``stack``, top first)
+    standing on the bottom of the last, its top in the open inside the first, painted over its
+    whole box, half a cell wide or more; never blue (a pipe), not one picture repeated upwards
+    (a pillar, a trunk)."""
+    h, w = stack[-1].alpha.shape
+    alpha = np.concatenate([c.alpha for c in stack], axis=0)
+    rgba = np.concatenate([c.rgba for c in stack], axis=0)
+    ys, xs = np.nonzero(alpha)
+    if ys.size == 0:
+        return False
+    y0, y1, x0, x1 = int(ys.min()), int(ys.max()), int(xs.min()), int(xs.max())
+    bh, bw = y1 - y0 + 1, x1 - x0 + 1
+    if y1 != alpha.shape[0] - 1 or y0 < 1 or y0 >= h:
+        return False
+    if len(stack) == 1 and y0 > 0.15 * h:
+        return False
+    if bw < 0.45 * w or bh < 1.4 * bw:
+        return False
+    box = alpha[y0 : y1 + 1, x0 : x1 + 1]
+    if float(box.mean()) < 0.85 or float(alpha.sum()) > 1.05 * float(box.sum()):
+        return False
+    if float(alpha[-1, x0 : x1 + 1].mean()) < 0.9:
+        return False
+    if any(not _rows_meet(a, b) for a, b in zip(stack, stack[1:], strict=False)):
+        return False  # two things one over the other, not one door across cells
+    # its sides are straight below its top (which may be round): every row of its lower three
+    # quarters is painted across (two things stacked narrow where they meet: hay bales)
+    lower = box[int(0.25 * bh) :]
+    if float(lower.mean(axis=1).min()) < 0.9:
+        return False
+    rgb = rgba[:, :, :3][alpha].astype(np.float32) / 255.0
+    mx, mn = rgb.max(axis=1), rgb.min(axis=1)
+    sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-6), 0.0)
+    blue = (rgb[:, 2] >= rgb[:, 0] + 0.1) & (rgb[:, 2] >= rgb[:, 1]) & (sat >= 0.3)
+    if float(blue.mean()) >= 0.3:
+        return False
+    # a door is of one material inside its frame, broken by panels, a window or a handle: its
+    # rows are not all one colour (a plain pillar) and not striped all over (bricks)
+    value = mx.reshape(-1)
+    return float(value.std()) >= 0.04
+
+
+def slope_of(alpha: np.ndarray) -> str | None:
+    """``up`` (rising to the right, ``/``) or ``down`` (``\\``) when a picture's painted part is
+    the ground under a slope (T17.33): in every column it is painted from a top that runs in a
+    straight line from near one bottom corner to near the other top corner, down to the bottom;
+    None otherwise."""
+    h, w = alpha.shape
+    if h < 4 or w < 4:
+        return None
+    tops = np.full(w, h, dtype=np.float32)
+    for x in range(w):
+        ys = np.nonzero(alpha[:, x])[0]
+        if ys.size:
+            tops[x] = float(ys[0])
+            if float(alpha[int(ys[0]) :, x].mean()) < 0.9:
+                return None  # not ground down to the bottom under its top
+    xs = np.arange(w, dtype=np.float32)
+    painted = tops < h
+    if painted.mean() < 0.8:
+        return None
+    slope, cut = np.polyfit(xs[painted], tops[painted], 1)
+    rise = -float(slope) * w  # how far the top rises across the cell, in px
+    if abs(rise) < 0.6 * h:
+        return None
+    resid = np.abs(tops[painted] - (slope * xs[painted] + cut))
+    if float(resid.mean()) > 0.08 * h:
+        return None
+    low = max(float(tops[painted][0]), float(tops[painted][-1]))
+    if low < 0.6 * h:
+        return None  # the lower end of the slope stands near the cell's bottom
+    return "up" if rise > 0 else "down"
+
+
+def corner_under(rgba: np.ndarray) -> str | None:
+    """Which slope a piece of earth goes under (T17.33, Kenney's ``grassCorner_left``): the
+    surface goes on in one of its top corners, of another colour than its middle; ``up`` when
+    that corner is the left one (it lies under the foot of a ``/``), ``down`` for the right."""
+    if rgba.ndim != 3 or rgba.shape[2] != 4 or float((rgba[:, :, 3] >= ALPHA).mean()) < OPAQUE:
+        return None
+    h, w = rgba.shape[:2]
+    q = max(1, min(h, w) // 4)
+    rgb = rgba[:, :, :3].astype(np.float32) / 255.0
+    middle = rgb[h // 3 : 2 * h // 3, w // 3 : 2 * w // 3].reshape(-1, 3).mean(axis=0)
+    left = float(np.abs(rgb[:q, :q].reshape(-1, 3).mean(axis=0) - middle).mean())
+    right = float(np.abs(rgb[:q, w - q :].reshape(-1, 3).mean(axis=0) - middle).mean())
+    if max(left, right) < 0.08 or abs(left - right) < 0.05:
+        return None
+    return "up" if left > right else "down"
+
+
+def slope_collision(slope: str, w: int, h: int) -> dict[str, Any]:
+    """The collision of a slope one tile wide and high: a triangle under its diagonal."""
+    points = [[0, h], [w, 0], [w, h]] if slope == "up" else [[0, 0], [w, h], [0, h]]
+    return {"profile": "CUSTOM", "polygon": points}
+
+
 def is_fill(cell: Cell) -> bool:
     return cell.cover >= OPAQUE and _repeats(cell, E) and _repeats(cell, S)
 
@@ -338,6 +647,8 @@ def kind_of(cell: Cell) -> str | None:
         return None
     if is_water(cell):
         return WATER
+    if cell.cover >= OPAQUE and is_ladder(cell):
+        return LADDER  # rails and rungs over a backdrop tile both ways like earth: first
     if is_fill(cell):
         return FILL
     for kind, test in (
@@ -345,6 +656,8 @@ def kind_of(cell: Cell) -> str | None:
         (LADDER, is_ladder),
         (SPIKES, is_spikes),
         (COIN, is_coin),
+        (KEY, is_key),
+        (FLAG, is_flag),
     ):
         if test(cell):
             return kind
@@ -410,12 +723,15 @@ def _palette_share(cell: Cell, fill: Cell) -> float:
     return float((near.min(axis=1) <= COLOUR_NEAR).mean())
 
 
-def terrains(cells: list[Cell], fills: list[Cell]) -> list[tuple[str, dict[str, int]]]:
+def terrains(
+    cells: list[Cell], fills: list[Cell], alternates: set[str] | None = None
+) -> list[tuple[str, dict[str, int]]]:
     """The side-view terrains of a sheet: for every fill (the first of alike ones), the cells
     whose sides join it, by the peering mask of each. A terrain needs a surface piece (a cell
     whose top is the sky and whose bottom joins the fill)."""
     out: list[tuple[str, dict[str, int]]] = []
     taken: set[str] = set()
+    alternates = alternates if alternates is not None else set()
     tried = 0
     for fill in fills:
         if fill.key in taken:
@@ -461,15 +777,58 @@ def terrains(cells: list[Cell], fills: list[Cell]) -> list[tuple[str, dict[str, 
                 continue  # a fill that is not quite one: left out
             members[k] = bits
             taken.add(k)
+        # one earth under several surfaces (Kenney's grass, sand and snow tops on one dirt): the
+        # surface of the first piece in the sheet's order is the terrain's, the pieces of the
+        # others stay its members at probability 0 (read, never laid by chance among the first)
+        surface_by: dict[str, str] = {}
+        for k, bits in members.items():
+            if bits != ALL and not bits & N:
+                surface_by[k] = surface_of(_top_band(by_key[k]))
+        order = sorted(surface_by, key=lambda k: (by_key[k].y, by_key[k].x))
+        main = surface_by[order[0]] if order else ""
         top = next((by_key[k] for k, b in joins.items() if b == E | S | W), surfaces[0])
+        if main:
+            mains = [by_key[k] for k in order if surface_by[k] == main and members[k] == E | S | W]
+            top = mains[0] if mains else by_key[order[0]]
+            alternates.update(k for k, s in surface_by.items() if s != main)
         out.append((surface_of(_top_band(top)), members))
     return out
+
+
+def _doors_and_poles(cells: list[Cell], kinds: dict[str, str]) -> None:
+    """What takes two cells of a sheet (T17.33): a door a cell or two high, and the pole under a
+    flag (its foot, the cells below the cloth)."""
+    by_xy = {(c.x, c.y): c for c in cells}
+    # the top of a ladder: its rails rise from the bottom of the cell above a ladder and go on
+    # into it without a seam
+    for c in sorted(cells, key=lambda c: (-c.y, c.x)):
+        below = by_xy.get((c.x, c.y + 1))
+        if c.key in kinds or c.cover < EMPTY or below is None or kinds.get(below.key) != LADDER:
+            continue
+        if float(_rows_cover(c)[-1]) >= 0.5 and _rows_meet(c, below):
+            kinds[c.key] = LADDER
+    for c in cells:
+        if c.key in kinds or c.cover < EMPTY:
+            continue
+        for high in (3, 2, 1):
+            stack = [by_xy.get((c.x, c.y - k)) for k in range(high - 1, -1, -1)]
+            cells_ = [s for s in stack if s is not None and s.key not in kinds and s.cover >= EMPTY]
+            if len(cells_) == high and _door_box(cells_):
+                for s in cells_:
+                    kinds[s.key] = DOOR
+                break
+    for c in sorted(cells, key=lambda c: (c.y, c.x)):
+        if c.key in kinds or c.cover < EMPTY:
+            continue
+        above = by_xy.get((c.x, c.y - 1))
+        if above is not None and kinds.get(above.key) == FLAG and _just_a_pole(c):
+            kinds[c.key] = FLAG
 
 
 def read(rgba: np.ndarray, cell: tuple[int, int], margin: tuple[int, int] = (0, 0),
          sep: tuple[int, int] = (0, 0)) -> SheetRead:  # fmt: skip
     """The kinds of the cells of a sheet and its side-view terrains."""
-    result = SheetRead()
+    result = SheetRead(cell=(int(cell[0]), int(cell[1])))
     if rgba.ndim != 3 or rgba.shape[2] != 4:
         return result
     cells = cells_of(rgba, cell[0], cell[1], margin, sep)
@@ -483,8 +842,20 @@ def read(rgba: np.ndarray, cell: tuple[int, int], margin: tuple[int, int] = (0, 
             fills.append(c)
         elif kind is not None:
             result.kinds[c.key] = kind
-    result.terrains = terrains([c for c in cells if c.key not in result.kinds], fills)
+    _doors_and_poles(cells, result.kinds)
+    result.terrains = terrains(
+        [c for c in cells if c.key not in result.kinds], fills, result.alternates
+    )
     in_terrain = {k for _s, members in result.terrains for k in members}
+    # the sides of hills (T17.33): ground under a diagonal, of the colours of a fill
+    for c in cells:
+        if c.cover < EMPTY or c.key in result.kinds or c.key in in_terrain or not fills:
+            continue
+        slope = slope_of(c.alpha)
+        if slope is not None and any(
+            _palette_share(c, f) >= SHARED_PALETTE for f in fills[:MAX_ALIKE]
+        ):
+            result.kinds[c.key] = SLOPE_UP if slope == "up" else SLOPE_DOWN
     for c in cells:
         if c.cover >= EMPTY and c.key not in result.kinds and c.key not in in_terrain:
             result.unread += 1
@@ -505,6 +876,8 @@ def overrides(read_: SheetRead, set_names: list[str]) -> dict[str, dict[str, Any
                     peering[side_key] = 0
             out[key] = {"terrain": {"set": name, "terrain": 0, "peering": peering},
                         "custom": {"side": "ground"}}  # fmt: skip
+            if key in read_.alternates:
+                out[key]["probability"] = 0.0
     for key, kind in read_.kinds.items():
         if kind == ONE_WAY:
             out[key] = {"collision": {"profile": "ONE_WAY"}, "custom": {"side": kind}}
@@ -515,6 +888,12 @@ def overrides(read_: SheetRead, set_names: list[str]) -> dict[str, dict[str, Any
             }
         elif kind == SPIKES:
             out[key] = {"collision": {"profile": "NONE"}, "custom": {"hazard": True}}
+        elif kind in (SLOPE_UP, SLOPE_DOWN):
+            slope = "up" if kind == SLOPE_UP else "down"
+            out[key] = {
+                "collision": slope_collision(slope, read_.cell[0], read_.cell[1]),
+                "custom": {"side": kind, "slope": slope},
+            }
         else:  # water and coins are no ground to stand on
             out[key] = {"collision": {"profile": "NONE"}, "custom": {"side": kind}}
     return out

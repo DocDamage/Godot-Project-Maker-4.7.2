@@ -35,7 +35,33 @@ static func find(ctx: BuildContext, def: Dictionary, tile_set: TileSet) -> Dicti
 			_scan(tile_set, src, source_id, kit)
 	_ground(ctx, def, tile_set, kit)
 	kit["terrain"] = side_terrain(ctx, def, tile_set, JsonUtil.to_dict(kit["top"]))
+	_slopes(tile_set, kit)
 	return kit
+
+## The sides of a hill and the earth under their feet (T17.33): `slope_up` (`/`), `slope_down`
+## (`\`), `under_up`, `under_down`, each a tile or absent; the ground's own sheet first.
+static func _slopes(tile_set: TileSet, kit: Dictionary) -> void:
+	var names := {"slope_up": "slope_up", "slope_down": "slope_down", "under_up": "under_slope_up", "under_down": "under_slope_down"}
+	var order: Array[int] = []
+	var top := JsonUtil.to_dict(kit["top"])
+	if not top.is_empty():
+		order.append(JsonUtil.to_int(top["source_id"]))
+	for i in tile_set.get_source_count():
+		if not order.has(tile_set.get_source_id(i)):
+			order.append(tile_set.get_source_id(i))
+	for key: String in names.keys():
+		var layer_name := JsonUtil.to_str(names[key])
+		if tile_set.get_custom_data_layer_by_name(layer_name) == -1:
+			continue
+		for source_id in order:
+			var src := tile_set.get_source(source_id) as TileSetAtlasSource
+			if src == null or kit.has(key):
+				continue
+			for t in src.get_tiles_count():
+				var coords := src.get_tile_id(t)
+				if _has(tile_set, src.get_tile_data(coords, 0), layer_name):
+					kit[key] = {"source_id": source_id, "coords": coords}
+					break
 
 ## The side-view terrain of the ground's sheet (T17.32: a set of the shape `side`, read from
 ## pieces named by their place or from the cells of a numbered sheet): `{set, terrain}`, or {}

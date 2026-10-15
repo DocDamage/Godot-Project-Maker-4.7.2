@@ -9,6 +9,7 @@ A room is a grid of ``room_size`` tiles. ``tiles`` is one string per row:
 
     ``#`` solid ground      ``.`` empty             ``=`` one-way platform
     ``H`` ladder            ``T`` ladder with a one-way platform on top
+    ``/`` ``\\`` the sides of a hill, rising and falling to the right (T17.33)
     ``^`` hazard (spikes)   ``B`` a block that breaks
 
 Everything that stands in a room is given by its *feet cell*: the empty cell whose bottom edge is
@@ -59,6 +60,8 @@ STEP_UP = 3
 GAP_ACROSS = 3
 
 LEDGE_LIP = 2  # how far the top of a ledge reaches out over its face
+SLOPE_UP = "/"  # the side of a hill rising to the right (T17.33)
+SLOPE_DOWN = "\\"  # and falling to the right
 
 GATE_KINDS = {
     "double_jump": "ledge",
@@ -334,6 +337,14 @@ def _feature(room: _Room, name: str, x: int) -> int:
         room.fill(x, f - STEP_UP, x + 3, f - STEP_UP, "=")
         room.data["perches"].append([x + 1, f - STEP_UP - 1])
         return 4
+    if name == "hill":
+        # a hill one tile high walked over on its slopes (T17.33): only in a world whose packs
+        # draw the sides of a hill
+        room.g[f - 1][x] = SLOPE_UP
+        room.fill(x + 1, f - 1, x + 2, f - 1, "#")
+        room.g[f - 1][x + 3] = SLOPE_DOWN
+        room.take(x, x + 3, 1)
+        return 4
     # "floats": two solid platforms, the second higher and further on
     room.fill(x, f - 3, x + 2, f - 3, "#")
     room.fill(x + 5, f - 5, x + 7, f - 5, "#")
@@ -341,8 +352,34 @@ def _feature(room: _Room, name: str, x: int) -> int:
     return 8
 
 
-FEATURE_WIDTHS = {"pit": 3, "spikes": 1, "bump": 3, "plank": 4, "floats": 8}
+FEATURE_WIDTHS = {"pit": 3, "spikes": 1, "bump": 3, "plank": 4, "floats": 8, "hill": 4}
 CORRIDOR_FEATURES = ("bump", "plank", "pit", "floats", "spikes")
+# the same, in a world whose packs draw the sides of a hill: a hill takes the bump's turn
+HILL_FEATURES = ("hill", "plank", "pit", "floats", "spikes")
+# where the start room's hill begins, when the room is wide enough to have one
+START_HILL = 30
+
+
+def has_slopes(catalog: Any) -> bool:
+    """Whether the packs of a catalog draw both sides of a hill (T17.33): tiles whose overrides
+    say ``slope`` ``up`` and ``down``. Without a catalog (the Options page before an analysis),
+    no."""
+    if catalog is None:
+        return False
+    from rpggen.core.catalog import effective
+
+    found: set[str] = set()
+    for asset in getattr(catalog, "assets", []):
+        facets = effective(asset)
+        if facets.get("usage") != "tiles":
+            continue
+        for entry in (facets.get("tile_overrides") or {}).values():
+            custom = entry.get("custom") if isinstance(entry, dict) else None
+            if isinstance(custom, dict) and custom.get("slope") in ("up", "down"):
+                found.add(str(custom["slope"]))
+    return found == {"up", "down"}
+
+
 # A room with a gate has nothing to stand on but the floor: a platform before a ledge or a gap
 # would be a way past it without the ability.
 GROUND_FEATURES = ("pit", "spikes")
@@ -395,7 +432,9 @@ def _open_exit(room: _Room, edge: str, column: int) -> None:
     room.take(column, column, 2)
 
 
-def _draw_room(spec: dict[str, Any], options: dict[str, Any], rng: Random) -> dict[str, Any]:
+def _draw_room(
+    spec: dict[str, Any], options: dict[str, Any], rng: Random, slopes: bool = False
+) -> dict[str, Any]:
     """The tiles and the things of one room. ``spec`` has id, kind, exits (each with an edge and
     an optional gate) and what the room holds."""
     size = (int(options["room_size"][0]), int(options["room_size"][1]))
@@ -422,6 +461,8 @@ def _draw_room(spec: dict[str, Any], options: dict[str, Any], rng: Random) -> di
         _feature(room, "pit", 13)
         _feature(room, "plank", 19)
         _feature(room, "spikes", 26)
+        if slopes and START_HILL + FEATURE_WIDTHS["hill"] <= east_end - 1:
+            _feature(room, "hill", START_HILL)
     elif kind == "guardian":
         at = room.place(int(size[0] * 0.62), 3)
         out["guardian"] = {
@@ -440,7 +481,11 @@ def _draw_room(spec: dict[str, Any], options: dict[str, Any], rng: Random) -> di
             lift = 2 if gate is None else 1
             out["pickup"] = {"ability": spec["grants"], "cell": [pedestal + 1, room.floor - lift]}
         _decorate(
-            room, rng, 6, east_end, GROUND_FEATURES if gate is not None else CORRIDOR_FEATURES
+            room,
+            rng,
+            6,
+            east_end,
+            GROUND_FEATURES if gate is not None else HILL_FEATURES if slopes else CORRIDOR_FEATURES,
         )
 
     if kind in ("corridor", "pickup"):
@@ -507,9 +552,9 @@ def _chain(count: int, abilities: list[str], rng: Random) -> dict[str, Any]:
 
 def plan(options: Any, seed: int, catalog: Any = None) -> dict[str, Any]:
     """The rooms of a world: deterministic from the options and the seed. ``catalog`` is not
-    needed for the geometry (the recipe picks the tiles) and is accepted for the callers that
-    plan every kind of world the same way."""
-    del catalog
+    needed for the geometry (the recipe picks the tiles) but for one question: whether its packs
+    draw the sides of a hill (T17.33), and then the rooms have hills where they had bumps."""
+    slopes = has_slopes(catalog)
     opts = normalized(options)
     count = int(opts["rooms"])
     abilities: list[str] = list(opts["abilities"])
@@ -573,7 +618,7 @@ def plan(options: Any, seed: int, catalog: Any = None) -> dict[str, Any]:
             "items": items[i],
             "chest": i == chest_room,
         }
-        drawn = _draw_room(spec, opts, Random(f"{int(seed)}:{room}"))
+        drawn = _draw_room(spec, opts, Random(f"{int(seed)}:{room}"), slopes)
         rooms.append(
             {
                 "id": room,
@@ -585,7 +630,7 @@ def plan(options: Any, seed: int, catalog: Any = None) -> dict[str, Any]:
                 **drawn,
             }
         )
-    return {
+    out: dict[str, Any] = {
         "version": PLAN_VERSION,
         "room_size": list(opts["room_size"]),
         "abilities": abilities,
@@ -595,6 +640,9 @@ def plan(options: Any, seed: int, catalog: Any = None) -> dict[str, Any]:
         "path": [str(r) for r in chain["path"]],
         "list": rooms,
     }
+    if slopes:
+        out["slopes"] = True  # rooms added later have hills too
+    return out
 
 
 def room_of(rooms: dict[str, Any], ident: str) -> dict[str, Any] | None:
@@ -666,7 +714,9 @@ def extend(stored: dict[str, Any], added_rows: Any, seed: int) -> tuple[dict[str
             "chest": False,
         }  # fmt: skip
         opts = {**defaults(), "room_size": out["room_size"]}
-        drawn = _draw_room(spec, opts, Random(f"{int(seed)}:extend:{ident}"))
+        drawn = _draw_room(
+            spec, opts, Random(f"{int(seed)}:extend:{ident}"), bool(out.get("slopes"))
+        )
         out["list"].append(
             {
                 "id": ident,

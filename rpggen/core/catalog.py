@@ -1938,6 +1938,7 @@ def assemble(
             side_ids.add(pack_id)
             own = [a for a in catalog.assets if a.pack_id == pack_id]
             side_packs.frame_sheets(own, opened.root, root)
+            side_packs.tile_copies(own, opened.root, root)
             side_packs.characters(own, root)
             side_packs.props(own, root)
             side_packs.not_ground(own, root)

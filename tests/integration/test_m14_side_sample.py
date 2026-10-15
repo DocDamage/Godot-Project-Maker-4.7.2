@@ -41,6 +41,7 @@ M14_STEPS = [
     "sign_dialogue",
     "inventory_item",
     "jump_clears_gap",
+    "walks_over_hill",
     "one_way_platform",
     "hazard_hurts_and_returns",
     "gate_blocks",

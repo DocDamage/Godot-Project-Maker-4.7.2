@@ -33,6 +33,7 @@ func steps() -> Array[Dictionary]:
 		{"name": "sign_dialogue", "fn": _sign_dialogue, "timeout_s": 30.0},
 		{"name": "inventory_item", "fn": _inventory_item, "timeout_s": 15.0},
 		{"name": "jump_clears_gap", "fn": _jump_clears_gap, "timeout_s": 20.0},
+		{"name": "walks_over_hill", "fn": _walks_over_hill, "timeout_s": 20.0},
 		{"name": "one_way_platform", "fn": _one_way_platform, "timeout_s": 20.0},
 		{"name": "hazard_hurts_and_returns", "fn": _hazard_hurts_and_returns, "timeout_s": 20.0},
 		{"name": "gate_blocks", "fn": _gate_blocks, "timeout_s": 30.0},
@@ -384,6 +385,54 @@ func _jump_clears_gap() -> String:
 		return "the player did not land on the far side of the %d-tile gap (x %.0f)" % [gap_to - gap_from + 1, player.global_position.x]
 	if state.player_stats.hp != hp:
 		return "the jump over the gap cost a hit point"
+	return ""
+
+## T17.33: the player walks up a hill's slope, over its top and down its other side, holding
+## right and never jumping. A world whose packs draw no slopes has no hill: the step passes.
+func _walks_over_hill() -> String:
+	var holder: Dictionary = {}
+	var hill: Array = []
+	for room in _room_list():
+		hill = _run_of(room, "/")
+		if not hill.is_empty():
+			holder = room
+			break
+	if holder.is_empty():
+		print("[rpggen] INFO walks_over_hill: this world has no hill, step passes")
+		return ""
+	if not await _enter(JsonUtil.to_str(holder["id"])):
+		return "the room of the hill could not be entered"
+	_calm()
+	var row: int = hill[0]
+	var foot: int = hill[1]
+	var line := _row_of(holder, row)
+	var far := line.find("\\", foot)
+	if far < 0:
+		return "the hill has no far side"
+	var player := _player()
+	var tile := _tile()
+	if not await _put(Vector2i(foot - 2, row)):
+		return "the player could not be put before the hill"
+	var ground_y := player.global_position.y
+	var jumps := [0]
+	var count := func() -> void: jumps[0] += 1
+	player.jumped.connect(count)
+	var top := [ground_y]
+	var watch := func() -> bool:
+		top[0] = minf(top[0], player.global_position.y)
+		return player.global_position.x > (far + 2) * tile and player.is_on_floor()
+	Input.action_press("move_right")
+	var over := await _wait_for(watch, 240)
+	_release_all()
+	player.jumped.disconnect(count)
+	if not over:
+		return "holding right did not take the player over the hill (x %.0f, the hill ends at %.0f)" % [player.global_position.x, (far + 1) * tile]
+	if jumps[0] != 0:
+		return "the player jumped on the way over the hill"
+	if ground_y - top[0] < 0.75 * tile:
+		return "the player did not go up the slope (rose %.1f px of a %d px tile)" % [ground_y - top[0], int(tile)]
+	if absf(player.global_position.y - ground_y) > 1.5:
+		return "the player did not come down the far side to the ground (y %.1f, the ground is at %.1f)" % [player.global_position.y, ground_y]
 	return ""
 
 func _one_way_platform() -> String:
