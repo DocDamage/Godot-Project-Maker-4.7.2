@@ -351,7 +351,9 @@ func _build_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionar
 				if is_new or td.terrain_set == -1:
 					var terrain_spec: Dictionary = terrain
 					var tile_terrain_sets: Array = def.get("terrain_sets", [])
-					apply_terrain(td, ts, tile_terrain_sets, terrain_spec)
+					if apply_terrain(td, ts, tile_terrain_sets, terrain_spec) and ov.has("probability"):
+						# a plain variant of a terrain's middle is painted less often (T17.31)
+						td.probability = JsonUtil.to_float(ov["probability"], 1.0)
 			if runs.has(coords):
 				var run_spec: Dictionary = runs[coords]
 				_apply_animation(ctx, src, coords, run_spec, asset, issues)

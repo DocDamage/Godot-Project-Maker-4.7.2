@@ -90,6 +90,7 @@ func input_hash(ctx: BuildContext) -> String:
 		hashed["iso"] = MapGeo.new(ctx).def
 		hashed["iso_v"] = ISO_VERSION
 		hashed.merge(MapGeo.edge_hash(ctx))  # T17.22: only with walls along a side
+	hashed.merge(MapGeo.TerrainPaint.hash_part(ctx))  # T17.31: only with terrains
 	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
@@ -98,7 +99,12 @@ func build(ctx: BuildContext) -> Array:
 	if WorldPlan.has_areas(world):
 		_build_areas(ctx, world, issues)
 		return issues
-	if FileAccess.file_exists(OUT_PATH) or not _wanted(ctx):
+	if not _wanted(ctx):
+		return issues
+	if FileAccess.file_exists(OUT_PATH):
+		var kept := MapGeo.TerrainPaint.kept_map(ctx, OUT_PATH, input_hash(ctx))  # T17.31
+		if not kept.is_empty():
+			issues.append(kept)
 		return issues
 	var geo := MapGeo.new(ctx)  # squares, or diamonds (T17.14)
 	var tile_set := geo.load_tile_set()
@@ -159,16 +165,19 @@ func _paint_ground(geo: MapGeo, ground: TileMapLayer, rng: MapBuild.Lcg) -> void
 		base = geo.nth_tile_with_role("GROUND", 0)
 	if base.is_empty():
 		return
-	MapBuild.fill_ground(ground, SIZE, base)
-	var others := geo.other_tiles(base, 3)
-	if others.is_empty():
+	# the middle of a terrain where the tile is a piece of one, its variants, and patches of a
+	# terrain where the tile set has them (T17.31)
+	base = geo.ground_of(base)
+	geo.fill_ground(ground, Rect2i(Vector2i.ZERO, SIZE), base, "field_1")
+	var others := geo.plain_others(base, 3)
+	if others.is_empty() and geo.terrain_for("PATCH", geo.surface_of(base)).is_empty():
 		return
 	var patches: Array = []
 	for i in PATCHES:
 		var size := Vector2i(rng.range_inclusive(2, 4), rng.range_inclusive(2, 4))
 		var pos := Vector2i(rng.range_inclusive(2, SIZE.x - size.x - 2), rng.range_inclusive(2, SIZE.y - size.y - 2))
 		patches.append({"rect": Rect2i(pos, size), "index": i})
-	MapBuild.paint_planned_patches(ground, patches, others)
+	geo.paint_patches(ground, patches, others, base, "field_1")
 
 ## A free tile inside the walls (random, never on `taken`); it is added to `taken`. Vector2i.ZERO
 ## when the map is full.
@@ -322,7 +331,12 @@ func _build_areas(ctx: BuildContext, plan: Dictionary, issues: Array) -> void:
 		_save_key_item(ctx, plan, key, issues)
 	for area in WorldPlan.areas(plan):
 		var path := WorldPlan.map_path(area)
-		if area["id"] == WorldPlan.VILLAGE_ID or FileAccess.file_exists(path):
+		if area["id"] == WorldPlan.VILLAGE_ID:
+			continue
+		if FileAccess.file_exists(path):
+			var kept := MapGeo.TerrainPaint.kept_map(ctx, path, input_hash(ctx))  # T17.31
+			if not kept.is_empty():
+				issues.append(kept)
 			continue
 		var root := _build_area(ctx, area, geo, tile_set)
 		for note in geo.take_notes():
@@ -399,15 +413,17 @@ func _paint_area_ground(area: Dictionary, geo: MapGeo, ground: TileMapLayer, siz
 		base = geo.nth_tile_with_role("GROUND", 0)
 	if base.is_empty():
 		return
-	MapBuild.fill_ground(ground, size, base)
-	var others := geo.other_tiles(base, 3)
-	if not others.is_empty():
+	base = geo.ground_of(base, wanted)
+	var label := "area_" + JsonUtil.to_str(area.get("id", ""))
+	geo.fill_ground(ground, Rect2i(Vector2i.ZERO, size), base, label)
+	var others := geo.plain_others(base, 3)
+	if not others.is_empty() or not geo.terrain_for("PATCH", geo.surface_of(base)).is_empty():
 		var patches: Array = []
 		for i in PATCHES:
 			var patch := Vector2i(rng.range_inclusive(2, 4), rng.range_inclusive(2, 4))
 			var pos := Vector2i(rng.range_inclusive(2, size.x - patch.x - 2), rng.range_inclusive(2, size.y - patch.y - 2))
 			patches.append({"rect": Rect2i(pos, patch), "index": i})
-		MapBuild.paint_planned_patches(ground, patches, others)
+		geo.paint_patches(ground, patches, others, base, label)
 	var water := JsonUtil.to_array(area.get("water", []))
 	var water_tile := geo.find_tile("WATER")
 	if water.size() == 4 and not water_tile.is_empty():

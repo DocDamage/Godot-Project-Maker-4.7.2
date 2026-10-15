@@ -2351,6 +2351,91 @@
           "surface:grass",
           "variant_of:sample_pack_farm.tilesets.spring.grass"
         ],
+        "tile_overrides": {
+          "0,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_dirt_0_0",
+              "terrain": 0
+            }
+          },
+          "1,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_sand_1_0",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_sand_1_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_dirt_0_0",
+              "terrain": 0
+            }
+          },
+          "3,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_sand_1_0",
+              "terrain": 0
+            }
+          }
+        },
         "tileset": "overworld",
         "usage": "tiles"
       },
@@ -2443,6 +2528,125 @@
           64,
           32
         ],
+        "tile_overrides": {
+          "0,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "path_path_0_0",
+              "terrain": 0
+            }
+          },
+          "1,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "path_path_1_0",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "path_path_1_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "path_path_0_0",
+              "terrain": 0
+            }
+          },
+          "2,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "path_path_0_0",
+              "terrain": 0
+            }
+          },
+          "3,0": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "path_path_1_0",
+              "terrain": 0
+            }
+          },
+          "3,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "path_path_1_0",
+              "terrain": 0
+            }
+          }
+        },
         "tileset": "overworld",
         "usage": "tiles"
       },
@@ -2563,6 +2767,91 @@
           "season:spring",
           "surface:grass"
         ],
+        "tile_overrides": {
+          "0,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_grass_0_0",
+              "terrain": 0
+            }
+          },
+          "1,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_grass_1_0",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_grass_1_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_grass_0_0",
+              "terrain": 0
+            }
+          },
+          "3,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "grass_grass_1_0",
+              "terrain": 0
+            }
+          }
+        },
         "tileset": "overworld",
         "usage": "tiles"
       },
@@ -2612,6 +2901,58 @@
           "surface:grass",
           "variant_of:sample_pack_farm.tilesets.spring.grass"
         ],
+        "tile_overrides": {
+          "1,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "sample_pack_farm_tilesets_summer_grass_grass_1_0",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "sample_pack_farm_tilesets_summer_grass_grass_1_0",
+              "terrain": 0
+            }
+          },
+          "3,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "sample_pack_farm_tilesets_summer_grass_grass_1_0",
+              "terrain": 0
+            }
+          }
+        },
         "tileset": "overworld",
         "usage": "tiles"
       },
@@ -2660,6 +3001,142 @@
           64,
           32
         ],
+        "tile_overrides": {
+          "0,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "water_water_0_0",
+              "terrain": 0
+            }
+          },
+          "0,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "water_water_1_0",
+              "terrain": 0
+            }
+          },
+          "1,0": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "water_water_1_0",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "water_water_0_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "water_water_0_0",
+              "terrain": 0
+            }
+          },
+          "2,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "water_water_1_0",
+              "terrain": 0
+            }
+          },
+          "3,0": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "water_water_1_0",
+              "terrain": 0
+            }
+          },
+          "3,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "water_water_0_0",
+              "terrain": 0
+            }
+          }
+        },
         "tileset": "overworld",
         "usage": "tiles"
       },
@@ -3202,7 +3679,143 @@
           "source_id": 7
         }
       ],
-      "terrain_sets": [],
+      "terrain_sets": [
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "grass_dirt_0_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.autumn.grass",
+          "surface": "dirt",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "dirt"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "grass_sand_1_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.autumn.grass",
+          "surface": "sand",
+          "terrains": [
+            {
+              "color": "#8d6e63",
+              "name": "sand"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "path_path_0_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.path",
+          "surface": "path",
+          "terrains": [
+            {
+              "color": "#2196f3",
+              "name": "path"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "path_path_1_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.path",
+          "surface": "path",
+          "terrains": [
+            {
+              "color": "#ffc107",
+              "name": "path"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "grass_grass_0_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.spring.grass",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#9c27b0",
+              "name": "grass"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "grass_grass_1_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.spring.grass",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#00bcd4",
+              "name": "grass"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "sample_pack_farm_tilesets_summer_grass_grass_1_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.summer.grass",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#e91e63",
+              "name": "grass"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "water_water_0_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.water",
+          "surface": "water",
+          "terrains": [
+            {
+              "color": "#795548",
+              "name": "water"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "water_water_1_0",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_farm.tilesets.water",
+          "surface": "water",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "water"
+            }
+          ]
+        }
+      ],
       "tile_size": [
         16,
         16

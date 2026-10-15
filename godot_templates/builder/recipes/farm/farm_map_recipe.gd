@@ -182,6 +182,35 @@ static func rect_of(value: Variant) -> Rect2i:
 		return Rect2i()
 	return Rect2i(JsonUtil.to_int(four[0]), JsonUtil.to_int(four[1]), JsonUtil.to_int(four[2]), JsonUtil.to_int(four[3]))
 
+## Paints the plot of a field with the terrain `plot` (FarmBuild.plot_terrain, T17.31): as one
+## area, edged where it meets the ground round it; for a terrain that joins at its sides only
+## (beds of soil one cell wide, *Tiny Farm*'s) every column of the plot as a bed of its own.
+static func paint_plot(layer: TileMapLayer, cells: Array[Vector2i], plot: Dictionary, map_seed: int) -> void:
+	var set_index := JsonUtil.to_int(plot["set"])
+	var terrain := JsonUtil.to_int(plot["terrain"])
+	if JsonUtil.to_str(plot.get("shape", "any")) != "path":
+		RpgTerrain.paint_area(layer, cells, set_index, terrain, map_seed)
+		return
+	var by_x := {}
+	for cell in cells:
+		if not by_x.has(cell.x):
+			by_x[cell.x] = []
+		var column: Array = by_x[cell.x]
+		column.append(cell)
+	var xs := by_x.keys()
+	xs.sort()
+	for x: Variant in xs:
+		var column: Array = by_x[x]
+		column.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
+		var run: Array[Vector2i] = []
+		for cell: Vector2i in column:
+			if not run.is_empty() and cell.y != run[run.size() - 1].y + 1:
+				RpgTerrain.paint_path(layer, run, set_index, terrain, map_seed)
+				run = []
+			run.append(cell)
+		if not run.is_empty():
+			RpgTerrain.paint_path(layer, run, set_index, terrain, map_seed)
+
 ## A list of [x, y] of a plan as cells.
 static func cells_of(value: Variant) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
@@ -374,6 +403,7 @@ func input_hash(ctx: BuildContext) -> String:
 		hashed.merge(MapGeo.edge_hash(ctx))  # T17.22: only with walls along a side
 	if not FarmBuild.events().is_empty():  # only a farm with festivals has the key (T17.25)
 		hashed["calendar"] = EventsRecipe.RECIPE_VERSION
+	hashed.merge(MapGeo.TerrainPaint.hash_part(ctx))  # T17.31: only with terrains
 	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
@@ -384,6 +414,10 @@ func build(ctx: BuildContext) -> Array:
 		return issues
 	if not FileAccess.file_exists(FARM_PATH):
 		_build_farm(ctx, farm, issues)
+	else:
+		var kept := MapGeo.TerrainPaint.kept_map(ctx, FARM_PATH, input_hash(ctx))  # T17.31
+		if not kept.is_empty():
+			issues.append(kept)
 	for building in buildings_of(farm):
 		if not FileAccess.file_exists(room_path(building)):
 			_build_room(ctx, building, issues)
@@ -447,7 +481,8 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 	var triggers: Node2D = nodes["Triggers"]
 
 	# the ground, the paths on it, the water of a pond, and the edge with its one gap
-	MapBuild.fill_ground(ground, size, _ground_tile(ctx, geo))
+	# the ground varies where its tile is the middle of a terrain with plain variants (T17.31)
+	geo.fill_ground(ground, Rect2i(Vector2i.ZERO, size), geo.ground_of(_ground_tile(ctx, geo)), MAP_ID)
 	var details := geo.road_layer(nodes)  # GroundDetails; the ground itself on diamonds
 	if details != null:
 		geo.paint_joined(details, cells_of(farm.get("paths")), "ROAD", geo.find_tile("ROAD"))
@@ -455,8 +490,12 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 	var water_cells := cells_of(water.get("cells"))
 	var pond := JsonUtil.to_str(water.get("kind", "")) == "pond"
 	var water_tile: Dictionary = geo.find_tile("WATER") if pond else {}
-	if not water_tile.is_empty():
+	# a pond of a terrain of water has its shore (T17.31), whatever sheet the water is in
+	var water_terrain := pond and not geo.terrain_for("WATER").is_empty()
+	if not water_tile.is_empty() or water_terrain:
 		geo.paint_joined(ground, water_cells, "WATER", water_tile)
+		if water_tile.is_empty():
+			water_tile = {"terrain": true}  # the map paints its water: the Soil layer marks it
 	var way_out := JsonUtil.to_dict(farm.get("exit", {}))
 	var gap := cell_of(way_out.get("cell"))
 	var skip: Array[Vector2i] = []
@@ -472,8 +511,15 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 		issues.append(ctx.make_issue("VAL-002", {"file": FarmBuild.SOIL_TILESET}, FarmBuild.SOIL_TILESET))
 		root.free()
 		return null
-	for cell in cells_of(farm.get("tillable")):
-		soil.set_cell(cell, FieldRecipe.SOURCE_ID, FieldRecipe.PLOT_TILE)
+	# the plot: earth of a terrain of the ground, edged where it meets the grass, when the tile
+	# set has one (T17.31), the Soil layer marking it with a tile that shows nothing; else the
+	# drawn ground that can be tilled
+	var tillable := cells_of(farm.get("tillable"))
+	var plot := FarmBuild.plot_terrain(ctx)
+	if not plot.is_empty() and not tillable.is_empty():
+		paint_plot(ground, tillable, plot, geo.seed_for(MAP_ID + "_plot"))
+	for cell in tillable:
+		soil.set_cell(cell, FieldRecipe.SOURCE_ID, FieldRecipe.PLOT_TILE if plot.is_empty() else FieldRecipe.PLOT_MARK)
 	# a pond without a water tile of the packs is drawn; the others show through
 	var water_mark := FieldRecipe.WATER_TILE if pond and water_tile.is_empty() else FieldRecipe.WATER_MARK
 	for cell in water_cells:

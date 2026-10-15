@@ -215,7 +215,8 @@
             "durations_ms"
           ],
           "additionalProperties": false
-        }
+        },
+        "probability": {"type": "number", "minimum": 0}
       },
       "additionalProperties": false
     },
@@ -723,7 +724,13 @@
                     "color"
                   ]
                 }
-              }
+              },
+              "surface": {"type": "string"},
+              "over": {"enum": ["ground", "nothing"]},
+              "shape": {"enum": ["any", "area", "path", "plain"]},
+              "layout": {"type": "string"},
+              "sheet": {"type": "string"},
+              "role": {"type": "string"}
             },
             "additionalProperties": false,
             "required": [

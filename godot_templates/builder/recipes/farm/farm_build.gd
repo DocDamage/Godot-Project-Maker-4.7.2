@@ -15,6 +15,7 @@ const JsonUtil := preload("../../lib/json_util.gd")
 const TextureUtil := preload("../../lib/texture_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
 const MapGeo := preload("../../lib/map_geo.gd")
+const TerrainPaint := preload("../../lib/terrain_paint.gd")
 
 const DIR := "res://addons/rpg_runtime/archetypes/farm/"
 const FARMER := DIR + "farmer.gd"
@@ -309,6 +310,62 @@ static func soil_tile(ctx: BuildContext, tag: String, size: int) -> Dictionary:
 			return {"path": path, "coords": Vector2i(int(parts[0]), int(parts[1]))}
 	return {}
 
+## The surfaces the ground of a field is painted with (T17.31), in the order they are taken: the
+## earth of the packs, else their soil.
+const PLOT_SURFACES: Array[String] = ["dirt", "sand", "soil"]
+
+## The terrain the plot of a farm seen from above is painted with on the ground (T17.31), so that
+## the field has its edge where it meets the grass: as TerrainPaint.find gives it ({set,
+## terrain, shape, ...} of the outdoor tile set), {} for an isometric farm and for a tile set
+## without such a terrain. A terrain of soil that is also what tilled soil is painted with is
+## not taken: a plot that looks tilled would not change under the hoe.
+static func plot_terrain(ctx: BuildContext) -> Dictionary:
+	if MapGeo.is_isometric(ctx):
+		return {}
+	var def: Dictionary = ctx.catalog.tileset_def("overworld")
+	var found := TerrainPaint.find(ctx, def, null, PLOT_SURFACES, TerrainPaint.SOIL_SHAPES, ["GROUND"])
+	if JsonUtil.to_str(found.get("surface", "")) == "soil" and not soil_terrain(ctx, "soil").is_empty():
+		return {}
+	return found
+
+## The terrain of tilled (`soil`) or watered (`watered`) soil of the outdoor tile set (T17.31): the
+## terrain of surface `soil` (or `soil_wet`) that rpggen read from a sheet, as
+## `{asset_id, path, cell, spec, tiles}` (`tiles`: [[coords, terrain, probability]] of the tiles of
+## that terrain in the sheet); {} for an isometric farm and when the packs have none. The field
+## recipe puts these tiles into the soil's tile set, and the field paints a tilled cell with the
+## terrain: its soil joins the soil round it.
+static func soil_terrain(ctx: BuildContext, tag: String) -> Dictionary:
+	if MapGeo.is_isometric(ctx):
+		return {}
+	var def: Dictionary = ctx.catalog.tileset_def("overworld")
+	var surfaces: Array[String] = ["soil"] if tag == "soil" else ["soil_wet"]
+	var found := TerrainPaint.find(ctx, def, null, surfaces, TerrainPaint.AREA_SHAPES)
+	if found.is_empty():
+		return {}
+	var spec: Dictionary = TerrainPaint.specs(def)[JsonUtil.to_int(found["set"])]
+	var asset := ctx.catalog.asset(JsonUtil.to_str(found["sheet"]))
+	if asset.is_empty() or not _usable(asset):
+		return {}
+	var eff: Dictionary = ctx.catalog.effective(asset)
+	var grid := JsonUtil.to_dict(eff.get("grid", {}))
+	var overrides := JsonUtil.to_dict(eff.get("tile_overrides", {}))
+	var keys := overrides.keys()
+	keys.sort()
+	var tiles: Array = []
+	for key: Variant in keys:
+		var entry := JsonUtil.to_dict(overrides[key])
+		var terrain := JsonUtil.to_dict(entry.get("terrain", {}))
+		if JsonUtil.to_str(terrain.get("set", "")) != JsonUtil.to_str(spec.get("name", "")):
+			continue
+		var parts := JsonUtil.to_str(key).split(",")
+		tiles.append([Vector2i(int(parts[0]), int(parts[1])), terrain, JsonUtil.to_float(entry.get("probability", 1.0), 1.0)])
+	if tiles.is_empty():
+		return {}
+	return {
+		"asset_id": JsonUtil.to_str(asset["id"]), "path": "res://" + JsonUtil.to_str(asset["path"]),
+		"cell": JsonUtil.to_array(grid.get("cell", [])), "spec": spec, "tiles": tiles,
+	}
+
 ## The tile of tilled (`soil`) or watered (`watered`) soil of an isometric farm (T17.14): the id
 ## of the first flat tile of the project's tile set of diamonds that a pack tagged so
 ## (`dirtFarmland` of the miniature packs), or "" when the packs have none: the field recipe
@@ -419,8 +476,10 @@ static func drawn_icon(kind: String, colour: Color = Color.WHITE) -> ImageTextur
 ## tilled, tilled soil with its furrows, watered soil, water, and a tile that shows nothing.
 ## The first is always used; the tilled and the watered one only when neither the packs nor the
 ## kit have the tile; the water where a map has no water tile of the packs.
-static func soil_texture(size: int) -> ImageTexture:
-	var image := _blank(size * 5, size)
+static func soil_texture(size: int, with_mark: bool = false) -> ImageTexture:
+	# with_mark: a sixth tile that shows nothing, for ground that can be tilled whose earth the
+	# map paints itself (T17.31: the plot of a terrain)
+	var image := _blank(size * (6 if with_mark else 5), size)
 	_draw(image, Vector2i.ZERO, size, [[0, 0, 16, 16, EARTH], [3, 4, 2, 1, EARTH.darkened(0.15)], [10, 9, 2, 1, EARTH.darkened(0.15)], [6, 12, 1, 1, EARTH.lightened(0.15)]])
 	for i: int in [1, 2]:
 		var base: Color = TILLED if i == 1 else WET

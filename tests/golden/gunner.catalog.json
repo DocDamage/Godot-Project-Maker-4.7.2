@@ -706,6 +706,74 @@
           64,
           32
         ],
+        "tile_overrides": {
+          "0,1": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "ground_stone_0_1",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "ground_stone_1_1",
+              "terrain": 0
+            }
+          },
+          "2,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "ground_stone_0_1",
+              "terrain": 0
+            }
+          },
+          "3,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "ground_stone_1_1",
+              "terrain": 0
+            }
+          }
+        },
         "tileset": "overworld",
         "usage": "tiles"
       },
@@ -797,7 +865,38 @@
           "source_id": 0
         }
       ],
-      "terrain_sets": [],
+      "terrain_sets": [
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "ground_stone_0_1",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "gunner.tiles.ground",
+          "surface": "stone",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "stone"
+            }
+          ]
+        },
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "ground_stone_1_1",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "gunner.tiles.ground",
+          "surface": "stone",
+          "terrains": [
+            {
+              "color": "#8d6e63",
+              "name": "stone"
+            }
+          ]
+        }
+      ],
       "tile_size": [
         16,
         16

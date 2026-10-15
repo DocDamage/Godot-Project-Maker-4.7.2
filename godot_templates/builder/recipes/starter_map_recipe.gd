@@ -27,6 +27,7 @@ const ImportedMaps := preload("imported_maps_recipe.gd")
 const WorldPlan := preload("../lib/world_plan.gd")
 const MapGeo := preload("../lib/map_geo.gd")
 const PlainGround := preload("../lib/plain_ground.gd")
+const TerrainPaint := preload("../lib/terrain_paint.gd")
 
 const OUT_PATH := "res://game/maps/starter_map.tscn"
 ## The entities of the demo placed in the starter map (T8.08 removes exactly these).
@@ -78,7 +79,7 @@ func input_hash(ctx: BuildContext) -> String:
 		"demo_removed": ctx.demo_removed,
 		"demo": ctx.section("features").get("demo", true),
 		"world": WorldPlan.area(WorldPlan.read(), WorldPlan.VILLAGE_ID),
-	}).merged(_augmenter_hash(ctx)).merged(_plain_hash()))
+	}).merged(_augmenter_hash(ctx)).merged(_plain_hash()).merged(TerrainPaint.hash_part(ctx)))
 
 ## The plain ground of a farm (`farm.ground`) and the version of its painting; nothing for any
 ## other project, whose hash is what it was.
@@ -109,6 +110,11 @@ func _augmenter_hash(ctx: BuildContext) -> Dictionary:
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	if FileAccess.file_exists(OUT_PATH):
+		# an existing map keeps its painting (T17.31): the builder says so when terrains would
+		# paint a new one
+		var kept := TerrainPaint.kept_map(ctx, OUT_PATH, input_hash(ctx))
+		if not kept.is_empty():
+			issues.append(kept)
 		return issues
 	var imported := ImportedMaps.starter_map(ctx)
 	if not imported.is_empty():
@@ -324,11 +330,12 @@ func _ground_tile(ctx: BuildContext, geo: MapGeo) -> Dictionary:
 	var wanted := JsonUtil.to_str(ctx.section("starter_map").get("ground", ""))
 	if wanted == "":
 		wanted = JsonUtil.to_str(ctx.section("starter").get("ground", ""))
+	# the middle of a terrain where the sheet's first tile is a piece of one (T17.31)
 	if wanted != "":
 		var tile := geo.tile_of_asset(wanted)
 		if not tile.is_empty():
-			return tile
-	return geo.find_tile("GROUND")
+			return geo.ground_of(tile, wanted)
+	return geo.ground_of(geo.find_tile("GROUND"))
 
 ## The house area (in tiles) that patches of other ground stay away from (the default map only).
 func _house_area(building: Dictionary, geo: MapGeo) -> Rect2i:
@@ -346,23 +353,30 @@ func _paint_ground(ctx: BuildContext, geo: MapGeo, ground: TileMapLayer, buildin
 	# (farm.ground of the plan file: no other project has the key), and no patches of the
 	# sheet's other tiles, which are its edges and corners
 	var plain := PlainGround.tile(geo)
+	var size: Vector2i = layout["size"]
 	if not plain.is_empty():
-		var plain_size: Vector2i = layout["size"]
-		MapBuild.fill_ground(ground, plain_size, plain)
+		geo.fill_ground(ground, Rect2i(Vector2i.ZERO, size), plain, "starter_map")
 		return
 	var base := _ground_tile(ctx, geo)
 	if base.is_empty():
 		return
-	var size: Vector2i = layout["size"]
-	MapBuild.fill_ground(ground, size, base)
-	var others := geo.other_tiles(base, 3)
-	if others.is_empty():
+	# the ground's variants where its tile is the middle of a terrain, and patches of another
+	# ground painted with a terrain where the tile set has one (T17.31); for a tile set without
+	# terrains the tiles of the ground's sheet as always
+	geo.fill_ground(ground, Rect2i(Vector2i.ZERO, size), base, "starter_map")
+	var others := geo.plain_others(base, 3)
+	var by_terrain := not geo.terrain_for("PATCH", geo.surface_of(base)).is_empty()
+	if others.is_empty() and not by_terrain:
 		return
 	if layout["legacy_patches"]:
-		MapBuild.paint_legacy_patches(ground, size, others, JsonUtil.to_int(ctx.config.get("seed", 12345)), JsonUtil.to_int(layout["patch_count"]), _house_area(building, geo))
+		if not by_terrain:
+			MapBuild.paint_legacy_patches(ground, size, others, JsonUtil.to_int(ctx.config.get("seed", 12345)), JsonUtil.to_int(layout["patch_count"]), _house_area(building, geo))
+			return
+		var legacy := MapBuild.legacy_patches(size, JsonUtil.to_int(ctx.config.get("seed", 12345)), JsonUtil.to_int(layout["patch_count"]), _house_area(building, geo))
+		geo.paint_patches(ground, legacy, others, base, "starter_map")
 	else:
 		var patches: Array[Dictionary] = layout["patches"]
-		MapBuild.paint_planned_patches(ground, patches, others)
+		geo.paint_patches(ground, patches, others, base, "starter_map")
 
 func _place_building(building: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo, tile: Vector2i, index: int) -> void:
 	var building_id: String = building["id"]

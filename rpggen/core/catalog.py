@@ -1972,7 +1972,7 @@ def assemble(
 
     # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
     terrain.apply_tiled_wang(catalog, adapter_tilesets)
-    terrain_result = terrain.generate(catalog, pack_roots, work_dir, issues)
+    terrain_result = terrain.generate(catalog, pack_roots, work_dir, issues, is_cancelled)
     generated.update(terrain_result.generated)
     present_ids.update(a.id for a in catalog.assets)
 

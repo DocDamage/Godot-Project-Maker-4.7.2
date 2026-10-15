@@ -58,6 +58,11 @@ const WITHERED := "withered"
 @export var tilled_tile: Vector2i = Vector2i(1, 0)
 @export var watered_source: int = 0
 @export var watered_tile: Vector2i = Vector2i(2, 0)
+## The terrain sets of the `Soil` layer's tile set that tilled and watered soil are painted with
+## (T17.31: the terrains of the pack's sheets of soil): a tilled cell joins the soil round it,
+## and the cells round it are painted again. -1 for a field that paints its one tile.
+@export var soil_terrain: int = -1
+@export var watered_terrain: int = -1
 @export var crop_scenes_dir: String = "res://generated/scenes/farm/crops/"
 ## The size of a cell when the map has no `Soil` layer to ask; with one it is the layer's: the
 ## tile of a layer of squares, the length of one step on a layer of diamonds (RpgIso.unit).
@@ -438,16 +443,32 @@ func _paint(cell: Vector2i) -> void:
 	if _soil == null:
 		return
 	if cells.has(cell):
-		if is_watered(cell):
+		var terrain := watered_terrain if is_watered(cell) else soil_terrain
+		if terrain >= 0:
+			var one: Array[Vector2i] = [cell]
+			RpgTerrain.paint_area(_soil, one, terrain, 0, resolved_id().hash())
+		elif is_watered(cell):
 			_soil.set_cell(cell, watered_source, watered_tile)
 		else:
 			_soil.set_cell(cell, tilled_source, tilled_tile)
-	elif _base.has(cell):
+		return
+	_unpaint_terrain(cell)
+	if _base.has(cell):
 		var base: Array = _base[cell]
 		var coords: Vector2i = base[1]
 		_soil.set_cell(cell, RpgUtil.to_int(base[0]), coords)
 	else:
 		_soil.erase_cell(cell)
+
+## Takes the terrain of soil off a cell that is ground again, so that the soil round it is
+## painted again without it (T17.31); nothing for a cell of no terrain.
+func _unpaint_terrain(cell: Vector2i) -> void:
+	var data := _soil.get_cell_tile_data(cell)
+	if data == null or data.terrain_set < 0:
+		return
+	var one: Array[Vector2i] = [cell]
+	_soil.set_cells_terrain_connect(one, data.terrain_set, -1, false)
+	RpgTerrain.settle(_soil, RpgTerrain.around(one), resolved_id().hash())
 
 func _make_crop(crop_id: String, cell: Vector2i) -> RpgCrop:
 	var path := RpgUtil.to_str(crops.crop(crop_id).get("scene", ""))
