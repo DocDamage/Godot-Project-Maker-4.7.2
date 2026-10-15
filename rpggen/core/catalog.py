@@ -1947,6 +1947,12 @@ def assemble(
             catalog.assets.extend(cut)
             present_ids.update(a.id for a in cut)
         if view == "farm":
+            # the people and animals of numbered tiles, told from their pictures (T17.33)
+            from rpggen.core import figures
+
+            figures.read_numbered(
+                [a for a in catalog.assets if a.pack_id == pack_id], opened.root, root
+            )
             _farm_farmer([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_use_strips([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_roles([a for a in catalog.assets if a.pack_id == pack_id], root)
@@ -2054,6 +2060,10 @@ def assemble(
                 previous,
             )
         )
+    # what a farming pack lacks of a game's dress, made of its own pictures (T17.33)
+    from rpggen.core import farm_dress
+
+    generated.update(farm_dress.dress(catalog, farm_ids, pack_roots, generated, work_dir))
     _add_objects(catalog, objects_raw, previous)
     side_packs.prop_objects(catalog, side_ids)  # props cut from a sheet are no NPCs (T17.32)
     # the things cut from a sheet set aside as another form are set aside too (T17.29: the
@@ -2078,6 +2088,7 @@ def assemble(
             words = set(classifier.tokens(sheet.path)[0]) | set(classifier.tokens(sheet.path)[1])
             if words & NOT_A_HOUSE_WORDS and not words & HOUSE_WORDS:
                 obj.role = "DECORATION"
+    farm_dress.animal_houses(catalog, farm_ids)  # a farming pack's own barn and coop (T17.33)
     assign_tilesets(catalog, previous, adapter_tilesets)
     terrain.attach_terrain_sets(catalog, terrain_result)
     resolve_maps(catalog, maps_raw, previous, issues)

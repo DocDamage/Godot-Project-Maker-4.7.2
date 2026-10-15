@@ -98,6 +98,7 @@ class ActionFolder:
     frames: list[InventoryFile]
     size: tuple[int, int]
     stem: str  # the frames' stem without its number
+    strip: bool = False  # T17.33: one file, its frames side by side (``male_hero-run.png``)
 
 
 def _numbered(files: list[InventoryFile]) -> list[tuple[int, InventoryFile]] | None:
@@ -415,6 +416,82 @@ def find_effects(inv: Inventory, claimed: set[str]) -> list[Character]:
     return out
 
 
+STRIP_FOLDER_WORDS = frozenset({"individual", "sheets", "sheet", "strips", "strip"})
+WHOLE_SHEET = 8  # frames on a grid, at least: a sheet of all of a character's frames
+
+
+def find_action_strips(inv: Inventory, claimed: set[str]) -> list[Character]:
+    """A folder of one character's strips, a file an action (T17.33: the *hero with cape*'s
+    ``individual_sheets/male_hero-run.png``, ``-idle``, ``-combo_1``): every picture as high as
+    the others, as wide as a whole number of square frames, named by the character's name and
+    then what it does, two of them by an action word. Each strip is one animation."""
+    by_folder: dict[str, list[InventoryFile]] = {}
+    for f in inv.files:
+        if f.kind == "image" and _is_still(f) and f.path not in claimed:
+            by_folder.setdefault(posixpath.dirname(f.path), []).append(f)
+    out: list[Character] = []
+    for folder in sorted(by_folder):
+        files = by_folder[folder]
+        if not folder or len(files) < 3:
+            continue
+        heights = {int((f.image or {}).get("h", 0)) for f in files}
+        if len(heights) != 1:
+            continue
+        h = heights.pop()
+        if h <= 0 or any(int((f.image or {}).get("w", 0)) % h for f in files):
+            continue
+        if all(int((f.image or {}).get("w", 0)) == h for f in files):
+            continue  # single pictures: the action files' reader's
+        split = [(words(posixpath.splitext(posixpath.basename(f.path))[0]), f) for f in files]
+        # the character's name: the words every file begins with
+        prefix: list[str] = []
+        for column in zip(*(ws for ws, _f in split), strict=False):
+            if len(set(column)) != 1:
+                break
+            prefix.append(column[0])
+        if not prefix:
+            continue
+        actions: dict[str, ActionFolder] = {}
+        for ws, f in sorted(split, key=lambda t: t[1].path):
+            if ws[: len(prefix)] != prefix or len(ws) == len(prefix):
+                actions = {}
+                break
+            raw = re.sub(
+                r"[^0-9a-z]+", "_", posixpath.splitext(posixpath.basename(f.path))[0].casefold()
+            )
+            raw = raw.strip("_")
+            head = "_".join(prefix)
+            rest = (raw[len(head) + 1 :] if raw.startswith(head + "_") else raw).split("_")
+            verb = {"stand": "idle", "duck": "crouch", "atk": "attack"}.get(
+                rest[0], _canonical(rest[0])
+            )
+            name = "_".join([verb, *rest[1:]])
+            if name not in actions:
+                actions[name] = ActionFolder(folder, folder, [f], (h, h), "_".join(rest), True)
+        if sum(1 for n in actions if n.split("_")[0] in FILE_ACTIONS | {"idle", "crouch"}) < 2:
+            continue
+        owner = folder
+        if set(words(posixpath.basename(folder))) <= GENERIC_WORDS | STRIP_FOLDER_WORDS:
+            owner = posixpath.dirname(folder) or folder
+        out.append(Character(owner, sorted(actions.items()), (h, h)))
+    return out
+
+
+def write_cells(root: Path, f: InventoryFile, size: tuple[int, int], dest: Path) -> int:
+    """A strip's frames laid out as ``write_strip`` lays frames; returns how many."""
+    w, h = size
+    with Image.open(root / f.path) as im:
+        strip = im.convert("RGBA")
+    count = max(1, strip.width // w)
+    cols, rows = sequences.layout(count, w)
+    out = Image.new("RGBA", (cols * w, rows * h), (0, 0, 0, 0))
+    for i in range(count):
+        out.paste(strip.crop((i * w, 0, (i + 1) * w, h)), ((i % cols) * w, (i // cols) * h))
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    out.save(dest, format="PNG", optimize=False, pnginfo=None)
+    return count
+
+
 RUN_MIN_FRAMES = 16
 MOTION_CONFIDENCE = 0.8
 TILE_WORDS = frozenset({"terrain", "tile", "tiles", "tileset", "tilemap", "tilesheet", "ground"})
@@ -524,6 +601,8 @@ class ActionFramesAdapter:
     def match(self, inv: Inventory, root: Path) -> float:
         if find_characters(inv, set()) or find_effects(inv, set()):
             return 1.0
+        if find_action_strips(inv, set()):
+            return 1.0
         # a folder of many numbered frames may be one character's animations (``find_runs``)
         many = any(len(a.frames) >= RUN_MIN_FRAMES for a in find_action_folders(inv, set()))
         return 1.0 if many else 0.0
@@ -542,6 +621,14 @@ class ActionFramesAdapter:
             ctx.check_cancel()
             self._character(root, inv, effect, work, result, issues, effect=True)
         taken |= {f.path for c in effects for _n, a in c.actions for f in a.frames}
+        held = taken | set(result.consumed) | {a.path for a in result.assets}
+        homes = tuple(c.folder + "/" for c in characters)
+        for character in find_action_strips(inv, ctx.claimed | held):
+            if character.folder.startswith(homes) or (character.folder + "/").startswith(homes):
+                continue  # a character's strips beside its frames: set aside with it
+            ctx.check_cancel()
+            self._character(root, inv, character, work, result, issues)
+            taken |= {f.path for _n, a in character.actions for f in a.frames}
         for character in find_runs(root, inv, ctx.claimed | taken):
             ctx.check_cancel()
             self._character(root, inv, character, work, result, issues, named_by_motion=True)
@@ -576,7 +663,11 @@ class ActionFramesAdapter:
             file_name = strip_name(action.frames, character.size)
             dest = work / file_name
             try:
-                write_strip(root, action.frames, character.size, dest)
+                if action.strip:
+                    count = write_cells(root, action.frames[0], character.size, dest)
+                else:
+                    write_strip(root, action.frames, character.size, dest)
+                    count = len(action.frames)
             except (OSError, ValueError) as exc:
                 issues.add(
                     "ADAPT-001", adapter=self.name, file=action.frames[0].path, reason=str(exc)
@@ -584,15 +675,15 @@ class ActionFramesAdapter:
                 continue
             project_path = f"{STRIP_DIR}/{file_name}"
             result.generated[project_path] = str(dest)
-            cols, _rows = sequences.layout(len(action.frames), w)
+            cols, _rows = sequences.layout(count, w)
             verb = anim.split("_")[0]
             animations[directed(anim)] = {
-                "frames": [[i % cols, i // cols] for i in range(len(action.frames))],
+                "frames": [[i % cols, i // cols] for i in range(count)],
                 "fps": naming.fps(verb),
                 "loop": naming.is_looping(verb),
                 "source": project_path,
             }
-            counts[directed(anim)] = len(action.frames)
+            counts[directed(anim)] = count
             if not used or anim == "idle":
                 baseline = _lowest_row(dest, character.size, len(action.frames))
             used.extend(action.frames)
@@ -665,6 +756,14 @@ class ActionFramesAdapter:
                 )
                 named = bool(set(words(stem)) & anim_words) and any(ih == sh for _sw, sh in sizes)
                 in_previews = bool(set(words(folders)) & PREVIEW_WORDS)
+                # a sheet of all its frames on their grid (T17.33: ``male_hero.png`` beside
+                # ``individual_sheets/``)
+                whole = any(
+                    iw % sw == 0 and ih % sh == 0 and (iw // sw) * (ih // sh) >= WHOLE_SHEET
+                    and ih > sh
+                    for sw, sh in sizes
+                )  # fmt: skip
+                strip = strip or whole
                 if not (strip or named or in_previews):
                     continue
                 reason = SAME_FRAMES if not in_previews or strip or named else PREVIEW_GIF

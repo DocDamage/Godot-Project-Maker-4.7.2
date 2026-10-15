@@ -157,16 +157,34 @@ def is_prop_path(rel: str) -> bool:
     )
 
 
+PROP_CONFIDENCE = 0.8
+
+
+def _source_rel(asset: Any, root: str) -> str:
+    """The pack path an asset was read from; for a source rpggen drew (a ``.aseprite``, whose
+    picture is a generated strip) the folders its id spells (``….props.prop_1``)."""
+    if asset.path.startswith(root + "/"):
+        return _rel(asset, root)
+    parts = asset.id.split("#", 1)[0].split(".")[1:]
+    return "/".join(parts)
+
+
 def props(assets: list[Any], root: str) -> int:
+    """A side-view pack's folder of props holds decorations, never characters; what it holds is
+    sure to be one (T17.33: pozak's ``Props/Prop (1).aseprite``, drawn by rpggen)."""
     changed = 0
     for asset in assets:
-        if asset.detected.get("role") not in CHARACTER_ROLES or ACTION_TAG in _tags(asset):
+        if ACTION_TAG in _tags(asset) or asset.detected_by in ("profile", "learned"):
             continue
-        if asset.detected_by in ("profile", "learned") or not is_prop_path(_rel(asset, root)):
+        if _set_aside(asset) or not is_prop_path(_source_rel(asset, root)):
             continue
-        asset.detected["role"] = "DECORATION"
-        asset.detected.pop("roles_alt", None)
-        changed += 1
+        role = asset.detected.get("role")
+        if role in CHARACTER_ROLES:
+            asset.detected["role"] = "DECORATION"
+            asset.detected.pop("roles_alt", None)
+            changed += 1
+        if asset.detected.get("role") == "DECORATION" and asset.detected.get("usage") == "sprite":
+            asset.confidence = max(float(asset.confidence or 0.0), PROP_CONFIDENCE)
     return changed
 
 

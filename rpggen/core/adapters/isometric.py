@@ -534,6 +534,33 @@ def strip_name(files: list[InventoryFile], cols: int) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest() + ".png"
 
 
+_SLOPE_HEADING = re.compile(r"[_\- ](N|NE|E|SE|S|SW|W|NW)(U|D)?$", re.IGNORECASE)
+SLOPE_HEADING_MIN = 8
+
+
+def _slope_headings(inv: Inventory, claimed: set[str]) -> list[str]:
+    """The folders whose pictures are a thing turned to the eight compass headings and tilted
+    up and down slopes (T17.33: Kenney's *Tiles Vehicles*, ``ambulance_NE``, ``ambulance_NEU``,
+    ``ambulance_NED``): a car seen at an angle, which no top-down pack draws going uphill. The
+    names say the pack is isometric, whatever its id."""
+    by_folder: dict[str, list[tuple[str, str]]] = {}
+    for f in inv.files:
+        if not _is_still(f) or f.path in claimed:
+            continue
+        stem = posixpath.splitext(posixpath.basename(f.path))[0]
+        m = _SLOPE_HEADING.search(stem)
+        if m is not None:
+            by_folder.setdefault(posixpath.dirname(f.path), []).append(
+                (m.group(1).upper(), (m.group(2) or "").upper())
+            )
+    out = []
+    for folder, found in sorted(by_folder.items()):
+        headings = {h for h, _t in found}
+        if len(found) >= SLOPE_HEADING_MIN and len(headings) == 8 and any(t for _h, t in found):
+            out.append(folder)
+    return out
+
+
 class IsometricAdapter:
     name = "isometric"
     priority = 50  # before the numbered frames: a tile's turns are no animation
@@ -542,7 +569,11 @@ class IsometricAdapter:
         words = pack_words(inv, root)
         if words.excluded:
             return 0.0
-        return 1.0 if words.isometric or self._candidates(inv, set()) else 0.0
+        return (
+            1.0
+            if words.isometric or self._candidates(inv, set()) or _slope_headings(inv, set())
+            else 0.0
+        )
 
     @staticmethod
     def _candidates(inv: Inventory, claimed: set[str]) -> list[list[InventoryFile]]:
@@ -555,16 +586,25 @@ class IsometricAdapter:
         found = []
         for folder in sorted(folders):
             files = folders[folder]
-            enough = len(files) >= MEASURED_MIN_PICTURES and len({_size(f) for f in files}) == 1
-            if enough and all((f.image or {}).get("has_alpha") for f in files):
-                found.append(files)
+            # T17.33: the pictures of one size of a folder (Kenney's *Vector Roads* keeps its
+            # 100 x 65 tiles and its 50 x 55 ones side by side), the most of them first
+            by_size: dict[tuple[int, int], list[InventoryFile]] = {}
+            for f in files:
+                by_size.setdefault(_size(f), []).append(f)
+            size, same = max(by_size.items(), key=lambda kv: (len(kv[1]), kv[0]))
+            del size
+            enough = len(same) >= MEASURED_MIN_PICTURES and len(same) * 2 >= len(files)
+            if enough and all((f.image or {}).get("has_alpha") for f in same):
+                found.append(same)
         return found
 
     def _measured(self, inv: Inventory, root: Path, claimed: set[str]) -> set[str]:
         """The folders of a pack that does not say it is isometric whose pictures show it:
         the first pictures of such a folder are flat tiles that agree on a diamond."""
-        folders: set[str] = set()
+        folders: set[str] = set(_slope_headings(inv, claimed))
         for files in self._candidates(inv, claimed):
+            if posixpath.dirname(files[0].path) in folders:
+                continue
             looked = [_look(root, f) for f in files[:MEASURED_SAMPLE]]
             tiles = [p.flat for p in looked if p is not None and p.flat is not None]
             found = measure.measure(tiles) if len(tiles) >= MEASURED_MIN_FLAT else None
@@ -579,7 +619,10 @@ class IsometricAdapter:
         if words.excluded:
             return result
         # a pack that says nothing is read where its pictures show it, and only there
-        shown = None if words.isometric else self._measured(inv, root, ctx.claimed)
+        # ... and one whose names turn things to compass headings up and down slopes is
+        # isometric all through (T17.33), whatever its id
+        iso_said = words.isometric or bool(_slope_headings(inv, ctx.claimed))
+        shown = None if iso_said else self._measured(inv, root, ctx.claimed)
         if shown is not None and not shown:
             return result
         wrapper = _wrapper(inv)

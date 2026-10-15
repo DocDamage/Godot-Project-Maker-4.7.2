@@ -1,0 +1,297 @@
+"""What a farming pack lacks of the dress of a game, made from its own pictures (T17.33).
+
+LimeZu's *Modern Farm* has a farm, a village and its people, but no window frames, no faces for
+the dialogue and no walls for a map's border: a user had to take rpggen's magenta stand-ins for
+them. They are made here from what the pack does have, once the catalog is put together:
+
+* **Portraits**: the face of each of the pack's people (the player and the villagers), cut from
+  the first frame it stands in (the upper part of what it paints, the head) and enlarged by a
+  whole number, a ``PORTRAIT`` each (``portrait_of:<asset>``).
+* **Walls**: the pack's fences, a ``WALL`` sheet for the border of its maps.
+* **The interface**: a nine-slice frame drawn in the pack's own colours (the darkest colour its
+  people are outlined in, and the wood of its things), a ``UI`` asset the theme is made from.
+
+Only a farming pack without such a thing gets one, and only what is made of its own pixels: a
+pack with portraits, walls or a frame keeps its own.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import posixpath
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+from PIL import Image
+
+PORTRAIT_DIR = "generated/farm_dress"
+PORTRAIT_SIZE = 48  # the smallest side a portrait is enlarged to (a whole multiple)
+PORTRAIT_TAG = "portrait_of:"
+DRESS_TAG = "farm_dress"
+CONFIDENCE = 0.8
+PEOPLE = ("PLAYER", "NPC")
+UNUSED = ("UNUSED", "MISSING")
+
+
+def _file_of(asset: Any, roots: dict[str, Path], pack_roots: dict[str, str],
+             generated: dict[str, str]) -> Path | None:  # fmt: skip
+    if asset.path in generated:
+        return Path(generated[asset.path])
+    root = pack_roots.get(asset.pack_id, "")
+    local = roots.get(asset.pack_id)
+    if local is None or not asset.path.startswith(root + "/"):
+        return None
+    return local / asset.path[len(root) + 1 :]
+
+
+def _first_frame(
+    facets: dict[str, Any], file: Path, generated: dict[str, str]
+) -> np.ndarray | None:
+    anims = facets.get("animations") or {}
+    anim = (anims.get("idle_down") or next(iter(anims.values()), None)) if anims else None
+    frame = facets.get("frame") or facets.get("size")
+    if not frame:
+        return None
+    fw, fh = int(frame[0]), int(frame[1])
+    source = anim.get("source") if isinstance(anim, dict) else None
+    if isinstance(source, str) and source in generated:
+        file = Path(generated[source])  # an animation drawn into a strip of its own
+    try:
+        with Image.open(file) as im:
+            rgba = np.asarray(im.convert("RGBA"))
+    except (OSError, ValueError):
+        return None
+    col, row = 0, 0
+    if isinstance(anim, dict) and anim.get("frames"):
+        col, row = (int(v) for v in anim["frames"][0])
+    grid = facets.get("grid") or {}
+    margin = grid.get("margin") or [0, 0]
+    sep = grid.get("separation") or [0, 0]
+    x0 = int(margin[0]) + col * (fw + int(sep[0]))
+    y0 = int(margin[1]) + row * (fh + int(sep[1]))
+    part = rgba[y0 : y0 + fh, x0 : x0 + fw]
+    return part if part.shape[0] == fh and part.shape[1] == fw else None
+
+
+def face_of(frame: np.ndarray) -> np.ndarray | None:
+    """The head of a figure standing in a frame: the upper part of what it paints, as wide as
+    the figure and about as high as wide."""
+    mask = frame[:, :, 3] >= 64
+    ys, xs = np.nonzero(mask)
+    if ys.size < 16:
+        return None
+    x0, x1, y0, y1 = int(xs.min()), int(xs.max()), int(ys.min()), int(ys.max())
+    w = x1 - x0 + 1
+    h = min(y1 - y0 + 1, max(4, int(round(w * 1.0))), max(4, (y1 - y0 + 1) * 11 // 20))
+    head = frame[y0 : y0 + h, x0 : x1 + 1]
+    return head if head.size else None
+
+
+def _enlarged(picture: np.ndarray) -> Image.Image:
+    im = Image.fromarray(picture)
+    k = max(1, -(-PORTRAIT_SIZE // max(1, min(im.width, im.height))))
+    return im.resize((im.width * k, im.height * k), Image.Resampling.NEAREST)
+
+
+def _save(picture: Image.Image, work: Path) -> tuple[str, Path, str]:
+    pixels = np.asarray(picture)
+    digest = hashlib.sha256(pixels.tobytes() + repr(pixels.shape).encode()).hexdigest()
+    out = work / f"{digest[:24]}.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if not out.is_file():
+        picture.save(out, format="PNG", optimize=False)
+    return f"{PORTRAIT_DIR}/{out.name}", out, digest
+
+
+def dress(
+    catalog: Any,
+    farm_ids: set[str],
+    roots: dict[str, Path],
+    generated: dict[str, str],
+    work_dir: Path | None,
+) -> dict[str, str]:
+    """Portraits, walls and a frame for the farming packs that lack them (see the module's
+    text). Returns the generated files (project path -> file)."""
+    from rpggen import paths
+    from rpggen.core.catalog import Asset, CatalogPack, effective
+    from rpggen.core.terrain import GENERATED_PACK, rpgmaker_a2
+
+    out: dict[str, str] = {}
+    if not farm_ids:
+        return out
+    work = (work_dir or paths.cache_dir()) / "farm_dress"
+    pack_roots = {p.pack_id: p.root for p in catalog.packs}
+    have = {
+        effective(a).get("role")
+        for a in catalog.assets
+        if a.status not in UNUSED and a.pack_id != GENERATED_PACK
+    }
+    added: list[Any] = []
+    people = [
+        a
+        for a in sorted(catalog.assets, key=lambda a: a.id)
+        if a.pack_id in farm_ids
+        and effective(a).get("role") in PEOPLE
+        and effective(a).get("usage") == "sprite"
+        and a.status not in UNUSED
+    ]
+    if "PORTRAIT" not in have:
+        for person in people:
+            facets = effective(person)
+            file = _file_of(person, roots, pack_roots, {**generated, **out})
+            if file is None:
+                continue
+            frame = _first_frame(facets, file, {**generated, **out})
+            head = face_of(frame) if frame is not None else None
+            if head is None:
+                continue
+            face = _enlarged(head)
+            rel, local, digest = _save(face, work)
+            out[rel] = str(local)
+            name = person.id.rsplit(".", 1)[-1]
+            added.append(Asset(f"{GENERATED_PACK}.portrait_{name}", GENERATED_PACK, rel, digest,
+                               "image", "AUTO_DETECTED",
+                               {"usage": "portrait", "role": "PORTRAIT",
+                                "size": [face.width, face.height],
+                                "tags": [DRESS_TAG, PORTRAIT_TAG + person.id]},
+                               {}, "farm_dress", CONFIDENCE))  # fmt: skip
+    if "WALL" not in have:
+        for asset in catalog.assets:
+            facets = asset.detected
+            if asset.pack_id not in farm_ids or asset.status in UNUSED:
+                continue
+            tags = set(facets.get("tags") or [])
+            stem = posixpath.basename(asset.path).casefold()
+            if facets.get("usage") == "tiles" and ("fence" in tags or "fence" in stem):
+                facets["role"] = "WALL"
+                facets["tags"] = sorted(tags | {DRESS_TAG})
+                asset.confidence = max(float(asset.confidence or 0.0), CONFIDENCE)
+                break
+    if "UI" not in have and people:
+        frame_ui = _frame_in_colours(people, roots, pack_roots, {**generated, **out})
+        if frame_ui is not None:
+            rel, local, digest = _save(frame_ui, work)
+            out[rel] = str(local)
+            added.append(Asset(f"{GENERATED_PACK}.farm_frame", GENERATED_PACK, rel, digest,
+                               "image", "AUTO_DETECTED",
+                               {"usage": "ui", "role": "UI", "nine_slice": [6, 6, 6, 6],
+                                "size": [frame_ui.width, frame_ui.height],
+                                "tags": [DRESS_TAG]},
+                               {}, "farm_dress", CONFIDENCE))  # fmt: skip
+
+    if added:
+        catalog.assets.extend(added)
+        if not any(p.pack_id == GENERATED_PACK for p in catalog.packs):
+            catalog.packs.append(
+                CatalogPack(GENERATED_PACK, "0" * 64, rpgmaker_a2.TERRAIN_DIR, [], [], None, [])
+            )
+    return out
+
+
+HOUSE_WORDS = {"barn": "barn", "coop": "coop", "henhouse": "coop", "hencoop": "coop"}
+NOT_A_HOUSE = frozenset({"door", "railing", "inside", "interior", "sign", "roof", "wall", "fence",
+                         "window", "silo", "trough", "floor"})  # fmt: skip
+FOOTPRINT_FRACTION = 0.3
+MIN_HOUSE = 32  # px each way: a smaller picture of a barn is an icon
+
+
+def animal_houses(catalog: Any, farm_ids: set[str]) -> None:
+    """A farming pack's own barn and coop (T17.33: *Modern Farm*'s ``Barn_Small_16x16.png`` and
+    ``Chicken_Coop_16x16.png``): a single picture named so, large enough, becomes a building
+    tagged ``barn`` or ``coop`` where no building of the packs is (the many barns of its sheet
+    were set aside, and the single pictures as copies of its cells), so the farm stands its own
+    barn and coop instead of drawing them."""
+    import re
+
+    from rpggen.core.catalog import SheetObject
+
+    tagged = {
+        t
+        for o in catalog.objects
+        if o.role == "BUILDING" and o.status != "UNUSED"
+        for t in o.tags
+        if t in ("barn", "coop")
+    }
+    for asset in sorted(catalog.assets, key=lambda a: a.id):
+        if asset.pack_id not in farm_ids or "#" in asset.id or asset.kind != "image":
+            continue
+        stem = posixpath.splitext(posixpath.basename(asset.path))[0]
+        words = {w for w in re.split(r"[^a-z]+", stem.casefold()) if w}
+        kinds = {HOUSE_WORDS[w] for w in words if w in HOUSE_WORDS}
+        if len(kinds) != 1 or words & NOT_A_HOUSE:
+            continue
+        kind = kinds.pop()
+        if kind in tagged or asset.path.casefold().endswith(".gif"):
+            continue
+        if any(
+            str(t).startswith("unused_because:other_size") for t in asset.detected.get("tags") or []
+        ):
+            continue  # the pack drawn in another size: its own size's barn is the one
+        size = asset.detected.get("size") or [0, 0]
+        w, h = int(size[0]), int(size[1])
+        if w < MIN_HOUSE or h < MIN_HOUSE:
+            continue
+        fh = max(1, round(h * FOOTPRINT_FRACTION))
+        fy = h - fh
+        # the picture is the house (a copy of a cell of a sheet set aside comes back)
+        facets = asset.detected
+        facets["tags"] = sorted(
+            t
+            for t in facets.get("tags") or []
+            if not str(t).startswith(("unused_because:", "same_as:"))
+        )
+        facets["role"] = "BUILDING"
+        facets.pop("roles_alt", None)
+        if facets.get("usage") not in ("sprite", "object"):
+            facets["usage"] = "sprite"
+        asset.confidence = max(float(asset.confidence or 0.0), CONFIDENCE)
+        catalog.objects.append(
+            SheetObject(
+                f"{asset.id}#{kind}",
+                asset.id,
+                stem,
+                "BUILDING",
+                [0, 0, w, h],
+                [w // 2, h - 1],
+                [0, fy, w, fh],
+                {"profile": "CUSTOM", "polygon": [[0, fy], [w, fy], [w, h], [0, h]]},
+                [kind, DRESS_TAG],
+            )  # fmt: skip
+        )
+        tagged.add(kind)
+
+
+def _frame_in_colours(
+    people: list[Any], roots: dict[str, Path], pack_roots: dict[str, str], generated: dict[str, str]
+) -> Image.Image | None:
+    """A 24 px nine-slice frame: a border of the darkest colour the people are drawn with, a
+    lighter edge inside it and a body of their middle tone, darkened to read text on."""
+    from rpggen.core.catalog import effective
+
+    colours: list[np.ndarray] = []
+    for person in people[:4]:
+        file = _file_of(person, roots, pack_roots, generated)
+        frame = _first_frame(effective(person), file, generated) if file is not None else None
+        if frame is not None:
+            colours.append(frame[frame[:, :, 3] >= 128][:, :3])
+    if not colours:
+        return None
+    px = np.concatenate(colours).astype(np.float32)
+    value = px.max(axis=1)
+    dark = px[value <= np.percentile(value, 15)].mean(axis=0)
+    mid = px[(value > np.percentile(value, 40)) & (value <= np.percentile(value, 70))]
+    body = (mid.mean(axis=0) if len(mid) else px.mean(axis=0)) * 0.45
+    light = np.minimum(255.0, body * 1.6 + 30)
+    size = 24
+    a = np.zeros((size, size, 4), np.uint8)
+    a[:, :, :3] = body.astype(np.uint8)
+    a[:, :, 3] = 235
+    a[2:-2, 2:-2][:2, :, :3] = light.astype(np.uint8)
+    a[2:-2, 2:-2][-2:, :, :3] = light.astype(np.uint8)
+    a[2:-2, 2:4, :3] = light.astype(np.uint8)
+    a[2:-2, -4:-2, :3] = light.astype(np.uint8)
+    for edge in (a[:2], a[-2:], a[:, :2], a[:, -2:]):
+        edge[:, :, :3] = dark.astype(np.uint8)
+        edge[:, :, 3] = 255
+    return Image.fromarray(a, "RGBA")

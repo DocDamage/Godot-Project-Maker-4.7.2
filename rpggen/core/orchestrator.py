@@ -695,7 +695,37 @@ def _added_grounds(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog
             if named & set(words):
                 out[kind] = str(asset.id)
                 break
+    # the floor of a cave (T17.33): a sheet of ground tiles named for a cave, a mine or a dungeon,
+    # else one of stone or rock; the farm's grass in the gloom when the packs have neither
+    for tier in CAVE_GROUND_WORDS:
+        if "cave" in out:
+            break
+        for asset in sorted(catalog.assets, key=lambda a: a.id):
+            facets = catalog_mod.effective(asset)
+            if facets.get("role") != "GROUND" or facets.get("usage") != "tiles":
+                continue
+            if asset.status in ("UNUSED", "MISSING"):
+                continue
+            if not catalog_mod.fits_projection(asset, cfg.projection):
+                continue
+            tags = {str(t) for t in facets.get("tags") or []}
+            named = world_plan._words(asset.path) | {t.removeprefix("surface:") for t in tags}
+            if named & set(tier) and not named & NOT_CAVE_FLOOR:
+                out["cave"] = str(asset.id)
+                break
     return out
+
+
+# a sheet of these words is no cave's floor: a wall, or the farm's grass with a cave in it
+# (*Farm RPG*'s ``Tileset Grass Caves``: its first tile is grass)
+NOT_CAVE_FLOOR = frozenset(
+    {"wall", "walls", "cliff", "cliffs", "fence", "fences", "grass", "meadow", "lawn", "water"}
+)
+# the words of a cave's floor, the surer first (T17.33)
+CAVE_GROUND_WORDS = (
+    ("cave", "caves", "cavern", "mine", "mines", "dungeon", "underground"),
+    ("stone", "rock", "rocks", "cobble", "cobblestone"),
+)
 
 
 def _building_fact(catalog: catalog_mod.Catalog, obj: Any) -> dict[str, Any]:

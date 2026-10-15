@@ -1006,9 +1006,53 @@ def _variants(sheet: _Sheet, centre: tuple[int, int]) -> list[tuple[int, int]]:
             if not sheet.tiles_closely(k) or not _tile_together(sheet, centre, k):
                 continue
             out.append(k)
+    # T17.33: a variant shows no seam of its own and has the middle's grain
+    grain = _grain(sheet, centre)
+    out = [
+        k
+        for k in out
+        if _seam_ratio(sheet, k) <= max(SEAMLESS_RATIO, _seam_ratio(sheet, centre))
+        and max(_grain(sheet, k), grain) / min(_grain(sheet, k), grain) <= GRAIN_RATIO
+    ]
     for k in out:
         sheet.used[k[1], k[0]] = True
     return out
+
+
+# T17.33: laid beside itself a tile of a plain ground shows no seam (its edges differ from each
+# other at most this much more than its neighbouring pixels do), and its variants are of the
+# grain of its middle (CuteSCKR's grass: two coarse tiles among two fine ones made a draughts
+# board, and a seam of 1.3 times the grain was a line between every two tiles)
+SEAMLESS_RATIO = 1.25
+GRAIN_RATIO = 1.3
+
+
+def _seam_ratio(sheet: _Sheet, c: tuple[int, int]) -> float:
+    h = sheet.h_diff(c, c) / max(float(sheet.grain_h[c[1], c[0]]), 1.0)
+    v = sheet.v_diff(c, c) / max(float(sheet.grain_v[c[1], c[0]]), 1.0)
+    return max(float(h), float(v))
+
+
+def _grain(sheet: _Sheet, c: tuple[int, int]) -> float:
+    return max(1.0, (float(sheet.grain_h[c[1], c[0]]) + float(sheet.grain_v[c[1], c[0]])) / 2.0)
+
+
+def _seamless(sheet: _Sheet, group: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """The tiles of a group of plain tiles that lie together without a seam: the smoothest
+    first (it is the middle), then those whose own seams are as smooth and whose grain is its
+    grain. A group whose every tile shows a seam keeps its smoothest alone."""
+    ranked = sorted(group, key=lambda c: (round(_seam_ratio(sheet, c), 6), c[1], c[0]))
+    best = ranked[0]
+    grain = _grain(sheet, best)
+    kept = [best]
+    for c in ranked[1:]:
+        if _seam_ratio(sheet, c) > SEAMLESS_RATIO:
+            continue
+        g = _grain(sheet, c)
+        if max(g, grain) / min(g, grain) > GRAIN_RATIO:
+            continue
+        kept.append(c)
+    return kept
 
 
 def _plain_groups(sheet: _Sheet) -> list[Block]:
@@ -1048,6 +1092,8 @@ def _plain_groups(sheet: _Sheet) -> list[Block]:
         left = rest
         if len(group) < 2:
             continue
+        # the smoothest is the ground's middle, alone when every other tile shows a seam
+        group = _seamless(sheet, group)
         b = Block(PLAIN, "corners_and_sides", [(group[0], 255)], group[0], shape="plain")
         b.variants = group[1:]
         b.over = "ground"

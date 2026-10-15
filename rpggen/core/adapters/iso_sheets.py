@@ -224,6 +224,19 @@ def candidates(inv: Inventory, root: Path, claimed: set[str]) -> list[_Sheet]:
     return found
 
 
+NAMED_DIAMONDS_MIN = 3
+NAMED_DIAMONDS_SHARE = 0.3
+
+
+def names_say_diamonds(inv: Inventory, sheets: list[_Sheet]) -> bool:
+    """Whether a pack's names say it is isometric whatever its id (T17.33: Screaming Brain's
+    ``Dry/Path_Dry_01-128x64.png`` analysed as a pack of its own): a good part of its pictures
+    name a cell twice as wide as high, a diamond."""
+    stills = sum(1 for f in inv.files if _is_still(f))
+    named = sum(1 for s in sheets if abs(s.cell[0] - 2 * s.cell[1]) <= 1)
+    return named >= max(NAMED_DIAMONDS_MIN, NAMED_DIAMONDS_SHARE * stills)
+
+
 def pack_diamonds(sheets: list[_Sheet]) -> list[Diamond]:
     """The diamonds the cells of a pack name (twice as wide as high), smallest first; a pack
     that names none but square cells (a pack of crates) stands them on the diamond half as
@@ -525,9 +538,11 @@ class IsoSheetsAdapter:
         from rpggen.core.adapters import isometric
 
         words = isometric.pack_words(inv, root)
-        if not words.isometric or words.excluded:
+        if words.excluded:
             return 0.0
         sheets = candidates(inv, root, set())
+        if not words.isometric and not names_say_diamonds(inv, sheets):
+            return 0.0
         diamonds = pack_diamonds(sheets) or face_diamonds(root, sheets)
         classify_sheets(sheets, diamonds)
         return 1.0 if any(s.kind for s in sheets) else 0.0
@@ -538,9 +553,11 @@ class IsoSheetsAdapter:
         result = AdapterResult(self.name)
         issues = IssueList()
         words = isometric.pack_words(inv, root)
-        if not words.isometric or words.excluded:
+        if words.excluded:
             return result
         sheets = candidates(inv, root, ctx.claimed)
+        if not words.isometric and not names_say_diamonds(inv, sheets):
+            return result
         diamonds = pack_diamonds(sheets) or face_diamonds(root, sheets, ctx)
         classify_sheets(sheets, diamonds)
         if not any(s.kind for s in sheets):
