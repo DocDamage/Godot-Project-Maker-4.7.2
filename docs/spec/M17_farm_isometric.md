@@ -1467,11 +1467,43 @@ down what they left; this card is that list, and it is done when none of it is l
 * A folder named for what it holds (*Terrain*, *Characters*, *Props*) does not give its files a
   wrong role (a synthetic pack had to avoid the name *Terrain* for its water).
 
+**The aim, as the owner set it (2026-10-15).** "The whole purpose is for me to be able to make
+my own levels without having to add all the underlying logic to my assets as I import them."
+Generated maps are examples; what matters is that every asset is right when the user builds with
+it. So this card is judged in the editor: for each real pack, the generated TileSet is painted
+with Godot's own Terrain tool and the level furnished from the RPG Project Tools dock, the way
+the owner will make a level, then played and looked at beside the pack's own sample. The look
+requirements below apply to what painting and placing produce; the composition of generated
+maps (forest edges, prop clusters, paths that lead to things) comes last, and only if time
+allows.
+
+**The look of the games (added 2026-10-15, the owner's review)** — "terrain still looks like
+ass in all these visuals", and "it's not just terrain, it's buildings, props, NPCs, etc." The
+pictures of T17.31 and T17.32 show: ground as a visible grid of 48 px tiles (CuteSCKR), a quilt
+of variants of different tone, flat single-colour grass (*Farm RPG*), solid rock drawn as an
+outline with nothing inside and a smeared background (*Gothicvania*), the builder's red-and-tan
+box for every house, the kit's placeholder pines in an even ring around every map, props
+sprinkled like noise, small NPCs pasted on at the wrong scale, nothing composed. So:
+* **Terrain** looks like the pack's: no grid lines, variants of one tone and mostly the main
+  tile, solid areas filled, the pack's edges and corners, shores and paths that join.
+* **Buildings** are the pack's own (whole or of parts) at its scale, with the door at the plan's
+  door; the drawn box only where a pack has none.
+* **Props and nature** are the pack's, placed in groups and by purpose (a varied forest edge,
+  fences that enclose, crates by a door, flowers by a path), each at its size and sorting right.
+* **Characters** are the pack's, at the scale of its tiles, animated, where they belong.
+* **Rendering**: nearest filtering at whole-number scales, a zoom that shows the pack at its
+  size, no smeared backgrounds, a HUD sized to the game.
+* **Composition**: a map reads as a place: paths lead to things, open ground is broken by
+  features, a map's edge is natural.
+
 **Done when**
 * Every item above is done, each held by a synthetic pack in the tests, and each of the real
   games of T17.29 to T17.32 is generated again without the audit overrides those cards needed
   (unless a user would still make that choice, and then the card says why), passes its smoke
-  run and is looked at in a picture.
+  run and is looked at in a picture, beside the pack's own sample or preview picture, until a
+  person would say it looks like a game made with that pack; the before, the sample and the
+  after are kept side by side for the owner's review, and where a game still falls short the
+  notes say what and why.
 
 ## T17.34 — Confidence close to 100 % on real packs
 

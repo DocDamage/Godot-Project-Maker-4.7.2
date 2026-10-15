@@ -18,6 +18,27 @@ after the tag: M13 (release 1.1.0) is implemented on the branch `m13` and waits 
 (T13.23); M14 (release 1.2.0) is implemented on the branch `m14` and waits for its gate's manual
 rows (T14.13), below.
 
+## The aim (2026-10-15)
+
+The owner's words: "the whole purpose is for me to be able to make my own levels without having
+to add all the underlying logic to my assets as I import them." Generated starter maps, villages
+and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is
+ranked so: (1) every asset read right (role, frames, animation names, size, terrain); (2)
+TileSets that paint right with Godot's own Terrain tool in the editor, with collision, one-way
+platforms, ladders, hazards and water as tile data; (3) every building, prop and character
+correct when dropped from the RPG Project Tools dock (the pack's art and scale, sorting,
+collision, animation, behaviour); (4) the composition of generated maps, last. A card is judged
+in the editor: a short level painted with the terrain tool and furnished from the dock, played,
+and looked at beside the pack's own sample picture.
+
+**How the work is run.** The full local suites (about three hours) and CI (about two hours,
+dispatched by hand: `gh workflow run CI --ref m17`) run once per batch of cards, not per card;
+during a card only lint, types, the unit and GDScript suites and the integration tests of what it
+touches. `main` is fast-forwarded to a commit only after a CI run on that commit is fully green.
+No tag is made until the gates are closed. Nothing is written to the C: drive: scratch work,
+generated projects, pytest's `--basetemp`, `TEMP`/`TMP` and Godot's `APPDATA` go under
+`F:\rpggen_scratch\`. Real packs are read where they lie and never copied into the repository.
+
 ## Milestones
 
 | Milestone | What it delivers | Status |
@@ -38,7 +59,7 @@ rows (T14.13), below.
 | M14 Metroidvania (1.2.0) | The third archetype (below) | On the branch `m14` (not part of 1.0 or 1.1): every card is implemented; the manual rows of the gate (T14.13) are open. It was built before the 1.1 tag existed, on top of `m13` |
 | M15 Look, feel and ease of use (1.3.0) | A design system (tokens, one stylesheet, button kinds, icons, cards, a stepper sidebar, page headers), every page and dialog restyled, the Generate log without escape codes, actionable failures, a regeneration that skips what did not change, visual goldens (`docs/spec/M15_ui_polish.md`) | On the branch `m15` (on top of `main`, which holds M14): every card is implemented; the gate (T15.25) is open, below |
 | M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; a bundle of packs added folder by folder (`docs/spec/M16_arcade_archetypes.md`) | Merged into `main` on 2026-10-12 (`b610f90`, with M15 under it): every card but the gate is implemented and the three kinds are switched on. The gate (T16.20) is open, below |
-| M17 Farm and isometric (1.5.0) | A farm and life sim, the seventh kind, and isometric tiles as a second view of the top-down kinds and the racing game (`docs/spec/M17_farm_isometric.md`) | On the branch `m17`, begun 2026-10-12 before the 1.4 tag: every card but the gate is implemented (T17.01 to T17.19) and both are switched on in the wizard (`FARM_AVAILABLE`, `ISOMETRIC_AVAILABLE`), with their two samples. Nobody has played either. The gate (T17.20) is open, below |
+| M17 Farm and isometric (1.5.0) | A farm and life sim, the seventh kind, and isometric tiles as a second view of the top-down kinds and the racing game; then real packs of every shape (`docs/spec/M17_farm_isometric.md`) | On the branch `m17`. T17.01 to T17.19 and Part F's T17.21 to T17.32 are implemented and on `main` (or in the CI run that brings them): real isometric packs, added maps, the cave, festivals, marriage, the dock on diamonds, imported isometric maps, real farming packs, packs of other shapes, autotiling (T17.31) and real side-view packs (T17.32). T17.33 (everything still unread, judged on levels built by hand in the editor) is in progress; T17.34 (confidence close to 100 % on real packs: an answer key, calibration, publisher rules, profiles, trusted corrections, a local vision step) is open. Nobody has played the farm or the isometric view by hand; the gate (T17.20) is open |
 
 ## M12 in detail
 
