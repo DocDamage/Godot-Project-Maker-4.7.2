@@ -26,6 +26,7 @@ const SceneUtil := preload("scene_util.gd")
 const BuildContext := preload("build_context.gd")
 const IsoTileset := preload("iso_tileset.gd")
 const Paths := preload("paths.gd")
+const TextureUtil := preload("texture_util.gd")
 
 const OVERWORLD := "overworld"
 
@@ -123,8 +124,10 @@ static func is_isometric(ctx: BuildContext) -> bool:
 	return IsoTileset.project_wanted(ctx.config) and IsoTileset.new(ctx.catalog).has_tiles()
 
 ## The version of what the map recipes do with pieces that stand along a side of a diamond
-## (T17.22: the edge of a map from wall segments, a house of pieces, a yard's fence).
-const EDGE_VERSION := 1
+## (T17.22: the edge of a map from wall segments, a house of pieces, a yard's fence). 2: posts
+## where two sides of the edge or of a house meet, and a house's roof of pieces joined along a
+## ridge.
+const EDGE_VERSION := 2
 
 ## What a map recipe adds to its hash for such pieces: `{iso_edges: EDGE_VERSION}` for an
 ## isometric project whose tile set has one, and nothing for every other project, whose hash is
@@ -539,7 +542,62 @@ func paint_edge_walls(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Arr
 			unblocked.append(cell)
 	if not unblocked.is_empty():
 		_blocked_cells(root, unblocked)
+	add_edge_posts(root, nodes, size, skip, iso.post_set_for(wall_set))
 	return true
+
+## The posts at the corners of a map's edge laid from wall segments (after T17.22): where the
+## two sides of the edge meet, at each corner of the map whose cell is not left open, a post of
+## `post_set` (`IsoTileset.post_set_for`: the packs' posts of the wall's colour). Sprites under
+## `EdgePosts` in `YSorted`, each sorted just after the walls of its cell (a cell's middle and a
+## pixel), so that it covers their ends; the post at the corner nearest the camera is drawn
+## over the `Overhead` layer the near wall of that corner lies on. Nothing is done when the
+## packs have no posts, or the map no `YSorted`.
+func add_edge_posts(root: Node2D, nodes: Dictionary, size: Vector2i, skip: Array, post_set: String) -> Node2D:
+	if not isometric or post_set == "" or not nodes.has("YSorted"):
+		return null
+	var holder: Node2D = null
+	var corners := {
+		Vector2i(0, 0): "nw",
+		Vector2i(size.x - 1, 0): "ne",
+		Vector2i(size.x - 1, size.y - 1): "es",
+		Vector2i(0, size.y - 1): "sw",
+	}
+	for key: Variant in corners:
+		var cell: Vector2i = key
+		var corner := JsonUtil.to_str(corners[key])
+		if skip.has(cell):
+			continue
+		var piece := iso.post_piece(post_set, corner)
+		var sprite := post_sprite(iso, JsonUtil.to_str(piece.get("asset_id", "")), center(cell))
+		if sprite == null:
+			continue
+		if holder == null:
+			holder = Node2D.new()
+			holder.y_sort_enabled = true
+			var ysorted: Node = nodes["YSorted"]
+			SceneUtil.add(ysorted, holder, root, "EdgePosts")
+		if corner == "es":
+			sprite.z_index = 11  # over the Overhead layer (10), where the near wall lies
+		SceneUtil.add(holder, sprite, root, "Post_%s" % corner)
+	return holder
+
+## A sprite of the post `asset_id` standing on the cell whose middle is `at`, sorted a pixel
+## after that middle (after the walls of the cell), or null for no picture.
+static func post_sprite(tiles: IsoTileset, asset_id: String, at: Vector2) -> Sprite2D:
+	var picture := tiles.picture_of(asset_id)
+	var region := JsonUtil.to_array(picture.get("region", []))
+	if region.size() != 4:
+		return null
+	var texture := TextureUtil.region_texture(JsonUtil.to_str(picture["texture"]), Rect2i(JsonUtil.to_int(region[0]), JsonUtil.to_int(region[1]), JsonUtil.to_int(region[2]), JsonUtil.to_int(region[3])))
+	if texture == null:
+		return null
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	IsoTileset.stand(sprite, tiles.facets(asset_id), at)
+	sprite.position.y += 1.0
+	sprite.offset.y -= 1.0
+	sprite.set_meta(&"asset_id", asset_id)
+	return sprite
 
 ## Invisible collision along the edge of a map of `size` cells, a shape a cell (`skip` left
 ## open): MapUtil.border_collision's rectangles, or diamonds.

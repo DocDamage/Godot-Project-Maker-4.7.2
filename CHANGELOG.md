@@ -106,6 +106,16 @@ does not ask for the isometric view is built as it was.
   *AI-generated content* naming it for the store page's declaration, with a word on cleaning
   the art up in Aseprite. New notes TILE-014, ADAPT-008,
   ASSET-036. The analysis of such sheets runs in parallel and stops on a cancel (T17.30).
+* **Corners and roofs of isometric houses** (after T17.30): Screaming Brain's thick walls
+  (each face with the end of the wall beside it), its corner posts, and the walls and roofs of
+  its *Town Pack* (a sheet whose corner is painted, a sheet a few pixels wider than its cells)
+  are read; a roof piece of an isometric pack is read by its shape and turn (a slope, the
+  quarter of a hipped roof, a gable over one cell, a pyramid, an inner corner) and a post by
+  the corner it stands on. The edge of a map laid from wall segments gets a post where two of
+  its sides meet, and a house of pieces a post at each corner and one roof: on *Miniature
+  Farm* slopes up to a ridge with hips at its ends; on *Medieval Town*, whose slopes and hips
+  cover half a cell, a gable along every row; a roof tile a cell only where a pack has nothing
+  better. Screaming Brain's paths and roads are left to T17.31 (terrains).
 * **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
   picture rises above it, turns by number or by compass letter as one tile (never as frames of
   an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a

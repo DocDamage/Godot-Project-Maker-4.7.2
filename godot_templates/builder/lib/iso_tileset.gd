@@ -283,6 +283,11 @@ func _init(catalog: CatalogReader) -> void:
 		var turns: Dictionary = _groups[first]
 		turns[JsonUtil.to_int(eff.get("turn", 0))] = asset_id
 
+## The instance id of the catalog the set was read from: what a result worked out from the
+## whole set is kept by for the rest of a build (`IsoHouse.kit`).
+func catalog_id() -> int:
+	return _catalog.get_instance_id()
+
 ## True when the catalog describes an isometric tile set with a tile in it.
 func has_tiles() -> bool:
 	return not _tiles.is_empty()
@@ -482,6 +487,8 @@ func plain_tiles(role: String) -> Array[String]:
 		var eff := facets(asset_id)
 		if JsonUtil.to_str(eff.get("role", "")) != role or eff.has("joins") or eff.has("edge") or _maps_only.has(asset_id):
 			continue
+		if eff.has("post") or eff.has("roof"):
+			continue  # a piece of a house (after T17.22)
 		if _group_of.has(asset_id) and _group_of[asset_id] != asset_id:
 			continue  # a turn of a tile that is listed by its first
 		if JsonUtil.to_int(eff.get("rise", 0)) > 0:
@@ -497,7 +504,8 @@ func plain_tile(role: String) -> String:
 	if not plain.is_empty():
 		return plain[0]
 	for asset_id in pieces(role):
-		if not facets(asset_id).has("edge"):
+		var eff := facets(asset_id)
+		if not eff.has("edge") and not eff.has("post") and not eff.has("roof"):
 			return asset_id
 	return ""
 
@@ -610,6 +618,168 @@ func border_set(fence_first: bool = false) -> String:
 		if best != "":
 			return best
 	return ""
+
+# --------------------------------------------------------------------------- posts and roofs
+#
+# The pieces of a house that are no walls (after T17.22). A **post** stands on a corner of its
+# diamond (its facet `post`: `nw` the top corner, where the sides n and w meet, `ne` the right
+# one, `es` the lowest, `sw` the left one): it is put where two sides of a wall meet. A **roof
+# piece** covers its diamond a storey up; its facet `roof` says its shape and turn (`slope:n`,
+# one slope high along the side n; `hip:es`, the quarter of a hipped roof high at the corner
+# es; `ridge:ew`, a gable over one cell whose ridge runs from the side w to the side e;
+# `peak`; `valley:nw`, an inner corner low at nw) and `roof_rise` how much its slopes rise over
+# a cell. Neither is a tile a map is filled with (`plain_tiles` leaves them out).
+
+const POST_TAG := "post"
+## The corners of a diamond, by the two sides that meet there, clockwise from the top one.
+const CORNERS: Array[String] = ["nw", "ne", "es", "sw"]
+
+## The corner of its cell a post stands on, or "" for any other tile.
+func post_of(asset_id: String) -> String:
+	return JsonUtil.to_str(facets(asset_id).get("post", ""))
+
+## The shape and turn of a roof piece (`slope:n`, `hip:es`, ...), or "" for any other tile.
+func roof_of(asset_id: String) -> String:
+	return JsonUtil.to_str(facets(asset_id).get("roof", ""))
+
+## The members of the set `asset_id` is one turn of, by the value of the facet `facet` of each
+## (`post`: the corner; `roof`: the shape): `{value: asset id}`, the first by turn of each value.
+func members_by(asset_id: String, facet: String) -> Dictionary:
+	var out := {}
+	if not _tiles.has(asset_id):
+		return out
+	var ids: Array[String] = [asset_id]
+	if _group_of.has(asset_id):
+		ids.clear()
+		var turns: Dictionary = _groups[_group_of[asset_id]]
+		for turn in turns_of(asset_id):
+			ids.append(JsonUtil.to_str(turns[turn]))
+	for id in ids:
+		var value := JsonUtil.to_str(facets(id).get(facet, ""))
+		if value != "" and not out.has(value):
+			out[value] = id
+	return out
+
+## The sets of posts that stand on all four corners: the first turn of each, by id.
+func post_sets() -> Array[String]:
+	var out: Array[String] = []
+	for asset_id in _ids:
+		if post_of(asset_id) == "" or _maps_only.has(asset_id):
+			continue
+		var first := first_of(asset_id)
+		if not out.has(first) and members_by(first, "post").size() == CORNERS.size():
+			out.append(first)
+	return out
+
+## The post of the set `post_set` that stands on `corner`: `{asset_id, turn}`, or {}.
+func post_piece(post_set: String, corner: String) -> Dictionary:
+	var members := members_by(post_set, "post")
+	if not members.has(corner):
+		return {}
+	var found := JsonUtil.to_str(members[corner])
+	return {"asset_id": found, "turn": JsonUtil.to_int(facets(found).get("turn", 0))}
+
+## The sets of roof pieces that have a shape: the first turn of each, by id.
+func roof_sets() -> Array[String]:
+	var out: Array[String] = []
+	for asset_id in _ids:
+		if roof_of(asset_id) == "" or _maps_only.has(asset_id):
+			continue
+		var first := first_of(asset_id)
+		if not out.has(first):
+			out.append(first)
+	return out
+
+## The pictures already read in this build, by path, for `mean_colour`.
+static var _images: Dictionary = {}
+
+## The picture at `path` (an atlas of the tile set), read once a build; null when it cannot be.
+static func image_at(path: String) -> Image:
+	if not _images.has(path):
+		var texture: Texture2D = null
+		if path != "" and ResourceLoader.exists(path):
+			texture = load(path) as Texture2D
+		var image: Image = null
+		if texture != null:
+			image = texture.get_image()
+		if image != null and image.is_compressed():
+			image.decompress()
+		_images[path] = image
+	var found: Image = _images[path]
+	return found
+
+## The mean colour of what is painted in a tile's picture, or a colour of alpha 0 when it
+## cannot be read: what a post of the colour of a wall is chosen by.
+func mean_colour(asset_id: String) -> Color:
+	var picture := picture_of(asset_id)
+	var region := JsonUtil.to_array(picture.get("region", []))
+	if region.size() != 4:
+		return Color(0, 0, 0, 0)
+	# the recipes ask again and again (every room asks for the village's house): read once
+	var key := "%s|%s" % [JsonUtil.to_str(picture.get("texture", "")), str(region)]
+	if not _colours.has(key):
+		_colours[key] = _mean_colour(JsonUtil.to_str(picture.get("texture", "")), region)
+	var found: Color = _colours[key]
+	return found
+
+## The mean colours already read in this build, by picture and region.
+static var _colours: Dictionary = {}
+
+static func _mean_colour(path: String, region: Array) -> Color:
+	var image := image_at(path)
+	if image == null or image.is_empty():
+		return Color(0, 0, 0, 0)
+	var area := Rect2i(JsonUtil.to_int(region[0]), JsonUtil.to_int(region[1]), JsonUtil.to_int(region[2]), JsonUtil.to_int(region[3]))
+	area = area.intersection(Rect2i(Vector2i.ZERO, image.get_size()))
+	var sum := Vector3.ZERO
+	var count := 0
+	# every second pixel each way is enough to tell brick from wood
+	for y in range(area.position.y, area.end.y, 2):
+		for x in range(area.position.x, area.end.x, 2):
+			var pixel := image.get_pixel(x, y)
+			if pixel.a >= 0.5:
+				sum += Vector3(pixel.r, pixel.g, pixel.b)
+				count += 1
+	if count == 0:
+		return Color(0, 0, 0, 0)
+	return Color(sum.x / count, sum.y / count, sum.z / count, 1.0)
+
+## Of the sets `sets`, the one whose pictures look most like the tile `like` (the nearest mean
+## colour; the first by id of two as near, and the first when no colour can be read); "" for
+## none.
+func nearest_in_colour(sets: Array[String], like: String) -> String:
+	var best := ""
+	var best_far := INF
+	if sets.size() < 2:
+		return sets[0] if sets.size() == 1 else ""
+	var want := mean_colour(like)
+	for first in sets:
+		var have := mean_colour(first)
+		var far := INF
+		if want.a > 0.0 and have.a > 0.0:
+			far = Vector3(want.r - have.r, want.g - have.g, want.b - have.b).length()
+		if best == "" or far < best_far:
+			best = first
+			best_far = far
+	return best
+
+## The posts a wall of `wall_set` gets where two of its sides meet (the edge of a map, a house
+## of pieces): of the packs' sets of posts no higher than the wall (`POST_TALLER`: a storey's
+## pole on a low wall stood out like a mast), the one of the colour of the wall; "" for none.
+func post_set_for(wall_set: String) -> String:
+	var high := edge_rise(wall_set, "n")
+	var fitting: Array[String] = []
+	for first in post_sets():
+		var members := members_by(first, "post")
+		var rise := JsonUtil.to_int(facets(JsonUtil.to_str(members.get("nw", first))).get("rise", 0))
+		if rise <= high * POST_TALLER + POST_SLACK:
+			fitting.append(first)
+	return nearest_in_colour(fitting, wall_set)
+
+## A post may be this many times as high as the wall it stands at, and a few px more (both
+## measured over the diamond's top corner: the wall along `n` and the post on `nw`).
+const POST_TALLER := 1.5
+const POST_SLACK := 4
 
 ## Where the picture of a tile of the set is: `{texture: path of its atlas picture, region:
 ## [x, y, w, h] of the tile's own picture in it}`, or {} for anything else. A piece of a house or

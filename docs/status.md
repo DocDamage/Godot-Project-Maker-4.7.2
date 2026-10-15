@@ -242,9 +242,14 @@ should know:
   generated on this machine, played through their smoke sequences and looked at in pictures.
   Short of it: the farms take their player from SakPix's villagers and CuteSCKR's buildings
   were given their role in the audit; *Lords Of Pain*'s slime was set aside, because an arrow
-  flies at the middle of the shooter's body and over a small enemy; Screaming Brain's thick
-  walls, corners, roofs, paths and roads are not read; things cut from a mixed sheet need
-  review. A pack with no licence file can be given its licence and a credit line on the Audit
+  flies at the middle of the shooter's body and over a small enemy; Screaming Brain's paths and
+  roads are not read (an autotiling problem, left to T17.31); things cut from a mixed sheet need
+  review. Since the fix after T17.30, Screaming Brain's thick walls, its corner posts, the walls
+  and roofs of its *Town Pack* are read; the edge of an isometric map gets a post where two of
+  its sides meet and a house of pieces a post at each corner and one roof: a hipped roof of
+  slopes and quarters on *Miniature Farm*, a gable a row on *Medieval Town* (whose own slopes
+  cover half a cell and are not used), a roof a cell only where a pack has nothing better
+  (Screaming Brain's *Town* roofs are whole roofs of one cell). A pack with no licence file can be given its licence and a credit line on the Audit
   page's *Packs* tab: the README credits it as its user's own statement. A pack can be marked
   there as AI-generated art (CuteSCKR's): the README of a game that uses it has a section
   *AI-generated content* for the store page's declaration.

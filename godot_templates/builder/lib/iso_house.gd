@@ -49,6 +49,16 @@ const WINDOW_EVERY := 2
 static func kit(iso: IsoTileset) -> Dictionary:
 	if iso == null or not iso.has_tiles():
 		return {}
+	# the recipes ask for it again and again in one build (every room, every hash): once a catalog
+	var key := iso.catalog_id()
+	if not _kits.has(key):
+		_kits[key] = _kit(iso)
+	return JsonUtil.to_dict(_kits[key]).duplicate(true)
+
+## The kits already worked out in this build, by the catalog they were read from.
+static var _kits: Dictionary = {}
+
+static func _kit(iso: IsoTileset) -> Dictionary:
 	var wall := ""
 	for first in iso.wall_sets(false):
 		var higher := iso.edge_rise(first, "n") - iso.edge_rise(wall, "n")
@@ -67,27 +77,176 @@ static func kit(iso: IsoTileset) -> Dictionary:
 	for first in iso.edge_sets("window", ["door", IsoTileset.FENCE_TAG]):
 		if iso.edge_members(first).size() == IsoTileset.SIDES.size():
 			windows.append(first)
-	return {
+	var out := {
 		"wall": wall,
 		"door": _most_alike(doors, wall),
 		"window": _most_alike(windows, wall),
 		"roof": _roof(iso),
 		"storey": iso.edge_rise(wall, "n"),
 	}
+	# after T17.22: posts at the corners, of the wall's colour, and a roof of pieces
+	var post := iso.post_set_for(wall)
+	if post != "":
+		out["post"] = post
+	var roofs := roof_kit(iso)
+	if not roofs.is_empty():
+		out["roofs"] = roofs
+		out["roof_rise"] = JsonUtil.to_int(iso.facets(JsonUtil.to_str(roofs.values()[0])).get("roof_rise", 0))
+	return out
+
+## The pieces of one roof (after T17.22): `{shape: asset id}` (`slope:n`, `hip:es`, ...) of the
+## packs' roof pieces that have a shape, of one family: the first set with a slope (else the
+## first set), and of every other shape the set most like it by name (`_most_alike_both`:
+## `roof_corner_green_01` goes with `roof_slant_green_01`, not with `roof_corner_red_01`). {}
+## when the packs have no roof piece with a shape.
+static func roof_kit(iso: IsoTileset) -> Dictionary:
+	var sets := iso.roof_sets()
+	if sets.is_empty():
+		return {}
+	var anchor := sets[0]
+	for first in sets:
+		if _has_shape(iso, first, "slope"):
+			anchor = first
+			break
+	var out := iso.members_by(anchor, "roof")
+	for shape: String in ROOF_SHAPES:
+		if _has_shape(iso, anchor, shape):
+			continue
+		var others: Array[String] = []
+		for first in sets:
+			if _has_shape(iso, first, shape):
+				others.append(first)
+		var chosen := _most_alike_both(others, anchor)
+		if chosen == "":
+			continue
+		var members := iso.members_by(chosen, "roof")
+		for key: Variant in members:
+			if not out.has(key):
+				out[key] = members[key]
+	return out
+
+const ROOF_SHAPES: Array[String] = ["slope", "hip", "ridge", "peak", "valley"]
+
+static func _has_shape(iso: IsoTileset, first: String, shape: String) -> bool:
+	for key: Variant in iso.members_by(first, "roof"):
+		if JsonUtil.to_str(key).get_slice(":", 0) == shape:
+			return true
+	return false
+
+## The one of `ids` whose name begins and ends most like `like` (the first of them when several
+## do as much); "" for none.
+static func _most_alike_both(ids: Array[String], like: String) -> String:
+	var best := ""
+	var best_shared := -1
+	for id in ids:
+		var front := 0
+		while front < mini(id.length(), like.length()) and id[front] == like[front]:
+			front += 1
+		var back := 0
+		while back < mini(id.length(), like.length()) - front and id[id.length() - 1 - back] == like[like.length() - 1 - back]:
+			back += 1
+		if front + back > best_shared:
+			best = id
+			best_shared = front + back
+	return best
+
+## The sides of a cell of a roof of `cells` cells (as a footprint counts them) nearest its
+## eaves, and how far in from them it lies: `{sides, level}`. A hipped roof rises one level a
+## cell in from its eaves on every side.
+static func _roof_ring(cell: Vector2i, cells: Vector2i) -> Dictionary:
+	var far := {"n": cell.y, "s": cells.y - 1 - cell.y, "w": cell.x, "e": cells.x - 1 - cell.x}
+	var level := mini(mini(cell.y, cells.y - 1 - cell.y), mini(cell.x, cells.x - 1 - cell.x))
+	var sides: Array[String] = []
+	for side in IsoTileset.SIDES:
+		if JsonUtil.to_int(far[side]) == level:
+			sides.append(side)
+	return {"sides": sides, "level": level}
+
+const OPPOSITE := {"n": "s", "e": "w", "s": "n", "w": "e"}
+## The corner high on the quarter of a hipped roof whose eaves are the two sides of a key.
+const HIP_APEX := {"nw": "es", "ne": "sw", "es": "nw", "sw": "ne"}
+
+## The shapes a cell of a roof of `cells` cells may be laid with, the best first: a cell along
+## one side of the eaves the slope that rises away from it, a cell at a corner of the eaves the
+## quarter of a hipped roof (else a slope), a cell under the ridge a gable along it, the middle
+## of a square roof a pyramid.
+static func roof_wanted(cell: Vector2i, cells: Vector2i) -> Array[String]:
+	var ring := _roof_ring(cell, cells)
+	var sides: Array[String] = []
+	for side: Variant in JsonUtil.to_array(ring["sides"]):
+		sides.append(JsonUtil.to_str(side))
+	var out: Array[String] = []
+	if sides.size() == 1:
+		out.append("slope:" + JsonUtil.to_str(OPPOSITE[sides[0]]))
+	elif sides.size() == 2 and OPPOSITE[sides[0]] != sides[1]:
+		# the sides come in the order n, e, s, w: "nw", "ne", "es", "sw" name the corner
+		out.append("hip:" + JsonUtil.to_str(HIP_APEX[sides[0] + sides[1]]))
+		out.append("slope:" + JsonUtil.to_str(OPPOSITE[sides[0]]))
+	elif sides.size() == 4:
+		out.append("peak")
+		out.append("ridge:" + ("ew" if cells.x >= cells.y else "ns"))
+	else:
+		# two opposite sides, or three: under the ridge, which runs between the other two
+		var along_ew := sides.has("n") and sides.has("s")
+		out.append("ridge:" + ("ew" if along_ew else "ns"))
+		out.append("peak")
+	return out
+
+## The roof of a footprint of `cells` cells laid from the pieces `roofs` ({shape: asset id}):
+## `{cell (Vector2i): {asset_id, level}}`. A hipped roof when every cell has a piece of a shape
+## it may have; else, when the packs have a gable over one cell (*Medieval Town*: its slopes and
+## hips cover half a cell and are no pieces here), a gable along every row of the longer way,
+## each one roof along its ridge; else {} (a house then gets a roof tile a cell, as before).
+static func roof_plan(cells: Vector2i, roofs: Dictionary) -> Dictionary:
+	var out := {}
+	if roofs.is_empty():
+		return out
+	for y in cells.y:
+		for x in cells.x:
+			var cell := Vector2i(x, y)
+			var chosen := ""
+			for shape in roof_wanted(cell, cells):
+				if roofs.has(shape):
+					chosen = JsonUtil.to_str(roofs[shape])
+					break
+			if chosen == "":
+				return _gables(cells, roofs)
+			out[cell] = {"asset_id": chosen, "level": JsonUtil.to_int(_roof_ring(cell, cells)["level"])}
+	return out
+
+## A gable over every row of a footprint along its longer way (the ridge of each row from one
+## end to the other), or {} when the packs have no gable over one cell.
+static func _gables(cells: Vector2i, roofs: Dictionary) -> Dictionary:
+	var out := {}
+	var along := "ridge:ew" if cells.x >= cells.y else "ridge:ns"
+	if not roofs.has(along):
+		return out
+	for y in cells.y:
+		for x in cells.x:
+			out[Vector2i(x, y)] = {"asset_id": JsonUtil.to_str(roofs[along]), "level": 0}
+	return out
 
 ## The one of `ids` whose name begins most like `like` (the first of them when several do as
 ## much); "" for none.
 static func _most_alike(ids: Array[String], like: String) -> String:
+	# the names, not the packs': a door of another pack than the walls' is chosen by its name
+	# (`thick_wood_doorway_01` goes with `thick_wood_01`, after T17.30)
 	var best := ""
 	var best_shared := -1
+	var own := _name_of(like)
 	for id in ids:
+		var name := _name_of(id)
 		var shared := 0
-		while shared < mini(id.length(), like.length()) and id[shared] == like[shared]:
+		while shared < mini(name.length(), own.length()) and name[shared] == own[shared]:
 			shared += 1
 		if shared > best_shared:
 			best = id
 			best_shared = shared
 	return best
+
+## The name of a picture in its id: after the pack's and the folders' parts, before the cell.
+static func _name_of(asset_id: String) -> String:
+	return asset_id.get_slice("#", 0).get_slice(".", asset_id.get_slice("#", 0).get_slice_count(".") - 1)
 
 ## The roof of the packs that is laid a cell: a tile tagged `roof` that stands along no side,
 ## one whose four turns rise alike first (a roof with one peak looks the same on every cell; a
@@ -121,7 +280,19 @@ static func parts(iso: IsoTileset, pieces: Dictionary, cells: Vector2i, door_col
 	var order := _back_to_front(cells)
 	var door_cell := Vector2i(clampi(door_column, 0, cells.x - 1), cells.y - 1)
 	var window := JsonUtil.to_str(pieces.get("window", ""))
+	var post := JsonUtil.to_str(pieces.get("post", ""))
+	# the posts where two walls meet (after T17.22): the far one after the far walls, the
+	# others after the near walls, each covering the ends of the two walls it stands between
+	var post_cells := {
+		"nw": Vector2i(0, 0),
+		"ne": Vector2i(cells.x - 1, 0),
+		"sw": Vector2i(0, cells.y - 1),
+		"es": Vector2i(cells.x - 1, cells.y - 1),
+	}
 	for far: bool in [true, false]:
+		if not far and post != "":
+			var far_corner: Vector2i = post_cells["nw"]
+			_add_post(out, iso, post, "nw", far_corner)
 		for cell in order:
 			for side in _rim_sides(cell, cells):
 				if (side == "n" or side == "w") != far:
@@ -137,11 +308,31 @@ static func parts(iso: IsoTileset, pieces: Dictionary, cells: Vector2i, door_col
 					found = iso.edge_piece(JsonUtil.to_str(pieces["wall"]), side)
 				if not found.is_empty():
 					out.append(_part(iso, JsonUtil.to_str(found["asset_id"]), cell, 0, kind, side))
+	if post != "":
+		for corner: String in ["ne", "sw", "es"]:
+			var at: Vector2i = post_cells[corner]
+			_add_post(out, iso, post, corner, at)
+	var storey := JsonUtil.to_int(pieces.get("storey", 0))
+	# one roof of pieces where the packs have them: slopes up to a ridge, hips at its ends,
+	# each ring of cells a slope's rise higher than the one outside it
+	var plan := roof_plan(cells, JsonUtil.to_dict(pieces.get("roofs", {})))
+	if not plan.is_empty():
+		var rise := JsonUtil.to_int(pieces.get("roof_rise", 0))
+		for cell in order:
+			var laid := JsonUtil.to_dict(plan[cell])
+			var lift := storey + JsonUtil.to_int(laid["level"]) * rise
+			out.append(_part(iso, JsonUtil.to_str(laid["asset_id"]), cell, lift, "roof", ""))
+		return out
 	var roof := JsonUtil.to_str(pieces.get("roof", ""))
 	if roof != "":
 		for cell in order:
-			out.append(_part(iso, roof, cell, JsonUtil.to_int(pieces.get("storey", 0)), "roof", ""))
+			out.append(_part(iso, roof, cell, storey, "roof", ""))
 	return out
+
+static func _add_post(out: Array[Dictionary], iso: IsoTileset, post_set: String, corner: String, cell: Vector2i) -> void:
+	var piece := iso.post_piece(post_set, corner)
+	if not piece.is_empty():
+		out.append(_part(iso, JsonUtil.to_str(piece["asset_id"]), cell, 0, "post", corner))
 
 static func _part(iso: IsoTileset, asset_id: String, cell: Vector2i, lift: int, kind: String, side: String) -> Dictionary:
 	var eff := iso.facets(asset_id)

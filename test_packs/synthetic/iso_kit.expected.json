@@ -67,6 +67,26 @@
     "role": "ROAD",
     "usage": "iso_tile"
   },
+  "PNG/roof_corner_01_0.png": {
+    "role": "DECORATION",
+    "roof": "hip:ne",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_corner_01_1.png": {
+    "role": "DECORATION",
+    "roof": "hip:es",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_corner_01_2.png": {
+    "role": "DECORATION",
+    "roof": "hip:sw",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_corner_01_3.png": {
+    "role": "DECORATION",
+    "roof": "hip:nw",
+    "usage": "iso_tile"
+  },
   "PNG/roof_point_01_0.png": {
     "role": "DECORATION",
     "usage": "iso_tile"
@@ -81,6 +101,26 @@
   },
   "PNG/roof_point_01_3.png": {
     "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_slant_01_0.png": {
+    "role": "DECORATION",
+    "roof": "slope:e",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_slant_01_1.png": {
+    "role": "DECORATION",
+    "roof": "slope:s",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_slant_01_2.png": {
+    "role": "DECORATION",
+    "roof": "slope:w",
+    "usage": "iso_tile"
+  },
+  "PNG/roof_slant_01_3.png": {
+    "role": "DECORATION",
+    "roof": "slope:n",
     "usage": "iso_tile"
   },
   "PNG/stone_door_01_0.png": {
@@ -130,6 +170,46 @@
       96
     ],
     "usage": "sprite"
+  },
+  "PNG/stone_post_01_0.png": {
+    "post": "es",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_post_01_1.png": {
+    "post": "sw",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_post_01_2.png": {
+    "post": "nw",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_post_01_3.png": {
+    "post": "ne",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_short_post_01_0.png": {
+    "post": "es",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_short_post_01_1.png": {
+    "post": "sw",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_short_post_01_2.png": {
+    "post": "nw",
+    "role": "DECORATION",
+    "usage": "iso_tile"
+  },
+  "PNG/stone_short_post_01_3.png": {
+    "post": "ne",
+    "role": "DECORATION",
+    "usage": "iso_tile"
   },
   "PNG/stone_short_wall_01_0.png": {
     "edge": "e",

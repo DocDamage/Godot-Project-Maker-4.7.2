@@ -177,6 +177,66 @@ def test_the_pieces_of_the_pack_are_walls_by_their_sides(kit: catalog.Catalog) -
     assert not [a for a in kit.assets if catalog.effective(a).get("role") == "BUILDING"]
 
 
+def test_roof_pieces_are_read_by_their_shape_and_posts_by_their_corner(
+    kit: catalog.Catalog,
+) -> None:
+    # the turns of the pack's pieces lie as the pack drew them; the reader measures each
+    for turn, (side, corner, post) in enumerate(
+        zip("eswn", ("ne", "es", "sw", "nw"), ("es", "sw", "nw", "ne"), strict=True)
+    ):
+        slope = _facets(kit, f"roof_slant_01_{turn}")
+        hip = _facets(kit, f"roof_corner_01_{turn}")
+        assert (slope["usage"], slope["role"], slope["roof"]) == (
+            "iso_tile",
+            "DECORATION",
+            f"slope:{side}",
+        )
+        assert hip["roof"] == f"hip:{corner}" and "roof" in hip["tags"]
+        assert abs(slope["roof_rise"] - 24) <= 4, "the rise the kit's slopes were drawn with"
+        piece = _facets(kit, f"stone_post_01_{turn}")
+        assert (piece["usage"], piece["role"], piece["post"]) == ("iso_tile", "DECORATION", post)
+        assert "post" in piece["tags"]
+        # a pyramid over one cell, and a pole in the middle of its diamond, which is no post
+        assert _facets(kit, f"roof_point_01_{turn}")["roof"] == "peak"
+        pole = _facets(kit, f"stone_pole_01_{turn}")
+        assert pole["usage"] == "sprite" and "post" not in pole
+
+
+def _slope(high: str, half: bool = False) -> np.ndarray:
+    """One slope of a roof over a diamond of FOOT whose middle is at (40, 60), high along the
+    side ``high`` (n or s) by 20 px; ``half`` draws only the half of the cell next to that
+    side, rising from the cell's middle line (as *Medieval Town*'s slopes are drawn)."""
+    from PIL import Image, ImageDraw
+
+    lo, hi = (0.5, 1.0) if half else (0.0, 1.0)
+    if high == "n":
+        band = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0 - lo), (0.0, 1.0 - lo)] if half else [
+            (0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]  # fmt: skip
+    else:
+        band = [(0.0, lo), (1.0, lo), (1.0, hi), (0.0, hi)]
+
+    def at(u: float, v: float) -> tuple[float, float]:
+        up = (1.0 - v) if high == "n" else v
+        z = 20.0 * ((up - lo) / (hi - lo) if half else up)
+        return 40 + (u - v) * FOOT[0] / 2, 60 + (u + v - 1) * FOOT[1] / 2 - z
+
+    img = Image.new("RGBA", (80, 100), (0, 0, 0, 0))
+    ImageDraw.Draw(img).polygon([at(u, v) for u, v in band], fill=(200, 60, 50, 255))
+    return np.asarray(img)
+
+
+def test_slopes_that_cover_half_their_cell_make_no_roof_of_their_cells() -> None:
+    middle = (40.0, 60.0)
+    whole = {"slope:s": (_slope("s"), middle), "slope:n": (_slope("n"), middle)}
+    assert measure.roof_covers_cells(whole, FOOT) is True
+    half = {"slope:s": (_slope("s", True), middle), "slope:n": (_slope("n", True), middle)}
+    assert measure.roof_covers_cells(half, FOOT) is False
+    assert measure.roof_covers_cells({"peak": whole["slope:s"]}, FOOT) is None
+    for side in "ns":
+        found = measure.roof_shape(whole[f"slope:{side}"][0], middle, FOOT, ("slope",))
+        assert found is not None and found[0] == f"slope:{side}"
+
+
 def test_the_planners_count_a_kit_of_pieces_as_a_building(kit: catalog.Catalog) -> None:
     assert map_preview.iso_house_kit(kit) == {
         "wall": "iso_kit.png.stone_short_wall_01_0",

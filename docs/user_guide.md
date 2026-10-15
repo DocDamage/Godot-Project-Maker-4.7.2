@@ -1026,13 +1026,22 @@ seven samples.
   same way). rpggen measures which side each picture stands along (the audit shows it as the
   facet `edge`) and lays the edge of a map from the pieces of one wall, each on the side that
   looks out of the map, with the way out left open. It takes the lowest plain wall of your
-  packs, so that nobody is hidden behind it, and for a farm the fence. A pack with whole wall
+  packs, so that nobody is hidden behind it, and for a farm the fence; where two sides of the
+  edge meet, at the map's corners, it puts a post of the wall's colour, no higher than the wall, when your packs have
+  posts. Screaming Brain's thick walls (a face with the wall's end beside it) and its corner
+  pieces are read as walls and posts. A pack with whole wall
   tiles is laid with those, as before.
 * **A house of pieces.** When no pack drew a whole house for this view and your packs have a
   wall for all four sides and a wall with a door, rpggen **puts a house together**: walls
   along the sides of its footprint, the door at the plan's door, windows on some of the other
-  places, and a roof tile over every cell when the packs have one. It blocks its footprint
-  and is walked into like any house. The Mapping page has no *Building* to choose then, and
+  places, a **post at each corner** where two walls meet when the packs have posts (a pole, a
+  corner piece: the one of the colour of the walls), and **one roof**: when the packs draw a
+  roof as slopes and the quarters of a hipped roof (*Miniature Farm*'s `roof` and
+  `roofCorner`), the slopes rise from every side to a ridge with hips at its ends; when their
+  slopes cover only half a cell and they have a gable over one cell (*Medieval Town*'s
+  `roof_straight`), every row of the house gets one gable along its length; only a pack with
+  neither gets a roof tile over every cell. It blocks its footprint and is walked into like
+  any house. The Mapping page has no *Building* to choose then, and
   nothing is missing. A pack with a whole house gets that house, as before.
 * **Round road corners.** A road piece that joins two neighbouring sides is read as *round* (it
   turns in a quarter circle) or *square* (the road fills the corner): the facet `corner`.
@@ -1134,9 +1143,12 @@ dock places on diamonds (see *4. In Godot*), but nobody has dropped anything int
 map with a mouse yet: it was run by a test in an editor without a window. An imported
 isometric map has no height: the stairs of a sample are pictures you walk across, and a second
 floor is only drawn higher. A room has walls only when the packs have isometric wall pieces. No
-terrain (autotile) is read from an isometric pack. A house of pieces has one storey, a roof tile
-over every cell (a pack's slanted roofs are not joined into one ridge) and no corner posts of its
-own: the walls bring theirs. A track is planned with round corners only when the piece of every
+terrain (autotile) is read from an isometric pack, and the paths and roads of Screaming Brain's
+packs (pieces drawn over the ground) are left for review. A house of pieces has one storey. On
+*Medieval Town* its roof is a gable a row (two side by side on a house two cells deep): the
+pack's slopes and hips cover half a cell and carry walls of their own, and are not used. Screaming
+Brain's *Town* roofs are whole roofs of one cell: a house of several cells gets one a cell. A
+track is planned with round corners only when the piece of every
 one of its four corners is round.
 
 ### The farm and the isometric view from the command line

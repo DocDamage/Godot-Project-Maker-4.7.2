@@ -352,9 +352,12 @@ def test_a_wall_segment_is_a_tile_along_one_side_of_its_diamond(town: Path) -> N
         assert "window" in assets[f"PNG/wood_window_square_01_{turn}.png"].detected["tags"]
         assert "door" in assets[f"PNG/grey_door_round_01_{turn}.png"].detected["tags"]
         assert "door" not in (assets[f"PNG/grey_wall_01_{turn}.png"].detected.get("tags") or [])
-        for stem in ("tree_01", "grey_pole_01"):
-            thing = assets[f"PNG/{stem}_{turn}.png"].detected
-            assert "edge" not in thing and thing["usage"] == "sprite", stem
+        tree = assets[f"PNG/tree_01_{turn}.png"].detected
+        assert "edge" not in tree and tree["usage"] == "sprite"
+        # a post on a corner of its diamond is a tile of its own, no wall (after T17.30)
+        post = assets[f"PNG/grey_pole_01_{turn}.png"].detected
+        assert "edge" not in post and post["usage"] == "iso_tile" and post["role"] == "DECORATION"
+        assert post["post"] in ("nw", "ne", "es", "sw") and "post" in post["tags"]
         roof = assets[f"PNG/roof_point_red_01_{turn}.png"].detected
         assert roof["usage"] == "iso_tile" and "edge" not in roof
         assert "roof" in roof["tags"] and roof["role"] == "DECORATION"

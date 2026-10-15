@@ -108,7 +108,78 @@ def test_wall_faces_become_four_pieces_along_the_sides_of_a_diamond(packs: Path)
     window = catalog.effective(_asset(cat, "flat_stone_01_windowa_se_16x24#c0_0_e"))
     assert "door" in door["tags"] and "window" in window["tags"]
     thick = catalog.effective(_asset(cat, "thick_stone_01_se_20x26"))
-    assert thick["role"] == "NONE" and "unused_because:iso_piece_not_read" in thick["tags"]
+    assert thick["role"] == "NONE" and "unused_because:iso_sheet" in thick["tags"]
+
+
+def test_a_thick_wall_is_read_as_its_faces_without_the_end_of_the_wall(packs: Path) -> None:
+    cat, _issues = _catalog(packs / "iso_named")
+    for turn, side in enumerate("nesw"):
+        piece = catalog.effective(_asset(cat, f"thick_stone_01_se_20x26#c0_0_{side}"))
+        assert (piece["usage"], piece["role"], piece["edge"], piece["turn"]) == (
+            "iso_tile", "WALL", side, turn,
+        )  # fmt: skip
+        assert "thick" in piece["tags"] and piece["canvas"] == [32, 34]
+    # a thick face says nothing of the diamond: the pack's stays the one its names give
+    assert "isometric:32x16:named" in cat.packs[0].warnings
+    mask = np.zeros((26, 20), dtype=bool)
+    for x in range(20):  # the end of the wall at the left, its foot running back up
+        foot = 25 - (4 - x) // 2 if x < 4 else 25 - (x - 4) // 2
+        mask[foot - 12 : foot + 1, x] = True
+    assert not iso_sheets._straight_ends(mask)
+    flat = np.zeros((24, 16), dtype=bool)
+    for x in range(16):
+        flat[23 - x // 2 - 10 : 24 - x // 2, x] = True
+    assert iso_sheets._straight_ends(flat)
+
+
+def test_posts_stand_on_the_four_corners_of_their_diamond(packs: Path) -> None:
+    cat, _issues = _catalog(packs / "iso_named")
+    ids = []
+    for turn, corner in enumerate(("nw", "ne", "es", "sw")):
+        post = _asset(cat, f"corner_stone_01_se_20x26#c0_0_{corner}")
+        eff = catalog.effective(post)
+        assert (eff["usage"], eff["role"], eff["post"], eff["turn"]) == (
+            "iso_tile", "DECORATION", corner, turn,
+        )  # fmt: skip
+        assert "post" in eff["tags"] and post.status == "AUTO_DETECTED"
+        ids.append(post.id)
+    sets = catalog.turn_sets([a for a in cat.assets if a.id in ids])
+    assert set(sets.values()) == {ids[0]}
+
+
+def test_a_town_sheet_whose_corner_is_painted_is_keyed_by_its_border(packs: Path) -> None:
+    cat, _issues = _catalog(packs / "iso_named")
+    for side in "nesw":
+        wall = catalog.effective(_asset(cat, f"isometric_buildings_1_16x24#c0_0_{side}"))
+        assert (wall["role"], wall["edge"]) == ("WALL", side)
+    picture = np.asarray(
+        Image.open(
+            packs / "iso_named/Isometric Named - Small/Town/Isometric Buildings 1 - 16x24.png"
+        ).convert("RGBA")
+    )
+    assert int(picture[0, 0, 3]) == 255 and tuple(picture[0, 0, :3]) != (0, 128, 128)
+    assert iso_sheets._key_of(picture, None) == (0, 128, 128)
+    # a texture with no colour that common has none
+    rng = np.random.default_rng(5)
+    texture = np.dstack(
+        [rng.integers(0, 255, size=(32, 32, 3), dtype=np.uint8), np.full((32, 32), 255, np.uint8)]
+    )
+    assert iso_sheets._key_of(texture, None) is None
+
+
+def test_roofs_over_one_diamond_are_cut_from_a_sheet_wider_than_its_cells(packs: Path) -> None:
+    cat, _issues = _catalog(packs / "iso_named")
+    for col in range(2):
+        roof = catalog.effective(_asset(cat, f"town_roofing_38x28#c{col}_0"))
+        assert (roof["usage"], roof["role"], roof["footprint"]) == (
+            "iso_tile",
+            "DECORATION",
+            [32, 16],
+        )
+        assert "roof" in roof["tags"] and "roof" not in roof, "a whole roof of one cell: no shape"
+        # the middle of the diamond its eaves cover: as wide as the roof, on its lowest corner
+        assert roof["origin"] == [18, 16]
+    assert not [a for a in cat.assets if a.id.endswith("town_roofing_38x28#c2_0")]
 
 
 def test_a_ground_picture_that_tiles_is_cut_on_its_diamond() -> None:

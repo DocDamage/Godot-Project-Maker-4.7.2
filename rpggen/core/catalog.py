@@ -967,7 +967,10 @@ def _iso_roles(assets: list[Asset], root: str) -> None:
     * **A roof** (``roof``, ``chimney`` in its name) is tagged ``roof`` and is nobody's ground
       or room: it fills a diamond, a storey up.
     * **An object**, which fills no diamond, is not what a map is laid with: a carpet, the
-      upper storey of a house with *tiles* in its name are ``DECORATION``, not ``GROUND``."""
+      upper storey of a house with *tiles* in its name are ``DECORATION``, not ``GROUND``.
+    * **A post** at a corner of its diamond (``post``) and a roof piece read by its shape
+      (``roof``) are ``DECORATION`` tagged ``post`` and ``roof``: pieces of a house of pieces,
+      no wall a map's edge or a room is laid with."""
     from rpggen.core import classifier
 
     for asset in assets:
@@ -987,10 +990,14 @@ def _iso_roles(assets: list[Asset], root: str) -> None:
         thing = facets.get("usage") == "sprite" and current in ISO_LAID_ROLES
         if facets.get("edge"):
             role = "WALL"
-        elif roof or thing:
+        elif roof or thing or facets.get("post") or facets.get("roof"):
             role = "DECORATION"
         if not facets.get("edge"):
             said &= {"roof"}  # a door leaf by itself is no wall with a door
+        if facets.get("post"):
+            said.add("post")  # a post at a corner of walls (after T17.22)
+        if facets.get("roof"):
+            said.add("roof")
         if said:
             facets["tags"] = sorted(set(facets.get("tags") or []) | said)
         if role != current:
