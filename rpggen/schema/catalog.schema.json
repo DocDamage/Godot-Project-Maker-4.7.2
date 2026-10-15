@@ -259,7 +259,8 @@
             "durations_ms"
           ],
           "additionalProperties": false
-        }
+        },
+        "probability": {"type": "number", "minimum": 0}
       },
       "additionalProperties": false
     },
@@ -494,6 +495,7 @@
         "corner": {"enum": ["round", "square"]},
         "roof": {"type": "string", "pattern": "^(slope:[nesw]|hip:(nw|ne|es|sw)|valley:(nw|ne|es|sw)|ridge:(ew|ns)|peak)$"},
         "roof_rise": {"type": "integer", "minimum": 1},
+        "iso_terrain": {"type": "object"},
         "post": {"enum": ["nw", "ne", "es", "sw"]},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
@@ -1239,7 +1241,13 @@
                     "color"
                   ]
                 }
-              }
+              },
+              "surface": {"type": "string"},
+              "over": {"enum": ["ground", "nothing"]},
+              "shape": {"enum": ["any", "area", "path", "plain"]},
+              "layout": {"type": "string"},
+              "sheet": {"type": "string"},
+              "role": {"type": "string"}
             },
             "additionalProperties": false,
             "required": [
@@ -1570,6 +1578,7 @@
         "corner": {"enum": ["round", "square"]},
         "roof": {"type": "string", "pattern": "^(slope:[nesw]|hip:(nw|ne|es|sw)|valley:(nw|ne|es|sw)|ridge:(ew|ns)|peak)$"},
         "roof_rise": {"type": "integer", "minimum": 1},
+        "iso_terrain": {"type": "object"},
         "post": {"enum": ["nw", "ne", "es", "sw"]},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {

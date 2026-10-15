@@ -27455,8 +27455,13 @@
       ],
       "terrain_sets": [
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b0",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b0",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#4caf50",
@@ -27465,8 +27470,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b1",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b1",
+          "surface": "stone",
           "terrains": [
             {
               "color": "#8d6e63",
@@ -27475,8 +27485,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b10",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b10",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#2196f3",
@@ -27485,8 +27500,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b11",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b11",
+          "surface": "stone",
           "terrains": [
             {
               "color": "#ffc107",
@@ -27495,8 +27515,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b12",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b12",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#9c27b0",
@@ -27505,8 +27530,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b13",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b13",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#00bcd4",
@@ -27515,8 +27545,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b14",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b14",
+          "surface": "other",
           "terrains": [
             {
               "color": "#e91e63",
@@ -27525,8 +27560,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b15",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b15",
+          "surface": "sand",
           "terrains": [
             {
               "color": "#795548",
@@ -27535,8 +27575,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b16",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b16",
+          "surface": "other",
           "terrains": [
             {
               "color": "#4caf50",
@@ -27545,8 +27590,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b17",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b17",
+          "surface": "sand",
           "terrains": [
             {
               "color": "#8d6e63",
@@ -27555,8 +27605,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b18",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b18",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#2196f3",
@@ -27565,8 +27620,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b19",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b19",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#ffc107",
@@ -27575,8 +27635,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b2",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b2",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#2196f3",
@@ -27585,8 +27650,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b20",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b20",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#9c27b0",
@@ -27595,8 +27665,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b21",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b21",
+          "surface": "stone",
           "terrains": [
             {
               "color": "#00bcd4",
@@ -27605,8 +27680,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b22",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b22",
+          "surface": "sand",
           "terrains": [
             {
               "color": "#e91e63",
@@ -27615,8 +27695,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b23",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b23",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#795548",
@@ -27625,8 +27710,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b24",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b24",
+          "surface": "sand",
           "terrains": [
             {
               "color": "#4caf50",
@@ -27635,8 +27725,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b25",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b25",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#8d6e63",
@@ -27645,8 +27740,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b26",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b26",
+          "surface": "other",
           "terrains": [
             {
               "color": "#2196f3",
@@ -27655,8 +27755,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b27",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b27",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#ffc107",
@@ -27665,8 +27770,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b28",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b28",
+          "surface": "stone",
           "terrains": [
             {
               "color": "#9c27b0",
@@ -27675,8 +27785,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b29",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b29",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#00bcd4",
@@ -27685,8 +27800,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b3",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b3",
+          "surface": "sand",
           "terrains": [
             {
               "color": "#ffc107",
@@ -27695,8 +27815,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b30",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b30",
+          "surface": "sand",
           "terrains": [
             {
               "color": "#e91e63",
@@ -27705,8 +27830,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b31",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b31",
+          "surface": "stone",
           "terrains": [
             {
               "color": "#795548",
@@ -27715,8 +27845,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b4",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b4",
+          "surface": "stone",
           "terrains": [
             {
               "color": "#9c27b0",
@@ -27725,8 +27860,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b5",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b5",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#00bcd4",
@@ -27735,8 +27875,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b6",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b6",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#e91e63",
@@ -27745,8 +27890,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b7",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b7",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#795548",
@@ -27755,8 +27905,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b8",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b8",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#4caf50",
@@ -27765,8 +27920,13 @@
           ]
         },
         {
+          "layout": "rpgmaker_a2",
           "mode": "corners_and_sides",
           "name": "outside_a2_b9",
+          "over": "ground",
+          "shape": "any",
+          "sheet": "generated.rpgmaker_like_img_tilesets_outside_a2_b9",
+          "surface": "dirt",
           "terrains": [
             {
               "color": "#8d6e63",

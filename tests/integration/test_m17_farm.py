@@ -322,7 +322,10 @@ def test_a_pack_without_crops_gets_the_drawn_ones_and_a_plot_to_grow_them_on(pla
     assert "farm_soil" not in village and "field.gd" not in village
     soil = _text(target, "generated/tilesets/farm_soil.tres")
     assert '"tillable"' in soil and '"water"' in soil
-    assert soil.count("custom_data_0 = true") == 1, "one tile says it can be tilled"
+    # one tile says it can be tilled; a farm whose plot is painted with a terrain of the ground
+    # has a second, the mark that shows nothing under it (T17.31)
+    marked = "5:0/0" in soil
+    assert soil.count("custom_data_0 = true") == (2 if marked else 1), "the tillable tiles"
     assert soil.count("custom_data_1 = true") == 2, "two fill the can: drawn water, and a mark"
     # tilled and watered soil are the tiles of the farm kit, each a source of its own
     assert "generated/farm_kit/soil.png" in soil and "generated/farm_kit/watered.png" in soil

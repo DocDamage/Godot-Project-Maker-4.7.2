@@ -37,6 +37,7 @@ from PIL import Image
 
 from rpggen.core import catalog as catalog_mod
 from rpggen.core.config import PROJECTION_ISOMETRIC, GeneratorConfig
+from rpggen.core.terrain import iso as iso_terrain
 from rpggen.errors import RpgGenError
 
 ATLAS_PACK = "rpggen_iso"
@@ -263,7 +264,12 @@ def add(catalog: catalog_mod.Catalog, cfg: GeneratorConfig, staging_root: Path) 
             known.physics_layers if known else catalog_mod.DEFAULT_PHYSICS_LAYERS
         ),
         custom_data=custom,
-        terrain_sets=copy.deepcopy(known.terrain_sets) if known else [],
+        # the sets it had, then those of the pieces that join along the sides of a diamond
+        # (T17.31, ``terrain.iso``): a project without such pieces has the sets it had
+        terrain_sets=iso_terrain.terrain_sets(
+            [a for members in by_pack.values() for a in members],
+            copy.deepcopy(known.terrain_sets) if known else [],
+        ),
         navigation=known.navigation if known else False,
         patterns_from_objects=False,
         projection=PROJECTION_ISOMETRIC,

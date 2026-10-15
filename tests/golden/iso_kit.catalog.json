@@ -800,6 +800,24 @@
           64,
           36
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": -1,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": -1
+          },
+          "role": "ROAD",
+          "set": "iso_roadES_road",
+          "shape": "path",
+          "surface": "road"
+        },
         "joins": [
           "e",
           "s"
@@ -854,6 +872,24 @@
           64,
           36
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": -1,
+            "left_side": 0,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": -1
+          },
+          "role": "ROAD",
+          "set": "iso_roadES_road",
+          "shape": "path",
+          "surface": "road"
+        },
         "joins": [
           "e",
           "w"
@@ -909,6 +945,24 @@
           64,
           36
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "role": "ROAD",
+          "set": "iso_roadES_road",
+          "shape": "path",
+          "surface": "road"
+        },
         "joins": [
           "n",
           "e"
@@ -963,6 +1017,24 @@
           64,
           36
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "role": "ROAD",
+          "set": "iso_roadES_road",
+          "shape": "path",
+          "surface": "road"
+        },
         "joins": [
           "n",
           "s"
@@ -1018,6 +1090,24 @@
           64,
           36
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": -1,
+            "left_side": 0,
+            "right_side": -1,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "role": "ROAD",
+          "set": "iso_roadES_road",
+          "shape": "path",
+          "surface": "road"
+        },
         "joins": [
           "n",
           "w"
@@ -1073,6 +1163,24 @@
           64,
           36
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": 0,
+            "right_side": -1,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": -1
+          },
+          "role": "ROAD",
+          "set": "iso_roadES_road",
+          "shape": "path",
+          "surface": "road"
+        },
         "joins": [
           "s",
           "w"

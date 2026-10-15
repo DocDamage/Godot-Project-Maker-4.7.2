@@ -190,6 +190,7 @@ func input_hash(ctx: BuildContext) -> String:
 	if MapGeo.is_isometric(ctx):
 		hashed["iso"] = MapGeo.new(ctx).def
 		hashed["iso_v"] = ISO_VERSION
+	hashed.merge(MapGeo.TerrainPaint.hash_part(ctx))  # T17.31: only with terrains
 	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
@@ -201,6 +202,9 @@ func build(ctx: BuildContext) -> Array:
 	for entry in entries():
 		var path := map_path(entry)
 		if FileAccess.file_exists(path):
+			var kept := MapGeo.TerrainPaint.kept_map(ctx, path, input_hash(ctx))  # T17.31
+			if not kept.is_empty():
+				issues.append(kept)
 			continue
 		var root := build_map(ctx, entry, issues)
 		if root == null:
@@ -326,8 +330,11 @@ func _add_ground(ctx: BuildContext, entry: Dictionary, kind: String, root: Node2
 	var size := FarmMapRecipe.cell_of(entry.get("size"))
 	var ground: TileMapLayer = nodes["Ground"]
 	var base := _farm_ground(ctx, geo)
-	var own := geo.tile_of_asset(JsonUtil.to_str(entry.get("ground", ""))) if JsonUtil.to_str(entry.get("ground", "")) != "" else {}
-	MapBuild.fill_ground(ground, size, own if not own.is_empty() else base)
+	var own_id := JsonUtil.to_str(entry.get("ground", ""))
+	var own := geo.tile_of_asset(own_id) if own_id != "" else {}
+	# the middle of a terrain where the tile is a piece of one, and its variants (T17.31)
+	var filled := geo.ground_of(own, own_id) if not own.is_empty() else geo.ground_of(base)
+	geo.fill_ground(ground, Rect2i(Vector2i.ZERO, size), filled, JsonUtil.to_str(entry.get("id", "")))
 	var details := geo.road_layer(nodes)
 	if details != null and kind != CAVE:  # the tunnels of a cave are its floor, not roads
 		geo.paint_joined(details, FarmMapRecipe.cells_of(entry.get("paths")), "ROAD", geo.find_tile("ROAD"))
@@ -336,9 +343,24 @@ func _add_ground(ctx: BuildContext, entry: Dictionary, kind: String, root: Node2
 		BEACH:
 			root.set_meta(WATER_META, "sea")
 			water_tile = geo.find_tile("WATER")
-			if not water_tile.is_empty():
+			# the packs' sand of a terrain where they have one: the land, edged where the
+			# farm's ground shows at its border (T17.31)
+			var sand := {} if not own.is_empty() else geo.terrain_for("SAND")
+			if not sand.is_empty():
+				var land: Array[Vector2i] = []
+				var sea := {}
+				for cell in water:
+					sea[cell] = true
+				for cell in RpgTerrain.rect_cells(Rect2i(Vector2i.ZERO, size)):
+					if not sea.has(cell):
+						land.append(cell)
+				RpgTerrain.paint_area(ground, land, JsonUtil.to_int(sand["set"]), JsonUtil.to_int(sand["terrain"]), geo.seed_for(JsonUtil.to_str(entry.get("id", "")) + "_sand"))
+			# the sea, with its shore where the tile set has a terrain of water (T17.31)
+			if not water_tile.is_empty() or not geo.terrain_for("WATER").is_empty():
 				geo.paint_joined(ground, water, "WATER", water_tile)
-			if own.is_empty():
+				if water_tile.is_empty():
+					water_tile = {"terrain": true}  # the map paints its sea
+			if own.is_empty() and sand.is_empty():
 				# no sand of the packs: drawn over the ground, row by row, wherever the sea is not
 				_add_cover(root, ground, geo, "Sand", row_runs(size, water), SAND, SAND_DARK)
 		FOREST:

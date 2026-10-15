@@ -119,10 +119,34 @@ def cells_of(
     return out
 
 
-def choose(picture: np.ndarray, grid: dict[str, Any], said: str = "") -> dict[str, Any] | None:
+def varied_cells(asset: catalog_mod.Asset) -> set[tuple[int, int]]:
+    """The cells of a sheet that are the middle of a terrain with plain variants (T17.31): the
+    tiles whose terrain has two whole tiles or more. Laid with its variants such a ground
+    varies."""
+    overrides = catalog_mod.effective(asset).get("tile_overrides") or {}
+    by_set: dict[str, list[tuple[int, int]]] = {}
+    for key, entry in overrides.items():
+        terrain = (entry or {}).get("terrain") or {}
+        peering = terrain.get("peering") or {}
+        if not peering or any(v != terrain.get("terrain", 0) for v in peering.values()):
+            continue
+        x, _sep, y = str(key).partition(",")
+        if x.isdigit() and y.isdigit():
+            by_set.setdefault(str(terrain.get("set", "")), []).append((int(x), int(y)))
+    return {cell for cells in by_set.values() if len(cells) > 1 for cell in cells}
+
+
+def choose(
+    picture: np.ndarray,
+    grid: dict[str, Any],
+    said: str = "",
+    varied: set[tuple[int, int]] | None = None,
+) -> dict[str, Any] | None:
     """The plain ground of a sheet (see the module): ``{surface, base}`` with the cell as
     ``[column, row]``, or None when it has no plain tile. ``said`` is the surface the sheet's
-    tags say (``grass``), which goes first."""
+    tags say (``grass``), which goes first. ``varied`` are the cells that are the middle of a
+    terrain with variants (T17.31): of a surface they go first, so that the ground varies."""
+    varied = varied or set()
     found = []
     seen: set[bytes] = set()
     for col, row, x, y, w, h in cells_of((picture.shape[1], picture.shape[0]), grid):
@@ -142,8 +166,11 @@ def choose(picture: np.ndarray, grid: dict[str, Any], said: str = "") -> dict[st
         same = [f for f in found if f[2]["surface"] == surface]
         if not same:
             continue
-        # the most even; of two as even the first of the sheet (rows, then columns)
-        base = min(same, key=lambda f: (round(f[2]["spread"], 4), f[1], f[0]))
+        # the most even (of the tiles that vary, when some do); of two as even the first of the
+        # sheet (rows, then columns)
+        base = min(
+            same, key=lambda f: ((f[0], f[1]) not in varied, round(f[2]["spread"], 4), f[1], f[0])
+        )
         return {"surface": surface, "base": [base[0], base[1]]}
     return None
 
@@ -238,7 +265,7 @@ def plan(catalog: catalog_mod.Catalog, cfg: Any, root: Path) -> dict[str, Any] |
     grid = catalog_mod.effective(asset).get("grid") or {}
     if picture is None or not grid:
         return None
-    chosen = choose(picture, grid, _said(asset))
+    chosen = choose(picture, grid, _said(asset), varied_cells(asset))
     if chosen is None:
         return None
     return {"v": VERSION, "asset": asset.id, **chosen}

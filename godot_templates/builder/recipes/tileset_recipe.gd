@@ -158,6 +158,37 @@ static func apply_terrain(td: TileData, ts: TileSet, sets: Array, terrain: Dicti
 			td.set_terrain_peering_bit(bit, value)
 	return true
 
+## The peering keys of a piece of an isometric terrain (T17.31, `iso_terrain` of the catalog) as
+## Godot's neighbours of a diamond: the keys are the grid's (`top_side` the side n, the upper
+## right; `top_right_corner` the corner between n and e, the diamond's right corner), checked by
+## the probe of T17.31 with `TileMapLayer.get_neighbor_cell` on the layout diamond down.
+const ISO_PEERING_BITS := {
+	"top_side": TileSet.CELL_NEIGHBOR_TOP_RIGHT_SIDE,
+	"right_side": TileSet.CELL_NEIGHBOR_BOTTOM_RIGHT_SIDE,
+	"bottom_side": TileSet.CELL_NEIGHBOR_BOTTOM_LEFT_SIDE,
+	"left_side": TileSet.CELL_NEIGHBOR_TOP_LEFT_SIDE,
+	"top_right_corner": TileSet.CELL_NEIGHBOR_RIGHT_CORNER,
+	"bottom_right_corner": TileSet.CELL_NEIGHBOR_BOTTOM_CORNER,
+	"bottom_left_corner": TileSet.CELL_NEIGHBOR_LEFT_CORNER,
+	"top_left_corner": TileSet.CELL_NEIGHBOR_TOP_CORNER,
+}
+
+## Gives a tile of the isometric tile set its terrain and peering bits from its `iso_terrain`
+## facet (T17.31). Returns true when the tile was changed.
+static func apply_iso_terrain(td: TileData, ts: TileSet, sets: Array, terrain: Dictionary) -> bool:
+	var set_index := terrain_set_index(sets, JsonUtil.to_str(terrain.get("set", "")))
+	if set_index < 0 or set_index >= ts.get_terrain_sets_count():
+		return false
+	td.terrain_set = set_index
+	td.terrain = 0
+	var peering: Dictionary = terrain.get("peering", {})
+	for key: String in ISO_PEERING_BITS.keys():
+		var value := JsonUtil.to_int(peering.get(key, -1))
+		var bit: TileSet.CellNeighbor = ISO_PEERING_BITS[key]
+		if value >= 0 and td.is_valid_terrain_peering_bit(bit):
+			td.set_terrain_peering_bit(bit, value)
+	return true
+
 ## The horizontal run of an animation override, or [] when Godot's atlas animation cannot show
 ## it: the frames must be consecutive cells of one row starting at the tile itself.
 static func animation_run(coords: Vector2i, anim: Dictionary) -> Array:
@@ -351,7 +382,9 @@ func _build_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionar
 				if is_new or td.terrain_set == -1:
 					var terrain_spec: Dictionary = terrain
 					var tile_terrain_sets: Array = def.get("terrain_sets", [])
-					apply_terrain(td, ts, tile_terrain_sets, terrain_spec)
+					if apply_terrain(td, ts, tile_terrain_sets, terrain_spec) and ov.has("probability"):
+						# a plain variant of a terrain's middle is painted less often (T17.31)
+						td.probability = JsonUtil.to_float(ov["probability"], 1.0)
 			if runs.has(coords):
 				var run_spec: Dictionary = runs[coords]
 				_apply_animation(ctx, src, coords, run_spec, asset, issues)
@@ -481,6 +514,8 @@ func _build_iso_tileset(ctx: BuildContext, def: Dictionary, issues: Array) -> vo
 	_ensure_layers(ts, def)
 	if _nav_enabled and ts.get_navigation_layers_count() == 0:
 		ts.add_navigation_layer()
+	# the terrains of the pieces that join along the sides of a diamond (T17.31)
+	ensure_terrain_sets(ts, JsonUtil.to_array(def.get("terrain_sets", [])))
 	var sources: Array[Dictionary] = []
 	sources.assign(JsonUtil.to_array(def.get("sources", [])))
 	sources.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return JsonUtil.to_int(a["source_id"]) < JsonUtil.to_int(b["source_id"]))
@@ -554,6 +589,10 @@ func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dicti
 		placed[coords] = true
 		var is_new := IsoTileset.configure_tile(ts, src, coords, at, atlas_cell, asset, eff)
 		var td := src.get_tile_data(coords, 0)
+		var iso_terrain: Variant = eff.get("iso_terrain")
+		if iso_terrain is Dictionary and (is_new or td.terrain_set == -1):
+			var iso_spec: Dictionary = iso_terrain
+			apply_iso_terrain(td, ts, JsonUtil.to_array(def.get("terrain_sets", [])), iso_spec)
 		var collision := IsoTileset.default_collision(eff)
 		var middle := atlas_cell / 2
 		var origin: Vector2i = ctx.vec2i(eff.get("origin", [middle.x, middle.y]))

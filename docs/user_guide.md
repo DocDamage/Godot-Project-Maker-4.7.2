@@ -278,6 +278,17 @@ inventory, equipment, menus) are the same.
   neighbour masks. It is recognised in a folder or under a name that says *tileset*,
   *autotile* or *terrain*; accept the proposal and the tiles join by themselves when you
   paint. A fence or wall sheet of the same shape is not a blob terrain and stays plain tiles.
+* **Terrains inside a sheet** (from release 1.5) need no proposal. Most packs keep their
+  terrains as blocks inside a larger sheet of ground, water, paths or soil: a 47-tile blob in
+  Godot's template (EmanuelleDev's *Farm RPG* repeats it down its sheets), a block of 3 x 3
+  with its four inner corners beside it (LimeZu's *Modern Farm*), a 16-tile corner or edge set,
+  RPG Maker's block of 2 x 3, the beds one cell wide of Kenney's *Tiny Farm*. rpggen finds them
+  by comparing the edges of the cells (where the terrain goes on they meet without a seam,
+  where it ends they do not), over another ground or over transparency, and gives their tiles
+  a terrain in the TileSet with the peering bits Godot paints with; plain cells of the same
+  surface that tile with a terrain's middle become its variants, laid less often. You see the
+  result in Godot's TileSet editor (*Terrains*). A sheet of objects (houses, crops, icons) is
+  not searched.
 * **Packs tab:** the licence, author and URL rpggen read from each pack's licence files, and
   whether the licence asks for credit. Correct anything that is wrong: the game's *Credits*
   screen (title screen and pause menu) lists every pack with these values. A pack that needs
@@ -1038,6 +1049,14 @@ seven samples.
   the diamond's four sides the piece joins. rpggen lays roads, shores and walls with the piece
   that fits the neighbours of each cell, as terrains join for a top-down pack; where a pack
   has no piece for a case the nearest is used and the report says so.
+* **Terrains on diamonds** (from release 1.5). Pieces that join along the sides of a diamond
+  are a terrain of the isometric TileSet, read from the pictures (on which sides the surface
+  of a piece goes on, and whether the pixels along the sides of two pieces meet) and from the
+  names: a name gives the sides a road goes on (`roadES`) or the sides the land is on
+  (`waterE`, `beachCornerNE`), and the pictures say which. Screaming Brain's *Pathways* and
+  *Roads* (eleven pieces in a sheet, without names) are each a terrain of paths laid over the
+  ground; Kenney's road, river and shore pieces are terrains of roads and of water. Roads,
+  paths, a race track and ponds are then painted with Godot's terrains.
 * **Walls along a side.** Many packs draw a wall as a thin piece that stands along **one side**
   of its diamond, in four turns (and a wall with a door, a wall with a window, a fence, the
   same way). rpggen measures which side each picture stands along (the audit shows it as the
@@ -1159,9 +1178,9 @@ none was chosen. Staggered and hexagonal maps are not read.
 dock places on diamonds (see *4. In Godot*), but nobody has dropped anything into an isometric
 map with a mouse yet: it was run by a test in an editor without a window. An imported
 isometric map has no height: the stairs of a sample are pictures you walk across, and a second
-floor is only drawn higher. A room has walls only when the packs have isometric wall pieces. No
-terrain (autotile) is read from an isometric pack, and the paths and roads of Screaming Brain's
-packs (pieces drawn over the ground) are left for review. A house of pieces has one storey. On
+floor is only drawn higher. A room has walls only when the packs have isometric wall pieces.
+The isometric terrains are roads, paths and water: a ground that changes from grass to sand
+on diamonds, cliffs and walls are not painted with terrains. A house of pieces has one storey. On
 *Medieval Town* its roof is a gable a row (two side by side on a house two cells deep): the
 pack's slopes and hips cover half a cell and carry walls of their own, and are not used. Screaming
 Brain's *Town* roofs are whole roofs of one cell: a house of several cells gets one a cell. A
@@ -1267,6 +1286,15 @@ steps on every build ([custom recipes](recipes.md)).
 
 Change options, fix the audit, or add a new release of a pack, then run rpggen on the same output
 folder. Your maps, scenes and everything under `game/` are kept. Read [regeneration](regeneration.md).
+
+**Maps painted with terrains** (from release 1.5). A new map is painted with the terrains of
+its TileSet: the ground with the variants of its tile, patches of another ground, roads and
+paths, ponds and the sea with their shores, and a farm's field with its edge where it meets
+the grass (tilled and watered soil join the soil round them as you hoe). A map that exists
+under `game/maps/` is never painted again: a project made before 1.5 keeps the maps it has,
+and the run says which with **TILE-015**. To have one painted anew, move it out of the folder
+and generate again (what you changed on it by hand is then lost). The variants are chosen by
+the project's seed: the same project paints the same maps on every run.
 
 Before anything is written, rpggen lists what the run will change: the files it updates, the
 generated files you changed (their new version is written beside them as `.rpggen-new`), the

@@ -263,6 +263,23 @@ should know:
   aside at first because an arrow flew at the middle of the shooter's body and over an enemy
   shorter than half of it, is back in its game: the action RPG's shots fly on the ground and
   hit the footprint of what they are aimed at, short or tall.
+* **Autotiling since T17.31**: terrains are read inside the sheets of real packs (Godot's
+  47-tile template and the blob in the masks' order anywhere in a sheet, 16-tile corner and edge
+  sets, blocks of 3 x 3 with or without their inner corners, RPG Maker's 2 x 3, beds one cell
+  wide, plain variants) and from the pieces of isometric packs (Kenney's road, river and shore
+  pieces by their names and pictures, Screaming Brain's *Pathways* and *Roads* by the edges of
+  their diamonds), and maps are painted with Godot's terrains: a ground that varies, patches
+  with soft edges, roads and paths with their kerbs, ponds and a beach's sea with their shores,
+  a farm's field edged where it meets the grass and tilled soil that joins the soil round it,
+  an isometric track. The variants are chosen by the seed. A map that exists is kept as it was
+  painted (TILE-015). Done on *Tiny Farm*, *Farm RPG*, *Modern Farm*, CuteSCKR's and SakPix's
+  farms, the samples, a *Medieval Town* village, a Screaming Brain village and a race on
+  *Vector Roads*, each played by its smoke sequence and looked at in pictures. Short of it:
+  *Medieval Town*, SakPix's and CuteSCKR's packs have no terrain with edges (their grounds
+  vary, their patches and paths are as before); cliffs, walls and a cave's rock are not painted
+  with terrains (no real pack had them as a sheet of tiles: *Farm RPG*'s rock is one picture);
+  a road one cell wide of a terrain that has only a 3 x 3 block is not painted with it; nobody
+  played by hand.
 * **Not built.** Dropping onto diamonds with a mouse (the
   editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working

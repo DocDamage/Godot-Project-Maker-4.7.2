@@ -1,0 +1,18 @@
+{
+  "Terrain Blocks/Tilesets/Ground Terrain Mix.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ],
+    "usage": "tiles"
+  }
+}

@@ -465,6 +465,15 @@ static func fill_ground(ground: TileMapLayer, size: Vector2i, base: Dictionary) 
 ## The legacy patches: sizes and places come from Godot's seeded generator (the map every project
 ## before M11 has); `avoid` is the area around the house that they stay away from.
 static func paint_legacy_patches(ground: TileMapLayer, size: Vector2i, others: Array, map_seed: int, count: int, avoid: Rect2i) -> void:
+	for item: Dictionary in legacy_patches(size, map_seed, count, avoid):
+		var other_tile: Dictionary = others[JsonUtil.to_int(item["index"]) % others.size()]
+		var rect: Rect2i = item["rect"]
+		MapUtil.fill(ground, rect, other_tile)
+
+## The legacy patches as `[{rect, index}]`, the rectangles `paint_legacy_patches` fills (the
+## same generator, in the same order).
+static func legacy_patches(size: Vector2i, map_seed: int, count: int, avoid: Rect2i) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = map_seed
 	for i in count:
@@ -477,8 +486,8 @@ static func paint_legacy_patches(ground: TileMapLayer, size: Vector2i, others: A
 				break
 			rect = Rect2i()
 		if rect.size != Vector2i.ZERO:
-			var other_tile: Dictionary = others[i % others.size()]
-			MapUtil.fill(ground, rect, other_tile)
+			out.append({"rect": rect, "index": i})
+	return out
 
 ## The planned patches (see `plan`).
 static func paint_planned_patches(ground: TileMapLayer, patches: Array, others: Array) -> void:

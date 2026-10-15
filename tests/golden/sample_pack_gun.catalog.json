@@ -1147,6 +1147,75 @@
           128,
           32
         ],
+        "tile_overrides": {
+          "0,1": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "jungle_dirt_0_1",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "jungle_dirt_0_1",
+              "terrain": 0
+            }
+          },
+          "2,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "jungle_dirt_0_1",
+              "terrain": 0
+            }
+          },
+          "3,1": {
+            "probability": 0.35,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "jungle_dirt_0_1",
+              "terrain": 0
+            }
+          }
+        },
         "tileset": "overworld",
         "usage": "tiles"
       },
@@ -1218,7 +1287,7 @@
       "pack_id": "sample_pack_gun",
       "profile_id": null,
       "root": "assets/packs/sample_pack_gun",
-      "source_sha256": "e03d3ee9519d24e95d6ce77943fcf055b4f977e8675e9433deb5a07d56d10f82",
+      "source_sha256": "1bcaab96fd561490b92a08acc6b0e85bc66d7a1eb19fe5d7dfe41e5cc4648629",
       "warnings": [
         "strips_direction_assumed:boss/gate_attack.png",
         "strips_direction_assumed:boss/gate_idle.png",
@@ -1268,7 +1337,23 @@
           "source_id": 0
         }
       ],
-      "terrain_sets": [],
+      "terrain_sets": [
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "jungle_dirt_0_1",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sample_pack_gun.tiles.jungle",
+          "surface": "dirt",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "dirt"
+            }
+          ]
+        }
+      ],
       "tile_size": [
         16,
         16

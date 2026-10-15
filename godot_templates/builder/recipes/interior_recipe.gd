@@ -131,6 +131,7 @@ func input_hash(ctx: BuildContext) -> String:
 		hashed["iso"] = MapGeo.new(ctx).def
 		hashed["iso_v"] = ISO_VERSION
 		hashed.merge(MapGeo.edge_hash(ctx))  # T17.22: only with walls along a side
+	hashed.merge(MapGeo.TerrainPaint.hash_part(ctx))  # T17.31: only with terrains
 	return ctx.stable_hash(hashed)
 
 func _tileset_for_interior(ctx: BuildContext) -> Dictionary:
@@ -170,6 +171,9 @@ func build(ctx: BuildContext) -> Array:
 		var n := JsonUtil.to_int(house["n"])
 		var path := interior_path(n)
 		if FileAccess.file_exists(path):
+			var kept := MapGeo.TerrainPaint.kept_map(ctx, path, input_hash(ctx))  # T17.31
+			if not kept.is_empty():
+				issues.append(kept)
 			continue  # the user's by now: never rewritten
 		_build_one(ctx, issues, n, path, StringName(JsonUtil.to_str(house["spawn"])), geo, tile_set, size, exit_cell)
 	return issues
@@ -184,7 +188,8 @@ func _build_one(ctx: BuildContext, issues: Array, n: int, path: String, exit_spa
 	var triggers: Node2D = nodes["Triggers"]
 	var entities: Node2D = nodes["Entities"]
 
-	MapUtil.fill(ground, Rect2i(Vector2i.ZERO, size), geo.find_tile("GROUND"))
+	# the floor varies where its tile is the middle of a terrain with plain variants (T17.31)
+	geo.fill_ground(ground, Rect2i(Vector2i.ZERO, size), geo.ground_of(geo.find_tile("GROUND")), interior_id(n))
 	var wall := geo.wall_tile()
 	if geo.isometric:
 		geo.paint_walls(root, nodes, size, [exit_cell])

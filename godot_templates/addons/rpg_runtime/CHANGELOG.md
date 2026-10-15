@@ -642,6 +642,36 @@ the builder's, and what they make is read by the scripts that were there.
   on the middle of it. `car_math`, `car_physics`, `race.gd` and `rival.gd` are untouched; a
   race seen from above, a race on square pieces and a race that is stored are what they were.
 
+**Maps painted with terrains (T17.31).** One script is new in every project and at work only
+where a TileSet has terrains: `world/terrain.gd` (`RpgTerrain`), which paints an area
+(`TileMapLayer.set_cells_terrain_connect`) or a path (`set_cells_terrain_path`) with a terrain
+and then chooses again among the tiles of the same terrain and peering bits by the cell and a
+seed, weighted by `TileData.probability` (Godot's own choice draws from the global random
+generator and differs from run to run). `RpgField` has two exported properties,
+`soil_terrain` and `watered_terrain` (-1 by default: the field paints its one tile as before),
+which a farm's recipe sets when its pack has a terrain of tilled or watered soil: a tilled cell
+is then painted with the terrain and joins the soil round it, and a cell that is ground again
+is taken out of the terrain and its neighbours painted again; `shows_soil(cell, watered)`
+answers whether the `Soil` layer shows soil there (the smoke steps of the farm ask it). A
+field without the properties is what it was.
+
+The builder: `lib/terrain_paint.gd` (new: which terrain of a tile set paints roads, water,
+sand, patches and the ground of a field, by the `surface`, `over` and `shape` rpggen read, a
+sheet that says it is indoors last) and `MapGeo.terrain_for`, `fill_ground`, `paint_patches`,
+`plain_others`, `ground_of`, `seed_for`; `paint_joined`, `paint_runs`, `paint_sides` and
+`fill_joined` paint with a terrain where the tile set has one (a terrain drawn over nothing on
+diamonds goes on `GroundDetails`). The starter map, the second map and the areas, the
+interiors, the farm (its plot of a terrain of the ground edged where it meets the grass, its
+pond with a shore), its added maps (a beach's sand and sea) and the isometric tracks use them;
+each such recipe adds `terrain_v` to its hash only when a tile set of the project has terrain
+sets, so the hash of every other project is what it was. A map that exists is never painted
+again; the run says so (TILE-015) when it would have been painted otherwise. The tile set
+recipe gives the variants of a terrain's middle their probability and the tiles of an
+isometric tile set their terrain (`ISO_PEERING_BITS`: the grid's sides and corners as Godot's
+neighbours of a diamond). The field's soil tile set (`farm_soil.tres`) has the tiles of the
+packs' terrains of soil and a sixth tile of ground that can be tilled and shows nothing, only
+in a farm that has them.
+
 **Corners and roofs of a house of pieces (after T17.30).** Nothing of the runtime changes.
 
 * **Posts.** A tile with the facet `post` (`nw`, `ne`, `es`, `sw`: the corner of its diamond
