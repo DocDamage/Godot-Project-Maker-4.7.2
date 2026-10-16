@@ -63,6 +63,18 @@ def test_learned_rules_apply_on_a_new_pack_and_stay_auto_detected() -> None:
     assert all(learned[p].to_json() == plain[p].to_json() for p in others)  # nothing else moves
 
 
+def test_a_rule_confirmed_often_enough_and_never_undone_is_trusted() -> None:
+    from rpggen.core import calibration
+
+    hits = learned_rules.TRUSTED_HITS
+    assert calibration.wilson_low(hits, hits) >= calibration.SURE_ACCURACY
+    assert calibration.wilson_low(hits - 1, hits - 1) < calibration.SURE_ACCURACY
+    rule = LearnedRule("folder", "items", "role", "ITEM", hits=hits, misses=0)
+    assert rule.trusted and rule.confidence == catalog.CONFIRMED_CONFIDENCE
+    rule.misses = 1  # undone once: back under the cap
+    assert not rule.trusted and rule.confidence == learned_rules.CAP
+
+
 def test_the_confidence_is_the_hit_rate_capped() -> None:
     rule = LearnedRule("folder", "items", "role", "ITEM", hits=50, misses=0)
     assert rule.confidence == learned_rules.CAP == 0.85

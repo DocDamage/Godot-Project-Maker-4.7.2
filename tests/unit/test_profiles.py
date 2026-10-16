@@ -191,3 +191,18 @@ def test_tileset_definitions_survive_without_source_ids(tmp_path: Path) -> None:
     fresh, _inv, _issues = _assemble("basic16")
     assert fresh.tilesets[0].navigation is True
     assert fresh.tilesets[0].physics_layers[0]["name"] == "solid"
+
+
+def test_a_pack_whose_audit_is_done_is_saved_as_a_profile_once(tmp_path: Path) -> None:
+    cat, inv, _ = _assemble("basic16")
+    folder = tmp_path / "profiles"
+    assert profiles.save_reviewed(cat, [inv], folder) == []  # pictures still auto-detected
+    for asset in cat.assets:
+        if asset.status not in profiles.REVIEWED:
+            asset.status = "CONFIRMED"
+    assert profiles.reviewed(cat, inv.pack_id)
+    written = profiles.save_reviewed(cat, [inv], folder)
+    assert len(written) == 1 and written[0].parent == folder
+    saved = profiles.load_profile(written[0])
+    assert profiles.match_profile(saved, inv) == 1.0
+    assert profiles.save_reviewed(cat, [inv], folder) == []  # once: it exists now

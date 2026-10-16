@@ -2151,10 +2151,14 @@ def assemble(
     resolve_maps(catalog, maps_raw, previous, issues)
     from rpggen.core import calibration
 
+    publisher_of = {p.pack_id: calibration.publisher_id(p.license) for p in catalog.packs}
     for asset in catalog.assets:
-        # a reader's confidence as the answer key measured it (T17.34)
+        # a reader's confidence as the answer key measured it, its publisher's first (T17.34)
         asset.confidence = calibration.calibrate(
-            asset.detected_by, str(effective(asset).get("role", "")), asset.confidence
+            asset.detected_by,
+            str(effective(asset).get("role", "")),
+            asset.confidence,
+            publisher_of.get(asset.pack_id, ""),
         )
         asset.status = recompute_status(
             asset,

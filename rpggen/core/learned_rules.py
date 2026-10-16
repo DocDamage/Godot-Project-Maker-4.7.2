@@ -6,7 +6,8 @@ those files becomes evidence for "files with this token get this value": a rule
 matches is a miss for the old value. A rule applies once it has ``MIN_HITS`` hits and a hit rate
 of at least ``MIN_RATE``; the learned adapter (``adapters/learned.py``) then proposes its value
 for new packs, with a confidence equal to the hit rate capped at ``CAP`` so that the asset stays
-"Auto-detected" and is still reviewed.
+"Auto-detected" and is still reviewed; a rule confirmed ``TRUSTED_HITS`` times and never undone
+is trusted (T17.34) and its value is as sure as the user's own.
 
 The rules live in ``learned_rules.json`` in rpggen's data folder. They are never uploaded and are
 never part of a project. The wizard's analysis passes them to the catalog explicitly; the CLI,
@@ -35,6 +36,21 @@ LEARNABLE = ("role", "usage", "collision")
 MIN_HITS = 2
 MIN_RATE = 0.6
 CAP = 0.85  # below the confirmed threshold: a learned value is still reviewed
+
+
+def _trusted_hits() -> int:
+    """The confirmations without a miss after which a rule is trusted (T17.34): the fewest
+    whose 95 % interval lies wholly at or above the accuracy calibration asks of a sure
+    picture (``calibration.SURE_ACCURACY``, measured on the answer key)."""
+    from rpggen.core import calibration
+
+    n = 1
+    while calibration.wilson_low(n, n) < calibration.SURE_ACCURACY:
+        n += 1
+    return n
+
+
+TRUSTED_HITS = _trusted_hits()
 MAX_RULES = 500
 MIN_TOKEN = 3
 # tokens every pack has: they say nothing about one file
@@ -71,7 +87,17 @@ class LearnedRule:
         return self.enabled and self.hits >= MIN_HITS and self.rate >= MIN_RATE
 
     @property
+    def trusted(self) -> bool:
+        """Confirmed often enough, and never undone, to be as sure as the user's own decision
+        (T17.34's trusted corrections)."""
+        return self.active and self.misses == 0 and self.hits >= TRUSTED_HITS
+
+    @property
     def confidence(self) -> float:
+        if self.trusted:
+            from rpggen.core import catalog
+
+            return catalog.CONFIRMED_CONFIDENCE
         return round(min(CAP, self.rate), 6)
 
     def describe(self) -> str:

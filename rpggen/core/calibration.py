@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -26,7 +27,10 @@ SURE_ACCURACY = 0.99
 MIN_PICTURES = 30  # a bin with fewer pictures is not fitted
 BIN_EDGES = (0.0, 0.3, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0001)
 TABLE = Path(__file__).resolve().parent.parent / "data" / "calibration.json"
-VERSION = 1
+VERSION = 2
+# what the user decided (a profile of a pack they reviewed, a rule learned from their
+# corrections) is never calibrated: the key measures the analyzer, not the user
+USER_READERS = frozenset({"profile", "learned"})
 Z95 = 1.96
 
 
@@ -57,13 +61,37 @@ def mapped(low: float, auto: float, confirmed: float) -> float:
     return round(auto * low / SURE_ACCURACY * 0.999, 4)
 
 
+def publisher_id(license_json: dict[str, Any] | None) -> str:
+    """The publisher a pack's licence names, as calibration keys it: the author, else the site
+    (``https://limezu.itch.io`` -> ``limezu``, ``http://support.kenney.nl`` -> ``kenney``); ""
+    when it names none (most of the owner's packs other than Kenney's: then only the reader's
+    own bins apply)."""
+    info = license_json or {}
+    author = str(info.get("author") or "").strip().lower()
+    if author:
+        return re.sub(r"[^a-z0-9]+", "-", author).strip("-")
+    host = re.sub(r"^[a-z]+://", "", str(info.get("url") or "").lower()).split("/", 1)[0]
+    parts = [w for w in host.split(".") if w and w not in ("www", "support", "itch", "io")]
+    if len(parts) >= 2 and parts[-1] in ("com", "nl", "net", "org", "io", "dev", "co", "uk"):
+        parts = parts[:-1]
+    return parts[-1] if parts else ""
+
+
+def _keys(publisher: str, reader: str, role: str, b: int) -> list[str]:
+    """The bins a picture is looked up in, the narrowest first: its publisher's (T17.34's
+    publisher rules: a publisher lays out its packs alike), then any publisher's."""
+    out = [f"{publisher}|{reader}|{role}|{b}", f"{publisher}|{reader}|*|{b}"] if publisher else []
+    return out + [f"*|{reader}|{role}|{b}", f"*|{reader}|*|{b}"]
+
+
 def fit(pictures: list[dict[str, Any]], auto: float, confirmed: float) -> dict[str, Any]:
-    """The table from the pictures of a private-corpus report (``reader``, ``role``,
-    ``confidence`` uncalibrated, ``right``)."""
+    """The table from the pictures of private-corpus reports (``reader``, ``role``,
+    ``confidence`` uncalibrated, ``right``, ``publisher`` as ``publisher_id`` reads it)."""
     counts: dict[str, list[int]] = {}
     for p in pictures:
-        for key in (f"{p['reader']}|{p.get('role', '')}", f"{p['reader']}|*"):
-            row = counts.setdefault(f"{key}|{bin_of(float(p['confidence']))}", [0, 0])
+        b = bin_of(float(p["confidence"]))
+        for key in _keys(str(p.get("publisher", "")), p["reader"], str(p.get("role", "")), b):
+            row = counts.setdefault(key, [0, 0])
             row[0] += int(bool(p["right"]))
             row[1] += 1
     bins = {}
@@ -91,19 +119,20 @@ def enabled() -> bool:
     return os.environ.get("RPGGEN_CALIBRATION", "").lower() not in ("off", "0", "no")
 
 
-def calibrate(reader: str, role: str, confidence: float) -> float:
+def calibrate(reader: str, role: str, confidence: float, publisher: str = "") -> float:
     """``confidence`` as the key measured that reader's pictures of that role at it: the bin of
-    the reader and role, else of the reader alone, else unchanged."""
-    if not enabled():
+    the publisher, reader and role, else coarser (``_keys``), else unchanged."""
+    if not enabled() or reader in USER_READERS:
         return confidence
-    return calibrate_with(_table(), reader, role, confidence)
+    return calibrate_with(_table(), reader, role, confidence, publisher)
 
 
-def calibrate_with(table: dict[str, Any], reader: str, role: str, confidence: float) -> float:
+def calibrate_with(
+    table: dict[str, Any], reader: str, role: str, confidence: float, publisher: str = ""
+) -> float:
     """``calibrate`` against ``table`` (a table being fitted, or another than the shipped one)."""
     bins = table.get("bins") or {}
-    b = bin_of(confidence)
-    for key in (f"{reader}|{role}|{b}", f"{reader}|*|{b}"):
+    for key in _keys(publisher, reader, role, bin_of(confidence)):
         found = bins.get(key)
         if isinstance(found, dict) and isinstance(found.get("confidence"), (int, float)):
             return float(found["confidence"])

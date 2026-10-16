@@ -328,6 +328,12 @@ def score_private(
     profile = entry.get("profile") or {}
     expected = expected_from_profile(profile)
     report = score(catalog, expected)
+    from rpggen.core import calibration
+
+    pack = next((p for p in catalog.packs if p.pack_id == pack_id), None)
+    report["publisher_id"] = calibration.publisher_id(pack.license if pack else None)
+    for picture in report["pictures"]:
+        picture["publisher"] = report["publisher_id"]
     report["groups"] = grouped(report)
     report.update(roles_report(catalog, expected))
     report["objects"] = objects_report(catalog, profile, pack_id)

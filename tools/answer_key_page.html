@@ -26,6 +26,7 @@
   input[type=text] { width: min(100%, 640px); margin-top: 6px; padding: 4px; background: var(--card);
                      color: var(--ink); border: 1px solid var(--line); border-radius: 4px; }
   .who { color: var(--muted); font-size: 12px; }
+  .note { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
   .name { word-break: break-all; }
 </style>
 </head>
@@ -58,6 +59,7 @@ async function show() {
       `${g.size > g.shown ? `, ${g.shown} shown` : ""}${g.corrected ? ", corrected by the agent" : ""}</span></div>` +
       `<img loading="lazy" alt="" src="/sheet?pack=${encodeURIComponent(pack)}&n=${n}">` +
       `<div class="ans">${esc(g.answer)}</div>` +
+      (g.notes.length ? `<div class="note">Agent's corrections: ${g.notes.map(esc).join("<br>")}</div>` : "") +
       Object.entries(LABELS).map(([k, v]) =>
         `<label><input type="radio" name="m${n}" value="${k}" ${m.mark === k ? "checked" : ""}> ${v}</label>`).join("") +
       `<br><input type="text" placeholder="what it should be, or which ones are wrong" value="${esc(m.note || "")}"></div>`;

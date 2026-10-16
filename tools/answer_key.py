@@ -232,6 +232,30 @@ def sheets(out: Path, names: list[str] | None) -> None:
         print(f"{pack['name']}: {len(doc['groups'])} sheets")
 
 
+def _notes(out: Path, name: str, doc: dict[str, Any]) -> dict[str, list[str]]:
+    """The agent's notes per group (``corrections/NAME.notes.txt``, written by its helper): a
+    group's own lines and those of its pictures, the last word kept for each target."""
+    file = out / "corrections" / f"{name}.notes.txt"
+    if not file.is_file():
+        return {}
+    by_target: dict[str, str] = {}
+    for line in file.read_text(encoding="utf-8").splitlines():
+        target, sep, rest = line.partition(": ")
+        if sep:
+            by_target[target] = rest
+    groups = list(doc["groups"])
+    out_notes: dict[str, list[str]] = {}
+    for target, rest in by_target.items():
+        if target.startswith("#") and " " in target:
+            group = target.split(" ", 1)[1]
+        else:
+            group = (doc["entries"].get(target) or {}).get("group", "")
+            rest = f"{target.rsplit('/', 1)[-1]}: {rest}"
+        if group in groups:
+            out_notes.setdefault(group, []).append(rest)
+    return out_notes
+
+
 def _answer_text(answers: list[dict[str, Any]]) -> str:
     """The answer a group's pictures share, a facet that differs between them said to."""
     lines = []
@@ -320,6 +344,7 @@ def serve(out: Path, port: int) -> None:
                 self._json(rows)
             elif url.path == "/api/pack" and q.get("name") in names:
                 doc = key_of(out, q["name"])
+                notes = _notes(out, q["name"], doc)
                 groups = []
                 for group, members in doc["groups"].items():
                     groups.append(
@@ -329,6 +354,7 @@ def serve(out: Path, port: int) -> None:
                             "shown": min(len(members), SHEET_MAX),
                             "answer": _answer_text([doc["entries"][k]["answer"] for k in members]),
                             "corrected": any(doc["entries"][k]["corrected"] for k in members),
+                            "notes": notes.get(group, [])[:12],
                         }
                     )
                 self._json(
@@ -399,7 +425,11 @@ def fit(out: Path, write: bool) -> None:
                 own,
                 lambda p, t=table: (
                     calibration.calibrate_with(
-                        t, p["reader"], p.get("role", ""), float(p["confidence"])
+                        t,
+                        p["reader"],
+                        p.get("role", ""),
+                        float(p["confidence"]),
+                        p.get("publisher", ""),
                     )
                     >= auto
                 ),
