@@ -51,12 +51,40 @@ def _expected_value(field: str, value: Any) -> Any:
     return sorted(value) if field == "anims" else value
 
 
+def is_sure(asset: catalog_mod.Asset | None) -> bool:
+    """True for a picture the analyzer reads with confidence (T17.34): confirmed, or detected
+    at the confidence of Auto-detected or more."""
+    if asset is None:
+        return False
+    return asset.status == "CONFIRMED" or asset.confidence >= catalog_mod.AUTO_CONFIDENCE
+
+
+def _sure_row() -> dict[str, int]:
+    return {"pictures": 0, "sure": 0, "sure_right": 0, "right": 0}
+
+
+def sure_numbers(row: dict[str, int]) -> dict[str, float | None]:
+    """The share of pictures read as sure, the share of those that are right, and the share
+    of all that are right."""
+    return {
+        "sure_share": row["sure"] / row["pictures"] if row["pictures"] else None,
+        "sure_accuracy": row["sure_right"] / row["sure"] if row["sure"] else None,
+        "accuracy": row["right"] / row["pictures"] if row["pictures"] else None,
+    }
+
+
 def score(catalog: catalog_mod.Catalog, expected: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    """Per-field ``correct/total`` over the paths listed in ``expected`` plus an overall value."""
+    """Per-field ``correct/total`` over the paths listed in ``expected`` plus an overall value,
+    and per picture whether it was read as sure and was right in every field (``sure``; per
+    reader under ``readers`` and picture by picture under ``pictures``: what calibration fits)."""
     counts = {f: [0, 0] for f in FIELDS}
     misses: list[dict[str, Any]] = []
+    sure = _sure_row()
+    readers: dict[str, dict[str, int]] = {}
+    pictures: list[dict[str, Any]] = []
     for key, facts in sorted(expected.items()):
         asset = _find_asset(catalog, key)
+        right = True
         for field in FIELDS:
             if field not in facts:
                 continue
@@ -66,7 +94,25 @@ def score(catalog: catalog_mod.Catalog, expected: dict[str, dict[str, Any]]) -> 
             if got == want:
                 counts[field][0] += 1
             else:
+                right = False
                 misses.append({"path": key, "field": field, "expected": want, "actual": got})
+        sure_here = is_sure(asset)
+        reader = (asset.detected_by if asset is not None else "") or "none"
+        for row in (sure, readers.setdefault(reader, _sure_row())):
+            row["pictures"] += 1
+            row["sure"] += int(sure_here)
+            row["sure_right"] += int(sure_here and right)
+            row["right"] += int(right)
+        pictures.append(
+            {
+                "path": key,
+                "reader": reader,
+                "role": str(_actual(asset, "role") or ""),
+                "confidence": round(asset.confidence, 4) if asset is not None else 0.0,
+                "sure": sure_here,
+                "right": right,
+            }
+        )
     fields = {
         f: {"correct": c, "total": t, "accuracy": (c / t if t else None)}
         for f, (c, t) in counts.items()
@@ -81,7 +127,18 @@ def score(catalog: catalog_mod.Catalog, expected: dict[str, dict[str, Any]]) -> 
             "accuracy": correct / total if total else None,
         },
         "misses": misses,
+        "sure": {**sure, **sure_numbers(sure)},
+        "readers": {r: {**row, **sure_numbers(row)} for r, row in sorted(readers.items())},
+        "pictures": pictures,
     }
+
+
+def _merge_sure(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    total = _sure_row()
+    for row in rows:
+        for k in total:
+            total[k] += int(row.get(k, 0))
+    return {**total, **sure_numbers(total)}
 
 
 def merge_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
@@ -105,6 +162,7 @@ def merge_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             "accuracy": correct / total if total else None,
         },
         "misses": [m for rep in reports for m in rep["misses"]],
+        "sure": _merge_sure([rep["sure"] for rep in reports if "sure" in rep]),
     }
 
 
@@ -168,14 +226,26 @@ def expected_from_profile(profile: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return expected
 
 
-def make_entry(name: str, inv: Inventory, profile: dict[str, Any]) -> dict[str, Any]:
-    """A corpus entry: the fingerprint of the pack and the confirmed profile (no pixels)."""
-    return {
+def make_entry(
+    name: str,
+    inv: Inventory,
+    profile: dict[str, Any],
+    publisher: str = "",
+    source: str = "",
+) -> dict[str, Any]:
+    """A corpus entry: the fingerprint of the pack and the confirmed profile (no pixels); the
+    publisher the report groups packs by, and where the pack was found (tried first), if known."""
+    entry: dict[str, Any] = {
         "corpus_version": CORPUS_VERSION,
         "name": name,
         "fingerprint": fingerprint(inv),
         "profile": {k: profile[k] for k in ("assets", "objects", "tilesets") if k in profile},
     }
+    if publisher:
+        entry["publisher"] = publisher
+    if source:
+        entry["source"] = source
+    return entry
 
 
 def match(entry: dict[str, Any], inv: Inventory) -> float:
@@ -264,10 +334,20 @@ def score_private(
     return report
 
 
-def private_summary(reports: dict[str, dict[str, Any]], missing: list[str]) -> dict[str, Any]:
-    """The report of a whole run: every pack, the merged numbers and the packs not found."""
+def private_summary(
+    reports: dict[str, dict[str, Any]],
+    missing: list[str],
+    publishers: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """The report of a whole run: every pack, the merged numbers, the sure share and the
+    accuracy of the sure pictures per publisher (``publishers``: pack name -> publisher) and
+    the packs not found."""
     scored = list(reports.values())
     merged = merge_reports(scored) if scored else None
+    by_publisher: dict[str, list[dict[str, Any]]] = {}
+    for name, rep in reports.items():
+        if "sure" in rep:
+            by_publisher.setdefault((publishers or {}).get(name, "?"), []).append(rep["sure"])
     confusion: dict[str, Counter[str]] = {}
     for rep in scored:
         for expected_role, row in rep["confusion"].items():
@@ -279,6 +359,7 @@ def private_summary(reports: dict[str, dict[str, Any]], missing: list[str]) -> d
         "groups": grouped(merged) if merged else {},
         "confusion": {e: dict(sorted(row.items())) for e, row in sorted(confusion.items())},
         "thresholds": THRESHOLDS,
+        "publishers": {p: _merge_sure(rows) for p, rows in sorted(by_publisher.items())},
     }
 
 
@@ -292,22 +373,40 @@ def private_markdown(summary: dict[str, Any]) -> str:
     if summary["missing"]:
         lines += ["Not found under the packs folder: " + ", ".join(summary["missing"]), ""]
     lines += [
-        "| Pack | Grid | Usage | Role | Animations | Objects found |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| Pack | Pictures | Sure | Sure right | Grid | Usage | Role | Animations | Objects |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for name, rep in summary["packs"].items():
         groups, objs = rep["groups"], rep["objects"]
         found = f"{objs['found']}/{objs['expected']}" if objs["expected"] else "n/a"
+        sure = rep.get("sure") or {}
         lines.append(
-            f"| {name} | {_pct(groups['grid'])} | {_pct(groups['usage'])} | "
-            f"{_pct(groups['role'])} | {_pct(groups['anims'])} | {found} |"
+            f"| {name} | {sure.get('pictures', '')} | {_pct(sure.get('sure_share'))} | "
+            f"{_pct(sure.get('sure_accuracy'))} | {_pct(groups['grid'])} | "
+            f"{_pct(groups['usage'])} | {_pct(groups['role'])} | {_pct(groups['anims'])} | "
+            f"{found} |"
         )
     if summary["overall"]:
         groups = summary["groups"]
+        sure = summary["overall"].get("sure") or {}
         lines.append(
-            f"| **all** | {_pct(groups['grid'])} | {_pct(groups['usage'])} | "
-            f"{_pct(groups['role'])} | {_pct(groups['anims'])} | |"
+            f"| **all** | {sure.get('pictures', '')} | {_pct(sure.get('sure_share'))} | "
+            f"{_pct(sure.get('sure_accuracy'))} | {_pct(groups['grid'])} | "
+            f"{_pct(groups['usage'])} | {_pct(groups['role'])} | {_pct(groups['anims'])} | |"
         )
+    if summary.get("publishers"):
+        lines += [
+            "",
+            "## Per publisher",
+            "",
+            "| Publisher | Pictures | Sure | Sure right |",
+            "|---|---:|---:|---:|",
+        ]
+        for publisher, row in summary["publishers"].items():
+            lines.append(
+                f"| {publisher} | {row['pictures']} | {_pct(row['sure_share'])} | "
+                f"{_pct(row['sure_accuracy'])} |"
+            )
     totals: dict[str, dict[str, int]] = {}
     for rep in summary["packs"].values():
         for role, row in rep["roles"].items():

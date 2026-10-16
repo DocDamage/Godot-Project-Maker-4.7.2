@@ -2149,7 +2149,13 @@ def assemble(
     sheet_things.drop_misread(catalog)
     generated.update(sheet_things.add(catalog, pack_roots, work_dir))
     resolve_maps(catalog, maps_raw, previous, issues)
+    from rpggen.core import calibration
+
     for asset in catalog.assets:
+        # a reader's confidence as the answer key measured it (T17.34)
+        asset.confidence = calibration.calibrate(
+            asset.detected_by, str(effective(asset).get("role", "")), asset.confidence
+        )
         asset.status = recompute_status(
             asset,
             file_missing=asset.status == "MISSING",

@@ -99,20 +99,30 @@ def run_corpus(corpus: Path) -> tuple[dict[str, Any], list[str]]:
     return result, failures
 
 
-def run_private_corpus(corpus: Path, packs: Path) -> dict[str, Any]:
-    """Score every entry of ``corpus`` (``*.corpus.json``) against the pack of ``packs`` that
-    matches its fingerprint; an entry whose pack is not there is reported as missing."""
+def run_private_corpus(corpus: Path, packs: Path | list[Path]) -> dict[str, Any]:
+    """Score every entry of ``corpus`` (``*.corpus.json``) against the pack that matches its
+    fingerprint: where the entry says it was found (``source``), if it still is, else among the
+    folders and archives in the ``packs`` roots; an entry whose pack is not there is reported as
+    missing."""
     entries = {}
     for path in sorted(Path(corpus).glob("*.corpus.json")):
         entry = jsonio.read(path)
         entries[str(entry.get("name") or path.name.removesuffix(".corpus.json"))] = entry
-    candidates = sorted(
-        p
-        for p in Path(packs).iterdir()
-        if p.is_dir() or p.suffix.lower() in (".zip", ".7z", ".rar")
-    )
+    roots = [packs] if isinstance(packs, Path) else list(packs)
+    candidates = [Path(e["source"]) for e in entries.values() if e.get("source")]
+    candidates = [p for p in candidates if p.exists()]
+    for root in roots:
+        candidates += sorted(
+            p
+            for p in Path(root).iterdir()
+            if p.is_dir() or p.suffix.lower() in (".zip", ".7z", ".rar")
+        )
     reports: dict[str, dict[str, Any]] = {}
+    seen: set[Path] = set()
     for source in candidates:
+        if source in seen or len(reports) == len(entries):
+            continue
+        seen.add(source)
         opened = archive.open_pack(source, set())
         inv = inventory.build_inventory(opened)
         for name, entry in entries.items():
@@ -121,7 +131,8 @@ def run_private_corpus(corpus: Path, packs: Path) -> dict[str, Any]:
             cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [])
             reports[name] = accuracy.score_private(cat, entry, inv.pack_id)
     missing = [name for name in entries if name not in reports]
-    return accuracy.private_summary(reports, missing)
+    publishers = {n: str(e.get("publisher", "?")) for n, e in entries.items()}
+    return accuracy.private_summary(reports, missing, publishers)
 
 
 def main(args: argparse.Namespace) -> int:
@@ -132,7 +143,8 @@ def main(args: argparse.Namespace) -> int:
         if args.private_corpus:
             if not args.packs:
                 return out.usage("--private-corpus needs --packs ROOT")
-            summary = run_private_corpus(Path(args.private_corpus), Path(args.packs))
+            roots = [Path(p) for p in args.packs]
+            summary = run_private_corpus(Path(args.private_corpus), roots)
             report = Path(args.report or "private_corpus_report.json")
             jsonio.write(report, summary)
             report.with_suffix(".md").write_text(
@@ -222,7 +234,13 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         metavar="DIR",
         help="score the packs of --packs against the entries (*.corpus.json) in DIR",
     )
-    parser.add_argument("--packs", type=Path, metavar="ROOT", help="the folder of your own packs")
+    parser.add_argument(
+        "--packs",
+        type=Path,
+        metavar="ROOT",
+        action="append",
+        help="a folder of your own packs (may be given more than once)",
+    )
     parser.add_argument("--no-cache", action="store_true", help="clear the analysis cache first")
 
 
