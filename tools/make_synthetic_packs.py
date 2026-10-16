@@ -3665,6 +3665,76 @@ def make_iso_terrain(out: Path) -> None:
     _expected(out, "iso_terrain", expected)
 
 
+IC_ROAD: Color = (200, 188, 166, 255)
+IC_PAVE: Color = (240, 234, 216, 255)
+IC_WOOD: Color = (190, 140, 80, 255)
+IC_GRASS: Color = (96, 168, 74, 255)
+# the corners of a plate in the grid's names, and the ways of the plaza kit: the corners of
+# pavement (the others road); every way but the two of opposite corners, as Medieval Town has
+IC_CORNERS = ("nw", "ne", "es", "sw")
+IC_WAYS: tuple[tuple[str, ...], ...] = (
+    (), ("nw",), ("ne",), ("es",), ("sw",), ("nw", "ne"), ("ne", "es"), ("es", "sw"),
+    ("sw", "nw"), ("nw", "ne", "es"), ("ne", "es", "sw"), ("es", "sw", "nw"),
+    ("sw", "nw", "ne"), ("nw", "ne", "es", "sw"),
+)  # fmt: skip
+
+
+def _ic_plate(pavement: tuple[str, ...], whole: Color | None = None) -> Image.Image:
+    """A flat plate of the plaza kit, of flat colours: road, with a round patch of pavement at
+    each corner ``pavement`` names (and pavement all over the middle when three or four do, a
+    round patch of road left at the fourth corner), as Medieval Town draws its plates; or all of
+    one colour (``whole``)."""
+    img = Image.new("RGBA", IT_FOOT, (0, 0, 0, 0))
+    middle = (IT_FOOT[0] / 2, IT_FOOT[1] / 2)
+    at = {"nw": (-0.5, -0.5), "ne": (0.5, -0.5), "es": (0.5, 0.5), "sw": (-0.5, 0.5)}
+    for y in range(img.height):
+        for x in range(img.width):
+            east, south = _it_grid(x, y, middle)
+            if abs(east) > 0.5 or abs(south) > 0.5:
+                continue
+            nearest = min(at, key=lambda c: (east - at[c][0]) ** 2 + (south - at[c][1]) ** 2)
+            far = ((east - at[nearest][0]) ** 2 + (south - at[nearest][1]) ** 2) ** 0.5
+            if len(pavement) >= 3:
+                paved = nearest in pavement or far > 0.5
+            elif len(pavement) == 2:
+                paved = nearest in pavement
+            else:
+                paved = nearest in pavement and far <= 0.5
+            img.putpixel((x, y), whole or (IC_PAVE if paved else IC_ROAD))
+    return img
+
+
+def _ic_grass(speck: int) -> Image.Image:
+    """A plain grass diamond with ``speck`` lighter specks (0: the plainest)."""
+    img = _ic_plate((), IC_GRASS)
+    for k in range(speck):
+        x, y = IT_FOOT[0] // 2 - 6 + 5 * k, IT_FOOT[1] // 2 - 2 + (k % 2) * 3
+        img.putpixel((x, y), (120, 196, 96, 255))
+    return img
+
+
+def make_iso_corners(out: Path) -> None:
+    """An isometric plaza kit (T17.33): flat plates of road and pavement in every way but two of
+    sharing the four corners of a diamond, named by nothing but a number (Kenney's *Medieval
+    Town* plates are named but their names do not say the corners), a wood plate of another
+    colour, and a plain grass drawn three times (the plainest first by nothing in its name)."""
+    pack = out / "iso_corners" / "Isometric Plaza Kit"
+    _write_text(out / "iso_corners" / "License.txt", "CC0-1.0 synthetic test pack\n")
+    expected: dict[str, dict] = {}
+    for k, way in enumerate(IC_WAYS):
+        rel = f"PNG/plate_{k:02d}.png"
+        _save_png(_ic_plate(way), pack / rel)
+        expected[f"Isometric Plaza Kit/{rel}"] = {"usage": "iso_tile"}
+    _save_png(_ic_plate((), IC_WOOD), pack / "PNG" / "plate_wood.png")
+    for k, speck in enumerate((2, 0, 3)):
+        _save_png(_ic_grass(speck), pack / "PNG" / f"grass_{k + 1:02d}.png")
+        expected[f"Isometric Plaza Kit/PNG/grass_{k + 1:02d}.png"] = {
+            "usage": "iso_tile",
+            "role": "GROUND",
+        }
+    _expected(out, "iso_corners", expected)
+
+
 # ------------------------------------------------------------------------------------------
 # Real side-view packs (T17.32): a numbered tile sheet with a character sheet, terrain pieces
 # named by their place, a character as frames in action folders, a stage of layered backgrounds.
@@ -3977,6 +4047,7 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "farm_cave": make_farm_cave,
     "terrain_blocks": make_terrain_blocks,
     "iso_terrain": make_iso_terrain,
+    "iso_corners": make_iso_corners,
     "side_numbered_platformer": make_side_numbered,
     "side_named_platformer": make_side_named,
     "side_action_frames": make_side_action_frames,

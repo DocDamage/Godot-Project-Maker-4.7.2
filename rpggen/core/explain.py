@@ -111,6 +111,10 @@ UNUSED_REASONS = {
         "a piece of a thing drawn over several cells of a sheet (half a tree); the whole thing "
         "is in the dock. Give it a role to use this piece alone as well."
     ),
+    "ground_overlay": (
+        "one colour all over, to lay over a ground in a game (a darkening); no ground and nothing "
+        "to place. Give it a role to use it."
+    ),
     "trimmed_copy": (
         "the same picture as one of a folder of fixed size beside it, cut to what it paints "
         "(Kenney's 'Variable sizes'); the fixed size is used. Give it a role to use this one."

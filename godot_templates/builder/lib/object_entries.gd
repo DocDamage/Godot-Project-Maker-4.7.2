@@ -78,7 +78,11 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 		# one in a game, every one in an assets-only project, where the levels are made by hand
 		var usage := JsonUtil.to_str(eff.get("usage", ""))
 		var cut: bool = usage == "object" and (_named_thing(eff) or assets_only)
-		if not SPRITE_ROLES.has(eff.get("role", "")) or not (usage == "sprite" or cut):
+		# an isometric piece of a thing (a crate, a statue, a house: a role the dock places, not
+		# ground or wall) is placed from the dock in an assets-only project as well as painted
+		# (T17.33); the cut cells of a sheet have no rise to tell them by
+		var standing: bool = assets_only and usage == "iso_tile"
+		if not SPRITE_ROLES.has(eff.get("role", "")) or not (usage == "sprite" or cut or standing):
 			continue
 		var anims: Dictionary = eff.get("animations", {})
 		# An animated asset is not an object, except a chest strip (its 2 frames are read as an

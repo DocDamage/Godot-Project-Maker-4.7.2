@@ -1,0 +1,56 @@
+{
+  "Isometric Plaza Kit/PNG/grass_01.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/grass_02.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/grass_03.png": {
+    "role": "GROUND",
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_00.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_01.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_02.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_03.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_04.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_05.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_06.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_07.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_08.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_09.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_10.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_11.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_12.png": {
+    "usage": "iso_tile"
+  },
+  "Isometric Plaza Kit/PNG/plate_13.png": {
+    "usage": "iso_tile"
+  }
+}

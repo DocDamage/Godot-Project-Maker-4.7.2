@@ -180,6 +180,69 @@ const FLAT_WEIGHTS := [2, 2, 2, 2]  # seen from above every side counts the same
 ## alternative tile with those bits, the same picture with the same collision and data. Made
 ## once: a source whose terrain tiles have alternatives already is left as it is.
 static func complete_terrains(ts: TileSet, src: TileSetAtlasSource, sets: Array) -> void:
+	_complete_terrains_of_one(ts, src, sets)
+	complete_corner_sets(ts, src, sets)
+
+## Sets of two terrains matched by corners (T17.33: Medieval Town's plates of road and pavement)
+## draw seldom all 16 ways of the four corners (the plates have no two opposite corners): each
+## way no tile fits gets the tile whose corners differ least, again as an alternative tile with
+## those corners, its own terrain the one most of them are. Made once.
+static func complete_corner_sets(ts: TileSet, src: TileSetAtlasSource, sets: Array) -> void:
+	var drawn := {}  # set index -> [[coords, corners], ...]
+	for i in src.get_tiles_count():
+		var coords := src.get_tile_id(i)
+		var td := src.get_tile_data(coords, 0)
+		if td == null or td.terrain_set < 0 or td.terrain_set >= sets.size():
+			continue
+		if ts.get_terrain_set_mode(td.terrain_set) != TileSet.TERRAIN_MODE_MATCH_CORNERS:
+			continue
+		if JsonUtil.to_array(JsonUtil.to_dict(sets[td.terrain_set]).get("terrains", [])).size() != 2:
+			continue
+		if src.get_alternative_tiles_count(coords) > 1:
+			return  # completed before
+		var corners: Array = []
+		for bit in _complete_corners(ts):
+			corners.append(td.get_terrain_peering_bit(bit) if td.is_valid_terrain_peering_bit(bit) else -1)
+		if not drawn.has(td.terrain_set):
+			drawn[td.terrain_set] = []
+		JsonUtil.to_array(drawn[td.terrain_set]).append([coords, corners])
+	for set_index: int in drawn.keys():
+		var tiles: Array = drawn[set_index]
+		var have := {}
+		for tile: Array in tiles:
+			have[tile[1]] = true
+		for mask in range(16):
+			var wanted: Array = []
+			for b in 4:
+				wanted.append(1 if mask & (1 << b) else 0)
+			if have.has(wanted):
+				continue
+			var best: Array = []
+			var best_cost := 99
+			for tile: Array in tiles:
+				var cost := 0
+				var own := JsonUtil.to_array(tile[1])
+				for b in 4:
+					if JsonUtil.to_int(own[b]) != JsonUtil.to_int(wanted[b]):
+						cost += 1
+				if cost < best_cost:
+					best_cost = cost
+					best = tile
+			if best.is_empty():
+				continue
+			var coords: Vector2i = best[0]
+			var alt := src.create_alternative_tile(coords)
+			var td := src.get_tile_data(coords, alt)
+			_copy_tile_data(src.get_tile_data(coords, 0), td, ts)
+			td.terrain_set = set_index
+			var ones := wanted.count(1)
+			td.terrain = 1 if ones > 2 else 0
+			var corner_bits := _complete_corners(ts)
+			for b in 4:
+				td.set_terrain_peering_bit(corner_bits[b], JsonUtil.to_int(wanted[b]))
+			have[wanted] = true
+
+static func _complete_terrains_of_one(ts: TileSet, src: TileSetAtlasSource, sets: Array) -> void:
 	var drawn := {}  # set index -> [[coords, bits], ...] of the source's tiles of terrain 0
 	for i in src.get_tiles_count():
 		var coords := src.get_tile_id(i)
@@ -387,13 +450,17 @@ static func apply_iso_terrain(td: TileData, ts: TileSet, sets: Array, terrain: D
 	if set_index < 0 or set_index >= ts.get_terrain_sets_count():
 		return false
 	td.terrain_set = set_index
-	td.terrain = 0
+	# a set of two terrains joined at the corners says which a piece is (T17.33)
+	td.terrain = JsonUtil.to_int(terrain.get("terrain", 0))
 	var peering: Dictionary = terrain.get("peering", {})
 	for key: String in ISO_PEERING_BITS.keys():
 		var value := JsonUtil.to_int(peering.get(key, -1))
 		var bit: TileSet.CellNeighbor = ISO_PEERING_BITS[key]
 		if value >= 0 and td.is_valid_terrain_peering_bit(bit):
 			td.set_terrain_peering_bit(bit, value)
+	if terrain.has("probability"):
+		# a variant of a terrain's middle is laid now and then, one of another tone never (T17.33)
+		td.probability = JsonUtil.to_float(terrain["probability"], 1.0)
 	return true
 
 ## The horizontal run of an animation override, or [] when Godot's atlas animation cannot show

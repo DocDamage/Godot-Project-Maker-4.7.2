@@ -468,6 +468,8 @@ func _judge(layer: TileMapLayer, cells: Array[Vector2i], set_index: int, terrain
 			if at >= 0:
 				# a corner is the terrain's when the cell there and the two sides beside it are
 				there = there and inside.has(layer.get_neighbor_cell(c, sides[at])) and inside.has(layer.get_neighbor_cell(c, sides[(at + 1) % 4]))
+			if mode == TileSet.TERRAIN_MODE_MATCH_CORNERS:
+				there = true  # matched by corners: a painted cell is whole, the cells round it join
 			var says := td.get_terrain_peering_bit(bit) == terrain
 			if says != there:
 				bad = true
