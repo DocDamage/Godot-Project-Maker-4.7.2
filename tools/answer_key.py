@@ -493,6 +493,154 @@ def fit(out: Path, write: bool) -> None:
         print(f"wrote {calibration.TABLE} ({len(table['bins'])} bins)")
 
 
+SIZE_BANDS = ((0, 24), (24, 48), (48, 96), (96, 1 << 30))  # the larger side, px
+VISION_USAGES = frozenset({"sprite", "object", "iso_tile", "portrait", "ui", "growth_strip"})
+
+
+def _band(size: int) -> str:
+    for lo, hi in SIZE_BANDS:
+        if lo <= size < hi:
+            return f"{lo}-{hi - 1}" if hi < 1 << 30 else f"{lo}+"
+    return "?"
+
+
+def vision_sample(out: Path, per_pack: int) -> list[dict[str, Any]]:
+    """Up to ``per_pack`` pictures of each pack for the vision step: pictures (not sheets of
+    tiles) rpggen is not sure of first, then sure ones, in an order fixed by their keys."""
+    import hashlib
+
+    picked = []
+    for pack in load_packs(out):
+        if not (out / "draft" / f"{pack['name']}.json").is_file():
+            continue
+        doc = key_of(out, pack["name"])
+        rows = []
+        for key, e in doc["entries"].items():
+            if e["answer"].get("usage") not in VISION_USAGES or not e["answer"].get("role"):
+                continue
+            unsure = e["draft"]["status"] not in ("CONFIRMED", "AUTO_DETECTED")
+            order = hashlib.sha256(key.encode("utf-8")).hexdigest()
+            rows.append((not unsure, order, key, e))
+        for sure, _order, key, e in sorted(rows)[:per_pack]:
+            picked.append(
+                {
+                    "pack": pack["name"],
+                    "publisher": pack["publisher"],
+                    "key": key,
+                    "file": e["file"],
+                    "draft_role": e["facets"].get("role"),
+                    "key_role": e["answer"].get("role"),
+                    "draft_sure": sure,
+                }
+            )
+    return picked
+
+
+def vision(
+    out: Path, per_pack: int, server: Path, model: Path, projector: Path, write: bool
+) -> None:
+    """Ask the local vision model about a sample of the key and measure, per size band and per
+    role it names, how often its role is the key's beside how often rpggen's is
+    (``DIR/vision_report.md``): where it is right more often, it may change rpggen's answer."""
+    import hashlib
+
+    from PIL import Image
+
+    from rpggen.core import vision as vision_mod
+    from rpggen.core.vision.llama import LlamaConfig
+
+    sample = vision_sample(out, per_pack)
+    for row in sample:
+        data = Path(row["file"]).read_bytes()
+        row["sha"] = hashlib.sha256(data).hexdigest()
+        with Image.open(row["file"]) as img:
+            row["size"] = max(img.size)
+    config = LlamaConfig(server, model, projector)
+    answers = vision_mod.ask_all(config, [(r["sha"], Path(r["file"])) for r in sample])
+    for row in sample:
+        found = answers[row["sha"]]
+        row["vision_raw"], row["vision_role"] = found.raw, found.role
+    (out / "vision.json").write_text(json.dumps(sample, indent=1), encoding="utf-8")
+
+    measure_vision(out, sample, per_pack, write)
+
+
+def measure_vision(
+    out: Path, sample: list[dict[str, Any]], per_pack: int, write: bool
+) -> dict[str, Any]:
+    """Where the vision step helps: on the pictures the key uses (not NONE: whether a picture
+    is set aside is the pack's matter, not the picture's) that rpggen is not sure of, per role
+    the model names, how often its role is the key's beside how often rpggen's is. A role
+    whose model accuracy, at the lower end of its 95 % interval, beats rpggen's on the same
+    pictures is one the step may give (``rpggen/data/vision_rules.json`` with ``write``)."""
+    from rpggen.core import calibration
+    from rpggen.core import vision as vision_mod
+
+    def person_ok(role: str | None, want: str | None) -> bool:
+        return role == want or (role == vision_mod.PERSON and want in ("PLAYER", "NPC"))
+
+    for row in sample:
+        row["vision_role"] = vision_mod.role_of(row["vision_raw"])
+    used = [r for r in sample if r["key_role"] != "NONE"]
+    bands: dict[str, list[int]] = {}
+    roles: dict[str, list[int]] = {}
+    for row in used:
+        v_ok = person_ok(row["vision_role"], row["key_role"])
+        d_ok = row["draft_role"] == row["key_role"]
+        keys = [(bands, _band(row["size"]))]
+        if not row["draft_sure"]:
+            keys.append((roles, str(row["vision_role"])))
+        for table, k in keys:
+            t = table.setdefault(k, [0, 0, 0, 0])  # pictures, vision right, rpggen right, fixed
+            t[0] += 1
+            t[1] += int(v_ok)
+            t[2] += int(d_ok)
+            t[3] += int(v_ok and not d_ok)
+    helps = {}
+    for role, (n, v, d, _f) in roles.items():
+        low = calibration.wilson_low(v, n)
+        if role not in ("None", vision_mod.PERSON) and n and low > d / n:
+            helps[role] = {"pictures": n, "vision_low": round(low, 4), "rpggen": round(d / n, 4)}
+
+    def pct(a: int, b: int) -> str:
+        return f"{100 * a / b:.0f} %" if b else "n/a"
+
+    lines = [
+        "# The vision step on the answer key",
+        "",
+        f"{len(sample)} pictures asked ({per_pack} a pack at most, unsure ones first); "
+        f"{len(sample) - len(used)} of them are set aside (NONE) in the key and left out.",
+        "",
+        "All pictures the key uses, by size:",
+        "",
+        "| Size (px) | Pictures | Vision right | rpggen right | rpggen wrong, vision right |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for k in [_band(lo) for lo, _ in SIZE_BANDS]:
+        if k in bands:
+            n, v, d, f = bands[k]
+            lines.append(f"| {k} | {n} | {pct(v, n)} | {pct(d, n)} | {f} |")
+    lines += [
+        "",
+        "Pictures rpggen is not sure of, by the role the model names:",
+        "",
+        "| Vision says | Pictures | Vision right | rpggen right | rpggen wrong, vision right "
+        "| Vision may change it |",
+        "|---|---:|---:|---:|---:|---|",
+    ]
+    for k, (n, v, d, f) in sorted(roles.items(), key=lambda kv: -kv[1][0]):
+        may = "yes" if k in helps else ""
+        lines.append(f"| {k} | {n} | {pct(v, n)} | {pct(d, n)} | {f} | {may} |")
+    (out / "vision_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print("\n".join(lines))
+    rules = {"version": vision_mod.RULES_VERSION, "roles": dict(sorted(helps.items()))}
+    if write:
+        text = json.dumps(rules, indent=1, sort_keys=True) + "\n"
+        vision_mod.RULES.write_text(text, encoding="utf-8")
+        print(f"wrote {vision_mod.RULES}")
+    return rules
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -508,6 +656,13 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("fit")
     p.add_argument("--out", required=True, type=Path)
     p.add_argument("--write", action="store_true")
+    p = sub.add_parser("vision")
+    p.add_argument("--out", required=True, type=Path)
+    p.add_argument("--per-pack", type=int, default=80)
+    p.add_argument("--server", required=True, type=Path)
+    p.add_argument("--model", required=True, type=Path)
+    p.add_argument("--projector", required=True, type=Path)
+    p.add_argument("--write", action="store_true")
     args = parser.parse_args(argv)
     if args.cmd == "draft":
         draft(args.out, args.pack)
@@ -519,6 +674,8 @@ def main(argv: list[str] | None = None) -> int:
         corpus(args.out)
     elif args.cmd == "fit":
         fit(args.out, args.write)
+    elif args.cmd == "vision":
+        vision(args.out, args.per_pack, args.server, args.model, args.projector, args.write)
     return 0
 
 

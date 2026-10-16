@@ -1629,11 +1629,16 @@ def assemble(
     is_cancelled: Callable[[], bool] | None = None,
     progress: Progress | None = None,
     learned: list[Any] | None = None,
+    vision: Any | None = None,
 ) -> tuple[Catalog, IssueList, dict[str, str]]:
     """Run adapters, classify and merge everything into a Catalog.
 
     ``learned`` are the rules learned from the user's fixes (T12.59; only the wizard passes
     them): the learned adapter proposes their values.
+
+    ``vision`` is the local vision model (``vision.llama.LlamaConfig``, T17.34; only the wizard
+    passes it, when the user turned the step on): it is asked about the pictures rpggen is not
+    sure of, and changes their role where it was measured to help.
 
     ``progress`` receives ``("Analyzing images", done, total)`` per pack and ``is_cancelled`` is
     polled before every image, so a cancel raises ``AssemblyCancelled`` within one image.
@@ -2151,6 +2156,8 @@ def assemble(
     resolve_maps(catalog, maps_raw, previous, issues)
     from rpggen.core import calibration
 
+    if vision is not None:
+        _ask_vision(catalog, vision, pack_roots, generated)
     publisher_of = {p.pack_id: calibration.publisher_id(p.license) for p in catalog.packs}
     for asset in catalog.assets:
         # a reader's confidence as the answer key measured it, its publisher's first (T17.34)
@@ -2167,6 +2174,35 @@ def assemble(
         )
     catalog.assets.sort(key=lambda a: _sort_key(a.id))
     return catalog, issues, generated
+
+
+def _ask_vision(
+    catalog: Catalog,
+    config: Any,
+    pack_roots: dict[str, Path],
+    generated: dict[str, str],
+) -> None:
+    """The local vision step (T17.34); a model that cannot be started is a warning, never a
+    failed analysis."""
+    import logging
+
+    from rpggen.core import vision
+
+    log = logging.getLogger(__name__)
+
+    def file_of(asset: Asset) -> Path | None:
+        if asset.path in generated:
+            return Path(generated[asset.path])
+        root = pack_roots.get(asset.pack_id)
+        return root / asset.path.split("/", 3)[-1] if root is not None else None
+
+    try:
+        changed = vision.apply(catalog.assets, file_of, config, AUTO_CONFIDENCE)
+    except (OSError, RuntimeError, TimeoutError, ValueError) as exc:
+        log.warning("the vision step was skipped: %s", exc)
+        return
+    if changed:
+        log.info("the vision step changed the role of %d pictures", changed)
 
 
 # --------------------------------------------------------------------------- maps (T12.49)
