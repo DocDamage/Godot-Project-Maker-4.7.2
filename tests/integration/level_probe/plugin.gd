@@ -49,7 +49,7 @@ static func _sides(ts: TileSet) -> Array:
 static func _corners(ts: TileSet) -> Array:
 	return DIAMOND_CORNERS if ts.tile_shape == TileSet.TILE_SHAPE_ISOMETRIC else SQUARE_CORNERS
 ## The surfaces a user paints a level with, in the order they are taken.
-const SURFACES: Array[String] = ["water", "dirt", "path", "sand", "stone", "soil", "snow", "grass", "dark", "rock"]
+const SURFACES: Array[String] = ["water", "dirt", "path", "road", "sand", "stone", "soil", "snow", "grass", "dark", "rock"]
 ## What a level is furnished with: role and how many.
 const FURNISH := [["BUILDING", 2], ["DECORATION", 10], ["NPC", 2], ["ANIMAL", 2], ["ENEMY", 2], ["CHEST", 1]]
 
@@ -210,6 +210,8 @@ func _terrain_tiles(ts: TileSet) -> Dictionary:
 ## True for a terrain of strips alone (paths one tile wide): none of its tiles says the terrain
 ## goes on on all four sides.
 func _strip_terrain(ts: TileSet, key: Vector2i) -> bool:
+	if ts.get_terrain_set_mode(key.x) == TileSet.TERRAIN_MODE_MATCH_CORNERS:
+		return false  # a set joined at the corners (Medieval Town's plates) is an area: no side bits
 	for td: TileData in _terrain_tiles(ts).get(key, []):
 		var all_sides := true
 		for bit: int in _sides(ts):
@@ -455,6 +457,12 @@ func _judge(layer: TileMapLayer, cells: Array[Vector2i], set_index: int, terrain
 		if layer.get_cell_alternative_tile(c) > 0:
 			stand_ins += 1  # the nearest piece the pack draws, for one it does not (complete_terrains)
 		var bad := td.terrain_set != set_index or td.terrain != terrain
+		var drawn := td
+		if mode == TileSet.TERRAIN_MODE_MATCH_CORNERS and layer.get_cell_alternative_tile(c) > 0:
+			# a stand-in on the edge of a set joined at the corners says nothing of the corners on
+			# empty cells; what it shows there is the piece it was made of (complete_corner_sets)
+			var source := ts.get_source(layer.get_cell_source_id(c)) as TileSetAtlasSource
+			drawn = source.get_tile_data(layer.get_cell_atlas_coords(c), 0)
 		var bits: Array = []
 		if mode != TileSet.TERRAIN_MODE_MATCH_CORNERS:
 			bits.append_array(sides)
@@ -470,7 +478,7 @@ func _judge(layer: TileMapLayer, cells: Array[Vector2i], set_index: int, terrain
 				there = there and inside.has(layer.get_neighbor_cell(c, sides[at])) and inside.has(layer.get_neighbor_cell(c, sides[(at + 1) % 4]))
 			if mode == TileSet.TERRAIN_MODE_MATCH_CORNERS:
 				there = true  # matched by corners: a painted cell is whole, the cells round it join
-			var says := td.get_terrain_peering_bit(bit) == terrain
+			var says := drawn.get_terrain_peering_bit(bit) == terrain
 			if says != there:
 				bad = true
 		if bad:

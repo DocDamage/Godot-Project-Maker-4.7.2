@@ -211,20 +211,30 @@ static func complete_corner_sets(ts: TileSet, src: TileSetAtlasSource, sets: Arr
 		var have := {}
 		for tile: Array in tiles:
 			have[tile[1]] = true
-		for mask in range(16):
+		# every way of the four corners being the one, the other or nothing (a corner on an
+		# empty cell, the edge of a painted area: Godot asks for it there), but nothing at all
+		for mask in range(1, 81):
 			var wanted: Array = []
+			var rest := mask
 			for b in 4:
-				wanted.append(1 if mask & (1 << b) else 0)
-			if have.has(wanted):
+				wanted.append(rest % 3 - 1)
+				rest /= 3
+			if wanted.count(-1) == 4 or have.has(wanted):
 				continue
+			var ones := wanted.count(1)
+			var fill := 1 if ones > wanted.count(0) else 0  # the cell's own terrain
 			var best: Array = []
-			var best_cost := 99
+			var best_cost := 99.0
 			for tile: Array in tiles:
-				var cost := 0
+				var cost := 0.0
 				var own := JsonUtil.to_array(tile[1])
 				for b in 4:
-					if JsonUtil.to_int(own[b]) != JsonUtil.to_int(wanted[b]):
-						cost += 1
+					var want := JsonUtil.to_int(wanted[b])
+					if want < 0:
+						# nothing there: any piece fits, the one whole to its edge best
+						cost += 0.0 if JsonUtil.to_int(own[b]) == fill else 0.1
+					elif JsonUtil.to_int(own[b]) != want:
+						cost += 1.0
 				if cost < best_cost:
 					best_cost = cost
 					best = tile
@@ -235,8 +245,7 @@ static func complete_corner_sets(ts: TileSet, src: TileSetAtlasSource, sets: Arr
 			var td := src.get_tile_data(coords, alt)
 			_copy_tile_data(src.get_tile_data(coords, 0), td, ts)
 			td.terrain_set = set_index
-			var ones := wanted.count(1)
-			td.terrain = 1 if ones > 2 else 0
+			td.terrain = fill
 			var corner_bits := _complete_corners(ts)
 			for b in 4:
 				td.set_terrain_peering_bit(corner_bits[b], JsonUtil.to_int(wanted[b]))
@@ -269,12 +278,16 @@ static func _complete_terrains_of_one(ts: TileSet, src: TileSetAtlasSource, sets
 		for wanted: Array in _all_bits(mode):
 			if have.has(wanted):
 				continue
+			# the nearest piece, of those as near the most often laid (the main one, not a variant)
 			var best: Array = []
 			var best_cost := 1 << 30
+			var best_chance := -1.0
 			for tile: Array in tiles:
-				var cost := _bits_cost(wanted, JsonUtil.to_array(tile[1]), weights) * 2 + (0 if is_equal_approx(JsonUtil.to_float(tile[2]), 1.0) else 1)
-				if cost < best_cost:
+				var cost := _bits_cost(wanted, JsonUtil.to_array(tile[1]), weights)
+				var chance := JsonUtil.to_float(tile[2])
+				if cost < best_cost or (cost == best_cost and chance > best_chance):
 					best_cost = cost
+					best_chance = chance
 					best = tile
 			if best.is_empty():
 				continue
@@ -284,6 +297,10 @@ static func _complete_terrains_of_one(ts: TileSet, src: TileSetAtlasSource, sets
 			_copy_tile_data(src.get_tile_data(coords, 0), td, ts)
 			td.terrain_set = set_index
 			td.terrain = 0
+			# as often as the piece it stands in for: a set whose pieces lie in two sheets
+			# (Screaming Brain's flat and thick grounds) gets stand-ins from both, and those of a
+			# piece laid only where nothing else fits must not be laid as often as the main one's
+			td.probability = maxf(best_chance, 0.0001)
 			var sides := _complete_sides(ts)
 			for b in sides.size():
 				td.set_terrain_peering_bit(sides[b], JsonUtil.to_int(wanted[b]))
@@ -370,7 +387,9 @@ static func terrain_label(spec: Dictionary, terrain_spec: Dictionary, sets: Arra
 	var plain := JsonUtil.to_str(terrain_spec.get("name", "terrain"))
 	if not spec.has("sheet") or not spec.has("surface") or JsonUtil.to_str(spec.get("name", "")) == "":
 		return plain
-	if plain.contains("_") or plain == JsonUtil.to_str(spec["name"]):
+	if JsonUtil.to_array(spec.get("terrains", [])).size() > 1:
+		plain = plain.replace("_", " ")  # a set of two terrains (corners): each its own ("snow light")
+	elif plain.contains("_") or plain == JsonUtil.to_str(spec["name"]):
 		plain = JsonUtil.to_str(spec["surface"])  # an RPG Maker set is named as its set: its surface
 	var sheet := JsonUtil.to_str(spec["sheet"])
 	var shown := sheet_name(sheet)

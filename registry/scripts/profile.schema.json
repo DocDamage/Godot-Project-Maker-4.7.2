@@ -728,7 +728,7 @@
               },
               "surface": {"type": "string"},
               "over": {"enum": ["ground", "nothing"]},
-              "shape": {"enum": ["any", "area", "path", "plain", "side"]},
+              "shape": {"enum": ["any", "area", "path", "plain", "side", "corners"]},
               "layout": {"type": "string"},
               "sheet": {"type": "string"},
               "role": {"type": "string"}

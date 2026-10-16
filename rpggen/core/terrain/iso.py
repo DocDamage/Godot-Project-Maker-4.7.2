@@ -68,6 +68,9 @@ PEERING = {
     "nw": "top_left_corner",
 }
 FACET = "iso_terrain"
+# a piece whose name says it rises across its face is no flat ground (T17.33: Kenney's racing
+# packs' ``hillES``, Miniature Farm's ``planksHighSlope``): its two shades read as edges
+SLOPE_WORDS = frozenset({"hill", "hills", "slope", "slopes", "ramp", "ramps"})
 
 
 @dataclass
@@ -381,6 +384,12 @@ def read(
 
     def job(item: tuple[catalog_mod.Asset, dict[str, Any], Path]) -> Piece | None:
         asset, facets, file = item
+        from rpggen.core import classifier
+        from rpggen.core.adapters import naming
+
+        folders, stem = classifier.tokens(asset.path)
+        if set(stem) & SLOPE_WORDS:
+            return None
         try:
             with Image.open(file) as opened:
                 rgba = np.asarray(opened.convert("RGBA"))
@@ -393,10 +402,6 @@ def read(
         if found is None:
             return None
         sides, corners, middle, outside = found
-        from rpggen.core import classifier
-        from rpggen.core.adapters import naming
-
-        folders, stem = classifier.tokens(asset.path)
         piece = Piece(
             asset.id,
             _group_key(asset, facets),
@@ -598,7 +603,6 @@ MIN_MIXED_WAYS = 6  # of the 14 ways between the two whole pieces, a set draws t
 MIXED_SHARE = 0.3  # ... and this share of its pieces are of them
 CRISP = 0.33  # a corner of a set lies within this share of the gap between the tones of its own
 CRISP_SHARE = 0.9  # ... and so do this share of the corners of a set
-OUTLIER_TONE = 0.22  # a corner this far from the family's middle colour is of another thing
 
 
 def _face_tone(piece: Piece, corner: str) -> np.ndarray | None:
@@ -613,19 +617,53 @@ def _face_tone(piece: Piece, corner: str) -> np.ndarray | None:
     return np.asarray(patch[..., :3].reshape(-1, 3).mean(axis=0) / 255.0, dtype=np.float32)
 
 
+MAX_TONE_SAMPLES = 1200  # the corners a family's densest colours are counted over, at most
+MAX_TONE_SEEDS = 4  # the densest colours tried as a set's first tone, at most
+
+
 def _two_tones(rows: list[list[np.ndarray]]) -> tuple[np.ndarray, np.ndarray] | None:
-    """Two colours the corners of ``rows`` fall into (k-means, k = 2, seeded with the darkest
-    and the lightest), the darker first; None when they are not two tones."""
+    """Two colours the corners of ``rows`` fall into, the darker first; None when they are not
+    two tones. The first is the colour most corners are near (within half ``TONE_GAP``) that
+    meets another in a piece, the second the one most corners are near of those ``TONE_GAP``
+    from it in pieces that have the first too: the two tones of a set meet in its pieces, and
+    a plate of wood among the town's stone, though drawn as often and flatter, meets nothing.
+    Each is then the mean of the corners nearer it than the other, within half the gap."""
     samples = np.asarray([c for row in rows for c in row], dtype=np.float32)
+    row_of = np.asarray([k for k, row in enumerate(rows) for _ in row])
     if len(samples) < 8:
         return None
-    light = samples.mean(axis=1)
-    a, b = samples[int(np.argmin(light))], samples[int(np.argmax(light))]
-    for _ in range(8):
-        near_a = np.abs(samples - a).mean(axis=1) <= np.abs(samples - b).mean(axis=1)
-        if near_a.all() or not near_a.any():
+    step = max(1, len(samples) // MAX_TONE_SAMPLES)
+    counted, counted_row = samples[::step], row_of[::step]
+    near = np.abs(counted[:, None, :] - counted[None, :, :]).mean(axis=2) <= TONE_GAP / 2
+    density = near.sum(axis=1)
+    tried = np.zeros(len(counted), dtype=bool)
+    seeds = 0
+    for first in np.argsort(-density, kind="stable"):
+        if tried[first]:
+            continue
+        if seeds == MAX_TONE_SEEDS:
             return None
-        a, b = samples[near_a].mean(axis=0), samples[~near_a].mean(axis=0)
+        seeds += 1
+        tried |= near[first]
+        seed = counted[near[first]].mean(axis=0)
+        off = np.abs(samples - seed).mean(axis=1)
+        with_first = np.unique(row_of[off <= TONE_GAP / 2])
+        away = (np.abs(counted - seed).mean(axis=1) >= TONE_GAP) & np.isin(counted_row, with_first)
+        if away.any():
+            break
+    else:
+        return None
+    second = int(np.argmax(np.where(away, density, -1)))
+    a, b = seed, counted[near[second]].mean(axis=0)
+    for _ in range(8):
+        to_a = np.abs(samples - a).mean(axis=1)
+        to_b = np.abs(samples - b).mean(axis=1)
+        reach = float(np.abs(a - b).mean()) / 2
+        of_a = (to_a <= to_b) & (to_a <= reach)
+        of_b = (to_b < to_a) & (to_b <= reach)
+        if not of_a.any() or not of_b.any():
+            return None
+        a, b = samples[of_a].mean(axis=0), samples[of_b].mean(axis=0)
     if float(np.abs(a - b).mean()) < TONE_GAP:
         return None
     return (a, b) if float(a.mean()) <= float(b.mean()) else (b, a)
@@ -661,14 +699,6 @@ def corner_sets(pieces: list[Piece], by_id: dict[str, catalog_mod.Asset], used: 
             found = [_face_tone(p, c) for c in _FACE_CORNERS]
             if all(f is not None for f in found):
                 tones_of[p.asset_id] = [f for f in found if f is not None]
-        if tones_of:
-            # a piece far from the family's usual colour is no part of its two tones (a plate
-            # of wood among the town's stone)
-            usual = np.median(np.asarray([c for row in tones_of.values() for c in row]), axis=0)
-            tones_of = {
-                k: row for k, row in tones_of.items()
-                if all(float(np.abs(c - usual).mean()) <= OUTLIER_TONE for c in row)
-            }  # fmt: skip
         tones = None
         for _ in range(2):  # a piece of neither tone is left out, and the tones read again
             tones = _two_tones(list(tones_of.values()))
@@ -714,6 +744,8 @@ def corner_sets(pieces: list[Piece], by_id: dict[str, catalog_mod.Asset], used: 
             names = [names[0], f"{names[1]}_light"]
         if words & {"road", "street"} and "road" not in names:
             names[0] = "road"
+        if words & {"pavement", "sidewalk"} and "pavement" not in names:
+            names[1] = "pavement"
         name = f"iso_{key[2]}_corners"
         while name in used:
             name += "_2"
@@ -745,12 +777,12 @@ def plain_sets(pieces: list[Piece], by_id: dict[str, catalog_mod.Asset], used: s
     """A ground of whole diamonds that no terrain took is a terrain of its own (T17.33: *Lords
     Of Pain*'s stone, Kenney's *Nature* grass), so the Terrain tool paints it: the pieces of one
     pack and footprint whose faces are whole and of one colour are one plain set (matched by
-    its sides), the plainest its middle, the others variants (``_middle_chances``; a picture
-    made as a variant of another, ``variant_of``, is one whatever its colour). Returns how many."""
+    its sides), the plainest its middle, the others variants (``_middle_chances``; a patch laid
+    on a ground, ``_laid_on``, is one whatever its colour). Returns how many."""
     loose = [
         p for p in pieces
         if FACET not in by_id[p.asset_id].detected and _role(by_id[p.asset_id]) == "GROUND"
-        and (_whole(p) or _variant_of(by_id[p.asset_id]))
+        and (_whole(p) or _laid_on(by_id[p.asset_id]))
     ]  # fmt: skip
     groups: list[list[Piece]] = []
     for p in sorted(loose, key=lambda q: q.asset_id):
@@ -777,13 +809,18 @@ def plain_sets(pieces: list[Piece], by_id: dict[str, catalog_mod.Asset], used: s
         used.add(name)
         spec = {"set": name, "mode": "sides", "surface": surface, "over": "ground",
                 "shape": "plain", "role": "GROUND"}  # fmt: skip
-        # the ground the variants were made from is the middle, never one of them
-        made_from = [p for p in g if not _variant_of(by_id[p.asset_id])]
+        # the ground the variants were made from is the middle, never one of them; a variant of
+        # a picture not in the set (Kenney's *Nature*: the turns of a grass whose first turn is
+        # an edge of another terrain) is a ground of its own here
+        ids = {p.asset_id for p in g}
+        made_from = [p for p in g if _variant_of(by_id[p.asset_id]) not in ids]
         chances = _middle_chances(made_from, "sides") if len(made_from) > 1 else {}
-        share = round(MIDDLE_VARIANTS / max(1, len(g) - 1), 4)
-        for p in g:
-            if _variant_of(by_id[p.asset_id]):
-                chances[p.asset_id] = share
+        # the variants and the middles of the main one's colour share ``MIDDLE_VARIANTS``
+        laid = [k for k, chance in chances.items() if chance > 0]
+        laid += [p.asset_id for p in g if _variant_of(by_id[p.asset_id]) in ids]
+        if laid:
+            each = MIDDLE_VARIANTS / (1.0 - MIDDLE_VARIANTS) / len(laid)
+            chances.update({k: round(min(blocks.VARIANT_PROBABILITY, each), 4) for k in laid})
         for p in g:
             peering = {key: -1 for key in PEERING.values()}
             for side in SIDES:
@@ -810,6 +847,13 @@ def _of_tones(row: list[np.ndarray], dark: np.ndarray, light: np.ndarray) -> boo
 
 def _role(asset: catalog_mod.Asset) -> str:
     return str(catalog_mod.effective(asset).get("role", ""))
+
+
+def _laid_on(asset: catalog_mod.Asset) -> bool:
+    """True for a variant made by laying a patch on a ground (*Lords Of Pain*), not a turn of
+    another picture (Miniature Farm's ``planksCornerLeft_E``, another shape than ``_N``)."""
+    tags = [str(t) for t in catalog_mod.effective(asset).get("tags") or []]
+    return bool(_variant_of(asset)) and not any(t.startswith(catalog_mod.TURN_TAG) for t in tags)
 
 
 def _variant_of(asset: catalog_mod.Asset) -> str:

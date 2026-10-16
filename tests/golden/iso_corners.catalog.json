@@ -1,0 +1,1219 @@
+{
+  "assets": [
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": 0,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "probability": 0.0882,
+          "role": "GROUND",
+          "set": "iso_grass_01_grass_plain",
+          "shape": "plain",
+          "surface": "grass"
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.grass_01",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/grass_01.png",
+      "sha256": "383d721ec32b00718e5bc7eb9440ff48fa455ab90a2f97d56e17eabca0cd3d40",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": 0,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "role": "GROUND",
+          "set": "iso_grass_01_grass_plain",
+          "shape": "plain",
+          "surface": "grass"
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.grass_02",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/grass_02.png",
+      "sha256": "851a25865ffec3f9bb8d5ea17a73461a764adc3196c903526ee892849d4b230f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.681818,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": 0,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "probability": 0.0882,
+          "role": "GROUND",
+          "set": "iso_grass_01_grass_plain",
+          "shape": "plain",
+          "surface": "grass"
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.090909
+          ],
+          [
+            "WALL",
+            0.045455
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "surface:grass"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.grass_03",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/grass_03.png",
+      "sha256": "13ed87413509f2bf2bd63120eb82cc20745856740c45a85cce5857085556d781",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 0,
+            "bottom_right_corner": 0,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 0,
+            "top_right_corner": 0,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_00",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_00.png",
+      "sha256": "30e8cc58e4e1b6355953eaba230f17cfabc1ba31f1b3bdeda77d7213a9b248a0",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 0,
+            "bottom_right_corner": 0,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 1,
+            "top_right_corner": 0,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_01",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_01.png",
+      "sha256": "25ceae84968547b461655ace621c31e24bd22423f08d857d03dabe90dd6e25a8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 0,
+            "bottom_right_corner": 0,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 0,
+            "top_right_corner": 1,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_02",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_02.png",
+      "sha256": "0ccced588cfb42db1e276cf2f8f1f64f62060d4b0d26f7a70d5dbf4441f68d20",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 0,
+            "bottom_right_corner": 1,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 0,
+            "top_right_corner": 0,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_03",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_03.png",
+      "sha256": "588c33a834f2cce56dd44b2cea0cbef331ac27ef765fc9c85ad34b8a81fb780a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 1,
+            "bottom_right_corner": 0,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 0,
+            "top_right_corner": 0,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_04",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_04.png",
+      "sha256": "25d4722db8e4653d03cce8e60c66e58b151eabaed1ad0b47d075a7b00d12caf3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 0,
+            "bottom_right_corner": 0,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 1,
+            "top_right_corner": 1,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_05",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_05.png",
+      "sha256": "74992fed66bf99a0a8e16a9c58ee22f0022db1f0ba1e916a31843e4f8e42d7e8",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 0,
+            "bottom_right_corner": 1,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 0,
+            "top_right_corner": 1,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_06",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_06.png",
+      "sha256": "772d4c0f46d73cda47c9080713c98899bf9134f8e74fa5bd7ff1b91354a5ef2a",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 1,
+            "bottom_right_corner": 1,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 0,
+            "top_right_corner": 0,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_07",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_07.png",
+      "sha256": "d23e9c7d792b1b9f9760ee592e3c1eab961e3f097b0810f4fb9adcf44e45e4d2",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 1,
+            "bottom_right_corner": 0,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 1,
+            "top_right_corner": 0,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 0,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_08",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_08.png",
+      "sha256": "daae22ef26eaee572ff9d7b7eb2867e2030238a0dfc2729c0fb72b575a60d49f",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 0,
+            "bottom_right_corner": 1,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 1,
+            "top_right_corner": 1,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 1,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_09",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_09.png",
+      "sha256": "38a3582984f42f7ee5f6300f314644b07c51b82c56bf0c8aacded72adbf0d560",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 1,
+            "bottom_right_corner": 1,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 0,
+            "top_right_corner": 1,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 1,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_10",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_10.png",
+      "sha256": "21fd0a191423bd8db3caa50374bb8bf613a20b5610422b320fb881aa99d3c0f3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 1,
+            "bottom_right_corner": 1,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 1,
+            "top_right_corner": 0,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 1,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_11",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_11.png",
+      "sha256": "c6e000935a5b370a664879a059214af327ce858a053f9d9f020f20db4bac5f40",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 1,
+            "bottom_right_corner": 0,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 1,
+            "top_right_corner": 1,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 1,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_12",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_12.png",
+      "sha256": "74732b2913967d622049e5ce6079ce973e08825f36bf86fe3d78237eb889d3f3",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "corners",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": 1,
+            "bottom_right_corner": 1,
+            "bottom_side": -1,
+            "left_side": -1,
+            "right_side": -1,
+            "top_left_corner": 1,
+            "top_right_corner": 1,
+            "top_side": -1
+          },
+          "role": "GROUND",
+          "set": "iso_plate_corners",
+          "shape": "corners",
+          "surface": "stone",
+          "terrain": 1,
+          "terrains": [
+            "stone",
+            "snow"
+          ]
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_13",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_13.png",
+      "sha256": "f294c0e75bb5c25e84449f12307a531c4cc1dbbd73c6d9012e38b0b5e2b71b61",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "canvas": [
+          64,
+          32
+        ],
+        "footprint": [
+          64,
+          32
+        ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": 0,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "role": "GROUND",
+          "set": "iso_plate_wood_sand_plain",
+          "shape": "plain",
+          "surface": "sand"
+        },
+        "origin": [
+          32,
+          16
+        ],
+        "projection": "isometric",
+        "rise": 0,
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "tags": [
+          "surface:wood"
+        ],
+        "usage": "iso_tile"
+      },
+      "detected_by": "isometric",
+      "id": "iso_corners.isometric_plaza_kit.png.plate_wood",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "iso_corners",
+      "path": "assets/packs/iso_corners/Isometric Plaza Kit/PNG/plate_wood.png",
+      "sha256": "b08a190bf3d8916985ed047f916683b44ef08c7805a881fac03f35a12d6e7fd0",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {}
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "isometric"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/iso_corners/License.txt"
+      ],
+      "pack_id": "iso_corners",
+      "profile_id": null,
+      "root": "assets/packs/iso_corners",
+      "source_sha256": "82f2911a030f62da78fe444529049d9b5f0c595b2452ad11bb3855153f6d2223",
+      "warnings": [
+        "isometric:64x32:measured",
+        "view:isometric"
+      ]
+    }
+  ],
+  "tilesets": []
+}
