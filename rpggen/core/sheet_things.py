@@ -29,6 +29,7 @@ No Qt; Pillow and NumPy.
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,7 @@ import numpy as np
 from PIL import Image
 
 TAG = "sheet_thing"
+GRID_GUESS = re.compile(r"object_\d+")  # the names generic_grid gives the shapes it finds
 PAINTED_ALPHA = 128
 MIN_COVER = 0.08
 MAX_COVER = 0.9
@@ -355,7 +357,8 @@ def drop_misread(catalog: Any) -> int:
     """Takes out the objects a sheet should not have given (T17.33): the shapes the grid reader
     found in a background (the hills of a far backdrop were placed from the dock as dark
     blocks), and those lying on cells of a tile sheet that are read as tiles of a kind (a ladder,
-    a plank, spikes): they are painted, not placed. A user's object or a confirmed one stays.
+    a plank, spikes): they are painted, not placed. Only the grid reader's guesses
+    (``object_<n>``) go: a user's object, a confirmed one and a manifest's stay.
     Returns how many."""
     from rpggen.core import catalog as catalog_mod
 
@@ -363,8 +366,9 @@ def drop_misread(catalog: Any) -> int:
     keep = []
     for obj in catalog.objects:
         sheet = by_id.get(obj.sheet)
-        if sheet is None or obj.source != "auto" or obj.status == "CONFIRMED":
-            keep.append(obj)
+        guessed = obj.source == "auto" and GRID_GUESS.fullmatch(obj.name) is not None
+        if sheet is None or not guessed or obj.status == "CONFIRMED":
+            keep.append(obj)  # a pack's own list of rectangles (a manifest) names its objects
             continue
         facets = catalog_mod.effective(sheet)
         if facets.get("usage") == "background" or facets.get("role") == "BACKGROUND":
