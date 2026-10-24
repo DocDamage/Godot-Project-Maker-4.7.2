@@ -68,7 +68,7 @@ jobs:
         run: python -m pytest -q -m "integration and not arpg and not metroidvania and not shmup and not run_and_gun and not racing and not farm and not isometric"
       - name: Upload diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: diagnostics
           path: |
@@ -150,7 +150,7 @@ jobs:
         run: python -m pytest -q -m "integration and not arpg and not metroidvania and not shmup and not run_and_gun and not racing and not farm and not isometric"
       - name: Upload diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: diagnostics-linux-${{ matrix.pyside == 'latest' && 'latest' || 'pyside67' }}
           path: |
@@ -212,7 +212,7 @@ jobs:
         run: python -m pytest -q -m "integration and ${{ matrix.archetype }}"
       - name: Upload diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: diagnostics-${{ matrix.archetype }}-${{ matrix.os }}
           path: |
@@ -241,7 +241,7 @@ jobs:
         run: |
           python -m rpggen analyze --private-corpus "${{ vars.PRIVATE_CORPUS }}"             --packs "${{ vars.PRIVATE_PACKS }}" --report private_corpus_report.json
           cat private_corpus_report.md >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: private-corpus-report
           path: |
