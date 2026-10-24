@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792879460362,
+  "lastUpdate": 1792879802540,
   "repoUrl": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2",
   "entries": {
     "rpggen performance": [
@@ -1416,6 +1416,105 @@ window.BENCHMARK_DATA = {
           {
             "name": "isometric turn-based game from the Stone isle sample",
             "value": 43.93,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "dsferraro@gmail.com",
+            "name": "DocDamage",
+            "username": "DocDamage"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "833496a27df1cc86ed9ed50778e06cef0daf3f8c",
+          "message": "Merge pull request #8 from DocDamage/dependabot/github_actions/actions/download-artifact-8.0.2\n\nBump actions/download-artifact from 4.3.0 to 8.0.2",
+          "timestamp": "2026-10-24T17:54:19-04:00",
+          "tree_id": "314cdd6056a3c859ee0033f8fb3c21fc8f8b8364",
+          "url": "https://github.com/DocDamage/Godot-Project-Maker-4.7.2/commit/833496a27df1cc86ed9ed50778e06cef0daf3f8c"
+        },
+        "date": 1792879799969,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "analysis of 1000 images, cold",
+            "value": 15.44,
+            "unit": "s"
+          },
+          {
+            "name": "analysis of 1000 images, warm",
+            "value": 5.91,
+            "unit": "s"
+          },
+          {
+            "name": "full generation of 1000 images",
+            "value": 85.13,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, nothing changed",
+            "value": 16.42,
+            "unit": "s"
+          },
+          {
+            "name": "regeneration of 1000 images, full",
+            "value": 77.35,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, serial",
+            "value": 18.89,
+            "unit": "s"
+          },
+          {
+            "name": "cold analysis, parallel",
+            "value": 13.13,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, serial",
+            "value": 6.62,
+            "unit": "s"
+          },
+          {
+            "name": "image analysis, parallel",
+            "value": 3.65,
+            "unit": "s"
+          },
+          {
+            "name": "metroidvania from the side-view sample",
+            "value": 43.59,
+            "unit": "s"
+          },
+          {
+            "name": "shoot 'em up from the Star lane sample",
+            "value": 66.51,
+            "unit": "s"
+          },
+          {
+            "name": "run and gun from the Jungle line sample",
+            "value": 49.59,
+            "unit": "s"
+          },
+          {
+            "name": "racing game from the Dirt cup sample",
+            "value": 59.73,
+            "unit": "s"
+          },
+          {
+            "name": "farm from the Green acre sample",
+            "value": 88.99,
+            "unit": "s"
+          },
+          {
+            "name": "isometric turn-based game from the Stone isle sample",
+            "value": 43.82,
             "unit": "s"
           }
         ]
