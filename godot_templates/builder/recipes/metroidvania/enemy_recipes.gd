@@ -97,7 +97,8 @@ func entries(ctx: BuildContext) -> Array[Dictionary]:
 		seen[slug] = true
 		var tags := JsonUtil.to_array(ctx.catalog.effective(a).get("tags", []))
 		out.append({"asset": a, "slug": slug, "index": out.size(), "kind": kind_for(slug, tags), "fallback": false})
-	if out.is_empty():
+	# an assets-only project has the packs' enemies only (T17.33)
+	if out.is_empty() and JsonUtil.to_str(ctx.config.get("archetype", "")) != "assets":
 		for a in ctx.catalog.assets_by_role("PLAYER"):
 			if _usable(ctx, a):
 				out.append({"asset": a, "slug": FALLBACK_SLUG, "index": 0, "kind": "patrol", "fallback": true})
@@ -115,6 +116,8 @@ func guardian_entry(ctx: BuildContext) -> Dictionary:
 			first = a
 	if not first.is_empty():
 		return {"asset": first, "slug": GUARDIAN_SLUG, "index": 0, "kind": "guardian", "fallback": false, "scale": 1.0}
+	if JsonUtil.to_str(ctx.config.get("archetype", "")) == "assets":
+		return {}  # no enemy drawn larger to stand for a boss in an assets-only project (T17.33)
 	var all := entries(ctx)
 	if all.is_empty():
 		return {}

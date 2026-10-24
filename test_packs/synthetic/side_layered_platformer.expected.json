@@ -1,0 +1,26 @@
+{
+  "Background/1 (2).png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "Background/1 (5).png": {
+    "role": "BACKGROUND",
+    "usage": "background"
+  },
+  "Tileset/Tileset.png": {
+    "cell": [
+      16,
+      16
+    ],
+    "margin": [
+      0,
+      0
+    ],
+    "role": "GROUND",
+    "separation": [
+      0,
+      0
+    ],
+    "usage": "tiles"
+  }
+}

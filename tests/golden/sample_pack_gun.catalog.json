@@ -796,7 +796,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.526316,
+      "confidence": 0.8,
       "detected": {
         "frame": [
           16,
@@ -826,7 +826,7 @@
       "pack_id": "sample_pack_gun",
       "path": "assets/packs/sample_pack_gun/props/fern.png",
       "sha256": "42eec3c970cfa2433a1cf88e0374ddcce52e40079574613dbd82be1d62b64ffe",
-      "status": "NEEDS_REVIEW"
+      "status": "AUTO_DETECTED"
     },
     {
       "confidence": 0.9,
@@ -1116,7 +1116,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.6882,
+      "confidence": 0.85,
       "detected": {
         "grid": {
           "cell": [
@@ -1147,72 +1147,195 @@
           128,
           32
         ],
+        "tags": [
+          "side_terrain"
+        ],
         "tile_overrides": {
-          "0,1": {
+          "0,0": {
+            "custom": {
+              "side": "ground"
+            },
             "terrain": {
               "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
                 "bottom_side": 0,
                 "left_side": 0,
                 "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "jungle_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "0,1": {
+            "custom": {
+              "side": "ground"
+            },
+            "probability": 0.0588,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
                 "top_side": 0
               },
-              "set": "jungle_dirt_0_1",
+              "set": "jungle_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "1,0": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "jungle_side_grass_0",
               "terrain": 0
             }
           },
           "1,1": {
-            "probability": 0.35,
+            "custom": {
+              "side": "ground"
+            },
             "terrain": {
               "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
                 "bottom_side": 0,
                 "left_side": 0,
                 "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
                 "top_side": 0
               },
-              "set": "jungle_dirt_0_1",
+              "set": "jungle_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "jungle_side_grass_0",
               "terrain": 0
             }
           },
           "2,1": {
-            "probability": 0.35,
+            "custom": {
+              "side": "ground"
+            },
+            "probability": 0.0588,
             "terrain": {
               "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
                 "bottom_side": 0,
                 "left_side": 0,
                 "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
                 "top_side": 0
               },
-              "set": "jungle_dirt_0_1",
+              "set": "jungle_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "3,0": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "jungle_side_grass_0",
               "terrain": 0
             }
           },
           "3,1": {
-            "probability": 0.35,
+            "custom": {
+              "side": "ground"
+            },
+            "probability": 0.0588,
             "terrain": {
               "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
                 "bottom_side": 0,
                 "left_side": 0,
                 "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
                 "top_side": 0
               },
-              "set": "jungle_dirt_0_1",
+              "set": "jungle_side_grass_0",
               "terrain": 0
+            }
+          },
+          "4,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
+            }
+          },
+          "4,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "hazard": true
+            }
+          },
+          "5,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
+            }
+          },
+          "6,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
             }
           }
         },
@@ -1226,7 +1349,7 @@
       "pack_id": "sample_pack_gun",
       "path": "assets/packs/sample_pack_gun/tiles/jungle.png",
       "sha256": "e1ffca4cf0e59596de0ea6d2d4a6b6bae68a5d732e7c41963ef9feed31e2b29c",
-      "status": "NEEDS_REVIEW"
+      "status": "AUTO_DETECTED"
     },
     {
       "confidence": 0.6,
@@ -1287,7 +1410,7 @@
       "pack_id": "sample_pack_gun",
       "profile_id": null,
       "root": "assets/packs/sample_pack_gun",
-      "source_sha256": "1bcaab96fd561490b92a08acc6b0e85bc66d7a1eb19fe5d7dfe41e5cc4648629",
+      "source_sha256": "e3d2ff17ce5fb1313867be13e9d7ed2f81ebcc7fd49cc4c5e9bc8f1818fc64ec",
       "warnings": [
         "strips_direction_assumed:boss/gate_attack.png",
         "strips_direction_assumed:boss/gate_idle.png",
@@ -1339,17 +1462,17 @@
       ],
       "terrain_sets": [
         {
-          "layout": "plain",
-          "mode": "corners_and_sides",
-          "name": "jungle_dirt_0_1",
-          "over": "ground",
-          "shape": "plain",
+          "layout": "side",
+          "mode": "sides",
+          "name": "jungle_side_grass_0",
+          "over": "nothing",
+          "shape": "side",
           "sheet": "sample_pack_gun.tiles.jungle",
-          "surface": "dirt",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#4caf50",
-              "name": "dirt"
+              "name": "grass"
             }
           ]
         }

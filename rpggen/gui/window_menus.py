@@ -97,6 +97,9 @@ class WindowMenus:
         self.learned_action = self._action(
             edit_menu, self.tr("&Learned rules…"), "learnedRulesAction", self.show_learned_rules
         )
+        self.vision_action = self._action(
+            edit_menu, self.tr("Local &vision model…"), "visionAction", self.show_vision
+        )
         self.confirm_regen_action = self._action(
             edit_menu,
             self.tr("Show changes before regenerating"),
@@ -557,6 +560,12 @@ class WindowMenus:
         pack_ids = [p.pack_id for p in session.catalog.packs] if session is not None else []
         add = audit.add_folder_rules if session is not None else None
         LearnedRulesDialog(None, pack_ids, add, self).exec()  # type: ignore[arg-type]
+
+    def show_vision(self) -> None:
+        """The optional local vision step of the analysis (T17.34)."""
+        from rpggen.gui.dialogs.vision_dialog import VisionDialog
+
+        VisionDialog(self).exec()  # type: ignore[arg-type]
 
     def show_storage(self) -> None:
         StorageDialog(self).exec()  # type: ignore[arg-type]

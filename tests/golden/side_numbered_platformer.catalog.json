@@ -1,0 +1,1605 @@
+{
+  "assets": [
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          216,
+          48
+        ],
+        "origin": [
+          108,
+          47
+        ],
+        "role": "NONE",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "unused_because:characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          22
+        ],
+        "role": "PLAYER",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch0_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                1,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                1
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          20
+        ],
+        "role": "ENEMY",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch1_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          21
+        ],
+        "role": "ENEMY",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch2_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                3,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                3,
+                1
+              ],
+              [
+                4,
+                1
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          22
+        ],
+        "role": "ENEMY",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch3_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                4,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          20
+        ],
+        "role": "ENEMY",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch4_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                5,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                5,
+                1
+              ],
+              [
+                6,
+                1
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          21
+        ],
+        "role": "ENEMY",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch5_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                6,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                6,
+                0
+              ],
+              [
+                7,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          22
+        ],
+        "role": "ENEMY",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch6_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                7,
+                1
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                7,
+                1
+              ],
+              [
+                8,
+                1
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          20
+        ],
+        "role": "ENEMY",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch7_1",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                8,
+                0
+              ]
+            ],
+            "loop": true
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                8,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          24,
+          24
+        ],
+        "grid": {
+          "cell": [
+            24,
+            24
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          12,
+          21
+        ],
+        "role": "ENEMY",
+        "size": [
+          216,
+          48
+        ],
+        "tags": [
+          "characters_cut"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "side_packs",
+      "id": "side_numbered_platformer.tilemap.tilemap_characters_packed#ch8_0",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap-characters_packed.png",
+      "sha256": "132032d201628e67b3842c2e74a28217028c3039cbfba8f14a30b9bb1b84f2d1",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.85,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          128,
+          48
+        ],
+        "tags": [
+          "side_terrain"
+        ],
+        "tile_overrides": {
+          "0,0": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": -1,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "0,1": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": -1,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": 0
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "0,2": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": -1,
+                "left_side": -1,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": 0
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "1,0": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": 0
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "1,2": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": -1,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": 0
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": -1,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "2,1": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": -1,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": 0
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "2,2": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": -1,
+                "left_side": 0,
+                "right_side": -1,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": 0
+              },
+              "set": "tilemap_packed_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "3,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
+            }
+          },
+          "3,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "side": "water"
+            }
+          },
+          "4,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
+            }
+          },
+          "4,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "side": "coin"
+            }
+          },
+          "5,0": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way"
+            }
+          },
+          "5,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "side": "key"
+            }
+          },
+          "6,0": {
+            "collision": {
+              "profile": "LADDER"
+            },
+            "custom": {
+              "ladder": true
+            }
+          },
+          "6,1": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "side": "door"
+            }
+          },
+          "7,0": {
+            "collision": {
+              "profile": "NONE"
+            },
+            "custom": {
+              "hazard": true
+            }
+          }
+        },
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tilemap.tilemap_packed",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tilemap/tilemap_packed.png",
+      "sha256": "33452468b475151e3f92cde437477e39f1a765cab65de7fcc58467dcfc74c97a",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0000",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0000.png",
+      "sha256": "12a161c1d0edbfaa3c956f03d515c1698d7b2103fb03fa33486b6a56e685d8e0",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0001",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0001.png",
+      "sha256": "39056431cab63117a73dde228937ce2443a14f46a3cbe2268093df63113e6e27",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0002",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0002.png",
+      "sha256": "5066b0002199a03602c49ea3811cc7091a8c2f1548325a8accbb07f916527328",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.578125,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0003",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0003.png",
+      "sha256": "4c17cb46496322ea8834f03f64a9c648bc4b3a32201e6bf48e291ea45a0fa4aa",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.578125,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0004",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0004.png",
+      "sha256": "121be9d80562b3575c1b0937857dc03c7265e51f14504ff1e0469d5cbd569cf0",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.578125,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0005",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0005.png",
+      "sha256": "3a7b23d2949f008de58831981345e0b3ce33613a73ba5fd10eb6f7636f4668e4",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.578125,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0006",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0006.png",
+      "sha256": "8343f7ab7e23eac7d3fdc5612a9cd4404e379ae2f000434adcfa1addb3204b8c",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.578125,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0007",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0007.png",
+      "sha256": "bcdb63b1f6ee3f3279c47078bf58783cc4c6d5f8e85a8ac85edc8a1cc7cd7113",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0008",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0008.png",
+      "sha256": "28fd65991d1ee9eafe1c4d67ff7e095ffcab732e173f6d4edc597cccb632786c",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0009",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0009.png",
+      "sha256": "bef977d985efb7365b6239986598275434793d2604da55ec54253a834283c134",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0010",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0010.png",
+      "sha256": "07401c8ed65b31f5a232d38dc3f852ab88c1d28ddb09c423982d198ac944f227",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0011",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0011.png",
+      "sha256": "2754aacb6c6ab510b854218b54eff2a5e67d32bfd8a42b32c41f998fc4501094",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.578125,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0012",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0012.png",
+      "sha256": "e6ac7f94d4af4a2fa414bd92a5f585b781201f4455c105d87e454021f17a3f1e",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.578125,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0013",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0013.png",
+      "sha256": "7501e621b43007134da52ccdf84c3a1f7e12f5b2c66c50e3dcda2296780ed443",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.578125,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0014",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0014.png",
+      "sha256": "62e577faa73c9376902b8193a7e2155e927706d78ef94e65dfa1694de73ab3d2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0015",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0015.png",
+      "sha256": "c2fb2476dd8ff551a2f0058885f2ca50de07a380255ce5bdd544b0bcc61c463b",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0016",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0016.png",
+      "sha256": "9f587535a7afc07d493c097bd93bc9e00f41fa5711726553c4bd330fa39caa4e",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          16,
+          16
+        ],
+        "tags": [
+          "same_as:Tilemap/tilemap_packed.png",
+          "unused_because:same_tiles"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_numbered_platformer.tiles.tile_0017",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_numbered_platformer",
+      "path": "assets/packs/side_numbered_platformer/Tiles/tile_0017.png",
+      "sha256": "65c1628a2b7bf16be16b782ff8c6c30c34d87b75b3fc84b3eef0bc3f94a3b34e",
+      "status": "UNUSED"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/side_numbered_platformer/License.txt"
+      ],
+      "pack_id": "side_numbered_platformer",
+      "profile_id": null,
+      "root": "assets/packs/side_numbered_platformer",
+      "source_sha256": "bb071847a395fd13c8abb2abda4141eb8f998ff99db741f15c745c5511590da5",
+      "warnings": [
+        "view:side"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "side_numbered_platformer.tilemap.tilemap_packed",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [
+        {
+          "layout": "side",
+          "mode": "sides",
+          "name": "tilemap_packed_side_grass_0",
+          "over": "nothing",
+          "shape": "side",
+          "sheet": "side_numbered_platformer.tilemap.tilemap_packed",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "grass"
+            }
+          ]
+        }
+      ],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

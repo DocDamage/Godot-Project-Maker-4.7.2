@@ -31,6 +31,8 @@ The cutting runs in a pool of threads and polls the worker's cancel (``iso_sheet
 from __future__ import annotations
 
 import hashlib
+import posixpath
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -259,7 +261,23 @@ def _role(words: set[str], table: tuple[tuple[frozenset[str], str, str], ...]) -
     return "", ""
 
 
-def _thing(picture: np.ndarray, role: str, tag: str, sure: bool) -> tuple[dict[str, Any], float]:
+SPECIES_WORDS = {
+    "cow": "cow", "cows": "cow", "pig": "pig", "pigs": "pig", "sheep": "sheep",
+    "chicken": "chicken", "chickens": "chicken", "hen": "chicken", "hens": "chicken",
+    "duck": "duck", "ducks": "duck", "goat": "goat", "goats": "goat", "horse": "horse",
+    "horses": "horse",
+}  # fmt: skip
+
+
+def species_of_words(words: set[str]) -> str:
+    """The one species a sheet's name names (``cows.png``), or "" (none, or several)."""
+    found = {SPECIES_WORDS[w] for w in words if w in SPECIES_WORDS}
+    return found.pop() if len(found) == 1 else ""
+
+
+def _thing(
+    picture: np.ndarray, role: str, tag: str, sure: bool, species_said: str = ""
+) -> tuple[dict[str, Any], float]:
     """The facets of one thing cut from a sheet."""
     h, w = picture.shape[:2]
     if role == "BUILDING" and (w < BUILDING_MIN or h < BUILDING_MIN):
@@ -274,7 +292,32 @@ def _thing(picture: np.ndarray, role: str, tag: str, sure: bool) -> tuple[dict[s
         facets["role"] = role
     if tag:
         facets["tags"] = [tag]
+    if role in ("", "DECORATION"):
+        from rpggen.core import figures
+
+        # only a tree is told so surely: bushes, rocks and flowers by their colours alone were
+        # crops, soil and animals as often (that is T17.34's vision step)
+        if w >= BUILDING_MIN and h >= BUILDING_MIN and figures.is_house(picture):
+            # a house or a barn among the things (T17.33: CuteSCKR's farmhouses, which nothing
+            # names): the farm's and the village's own instead of a drawn box
+            facets["role"] = "BUILDING"
+            facets["tags"] = sorted({*facets.get("tags", []), "house"})
+            return facets, NAMED_CONFIDENCE
+        kind = "tree" if figures.is_tree(picture) else None
+        if kind is not None:
+            # a tree, a bush, a rock, flowers among the things of a sheet that names nothing
+            # (T17.33): the farm's own, told by their pictures
+            facets["role"] = "DECORATION"
+            facets["tags"] = sorted({*facets.get("tags", []), kind})
+            return facets, NAMED_CONFIDENCE
     if role == "ANIMAL":
+        # its species (T17.33): the sheet's name when it names one, else what the picture shows,
+        # so each lives in its own house
+        from rpggen.core import figures
+
+        species = species_said or figures.animal_of(picture)
+        if species:
+            facets["tags"] = sorted({*facets.get("tags", []), species})
         # one picture: it stands and walks in it
         facets["grid"] = {"cell": [w, h], "margin": [0, 0], "separation": [0, 0]}
         facets["animations"] = {
@@ -310,7 +353,7 @@ def cut_objects(f: InventoryFile, a: np.ndarray) -> _Cut:
     for x, y, iw, ih, own in found:
         picture = a[y : y + ih, x : x + iw].copy()
         picture[~own] = 0
-        facets, confidence = _thing(picture, role, tag, bool(role))
+        facets, confidence = _thing(picture, role, tag, bool(role), species_of_words(words))
         cut.parts.append(_Part(f"o{x}_{y}", picture, facets, confidence))
     return cut
 
@@ -482,8 +525,150 @@ def _crop_part(a: np.ndarray, cell: int, run: _CropRow) -> _Part:
         a[top : top + high, run.col * cell : (run.col + run.stages) * cell]
     )
     facets = farm._crop_facets(run.stages, cell, high, "crop", "sheet")
-    facets["tags"] = sorted({*facets["tags"], f"cells:{run.row}:{run.col}:{run.stages}"})
+    ripe = strip[:, (run.stages - 1) * cell : run.stages * cell]
+    facets["tags"] = sorted(
+        {*facets["tags"], f"cells:{run.row}:{run.col}:{run.stages}", LOOKS + looks_of(ripe)}
+    )
     return _Part(f"crop{run.col * cell}_{top}", strip, facets, CROP_CONFIDENCE)
+
+
+ITEM_FOLDER_WORDS = frozenset(
+    {"item", "items", "icon", "icons", "crop", "crops", "food", "foods", "produce", "fruit",
+     "fruits", "vegetable", "vegetables", "harvest", "pickup", "pickups"}
+)  # fmt: skip
+ITEM_NAME_NOISE = ITEM_FOLDER_WORDS | {"png", "single", "singles", "x"}
+MAX_ITEMS = 400
+ITEM_MATCH = 0.45  # the largest difference of colour (0..2) of a crop's produce and its item
+
+
+def _hue_histogram(rgba: np.ndarray, mask: np.ndarray) -> np.ndarray | None:
+    rgb = rgba[..., :3].astype(np.float32) / 255.0
+    mx, mn = rgb.max(axis=-1), rgb.min(axis=-1)
+    d = mx - mn
+    sat = np.where(mx > 0, d / np.maximum(mx, 1e-6), 0.0)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    safe = np.maximum(d, 1e-6)
+    hue = (
+        np.where(
+            mx == r, (g - b) / safe % 6, np.where(mx == g, (b - r) / safe + 2, (r - g) / safe + 4)
+        )
+        * 60.0
+    ) % 360.0
+    use = mask & (mx >= 0.3) & (sat >= 0.25) & ~((hue >= 65) & (hue < 170))  # not leaves
+    if int(use.sum()) < 3:
+        return None
+    hist, _edges = np.histogram(hue[use], bins=12, range=(0.0, 360.0))
+    return np.asarray(hist, dtype=np.float32) / float(hist.sum())
+
+
+def named_items(inv: Inventory, root: Path) -> list[tuple[str, np.ndarray]]:
+    """The small named pictures of a pack's folders of items, icons, crops or food, each with
+    the colours of what it shows (T17.33): what a crop of a sheet can be named after."""
+    out: list[tuple[str, np.ndarray]] = []
+    for f in inv.files:
+        if len(out) >= MAX_ITEMS:
+            break
+        if f.kind != "image" or f.ext not in (".png", ".webp") or not f.image:
+            continue
+        if int(f.image.get("w", 0)) > 64 or int(f.image.get("h", 0)) > 64:
+            continue
+        said = _words(f.path)
+        if not said & ITEM_FOLDER_WORDS:
+            continue
+        stem = posixpath.splitext(posixpath.basename(f.path))[0]
+        name = "_".join(
+            w for w in re.split(r"[^a-z]+", stem.casefold()) if w and w not in ITEM_NAME_NOISE
+        )
+        if not name:
+            continue
+        try:
+            a = _load(root / f.path)
+        except (OSError, ValueError):
+            continue
+        hist = _hue_histogram(a, a[..., 3] >= PAINTED_ALPHA)
+        if hist is not None:
+            out.append((name, hist))
+    return out
+
+
+def _ripe_of(render: Path, facets: dict[str, Any]) -> np.ndarray | None:
+    """The ripe (last) stage of a crop's strip as it was saved."""
+    try:
+        a = _load(render)
+    except (OSError, ValueError):
+        return None
+    frame = facets.get("frame") or [0, 0]
+    w = int(frame[0])
+    if w <= 0 or a.shape[1] < w:
+        return None
+    return a[:, a.shape[1] - w :]
+
+
+def match_item(ripe: np.ndarray, items: list[tuple[str, np.ndarray]]) -> str:
+    """The name of the pack's item whose colours are the crop's produce's, when one is clearly
+    nearer than the others; "" otherwise."""
+    if not items:
+        return ""
+    hist = _hue_histogram(ripe, ripe[..., 3] >= PAINTED_ALPHA)
+    if hist is None:
+        return ""
+    scored = sorted((float(np.abs(hist - h).sum()), name) for name, h in items)
+    best, name = scored[0]
+    second = next((d for d, n in scored[1:] if n != name), 2.0)
+    if best <= ITEM_MATCH and second >= 1.25 * best + 0.05:
+        return name
+    return ""
+
+
+LOOKS = "looks:"  # T17.33: a crop no name names is named by its ripe stage's colour and shape
+LOOKS_COLOURS = (
+    (15, "red"), (40, "orange"), (65, "yellow"), (170, "green"), (250, "blue"), (345, "purple"),
+    (360, "red"),
+)  # fmt: skip
+
+
+def looks_of(ripe: np.ndarray) -> str:
+    """``<colour>_<shape>`` of a crop's ripe stage: the colour of its produce (what it paints
+    that is neither leaf nor soil: ``red``, ``orange``, ``yellow``, ``purple``, ``white``,
+    ``brown``; ``leafy`` when all is leaves) and its shape (``stalk`` taller than wide by half,
+    ``bush`` wider than tall by a third, else ``plant``)."""
+    mask = ripe[..., 3] >= PAINTED_ALPHA
+    ys, xs = np.nonzero(mask)
+    if ys.size == 0:
+        return "leafy_plant"
+    h = int(ys.max()) - int(ys.min()) + 1
+    w = int(xs.max()) - int(xs.min()) + 1
+    shape = "stalk" if h >= 1.5 * w else "bush" if w >= 1.33 * h else "plant"
+    rgb = ripe[..., :3].astype(np.float32) / 255.0
+    mx, mn = rgb.max(axis=-1), rgb.min(axis=-1)
+    d = mx - mn
+    sat = np.where(mx > 0, d / np.maximum(mx, 1e-6), 0.0)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    safe = np.maximum(d, 1e-6)
+    hue = (
+        np.where(
+            mx == r, (g - b) / safe % 6, np.where(mx == g, (b - r) / safe + 2, (r - g) / safe + 4)
+        )
+        * 60.0
+    ) % 360.0
+    body = mask.copy()
+    body[int(ys.max()) - max(1, h // 6) + 1 :, :] = False  # the soil it stands in
+    leaf = (hue >= 65) & (hue < 170) & (sat >= 0.2)
+    fruit = body & ~leaf & (mx >= 0.25)
+    if int(fruit.sum()) < max(3, int(0.06 * body.sum())):
+        return f"leafy_{shape}"
+    light = fruit & (sat < 0.2) & (mx >= 0.75)
+    if float(light.sum()) >= 0.5 * float(fruit.sum()):
+        return f"white_{shape}"
+    coloured = fruit & (sat >= 0.2)
+    if not coloured.any():
+        return f"grey_{shape}"
+    hues = np.sort(hue[coloured])
+    middle = float(hues[len(hues) // 2])
+    colour = next(name for top, name in LOOKS_COLOURS if middle < top)
+    if colour in ("red", "orange") and float(np.median(mx[coloured])) < 0.5:
+        colour = "brown"
+    return f"{colour}_{shape}"
 
 
 def sort_cells(a: np.ndarray, cell: int, crops: bool = False) -> _Cut:
@@ -535,7 +720,11 @@ def sort_cells(a: np.ndarray, cell: int, crops: bool = False) -> _Cut:
         mostly = len(full) >= GROUND_WHOLE_SHARE * len(group)
         ground = _ground_cells(a, cell, full) if mostly else set()
         for block in _connected(ground):
-            tiles = [a[r * cell : (r + 1) * cell, c * cell : (c + 1) * cell] for r, c in block]
+            # T17.33: a cell of a painted patch of ground that shows a seam laid beside itself
+            # (CuteSCKR's grass: a grid of dark lines over the farm) is made seamless
+            tiles = [
+                seamless(a[r * cell : (r + 1) * cell, c * cell : (c + 1) * cell]) for r, c in block
+            ]
             sheet = np.concatenate(tiles, axis=1)
             r0, c0 = block[0]
             facets: dict[str, Any] = {
@@ -549,8 +738,46 @@ def sort_cells(a: np.ndarray, cell: int, crops: bool = False) -> _Cut:
             cut.parts.append(_Part(f"g{c0 * cell}_{r0 * cell}", sheet, facets, GROUND_CONFIDENCE))
         for members in _connected({m for m in group if m not in ground}):
             if sum(share[r, c] for r, c in members) >= CELL_SPECK:
-                cut.parts.append(_object_of(a, mask, cell, members))
+                cut.parts.extend(_objects_of(a, mask, cell, members))
     return cut
+
+
+SEAMLESS_RATIO = 0.9  # laid beside itself, a seam this much rougher than its pixels shows
+
+
+def seam_ratio(tile: np.ndarray) -> float:
+    """How much rougher a tile's seams are laid beside itself than its own neighbouring pixels."""
+    t = tile[..., :3].astype(np.int16)
+    near = float(np.abs(np.diff(t, axis=0)).mean() + np.abs(np.diff(t, axis=1)).mean()) / 2
+    seam = max(float(np.abs(t[:, 0] - t[:, -1]).mean()), float(np.abs(t[0] - t[-1]).mean()))
+    ratio = seam / max(near, 1.0)
+    # a line of its own along an edge (a border the sheet drew round its patch) is a seam
+    # however rough the grass inside is: its mean stands out of the means of the lines inside
+    for lines in (t.mean(axis=1), t.mean(axis=0)):
+        inner = lines[1:-1]
+        spread = float(np.abs(inner - inner.mean(axis=0)).mean()) + 1.0
+        for edge in (lines[0], lines[-1]):
+            if float(np.abs(edge - inner.mean(axis=0)).mean()) > 3.0 * spread:
+                ratio = max(ratio, SEAMLESS_RATIO + 1.0)
+    return ratio
+
+
+def seamless(tile: np.ndarray) -> np.ndarray:
+    """``tile`` as it is when it lies beside itself without a seam; else blended with itself
+    moved by half a tile each way, so that its edges are its own middle and meet their
+    neighbours' (the usual way of making a texture tile; for a painted patch of grass it shows
+    nothing, for drawn pixel art it is never needed: such a tile is made to tile)."""
+    if tile.shape[2] != 4 or float((tile[..., 3] >= 250).mean()) < 0.99:
+        return tile
+    if seam_ratio(tile) <= SEAMLESS_RATIO:
+        return tile
+    h, w = tile.shape[:2]
+    moved = np.roll(np.roll(tile, h // 2, axis=0), w // 2, axis=1).astype(np.float32)
+    ys = 1.0 - np.abs(np.arange(h, dtype=np.float32) - (h - 1) / 2.0) / ((h - 1) / 2.0)
+    xs = 1.0 - np.abs(np.arange(w, dtype=np.float32) - (w - 1) / 2.0) / ((w - 1) / 2.0)
+    weight = np.clip(np.minimum(ys[:, None], xs[None, :]) * 2.5, 0.0, 1.0)[..., None]
+    out = tile.astype(np.float32) * weight + moved * (1.0 - weight)
+    return np.asarray(np.clip(np.rint(out), 0, 255), dtype=np.uint8)
 
 
 def _ground_cells(a: np.ndarray, cell: int, full: set[tuple[int, int]]) -> set[tuple[int, int]]:
@@ -613,6 +840,30 @@ def _object_of(a: np.ndarray, mask: np.ndarray, cell: int, members: list[tuple[i
     return _Part(f"o{c0 * cell + x}_{r0 * cell + y}", picture, facets, confidence)
 
 
+def _objects_of(
+    a: np.ndarray, mask: np.ndarray, cell: int, members: list[tuple[int, int]]
+) -> list[_Part]:
+    """The things of the cells ``members``: one, or each of the things apart that the cells
+    hold when they hold two or more of about one size side by side (T17.33: CuteSCKR's two
+    trees, a green and an autumn one, whose crowns cross the same cell)."""
+    one = _object_of(a, mask, cell, members)
+    parts = [i for i in islands(one.picture[..., 3] >= PAINTED_ALPHA) if int(i[4].sum()) > 0]
+    if len(parts) < 2:
+        return [one]
+    largest = max(int(i[4].sum()) for i in parts)
+    big = [i for i in parts if int(i[4].sum()) >= 0.25 * largest]
+    if len(big) < 2:
+        return [one]
+    ox, oy = (int(v) for v in one.variant[1:].split("_"))
+    out = []
+    for x, y, iw, ih, own in big:
+        picture = one.picture[y : y + ih, x : x + iw].copy()
+        picture[~own] = 0
+        facets, confidence = _thing(picture, "DECORATION", "", False)
+        out.append(_Part(f"o{ox + x}_{oy + y}", picture, facets, confidence))
+    return out
+
+
 def _render_name(f: InventoryFile, variant: str) -> str:
     text = f"sheet_part/{RENDER_VERSION}\n{f.sha256}\n{variant}"
     return hashlib.sha256(text.encode("utf-8")).hexdigest() + ".png"
@@ -660,6 +911,8 @@ class SheetPartsAdapter:
 
         cuts = iso_sheets.in_parallel(one, files, ctx)
         crops = 0
+        used_names: dict[str, int] = {}
+        items = None
         for f, cut in zip(files, cuts, strict=True):
             if cut.error:
                 issues.add("ADAPT-001", adapter=self.name, file=f.path, reason=cut.error)
@@ -667,10 +920,22 @@ class SheetPartsAdapter:
                 continue
             for part in cut.parts:
                 if part.facets.get("usage") == "growth_strip":
-                    # named in the pack's order (the sheets by name, a sheet's by its rows)
+                    # named by the pack's item its produce looks like, else by its colour and
+                    # shape (T17.33: no ``crop_1``); a name twice gets a number
                     crops += 1
+                    if items is None:
+                        items = named_items(inv, root)
+                    looks = next(
+                        (t[len(LOOKS) :] for t in part.facets["tags"] if t.startswith(LOOKS)), ""
+                    )
+                    ripe = _ripe_of(work / _render_name(f, part.variant), part.facets)
+                    name = (match_item(ripe, items) if ripe is not None else "") or looks
+                    name = name or f"{CROP_NAME}{crops}"
+                    used_names[name] = used_names.get(name, 0) + 1
+                    if used_names[name] > 1:
+                        name = f"{name}_{used_names[name]}"
                     tags = [t for t in part.facets["tags"] if not t.startswith("produce:")]
-                    part.facets["tags"] = sorted({*tags, f"produce:{CROP_NAME}{crops}"})
+                    part.facets["tags"] = sorted({*tags, f"produce:{name}"})
                 name = _render_name(f, part.variant)
                 project = f"{RENDER_DIR}/{name}"
                 result.assets.append(

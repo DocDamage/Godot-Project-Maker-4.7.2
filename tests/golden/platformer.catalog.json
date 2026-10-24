@@ -165,7 +165,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.4,
+      "confidence": 0.461538,
       "detected": {
         "animations": {
           "attack_down": {
@@ -312,7 +312,7 @@
         "roles_alt": [
           [
             "NPC",
-            0.4
+            0.307692
           ]
         ],
         "size": [
@@ -627,7 +627,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.6,
+      "confidence": 0.578125,
       "detected": {
         "frame": [
           16,
@@ -641,7 +641,7 @@
         "roles_alt": [
           [
             "ITEM",
-            0.142857
+            0.1875
           ]
         ],
         "size": [
@@ -660,7 +660,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.4554,
+      "confidence": 0.85,
       "detected": {
         "grid": {
           "cell": [
@@ -680,81 +680,133 @@
         "roles_alt": [
           [
             "DECORATION",
-            0.0625
+            0.078947
           ],
           [
             "WALL",
-            0.03125
+            0.039474
           ]
         ],
         "size": [
           64,
           32
         ],
+        "tags": [
+          "side_terrain"
+        ],
         "tile_overrides": {
-          "0,1": {
+          "0,0": {
+            "custom": {
+              "side": "ground"
+            },
             "terrain": {
               "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
                 "bottom_side": 0,
                 "left_side": 0,
                 "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
-                "top_side": 0
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
               },
-              "set": "ground_stone_0_1",
+              "set": "ground_side_grass_0",
               "terrain": 0
             }
           },
-          "1,1": {
+          "0,1": {
+            "custom": {
+              "side": "ground"
+            },
             "terrain": {
               "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
                 "bottom_side": 0,
                 "left_side": 0,
                 "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
                 "top_side": 0
               },
-              "set": "ground_stone_1_1",
+              "set": "ground_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "1,0": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "ground_side_grass_0",
+              "terrain": 0
+            }
+          },
+          "2,0": {
+            "custom": {
+              "side": "ground"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "ground_side_grass_0",
               "terrain": 0
             }
           },
           "2,1": {
-            "probability": 0.35,
+            "custom": {
+              "side": "ground"
+            },
+            "probability": 0.1765,
             "terrain": {
               "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
                 "bottom_side": 0,
                 "left_side": 0,
                 "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
                 "top_side": 0
               },
-              "set": "ground_stone_0_1",
+              "set": "ground_side_grass_0",
               "terrain": 0
             }
           },
-          "3,1": {
-            "probability": 0.35,
+          "3,0": {
+            "custom": {
+              "side": "ground"
+            },
             "terrain": {
               "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
                 "bottom_side": 0,
                 "left_side": 0,
                 "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
-                "top_side": 0
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
               },
-              "set": "ground_stone_1_1",
+              "set": "ground_side_grass_0",
               "terrain": 0
             }
           }
@@ -769,7 +821,7 @@
       "pack_id": "platformer",
       "path": "assets/packs/platformer/tiles/ground.png",
       "sha256": "bf1830562bb1ff7f1acf60b30cd5b93815085cf45a9545c6c9b3f31e989cc38e",
-      "status": "NEEDS_REVIEW"
+      "status": "AUTO_DETECTED"
     },
     {
       "confidence": 0.526316,
@@ -901,7 +953,57 @@
       }
     }
   },
-  "objects": [],
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            8,
+            14
+          ],
+          [
+            24,
+            14
+          ],
+          [
+            24,
+            16
+          ],
+          [
+            8,
+            16
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        8,
+        14,
+        16,
+        2
+      ],
+      "id": "platformer.tiles.hazards.spikes#white_wide",
+      "name": "white_wide",
+      "origin": [
+        16,
+        15
+      ],
+      "region": [
+        0,
+        0,
+        32,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "platformer.tiles.hazards.spikes",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:0:0"
+      ]
+    }
+  ],
   "packs": [
     {
       "adapters_matched": [
@@ -985,32 +1087,17 @@
       ],
       "terrain_sets": [
         {
-          "layout": "plain",
-          "mode": "corners_and_sides",
-          "name": "ground_stone_0_1",
-          "over": "ground",
-          "shape": "plain",
+          "layout": "side",
+          "mode": "sides",
+          "name": "ground_side_grass_0",
+          "over": "nothing",
+          "shape": "side",
           "sheet": "platformer.tiles.ground",
-          "surface": "stone",
+          "surface": "grass",
           "terrains": [
             {
               "color": "#4caf50",
-              "name": "stone"
-            }
-          ]
-        },
-        {
-          "layout": "plain",
-          "mode": "corners_and_sides",
-          "name": "ground_stone_1_1",
-          "over": "ground",
-          "shape": "plain",
-          "sheet": "platformer.tiles.ground",
-          "surface": "stone",
-          "terrains": [
-            {
-              "color": "#8d6e63",
-              "name": "stone"
+              "name": "grass"
             }
           ]
         }

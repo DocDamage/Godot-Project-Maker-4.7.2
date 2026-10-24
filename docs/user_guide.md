@@ -161,6 +161,9 @@ them. A prop drawn the same way is one decoration.
 
 **Archetype page.** Choose the kind of game:
 
+* **Assets only** (the first card): no game at all. rpggen makes the tile sets of your packs,
+  which paint with Godot's Terrain tool, and the scenes the **RPG Project Tools** dock places,
+  and you build the levels yourself. See [Assets only](#3e-assets-only).
 * **Turn-based**: encounters on the map start a battle screen with attack, defend, item and run.
   Up to four characters can fight together (the demo villager can bring a companion along).
 * **Action RPG**: real-time sword swings with hitboxes, enemies that chase and attack, a HUD.
@@ -175,7 +178,7 @@ them. A prop drawn the same way is one decoration.
 * **Farm**: crops through days and seasons, a shop, animals and a village to get to know. See
   [Farm](#3c-farm).
 
-There are seven cards: in rows of four in a wide window (1280 px and more), in rows of three
+There are eight cards: in rows of four in a wide window (1280 px and more), in rows of three
 below that, where the third row is reached by scrolling, and in one column in a narrow window.
 Under the cards rpggen says what it saw in your packs: that a pack looks made for one of the
 kinds, or that it *is isometric*, a view four of the kinds have (see
@@ -486,6 +489,44 @@ Audit page a tile's **collision** can be *One-way* (a plank you can jump up thro
 *Ladder*, and the tags `hazard` and `breakable` mark spikes and blocks. The Sound section has
 four more slots: **Jump**, **Land**, **Dash** and **Ability**, filled by file name like the
 others.
+
+**Packs as they come (since T17.32).** rpggen reads the shapes side-view packs are sold in, for
+the metroidvania and the run and gun alike:
+
+* **A tile sheet whose tiles nothing names** (Kenney's pixel platformer packs, ansimuz's and
+  pozak's tile sets): the pictures say which tiles are the ground (its surface on top, its
+  ends, its inside, the faces under it), a plank to jump through, a ladder, spikes, water or
+  a coin; the rooms and stages are painted with that ground, its grass on top and its ends
+  rounded. A tile the pictures leave in doubt (a door, a key, a flag, a sign) is not used,
+  and the report counts them (TILE-016); you can give one its collision on the Audit page.
+  The numbered copies of the same tiles (`tile_0001.png`) are set aside.
+* **A sheet of characters** beside the tiles (`tilemap-characters.png`) is characters: each
+  run of alike frames is one, the first the player, the others enemies.
+* **Ground pieces named by their place** (`grassLeft`, `grassMid`, `grassRight`, `grassCenter`,
+  `grassHalf_left`, `grassCliff_right`, `grassHill_left`) are put together into one tile sheet
+  a surface (`generated/side_terrain/`) and the rooms are painted with them; the `Half`
+  pieces are planks to jump through. A sign, a door or a ledge's decoration is no ground.
+* **Characters as folders of frames** (`Hell-Hound/Sprites/Idle/frame1.png`,
+  `Ogre/Sprites/walk-unarmed/...`, `alienBeige_walk1.png`, `alienBeige_jump.png`): one
+  character with its animations named by the folders or the files; the same animations as
+  strips (`Spritesheets/`) and previews (`.gif`) are set aside. A character whose folder or
+  files say *player*, *hero* or *heroine* is the player, a *boss* the guardian, the others
+  enemies.
+* **Background layers** in a folder (`Background/1 (2).png` to `1 (5).png`, `back`, `middle`,
+  `front`, `sky`, `clouds`) are one parallax set, far to near by their names, their numbers
+  or how much of each is see-through; a room or a stage uses the set nearest its ground's
+  sheet. A folder of whole pictures (several backgrounds to choose from) is no set.
+* **Props** are decorations, never characters. **One tile size a pack**: a sheet in another
+  size than the pack's ground is cut again at that size when it divides it, else it is a
+  picture.
+* **A licence file one folder above** a pack you add on its own (`Assets/license.txt` beside
+  `Assets/Gothicvania/`) is the pack's licence, and the pack's notes in the catalog say where
+  it was found (`licence_above:license.txt`).
+
+What is left to you: animations that nothing names (pozak's beat-'em-up characters are one
+sheet of 16 rows without names: give the rows their names in the audit's *Animations…*
+dialog), and a pack drawn very large (Kenney's 128-pixel *Platformer Pack Remastered*): raise
+the resolution on the Project page so that a room shows more than five tiles across.
 
 **The world options.** On the Options page the *Starter map* box is the **Starter world**:
 
@@ -1195,6 +1236,31 @@ ground; a config file carries both itself (`"archetype"`, `"projection"`, `"iso_
 `--dry-run` says what would be planned, for a farm for example *village: 40 x 24 tiles* and
 *farm: a farm of 40 x 30 with a plot of 96 cells, a pond, 4 crops, 3 people*. See [Running
 rpggen from a script](#7a-running-rpggen-from-a-script).
+
+## 3e. Assets only
+
+Pick the **Assets only** card on the Archetype page when you want to build the levels yourself.
+rpggen then makes no game: no maps, no menus, no player and no main scene. It makes the tile
+sets of your packs (paint them with the **Terrains** tab of Godot's TileMap panel), the scenes
+the **RPG Project Tools** dock places (buildings, props, people, animals, each with its
+collision, animation and what it does) and the catalog. The project's `README.md` walks you
+through a first level.
+
+What the other pages do for it:
+
+* **Mapping** has nothing to assign: there is no player, enemy or sound to choose. Every asset
+  becomes a tile or a scene as the Audit page has it.
+* **Options** has an **Assets only** box with the **View**: *From above*, *From the side* or
+  *Isometric* (when a pack has isometric pictures). It starts as your packs are drawn; *From
+  the side* gives the side-view body's keys (it jumps). The features of a game (the demo
+  scene, saving, dialogue, combat, navigation, the debug tools), the starter map, the imported
+  maps, the layers, the export targets and the presets are not shown.
+* **Generate** does not play the project and does not test-export it: those two steps say
+  *skipped: a project of assets only has no game* (VAL-032), which is no failure.
+* **Results** has **Open in Godot** and no **Play** button.
+
+From the command line it is `rpggen generate --archetype assets`, with `--view top` or
+`--view side` to choose the view instead of the packs.
 
 ## 4. In Godot
 

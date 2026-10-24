@@ -60,6 +60,7 @@ WORK_FOLDER = "iso_cells"
 RENDER_VERSION = 1
 SOURCE_NAMED = "named"  # the source of the pack's diamond in its warning ``isometric:WxH:named``
 UNUSED_SHEET = "iso_sheet"  # the sheet whose cells are assets of their own
+UNUSED_OVERLAY = "ground_overlay"  # a picture of one colour to lay over a ground (darkening)
 UNUSED_PIECE = "iso_piece_not_read"
 TURN_GROUP_TAG = "turn_group:"  # the cells of one wall: catalog.turn_sets groups them by it
 SIDES = ("n", "e", "s", "w")
@@ -222,6 +223,19 @@ def candidates(inv: Inventory, root: Path, claimed: set[str]) -> list[_Sheet]:
         key = tuple(said[1]) if said and said[1] else None
         found.append(_Sheet(f, cell, key))  # type: ignore[arg-type]
     return found
+
+
+NAMED_DIAMONDS_MIN = 3
+NAMED_DIAMONDS_SHARE = 0.3
+
+
+def names_say_diamonds(inv: Inventory, sheets: list[_Sheet]) -> bool:
+    """Whether a pack's names say it is isometric whatever its id (T17.33: Screaming Brain's
+    ``Dry/Path_Dry_01-128x64.png`` analysed as a pack of its own): a good part of its pictures
+    name a cell twice as wide as high, a diamond."""
+    stills = sum(1 for f in inv.files if _is_still(f))
+    named = sum(1 for s in sheets if abs(s.cell[0] - 2 * s.cell[1]) <= 1)
+    return named >= max(NAMED_DIAMONDS_MIN, NAMED_DIAMONDS_SHARE * stills)
 
 
 def pack_diamonds(sheets: list[_Sheet]) -> list[Diamond]:
@@ -430,6 +444,35 @@ def diamond_of(a: np.ndarray, d: Diamond) -> np.ndarray | None:
     return out
 
 
+PATCH_FADE = 0.35  # a patch on a ground fades out over this share of the way to its edges
+
+
+def patch_on(ground: np.ndarray, patch: np.ndarray, d: Diamond) -> np.ndarray | None:
+    """A patch of a ground (see-through, as large as the ground picture) laid on the diamond
+    ``ground`` was cut as (T17.33): the middle of the patch over it, fading out toward the
+    diamond's edges (``PATCH_FADE``), so the variant meets every other diamond of the ground
+    as the ground itself does. None when the patch is smaller than the diamond or paints
+    nothing inside it."""
+    h, w = patch.shape[:2]
+    if w < d.width or h < d.height or ground.shape[:2] != (d.height, d.width):
+        return None
+    x0, y0 = (w - d.width) // 2, (h - d.height) // 2
+    part = patch[y0 : y0 + d.height, x0 : x0 + d.width].astype(np.float32)
+    ys, xs = np.mgrid[0 : d.height, 0 : d.width]
+    u = (xs + 0.5 - d.width / 2) / (d.width / 2)
+    v = (ys + 0.5 - d.height / 2) / (d.height / 2)
+    reach = np.abs(u) + np.abs(v)
+    fade = np.clip((1.0 - reach) / PATCH_FADE, 0.0, 1.0)
+    alpha = (part[..., 3] / 255.0) * fade
+    if float(alpha.max()) < 0.2:
+        return None
+    out = ground.astype(np.float32).copy()
+    out[..., :3] = part[..., :3] * alpha[..., None] + out[..., :3] * (1.0 - alpha[..., None])
+    result = out.round().astype(np.uint8)
+    result[reach > 1.0] = 0
+    return result
+
+
 GROUND_WORDS = frozenset({"ground", "floor", "floors", "terrain", "grass", "dirt", "earth"})
 SOURCE_GROUND = "ground_picture"
 FIGURE_SCALE = 1.0  # a ground picture's diamond is halved while it stays this wide, of a figure
@@ -471,6 +514,8 @@ def ground_pictures(
             width //= 2
     d = Diamond(width, width // 2)
     found: list[tuple[InventoryFile, np.ndarray]] = []
+    patches: list[tuple[InventoryFile, np.ndarray]] = []
+    overlays: list[InventoryFile] = []
     for f in pictures:
         if ctx is not None:
             ctx.check_cancel()
@@ -478,13 +523,30 @@ def ground_pictures(
             a = _load(root / f.path)
         except (OSError, ValueError):
             continue
-        if not bool((a[..., 3] == 255).all()) or float(a[..., :3].std()) < PLAIN_STD:
-            continue  # see-through, or one colour all over (a darkening overlay): no ground
+        if not bool((a[..., 3] == 255).all()):
+            patches.append((f, a))  # see-through: a patch to lay on the ground (T17.33)
+            continue
+        if float(a[..., :3].std()) < PLAIN_STD:
+            overlays.append(f)  # one colour all over (a darkening overlay): no ground
+            continue
         cut = diamond_of(a, d)
         if cut is not None:
             found.append((f, cut))
     if not found:
         return None
+    main_key = f"{found[0][0].path}#diamond"
+    variants: dict[str, str] = {}
+    if found:
+        # a patch of a ground (*Lords Of Pain*'s ``ground_variation1``, a darker stain with soft
+        # edges) laid on the first ground is a variant of it, a diamond of its own (T17.33); the
+        # patch and the overlay are set aside, their use is this
+        for f, a in patches:
+            cut = patch_on(found[0][1], a, d)
+            if cut is not None:
+                found.append((f, cut))
+                variants[f.path] = main_key
+        for f in overlays:
+            result.assets.append(aside(f, UNUSED_OVERLAY))
     for f, cut in found:
         facets: dict[str, Any] = {
             "usage": "iso_tile",
@@ -496,6 +558,8 @@ def ground_pictures(
             "size": [d.width, d.height],
             "role": "GROUND",
         }
+        if f.path in variants and ctx is not None:
+            facets["tags"] = ["variant_of:" + _diamond_id(ctx.pack_id, variants[f.path])]
         name = _render_name(f, "diamond")
         dest = work / name
         try:
@@ -512,6 +576,14 @@ def ground_pictures(
     return d.width, d.height
 
 
+def _diamond_id(pack_id: str, key: str) -> str:
+    """The asset id of a picture's diamond (``<path>#diamond``)."""
+    from rpggen import ids
+
+    path, _sep, variant = key.partition("#")
+    return f"{ids.asset_id(pack_id, path)}#{variant}"
+
+
 def _render_name(sheet: InventoryFile, part: str) -> str:
     text = f"iso_cell/{RENDER_VERSION}\n{sheet.sha256}\n{part}"
     return hashlib.sha256(text.encode("utf-8")).hexdigest() + ".png"
@@ -525,9 +597,11 @@ class IsoSheetsAdapter:
         from rpggen.core.adapters import isometric
 
         words = isometric.pack_words(inv, root)
-        if not words.isometric or words.excluded:
+        if words.excluded:
             return 0.0
         sheets = candidates(inv, root, set())
+        if not words.isometric and not names_say_diamonds(inv, sheets):
+            return 0.0
         diamonds = pack_diamonds(sheets) or face_diamonds(root, sheets)
         classify_sheets(sheets, diamonds)
         return 1.0 if any(s.kind for s in sheets) else 0.0
@@ -538,9 +612,11 @@ class IsoSheetsAdapter:
         result = AdapterResult(self.name)
         issues = IssueList()
         words = isometric.pack_words(inv, root)
-        if not words.isometric or words.excluded:
+        if words.excluded:
             return result
         sheets = candidates(inv, root, ctx.claimed)
+        if not words.isometric and not names_say_diamonds(inv, sheets):
+            return result
         diamonds = pack_diamonds(sheets) or face_diamonds(root, sheets, ctx)
         classify_sheets(sheets, diamonds)
         if not any(s.kind for s in sheets):

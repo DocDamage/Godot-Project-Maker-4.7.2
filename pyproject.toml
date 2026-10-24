@@ -24,7 +24,7 @@ rpggen = "rpggen.cli:main"
 [tool.setuptools.packages.find]
 include = ["rpggen*"]
 [tool.setuptools.package-data]
-rpggen = ["schema/*.json", "gui/*.qss.in", "gui/icons/*.svg"]
+rpggen = ["schema/*.json", "data/*.json", "gui/*.qss.in", "gui/icons/*.svg"]
 [tool.ruff]
 line-length = 100
 extend-exclude = ["godot_templates", "docs/spec", ".venv", "rpggen/errors_table.py"]

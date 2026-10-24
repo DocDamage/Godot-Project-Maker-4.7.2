@@ -606,7 +606,7 @@
       "status": "AUTO_DETECTED"
     },
     {
-      "confidence": 0.4437,
+      "confidence": 0.4,
       "detected": {
         "grid": {
           "cell": [
@@ -626,15 +626,15 @@
         "roles_alt": [
           [
             "ROAD",
-            0.3
+            0.385714
           ],
           [
             "DECORATION",
-            0.066667
+            0.085714
           ],
           [
             "WALL",
-            0.033333
+            0.042857
           ]
         ],
         "size": [
@@ -645,24 +645,7 @@
           "road"
         ],
         "tile_overrides": {
-          "1,0": {
-            "terrain": {
-              "peering": {
-                "bottom_left_corner": 0,
-                "bottom_right_corner": 0,
-                "bottom_side": 0,
-                "left_side": 0,
-                "right_side": 0,
-                "top_left_corner": 0,
-                "top_right_corner": 0,
-                "top_side": 0
-              },
-              "set": "road_path_1_0",
-              "terrain": 0
-            }
-          },
           "2,0": {
-            "probability": 0.35,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -674,7 +657,7 @@
                 "top_right_corner": 0,
                 "top_side": 0
               },
-              "set": "road_path_1_0",
+              "set": "road_path_2_0",
               "terrain": 0
             }
           },
@@ -695,7 +678,7 @@
             }
           },
           "7,1": {
-            "probability": 0.35,
+            "probability": 0.1765,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -782,7 +765,7 @@
       "pack_id": "sample_pack_race",
       "profile_id": null,
       "root": "assets/packs/sample_pack_race",
-      "source_sha256": "9a49174541c3fab39c9ac3c723e338ebea871e865d4df3d282c691efb5bcd9e2",
+      "source_sha256": "fd8c6b341062960321fcb4841a9061ca3a29f2ded0c33c050fd42af1ebcb2a22",
       "warnings": [
         "view:racing"
       ]
@@ -824,7 +807,7 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
-          "name": "road_path_1_0",
+          "name": "road_path_2_0",
           "over": "ground",
           "shape": "plain",
           "sheet": "sample_pack_race.tiles.road",

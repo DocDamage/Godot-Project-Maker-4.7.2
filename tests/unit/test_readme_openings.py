@@ -45,7 +45,8 @@ def _opening(text: str) -> str:
 
 
 def test_the_seven_kinds_are_the_kinds_there_are() -> None:
-    assert set(KINDS) == set(staging.ARCHETYPES)
+    # and the kind of no game, whose README is of its own (T17.33: tests/unit/test_assets_kind.py)
+    assert set(KINDS) | {"assets"} == set(staging.ARCHETYPES)
 
 
 @pytest.mark.parametrize("kind", KINDS)

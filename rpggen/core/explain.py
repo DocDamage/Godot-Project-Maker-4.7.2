@@ -107,6 +107,18 @@ UNUSED_REASONS = {
         "a piece of a portrait drawn in layers (its eyes, its hair): rpggen does not put a "
         "portrait together. Give it a role to use it alone."
     ),
+    "part_of_thing": (
+        "a piece of a thing drawn over several cells of a sheet (half a tree); the whole thing "
+        "is in the dock. Give it a role to use this piece alone as well."
+    ),
+    "ground_overlay": (
+        "one colour all over, to lay over a ground in a game (a darkening); no ground and nothing "
+        "to place. Give it a role to use it."
+    ),
+    "trimmed_copy": (
+        "the same picture as one of a folder of fixed size beside it, cut to what it paints "
+        "(Kenney's 'Variable sizes'); the fixed size is used. Give it a role to use this one."
+    ),
     "same_tiles": (
         "the same tiles as another picture of this pack (a sheet with spacing, a packed sheet "
         "or single files of one set); one form is used. Give it a role to use this one as well."
@@ -187,6 +199,12 @@ def why(asset: catalog_mod.Asset) -> str:
         )
     elif asset.detected_by and asset.detected_by not in ("inventory", "generic_grid"):
         parts.append(f"read by the {asset.detected_by} reader")
+    if "roof_half_cell" in (eff.get("tags") or []):
+        # T17.33: why a house of these pieces has a roof drawn in their colours
+        parts.append(
+            "a roof piece over half a cell: laid a cell each it makes no one roof, so a house's "
+            "roof is drawn in its colours"
+        )
     for tag in eff.get("tags") or []:
         if isinstance(tag, str) and tag.startswith(classifier.VARIANT_TAG):
             other = _named(tag[len(classifier.VARIANT_TAG) :])

@@ -150,10 +150,8 @@ def test_tags_without_a_name_still_say_where_the_animations_are(tmp_path: Path) 
     (pack / "CHARACTER" / "CHARACTER.aseprite").write_bytes(ase.write(8, 8, [100] * 10, tags))
     res = _extract(pack, tmp_path / "work")
     (hero,) = res.assets
-    assert _lengths(hero) == {"anim_1": 3, "anim_2": 3, "anim_3": 3}
-    assert hero.confidence == sequences.UNNAMED_CONFIDENCE
-    (note,) = res.issues
-    assert note.code == "ADAPT-005" and "3 animations" in note.message
+    assert _lengths(hero) == {"idle_down": 3, "idle_2_down": 3, "idle_3_down": 3}  # by their frames
+    assert hero.confidence == sequences.MOTION_CONFIDENCE and res.issues == [], "named: no note"
 
 
 def test_a_source_makes_frames_of_pictures_no_blank_separates(tmp_path: Path) -> None:
@@ -180,8 +178,11 @@ def test_a_source_that_cannot_be_read_is_a_note_and_the_pictures_are_used(tmp_pa
     (pack / "BOX" / "BOX.aseprite").write_bytes(whole[: len(whole) - 20])
     res = _extract(pack, tmp_path / "work")
     (box,) = res.assets
-    assert _lengths(box) == {"anim_1": 3, "anim_2": 3}  # cut at the blank frame, as without it
-    assert [i.code for i in res.issues] == ["ADAPT-006", "ADAPT-005"]
+    assert _lengths(box) == {
+        "idle_down": 3,
+        "idle_2_down": 3,
+    }  # cut at the blank frame, as without it
+    assert [i.code for i in res.issues] == ["ADAPT-006"]
     assert "BOX/BOX.aseprite" in res.issues[0].message and res.issues[0].severity.value == "info"
 
 
@@ -394,16 +395,15 @@ def test_a_source_without_tags_takes_its_name_or_is_what_a_prop_does(tmp_path: P
     assert by_path["rock.aseprite"]["size"] == [8, 8]
 
 
-def test_tags_without_names_of_a_drawn_source_need_review(tmp_path: Path) -> None:
+def test_tags_without_names_of_a_drawn_source_are_named_by_their_frames(tmp_path: Path) -> None:
     pack = tmp_path / "pack"
     pack.mkdir()
     tags = [Tag("Tag", 0, 1, "forward", 0), Tag("Tag", 2, 3, "forward", 0)]
     (pack / "ghost.aseprite").write_bytes(_slime(4, tags))
     res = _extract(pack, tmp_path / "work")
     (ghost,) = res.assets
-    assert _lengths(ghost) == {"anim_1": 2, "anim_2": 2}
-    assert ghost.confidence == sequences.UNNAMED_CONFIDENCE
-    assert [i.code for i in res.issues] == ["ADAPT-005"]
+    assert _lengths(ghost) == {"idle_down": 2, "hurt_down": 2}  # named by their frames (T17.33)
+    assert ghost.confidence == sequences.MOTION_CONFIDENCE and res.issues == []
 
 
 def test_a_source_that_has_an_export_is_not_drawn(tmp_path: Path) -> None:

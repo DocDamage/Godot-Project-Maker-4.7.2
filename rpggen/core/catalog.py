@@ -779,6 +779,8 @@ def _side_view_usage(assets: list[Asset]) -> None:
 
 # A pack warning: the pack looks like a side-view (platformer) pack (T14.02).
 VIEW_SIDE = "view:side"
+# A pack warning: the licence file was found one folder above the pack (T17.32).
+LICENCE_ABOVE = "licence_above:"
 
 
 def _side_view_soldier(assets: list[Asset]) -> None:
@@ -798,6 +800,39 @@ def _side_view_soldier(assets: list[Asset]) -> None:
             facets["role"] = "PLAYER"
             facets.pop("roles_alt", None)
             return
+
+
+PORTRAIT_SCALE = 3  # a person this many times as large as another of its folder is its face
+
+
+def _large_twin_portraits(assets: list[Asset]) -> None:
+    """A person drawn again much larger beside its sprite is its portrait (T17.33: *Farm RPG*'s
+    ``Premade/Alaric/Blacksmith aseprite.png``, 128 px, beside ``Blacksmith Idle.png``, 32 px,
+    was placed from the dock as a giant): a ``PLAYER`` or ``NPC`` that only stands, whose frame
+    is ``PORTRAIT_SCALE`` times another person's of the same folder each way, is a ``PORTRAIT``.
+    Never over a profile or a learned value."""
+    people = [
+        a for a in assets
+        if a.kind == "image" and a.detected.get("role") in FARM_CHARACTER_ROLES
+        and a.detected.get("usage") == "sprite" and len(a.detected.get("frame") or []) == 2
+    ]  # fmt: skip
+    for asset in people:
+        if asset.detected_by in ("profile", "learned"):
+            continue
+        facets = asset.detected
+        if {str(n).split("_", 1)[0] for n in facets.get("animations") or {}} - {"idle"}:
+            continue  # it walks: a person
+        fw, fh = (int(v) for v in facets["frame"])
+        folder = asset.path.rsplit("/", 1)[0]
+        for other in people:
+            if other is asset or other.path.rsplit("/", 1)[0] != folder:
+                continue
+            ow, oh = (int(v) for v in other.detected["frame"])
+            if fw >= PORTRAIT_SCALE * ow and fh >= PORTRAIT_SCALE * oh:
+                facets["role"] = "PORTRAIT"
+                facets.pop("roles_alt", None)
+                facets["tags"] = sorted({*(facets.get("tags") or []), "portrait_of:" + other.id})
+                break
 
 
 def _farm_farmer(assets: list[Asset]) -> None:
@@ -821,6 +856,10 @@ def _farm_farmer(assets: list[Asset]) -> None:
 
 
 FARM_CHARACTER_ROLES = frozenset({"PLAYER", "NPC"})
+# what the tool word of a strip may make of it beside its folder's word (``farmer_water_down``
+# in ``characters/``: water, ``farmer_axe_down``: a weapon), before it is known to be a strip of a
+# character of its folder
+FARM_USE_STRIP_ROLES = frozenset({"WATER", "WEAPON", "TOOL"})
 
 
 def _farm_use_strips(assets: list[Asset]) -> None:
@@ -839,13 +878,13 @@ def _farm_use_strips(assets: list[Asset]) -> None:
             asset.kind == "image"
             and facets.get("usage") == "sprite"
             and bool(facets.get("animations"))
-            and facets.get("role") in FARM_CHARACTER_ROLES
+            and facets.get("role") in FARM_CHARACTER_ROLES | FARM_USE_STRIP_ROLES
         )
 
     found = [(a, *classifier.character_words(a.path)) for a in assets if character(a)]
     who: dict[tuple[str, tuple[str, ...]], Asset] = {}
     for asset, words, tool in sorted(found, key=lambda row: row[0].id):
-        if words and not tool:
+        if words and not tool and asset.detected.get("role") in FARM_CHARACTER_ROLES:
             who.setdefault((asset.path.rsplit("/", 1)[0], tuple(words)), asset)
     for asset, words, tool in found:
         owner = who.get((asset.path.rsplit("/", 1)[0], tuple(words)))
@@ -870,6 +909,7 @@ FARM_TOOL_REPLACED_ROLES = FARM_REPLACED_ROLES | {"WATER", "WEAPON"}  # tools/wa
 
 
 FARM_ICON_FOLDERS = frozenset({"icon", "icons", "item", "items", "food", "foods"})
+FARM_ICON_NOT_PEOPLE = frozenset({"ANIMAL", "NPC", "ENEMY", "PLAYER", "BOSS"})
 WATER_TILE_MOST = 64  # px: a single picture of water this large or smaller is one tile
 
 
@@ -887,6 +927,17 @@ def _farm_water(asset: Asset, facets: dict[str, Any], root: str) -> bool:
         if role in ("WATER", "GROUND"):
             facets["role"] = "ITEM"
             facets.pop("roles_alt", None)
+            return True
+        icons = {f.casefold() for f in folders} & {"icon", "icons"}
+        if role == "ITEM" and icons:
+            return True  # an icon read as an item stays one, animated or not (Wool.png)
+        if role in FARM_ICON_NOT_PEOPLE and icons:
+            # an icon is no character (T17.33: *Farm RPG*'s ``Icons/Farm Animals/Wool.png``, the
+            # wool drawn twice, was a sheep that walked): an item, its first picture
+            facets["role"] = "ITEM"
+            facets.pop("roles_alt", None)
+            facets.pop("animations", None)
+            facets.pop("directions", None)
             return True
         return False
     size = facets.get("size") or [0, 0]
@@ -1578,11 +1629,16 @@ def assemble(
     is_cancelled: Callable[[], bool] | None = None,
     progress: Progress | None = None,
     learned: list[Any] | None = None,
+    vision: Any | None = None,
 ) -> tuple[Catalog, IssueList, dict[str, str]]:
     """Run adapters, classify and merge everything into a Catalog.
 
     ``learned`` are the rules learned from the user's fixes (T12.59; only the wizard passes
     them): the learned adapter proposes their values.
+
+    ``vision`` is the local vision model (``vision.llama.LlamaConfig``, T17.34; only the wizard
+    passes it, when the user turned the step on): it is asked about the pictures rpggen is not
+    sure of, and changes their role where it was measured to help.
 
     ``progress`` receives ``("Analyzing images", done, total)`` per pack and ``is_cancelled`` is
     polled before every image, so a cancel raises ``AssemblyCancelled`` within one image.
@@ -1590,7 +1646,7 @@ def assemble(
     Returns ``(catalog, issues, generated_files)`` where generated_files maps project-relative
     paths (GIF strips) to the absolute files the installer must copy.
     """
-    from rpggen.core import adapters, classifier, pack_forms, terrain
+    from rpggen.core import adapters, classifier, pack_forms, side_packs, terrain
     from rpggen.core.adapters import farm, strips
     from rpggen.core.analyzer import analyzer_for, prewarm
 
@@ -1607,6 +1663,7 @@ def assemble(
     pack_roots: dict[str, Path] = {}
     picture_hashes: dict[str, str] = {}  # asset id -> difference hash (T13.04)
     farm_ids: set[str] = set()  # the farming packs (T17.29)
+    side_ids: set[str] = set()  # the packs seen from the side (T17.32)
 
     for opened, inv in sorted(packs, key=lambda pair: _sort_key(pair[1].pack_id)):
         if is_cancelled is not None and is_cancelled():
@@ -1843,7 +1900,16 @@ def assemble(
         licence_paths = _licence_paths(inv, opened.root)
         license_files = _license_files(licence_paths, root)
         stated = _stated_licence(pack_id, previous, results)
-        if not license_files and stated:
+        above = (
+            licenses.licence_above(opened.root)
+            if not license_files and opened.kind == "folder"
+            else None
+        )
+        if above is not None:
+            # the licence one folder above a pack analysed alone (T17.32): what it says is the
+            # pack's, and the pack says where it was found
+            warnings.append(f"{LICENCE_ABOVE}{above[0]}")
+        elif not license_files and stated:
             # the user stated it on the Audit page or in the pack's profile (T17.30)
             issues.add(
                 "ASSET-036",
@@ -1855,7 +1921,7 @@ def assemble(
             issues.add("ASSET-021", pack_id=pack_id, file=root)
         _side_view_usage([a for a in catalog.assets if a.pack_id == pack_id])
         sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
-        view = classifier.made_for(inv, sheets)
+        view = classifier.made_for(inv, sheets, opened.root.name if opened.kind == "folder" else "")
         if farm_pack and view == "top" and not classifier.isometric_view(inv, sheets):
             view = "farm"  # its own name says farm and its files nothing else (T17.29)
         elif (
@@ -1921,7 +1987,27 @@ def assemble(
                         facets["footprint"] = [int(diamond_said[0]), int(diamond_said[2])]
         if view == "side":
             _side_view_soldier([a for a in catalog.assets if a.pack_id == pack_id])
+            # what real side-view packs are (T17.32): their creatures enemies, their props no
+            # characters, their background layers ordered sets, their character sheets cut
+            side_ids.add(pack_id)
+            own = [a for a in catalog.assets if a.pack_id == pack_id]
+            side_packs.frame_sheets(own, opened.root, root)
+            side_packs.tile_copies(own, opened.root, root)
+            side_packs.characters(own, root)
+            side_packs.props(own, root)
+            side_packs.not_ground(own, root)
+            side_packs.parallax_sets(own, opened.root, root)
+            cut = side_packs.character_sheets(own, opened.root, root)
+            catalog.assets.extend(cut)
+            present_ids.update(a.id for a in cut)
         if view == "farm":
+            # the people and animals of numbered tiles, told from their pictures (T17.33)
+            from rpggen.core import figures
+
+            figures.read_numbered(
+                [a for a in catalog.assets if a.pack_id == pack_id], opened.root, root
+            )
+            _large_twin_portraits([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_farmer([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_use_strips([a for a in catalog.assets if a.pack_id == pack_id])
             _farm_roles([a for a in catalog.assets if a.pack_id == pack_id], root)
@@ -1952,7 +2038,11 @@ def assemble(
                 [r.adapter for r in results if r.assets or r.objects or r.tilesets],
                 next((r.profile_id for r in results if r.profile_id), None),
                 sorted(set(warnings)),
-                licenses.detect_files(opened.root, licence_paths).to_json(),
+                (
+                    above[1]
+                    if above is not None
+                    else licenses.detect_files(opened.root, licence_paths)
+                ).to_json(),
                 _profile_licence(results),
             )
         )
@@ -1970,12 +2060,25 @@ def assemble(
     mark_season_variants(catalog)
     mark_turns(catalog)
 
+    # the tiles of side-view packs (T17.32): terrains of named pieces and of the cells of their
+    # sheets, the kinds of those cells, one tile size a pack
+    side_sets, side_files = side_packs.read_tiles(
+        catalog,
+        pack_roots,
+        side_ids,
+        work_dir,
+        issues,
+        lambda job, items: terrain._in_parallel(job, items, is_cancelled),
+    )
+    generated.update(side_files)
     # terrain: Tiled wang sets -> peering, A2 composites (new assets), blob proposals (T8.06)
     terrain.apply_tiled_wang(catalog, adapter_tilesets)
     terrain_result = terrain.generate(
         catalog, pack_roots, work_dir, issues, is_cancelled, generated
     )
     generated.update(terrain_result.generated)
+    for asset_id, found_sets in side_sets.items():
+        terrain_result.terrain_sets.setdefault(asset_id, []).extend(found_sets)
     # the isometric pieces that join along the sides of a diamond (T17.31)
     terrain.iso.read(
         catalog,
@@ -2012,7 +2115,12 @@ def assemble(
                 previous,
             )
         )
+    # what a farming pack lacks of a game's dress, made of its own pictures (T17.33)
+    from rpggen.core import farm_dress
+
+    generated.update(farm_dress.dress(catalog, farm_ids, pack_roots, generated, work_dir))
     _add_objects(catalog, objects_raw, previous)
+    side_packs.prop_objects(catalog, side_ids)  # props cut from a sheet are no NPCs (T17.32)
     # the things cut from a sheet set aside as another form are set aside too (T17.29: the
     # 16 000 objects of *Modern Farm*'s sheets at three sizes and in a complete set)
     by_id = {a.id: a for a in catalog.assets}
@@ -2035,10 +2143,30 @@ def assemble(
             words = set(classifier.tokens(sheet.path)[0]) | set(classifier.tokens(sheet.path)[1])
             if words & NOT_A_HOUSE_WORDS and not words & HOUSE_WORDS:
                 obj.role = "DECORATION"
+    farm_dress.animal_houses(catalog, farm_ids, pack_roots)  # its own barn, coop, house (T17.33)
+    farm_dress.trees(catalog, farm_ids, pack_roots)  # and its own trees
     assign_tilesets(catalog, previous, adapter_tilesets)
     terrain.attach_terrain_sets(catalog, terrain_result)
+    from rpggen.core import sheet_things
+
+    # the trees and rocks of a sheet of tiles (T17.33), once its terrains take their cells; and
+    # no object of a background or of tiles of a kind (a ladder)
+    sheet_things.drop_misread(catalog)
+    generated.update(sheet_things.add(catalog, pack_roots, work_dir))
     resolve_maps(catalog, maps_raw, previous, issues)
+    from rpggen.core import calibration
+
+    if vision is not None:
+        _ask_vision(catalog, vision, pack_roots, generated)
+    publisher_of = {p.pack_id: calibration.publisher_id(p.license) for p in catalog.packs}
     for asset in catalog.assets:
+        # a reader's confidence as the answer key measured it, its publisher's first (T17.34)
+        asset.confidence = calibration.calibrate(
+            asset.detected_by,
+            str(effective(asset).get("role", "")),
+            asset.confidence,
+            publisher_of.get(asset.pack_id, ""),
+        )
         asset.status = recompute_status(
             asset,
             file_missing=asset.status == "MISSING",
@@ -2046,6 +2174,35 @@ def assemble(
         )
     catalog.assets.sort(key=lambda a: _sort_key(a.id))
     return catalog, issues, generated
+
+
+def _ask_vision(
+    catalog: Catalog,
+    config: Any,
+    pack_roots: dict[str, Path],
+    generated: dict[str, str],
+) -> None:
+    """The local vision step (T17.34); a model that cannot be started is a warning, never a
+    failed analysis."""
+    import logging
+
+    from rpggen.core import vision
+
+    log = logging.getLogger(__name__)
+
+    def file_of(asset: Asset) -> Path | None:
+        if asset.path in generated:
+            return Path(generated[asset.path])
+        root = pack_roots.get(asset.pack_id)
+        return root / asset.path.split("/", 3)[-1] if root is not None else None
+
+    try:
+        changed = vision.apply(catalog.assets, file_of, config, AUTO_CONFIDENCE)
+    except (OSError, RuntimeError, TimeoutError, ValueError) as exc:
+        log.warning("the vision step was skipped: %s", exc)
+        return
+    if changed:
+        log.info("the vision step changed the role of %d pictures", changed)
 
 
 # --------------------------------------------------------------------------- maps (T12.49)

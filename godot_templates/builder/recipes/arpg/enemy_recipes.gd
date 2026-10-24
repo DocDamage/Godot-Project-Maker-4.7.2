@@ -163,6 +163,8 @@ func entries(ctx: BuildContext) -> Array[Dictionary]:
 					index = JsonUtil.to_int(e["index"])
 			out.append({"asset": a, "slug": slug, "index": index, "fallback": false, "recolour": recolour})
 		return out
+	if JsonUtil.to_str(ctx.config.get("archetype", "")) == "assets":
+		return out  # an assets-only project has the packs' enemies only (T17.33)
 	for a in ctx.catalog.assets_by_role("PLAYER"):
 		if _usable(ctx, a):
 			out.append({"asset": a, "slug": FALLBACK_SLUG, "index": 0, "fallback": true})
@@ -242,6 +244,8 @@ func input_hash(ctx: BuildContext) -> String:
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	var list := entries(ctx)
+	if list.is_empty() and JsonUtil.to_str(ctx.config.get("archetype", "")) == "assets":
+		return issues  # an assets-only project of packs without enemies (T17.33)
 	if list.is_empty():
 		issues.append(ctx.make_issue("BUILD-002", {"recipe": "enemy_recipes", "reason": "no ENEMY or PLAYER sprite asset to build an enemy from"}))
 		return issues

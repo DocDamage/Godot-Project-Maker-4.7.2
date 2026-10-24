@@ -18,6 +18,34 @@ after the tag: M13 (release 1.1.0) is implemented on the branch `m13` and waits 
 (T13.23); M14 (release 1.2.0) is implemented on the branch `m14` and waits for its gate's manual
 rows (T14.13), below.
 
+## The aim (2026-10-15)
+
+The owner's words: "the whole purpose is for me to be able to make my own levels without having
+to add all the underlying logic to my assets as I import them." Generated starter maps, villages
+and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is
+ranked so: (1) every asset read right (role, frames, animation names, size, terrain); (2)
+TileSets that paint right with Godot's own Terrain tool in the editor, with collision, one-way
+platforms, ladders, hazards and water as tile data; (3) every building, prop and character
+correct when dropped from the RPG Project Tools dock (the pack's art and scale, sorting,
+collision, animation, behaviour); (4) the composition of generated maps, last. A card is judged
+in the editor: a short level painted with the terrain tool and furnished from the dock, played,
+and looked at beside the pack's own sample picture.
+
+**Later the same day the generated games were dropped** ("we are not even supposed to be worrying
+about those any more"): no game is generated or played to judge the work, and the maps are not
+worked on. What is judged is a project of the packs' assets only (the kind `assets`, T17.33: the
+tile sets, the dock's scenes and the catalog, no game) and a level made in it by the test-only
+editor probe `tests/integration/level_probe` (a new scene, the Terrain tool's painting, the
+dock's placing), pictured beside the pack's own sample.
+
+**How the work is run.** The full local suites (about three hours) and CI (about two hours,
+dispatched by hand: `gh workflow run CI --ref m17`) run once per batch of cards, not per card;
+during a card only lint, types, the unit and GDScript suites and the integration tests of what it
+touches. `main` is fast-forwarded to a commit only after a CI run on that commit is fully green.
+No tag is made until the gates are closed. Nothing is written to the C: drive: scratch work,
+generated projects, pytest's `--basetemp`, `TEMP`/`TMP` and Godot's `APPDATA` go under
+`F:\rpggen_scratch\`. Real packs are read where they lie and never copied into the repository.
+
 ## Milestones
 
 | Milestone | What it delivers | Status |
@@ -38,7 +66,7 @@ rows (T14.13), below.
 | M14 Metroidvania (1.2.0) | The third archetype (below) | On the branch `m14` (not part of 1.0 or 1.1): every card is implemented; the manual rows of the gate (T14.13) are open. It was built before the 1.1 tag existed, on top of `m13` |
 | M15 Look, feel and ease of use (1.3.0) | A design system (tokens, one stylesheet, button kinds, icons, cards, a stepper sidebar, page headers), every page and dialog restyled, the Generate log without escape codes, actionable failures, a regeneration that skips what did not change, visual goldens (`docs/spec/M15_ui_polish.md`) | On the branch `m15` (on top of `main`, which holds M14): every card is implemented; the gate (T15.25) is open, below |
 | M16 More kinds of game (1.4.0) | A shoot 'em up (vertical or horizontal), a run and gun with a grapple option, a racing game, on a shared arcade framework; three sample packs; a bundle of packs added folder by folder (`docs/spec/M16_arcade_archetypes.md`) | Merged into `main` on 2026-10-12 (`b610f90`, with M15 under it): every card but the gate is implemented and the three kinds are switched on. The gate (T16.20) is open, below |
-| M17 Farm and isometric (1.5.0) | A farm and life sim, the seventh kind, and isometric tiles as a second view of the top-down kinds and the racing game (`docs/spec/M17_farm_isometric.md`) | On the branch `m17`, begun 2026-10-12 before the 1.4 tag: every card but the gate is implemented (T17.01 to T17.19) and both are switched on in the wizard (`FARM_AVAILABLE`, `ISOMETRIC_AVAILABLE`), with their two samples. Nobody has played either. The gate (T17.20) is open, below |
+| M17 Farm and isometric (1.5.0) | A farm and life sim, the seventh kind, and isometric tiles as a second view of the top-down kinds and the racing game; then real packs of every shape (`docs/spec/M17_farm_isometric.md`) | On the branch `m17`. T17.01 to T17.19 and Part F's T17.21 to T17.32 are implemented and on `main` (or in the CI run that brings them): real isometric packs, added maps, the cave, festivals, marriage, the dock on diamonds, imported isometric maps, real farming packs, packs of other shapes, autotiling (T17.31) and real side-view packs (T17.32). T17.33 (everything still unread; after the owner dropped the generated games, the assets-only project and a level made in it by the editor probe) is implemented on its branch: every top-down and side-view pack set paints with no hole and no wrong piece and places at whole-number scales; the isometric packs paint the same way since 2026-10-15, but for Miniature Farm's plank plates (notes, last paragraph); T17.34 (confidence close to 100 % on real packs: an answer key, calibration, publisher rules, profiles, trusted corrections, a local vision step) is open. Nobody has played the farm or the isometric view by hand; the gate (T17.20) is open |
 
 ## M12 in detail
 
@@ -280,6 +308,21 @@ should know:
   with terrains (no real pack had them as a sheet of tiles: *Farm RPG*'s rock is one picture);
   a road one cell wide of a terrain that has only a 3 x 3 block is not painted with it; nobody
   played by hand.
+* **Real side-view packs since T17.32**: tile sheets whose tiles nothing names are read from
+  their pictures (the ground as a side-view terrain, planks, ladders, spikes, water, coins;
+  the rest counted as unread, TILE-016), ground pieces named by their place are put together
+  into a terrain, and rooms and stages are painted with it; characters drawn as folders of
+  frames an action, as files named by actions or as a sheet named by its frame size are one
+  character each (their strips, previews and sources set aside); a character sheet beside the
+  tiles is cut into characters; background layers are one parallax set a room uses; props are
+  no characters; one tile size a pack; a licence file one folder above a pack is found. Of the
+  63 packs of the card, 8.4 % of the pictures are read with confidence (0.3 % before), 41.4 %
+  with those set aside with a reason (21.0 %). Done on *Gothicvania* (metroidvania),
+  *Warped* (run and gun), Kenney's *Pixel Platformer* and *Platformer Pack Remastered*, each
+  played by its smoke sequence and looked at in pictures. Short of it: pozak's characters have
+  no animation names (they need review), Kenney's outlined grass caps, ladders on a backdrop,
+  doors and keys are unread, slopes are not built, a 128-px pack needs a larger resolution by
+  hand; nobody played by hand.
 * **Not built.** Dropping onto diamonds with a mouse (the
   editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working

@@ -10,6 +10,7 @@ const BuildContext := preload("lib/build_context.gd")
 const Log := preload("lib/log.gd")
 const JsonUtil := preload("lib/json_util.gd")
 const RecipeContext := preload("lib/recipe_context.gd")
+const SideTileset := preload("lib/side_tileset.gd")
 
 const UPDATE_LEDGER_FLAG := "--update-ledger"
 const FILE_HASH := "res://addons/rpg_project_tools/tools/file_hash.gd"
@@ -101,6 +102,24 @@ const ARCHETYPE_MAPS := {
 	"racing": ["racing/track_recipe"],
 }
 
+## An assets-only project (T17.33): the packs' tile sets, the scenes the dock places (people,
+## things, and the enemies of the kind seen as the packs are: the action RPG's from above, the
+## metroidvania's from the side, with its pickups) and what those need (the theme, the sound
+## buses, the credits). No maps, no menus, no boot scene.
+const ASSETS_RECIPES: Array[String] = [
+	"project_settings_recipe",
+	"tileset_recipe",
+	"sprite_frames_recipe",
+	"actor_recipes",
+	"credits_recipe",
+	"lighting_recipe",
+	"object_scenes_recipe",
+	"theme_recipe",
+	"audio_bus_recipe",
+]
+const ASSETS_TOP_RECIPES: Array[String] = ["arpg/enemy_recipes"]
+const ASSETS_SIDE_RECIPES: Array[String] = ["metroidvania/enemy_recipes", "metroidvania/objects_recipe"]
+
 func _initialize() -> void:
 	var code := _run()
 	quit(code)
@@ -138,6 +157,11 @@ static func _step_label(recipe_name: String) -> String:
 ## RECIPE_ORDER with the archetype's recipes inserted before "boot_recipe".
 static func _recipe_list(ctx: BuildContext) -> Array:
 	var archetype := JsonUtil.to_str(ctx.config.get("archetype", ""))
+	if archetype == SideTileset.ASSETS_KIND:
+		var own: Array = ASSETS_RECIPES.duplicate()
+		var side := SideTileset.side_view(ctx.config)
+		own.append_array(ASSETS_SIDE_RECIPES if side else ASSETS_TOP_RECIPES)
+		return own
 	var extra: Array = ARCHETYPE_RECIPES.get(archetype, [])
 	var skips: Array = ARCHETYPE_SKIPS.get(archetype, [])
 	var maps: Array = ARCHETYPE_MAPS.get(archetype, [])

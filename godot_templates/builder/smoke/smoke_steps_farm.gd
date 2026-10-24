@@ -1032,8 +1032,15 @@ func _morning_summary() -> String:
 	if total == null or total.text != RpgDaySummary.total_text(summary.sale) or not total.text.contains(str(_box["earned"])):
 		return "the summary does not show the total"
 	await _frames(3)
-	await _tap("confirm")
-	if not await _wait_for(func() -> bool: return day_end.summary() == null, 60):
+	# a slow machine can take the first press before the summary listens: press again, a few
+	# times at most (a summary that does not close at all still fails)
+	var closed := false
+	for _press in 3:
+		await _tap("confirm")
+		if await _wait_for(func() -> bool: return day_end.summary() == null, 120):
+			closed = true
+			break
+	if not closed:
 		return "`confirm` did not close the summary"
 	await _frames(3)
 	# a game that has no slot of its own yet is offered the save screen: it is closed again

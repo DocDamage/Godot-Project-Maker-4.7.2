@@ -1,0 +1,727 @@
+{
+  "assets": [
+    {
+      "confidence": 0.6,
+      "detected": {
+        "collision": {
+          "polygon": [
+            [
+              4,
+              24
+            ],
+            [
+              11,
+              24
+            ],
+            [
+              11,
+              31
+            ],
+            [
+              4,
+              31
+            ]
+          ],
+          "profile": "CUSTOM"
+        },
+        "frame": [
+          16,
+          32
+        ],
+        "origin": [
+          8,
+          31
+        ],
+        "role": "DECORATION",
+        "size": [
+          16,
+          32
+        ],
+        "tags": [
+          "sheet_thing",
+          "cell:2:0",
+          "cut_from:sheet_things.tilemap.tilemap"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "sheet_things",
+      "id": "generated.sheet_things_tilemap_tilemap__green_tall",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "generated",
+      "path": "generated/sheet_things/a442aa37fa7318e01927a2eb.png",
+      "sha256": "a442aa37fa7318e01927a2eba8580825364ad27dd9e31d3f8e28a404b28afee9",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.461538,
+      "detected": {
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            1,
+            1
+          ]
+        },
+        "role": "GROUND",
+        "roles_alt": [
+          [
+            "DECORATION",
+            0.153846
+          ],
+          [
+            "WALL",
+            0.076923
+          ]
+        ],
+        "size": [
+          101,
+          101
+        ],
+        "tile_overrides": {
+          "0,0": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "0,1": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "0,3": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "0,4": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "0,5": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "1,0": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "1,4": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "1,5": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "2,3": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "2,4": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "2,5": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "3,1": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "3,3": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "3,4": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "3,5": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "4,3": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "4,5": {
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "5,0": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "5,1": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "5,2": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "5,3": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          },
+          "5,5": {
+            "probability": 0.008,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": 0,
+                "bottom_right_corner": 0,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": 0,
+                "top_right_corner": 0,
+                "top_side": 0
+              },
+              "set": "tilemap_grass_4_5",
+              "terrain": 0
+            }
+          }
+        },
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "sheet_things.tilemap.tilemap",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "sheet_things",
+      "path": "assets/packs/sheet_things/Tilemap/tilemap.png",
+      "sha256": "15045ccb7b210704165eeffa40de0d00291a65cbfef13753e70f8043683514d4",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 1,
+        "retired": []
+      }
+    }
+  },
+  "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            6,
+            13
+          ],
+          [
+            10,
+            13
+          ],
+          [
+            10,
+            15
+          ],
+          [
+            6,
+            15
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        6,
+        13,
+        4,
+        2
+      ],
+      "id": "sheet_things.tilemap.tilemap#brown_round",
+      "name": "brown_round",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        68,
+        0,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "sheet_things.tilemap.tilemap",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:4:0"
+      ]
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            5,
+            13
+          ],
+          [
+            11,
+            13
+          ],
+          [
+            11,
+            15
+          ],
+          [
+            5,
+            15
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        5,
+        13,
+        6,
+        2
+      ],
+      "id": "sheet_things.tilemap.tilemap#grey_round",
+      "name": "grey_round",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        51,
+        0,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "sheet_things.tilemap.tilemap",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:3:0"
+      ]
+    },
+    {
+      "collision": {
+        "profile": "NONE"
+      },
+      "footprint": [
+        7,
+        13,
+        2,
+        2
+      ],
+      "id": "sheet_things.tilemap.tilemap#yellow_small",
+      "name": "yellow_small",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        51,
+        34,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "sheet_things.tilemap.tilemap",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:3:2"
+      ]
+    }
+  ],
+  "packs": [
+    {
+      "adapters_matched": [],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "",
+        "url": ""
+      },
+      "license_files": [],
+      "pack_id": "generated",
+      "profile_id": null,
+      "root": "generated/terrain_atlases",
+      "source_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "warnings": []
+    },
+    {
+      "adapters_matched": [
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/sheet_things/LICENSE.txt"
+      ],
+      "pack_id": "sheet_things",
+      "profile_id": null,
+      "root": "assets/packs/sheet_things",
+      "source_sha256": "a63253517e22a94c84a452f9ce23e36ede6050d154d2effe74f1952c5a3efede",
+      "warnings": []
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "sheet_things.tilemap.tilemap",
+          "source_id": 0
+        }
+      ],
+      "terrain_sets": [
+        {
+          "layout": "plain",
+          "mode": "corners_and_sides",
+          "name": "tilemap_grass_4_5",
+          "over": "ground",
+          "shape": "plain",
+          "sheet": "sheet_things.tilemap.tilemap",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "grass"
+            }
+          ]
+        }
+      ],
+      "tile_size": [
+        16,
+        16
+      ]
+    }
+  ]
+}

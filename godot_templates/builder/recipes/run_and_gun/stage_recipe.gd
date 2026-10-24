@@ -8,7 +8,7 @@ extends RefCounted
 ## stored (gaps, steps, planks, spikes and walls, painted from its tiles); a project without a
 ## stored plan gets one flat stage with a fixed set of waves.
 
-const RECIPE_VERSION := 3
+const RECIPE_VERSION := 4
 
 const SceneUtil := preload("../../lib/scene_util.gd")
 const JsonUtil := preload("../../lib/json_util.gd")
@@ -165,6 +165,14 @@ static func paint_floor(layer: TileMapLayer, cells: Vector2i, kit: Dictionary) -
 	if fill.is_empty():
 		fill = top
 	var first := floor_row(cells.y)
+	var terrain := JsonUtil.to_dict(kit.get("terrain", {}))
+	if not terrain.is_empty():  # the ground as its terrain (T17.32)
+		var floor_cells: Array[Vector2i] = []
+		for x in cells.x:
+			for y in range(first, cells.y):
+				floor_cells.append(Vector2i(x, y))
+		RpgTerrain.paint_area(layer, floor_cells, JsonUtil.to_int(terrain["set"]), JsonUtil.to_int(terrain["terrain"]), RoomsRecipe.TERRAIN_SEED)
+		return
 	for x in cells.x:
 		MapUtil.put(layer, Vector2i(x, first), top)
 		for y in range(first + 1, cells.y):

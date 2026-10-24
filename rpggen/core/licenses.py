@@ -395,6 +395,28 @@ def doc_licence_files(root: Path, files: list[tuple[str, str]]) -> list[str]:
     return found
 
 
+def licence_above(folder: Path) -> tuple[str, PackLicense] | None:
+    """The licence file in the folder above a pack folder that has none (T17.32: ansimuz's
+    ``Legacy Collection/Assets/license.txt`` beside its packs, each analysed alone): the file's
+    name and what it says, or None when that folder has no licence file or it names no licence."""
+    from rpggen.core import inventory
+
+    parent = folder.parent
+    if parent == folder or not parent.is_dir():
+        return None
+    try:
+        names = sorted(p.name for p in parent.iterdir() if p.is_file())
+    except OSError:
+        return None
+    for name in names:
+        if inventory.classify_kind(name) != "license":
+            continue
+        found = detect([(name, read_text(parent / name))])
+        if found.license_id:
+            return name, found
+    return None
+
+
 def detect_files(root: Path, rel_paths: list[str]) -> PackLicense:
     """``detect`` on the licence files ``rel_paths`` of the pack folder ``root``."""
     return detect([(rel, read_text(root / rel)) for rel in rel_paths])

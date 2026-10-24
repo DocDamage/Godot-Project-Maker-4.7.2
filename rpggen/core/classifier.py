@@ -47,6 +47,16 @@ FILE_WEIGHT = 0.9
 # characters is a slime. (A hero there wins already, by the order of the table.)
 SOMEBODY_WORDS = frozenset({"character", "characters"})
 MONSTER_ROLES = ("ENEMY", "BOSS")
+# The words a folder is named with for all it holds (T17.33): *Terrain*, *Characters*, *Props*.
+# Beside a file whose own name says what it is (``Terrain/water.png``, ``Props/house.png``) such a
+# folder says little: its words count for a third.
+CONTAINER_WORDS = frozenset(
+    {"terrain", "tiles", "tileset", "character", "characters", "prop", "props", "object",
+     "objects", "deco", "decor", "decoration", "decorations"}
+)  # fmt: skip
+CONTAINER_WEIGHT = 1 / 3
+# the roles whose words alone leave a container folder its weight
+UNNAMING_ROLES = frozenset({"WALL"})
 
 _SPLIT_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 _SPLIT_NON_ALNUM = re.compile(r"[^A-Za-z0-9]+")
@@ -180,7 +190,7 @@ SIDE_VIEW_WORDS = frozenset(
     {"platformer", "platformers", "sidescroller", "sidescrolling", "metroidvania", "jump"}
 )
 TOP_VIEW_WORDS = frozenset({"rpg", "jrpg", "topdown", "overworld"})
-SIDE_VIEW_PAIRS = (("side", "scroller"), ("side", "view"), ("side", "scrolling"))
+SIDE_VIEW_PAIRS = (("side", "scroller"), ("side", "view"), ("side", "scrolling"), ("beat", "em"))
 TOP_VIEW_PAIRS = (("top", "down"),)
 
 
@@ -605,7 +615,7 @@ def _one_name(stem: str, isometric: bool) -> str:
     return turn.base if turn is not None else stem
 
 
-def made_for(inventory: Any, sheets: Any = ()) -> str:
+def made_for(inventory: Any, sheets: Any = (), name: str = "") -> str:
     """``"side"`` or ``"top"``, or the kind a pack was made for (``"shmup"``, ``"racing"``,
     ``"farm"``): how a pack looks at its world (T14.02). The words of its folders
     and files count (platformer, sidescroller, metroidvania, jump against rpg, topdown,
@@ -617,6 +627,13 @@ def made_for(inventory: Any, sheets: Any = ()) -> str:
     top = 0
     seen: set[str] = set()
     isometric = isometric_view(inventory, sheets)
+    # the pack's own name counts twice (T17.32: *Platformer Pack Medieval*, pozak's *2D Pixel
+    # Art Platformer Asset Pack*s say it nowhere else)
+    own = _all_words(name or str(getattr(inventory, "pack_id", "") or ""))
+    if set(own) & SIDE_VIEW_WORDS or any(_has_pair(own, p) for p in SIDE_VIEW_PAIRS):
+        side += 2
+    if set(own) & TOP_VIEW_WORDS or any(_has_pair(own, p) for p in TOP_VIEW_PAIRS):
+        top += 2
     for f in getattr(inventory, "files", ()):
         folders, stem = _path_parts(f.path)
         for part in (*folders, _one_name(stem, isometric)):
@@ -943,6 +960,14 @@ def classify(
     other_tokens = {t for f in folders[:-2] for t in _tokenize(f)}
 
     named_monster = any(kw in file_tokens for role in MONSTER_ROLES for kw in KEYWORD_WEIGHTS[role])
+    # the file's own words name a role, with a word that is not a container's (a wall or a
+    # fence says too little: ``Props/fence.png`` is a prop the dock places, not a wall sheet)
+    named = any(
+        kw in file_tokens and kw not in CONTAINER_WORDS
+        for role, keywords in ROLE_KEYWORDS
+        if role not in UNNAMING_ROLES
+        for kw in keywords
+    )
     scores = {role: 0.0 for role in ROLE_ORDER}
     for role, keywords in ROLE_KEYWORDS:
         for kw, weight in keywords.items():
@@ -953,6 +978,8 @@ def classify(
                 mult = DEEP_FOLDER_WEIGHT
             elif kw in other_tokens:
                 mult = OTHER_FOLDER_WEIGHT
+            if named and kw in CONTAINER_WORDS:
+                mult *= CONTAINER_WEIGHT
             if kw in file_tokens:
                 mult = max(mult, FILE_WEIGHT)
             scores[role] += weight * mult

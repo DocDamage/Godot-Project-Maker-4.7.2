@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen.core import app_settings, orchestrator, pack_sniff, vcs
+from rpggen.core import config as config_mod
 from rpggen.errors import CODES, Issue, IssueList
 from rpggen.gui import icons, taskbar, theme, workers
 from rpggen.gui.dialogs.promotion_dialog import PromotionDialog
@@ -65,6 +66,12 @@ SKIP_REASONS = {
     "VAL-021": "turned off in the config",
     "VAL-022": "turned off in the config",
     "REGEN-011": "nothing changed since the last run",
+    "VAL-032": "a project of assets only has no game",  # T17.33: not a failure, nothing to play
+}
+# what the phases of a project of assets only do (T17.33): there is no game to build or check
+ASSETS_PHASE_LABELS = {
+    "build": "Building the tile sets and scenes",
+    "validate": "Checking the project for problems",
 }
 
 
@@ -196,12 +203,20 @@ class GeneratePage(WizardPage):
 
     # ------------------------------------------------------------------ phase list
 
+    def _phase_labels(self) -> dict[str, str]:
+        """The names of the phases; a project of assets only builds no game (T17.33)."""
+        cfg = self.state.config if self.state is not None else None
+        if cfg is not None and cfg.archetype == config_mod.ASSETS_KIND:
+            return {**PHASE_LABELS, **ASSETS_PHASE_LABELS}
+        return PHASE_LABELS
+
     def _set_icons(self, icons: dict[str, str]) -> None:
+        labels = self._phase_labels()
         for i, name in enumerate(PHASES):
             item = self.phase_list.item(i)
             if item is None:
                 continue
-            label = self.tr(PHASE_LABELS.get(name, name))
+            label = self.tr(labels.get(name, name))
             code = self._skipped.get(name)
             if code and icons.get(name) in (ICON_RUNNING, ICON_DONE):
                 # a check that did not run is never shown as passed

@@ -384,24 +384,7 @@
         "road"
       ],
       "tile_overrides": {
-        "1,0": {
-          "terrain": {
-            "peering": {
-              "bottom_left_corner": 0,
-              "bottom_right_corner": 0,
-              "bottom_side": 0,
-              "left_side": 0,
-              "right_side": 0,
-              "top_left_corner": 0,
-              "top_right_corner": 0,
-              "top_side": 0
-            },
-            "set": "road_path_1_0",
-            "terrain": 0
-          }
-        },
         "2,0": {
-          "probability": 0.35,
           "terrain": {
             "peering": {
               "bottom_left_corner": 0,
@@ -413,7 +396,7 @@
               "top_right_corner": 0,
               "top_side": 0
             },
-            "set": "road_path_1_0",
+            "set": "road_path_2_0",
             "terrain": 0
           }
         },
@@ -434,7 +417,7 @@
           }
         },
         "7,1": {
-          "probability": 0.35,
+          "probability": 0.1765,
           "terrain": {
             "peering": {
               "bottom_left_corner": 0,
@@ -532,7 +515,7 @@
         {
           "layout": "plain",
           "mode": "corners_and_sides",
-          "name": "road_path_1_0",
+          "name": "road_path_2_0",
           "over": "ground",
           "shape": "plain",
           "sheet": "sample_pack_race.tiles.road",

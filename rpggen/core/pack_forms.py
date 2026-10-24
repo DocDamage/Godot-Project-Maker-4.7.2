@@ -373,7 +373,48 @@ def apply(
     previews = gif_previews(assets, prefix)
     offered = mark_sizes(assets, prefix)
     forms = same_forms(assets, inv, pack_root, prefix)
+    forms += trimmed_copies(assets, prefix)
     return {"previews": previews, "sizes": offered, "forms": forms, "farm": farm_pack}
+
+
+TRIMMED = "trimmed_copy"
+# the words of a folder of the same pictures cut to what they paint, each its own size
+TRIMMED_WORDS = (frozenset({"variable", "sizes"}), frozenset({"variable", "size"}),
+                 frozenset({"trimmed"}), frozenset({"cropped"}))  # fmt: skip
+
+
+def trimmed_copies(assets: list[Any], prefix: str) -> int:
+    """Kenney ships a platformer's people twice (T17.33: *Platformer Pack Remastered*'s
+    ``Players/128x256/Beige/alienBeige_walk1.png`` and ``Players/Variable sizes/Beige/...``, the
+    same frames cut to what they paint): the frames of fixed size are read as the animated player,
+    and the trimmed ones were each a decoration of the dock. A picture in a folder named for
+    trimmed copies (``Variable sizes``, ``Trimmed``) whose parent folder also holds a folder
+    named by a size (``128x256``) is set aside (``trimmed_copy``). Returns how many."""
+    folders: dict[str, set[str]] = {}
+    for asset in assets:
+        rel = _rel(asset, prefix)
+        if rel is None:
+            continue
+        parts = rel.split("/")[:-1]
+        for i in range(len(parts)):
+            folders.setdefault("/".join(parts[:i]), set()).add(parts[i])
+    changed = 0
+    for asset in assets:
+        rel = _rel(asset, prefix)
+        if rel is None or _protected(asset):
+            continue
+        parts = rel.split("/")[:-1]
+        for i, name in enumerate(parts):
+            said = set(_SEPARATORS.split(name.casefold()))
+            if not any(words <= said for words in TRIMMED_WORDS):
+                continue
+            parent = "/".join(parts[:i])
+            sized = sorted(n for n in folders.get(parent, ()) if _SIZE_TOKEN.fullmatch(n.strip()))
+            if sized:
+                aside(asset, TRIMMED, "/".join([*parts[:i], sized[0]]))
+                changed += 1
+            break
+    return changed
 
 
 def offered_sizes(assets: list[Any]) -> list[int]:

@@ -133,6 +133,45 @@ does not ask for the isometric view is built as it was.
   variants are chosen by the project's seed (Godot's own choice changes from run to run). A
   map that exists is never painted again and the run says so (TILE-015, new); a project
   without terrains is built as it was.
+* **Real side-view packs** (T17.32), for the metroidvania and the run and gun. A tile sheet
+  whose tiles nothing names is read from its pictures: the ground as a side-view terrain (its
+  surface on top, its ends, its inside, the faces under it), planks to jump through, ladders,
+  spikes, water and coins; the tiles left in doubt are counted (TILE-016, new). Ground pieces
+  named by their place (`grassLeft`, `grassMid`, `grassCenter`, `grassHalf_left`,
+  `grassCliff_right`, `grassHill_left`) are put together into a sheet a surface. Rooms and
+  stages are painted with that terrain (the terrain shape `side`). A character drawn as a
+  folder of frames an action (`Sprites/Idle/frame1.png`), as files named by actions
+  (`alienBeige_walk1.png`) or as a sheet whose name gives its frame size (`Character
+  160x160.png`) is one character; its strips, previews and Aseprite files are set aside. A
+  character sheet beside the tiles is cut into characters. Background layers in a folder are
+  one parallax set, ordered far to near, and a room uses the set nearest its ground. Props
+  are no characters; a sign, a door or a ledge's decoration is no ground; a pack has one tile
+  size; a licence file one folder above a pack added on its own is found; a pack that calls
+  itself a platformer or a beat 'em up is seen from the side. Done on *Gothicvania*, *Warped*,
+  Kenney's *Pixel Platformer* and *Platformer Pack Remastered*.
+* **Assets only: build your own levels** (T17.33). A new kind of project, `assets`
+  (`rpggen generate --pack ... --archetype assets`, and `--view top` or `side`, else as the
+  packs are drawn): the packs' tile sets, the scenes of the RPG Project Tools dock and the
+  catalog, with the runtime the scenes need, and no game (no maps, menus, main scene, smoke
+  run or export check). Its README says how to make a level with the Terrain tool and the dock.
+* **Terrains paint without holes** (T17.33). Godot's Terrain tool left a cell empty where no
+  tile of a terrain fitted the cells around it, and few packs draw every piece: for each way a
+  terrain meets others that its pack draws no piece for, the nearest piece it draws is added as
+  an alternative tile. A plain ground matches by its sides, so a patch of it keeps its border.
+  Terrain names say their surface and their sheet (`dirt · tileset grass spring 2`).
+* **The things of a sheet of tiles are in the dock** (T17.33): the trees, rocks, crops, sacks
+  and tools beside a sheet's ground (*Tiny Farm*'s one sheet gave none), joined where their art
+  goes on over the line between cells; a font's glyphs, a background's shapes and tiles of a
+  kind (a ladder) are not. In an assets-only project every thing cut from a sheet is placed,
+  with a collision at its foot.
+* **Reading** (T17.33): a ladder tiles by its rails; a plank's ends with posts under them are
+  the plank; a side-view ground's middle is its plainest fill, its other fills of the same tone
+  variants laid now and then, one of another tone (a cave's dark wall) only where nothing else
+  fits; a plain ground's middle is its plainest seamless tile; an icon is an item, never an
+  animal; a person drawn again much larger beside its sprite is its portrait; Kenney's trimmed
+  copies of a player (`Variable sizes`) are set aside; a fence in a folder of props stays a
+  prop; a farmer's tool strip stays an animation of the farmer; strips that name their frames
+  are each read as they were.
 * **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
   picture rises above it, turns by number or by compass letter as one tile (never as frames of
   an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a

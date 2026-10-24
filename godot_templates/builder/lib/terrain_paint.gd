@@ -22,7 +22,7 @@ const BuildContext := preload("build_context.gd")
 
 ## The version of how maps are painted with terrains, in the hash of a map recipe whose tile set
 ## has terrains.
-const VERSION := 1
+const VERSION := 2  # 2: the sheet nearest the ground first (T17.33)
 
 const ROAD_SURFACES: Array[String] = ["path", "road", "dirt", "sand", "stone", "soil"]
 const WATER_SURFACES: Array[String] = ["water"]
@@ -33,6 +33,9 @@ const PATCH_SURFACES: Array[String] = ["dirt", "sand", "grass", "stone", "snow",
 const AREA_SHAPES: Array[String] = ["any", "area"]
 const PATH_SHAPES: Array[String] = ["path", "any"]
 const SOIL_SHAPES: Array[String] = ["any", "area", "path"]
+## The ground of a side-view room (T17.32): only the side-view rooms and stages paint with it
+## (`side_kit.gd`); no shape list above names it, so no map seen from above takes it.
+const SIDE_SHAPE := "side"
 
 ## The terrain sets of a definition, each with its `index` in the TileSet.
 static func specs(def: Dictionary) -> Array[Dictionary]:
@@ -101,6 +104,9 @@ static func _find(ctx: BuildContext, def: Dictionary, tile_set: TileSet, surface
 		if wanted == avoid:
 			continue
 		var best := {}
+		var best_role := {}
+		var near := -1
+		var near_role := -1
 		for spec in all:
 			var index := JsonUtil.to_int(spec["index"])
 			if tile_set != null and index >= tile_set.get_terrain_sets_count():
@@ -121,14 +127,41 @@ static func _find(ctx: BuildContext, def: Dictionary, tile_set: TileSet, surface
 					"mode": JsonUtil.to_str(spec.get("mode", "corners_and_sides")),
 				}
 				var role := _role_of(ctx, JsonUtil.to_str(spec.get("sheet", "")))
-				if not roles.is_empty() and roles.has(role):
-					return found
-				if best.is_empty():
+				# T17.33: of the sheets that have the surface, the one nearest the ground's
+				# (*Farm RPG*'s plot was the earth of its deep forest, rimmed in that wood's
+				# teal grass on the meadow's green): the most words of its name in common
+				var close := _closeness(ctx, JsonUtil.to_str(spec.get("sheet", "")))
+				if not roles.is_empty() and roles.has(role) and close > near_role:
+					best_role = found
+					near_role = close
+				if close > near:
 					best = found
+					near = close
 				break
+		if not best_role.is_empty():
+			return best_role
 		if not best.is_empty():
 			return best
 	return {}
+
+## How near a sheet lies to the ground of the maps (the starter's ground): the ground's own
+## sheet most, else the words of the two ids in common (``tileset_grass_water_spring`` is near
+## ``tileset_grass_spring``); 0 without a ground.
+static func _closeness(ctx: BuildContext, asset_id: String) -> int:
+	if ctx == null or asset_id == "":
+		return 0
+	var ground := JsonUtil.to_str(ctx.section("starter").get("ground", ""))
+	if ground == "":
+		return 0
+	if ground == asset_id:
+		return 1000
+	var mine := asset_id.replace(".", "_").split("_", false)
+	var theirs := ground.replace(".", "_").split("_", false)
+	var shared := 0
+	for word in mine:
+		if theirs.has(word):
+			shared += 1
+	return shared
 
 ## terrain's name that has it among its words ("Dark Grass" is grass).
 static func _names(have: String, want: String) -> bool:

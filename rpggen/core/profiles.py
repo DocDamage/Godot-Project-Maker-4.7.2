@@ -171,3 +171,40 @@ def best_match(inventory: Inventory) -> tuple[float, dict[str, Any] | None]:
         if ratio >= profile["fingerprint"]["min_match"] and ratio > best[0]:
             best = (ratio, profile)
     return best
+
+
+REVIEWED = frozenset({"CONFIRMED", "UNUSED"})
+
+
+def reviewed(catalog: catalog_mod.Catalog, pack_id: str) -> bool:
+    """True when the user has decided every picture of the pack (T17.34): each is confirmed or
+    set aside as unused, none merely auto-detected."""
+    found = [a for a in catalog.assets if a.pack_id == pack_id and a.status != "MISSING"]
+    return bool(found) and all(a.status in REVIEWED for a in found)
+
+
+def save_reviewed(
+    catalog: catalog_mod.Catalog, inventories: list[Inventory], folder: Path | None = None
+) -> list[Path]:
+    """Save the profile of every pack whose audit is done (``reviewed``) and that has none
+    installed yet, so every later use of the pack is fully sure (T17.34). Returns the files
+    written; a pack whose profile could not be written is left for next time."""
+    folder = folder or profiles_dir()
+    written: list[Path] = []
+    for inv in inventories:
+        pack = next((p for p in catalog.packs if p.pack_id == inv.pack_id), None)
+        if pack is None or pack.profile_id or not reviewed(catalog, inv.pack_id):
+            continue
+        path = folder / f"{ids.slug(inv.pack_id)}{PROFILE_SUFFIX}"
+        if path.exists() or best_match(inv)[1] is not None:
+            continue
+        meta = {"title": inv.pack_id, "profile_id": f"reviewed-{ids.slug(inv.pack_id)}"}
+        try:
+            data = export_profile(catalog, inv.pack_id, inv, meta)
+            folder.mkdir(parents=True, exist_ok=True)
+            write_profile(data, path)
+        except (RpgGenError, OSError):
+            log.warning("could not save the profile of %s", inv.pack_id, exc_info=True)
+            continue
+        written.append(path)
+    return written

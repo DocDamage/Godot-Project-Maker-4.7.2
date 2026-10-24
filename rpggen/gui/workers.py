@@ -215,12 +215,23 @@ def analyze_packs(state: WizardState, *, callbacks: Callbacks) -> AnalysisResult
             is_cancelled=callbacks.is_cancelled,
             progress=sink.count,
             learned=learned_rules.load().rules,  # the user's earlier fixes (T12.59)
+            vision=_vision_config(),  # the local vision model, when turned on (T17.34)
         )
     except archive.Cancelled as exc:  # also catalog.AssemblyCancelled
         raise Cancelled from exc
     issues.extend(found)
     _prune_caches([o.root for o in opened_list])  # the packs just opened are in use
     return AnalysisResult(opened_list, [inv for _o, inv in pairs], cat, list(issues))
+
+
+def _vision_config():  # type: ignore[no-untyped-def]
+    """The local vision model the user turned on, if its files are there (T17.34)."""
+    from rpggen.core import app_settings, vision
+
+    config = vision.config_from_settings(app_settings.get())
+    if config is None or config.missing():
+        return None
+    return config
 
 
 def _prune_caches(in_use: list[Path]) -> None:

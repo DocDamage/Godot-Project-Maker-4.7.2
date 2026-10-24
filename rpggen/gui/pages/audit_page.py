@@ -310,8 +310,17 @@ class AuditPage(WizardPage):
         if finished and not self._done_announced:
             self._done_announced = True
             self.focus_next.emit()
+        self.save_reviewed_profiles()
         if not finished:
             self._done_announced = False
+
+    def save_reviewed_profiles(self) -> list[Path]:
+        """A pack whose every picture the user has decided is saved as a profile (T17.34), so
+        later uses of it are fully sure. Overridden by tests."""
+        state = self.state
+        if self.session is None or state is None or not state.inventories:
+            return []
+        return profiles.save_reviewed(self.session.catalog, list(state.inventories))
 
     def confirm_all_auto(self) -> bool:
         """Confirms every auto-detected asset as one undo step."""

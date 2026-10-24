@@ -315,7 +315,27 @@ static func parts(iso: IsoTileset, pieces: Dictionary, cells: Vector2i, door_col
 	var storey := JsonUtil.to_int(pieces.get("storey", 0))
 	# one roof of pieces where the packs have them: slopes up to a ridge, hips at its ends,
 	# each ring of cells a slope's rise higher than the one outside it
-	var plan := roof_plan(cells, JsonUtil.to_dict(pieces.get("roofs", {})))
+	var roofs := JsonUtil.to_dict(pieces.get("roofs", {}))
+	var plan := roof_plan(cells, roofs)
+	var along := "ridge:ew" if cells.x >= cells.y else "ridge:ns"
+	if not plan.is_empty() and mini(cells.x, cells.y) > 1 and _only_gables(plan, roofs, along):
+		# T17.33: the pack's slopes and hips cover half a cell (*Medieval Town*) and its gables
+		# laid a row each are as many roofs as rows: one hipped roof is drawn over the whole
+		# house in the colour of its gable (the audit card says why, on the roof pieces)
+		var gable := JsonUtil.to_str(roofs[along])
+		out.append({
+			"asset_id": gable,
+			"texture": "",
+			"region": [],
+			"origin": [0, 0],
+			"cell": [0, 0],
+			"lift": storey,
+			"kind": DRAWN_ROOF,
+			"side": "",
+			"colour": iso.mean_colour(gable).to_html(false),
+			"rise": maxi(JsonUtil.to_int(pieces.get("roof_rise", 0)), 1),
+		})
+		return out
 	if not plan.is_empty():
 		var rise := JsonUtil.to_int(pieces.get("roof_rise", 0))
 		for cell in order:
@@ -328,6 +348,88 @@ static func parts(iso: IsoTileset, pieces: Dictionary, cells: Vector2i, door_col
 		for cell in order:
 			out.append(_part(iso, roof, cell, storey, "roof", ""))
 	return out
+
+## The kind of the one roof drawn over a house whose pieces make none (T17.33).
+const DRAWN_ROOF := "roof_drawn"
+
+static func _only_gables(plan: Dictionary, roofs: Dictionary, along: String) -> bool:
+	if not roofs.has(along):
+		return false
+	var gable := JsonUtil.to_str(roofs[along])
+	for key: Variant in plan.keys():
+		if JsonUtil.to_str(JsonUtil.to_dict(plan[key]).get("asset_id", "")) != gable:
+			return false
+	return true
+
+## A point of the footprint's grid of corners (`gx` from 0 to cells.x, `gy` to cells.y) where
+## the house's node stands (the middle of the cell nearest the camera), raised by `up`.
+static func corner_position(gx: float, gy: float, cells: Vector2i, footprint: Vector2i, up: float) -> Vector2:
+	var dx := gx - 0.5 - (cells.x - 1)
+	var dy := gy - 0.5 - (cells.y - 1)
+	return Vector2((dx - dy) * footprint.x / 2.0, (dx + dy) * footprint.y / 2.0 - up)
+
+## The faces of a hipped roof over a footprint of `cells` with its eaves `lift` px up and its
+## ridge along the longer way, `rise` px higher for every cell from the eaves:
+## [{points, shade}] from the back to the front (shade 0 the faces away from the light).
+static func hipped_roof(cells: Vector2i, footprint: Vector2i, lift: float, rise: float) -> Array[Dictionary]:
+	var half := minf(cells.x, cells.y) / 2.0
+	var top := lift + rise * half
+	var a: Vector2
+	var b: Vector2
+	if cells.x >= cells.y:
+		a = corner_position(half, cells.y / 2.0, cells, footprint, top)
+		b = corner_position(cells.x - half, cells.y / 2.0, cells, footprint, top)
+	else:
+		a = corner_position(cells.x / 2.0, half, cells, footprint, top)
+		b = corner_position(cells.x / 2.0, cells.y - half, cells, footprint, top)
+	var nw := corner_position(0, 0, cells, footprint, lift)
+	var ne := corner_position(cells.x, 0, cells, footprint, lift)
+	var se := corner_position(cells.x, cells.y, cells, footprint, lift)
+	var sw := corner_position(0, cells.y, cells, footprint, lift)
+	var faces: Array[Dictionary] = []
+	if cells.x >= cells.y:
+		faces.append({"points": PackedVector2Array([nw, ne, b, a]), "shade": 0})  # north
+		faces.append({"points": PackedVector2Array([nw, a, sw]), "shade": 0})  # west
+		faces.append({"points": PackedVector2Array([ne, se, b]), "shade": 1})  # east
+		faces.append({"points": PackedVector2Array([sw, a, b, se]), "shade": 1})  # south
+	else:
+		faces.append({"points": PackedVector2Array([nw, ne, a]), "shade": 0})  # north
+		faces.append({"points": PackedVector2Array([nw, a, b, sw]), "shade": 0})  # west
+		faces.append({"points": PackedVector2Array([ne, se, b, a]), "shade": 1})  # east
+		faces.append({"points": PackedVector2Array([sw, b, se]), "shade": 1})  # south
+	return faces
+
+## The drawn roof of a house (`DRAWN_ROOF` part) under `root`, in front of its walls.
+static func _add_drawn_roof(root: Node2D, part: Dictionary, cells: Vector2i, footprint: Vector2i) -> void:
+	var colour := Color.from_string(JsonUtil.to_str(part.get("colour", "#8a5a3c")), Color(0.54, 0.35, 0.24))
+	var lift := JsonUtil.to_float(part.get("lift", 0))
+	var rise := maxf(JsonUtil.to_float(part.get("rise", 1)), footprint.y * 0.5)
+	var roof := Node2D.new()
+	roof.name = "Roof"
+	# in front of both halves of the walls (the Y-sort of the house)
+	roof.position = Vector2(0.0, footprint.y / 2.0)
+	roof.set_meta(&"asset_id", JsonUtil.to_str(part.get("asset_id", "")))
+	roof.set_meta(&"kind", DRAWN_ROOF)
+	root.add_child(roof)
+	var i := 0
+	for face: Dictionary in hipped_roof(cells, footprint, lift, rise):
+		var polygon := Polygon2D.new()
+		polygon.name = "Face_%d" % i
+		var points: PackedVector2Array = face["points"]
+		var shifted := PackedVector2Array()
+		for p in points:
+			shifted.append(p - roof.position)
+		polygon.polygon = shifted
+		polygon.color = colour.darkened(0.25) if JsonUtil.to_int(face["shade"]) == 0 else colour
+		roof.add_child(polygon)
+		var edge := Line2D.new()
+		edge.name = "Edge_%d" % i
+		edge.points = shifted
+		edge.closed = true
+		edge.width = 1.0
+		edge.default_color = colour.darkened(0.55)
+		roof.add_child(edge)
+		i += 1
 
 static func _add_post(out: Array[Dictionary], iso: IsoTileset, post_set: String, corner: String, cell: Vector2i) -> void:
 	var piece := iso.post_piece(post_set, corner)
@@ -454,6 +556,9 @@ static func assemble(root: Node2D, house_parts: Array, cells: Vector2i, footprin
 		halves[half_name] = half
 	for raw: Variant in house_parts:
 		var part: Dictionary = raw
+		if JsonUtil.to_str(part.get("kind", "")) == DRAWN_ROOF:
+			_add_drawn_roof(root, part, cells, footprint)
+			continue
 		var texture_path := JsonUtil.to_str(part.get("texture", ""))
 		var region := JsonUtil.to_array(part.get("region", []))
 		if region.size() != 4 or not ResourceLoader.exists(texture_path):

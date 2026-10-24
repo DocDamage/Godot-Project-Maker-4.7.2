@@ -37,7 +37,7 @@
         ],
         "tile_overrides": {
           "0,1": {
-            "probability": 0.35,
+            "probability": 0.1765,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -86,7 +86,7 @@
             }
           },
           "1,2": {
-            "probability": 0.35,
+            "probability": 0.1765,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -103,7 +103,7 @@
             }
           },
           "2,0": {
-            "probability": 0.35,
+            "probability": 0.1765,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -168,7 +168,7 @@
             }
           },
           "3,1": {
-            "probability": 0.35,
+            "probability": 0.1765,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -185,7 +185,7 @@
             }
           },
           "3,2": {
-            "probability": 0.35,
+            "probability": 0.1765,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -510,6 +510,57 @@
       "path": "assets/packs/farm_sizes/32x32/3_Props_32x32.png",
       "sha256": "3637c6e507f71b0fc68c8b76b7a34c7fe24d8465c731291f514d3fd2568c6404",
       "status": "UNUSED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "nine_slice": [
+          6,
+          6,
+          6,
+          6
+        ],
+        "role": "UI",
+        "size": [
+          24,
+          24
+        ],
+        "tags": [
+          "farm_dress"
+        ],
+        "usage": "ui"
+      },
+      "detected_by": "farm_dress",
+      "id": "generated.farm_frame",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "generated",
+      "path": "generated/farm_dress/2aa85846c4b63a893db6e3db.png",
+      "sha256": "2aa85846c4b63a893db6e3dbbef2538d9c89c9bc2e366d3c975823871a80729b",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.8,
+      "detected": {
+        "role": "PORTRAIT",
+        "size": [
+          112,
+          60
+        ],
+        "tags": [
+          "farm_dress",
+          "portrait_of:farm_sizes.n16x16.n2_fences_16x16"
+        ],
+        "usage": "portrait"
+      },
+      "detected_by": "farm_dress",
+      "id": "generated.portrait_n2_fences_16x16",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "generated",
+      "path": "generated/farm_dress/a1e8cc200952d1e6c7da9673.png",
+      "sha256": "a1e8cc200952d1e6c7da9673012d0e849915ebe2a4bfb754c23d3c66fffaad57",
+      "status": "AUTO_DETECTED"
     }
   ],
   "catalog_version": 2,
@@ -549,6 +600,21 @@
       "warnings": [
         "view:farm"
       ]
+    },
+    {
+      "adapters_matched": [],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "",
+        "url": ""
+      },
+      "license_files": [],
+      "pack_id": "generated",
+      "profile_id": null,
+      "root": "generated/terrain_atlases",
+      "source_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "warnings": []
     }
   ],
   "tilesets": [

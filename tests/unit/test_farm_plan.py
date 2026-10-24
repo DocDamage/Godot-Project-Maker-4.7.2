@@ -142,10 +142,11 @@ def test_what_stands_on_a_farm_is_where_the_card_says() -> None:
     assert section["paths"][0] == house["door"] and section["paths"][-1] == way_out["cell"]
     assert tuple(way_out["spawn"]) in paths and tuple(section["water"]["fill"]) in paths
     assert not paths & farm_plan.blocked_cells(section)
-    # trees at the edges; things to clear on the plot and round it
-    assert section["trees"] and all(
-        min(tx, ty, cols - 1 - tx, rows - 1 - ty) in (1, 2) for tx, ty in section["trees"]
-    )
+    # trees as a wood along the edges, thick in places (T17.33), and a grove or two inside;
+    # no crown over the plot, the pond or a roof (none stands just south of them)
+    edge = [t for t in section["trees"] if min(t[0], t[1], cols - 1 - t[0], rows - 1 - t[1]) <= 4]
+    assert section["trees"] and len(edge) >= len(section["trees"]) * 0.7
+    assert all(min(tx, ty, cols - 1 - tx, rows - 1 - ty) >= 1 for tx, ty in section["trees"])
     plot = _cells(section["tillable"])
     on_plot = [d for d in section["debris"] if tuple(d["cell"]) in plot]
     assert on_plot and len(on_plot) < len(section["debris"])

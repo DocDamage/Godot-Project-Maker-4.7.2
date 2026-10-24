@@ -163,14 +163,21 @@ def _place(src: Path, dst: Path, src_hash: str | None = None) -> bool:
     return True
 
 
-ARCHETYPES = ("turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing", "farm")
+ARCHETYPES = (
+    "turn_based", "arpg", "metroidvania", "shmup", "run_and_gun", "racing", "farm", "assets"
+)  # fmt: skip
 # A folder several kinds share, and the kinds it is installed for: the arcade framework (T16.01)
 # belongs to the three arcade kinds, and the projects of the older kinds never see it.
 SHARED_FOLDERS: dict[str, tuple[str, ...]] = {"arcade": ("shmup", "run_and_gun", "racing")}
 # The folders of another kind a kind is built on: a run and gun's soldier is the metroidvania's
 # platform actor on the metroidvania's side-view tiles (T16.08), so it gets that kind's runtime
 # folder and recipes (not its smoke steps).
-BORROWED_FOLDERS: dict[str, tuple[str, ...]] = {"run_and_gun": ("metroidvania",)}
+# An assets-only project (T17.33) gets the enemies and the side-view body of the action RPG (seen
+# from above) and of the metroidvania (from the side): its view is known once its packs are read.
+BORROWED_FOLDERS: dict[str, tuple[str, ...]] = {
+    "run_and_gun": ("metroidvania",),
+    "assets": ("arpg", "metroidvania"),
+}
 # The folders a kind borrows only when a choice of the project asks for them (``borrowed`` of
 # ``install_templates``): a farm that fights (T17.24) has the action RPG's enemies in its cave,
 # so it gets that kind's runtime folder and recipes; a farm that does not fight gets neither.
@@ -318,6 +325,8 @@ def _write_text(path: Path, text: str) -> None:
 
 
 README_TEMPLATE = "README.template.md"
+# an assets-only project (T17.33) has no game to describe: its README says how to build a level
+README_ASSETS_TEMPLATE = "README.assets.template.md"
 
 
 def effective_pack_art(cfg: config_mod.GeneratorConfig) -> tuple[str, list[Issue]]:
@@ -419,6 +428,12 @@ KIND_OPENINGS = {
         "It is a **farm** game starter: a farm with a"
         "\nhouse and a field, crops to grow and sell, a village with a shop, days and seasons,"
         " a title\nscreen, a pause menu and saving and loading. Everything is yours to change."
+    ),
+    "assets": (
+        "It holds **the assets of your packs, ready to build levels with**: their tile sets,"
+        "\nwhich paint with Godot's Terrain tool (collision and what each tile is set), and"
+        "\nthe scenes of their buildings, props, people and enemies in the RPG Project Tools"
+        "\ndock. There is no game in it: no maps, menus or main scene. The levels are yours."
     ),
 }
 
@@ -608,8 +623,9 @@ def write_project_files(
             _write_text(dst, text)
     export_check.write_presets(root, cfg.project_name, cfg.selected_export_targets())
     notes_file = files / f"README.{cfg.archetype}.md"
+    template = README_ASSETS_TEMPLATE if cfg.archetype == "assets" else README_TEMPLATE
     readme = render_readme(
-        (files / README_TEMPLATE).read_text(encoding="utf-8"),
+        (files / template).read_text(encoding="utf-8"),
         cfg,
         runtime_version.read_version(paths.templates_root()) or "unknown",
         notes_file.read_text(encoding="utf-8") if notes_file.is_file() else "",

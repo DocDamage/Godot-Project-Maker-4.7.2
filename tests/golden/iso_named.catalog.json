@@ -1656,6 +1656,24 @@
           32,
           16
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": 0,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "role": "GROUND",
+          "set": "iso_floor_grass_01_32x16_grass_plain",
+          "shape": "plain",
+          "surface": "grass"
+        },
         "origin": [
           16,
           8
@@ -1693,6 +1711,24 @@
           32,
           16
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": 0,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "role": "GROUND",
+          "set": "iso_floor_grass_01_32x16_dirt_plain",
+          "shape": "plain",
+          "surface": "dirt"
+        },
         "origin": [
           16,
           8
@@ -1730,6 +1766,25 @@
           32,
           16
         ],
+        "iso_terrain": {
+          "mode": "sides",
+          "over": "ground",
+          "peering": {
+            "bottom_left_corner": -1,
+            "bottom_right_corner": -1,
+            "bottom_side": 0,
+            "left_side": 0,
+            "right_side": 0,
+            "top_left_corner": -1,
+            "top_right_corner": -1,
+            "top_side": 0
+          },
+          "probability": 0.1765,
+          "role": "GROUND",
+          "set": "iso_floor_grass_01_32x16_grass_plain",
+          "shape": "plain",
+          "surface": "grass"
+        },
         "origin": [
           16,
           8

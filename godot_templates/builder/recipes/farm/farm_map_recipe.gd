@@ -42,7 +42,7 @@ extends RefCounted
 ## a well. The door of a drawn building is a band along its south side, as the door of an
 ## isometric building of the packs is. The rooms are painted with the same tile set.
 
-const RECIPE_VERSION := 5
+const RECIPE_VERSION := 6
 ## The version of what the recipe does for an isometric project only (T17.14): it is in the hash
 ## of such a project and of no other.
 const ISO_VERSION := 2
@@ -107,7 +107,7 @@ const WORDS := {
 }
 ## The most cells a picture of the packs may be wide and high to stand for a thing of one cell.
 const MOST_CELLS := Vector2i(2, 2)
-const MOST_TREE_CELLS := Vector2i(4, 6)
+const MOST_TREE_CELLS := Vector2i(6, 8)
 
 const WOOD := Color(0.5, 0.33, 0.18)
 const WOOD_LIGHT := Color(0.72, 0.56, 0.36)
@@ -485,7 +485,10 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 	geo.fill_ground(ground, Rect2i(Vector2i.ZERO, size), geo.ground_of(_ground_tile(ctx, geo)), MAP_ID)
 	var details := geo.road_layer(nodes)  # GroundDetails; the ground itself on diamonds
 	if details != null:
-		geo.paint_joined(details, cells_of(farm.get("paths")), "ROAD", geo.find_tile("ROAD"))
+		var ways := cells_of(farm.get("paths"))
+		if not geo.isometric:
+			ways = wide_paths(farm, size)  # T17.33: a path two cells wide where there is room
+		geo.paint_joined(details, ways, "ROAD", geo.find_tile("ROAD"))
 	var water := JsonUtil.to_dict(farm.get("water", {}))
 	var water_cells := cells_of(water.get("cells"))
 	var pond := JsonUtil.to_str(water.get("kind", "")) == "pond"
@@ -547,6 +550,41 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 	MapUtil.add_marker(spawns, root, "default", geo.center(door), true)
 	MapUtil.place(PLAYER_SCENE, entities, root, geo.center(door))
 	return root
+
+## The cells the paths of the plan are painted on (T17.33): each path cell and, beside it, the
+## cell that makes the way two cells wide (below a path that runs across, right of one that runs
+## up and down) where that cell is open grass: not the plot, the water, a building, a tree, a
+## thing of the plan or the edge. A path of one cell looked like a line drawn on the grass. The
+## plan's own cells stay what is walked and checked; the second cell is only painted.
+static func wide_paths(farm: Dictionary, size: Vector2i) -> Array[Vector2i]:
+	var ways := cells_of(farm.get("paths"))
+	var on := {}
+	for cell in ways:
+		on[cell] = true
+	var taken := {}
+	for key: String in ["tillable", "trees"]:
+		for cell in cells_of(farm.get(key)):
+			taken[cell] = true
+	for cell in cells_of(JsonUtil.to_dict(farm.get("water", {})).get("cells")):
+		taken[cell] = true
+	for key: String in ["debris", "scenery"]:
+		for raw: Variant in JsonUtil.to_array(farm.get(key, [])):
+			taken[cell_of(JsonUtil.to_dict(raw).get("cell"))] = true
+	for building in buildings_of(farm):
+		var rect := rect_of(building.get("rect"))
+		for y in range(rect.position.y - 1, rect.end.y + 1):
+			for x in range(rect.position.x - 1, rect.end.x + 1):
+				taken[Vector2i(x, y)] = true
+	var out: Array[Vector2i] = ways.duplicate()
+	for cell in ways:
+		var across: bool = on.has(cell + Vector2i.LEFT) or on.has(cell + Vector2i.RIGHT)
+		var beside := cell + (Vector2i.DOWN if across else Vector2i.RIGHT)
+		if on.has(beside) or taken.has(beside) or out.has(beside):
+			continue
+		if beside.x < 1 or beside.y < 1 or beside.x >= size.x - 1 or beside.y >= size.y - 1:
+			continue
+		out.append(beside)
+	return out
 
 ## A building of the plan on its footprint, with the door into its room and the spawn in front
 ## of it where the farmer comes out again.
@@ -966,7 +1004,14 @@ func add_things(farm: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo, e
 		node.add_child(persistent)
 		node.position = _spot(cell, geo) - lift
 		SceneUtil.add(entities, node, root, "Debris_%d_%d" % [cell.x, cell.y])
+	var covered := _covered(farm)
+	var tree_pictures: Array[Dictionary] = []
+	if pictures.has("tree"):
+		tree_pictures = pictures["tree"]
 	for cell in cells_of(farm.get("trees")):
+		if not geo.isometric and _crown_covers(cell, tree_pictures, JsonUtil.to_int(counts.get("tree", 0)), tile_px, covered):
+			counts["tree"] = JsonUtil.to_int(counts.get("tree", 0)) + 1
+			continue  # T17.33: its crown would stand over the plot, the pond or a roof
 		var tree := _thing("tree", pictures, counts, geo)
 		tree.position = _spot(cell, geo) - lift
 		SceneUtil.add(entities, tree, root, "Tree%d" % JsonUtil.to_int(counts["tree"]))
@@ -976,6 +1021,37 @@ func add_things(farm: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo, e
 		var node := _thing(kind, pictures, counts, geo)
 		node.position = _spot(cell_of(thing.get("cell")), geo) - lift
 		SceneUtil.add(entities, node, root, "%s%d" % [kind.capitalize(), JsonUtil.to_int(counts[kind])])
+
+## The cells of a farm plan a tree's crown must not stand over: the plot, the water and the
+## buildings.
+static func _covered(farm: Dictionary) -> Dictionary:
+	var out := {}
+	for cell in cells_of(farm.get("tillable")):
+		out[cell] = true
+	for cell in cells_of(JsonUtil.to_dict(farm.get("water", {})).get("cells")):
+		out[cell] = true
+	for building in buildings_of(farm):
+		var rect := rect_of(building.get("rect"))
+		for y in range(rect.position.y, rect.end.y):
+			for x in range(rect.position.x, rect.end.x):
+				out[Vector2i(x, y)] = true
+	return out
+
+## True when the `index`-th tree picture of `found`, standing on `cell`, reaches over a cell of
+## `covered` (its picture is taller and wider than its cell). A drawn tree is one cell.
+static func _crown_covers(cell: Vector2i, found: Array[Dictionary], index: int, tile_px: int, covered: Dictionary) -> bool:
+	if found.is_empty() or tile_px <= 0:
+		return false
+	var region: Array = found[index % found.size()].get("region", [])
+	if region.size() != 4:
+		return false
+	var high := ceili(JsonUtil.to_float(region[3]) / tile_px)
+	var half := floori(JsonUtil.to_float(region[2]) / tile_px / 2.0)
+	for dy in range(0, high):
+		for dx in range(-half, half + 1):
+			if covered.has(cell + Vector2i(dx, -dy)):
+				return true
+	return false
 
 ## The next thing of a kind, with the picture of the packs that is its turn (`counts` counts).
 func _thing(kind: String, pictures: Dictionary, counts: Dictionary, geo: MapGeo) -> Node2D:

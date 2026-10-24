@@ -351,17 +351,17 @@ def test_numbered_frames_without_an_action_word_are_cut_at_the_blank_frames(
     assert SequencesAdapter().match(inv, root) == 1.0
     res = SequencesAdapter().extract(inv, root, ctx)
     (hero,) = res.assets
-    assert hero.path == "CHARACTER/CHARACTER1.png" and hero.confidence < 0.75  # needs review
+    # T17.33: the runs are named by what their frames do (``motion``; these frames stand
+    # still), so none waits for its name
+    assert hero.path == "CHARACTER/CHARACTER1.png" and "motion_named" in hero.facets["tags"]
     assert hero.facets["frame"] == [8, 8]
     assert {k: len(v["frames"]) for k, v in hero.facets["animations"].items()} == {
-        "anim_1": 4,
-        "anim_2": 6,
-        "anim_3": 3,
+        "idle_down": 4,
+        "idle_2_down": 6,
+        "idle_3_down": 3,
     }
     assert len(res.consumed) == 16, "every other frame, the blank ones too, is part of it"
-    (note,) = res.issues
-    assert note.code == "ADAPT-005" and note.severity.value == "info"
-    assert "3 animations" in note.message and "CHARACTER/CHARACTER" in note.message
+    assert res.issues == [], "named: no note"
     # the strips hold the frames in their order, and no blank one
     for spec in hero.facets["animations"].values():
         strip = Image.open(res.generated[spec["source"]]).convert("RGBA")

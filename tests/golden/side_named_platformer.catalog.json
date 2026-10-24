@@ -1,0 +1,931 @@
+{
+  "assets": [
+    {
+      "confidence": 0.9,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "GROUND",
+        "size": [
+          224,
+          96
+        ],
+        "tags": [
+          "side_pack:side_named_platformer",
+          "side_terrain",
+          "surface:grass"
+        ],
+        "tile_overrides": {
+          "0,0": {
+            "custom": {
+              "side": "center"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": 0
+              },
+              "set": "side_named_platformer_png_ground_grass_grass_side",
+              "terrain": 0
+            }
+          },
+          "0,1": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way_left"
+            }
+          },
+          "0,2": {
+            "collision": {
+              "polygon": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  32,
+                  32
+                ],
+                [
+                  0,
+                  32
+                ]
+              ],
+              "profile": "CUSTOM"
+            },
+            "custom": {
+              "side": "slope_left",
+              "slope": "down"
+            }
+          },
+          "1,0": {
+            "custom": {
+              "side": "mid"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "side_named_platformer_png_ground_grass_grass_side",
+              "terrain": 0
+            }
+          },
+          "1,1": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way_mid"
+            }
+          },
+          "1,2": {
+            "collision": {
+              "polygon": [
+                [
+                  0,
+                  32
+                ],
+                [
+                  32,
+                  0
+                ],
+                [
+                  32,
+                  32
+                ]
+              ],
+              "profile": "CUSTOM"
+            },
+            "custom": {
+              "side": "slope_right",
+              "slope": "up"
+            }
+          },
+          "2,0": {
+            "custom": {
+              "side": "left"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": -1,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "side_named_platformer_png_ground_grass_grass_side",
+              "terrain": 0
+            }
+          },
+          "2,1": {
+            "collision": {
+              "profile": "ONE_WAY"
+            },
+            "custom": {
+              "side": "one_way_right"
+            }
+          },
+          "3,0": {
+            "custom": {
+              "side": "right"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": -1,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "side_named_platformer_png_ground_grass_grass_side",
+              "terrain": 0
+            }
+          },
+          "4,0": {
+            "custom": {
+              "side": "single"
+            },
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": -1,
+                "right_side": -1,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "side_named_platformer_png_ground_grass_grass_side",
+              "terrain": 0
+            }
+          },
+          "5,0": {
+            "custom": {
+              "side": "cliff"
+            },
+            "probability": 0.0,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": -1,
+                "right_side": 0,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "side_named_platformer_png_ground_grass_grass_side",
+              "terrain": 0
+            }
+          },
+          "6,0": {
+            "custom": {
+              "side": "cliff"
+            },
+            "probability": 0.0,
+            "terrain": {
+              "peering": {
+                "bottom_left_corner": -1,
+                "bottom_right_corner": -1,
+                "bottom_side": 0,
+                "left_side": 0,
+                "right_side": -1,
+                "top_left_corner": -1,
+                "top_right_corner": -1,
+                "top_side": -1
+              },
+              "set": "side_named_platformer_png_ground_grass_grass_side",
+              "terrain": 0
+            }
+          }
+        },
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "side_packs",
+      "id": "generated.side_named_platformer_png_ground_grass_grass_side",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "generated",
+      "path": "generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+      "sha256": "01ca05d35126a0f7e05ab8dcf0c7d9f6988a54866edd696f7e2d76ab925c09e7",
+      "status": "AUTO_DETECTED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grass",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grass.png",
+      "sha256": "32c7a47600c7c74552fdbe3210f0189be174fb900193166ecb255f426fb5f608",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.65,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grasscenter",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassCenter.png",
+      "sha256": "7e098eeca6a25c014a6c22b3fd07f6d93a07892e3c563bb46e57b535c817abdc",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grasscliff_left",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassCliff_left.png",
+      "sha256": "c4166ef6508cb6fb7e7450ff5710f984f600a2caa676a713b7d1d30cc834b2e9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grasscliff_right",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassCliff_right.png",
+      "sha256": "c608a1ea4521d6d2d079f2c33f9cb5de85c95f607977c94286993618800d4ea5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.41875,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grasshalf_left",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassHalf_left.png",
+      "sha256": "08daf2752cdc6aa93ca9502fb52a35658a1e1765279193af0e49b89ee6a0b887",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.41875,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "duplicate_of:side_named_platformer.png.ground.grass.grasshalf_left",
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grasshalf_mid",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassHalf_mid.png",
+      "sha256": "08daf2752cdc6aa93ca9502fb52a35658a1e1765279193af0e49b89ee6a0b887",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.41875,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "duplicate_of:side_named_platformer.png.ground.grass.grasshalf_left",
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grasshalf_right",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassHalf_right.png",
+      "sha256": "08daf2752cdc6aa93ca9502fb52a35658a1e1765279193af0e49b89ee6a0b887",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grasshill_left",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassHill_left.png",
+      "sha256": "4bd37a65c1c3ef27db70cd1dad395d1844e3504a6b0632ce93c39915ab3f60a3",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.6,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grasshill_right",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassHill_right.png",
+      "sha256": "b2c2fd12bcc1315104f86cff08f392632d829880e2cdc331732552590a8edfb2",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "duplicate_of:side_named_platformer.png.ground.grass.grasscliff_left",
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grassleft",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassLeft.png",
+      "sha256": "c4166ef6508cb6fb7e7450ff5710f984f600a2caa676a713b7d1d30cc834b2e9",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grassmid",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassMid.png",
+      "sha256": "540e8ee86f9bca212ad57d45d40a5cc52aa2a97b7bc8d076e75d68bdf6256222",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "frame": [
+          32,
+          32
+        ],
+        "origin": [
+          16,
+          31
+        ],
+        "role": "NONE",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "duplicate_of:side_named_platformer.png.ground.grass.grasscliff_right",
+          "same_as:generated/side_terrain/d56ea6afa15a3b84643fa55c.png",
+          "surface:grass",
+          "unused_because:terrain_piece"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.ground.grass.grassright",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Ground/Grass/grassRight.png",
+      "sha256": "c608a1ea4521d6d2d079f2c33f9cb5de85c95f607977c94286993618800d4ea5",
+      "status": "UNUSED"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/side_named_platformer/PNG/Players/player_idle.png"
+          },
+          "jump_down": {
+            "fps": 10.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "loop": false,
+            "source": "assets/packs/side_named_platformer/PNG/Players/player_jump.png"
+          },
+          "walk_down": {
+            "fps": 8.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "loop": true,
+            "source": "assets/packs/side_named_platformer/PNG/Players/player_walk.png"
+          }
+        },
+        "frame": [
+          32,
+          32
+        ],
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          16,
+          31
+        ],
+        "role": "PLAYER",
+        "roles_alt": [
+          [
+            "NPC",
+            0.25
+          ]
+        ],
+        "size": [
+          64,
+          32
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "side_named_platformer.png.players.player_idle",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Players/player_idle.png",
+      "sha256": "6cef28e02c24ac0c5a323c2415d4c8d66e02e9fb98daf8b3d79f8c87a70a4990",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.3,
+      "detected": {
+        "grid": {
+          "cell": [
+            32,
+            32
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "role": "DECORATION",
+        "size": [
+          32,
+          32
+        ],
+        "tags": [
+          "duplicate_of:side_named_platformer.png.ground.grass.grassmid",
+          "platform",
+          "recut_from:16",
+          "surface:grass"
+        ],
+        "tileset": "overworld",
+        "usage": "tiles"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.tiles.grassledgeleft",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Tiles/grassLedgeLeft.png",
+      "sha256": "540e8ee86f9bca212ad57d45d40a5cc52aa2a97b7bc8d076e75d68bdf6256222",
+      "status": "NEEDS_REVIEW"
+    },
+    {
+      "confidence": 0.5,
+      "detected": {
+        "frame": [
+          16,
+          16
+        ],
+        "origin": [
+          8,
+          15
+        ],
+        "role": "DECORATION",
+        "roles_alt": [
+          [
+            "ITEM",
+            0.222222
+          ],
+          [
+            "GROUND",
+            0.185185
+          ]
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "generic_grid",
+      "id": "side_named_platformer.png.tiles.signright",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "side_named_platformer",
+      "path": "assets/packs/side_named_platformer/PNG/Tiles/signRight.png",
+      "sha256": "3b2ea3d41b3a2cc5391965013eb3df62d33ea619966772c5358ed5f4d4deb780",
+      "status": "NEEDS_REVIEW"
+    }
+  ],
+  "catalog_version": 2,
+  "folder_rules": [],
+  "generator_version": "1.2.0",
+  "id_allocations": {
+    "entities": {},
+    "tilesets": {
+      "overworld": {
+        "next_source_id": 2,
+        "retired": []
+      }
+    }
+  },
+  "objects": [],
+  "packs": [
+    {
+      "adapters_matched": [],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "",
+        "url": ""
+      },
+      "license_files": [],
+      "pack_id": "generated",
+      "profile_id": null,
+      "root": "generated/terrain_atlases",
+      "source_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "warnings": []
+    },
+    {
+      "adapters_matched": [
+        "strips",
+        "generic_grid"
+      ],
+      "license": {
+        "attribution_required": false,
+        "author": "",
+        "license_id": "CC0-1.0",
+        "url": ""
+      },
+      "license_files": [
+        "assets/packs/side_named_platformer/License.txt"
+      ],
+      "pack_id": "side_named_platformer",
+      "profile_id": null,
+      "root": "assets/packs/side_named_platformer",
+      "source_sha256": "3af660f3cc5b942997da8727eb970c163f6a4514ea4c727f08615ec460da2593",
+      "warnings": [
+        "strips_direction_assumed:PNG/Players/player_idle.png",
+        "strips_direction_assumed:PNG/Players/player_jump.png",
+        "strips_direction_assumed:PNG/Players/player_walk.png",
+        "view:side"
+      ]
+    }
+  ],
+  "tilesets": [
+    {
+      "custom_data": [
+        {
+          "name": "asset_id",
+          "type": "string"
+        },
+        {
+          "name": "footstep",
+          "type": "string"
+        },
+        {
+          "name": "move_cost",
+          "type": "float"
+        }
+      ],
+      "name": "overworld",
+      "navigation": false,
+      "patterns_from_objects": true,
+      "physics_layers": [
+        {
+          "layer_bits": 1,
+          "mask_bits": 0,
+          "name": "world"
+        }
+      ],
+      "sources": [
+        {
+          "asset": "generated.side_named_platformer_png_ground_grass_grass_side",
+          "source_id": 0
+        },
+        {
+          "asset": "side_named_platformer.png.tiles.grassledgeleft",
+          "source_id": 1
+        }
+      ],
+      "terrain_sets": [
+        {
+          "layout": "side",
+          "mode": "sides",
+          "name": "side_named_platformer_png_ground_grass_grass_side",
+          "over": "nothing",
+          "shape": "side",
+          "sheet": "generated.side_named_platformer_png_ground_grass_grass_side",
+          "surface": "grass",
+          "terrains": [
+            {
+              "color": "#4caf50",
+              "name": "grass"
+            }
+          ]
+        }
+      ],
+      "tile_size": [
+        32,
+        32
+      ]
+    }
+  ]
+}

@@ -60,6 +60,9 @@ datas += tree(os.path.join(ROOT, "docs"), "docs", skip_dirs={"spec", "dev"})
 datas += [(os.path.join(ROOT, name), ".") for name in ("LICENSE", "THIRD_PARTY_NOTICES.md", "README.md")]
 datas += [(os.path.join(ROOT, "rpggen", "schema", f), os.path.join("rpggen", "schema"))
           for f in os.listdir(os.path.join(ROOT, "rpggen", "schema")) if f.endswith(".json")]
+# the confidence calibration and the vision step's rules, fitted on the answer key (T17.34)
+datas += [(os.path.join(ROOT, "rpggen", "data", f), os.path.join("rpggen", "data"))
+          for f in os.listdir(os.path.join(ROOT, "rpggen", "data")) if f.endswith(".json")]
 # the stylesheet template and the icon set (T15.01, T15.04)
 datas += [(os.path.join(ROOT, "rpggen", "gui", "style.qss.in"), os.path.join("rpggen", "gui"))]
 ICONS = os.path.join(ROOT, "rpggen", "gui", "icons")

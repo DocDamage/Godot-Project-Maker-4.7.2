@@ -1,5 +1,6 @@
 """Page 2: choose the kind of game: a turn-based RPG, an action RPG, a metroidvania, a
-shoot 'em up, a run and gun, a racing game or a farm."""
+shoot 'em up, a run and gun, a racing game or a farm; or no game at all, only the packs' assets
+for the levels the owner builds by hand (T17.33)."""
 
 from __future__ import annotations
 
@@ -63,14 +64,22 @@ ISO_HINT = "This pack is isometric. The view is chosen on the Options page."
 ISO_SIZE_HINT = (
     "This pack is isometric ({0} x {1} diamonds). The view is chosen on the Options page."
 )
-# the kinds in the order of their cards, and the switch of each
-KINDS = ("turn_based", "arpg", "metroidvania", *config_mod.ARCADE_KINDS, "farm")
+# the kinds in the order of their cards, and the switch of each; the first card makes no game:
+# the packs' tile sets and the dock's scenes, for the levels the owner builds (T17.33)
+KINDS = (
+    config_mod.ASSETS_KIND,
+    "turn_based",
+    "arpg",
+    "metroidvania",
+    *config_mod.ARCADE_KINDS,
+    "farm",
+)
 # The kinds that are walked from above: their starter map is the same map with the same options
 # (an area table among them).
 TOP_DOWN_KINDS = ("turn_based", "arpg", "farm")
 GRID_WIDTH = 1000  # a window this wide has rows of three cards; a narrower one a column
 GRID_COLUMNS = 3
-WIDE_GRID_WIDTH = 1280  # ... and one this wide rows of four: seven cards in two rows (T17.16)
+WIDE_GRID_WIDTH = 1280  # ... and one this wide rows of four: eight cards in two rows (T17.33)
 WIDE_GRID_COLUMNS = 4
 MOCK_GRID_HEIGHT = 160  # the drawing of a card in the grid is no higher than this
 MOCK_ROW_SIZE = (200, 112)  # ... and at the left of a card of the column it is this
@@ -78,7 +87,8 @@ FULL_CARD_HEIGHT = 380  # a card of the grid with its list; two rows of them nee
 
 
 def kind_available(kind: str) -> bool:
-    """True when the kind of game can be chosen (its feature flag; the RPG always can)."""
+    """True when the kind of game can be chosen (its feature flag; the RPG and the project of
+    assets only always can)."""
     return {
         "arpg": features.ARPG_AVAILABLE,
         "metroidvania": features.METROIDVANIA_AVAILABLE,
@@ -268,7 +278,8 @@ class MockScreen(QWidget):
     game; a cave seen from the side with a gap, a plank, an orb and health pips for the
     metroidvania; a ship over stars for the shoot 'em up, a soldier on a ledge that aims up
     for the run and gun, a car on a curve for the racing game; a farmer by a row of crops, a
-    house and the clock for the farm."""
+    house and the clock for the farm; the editor with the palette of a tile set, a path being
+    painted and a house and a tree placed from the dock for a project of assets only (T17.33)."""
 
     BACKGROUNDS = {
         "turn_based": QColor(38, 44, 60),
@@ -278,6 +289,7 @@ class MockScreen(QWidget):
         "run_and_gun": QColor(40, 58, 74),
         "racing": QColor(76, 150, 70),
         "farm": QColor(104, 158, 84),
+        "assets": QColor(50, 56, 70),  # the editor's grey (T17.33)
     }
     # where the stars of the shoot 'em up are, as parts of the drawing (fixed: no randomness)
     STARS = (
@@ -621,6 +633,106 @@ class MockScreen(QWidget):
             )
         painter.restore()
 
+    # the swatches of the palette (T17.33): grass, earth, water, stone, a roof and a leaf
+    SWATCHES = (
+        QColor(96, 156, 80), QColor(166, 122, 78), QColor(72, 132, 200),
+        QColor(140, 140, 150), QColor(176, 70, 60), QColor(52, 120, 64),
+    )  # fmt: skip
+
+    def _paint_assets(self, painter: QPainter, rect) -> None:  # noqa: ANN001
+        """A project of assets only (T17.33): no game, the editor. At the left the palette of a
+        tile set (two columns of swatches, the chosen one framed), at the right a level being
+        built: grass, a path of earth painted up to the brush, a pond, and a house and a tree
+        that came from the dock. With the pack's art the grass is its ground tile."""
+        art = self.art
+        w, h = rect.width(), rect.height()
+        x0, y0 = rect.left(), rect.top()
+        painter.save()
+        painter.setClipRect(rect)
+        painter.setPen(Qt.PenStyle.NoPen)
+        panel = QRectF(x0 + w * 0.03, y0 + h * 0.08, w * 0.20, h * 0.84)
+        painter.setBrush(QColor(34, 38, 50))
+        painter.drawRoundedRect(panel, 3, 3)
+        side = min(panel.width() * 0.36, panel.height() * 0.22)
+        gap_x = (panel.width() - 2 * side) / 3
+        gap_y = (panel.height() - 3 * side) / 4
+        for i, colour in enumerate(self.SWATCHES):
+            swatch = QRectF(
+                panel.left() + gap_x + (i % 2) * (side + gap_x),
+                panel.top() + gap_y + (i // 2) * (side + gap_y),
+                side,
+                side,
+            )
+            painter.setBrush(colour)
+            painter.drawRect(swatch)
+            if i == 1:  # the chosen terrain: the earth of the path
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.setPen(QPen(QColor(250, 214, 90), 2))
+                painter.drawRect(swatch.adjusted(-2, -2, 2, 2))
+                painter.setPen(Qt.PenStyle.NoPen)
+        level = QRectF(x0 + w * 0.27, y0 + h * 0.08, w * 0.70, h * 0.84)
+        if art is not None and art.ground is not None:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
+            tile = scaled_to_height(art.ground, 24, self.devicePixelRatioF())
+            painter.drawTiledPixmap(level, tile)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        else:
+            painter.setBrush(self.SWATCHES[0])
+            painter.drawRect(level)
+        cell = max(8.0, level.height() / 6)  # the grid of the cells, faint
+        painter.setPen(QPen(QColor(255, 255, 255, 40), 1))
+        x = level.left() + cell
+        while x < level.right():
+            painter.drawLine(QPointF(x, level.top()), QPointF(x, level.bottom()))
+            x += cell
+        y = level.top() + cell
+        while y < level.bottom():
+            painter.drawLine(QPointF(level.left(), y), QPointF(level.right(), y))
+            y += cell
+        painter.setPen(Qt.PenStyle.NoPen)
+        lw, lh = level.width(), level.height()
+        painter.setBrush(self.SWATCHES[2])  # the pond, in a corner
+        painter.drawRoundedRect(
+            QRectF(level.left() + lw * 0.04, level.top() + lh * 0.08, lw * 0.24, lh * 0.30), 6, 6
+        )
+        # the path of earth along the bottom, and up to the brush
+        painter.setBrush(self.SWATCHES[1])
+        path_y = level.top() + lh * 0.66
+        brush_x = level.left() + lw * 0.62
+        painter.drawRect(QRectF(level.left(), path_y, lw * 0.62, cell))
+        painter.drawRect(QRectF(brush_x - cell, path_y - cell, cell, cell))
+        painter.setBrush(Qt.BrushStyle.NoBrush)  # the brush, on the next cell
+        painter.setPen(QPen(QColor(240, 240, 250), 2))
+        painter.drawRect(QRectF(brush_x - cell, path_y - cell * 2, cell, cell))
+        painter.setPen(Qt.PenStyle.NoPen)
+        # a house placed from the dock: its wall, its roof and its door
+        house = QRectF(level.left() + lw * 0.32, level.top() + lh * 0.22, lw * 0.17, lh * 0.28)
+        painter.setBrush(QColor(206, 178, 132))
+        painter.drawRect(house)
+        painter.setBrush(self.SWATCHES[4])
+        painter.drawPolygon(
+            [
+                QPointF(house.left() - house.width() * 0.1, house.top() + house.height() * 0.3),
+                QPointF(house.center().x(), house.top() - house.height() * 0.4),
+                QPointF(house.right() + house.width() * 0.1, house.top() + house.height() * 0.3),
+            ]
+        )
+        painter.setBrush(QColor(96, 64, 44))
+        door = house.width() * 0.24
+        painter.drawRect(
+            QRectF(house.center().x() - door / 2, house.bottom() - house.height() * 0.45, door,
+                   house.height() * 0.45)
+        )  # fmt: skip
+        # a tree: its trunk and its crown
+        tree = QPointF(level.left() + lw * 0.84, level.top() + lh * 0.44)
+        radius = min(lw * 0.08, lh * 0.16)
+        painter.setBrush(QColor(110, 76, 50))
+        painter.drawRect(QRectF(tree.x() - radius * 0.2, tree.y(), radius * 0.4, radius * 1.1))
+        painter.setBrush(self.SWATCHES[5])
+        painter.drawEllipse(tree, radius, radius)
+        painter.restore()
+
     def _paint_art(self, painter: QPainter, rect) -> None:  # noqa: ANN001
         """The scene with the pack's pictures; the layout is the drawing's, the pieces are art."""
         art = self.art
@@ -685,6 +797,8 @@ class MockScreen(QWidget):
             self._paint_race(painter, rect)
         elif self.kind == "farm":
             self._paint_farm(painter, rect)
+        elif self.kind == config_mod.ASSETS_KIND:
+            self._paint_assets(painter, rect)
         elif self.art is not None:
             self._paint_art(painter, rect)
         elif self.kind == "turn_based":
@@ -893,6 +1007,19 @@ class ArchetypePage(WizardPage):
         super().__init__(parent)
         layout = self.page_layout()
         layout.addWidget(QLabel(self.tr("What kind of game do you want to start with?")))
+        # no game (T17.33): the packs' tile sets and the dock's scenes, for levels built by hand
+        self.assets_card = ArchetypeCard(
+            config_mod.ASSETS_KIND,
+            self.tr("Assets only"),
+            self.tr("Build your own levels in Godot from your packs.\nNo game is made."),
+            [self.tr("Packs"), self.tr("Tile sets"), self.tr("Dock"), self.tr("Your levels")],
+            [
+                self.tr("Tile sets of the packs that paint with Godot's Terrain tool"),
+                self.tr("Buildings, props, people and animals as scenes in the dock"),
+                self.tr("No maps, menus or player: the levels are yours to build"),
+            ],
+            self.tr("In Godot: paint on the Terrains tab, place things from the dock."),
+        )
         self.turn_card = ArchetypeCard(
             "turn_based",
             self.tr("Turn-based RPG"),
@@ -994,6 +1121,7 @@ class ArchetypePage(WizardPage):
             ),
         )
         self.cards = {
+            config_mod.ASSETS_KIND: self.assets_card,
             "turn_based": self.turn_card,
             "arpg": self.arpg_card,
             "metroidvania": self.metroidvania_card,
@@ -1004,8 +1132,8 @@ class ArchetypePage(WizardPage):
         }
         self.group = QButtonGroup(self)
         self.group.setExclusive(True)
-        # seven cards (T16.16, T17.16): rows of four in a very wide window, rows of three in a
-        # wide one (the third row scrolls), else a column that scrolls
+        # eight cards (T16.16, T17.16, T17.33): rows of four in a very wide window, rows of three
+        # in a wide one (the third row scrolls), else a column that scrolls
         self.cards_scroll = QScrollArea()
         self.cards_scroll.setObjectName("archetypeScroll")
         self.cards_scroll.setWidgetResizable(True)
@@ -1125,7 +1253,7 @@ class ArchetypePage(WizardPage):
             self.cards_grid.setRowStretch(row, int(row < rows if wide else row == rows))
 
     def _apply_shape(self) -> None:
-        """Rows of four cards in a window ``WIDE_GRID_WIDTH`` wide and more (seven cards in
+        """Rows of four cards in a window ``WIDE_GRID_WIDTH`` wide and more (eight cards in
         two rows), rows of three from ``GRID_WIDTH`` on (two rows are in view and the third
         scrolls), with the list of each card left out while two rows of whole cards would not
         fit; below that width one column of cards, each with its drawing at the left. Whether
@@ -1284,11 +1412,15 @@ class ArchetypePage(WizardPage):
         cfg = state.config
         if cfg is not None and cfg.archetype != state.archetype:
             old, new = cfg.archetype, state.archetype
-            if cfg.input == config_mod.default_input(old):
+            # (a project of assets only seen from the side has the bindings of that view)
+            if cfg.input == config_mod.default_input(old, cfg.view):
                 cfg.input = config_mod.default_input(new)  # untouched bindings follow
             if cfg.features == config_mod.default_features(old):
                 cfg.features = config_mod.default_features(new)  # and untouched features
-            planned = ("metroidvania", *config_mod.ARCADE_KINDS, "farm")
+            # a project of assets only has no maps and its view is decided again for it
+            # (T17.33): nothing of a game's map goes along, and no view to another kind
+            cfg.view = ""
+            planned = ("metroidvania", *config_mod.ARCADE_KINDS, "farm", config_mod.ASSETS_KIND)
             if old in planned or new in planned:
                 # rooms, stages, tracks and a farm have options of their own: another kind's
                 # are not taken along (the areas of a map seen from above are no default and

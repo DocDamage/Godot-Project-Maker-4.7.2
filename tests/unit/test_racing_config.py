@@ -108,7 +108,8 @@ def test_a_race_does_not_read_iso_controls_and_its_config_never_carries_it() -> 
     from rpggen.core import dry_run
 
     assert config.ISO_CONTROLS_KINDS == ("turn_based", "arpg", "farm")
-    assert set(config.ISOMETRIC_KINDS) - set(config.ISO_CONTROLS_KINDS) == {"racing"}
+    # nobody walks in a race, nor in an assets-only project (T17.33: no game)
+    assert set(config.ISOMETRIC_KINDS) - set(config.ISO_CONTROLS_KINDS) == {"racing", "assets"}
     cfg = _cfg(projection="isometric", iso_controls="grid")
     data = cfg.to_json()
     schema.validate("config", data)

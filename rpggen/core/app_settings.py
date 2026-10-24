@@ -76,6 +76,13 @@ class AppSettings:
     reduce_motion: str = "system"  # "system", "on" or "off": View > Reduce motion (T13.10)
     # how long each phase took on this computer: phase -> the last ten [assets, seconds] (T13.07)
     phase_history: dict[str, list[list[float]]] = field(default_factory=dict)
+    # the local vision step (T17.34), off by default: llama-server, its model and the model's
+    # vision projector, all on this machine, and the port rpggen runs the server on
+    vision_enabled: bool = False
+    vision_server: str = ""
+    vision_model: str = ""
+    vision_projector: str = ""
+    vision_port: int = 8190
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -100,6 +107,11 @@ class AppSettings:
             "tours_seen": list(self.tours_seen),
             "reduce_motion": self.reduce_motion,
             "phase_history": {k: [list(p) for p in v] for k, v in self.phase_history.items()},
+            "vision_enabled": self.vision_enabled,
+            "vision_server": self.vision_server,
+            "vision_model": self.vision_model,
+            "vision_projector": self.vision_projector,
+            "vision_port": self.vision_port,
         }
 
 
@@ -277,6 +289,15 @@ def from_json(data: Any) -> AppSettings:
     limit = data.get("cache_limit_gb")
     if isinstance(limit, (int, float)) and not isinstance(limit, bool) and 1 <= limit <= 1000:
         s.cache_limit_gb = float(limit)
+    vision = data.get("vision_enabled")
+    if isinstance(vision, bool):
+        s.vision_enabled = vision
+    s.vision_server = _str(data.get("vision_server"), s.vision_server)
+    s.vision_model = _str(data.get("vision_model"), s.vision_model)
+    s.vision_projector = _str(data.get("vision_projector"), s.vision_projector)
+    port = data.get("vision_port")
+    if isinstance(port, int) and not isinstance(port, bool) and 1024 <= port <= 65535:
+        s.vision_port = port
     return s
 
 

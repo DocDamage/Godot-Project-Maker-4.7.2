@@ -16,11 +16,38 @@ const IsoHouse := preload("iso_house.gd")
 
 const SPRITE_ROLES := ["DECORATION", "BUILDING", "INTERIOR", "ITEM"]
 
+## The tags of a thing cut from a sheet that the farm and the maps know what to do with.
+const NAMED_THINGS := ["tree", "bush", "rock", "flowers", "grass", "stump", "fence", "well"]
+
+## A thing cut from a sheet that is an entry too (T17.33): a building, or a tree, a bush, a
+## rock, flowers, grass, a stump, a fence or a well by its tags.
+static func _named_thing(eff: Dictionary) -> bool:
+	if JsonUtil.to_str(eff.get("role", "")) == "BUILDING":
+		return true
+	for tag: Variant in JsonUtil.to_array(eff.get("tags", [])):
+		if NAMED_THINGS.has(JsonUtil.to_str(tag)):
+			return true
+	return false
+
+## The collision of a thing cut from a sheet that says none: the lowest quarter of its picture,
+## half as wide, where it stands (T17.33).
+const NO_COLLISION := {"profile": "NONE"}
+
+static func _foot(region: Array) -> Dictionary:
+	var w := JsonUtil.to_int(region[2])
+	var h := JsonUtil.to_int(region[3])
+	var fw := maxi(2, w / 2)
+	var fh := maxi(2, h / 4)
+	var fx := (w - fw) / 2
+	var fy := h - fh
+	return {"profile": "CUSTOM", "polygon": [[fx, fy], [fx + fw, fy], [fx + fw, h], [fx, h]]}
+
 static func _default_origin(region: Array) -> Array:
 	return [JsonUtil.to_int(region[2]) / 2, JsonUtil.to_int(region[3]) - 1]
 
 static func entries(ctx: BuildContext) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	var assets_only := JsonUtil.to_str(ctx.config.get("archetype", "")) == "assets"
 	for o in ctx.catalog.objects():
 		if o.get("status", "") == "UNUSED" or o.get("role", "NONE") == "NONE":
 			continue
@@ -47,7 +74,15 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 		if a.get("status", "") in ["UNUSED", "MISSING"]:
 			continue
 		var eff: Dictionary = ctx.catalog.effective(a)
-		if eff.get("usage", "") != "sprite" or not SPRITE_ROLES.has(eff.get("role", "")):
+		# a thing cut from a sheet (usage `object`, its own picture) is one too (T17.33): a named
+		# one in a game, every one in an assets-only project, where the levels are made by hand
+		var usage := JsonUtil.to_str(eff.get("usage", ""))
+		var cut: bool = usage == "object" and (_named_thing(eff) or assets_only)
+		# an isometric piece of a thing (a crate, a statue, a house: a role the dock places, not
+		# ground or wall) is placed from the dock in an assets-only project as well as painted
+		# (T17.33); the cut cells of a sheet have no rise to tell them by
+		var standing: bool = assets_only and usage == "iso_tile"
+		if not SPRITE_ROLES.has(eff.get("role", "")) or not (usage == "sprite" or cut or standing):
 			continue
 		var anims: Dictionary = eff.get("animations", {})
 		# An animated asset is not an object, except a chest strip (its 2 frames are read as an
@@ -68,7 +103,7 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 			"region": region,
 			"origin": JsonUtil.to_array(eff.get("origin", _default_origin(region))).duplicate(),
 			"footprint": [],
-			"collision": JsonUtil.to_dict(eff.get("collision", {"profile": "NONE"})).duplicate(true),
+			"collision": JsonUtil.to_dict(eff.get("collision", _foot(region) if cut else NO_COLLISION)).duplicate(true),
 			"door": [],
 			"sha256": a.get("sha256", ""),
 			"open_region": open_region(eff, region),

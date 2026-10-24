@@ -815,11 +815,11 @@
         "roles_alt": [
           [
             "DECORATION",
-            0.0625
+            0.064516
           ],
           [
             "WALL",
-            0.03125
+            0.032258
           ]
         ],
         "size": [
@@ -1583,7 +1583,7 @@
             }
           },
           "16,10": {
-            "probability": 0.35,
+            "probability": 0.0882,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -1824,7 +1824,7 @@
             }
           },
           "18,10": {
-            "probability": 0.35,
+            "probability": 0.0882,
             "terrain": {
               "peering": {
                 "bottom_left_corner": 0,
@@ -3932,6 +3932,55 @@
       "source": "auto",
       "status": "AUTO_DETECTED",
       "tags": []
+    },
+    {
+      "collision": {
+        "polygon": [
+          [
+            5,
+            13
+          ],
+          [
+            10,
+            13
+          ],
+          [
+            10,
+            16
+          ],
+          [
+            5,
+            16
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        5,
+        13,
+        5,
+        3
+      ],
+      "id": "terrain_blocks.terrain_blocks.tilesets.ground_terrain_mix#orange_round",
+      "name": "orange_round",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        448,
+        256,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "terrain_blocks.terrain_blocks.tilesets.ground_terrain_mix",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:28:16"
+      ]
     }
   ],
   "packs": [

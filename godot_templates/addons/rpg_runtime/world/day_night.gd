@@ -8,12 +8,13 @@ extends RefCounted
 const DAY := Color(1.0, 1.0, 1.0)
 const INTERIOR := Color(0.78, 0.74, 0.68)
 const NIGHT := Color(0.32, 0.36, 0.55)
-## (hour, colour) through a day; colours in between are blended.
+## (hour, colour) through a day; colours in between are blended. Full day from six (T17.33): the
+## farm's day begins at six, and its first hours were dim as night.
 const KEYS: Array = [
 	[0.0, NIGHT],
-	[5.0, NIGHT],
-	[6.5, Color(0.85, 0.66, 0.58)],
-	[8.0, DAY],
+	[4.0, NIGHT],
+	[5.0, Color(0.85, 0.66, 0.58)],
+	[6.0, DAY],
 	[17.0, DAY],
 	[19.0, Color(0.92, 0.62, 0.52)],
 	[20.5, NIGHT],

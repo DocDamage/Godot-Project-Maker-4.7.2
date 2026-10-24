@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Answer key review</title>
+<style>
+  :root { --bg: #f4f4f2; --card: #fff; --ink: #222; --muted: #777; --line: #ccc; --code: #eef;
+          --ok: #3a7; --bad: #c33; --some: #c90; --link: #245; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1d1e20; --card: #26282b; --ink: #e6e6e6; --muted: #999; --line: #444; --code: #2f3340;
+            --link: #9bd; }
+  }
+  body { font: 14px system-ui, sans-serif; margin: 0 16px 40px; background: var(--bg); color: var(--ink); }
+  a { color: var(--link); }
+  .bar { position: sticky; top: 0; background: var(--bg); padding: 8px 0; border-bottom: 1px solid var(--line);
+         z-index: 1; }
+  .g { background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--line);
+       border-radius: 6px; padding: 10px; margin: 12px 0; }
+  .g.right { border-left-color: var(--ok); } .g.wrong { border-left-color: var(--bad); }
+  .g.mixed { border-left-color: var(--some); }
+  .g img { max-width: 100%; image-rendering: pixelated; display: block; margin: 6px 0; }
+  .ans { font-family: ui-monospace, monospace; background: var(--code); padding: 4px 6px; border-radius: 4px;
+         white-space: pre-wrap; margin-bottom: 6px; }
+  label { margin-right: 14px; white-space: nowrap; }
+  input[type=text] { width: min(100%, 640px); margin-top: 6px; padding: 4px; background: var(--card);
+                     color: var(--ink); border: 1px solid var(--line); border-radius: 4px; }
+  .who { color: var(--muted); font-size: 12px; }
+  .note { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+  .name { word-break: break-all; }
+</style>
+</head>
+<body>
+<div id="app">Loading...</div>
+<script>
+const app = document.getElementById("app");
+const q = new URLSearchParams(location.search), pack = q.get("pack");
+const LABELS = {right: "Right for all", wrong: "Wrong for all", mixed: "Some are wrong"};
+async function j(u, o) { const r = await fetch(u, o); return r.json(); }
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])); }
+
+async function index() {
+  const packs = await j("/api/packs");
+  app.innerHTML = "<h2>Answer key: packs</h2>" +
+    "<p>Each group shows its pictures and the answer the key gives them. Mark whether the answer is " +
+    "right for every picture shown; if not, say what it should be or which ones are wrong.</p><ul>" +
+    packs.map(p => `<li><a href="?pack=${encodeURIComponent(p.name)}">${esc(p.name)}</a> (${esc(p.publisher)}): ` +
+      `${p.marked} of ${p.groups} groups marked, ${p.wrong} wrong or mixed</li>`).join("") + "</ul>";
+}
+
+async function show() {
+  const d = await j("/api/pack?name=" + encodeURIComponent(pack));
+  let h = `<div class="bar"><a href="/">all packs</a> &middot; <b>${esc(pack)}</b> (${esc(d.publisher)}) &middot; ` +
+    `<span id="count"></span> &middot; <label><input type="checkbox" id="todo"> hide marked</label></div>`;
+  d.groups.forEach((g, n) => {
+    const m = d.marks[g.group] || {};
+    h += `<div class="g ${m.mark || ""}" data-group="${esc(g.group)}">` +
+      `<div><b>${n + 1}.</b> <span class="name">${esc(g.group)}</span> <span class="who">${g.size} picture(s)` +
+      `${g.size > g.shown ? `, ${g.shown} shown` : ""}${g.corrected ? ", corrected by the agent" : ""}</span></div>` +
+      `<img loading="lazy" alt="" src="/sheet?pack=${encodeURIComponent(pack)}&n=${n}">` +
+      `<div class="ans">${esc(g.answer)}</div>` +
+      (g.notes.length ? `<div class="note">Agent's corrections: ${g.notes.map(esc).join("<br>")}</div>` : "") +
+      Object.entries(LABELS).map(([k, v]) =>
+        `<label><input type="radio" name="m${n}" value="${k}" ${m.mark === k ? "checked" : ""}> ${v}</label>`).join("") +
+      `<br><input type="text" placeholder="what it should be, or which ones are wrong" value="${esc(m.note || "")}"></div>`;
+  });
+  app.innerHTML = h;
+  const count = () => {
+    const all = document.querySelectorAll(".g").length;
+    const done = document.querySelectorAll(".g input[type=radio]:checked").length;
+    document.getElementById("count").textContent = `${done} of ${all} marked`;
+  };
+  count();
+  document.getElementById("todo").onchange = e => document.querySelectorAll(".g").forEach(g =>
+    g.style.display = e.target.checked && g.querySelector("input[type=radio]:checked") ? "none" : "");
+  document.querySelectorAll(".g").forEach(g => {
+    const save = async () => {
+      const r = g.querySelector("input[type=radio]:checked");
+      const note = g.querySelector("input[type=text]").value;
+      g.className = "g " + (r ? r.value : "");
+      await fetch("/api/mark", {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({pack, group: g.dataset.group, mark: r ? r.value : "", note})});
+      count();
+    };
+    g.querySelectorAll("input[type=radio]").forEach(i => i.onchange = save);
+    g.querySelector("input[type=text]").onchange = save;
+  });
+}
+
+pack ? show() : index();
+</script>
+</body>
+</html>

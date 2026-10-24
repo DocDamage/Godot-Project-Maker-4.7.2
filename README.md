@@ -16,6 +16,10 @@ isometric tiles. What a pack lacks for the kind you choose is drawn for it, so e
 makes a game. It checks the result by loading and playing it headless before it gives it to you,
 and it can regenerate the project later without touching your work.
 
+What it is for: you build your own levels in Godot from the assets you import, and the logic a
+game needs (collision, terrains to paint with, animations, what each thing does) is already on
+them; the generated maps are examples to start from.
+
 It is a desktop application for **Windows**, **Linux** and **macOS**, with a dark and a light
 theme. *Try the sample* on its first screen makes a playable project in two clicks.
 

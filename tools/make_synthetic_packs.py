@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import random
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -3453,6 +3454,88 @@ def make_terrain_blocks(out: Path) -> None:
     _expected(out, "terrain_blocks", expected)
 
 
+ST_CELL = 16
+ST_GAP = 1
+ST_OUTLINE: Color = (62, 38, 50, 255)
+ST_GREEN: Color = (70, 160, 70, 255)
+ST_LEAF: Color = (110, 190, 90, 255)
+ST_WOOD: Color = (150, 96, 60, 255)
+ST_GREY: Color = (150, 150, 160, 255)
+# where each thing of the sheet lies (column, row), for the tests
+ST_TREE = (2, 0)  # the crown; its trunk is the cell under it
+ST_ROCK = (3, 0)
+ST_BUCKET = (4, 0)
+ST_FLOWER = (3, 2)
+ST_FENCE = ((0, 2), (1, 2), (2, 2))
+
+
+def _sheet_things() -> Image.Image:
+    """Kenney's *Tiny Farm* shape (T17.33): one sheet of 16 px tiles a pixel apart holding ground
+    and the things a level is furnished with. Plain grass tiles; a tree whose crown is one
+    cell and its trunk the cell under it (its leaves go on over the line between them); a rock,
+    a bucket and a flower each in a cell of its own, outlined, on see-through pixels; and three
+    pieces of a fence that run from one side of their cell to the other."""
+    t, g = ST_CELL, ST_GAP
+    img = Image.new("RGBA", (6 * t + 5 * g, 6 * t + 5 * g), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    rng = random.Random(33)
+
+    def at(c: int, r: int) -> tuple[int, int]:
+        return c * (t + g), r * (t + g)
+
+    trunk = (ST_TREE[0], ST_TREE[1] + 1)
+    things = {ST_TREE, trunk, ST_ROCK, ST_BUCKET, ST_FLOWER, *ST_FENCE}
+    # every other cell is grass: a sheet of tiles paints every cell (its grid is read so)
+    grass = [(c, r) for r in range(6) for c in range(6) if (c, r) not in things]
+    for c, r in grass:  # plain grass: opaque, of one tone, with a little grain
+        x, y = at(c, r)
+        for py in range(t):
+            for px in range(t):
+                k = rng.randint(-8, 8)
+                img.putpixel((x + px, y + py), (96 + k, 168 + k, 74 + k, 255))
+    x, y = at(*ST_TREE)  # the crown, down to the bottom of its cell
+    d.ellipse([x + 1, y + 1, x + 14, y + 15], fill=ST_GREEN, outline=ST_OUTLINE)
+    d.rectangle([x + 4, y + 12, x + 11, y + 15], fill=ST_GREEN)
+    x, y = at(ST_TREE[0], ST_TREE[1] + 1)  # the trunk under it, its leaves at the top
+    d.rectangle([x + 4, y, x + 11, y + 2], fill=ST_LEAF)
+    d.rectangle([x + 6, y + 3, x + 9, y + 14], fill=ST_WOOD, outline=ST_OUTLINE)
+    x, y = at(*ST_ROCK)
+    d.ellipse([x + 2, y + 5, x + 13, y + 14], fill=ST_GREY, outline=ST_OUTLINE)
+    x, y = at(*ST_BUCKET)
+    d.rectangle([x + 4, y + 4, x + 11, y + 14], fill=ST_WOOD, outline=ST_OUTLINE)
+    d.line([x + 4, y + 7, x + 11, y + 7], fill=ST_OUTLINE)
+    x, y = at(*ST_FLOWER)  # small: a stem and a bloom
+    d.line([x + 8, y + 9, x + 8, y + 14], fill=ST_GREEN)
+    d.ellipse([x + 6, y + 5, x + 10, y + 9], fill=(230, 200, 40, 255), outline=ST_OUTLINE)
+    for c, r in ST_FENCE:  # a rail from side to side, open at its ends, a post in the middle
+        x, y = at(c, r)
+        d.rectangle([x, y + 6, x + t - 1, y + 9], fill=ST_WOOD)
+        d.line([x, y + 6, x + t - 1, y + 6], fill=ST_OUTLINE)
+        d.line([x, y + 9, x + t - 1, y + 9], fill=ST_OUTLINE)
+        d.rectangle([x + 6, y + 3, x + 9, y + 14], fill=ST_WOOD, outline=ST_OUTLINE)
+    return img
+
+
+def make_sheet_things(out: Path) -> None:
+    """A sheet of tiles that holds things to place as well as ground (T17.33): sheet_things."""
+    pack = out / "sheet_things"
+    _write_text(pack / "LICENSE.txt", "CC0-1.0 synthetic test pack\n")
+    _save_png(_sheet_things(), pack / "Tilemap" / "tilemap.png")
+    _expected(
+        out,
+        "sheet_things",
+        {
+            "Tilemap/tilemap.png": {
+                "usage": "tiles",
+                "role": "GROUND",
+                "cell": [ST_CELL, ST_CELL],
+                "margin": [0, 0],
+                "separation": [ST_GAP, ST_GAP],
+            }
+        },
+    )
+
+
 IT_FOOT = (64, 32)
 IT_SIDE = 8
 IT_GRASS: Color = (96, 168, 74, 255)
@@ -3582,6 +3665,347 @@ def make_iso_terrain(out: Path) -> None:
     _expected(out, "iso_terrain", expected)
 
 
+IC_ROAD: Color = (200, 188, 166, 255)
+IC_PAVE: Color = (240, 234, 216, 255)
+IC_WOOD: Color = (190, 140, 80, 255)
+IC_GRASS: Color = (96, 168, 74, 255)
+# the corners of a plate in the grid's names, and the ways of the plaza kit: the corners of
+# pavement (the others road); every way but the two of opposite corners, as Medieval Town has
+IC_CORNERS = ("nw", "ne", "es", "sw")
+IC_WAYS: tuple[tuple[str, ...], ...] = (
+    (), ("nw",), ("ne",), ("es",), ("sw",), ("nw", "ne"), ("ne", "es"), ("es", "sw"),
+    ("sw", "nw"), ("nw", "ne", "es"), ("ne", "es", "sw"), ("es", "sw", "nw"),
+    ("sw", "nw", "ne"), ("nw", "ne", "es", "sw"),
+)  # fmt: skip
+
+
+def _ic_plate(pavement: tuple[str, ...], whole: Color | None = None) -> Image.Image:
+    """A flat plate of the plaza kit, of flat colours: road, with a round patch of pavement at
+    each corner ``pavement`` names (and pavement all over the middle when three or four do, a
+    round patch of road left at the fourth corner), as Medieval Town draws its plates; or all of
+    one colour (``whole``)."""
+    img = Image.new("RGBA", IT_FOOT, (0, 0, 0, 0))
+    middle = (IT_FOOT[0] / 2, IT_FOOT[1] / 2)
+    at = {"nw": (-0.5, -0.5), "ne": (0.5, -0.5), "es": (0.5, 0.5), "sw": (-0.5, 0.5)}
+    for y in range(img.height):
+        for x in range(img.width):
+            east, south = _it_grid(x, y, middle)
+            if abs(east) > 0.5 or abs(south) > 0.5:
+                continue
+            nearest = min(at, key=lambda c: (east - at[c][0]) ** 2 + (south - at[c][1]) ** 2)
+            far = ((east - at[nearest][0]) ** 2 + (south - at[nearest][1]) ** 2) ** 0.5
+            if len(pavement) >= 3:
+                paved = nearest in pavement or far > 0.5
+            elif len(pavement) == 2:
+                paved = nearest in pavement
+            else:
+                paved = nearest in pavement and far <= 0.5
+            img.putpixel((x, y), whole or (IC_PAVE if paved else IC_ROAD))
+    return img
+
+
+def _ic_grass(speck: int) -> Image.Image:
+    """A plain grass diamond with ``speck`` lighter specks (0: the plainest)."""
+    img = _ic_plate((), IC_GRASS)
+    for k in range(speck):
+        x, y = IT_FOOT[0] // 2 - 6 + 5 * k, IT_FOOT[1] // 2 - 2 + (k % 2) * 3
+        img.putpixel((x, y), (120, 196, 96, 255))
+    return img
+
+
+def make_iso_corners(out: Path) -> None:
+    """An isometric plaza kit (T17.33): flat plates of road and pavement in every way but two of
+    sharing the four corners of a diamond, named by nothing but a number (Kenney's *Medieval
+    Town* plates are named but their names do not say the corners), a wood plate of another
+    colour, and a plain grass drawn three times (the plainest first by nothing in its name)."""
+    pack = out / "iso_corners" / "Isometric Plaza Kit"
+    _write_text(out / "iso_corners" / "License.txt", "CC0-1.0 synthetic test pack\n")
+    expected: dict[str, dict] = {}
+    for k, way in enumerate(IC_WAYS):
+        rel = f"PNG/plate_{k:02d}.png"
+        _save_png(_ic_plate(way), pack / rel)
+        expected[f"Isometric Plaza Kit/{rel}"] = {"usage": "iso_tile"}
+    _save_png(_ic_plate((), IC_WOOD), pack / "PNG" / "plate_wood.png")
+    for k, speck in enumerate((2, 0, 3)):
+        _save_png(_ic_grass(speck), pack / "PNG" / f"grass_{k + 1:02d}.png")
+        expected[f"Isometric Plaza Kit/PNG/grass_{k + 1:02d}.png"] = {
+            "usage": "iso_tile",
+            "role": "GROUND",
+        }
+    _expected(out, "iso_corners", expected)
+
+
+# ------------------------------------------------------------------------------------------
+# Real side-view packs (T17.32): a numbered tile sheet with a character sheet, terrain pieces
+# named by their place, a character as frames in action folders, a stage of layered backgrounds.
+
+DIRT: Color = (176, 112, 72, 255)
+DIRT_DOT: Color = (150, 92, 58, 255)
+OUTLINE: Color = (60, 52, 70, 255)
+GRASS: Color = (86, 170, 72, 255)
+GRASS_LIGHT: Color = (120, 200, 96, 255)
+GOLD: Color = (240, 196, 40, 255)
+
+
+def _dirt(d: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int) -> None:
+    """Earth that tiles every way: specks on a grid of 8 px."""
+    d.rectangle([x, y, x + w - 1, y + h - 1], fill=DIRT)
+    for sy in range(y, y + h, 8):
+        for sx in range(x, x + w, 8):
+            d.point([(sx + 3, sy + 2), (sx + 6, sy + 5)], fill=DIRT_DOT)
+
+
+def _numbered_sheet(t: int = 16) -> Image.Image:
+    """8 x 3 cells: a grass-topped block of earth (its top, sides, inside and bottom), three
+    planks, a ladder, spikes, water, a coin, a key and a door."""
+    img = Image.new("RGBA", (8 * t, 3 * t), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for row in range(3):
+        for col in range(3):
+            x, y = col * t, row * t
+            _dirt(d, x, y, t, t)
+            if row == 0:
+                d.rectangle([x, y, x + t - 1, y + 2], fill=GRASS)
+                d.line([(x, y), (x + t - 1, y)], fill=GRASS_LIGHT)
+            if col == 0:
+                d.rectangle([x, y, x + 1, y + t - 1], fill=OUTLINE)
+            if col == 2:
+                d.rectangle([x + t - 2, y, x + t - 1, y + t - 1], fill=OUTLINE)
+            if row == 2:
+                d.rectangle([x, y + t - 2, x + t - 1, y + t - 1], fill=OUTLINE)
+    for col in (3, 4, 5):  # planks: the top of the cell, nothing below
+        x = col * t
+        d.rectangle([x, 0, x + t - 1, 4], fill=WOOD)
+        d.point([(x + 4 + col, 2)], fill=WOOD_DARK)
+    x = 6 * t  # a ladder: two rails and rungs every 8 px
+    d.rectangle([x + 3, 0, x + 4, t - 1], fill=WOOD_DARK)
+    d.rectangle([x + 11, 0, x + 12, t - 1], fill=WOOD_DARK)
+    for y in (3, 11):
+        d.rectangle([x + 5, y, x + 10, y + 1], fill=WOOD)
+    x = 7 * t  # spikes: four grey teeth on a base
+    d.rectangle([x, t - 3, x + t - 1, t - 1], fill=ROCK_LIGHT)
+    for k in range(4):
+        tx = x + k * 4
+        d.polygon([(tx, t - 4), (tx + 1, 6), (tx + 2, 6), (tx + 3, t - 4)], fill=SPIKE)
+    x, y = 3 * t, t  # water
+    d.rectangle([x, y, x + t - 1, y + t - 1], fill=(40, 110, 220, 255))
+    for wx in range(x, x + t, 4):
+        d.point([(wx + 1, y + 2), (wx + 2, y + 2)], fill=(120, 180, 250, 255))
+    x = 4 * t  # a coin
+    d.ellipse([x + 4, y + 4, x + 11, y + 11], fill=GOLD, outline=(200, 150, 20, 255))
+    x = 5 * t  # a key: gold, long, its bow at one end ringing a hole (T17.33: read so)
+    d.rectangle([x + 6, y + 7, x + 14, y + 8], fill=GOLD)
+    d.rectangle([x + 12, y + 9, x + 13, y + 10], fill=GOLD)
+    d.ellipse([x + 1, y + 4, x + 7, y + 11], fill=GOLD)
+    d.ellipse([x + 3, y + 6, x + 5, y + 9], fill=(0, 0, 0, 0))
+    x = 6 * t  # a door
+    d.rectangle([x + 3, y + 1, x + 12, y + t - 1], fill=(120, 70, 40, 255), outline=OUTLINE)
+    d.point([(x + 10, y + 9)], fill=GOLD)
+    return img
+
+
+def _character_sheet(t: int = 24) -> Image.Image:
+    """Nine characters of two frames each, row by row in a sheet nine cells wide (as Kenney's
+    are: a character's frames may go on into the next row)."""
+    img = Image.new("RGBA", (9 * t, 2 * t), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    colours = (
+        (60, 190, 80, 255),
+        (220, 60, 60, 255),
+        (60, 100, 230, 255),
+        (240, 200, 40, 255),
+        (170, 70, 200, 255),
+        (40, 200, 200, 255),
+        (250, 140, 30, 255),
+        (120, 120, 120, 255),
+        (250, 160, 200, 255),
+    )
+    for i, color in enumerate(colours):
+        for f in range(2):
+            k = 2 * i + f
+            _character(d, (k % 9) * t, (k // 9) * t, t, t, color, f * 2, t - 2 - (i % 3))
+    return img
+
+
+def make_side_numbered(out: Path) -> None:
+    """Kenney's pixel platformer shape: a numbered tile sheet whose cells nothing names, the same
+    cells as numbered single files, and a sheet of characters in a cell of its own."""
+    pack = out / "side_numbered_platformer"
+    _write_text(pack / "License.txt", "CC0-1.0 synthetic test pack\n")
+    sheet = _numbered_sheet()
+    _save_png(sheet, pack / "Tilemap" / "tilemap_packed.png")
+    _save_png(_character_sheet(), pack / "Tilemap" / "tilemap-characters_packed.png")
+    n = 0
+    for row in range(3):
+        for col in range(8):
+            cell = sheet.crop((col * 16, row * 16, col * 16 + 16, row * 16 + 16))
+            if cell.getbbox() is None:
+                continue
+            _save_png(cell, pack / "Tiles" / f"tile_{n:04d}.png")
+            n += 1
+    _expected(
+        out,
+        "side_numbered_platformer",
+        {
+            "Tilemap/tilemap_packed.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16], "margin": [0, 0], "separation": [0, 0]},
+            "Tilemap/tilemap-characters_packed.png#ch0_0": {
+                "usage": "sprite", "role": "PLAYER", "frame": [24, 24], "anims": ["idle_down", "walk_down"],
+            },
+            "Tilemap/tilemap-characters_packed.png#ch2_0": {"usage": "sprite", "role": "ENEMY"},
+            "Tilemap/tilemap-characters_packed.png#ch8_0": {"usage": "sprite", "role": "ENEMY"},
+            "Tilemap/tilemap-characters_packed.png#ch7_1": {"usage": "sprite", "role": "ENEMY"},
+            "Tiles/tile_0000.png": {"role": "NONE"},
+        },
+    )  # fmt: skip
+
+
+def _ground_piece(kind: str, t: int = 32) -> Image.Image:
+    """A piece of a grass-topped ground of ``t`` px drawn as its name says where it goes."""
+    img = Image.new("RGBA", (t, t), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    if kind.startswith("half"):
+        d.rectangle([0, 0, t - 1, t // 2 - 1], fill=DIRT)
+        d.rectangle([0, 0, t - 1, 5], fill=GRASS)
+        return img
+    if kind.startswith("hill"):
+        pts = (
+            [(0, t - 1), (t - 1, 0), (t - 1, t - 1)]
+            if kind == "hill_right"
+            else [(0, 0), (t - 1, t - 1), (0, t - 1)]
+        )
+        d.polygon(pts, fill=DIRT)
+        return img
+    _dirt(d, 0, 0, t, t)
+    if kind != "center":
+        d.rectangle([0, 0, t - 1, 7], fill=GRASS)
+    if kind in ("left", "single", "cliff_left"):
+        d.rectangle([0, 0, 2, t - 1], fill=OUTLINE)
+    if kind in ("right", "single", "cliff_right"):
+        d.rectangle([t - 3, 0, t - 1, t - 1], fill=OUTLINE)
+    return img
+
+
+def make_side_named(out: Path) -> None:
+    """Kenney's vector platformer shape: the pieces of a ground named by where they go, a sign
+    and a ledge's decoration beside them, a player."""
+    pack = out / "side_named_platformer"
+    _write_text(pack / "License.txt", "CC0-1.0 synthetic test pack\n")
+    ground = pack / "PNG" / "Ground" / "Grass"
+    for name, kind in (
+        ("grass", "single"), ("grassLeft", "left"), ("grassMid", "mid"), ("grassRight", "right"),
+        ("grassCenter", "center"), ("grassCliff_left", "cliff_left"),
+        ("grassCliff_right", "cliff_right"), ("grassHalf_left", "half"), ("grassHalf_mid", "half"),
+        ("grassHalf_right", "half"), ("grassHill_left", "hill_left"),
+        ("grassHill_right", "hill_right"),
+    ):  # fmt: skip
+        _save_png(_ground_piece(kind), ground / f"{name}.png")
+    _save_png(_ground_piece("mid"), pack / "PNG" / "Tiles" / "grassLedgeLeft.png")
+    _save_png(_sign(), pack / "PNG" / "Tiles" / "signRight.png")
+    hero = (214, 96, 64, 255)
+    for action, frames in (("idle", 2), ("walk", 4), ("jump", 2)):
+        _save_png(
+            _side_strip(frames, hero, 32, 32, action),
+            pack / "PNG" / "Players" / f"player_{action}.png",
+        )
+    _expected(
+        out,
+        "side_named_platformer",
+        {
+            "PNG/Ground/Grass/grassMid.png": {"role": "NONE"},
+            "PNG/Ground/Grass/grassCenter.png": {"role": "NONE"},
+            "PNG/Ground/Grass/grassHalf_mid.png": {"role": "NONE"},
+            "PNG/Tiles/grassLedgeLeft.png": {"role": "DECORATION"},
+            "PNG/Players/player_idle.png": {"usage": "sprite", "role": "PLAYER"},
+        },
+    )  # fmt: skip
+
+
+def _gif(frames: list[Image.Image], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=100, loop=0)
+
+
+def make_side_action_frames(out: Path) -> None:
+    """ansimuz's character shape: a folder of numbered frames an action (``Sprites/Idle/frame1``),
+    the same animations as strips (``Spritesheets``) and previews (``Previews/*.gif``); an enemy
+    whose frames' names hold the action and the character's name."""
+    pack = out / "side_action_frames"
+    _write_text(pack / "license.txt", "CC0-1.0 synthetic test pack\n")
+    hero = pack / "Characters" / "Hero-Files"
+    for action, folder, count in (("idle", "Idle", 3), ("run", "Run", 4), ("jump", "Jump", 2),
+                                  ("attack", "Attack", 3)):  # fmt: skip
+        strip = _side_strip(count, (214, 96, 64, 255), 32, 32, action)
+        frames = [strip.crop((i * 32, 0, i * 32 + 32, 32)) for i in range(count)]
+        for i, frame in enumerate(frames):
+            _save_png(frame, hero / "Sprites" / folder / f"frame{i + 1}.png")
+        _save_png(strip, hero / "Spritesheets" / f"hero-{action}.png")
+        _gif([f.convert("P") for f in frames], hero / "Previews" / f"hero-{action}.gif")
+    ogre = pack / "Characters" / "Ogre" / "Sprites"
+    for action, count in (("idle", 2), ("walk-unarmed", 4)):
+        strip = _side_strip(
+            count, (120, 150, 80, 255), 48, 40, "run" if "walk" in action else "idle"
+        )
+        for i in range(count):
+            _save_png(
+                strip.crop((i * 48, 0, i * 48 + 48, 40)),
+                ogre / action / f"ogre-{action}-{i + 1}.png",
+            )
+    _expected(
+        out,
+        "side_action_frames",
+        {
+            "Characters/Hero-Files/Sprites/Attack/frame1.png": {
+                "usage": "sprite", "role": "PLAYER", "frame": [32, 32],
+                "anims": ["attack_down", "idle_down", "jump_down", "run_down"],
+            },
+            "Characters/Hero-Files/Spritesheets/hero-idle.png": {"role": "NONE"},
+            "Characters/Hero-Files/Previews/hero-idle.gif": {"role": "NONE"},
+            "Characters/Ogre/Sprites/idle/ogre-idle-1.png": {
+                "usage": "sprite", "role": "ENEMY", "anims": ["idle_down", "walk_unarmed_down"],
+            },
+        },
+    )  # fmt: skip
+
+
+def _layer(n: int, opaque: bool) -> Image.Image:
+    """A 320 x 180 layer: an opaque sky, or hills with sky between them."""
+    img = Image.new("RGBA", (320, 180), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    if opaque:
+        for y in range(180):
+            d.line([(0, y), (319, y)], fill=(40 + y // 6, 60 + y // 8, 120 + y // 4, 255))
+        return img
+    base = 60 + n * 30
+    for x in range(320):
+        height = base + abs(((x * (n + 1)) % 80) - 40) // 2
+        d.line([(x, height), (x, 179)], fill=(30 + n * 20, 50 + n * 15, 60 + n * 10, 255))
+    return img
+
+
+def make_side_layered(out: Path) -> None:
+    """pozak's stage shape: background layers numbered ``1 (2)`` to ``1 (5)`` with the opaque sky
+    last, a tile sheet, and props in a folder of their own."""
+    pack = out / "side_layered_platformer"
+    _write_text(pack / "license.txt", "CC0-1.0 synthetic test pack\n")
+    for n in range(2, 6):
+        _save_png(_layer(5 - n, n == 5), pack / "Background" / f"1 ({n}).png")
+    _save_png(_numbered_sheet(), pack / "Tileset" / "Tileset.png")
+    props = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(props)
+    d.rectangle([4, 10, 27, 31], fill=WOOD, outline=WOOD_DARK)
+    d.ellipse([36, 4, 59, 31], fill=(90, 90, 110, 255), outline=OUTLINE)
+    _save_png(props, pack / "Props" / "Props (2).png")
+    _expected(
+        out,
+        "side_layered_platformer",
+        {
+            "Background/1 (2).png": {"usage": "background", "role": "BACKGROUND"},
+            "Background/1 (5).png": {"usage": "background", "role": "BACKGROUND"},
+            "Tileset/Tileset.png": {"usage": "tiles", "role": "GROUND", "cell": [16, 16], "margin": [0, 0], "separation": [0, 0]},
+        },
+    )  # fmt: skip
+
+
 PACKS: dict[str, Callable[[Path], None]] = {
     "basic16": make_basic16,
     "gutter32": make_gutter32,
@@ -3623,6 +4047,12 @@ PACKS: dict[str, Callable[[Path], None]] = {
     "farm_cave": make_farm_cave,
     "terrain_blocks": make_terrain_blocks,
     "iso_terrain": make_iso_terrain,
+    "iso_corners": make_iso_corners,
+    "side_numbered_platformer": make_side_numbered,
+    "side_named_platformer": make_side_named,
+    "side_action_frames": make_side_action_frames,
+    "side_layered_platformer": make_side_layered,
+    "sheet_things": make_sheet_things,
 }
 
 

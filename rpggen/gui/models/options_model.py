@@ -88,6 +88,21 @@ EXPORT_TARGET_LABELS = {
     "linux": "Linux",
     "macos": "macOS (unsigned)",
 }
+# A project of assets only (T17.33) has no game: the features of a game are not shown (their
+# values stay as the config has them, off by default), nor a game's map, layers or exports.
+ASSETS_HIDDEN = ("demo", "save", "dialogue", "combat", "navigation", "debug_tools")
+# how a project of assets only is seen: its tile sets and its scenes are made for that view
+ASSETS_VIEW_CHOICES = (
+    (config_mod.VIEW_TOP, "From above"),
+    (config_mod.VIEW_SIDE, "From the side"),
+    (config_mod.PROJECTION_ISOMETRIC, "Isometric"),
+)
+ASSETS_TEXT = (
+    "No game is made: no maps, menus or player. rpggen makes the tile sets of your packs, which "
+    "paint with Godot's Terrain tool, the scenes the RPG Project Tools dock places, and the "
+    "catalog. You build the levels in Godot."
+)
+ASSETS_PACKS_TEXT = "Chosen from your packs; you can choose another view."
 
 
 @dataclass(frozen=True)
@@ -120,6 +135,17 @@ class ViewState:
     can_choose: bool = False  # False: the packs have no isometric ground, or the project exists
     reason: str = ""  # why not, for the tooltip and the line under the choice
     pad: bool = True  # False: the kind does not read the Pad (a race has its Steering)
+
+
+@dataclass(frozen=True)
+class AssetsViewState:
+    """The *View* of a project of assets only (T17.33): from above, from the side or
+    isometric, as its packs are drawn until somebody chooses."""
+
+    view: str  # "top", "side" or "isometric": what is chosen (or what the packs say)
+    choices: tuple[str, ...]  # what can be chosen (isometric with isometric art only)
+    can_choose: bool = True  # False once the project exists
+    note: str = ""  # why it cannot change, or that the packs chose it
 
 
 def view_offered(archetype: str) -> bool:
@@ -235,6 +261,8 @@ class OptionsModel:
         cfg.export_targets = self.draft.selected_export_targets()
         cfg.repair_world = self.draft.repair_world
         cfg.iso_controls = config_mod.iso_controls_for(cfg.archetype, self.draft.iso_controls)
+        if self.is_assets:  # "" until somebody chooses: the packs decide it (T17.33)
+            cfg.view = self.draft.view
         if cfg.projection != self.draft.projection:
             # what was chosen on the Mapping page for the other view may not fit this one
             from rpggen.core import mapping
@@ -337,9 +365,15 @@ class OptionsModel:
                 )
         return out
 
+    def hidden_features(self) -> tuple[str, ...]:
+        """The features the page does not show for the draft's kind (their values stay)."""
+        return ASSETS_HIDDEN if self.is_assets else options.hidden_features(self.kind)
+
     def default_features(self) -> dict[str, bool]:
-        # a farm's own defaults: the page would otherwise switch on what a farm has off
-        defaults = config_mod.default_features(self.kind if self.is_farm else "turn_based")
+        # a farm's own defaults, and those of a project of assets only: the page would
+        # otherwise switch on what they have off
+        own = self.is_farm or self.is_assets
+        defaults = config_mod.default_features(self.kind if own else "turn_based")
         self.wishes = {key: bool(defaults.get(key, False)) for key in options.DEPENDENCIES}
         return defaults
 
@@ -392,6 +426,12 @@ class OptionsModel:
         """A farm (M17): the starter map is its village, and it has a map of its own, planned
         as a whole, with a box of its own above the village's."""
         return self.draft is not None and self.draft.archetype == "farm"
+
+    @property
+    def is_assets(self) -> bool:
+        """A project of assets only (T17.33): no game, so no starter map, no world, no layers
+        of a map and no exports; a *View* of its own."""
+        return self.draft is not None and self.draft.archetype == config_mod.ASSETS_KIND
 
     @property
     def planned(self) -> bool:
@@ -480,6 +520,9 @@ class OptionsModel:
         """Stores only what differs from the defaults of the archetype. The starter map of a
         project that exists keeps its options; only the areas table still counts (a new area)."""
         if self.draft is None:
+            return
+        if self.is_assets:  # no maps (T17.33)
+            self.draft.starter_map = {}
             return
         if self.is_farm:
             self.draft.starter_map = self.merged_farm(self.draft.starter_map, values)
@@ -613,6 +656,66 @@ class OptionsModel:
         self.draft.projection, self.draft.iso_controls = projection, controls
         return True
 
+    def assets_view(self) -> str:
+        """``"top"``, ``"side"`` or ``"isometric"``: how the draft of a project of assets only
+        is seen (T17.33). Until somebody chooses (``view`` is "") it is what the run will decide
+        from the packs (``orchestrator.decide_view``), worked out here on a copy."""
+        from rpggen.core import orchestrator
+
+        assert self.draft is not None
+        if self.draft.view or self.draft.projection == config_mod.PROJECTION_ISOMETRIC:
+            return orchestrator.assets_view(self.draft)
+        probe = dataclasses.replace(self.draft, input=copy.deepcopy(self.draft.input))
+        if self.catalog is not None:
+            orchestrator.decide_view(probe, self.catalog)
+        return orchestrator.assets_view(probe)
+
+    def assets_view_state(self) -> AssetsViewState:
+        """The *View* of a project of assets only: from above and from the side always, and
+        isometric when the wizard offers it and a pack has isometric pictures without a problem
+        (or the draft is isometric already); fixed once the project exists."""
+        view = self.assets_view()
+        choices = [config_mod.VIEW_TOP, config_mod.VIEW_SIDE]
+        isometric = (
+            features.ISOMETRIC_AVAILABLE
+            and options.has_isometric_art(self.catalog)
+            and not options.isometric_problem(self.catalog)
+        )
+        if isometric or view == config_mod.PROJECTION_ISOMETRIC:
+            choices.append(config_mod.PROJECTION_ISOMETRIC)
+        if project_exists(self.state):
+            return AssetsViewState(view, tuple(choices), False, self.tr(VIEW_FIXED_TEXT))
+        chosen = self.draft is not None and bool(self.draft.view)
+        note = "" if chosen or self.catalog is None else self.tr(ASSETS_PACKS_TEXT)
+        return AssetsViewState(view, tuple(choices), True, note)
+
+    def set_assets_view(self, view: str) -> bool:
+        """The view of a project of assets only as the user chose it; False when nothing
+        changed. Isometric is the isometric projection seen from above; from the side has the
+        bindings of the side-view body (it jumps) while the bindings are untouched."""
+        state = self.assets_view_state()
+        if self.draft is None or not state.can_choose or view not in state.choices:
+            return False
+        if view == self.assets_view() and self.draft.view:
+            return False
+        draft = self.draft
+        kind = draft.archetype
+        untouched = draft.input in (
+            config_mod.default_input(kind),
+            config_mod.default_input(kind, config_mod.VIEW_SIDE),
+        )
+        isometric = view == config_mod.PROJECTION_ISOMETRIC
+        draft.projection = (
+            config_mod.PROJECTION_ISOMETRIC if isometric else config_mod.PROJECTION_TOP_DOWN
+        )
+        draft.view = config_mod.VIEW_TOP if isometric else view
+        if untouched:
+            draft.input = config_mod.default_input(kind, draft.view)
+            self.input_map = copy.deepcopy(draft.input)
+        if self.state is not None:
+            self.state.view_chosen = True
+        return True
+
     def rooms_preview(self, values: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
         """The rooms the *Starter world* options give now, for the side-view preview: the
         stored plan (with the rooms added) once the world exists, else a fresh plan from the
@@ -744,7 +847,7 @@ class OptionsModel:
         """The options the starter map preview draws, or None when there is nothing to draw."""
         if self.starter_locked or self.draft is None or self.catalog is None:
             return None
-        if self.imported_starter() or self.planned:
+        if self.imported_starter() or self.planned or self.is_assets:
             return None
         return {**self.starter_defaults(), **values}
 
@@ -821,8 +924,10 @@ class OptionsModel:
     def collect(self, values: OptionValues) -> None:
         if self.draft is None:
             return
-        hidden = options.hidden_features(self.kind) if self.is_arcade or self.is_farm else ()
-        # what the page does not show for an arcade kind or a farm stays as it was
+        own = self.is_arcade or self.is_farm or self.is_assets
+        hidden = self.hidden_features() if own else ()
+        # what the page does not show for an arcade kind, a farm or a project of assets only
+        # stays as it was
         kept = {key: bool(self.draft.features.get(key, False)) for key in hidden}
         self.draft.features = {**options.effective_features(values.features, self.kind), **kept}
         self.draft.resolution = values.resolution
@@ -833,7 +938,9 @@ class OptionsModel:
             self.draft.map_layers = values.layers
         self.draft.seed = values.seed
         self.store_starter(values.starter)
-        if values.imported is not None:
+        if self.is_assets:  # no maps are built, imported ones neither (T17.33)
+            self.draft.imported_maps = {}
+        elif values.imported is not None:
             self.draft.imported_maps = values.imported
         collected = self.read_input(values.input_rows)
         if not self.input_errors:

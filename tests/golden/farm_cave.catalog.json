@@ -173,7 +173,7 @@
       "status": "NEEDS_REVIEW"
     },
     {
-      "confidence": 0.407407,
+      "confidence": 0.464789,
       "detected": {
         "grid": {
           "cell": [
@@ -189,15 +189,15 @@
             0
           ]
         },
-        "role": "GROUND",
+        "role": "DECORATION",
         "roles_alt": [
           [
-            "DECORATION",
-            0.407407
+            "GROUND",
+            0.323944
           ],
           [
             "WALL",
-            0.037037
+            0.042254
           ]
         ],
         "size": [
@@ -237,11 +237,11 @@
         "roles_alt": [
           [
             "DECORATION",
-            0.074074
+            0.075472
           ],
           [
             "WALL",
-            0.037037
+            0.037736
           ]
         ],
         "size": [
@@ -314,6 +314,55 @@
     }
   },
   "objects": [
+    {
+      "collision": {
+        "polygon": [
+          [
+            5,
+            13
+          ],
+          [
+            11,
+            13
+          ],
+          [
+            11,
+            15
+          ],
+          [
+            5,
+            15
+          ]
+        ],
+        "profile": "CUSTOM"
+      },
+      "footprint": [
+        5,
+        13,
+        6,
+        2
+      ],
+      "id": "farm_cave.farm_cave_pack.tileset.rock_caves#grey_round",
+      "name": "grey_round",
+      "origin": [
+        8,
+        15
+      ],
+      "region": [
+        32,
+        0,
+        16,
+        16
+      ],
+      "role": "DECORATION",
+      "sheet": "farm_cave.farm_cave_pack.tileset.rock_caves",
+      "source": "auto",
+      "status": "AUTO_DETECTED",
+      "tags": [
+        "sheet_thing",
+        "cell:2:0"
+      ]
+    },
     {
       "collision": {
         "polygon": [

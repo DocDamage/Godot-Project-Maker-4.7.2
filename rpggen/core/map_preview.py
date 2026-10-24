@@ -1245,6 +1245,8 @@ SIDE_COLORS: dict[str, tuple[int, int, int]] = {
     "T": (176, 124, 70),
     "^": (224, 224, 234),  # spikes
     "B": (160, 150, 172),  # a block that breaks
+    "/": (92, 84, 110),  # the sides of a hill (T17.33)
+    "\\": (92, 84, 110),
 }
 SIDE_GAP = 4  # px between two rooms of the grid
 SIDE_BACKGROUND = (14, 13, 24)

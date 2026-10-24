@@ -43,6 +43,90 @@ EXPORT_MIN_FRAMES = 3
 SOURCE_EXTENSIONS = (".aseprite", ".ase")
 UNNAMED = "anim_{0}"
 UNNAMED_CONFIDENCE = 0.5  # needs review: the animations have no names yet
+MOTION_CONFIDENCE = 0.8  # T17.33: the animations named from what their frames do
+# a frame export of these words is tiles exported one by one, not frames (T17.33)
+TILE_EXPORT_WORDS = frozenset({"terrain", "tile", "tiles", "tileset", "tilemap", "tilesheet"})
+
+
+def _label_words(label: str) -> list[str]:
+    return [w for w in re.split(r"[^0-9a-z]+", label.casefold()) if w and not w.isdigit()]
+
+
+def _tags_by_motion(
+    pictures: list[Any], plan: list[tuple[str | None, list[int], bool]]
+) -> tuple[list[tuple[str | None, list[int], bool]], bool]:
+    """``_named_by_motion`` for the tags of a drawn Aseprite file: frames by index."""
+    from rpggen.core import motion
+
+    runs = []
+    for _name, frames, _loop in plan:
+        found = [motion.frame_of(np.asarray(pictures[i].convert("RGBA")), i, 0) for i in frames]
+        runs.append([f for f in found if f is not None])
+    if any(not r for r in runs):
+        return plan, False
+    fig = motion.figure(runs)
+    if fig is None:
+        return plan, False
+    names = motion.names(runs, fig)
+    taken = {name for name, _f, _l in plan if name}
+    out: list[tuple[str | None, list[int], bool]] = []
+    for (name, frames, loop), found_name in zip(plan, names, strict=True):
+        if name is None:
+            candidate = f"{found_name}_down"
+            n = 2
+            while candidate in taken:
+                candidate = f"{found_name}_{n}_down"
+                n += 1
+            taken.add(candidate)
+            out.append((candidate, frames, naming.is_looping(found_name.split("_")[0])))
+        else:
+            out.append((name, frames, loop))
+    return out, True
+
+
+def _named_by_motion(root: Path, plan: list[Any]) -> tuple[list[Any], bool]:
+    """The plan of a frame export whose animations no tag names (T17.33: pozak's ``player.ase``
+    exported frame by frame): each unnamed one named by what its frames do (``motion``); the
+    named ones are kept. Returns the plan and whether motion named any."""
+    if not any(name is None for name, *_rest in plan):
+        return plan, False
+    from rpggen.core import motion
+
+    runs: list[list[Any]] = []
+    for _name, seq, _fps, _loop in plan:
+        frames = []
+        for i, (_n, f) in enumerate(seq.frames):
+            try:
+                with Image.open(root / f.path) as im:
+                    found = motion.frame_of(np.asarray(im.convert("RGBA")), i, 0)
+            except (OSError, ValueError):
+                found = None
+            if found is not None:
+                frames.append(found)
+        runs.append(frames)
+    if any(not r for r in runs):
+        return plan, False
+    fig = motion.figure(runs)
+    if fig is None:
+        return plan, False
+    names = motion.names(runs, fig)
+    taken = {name for name, *_r in plan if name}
+    out = []
+    for (name, seq, fps, loop), said in zip(plan, names, strict=True):
+        if name is None:
+            verb = said.split("_")[0]
+            candidate = f"{said}_down"
+            n = 2
+            while candidate in taken:
+                candidate = f"{said}_{n}_down"
+                n += 1
+            taken.add(candidate)
+            out.append((candidate, seq, naming.fps(verb), naming.is_looping(verb)))
+        else:
+            out.append((name, seq, fps, loop))
+    return out, True
+
+
 FRAME_STRIP_DIR = "generated/frame_strips"
 WORK_FOLDER = "frame_strips"
 MIN_FRAMES = 2
@@ -497,6 +581,10 @@ class SequencesAdapter:
             )
         if len(plan) == 1 and plan[0][0] is None:
             plan = [("idle_down", *plan[0][1:])]  # what a prop does all the time
+        by_motion = False
+        if any(name is None for name, _f, _l in plan):
+            # tags whose names say nothing (pozak's ``player .ase``): named by their frames
+            plan, by_motion = _tags_by_motion(picture.frames, plan)
         cell = [(i % cols, i // cols) for i in range(len(picture.frames))]
         mask = image_facts.occupancy(np.asarray(strip, dtype=np.uint8))
         rects = [(cell[i][0] * w, cell[i][1] * h, w, h) for i in (plan[0][1] if plan else drawn)]
@@ -521,6 +609,9 @@ class SequencesAdapter:
             facets["grid"] = {"cell": [w, h], "margin": [0, 0], "separation": [0, 0]}
             facets["animations"] = animations
         confidence = UNNAMED_CONFIDENCE if unnamed else RENDERED_CONFIDENCE
+        if by_motion and not unnamed:
+            confidence = min(confidence, MOTION_CONFIDENCE)
+            facets["tags"] = ["motion_named"]
         if picture.inexact:
             confidence = min(confidence, INEXACT_CONFIDENCE)
         project_path = f"{FRAME_STRIP_DIR}/{file_name}"
@@ -541,6 +632,8 @@ class SequencesAdapter:
         """A frame export without an action word: one sprite. Its animations are those the
         ``.aseprite`` source beside the frames tags, by name when a tag has one that says what
         it is; else ``anim_1`` ... ``anim_n`` until somebody names them."""
+        if set(_label_words(export.label)) & TILE_EXPORT_WORDS:
+            return  # tiles exported one by one (pozak's ``Terrain/PNG``): pictures, no frames
         source = self._source(root, export, issues)
         sequences, separated = split_export(root, export)
         if not separated and source is None:
@@ -551,6 +644,7 @@ class SequencesAdapter:
         if len(plan) == 1 and plan[0][0] is None:
             # one animation and no name: what a prop does all the time (a flame, a portal)
             plan = [("idle_down", *plan[0][1:])]
+        plan, by_motion = _named_by_motion(root, plan)
         w, h = plan[0][1].size
         animations: dict[str, Any] = {}
         baseline = 0
@@ -590,6 +684,10 @@ class SequencesAdapter:
         }
         first = export.frames[0][1]
         confidence = UNNAMED_CONFIDENCE if unnamed else 0.9
+        if by_motion and not unnamed:
+            # named from what the frames do (T17.33)
+            confidence = MOTION_CONFIDENCE
+            facets["tags"] = ["motion_named"]
         result.assets.append(AssetFragment(first.path, facets, confidence, "full"))
         result.consumed.extend(f.path for _n, f in export.frames if f.path != first.path)
         if unnamed:

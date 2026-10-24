@@ -1,0 +1,30 @@
+{
+  "Characters/Hero-Files/Previews/hero-idle.gif": {
+    "role": "NONE"
+  },
+  "Characters/Hero-Files/Sprites/Attack/frame1.png": {
+    "anims": [
+      "attack_down",
+      "idle_down",
+      "jump_down",
+      "run_down"
+    ],
+    "frame": [
+      32,
+      32
+    ],
+    "role": "PLAYER",
+    "usage": "sprite"
+  },
+  "Characters/Hero-Files/Spritesheets/hero-idle.png": {
+    "role": "NONE"
+  },
+  "Characters/Ogre/Sprites/idle/ogre-idle-1.png": {
+    "anims": [
+      "idle_down",
+      "walk_unarmed_down"
+    ],
+    "role": "ENEMY",
+    "usage": "sprite"
+  }
+}
