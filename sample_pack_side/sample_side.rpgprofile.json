@@ -752,7 +752,7 @@
       },
       "role": "GROUND",
       "size": [
-        128,
+        160,
         32
       ],
       "tags": [
@@ -986,6 +986,52 @@
           "custom": {
             "ladder": true
           }
+        },
+        "8,0": {
+          "collision": {
+            "polygon": [
+              [
+                0,
+                16
+              ],
+              [
+                16,
+                0
+              ],
+              [
+                16,
+                16
+              ]
+            ],
+            "profile": "CUSTOM"
+          },
+          "custom": {
+            "side": "slope_up",
+            "slope": "up"
+          }
+        },
+        "9,0": {
+          "collision": {
+            "polygon": [
+              [
+                0,
+                0
+              ],
+              [
+                16,
+                16
+              ],
+              [
+                0,
+                16
+              ]
+            ],
+            "profile": "CUSTOM"
+          },
+          "custom": {
+            "side": "slope_down",
+            "slope": "down"
+          }
         }
       },
       "tileset": "overworld",
@@ -1030,7 +1076,7 @@
       "enemies/bat_idle.png": "d4d8b9e6dcdaa65bd6c6b9711edf84508406a47255a3ed6df5096ce5e24481f1",
       "npc/hermit_idle.png": "74179ab819399dbe199ccf323676590e4cdc3208bfea88d2254bde524d1438e3",
       "portraits/hermit.png": "f93173e9dac8a368e38cf40645d2d4384814a050f9714a3abc81ae9dae853b54",
-      "tiles/cave.png": "77d1721ae81c1b90eea86847a040b7f6ed97cc575c226e5b3da45b45a074aee6",
+      "tiles/cave.png": "e4b539c12e2d7bdd49dcb405195e38c7970cb4548da4ae61b4bb73fba2b50981",
       "ui/panel.png": "bb4b3875e7b42397a86415e13e6fdddd758d3a3fa46832905992633507a24de7"
     }
   },

@@ -44,6 +44,12 @@ Asset packs used in this project:
 - **Collision**: solid ground, walls, cliffs and water stop the player; what is walked on does not.
 - **Side view**: one-way platforms (jumped through from below), ladders (the custom data
   `ladder`), hazards (`hazard`) and slopes (a sloped collision) are set on the tiles.
+  Decorations whose sheet's name says what they are (grass, ferns, flowers, mushrooms,
+  stalactites, foliage) carry the custom data `mds_kind`, the tag the
+  [Metroidvania Developer System](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem)
+  reads: with that addon installed, its *Generate cave* and *Auto-decorate* dress rooms with
+  your pack's own decorations. Give a tile a kind of your own in the TileSet editor (the
+  `mds_kind` field); rpggen never changes a kind you set.
 - **Custom data** of every tile: `asset_id` (where it comes from), `footstep` (the sound of a step).
 - **Scenes** in `generated/scenes/`: buildings and props (`objects/`), people (`actors/`), enemies
   (`enemies/`). They use the scripts of `addons/rpg_runtime/`, so keep that folder.

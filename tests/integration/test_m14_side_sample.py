@@ -56,6 +56,8 @@ M14_STEPS = [
     "end_room",
 ]
 ROOMS = [f"room_{n:02d}" for n in range(1, 7)]
+# the issues of the module's sample run, for the tests that read them
+SAMPLE_ISSUES: list = []
 
 
 def _side_config(smoke: bool = True) -> config.GeneratorConfig:
@@ -97,6 +99,7 @@ def sample(godot_exe: Path, cache: Path, tmp_path_factory: pytest.TempPathFactor
     target = tmp_path_factory.mktemp("m14") / "out"
     result = orchestrator.run_in_memory(_side_config(), None, target, godot_exe)
     assert result.ok, _errors(result)
+    SAMPLE_ISSUES[:] = result.issues
     return target
 
 
@@ -105,6 +108,11 @@ def _smoke(target: Path) -> list[str]:
     assert smoke["ok"] is True, smoke["issues"]
     assert all(i["ok"] for i in smoke["items"])
     return [i["name"] for i in smoke["items"]]
+
+
+# T17.33's hill: a world whose packs draw no slope has none, and the step passes. The side sample
+# draws the two sides of a hill; the synthetic packs draw none.
+NO_HILL = "walks_over_hill"
 
 
 def _vacuous(target: Path) -> list[str]:
@@ -119,6 +127,14 @@ def _vacuous(target: Path) -> list[str]:
 def test_the_whole_sequence_passes_for_real_on_the_side_sample(sample: Path) -> None:
     assert _smoke(sample) == M14_STEPS
     assert _vacuous(sample) == []
+
+
+def test_every_room_built_gets_through_the_room_check(sample: Path) -> None:
+    """VAL-033 (the room check ported from the Metroidvania Developer System) on the rooms
+    rpggen paints with the sample's own tiles: exits open, platforms free, things on the floor,
+    every ladder exit reached."""
+    assert (sample / "addons/rpg_project_tools/tools/room_check.gd").is_file()
+    assert [f"{i.message}" for i in SAMPLE_ISSUES if i.code == "VAL-033"] == []
 
 
 def test_the_generated_project_has_only_the_metroidvania_archetype(sample: Path) -> None:
@@ -235,8 +251,9 @@ def test_the_synthetic_platformer_pack_passes_the_sequence(
     assert result.ok, _errors(result)
     assert _smoke(tmp_path / "out") == M14_STEPS
     # the pack has no sign to read; everything else is tested for real
-    assert set(_vacuous(tmp_path / "out")) <= {"sign_dialogue"}
+    assert set(_vacuous(tmp_path / "out")) <= {"sign_dialogue", NO_HILL}
     assert "ASSET-030" not in {i.code for i in result.issues}, "it has jump and fall animations"
+    assert [i.message for i in result.issues if i.code == "VAL-033"] == [], "its rooms get through"
 
 
 def test_a_top_down_pack_plays_with_the_idle_frame_in_the_air(
@@ -251,7 +268,7 @@ def test_a_top_down_pack_plays_with_the_idle_frame_in_the_air(
     assert "ASSET-030" in codes
     target = tmp_path / "out"
     assert _smoke(target) == M14_STEPS
-    assert set(_vacuous(target)) <= {"sign_dialogue"}
+    assert set(_vacuous(target)) <= {"sign_dialogue", NO_HILL}
     frames = target / "generated/sprite_frames"
     assert not any("jump" in p.read_text(encoding="utf-8") for p in frames.rglob("*.tres"))
     assert (target / "game/maps/rooms/room_01.tscn").is_file()

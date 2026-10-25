@@ -3883,7 +3883,7 @@
       "pack_id": "sample_pack_iso",
       "profile_id": null,
       "root": "assets/packs/sample_pack_iso",
-      "source_sha256": "e5539ee7e15dbeb1ea594d7b40709d179fb51ceb3c4ba9f9d2a2a9bbebb98591",
+      "source_sha256": "4a17e903ff1af082886b8502fba15ade8335229f9745e2abc82345c5678da113",
       "warnings": [
         "isometric:40x22:tile_information",
         "view:isometric"

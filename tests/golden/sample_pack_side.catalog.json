@@ -1180,7 +1180,7 @@
           ]
         ],
         "size": [
-          128,
+          160,
           32
         ],
         "tags": [
@@ -1409,6 +1409,52 @@
             "custom": {
               "ladder": true
             }
+          },
+          "8,0": {
+            "collision": {
+              "polygon": [
+                [
+                  0,
+                  16
+                ],
+                [
+                  16,
+                  0
+                ],
+                [
+                  16,
+                  16
+                ]
+              ],
+              "profile": "CUSTOM"
+            },
+            "custom": {
+              "side": "slope_up",
+              "slope": "up"
+            }
+          },
+          "9,0": {
+            "collision": {
+              "polygon": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  16,
+                  16
+                ],
+                [
+                  0,
+                  16
+                ]
+              ],
+              "profile": "CUSTOM"
+            },
+            "custom": {
+              "side": "slope_down",
+              "slope": "down"
+            }
           }
         },
         "tileset": "overworld",
@@ -1420,7 +1466,7 @@
       "overrides": {},
       "pack_id": "sample_pack_side",
       "path": "assets/packs/sample_pack_side/tiles/cave.png",
-      "sha256": "77d1721ae81c1b90eea86847a040b7f6ed97cc575c226e5b3da45b45a074aee6",
+      "sha256": "e4b539c12e2d7bdd49dcb405195e38c7970cb4548da4ae61b4bb73fba2b50981",
       "status": "AUTO_DETECTED"
     },
     {
@@ -1482,7 +1528,7 @@
       "pack_id": "sample_pack_side",
       "profile_id": null,
       "root": "assets/packs/sample_pack_side",
-      "source_sha256": "3e70b536f95f9c2b2d3b82f0676d44926e64bebe8543a7d924d9b4b7b6d60640",
+      "source_sha256": "5f314206b6753041e61b5298d10f4ab321e7fd10999b4ceb4db5eb1219989a8b",
       "warnings": [
         "strips_direction_assumed:boss/guardian_attack.png",
         "strips_direction_assumed:boss/guardian_hurt.png",

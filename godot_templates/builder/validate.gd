@@ -39,6 +39,7 @@ var _pending: Node = null
 var _pending_path: String = ""
 var _finished: bool = false
 var _focus: Dictionary = {}  # state of the running menu focus walk (empty = none)
+var _rooms_checked := false  # the room check (VAL-033) runs once the tree is running
 
 ## One progress line per check (T12.19); the last one covers the scene loop of _process.
 const STEP_TOTAL := 12
@@ -101,6 +102,10 @@ func _process(_delta: float) -> bool:
 		_pending.queue_free()
 		_pending = null
 		_pending_path = ""
+		return false
+	if not _rooms_checked:
+		_rooms_checked = true
+		_check_rooms()
 		return false
 	if _scene_index >= _scenes.size():
 		_finish()
@@ -340,6 +345,20 @@ func _check_content() -> void:
 			var reason := "the demo dialogue %s line %s names the unknown %s '%s' (if you edited the file, fix the id)" % [JsonUtil.to_str(f["file"]).trim_prefix("res://"), str(detail.get("n", "?")), kind, JsonUtil.to_str(detail.get("item", ""))]
 			_fail("BUILD-002", {"recipe": "data_recipe", "reason": reason}, JsonUtil.to_str(f["file"]))
 	_item("content_checks", "res://game", findings.is_empty())
+
+## The room check (VAL-033) of the content checks: a room's physics copy needs the tree running,
+## which it is not in _initialize.
+func _check_rooms() -> void:
+	if not ResourceLoader.exists(CONTENT_CHECKS):
+		return
+	var checks: Resource = load(CONTENT_CHECKS)
+	if checks == null:
+		return
+	var findings: Array = checks.call("room_findings")
+	for f: Dictionary in findings:
+		var detail: Dictionary = f["detail"]
+		_fail(JsonUtil.to_str(f["code"]), detail, JsonUtil.to_str(f["file"]))
+	_item("room_checks", "res://game", findings.is_empty())
 
 # ---------------------------------------------------------------- sound slots (VAL-020)
 

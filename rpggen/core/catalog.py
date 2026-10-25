@@ -1920,8 +1920,29 @@ def assemble(
         elif not license_files:
             issues.add("ASSET-021", pack_id=pack_id, file=root)
         _side_view_usage([a for a in catalog.assets if a.pack_id == pack_id])
-        sheets = [a.detected for a in catalog.assets if a.pack_id == pack_id and a.kind == "image"]
-        view = classifier.made_for(inv, sheets, opened.root.name if opened.kind == "folder" else "")
+        # a sheet an _atlas.json says was cut into tiles is no character walking four ways (a
+        # grid of 32 px tiles reads as one), and a pack folder of a collection is what the
+        # collection's folders say (T17.34: SakPix's *Stages/Abandonded Forest* in *sakpix
+        # sidescroller*)
+        from rpggen.core import atlas_cuts
+
+        cut_sources = (
+            atlas_cuts.tile_sources(opened.root, root) if opened.kind == "folder" else set()
+        )
+        sheets = [
+            a.detected
+            for a in catalog.assets
+            if a.pack_id == pack_id and a.kind == "image" and a.path not in cut_sources
+        ]
+        folder_pack = opened.kind == "folder"
+        view = classifier.made_for(
+            inv,
+            sheets,
+            opened.root.name if folder_pack else "",
+            [f.name for f in opened.root.parents][: classifier.FOLDERS_ABOVE]
+            if folder_pack
+            else [],
+        )
         if farm_pack and view == "top" and not classifier.isometric_view(inv, sheets):
             view = "farm"  # its own name says farm and its files nothing else (T17.29)
         elif (

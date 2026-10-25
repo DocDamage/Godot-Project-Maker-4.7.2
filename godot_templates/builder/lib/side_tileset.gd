@@ -23,6 +23,28 @@ const ONE_WAY_BITS := 1 << 10
 const DATA_LAYERS: Array[String] = ["ladder", "hazard", "breakable"]
 ## Roles whose tiles are solid in a side-view room unless the catalog says otherwise.
 const SOLID_ROLES: Array[String] = ["GROUND", "WALL", "CLIFF"]
+## The String custom data the Metroidvania Developer System (MDS) reads to tell decoration tiles
+## apart: its Generate cave, Auto-decorate and kind fills paint with the tiles of a kind. Added
+## only to a TileSet that has a tile of a kind, so the others are what they were.
+const KIND_LAYER := "mds_kind"
+## The kinds MDS knows (its tile palette's KNOWN_KINDS): grass to mushroom stand on floors,
+## vines, stalactites and moss hang from ceilings, foliage fills the background.
+const KNOWN_KINDS: Array[String] = ["foliage", "grass", "fern", "flower", "mushroom", "vine_top", "vine_mid", "vine_end", "stalactite_small", "stalactite_large", "hanging_moss"]
+## Roles of the sheets whose name may say the kind of all their tiles. A GROUND sheet called
+## grass is the ground, not tufts of it.
+const KIND_ROLES: Array[String] = ["DECORATION", "BACKGROUND"]
+## Words of a sheet's file name -> the kind of its tiles. Vines are not here: a vine sheet is a
+## ladder (the classifier's ladder words), and a ladder gets no kind.
+const KIND_WORDS := {
+	"grass": "grass", "grasses": "grass", "tuft": "grass", "tufts": "grass", "weed": "grass", "weeds": "grass",
+	"fern": "fern", "ferns": "fern", "plant": "fern", "plants": "fern",
+	"flower": "flower", "flowers": "flower", "bloom": "flower", "blooms": "flower", "blossom": "flower", "blossoms": "flower",
+	"mushroom": "mushroom", "mushrooms": "mushroom", "shroom": "mushroom", "shrooms": "mushroom", "fungus": "mushroom", "fungi": "mushroom", "toadstool": "mushroom", "toadstools": "mushroom",
+	"stalactite": "stalactite_small", "stalactites": "stalactite_small", "icicle": "stalactite_small", "icicles": "stalactite_small",
+	"foliage": "foliage", "leaves": "foliage", "leaf": "foliage", "bush": "foliage", "bushes": "foliage", "shrub": "foliage", "shrubs": "foliage", "hedge": "foliage", "hedges": "foliage",
+}
+## With a stalactite word, these make it the large one.
+const LARGE_WORDS: Array[String] = ["large", "big", "huge", "long"]
 
 static func wanted(config: Dictionary) -> bool:
 	return side_view(config)
@@ -97,9 +119,65 @@ static func kinds(eff: Dictionary, tile_override: Dictionary, collision: Diction
 		"breakable": JsonUtil.to_bool(custom.get("breakable", tags.has("breakable") and not own_collision)),
 	}
 
+## The small-letter words of a file name, camel case split and numbers dropped
+## (`mushroomRed2.png` is mushroom, red).
+static func name_words(file: String) -> Array[String]:
+	var stem := file.get_file().get_basename()
+	var spaced := ""
+	for i in stem.length():
+		var ch := stem[i]
+		if i > 0 and ch != ch.to_lower() and stem[i - 1] == stem[i - 1].to_lower() and stem[i - 1] != stem[i - 1].to_upper():
+			spaced += " "
+		spaced += ch
+	var out: Array[String] = []
+	var word := ""
+	for ch in spaced.to_lower() + " ":
+		if (ch >= "a" and ch <= "z"):
+			word += ch
+		else:
+			if not word.is_empty():
+				out.append(word)
+			word = ""
+	return out
+
+## The kind MDS reads off a sheet's file name (KIND_WORDS), "" when it says none or more than one.
+static func sheet_kind(eff: Dictionary, file: String) -> String:
+	if not KIND_ROLES.has(JsonUtil.to_str(eff.get("role", ""))):
+		return ""
+	var words := name_words(file)
+	var found := ""
+	for w in words:
+		var kind := JsonUtil.to_str(KIND_WORDS.get(w, ""))
+		if kind.is_empty() or kind == found:
+			continue
+		if not found.is_empty():
+			return ""  # flowers_and_mushrooms: a mixed sheet, no kind
+		found = kind
+	if found == "stalactite_small":
+		for w in LARGE_WORDS:
+			if words.has(w):
+				return "stalactite_large"
+	return found
+
+## The MDS kind of a tile: its own `custom.mds_kind` (anything the user wrote), else its sheet's
+## (`sheet_kind`). A tile that collides, is a ladder, a hazard or breakable, or is part of a
+## terrain has none from its sheet: a decoration is drawn, never stood on.
+static func tile_kind(eff: Dictionary, tile_override: Dictionary, collision: Dictionary, file: String) -> String:
+	var own := JsonUtil.to_str(JsonUtil.to_dict(tile_override.get("custom", {})).get(KIND_LAYER, ""))
+	if not own.is_empty():
+		return own
+	if JsonUtil.to_str(collision.get("profile", "NONE")) != "NONE" or tile_override.get("terrain") is Dictionary:
+		return ""
+	var what := kinds(eff, tile_override, collision)
+	if what["ladder"] or what["hazard"] or what["breakable"]:
+		return ""
+	return sheet_kind(eff, file)
+
 ## Gives a tile its side-view parts. The one-way polygon is added once (a polygon that is there,
-## maybe edited in Godot, is left alone); the custom data follows the catalog on every build.
-static func configure_tile(td: TileData, eff: Dictionary, tile_override: Dictionary, collision: Dictionary, cell: Vector2i, ts: TileSet = null) -> void:
+## maybe edited in Godot, is left alone); the custom data follows the catalog on every build, but
+## for the MDS kind, which is written only where the tile has none (a kind set in Godot stays).
+## `file` is the sheet's path, whose name may say the kind of its decorations.
+static func configure_tile(td: TileData, eff: Dictionary, tile_override: Dictionary, collision: Dictionary, cell: Vector2i, ts: TileSet = null, file: String = "") -> void:
 	var what := kinds(eff, tile_override, collision)
 	if what["one_way"] and td.get_collision_polygons_count(ONE_WAY_PHYSICS) == 0:
 		var points := Geometry.to_tile_space(Geometry.rect_poly(0.0, 0.0, float(cell.x), one_way_thickness(cell)), cell)
@@ -110,6 +188,12 @@ static func configure_tile(td: TileData, eff: Dictionary, tile_override: Diction
 		var value: bool = what[layer_name]
 		if JsonUtil.to_bool(td.get_custom_data(layer_name)) != value:
 			td.set_custom_data(layer_name, value)
+	var kind := tile_kind(eff, tile_override, collision, file)
+	if ts != null and not kind.is_empty():
+		_ensure_string_layer(ts, KIND_LAYER)
+		var own := tile_override.has("custom") and JsonUtil.to_dict(tile_override["custom"]).has(KIND_LAYER)
+		if own or JsonUtil.to_str(td.get_custom_data(KIND_LAYER)).is_empty():
+			td.set_custom_data(KIND_LAYER, kind)
 	# a hill's side and the earth under its foot (T17.33): their layers are added only to a
 	# TileSet that has such a tile, so the TileSets of packs without hills are what they were
 	var custom := JsonUtil.to_dict(tile_override.get("custom", {}))
@@ -124,6 +208,15 @@ static func configure_tile(td: TileData, eff: Dictionary, tile_override: Diction
 			continue
 		_ensure_bool_layer(ts, layer_name)
 		td.set_custom_data(layer_name, true)
+
+## The String custom data layer `layer_name` of a TileSet, added when it is missing (one MDS
+## made, of the same name, is used as it is).
+static func _ensure_string_layer(ts: TileSet, layer_name: String) -> void:
+	if ts.get_custom_data_layer_by_name(layer_name) == -1:
+		ts.add_custom_data_layer()
+		var index := ts.get_custom_data_layers_count() - 1
+		ts.set_custom_data_layer_name(index, layer_name)
+		ts.set_custom_data_layer_type(index, TYPE_STRING)
 
 ## The bool custom data layer `layer_name` of a TileSet, added when it is missing.
 static func _ensure_bool_layer(ts: TileSet, layer_name: String) -> void:

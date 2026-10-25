@@ -947,8 +947,12 @@ def _loose_tiles(assets: list[Any], root: str) -> dict[str, list[Any]]:
     """Single square pictures of one size, eight or more in one folder, that no reader took as
     anything sure and that are not set aside: a folder of loose tiles (T17.33)."""
     by: dict[tuple[str, int], list[Any]] = {}
-    # a folder whose pieces were laid by their names already is read so
-    named = {posixpath.dirname(_rel(a, root)) for a in assets if UNUSED + PIECE_ASIDE in _tags(a)}
+    # a folder whose pieces were laid by their names already is read so, and so is a folder of
+    # pictures an atlas cut (atlas_cuts: their sheet is read instead)
+    from rpggen.core import atlas_cuts
+
+    done = {UNUSED + PIECE_ASIDE, UNUSED + atlas_cuts.CELL_ASIDE}
+    named = {posixpath.dirname(_rel(a, root)) for a in assets if _tags(a) & done}
     for asset in assets:
         facets = asset.detected
         size = facets.get("size") or [0, 0]
@@ -1101,6 +1105,35 @@ def read_tiles(
     for pack_id in sorted(side_ids):
         root = packs.get(pack_id, "")
         assets = [a for a in catalog.assets if a.pack_id == pack_id]
+        # sheets a cutting tool cut into pictures, with its _atlas.json (atlas_cuts): read as
+        # the sheets they are, a sheet of outlined blocks out of its outlines
+        from rpggen.core import atlas_cuts
+
+        for cut in atlas_cuts.read_pack(assets, roots[pack_id], root, work, pack_id):
+            if cut.read is None:
+                continue
+            stem = re.sub(r"[^a-z0-9]+", "_", cut.asset.id.rsplit(".", 1)[-1].casefold())
+            names = [
+                f"{stem}_side_{surface}_{i}" for i, (surface, _m) in enumerate(cut.read.terrains)
+            ]
+            for entry in cut.overrides.values():
+                terrain_spec = entry.get("terrain")
+                if isinstance(terrain_spec, dict):
+                    terrain_spec["set"] = names[int(str(terrain_spec["set"]).rsplit("_", 1)[-1])]
+            cut.asset.detected["tile_overrides"] = dict(
+                sorted(cut.overrides.items(), key=lambda kv: _xy(kv[0]))
+            )
+            kept = [(n, sm) for n, sm in zip(names, cut.read.terrains, strict=True) if sm[1]]
+            if kept:
+                sets[cut.asset.id] = [
+                    terrain_set_def(n, surface, cut.asset.id, index + i)
+                    for i, (n, (surface, _m)) in enumerate(kept)
+                ]
+                index += len(kept)
+            if cut.generated is not None:
+                rel, out = cut.generated
+                added.append(cut.asset)
+                generated[rel] = str(out)
         for (folder, prefix), members in sorted(_named_groups(assets, root).items()):
             made = _make_sheet((folder, prefix), members, roots[pack_id], root, work)
             if made is None:

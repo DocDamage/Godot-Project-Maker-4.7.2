@@ -74,6 +74,19 @@ UNUSED_REASONS = {
         "a sheet the pack's pictures are packed into; the pack has them as single pictures "
         "too, and those are used. Give it a role to use the sheet as well."
     ),
+    "atlas_source": (
+        "a sheet a cutting tool cut into named pictures (its _atlas.json says so), or its "
+        "Aseprite source: the sheet is used as a generated copy taken out of its outlines, or "
+        "as the pictures cut from it. Give it a role to use this one as well."
+    ),
+    "atlas_cell": (
+        "one tile of a sheet a cutting tool cut into named pictures; the sheet is used as a "
+        "tile sheet, and has this tile. Give it a role to use it on its own as well."
+    ),
+    "atlas_frame": (
+        "one frame of a strip a cutting tool cut into named pictures; the strip is used as "
+        "one animated picture. Give it a role to use the frame on its own as well."
+    ),
     "other_view": (
         "the same model seen from another angle; the pack has it in a folder Isometric too, "
         "and that one is used. Give it a role to use this one as well."

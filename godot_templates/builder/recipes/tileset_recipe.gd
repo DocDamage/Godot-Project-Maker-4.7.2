@@ -665,7 +665,7 @@ func _build_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionar
 			var tile_collision: Dictionary = ov.get("collision", sheet_collision)
 			_configure_tile(ctx, src.get_tile_data(coords, 0), asset, tile_collision, atlas_cell, cell_img, is_new, tile_key, issues)
 			if _side:
-				SideTileset.configure_tile(src.get_tile_data(coords, 0), eff, ov, tile_collision, atlas_cell, ts)
+				SideTileset.configure_tile(src.get_tile_data(coords, 0), eff, ov, tile_collision, atlas_cell, ts, tex_path)
 			if _nav_enabled:
 				_configure_navigation(src.get_tile_data(coords, 0), JsonUtil.to_str(eff.get("role", "")), tile_collision, atlas_cell)
 			var terrain: Variant = ov.get("terrain")

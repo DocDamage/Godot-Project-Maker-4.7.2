@@ -741,5 +741,33 @@
    }
   },
   "role": "NPC"
+ },
+ {
+  "path": "Village Houses tiles/House2.png",
+  "facets": {
+   "usage": "sprite"
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "Village Houses tiles/Village Sheet Sprites/wooden_post.png",
+  "facets": {
+   "usage": "sprite"
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "Village Houses tiles/Village Sheet Sprites/tavern.png",
+  "facets": {
+   "usage": "sprite"
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "Castle Tiles/top.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "GROUND"
  }
 ]

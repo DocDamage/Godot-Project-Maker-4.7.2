@@ -9,6 +9,24 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": 0,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "role": "GROUND",
+        "set": "iso_grass_grass_plain",
+        "shape": "plain",
+        "surface": "grass"
+      },
       "origin": [
         40,
         79
@@ -34,6 +52,25 @@
         40,
         22
       ],
+      "iso_terrain": {
+        "mode": "sides",
+        "over": "ground",
+        "peering": {
+          "bottom_left_corner": -1,
+          "bottom_right_corner": -1,
+          "bottom_side": 0,
+          "left_side": 0,
+          "right_side": 0,
+          "top_left_corner": -1,
+          "top_right_corner": -1,
+          "top_side": 0
+        },
+        "probability": 0.0,
+        "role": "GROUND",
+        "set": "iso_grass_grass_plain",
+        "shape": "plain",
+        "surface": "grass"
+      },
       "origin": [
         40,
         79

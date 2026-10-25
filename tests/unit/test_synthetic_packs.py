@@ -40,6 +40,21 @@ def _png_signature(data: bytes) -> str:
         return hashlib.sha256(data).hexdigest()
 
 
+def _gif_signature(data: bytes) -> str:
+    """Frame-level signature: GIF bytes depend on Pillow's encoder (12 writes other bytes than
+    the version that made the committed packs), the frames and their durations do not."""
+    import io
+
+    from PIL import ImageSequence
+
+    digest = hashlib.sha256()
+    with Image.open(io.BytesIO(data)) as im:
+        for frame in ImageSequence.Iterator(im):
+            digest.update(frame.convert("RGBA").tobytes())
+            digest.update(str(frame.info.get("duration", 0)).encode())
+        return f"gif:{im.size}:{digest.hexdigest()}"
+
+
 def _zip_signature(data: bytes) -> list[tuple[str, object]]:
     import io
     import zipfile
@@ -66,6 +81,8 @@ def _signatures(root: Path) -> dict[str, object]:
         data = p.read_bytes()
         if p.suffix == ".png":
             out[rel] = _png_signature(data)
+        elif p.suffix == ".gif":
+            out[rel] = _gif_signature(data)
         elif p.suffix == ".zip":
             out[rel] = _zip_signature(data)
         else:

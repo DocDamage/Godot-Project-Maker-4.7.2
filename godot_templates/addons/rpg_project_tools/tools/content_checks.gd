@@ -14,6 +14,7 @@ const Sequence := preload("res://addons/rpg_runtime/events/sequence.gd")
 const EncounterTable := preload("res://addons/rpg_runtime/data/encounter_table.gd")
 const JsonIo := preload("json_io.gd")
 const MapGraph := preload("map_graph.gd")
+const RoomCheck := preload("room_check.gd")
 
 const MAPS_DIR := "res://game/maps"
 ## The stored world plan (T13.20): its maps are the ones rpggen can mend, so a door of theirs
@@ -47,6 +48,7 @@ static func run(dirs: Dictionary = {}) -> Array:
 	_check_entity_ids(maps, cache, findings)
 	var world := world_maps(JsonIo.to_str(dirs.get("world_plan", WORLD_PLAN)))
 	_check_doors(maps, cache, findings, world)
+	_check_rooms(maps, cache, findings)
 	var plan_path := JsonIo.to_str(dirs.get("world_plan", WORLD_PLAN))
 	var plan: Variant = JsonIo.read(plan_path) if FileAccess.file_exists(plan_path) else {}
 	var plan_start := MapGraph.start_for(JsonIo.to_dict(plan))
@@ -220,6 +222,39 @@ static func _check_doors(maps: Array[String], cache: Dictionary, findings: Array
 					findings.append(finding("VAL-028", {"node": node_path, "what": "the spawn point '%s' in %s" % [spawn, target.get_file()]}, path, node_path))
 				else:
 					findings.append(finding("VAL-017", {"node": node_path, "spawn": spawn, "target": target}, path, node_path))
+
+# ---------------------------------------------------------------- rooms as painted (VAL-033)
+
+## Whether the player gets through each side-view room as it is painted (room_check.gd): exits
+## open, platforms that can be landed on, things standing on the floor, every exit up reached.
+## The physics copy needs a node in the tree: the main loop's root (a validation run's, the
+## editor's); without one the rooms are not checked.
+## The room check alone (VAL-033), for a caller whose tree was not running when `run` was called:
+## validate.gd runs the content checks in its _initialize and this in its _process.
+static func room_findings(dirs: Dictionary = {}) -> Array:
+	var findings: Array = []
+	var cache := {}
+	_check_rooms(list_files(JsonIo.to_str(dirs.get("maps", MAPS_DIR)), ["tscn"]), cache, findings)
+	for key: Variant in cache.keys():
+		var cached: Node = cache[key]
+		if cached != null:
+			cached.free()
+	findings.sort_custom(_before)
+	return findings
+
+## The physics copy of a room lives under the tree's root: before the root is in the tree (a
+## SceneTree script's _initialize) there is no physics to ask, and the rooms wait for room_findings.
+static func _check_rooms(maps: Array[String], cache: Dictionary, findings: Array) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null or not tree.root.is_inside_tree():
+		return
+	for path in maps:
+		var root := _instance(path, cache)
+		if not RoomCheck.is_room(root):
+			continue
+		for issue: Dictionary in RoomCheck.new().check_room(root, tree.root):
+			var node := JsonIo.to_str(issue.get("node", ""))
+			findings.append(finding("VAL-033", {"node": node if node != "" else "The room", "problem": JsonIo.to_str(issue["message"])}, path, node))
 
 # ---------------------------------------------------------------- dialogue (VAL-018, VAL-019)
 

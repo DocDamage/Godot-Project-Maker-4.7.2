@@ -46,6 +46,11 @@ are also available in the packages' `dist-info` folders inside the bundle.
 * The generated Godot projects contain the **runtime addon** (`addons/rpg_runtime`) under the
   MIT License, and the **asset packs you supply**, which keep their own licenses (rpggen lists
   them in `GENERATION_REPORT.md`).
+* The **room check** of the editor tools (`addons/rpg_project_tools/tools/room_check.gd`, the
+  validator's VAL-033) is ported from `MDSRoomCheck` of the **Metroidvania Developer System**
+  by Arun Soundararajan, MIT License, https://github.com/arunsrajan/MetroidvaniaDeveloperSystem;
+  the file carries its copyright and license text. The side-view tile sets' `mds_kind` tags
+  follow that addon's names for its decoration kinds, so its room tools can paint with them.
 * Godot Engine (MIT) is **not** bundled; install it separately from https://godotengine.org/.
 
 ## In the repository only
