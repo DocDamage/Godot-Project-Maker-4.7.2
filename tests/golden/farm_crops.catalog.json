@@ -1,7 +1,7 @@
 {
   "assets": [
     {
-      "confidence": 0.454545,
+      "confidence": 0.375,
       "detected": {
         "animations": {
           "idle_down": {
@@ -46,6 +46,16 @@
           10
         ],
         "role": "DECORATION",
+        "roles_alt": [
+          [
+            "NPC",
+            0.3125
+          ],
+          [
+            "PLAYER",
+            0.0625
+          ]
+        ],
         "size": [
           48,
           16

@@ -179,20 +179,32 @@ def same_forms(assets: list[Any], inv: Any, pack_root: Path, prefix: str) -> int
     # the cells of single files a pack has many of, and the 16 px most packs are drawn in
     cells = {cell for cell, singles in sizes.items() if singles >= MIN_SHARED_CELLS} | {16}
     count = 0
+    pictures: dict[str, np.ndarray | None] = {}  # each picture read once for every cell
     for cell in sorted(cells):
-        count += _forms_at(by_rel, files, pack_root, cell)
+        count += _forms_at(by_rel, files, pack_root, cell, pictures)
     return count
 
 
 def _forms_at(
-    by_rel: dict[str, Any], files: dict[str, tuple[int, int]], pack_root: Path, cell: int
+    by_rel: dict[str, Any],
+    files: dict[str, tuple[int, int]],
+    pack_root: Path,
+    cell: int,
+    pictures: dict[str, np.ndarray | None] | None = None,
 ) -> int:
+    pictures = {} if pictures is None else pictures
+
+    def load(rel: str) -> np.ndarray | None:
+        if rel not in pictures:
+            pictures[rel] = _load(pack_root / rel)
+        return pictures[rel]
+
     keys: dict[str, set[bytes]] = {}
     one_cell: dict[str, bytes] = {}
     for rel in sorted(files):
         w, h = files[rel]
         if (w, h) == (cell, cell):
-            a = _load(pack_root / rel)
+            a = load(rel)
             found = _cell_keys(a, cell) if a is not None else []
             if found:
                 one_cell[rel] = found[0]
@@ -201,7 +213,7 @@ def _forms_at(
             continue
         if (w // cell) * (h // cell) > MAX_CELLS:
             continue
-        a = _load(pack_root / rel)
+        a = load(rel)
         if a is None:
             continue
         margin, gap = _spacing(a, cell)

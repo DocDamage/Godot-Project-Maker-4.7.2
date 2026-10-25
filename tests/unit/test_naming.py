@@ -579,3 +579,23 @@ def test_a_nine_slice_piece_is_told_by_its_name(tmp_path: Path) -> None:
         catalog.effective(_asset(cat, "wrong_01_16x16_9split.png"))["nine_slice"]
         != [16, 16, 16, 16]
     )
+
+
+def test_a_cell_and_a_frame_count_give_the_rows_of_directions(tmp_path: Path) -> None:
+    """Super Retro Ranch: male_01_water_32x32_3frames.png is 96 x 128, three frames of 32 x 32
+    across and four rows, the directions, in a folder named after its action; the idle sheet,
+    one cell wide, is one frame in each direction."""
+    pack = tmp_path / "ranch"
+    _rows_of_frames(pack / "characters" / "male_01" / "water" / "male_01_water_32x32_3frames.png",
+                    (32, 32), 3, 4)  # fmt: skip
+    _rows_of_frames(pack / "characters" / "male_01" / "idle" / "male_01_idle_32x32.png",
+                    (32, 32), 1, 4)  # fmt: skip
+    cat = _catalog(pack)
+    water = catalog.effective(_asset(cat, "male_01_water_32x32_3frames.png"))
+    assert (water["frame"], water["directions"]) == ([32, 32], 4)
+    assert sorted(water["animations"]) == [f"water_{d}" for d in ("down", "left", "right", "up")]
+    assert len(water["animations"]["water_down"]["frames"]) == 3
+    assert water["role"] not in ("WATER", "GROUND"), "watering is something a person does"
+    idle = catalog.effective(_asset(cat, "male_01_idle_32x32.png"))
+    assert idle["frame"] == [32, 32]
+    assert sorted(idle["animations"]) == [f"idle_{d}" for d in ("down", "left", "right", "up")]

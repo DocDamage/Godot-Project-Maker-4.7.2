@@ -56,6 +56,20 @@ CONTAINER_WORDS = frozenset(
      "objects", "deco", "decor", "decoration", "decorations"}
 )  # fmt: skip
 CONTAINER_WEIGHT = 1 / 3
+# folders of people, and the roles of grounds their actions are named after (watering, mowing)
+PEOPLE_FOLDER_WORDS = frozenset(
+    {"character", "characters", "male", "males", "female", "females", "people", "villager",
+     "villagers", "npc", "npcs", "player", "players", "hero", "heroes"}
+)  # fmt: skip
+GROUND_ROLES = frozenset({"GROUND", "ROAD", "WATER", "WALL", "CLIFF"})
+# what flies, swims or crawls about a place: something that moves there, nobody to talk to
+CRITTER_WORDS = frozenset(
+    {"bug", "bugs", "insect", "insects", "butterfly", "butterflies", "moth", "moths", "bird",
+     "birds", "fish", "fishes", "frog", "frogs", "snail", "snails", "bee", "bees"}
+)  # fmt: skip
+CRITTER_WEIGHT = 0.6  # over the 0.5 an animation of one direction gives a villager
+# ... and what bobs on the water when somebody fishes (Mana Seed's ``fishing anim 32x32``)
+FISHING_GEAR_WORDS = frozenset({"fishing", "bobber", "bobbers", "lure", "lures"})
 # the roles whose words alone leave a container folder its weight
 UNNAMING_ROLES = frozenset({"WALL"})
 
@@ -883,6 +897,14 @@ GUIDE_WORDS = frozenset(
     {"preview", "test", "grid", "guide", "slots", "template", "mockup", "showcase",
      "sample", "samples", "information"}
 )  # fmt: skip
+# a layout guide among autotiles whatever else its name says (Super Retro Ranch's
+# ``autotiles/3x3/template_Godot_3x3.png``, ``_RANCH_AUTOTILE_template_SuperRetroRanch.png``):
+# never the art. A ``characters/template_hero.png`` is a hero to build on.
+TEMPLATE_WORDS = frozenset({"template", "templates"})
+LAYOUT_WORDS = frozenset(
+    {"autotile", "autotiles", "tileset", "tilesets", "terrain", "terrains", "layout", "3x3",
+     "2x2", "godot", "unity"}
+)  # fmt: skip
 UNUSED_TAG = "unused_because:"
 UNUSED_PREVIEW_FOLDER = "preview_folder"
 UNUSED_GUIDE_PICTURE = "guide_picture"
@@ -902,6 +924,9 @@ def not_game_art(path: str, wrapper: str = "") -> str | None:
         return UNUSED_PREVIEW_FOLDER
     words = set(_tokenize(stem))
     if words and (words <= GUIDE_WORDS or (not folders and words & GUIDE_WORDS)):
+        return UNUSED_GUIDE_PICTURE
+    near = words | {w for folder in folders for w in _tokenize(folder)}
+    if words & TEMPLATE_WORDS and near & LAYOUT_WORDS:  # the layout of the autotiles, drawn
         return UNUSED_GUIDE_PICTURE
     return None
 
@@ -990,8 +1015,13 @@ def classify(
             if role not in UNNAMING_ROLES
             for kw in keywords
         )
+    # in a folder of people a ground's word is what they do (Super Retro Ranch's
+    # characters/males/male_01/water/male_01_water_32x32_3frames.png waters the crops)
+    of_people = bool((deep_tokens | other_tokens) & PEOPLE_FOLDER_WORDS)
     scores = {role: 0.0 for role in ROLE_ORDER}
     for role, keywords in ROLE_KEYWORDS:
+        if of_people and role in GROUND_ROLES:
+            continue
         for kw, weight in keywords.items():
             if named_monster and kw in SOMEBODY_WORDS:
                 continue  # the name says what it is: "somebody" adds nothing
@@ -1015,6 +1045,11 @@ def classify(
         if _has_directional_animations(fragment_facets):
             scores["NPC"] += 0.5
             scores["PLAYER"] += 0.1
+            critters = (set(file_tokens) | deep_tokens) & (CRITTER_WORDS | FISHING_GEAR_WORDS)
+            if critters and not of_people and not named:
+                # a school of fish swimming, a butterfly: a decoration that moves (T17.29
+                # decided so in farming packs; Mana Seed's *Fishing Gear* has its own fish)
+                scores["DECORATION"] += CRITTER_WEIGHT
         elif w and h and w <= 32 and h <= 32:
             scores["ITEM"] += 0.4
     if usage == "background":

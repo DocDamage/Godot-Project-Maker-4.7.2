@@ -79,6 +79,24 @@ UNUSED_REASONS = {
         "Aseprite source: the sheet is used as a generated copy taken out of its outlines, or "
         "as the pictures cut from it. Give it a role to use this one as well."
     ),
+    "animated_layout": (
+        "an animated autotile drawn as several copies of its layout side by side, one a frame; "
+        "it is used as a generated tile sheet whose tiles have their frames side by side, as "
+        "Godot animates a tile. Give it a role to use this one as well."
+    ),
+    "object_sheet": (
+        "a sheet of things lying loose; each thing on it is an asset of its own. Give it a role "
+        "to use it whole as well."
+    ),
+    "sorted_sheet": (
+        "a sheet of tiles and things mixed; its ground is a sheet of tiles and each thing an "
+        "asset of its own. Give it a role to use it whole as well."
+    ),
+    "cell_sheet": (
+        "a sheet of things in cells of the size its name gives (icons, objects); each thing is "
+        "an asset of its own, named by the pack's list of them where it has one. Give it a "
+        "role to use it whole as well."
+    ),
     "atlas_cell": (
         "one tile of a sheet a cutting tool cut into named pictures; the sheet is used as a "
         "tile sheet, and has this tile. Give it a role to use it on its own as well."

@@ -388,8 +388,9 @@ func _check_sound_bank() -> void:
 const ORIGIN_TOLERANCE := 2.0
 const ENTITY_DIRS: Array[String] = ["res://generated/scenes/objects/", "res://generated/scenes/actors/"]
 
-## Bottom edge (y, relative to the scene root) of a Sprite2D / AnimatedSprite2D, or NAN.
-static func visual_bottom(visual: Node2D, scene_root: Node) -> float:
+## Bottom edge (y, relative to the scene root) of a Sprite2D / AnimatedSprite2D, or NAN: of its
+## frame, or with `drawn` of what is drawn in it (the feet of a figure above empty rows).
+static func visual_bottom(visual: Node2D, scene_root: Node, drawn := false) -> float:
 	var tex: Texture2D = null
 	var offset := Vector2.ZERO
 	var centered := true
@@ -413,7 +414,19 @@ static func visual_bottom(visual: Node2D, scene_root: Node) -> float:
 		if node is Node2D:
 			y += (node as Node2D).position.y
 		node = node.get_parent()
-	return y + tex.get_size().y
+	return y + (drawn_bottom(tex) if drawn else tex.get_size().y)
+
+## The row under the lowest drawn pixel of a frame: the feet of a figure drawn above empty rows
+## (Super Retro Ranch's people stand 8 px above the bottom of their 32 px cells), the frame's
+## height when its picture cannot be read.
+static func drawn_bottom(tex: Texture2D) -> float:
+	var img := tex.get_image()
+	if img == null or img.is_empty():
+		return tex.get_size().y
+	if img.is_compressed():
+		img.decompress()
+	var used := img.get_used_rect()
+	return float(used.end.y) if used.size.y > 0 else tex.get_size().y
 
 func _collect_visuals(node: Node, out: Array) -> void:
 	if node is Sprite2D or node is AnimatedSprite2D:
@@ -438,8 +451,11 @@ func _check_ysort_origins() -> void:
 				_collect_visuals(inst, visuals)
 			var ok := true
 			for v in visuals:
+				# on its origin by the bottom of its frame (an object), or by its feet (a figure
+				# drawn above empty rows, which rpggen stands on its feet)
 				var bottom := visual_bottom(v, inst)
-				if not is_nan(bottom) and absf(bottom) > ORIGIN_TOLERANCE:
+				var feet := visual_bottom(v, inst, true)
+				if not is_nan(bottom) and absf(bottom) > ORIGIN_TOLERANCE and absf(feet) > ORIGIN_TOLERANCE:
 					_fail("VAL-014", {"file": path, "y": "%.1f" % bottom}, path)
 					ok = false
 			inst.free()

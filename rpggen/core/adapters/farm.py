@@ -34,6 +34,7 @@ import numpy as np
 from PIL import Image
 
 from rpggen import paths
+from rpggen.core import classifier
 from rpggen.core.adapters import naming
 from rpggen.core.adapters.base import AdapterContext, AdapterResult, AssetFragment
 from rpggen.core.inventory import Inventory, InventoryFile
@@ -51,10 +52,7 @@ FARM_PACK_WORDS = frozenset({"farm", "farming", "farms", "harvest", "ranch", "cr
 CROP_FOLDER_WORDS = frozenset({"crop", "crops", "plant", "plants", "growth", "seeds", "farming"})
 TREE_WORDS = frozenset({"tree", "trees"})
 # what flies or crawls about a farm: nobody to talk to
-CRITTER_WORDS = frozenset(
-    {"bug", "bugs", "insect", "insects", "butterfly", "butterflies", "moth", "moths", "bird",
-     "birds", "fish", "fishes", "frog", "frogs", "snail", "snails", "bee", "bees"}
-)  # fmt: skip
+CRITTER_WORDS = classifier.CRITTER_WORDS
 # a pet walks about like a farm animal but lives in no coop or barn: a decoration that moves
 PET_WORDS = frozenset({"dog", "dogs", "cat", "cats", "puppy", "kitten"})
 PORTRAIT_WORDS = frozenset({"portrait", "portraits", "face", "faces"})

@@ -130,3 +130,11 @@ def test_a_monsters_name_counts_for_more_than_a_folder_of_characters() -> None:
     assert classifier.classify(walking, "character/dragon_boss.png", None)[0] == "BOSS"
     # a folder that names villagers is no folder of "somebody": it still decides
     assert classifier.classify(walking, "npcs/guard_wolf.png", None)[0] == "NPC"
+
+
+def test_a_layout_template_is_no_art_wherever_it_lies() -> None:
+    """Super Retro Ranch ships the layouts it was drawn in: template_Godot_3x3.png beside its
+    autotiles, _RANCH_AUTOTILE_template_SuperRetroRanch.png among them."""
+    assert classifier.not_game_art("engines/Godot/autotiles/3x3/template_Godot_3x3.png")
+    assert classifier.not_game_art("autotiles/_RANCH_AUTOTILE_template_SuperRetroRanch.png")
+    assert classifier.not_game_art("autotiles/02_grass/01_grass_01.png") is None
