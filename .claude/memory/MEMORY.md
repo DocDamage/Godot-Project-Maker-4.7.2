@@ -1,0 +1,3 @@
+- [User's asset packs for the new game kinds](user-asset-packs-for-new-kinds.md) — where the real racing, side-scroller, platformer and farm packs are, and what their names look like
+- [Local test environment quirks](local-test-environment-quirks.md) — system Python has every test tool now, F: is FAT32 (no pre-1980 times, no junctions), don't set APPDATA, where Godot is
+- [Fix failures found along the way](fix-failures-found-along-the-way.md) — in rpggen, fix every failing test I meet, not just report it
