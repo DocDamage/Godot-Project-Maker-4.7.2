@@ -46,6 +46,8 @@ EDGE_FULL = 0.9
 SEAM_TOL = 0.07
 SEAM_NOISE = 1.5
 ALPHA_AGREE = 0.9
+# the least brightness (0..1) of a pixel that counts towards water's blue
+WATER_VALUE = 0.2
 
 # peering bits of the sides (as terrain.blocks.SIDE_KEYS): N, E, S, W
 N, E, S, W = 1, 4, 16, 64
@@ -431,10 +433,12 @@ def is_water(cell: Cell) -> bool:
     """Blue, mostly painted, tiling sideways."""
     if cell.cover < 0.6:
         return False
-    hue, sat, _val = _hsv(cell)
+    hue, sat, val = _hsv(cell)
     if not hue.size:
         return False
-    blue = (hue >= 180) & (hue <= 240) & (sat >= 0.3)
+    # a near-black pixel has no colour to speak of (GandalfHardcore's dark cave rock, #0a0a14,
+    # is "saturated blue" by the numbers): water is blue that can be seen
+    blue = (hue >= 180) & (hue <= 240) & (sat >= 0.3) & (val >= WATER_VALUE)
     return float(blue.mean()) >= 0.6 and _repeats(cell, E)
 
 

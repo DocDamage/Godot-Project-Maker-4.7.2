@@ -556,11 +556,9 @@ def test_the_growth_strips_of_the_ranch_pack_are_its_crops(ranch) -> None:
     section = world_plan.load(target)["farm"]
     assert sorted(c["id"] for c in section["crops"]) == ["corn", "pumpkin", "tomato", "wheat"]
     # the pack has nobody but the farmer (its strips of the farmer hoeing and watering are
-    # animations of the farmer, not villagers) and no building object: the people's plan says so
-    assert section["notes"] == [
-        "The packs have no NPC: 3 people share the stand-in.",
-        "The village has no house: everybody lives in house 1.",
-    ]
+    # animations of the farmer, not villagers): the people's plan says so. Its house is the
+    # village's (buildings/house.png), so nobody is short of a home.
+    assert section["notes"] == ["The packs have no NPC: 3 people share the stand-in."]
     assert [p["asset"] for p in section["people"]] == ["", "", ""]
     by_id = {c["id"]: c for c in section["crops"]}
     assert (by_id["wheat"]["stages"], by_id["corn"]["stages"], by_id["tomato"]["stages"]) == (
@@ -595,11 +593,13 @@ def test_the_growth_strips_of_the_ranch_pack_are_its_crops(ranch) -> None:
     assert "farm_kit/soil.png" not in soil
     farm = _text(target, "game/maps/farm.tscn")
     assert "tilled_source = 1" in farm and "tilled_tile = Vector2i(9, 2)" in farm
-    # the pack has no water tile and no building object: a well, and a house that is drawn
+    # the pack has no water tile: a well; its house is the pack's (buildings/house.png)
     stored = farm_plan.stored_in(world_plan.load(target))
     assert stored["water"]["kind"] == "well" and farm_plan.check(stored) == []
-    assert 'kind = "well"' in farm and '[node name="House" type="StaticBody2D"' in farm
-    assert '[node name="HouseDoor" type="Area2D" parent="Triggers"' in farm
+    assert 'kind = "well"' in farm and '[node name="House" parent="YSorted/Entities"' in farm
+    # the way in is the building's own entrance, to the farmhouse
+    entrance = farm.split('[node name="Entrance" parent="YSorted/Entities/House"', 1)[1]
+    assert 'target_map = "res://game/maps/farm_house.tscn"' in entrance.split("[node", 1)[0]
     schema.validate("people", jsonio.read(target / "game/data/people.json"))
 
 
@@ -633,6 +633,8 @@ def test_the_ranch_with_the_starter_the_wizard_chooses_passes_its_whole_sequence
         "player": "ranch.characters.farmer.farmer_walk_down_16x16_4frames",
         "ground": "ranch.tiles.spring.grass_16x16",
         "building": "ranch.buildings.house",
+        # T17.33: the face a pack without portraits lacks, drawn from its farmer
+        "portrait": "generated.portrait_farmer_walk_down_16x16_4frames",
     }
     target = tmp_path / "out"
     result = orchestrator.run_in_memory(cfg, None, target, godot_exe)

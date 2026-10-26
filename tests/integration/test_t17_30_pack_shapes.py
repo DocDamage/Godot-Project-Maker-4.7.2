@@ -110,12 +110,16 @@ def test_its_player_animals_and_ground_are_the_packs(farm: Path) -> None:
 
 @pytest.mark.farm
 def test_its_crop_is_the_row_of_growth_stages_of_the_mixed_sheet(farm: Path) -> None:
-    """After T17.30: the row of stages on `mixed_sheet`'s sheet is a crop the farm grows."""
-    crops = jsonio.read(farm / "generated/data/crops.json")["crops"]
-    assert "crop_1" in [c["id"] for c in crops]
+    """After T17.30: the row of stages on `mixed_sheet`'s sheet is a crop the farm grows (named
+    by what it looks like since T17.33, as the others are)."""
     data = jsonio.read(farm / "rpggen/asset_catalog.json")
     crop = next(a for a in data["assets"] if a["id"].endswith("farm.n1#crop48_432"))
     assert crop["detected"]["role"] == "CROP" and crop["detected"]["stages"] == 4
+    planned = jsonio.read(farm / "rpggen/world_plan.json")["farm"]["crops"]
+    grown = [c["id"] for c in planned if c.get("asset") == crop["id"]]
+    assert len(grown) == 1
+    crops = jsonio.read(farm / "generated/data/crops.json")["crops"]
+    assert grown[0] in [c["id"] for c in crops]
 
 
 @pytest.mark.farm

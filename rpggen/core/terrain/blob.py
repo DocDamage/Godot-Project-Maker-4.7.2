@@ -333,7 +333,36 @@ def propose(
     result = recognize(sheet, cell_w, cell_h)
     if result is None or not result.accepted:
         return None, result
-    cell_h = cell_h or cell_w
+    return _facet(sheet, cell_w, cell_h or cell_w, result, set_name), result
+
+
+# what a layout is worth when the sheets of its family say it and its own seams cannot
+FAMILY_CONFIDENCE = 0.6
+
+
+def propose_layout(
+    sheet: Image.Image, cell: int, layout: str, set_name: str
+) -> dict[str, Any] | None:
+    """The ``terrain_proposal`` facet of a sheet in a layout known from elsewhere (the other
+    sheets of its family, ``terrain._family_layout``), or None when the sheet is not that
+    layout's shape or not enough of its cells are drawn."""
+    if layout not in LAYOUT_SHAPES or sheet.size != (
+        LAYOUT_SHAPES[layout][0] * cell,
+        LAYOUT_SHAPES[layout][1] * cell,
+    ):
+        return None
+    pixels = _load(sheet)
+    table = _tile_table(layout)
+    drawn = sum(1 for (cx, cy), _e in table if _cut(pixels, (cell, cell), cx, cy)[..., 3].any())
+    if drawn < MIN_FILLED * len(table):
+        return None
+    given = Recognition(layout, FAMILY_CONFIDENCE, True)
+    return _facet(sheet, cell, cell, given, set_name)
+
+
+def _facet(
+    sheet: Image.Image, cell_w: int, cell_h: int, result: Recognition, set_name: str
+) -> dict[str, Any]:
     pixels = _load(sheet)
     overrides: dict[str, Any] = {}
     cells = result.cells or tuple(
@@ -346,14 +375,13 @@ def propose(
     mode = LAYOUT_MODES[result.layout]
     set_def = a2.terrain_set_def(set_name, 0)
     set_def["mode"] = mode
-    facet = {
+    return {
         "layout": result.layout,
         "confidence": result.confidence,
         "mode": mode,
         "terrain_set": set_def,
         "tile_overrides": {k: overrides[k] for k in sorted(overrides)},
     }
-    return facet, result
 
 
 # --------------------------------------------------------------------------- accept / reject

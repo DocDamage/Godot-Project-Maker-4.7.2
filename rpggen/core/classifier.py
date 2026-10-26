@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import re
 import unicodedata
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -21,7 +22,7 @@ ROLE_KEYWORDS: list[tuple[str, dict[str, float]]] = [
     ("WATER", {"water": 1.0, "sea": 1.0, "lake": 1.0, "river": 1.0, "ocean": 1.0, "pond": 1.0}),
     ("WALL", {"wall": 1.0, "walls": 1.0, "fence": 1.0}),
     ("CLIFF", {"cliff": 1.0, "cliffs": 1.0, "mountain": 1.0, "ledge": 1.0}),
-    ("BUILDING", {"house": 1.0, "building": 1.0, "buildings": 1.0, "home": 1.0, "shop": 1.0, "inn": 1.0, "castle": 1.0, "tower": 1.0, "barn": 1.0, "church": 1.0, "hut": 1.0, "tent": 1.0, "store": 1.0}),
+    ("BUILDING", {"house": 1.0, "building": 1.0, "buildings": 1.0, "home": 1.0, "shop": 1.0, "inn": 1.0, "castle": 1.0, "tower": 1.0, "barn": 1.0, "church": 1.0, "hut": 1.0, "tent": 1.0, "store": 1.0, "houses": 1.0, "tavern": 1.0, "cabin": 1.0, "cottage": 1.0, "stable": 1.0, "shed": 1.0, "stall": 1.0}),
     ("DECORATION", {"tree": 1.0, "trees": 1.0, "bush": 1.0, "rock": 1.0, "rocks": 1.0, "stone": 1.0, "flower": 1.0, "plant": 1.0, "prop": 1.0, "props": 1.0, "deco": 1.0, "decor": 1.0, "decoration": 1.0, "decorations": 1.0, "barrel": 1.0, "crate": 1.0, "sign": 1.0, "lamp": 1.0, "statue": 1.0, "well": 1.0, "object": 1.0, "objects": 1.0}),
     ("INTERIOR", {"interior": 1.0, "inside": 1.0, "indoor": 1.0, "room": 1.0, "furniture": 1.0, "inner": 1.0}),
     ("PLAYER", {"player": 1.0, "hero": 1.0, "heroine": 1.0, "protagonist": 1.0, "main": 0.5}),
@@ -55,6 +56,20 @@ CONTAINER_WORDS = frozenset(
      "objects", "deco", "decor", "decoration", "decorations"}
 )  # fmt: skip
 CONTAINER_WEIGHT = 1 / 3
+# folders of people, and the roles of grounds their actions are named after (watering, mowing)
+PEOPLE_FOLDER_WORDS = frozenset(
+    {"character", "characters", "male", "males", "female", "females", "people", "villager",
+     "villagers", "npc", "npcs", "player", "players", "hero", "heroes"}
+)  # fmt: skip
+GROUND_ROLES = frozenset({"GROUND", "ROAD", "WATER", "WALL", "CLIFF"})
+# what flies, swims or crawls about a place: something that moves there, nobody to talk to
+CRITTER_WORDS = frozenset(
+    {"bug", "bugs", "insect", "insects", "butterfly", "butterflies", "moth", "moths", "bird",
+     "birds", "fish", "fishes", "frog", "frogs", "snail", "snails", "bee", "bees"}
+)  # fmt: skip
+CRITTER_WEIGHT = 0.6  # over the 0.5 an animation of one direction gives a villager
+# ... and what bobs on the water when somebody fishes (Mana Seed's ``fishing anim 32x32``)
+FISHING_GEAR_WORDS = frozenset({"fishing", "bobber", "bobbers", "lure", "lures"})
 # the roles whose words alone leave a container folder its weight
 UNNAMING_ROLES = frozenset({"WALL"})
 
@@ -615,17 +630,27 @@ def _one_name(stem: str, isometric: bool) -> str:
     return turn.base if turn is not None else stem
 
 
-def made_for(inventory: Any, sheets: Any = (), name: str = "") -> str:
+FOLDERS_ABOVE = 2  # the folders above a pack folder whose names count (a collection's)
+
+
+def made_for(inventory: Any, sheets: Any = (), name: str = "", above: Sequence[str] = ()) -> str:
     """``"side"`` or ``"top"``, or the kind a pack was made for (``"shmup"``, ``"racing"``,
     ``"farm"``): how a pack looks at its world (T14.02). The words of its folders
     and files count (platformer, sidescroller, metroidvania, jump against rpg, topdown,
     overworld; a name is counted once), and so does every character sheet in ``sheets``
     (detected facets): one with a jump or a fall and no walk up the screen is a side-view
-    character, one that walks up the screen a top-down one. A pack that says nothing is
-    top-down."""
+    character, one that walks up the screen a top-down one. ``above`` are the names of the
+    folders a pack folder lies in (T17.34: a stage set of a collection called *sidescroller*),
+    each counted once. A pack that says nothing is top-down."""
     side = 0
     top = 0
     seen: set[str] = set()
+    for folder in above:
+        words = _all_words(folder)
+        if set(words) & SIDE_VIEW_WORDS or any(_has_pair(words, p) for p in SIDE_VIEW_PAIRS):
+            side += 1
+        if set(words) & TOP_VIEW_WORDS or any(_has_pair(words, p) for p in TOP_VIEW_PAIRS):
+            top += 1
     isometric = isometric_view(inventory, sheets)
     # the pack's own name counts twice (T17.32: *Platformer Pack Medieval*, pozak's *2D Pixel
     # Art Platformer Asset Pack*s say it nowhere else)
@@ -872,6 +897,14 @@ GUIDE_WORDS = frozenset(
     {"preview", "test", "grid", "guide", "slots", "template", "mockup", "showcase",
      "sample", "samples", "information"}
 )  # fmt: skip
+# a layout guide among autotiles whatever else its name says (Super Retro Ranch's
+# ``autotiles/3x3/template_Godot_3x3.png``, ``_RANCH_AUTOTILE_template_SuperRetroRanch.png``):
+# never the art. A ``characters/template_hero.png`` is a hero to build on.
+TEMPLATE_WORDS = frozenset({"template", "templates"})
+LAYOUT_WORDS = frozenset(
+    {"autotile", "autotiles", "tileset", "tilesets", "terrain", "terrains", "layout", "3x3",
+     "2x2", "godot", "unity"}
+)  # fmt: skip
 UNUSED_TAG = "unused_because:"
 UNUSED_PREVIEW_FOLDER = "preview_folder"
 UNUSED_GUIDE_PICTURE = "guide_picture"
@@ -891,6 +924,9 @@ def not_game_art(path: str, wrapper: str = "") -> str | None:
         return UNUSED_PREVIEW_FOLDER
     words = set(_tokenize(stem))
     if words and (words <= GUIDE_WORDS or (not folders and words & GUIDE_WORDS)):
+        return UNUSED_GUIDE_PICTURE
+    near = words | {w for folder in folders for w in _tokenize(folder)}
+    if words & TEMPLATE_WORDS and near & LAYOUT_WORDS:  # the layout of the autotiles, drawn
         return UNUSED_GUIDE_PICTURE
     return None
 
@@ -944,6 +980,8 @@ def classify(
     usage = fragment_facets.get("usage")
     folders, stem = _path_parts(path)
     file_tokens = _tokenize(stem)
+    # "House2.png" is a house: a word with a number after it is the word too
+    file_tokens += [w.rstrip("0123456789") for w in file_tokens if len(w.rstrip("0123456789")) > 1]
 
     if kind == "font" or usage == "font":
         return "FONT", 1.0, []
@@ -968,8 +1006,22 @@ def classify(
         if role not in UNNAMING_ROLES
         for kw in keywords
     )
+    # a picture in a folder that says what it holds besides a container word ("Village Houses
+    # tiles/Village Sheet Sprites/wooden_post.png"): the houses say more than the tiles do
+    if usage not in ("tiles", "iso_tile"):
+        named = named or any(
+            kw in deep_tokens and kw not in CONTAINER_WORDS
+            for role, keywords in ROLE_KEYWORDS
+            if role not in UNNAMING_ROLES
+            for kw in keywords
+        )
+    # in a folder of people a ground's word is what they do (Super Retro Ranch's
+    # characters/males/male_01/water/male_01_water_32x32_3frames.png waters the crops)
+    of_people = bool((deep_tokens | other_tokens) & PEOPLE_FOLDER_WORDS)
     scores = {role: 0.0 for role in ROLE_ORDER}
     for role, keywords in ROLE_KEYWORDS:
+        if of_people and role in GROUND_ROLES:
+            continue
         for kw, weight in keywords.items():
             if named_monster and kw in SOMEBODY_WORDS:
                 continue  # the name says what it is: "somebody" adds nothing
@@ -993,6 +1045,11 @@ def classify(
         if _has_directional_animations(fragment_facets):
             scores["NPC"] += 0.5
             scores["PLAYER"] += 0.1
+            critters = (set(file_tokens) | deep_tokens) & (CRITTER_WORDS | FISHING_GEAR_WORDS)
+            if critters and not of_people and not named:
+                # a school of fish swimming, a butterfly: a decoration that moves (T17.29
+                # decided so in farming packs; Mana Seed's *Fishing Gear* has its own fish)
+                scores["DECORATION"] += CRITTER_WEIGHT
         elif w and h and w <= 32 and h <= 32:
             scores["ITEM"] += 0.4
     if usage == "background":

@@ -42,6 +42,7 @@ AUTOTILE_WORDS = frozenset(
     {"autotile", "autotiles", "tileset", "tilesets", "tile", "tiles", "terrain", "terrains", "blob"}
 )
 STANDARD_ACTIONS = {"idle", "walk", "attack", "hurt", "death"}
+ANIM_WORDS = frozenset({"anim", "anims", "animation", "animations", "animated"})
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}
 PHOTO_EXTS = {".jpg", ".jpeg"}  # a format without transparency (T16.21)
 
@@ -140,7 +141,7 @@ class GenericGridAdapter:
             result.assets.append(AssetFragment(f.path, turning, K["RING_CONFIDENCE"], "partial"))
             return
 
-        strip = a.get("strip")
+        strip = a.get("strip") or self._named_strip(f.path, a)
         if strip and strip["axis"] == "x":  # 1. single-row strip
             fw, fh = strip["frame"]
             name = naming.normalize_name(posixpath.splitext(posixpath.basename(f.path))[0])
@@ -255,8 +256,22 @@ class GenericGridAdapter:
         has one, else what the picture's analysis found for rows of that height, else a
         square. None when the name says no such thing or the picture does not fit it."""
         facts = naming.name_facts(posixpath.splitext(posixpath.basename(path))[0])
-        rows = DIRECTION_ROWS.get(facts.directions or 0)
         w, h = a["w"], a["h"]
+        directions = facts.directions
+        # "male_01_water_32x32_3frames", 96 x 128 (Super Retro Ranch): the frames of the name
+        # across (one for "male_01_idle_32x32", 32 x 128), and the rest of the picture, cells of
+        # its size, is the rows of directions
+        across = facts.frames or (1 if facts.cell and w == facts.cell[0] else 0)
+        if (
+            directions is None
+            and facts.cell
+            and across
+            and w == facts.cell[0] * across
+            and h % facts.cell[1] == 0
+            and h // facts.cell[1] in DIRECTION_ROWS
+        ):
+            directions = h // facts.cell[1]
+        rows = DIRECTION_ROWS.get(directions or 0)
         if rows is None or h % len(rows):
             return None
         fh = h // len(rows)
@@ -278,7 +293,11 @@ class GenericGridAdapter:
         if measured and measured.get("row_directions") and len(rows) == 4:
             rows = list(measured["row_directions"])  # the picture's mirror pairs say the order
         words = naming.normalize_name(facts.stem).action.split("_")  # "hero_run" -> hero, walk
-        action = next((t for t in reversed(words) if t in naming.CANONICAL_ACTIONS), "walk")
+        # else the word the file shares with its folder: a pack that keeps each action in a
+        # folder of its own (water/male_01_water_32x32_3frames.png waters the crops)
+        folder = posixpath.basename(posixpath.dirname(path)).casefold()
+        named = folder if folder in words and not folder.isdigit() else "walk"
+        action = next((t for t in reversed(words) if t in naming.CANONICAL_ACTIONS), named)
         animations: dict[str, Any] = {}
         for row, direction in enumerate(rows):
             animations[f"{action}_{direction}"] = {
@@ -296,6 +315,24 @@ class GenericGridAdapter:
             "directions": len(rows),
             "animations": {k: animations[k] for k in sorted(animations)},
         }
+
+    @staticmethod
+    def _named_strip(path: str, a: dict[str, Any]) -> dict[str, Any] | None:
+        """A strip the frames of which move too much to be measured (a school of fish swims
+        about its cell): one row of the cell the name gives, in a file or folder that says it
+        is an animation (``school of fish anim/school of fish, spring 32x32.png``)."""
+        cell = naming.name_facts(posixpath.splitext(posixpath.basename(path))[0]).cell
+        if cell is None or not a.get("has_alpha"):
+            return None
+        w, h = a["w"], a["h"]
+        if h != cell[1] or w % cell[0] or w // cell[0] < 2:
+            return None
+        from rpggen.core import classifier
+
+        folders, stem = classifier.tokens(path)
+        if not {t.casefold() for t in (*folders, *stem)} & ANIM_WORDS:
+            return None
+        return {"axis": "x", "frames": w // cell[0], "frame": [cell[0], cell[1]]}
 
     def _autotile_sheet(self, path: str, a: dict[str, Any]) -> dict[str, Any] | None:
         """The facets of a sheet three times as wide as high (12 x 4 tiles: the 47-tile

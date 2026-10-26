@@ -522,6 +522,26 @@ the metroidvania and the run and gun alike:
 * **A licence file one folder above** a pack you add on its own (`Assets/license.txt` beside
   `Assets/Gothicvania/`) is the pack's licence, and the pack's notes in the catalog say where
   it was found (`licence_above:license.txt`).
+* **Sheets cut into named pictures by a tool**, with an `_atlas.json` beside the pictures that
+  names the sheet, the tile size (`cell` or `tile`) and where each picture was cut: the sheet
+  is read as the tile sheet it is, at that size, and the pictures of its tiles are set aside
+  as the same tiles (things it holds, a log, a cart, a door, stay in the dock). A sheet
+  whose every tile is drawn as a block of its own, a see-through margin round it (mostly with
+  a dark outline, sometimes none), is first taken out of its outlines into a copy
+  (`generated/side_terrain/`, the catalog tags it `outlines_removed`): on each side a tile's
+  art fills, the margin and outline are drawn again from the pixels inside, so tiles side by
+  side join into one ground; the outline along a surface's top stays. Your files are never
+  changed. Blocks whose names say ground (`dirt_fill`, `mossy_ground_block`) that join no
+  other by their seams make a terrain together by the sides they fill. The tiles' names say
+  what the pictures cannot: ledges, platforms and walkways are one-way, slopes slope, spikes
+  and thorns hurt, and grass, ferns, flowers, mushrooms, stalactites, hanging vines and moss
+  are decorations of a kind (`mds_kind`). A manifest with `frame` is a strip of animation
+  frames: the strip is one animated picture (never a walking character unless its name says
+  one) and the frames and its Aseprite source are set aside. A manifest with neither is a
+  sheet of things (houses, stalls): the things are the pictures cut from it, and the sheet
+  is set aside.
+* **A pack folder inside a collection** is what the collection's folders say: a stage set in
+  `sakpix sidescroller/Stages/` is seen from the side even when its own name says nothing.
 
 What is left to you: animations that nothing names (pozak's beat-'em-up characters are one
 sheet of 16 rows without names: give the rows their names in the audit's *Animations…*

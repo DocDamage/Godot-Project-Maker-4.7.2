@@ -254,3 +254,50 @@ func test_a_sheets_side_view_tags_decide_its_tiles(t) -> void:
 	t.eq(spike.get_custom_data("hazard"), true)
 	t.eq(spike.get_collision_polygons_count(0), 0)
 	_cleanup()
+
+# ---------------------------------------------------------------- the MDS kind of decorations
+
+const SideTileset := preload("res://builder/lib/side_tileset.gd")
+
+func test_a_decoration_sheets_name_says_the_mds_kind_of_its_tiles(t) -> void:
+	var deco := {"role": "DECORATION"}
+	var none := {"profile": "NONE"}
+	t.eq(SideTileset.name_words("res://p/mushroomRed2.png"), ["mushroom", "red"])
+	t.eq(SideTileset.tile_kind(deco, {}, none, "res://p/grass_tufts.png"), "grass")
+	t.eq(SideTileset.tile_kind(deco, {}, none, "res://p/Mushrooms.png"), "mushroom")
+	t.eq(SideTileset.tile_kind(deco, {}, none, "res://p/stalactites_large.png"), "stalactite_large")
+	t.eq(SideTileset.tile_kind({"role": "BACKGROUND"}, {}, none, "res://p/bg_leaves.png"), "foliage")
+	t.eq(SideTileset.tile_kind(deco, {}, none, "res://p/flowers_and_mushrooms.png"), "", "a mixed sheet has none")
+	t.eq(SideTileset.tile_kind(deco, {}, none, "res://p/decorations.png"), "", "a name that says no kind")
+	t.eq(SideTileset.tile_kind({"role": "GROUND"}, {}, none, "res://p/grass.png"), "", "the ground called grass is no tuft")
+	t.eq(SideTileset.tile_kind(deco, {}, {"profile": "FULL"}, "res://p/grass.png"), "", "a tile that collides has none")
+	t.eq(SideTileset.tile_kind(deco, {"custom": {"hazard": true}}, none, "res://p/grass.png"), "", "nor a hazard")
+	t.eq(SideTileset.tile_kind({"role": "GROUND"}, {"custom": {"mds_kind": "vine_top"}}, {"profile": "FULL"}, "res://p/x.png"), "vine_top", "a tile's own kind is always its")
+
+func test_a_side_view_tileset_tags_decorations_for_mds_and_keeps_a_kind_set_in_godot(t) -> void:
+	_cleanup()
+	var sources := [{"asset": "t.a", "source_id": 0}]
+	var sheet := _asset("t.a", "CONFIRMED", {"tile_overrides": {
+		"0,0": {"custom": {"mds_kind": "vine_top"}},
+		"1,0": {"collision": {"profile": "FULL"}},
+	}})
+	t.eq(_build_as(_catalog([sheet], sources), "metroidvania"), [])
+	var ts := _load()
+	t.ok(ts.get_custom_data_layer_by_name("mds_kind") >= 0)
+	t.eq(ts.get_custom_data_layer_type(ts.get_custom_data_layer_by_name("mds_kind")), TYPE_STRING, "a String layer, as MDS makes it")
+	var src := ts.get_source(0) as TileSetAtlasSource
+	t.eq(src.get_tile_data(Vector2i(0, 0), 0).get_custom_data("mds_kind"), "vine_top")
+	t.eq(src.get_tile_data(Vector2i(1, 0), 0).get_custom_data("mds_kind"), "", "a solid tile has none")
+	# a kind given in Godot (MDS's palette Tag) to a tile the catalog says nothing of stays
+	src.get_tile_data(Vector2i(1, 0), 0).set_custom_data("mds_kind", "fern")
+	ResourceSaver.save(ts, TS_PATH)
+	t.eq(_build_as(_catalog([sheet], sources), "metroidvania"), [])
+	t.eq((_load().get_source(0) as TileSetAtlasSource).get_tile_data(Vector2i(1, 0), 0).get_custom_data("mds_kind"), "fern")
+	_cleanup()
+
+func test_a_side_view_tileset_without_decorations_has_no_mds_kind_layer(t) -> void:
+	_cleanup()
+	var sources := [{"asset": "t.a", "source_id": 0}]
+	t.eq(_build_as(_catalog([_side_sheet("ONE_WAY", {"hazard": true})], sources), "metroidvania"), [])
+	t.eq(_load().get_custom_data_layer_by_name("mds_kind"), -1)
+	_cleanup()

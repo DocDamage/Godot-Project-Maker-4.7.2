@@ -24,7 +24,13 @@ sprite or one sheet of ground:
   of several cells that are not all whole is one object, and a cell alone a decoration
   (``o<x>_<y>``). A sheet is no longer ground because it is a sheet.
 
-The sheet itself is set aside (``object_sheet`` or ``sorted_sheet``): its parts are the assets.
+* **A small sheet whose name gives its cell** (Mana Seed's *Fishing Gear*: ``fishing icons
+  16x16.png``, ``fishing objects 32x48.png``) and says what it holds (icons, objects) is cut
+  by its cells: every painted cell is a thing, trimmed to its paint. A list of the cells'
+  names in a text file of the pack (``0) Koi``, ``1) Goldfish``, in reading order) names them.
+
+The sheet itself is set aside (``object_sheet``, ``sorted_sheet`` or ``cell_sheet``): its parts
+are the assets.
 The cutting runs in a pool of threads and polls the worker's cancel (``iso_sheets.in_parallel``).
 """
 
@@ -54,6 +60,7 @@ WORK_FOLDER = "sheet_parts"
 RENDER_VERSION = 1
 UNUSED_OBJECT_SHEET = "object_sheet"
 UNUSED_SORTED_SHEET = "sorted_sheet"
+UNUSED_CELL_SHEET = "cell_sheet"
 MIN_SHEET = 512  # a sheet of things is at least this wide and high
 B_TO_E = frozenset({(768, 768)})  # generic_grid.NUMBERED_SHEET_CELLS: offered as 48 px tiles
 MIN_CLEAR = 0.2  # ... and this share of it is see-through
@@ -86,6 +93,7 @@ CROP_FIRST = 0.6  # the first stage covers at most this share of a cell (a sprou
 CROP_CONFIDENCE = 0.6
 CROP_NAME = "crop_"  # crop_1, crop_2, ... in the pack's order: nothing names them
 TILESET_WORDS = frozenset({"tileset", "tilesets", "tile", "tiles"})
+TERRAIN_WORDS = frozenset({"terrain", "terrains", "ground", "grounds"})
 OBJECT_WORDS = frozenset({"asset", "assets", "objects", "props", "stage"})
 # the words of a sheet's name -> (role, tag) of the things on it, the first that matches
 ROLE_WORDS: tuple[tuple[frozenset[str], str, str], ...] = (
@@ -100,7 +108,8 @@ ROLE_WORDS: tuple[tuple[frozenset[str], str, str], ...] = (
     (frozenset({"tool", "tools"}), "TOOL", "tool"),
     (frozenset({"tree", "trees"}), "DECORATION", "tree"),
     (frozenset({"weapon", "weapons", "sword", "swords"}), "WEAPON", ""),
-    (frozenset({"item", "items", "potion", "potions", "food", "loot", "coins"}), "ITEM", ""),
+    (frozenset({"item", "items", "icon", "icons", "potion", "potions", "food", "loot", "coins"}),
+     "ITEM", ""),
     (frozenset({"furniture", "interior", "interiors"}), "INTERIOR", ""),
     (frozenset({"decoration", "decorations", "lantern", "lanterns", "sign", "signs", "hay",
                 "bales", "sacks", "flower", "flowers", "patches", "scarecrow", "scarecrows",
@@ -118,6 +127,13 @@ TILE_ROLE_WORDS: tuple[tuple[frozenset[str], str, str], ...] = (
     (frozenset({"path", "paths", "road", "roads"}), "ROAD", ""),
 )  # fmt: skip
 BUILDING_MIN = 96  # px each way: a smaller thing of a sheet of buildings is a part of one
+# a sheet cut by the cell its name gives (``cut_cells``): no larger than this cell, and the
+# roles its things may have
+CELL_SHEET_CELL = 64
+CELL_SHEET_ROLES = frozenset({"ITEM", "DECORATION", "TOOL", "WEAPON", "INTERIOR"})
+ANIM_WORDS = frozenset({"anim", "anims", "animation", "animations", "animated"})
+CELL_NAME = re.compile(r"^\s*(\d+)\s*[).:-]\s*(\S.*?)\s*$")  # 0) Koi
+MIN_CELL_NAMES = 4
 
 
 @dataclass
@@ -864,6 +880,130 @@ def _objects_of(
     return out
 
 
+def tile_cells(inv: Inventory) -> set[tuple[int, int]]:
+    """The cells the names of a pack's sheets of tiles or terrains give (``1_Terrains_16x16``):
+    a sheet of things in that cell beside them is a part of the tile set (props laid on its
+    grid), not a sheet to cut."""
+    from rpggen.core.adapters import naming
+
+    out: set[tuple[int, int]] = set()
+    for f in inv.files:
+        if f.kind == "image" and _words(f.path) & (TILESET_WORDS | TERRAIN_WORDS):
+            cell = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0]).cell
+            if cell is not None:
+                out.add(cell)
+    return out
+
+
+def cell_sheet(
+    f: InventoryFile, claimed: set[str], tiled: set[tuple[int, int]] | None = None
+) -> tuple[int, int] | None:
+    """The cell of a small sheet of things that its name gives (``fishing icons 16x16``): it
+    is cut in at least two cells of it each way and its name says what they hold (icons,
+    objects); a strip, a character's sheet, a sheet of tiles, fences (they join one another)
+    and the things of a tile set of that cell (``tiled``, ``tile_cells``) are left to their
+    readers."""
+    from rpggen.core.adapters import naming
+
+    if f.kind != "image" or f.ext != ".png" or f.path in claimed or f.image is None:
+        return None
+    if not (f.image or {}).get("has_alpha", True):
+        return None
+    cell = naming.name_facts(posixpath.splitext(posixpath.basename(f.path))[0]).cell
+    w, h = _size(f)
+    if cell is None or max(cell) > CELL_SHEET_CELL or w >= MIN_SHEET or h >= MIN_SHEET:
+        return None
+    if w % cell[0] or h % cell[1] or w // cell[0] < 2 or h // cell[1] < 2:
+        return None
+    words = _words(f.path)
+    role, tag = _role(words, ROLE_WORDS)
+    if role not in CELL_SHEET_ROLES or tag == "fence" or words & (TILESET_WORDS | ANIM_WORDS):
+        return None
+    if tuple(cell) in (tiled or set()):
+        return None
+    return tuple(cell)  # type: ignore[return-value]
+
+
+def _stems(words: set[str]) -> set[str]:
+    return {w.rstrip("s") for w in words}
+
+
+def cell_names(inv: Inventory, root: Path, f: InventoryFile) -> dict[int, str]:
+    """The names of a sheet's cells by their number (0 the top left one, in reading order),
+    from a text file of the pack that lists them (``0) Koi``) and whose name shares a word with
+    the sheet's that says what it holds (*Fishing Gear icon reference.txt* for *fishing icons*)."""
+    holds = _stems({w for words, _role_of, _tag in ROLE_WORDS for w in words})
+    said = _stems(_words(f.path)) & holds
+    for doc in sorted(inv.files, key=lambda d: d.path):
+        if doc.ext != ".txt":
+            continue
+        stem = posixpath.splitext(posixpath.basename(doc.path))[0]
+        if not _stems(set(classifier.name_words(stem))) & said:
+            continue
+        try:
+            text = (root / doc.path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        names: dict[int, str] = {}
+        for line in text.splitlines():
+            m = CELL_NAME.match(line)
+            if m and int(m.group(1)) not in names:
+                names[int(m.group(1))] = m.group(2)
+        if len(names) >= MIN_CELL_NAMES:
+            return names
+    return {}
+
+
+def cut_cells(
+    f: InventoryFile, a: np.ndarray, cell: tuple[int, int], names: dict[int, str]
+) -> _Cut:
+    """A small sheet cut by the cell its name gives (``cell_sheet``): a thing of every painted
+    cell, trimmed to its paint (the name gives the size of each thing: barrels side by side are
+    three), named by ``names`` (by the cell's number) or by where it lies."""
+    from rpggen import ids
+
+    cw, ch = cell
+    mask = a[..., 3] >= PAINTED_ALPHA
+    cols, rows = mask.shape[1] // cw, mask.shape[0] // ch
+    role, tag = _role(_words(f.path), ROLE_WORDS)
+    cut = _Cut(reason=UNUSED_CELL_SHEET)
+    used: set[str] = set()
+    for r in range(rows):
+        for c in range(cols):
+            own = mask[r * ch : (r + 1) * ch, c * cw : (c + 1) * cw]
+            if float(own.mean()) < CELL_SPECK:
+                continue
+            ys, xs = np.nonzero(own)
+            x0, y0, x1, y1 = int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
+            picture = a[r * ch + y0 : r * ch + y1, c * cw + x0 : c * cw + x1].copy()
+            picture[~own[y0:y1, x0:x1]] = 0
+            said = names.get(r * cols + c, "")
+            named = ids.slug(said) if said.strip() else ""
+            variant = named if named and named not in used else f"c{c}_{r}"
+            used.add(variant)
+            facets, confidence = _thing(picture, role, tag, True)
+            if role == "ITEM" and "tool" in classifier.farm_tags(said):
+                # a tool among the icons (*Fishing Rod*): the player's, not a catch
+                facets["role"] = "TOOL"
+                facets["tags"] = sorted({*facets.get("tags", []), "tool"})
+            cut.parts.append(_Part(variant, picture, facets, confidence))
+    return cut
+
+
+def _saved(f: InventoryFile, cut: _Cut, work: Path) -> _Cut:
+    """``cut`` with the picture of each part drawn into the work folder (and let go of)."""
+    for part in cut.parts:
+        dest = work / _render_name(f, part.variant)
+        try:
+            if not dest.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                Image.fromarray(part.picture, "RGBA").save(dest, format="PNG")
+        except OSError as exc:
+            return _Cut(reason="", error=str(exc))
+        part.picture = np.zeros((0, 0, 4), dtype=np.uint8)
+    return cut
+
+
 def _render_name(f: InventoryFile, variant: str) -> str:
     text = f"sheet_part/{RENDER_VERSION}\n{f.sha256}\n{variant}"
     return hashlib.sha256(text.encode("utf-8")).hexdigest() + ".png"
@@ -874,13 +1014,23 @@ class SheetPartsAdapter:
     priority = 53  # after the readers of whole formats, LPC, isometric and the farm; before frames
 
     def match(self, inv: Inventory, root: Path) -> float:
-        return 1.0 if len(candidates(inv, set())) else 0.0
+        tiled = tile_cells(inv)
+        if candidates(inv, set()) or any(cell_sheet(f, set(), tiled) for f in inv.files):
+            return 1.0
+        return 0.0
 
     def extract(self, inv: Inventory, root: Path, ctx: AdapterContext) -> AdapterResult:
         result = AdapterResult(self.name)
         issues = IssueList()
         work = (ctx.work_dir or paths.cache_dir()) / WORK_FOLDER
         files = candidates(inv, ctx.claimed)
+        tiled = tile_cells(inv)
+        cells = {
+            f.path: cell
+            for f in inv.files
+            if (cell := cell_sheet(f, ctx.claimed, tiled)) is not None
+        }
+        files += sorted((f for f in inv.files if f.path in cells), key=lambda f: f.path)
         tileset = is_tileset_pack(inv)
         farming = tileset and is_farm_tileset(inv)
 
@@ -890,6 +1040,8 @@ class SheetPartsAdapter:
                 a = _load(root / f.path)
             except (OSError, ValueError) as exc:
                 return _Cut(reason="", error=str(exc))
+            if f.path in cells:
+                return _saved(f, cut_cells(f, a, cells[f.path], cell_names(inv, root, f)), work)
             if float((a[..., 3] < PAINTED_ALPHA).mean()) < MIN_CLEAR:
                 return _Cut(reason="")
             cell = grid_cell(a) if tileset else None
@@ -898,16 +1050,7 @@ class SheetPartsAdapter:
                 # set is offered as tiles of 48 px by the grid reader (T16.21), as it was
                 return _Cut(reason="")
             cut = sort_cells(a, cell, farming) if cell else cut_objects(f, a)
-            for part in cut.parts:
-                dest = work / _render_name(f, part.variant)
-                try:
-                    if not dest.exists():
-                        dest.parent.mkdir(parents=True, exist_ok=True)
-                        Image.fromarray(part.picture, "RGBA").save(dest, format="PNG")
-                except OSError as exc:
-                    return _Cut(reason="", error=str(exc))
-                part.picture = np.zeros((0, 0, 4), dtype=np.uint8)
-            return cut
+            return _saved(f, cut, work)
 
         cuts = iso_sheets.in_parallel(one, files, ctx)
         crops = 0

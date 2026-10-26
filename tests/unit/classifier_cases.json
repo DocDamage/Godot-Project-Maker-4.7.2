@@ -416,7 +416,7 @@
   "role": "DECORATION"
  },
  {
-  "path": "Folder With Spaces/Ünïcode Tree.png",
+  "path": "Folder With Spaces/\u00dcn\u00efcode Tree.png",
   "facets": {
    "usage": "sprite",
    "frame": [
@@ -741,5 +741,121 @@
    }
   },
   "role": "NPC"
+ },
+ {
+  "path": "Village Houses tiles/House2.png",
+  "facets": {
+   "usage": "sprite"
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "Village Houses tiles/Village Sheet Sprites/wooden_post.png",
+  "facets": {
+   "usage": "sprite"
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "Village Houses tiles/Village Sheet Sprites/tavern.png",
+  "facets": {
+   "usage": "sprite"
+  },
+  "role": "BUILDING"
+ },
+ {
+  "path": "Castle Tiles/top.png",
+  "facets": {
+   "usage": "tiles"
+  },
+  "role": "GROUND"
+ },
+ {
+  "path": "characters/males/male_01/water/male_01_water.png",
+  "facets": {
+   "usage": "sprite"
+  },
+  "role": "NPC"
+ },
+ {
+  "path": "school of fish anim/school of fish, spring 32x32.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    32,
+    32
+   ],
+   "animations": {
+    "idle_down": {
+     "frames": [
+      [
+       0,
+       0
+      ],
+      [
+       1,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "DECORATION"
+ },
+ {
+  "path": "fishing anim 32x32.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    32,
+    32
+   ],
+   "animations": {
+    "idle_down": {
+     "frames": [
+      [
+       0,
+       0
+      ],
+      [
+       1,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "DECORATION"
+ },
+ {
+  "path": "characters/fishing/player_fishing.png",
+  "facets": {
+   "usage": "sprite",
+   "frame": [
+    32,
+    32
+   ],
+   "animations": {
+    "idle_down": {
+     "frames": [
+      [
+       0,
+       0
+      ],
+      [
+       1,
+       0
+      ]
+     ],
+     "fps": 8.0,
+     "loop": true
+    }
+   }
+  },
+  "role": "PLAYER"
  }
 ]

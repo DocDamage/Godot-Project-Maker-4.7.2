@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 
 from rpggen import schema
-from rpggen.core import archive, catalog, inventory
+from rpggen.core import archive, catalog, inventory, terrain
 from rpggen.core.terrain import blob
 from rpggen.core.terrain import rpgmaker_a2 as a2
 
@@ -427,3 +427,58 @@ def test_assemble_proposes_a_sides_terrain_for_a_fence_sheet(tmp_path: Path) -> 
     accepted = blob.accept_in_catalog(cat, fence.id)
     schema.validate("catalog", accepted.to_json())
     assert [t["mode"] for d in accepted.tilesets for t in d.terrain_sets] == ["sides"]
+
+
+# ---------------------------------------- Super Retro Ranch: an animated layout, a fence's family
+
+
+def test_frames_of_a_layout_side_by_side_are_an_animated_terrain(tmp_path: Path) -> None:
+    """Super Retro Ranch's water: four frames of Godot's layout side by side, 768 x 64. Each
+    tile gets its frames in the cells to its right, as Godot animates a tile."""
+    frames = [godot_sheet(grain=12, seed=s) for s in (3, 4, 5)]
+    strip = Image.new("RGBA", (3 * 12 * TILE, 4 * TILE))
+    for i, frame in enumerate(frames):
+        strip.paste(frame, (i * 12 * TILE, 0))
+    pack = _pack(tmp_path, "water_on_grass.png", strip)
+    cat, issues, generated = _assemble(pack)
+    source = next(a for a in cat.assets if a.path.endswith("water_on_grass.png"))
+    assert catalog.effective(source)["role"] == "NONE"
+    assert "unused_because:" + terrain.ANIMATED_ASIDE in catalog.effective(source)["tags"]
+    (atlas,) = [a for a in cat.assets if terrain.ANIMATED_TAG in (a.detected.get("tags") or [])]
+    facets = catalog.effective(atlas)
+    assert facets["usage"] == "tiles" and facets["grid"]["cell"] == [TILE, TILE]
+    overrides = facets["tile_overrides"]
+    assert len(overrides) == 47
+    first = overrides["0,1"]  # the layout's tile at column 0 row 1, its frames at columns 0-2
+    assert first["anim"]["frames"] == [[0, 1], [1, 1], [2, 1]]
+    assert "terrain" in first and all("anim" in v for v in overrides.values())
+    assert atlas.path in generated
+    # the cells after a first frame are that tile's frames: the frame of column 1 of frame 2
+    laid = Image.open(generated[atlas.path]).convert("RGBA")
+    want = frames[1].crop((TILE, 0, 2 * TILE, TILE))
+    got = laid.crop((4 * TILE, 0, 5 * TILE, TILE))
+    assert list(want.getdata()) == list(got.getdata())
+    (terrain_set,) = [s for t in cat.tilesets for s in t.terrain_sets if s["sheet"] == atlas.id]
+    assert terrain_set["layout"] == blob.BLOB47_GODOT, "its own layout, not an A2 atlas's"
+    assert not any(i.code == "TILE-006" for i in issues)
+
+
+def test_a_fence_takes_the_layout_of_its_family(tmp_path: Path) -> None:
+    """A fence in Godot's layout drawn over nothing: its seams fit alike in any order, but the
+    sheets of its size beside it are in that layout."""
+    pack = tmp_path / "ranch"
+    for i, name in enumerate(("grass", "snow", "field")):
+        (pack / "autotiles" / "3x3" / name).mkdir(parents=True)
+        godot_sheet(grain=15, seed=i).save(pack / "autotiles" / "3x3" / name / f"{name}_01.png")
+    fence = Image.new("RGBA", (12 * TILE, 4 * TILE))
+    for i, mask in enumerate(blob.GODOT_3X3_MINIMAL):
+        if mask is not None:
+            fence.paste(fence_tile(mask & (N | E | S | W)), ((i % 12) * TILE, (i // 12) * TILE))
+    (pack / "autotiles" / "3x3" / "fence").mkdir(parents=True)
+    fence.save(pack / "autotiles" / "3x3" / "fence" / "fence_01.png")
+    cat, issues, _gen = _assemble(pack)
+    asset = next(a for a in cat.assets if a.path.endswith("fence_01.png"))
+    proposal = catalog.effective(asset)["terrain_proposal"]
+    assert proposal["layout"] == blob.BLOB47_GODOT
+    assert proposal["confidence"] == blob.FAMILY_CONFIDENCE
+    assert not any(i.code == "TILE-006" for i in issues)

@@ -109,8 +109,19 @@ def generate(
     used_sets: set[str] = set()
     added: list[catalog_mod.Asset] = []
     searched: list[tuple[catalog_mod.Asset, Path, dict[str, Any], str]] = []
+    failed: list[tuple[catalog_mod.Asset, Path, str]] = []  # layouts not recognised
     for asset in sorted(catalog.assets, key=lambda a: catalog_mod._sort_key(a.id)):
         facets = asset.detected
+        if (
+            asset.kind == "image"
+            and facets.get("usage") != "tiles"
+            and asset.pack_id in roots
+            and facets.get("role") not in NO_LAYOUT_ROLES
+            and GENERATED_TAG not in _tags(facets)
+        ):
+            rel = asset.path.split("/", 3)[-1]
+            _animated_layout(asset, roots[asset.pack_id] / rel, work, used_sets, result, added)
+            continue
         if (
             asset.kind != "image"
             or facets.get("usage") != "tiles"
@@ -137,7 +148,10 @@ def generate(
             continue
         if any("terrain" in v for v in (facets.get("tile_overrides") or {}).values()):
             continue  # terrain already known (Tiled wang sets)
-        _blob_proposal(asset, file, cell, stem, issues)
+        if _animated_layout(asset, file, work, used_sets, result, added):
+            continue
+        if _blob_proposal(asset, file, cell, stem):
+            failed.append((asset, file, stem))
         grid = facets.get("grid") or {}
         if (
             grid.get("cell")
@@ -146,6 +160,10 @@ def generate(
             and _holds_terrains(facets)
         ):
             searched.append((asset, file, grid, stem))
+    for asset, file, stem in failed:
+        set_aside = asset.detected.get("role") == "NONE"  # another engine's copy: no warning
+        if not _family_layout(asset, file, stem, catalog.assets) and not set_aside:
+            issues.add("TILE-006", asset=asset.id, file=asset.path)
     for (asset, _path, _size, stem), found in zip(
         searched, _in_parallel(_read_blocks, searched, is_cancelled), strict=True
     ):
@@ -154,7 +172,8 @@ def generate(
             if b.a2 is not None and b.picture is not None:
                 _compose_2x3(asset, b, stem, work, used_sets, result, added)
     for asset in added:
-        _describe_a2(asset, work, result)
+        if ANIMATED_TAG not in _tags(asset.detected):  # an animated layout says its own
+            _describe_a2(asset, work, result)
     if added:
         catalog.assets.extend(added)
         if not any(p.pack_id == GENERATED_PACK for p in catalog.packs):
@@ -238,13 +257,14 @@ def _blob_proposal(
     file: Path,
     cell: tuple[int, int] | None,
     stem: str,
-    issues: IssueList,
-) -> None:
+) -> bool:
+    """A blob proposal for a sheet in a 47-tile or corner layout. True when a layout was likely
+    but none was recognised (TILE-006, unless its family says it: ``_family_layout``)."""
     if not file.is_file():
-        return
+        return False
     size = asset.detected.get("size")
     if not size:
-        return
+        return False
     cells = [cell] if cell else []
     if size[0] % 12 == 0 and size[1] % 4 == 0 and size[0] // 12 == size[1] // 4:
         derived = (size[0] // 12, size[1] // 4)
@@ -258,7 +278,7 @@ def _blob_proposal(
         and (size[0] // c[0], size[1] // c[1]) in blob.LAYOUT_SHAPES.values()
     ]
     if not cells:
-        return
+        return False
     with Image.open(file) as opened:
         sheet = opened.convert("RGBA")
     hinted = any(h in asset.path.casefold() for h in TERRAIN_HINTS)
@@ -266,13 +286,188 @@ def _blob_proposal(
         proposal, recognition = blob.propose(sheet, c[0], c[1], f"{stem}_terrain")
         if proposal is not None:
             asset.detected["terrain_proposal"] = proposal
-            return
+            return False
         if recognition is not None and recognition.flat:
-            return  # a plain ground in the shape of an autotile sheet: nothing was skipped
+            return False  # a plain ground in the shape of an autotile sheet: nothing was skipped
         if recognition is not None and max(size) > TINY_SHEET:
             hinted = hinted or recognition.confidence >= 0.5
-    if hinted:
-        issues.add("TILE-006", asset=asset.id, file=asset.path)
+    return hinted
+
+
+# a layout taken from the family of a sheet needs this many sheets of the family recognised alike
+FAMILY_SHEETS = 3
+
+
+def _family_layout(
+    asset: catalog_mod.Asset, file: Path, stem: str, assets: list[catalog_mod.Asset]
+) -> bool:
+    """A sheet no layout was recognised in whose family says its layout (Super Retro Ranch's
+    fences in engines/Godot/autotiles/3x3: drawn over nothing, their seams alike in any order):
+    the sheets of its size below the same folder (its folder's parent) recognised in one 47-tile
+    layout, FAMILY_SHEETS of them at least. True when it was given that layout's proposal."""
+    size = asset.detected.get("size") or [0, 0]
+    family = posixpath.dirname(posixpath.dirname(asset.path)) + "/"
+    layouts = [
+        str(a.detected["terrain_proposal"]["layout"])
+        for a in assets
+        if a is not asset
+        and a.pack_id == asset.pack_id
+        and a.path.startswith(family)
+        and a.detected.get("size") == size
+        and a.detected.get("terrain_proposal")
+    ]
+    if (
+        len(layouts) < FAMILY_SHEETS
+        or len(set(layouts)) != 1
+        or layouts[0] not in blob.BLOB_LAYOUTS
+    ):
+        return False
+    tile = int(size[0]) // 12
+    if tile < 1 or (int(size[0]), int(size[1])) != (12 * tile, 4 * tile) or not file.is_file():
+        return False
+    with Image.open(file) as opened:
+        sheet = opened.convert("RGBA")
+    proposal = blob.propose_layout(sheet, tile, layouts[0], f"{stem}_terrain")
+    if proposal is None:
+        return False
+    asset.detected["terrain_proposal"] = proposal
+    return True
+
+
+# A picture of an animated 47-tile layout (Super Retro Ranch's water, engines/Godot/autotiles/3x3):
+# this many copies of the layout side by side at most, each one frame, laid this long
+MAX_LAYOUT_FRAMES = 8
+LAYOUT_FRAME_MS = 250
+ANIMATED_TAG = "animated_terrain"
+ANIMATED_ASIDE = "animated_layout"  # the picture whose frames a generated atlas lays side by side
+
+
+# a picture of these is no layout of tiles (a strip of a character's frames is cut alike too)
+NO_LAYOUT_ROLES = frozenset({"NONE", "PLAYER", "NPC", "ENEMY", "BOSS", "ANIMAL", "PORTRAIT"})
+LAYOUT_SHAPE_AGREEMENT = 0.95  # of the pixels that are drawn (or not) alike in every frame
+
+
+def _same_shapes(frames: list[Image.Image]) -> bool:
+    """Frames of one layout cut alike: each draws (nearly) the pixels the first draws, which
+    is cheap to see before any frame is recognised."""
+    first = np.asarray(frames[0].getchannel("A")) > 0
+    if not first.any():
+        return False
+    return all(
+        float(((np.asarray(f.getchannel("A")) > 0) == first).mean()) >= LAYOUT_SHAPE_AGREEMENT
+        for f in frames[1:]
+    )
+
+
+def _animated_layout(
+    asset: catalog_mod.Asset,
+    file: Path,
+    work: Path,
+    used_sets: set[str],
+    result: TerrainResult,
+    added: list[catalog_mod.Asset],
+) -> bool:
+    """A picture of several frames of one 47-tile layout side by side (each a whole 12 x 4
+    sheet, recognised alike): an atlas whose tiles have their frames in the cells to their
+    right, as Godot animates a tile, each the layout's terrain; the picture is set aside. True
+    when it was such a picture."""
+    from rpggen.core import pack_forms
+
+    size = asset.detected.get("size") or [0, 0]
+    w, h = int(size[0]), int(size[1])
+    tile = h // 4
+    if tile < 8 or h % 4 or w % (12 * tile) or not 2 <= w // (12 * tile) <= MAX_LAYOUT_FRAMES:
+        return False
+    if not file.is_file():
+        return False
+    count = w // (12 * tile)
+    with Image.open(file) as opened:
+        sheet = opened.convert("RGBA")
+    frames = [sheet.crop((i * 12 * tile, 0, (i + 1) * 12 * tile, h)) for i in range(count)]
+    if not _same_shapes(frames):
+        return False
+    found: list[blob.Recognition] = []
+    for frame in frames:  # the first frame that is no such layout ends the reading
+        r = blob.recognize(frame, tile)
+        if r is None or not r.accepted or r.flat or r.layout not in blob.BLOB_LAYOUTS:
+            return False
+        if found and r.layout != found[0].layout:
+            return False
+        found.append(r)
+    layout = found[0].layout
+    stem = ids.slug(posixpath.splitext(posixpath.basename(asset.path))[0])
+    set_name = f"{stem}_terrain"
+    if set_name in used_sets:
+        set_name = f"{asset.id.replace('.', '_').replace('#', '_')}_terrain"
+    used_sets.add(set_name)
+    proposal, _r = blob.propose(frames[0], tile, tile, set_name)
+    if proposal is None:
+        return False
+    # each tile's frames side by side: the tile of column c is at column c * count
+    atlas = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    for f, frame in enumerate(frames):
+        for cx in range(12):
+            for cy in range(4):
+                cell = frame.crop((cx * tile, cy * tile, (cx + 1) * tile, (cy + 1) * tile))
+                atlas.paste(cell, ((cx * count + f) * tile, cy * tile))
+    overrides: dict[str, Any] = {}
+    for key, entry in proposal["tile_overrides"].items():
+        cx, cy = (int(v) for v in key.split(","))
+        first = cx * count
+        overrides[f"{first},{cy}"] = {
+            **entry,
+            "anim": {
+                "frames": [[first + f, cy] for f in range(count)],
+                "durations_ms": [LAYOUT_FRAME_MS] * count,
+            },
+        }
+    digest = _pixel_sha(atlas)
+    name = f"{digest[:24]}.png"
+    out = work / name
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if not out.is_file():
+        atlas.save(out, format="PNG", optimize=False)
+    rel = f"{rpgmaker_a2.TERRAIN_DIR}/{name}"
+    role = str(asset.detected.get("role") or "")
+    facets: dict[str, Any] = {
+        "usage": "tiles",
+        "role": role if role in TERRAIN_ROLES else "GROUND",
+        "grid": {"cell": [tile, tile], "margin": [0, 0], "separation": [0, 0]},
+        "collision": {"profile": "NONE"},
+        "tags": [GENERATED_TAG, ANIMATED_TAG],
+        "tile_overrides": {k: overrides[k] for k in sorted(overrides, key=_xy)},
+        "size": [w, h],
+    }
+    new_id = f"{GENERATED_PACK}.{asset.id.replace('.', '_').replace('#', '_')}_animated"
+    added.append(
+        catalog_mod.Asset(
+            id=new_id, pack_id=GENERATED_PACK, path=rel, sha256=digest, kind="image",
+            status="AUTO_DETECTED", detected=facets, detected_by="terrain_animated",
+            confidence=min(r.confidence for r in found),
+        )
+    )  # fmt: skip
+    result.generated[rel] = str(out)
+    pixels = np.asarray(frames[0])
+    middle = next((key for key, mask in _layout_masks(layout) if mask == 255), None)
+    colour = np.zeros(3)
+    if middle is not None:
+        mx, my = middle
+        inner = pixels[my * tile : (my + 1) * tile, mx * tile : (mx + 1) * tile]
+        painted = inner[..., 3] > 0
+        if painted.any():
+            colour = inner[..., :3][painted].mean(axis=0) / 255.0
+    terrain_set = dict(proposal["terrain_set"])
+    terrain_set.update({
+        "sheet": new_id, "surface": blocks.surface_of(colour, _words(asset.path)),
+        "over": "ground", "shape": "any", "layout": layout,
+    })  # fmt: skip
+    result.terrain_sets[new_id] = [terrain_set]
+    pack_forms.aside(asset, ANIMATED_ASIDE, rel)
+    return True
+
+
+def _layout_masks(layout: str) -> list[tuple[tuple[int, int], int]]:
+    return blob._blob_cells(layout)
 
 
 MAX_WORKERS = 8
@@ -470,7 +665,11 @@ def _describe_a2(asset: catalog_mod.Asset, work: Path, result: TerrainResult) ->
 
 
 def attach_terrain_sets(catalog: catalog_mod.Catalog, result: TerrainResult) -> None:
-    """Add the terrain sets of generated assets to the tile set that holds the asset."""
+    """Add the terrain sets of generated assets to the tile set that holds the asset, and drop
+    those whose sheet is no asset of this catalog: a profile's, or an earlier build's, for a
+    sheet now read another way would be a terrain without a tile (the sample's profile names
+    the blocks of ``meadow_a2`` that its own A2 tags no longer make)."""
+    known = {a.id for a in catalog.assets}
     for tdef in catalog.tilesets:
         existing = {t["name"] for t in tdef.terrain_sets}
         for src in tdef.sources:
@@ -478,3 +677,6 @@ def attach_terrain_sets(catalog: catalog_mod.Catalog, result: TerrainResult) -> 
                 if terrain_set["name"] not in existing:
                     tdef.terrain_sets.append(copy.deepcopy(terrain_set))
                     existing.add(terrain_set["name"])
+        tdef.terrain_sets = [
+            t for t in tdef.terrain_sets if "sheet" not in t or t["sheet"] in known
+        ]

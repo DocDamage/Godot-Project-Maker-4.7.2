@@ -39,6 +39,7 @@ var _pending: Node = null
 var _pending_path: String = ""
 var _finished: bool = false
 var _focus: Dictionary = {}  # state of the running menu focus walk (empty = none)
+var _rooms_checked := false  # the room check (VAL-033) runs once the tree is running
 
 ## One progress line per check (T12.19); the last one covers the scene loop of _process.
 const STEP_TOTAL := 12
@@ -101,6 +102,10 @@ func _process(_delta: float) -> bool:
 		_pending.queue_free()
 		_pending = null
 		_pending_path = ""
+		return false
+	if not _rooms_checked:
+		_rooms_checked = true
+		_check_rooms()
 		return false
 	if _scene_index >= _scenes.size():
 		_finish()
@@ -341,6 +346,20 @@ func _check_content() -> void:
 			_fail("BUILD-002", {"recipe": "data_recipe", "reason": reason}, JsonUtil.to_str(f["file"]))
 	_item("content_checks", "res://game", findings.is_empty())
 
+## The room check (VAL-033) of the content checks: a room's physics copy needs the tree running,
+## which it is not in _initialize.
+func _check_rooms() -> void:
+	if not ResourceLoader.exists(CONTENT_CHECKS):
+		return
+	var checks: Resource = load(CONTENT_CHECKS)
+	if checks == null:
+		return
+	var findings: Array = checks.call("room_findings")
+	for f: Dictionary in findings:
+		var detail: Dictionary = f["detail"]
+		_fail(JsonUtil.to_str(f["code"]), detail, JsonUtil.to_str(f["file"]))
+	_item("room_checks", "res://game", findings.is_empty())
+
 # ---------------------------------------------------------------- sound slots (VAL-020)
 
 const SOUND_BANK_PATH := "res://rpggen/sound_bank.json"
@@ -369,8 +388,9 @@ func _check_sound_bank() -> void:
 const ORIGIN_TOLERANCE := 2.0
 const ENTITY_DIRS: Array[String] = ["res://generated/scenes/objects/", "res://generated/scenes/actors/"]
 
-## Bottom edge (y, relative to the scene root) of a Sprite2D / AnimatedSprite2D, or NAN.
-static func visual_bottom(visual: Node2D, scene_root: Node) -> float:
+## Bottom edge (y, relative to the scene root) of a Sprite2D / AnimatedSprite2D, or NAN: of its
+## frame, or with `drawn` of what is drawn in it (the feet of a figure above empty rows).
+static func visual_bottom(visual: Node2D, scene_root: Node, drawn := false) -> float:
 	var tex: Texture2D = null
 	var offset := Vector2.ZERO
 	var centered := true
@@ -394,7 +414,19 @@ static func visual_bottom(visual: Node2D, scene_root: Node) -> float:
 		if node is Node2D:
 			y += (node as Node2D).position.y
 		node = node.get_parent()
-	return y + tex.get_size().y
+	return y + (drawn_bottom(tex) if drawn else tex.get_size().y)
+
+## The row under the lowest drawn pixel of a frame: the feet of a figure drawn above empty rows
+## (Super Retro Ranch's people stand 8 px above the bottom of their 32 px cells), the frame's
+## height when its picture cannot be read.
+static func drawn_bottom(tex: Texture2D) -> float:
+	var img := tex.get_image()
+	if img == null or img.is_empty():
+		return tex.get_size().y
+	if img.is_compressed():
+		img.decompress()
+	var used := img.get_used_rect()
+	return float(used.end.y) if used.size.y > 0 else tex.get_size().y
 
 func _collect_visuals(node: Node, out: Array) -> void:
 	if node is Sprite2D or node is AnimatedSprite2D:
@@ -419,8 +451,11 @@ func _check_ysort_origins() -> void:
 				_collect_visuals(inst, visuals)
 			var ok := true
 			for v in visuals:
+				# on its origin by the bottom of its frame (an object), or by its feet (a figure
+				# drawn above empty rows, which rpggen stands on its feet)
 				var bottom := visual_bottom(v, inst)
-				if not is_nan(bottom) and absf(bottom) > ORIGIN_TOLERANCE:
+				var feet := visual_bottom(v, inst, true)
+				if not is_nan(bottom) and absf(bottom) > ORIGIN_TOLERANCE and absf(feet) > ORIGIN_TOLERANCE:
 					_fail("VAL-014", {"file": path, "y": "%.1f" % bottom}, path)
 					ok = false
 			inst.free()

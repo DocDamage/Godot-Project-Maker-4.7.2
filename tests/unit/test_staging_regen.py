@@ -10,6 +10,10 @@ from rpggen.core import ledger, staging
 from rpggen.core.ledger import Ledger, LedgerEntry
 from rpggen.errors import RpgGenError
 
+# an old file time that every file system can hold: FAT32 (the F: drive of the owner's machine)
+# keeps none before 1980, and only every other second
+OLD = 400_000_000  # 1982-09-05
+
 
 @pytest.fixture(autouse=True)
 def _isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -102,9 +106,9 @@ def test_templates_are_only_written_when_their_content_differs(tmp_path: Path) -
     _write(target, "addons/rpg_runtime/b.gd", "old\n")
     stg = staging.create_staging(target)
     a = stg.staging / "addons/rpg_runtime/a.gd"
-    os.utime(a, (1_000_000, 1_000_000))
+    os.utime(a, (OLD, OLD))
     staging.install_templates(stg, templates)
-    assert a.stat().st_mtime == 1_000_000, "unchanged template keeps its mtime"
+    assert a.stat().st_mtime == OLD, "unchanged template keeps its mtime"
     assert (stg.staging / "addons/rpg_runtime/b.gd").read_text() == "two\n"
     assert (target / "addons/rpg_runtime/b.gd").read_text() == "old\n", "target is not touched"
 

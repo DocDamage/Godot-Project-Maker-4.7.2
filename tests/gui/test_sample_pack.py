@@ -260,6 +260,7 @@ def test_the_side_profile_confirms_the_audit_and_names_the_special_tiles() -> No
     ]  # fmt: skip
     assert tiles["4,1"]["custom"] == {"hazard": True}
     assert tiles["5,1"]["custom"] == {"breakable": True}
+    assert [tiles[k]["custom"]["slope"] for k in ("8,0", "9,0")] == ["up", "down"]  # a hill
     ref = config.PackRef("sample_pack_side", str(SIDE), "0" * 64, "folder")
     cfg = config.default_for("Sample Cave", [ref], archetype="metroidvania")
     assert requirements.check(cat, cfg) == []

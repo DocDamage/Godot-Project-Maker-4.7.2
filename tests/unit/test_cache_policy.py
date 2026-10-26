@@ -10,6 +10,10 @@ import pytest
 from rpggen import paths
 from rpggen.core import archive, cache_policy
 
+# an old file time that every file system can hold: FAT32 (the F: drive of the owner's machine)
+# keeps none before 1980, and only every other second
+OLD = 400_000_000  # 1982-09-05
+
 
 @pytest.fixture(autouse=True)
 def isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
@@ -147,9 +151,9 @@ def test_opening_an_archive_stamps_it(tmp_path: Path) -> None:
     pack = archive.open_pack(source, set())
     stamp = cache_policy.stamp_path(pack.root)
     assert stamp.is_file()
-    os.utime(stamp, (1, 1))
+    os.utime(stamp, (OLD, OLD))
     archive.open_pack(source, set())  # a cache hit counts as a use
-    assert stamp.stat().st_mtime > 1_000_000
+    assert stamp.stat().st_mtime > OLD + 86_400
 
 
 # ------------------------------------------------------------------------ sizes and clearing

@@ -279,46 +279,123 @@ def _stitched(
     return out, c0, r0
 
 
-def _taken(catalog: Any, sheet: Any, facets: dict[str, Any]) -> set[tuple[int, int]]:
-    """The cells of ``sheet`` that a terrain, a tile of its own or a crop cut from it takes."""
-    from rpggen.core import catalog as catalog_mod
+class _Seen:
+    """What one ``add`` reads of the catalog once and not once a sheet (a pack of a thousand
+    pictures has hundreds of sheets): each asset's size and tags, the effective facets of the
+    parts cut from sheets, each picture's digest. None of it changes while ``add`` runs; the
+    roles do (a piece of a thing is set aside) and are read when they are needed."""
 
+    def __init__(self, catalog: Any) -> None:
+        from rpggen.core import catalog as catalog_mod
+
+        self.facets: dict[str, dict[str, Any]] = {
+            a.id: catalog_mod.effective(a) for a in catalog.assets
+        }
+        self.digests: dict[str, str | None] = {}
+        self.catalog = catalog
+        self._indexed = -1  # the number of assets the indexes below were made of
+        self._by_size: dict[tuple[str, tuple[int, ...]], list[Any]] = {}
+        self._cut_from: dict[str, list[Any]] = {}  # parts cut from a sheet and its duplicates
+
+    def _index(self) -> None:
+        """Each asset by its pack and size and by the sheets it was cut from or copies, made
+        again when ``add`` has added assets (in catalog order, as the catalog lists them)."""
+        if self._indexed == len(self.catalog.assets):
+            return
+        self._indexed = len(self.catalog.assets)
+        self._by_size, self._cut_from = {}, {}
+        for other in self.catalog.assets:
+            own = self.own(other)
+            size = tuple(own.get("size") or [])
+            self._by_size.setdefault((other.pack_id, size), []).append(other)
+            sheets = {other.id[:i] for i, ch in enumerate(other.id) if ch == "#"}
+            sheets |= {
+                t[len("duplicate_of:") :]
+                for t in own.get("tags") or []
+                if isinstance(t, str) and t.startswith("duplicate_of:")
+            }
+            for sheet_id in sheets:
+                self._cut_from.setdefault(sheet_id, []).append(other)
+
+    def sized(self, pack_id: str, size: tuple[int, int]) -> list[Any]:
+        self._index()
+        return self._by_size.get((pack_id, tuple(size)), [])
+
+    def cut_from(self, sheet_id: str) -> list[Any]:
+        self._index()
+        return self._cut_from.get(sheet_id, [])
+
+    def own(self, asset: Any) -> dict[str, Any]:
+        found = self.facets.get(asset.id)
+        if found is None:
+            from rpggen.core import catalog as catalog_mod
+
+            found = self.facets[asset.id] = catalog_mod.effective(asset)
+        return found
+
+    @staticmethod
+    def role(asset: Any) -> Any:
+        """The asset's effective role as it is now, without copying its facets: the last of
+        detected, rule and overrides that says one (a None there takes it away)."""
+        for layer in (asset.overrides, asset.rule, asset.detected):
+            if "role" in layer:
+                return layer["role"]
+        return None
+
+    def digest(self, local: Path, rel: str, size: tuple[int, int]) -> str | None:
+        """The digest of the picture ``rel`` of the pack folder ``local`` when it is ``size``."""
+        key = f"{local}/{rel}"
+        if key not in self.digests:
+            single = _load(local / rel)
+            ok = single is not None and single.shape[:2] == (size[1], size[0])
+            self.digests[key] = _digest(single) if ok and single is not None else None
+        return self.digests[key]
+
+
+def _taken(
+    catalog: Any, sheet: Any, facets: dict[str, Any], seen: _Seen | None = None
+) -> set[tuple[int, int]]:
+    """The cells of ``sheet`` that a terrain, a tile of its own or a crop cut from it takes."""
+    seen = seen or _Seen(catalog)
     taken: set[tuple[int, int]] = set()
     for key in facets.get("tile_overrides") or {}:
         col, _sep, row = str(key).partition(",")
         if col.isdigit() and row.isdigit():
             taken.add((int(col), int(row)))
-    for other in catalog.assets:
-        tags = catalog_mod.effective(other).get("tags") or []
-        if other.id.startswith(sheet.id + "#") or f"duplicate_of:{sheet.id}" in tags:
-            taken |= _cells_of_tags(tags)
+    for other in seen.cut_from(sheet.id):
+        taken |= _cells_of_tags(seen.own(other).get("tags") or [])
     return taken
 
 
 def _used_singles(
-    catalog: Any, sheet: Any, root: str, local: Path, size: tuple[int, int]
+    catalog: Any,
+    sheet: Any,
+    root: str,
+    local: Path,
+    size: tuple[int, int],
+    seen: _Seen | None = None,
 ) -> tuple[dict[str, Any], list[list[int]]]:
     """The pack's pictures of one cell that are used on their own, by their digest, and the
     regions of the parts cut from ``sheet`` and of its objects."""
-    from rpggen.core import catalog as catalog_mod
-
+    seen = seen or _Seen(catalog)
     regions: list[list[int]] = [list(o.region) for o in catalog.objects if o.sheet == sheet.id]
     singles: dict[str, Any] = {}
-    for other in catalog.assets:
-        if other.pack_id != sheet.pack_id or other.status in UNUSED or other is sheet:
+    for other in seen.cut_from(sheet.id):
+        if other.pack_id != sheet.pack_id or other.status in UNUSED:
             continue
-        own = catalog_mod.effective(other)
-        if other.id.startswith(sheet.id + "#"):
-            region = own.get("region")
-            if isinstance(region, list) and len(region) == 4:
-                regions.append([int(v) for v in region])
+        region = seen.own(other).get("region")
+        if other.id.startswith(sheet.id + "#") and isinstance(region, list) and len(region) == 4:
+            regions.append([int(v) for v in region])
+    for other in seen.sized(sheet.pack_id, size):
+        if other.status in UNUSED or other is sheet or other.id.startswith(sheet.id + "#"):
             continue
-        if own.get("role") == "NONE":
-            continue  # set aside (the statuses are worked out after this runs)
-        if list(own.get("size") or []) == list(size) and other.path.startswith(root + "/"):
-            single = _load(local / other.path[len(root) + 1 :])
-            if single is not None and single.shape[:2] == (size[1], size[0]):
-                singles[_digest(single)] = other
+        if not other.path.startswith(root + "/"):
+            continue
+        if seen.role(other) == "NONE":
+            continue  # set aside (the statuses are worked out after this runs), maybe just now
+        digest = seen.digest(local, other.path[len(root) + 1 :], size)
+        if digest is not None:
+            singles[digest] = other
     return singles, regions
 
 
@@ -415,6 +492,7 @@ def add(catalog: Any, roots: dict[str, Path], work_dir: Path | None = None) -> d
     have = {o.id for o in catalog.objects} | {a.id for a in catalog.assets}
     generated: dict[str, str] = {}
     work = (work_dir or paths.cache_dir()) / WORK_FOLDER
+    seen = _Seen(catalog)
     for sheet in sorted(catalog.assets, key=lambda a: a.id):
         if not _sheet_of(catalog, sheet):
             continue
@@ -432,8 +510,8 @@ def add(catalog: Any, roots: dict[str, Path], work_dir: Path | None = None) -> d
         rows = (picture.shape[0] - my + sy) // (ch + sy)
         if cols * rows < 2:
             continue
-        taken = _taken(catalog, sheet, facets)
-        singles, regions = _used_singles(catalog, sheet, root, local, (cw, ch))
+        taken = _taken(catalog, sheet, facets, seen)
+        singles, regions = _used_singles(catalog, sheet, root, local, (cw, ch), seen)
         painted: dict[tuple[int, int], np.ndarray] = {}
         for r in range(rows):
             for c in range(cols):

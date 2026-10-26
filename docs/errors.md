@@ -162,6 +162,7 @@
 | VAL-030 | warning | {stage} cannot be finished by a soldier that does not jump: {problem}. | Turn the option Jump on, or delete rpggen/world_plan.json and game/data/stages.json so that the stages are planned again for the grapple, or put a block to swing from (or a plank to climb) there in the stage's scene. |
 | VAL-031 | warning | The farm cannot be worked as it is planned: {problem}. | Change the farm's map in rpggen/world_plan.json (the section farm.map: a cell of its plot, its water, its fences or what lies in the way), or delete that section and game/maps/farm.tscn and regenerate to plan the farm again. |
 | VAL-032 | info | An assets-only project has no game: it was not played and not test-exported. | — |
+| VAL-033 | warning | {node} in {file}: {problem}. | Paint the room so the player gets through: clear the rock from the opening, give the platform room above it, stand the thing on the floor, or put a ladder up to the exit. The dock's validator shows where. |
 
 ## Smoke test (SMOKE)
 

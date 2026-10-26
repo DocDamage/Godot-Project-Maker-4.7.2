@@ -421,3 +421,62 @@ def test_a_sheet_on_a_grid_of_tiles_is_left_for_the_others(tmp_path: Path) -> No
     img.save(pack / "castle.png")
     cat, _ = _catalog(pack)
     assert all(a.detected_by != sheet_parts.NAME for a in cat.assets)
+
+
+# ------------------------------------------------------------------------------ cell sheets
+
+
+def _fishing_pack(root: Path) -> Path:
+    """A pack in the shape of Mana Seed's *Fishing Gear*: a sheet of icons and one of objects
+    whose names give their cells, a text file naming the icons, and a school of fish that
+    swims about its cell."""
+    pack = root / "fishing_gear"
+    (pack / "school of fish anim").mkdir(parents=True)
+    icons = Image.new("RGBA", (48, 32), (0, 0, 0, 0))
+    for n, colour in enumerate([(220, 90, 40), (240, 200, 60), (60, 120, 220), (90, 60, 30)]):
+        x, y = (n % 3) * 16, (n // 3) * 16
+        icons.paste((*colour, 255), (x + 2, y + 3, x + 14, y + 13))
+    icons.save(pack / "fishing icons 16x16.png")  # the last cell is empty
+    (pack / "Fishing icon reference.txt").write_text(
+        "Row 1\n0)\tKoi\n1)\tGoldfish\n2)\tPike\n\nRow 2\n3)\tFishing Rod\n", encoding="utf-8"
+    )
+    objects = Image.new("RGBA", (48, 64), (0, 0, 0, 0))
+    for c in range(3):  # three barrels side by side, touching, and a post under the first
+        objects.paste((140, 90, 50, 255), (c * 16, 6, c * 16 + 16, 32))
+    objects.paste((110, 70, 40, 255), (6, 34, 10, 64))
+    objects.save(pack / "fishing objects 16x32.png")
+    school = Image.new("RGBA", (64, 16), (0, 0, 0, 0))
+    for f in range(4):
+        school.paste((40, 120, 140, 255), (f * 16 + f * 3, 2 + f, f * 16 + f * 3 + 4, 5 + f))
+    school.save(pack / "school of fish anim" / "school of fish, spring 16x16.png")
+    return pack
+
+
+def test_a_small_sheet_is_cut_by_the_cell_its_name_gives(tmp_path: Path) -> None:
+    cat, _issues = _catalog(_fishing_pack(tmp_path))
+    koi = catalog.effective(_asset(cat, "fishing_icons_16x16#koi"))
+    assert koi["role"] == "ITEM" and koi["usage"] == "object" and koi["size"] == [12, 10]
+    assert "fish" in koi["tags"]
+    assert catalog.effective(_asset(cat, "fishing_icons_16x16#fishing_rod"))["role"] == "TOOL"
+    assert not [a for a in cat.assets if "fishing_icons_16x16#c" in a.id]  # every cell named
+    barrels = [a for a in cat.assets if "fishing_objects_16x32#" in a.id]
+    assert sorted(a.id.rsplit("#", 1)[1] for a in barrels) == ["c0_0", "c0_1", "c1_0", "c2_0"]
+    assert all(catalog.effective(a)["role"] == "DECORATION" for a in barrels)
+    sheet = catalog.effective(_asset(cat, "fishing_icons_16x16"))
+    assert sheet["role"] == "NONE" and "unused_because:cell_sheet" in sheet["tags"]
+
+
+def test_the_icons_of_a_sheet_are_the_fish_of_the_pond(tmp_path: Path) -> None:
+    from rpggen.core import forage_plan
+
+    cat, _issues = _catalog(_fishing_pack(tmp_path))
+    names = [f["name"] for f in forage_plan.facts_of(cat)["fish"]]
+    assert names == ["goldfish", "koi", "pike"]  # the rod is no catch
+
+
+def test_a_strip_whose_frames_move_about_is_read_by_its_name(tmp_path: Path) -> None:
+    cat, _issues = _catalog(_fishing_pack(tmp_path))
+    school = catalog.effective(_asset(cat, "school_of_fish_spring_16x16"))
+    assert school["grid"]["cell"] == [16, 16]
+    assert [len(a["frames"]) for a in school["animations"].values()] == [4]
+    assert school["role"] == "DECORATION"  # fish swimming: nobody to talk to

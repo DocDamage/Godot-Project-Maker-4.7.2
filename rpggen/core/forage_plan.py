@@ -79,6 +79,7 @@ DRAWN_SEA_FISH = (("sardine", "#96b4d2"), ("sea_bass", "#5a7896"))
 # ... and for a cave (T17.24): (name, its colour). ``farm_kit.CAVE_FORAGE`` draws the same ones.
 CAVE = "cave"
 CAVE_TAG = "cave"
+DRAWN_PREFIX = "generated/"  # the project path of a picture rpggen drew
 DRAWN_CAVE_FORAGE = (
     ("copper_ore", "#c8784a"),
     ("amethyst", "#9a64d2"),
@@ -121,12 +122,17 @@ def facts_of(catalog: Any) -> dict[str, Any]:
     cave: list[dict[str, Any]] = []
     for asset in sorted(getattr(catalog, "assets", []), key=lambda a: a.id):
         facets = catalog_mod.effective(asset)
-        if asset.kind != "image" or asset.status in ("UNUSED", "MISSING") or "#" in asset.id:
+        if asset.kind != "image" or asset.status in ("UNUSED", "MISSING"):
+            continue
+        # a part of a sheet is one only when rpggen drew it as a picture of its own (an icon
+        # cut from a sheet of icons, named by the pack: ``fishing_icons_16x16#koi``)
+        if "#" in asset.id and not asset.path.startswith(DRAWN_PREFIX):
             continue
         if facets.get("role") != "ITEM" or facets.get("usage") not in ("sprite", "object"):
             continue
         tags = [str(t) for t in facets.get("tags") or []]
-        name = crop_plan.crop_name(str(asset.id))
+        part = asset.id.partition("#")[2]
+        name = crop_plan.crop_name(part or str(asset.id))
         if "fish" in tags:
             (sea if SEA_TAG in tags else out["fish"]).append({"asset": str(asset.id), "name": name})
         elif "forage" in tags:

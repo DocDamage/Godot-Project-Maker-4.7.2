@@ -317,6 +317,9 @@ func _sign_dialogue() -> String:
 	var player := _player()
 	_calm()
 	await _put(_cell(room["sign"]) + Vector2i(-1, 0))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
 	await _frames(4)
 	if player.find_target() != sign_node:
 		return "the player beside the sign does not find it"
@@ -372,6 +375,10 @@ func _jump_clears_gap() -> String:
 	var state := _state()
 	_vulnerable(player)  # falling into the gap would cost a hit point: the step would see it
 	await _put(Vector2i(gap_from - 3, floor_row - 1))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
+	_vulnerable(player)
 	var hp := state.player_stats.hp
 	var tile := _tile()
 	Input.action_press("move_right")
@@ -413,6 +420,9 @@ func _walks_over_hill() -> String:
 	var tile := _tile()
 	if not await _put(Vector2i(foot - 2, row)):
 		return "the player could not be put before the hill"
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
 	var ground_y := player.global_position.y
 	var jumps := [0]
 	var count := func() -> void: jumps[0] += 1
@@ -448,6 +458,9 @@ func _one_way_platform() -> String:
 	var tile := _tile()
 	var floor_row := _floor_row(room)
 	await _put(Vector2i(middle, floor_row - 1))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
 	var top := row * tile
 	Input.action_press("jump")  # held: a full jump, up through the platform
 	var above := await _wait_for(func() -> bool: return player.global_position.y < top - 1.0, 60)
@@ -487,6 +500,9 @@ func _hazard_hurts_and_returns() -> String:
 	var state := _state()
 	var tile := _tile()
 	await _put(Vector2i(spike - 3, floor_row - 1))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
 	await _frames(30)  # half a second on one cell: this is safe ground now
 	if not player.has_safe_position:
 		return "standing still did not make safe ground"
@@ -531,11 +547,15 @@ func _gate_blocks() -> String:
 		return "the player has %s before the game gave it" % gate["ability"]
 	if not await _enter(JsonUtil.to_str(room["id"])):
 		return "the room of the ledge could not be entered"
-	var player := _player()
 	var tile := _tile()
 	var cell := _cell(gate["cell"])
 	var ledge_top := (_floor_row(room) - JsonUtil.to_int(gate["size"])) * tile
 	await _put(cell)
+	# the player there is after the wait: a room entered again while _put waited (a slow
+	# machine) freed the one there was before it
+	var player := _player()
+	if player == null:
+		return "the player could not be put before the ledge"
 	Input.action_press("move_right")
 	var highest := player.global_position.y
 	for i in 120:  # two seconds of jumping at it
@@ -571,6 +591,9 @@ func _room_transition() -> String:
 	var saves := _autoload("SaveManager") as RpgSaveManager
 	saves.delete(RpgSaveManager.AUTOSAVE_SLOT)
 	await _put(Vector2i(size.x - 4, _floor_row(start) - 1))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
 	Input.action_press("move_right")
 	var changed := await _wait_for(func() -> bool: return _in_room(target), 300)
 	if not changed:
@@ -607,6 +630,9 @@ func _npc_talks() -> String:
 		return ""
 	var player := _player()
 	await _put(_cell(room["npc"]) + Vector2i(-1, 0))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
 	await _wait_for(func() -> bool: return npc.is_on_floor(), 60)
 	await _frames(4)
 	if npc.facing != -1:
@@ -705,6 +731,9 @@ func _double_jump_reaches_ledge() -> String:
 	var tile := _tile()
 	var ledge_top := (_floor_row(room) - JsonUtil.to_int(gate["size"])) * tile
 	await _put(_cell(gate["cell"]))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
 	await _tap("jump", 26)  # a full jump straight up, beside the overhang
 	await _wait_for(func() -> bool: return player.velocity.y >= -20.0, 40)
 	Input.action_press("jump")  # the second jump, near the top of the first
@@ -775,6 +804,10 @@ func _dash_crosses_gap() -> String:
 	state.heal_party_full()
 	var hp := state.player_stats.hp
 	await _put(Vector2i(gap_from - 3, floor_row - 1))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
+	_vulnerable(player)
 	Input.action_press("move_right")
 	if not await _wait_for(func() -> bool: return player.global_position.x >= gap_from * tile - 5.0, 120):
 		_release_all()
@@ -822,6 +855,9 @@ func _save_station_persist() -> String:
 	var held: Array = state.abilities.duplicate()
 	var player := _player()
 	await _put(_cell(start["station"]))
+	player = _player()  # the player there is after the wait: see _put
+	if player == null:
+		return "the player could not be put in place"
 	await _frames(70)  # entering the room saved by itself; the save made here has to be the newer one
 	if player.find_target() != station:
 		return "the player at the station does not find it"

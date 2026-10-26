@@ -62,6 +62,11 @@ beside it gets the exit to it.
 4. Run **Project → Tools → Validate project** (or the dock's validator): an exit that leads
    nowhere is reported (VAL-028) and can be fixed with one click.
 
+The validator also tries every room as it is painted (VAL-033), with a player who has every
+ability: an exit with rock over its opening, a ladder exit that no ladder or jump reaches, a
+platform with no room above it to stand, and a save station, NPC, sign or chest inside rock or
+in the air are each reported with the node, so you can find them in the scene.
+
 ### Abilities
 
 | Ability | Id | What it does |

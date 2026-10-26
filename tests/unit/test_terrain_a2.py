@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 
 from rpggen import jsonio, schema
-from rpggen.core import archive, catalog, inventory
+from rpggen.core import archive, catalog, inventory, profiles
 from rpggen.core.terrain import rpgmaker_a2 as a2
 
 SYNTH = Path(__file__).resolve().parents[2] / "test_packs" / "synthetic"
@@ -156,6 +156,22 @@ def test_assemble_adds_generated_atlas_assets_for_a2_blocks(tmp_path: Path) -> N
     assert any(s["asset"] == source.id for t in cat.tilesets for s in t.sources)
     again = catalog.assemble([(opened, inv)], None, [], work_dir=tmp_path / "w2")[0]
     assert jsonio.dumps(again.to_json()) == jsonio.dumps(cat.to_json())
+
+
+def test_a_profile_names_no_terrain_its_sheets_no_longer_make(tmp_path: Path) -> None:
+    # the sample's profile names the blocks of meadow_a2 found by the block search
+    # (meadow_a2_a2_0_0), while its A2 tags have them cut as RPG Maker blocks (meadow_a2_b0): those
+    # terrains had no tile, and the level probe painted one (CI, 2026-10-25)
+    sample = SYNTH.parents[1] / "sample_pack"
+    profiles.install_profile(sample / "sample.rpgprofile.json")
+    opened = archive.open_pack(sample, set())
+    cat = catalog.assemble(
+        [(opened, inventory.build_inventory(opened))], None, [], work_dir=tmp_path / "w"
+    )[0]
+    known = {a.id for a in cat.assets}
+    sets = [t for tdef in cat.tilesets for t in tdef.terrain_sets]
+    assert any(t.get("sheet", "").endswith("meadow_a2_b0") for t in sets)
+    assert all(t["sheet"] in known for t in sets if "sheet" in t), [t["name"] for t in sets]
 
 
 def test_a1_a3_a4_sheets_report_tile_006(tmp_path: Path) -> None:

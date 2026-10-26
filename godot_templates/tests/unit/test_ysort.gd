@@ -37,6 +37,20 @@ func test_centered_sprites_and_parent_offsets_count(t) -> void:
 	t.near(Validate.visual_bottom(s, root), 17.0)
 	root.free()
 
+func test_feet_above_empty_rows_are_the_bottom(t) -> void:
+	# a 32 px cell whose figure stands on row 23 (Super Retro Ranch), the origin at its feet
+	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	img.fill_rect(Rect2i(8, 4, 16, 20), Color.WHITE)
+	var s := Sprite2D.new()
+	s.texture = ImageTexture.create_from_image(img)
+	s.centered = false
+	s.offset = Vector2(-16, -24)
+	var root := Node2D.new()
+	root.add_child(s)
+	t.near(Validate.visual_bottom(s, root, true), 0.0)
+	t.near(Validate.visual_bottom(s, root), 8.0, 0.001, "the frame goes on below the feet")
+	root.free()
+
 func test_node_without_a_texture_is_skipped(t) -> void:
 	var root := Node2D.new()
 	var s := Sprite2D.new()
