@@ -8,6 +8,7 @@ things a level is furnished with."""
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -50,8 +51,10 @@ def _check_level(report: dict) -> None:
     assert report["ok"], report.get("error")
     assert report["terrains"], "the ground is painted"
     for terrain in report["terrains"]:
-        assert terrain["holes"] == 0, terrain
-        assert terrain["wrong"] == 0, terrain  # every piece fits the cells around it
+        # the whole entry, not pytest's shortened dict: which terrain of which set left holes
+        said = json.dumps({"terrain": terrain, "base": report.get("base")}, sort_keys=True)
+        assert terrain["holes"] == 0, said
+        assert terrain["wrong"] == 0, said  # every piece fits the cells around it
         if not terrain.get("strip"):
             assert terrain["main_share"] >= 0.7, terrain  # mostly the main tile
     assert len(report["places"]) >= 4, report["places"]

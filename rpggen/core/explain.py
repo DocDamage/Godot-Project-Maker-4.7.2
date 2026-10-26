@@ -97,6 +97,39 @@ UNUSED_REASONS = {
         "an asset of its own, named by the pack's list of them where it has one. Give it a "
         "role to use it whole as well."
     ),
+    "animation_frame": (
+        "a later frame of a tile its pack animates (water, lava, a fire); rpggen's isometric "
+        "tiles do not animate yet, and the first frame is used. Give it a role to use it."
+    ),
+    "overlay_tile": (
+        "a piece laid over another tile (shore foam, a waterfall on a block's face); rpggen "
+        "does not lay one tile over another yet. Give it a role to use it alone."
+    ),
+    "ramp": (
+        "a ramp or stairs up to the top of a block; rpggen's isometric maps are flat. Give it "
+        "a role to use it."
+    ),
+    "building_piece": (
+        "a storey, a roof or a piece of a front that the pack's maps stack on a building's "
+        "cells; rpggen does not stack pieces yet (the pack's whole buildings are used). Give it "
+        "a role to use it alone."
+    ),
+    "on_wall": (
+        "a thing hung on a wall or opening in one (a sconce, a door); rpggen places nothing on "
+        "a wall yet. Give it a role to use it alone."
+    ),
+    "shadow": (
+        "the shadow of a thing of the pack, drawn under it in the pack's own maps; rpggen does "
+        "not draw it. Give it a role to use it."
+    ),
+    "sheet_frame": (
+        "one frame of a character the pack has in sheets as well, a sheet an animation; the "
+        "sheets are used. Give it a role to use the frame alone."
+    ),
+    "animation_sheet": (
+        "the sheet of one of a character's animations; the character is the asset, and this "
+        "sheet is where that animation's frames are. Give it a role to use it alone as well."
+    ),
     "atlas_cell": (
         "one tile of a sheet a cutting tool cut into named pictures; the sheet is used as a "
         "tile sheet, and has this tile. Give it a role to use it on its own as well."

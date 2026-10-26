@@ -41,6 +41,7 @@ OTHER_SIZE = "other_size"
 PREVIEW_GIF = "preview_gif"
 SAME_AS_TAG = "same_as:"
 SIZE_TAG = "size_form:"
+MANIFEST_TAG = "pack_manifest"  # adapters.gridwright.MANIFEST_TAG (the adapters import us)
 # what a form must share before it is one: a few cells in common are no set
 MIN_SHARED_CELLS = 8
 COVER = 0.9
@@ -69,6 +70,7 @@ def _protected(asset: Any) -> bool:
         or lpc_compose.BODY_TAG in tags
         or lpc_compose.LAYER_TAG in tags
         or asset.detected.get("role") == "NONE"
+        or MANIFEST_TAG in tags  # what a pack's own JSON says it is (adapters.gridwright)
     )
 
 

@@ -452,10 +452,10 @@ def _animated_layout(
     colour = np.zeros(3)
     if middle is not None:
         mx, my = middle
-        cell = pixels[my * tile : (my + 1) * tile, mx * tile : (mx + 1) * tile]
-        painted = cell[..., 3] > 0
+        inner = pixels[my * tile : (my + 1) * tile, mx * tile : (mx + 1) * tile]
+        painted = inner[..., 3] > 0
         if painted.any():
-            colour = cell[..., :3][painted].mean(axis=0) / 255.0
+            colour = inner[..., :3][painted].mean(axis=0) / 255.0
     terrain_set = dict(proposal["terrain_set"])
     terrain_set.update({
         "sheet": new_id, "surface": blocks.surface_of(colour, _words(asset.path)),

@@ -518,10 +518,21 @@ func plain_others(base: Dictionary, count: int) -> Array[Dictionary]:
 		var td := src.get_tile_data(tile_coords, 0) if src != null else null
 		if td != null and td.terrain_set >= 0:
 			continue
+		# a patch of ground is walked on: no tile that blocks (a side view's slope piece
+		# painted about a map seen from above walled its player in)
+		if td != null and _blocks(td):
+			continue
 		out.append(tile)
 		if out.size() >= count:
 			break
 	return out
+
+## True when a tile has a collision shape on any physics layer of the tile set.
+func _blocks(td: TileData) -> bool:
+	for layer in tile_set.get_physics_layers_count():
+		if td.get_collision_polygons_count(layer) > 0:
+			return true
+	return false
 
 ## The notes of what was painted since the last call, one line a kind, for the recipe to print
 ## once a map; the count starts again.

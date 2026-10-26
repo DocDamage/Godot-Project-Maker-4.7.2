@@ -93,6 +93,7 @@ def register_defaults() -> None:
     from rpggen.core.adapters.facings import FacingsAdapter
     from rpggen.core.adapters.farm import FarmPackAdapter
     from rpggen.core.adapters.generic_grid import GenericGridAdapter
+    from rpggen.core.adapters.gridwright import GridwrightAdapter
     from rpggen.core.adapters.iso_sheets import IsoSheetsAdapter
     from rpggen.core.adapters.isometric import IsometricAdapter
     from rpggen.core.adapters.kenney_atlas import KenneyAtlasAdapter
@@ -114,6 +115,7 @@ def register_defaults() -> None:
         AsepriteAdapter(),
         LdtkAdapter(),
         RpgMakerAdapter(),
+        GridwrightAdapter(),
         LpcAdapter(),
         SheetPartsAdapter(),
         ActionFramesAdapter(),
