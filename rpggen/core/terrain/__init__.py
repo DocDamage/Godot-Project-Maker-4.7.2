@@ -665,7 +665,11 @@ def _describe_a2(asset: catalog_mod.Asset, work: Path, result: TerrainResult) ->
 
 
 def attach_terrain_sets(catalog: catalog_mod.Catalog, result: TerrainResult) -> None:
-    """Add the terrain sets of generated assets to the tile set that holds the asset."""
+    """Add the terrain sets of generated assets to the tile set that holds the asset, and drop
+    those whose sheet is no asset of this catalog: a profile's, or an earlier build's, for a
+    sheet now read another way would be a terrain without a tile (the sample's profile names
+    the blocks of ``meadow_a2`` that its own A2 tags no longer make)."""
+    known = {a.id for a in catalog.assets}
     for tdef in catalog.tilesets:
         existing = {t["name"] for t in tdef.terrain_sets}
         for src in tdef.sources:
@@ -673,3 +677,6 @@ def attach_terrain_sets(catalog: catalog_mod.Catalog, result: TerrainResult) -> 
                 if terrain_set["name"] not in existing:
                     tdef.terrain_sets.append(copy.deepcopy(terrain_set))
                     existing.add(terrain_set["name"])
+        tdef.terrain_sets = [
+            t for t in tdef.terrain_sets if "sheet" not in t or t["sheet"] in known
+        ]

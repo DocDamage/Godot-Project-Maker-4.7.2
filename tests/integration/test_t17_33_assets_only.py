@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from rpggen import jsonio
-from rpggen.core import config, orchestrator
+from rpggen.core import config, orchestrator, profiles
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import level_probe_run  # noqa: E402
@@ -66,9 +66,19 @@ def _check_level(report: dict) -> None:
         assert place["parent"] == "Entities", place  # in the y-sorted holder
 
 
+@pytest.fixture(autouse=True)
+def _own_folders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Each test its own rpggen folders: the sample tests before these install the samples'
+    profiles in the session's, and a profile read the sample otherwise (CI, 2026-10-25)."""
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "rpggen_home"))
+
+
+@pytest.mark.parametrize("profile", [False, True], ids=["read", "profile"])
 def test_an_assets_only_project_seen_from_above_and_a_level_made_in_it(
-    godot_exe: Path, tmp_path: Path
+    godot_exe: Path, tmp_path: Path, profile: bool
 ) -> None:
+    if profile:  # the sample as the wizard opens it: its profile installed
+        profiles.install_profile(REPO / "sample_pack" / "sample.rpgprofile.json")
     result = _generate(godot_exe, tmp_path, REPO / "sample_pack", "Village Assets")
     saved = _check_project(result.target)
     assert saved["view"] == "top"
