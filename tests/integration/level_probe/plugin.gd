@@ -53,6 +53,10 @@ static func _corners(ts: TileSet) -> Array:
 const SURFACES: Array[String] = ["water", "dirt", "path", "road", "sand", "stone", "soil", "snow", "grass", "dark", "rock"]
 ## What a level is furnished with: role and how many.
 const FURNISH := [["BUILDING", 2], ["DECORATION", 10], ["NPC", 2], ["ANIMAL", 2], ["ENEMY", 2], ["CHEST", 1]]
+## The Terrain tool lays a terrain's variants by their probability with Godot's global random
+## numbers; seeded, a level paints the same on every run and system (an unseeded one laid the
+## middle of a terrain of the sample 67 % its main tile once on CI, 2026-10-27).
+const PAINT_SEED := 1733
 
 func _enter_tree() -> void:
 	if FileAccess.file_exists(IN):
@@ -103,6 +107,7 @@ func _run() -> void:
 	var size := Vector2i(40, 23) if side else (Vector2i(14, 14) if iso else Vector2i(40, 26))
 	report["size"] = [size.x, size.y]
 	var painted: Array[Dictionary] = []
+	seed(PAINT_SEED)
 	if side:
 		painted = _paint_side(ground, base, size)
 		report["specials"] = _place_specials(ground, _specials(ts), size)
