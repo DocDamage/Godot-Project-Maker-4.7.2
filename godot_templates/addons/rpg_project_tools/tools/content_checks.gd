@@ -533,7 +533,7 @@ static func _check_battle_data(dirs: Dictionary, findings: Array) -> void:
 ## VAL-034 (1.5.0): what the quests, skill trees and achievements say is wrong with them
 ## (their `problems()`), and an item whose `set_id` names no set.
 static func _check_game_data(dirs: Dictionary, findings: Array) -> void:
-	for kind: Array in [["quests", QUESTS_DIR, "quest"], ["skill_trees", SKILL_TREES_DIR, "skill tree"], ["achievements", ACHIEVEMENTS_DIR, "achievement"]]:
+	for kind: Array in [["quests", QUESTS_DIR, "quest"], ["skill_trees", SKILL_TREES_DIR, "skill tree"], ["achievements", ACHIEVEMENTS_DIR, "achievement"], ["item_sets", ITEM_SETS_DIR, "item set"]]:
 		for path in list_files(JsonIo.to_str(dirs.get(kind[0], kind[1])), ["tres"]):
 			var res := load(path) as Resource
 			if res == null or not res.has_method("problems"):

@@ -11,6 +11,7 @@ const RECIPE_VERSION := 2
 
 const SeedUtil := preload("../lib/seed_util.gd")
 const DataRecipe := preload("data_recipe.gd")
+const ProgressionRecipe := preload("progression_recipe.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
 
@@ -53,7 +54,7 @@ func input_hash(ctx: BuildContext) -> String:
 	# While the CSV is missing, hash the text that will be written, so the hash is the same before
 	# and after the seeding and the next build skips this recipe.
 	var text := FileAccess.get_file_as_string(CSV_PATH) if FileAccess.file_exists(CSV_PATH) else _csv_text(_seed_rows(ctx))
-	return ctx.stable_hash({"v": RECIPE_VERSION, "csv": text.sha256_text(), "seed_strings": DataRecipe.SEED_STRINGS, "keys": _ui_keys(), "archetype_keys": _archetype_keys(ctx)})
+	return ctx.stable_hash({"v": RECIPE_VERSION, "csv": text.sha256_text(), "seed_strings": DataRecipe.SEED_STRINGS, "progression_strings": ProgressionRecipe.SEED_STRINGS, "keys": _ui_keys(), "archetype_keys": _archetype_keys(ctx)})
 
 ## Text keys of the archetype's runtime folder (archetypes/<name>/<prefix>_strings.gd with a KEYS table).
 ## The strings of a kind beside those of the framework it shares (the arcade kinds, M16).
@@ -95,6 +96,8 @@ func _seed_rows(ctx: BuildContext) -> Dictionary:
 	rows.merge(_archetype_keys(ctx))
 	for key: Variant in DataRecipe.SEED_STRINGS.keys():
 		rows[key] = DataRecipe.SEED_STRINGS[key]
+	for key: Variant in ProgressionRecipe.SEED_STRINGS.keys():
+		rows[key] = ProgressionRecipe.SEED_STRINGS[key]
 	var dir := DirAccess.open(ITEMS_DIR)
 	if dir != null:
 		var files := dir.get_files()

@@ -466,4 +466,8 @@ def test_an_arcade_kind_starts_with_dialogue_off_and_the_older_kinds_as_they_wer
         assert config.default_for("T", [], archetype=kind).features == older
     for kind in config.ARCADE_KINDS:
         feats = config.default_for("T", [], archetype=kind).features
-        assert [k for k, on in feats.items() if not on] == ["dialogue", "navigation"], kind
+        assert [k for k, on in feats.items() if not on] == [
+            "dialogue",
+            "navigation",
+            "progression",
+        ], kind

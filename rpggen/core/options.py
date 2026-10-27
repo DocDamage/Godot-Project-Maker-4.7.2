@@ -73,6 +73,13 @@ FEATURE_INFO: dict[str, tuple[str, str, str]] = {
         "A starter map with a villager, a chest, an enemy, a house and a second area. You can "
         "remove it later.",
     ),
+    "progression": (
+        "Game systems",
+        "Skills and achievements",
+        "A starter skill tree (points at each level), achievements and a bonus for the starter "
+        "gear worn together. Edit them in the editor dock's Skills, Achievements and Item sets "
+        "tabs.",
+    ),
     "editor_tools": (
         "Tools",
         "Editor tools",
@@ -114,6 +121,8 @@ FARM_FEATURE_TEXT = {
     "round walls to where their day takes them. Off by default: they appear where they are due.",
     "demo": "The village with a villager who keeps the shop, a chest, a house and a second "
     "area. You can remove it later.",
+    "progression": "Achievements for the farm's work (and a bonus for the starter gear worn "
+    "together). Edit them in the editor dock's Achievements and Item sets tabs.",
 }
 
 
@@ -178,7 +187,7 @@ ARCADE_NAMES = {"shmup": "Shoot 'em up", "run_and_gun": "Run and gun", "racing":
 # The features an arcade kind has no use for: its stages are not a demo scene one can leave
 # out, and nothing in them looks for a path. The Options page does not show them and leaves
 # their values as the config has them.
-ARCADE_HIDDEN = ("demo", "navigation")
+ARCADE_HIDDEN = ("demo", "navigation", "progression")
 
 
 def _count(number: int, noun: str) -> str:

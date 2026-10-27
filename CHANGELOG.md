@@ -158,6 +158,10 @@ does not ask for the isometric view is built as it was.
   tile of a terrain fitted the cells around it, and few packs draw every piece: for each way a
   terrain meets others that its pack draws no piece for, the nearest piece it draws is added as
   an alternative tile. A plain ground matches by its sides, so a patch of it keeps its border.
+  It is done for a source the build makes: a project made before 1.5.0 keeps the TileSets its
+  version built when it is regenerated (the test of a project made by 1.1 found the ground of
+  one gaining 46 alternatives). The same test found a TileSet's patterns saved again with new
+  ids on each rebuild: patterns that come out the same are kept.
   Terrain names say their surface and their sheet (`dirt · tileset grass spring 2`).
 * **The things of a sheet of tiles are in the dock** (T17.33): the trees, rocks, crops, sacks
   and tools beside a sheet's ground (*Tiny Farm*'s one sheet gave none), joined where their art
@@ -206,6 +210,23 @@ does not ask for the isometric view is built as it was.
   * **Still missing:** characters do not climb a stack in the game (it is drawn, not walked).
     The vehicles are placed, not driven: they face the diagonals, and a race turns by up,
     right, down and left.
+* **Quests, shops, the bag, skill trees and achievements** in every game made with the runtime
+  (the runtime's CHANGELOG has the details): quests that wait for others, start by themselves,
+  fail and are turned in, with live counts and a tracker under the minimap; shops whose stock
+  runs out and refills, with their own gold, rolled wares and **Buy back**; rewards that wait
+  for room in a full bag instead of being lost; gear that wears and breaks, and sets of gear;
+  skill trees (*Pause → Skills*) and achievements (*Pause → Achievements*).
+  * **The option *Skills and achievements*** (on for a new turn-based game, action RPG,
+    metroidvania or farm; not offered for the arcade kinds) seeds a starter skill tree (the
+    adventurer's: vigor, strength and guard, then healing or toughness, fury and swift), the
+    achievements the game has the parts for (the errand, ten enemies, level 5, gold saved, a
+    secret chest) and the traveler's set for a starter weapon and armour worn together. A
+    project made before 1.5.0 has no such key in its config and regenerates without them.
+  * **The editor dock** has three more tabs, **Skills**, **Achievements** and **Item sets**:
+    forms with undo, a picture of the tree's grid, a test of an achievement against a pretend
+    state, the items of a set (with their durability), and JSON export and import.
+  * **The validator** reports a quest, a skill tree, an achievement or an item set that does
+    not add up (VAL-034).
 * **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
   picture rises above it, turns by number or by compass letter as one tile (never as frames of
   an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a

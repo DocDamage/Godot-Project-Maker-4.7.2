@@ -340,9 +340,11 @@ should know:
   rolled wares and buying back; trades all or nothing, rewards that wait for room, gear that
   wears and breaks, sets of gear; skill trees and achievements with their own screens (Pause →
   Skills, Pause → Achievements). The runtime CHANGELOG (1.5.0, last section) has the list.
-  Tested by the GDScript suite only; nobody has played them by hand, the dock has no tab for
-  skill trees or achievements (they are edited in the inspector), and the generator seeds none.
-  The crafting kit is left out (Part E of the farm spec leaves crafting out by design).
+  The dock has Skills, Achievements and Item sets tabs, and the option *Skills and
+  achievements* seeds a starter tree, achievements and the traveler's set in a new project.
+  Tested by the GDScript suite and the integration runs; nobody has played them by hand or
+  looked at the new screens and tabs in a window. The crafting kit is left out (Part E of the
+  farm spec leaves crafting out by design).
 * **Not built.** Dropping onto diamonds with a mouse (the
   editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working

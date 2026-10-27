@@ -843,6 +843,29 @@ with a reward.
 * The validator: **VAL-034** (warning), what `problems()` of a quest, a skill tree or an
   achievement finds, and an item whose `set_id` names no set (`content_checks.gd`,
   `_check_game_data`).
+* **The project tools** (`addons/rpg_project_tools/`): three more tabs of the dock, built like
+  the Quests tab on `data_tab.gd` (a file row with New, Save, Reload and JSON export and import,
+  one undo step a change). **Skills** (`skill_tree_tab.gd`): the tree's id, title, points per
+  row and reset price, its skills in a list with a form (id, title, description, column, row,
+  ranks, cost, `requires` as "blade 2, guard", bonuses as "attack +2" or "speed x1.1" lines, the
+  battle skill it teaches) and a picture of the grid with the lines of the requirements; a
+  skill named by a problem is marked. **Achievements** (`achievement_tab.gd`): id, title,
+  description, the condition (checked as you type, the counters the game keeps listed under
+  it), secret, points, rewards, the icon by its path, and a test with a pretend counter and
+  gold. **Item sets** (`item_set_tab.gd`): id, title, bonuses as "2: defense +5, attack +1"
+  lines, the items of game/data/items that name the set with Add and Remove (each saves the
+  item's `set_id`) and the durability of the item picked. `RpgSkillTree`, `RpgAchievement` and
+  `RpgItemSet` have `to_dict` / `from_dict`, and `RpgItemSet.problems()`; a skill on the cell
+  of another names it ("skill 6 (swift) is on the cell of skill 4 (healing)").
+* **The builder.** `recipes/progression_recipe.gd` (new, after `data_recipe`) seeds, once, what
+  the feature `progression` (*Skills and achievements*) asks for: `skill_trees/adventurer.tres`
+  in a turn-based game, an action RPG or a metroidvania, `achievements/<id>.tres` for what the
+  game has (`errand` with the demo, `hunter` with combat, `seasoned` but on a farm, `savings`,
+  and the secret `treasure` with the village chest), and `item_sets/traveler.tres` when
+  `data_recipe` gave the starter weapon and armour `set_id` `traveler` (it does with the feature
+  on and both seeded). A config without the key (every config before 1.5.0) gets none of it:
+  the recipe writes nothing, and `data_recipe`'s hash has the new key `gear_set` only when the
+  set is made. The translations recipe adds the seeded keys (`ProgressionRecipe.SEED_STRINGS`).
 * More text keys: `UI_SKILLS`, `UI_SKILL_POINTS`, `UI_LEARN`, `UI_UNLEARN`, `UI_RESET`,
   `UI_RESET_COST`, `UI_RANK`, `UI_SKILL_NEEDS`, `UI_ROW_LOCKED`, `UI_ROW_LOCKED_SHORT`,
   `UI_NO_POINTS`, `UI_MAX_RANK`, `UI_SKILL_NEEDED`, `UI_SKILL_NOT_LEARNED`, `UI_SKILL_LEARNED`,

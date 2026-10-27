@@ -49,6 +49,7 @@ SHARED_STEPS = [
     "credits_screen",
     "mutate_then_load",
     "pause_menu",
+    "skills_and_achievements",
 ]
 TURN_BASED_STEPS = [
     "encounter_start",

@@ -1404,14 +1404,19 @@ the journal); *Settings → Quest tracker* turns it off.
 **A full bag loses nothing.** A reward, a chest or a gift that does not fit waits and comes into
 the bag as soon as there is room; a toast says so each time.
 
-**Gear, skills and achievements** (all optional, made by hand in `game/data/`). An item with a
-`durability` wears with use and breaks; items with the same `set_id` give the bonuses of their
-set (`game/data/item_sets/`) when enough are worn. A skill tree (`game/data/skill_trees/`)
-gives points at each level, spent on ranks for stat bonuses and battle skills, with
-requirements, rows that open after enough points and a reset for gold; *Pause → Skills*. An
-achievement (`game/data/achievements/`) unlocks by itself when its condition holds, often a
-count such as `count:defeated:wolf>=10` or `count:items:log>=30`; *Pause → Achievements*. The
-validator reports a quest, a tree or an achievement that does not add up (VAL-034).
+**Gear, skills and achievements.** With *Options → Skills and achievements* (on for a new
+turn-based game, action RPG, metroidvania or farm) the project starts with a skill tree, a few
+achievements and a set for the starter gear, all yours to change. An item with a `durability`
+wears with use and breaks; items with the same `set_id` give the bonuses of their set
+(`game/data/item_sets/`) when enough are worn. A skill tree (`game/data/skill_trees/`) gives
+points at each level, spent on ranks for stat bonuses and battle skills, with requirements,
+rows that open after enough points and a reset for gold; *Pause → Skills*. An achievement
+(`game/data/achievements/`) unlocks by itself when its condition holds, often a count such as
+`count:defeated:wolf>=10` or `count:items:log>=30`; *Pause → Achievements*. The dock's
+**Skills**, **Achievements** and **Item sets** tabs edit them (with undo, JSON export and
+import, a picture of the tree, a test of an achievement, and the items of a set with their
+durability). The validator reports a quest, a tree, an achievement or a set that does not add
+up (VAL-034).
 
 Your own build steps go in `game/builder_recipes/`: GDScript files that run after rpggen's
 steps on every build ([custom recipes](recipes.md)).

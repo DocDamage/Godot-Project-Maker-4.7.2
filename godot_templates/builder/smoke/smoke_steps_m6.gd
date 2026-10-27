@@ -44,6 +44,7 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "credits_screen", "fn": _credits_screen, "timeout_s": 15.0})
 	list.append({"name": "mutate_then_load", "fn": _mutate_then_load, "timeout_s": 30.0})
 	list.append({"name": "pause_menu", "fn": _pause_menu, "timeout_s": 15.0})
+	list.append({"name": "skills_and_achievements", "fn": _skills_and_achievements, "timeout_s": 20.0})
 	return list
 
 # ---------------------------------------------------------------- helpers
@@ -1032,6 +1033,83 @@ func _mutate_then_load() -> String:
 	if chest != null and not JsonUtil.to_bool(chest.get("opened")):
 		return "the chest is closed again after loading"
 	return ""
+
+## The skill tree and the achievements of the option `progression` (1.5.0): a point learns a rank
+## of a skill of the first row and its bonus shows on the hero's stats, the tree's screen shows
+## the rank, an achievement unlocks when its condition is made to hold (a gold goal: the gold is
+## set to it; else the event unlock_achievement) and the achievements' screen lists them all. The
+## state is put back afterwards. A game without either passes.
+func _skills_and_achievements() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	if state == null:
+		return "GameState is missing"
+	if state.skill_trees.is_empty() and state.achievement_defs.is_empty():
+		print("[rpggen] INFO skills_and_achievements: the game has no skill tree and no achievement, step passes")
+		return ""
+	var failure := ""
+	var ranks_before: Dictionary = state.skill_ranks.duplicate(true)
+	var points_before: Dictionary = state.skill_points.duplicate(true)
+	var unlocked_before: Dictionary = state.achievements.duplicate(true)
+	var gold: int = state.gold
+	var hero := state.player_actor_id
+	if not state.skill_trees.is_empty():
+		var tree_id: StringName = state.skill_tree_ids()[0]
+		var tree := state.skill_tree_of(tree_id)
+		var skill_id := &""
+		var stat := ""
+		for row in tree.skills:
+			var bonuses := JsonUtil.to_array(row.get("bonuses", []))
+			if RpgSkillTree.cell_of(row).y == 0 and RpgSkillTree.requires_of(row).is_empty() and not bonuses.is_empty():
+				skill_id = StringName(str(row.get("id", "")))
+				stat = str(JsonUtil.to_dict(bonuses[0]).get("stat", ""))
+				break
+		if skill_id == &"":
+			failure = "the tree %s has no skill on its first row that gives a bonus" % tree_id
+		else:
+			state.give_skill_points(hero, RpgSkillTree.cost_of(tree.skill(skill_id)))
+			var before := state.stat_of(hero, StringName(stat))
+			var why := state.learn_skill(hero, tree_id, skill_id)
+			if why != "":
+				failure = "learning %s was refused: %s" % [skill_id, why]
+			elif state.stat_of(hero, StringName(stat)) <= before:
+				failure = "learning %s did not raise %s (%s)" % [skill_id, stat, before]
+			else:
+				var menu := RpgSkillTreeMenu.new()
+				_tree().root.add_child(menu)
+				await _frames(2)
+				var shown := menu.skill_button(skill_id)
+				if shown == null or not shown.text.contains("1/"):
+					failure = "the skill tree screen does not show %s at rank 1 (%s)" % [skill_id, shown.text if shown != null else "no button"]
+				menu.queue_free()
+	if failure == "" and not state.achievement_defs.is_empty():
+		var goal := -1
+		var picked := &""
+		for achievement_id in state.achievement_ids():
+			var def: RpgAchievement = state.achievement_defs[achievement_id]
+			if def.when.begins_with("gold>=") and def.when.trim_prefix("gold>=").is_valid_int():
+				goal = def.when.trim_prefix("gold>=").to_int()
+				picked = achievement_id
+				break
+		if picked != &"":
+			state.gold = goal
+			await _frames(2)
+		else:
+			picked = state.achievement_ids()[0]
+			state.unlock_achievement(picked)
+		if not state.achievement_unlocked(picked):
+			failure = "the achievement %s did not unlock (gold %d)" % [picked, state.gold]
+		else:
+			var list := RpgAchievementsMenu.new()
+			_tree().root.add_child(list)
+			await _frames(2)
+			if list.rows().size() != state.achievement_defs.size():
+				failure = "the achievements screen lists %d of %d" % [list.rows().size(), state.achievement_defs.size()]
+			list.queue_free()
+	state.skill_ranks = ranks_before
+	state.skill_points = points_before
+	state.achievements = unlocked_before
+	state.gold = gold
+	return failure
 
 func _pause_menu() -> String:
 	var tree := _tree()

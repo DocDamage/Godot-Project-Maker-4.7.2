@@ -76,7 +76,7 @@ func test_tree_problems(t) -> void:
 	tree.skills = skills
 	var found := tree.problems()
 	t.ok(found.has("the tree has no id"), str(found))
-	t.ok(found.has("skill 2 (b) is on the cell of another skill"), str(found))
+	t.ok(found.has("skill 2 (b) is on the cell of skill 1 (a)"), str(found))
 	t.ok(found.has("skill 3 (a) repeats the id of an earlier skill"), str(found))
 	t.ok(found.has("skill 1 (a) requires the unknown skill 'ghost'"), str(found))
 	t.ok(found.has("skill 1 (a) requires 'b', which is not on an earlier row"), str(found))

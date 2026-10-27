@@ -162,7 +162,7 @@ func problems() -> Array[String]:
 	if id == &"":
 		out.append("the tree has no id")
 	var seen: Array[String] = []
-	var cells: Array[Vector2i] = []
+	var cells: Dictionary = {}  # cell -> where the first skill on it was
 	for i in skills.size():
 		var row := skills[i]
 		var skill_id := str(row.get("id", ""))
@@ -174,8 +174,9 @@ func problems() -> Array[String]:
 		seen.append(skill_id)
 		var cell := cell_of(row)
 		if cells.has(cell):
-			out.append("%s is on the cell of another skill" % where)
-		cells.append(cell)
+			out.append("%s is on the cell of %s" % [where, cells[cell]])
+		else:
+			cells[cell] = where
 	for i in skills.size():
 		var row := skills[i]
 		var needs := requires_of(row)
@@ -186,3 +187,18 @@ func problems() -> Array[String]:
 			elif cell_of(needed).y >= cell_of(row).y:
 				out.append("skill %d (%s) requires '%s', which is not on an earlier row" % [i + 1, str(row.get("id", "")), str(other)])
 	return out
+
+## The tree as plain data, and back (the dock's JSON export and import).
+func to_dict() -> Dictionary:
+	return {"id": String(id), "title": title, "skills": skills.duplicate(true), "points_per_row": points_per_row, "reset_gold": reset_gold}
+
+static func from_dict(data: Dictionary) -> RpgSkillTree:
+	var tree := RpgSkillTree.new()
+	tree.id = StringName(str(data.get("id", "")))
+	tree.title = str(data.get("title", ""))
+	for raw: Variant in RpgUtil.to_array(data.get("skills", [])):
+		if raw is Dictionary:
+			tree.skills.append(RpgUtil.to_dict(raw).duplicate(true))
+	tree.points_per_row = RpgUtil.to_int(data.get("points_per_row", 0))
+	tree.reset_gold = RpgUtil.to_int(data.get("reset_gold", 0))
+	return tree

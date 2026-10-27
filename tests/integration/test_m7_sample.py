@@ -122,6 +122,19 @@ def test_battle_data_and_scenes_exist(sample: Path) -> None:
     assert 'combat_scene = "res://generated/scenes/combat/combat_mode.tscn"' in boot
 
 
+def test_the_option_skills_and_achievements_seeds_its_starters(sample: Path) -> None:
+    saved = jsonio.read(sample / "rpggen/generator_config.json")
+    assert saved["features"]["progression"] is True, "on for a new turn-based game"
+    tree = (sample / "game/data/skill_trees/adventurer.tres").read_text(encoding="utf-8")
+    assert '"skill": "cure"' in tree, "the turn-based tree teaches Cure"
+    achievements = sorted(p.stem for p in (sample / "game/data/achievements").glob("*.tres"))
+    assert {"errand", "hunter", "savings", "seasoned"} <= set(achievements), achievements
+    keys = (sample / "game/i18n/strings.tsv").read_text(encoding="utf-8")
+    assert "SKILL_VIGOR_NAME\tVigor" in keys and "ACHIEVEMENT_ERRAND_NAME\tA helping hand" in keys
+    validation = jsonio.read(sample / "rpggen/results/validation_results.json")
+    assert not [i for i in validation.get("issues", []) if i.get("code") == "VAL-034"]
+
+
 def test_the_battle_scene_has_the_documented_nodes(sample: Path) -> None:
     text = (sample / "generated/scenes/battle/battle.tscn").read_text(encoding="utf-8")
     names = re.findall(r'^\[node name="([^"]+)"', text, re.M)

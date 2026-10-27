@@ -29,6 +29,7 @@ FEATURE_KEYS = (
     "combat",
     "navigation",
     "debug_tools",
+    "progression",
 )
 
 
@@ -242,8 +243,8 @@ ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
 # the one-way platforms, ladders and hazards (T14.03, T16.08).
 SIDE_VIEW_KINDS = ("metroidvania", "run_and_gun")
 # What an arcade kind (M16) has switched off until somebody switches it on: a run through
-# stages has nobody to talk to and no enemy that looks for a path.
-ARCADE_OFF = ("dialogue", "navigation")
+# stages has nobody to talk to and no enemy that looks for a path, and no skills to learn.
+ARCADE_OFF = ("dialogue", "navigation", "progression")
 
 
 # A farm (M17) has nothing to fight until somebody switches combat on.
@@ -296,7 +297,7 @@ def iso_controls_for(archetype: str, wanted: str) -> str:
 def default_features(archetype: str = "turn_based") -> dict[str, bool]:
     if archetype == ASSETS_KIND:
         return {key: key in ASSETS_ON for key in FEATURE_KEYS}
-    off = ARCADE_OFF if archetype in ARCADE_KINDS else ("navigation",)
+    off: tuple[str, ...] = ARCADE_OFF if archetype in ARCADE_KINDS else ("navigation",)
     if archetype == "farm":
         off = FARM_OFF
     return {key: key not in off for key in FEATURE_KEYS}

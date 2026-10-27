@@ -504,6 +504,7 @@ def test_an_action_rpg_made_by_1_1_regenerates_and_old_combat_paths_still_load(
         "Sample RPG", [config.pack_ref_from_source(pack, "sample_pack")], archetype="arpg"
     )
     cfg.starter = mapping.default_starter(cat, "arpg")
+    cfg.features.pop("progression", None)  # a config written by 1.1 has no such key
     with monkeypatch.context() as patch:
         patch.setattr(paths, "templates_root", lambda: old_templates)
         first = orchestrator.run_in_memory(cfg, None, target, godot_exe)
@@ -548,6 +549,7 @@ def test_a_project_made_by_1_1_regenerates_with_its_maps_and_tilesets_untouched(
         "Sample RPG", [config.pack_ref_from_source(pack, "sample_pack")], archetype=archetype
     )
     cfg.starter = mapping.default_starter(cat, archetype)
+    cfg.features.pop("progression", None)  # a config written by 1.1 has no such key
     with monkeypatch.context() as patch:
         patch.setattr(paths, "templates_root", lambda: old_templates)
         first = orchestrator.run_in_memory(cfg, None, target, godot_exe)
